@@ -4,19 +4,25 @@
 
 Uraeda is a a git-driven opinionated software development harness.
 
-It provides:
+It will provide, once fully built:
 
 - A structure for creating good software with LLMs -> can be used as-is with any coding agent
   - Human proposal -> Agent questions -> Human decisions -> Agent plan -> Human validation ->
     Implementation
   - History of human-made decisions so agents can't ruin your code with decisions that are _too_
     stupid
+  - Text-focused system: no Jira, no Linear, just text files
 - A CLI to enforce the structure above
 - A server listening to git changes to automatically trigger agent runs on human proposals
   - Optional but that's how I use it
 
+## Inspirations
+
 Uraeda is heavily inspired by [superpowers](https://github.com/obra/superpowers), but is more
-opinionated, designed to be asynchronous, and focuses more on long-term software goals..
+opinionated, designed to be asynchronous, and focuses more on long-term software goals.
+
+It also borrows concepts from
+[Plain Text Team](https://github.com/0atman/noboilerplate/blob/main/scripts/34-Plain-Text-Team.md).
 
 > [!WARNING]
 >
@@ -58,8 +64,6 @@ and ask the human user if some of those can be overriden.
 
 # Core files
 
-Those files should not change too often.
-
 ## design/README.md
 
 We'll have a README.md in the /design folder explaining how this software development flow is
@@ -70,7 +74,7 @@ This will be a template that is populated by the CLI, and it should not change m
 In particular, this README.md should NEVER hold an index-like list of files: just generic
 organization rules and information about folders.
 
-## PRINCIPLES
+## PRINCIPLES.md
 
 The PRINCIPLES.md file is a short file explaining the core rules and goals of this software project.
 
@@ -80,17 +84,19 @@ Those should be human-written, but we can propose some templates and/or interact
 
 Example of principles:
 
+<!-- TODO:  Better examples, there should be a clear throughline with all the examples -->
+
 - This application is aimed at non-technical users. Technical jargon in the application should be
   kept at a minimum, and the UI should stay lightweight.
 - This is a local application. Do not call any external API without explicit human approval.
 - Performance is a priority: each new feature should be benchmarked and performance regressions are
   not acceptable without human approval.
 
-## PRIORITIES
+## PRIORITIES.md
 
 Simple `.md` file with **Now, Next, Later, and Blocked** categories.
 
-Displayed as a Kanban board in the web UI.
+Displayed as a kanban in the web UI.
 
 Can links to files in `/design/drafts`, `design/features`, ...
 
@@ -128,6 +134,9 @@ future features ahead of time.
 # Feature flow
 
 `/design/features` is the core of the workflow.
+
+Every step has clear git-based checkpoints, but there's also space for direct agentic chats, for
+example for quick changes to the design plan.
 
 ```mermaid
 flowchart TD
