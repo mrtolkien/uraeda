@@ -134,7 +134,43 @@ collaborate on future features ahead of time.
 
 `/design/features` is the core of the workflow.
 
-> [!TODO] GRAPH VIEW OF THE WORKFLOW
+```mermaid
+flowchart TD
+    subgraph legend["Legend"]
+        direction LR
+        legendHuman["Human action"]
+        legendAgent["Agent action"]
+    end
+
+    proposal["Create proposal.md in a feature folder"]
+    proposal --> research["Research code, local references, and online sources"]
+    research --> questions["Commit questions in clarifications.md"]
+    questions --> answers["Answer questions and commit responses"]
+    answers --> decisions["Record important decisions"]
+    decisions -.-> ledger[("Decision ledger: /design/decisions")]
+    decisions --> scope{"Is the scope clear?"}
+    scope -->|More clarification needed| research
+    scope -->|Yes| design["Create and commit the design plan"]
+    design --> review["Review the design plan"]
+    review --> validation{"Approve or revise?"}
+    validation -->|Request more clarification| research
+    validation -->|Request design changes| design
+    validation -->|Edit and validate| humanEdit["Edit the plan and commit it as validated"]
+    validation -->|Approve| implementationPlan["Generate the implementation plan"]
+    humanEdit --> implementationPlan
+    implementationPlan --> config{"Is final human approval required by config?"}
+    config -->|No| implementation["Implement code and open a PR"]
+    config -->|Yes| summary["Summarize core decisions for human review"]
+    summary --> finalApproval["Approve implementation"]
+    finalApproval --> implementation
+
+    classDef human fill:#dbeafe,stroke:#1d4ed8,color:#172554,stroke-width:3px
+    classDef agent fill:#ffedd5,stroke:#c2410c,color:#431407,stroke-width:2px
+    classDef neutral fill:#f3f4f6,stroke:#4b5563,color:#111827,stroke-width:1px
+    class legendHuman,proposal,answers,review,validation,humanEdit,finalApproval human
+    class legendAgent,research,questions,decisions,scope,design,implementationPlan,summary,implementation agent
+    class legendNeutral,legendBranch,legendStorage,ledger,config neutral
+```
 
 ## Proposal
 
@@ -204,13 +240,14 @@ plan.
 This is pretty much the exact
 [writing-plans skill of superpowers](https://github.com/obra/superpowers/blob/main/skills/writing-plans/SKILL.md).
 
-The generated documented will be long, technical, and pretty hostile to human review.
+The generated document will be long, technical, and pretty hostile to human review.
 
-So we should run a small agent to highlight the core decisions made when going from
-design plan to implementation plan and provide human-friendly feedback.
+If user config requires final human approval, a small agent summarizes the core
+decisions made when going from design plan to implementation plan for human review. The
+workflow then waits for human approval before implementing the code and opening a PR.
 
-Depending on user config the workflow can either move automatically to the
-implementation of code and open a PR, or it can be the last human approval.
+Otherwise, the workflow moves automatically from the implementation plan to implementing
+the code and opening a PR, without generating a summary.
 
 ## Implementation
 
