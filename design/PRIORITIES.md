@@ -10,6 +10,7 @@
 
 1. Dedicated Pi-durable runtime with basic tooling
 2. Git listener process
+3. Code quality and style guides
 
 ## Later
 
@@ -21,5 +22,7 @@
 1. Ping user on decisions
 1. Use Jev-like model for one-shot classification of decisions: "Is this decision relevant to this
    proposal?", ..
+1. Public documentation maintenance / hooks?
+1. Setup agent (checks project and creates relevant files)
 
 ## Blocked
