@@ -1,0 +1,17 @@
+{
+  "name": "uraeda",
+  "private": true,
+  "scripts": {
+    "prepare": "vp config"
+  },
+  "devDependencies": {
+    "vite-plus": "catalog:"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.9.1",
+      "onFail": "download"
+    }
+  }
+}

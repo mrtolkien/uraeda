@@ -19,7 +19,7 @@
 1. Nix + Docker based execution environments
 1. Benchmarks (harness, model, ...)
 1. Ping user on decisions
-1. Use Jev-like model for one-shot classification of decisions: "Is this decision
-   relevant to this proposal?", ..
+1. Use Jev-like model for one-shot classification of decisions: "Is this decision relevant to this
+   proposal?", ..
 
 ## Blocked
