@@ -24,6 +24,6 @@
 1. Benchmarks (harness, model, ...)
 1. Public documentation maintenance / hooks?
 1. Setup with agent (checks project and creates relevant files)
-1. Monorepo support: multiple `design` folders, principles per package, ...
+1. Monorepo support: multiple `specs` folders, principles per package, ...
 
 ## Blocked
