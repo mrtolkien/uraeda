@@ -43,7 +43,9 @@ Rationale: human attention is the scarcest resource in the workflow.
 
 ### V. Tools are optional
 
-- The workflow MUST be discoverable in every uraeda-using repository.
+- A coding agent with no uraeda-specific instructions MUST be able to navigate the `specs/` folder
+  through clear file names and contents, and to understand the basics of the feature flow from
+  `specs/README.md`.
 - The workflow MUST work with any agent, with or without the uraeda CLI, web UI, or remote workers.
 - Tools MUST only enforce rules that humans and agents can follow unaided.
 - Uraeda MUST ship a template or skill for every artifact, and tools MUST validate artifacts
@@ -68,4 +70,4 @@ Rationale: "high-quality code" cannot be checked, but acceptance tests and justi
 - Specs and plans MUST include a constitution check. Exceptions MUST be listed in the plan's
   complexity tracking and approved by a human.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-07
+**Version**: 1.0.1 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-07

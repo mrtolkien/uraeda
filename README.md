@@ -7,8 +7,8 @@ Uraeda is a git-driven opinionated software development harness.
 It will provide, once fully built:
 
 - A structure for creating good software with LLMs -> can be used as-is with any coding agent
-  - Human proposal -> Agent questions -> Human decisions -> Agent plan -> Human validation ->
-    Implementation
+  - Human proposal -> Agent research and questions -> Human answers -> Agent spec -> Human approval
+    -> Agent plan and tasks -> Implementation in a PR
   - History of human-made decisions so agents can't ruin your code with decisions that are _too_
     stupid
   - Text-focused system: no Jira, no Linear, just text files
@@ -18,16 +18,14 @@ It will provide, once fully built:
 
 ## Inspirations
 
-Uraeda is heavily inspired by [superpowers](https://github.com/obra/superpowers), but is more
-opinionated, designed to be asynchronous, and focuses more on long-term software goals.
-
 Uraeda's files follow the formats and vocabulary of [Spec Kit](https://github.com/github/spec-kit):
 constitution, spec, plan, and tasks. Spec Kit is a textual workflow run from a chat session. Uraeda
 is software built around a similar workflow: it runs asynchronously from git commits, keeps a ledger
 of human decisions, and scales human review with risk tiers.
 
 It also borrows concepts from
-[Plain Text Team](https://github.com/0atman/noboilerplate/blob/main/scripts/34-Plain-Text-Team.md).
+[Plain Text Team](https://github.com/0atman/noboilerplate/blob/main/scripts/34-Plain-Text-Team.md)
+and [superpowers](https://github.com/obra/superpowers).
 
 > [!WARNING]
 >
@@ -55,18 +53,17 @@ specs/
       assessment.md               # agent: root cause and suggested fix
   001-recurring-tasks/            # one numbered folder per feature
     proposal.md                   # human: what and why
+    research.md                   # agent: findings and options, before questions
     clarifications.md             # agent questions, human answers
     spec.md                       # agent: behaviour, reviewed by a human
     plan.md                       # agent: technical approach
+    data-model.md                 # agent, when needed: entities and their rules
+    contracts/                    # agent, when needed: exact interface definitions
     tasks.md                      # agent: step-by-step implementation tasks
 ```
 
 Spec folders are numbered, so listing them shows the order in which features were started. Files
 inside a spec folder use the same names as Spec Kit.
-
-## Specs
-
-See dedicated Feature Flow below
 
 ## Decisions
 
@@ -90,6 +87,10 @@ those can be overridden.
 
 We'll have a README.md in the /specs folder explaining how this software development flow is
 organized.
+
+A coding agent with no uraeda-specific instructions should be able to navigate the `specs/` folder
+through clear file names and contents. `specs/README.md` gives it the basics of the feature flow,
+not every detail.
 
 This will be a template that is populated by the CLI, and it should not change much.
 
@@ -168,6 +169,8 @@ descriptions.
 An agent can be asked to review a draft, but the goal of this folder is to let humans collaborate on
 future features ahead of time.
 
+A draft is promoted by moving it to a new spec folder and renaming it to `proposal.md`.
+
 # Feature flow
 
 Each feature gets a numbered spec folder in `/specs`: this is the core of the workflow.
@@ -189,7 +192,7 @@ flowchart TD
 
     proposal["Create proposal.md in a new spec folder, ideally on a feature branch"]
     proposal --> research["Research code, local references, and online sources"]
-    research --> questions["Commit questions with recommended answers in clarifications.md"]
+    research --> questions["Commit research.md, and questions with recommended answers in clarifications.md"]
     questions --> answers["Answer questions and commit responses"]
     answers --> decisions["Propose decisions"]
     decisions -.-> ledger[("Decision ledger: /specs/decisions")]
@@ -201,11 +204,11 @@ flowchart TD
     validation -->|Request more clarification| research
     validation -->|Request spec changes| spec
     validation -->|Edit and validate| humanEdit["Edit the spec or decisions and commit them as validated"]
-    validation -->|Approve| activate["Mark proposed decisions as active"]
+    validation -->|Approve| activate["Record approved decisions as active"]
     humanEdit --> activate
     activate --> plan["Write plan.md with a constitution check"]
     plan --> planCheck{"Does the plan need new important decisions or constitution exceptions?"}
-    planCheck -->|Yes| spec
+    planCheck -->|Yes| research
     planCheck -->|No| tier{"Does the risk tier require plan approval?"}
     tier -->|Yes| planApproval["Review and approve plan.md"]
     tier -->|No| tasks["Write tasks.md"]
@@ -223,7 +226,7 @@ flowchart TD
 ## Proposal
 
 A proposal is a human-written description of a feature, saved as `proposal.md`. It generally comes
-from promoting a draft.
+from promoting a draft: the draft file is moved to the new spec folder and renamed to `proposal.md`.
 
 > [!TODO]
 >
@@ -238,6 +241,16 @@ When a `proposal.md` file is created in a spec folder, an agent picks it up and:
 - Searches for necessary references and information online
 - Identifies parts requiring human input: behaviour details, visual direction, library selection,
   reusability level required of the produced code, ...
+
+The agent writes its findings in `research.md`, before asking any question. For each topic, it lists
+what it found, the options it considered with their pros and cons, and its sources.
+
+`research.md` holds findings and options, never decisions: decisions come from the human's answers.
+It gives the questions a documented basis, and lets a different agent resume the work later without
+redoing the research.
+
+Like clarifications, each research round is a new session in the same file, so earlier findings are
+kept.
 
 ## Clarifications and Decisions
 
@@ -337,9 +350,16 @@ follows Spec Kit's plan template:
 - **Complexity tracking**: only filled in when the plan breaks a principle, with the reason and the
   simpler alternative that was rejected
 
+When the feature needs them, the plan comes with two extra files:
+
+- `data-model.md`: the entities the feature adds or changes, their fields, relationships, validation
+  rules, and state transitions. Small data changes stay in a section of `plan.md`.
+- `contracts/`: exact definitions of the interfaces the feature exposes to users or other systems,
+  in the format that fits the project: API schemas, CLI command definitions, file formats, ...
+
 The plan must not introduce new important decisions or constitution exceptions: those should have
-been settled during clarifications. If the plan needs one, the workflow goes back to the spec, which
-is updated and validated again.
+been settled during clarifications. If the plan needs one, the workflow goes back to research and
+questions, so the human makes the decision. The spec is then updated and validated again.
 
 If the feature's risk tier requires it, the workflow waits for the human to review and approve the
 plan. Otherwise, it moves on to the tasks automatically.
