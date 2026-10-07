@@ -1,27 +1,37 @@
 # Principles
 
-`uraeda`:
+## Put git and plain text first
 
-- is git and full-text first
-  - Information stored outside of text files in git needs to have a strong justification.
-  - Decisions and design changes must be recorded in git for traceability.
-  - Workflow artifacts must be plain text, readable and editable without uraeda tooling.
-- keeps humans in control of consequential decisions
-  - Agents work within human-approved scope and decisions.
-  - Conflicts require explicit human resolution; agents cannot silently override prior decisions.
-- helps humans express their needs and review consequential choices
-  - Make consequential decisions and their tradeoffs understandable to the human.
-  - Keep review effort proportional to the impact of the change.
-  - Delegate implementation details within the approved design so work can proceed efficiently.
-- supports asynchronous work across interruptions and agent changes
-  - Durable workflow state must be recoverable from the repository.
-  - Resuming work must not require the original chat session or agent.
-  - Workers may keep temporary chat state and caches in memory.
-- has _optional_ software tools (CLI, web UI, remote workers)
-  - The workflow needs to work with any agent and be easily discoverable from inside any
-    uraeda-using repository.
-  - The workflow is self-documenting through its bundled `$repo_root/design/README.md`, which
-    describes file formats, locations, and workflow conventions.
-  - Tools enforce the same documented rules that humans and agents can follow without them, albeit
-    an agent without the proper skills might create low quality artifacts.
-- focuses on creating high quality, maintainable code
+- Store information as text in git. Justify exceptions.
+- Record decisions and design changes in git for traceability.
+- Keep workflow artifacts readable and editable without uraeda tools.
+
+## Keep humans in control
+
+- Keep agents within human-approved scope and decisions.
+- Require explicit human resolution of conflicts.
+- Never silently override prior decisions.
+
+## Make consequential choices easy to review
+
+- Help humans express their needs and understand tradeoffs.
+- Match review effort to the impact of the change.
+- Delegate implementation details within the approved design.
+
+## Support work across interruptions and agent changes
+
+- Recover durable workflow state from the repository.
+- Resume without the original chat session or agent.
+- Keep only temporary chat state and caches in memory.
+
+## Make software tools optional
+
+- Make the workflow discoverable in every uraeda-using repository.
+- Support any agent, with or without a CLI, web UI, or remote workers.
+- Document formats, locations, and conventions in `$repo_root/design/README.md`.
+- Make tools enforce the same rules humans and agents can follow unaided.
+- Recognize that agents without the right skills may produce poor artifacts.
+
+## Create high-quality, maintainable code
+
+- Deliver code that is easy to understand and maintain.
