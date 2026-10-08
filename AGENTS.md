@@ -1,3 +1,23 @@
+# Uraeda
+
+Uraeda is a git-driven, opinionated software development harness. Humans write proposals, agents
+research, ask questions, and write specs, plans, and tasks, and every step is checkpointed as plain
+text in git. The project is early: most of it is still design documents.
+
+## Constitution
+
+Read `specs/CONSTITUTION.md` before any work. It holds the project's principles, ordered by
+priority: when two conflict, the higher one wins. Its MUST and SHOULD rules are binding, and any
+conflict with them must be resolved by a human.
+
+## Understanding the workflows
+
+- `README.md`: the workflow design. Read "Files organization" for the `specs/` layout and the
+  decision ledger, and "Feature flow" for the steps from proposal to implementation.
+- `specs/PRIORITIES.md`: what is being worked on now, next, and later.
+- `TODO.md`: open design questions, each with a recommendation awaiting human review. Treat them as
+  undecided.
+
 <!--VITE PLUS START-->
 
 # Using Vite+, the Unified Toolchain for the Web

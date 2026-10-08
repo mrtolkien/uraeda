@@ -42,8 +42,10 @@ specs/
   README.md                       # status legend + conventions
   CONSTITUTION.md                 # app-specific development principles
   PRIORITIES.md                   # kanban-like list of next steps
-  drafts/                         # inbox: rough notes, no structure required
-    due-date-reminders.md         # can be linked to an item in PRIORITIES
+  drafts/                         # upcoming features, human-written, no structure required
+    due-date-reminders.md
+  backlog/                        # nice-to-have features, not scheduled
+    mobile-layout.md
   decisions/                      # Architecture Decision Record
     0001-local-storage.md
     0002-no-user-accounts.md
@@ -132,11 +134,20 @@ approval.
 
 ## PRIORITIES.md
 
-Simple `.md` file with **Now, Next, Later, and Blocked** categories.
+`PRIORITIES.md` is the source of truth for what the project works on, and in which order. It is a
+simple `.md` file with **Now, Next, Later, and Blocked** sections:
 
-Displayed as a kanban in the web UI.
+- **Now**: work actively in progress
+- **Next**: what comes after, in order
+- **Later**: nice-to-have ideas, not scheduled
+- **Blocked**: work waiting on something, with the reason
 
-Can link to files in `/specs/drafts`, `/specs/bugs`, spec folders, ...
+It is also the quickest way to capture an idea: an entry can be a single line of plain text, without
+any file. Humans jot down a future feature to keep it in mind, and only write a draft once there is
+more to say about it.
+
+Entries can link to anything in `/specs`: drafts, backlog files, bugs, spec folders, ... Future
+tools display the file as a kanban.
 
 ```md
 # Priorities
@@ -154,22 +165,31 @@ Can link to files in `/specs/drafts`, `/specs/bugs`, spec folders, ...
 ## Later
 
 - Tags and filters
-- [Mobile layout](drafts/mobile-layout.md)
+- [Mobile layout](backlog/mobile-layout.md)
 
 ## Blocked
 
 - [Sync between devices](drafts/device-sync.md), blocked by: decision on local-only storage
 ```
 
-# Drafts
+# Drafts and backlog
 
-`/specs/drafts` is a staging space for future features and made for human-generated features
-descriptions.
+`/specs/drafts` and `/specs/backlog` hold human-written feature descriptions that have outgrown a
+line in `PRIORITIES.md`, but are not spec folders yet:
 
-An agent can be asked to review a draft, but the goal of this folder is to let humans collaborate on
-future features ahead of time.
+- **Drafts**: upcoming features. Humans collaborate on them ahead of time, and an agent can be asked
+  to review one.
+- **Backlog**: nice-to-have features that are not scheduled.
 
-A draft is promoted by moving it to a new spec folder and renaming it to `proposal.md`.
+The folders are a secondary structure: `PRIORITIES.md` decides the priority. A file that is not
+listed there is shown in **Next** if it is in `/specs/drafts`, and in **Later** if it is in
+`/specs/backlog`.
+
+A feature usually grows in three steps:
+
+1. A line in `PRIORITIES.md`
+2. A file in `/specs/drafts` or `/specs/backlog`, once there is more to write about it
+3. A spec folder: the draft is moved to a new numbered folder and renamed to `proposal.md`
 
 # Feature flow
 
