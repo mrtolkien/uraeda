@@ -20,8 +20,8 @@ It will provide, once fully built:
 
 Uraeda's files follow the formats and vocabulary of [Spec Kit](https://github.com/github/spec-kit):
 constitution, spec, and plan. Spec Kit is a textual workflow run from a chat session. Uraeda is
-software built around a similar workflow: it runs asynchronously from git commits, keeps a ledger of
-human decisions, and scales human review with risk tiers.
+software built around a similar workflow, but : it runs asynchronously from git commits, keeps a
+ledger of human decisions, and scales human review with risk tiers.
 
 It also borrows concepts from
 [Plain Text Team](https://github.com/0atman/noboilerplate/blob/main/scripts/34-Plain-Text-Team.md)
@@ -29,7 +29,10 @@ and [superpowers](https://github.com/obra/superpowers).
 
 > [!WARNING]
 >
-> The content below likely shouldn't be in a README.md, we need to reorganize this
+> The content below shouldn't be in a README.md, we will re-organize this before making the repo
+> public, and only keep information that should be user-facing.
+>
+> The actual workflow files are the source of truth for the behaviour.
 
 # Files organization
 
@@ -85,8 +88,9 @@ status: awaiting-human
 | `spec.md`           | `awaiting-human`                                 | `approved` or `changes-requested` |
 | `plan.md`           | `awaiting-human`, or `auto-approved` (risk tier) | `approved` or `changes-requested` |
 
-- Agents only set `awaiting-human` or `auto-approved`. Only a human sets `answered`, `approved`, or
-  `changes-requested`.
+- For these files, agents only set `awaiting-human` or `auto-approved`. `answered`, `approved`, and
+  `changes-requested` are set by a human, or by an agent when the human expressly asks for it, for
+  example by approving the spec in a chat session. The commit message then says so.
 - A git listener triggers an agent run when a human-set status is committed.
 - With `changes-requested`, the human writes their feedback in a `## Review` section at the end of
   the file, so the agent knows what to change.
