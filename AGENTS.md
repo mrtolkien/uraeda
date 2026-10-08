@@ -1,8 +1,8 @@
 # Uraeda
 
 Uraeda is a git-driven, opinionated software development harness. Humans write proposals, agents
-research, ask questions, and write specs, plans, and tasks, and every step is checkpointed as plain
-text in git. The project is early: most of it is still design documents.
+research, ask questions, and write specs and plans, and every step is checkpointed as plain text in
+git. The project is early: most of it is still design documents.
 
 ## Constitution
 
@@ -15,8 +15,6 @@ conflict with them must be resolved by a human.
 - `README.md`: the workflow design. Read "Files organization" for the `specs/` layout and the
   decision ledger, and "Feature flow" for the steps from proposal to implementation.
 - `specs/PRIORITIES.md`: what is being worked on now, next, and later.
-- `TODO.md`: open design questions, each with a recommendation awaiting human review. Treat them as
-  undecided.
 
 ## Repository layout
 
@@ -28,6 +26,9 @@ conflict with them must be resolved by a human.
   - `assets/templates/specs/`: artifact skeletons, at the same paths as in a user's `specs/` folder
   - `assets/example/specs/`: a filled-in example project (todo app), at the same paths
 - `specs/`: Uraeda's own workflow files. Not the templates installed in users' projects.
+
+Markdown files can link to any file in the repository. Write markdown links with a relative path or
+a path from the repository root (`/src/...`). Humans may also write wikilinks (`[[file-name]]`).
 
 <!--VITE PLUS START-->
 

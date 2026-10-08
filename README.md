@@ -8,7 +8,7 @@ It will provide, once fully built:
 
 - A structure for creating good software with LLMs -> can be used as-is with any coding agent
   - Human proposal -> Agent research and questions -> Human answers -> Agent spec -> Human approval
-    -> Agent plan and tasks -> Implementation in a PR
+    -> Agent plan -> Implementation in a PR
   - History of human-made decisions so agents can't ruin your code with decisions that are _too_
     stupid
   - Text-focused system: no Jira, no Linear, just text files
@@ -19,9 +19,9 @@ It will provide, once fully built:
 ## Inspirations
 
 Uraeda's files follow the formats and vocabulary of [Spec Kit](https://github.com/github/spec-kit):
-constitution, spec, plan, and tasks. Spec Kit is a textual workflow run from a chat session. Uraeda
-is software built around a similar workflow: it runs asynchronously from git commits, keeps a ledger
-of human decisions, and scales human review with risk tiers.
+constitution, spec, and plan. Spec Kit is a textual workflow run from a chat session. Uraeda is
+software built around a similar workflow: it runs asynchronously from git commits, keeps a ledger of
+human decisions, and scales human review with risk tiers.
 
 It also borrows concepts from
 [Plain Text Team](https://github.com/0atman/noboilerplate/blob/main/scripts/34-Plain-Text-Team.md)
@@ -58,30 +58,104 @@ specs/
     research.md                   # agent: findings and options, before questions
     clarifications.md             # agent questions, human answers
     spec.md                       # agent: behaviour, reviewed by a human
-    plan.md                       # agent: technical approach
+    plan.md                       # agent: technical approach and implementation steps
     data-model.md                 # agent, when needed: entities and their rules
     contracts/                    # agent, when needed: exact interface definitions
-    tasks.md                      # agent: step-by-step implementation tasks
 ```
 
 Spec folders are numbered, so listing them shows the order in which features were started. Files
 inside a spec folder use the same names as Spec Kit.
 
+## Workflow status
+
+Each workflow file tracks its step in a `status` field of its frontmatter. A git listener, or a
+fresh agent, can tell from the files alone whether a step is waiting for the human, waiting for an
+agent, or approved. For example, an agent must not start the spec while the human has answered only
+3 of the 12 questions.
+
+```md
+---
+status: awaiting-human
+---
+```
+
+| File                | Set by the agent                                 | Set by the human                  |
+| ------------------- | ------------------------------------------------ | --------------------------------- |
+| `clarifications.md` | `awaiting-human`                                 | `answered`                        |
+| `spec.md`           | `awaiting-human`                                 | `approved` or `changes-requested` |
+| `plan.md`           | `awaiting-human`, or `auto-approved` (risk tier) | `approved` or `changes-requested` |
+
+- Agents only set `awaiting-human` or `auto-approved`. Only a human sets `answered`, `approved`, or
+  `changes-requested`.
+- A git listener triggers an agent run when a human-set status is committed.
+- With `changes-requested`, the human writes their feedback in a `## Review` section at the end of
+  the file, so the agent knows what to change.
+
+Alternatives considered:
+
+- A single state file per spec folder: it duplicates information that belongs to each file, and it
+  gets out of sync.
+- Commit message trailers (`Uraeda-Step: spec-approved`): invisible when reading the files.
+
+## Links
+
+Any markdown file can link to any file in the repository, including source code:
+
+- Markdown links, with a relative path (`[research](../001-recurring-tasks/research.md)`) or a path
+  from the repository root (`[auth](/src/auth.ts)`)
+- Wikilinks, with the file name (`[[0003-recurring-tasks-use-presets]]`), or a partial path when the
+  name is ambiguous (`[[001-recurring-tasks/spec]]`)
+
+Agents always write markdown links, which render on GitHub and in most editors. Wikilinks are
+accepted for humans, who often write them from note-taking tools.
+
+Links replace metadata fields: instead of listing what a decision affects, the files that rely on it
+link to it, and tools find them from these inbound links. Links break when files move: tools will
+check them.
+
 ## Decisions
 
-Ledger of human-validated decisions.
+Ledger of human-validated decisions, one file per decision in `/specs/decisions`.
 
-Each decision has a status:
+The `status` field in the frontmatter of each decision is one of:
 
-- **Proposed**: drafted by an agent from the human's answers, not binding yet
-- **Active**: validated by a human, binding for all future work
-- **Overridden by XXXX**: replaced by a newer decision, only once a human validates the override
+- **proposed**: drafted by an agent from the human's answers, not binding yet
+- **active**: validated by a human, binding for all future work. `approved-by` holds the username of
+  the human who approved it.
+- **overridden**: replaced by the newer decision named in `overridden-by`, only once a human
+  validates the override
 
-Agents never accept a decision themselves: a human validates proposed decisions, either explicitly
-or by approving the spec that lists them.
+Agents only activate a decision when a human explicitly asks them to. Approving a spec is such a
+request: the agent sets the decisions the spec lists to **active**, with `approved-by` set to the
+author of the approving commit.
 
 Specs and plans are checked against active decisions, and the agent asks the human user if some of
 those can be overridden.
+
+A decision opens with the decision itself, written as MUST and SHOULD rules that specs and plans can
+be checked against. What the decision rules out is written as MUST NOT rules. A short context
+follows, with links to the clarification question and the research. The options considered stay in
+`research.md`, to keep decision files short.
+
+```md
+---
+status: active
+approved-by: mrtolkien
+overridden-by:
+spec: 001-recurring-tasks
+date: 2026-10-07
+---
+
+# 0003. Recurring tasks use presets
+
+Recurrence MUST be one of daily, weekly, monthly. Recurrence MUST NOT use free-text rules.
+
+## Context
+
+Keeps the repeat settings screen simple for non-technical users. See
+[Q1](../001-recurring-tasks/clarifications.md#q1-how-should-users-choose-when-a-task-repeats) and
+the [research](../001-recurring-tasks/research.md).
+```
 
 # Core files
 
@@ -227,17 +301,16 @@ flowchart TD
     activate --> plan["Write plan.md with a constitution check"]
     plan --> planCheck{"Does the plan need new important decisions or constitution exceptions?"}
     planCheck -->|Yes| research
-    planCheck -->|No| tier{"Does the risk tier require plan approval?"}
+    planCheck -->|No| tier{"Is a plan review required by the risk tier?"}
     tier -->|Yes| planApproval["Review and approve plan.md"]
-    tier -->|No| tasks["Write tasks.md"]
-    planApproval --> tasks
-    tasks --> implementation["Implement code and open a PR"]
+    tier -->|No| implementation["Implement code and open a PR"]
+    planApproval --> implementation
 
     classDef human fill:#dbeafe,stroke:#1d4ed8,color:#172554,stroke-width:3px
     classDef agent fill:#ffedd5,stroke:#c2410c,color:#431407,stroke-width:2px
     classDef neutral fill:#f3f4f6,stroke:#4b5563,color:#111827,stroke-width:1px
     class legendHuman,proposal,answers,review,validation,humanEdit,planApproval human
-    class legendAgent,research,questions,decisions,scope,spec,activate,plan,planCheck,tasks,implementation agent
+    class legendAgent,research,questions,decisions,scope,spec,activate,plan,planCheck,implementation agent
     class legendNeutral,legendBranch,legendStorage,ledger,tier neutral
 ```
 
@@ -329,8 +402,8 @@ Uraeda adds three sections to it:
   reviewed together with the spec
 - **Constitution check**: how the spec complies with each principle of the constitution and with
   active decisions. Any conflict must be resolved by the human before approval.
-- **Risk tier**: the feature's impact, proposed by the agent. The risk tier decides whether the
-  human must also approve the plan. The human can change it during validation.
+- **Risk tier**: the feature's impact, proposed by the agent with a one-line reason. See
+  [Risk tiers](#risk-tiers).
 
 The spec must not contain any `[NEEDS CLARIFICATION]` markers when it is submitted for review: open
 questions go back to `clarifications.md`.
@@ -348,13 +421,41 @@ questions go back to `clarifications.md`.
 
 Once a spec is written out, it is committed back to the repo, and it waits for human approval.
 
-Approving the spec also activates the proposed decisions it lists.
+Approving the spec also activates the proposed decisions it lists, and confirms the risk tier: the
+human can raise or lower it.
 
 If the human does not approve the spec as-is, they should either:
 
 - Edit the spec or the proposed decisions themselves and commit them as validated
 - Explain the issues to an agent that can bring the work back to any previous step (clarifications
   or spec)
+
+## Risk tiers
+
+The risk tier decides whether the human reviews `plan.md`. The agent proposes it in the frontmatter
+of `spec.md`, and the human confirms it when approving the spec.
+
+| Tier     | Plan review                                                  | Typical features                                           |
+| -------- | ------------------------------------------------------------ | ---------------------------------------------------------- |
+| `low`    | none: the plan is auto-approved                              | No data format change, no new table, no new interface      |
+| `medium` | chosen by the human when approving the spec, none by default | Small data format changes, minimal UI, low-impact features |
+| `high`   | required                                                     | Security changes, new complex data structures or services  |
+
+For a `medium` feature, the agent adds a `plan-review: false` field. When approving the spec, the
+human sets it to `true` if they want to review the plan:
+
+```md
+---
+status: approved
+risk-tier: medium
+plan-review: true
+---
+```
+
+- When unsure between two tiers, the agent proposes the higher one.
+- The constitution can set a minimum tier for the whole project, for example "every feature is
+  `high`" while a project is young.
+- Code is always reviewed in the PR, whatever the tier: the tier only controls the plan review.
 
 ## Plan
 
@@ -368,6 +469,13 @@ follows Spec Kit's plan template:
 - **Complexity tracking**: only filled in when the plan breaks a principle, with the reason and the
   simpler alternative that was rejected
 
+Uraeda adds a **Steps** section at the end: an ordered checklist of implementation steps, each one a
+commit with its tests. Steps stay coarse: the implementing agent breaks each one down further in its
+own session. The checkboxes track progress, so a different agent can resume the implementation.
+
+Spec Kit puts these steps in a separate `tasks.md`. Uraeda keeps them in the plan: a separate file
+repeats the plan, gets out of sync with it, and nobody reviews it.
+
 When the feature needs them, the plan comes with two extra files:
 
 - `data-model.md`: the entities the feature adds or changes, their fields, relationships, validation
@@ -380,19 +488,8 @@ been settled during clarifications. If the plan needs one, the workflow goes bac
 questions, so the human makes the decision. The spec is then updated and validated again.
 
 If the feature's risk tier requires it, the workflow waits for the human to review and approve the
-plan. Otherwise, it moves on to the tasks automatically.
-
-## Tasks
-
-Once the plan is ready, an agent breaks it down into `tasks.md`.
-
-The file follows Spec Kit's tasks format: a checklist of numbered tasks (T001, ...), grouped by user
-story, with tasks that can run in parallel marked `[P]`. The level of detail of each task follows
-the
-[writing-plans skill of superpowers](https://github.com/obra/superpowers/blob/main/skills/writing-plans/SKILL.md).
-
-The generated document will be long, technical, and pretty hostile to human review: humans review
-the spec and the plan, not the tasks.
+plan. Otherwise, the agent sets the plan's status to `auto-approved` and moves on to the
+implementation.
 
 ## Implementation
 
