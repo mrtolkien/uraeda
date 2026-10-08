@@ -6,7 +6,7 @@ agents research, ask questions, and write specs, plans, and code.
 
 To run the workflow, use the
 [Uraeda skill](https://github.com/mrtolkien/uraeda/tree/main/skills/uraeda). Without it, the file
-names and their `status` fields tell you where each feature stands.
+names and their `status` fields should still tell you where each feature stands.
 
 ## Layout
 
@@ -14,7 +14,8 @@ names and their `status` fields tell you where each feature stands.
 - `PRIORITIES.md`: what is worked on now, next, and later
 - `drafts/`: upcoming features, written by humans, free form
 - `backlog/`: nice-to-have features, not scheduled
-- `decisions/`: the decision ledger, one numbered file per decision. `active` decisions are binding.
+- `decisions/`: the decision ledger, one file per topic: high-impact choices made by humans.
+  `active` decisions are binding, and they change when the human changes their mind.
 - `bugs/<slug>/`: a bug `report.md` from a human, and its `assessment.md` from an agent
 - `NNN-feature-slug/`: one numbered folder per feature, with these files, in workflow order:
   - `proposal.md`: what and why, written by a human
@@ -32,7 +33,8 @@ Workflow files have a `status` field in their frontmatter:
 - `answered`, `approved`, `changes-requested`: set by a human, an agent can continue
 - `auto-approved`: a plan that the feature's risk tier lets skip human review
 
-Decisions are `proposed`, `active`, or `overridden`.
+Decisions are `proposed` or `active`. Changes to an active decision are proposed in a
+`## Proposed change` section at the end of its file, until a human approves them.
 
 ## Links
 

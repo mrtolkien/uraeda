@@ -24,7 +24,5 @@ Rationale: [why]
   principle is added or expanded, PATCH for wording changes.
 - Specs and plans MUST include a constitution check. Exceptions MUST be listed in the plan's
   complexity tracking and approved by a human.
-- [Optional: minimum risk tier for every feature, for example "Every feature is `high` risk while
-  the project is young."]
 
 **Version**: 1.0.0 | **Ratified**: [YYYY-MM-DD] | **Last Amended**: [YYYY-MM-DD]

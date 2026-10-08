@@ -51,3 +51,19 @@ becomes a Thursday task.
 | B      | Next due date follows the day the task is completed |
 
 **Answer:** A, but if that date is already past, use the next one in the future.
+
+### Q4: How should the app store due dates?
+
+Why it matters: this affects every feature with dates. Today, weekly tasks would show up a day early
+twice a year, after daylight saving changes.
+
+**Recommended:** Option A - calendar days avoid timezone bugs for good, and the upgrade of stored
+tasks is small. See [research](research.md#date-handling).
+
+| Option | Description                                            |
+| ------ | ------------------------------------------------------ |
+| A      | Calendar days (`2026-10-12`), without a time           |
+| B      | UTC timestamps                                         |
+| C      | The Temporal API, once it is available in all browsers |
+
+**Answer:** yes

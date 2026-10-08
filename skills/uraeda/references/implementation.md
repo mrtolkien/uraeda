@@ -18,6 +18,10 @@ it, continue there.
 
 ## For each unchecked step, in order
 
+Before starting, read the active decisions that apply to the code you will touch, as they are now. A
+human may have changed one since the plan was written: if it now conflicts with the spec or the
+plan, stop and go back to [research](research.md).
+
 1. Break the step down into small tasks, in your own session. They are not written to `plan.md`.
 2. Write the tests for the acceptance scenarios the step covers, and check that they fail.
 3. Implement the step, keeping the code explicit and simple.

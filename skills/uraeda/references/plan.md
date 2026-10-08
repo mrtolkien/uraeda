@@ -11,7 +11,9 @@ Describes how the approved spec will be built, as ordered implementation steps.
 ## Read
 
 1. `spec.md`, and the decisions it lists
-2. The constitution and the active decisions that apply to the code you will touch
+2. The constitution and the active decisions that apply to the code you will touch, as they are now:
+   a human may have changed one since the spec was approved. If one now conflicts with the spec, go
+   back to [research](research.md).
 3. `research.md`
 4. The code: its structure, conventions, test setup, and validation commands
 

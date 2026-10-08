@@ -34,3 +34,20 @@ The app has no background process: it only runs while open.
 Sources:
 
 - [App entry point](/src/main.ts)
+
+### Date handling
+
+`dueDate` is a timestamp at local midnight ([store](/src/store/tasks.ts)). Adding 7 × 24 hours
+across a daylight saving change gives 23:00 the day before, so a weekly task drifts by a day twice a
+year. Reminders, next in the priorities, will compute dates too.
+
+| Option                  | Pros                                | Cons                                          |
+| ----------------------- | ----------------------------------- | --------------------------------------------- |
+| A. Calendar day strings | No timezone or daylight saving bugs | One-time upgrade of stored tasks              |
+| B. UTC timestamps       | Exact instants                      | A task due Monday shows as Sunday west of UTC |
+| C. Temporal API         | The right model for dates and times | Not available in all supported browsers yet   |
+
+Sources:
+
+- [Task store](/src/store/tasks.ts)
+- [Temporal API, browser support](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal)
