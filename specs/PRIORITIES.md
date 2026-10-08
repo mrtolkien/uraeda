@@ -2,27 +2,29 @@
 
 ## Now
 
-- Create `specs/README.md`
-- Codex-compatible PoC -> focus on workflow, prompts, and ?skills?
+- Claude Code-compatible PoC -> text-only workflow with a skill (WiP)
 - CLI for basic setup and upkeep
-- Basic web UI for the workflow files -> React + Astryx + Fate stack
+- Basic web UI for _viewing_ the workflow files -> React + Astryx + Fate stack
 
 ## Next
 
-- Dedicated Pi-durable runtime with basic tooling
-- Web tools in pi-durable
+- Claude Code runner (triggered manually): https://code.claude.com/docs/en/headless
 - Git listener process
 - Ping user when input is needed
+- WebUI for _editing_ files related to the workflow
 
 ## Later
 
+- Benchmarks (harness, model, ...) -> find real software issues where we could apply the full flow
 - Nix + Docker based execution environments
-- References (docs) querying and saving workflow
+- Dedicated Pi-durable runtime with basic tooling
+  - Web tools in pi-durable
+- References (docs) querying and storing workflow -> our own local context8
 - Code quality and style guides, workflow improvements
 - Use Jev-like model (Clef) for one-shot classification of decisions: "Is this decision relevant to
-  this proposal?", ..
-- Optional embeddings for code search with Gemma Embeddings 2
-- Benchmarks (harness, model, ...)
+  this proposal?", "Is this a valuable decision?", "Is this code change in line with the
+  consitution?", ...
+- Optional embeddings for code and docs search with Gemma Embeddings 2
 - Public documentation maintenance / hooks?
 - Setup with agent (checks project and creates relevant files)
 - Monorepo support: multiple `specs` folders, principles per package, ...
