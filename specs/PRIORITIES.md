@@ -12,6 +12,7 @@
 - Git listener process
 - Ping user when input is needed
 - WebUI for _editing_ files related to the workflow
+- Small onboarding explanation (what to read and in which order)
 
 ## Later
 

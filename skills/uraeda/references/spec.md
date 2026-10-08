@@ -19,8 +19,8 @@ allows.
 - **Edge cases**
 - **Functional requirements** (FR-001, ...) and measurable **success criteria** (SC-001, ...)
 - **Assumptions**: what you settled yourself, so the human can object
-- **Decisions**: links to every proposed and active decision the spec relies on. Approving the spec
-  activates the proposed ones.
+- **Decisions**: links to the new decisions and proposed changes, then to the active decisions the
+  spec relies on. Approving the spec applies the new decisions and changes.
 - **Constitution check**: how the spec complies with each principle and each relevant active
   decision. A conflict cannot be approved: it goes back to [research](research.md) as a question.
 - **Risk tier**: see below

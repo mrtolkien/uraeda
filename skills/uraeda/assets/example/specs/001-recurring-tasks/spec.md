@@ -9,10 +9,10 @@ plan-review: false
 Users can make a task repeat daily, weekly, or monthly. When they complete it, the next occurrence
 appears in their list. See the [proposal](proposal.md) and [clarifications](clarifications.md).
 
-To approve this spec, set `status: approved` and commit: this also activates the proposed decisions
-below. You can change the risk tier, and set `plan-review: true` to review the plan. To request
-changes, set `status: changes-requested` and write your feedback in a `## Review` section at the
-end.
+To approve this spec, set `status: approved` and commit: this also applies the new decisions and
+proposed changes below. You can change the risk tier, and set `plan-review: true` to review the
+plan. To request changes, set `status: changes-requested` and write your feedback in a `## Review`
+section at the end.
 
 ## User stories
 
@@ -72,19 +72,21 @@ Acceptance scenarios:
 
 ## Decisions
 
-- [0003. Recurring tasks use presets](../decisions/0003-recurring-tasks-use-presets.md)
-- [0004. The next occurrence is created when a task is completed](../decisions/0004-next-occurrence-on-completion.md)
-- [0001. Tasks are stored in IndexedDB](../decisions/0001-local-storage.md)
+- [Due dates](../decisions/due-dates.md): new
+- [Task storage](../decisions/task-storage.md)
+- [UI components](../decisions/ui-components.md)
 
 ## Constitution check
 
-| Principle or decision               | Complies | Notes                                        |
-| ----------------------------------- | -------- | -------------------------------------------- |
-| I. Simple for non-technical users   | yes      | One dropdown in the existing edit panel      |
-| II. Local first                     | yes      | Nothing leaves the device                    |
-| III. Fast with thousands of tasks   | yes      | SC-002 checks it with the existing benchmark |
-| 0001. Tasks are stored in IndexedDB | yes      | One new field on the task                    |
+| Principle or decision             | Complies | Notes                                        |
+| --------------------------------- | -------- | -------------------------------------------- |
+| I. Simple for non-technical users | yes      | One dropdown in the existing edit panel      |
+| II. Local first                   | yes      | Nothing leaves the device                    |
+| III. Fast with thousands of tasks | yes      | SC-002 checks it with the existing benchmark |
+| Due dates (new)                   | yes      | Next due dates are computed on calendar days |
+| Task storage                      | yes      | One new field, and an upgrade of due dates   |
+| UI components                     | yes      | The repeat dropdown is a project component   |
 
 ## Risk tier
 
-**Medium**: adds a field to stored tasks, with a small UI change.
+**Medium**: adds a field and upgrades stored due dates, with a small UI change.

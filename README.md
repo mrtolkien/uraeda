@@ -49,9 +49,9 @@ specs/
     due-date-reminders.md
   backlog/                        # nice-to-have features, not scheduled
     mobile-layout.md
-  decisions/                      # Architecture Decision Record
-    0001-local-storage.md
-    0002-no-user-accounts.md
+  decisions/                      # decision ledger, one file per topic
+    task-storage.md
+    due-dates.md
   bugs/                           # one folder per bug report
     completed-tasks-reappear/
       report.md                   # human: what happens, how to reproduce it
@@ -107,8 +107,8 @@ Any markdown file can link to any file in the repository, including source code:
 
 - Markdown links, with a relative path (`[research](../001-recurring-tasks/research.md)`) or a path
   from the repository root (`[auth](/src/auth.ts)`)
-- Wikilinks, with the file name (`[[0003-recurring-tasks-use-presets]]`), or a partial path when the
-  name is ambiguous (`[[001-recurring-tasks/spec]]`)
+- Wikilinks, with the file name (`[[due-dates]]`), or a partial path when the name is ambiguous
+  (`[[001-recurring-tasks/spec]]`)
 
 Agents always write markdown links, which render on GitHub and in most editors. Wikilinks are
 accepted for humans, who often write them from note-taking tools.
@@ -119,46 +119,85 @@ check them.
 
 ## Decisions
 
-Ledger of human-validated decisions, one file per decision in `/specs/decisions`.
+The decision ledger, in `/specs/decisions`, records the high-impact choices a human made: how the
+code is organized, dependencies, the technical approach to a problem, visual direction,
+cross-cutting conventions, transitions between two approaches. Agents must follow them, but would
+not reliably make them on their own.
 
-The `status` field in the frontmatter of each decision is one of:
+Decisions are close to the constitution or an `AGENTS.md`, except that:
 
-- **proposed**: drafted by an agent from the human's answers, not binding yet
-- **active**: validated by a human, binding for all future work. `approved-by` holds the username of
-  the human who approved it.
-- **overridden**: replaced by the newer decision named in `overridden-by`, only once a human
-  validates the override
+- They are created as the project goes, and grow with it: the ledger becomes the record of what the
+  human wants
+- They change: a decision can be temporary, like two solvers kept side by side during a trial, and
+  is edited when the human changes their mind
+- They are short and easy to review: a reviewer understands one without reading the research
 
-Agents only activate a decision when a human explicitly asks them to. Approving a spec is such a
-request: the agent sets the decisions the spec lists to **active**, with `approved-by` set to the
-author of the approving commit.
+A choice becomes a decision only if an agent would not guess it, it shapes work beyond the feature
+that raised it, and getting it wrong is costly. Behaviour inside one feature belongs in the spec,
+and rules the code already enforces, with types or a schema, are recorded by the code. Most features
+produce no decision, or one.
 
-Specs and plans are checked against active decisions, and the agent asks the human user if some of
-those can be overridden.
+### One file per topic
 
-A decision opens with the decision itself, written as MUST and SHOULD rules that specs and plans can
-be checked against. What the decision rules out is written as MUST NOT rules. A short context
-follows, with links to the clarification question and the research. The options considered stay in
-`research.md`, to keep decision files short.
+Decisions are named after the question they answer, not the answer: `due-dates.md`, not
+`due-dates-are-calendar-days.md`. A decision is edited in place when it changes, and deleted when it
+no longer applies: git history keeps the old versions, and the ledger only holds what is true now.
+When a change reverses an earlier choice, the earlier choice is kept as an alternative, with why it
+was abandoned, so agents do not propose it again.
+
+### Status and approval
+
+The `status` field is `proposed`, for a new decision drafted by an agent, or `active` once a human
+approved it. Active decisions are binding for all work. `approved-by` holds the approver's username,
+when known.
+
+Agents never edit an active decision before approval, since other work relies on it. They propose
+changes in a `## Proposed change (<spec folder>)` section at the end of its file. The reviewer sees
+the current and proposed versions side by side.
+
+Approving a spec applies the decisions it links to: new decisions become active, and proposed
+changes are written into their decision. A human can also edit a decision directly at any time:
+features in progress check their plan against the current decisions, and go back to questions on a
+conflict.
+
+### Format
+
+A decision opens with a plain summary, then its rules, written with MUST, SHOULD, and MUST NOT so
+specs, plans, and code can be checked against them. **Why** explains the problem, with links to the
+clarification question and the research. **Consequences** lists what gets easier and what gets
+harder. **Applies to** links to the code it governs, so agents find the decisions relevant to what
+they touch. **Alternatives considered** and **Revisit when** are optional.
 
 ```md
 ---
 status: active
 approved-by: mrtolkien
-overridden-by:
-spec: 001-recurring-tasks
-date: 2026-10-07
 ---
 
-# 0003. Recurring tasks use presets
+# Due dates
 
-Recurrence MUST be one of daily, weekly, monthly. Recurrence MUST NOT use free-text rules.
+Due dates are calendar days, like `2026-10-12`, without a time or a timezone. A task due Monday
+stays due Monday wherever the user is.
 
-## Context
+## Rules
 
-Keeps the repeat settings screen simple for non-technical users. See
-[Q1](../001-recurring-tasks/clarifications.md#q1-how-should-users-choose-when-a-task-repeats) and
-the [research](../001-recurring-tasks/research.md).
+- Due dates MUST be stored as `YYYY-MM-DD` strings.
+- Date arithmetic MUST go through `src/lib/dates.ts`.
+
+## Why
+
+Recurring tasks add date arithmetic. Timestamps at local midnight drift by a day across daylight
+saving changes. See
+[Q4](../001-recurring-tasks/clarifications.md#q4-how-should-the-app-store-due-dates).
+
+## Consequences
+
+- Date bugs stay in one module, and tests need no timezone setup.
+- Due times, like "at 3pm", need a change to this decision.
+
+## Applies to
+
+- [Date helpers](/src/lib/dates.ts), and any feature with dates
 ```
 
 # Core files
@@ -382,8 +421,8 @@ short answer of their own, then commits the file to git.
 
 An agent picks up the responses and:
 
-- Proposes important decisions in the `/specs/decisions` folder, with a **Proposed** status
-  - Those should be important technical decisions, look and feel choices, ...
+- Proposes new decisions in `/specs/decisions` with a **proposed** status, or changes to existing
+  ones in a `## Proposed change` section. See [Decisions](#decisions) for what makes a decision.
 - If necessary (based on human feedback): starts the clarification loop again, with more research
   and more human feedback.
 
@@ -402,8 +441,8 @@ The spec is a human-readable document of reasonable length. It follows Spec Kit'
 
 Uraeda adds three sections to it:
 
-- **Decisions**: the proposed and active decisions the spec relies on, so proposed decisions are
-  reviewed together with the spec
+- **Decisions**: the new decisions and proposed changes, reviewed together with the spec, and the
+  active decisions it relies on
 - **Constitution check**: how the spec complies with each principle of the constitution and with
   active decisions. Any conflict must be resolved by the human before approval.
 - **Risk tier**: the feature's impact, proposed by the agent with a one-line reason. See
@@ -425,12 +464,13 @@ questions go back to `clarifications.md`.
 
 Once a spec is written out, it is committed back to the repo, and it waits for human approval.
 
-Approving the spec also activates the proposed decisions it lists, and confirms the risk tier: the
-human can raise or lower it.
+Approving the spec also applies the new decisions and proposed changes it links to, and confirms the
+risk tier: the human can raise or lower it.
 
 If the human does not approve the spec as-is, they should either:
 
-- Edit the spec or the proposed decisions themselves and commit them as validated
+- Edit the spec, the proposed decisions, or the proposed changes themselves and commit them as
+  validated
 - Explain the issues to an agent that can bring the work back to any previous step (clarifications
   or spec)
 

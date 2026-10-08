@@ -1,26 +1,30 @@
 # Approval
 
-Records the decisions of an approved spec as active.
+Applies the decisions of an approved spec.
 
-- **Runs when**: `spec.md` is `approved`, and a decision it lists is still `proposed`
-- **Writes**: the decisions listed in the spec's **Decisions** section
+- **Runs when**: `spec.md` is `approved`, and a decision it links to is `proposed` or has a
+  `## Proposed change` section for this spec
+- **Writes**: the decisions linked in the spec's **Decisions** section
 - **Ends at**: the [plan](plan.md) step
 
-The human's approval of the spec is the explicit request to activate its decisions. Only activate
-the decisions the spec lists: leave any other proposed decision unchanged.
+The human's approval of the spec is the explicit request to apply its decisions. Only apply what the
+spec links to: leave other proposed decisions and changes unchanged.
 
-## Activate the decisions
+## Apply the decisions
 
-For each decision listed in the spec with `status: proposed`:
+For each decision linked in the spec:
 
-- Set `status: active`
-- Set `approved-by` only if you know who approved the spec, for example from the human's message.
-  Otherwise leave it empty: an approval tool or the human fills it in, and git history records the
-  approval anyway.
-- If its context says it overrides an older decision, set the older one's `status: overridden` and
-  its `overridden-by` to the new decision's file name
+- **`status: proposed`**: set `status: active`.
+- **`## Proposed change (<this spec folder>)`**: rewrite the decision to include the change, and
+  remove the section. If the change reverses an earlier choice, add the earlier choice to
+  **Alternatives considered**, with why it was abandoned. If the change is "Delete this decision",
+  delete the file.
 
-If the human edited a decision before approving the spec, keep their wording.
+Set `approved-by` only if you know who approved the spec, for example from the human's message.
+Otherwise leave it empty: an approval tool or the human fills it in, and git history records the
+approval anyway.
+
+If the human edited a decision or a proposed change before approving the spec, keep their wording.
 
 ## Check the review settings
 
@@ -29,4 +33,4 @@ uses them as they are now, not as you proposed them.
 
 ## Commit
 
-Commit the decisions: `decision(<number>): activate <summary>`. Then run the [plan](plan.md) step.
+Commit the decisions: `decision(<number>): apply <summary>`. Then run the [plan](plan.md) step.

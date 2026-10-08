@@ -3,18 +3,18 @@
 ## Now
 
 1. [Recurring tasks](001-recurring-tasks)
-2. [Completed tasks reappear after reload](bugs/completed-tasks-reappear)
+2. [Due date reminders](002-due-date-reminders)
+3. [Completed tasks reappear after reload](bugs/completed-tasks-reappear)
 
 ## Next
 
-1. [Due date reminders](drafts/due-date-reminders.md)
-2. Keyboard shortcuts
+1. [Keyboard shortcuts](drafts/keyboard-shortcuts.md)
+2. Tags and filters
 
 ## Later
 
-- Tags and filters
 - [Mobile layout](backlog/mobile-layout.md)
 
 ## Blocked
 
-- Sync between devices, blocked by: [no user accounts](decisions/0002-no-user-accounts.md)
+- Sync between devices, blocked by: needs a server, against the constitution's local first principle

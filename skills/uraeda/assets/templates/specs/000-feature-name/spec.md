@@ -9,10 +9,10 @@ plan-review: false
 [One paragraph: what the feature does and why. Links to the [proposal](proposal.md) and
 [clarifications](clarifications.md).]
 
-To approve this spec, set `status: approved` and commit: this also activates the proposed decisions
-below. You can change the risk tier, and set `plan-review: true` to review the plan. To request
-changes, set `status: changes-requested` and write your feedback in a `## Review` section at the
-end.
+To approve this spec, set `status: approved` and commit: this also applies the new decisions and
+proposed changes below. You can change the risk tier, and set `plan-review: true` to review the
+plan. To request changes, set `status: changes-requested` and write your feedback in a `## Review`
+section at the end.
 
 ## User stories
 
@@ -44,7 +44,7 @@ Acceptance scenarios:
 
 ## Decisions
 
-- [NNNN. Decision title](../decisions/NNNN-decision-slug.md)
+- [Topic](../decisions/decision-topic.md): new, changed, or relied on
 
 ## Constitution check
 

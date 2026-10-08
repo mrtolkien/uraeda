@@ -42,7 +42,7 @@ constitution and active decisions.
 - Each question has a "Why it matters" sentence, a **Recommended** answer with its reason, and its
   options in a table. Link to the research topic behind it.
 - When the proposal conflicts with the constitution or an active decision, say so and ask whether to
-  change the proposal or override the decision. The constitution can only be amended by a human,
+  change the proposal or change the decision. The constitution can only be amended by a human,
   outside this workflow.
 - Leave each **Answer** empty.
 
