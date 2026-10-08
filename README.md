@@ -87,17 +87,15 @@ those can be overridden.
 
 ## specs/README.md
 
-We'll have a README.md in the /specs folder explaining how this software development flow is
-organized.
+`specs/README.md` is a short, static file, there for discovery. It quickly explains the layout of
+the `specs/` folder and links to the Uraeda skill, which holds the full workflow. An agent that
+needs more than the layout can install the skill itself.
 
-A coding agent with no uraeda-specific instructions should be able to navigate the `specs/` folder
-through clear file names and contents. `specs/README.md` gives it the basics of the feature flow,
-not every detail.
+A coding agent with no uraeda-specific instructions should still be able to navigate the `specs/`
+folder through clear file names and contents.
 
-This will be a template that is populated by the CLI, and it should not change much.
-
-In particular, this README.md should NEVER hold an index-like list of files: just generic
-organization rules and information about folders.
+This README.md should NEVER hold an index-like list of files: just generic information about
+folders.
 
 ## CONSTITUTION.md
 

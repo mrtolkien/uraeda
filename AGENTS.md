@@ -18,6 +18,17 @@ conflict with them must be resolved by a human.
 - `TODO.md`: open design questions, each with a recommendation awaiting human review. Treat them as
   undecided.
 
+## Repository layout
+
+- `skills/uraeda/`: the Uraeda skill, harness-agnostic, following the
+  [Agent Skills format](https://agentskills.io/specification)
+  - `SKILL.md`: the workflow conventions and the entry point that finds the current workflow step
+    and stops at human gates
+  - `references/`: one file per workflow step
+  - `assets/templates/specs/`: artifact skeletons, at the same paths as in a user's `specs/` folder
+  - `assets/example/specs/`: a filled-in example project (todo app), at the same paths
+- `specs/`: Uraeda's own workflow files. Not the templates installed in users' projects.
+
 <!--VITE PLUS START-->
 
 # Using Vite+, the Unified Toolchain for the Web
