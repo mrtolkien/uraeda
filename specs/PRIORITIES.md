@@ -2,7 +2,8 @@
 
 ## Now
 
-- Claude Code-compatible PoC -> text-only workflow with a skill (WiP)
+- Benchmarks (harness, model, ...) -> find real software issues where we could apply the full flow
+- Technical stack decision
 - CLI for basic setup and upkeep
 - Basic web UI for _viewing_ the workflow files -> React + Astryx + Fate stack, see
   [draft](drafts/web-ui.md)
@@ -17,7 +18,6 @@
 
 ## Later
 
-- Benchmarks (harness, model, ...) -> find real software issues where we could apply the full flow
 - Nix + Docker based execution environments
 - Dedicated Pi-durable runtime with basic tooling
   - Web tools in pi-durable

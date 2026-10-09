@@ -1,6 +1,7 @@
 # Spec and decisions
 
-Turns the human's answers into proposed decisions and a spec, for the human to approve together.
+Turns the human's answers into a spec, the feature's behaviour and technical design, and the
+decisions it proposes, for the human to approve together.
 
 - **Runs when**: the latest round, `clarifications-NN.md`, is `answered`, and there is no `spec.md`
   or the spec's `clarifications` field is lower than `NN`; or `spec.md` is `changes-requested`
@@ -9,15 +10,40 @@ Turns the human's answers into proposed decisions and a spec, for the human to a
 - **Ends at**: a human gate, `spec.md` with `status: awaiting-human`, or a new
   [discovery](discovery.md) round
 
+Read this file in full before writing. In a design conversation, the agent would present the design
+section by section, and the human would approve each one as it goes. Here, the human approves once,
+in a file: the spec must be complete enough to approve with confidence, and fast to check.
+
+## Overview
+
+The spec says what the feature does and how it will be built, for a technical human to approve
+before any code. It is the main review of the workflow: once it is approved, most features reach the
+pull request without the human, since the plan follows the spec, and only high-risk plans are
+reviewed. Anything the spec leaves vague, a later agent decides alone.
+
+- **Behaviour first**: user stories with acceptance scenarios, edge cases, and success criteria.
+  They say what users get, with the exact values the tests will check.
+- **Then the design**: the approach, the data, the components, error handling, and testing, scaled
+  to the feature. It says how the feature is built, at the level of components and data:
+  file-by-file changes and implementation steps belong in the plan.
+- **Then what the human must weigh**: the assumptions you made, the decisions the spec proposes or
+  relies on, the constitution check, and the risk tier.
+
+Decide the design: do not list possibilities. The questions already settled what needed the human;
+everything else is yours to settle, and to state as an assumption the human can object to. YAGNI
+ruthlessly: every part of the design serves a user story or an answer.
+
 ## Read the answers
 
 Read every round's questions, answers, and settled points, the latest last: later answers win. A
 settled point the human objected to in an answer follows their answer. An answer can be:
 
-- One or more option letters. Letters from options that exclude each other, when the question does
-  not say they combine, are ambiguous: ask again in a new round.
-- Free text, alone or after letters: the human's own answer, which wins over the option's wording.
-  When it is ambiguous, ask again in a new round, with your reading of it as the recommended answer.
+- **One or more option letters.** Letters from options that exclude each other, when the question
+  does not say they combine, are ambiguous: ask again in a new round.
+- **Free text, alone or after letters**: the human's own answer, which wins over the option's
+  wording. When it can be read more than one way, either ask again in a new round, with your reading
+  as the recommended answer, or, when the readings differ little, pick one and say so in the spec's
+  `> [!IMPORTANT]` block.
 
 A follow-up like `Q2.B` only needs an answer if the human picked that letter in its parent: ignore
 it otherwise. The workflow only moves on once every other question is answered: see
@@ -29,8 +55,8 @@ Turn the answered round's `> [!IMPORTANT]` block into a record, as described in
 ## Is the scope clear?
 
 Start a new round, following [Discovery](discovery.md), when an answer raises a new unknown, when an
-answer is ambiguous, or when the human asked for more options. Otherwise, propose the decisions,
-then write the spec.
+answer is ambiguous in a way that matters, or when the human asked for more options. Otherwise,
+propose the decisions, then write the spec.
 
 ## Propose decisions
 
@@ -55,7 +81,8 @@ visual direction, cross-cutting conventions (errors, dates, logging), and transi
 implementations kept side by side during a trial.
 
 Most features produce no decision, or one. If a feature produces three, check whether they restate
-the spec.
+the spec. A low-impact choice made inside the feature is not a decision: it is an assumption in the
+spec, or a ruling in `rulings.md` during the plan and the implementation.
 
 ### New decision or change
 
@@ -65,7 +92,8 @@ Decisions are named after the question they answer, not the answer: `due-dates.m
 First, look for an existing decision on the same topic.
 
 - **None**: write a new file from
-  [the template](../assets/templates/specs/decisions/decision-topic.md), with `status: proposed`.
+  [the template](../assets/templates/specs/decisions/decision-topic.md), with `status: proposed`, an
+  empty `approved-by`, and consequences in the future tense.
 - **One exists**: never edit its active text before approval, since other work relies on it. Add a
   `## Proposed change (<spec folder>)` section at the end of the file instead, from the template's
   skeleton: who proposes it (a link to the spec), the change in a sentence or two, **every rule of
@@ -78,14 +106,15 @@ First, look for an existing decision on the same topic.
 
 Write for a reviewer who has not read the discovery:
 
-- **Title**: the topic
-- **Summary**: the choice and what it means for the project, in two or three plain sentences
-- **Rules**: MUST, SHOULD, and MUST NOT rules that a spec, a plan, or code can be checked against
+- **Title**: the topic.
+- **Summary**: the choice and what it means for the project, in two or three plain sentences.
+- **Rules**: MUST, SHOULD, and MUST NOT rules that a spec, a plan, or code can be checked against.
+  Plans copy them word for word, so write each rule to stand on its own.
 - **Why**: the problem and what the choice optimizes for, with links to the question and the
-  discovery topic
-- **Consequences**: what becomes easier, what becomes harder, the costs accepted
+  discovery topic.
+- **Consequences**: what becomes easier, what becomes harder, the costs accepted.
 - **Applies to**: links to the code, folders, or kinds of features it governs, so agents find the
-  decisions relevant to what they touch
+  decisions relevant to what they touch.
 
 Two sections are optional, at their place in the template. Leave them out unless they apply:
 
@@ -93,52 +122,121 @@ Two sections are optional, at their place in the template. Leave them out unless
   a change reverses an earlier choice, always list the earlier choice and why it was abandoned, so
   no agent proposes it again.
 - **Revisit when**: a condition or a date that ends a temporary decision, for example "when the new
-  solver matches the old one on the benchmark for 4 weeks"
+  solver matches the old one on the benchmark for 4 weeks".
 
-## Write `spec.md`
+## Spec document
 
-Use [the template](../assets/templates/specs/000-feature-name/spec.md). The spec says what the
-feature does and how it will be built, for a technical human to approve before any code. It is the
-main review of the workflow: once it is approved, most features reach the pull request without the
-human. Make it complete enough to approve with confidence, and fast to check: precise, without
-filler, with the design decided rather than listing possibilities.
+Use [the template](../assets/templates/specs/000-feature-name/spec.md). Every spec has this
+frontmatter and these sections, in this order:
 
-Open the spec with the `> [!IMPORTANT]` block described in
+```markdown
+---
+status: awaiting-human
+revision: 1
+clarifications: [the latest round included]
+risk-tier: [low | medium | high]
+plan-review: false # medium only
+---
+
+# Spec: [Feature name]
+
+> [!IMPORTANT]
+>
+> Spec to review, about [M] minutes.
+>
+> - [What most needs attention]
+
+[One paragraph: what the feature does, for whom, and why, with links to the proposal, discovery, and
+clarifications.]
+
+## User stories
+
+### US1: [Title] (P1)
+
+## Edge cases
+
+## Success criteria
+
+## Design
+
+### Approach
+
+### Data
+
+### Components
+
+### Error handling
+
+### Testing
+
+## Assumptions
+
+## Decisions
+
+## Constitution check
+
+## Risk tier
+```
+
+The `> [!IMPORTANT]` block, as described in
 [Coming back to the human](../SKILL.md#coming-back-to-the-human): how long the review takes, then
-what most needs attention, such as the new and changed decisions, the riskiest assumptions, the risk
-tier, and any cost or migration. On a revision, say what changed since the last review.
+what most needs attention, one line each: the new and changed decisions, the answers you read one
+way among several, the riskiest assumptions, the risk tier, and any cost or migration. On a
+revision, what changed since the last review.
 
-- **User stories**, ranked by priority (P1, P2, ...). Each one can be shipped and tested on its own,
-  and has acceptance scenarios written as Given / When / Then. The implementation must test each
-  scenario.
-- **Edge cases**
-- **Success criteria** (SC-001, ...), measurable
-- **Design**, each part scaled to the feature: a few sentences when it is simple, up to a few
-  hundred words when it is not.
-  - **Approach**: the chosen approach and why, linking to the decisions and discovery topics
-  - **Data**: what is stored or changes, the rules that apply to it, and how it flows. Data comes
-    before components, so types are defined before they are used.
-  - **Components**: the units the feature adds or changes. Each has one clear purpose: say what it
-    does, how it is used, and what it depends on. Follow the existing patterns found in discovery.
-    Include targeted fixes to existing code when it is in the way, but no unrelated refactoring.
-  - **Error handling**: what can fail, and what the user sees
-  - **Testing**: integration tests by default, then a table mapping every acceptance scenario, edge
-    case, and success criterion to its test. See [Tests](#tests).
-- **Assumptions**: the points settled in the clarifications, then what you settled yourself while
-  writing the spec, so the human can object. When you read a free-text answer one way among several,
-  say so in the `> [!IMPORTANT]` block too.
-- **Decisions**: the new decisions and proposed changes, then the active decisions the spec relies
-  on, each with a sentence on how it follows them. Only the decisions that apply to the feature: not
-  the whole ledger. Approving the spec applies the new decisions and changes.
-- **Constitution check**: how the spec complies with every principle of the constitution: they
-  always apply. Decisions are not part of it. A conflict goes back to the human as a new round of
-  questions, following [Discovery](discovery.md). A decision that must give way gets a proposed
-  change, and a constitution exception the human accepted is named here and spelled out in the plan.
-- **Risk tier**: see below
+## Behaviour
 
-The design stays at the level of components and data: file-by-file changes and implementation steps
-belong in the plan. When a visual direction matters, add a mockup in `mockups/`, next to the spec,
-and link it.
+**User stories**, ranked by priority (P1, P2, ...):
+
+- Each one is a slice of the feature that can be shipped and tested on its own: a user could get
+  value from P1 alone.
+- A short description of the user's journey, in plain language, then "Why this priority".
+- Acceptance scenarios written as **Given** / **When** / **Then**, with exact values: "a weekly task
+  due Monday the 5th", "it is due Monday the 12th", never "the next week". The plan's tests use them
+  as written, and the implementation must test each one.
+- Every answer of the questions that changes behaviour shows up in a scenario.
+
+**Edge cases**: the inputs and situations at the boundary, each with what happens: an empty field, a
+month end, a failed save, an existing action that meets the feature (undo, delete, edit). The
+discovery's **The proposal's path and existing actions** section is a starting list.
+
+**Success criteria** (SC-001, ...): measurable outcomes, each one checkable by a test or a
+benchmark: "Setting a preset repeat takes two clicks from the open task", not "Setting a repeat is
+easy".
+
+## Design
+
+Scale each part to the feature: a few sentences when it is straightforward, up to a few hundred
+words when it is nuanced.
+
+- **Approach**: the chosen approach and why, in a few sentences, linking to the decisions and
+  discovery topics behind it.
+- **Data**: what is stored or changes, with exact types, the rules that apply to it, and how it
+  flows between components. Data comes before components, so types are defined before they are used.
+- **Components**: the units the feature adds or changes.
+- **Error handling**: what can fail, and what the user sees, with the exact text when the spec fixes
+  it.
+- **Testing**: see [Tests](#tests).
+
+Design for isolation and clarity:
+
+- Break the feature into smaller units that each have one clear purpose, communicate through
+  well-defined interfaces, and can be understood and tested independently.
+- For each unit, say what it does, how it is used, and what it depends on.
+- Can someone understand what a unit does without reading its internals? Can its internals change
+  without breaking its consumers? If not, the boundaries need work.
+- Smaller, well-bounded units are also easier for agents to work with: they reason better about code
+  they can hold in context at once, and their edits are more reliable when files are focused.
+
+Working in the existing codebase:
+
+- Follow the patterns the discovery found.
+- Where existing code has problems that affect the feature, like a file that has grown too large,
+  unclear boundaries, or tangled responsibilities, include targeted improvements in the design, the
+  way a good developer improves code they work in.
+- Do not propose unrelated refactoring. Stay focused on what serves the feature.
+
+When a visual direction matters, add a mockup in `mockups/`, next to the spec, and link it.
 
 ## Tests
 
@@ -153,22 +251,28 @@ of internal functions break, and an agent writes them quickly.
   Assert, in that order, with a name that states the scenario. Test files stay short.
 - Write unit tests only for pure logic with many cases, as one table-driven test: one row per case.
 
-## Self-review
+The spec's **Testing** section opens with a sentence on how the integration tests run, then a table
+mapping every acceptance scenario, edge case, and success criterion to its test.
 
-Before committing, read the spec again with fresh eyes, and fix what you find:
+## What the human weighs
 
-1. **Placeholders**: no `TBD`, `TODO`, `[NEEDS CLARIFICATION]`, empty section, or vague requirement.
-   Open questions go back to [discovery](discovery.md).
-2. **Consistency**: no section contradicts another, and the design delivers every user story.
-3. **Scope**: the spec fits a single plan. If it does not, start a new round, following
-   [Discovery](discovery.md), with a question proposing the split, the recommended split as option
-   A. Answered rounds are never edited.
-4. **Ambiguity**: a requirement that can be read two ways is rewritten to say one.
+- **Assumptions**: first the points settled in the clarifications, then what you settled yourself
+  while writing the spec, so the human can object. An assumption that changes what users get is also
+  an item of the `> [!IMPORTANT]` block.
+- **Decisions**: grouped as "New, applied when this spec is approved", "Changed", and "Relied on",
+  each with a sentence: the rule for new ones, the change for changed ones, how the spec follows the
+  others. Only the decisions that apply to the feature, not the whole ledger. Approving the spec
+  applies the new decisions and changes.
+- **Constitution check**: a table with one row per principle, all of them: principles always apply.
+  Decisions are not part of it. A conflict goes back to the human as a new round of questions,
+  following [Discovery](discovery.md). A decision that must give way gets a proposed change, and a
+  constitution exception the human accepted is named here and spelled out in the plan.
+- **Risk tier**: see below.
 
 ## Risk tier
 
 The tier decides whether the human reviews the plan. Propose it in the frontmatter, with a one-line
-reason in the spec.
+reason in the spec. The human confirms or changes it when approving.
 
 | Tier     | Plan review                          | Typical features                                          |
 | -------- | ------------------------------------ | --------------------------------------------------------- |
@@ -177,14 +281,46 @@ reason in the spec.
 | `high`   | required                             | Security changes, new complex data structures or services |
 
 - For `medium`, add `plan-review: false`.
-- When unsure between two tiers, propose the higher one.
+- When unsure between two tiers, propose the higher one. A change to the format of data users
+  already have is at least `medium`; converting every saved record is `high`.
 
 ## Spec frontmatter
 
-- `revision`: `1` for the first spec, then one more at every change, by you or by the human
+- `status`: `awaiting-human` when you submit it.
+- `revision`: `1` for the first spec, then one more at every change, by you or by the human.
 - `clarifications`: the number of the latest round the spec includes, so the next agent knows
-  whether a newer round is answered
-- `risk-tier`, and `plan-review` for `medium` only: see above
+  whether a newer round is answered.
+- `risk-tier`, and `plan-review` for `medium` only: see above.
+
+## Self-review
+
+Before committing, read the spec again with fresh eyes, and fix what you find inline:
+
+1. **Placeholders**: no `TBD`, `TODO`, `[NEEDS CLARIFICATION]`, empty section, or vague requirement.
+   Open questions go back to [discovery](discovery.md).
+2. **Answers**: every answer and settled point shows up in the spec, the human's own words included,
+   and nothing in the spec contradicts one.
+3. **Consistency**: no section contradicts another; the design delivers every user story; the data
+   supports every edge case, over two consecutive occurrences when it repeats; the Testing table
+   covers every scenario, edge case, and success criterion.
+4. **Scope**: the spec fits a single plan. If it does not, start a new round, following
+   [Discovery](discovery.md), with a question proposing the split, the recommended split as option
+   A. Answered rounds are never edited.
+5. **Ambiguity**: a requirement that can be read two ways is rewritten to say one.
+6. **Linear reading**: nothing is referred to before it is introduced, and the block names subjects.
+7. **Decisions**: each new one passes the three tests, and each changed one lists every rule after
+   the change.
+
+## Red flags
+
+| Thought                                                       | Reality                                                                                             |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| "I'll list the options, the human picks during review"        | The questions are over. Decide the design, and state what you settled as assumptions.               |
+| "The plan will figure out the details"                        | The plan argues from the spec. A detail the spec leaves vague, a later agent decides alone.         |
+| "Next week is close enough for a scenario"                    | Scenarios carry exact values: the tests copy them as written.                                       |
+| "This answer could mean two things, I'll take the likely one" | Pick it only if the readings differ little, and say so in the block. Otherwise, ask in a new round. |
+| "Every important choice deserves a decision"                  | Only what an agent would not guess, that outlives the feature, and that is costly to get wrong.     |
+| "The design section is the plan's job"                        | The design is the spec's job: components and data. Files and steps are the plan's.                  |
 
 ## Revising
 

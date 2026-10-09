@@ -52,6 +52,14 @@ a path from the repository root (`/src/...`). Humans may also write wikilinks (`
   into account. Never send a response and then a second one when the subagent finishes.
 - Keep responses short: what changed, what the human must decide, and the next action.
 
+## Authorship
+
+Never mention a coding agent, a model, or an AI tool as an author or a tool used: not in commit
+messages (no `Co-Authored-By` lines, no "generated with" footers), not in the README, not in any
+file or pull request. This applies to every coding agent working on this repository. The work is
+made by its human owner, who takes the decisions an agent executes, the same way a README does not
+name the code editor it was written in.
+
 <!--VITE PLUS START-->
 
 # Using Vite+, the Unified Toolchain for the Web

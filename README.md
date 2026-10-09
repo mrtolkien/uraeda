@@ -56,9 +56,8 @@ takes time and tokens.
 
 ## What it looks like
 
-The [example project](skills/uraeda/assets/example/specs/) is a small todo app. Its files were
-written by an agent following the skill, and reviewed and corrected by hand. Feature 001, recurring
-tasks, went through the whole workflow:
+The [example project](skills/uraeda/assets/example/specs/) is a small todo app. Feature 001,
+recurring tasks, went through the whole workflow:
 
 1. **You write the [proposal](skills/uraeda/assets/example/specs/001-recurring-tasks/proposal.md)**:
    a few lines. Tasks that come back once completed, two clicks to set, simple enough for "my
@@ -101,28 +100,26 @@ tasks, went through the whole workflow:
    the plan too.
 6. **It implements the plan, task by task, and opens a pull request**, where you review the code.
 
-Feature 002,
-[due date reminders](skills/uraeda/assets/example/specs/002-due-date-reminders/spec.md), shows a
-spec still waiting for you. It opens with a summary of what is asked, how long it takes, and what to
-look at first:
+Every file waiting for you opens with a summary of what is asked, how long it takes, and what to
+look at first. Feature 001's spec opened like this when it was submitted:
 
 ```md
 > [!IMPORTANT]
 >
-> Spec to review, about 15 minutes.
+> Spec to review, about 20 minutes.
 >
-> - Changed decision: due dates gets a reminder time of day, stored apart from the due date, so due
->   dates and their arithmetic do not change.
-> - Your answer on which tasks get a reminder said "only tasks that get a due date after the
->   update". This spec reads it as: [...]
-> - Reminders only show while the app is open, up to two minutes late in a background tab. [...]
-> - There is no switch to turn every reminder off: only per task, and the browser's own setting.
-> - Risk tier `medium`: one new field, an index, and a new store, added without converting saved
->   data. The plan is not reviewed by default.
+> - Two new decisions: repeating tasks, one task whose due date moves, with no history of
+>   completions; and due dates, calendar days for every feature with dates.
+> - Every saved due date is converted once, when users get the new version. [...]
+> - Your answer said rules are typed "when editing the task's title". This spec reads every title
+>   typed, when a task is created or edited, like Todoist. Say so if you meant editing only.
+> - A "weekends" preset is added next to "weekdays", for your weekdays against weekends need.
+> - Risk tier `high`, because of the upgrade of every saved due date: the plan waits for your
+>   review.
 ```
 
-Once you approve, the agent keeps the block as a record, "Approved on <date>", so later readers see
-what you were asked to weigh.
+Once you approved, the block stayed as a record, "Approved on 2026-10-09", so later readers see what
+you were asked to weigh.
 
 ## The `specs/` folder
 
