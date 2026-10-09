@@ -29,7 +29,8 @@ and the [discovery](../001-recurring-tasks/discovery-01.md#date-handling).
 
 ## Consequences
 
-- Date bugs stay in one module, and tests need no timezone setup.
+- Date bugs stay in one module, and tests of date arithmetic need no timezone setup. Only the
+  upgrade from timestamps depends on the user's timezone.
 - Due times, like "at 3pm", need a change to this decision.
 - Tasks saved before this decision are upgraded once, from timestamps to calendar days.
 

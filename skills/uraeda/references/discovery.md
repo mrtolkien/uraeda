@@ -37,7 +37,7 @@ into one file. Go deep on both sides.
 **The code**
 
 - Read the code the feature touches, and follow it to the data it stores and the interfaces it
-  exposes.
+  exposes. List every place that reads or writes data the feature may change.
 - Trace the proposal's user path through the code, step by step, then every existing action that
   meets the new feature: undo, delete, uncheck, edit, empty fields. Each one that behaves
   differently with the feature is a finding.

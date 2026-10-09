@@ -124,12 +124,13 @@ tier, and any cost or migration. On a revision, say what changed since the last 
 - **Assumptions**: the points settled in the clarifications, then what you settled yourself while
   writing the spec, so the human can object. When you read a free-text answer one way among several,
   say so in the `> [!IMPORTANT]` block too.
-- **Decisions**: links to the new decisions and proposed changes, then to the active decisions the
-  spec relies on. Approving the spec applies the new decisions and changes.
-- **Constitution check**: how the spec complies with each principle and each relevant active
-  decision. A conflict goes back to the human as a new round of questions, following
-  [Discovery](discovery.md). A decision that must give way gets a proposed change, and a
-  constitution exception the human accepted is named here and spelled out in the plan.
+- **Decisions**: the new decisions and proposed changes, then the active decisions the spec relies
+  on, each with a sentence on how it follows them. Only the decisions that apply to the feature: not
+  the whole ledger. Approving the spec applies the new decisions and changes.
+- **Constitution check**: how the spec complies with every principle of the constitution: they
+  always apply. Decisions are not part of it. A conflict goes back to the human as a new round of
+  questions, following [Discovery](discovery.md). A decision that must give way gets a proposed
+  change, and a constitution exception the human accepted is named here and spelled out in the plan.
 - **Risk tier**: see below
 
 The design stays at the level of components and data: file-by-file changes and implementation steps
