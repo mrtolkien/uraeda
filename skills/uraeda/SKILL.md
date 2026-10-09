@@ -79,13 +79,35 @@ and decisions win over specs and plans. Decisions are high-impact choices made b
 they change over time: see [what is a decision](references/spec.md#what-is-a-decision).
 
 Templates for every file are in `assets/templates/specs/`, at the same paths. A filled-in example,
-for a todo app, is in `assets/example/specs/`.
+for a todo app, is in `assets/example/specs/`. It shows a finished workflow: the blocks that waited
+for the human are kept as records (see [Coming back to the human](#coming-back-to-the-human)).
 
-### Links
+### Markdown
 
-Write markdown links, with a relative path (`[spec](spec.md)`) or a path from the repository root
-(`[auth](/src/auth.ts)`). Humans may write wikilinks (`[[due-dates]]`): read them, but do not write
-them. Link to what a file relies on: decisions, discovery, code.
+Workflow files must read well as plain text, on GitHub, and in Obsidian, the reference renderer. Use
+GitHub Flavored Markdown, plus these extensions, which stay readable where they do not render:
+
+- **Callouts**: `> [!IMPORTANT]`, `> [!NOTE]`, `> [!TIP]`, `> [!WARNING]`, `> [!QUESTION]`. A file
+  waiting for the human always opens with `> [!IMPORTANT]`, which becomes `> [!NOTE]` once they have
+  acted.
+- **Typed bullets**, with a word or sign that reads on its own: `- [pro]`, `- [con]`, `- [?]`
+  question, `- [!]` important.
+- **List callouts**, a marker after the dash, to highlight one bullet: `- ! warning`,
+  `- ? question`, `- & note`.
+- **Links**: markdown links, with a relative path (`[spec](spec.md)`) or a path from the repository
+  root (`[auth](/src/auth.ts)`). Humans may write wikilinks (`[[due-dates]]`): read them, but do not
+  write them. Link to what a file relies on: decisions, discovery, code.
+
+Templates are strict where tools and agents need to find things, and free elsewhere:
+
+- **Frontmatter**: exactly the fields this skill defines.
+- **Headings**: the template's text, level, and order. Leave out an optional section entirely, never
+  rename it.
+- **Structured items**: fixed patterns, so they can be found and rendered: questions `## Q1: ...`
+  and follow-ups `### Q1.B: ...`; options `- **A (recommended). ...**` with `[pro]` and `[con]`
+  bullets; user stories `### US1: Title (P1)`; acceptance scenarios with **Given**, **When**,
+  **Then**; success criteria `SC-001`.
+- **Everything else**, inside sections, is free text.
 
 ### Branches
 
@@ -109,6 +131,7 @@ Workflow files track their state in frontmatter fields.
 | `plan.md`              | `status`         | `awaiting-human` or `auto-approved`   | `approved` or `changes-requested` |
 | `plan.md`              | `spec-revision`  | the spec `revision` it implements     |                                   |
 | `decisions/*.md`       | `status`         | `proposed`, then `active` on approval | `active`                          |
+| `decisions/*.md`       | `approved-by`    | the approver, on approval, if known   | the approver                      |
 | `bugs/*/assessment.md` | `status`         | `awaiting-human`                      | `approved` or `changes-requested` |
 
 The `assessment.md` statuses are an agent-authored draft that needs human review: see
@@ -170,17 +193,23 @@ where to put their attention.
      questions, about 30 minutes."
    - Then what most needs their attention, most important first, one line each, named by subject
      rather than by number or section the reader has not seen yet: the choices that last beyond the
-     feature, the questions that work together, a decision that changes, a risky assumption, a cost.
-     The block orients the human: the details stay in the file.
+     feature, the questions that work together, the points settled without them, a decision that
+     changes, a risky assumption, a cost. The block orients the human: the details stay in the file.
    - On a revision: what changed since their last review.
-   - Last line: how to answer. "Answer, set `status: answered`, and commit."
 2. **The commit message body repeats the block's first line**, so `git log` and any git listener
    show what is waiting, and for how long.
 3. **In a chat session**, say the same in one or two sentences, with the file's path. If you were
    triggered without a chat session, the commit is the message: say nothing else.
 
-Never bury something the human must decide in prose: it is a question in a clarifications file, or
-an item in the block.
+**Once the human has answered or approved, the block becomes a record**, kept for later agents and
+readers: it says what the human was asked to weigh. Its callout becomes `> [!NOTE]`, and its first
+line becomes the outcome and its date: "Answered on 2026-10-08", "Approved on 2026-10-09". The items
+stay as they were. If the human or a tool did not do it, the next step does it in its own commit: it
+is the only edit allowed in an answered round of questions.
+
+Documents never explain how to use the workflow ("set `status: approved` and commit"): tools and
+this skill do. Never bury something the human must decide in prose: it is a question in a
+clarifications file, or an item in the block.
 
 The workflow only moves on when every question is answered. If a clarifications file is `answered`
 with questions left blank, set its status back to `awaiting-human`, name the blank questions in the

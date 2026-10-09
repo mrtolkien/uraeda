@@ -4,7 +4,8 @@
 
 - Claude Code-compatible PoC -> text-only workflow with a skill (WiP)
 - CLI for basic setup and upkeep
-- Basic web UI for _viewing_ the workflow files -> React + Astryx + Fate stack
+- Basic web UI for _viewing_ the workflow files -> React + Astryx + Fate stack, see
+  [draft](drafts/web-ui.md)
 
 ## Next
 

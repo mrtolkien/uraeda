@@ -4,152 +4,227 @@ status: answered
 
 # Clarifications, round 01: Recurring tasks
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 4 questions on recurring tasks, about 20 minutes.
+> Answered on 2026-10-08. 7 questions on recurring tasks, plus one follow-up that only applies to
+> one answer.
 >
-> - Two choices last beyond this feature: how users pick when a task repeats, which decides what
->   "every 2 weeks" would cost later, and how due dates are stored, which every future feature with
->   dates will follow, and which needs a one-time upgrade of saved tasks.
-> - The questions on when the next occurrence appears and which date it counts from work together.
->
-> Answer each question with an option letter, `yes` for the recommendation, or your own words. Then
-> set `status: answered` and commit.
+> - Two choices last beyond this feature: how users pick a repeat, which decides what "every 2
+>   weeks" would cost later, and how due dates are stored, which every future feature with dates
+>   will follow.
+> - When the next occurrence appears decides what editing, deleting, and undoing a repeating task
+>   mean. One of its answers comes with a follow-up.
+> - Two questions come from gaps in the proposal: its two-click path takes three clicks today, and a
+>   task without a due date has no date to repeat from.
+> - Five points are settled without you, at the end: check them.
 
 ## Context
 
 The [proposal](proposal.md) asks for tasks that come back once completed, like "water the plants"
-every week, while the app stays simple for the people who use it.
+every week, in two clicks, while the app stays simple for the people who use it.
 
-Today, a task has a title, a due date, and a done flag, stored in IndexedDB by the
+Today, a task has a title, an optional due date, and a done flag, stored in IndexedDB by the
 [task store](/src/store/tasks.ts), and edited in a panel with two fields
-([edit panel](/src/components/EditPanel.tsx)). The app only runs while it is open: there is no
-background process ([app entry point](/src/main.ts)).
+([edit panel](/src/components/EditPanel.tsx)). The app only runs while it is open.
 
-The full investigation is in [discovery](discovery-01.md). Each question below links to its topic.
+The full investigation is in [discovery](discovery-01.md). Each question links to its topic.
 
-## Q1: How should users choose when a task repeats?
+## Q1: How should users pick when a task repeats?
 
-Repeating needs a new setting in the edit panel. Other apps take different paths:
-
-- Microsoft To Do offers a menu of presets: daily, weekdays, weekly, monthly, yearly, and a custom
-  option
-  ([Microsoft support](https://support.microsoft.com/en-us/todo/add-due-dates-and-reminders-in-microsoft-to-do)).
-- Todoist lets users type rules like "every 3 months"
-  ([Todoist help](https://todoist.com/help/articles/introduction-to-recurring-dates-YUYVJJAV)).
-- Calendars use the iCalendar repeat rule
-  ([RFC 5545](https://datatracker.ietf.org/doc/html/rfc5545#section-3.3.10)), which the
-  [`rrule`](https://github.com/jkbrzt/rrule) library implements in JavaScript.
-
-Why it matters: this sets how complex the edit panel gets, and what a later "every 2 weeks" would
-cost. The constitution puts a simple UI first
-([principle I](../CONSTITUTION.md#i-simple-for-non-technical-users)). More in
+Microsoft To Do offers presets (daily, weekdays, weekly, monthly, yearly) plus a custom option,
+Todoist a rule typed in the due date field, like "every 3 months", and Google Calendar a custom
+screen, which the proposal names as what to avoid. Where the choice appears is Q6. More in
 [discovery](discovery-01.md#recurrence-rules).
 
-Options:
+Why it matters: this sets how complex the edit panel gets, and what "every 2 weeks" would cost
+later.
 
-- **A. Presets: daily, weekly, monthly.** One menu in the existing edit panel, with nothing to
-  learn. Pick it if simplicity matters more than coverage. "Every 2 weeks" would later need a new
-  preset or an interval field, and existing repeating tasks would keep working.
-- **B. Presets plus custom intervals (every N days, weeks, or months).** Covers almost every request
-  users make. Pick it if users already ask for intervals. It needs a second, more technical-looking
-  screen, and either our own code or the `rrule` dependency.
-- **C. Typed text, parsed by the app ("every 2nd Monday").** The most flexible, like Todoist. Pick
-  it if users are comfortable typing commands. It needs a parser and clear error messages, the
-  largest effort, and users have to learn the syntax.
+These options combine: C can come on top of A or B.
 
-**Recommended:** A. The constitution puts simplicity first, nothing in the proposal asks for
-intervals, and A can grow into B later.
+- **A (recommended). Presets only: daily, weekdays, weekly, monthly, yearly.**
+  - [pro] one choice, nothing to learn.
+  - [con] no "every 2 weeks", no "every Monday and Thursday".
+  - Why recommended: the constitution puts simplicity first
+    ([principle I](../CONSTITUTION.md#i-simple-for-non-technical-users)), and A can grow into B
+    later.
+- **B. The presets, plus a custom screen for intervals and days of the week ("every 2 weeks",
+  "Monday and Thursday").**
+  - [pro] covers almost every request, like Microsoft To Do.
+  - [con] a second, more technical screen, built in the project or with the
+    [`rrule`](https://github.com/jkbrzt/rrule) library.
+- **C. A rule typed in the task's due date field ("every Monday"), read by the app, like Todoist.**
+  - [pro] the fastest path for users who know the syntax.
+  - [con] the syntax has to be learned, and the app needs a parser with clear error messages.
 
 **Answer:** B and C: we need to easily handle weekdays vs weekend as those come up often. B will be
 the UI path, and C will only happen when editing the task's title (like todoist).
 
 ## Q2: When does the next occurrence appear?
 
-The app cannot create tasks while it is closed, so occurrences can only appear when the user does
-something, or ahead of time. Todoist keeps a single task, and moves its due date when it is
-completed
-([Todoist help](https://todoist.com/help/articles/introduction-to-recurring-dates-YUYVJJAV)).
+The app cannot create tasks while it is closed. Todoist keeps a single task and moves its due date
+on completion. This choice also decides what editing, deleting, and undoing mean for a repeating
+task. More in [discovery](discovery-01.md#generating-occurrences) and
+[editing occurrences](discovery-01.md#editing-occurrences).
 
-Why it matters: this decides whether users see future tasks, whether they keep a history of
-completed ones, and how fast lists grow. The constitution requires the app to stay fast with
-thousands of tasks ([principle III](../CONSTITUTION.md#iii-fast-with-thousands-of-tasks)). More in
-[discovery](discovery-01.md#generating-occurrences).
+Why it matters: it decides whether users see future tasks, whether completed ones stay as a history,
+and whether the app needs a notion of series.
 
-Options:
+- **A (recommended). Create the next occurrence as a new task when the current one is completed.
+  Editing a task changes that task only.**
+  - [pro] completed tasks stay in the list as a history; no notion of series to learn.
+  - [con] the list grows by one task per completion.
+  - Why recommended: it keeps the history with the simplest model.
+- **B. Create the next 4 occurrences in advance, so they are always visible.**
+  - [pro] users can plan ahead.
+  - [con] four times more repeating tasks in the list, and editing one occurrence needs the
+    follow-up question below.
+- **C. Keep a single task, and move its due date to the next occurrence when it is completed, like
+  Todoist. Editing the task changes the whole repetition.**
+  - [pro] the list never grows.
+  - [con] completed occurrences disappear, and one occurrence can never differ from the others.
 
-- **A. When the current task is completed, as a new task.** The completed task stays in the list
-  like any other, and the next one appears. Pick it for a simple model that keeps the history. The
-  list grows by one task per completion, and it is a small change in `completeTask`.
-- **B. In advance: the next 4 occurrences are always visible.** Users can plan ahead. Pick it if
-  users need to see upcoming tasks. Repeating tasks take four times more space in the list, and
-  editing becomes ambiguous: one occurrence, or all of them?
-- **C. One task whose due date moves when it is completed, like Todoist.** The list never grows.
-  Pick it for the shortest list. The history of completions is lost, and undo has to restore the
-  previous date.
+**Answer:** C, we want a simple feature. The repetition is more about time management and
+organization than history (we're a todo app, not a calendar)
 
-**Recommended:** A. It keeps the history, needs no background work, and keeps lists short enough.
+### Q2.B: What does editing one occurrence change?
 
-**Answer:** A
+Only if you picked B in Q2. Google Calendar asks at every edit: this event, this and following
+events, or all events ([Google Calendar help](https://support.google.com/calendar/answer/37113)).
+
+- **A (recommended). That occurrence only. Changing the repeat applies to the occurrences not
+  created yet.**
+  - [pro] no question at every edit.
+  - [con] changing all 4 visible occurrences takes 4 edits.
+  - Why recommended: edits stay simple, as the constitution asks.
+- **B. Ask at every edit: this one, this and following, or all, like Google Calendar.**
+  - [pro] full control.
+  - [con] a question at every edit, and a series with per-occurrence changes in the store.
+
+**Answer:**
 
 ## Q3: Which date does the next due date count from?
 
-Once a repeating task is completed, its next occurrence needs a due date. Todoist offers both
-options below: "every" counts from the previous due date, and "every!" from the day the task was
+Todoist offers both: "every" counts from the previous due date, "every!" from the day the task was
 completed
-([Todoist help](https://todoist.com/help/articles/introduction-to-recurring-dates-YUYVJJAV)).
+([Todoist help](https://todoist.com/help/articles/introduction-to-recurring-dates-YUYVJJAV)). This
+applies whatever the answer to Q2. More in [discovery](discovery-01.md#next-due-date).
 
 Why it matters: for a weekly task due Monday and completed on Thursday, this decides whether it
-stays a Monday task. More in [discovery](discovery-01.md#next-due-date).
+stays a Monday task.
 
-Options:
-
-- **A. From the previous due date.** Monday tasks stay on Mondays, whenever they are completed. Pick
-  it for a predictable schedule. A task completed very late can get a next due date that is already
-  past: Todoist skips to the next date in the future in that case.
-- **B. From the day the task was completed.** A weekly task done on Thursday comes back next
-  Thursday. Pick it when the gap matters more than the day, like watering plants. The schedule
-  drifts every time a task is done late.
-- **C. Users choose, per task.** Covers both needs. It adds a second setting to the edit panel,
-  against the constitution's simplicity principle.
-
-**Recommended:** A. Schedules are what users set repeating tasks up for.
+- **A (recommended). Count it from the previous due date: a task due Monday stays on Mondays. If
+  that date is already past, use the next one in the future, like Todoist.**
+  - [pro] a predictable schedule, even for tasks completed late.
+  - [con] a task done late can come back sooner than a full period later.
+  - Why recommended: schedules are what users set repeating tasks up for.
+- **B. Count it from the day the task was completed: a weekly task done on Thursday comes back next
+  Thursday.**
+  - [pro] fits tasks where the gap matters more than the day, like watering plants.
+  - [con] the schedule drifts each time a task is done late.
+- **C. Let users choose, per task.**
+  - [pro] covers both.
+  - [con] a second setting in the edit panel.
 
 **Answer:** A, but if that date is already past, use the next one in the future.
 
 ## Q4: How should the app store due dates?
 
-Due dates are stored as timestamps at local midnight ([task store](/src/store/tasks.ts)). Repeating
-tasks add date arithmetic, which breaks with timestamps:
+Due dates are timestamps at local midnight. A local day lasts 23 or 25 hours when daylight saving
+time changes, so adding 7 × 24 hours can land on the day before, and the native `Date` turns January
+31 plus a month into March. date-fns, already a dependency, fixes the month overflow with
+`addMonths`. More in [discovery](discovery-01.md#date-handling).
 
-- Adding 7 × 24 hours across a daylight saving change gives 23:00 the day before: a weekly task
-  would show up a day early twice a year.
-- Adding a month with the native `Date` overflows: January 31 plus one month gives March 2 or 3
-  ([MDN](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/setMonth)).
-  date-fns' `addMonths` gives the last day of February instead
-  ([date-fns docs](https://date-fns.org/docs/addMonths)), and date-fns is already a dependency
-  ([`package.json`](/package.json)).
+Why it matters: reminders, also in the [priorities](../PRIORITIES.md)' **Now** section, and every
+later feature with dates will follow this choice.
 
-Why it matters: this outlives the feature. Reminders, next in the [priorities](../PRIORITIES.md),
-and every later feature with dates will follow it, so the answer becomes a project decision. More in
-[discovery](discovery-01.md#date-handling).
-
-Options:
-
-- **A. Calendar days (`2026-10-12`), without a time, computed with date-fns.** A task due Monday is
-  due Monday everywhere, with no timezone or daylight saving bugs. Pick it to fix date bugs for good
-  with what the project already uses. It needs a one-time upgrade of saved tasks, and due times
-  would later need a separate field.
-- **B. UTC timestamps.** Exact instants, the usual choice for servers. Pick it if tasks will need
-  precise times soon. A task due Monday shows as due Sunday for users west of UTC, unless every
-  display converts carefully.
-- **C. The Temporal API's calendar date type.** The right model, built into the language. Pick it to
-  avoid a date library in the long run. It is in Firefox 139 and Chrome 144, but not in Safari, so
-  not on iPhones
-  ([MDN](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal)):
-  until then, its polyfill adds to the bundle.
-
-**Recommended:** A. It fixes the bug with a dependency the project already has. Temporal can replace
-date-fns later, inside a single module.
+- **A (recommended). Store due dates as calendar days (`2026-10-12`), without a time, computed with
+  date-fns.**
+  - [pro] a calendar day has no time, so daylight saving cannot shift it.
+  - [con] a one-time upgrade of saved tasks; due times would later need a separate field.
+  - Why recommended: it fixes both problems with what the project already uses. Temporal can replace
+    date-fns later, inside a single module.
+- **B. Store due dates as UTC timestamps.**
+  - [pro] exact instants.
+  - [con] a task due Monday shows as due Sunday for users west of UTC, unless every display converts
+    carefully.
+- **C. Store due dates as Temporal calendar dates.**
+  - [pro] the right model, built into the language.
+  - [con] not in Safari yet, so not on iPhones
+    ([MDN](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal)),
+    and its polyfill adds to the bundle until then.
 
 **Answer:** A
+
+## Q5: How does a repetition end?
+
+Google Calendar and Google Tasks let users end a repetition never, on a date, or after a number of
+occurrences ([Google Calendar help](https://support.google.com/calendar/answer/37115)). The proposal
+does not mention it. More in [discovery](discovery-01.md#ending-the-repetition).
+
+Why it matters: an end date adds fields to the repeat setting.
+
+- **A (recommended). A repetition never ends on its own: users turn the repeat off.**
+  - [pro] nothing to set.
+  - [con] no "until the end of the semester".
+  - Why recommended: turning the repeat off covers the common case, and B can come later.
+- **B. Let users end it on a date or after a number of occurrences, like Google Calendar.**
+  - [pro] covers every case.
+  - [con] two more fields in the repeat setting.
+
+**Answer:** A
+
+## Q6: Where do the two clicks start?
+
+The proposal asks for two clicks: "task -> recurrence -> weekly". With the app's current menus,
+opening the task, opening a repeat menu, and picking "weekly" takes three. With B in Q1, the custom
+screen opens from a "Custom..." entry, whatever the answer here. More in
+[discovery](discovery-01.md#two-clicks).
+
+Why it matters: it decides where the repeat setting lives.
+
+- **A (recommended). Show the presets as buttons in the edit panel: open the task, pick "weekly".**
+  - [pro] two clicks from the list, as the proposal asks.
+  - [con] a row of buttons in the panel, a new control built in the project.
+  - Why recommended: it meets the proposal without crowding the list.
+- **B. Put a repeat menu in the edit panel: open the task, open the menu, pick "weekly".**
+  - [pro] the existing `Select`, no new control.
+  - [con] three clicks from the list.
+- **C. Add a repeat button on each task in the list: open its menu, pick "weekly".**
+  - [pro] two clicks from the list, without opening the task.
+  - [con] one more button on every task row, against a lightweight list.
+
+**Answer:** B, let's not overload the interface
+
+## Q7: What happens when a task without a due date is set to repeat?
+
+Due dates are optional, and the proposal's path does not set one. With A or C in Q3, the next date
+counts from a due date, so a task without one has nothing to count from. More in
+[discovery](discovery-01.md#repeating-a-task-without-a-due-date).
+
+Why it matters: it decides whether the quick path from Q6 works on every task.
+
+- **A (recommended). Setting a repeat on a task without a due date sets its due date to today.**
+  - [pro] the quick path works on every task, and the new date shows right away.
+  - [con] the task gets a due date the user did not pick.
+  - Why recommended: it keeps the proposal's path.
+- **B. A task needs a due date before it can repeat: the repeat setting stays disabled until one is
+  set.**
+  - [pro] no change the user did not make.
+  - [con] more clicks for tasks without a date.
+
+**Answer:** A
+
+## Settled without the human
+
+- **Undoing a completion** puts back what completing changed: it removes the occurrence created with
+  A in Q2, or restores the previous due date with C. Otherwise undo leaves the list in a state the
+  user never saw. See [discovery](discovery-01.md#the-proposals-path-and-existing-actions).
+- **Deleting a repeating task** ends the repetition with A or C in Q2, since it is the only pending
+  occurrence. With B, the follow-up Q2.B decides. Same section of the discovery.
+- **Skipping one occurrence** gets no dedicated action: users move its due date, or complete it, as
+  in Todoist. A skip action can come later without changing stored tasks. See
+  [Todoist](discovery-01.md#todoist).
+- **Monthly repeats on the 29th to 31st** fall on the last day of shorter months, which is what
+  date-fns' `addMonths` does. See [discovery](discovery-01.md#dates-in-javascript).
+- **Repeating tasks show a repeat icon** in the list, next to the due date, with the project's
+  existing icons. See [discovery](discovery-01.md#important-reads).

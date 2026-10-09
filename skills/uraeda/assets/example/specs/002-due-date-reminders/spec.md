@@ -17,10 +17,6 @@ plan-review: false
 > - Reminders only show while the app is open, and late if the browser slows a background tab.
 > - The app asks for the notification permission the first time a reminder is turned on.
 > - Risk tier `medium`: no plan review unless you set `plan-review: true`.
->
-> Set `status: approved` and commit: this also applies the new decisions and proposed changes below.
-> You can change the risk tier, and set `plan-review: true` to review the plan. To request changes,
-> set `status: changes-requested` and write your feedback in a `## Review` section at the end.
 
 Users can turn on a reminder for a task with a due date. The app shows it at the chosen time, while
 it is open, and lists the reminders missed while it was closed. See the [proposal](proposal.md),

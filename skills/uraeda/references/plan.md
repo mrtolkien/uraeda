@@ -66,7 +66,8 @@ rejected. A plan with an exception always waits for the human's review, whatever
 
 When the plan waits for a review, open it with the `> [!IMPORTANT]` block described in
 [Coming back to the human](../SKILL.md#coming-back-to-the-human): what most needs attention is where
-the plan goes beyond the spec's design. An auto-approved plan has no block.
+the plan goes beyond the spec's design. An auto-approved plan has no block. Once the human approves
+the plan, the implementation step turns the block into a record, as for the spec.
 
 ## Revising
 

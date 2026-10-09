@@ -29,10 +29,11 @@ decision, or the expected behaviour is unclear, ask in the assessment, with a re
 
 ## After the review
 
-When the human sets `approved`, implement the fix in a pull request, with the test from the
-assessment. In the same pull request, remove the bug's entry from `PRIORITIES.md`. When they set
-`changes-requested`, read the `## Review` section, revise the assessment, and set
-`status: awaiting-human` again.
+When the human sets `approved`, turn the assessment's block into a record, as described in
+[Coming back to the human](../SKILL.md#coming-back-to-the-human), then implement the fix in a pull
+request, with the test from the assessment. In the same pull request, remove the bug's entry from
+`PRIORITIES.md`. When they set `changes-requested`, read the `## Review` section, revise the
+assessment, and set `status: awaiting-human` again.
 
 ## Commit
 

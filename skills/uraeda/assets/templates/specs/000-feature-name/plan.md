@@ -11,9 +11,6 @@ spec-revision: [the spec's revision]
 >
 > - [Where your attention matters most, one line each: where the plan goes beyond the spec's design,
 >   complexity, risky steps]
->
-> Set `status: approved` and commit, or set `status: changes-requested` and write your feedback in a
-> `## Review` section at the end.
 
 Implements the design of [the spec](spec.md).
 
