@@ -2,9 +2,7 @@
 status: awaiting-human
 ---
 
-# Clarifications: [Feature name]
-
-## Session [YYYY-MM-DD]
+# Clarifications, round [NN]: [Feature name]
 
 > [!IMPORTANT]
 >
@@ -16,20 +14,20 @@ status: awaiting-human
 > Answer each question with an option letter, `yes` for the recommendation, or your own words. Then
 > set `status: answered` and commit.
 
-### Context
+## Context
 
-[What the proposal asks for, in a sentence or two. What exists today, with links to the code. On a
-later session: what changed since the last one, and why new questions came up.]
+[What the proposal asks for, in a sentence or two. What exists today, with links to the code. In a
+later round: what happened since the last one, and why new questions came up.]
 
-The full investigation is in [discovery](discovery.md). Each question below links to its topic.
+The full investigation is in [discovery](discovery-01.md). Each question below links to its topic.
 
-### Q1: [Question]
+## Q1: [Question]
 
 [What the reader needs to know to answer: the current code, the documentation, how others solve it.
 Every fact links to its source: [code](/path), [docs](https://...), [web pages](https://...).]
 
 Why it matters: [what this decides, and what it costs later]. More in
-[discovery](discovery.md#topic).
+[discovery](discovery-01.md#topic).
 
 Options:
 

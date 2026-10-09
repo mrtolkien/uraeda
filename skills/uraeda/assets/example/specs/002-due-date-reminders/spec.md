@@ -1,5 +1,7 @@
 ---
 status: awaiting-human
+revision: 1
+clarifications: 1
 risk-tier: medium
 plan-review: false
 ---
@@ -22,7 +24,7 @@ plan-review: false
 
 Users can turn on a reminder for a task with a due date. The app shows it at the chosen time, while
 it is open, and lists the reminders missed while it was closed. See the [proposal](proposal.md),
-[discovery](discovery.md), and [clarifications](clarifications.md).
+[discovery](discovery-01.md), and [clarifications](clarifications-01.md).
 
 ## User stories
 
@@ -80,7 +82,7 @@ Reminders are checked by the open app, once a minute, with no server and no serv
 browser cannot schedule a notification ahead of time. Missed reminders are found when the app opens.
 The reminder time is a separate field, through a proposed change to the
 [due dates](../decisions/due-dates.md) decision. See the
-[discovery](discovery.md#showing-reminders).
+[discovery](discovery-01.md#showing-reminders).
 
 ### Components
 

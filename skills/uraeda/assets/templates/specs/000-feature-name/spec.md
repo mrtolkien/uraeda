@@ -1,7 +1,9 @@
 ---
 status: awaiting-human
+revision: 1
+clarifications: [latest round included: 1]
 risk-tier: [low | medium | high]
-plan-review: false
+plan-review: false # medium only
 ---
 
 # Spec: [Feature name]
@@ -18,7 +20,7 @@ plan-review: false
 > set `status: changes-requested` and write your feedback in a `## Review` section at the end.
 
 [One paragraph: what the feature does, for whom, and why. Links to the [proposal](proposal.md),
-[discovery](discovery.md), and [clarifications](clarifications.md).]
+[discovery](discovery-01.md), and [clarifications](clarifications-01.md).]
 
 ## User stories
 

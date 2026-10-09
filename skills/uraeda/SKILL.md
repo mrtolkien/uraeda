@@ -59,13 +59,19 @@ specs/
   bugs/<slug>/              # report.md (human), assessment.md (agent)
   NNN-feature-slug/         # one numbered folder per feature
     proposal.md             # human: what and why
-    discovery.md             # agent: findings and options, never decisions
-    clarifications.md       # agent questions, human answers
-    spec.md                 # agent: behaviour, reviewed by a human
-    plan.md                 # agent: technical approach and implementation steps
+    discovery-01.md         # agent: findings and options, never decisions
+    clarifications-01.md    # agent questions, human answers
+    discovery-02.md         # a later round, when one is needed
+    clarifications-02.md
+    spec.md                 # agent: behaviour and design, approved by a human, amended in place
+    plan.md                 # agent: files and implementation steps, amended in place
     data-model.md           # agent, when needed
     contracts/              # agent, when needed
 ```
+
+Discovery and questions come in numbered rounds: each round is a new pair of files, and earlier
+rounds are never edited. The spec and the plan are single files, amended in place: they are the
+source of truth for the implementation.
 
 Before any step, read `specs/CONSTITUTION.md` and the `active` decisions in `specs/decisions/` that
 apply to your work: their **Applies to** section says where. The constitution wins over decisions,
@@ -77,22 +83,33 @@ for a todo app, is in `assets/example/specs/`.
 
 ### Links
 
-Write markdown links, with a relative path (`[discovery](discovery.md)`) or a path from the
-repository root (`[auth](/src/auth.ts)`). Humans may write wikilinks (`[[due-dates]]`): read them,
-but do not write them. Link to what a file relies on: decisions, discovery, code. Links replace
-metadata fields.
+Write markdown links, with a relative path (`[spec](spec.md)`) or a path from the repository root
+(`[auth](/src/auth.ts)`). Humans may write wikilinks (`[[due-dates]]`): read them, but do not write
+them. Link to what a file relies on: decisions, discovery, code.
+
+### Branches
+
+Each feature lives on its own branch, named after its folder (`001-recurring-tasks`), from the
+proposal to the code: discovery, questions, spec, decisions, plan, and implementation. Its pull
+request merges all of it at once. Decisions become active on the branch when its spec is approved,
+and bind the rest of the project once the branch is merged. A bug lives on `fix/<slug>`.
+
+Run every step on the feature's branch. The human answers and approves on that branch too.
 
 ### Workflow status
 
-Workflow files track their step in a `status` frontmatter field.
+Workflow files track their state in frontmatter fields.
 
-| File                   | Set by the agent                      | Set by the human                  |
-| ---------------------- | ------------------------------------- | --------------------------------- |
-| `clarifications.md`    | `awaiting-human`                      | `answered`                        |
-| `spec.md`              | `awaiting-human`                      | `approved` or `changes-requested` |
-| `plan.md`              | `awaiting-human` or `auto-approved`   | `approved` or `changes-requested` |
-| `decisions/*.md`       | `proposed`, then `active` on approval | `active`                          |
-| `bugs/*/assessment.md` | `awaiting-human`                      | `approved` or `changes-requested` |
+| File                   | Field            | Set by the agent                      | Set by the human                  |
+| ---------------------- | ---------------- | ------------------------------------- | --------------------------------- |
+| `clarifications-NN.md` | `status`         | `awaiting-human`                      | `answered`                        |
+| `spec.md`              | `status`         | `awaiting-human`                      | `approved` or `changes-requested` |
+| `spec.md`              | `revision`       | `1`, then `+1` at every change        | `+1` when editing it              |
+| `spec.md`              | `clarifications` | the last round it includes: `2`       |                                   |
+| `plan.md`              | `status`         | `awaiting-human` or `auto-approved`   | `approved` or `changes-requested` |
+| `plan.md`              | `spec-revision`  | the spec `revision` it implements     |                                   |
+| `decisions/*.md`       | `status`         | `proposed`, then `active` on approval | `active`                          |
+| `bugs/*/assessment.md` | `status`         | `awaiting-human`                      | `approved` or `changes-requested` |
 
 The `assessment.md` statuses are an agent-authored draft that needs human review: see
 [Bug](references/bug.md).
@@ -106,32 +123,41 @@ section at the end of the file, and applied when the spec that links to them is 
 
 ## Finding the next step
 
-1. **Pick the target.** Use the spec folder or bug the human named. Otherwise, take the first entry
-   of the **Now** section of `specs/PRIORITIES.md` that links to a spec folder or bug with work for
-   an agent. Starting a feature is a human action: see
+1. **Pick the target.** Use the feature or bug the human named. Otherwise, list the feature and bug
+   branches (`git branch -a`), and take the first one with work for an agent, in the order of the
+   **Now** section of `specs/PRIORITIES.md`. Starting a feature is a human action: see
    [below](#starting-postponing-and-dropping-a-feature).
-2. **Find the step.** For a spec folder, go down this table and run the first row that matches.
-   "Newer" compares the last commit that touched each file (`git log -1 --format=%ct -- <file>`);
-   uncommitted changes are the newest.
+2. **Find the step.** Check out the target's branch. In its spec folder, `NN` is the highest
+   clarifications round. Go down this table and run the first row that matches.
 
-| State of the spec folder                                                                            | Step                                           |
-| --------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| A file has `status: awaiting-human`                                                                 | **Human gate**: stop                           |
-| No `clarifications.md`                                                                              | [Discovery](references/discovery.md)           |
-| `clarifications.md` is `answered`, and newer than `spec.md` (or no spec)                            | [Spec and decisions](references/spec.md)       |
-| `spec.md` is `changes-requested`                                                                    | [Spec](references/spec.md), revision           |
-| `spec.md` is `approved`, and a decision it links is `proposed` or has a `## Proposed change` for it | [Approval](references/approval.md)             |
-| `spec.md` is `approved`, no `plan.md`                                                               | [Plan](references/plan.md)                     |
-| `spec.md` is `approved`, and newer than `plan.md`                                                   | [Plan](references/plan.md), revision           |
-| `plan.md` is `changes-requested`                                                                    | [Plan](references/plan.md), revision           |
-| `plan.md` is `approved` or `auto-approved`, with unchecked steps                                    | [Implementation](references/implementation.md) |
-| Every step of `plan.md` is checked                                                                  | Done: nothing to do                            |
+| State of the spec folder                                                                        | Step                                                         |
+| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| A file has `status: awaiting-human`                                                             | **Human gate**: stop                                         |
+| No `clarifications-01.md`                                                                       | [Discovery](references/discovery.md), round 01               |
+| `clarifications-NN.md` is `answered`, and there is no `spec.md`, or its `clarifications` < NN   | [Spec and decisions](references/spec.md)                     |
+| `spec.md` is `changes-requested`                                                                | [Spec](references/spec.md), revision                         |
+| `spec.md` is `approved`, and a decision it links is `proposed`, or has a proposed change for it | [Approval](references/approval.md)                           |
+| `spec.md` is `approved`, and there is no `plan.md`                                              | [Plan](references/plan.md)                                   |
+| `spec.md` is `approved`, and the plan's `spec-revision` < the spec's `revision`                 | [Plan](references/plan.md), revision                         |
+| `plan.md` is `changes-requested`                                                                | [Plan](references/plan.md), revision                         |
+| `plan.md` is `approved` or `auto-approved`, with unchecked steps                                | [Implementation](references/implementation.md)               |
+| Every step of `plan.md` is checked, and the branch has no pull request                          | [Implementation](references/implementation.md), pull request |
+| The branch has an open pull request                                                             | **Human gate**: the review happens on the pull request       |
 
-For a bug folder, see [Bug](references/bug.md).
+For a bug branch, see [Bug](references/bug.md).
 
 3. **Run the step**, following its reference file, and commit.
 4. **Continue or stop.** If the step did not end at a human gate, run the next step in the same
    session when you can. Otherwise stop: the next run finds it with this same table.
+
+### Going back to the human with new questions
+
+Any step can find something only the human can decide: an answer that raised a new unknown, spec
+feedback asking for options, a plan or implementation blocked by something the spec and decisions do
+not allow. Never work around it, and never leave it as a note only: start a new round. Write
+`discovery-NN.md` and `clarifications-NN.md` with the next number, following
+[Discovery](references/discovery.md), in the same commit. The new questions wait for the human like
+the first ones, and the spec is amended once they are answered.
 
 ### Coming back to the human
 
@@ -139,8 +165,7 @@ A step that ends at a human gate stops there: do not start the next step early, 
 comes back to the human the same way every time, so they know at once what is asked of them and
 where to put their attention.
 
-1. **The file waiting for them opens with a `> [!IMPORTANT]` block**, right after the title or the
-   new session's heading:
+1. **The file waiting for them opens with a `> [!IMPORTANT]` block**, right after the title:
    - First line: what is asked, and an honest estimate of the time it takes to think it through. "12
      questions, about 30 minutes."
    - Then what most needs their attention, most important first, one line each, named by subject
@@ -154,29 +179,31 @@ where to put their attention.
 3. **In a chat session**, say the same in one or two sentences, with the file's path. If you were
    triggered without a chat session, the commit is the message: say nothing else.
 
-Never bury something the human must decide in prose: it is a question in `clarifications.md`, or an
-item in the block.
+Never bury something the human must decide in prose: it is a question in a clarifications file, or
+an item in the block.
 
-If a status looks wrong, for example `answered` with questions left blank, do not fix it: treat
-blank answers as open questions, and carry them to the next clarification session.
+The workflow only moves on when every question is answered. If a clarifications file is `answered`
+with questions left blank, set its status back to `awaiting-human`, name the blank questions in the
+first line of its block, and commit.
 
 ## Starting, postponing, and dropping a feature
 
 Do these only when a human asks.
 
-- **Start**: create `specs/NNN-feature-slug/`, and move the draft or backlog file into it as
-  `proposal.md`. Numbers are never reused: take the highest number ever used, including folders
-  deleted since (`git log --name-only --format= -- specs/`), plus one.
-- **Postpone or block**: move `proposal.md` back to `specs/drafts/<slug>.md` or
-  `specs/backlog/<slug>.md`, as the human prefers, and delete the rest of the folder. Git history
-  keeps the discovery and questions. Move the `PRIORITIES.md` entry to the right section, with the
-  reason when it is blocked.
-- **Drop**: delete the folder, and remove the `PRIORITIES.md` entry.
+- **Start**: take the next number: the highest ever used, in folders and branches, including deleted
+  ones (`git log --all --name-only --format= -- specs/`, `git branch -a`), plus one. Create the
+  branch `NNN-feature-slug` from the default branch. On it, create `specs/NNN-feature-slug/`, move
+  the draft or backlog file into it as `proposal.md`, and point the `PRIORITIES.md` entry to the
+  folder. Commit with `chore(<number>): start <feature name>`.
+- **Postpone or block**: on the feature's branch, move `proposal.md` back to
+  `specs/drafts/<slug>.md` or `specs/backlog/<slug>.md`, as the human prefers, and delete the rest
+  of the folder. Move the `PRIORITIES.md` entry to the right section, with the reason when it is
+  blocked. Merge only this change, or let the human close the branch: git history keeps the
+  discovery and questions.
+- **Drop**: delete the branch, after the human confirms.
 
-When postponing or dropping, delete the feature's decisions that are still `proposed`, and the
-`## Proposed change` sections it added. Keep the changes already applied: a human approved them, and
-only a human can change them again. Commit with `chore(<number>): postpone <feature name>` or
-`chore(<number>): drop <feature name>`.
+When postponing, delete the feature's decisions that are still `proposed`, and the
+`## Proposed change` sections it added. Commit with `chore(<number>): postpone <feature name>`.
 
 ## Commits
 
@@ -187,7 +214,7 @@ first version, and what changed for later commits.
 
 | Type          | Step                                     | Example                                                     |
 | ------------- | ---------------------------------------- | ----------------------------------------------------------- |
-| `discovery:`  | Discovery and questions                  | `discovery(001): recurring tasks`                           |
+| `discovery:`  | A discovery and questions round          | `discovery(001): recurring tasks`                           |
 | `decision:`   | Apply approved decisions                 | `decision(001): apply due dates`                            |
 | `spec:`       | Write or revise a spec and its decisions | `spec(001): recurring tasks`                                |
 | `plan:`       | Write or revise a plan                   | `plan(001): split the store migration`                      |

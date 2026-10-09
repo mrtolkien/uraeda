@@ -1,5 +1,6 @@
 ---
 status: [awaiting-human | auto-approved]
+spec-revision: [the spec's revision]
 ---
 
 # Plan: [Feature name]
