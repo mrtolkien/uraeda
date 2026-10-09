@@ -54,6 +54,12 @@ the components.]
 
 - **[Unit]** ([`path`](/path)): [what it does, how it is used, what it depends on]
 
+### Mockups
+
+[UI work only: remove this section otherwise.]
+
+- [[Screen or state](mockups/screen-name.html): what it shows]
+
 ### Error handling
 
 - [What can fail, and what the user sees]
@@ -86,7 +92,7 @@ New, applied when this spec is approved:
 Changed, applied when this spec is approved:
 
 - [Topic](../decisions/decision-topic.md): [the proposed change, in a sentence. Link to its
-  `## Proposed change (NNN-feature-name)` section]
+  `## Proposed change (YYYY-MM-DD-feature-slug)` section]
 
 Relied on:
 

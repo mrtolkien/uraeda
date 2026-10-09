@@ -20,10 +20,10 @@ done.
 ## Why
 
 The human chose a single task whose date moves, "we're a todo app, not a calendar"
-([Q2](../001-recurring-tasks/clarifications-01.md#q2-when-does-the-next-occurrence-appear)), with
-next dates counted from the previous due date
-([Q3](../001-recurring-tasks/clarifications-01.md#q3-which-date-does-the-next-due-date-count-from)).
-See the [discovery](../001-recurring-tasks/discovery-01.md#generating-occurrences).
+([Q2](../2026-10-06-recurring-tasks/clarifications-01.md#q2-when-does-the-next-occurrence-appear)),
+with next dates counted from the previous due date
+([Q3](../2026-10-06-recurring-tasks/clarifications-01.md#q3-which-date-does-the-next-due-date-count-from)).
+See the [discovery](../2026-10-06-recurring-tasks/discovery-01.md#generating-occurrences).
 
 ## Alternatives considered
 

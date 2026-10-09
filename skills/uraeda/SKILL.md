@@ -4,7 +4,7 @@ description:
   Asynchronous, git-driven spec workflow. Humans write proposals, answer questions, and approve
   specs; agents research, ask, and write specs, plans, code, and pull requests, committing every
   step. Use in a repository with a `specs/` folder when the user wants a feature or bug moved
-  forward ("continue feature 001", "I answered the questions", "the spec is approved", "what is
+  forward ("continue recurring tasks", "I answered the questions", "the spec is approved", "what is
   next?", "start the keyboard shortcuts draft", "assess the bug in specs/bugs/"), or to set Uraeda
   up ("set up specs/"). Finds the next step from the repository alone, and stops at human gates.
 metadata:
@@ -57,8 +57,8 @@ specs/
   backlog/                  # nice-to-have features, not scheduled
                             # in both, a folder is a postponed feature: <slug>/proposal.md, ...
   decisions/                # decision ledger, one file per topic: due-dates.md
-  bugs/<slug>/              # report.md (human), assessment.md (agent)
-  NNN-feature-slug/         # one numbered folder per feature
+  bugs/YYYY-MM-DD-<slug>/   # report.md (human), assessment.md (agent)
+  YYYY-MM-DD-feature-slug/  # one folder per feature, dated the day it starts
     proposal.md             # human: what and why, in their own words
     discovery-01.md         # agent: findings and options, never decisions
     clarifications-01.md    # agent questions, human answers
@@ -69,7 +69,7 @@ specs/
     rulings.md              # agent: low-impact choices made while planning and building
     data-model.md           # agent, when needed
     contracts/              # agent, when needed
-    mockups/                # agent, when a visual direction matters
+    mockups/                # agent, for any UI work
 ```
 
 Discovery and questions come in numbered rounds: each round is a new pair of files, and earlier
@@ -82,9 +82,9 @@ and decisions win over specs and plans. Decisions are high-impact choices made b
 they change over time: see [what is a decision](references/spec.md#what-is-a-decision).
 
 Templates for every file are in `assets/templates/specs/`, at the same paths. A filled-in example,
-for a todo app, is in `assets/example/specs/`: feature 001 is the model of every file, from the
-proposal to a fully checked plan, with the blocks that waited for the human kept as records. Other
-files show work still waiting for the human.
+for a todo app, is in `assets/example/specs/`: `2026-10-06-recurring-tasks/` is the model of every
+file, from the proposal to a fully checked plan, with the blocks that waited for the human kept as
+records. Other files show work still waiting for the human.
 
 ### Markdown
 
@@ -113,11 +113,12 @@ Templates are strict where tools and agents need to find things, and free elsewh
 
 ### Branches
 
-Each feature lives on its own branch, named after its folder (`001-recurring-tasks`), from the
-proposal to the code: discovery, questions, spec, decisions, plan, and implementation. Its pull
+Each feature lives on its own branch, named after its folder (`2026-10-06-recurring-tasks`), from
+the proposal to the code: discovery, questions, spec, decisions, plan, and implementation. Its pull
 request merges all of it at once. Decisions become active on the branch when its spec is approved,
-and bind the rest of the project once the branch is merged. A bug lives on `fix/<slug>`. Run every
-step on the target's branch: the human answers and approves on it too.
+and bind the rest of the project once the branch is merged. A bug lives on `fix/YYYY-MM-DD-<slug>`,
+named after its folder. Run every step on the target's branch: the human answers and approves on it
+too.
 
 ### Workflow status
 
@@ -140,9 +141,9 @@ Workflow files track their state in frontmatter fields.
 The bug flow is an agent-authored draft that needs human review: see [Bug](references/bug.md).
 
 Only set a human status when the human expressly asks you to in the session, for example "the spec
-is approved". Say so in the commit message: `spec(001): approved by the human in chat`. With
-`changes-requested`, the human's feedback is in a `## Changes requested` section at the end of the
-file.
+is approved". Say so in the commit message: `spec(recurring-tasks): approved by the human in chat`.
+With `changes-requested`, the human's feedback is in a `## Changes requested` section at the end of
+the file.
 
 An active decision is never edited before approval: changes are proposed in a `## Proposed change`
 section at the end of the file, and applied when the spec that links to them is approved.
@@ -229,23 +230,25 @@ first line of its block, and commit.
 
 Do these only when a human asks.
 
-- **Start**: take the next number: the highest ever used, in folders and branches, including deleted
-  ones (`git log --all --name-only --format= -- specs/`, `git branch -a`), plus one.
+- **Start**: name the folder with today's date and a short slug of the feature's name,
+  `YYYY-MM-DD-feature-slug`, like `2026-10-06-recurring-tasks`. The date never changes, even if the
+  feature is renamed. If a folder or branch with that name exists, choose another slug.
   1. On the default branch, move the feature's `PRIORITIES.md` entry to **Now**, unless the human
-     says otherwise, and commit with `chore(<number>): start <feature name>`. `PRIORITIES.md` lives
-     on the default branch: feature branches only remove their own entry, in their last commit.
-  2. Create the branch `NNN-feature-slug` from there. On it, create `specs/NNN-feature-slug/`, and
-     move the draft or backlog file into it as `proposal.md`, unchanged: the proposal is the human's
-     words, never rewritten. When the entry is a folder, a feature postponed earlier, move all its
-     files into it, unchanged. When the entry has no file, write `proposal.md` from the template
-     with only what the human said. Commit with `chore(<number>): proposal`.
+     says otherwise, and commit with `chore(<slug>): start <feature name>`. `PRIORITIES.md` lives on
+     the default branch: feature branches only remove their own entry, in their last commit.
+  2. Create the branch `YYYY-MM-DD-feature-slug` from there. On it, create
+     `specs/YYYY-MM-DD-feature-slug/`, and move the draft or backlog file into it as `proposal.md`,
+     unchanged: the proposal is the human's words, never rewritten. When the entry is a folder, a
+     feature postponed earlier, move all its files into it, unchanged. When the entry has no file,
+     write `proposal.md` from the template with only what the human said. Commit with
+     `chore(<slug>): proposal`.
   3. Then run the next step in the same session when you can: [Discovery](references/discovery.md),
      round 01, for a proposal alone, or the first matching row of
      [the table](#finding-the-next-step) for a folder. A round left waiting for answers stays at its
      gate. When the human asks for fresh research, start a new round instead, following
      [going back to the human](#going-back-to-the-human-with-new-questions).
 - **Postpone or block**: on the feature's branch, move the whole folder to `specs/drafts/<slug>/` or
-  `specs/backlog/<slug>/`, as the human prefers, without its number: the proposal, the discovery
+  `specs/backlog/<slug>/`, as the human prefers, without its date: the proposal, the discovery
   rounds, and the questions, answered or not, stay as they are. Delete the feature's `proposed`
   decisions, and the `## Proposed change` sections it added. In the same commit, move the
   `PRIORITIES.md` entry to the right section, with the reason when it is blocked, and link it to the
@@ -257,20 +260,20 @@ Do these only when a human asks.
 
 One commit per step, and one per task during the implementation, containing only its files. Messages
 follow [Conventional Commits](https://www.conventionalcommits.org/), with one extra type per
-workflow step. The scope is the spec folder's number, or the bug's slug. The description is the
-feature name for a first version, and what changed for later commits.
+workflow step. The scope is the feature's or the bug's slug, its folder's name without the date. The
+description is the feature name for a first version, and what changed for later commits.
 
 | Type          | Step                                     | Example                                                  |
 | ------------- | ---------------------------------------- | -------------------------------------------------------- |
-| `discovery:`  | A discovery and questions round          | `discovery(001): recurring tasks`                        |
-| `decision:`   | Apply approved decisions                 | `decision(001): apply due dates`                         |
-| `spec:`       | Write or revise a spec and its decisions | `spec(001): recurring tasks`                             |
-| `plan:`       | Write or revise a plan                   | `plan(001): split the store migration`                   |
+| `discovery:`  | A discovery and questions round          | `discovery(recurring-tasks): recurring tasks`            |
+| `decision:`   | Apply approved decisions                 | `decision(recurring-tasks): apply due dates`             |
+| `spec:`       | Write or revise a spec and its decisions | `spec(recurring-tasks): recurring tasks`                 |
+| `plan:`       | Write or revise a plan                   | `plan(recurring-tasks): split the store migration`       |
 | `assessment:` | Assess a bug                             | `assessment(completed-tasks-reappear): stale copy saved` |
 
 Code commits use the plan's messages, with the standard types and the same scope:
-`feat(001): repeat menu`, `fix(completed-tasks-reappear): save new tasks as they are`. The commit
-type is only a label: the `status` fields and the checkboxes are the source of truth.
+`feat(recurring-tasks): repeat menu`, `fix(completed-tasks-reappear): save new tasks as they are`.
+The commit type is only a label: the `status` fields and the checkboxes are the source of truth.
 
 ## Setting up a project
 

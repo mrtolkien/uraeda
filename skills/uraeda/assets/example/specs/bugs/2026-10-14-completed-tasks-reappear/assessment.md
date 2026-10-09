@@ -56,9 +56,10 @@ test("a task renamed right after its creation keeps its new name after a reload"
 1. [`createTask`](/src/store/tasks.ts) adds the task to the store's memory, which the list shows,
    and queues a copy of it, with `done: false`, in `pendingCreations`.
 2. One second after the first queued creation, `flushCreations` writes every queued copy to
-   IndexedDB in one transaction. It was added after feature 001, in `perf(store): batch new tasks`
-   (`git log -S flushCreations -- src/store/tasks.ts`), to keep creating many tasks fast, as the
-   constitution asks: one transaction for many tasks instead of one each.
+   IndexedDB in one transaction. It was added after the recurring tasks feature, in
+   `perf(store): batch new tasks` (`git log -S flushCreations -- src/store/tasks.ts`), to keep
+   creating many tasks fast, as the constitution asks: one transaction for many tasks instead of one
+   each.
 3. [`completeTask`](/src/store/tasks.ts) writes at once. In that second, its write lands first, then
    the queued copy overwrites it.
 4. The list still shows the task in memory, completed. After a reload, it reads the database, where

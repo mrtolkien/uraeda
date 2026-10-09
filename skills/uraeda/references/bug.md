@@ -3,7 +3,7 @@
 Finds the root cause of a reported bug, proposes a fix for the human to approve, then fixes it,
 without going through the feature flow.
 
-- **Runs when**: a bug branch, `fix/<slug>`, is in one of the states of the table below
+- **Runs when**: a bug branch, `fix/YYYY-MM-DD-<slug>`, is in one of the states of the table below
 - **Writes**: `assessment.md`, then the fix, its test, and the pull request
 - **Ends at**: a human gate: `assessment.md` with `status: awaiting-human`, or the pull request
 
@@ -20,17 +20,18 @@ that reproduces the bug.
 
 ## Starting a bug
 
-Only when a human asks. Create the branch `fix/<slug>` from the default branch. On it, put the
-human's report in `specs/bugs/<slug>/report.md`, from
-[the template](../assets/templates/specs/bugs/bug-slug/report.md) if they wrote it elsewhere, and
-add the bug to the **Now** section of `PRIORITIES.md`, or where the human says. Commit with
-`chore(<slug>): start <bug title>`.
+Only when a human asks. Name the bug with today's date and a short slug of its title,
+`YYYY-MM-DD-<slug>`, and create the branch `fix/YYYY-MM-DD-<slug>` from the default branch. On it,
+put the human's report in `specs/bugs/YYYY-MM-DD-<slug>/report.md`, from
+[the template](../assets/templates/specs/bugs/YYYY-MM-DD-bug-slug/report.md) if they wrote it
+elsewhere, and add the bug to the **Now** section of `PRIORITIES.md`, or where the human says.
+Commit with `chore(<slug>): start <bug title>`.
 
 ## Finding the step
 
 On the bug's branch, go down this table and run the first row that matches.
 
-| State of `specs/bugs/<slug>/`                             | Step                             |
+| State of `specs/bugs/YYYY-MM-DD-<slug>/`                  | Step                             |
 | --------------------------------------------------------- | -------------------------------- |
 | `assessment.md` has `status: awaiting-human`              | **Human gate**: stop             |
 | No `assessment.md`                                        | [Assess](#assess)                |
@@ -59,11 +60,11 @@ ones.
 5. **Plan the fix**: the change at the root cause, the files it touches, what else it changes for
    users, and the steps to make it, like a task of a [plan](plan.md#task-structure).
 
-Write `assessment.md` from [the template](../assets/templates/specs/bugs/bug-slug/assessment.md),
-for a human reading top to bottom, and set `status: awaiting-human`. Open it with the
-`> [!IMPORTANT]` block described in
-[Coming back to the human](../SKILL.md#coming-back-to-the-human): how long the review takes, the
-root cause in one line, the fix's risk, and any question.
+Write `assessment.md` from
+[the template](../assets/templates/specs/bugs/YYYY-MM-DD-bug-slug/assessment.md), for a human
+reading top to bottom, and set `status: awaiting-human`. Open it with the `> [!IMPORTANT]` block
+described in [Coming back to the human](../SKILL.md#coming-back-to-the-human): how long the review
+takes, the root cause in one line, the fix's risk, and any question.
 
 Ask only what the human must decide, as questions at the end of the file, in the format of
 [clarifications](discovery.md#question-structure), recommended option first: an expected behaviour
@@ -83,7 +84,7 @@ the [implementation](implementation.md) step does for a plan's task: watch the t
 root cause, run the project's validation, and check each step's box in the commit.
 
 Write the choices you make while fixing, that the assessment did not settle, in
-`specs/bugs/<slug>/rulings.md`, as the implementation step does.
+`specs/bugs/YYYY-MM-DD-<slug>/rulings.md`, as the implementation step does.
 
 When the fix touches what the constitution says to benchmark, the assessment's fix steps record a
 baseline before any change, and compare to it after, as a plan does: see

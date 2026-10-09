@@ -99,7 +99,7 @@ Each step is one action with a checkable result:
 
 ## Plan document
 
-Use [the template](../assets/templates/specs/000-feature-name/plan.md). Every plan has this
+Use [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/plan.md). Every plan has this
 frontmatter and these sections, in this order:
 
 ```markdown
@@ -233,7 +233,7 @@ data structure. A code block only for an algorithm they do not determine.]
 
 ```bash
 git add src/store/tasks.ts tests/exact/path/to/feature.test.ts
-git commit -m "feat(001): complete a repeating task"
+git commit -m "feat(recurring-tasks): complete a repeating task"
 ```
 ````
 
@@ -304,9 +304,9 @@ Planning settles many small technical choices the spec leaves open: a library ca
 structure, a file's name. Settle them yourself: that is the plan's job. When a later reader would
 want one explained, because it was a close call or because it bends a pattern of the codebase, write
 it in the feature's `rulings.md`, from
-[the template](../assets/templates/specs/000-feature-name/rulings.md): what was decided, why, the
-alternatives, and what it costs if wrong. A ruling never binds future work: a choice that would is a
-decision, and a reason to stop.
+[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md): what was decided, why,
+the alternatives, and what it costs if wrong. A ruling never binds future work: a choice that would
+is a decision, and a reason to stop.
 
 ## Stopping to go back to the human
 
@@ -372,5 +372,5 @@ uncheck or rewrite the others, and set the status again from the table.
 
 ## Commit
 
-Commit the plan files and `rulings.md`: `plan(<number>): <feature name>`, or what changed when
+Commit the plan files and `rulings.md`: `plan(<slug>): <feature name>`, or what changed when
 revising. When the plan waits for a review, the commit message body is the first line of the block.

@@ -40,5 +40,5 @@ when approving: the plan step uses them as they are now, not as you proposed the
 
 ## Commit
 
-Commit the decisions and the spec's record together: `decision(<number>): apply <summary>`. Then run
+Commit the decisions and the spec's record together: `decision(<slug>): apply <summary>`. Then run
 the [plan](plan.md) step.

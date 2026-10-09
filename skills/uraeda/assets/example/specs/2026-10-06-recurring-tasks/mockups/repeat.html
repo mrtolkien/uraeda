@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Recurring tasks: mockups</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        font:
+          15px/1.4 system-ui,
+          sans-serif;
+        color: #1f2328;
+        background: #f6f7f9;
+      }
+      h2 {
+        margin: 0 0 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #59636e;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .screens {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 32px;
+        align-items: flex-start;
+      }
+      .card {
+        width: 300px;
+        padding: 16px;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+      }
+      .field {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #eef0f2;
+      }
+      .label {
+        color: #59636e;
+      }
+      .menu {
+        margin: 4px 0 0 auto;
+        width: 180px;
+        padding: 4px 0;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+      }
+      .menu div {
+        padding: 6px 12px;
+      }
+      .menu .selected {
+        background: #e8f0fe;
+        font-weight: 600;
+      }
+      .menu .separator {
+        padding: 0;
+        margin: 4px 0;
+        border-top: 1px solid #eef0f2;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 0;
+      }
+      .check {
+        width: 18px;
+        height: 18px;
+        border: 2px solid #8c959f;
+        border-radius: 50%;
+      }
+      .title {
+        flex: 1;
+      }
+      .muted {
+        color: #59636e;
+        font-size: 13px;
+      }
+      .toast {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 4px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: #1f2328;
+        color: #fff;
+      }
+      .toast a {
+        color: #9ecbff;
+        font-weight: 600;
+      }
+      .stepper {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 0;
+      }
+      .box {
+        padding: 6px 10px;
+        border: 1px solid #d0d7de;
+        border-radius: 6px;
+      }
+      .days {
+        display: flex;
+        gap: 6px;
+        padding: 10px 0;
+      }
+      .day {
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        border: 1px solid #d0d7de;
+        border-radius: 50%;
+        font-size: 13px;
+      }
+      .day.on {
+        border-color: #0969da;
+        background: #0969da;
+        color: #fff;
+      }
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding-top: 12px;
+      }
+      .button {
+        padding: 6px 14px;
+        border-radius: 6px;
+      }
+      .primary {
+        background: #0969da;
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="screens">
+      <section>
+        <h2>US1: repeat menu, in the edit panel</h2>
+        <div class="card">
+          <div class="field"><span class="label">Title</span><span>Water the plants</span></div>
+          <div class="field"><span class="label">Due</span><span>Monday 5</span></div>
+          <div class="field"><span class="label">Repeat</span><span>Weekly ▾</span></div>
+          <div class="menu">
+            <div>Never</div>
+            <div>Daily</div>
+            <div>Weekdays</div>
+            <div>Weekends</div>
+            <div class="selected">Weekly</div>
+            <div>Monthly</div>
+            <div>Yearly</div>
+            <div class="separator"></div>
+            <div>Custom…</div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>US3: custom repeat screen</h2>
+        <div class="card">
+          <div class="stepper">
+            Every <span class="box">2</span> <span class="box">weeks ▾</span>
+          </div>
+          <div class="days">
+            <span class="day on">M</span><span class="day">T</span><span class="day">W</span
+            ><span class="day on">T</span><span class="day">F</span><span class="day">S</span
+            ><span class="day">S</span>
+          </div>
+          <div class="muted">Every 2 weeks on Monday and Thursday</div>
+          <div class="actions">
+            <span class="button">Cancel</span><span class="button primary">Save</span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>US2: task row, after completing</h2>
+        <div class="card">
+          <div class="row">
+            <span class="check"></span><span class="title">Water the plants</span
+            ><span class="muted">↻ Mon 12</span>
+          </div>
+          <div class="toast"><span>Next: Monday 12</span><a>Undo</a></div>
+          <div class="row">
+            <span class="check"></span><span class="title">Call mom</span
+            ><span class="muted">Thu 8</span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

@@ -40,10 +40,10 @@ It is built for technical users, who read code and designs.
 
 ## How you use it today
 
-You run each step yourself: open your coding agent in the repository, and say "continue feature
-001", "I answered the questions", or "what is next?". The agent reads the `specs/` folder, finds the
-next step from the files alone, does it, commits, and stops when it needs you. You answer or approve
-by editing the file, or by telling the agent, and run it again later.
+You run each step yourself: open your coding agent in the repository, and say "continue recurring
+tasks", "I answered the questions", or "what is next?". The agent reads the `specs/` folder, finds
+the next step from the files alone, does it, commits, and stops when it needs you. You answer or
+approve by editing the file, or by telling the agent, and run it again later.
 
 A runner that starts the agent when you push an answer is planned: see
 [the project status](#project-status). The skill follows the
@@ -56,19 +56,19 @@ takes time and tokens.
 
 ## What it looks like
 
-The [example project](skills/uraeda/assets/example/specs/) is a small todo app. Feature 001,
-recurring tasks, went through the whole workflow:
+The [example project](skills/uraeda/assets/example/specs/) is a small todo app. The recurring tasks
+feature went through the whole workflow:
 
-1. **You write the [proposal](skills/uraeda/assets/example/specs/001-recurring-tasks/proposal.md)**:
-   a few lines. Tasks that come back once completed, two clicks to set, simple enough for "my
-   parents".
+1. **You write the
+   [proposal](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/proposal.md)**: a few
+   lines. Tasks that come back once completed, two clicks to set, simple enough for "my parents".
 2. **The agent investigates**, and writes
-   [discovery-01.md](skills/uraeda/assets/example/specs/001-recurring-tasks/discovery-01.md): how
-   Microsoft To Do, Todoist, and Google Calendar handle repeats, the iCalendar standard, and a
+   [discovery-01.md](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/discovery-01.md):
+   how Microsoft To Do, Todoist, and Google Calendar handle repeats, the iCalendar standard, and a
    problem in the app's code: due dates stored as timestamps drift by a day across daylight saving
    changes.
 3. **It asks you 7 questions** in
-   [clarifications-01.md](skills/uraeda/assets/example/specs/001-recurring-tasks/clarifications-01.md),
+   [clarifications-01.md](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/clarifications-01.md),
    and lists 5 points it settled without you. One of them, trimmed:
 
    ```md
@@ -89,19 +89,19 @@ recurring tasks, went through the whole workflow:
    organization than history (we're a todo app, not a calendar)
    ```
 
-4. **It writes the [spec](skills/uraeda/assets/example/specs/001-recurring-tasks/spec.md)**: user
-   stories with acceptance scenarios, the technical design, and two new decisions,
+4. **It writes the [spec](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/spec.md)**:
+   user stories with acceptance scenarios, the technical design, and two new decisions,
    [due dates](skills/uraeda/assets/example/specs/decisions/due-dates.md) and
    [repeating tasks](skills/uraeda/assets/example/specs/decisions/repeating-tasks.md). You approve
    it, and the decisions become active.
-5. **It writes the [plan](skills/uraeda/assets/example/specs/001-recurring-tasks/plan.md)**, in the
-   style of superpowers: tasks with the files they touch, their interfaces, and their failing tests
-   written out. The spec's risk tier is high, since every saved due date is upgraded, so you review
-   the plan too.
+5. **It writes the [plan](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/plan.md)**,
+   in the style of superpowers: tasks with the files they touch, their interfaces, and their failing
+   tests written out. The spec's risk tier is high, since every saved due date is upgraded, so you
+   review the plan too.
 6. **It implements the plan, task by task, and opens a pull request**, where you review the code.
 
 Every file waiting for you opens with a summary of what is asked, how long it takes, and what to
-look at first. Feature 001's spec opened like this when it was submitted:
+look at first. Its spec opened like this when it was submitted:
 
 ```md
 > [!IMPORTANT]
@@ -125,21 +125,21 @@ you were asked to weigh.
 
 ```sh
 specs/
-  README.md                 # the folder layout, for any agent or human
-  CONSTITUTION.md           # the project's principles, by priority, written with you at setup
-  PRIORITIES.md             # Now, Next, Later, Blocked
-  drafts/                   # upcoming features, free form: one becomes a numbered folder when you
-                            # say "start it"
-  backlog/                  # nice-to-have features, not scheduled
-                            # a postponed feature keeps its folder here, without its number
-  decisions/                # decision ledger, one file per topic
-  bugs/<slug>/              # a bug report, and the agent's assessment with its fix
-  001-recurring-tasks/      # one numbered folder per feature
-    proposal.md             # you: what and why
-    discovery-01.md         # agent: findings and options
-    clarifications-01.md    # agent: questions; you: answers
-    spec.md                 # agent: behaviour and design; you: approval
-    plan.md                 # agent: implementation tasks and tests
+  README.md                    # the folder layout, for any agent or human
+  CONSTITUTION.md              # the project's principles, by priority, written with you at setup
+  PRIORITIES.md                # Now, Next, Later, Blocked
+  drafts/                      # upcoming features, free form: one becomes a dated folder when you
+                               # say "start it"
+  backlog/                     # nice-to-have features, not scheduled
+                               # a postponed feature keeps its folder here, without its date
+  decisions/                   # decision ledger, one file per topic
+  bugs/YYYY-MM-DD-<slug>/      # a bug report, and the agent's assessment with its fix
+  2026-10-06-recurring-tasks/  # one folder per feature, dated the day it starts
+    proposal.md                # you: what and why
+    discovery-01.md            # agent: findings and options
+    clarifications-01.md       # agent: questions; you: answers
+    spec.md                    # agent: behaviour and design; you: approval
+    plan.md                    # agent: implementation tasks and tests
 ```
 
 Each feature lives on a branch named after its folder. You answer and approve on that branch, and a
