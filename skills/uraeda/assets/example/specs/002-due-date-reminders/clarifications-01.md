@@ -4,17 +4,14 @@ status: answered
 
 # Clarifications, round 01: Due date reminders
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 2 questions on reminders, about 10 minutes.
+> Answered on 2026-10-14. 2 questions on reminders.
 >
 > - How reminders reach users: without a server, they only show while the app is open. The
 >   alternative goes against the constitution's local first principle.
 > - When a reminder fires: a time per task changes the due dates decision, which every feature with
 >   dates follows.
->
-> Answer each question with an option letter, `yes` for the recommendation, or your own words. Then
-> set `status: answered` and commit.
 
 ## Context
 
@@ -53,7 +50,7 @@ Options:
 **Recommended:** A. It keeps the app local first. B is a change of direction for the whole project,
 not a reminder feature.
 
-**Answer:** yes
+**Answer:** A
 
 ## Q2: When does a reminder fire?
 

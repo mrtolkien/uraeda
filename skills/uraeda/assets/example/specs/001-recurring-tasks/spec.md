@@ -2,129 +2,231 @@
 status: approved
 revision: 1
 clarifications: 1
-risk-tier: medium
-plan-review: false
+risk-tier: high
 ---
 
 # Spec: Recurring tasks
 
-Users can make a task repeat daily, weekly, or monthly. When they complete it, the next occurrence
-appears in their list. See the [proposal](proposal.md), [discovery](discovery-01.md), and
+> [!NOTE]
+>
+> Approved on 2026-10-09.
+>
+> - Two new decisions: [repeating tasks](../decisions/repeating-tasks.md), one task whose due date
+>   moves, with no history of completions; and [due dates](../decisions/due-dates.md), calendar days
+>   for every feature with dates.
+> - Every saved due date is converted once, when users get the new version. A value that is not a
+>   date, from corrupted data, is removed and logged; no task is deleted.
+> - Your answer said rules are typed "when editing the task's title". This spec reads every title
+>   typed, when a task is created or edited, like Todoist. Say so if you meant editing only.
+> - A "weekends" preset is added next to "weekdays", for your weekdays against weekends need.
+> - Risk tier `high`, because of the upgrade of every saved due date: the plan waits for your
+>   review.
+
+Users can make a task repeat from a menu in its edit panel, from a custom screen for other
+intervals, or by typing the rule in its title. Completing a repeating task moves it to its next due
+date. See the [proposal](proposal.md), [discovery](discovery-01.md), and
 [clarifications](clarifications-01.md).
 
 ## User stories
 
 ### US1: Make a task repeat (P1)
 
-In a task's edit panel, the user picks "Repeats: never, daily, weekly, monthly". Repeating tasks
-show a small repeat icon in the list.
+In a task's edit panel, a repeat menu offers: never, daily, weekdays, weekends, weekly, monthly,
+yearly, and custom. Repeating tasks show a repeat icon in the list.
 
-Why this priority: without it, nothing else in this feature works.
+Why this priority: it is the proposal's path, and every other story builds on it.
 
 Acceptance scenarios:
 
-1. **Given** a task, **When** the user sets it to repeat weekly, **Then** the task shows the repeat
-   icon
-2. **Given** a repeating task, **When** the user sets it to never repeat, **Then** the icon
-   disappears
+1. **Given** an open task due Monday the 5th, **When** the user opens the repeat menu and picks
+   "weekly", **Then** the task repeats every Monday, and shows the repeat icon in the list.
+2. **Given** an open task without a due date, **When** the user picks "weekly", **Then** its due
+   date becomes today, and it repeats on today's day of the week.
+3. **Given** a repeating task, **When** the user picks "never", **Then** it stops repeating, keeps
+   its due date, and loses the icon.
 
 ### US2: Complete a repeating task (P1)
 
-When the user completes a repeating task, it is marked done as usual, and its next occurrence
-appears in the list.
+Completing a repeating task moves it to its next due date instead of marking it done. The row says
+so for 5 seconds, with an undo button.
 
 Why this priority: this is what saves users from recreating tasks.
 
 Acceptance scenarios:
 
 1. **Given** a weekly task due Monday the 5th, **When** the user completes it on Monday the 5th,
-   **Then** a new task with the same title is due Monday the 12th
+   **Then** it stays in the list, not done, due Monday the 12th.
 2. **Given** a weekly task due Monday the 5th, **When** the user completes it on Thursday the 8th,
-   **Then** the next task is due Monday the 12th
+   **Then** it is due Monday the 12th.
 3. **Given** a weekly task due Monday the 5th, **When** the user completes it on Wednesday the 14th,
-   **Then** the next task is due Monday the 19th
+   **Then** it is due Monday the 19th: the 12th is already past.
+4. **Given** a repeating task just moved from the 5th to the 12th, **When** the user clicks undo
+   within 5 seconds, **Then** it is due the 5th again.
+
+### US3: Repeat on a custom schedule (P2)
+
+The repeat menu's "custom" entry opens a screen to repeat every N days, weeks, months, or years,
+and, for weeks, on chosen days.
+
+Why this priority: the human needs weekdays against weekends, and intervals like "every 2 weeks"
+([Q1](clarifications-01.md#q1-how-should-users-pick-when-a-task-repeats)).
+
+Acceptance scenarios:
+
+1. **Given** a task due Monday the 5th, **When** the user sets "every 2 weeks", **Then** completing
+   it moves it to Monday the 19th.
+2. **Given** a task due Monday the 5th, set to repeat on Mondays and Thursdays, **When** the user
+   completes it on Monday, **Then** it is due Thursday the 8th.
+3. **Given** a task due Tuesday the 6th, **When** the user sets it to repeat on Mondays and
+   Thursdays, **Then** its due date moves to Thursday the 8th, the first chosen day from its due
+   date.
+
+### US4: Type a repeat in the title (P3)
+
+When a task's title is saved with a repeat phrase at its end, like "every monday", the app removes
+the phrase from the title and sets the repeat.
+
+Why this priority: the human asked for it as a shortcut, on top of the menu
+([Q1](clarifications-01.md#q1-how-should-users-pick-when-a-task-repeats)).
+
+Acceptance scenarios:
+
+1. **Given** a new task, **When** the user saves the title "Water the plants every monday" on
+   Thursday the 8th, **Then** the title is "Water the plants", it repeats every Monday, and it is
+   due Monday the 12th.
+2. **Given** a task due Wednesday the 7th, **When** the user edits its title to "Call mom every
+   monday", **Then** the title is "Call mom", and it is due Monday the 12th.
+3. **Given** a task without a due date, **When** the user saves the title "Call mom every 2 weeks"
+   on Thursday the 8th, **Then** the title is "Call mom", it is due today, and repeats every 2
+   weeks.
+4. **Given** a task, **When** the user saves the title "Read every so often", **Then** the title is
+   unchanged, and nothing repeats.
 
 ## Edge cases
 
-- A repeating task without a due date: the next occurrence is due one period after the day it was
-  completed.
-- A monthly task due on the 31st: in shorter months, it is due on the last day of the month.
-- Undoing the completion of a repeating task removes the occurrence it created, if it is untouched.
+- A monthly task due on the 29th to 31st is due on the last day of shorter months.
+- Moving the due date of a repeating task by hand moves its schedule: the next date counts from the
+  new one. This is how users skip an occurrence.
+- Deleting a repeating task deletes it, which ends the repetition.
+- A title made only of a repeat phrase ("every monday") is kept as a title, without a repeat.
 
 ## Success criteria
 
-- **SC-001**: Setting a task to repeat takes at most two taps from the task list.
+- **SC-001**: Setting a preset repeat takes two clicks from the open task.
 - **SC-002**: Rendering a list of 5,000 tasks is not slower than before the feature.
+- **SC-003**: The title parser recognizes every phrase in its list, and leaves every other title
+  unchanged.
 
 ## Design
 
 ### Approach
 
-A repeating task stays a normal task with one more field. Completing it creates the next occurrence
-as a new task, in the same database transaction, so a reload can never show one without the other.
+A repeating task stays a normal task with a repeat rule, as the new
+[repeating tasks](../decisions/repeating-tasks.md) decision says: completing it moves its due date.
 Due dates become calendar days, following the new [due dates](../decisions/due-dates.md) decision,
-so the next date is computed without timezone bugs. See the
-[discovery](discovery-01.md#generating-occurrences).
-
-### Components
-
-- **Date helpers** ([`src/lib/dates.ts`](/src/lib/dates.ts), new): calendar day arithmetic and
-  `nextDueDate(dueDate, repeat, today)`. Pure functions on `YYYY-MM-DD` strings, built on date-fns.
-  Used by the store, depends on nothing else in the app.
-- **Task store** ([`src/store/tasks.ts`](/src/store/tasks.ts)): `completeTask` creates the next
-  occurrence when the task repeats, and `uncompleteTask` removes it if it was not edited. Depends on
-  the date helpers.
-- **Store upgrade 2** ([`src/store/upgrades.ts`](/src/store/upgrades.ts)): converts saved due dates
-  to calendar days, and adds `repeat: "never"` to saved tasks.
-- **Edit panel and task row** ([`EditPanel.tsx`](/src/components/EditPanel.tsx),
-  [`TaskRow.tsx`](/src/components/TaskRow.tsx)): the repeat menu, built on the existing
-  [`Select`](/src/components/Select.tsx), and the repeat icon.
+so next dates are computed without timezone bugs. Rules are pure data with pure functions, so the
+menu, the custom screen, and the title parser all produce the same rule. See the
+[discovery](discovery-01.md#approaches).
 
 ### Data
 
-A task gets `repeat: "never" | "daily" | "weekly" | "monthly"`, and `createdFrom`, the id of the
-occurrence that created it, so undo can find it. `dueDate` becomes a `YYYY-MM-DD` string.
+A task gets `repeat: RepeatRule | null`, where `RepeatRule` is
+`{ unit: "day" | "week" | "month" | "year", interval: number, weekdays?: number[] }`. `dueDate`
+becomes a `YYYY-MM-DD` string or `null`.
 
-Completing a repeating task: the edit panel or task row calls `completeTask`, which marks the task
-done, computes the next due date with `nextDueDate`, and saves the new task, in one transaction.
+- Weekly rules always store their days: "weekly" is every week on the due date's day, "weekdays"
+  every week on Monday to Friday, "weekends" every week on Saturday and Sunday.
+- Setting a weekly rule moves the due date to the first chosen day on or after it, or after today if
+  the task has none.
+- The next due date is the first date of the rule after the previous due date, skipping dates
+  already past. With chosen days, that is the next chosen day.
+
+Completing a repeating task: the task row calls `completeTask`, which computes and saves the next
+due date, and returns the previous one. The row keeps it for 5 seconds, for undo.
+
+### Components
+
+- **Date helpers** (`src/lib/dates.ts`, new): calendar day arithmetic on `YYYY-MM-DD` strings, built
+  on date-fns, and today's date. Used by repeat rules and the store, depends on nothing else in the
+  app.
+- **Repeat rules** (`src/lib/repeat.ts`, new): the `RepeatRule` type, the presets, the label shown
+  in the menu ("Every 2 weeks on Monday"), `nextDueDate(rule, dueDate, today)`, and
+  `parseRepeat(title)`. Pure functions, depending on the date helpers only.
+- **Task store** ([`src/store/tasks.ts`](/src/store/tasks.ts)): `completeTask` moves the due date of
+  a repeating task, and returns the previous one. `restoreDueDate` puts it back. Saving a title runs
+  `parseRepeat`. Setting a repeat aligns the due date, as described in [Data](#data).
+- **Store upgrade 2** ([`src/store/upgrades.ts`](/src/store/upgrades.ts)): converts saved due dates
+  to calendar days, and adds `repeat: null` to saved tasks.
+- **Edit panel** ([`EditPanel.tsx`](/src/components/EditPanel.tsx)): the repeat menu, built on the
+  existing [`Select`](/src/components/Select.tsx), whose "custom" entry opens the custom screen.
+- **Custom repeat screen** (`src/components/RepeatScreen.tsx`, new): interval, unit, and days of the
+  week, built in the project as the [UI components](../decisions/ui-components.md) decision
+  requires. It is the one new screen the constitution allows for this feature.
+- **Task row** ([`TaskRow.tsx`](/src/components/TaskRow.tsx)): the repeat icon, and the confirmation
+  "Next: Monday 12" with its undo button after a completion.
 
 ### Error handling
 
-- The upgrade fails on a saved task it cannot read: the task keeps its old due date, the upgrade
-  continues, and the error is logged. No task is ever deleted by the upgrade.
-- Saving the next occurrence fails: the whole transaction is cancelled, and the task stays not done,
-  with the app's usual "Could not save" message.
+- The upgrade meets a saved due date that is not a valid timestamp: it sets it to `null`, logs the
+  raw value, and continues. No task is ever deleted by the upgrade.
+- Saving a moved due date fails: the task keeps its previous date, and the row shows "Could not
+  save".
+- The parser does not recognize a phrase: the title is saved as typed, without a repeat.
 
 ### Testing
 
-- Date helpers: unit tests for every acceptance scenario of US2 and the month-end edge case, without
-  a database.
-- Store: tests on an in-memory IndexedDB, for completion, undo, and the upgrade of version 1 data.
-- Edit panel and task row: component tests for US1.
-- SC-002: the existing [list benchmark](/bench/list.bench.ts), before and after.
+Integration tests render the app on an in-memory IndexedDB, with today's date set by the test, and
+drive it like a user: open a task, pick "weekly", complete it, read the list.
+
+| What                                              | Test                                                                             |
+| ------------------------------------------------- | -------------------------------------------------------------------------------- |
+| US1 to US4, and the edge cases                    | One integration test per scenario                                                |
+| Upgrade of version 1 data, with invalid due dates | Integration test: the app opened on a database saved by version 1                |
+| "Could not save" after a completion               | Integration test with a store that fails to save                                 |
+| SC-001                                            | Integration test counting clicks from the open task                              |
+| SC-003                                            | Table-driven test of `parseRepeat`: one row per phrase, and per title left alone |
+| SC-002                                            | The existing [list benchmark](/bench/list.bench.ts), before and after            |
 
 ## Assumptions
 
-- The repeat setting lives in the existing edit panel: no new screen.
-- Completed occurrences stay in the list like any completed task.
+Settled in the [clarifications](clarifications-01.md#settled-without-the-human):
+
+- Undoing a completion restores the previous due date.
+- Deleting a repeating task ends the repetition.
+- Skipping one occurrence has no dedicated action: users move the due date, or complete the task.
+- Monthly repeats on the 29th to 31st fall on the last day of shorter months.
+- Repeating tasks show a repeat icon in the list.
+
+Settled while writing this spec:
+
+- The presets are those of Microsoft To Do, plus weekends: daily, weekdays, weekends, weekly,
+  monthly, yearly ([discovery](discovery-01.md#microsoft-to-do)).
+- The title parser reads every title typed, at creation and on edit. It knows English phrases only,
+  at the end of the title: "every day", "every weekday", "every weekend", "every week", "every
+  month", "every year", "every N days", "every N weeks", "every N months", and "every" followed by
+  day names.
+- The confirmation after a completion shows for 5 seconds, in the task row itself: no new global
+  component. A failed save shows "Could not save" in the same place.
 
 ## Decisions
 
+- [Repeating tasks](../decisions/repeating-tasks.md): new
 - [Due dates](../decisions/due-dates.md): new
-- [Task storage](../decisions/task-storage.md)
-- [UI components](../decisions/ui-components.md)
+- [Task storage](../decisions/task-storage.md): relied on
+- [UI components](../decisions/ui-components.md): relied on
 
 ## Constitution check
 
-| Principle or decision             | Complies | Notes                                        |
-| --------------------------------- | -------- | -------------------------------------------- |
-| I. Simple for non-technical users | yes      | One dropdown in the existing edit panel      |
-| II. Local first                   | yes      | Nothing leaves the device                    |
-| III. Fast with thousands of tasks | yes      | SC-002 checks it with the existing benchmark |
-| Due dates (new)                   | yes      | Next due dates are computed on calendar days |
-| Task storage                      | yes      | One new field, and an upgrade of due dates   |
-| UI components                     | yes      | The repeat dropdown is a project component   |
+| Principle or decision             | Complies | Notes                                                   |
+| --------------------------------- | -------- | ------------------------------------------------------- |
+| I. Simple for non-technical users | yes      | One menu in the existing panel, one new screen          |
+| II. Local first                   | yes      | Nothing leaves the device                               |
+| III. Fast with thousands of tasks | yes      | Lists do not grow; SC-002 checks it                     |
+| Repeating tasks (new)             | yes      | One task, its due date moves                            |
+| Due dates (new)                   | yes      | All date arithmetic in `src/lib/dates.ts`               |
+| Task storage                      | yes      | One new field, and upgrade 2 for due dates              |
+| UI components                     | yes      | The menu uses `Select`, the custom screen is built here |
 
 ## Risk tier
 
-**Medium**: adds a field and upgrades stored due dates, with a small UI change.
+**High**: it changes the format of every saved due date, in an app with no backup of users' data.

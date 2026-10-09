@@ -18,8 +18,8 @@ conflict with them must be resolved by a human.
 
 ## Understanding the workflows
 
-- `README.md`: the workflow design. Read "Files organization" for the `specs/` layout and the
-  decision ledger, and "Feature flow" for the steps from proposal to implementation.
+- `skills/uraeda/SKILL.md`: the workflow, the source of truth while the PoC is built. The workflow
+  sections of `README.md` are obsolete.
 - `specs/PRIORITIES.md`: what is being worked on now, next, and later.
 
 ## Repository layout
@@ -35,6 +35,13 @@ conflict with them must be resolved by a human.
 
 Markdown files can link to any file in the repository. Write markdown links with a relative path or
 a path from the repository root (`/src/...`). Humans may also write wikilinks (`[[file-name]]`).
+
+## Working with the human
+
+- Give one complete response per turn. When a subagent's result matters to the answer, such as an
+  adversarial review, wait for it, act on it, and only then respond, with its findings already taken
+  into account. Never send a response and then a second one when the subagent finishes.
+- Keep responses short: what changed, what the human must decide, and the next action.
 
 <!--VITE PLUS START-->
 

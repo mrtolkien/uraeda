@@ -11,15 +11,20 @@ Turns the human's answers into proposed decisions and a spec, for the human to a
 
 ## Read the answers
 
-Read every round's questions and answers, the latest last: later answers win. An answer can be:
+Read every round's questions, answers, and settled points, the latest last: later answers win. A
+settled point the human objected to in an answer follows their answer. An answer can be:
 
-- An option letter
-- `yes`: the recommended answer
-- Free text: the human's own answer. When it is ambiguous, ask again in a new round, with your
-  reading of it as the recommended answer.
+- One or more option letters. Letters from options that exclude each other, when the question does
+  not say they combine, are ambiguous: ask again in a new round.
+- Free text, alone or after letters: the human's own answer, which wins over the option's wording.
+  When it is ambiguous, ask again in a new round, with your reading of it as the recommended answer.
 
-The workflow only moves on once every question is answered: see
+A follow-up like `Q2.B` only needs an answer if the human picked that letter in its parent: ignore
+it otherwise. The workflow only moves on once every other question is answered: see
 [Coming back to the human](../SKILL.md#coming-back-to-the-human) for blank answers.
+
+Turn the answered round's `> [!IMPORTANT]` block into a record, as described in
+[Coming back to the human](../SKILL.md#coming-back-to-the-human), in the same commit as the spec.
 
 ## Is the scope clear?
 
@@ -108,13 +113,17 @@ tier, and any cost or migration. On a revision, say what changed since the last 
 - **Design**, each part scaled to the feature: a few sentences when it is simple, up to a few
   hundred words when it is not.
   - **Approach**: the chosen approach and why, linking to the decisions and discovery topics
+  - **Data**: what is stored or changes, the rules that apply to it, and how it flows. Data comes
+    before components, so types are defined before they are used.
   - **Components**: the units the feature adds or changes. Each has one clear purpose: say what it
     does, how it is used, and what it depends on. Follow the existing patterns found in discovery.
     Include targeted fixes to existing code when it is in the way, but no unrelated refactoring.
-  - **Data**: what is stored or changes, and how data flows between the components
   - **Error handling**: what can fail, and what the user sees
-  - **Testing**: how the acceptance scenarios and success criteria are tested
-- **Assumptions**: what you settled yourself, so the human can object
+  - **Testing**: integration tests by default, then a table mapping every acceptance scenario, edge
+    case, and success criterion to its test. See [Tests](#tests).
+- **Assumptions**: the points settled in the clarifications, then what you settled yourself while
+  writing the spec, so the human can object. When you read a free-text answer one way among several,
+  say so in the `> [!IMPORTANT]` block too.
 - **Decisions**: links to the new decisions and proposed changes, then to the active decisions the
   spec relies on. Approving the spec applies the new decisions and changes.
 - **Constitution check**: how the spec complies with each principle and each relevant active
@@ -125,6 +134,19 @@ tier, and any cost or migration. On a revision, say what changed since the last 
 
 The design stays at the level of components and data: file-by-file changes and implementation steps
 belong in the plan. When a visual direction matters, add a mockup next to the spec and link it.
+
+## Tests
+
+Test the feature the way a user or a caller uses it: integration tests, through the real components
+and an in-memory store, with the clock set by the test. They survive refactoring, where unit tests
+of internal functions break, and an agent writes them quickly.
+
+- Tests are part of the codebase: organize them with the same care as the main code. Create the
+  helpers, fixtures, and fakes the tests need (rendering the app, seeding the store, setting the
+  clock), in shared files, so that each test holds no boilerplate.
+- Readability is a key feature of a test: each one is short and readable by a human, Arrange, Act,
+  Assert, in that order, with a name that states the scenario. Test files stay short.
+- Write unit tests only for pure logic with many cases, as one table-driven test: one row per case.
 
 ## Self-review
 

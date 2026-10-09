@@ -125,18 +125,27 @@ so it reads linearly, with every piece of context they need at the point they ne
 - **Never refer to something before it is introduced.** The `> [!IMPORTANT]` block names subjects,
   not question numbers: the reader has not seen "Q4" yet. Open the file with the block described in
   [Coming back to the human](../SKILL.md#coming-back-to-the-human): how many questions, how long
-  they take to think through, the choices that last beyond the feature, and the questions that work
-  together.
+  they take to think through, the choices that last beyond the feature, the questions that work
+  together, the gaps found in the proposal, and how many points you settled.
 - **Then a short Context section**: what the proposal asks for, and what exists today, with links to
   the code. In a later round, what happened since the last one, and why new questions came up.
-- **Each question is self-contained.** It explains what the reader needs to answer it: the current
-  code, the documentation, how others solve the problem, every fact with a link to its source. Then
-  a "Why it matters" sentence, and a link to its discovery topic for more.
-- **Options are bullets, not a table.** Each says what the option is in practice, when to pick it,
-  and what it costs or rules out, so the reader can weigh them without opening the discovery.
-- **The recommendation comes after the options**, with its reason, so the reader forms their own
-  view first. It is your best reading of the evidence, not an answer to rubber-stamp: the questions
-  exist because they need the human's judgement.
+- **Each question gives just the context needed to answer it**, in two or three sentences: what
+  exists today and how others do it, with links to the sources and to the discovery topic for more.
+  Then one "Why it matters" sentence. Keep the depth in the discovery file.
+- **Each option is a self-contained sentence**, readable without the context: "Create the next
+  occurrence as a new task when the current one is completed", not "On completion". Under it, a
+  `[pro]` line of pros and a `[con]` line of cons. Name every detail that matters, like the field a
+  rule is typed in.
+- **The recommended option comes first, as A**, labelled "A (recommended)", with a "Why recommended"
+  line under its pros and cons. It is your best reading of the evidence, not an answer to
+  rubber-stamp: the questions exist because they need the human's judgement.
+- **Options exclude each other**, unless the question says which ones combine: "C can come on top of
+  A or B".
+- **Questions that depend on each other say so**, in the context of both: "Where the choice appears
+  is Q6", "With A or C in Q3, ...".
+- **A question that only matters for one answer is a follow-up**, right after its parent, numbered
+  by the answer it depends on: `Q2.B`, starting with "Only if you picked B in Q2". Never ask a
+  separate question that an earlier answer already decides.
 
 Ordering and numbering:
 
@@ -149,10 +158,18 @@ Ordering and numbering:
 - When the proposal conflicts with the constitution, say which principle, and recommend changing the
   proposal. An exception is possible only if the human explicitly accepts it in their answer: it is
   then spelled out in the plan, and the plan waits for their review.
-- Leave each **Answer** empty.
+- Leave each **Answer** empty. The human answers with one or more option letters, or their own
+  words.
+- End the file with **Settled without the human**: each point you settled yourself, what you chose,
+  and why, with a link to its discovery section. A point that depends on an answer says so: "with A
+  in Q2, ...".
 
-If nothing needs a human answer, write a file with a single question confirming the scope, with
-"yes" as the recommended answer. The human still sets `answered`.
+Before committing, check that every topic in the discovery's **Approaches** and **The proposal**
+sections ends up in exactly one question or settled point, and that every claim in the questions is
+backed by the discovery or a linked source.
+
+If nothing needs a human answer, write a file with a single question confirming the scope: "A
+(recommended). Go ahead with the scope above". The human still sets `answered`.
 
 ## Commit
 

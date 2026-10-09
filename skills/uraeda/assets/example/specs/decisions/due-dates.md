@@ -13,7 +13,7 @@ saving time.
 
 - Due dates MUST be stored as `YYYY-MM-DD` strings.
 - Date arithmetic MUST go through `src/lib/dates.ts`.
-- Code MUST NOT convert a due date to a `Date` timestamp, except to display it.
+- Code MUST NOT convert a due date to a `Date`, except inside `src/lib/dates.ts` and to display it.
 
 ## Why
 
@@ -31,7 +31,7 @@ and the [discovery](../001-recurring-tasks/discovery-01.md#date-handling).
 
 - Date bugs stay in one module, and tests need no timezone setup.
 - Due times, like "at 3pm", need a change to this decision.
-- Tasks saved before this decision were upgraded once, from timestamps to calendar days.
+- Tasks saved before this decision are upgraded once, from timestamps to calendar days.
 
 ## Applies to
 

@@ -10,8 +10,6 @@ status: awaiting-human
 >
 > - Root cause: creating and completing a task race in two separate database transactions.
 > - The fix changes how the store saves every task, so it touches all features.
->
-> To have the fix implemented, set `status: approved` and commit.
 
 Assesses [the report](report.md).
 
