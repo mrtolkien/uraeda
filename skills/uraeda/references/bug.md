@@ -15,9 +15,8 @@ without going through the feature flow.
 A bug is behaviour that differs from what its spec, its documentation, or a reasonable user expects.
 A report that asks for new behaviour is a feature: say so in the assessment, with a question.
 
-This step follows superpowers'
-[systematic debugging](https://github.com/obra/superpowers/blob/main/skills/systematic-debugging/SKILL.md):
-no fix without the root cause first, and no fix without a failing test that reproduces the bug.
+Two rules hold throughout: no fix without the root cause first, and no fix without a failing test
+that reproduces the bug.
 
 ## Starting a bug
 
@@ -67,10 +66,10 @@ for a human reading top to bottom, and set `status: awaiting-human`. Open it wit
 root cause in one line, the fix's risk, and any question.
 
 Ask only what the human must decide, as questions at the end of the file, in the format of
-[clarifications](discovery.md#write-clarifications-nnmd), recommended option first: an expected
-behaviour that is unclear, a fix that needs a [decision](spec.md#what-is-a-decision) or goes against
-one, a report that asks for a feature. If you cannot reproduce the bug, say what you tried, and ask
-for what you need.
+[clarifications](discovery.md#question-structure), recommended option first: an expected behaviour
+that is unclear, a fix that needs a [decision](spec.md#what-is-a-decision) or goes against one, a
+report that asks for a feature. If you cannot reproduce the bug, say what you tried, and ask for
+what you need.
 
 **Revision**: when `assessment.md` is `changes-requested`, read its `## Changes requested` section,
 investigate again where it asks, apply it, remove the section, and set `status: awaiting-human`
@@ -82,6 +81,9 @@ Once the assessment is `approved`, turn its block into a record, in the first fi
 [Coming back to the human](../SKILL.md#coming-back-to-the-human). Then work its steps in order, as
 the [implementation](implementation.md) step does for a plan's task: watch the test fail, fix the
 root cause, run the project's validation, and check each step's box in the commit.
+
+Write the choices you make while fixing, that the assessment did not settle, in
+`specs/bugs/<slug>/rulings.md`, as the implementation step does.
 
 When the fix touches what the constitution says to benchmark, the assessment's fix steps record a
 baseline before any change, and compare to it after, as a plan does: see

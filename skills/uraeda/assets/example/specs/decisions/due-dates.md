@@ -42,26 +42,3 @@ and the [discovery](../001-recurring-tasks/discovery-01.md#date-handling).
 ## Revisit when
 
 The Temporal API is available in all supported browsers.
-
-## Proposed change (002-due-date-reminders)
-
-Proposed by the [due date reminders spec](../002-due-date-reminders/spec.md). Reminders need a time
-of day, which this decision does not cover. Due dates stay calendar days: a reminder time is a
-separate local time of day, so saved due dates and their arithmetic do not change.
-
-The rules become:
-
-- Due dates MUST be stored as `YYYY-MM-DD` strings.
-- Times of day, like a reminder time, MUST be stored apart from the due date, as local `HH:mm`
-  strings, without a timezone.
-- Date arithmetic, and combining a due date with a time of day, MUST go through `src/lib/dates.ts`.
-- Code MUST NOT convert a due date or a time of day to a `Date`, except inside `src/lib/dates.ts`
-  and to display it.
-
-Why: the human chose a reminder time per task
-([Q3](../002-due-date-reminders/clarifications-01.md#q3-at-what-time-does-a-reminder-fire)). A local
-time follows the user: 9:00 stays 9:00 when they travel, as a calendar day stays Monday. See the
-[discovery](../002-due-date-reminders/discovery-01.md#reminder-time).
-
-In **Consequences**, due times no longer need a change to this decision: a due time would be a time
-of day stored apart from the due date, like reminder times.

@@ -133,8 +133,8 @@ time changes, so adding 7 × 24 hours can land on the day before, and the native
 31 plus a month into March. date-fns, already a dependency, fixes the month overflow with
 `addMonths`. More in [discovery](discovery-01.md#date-handling).
 
-Why it matters: reminders, also in the [priorities](../PRIORITIES.md)' **Now** section, and every
-later feature with dates will follow this choice.
+Why it matters: reminders, next in the [priorities](../PRIORITIES.md), and every later feature with
+dates will follow this choice.
 
 - **A (recommended). Store due dates as calendar days (`2026-10-12`), without a time, computed with
   date-fns.**

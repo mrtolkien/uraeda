@@ -5,17 +5,14 @@ for the human to review.
 
 - **Runs when**: `plan.md` is `approved` or `auto-approved`, with unchecked steps; or every step is
   checked and the branch has no pull request; or its pull request has changes requested
-- **Writes**: code and tests, the step checkboxes of `plan.md`, and the pull request
+- **Writes**: code and tests, the step checkboxes of `plan.md`, `rulings.md`, and the pull request
 - **Ends at**: a human gate, the pull request; or a new [discovery](discovery.md) round, when
   blocked
 
 The plan already did the thinking: execute it exactly, prove each task with tests you watched fail
 then pass, and leave the record in git. Nobody waits in a chat: do not stop to check in between
-tasks. This step adapts superpowers'
-[executing plans](https://github.com/obra/superpowers/blob/main/skills/executing-plans/SKILL.md) and
-[subagent-driven development](https://github.com/obra/superpowers/blob/main/skills/subagent-driven-development/SKILL.md)
-to a workflow where git is the only memory: the checked boxes of `plan.md` and the commits say how
-far the work went, so any agent can resume it.
+tasks. Git is the only memory: the checked boxes of `plan.md` and the commits say how far the work
+went, so any agent can resume it.
 
 ## Before the first task
 
@@ -48,12 +45,14 @@ session's history. Otherwise, implement it yourself.
    passes before the implementation exists proves nothing: fix the test. Then implement, and run
    every command the plan gives. Compare each output with the step's **Expected** line:
    - **It matches**: go to the next step.
-   - **The code is wrong**: find the root cause before changing anything, following superpowers'
-     [systematic debugging](https://github.com/obra/superpowers/blob/main/skills/systematic-debugging/SKILL.md).
-     Never change a test or an expected value to make a run pass.
+   - **The code is wrong**: find the root cause before changing anything: reproduce the failure,
+     trace the wrong value back to where it first goes wrong, and test one hypothesis at a time, as
+     the [bug step](bug.md#assess) describes. Never change a test or an expected value to make a run
+     pass.
    - **The plan is wrong**: a name that does not match its producer, a command that cannot run, a
      failure that cannot happen. Make the smallest change that satisfies the spec, edit the plan's
-     text to describe what was built, so later tasks read the right names, and record a ruling.
+     text to describe what was built, so later tasks read the right names, and write a ruling in
+     `rulings.md`.
 3. **Run the project's validation**: formatter, linter, type checker, and every test.
 4. **Check the task's boxes** in `plan.md`, and commit them with the code and tests, using the
    plan's commit message. Check a box only for a step that ran, with the output the plan expects:
@@ -61,15 +60,20 @@ session's history. Otherwise, implement it yourself.
 5. **Review the task**, when your harness can run a fresh reviewer agent. Give it the task's text,
    the spec, the global constraints, and the diff of the task's commits. It checks that the code
    does what the task and the spec say, nothing missing and nothing extra, then the code's quality.
-   Fix what matters in new commits, each fix with a test that fails first. After three rounds, rule
-   on what remains, and go on.
+   Fix what matters in new commits, each fix with a test that fails first. After five rounds, rule
+   on what remains, in `rulings.md`, and go on.
 
 ### Rulings
 
 Settle implementation details yourself: the spec is the authority, the plan argues from it, and your
-judgement settles what neither answers. Record every deviation from the plan in the body of the
-task's commit, one line each: `Ruling: <what you decided>, because <why>. If wrong: <the cost>.` The
-pull request lists them all, so the human sees every choice made on their behalf.
+judgement settles what neither answers. Every deviation from the plan, and every choice a later
+reader would want explained, is a ruling: write it in the feature's `rulings.md`, from
+[the template](../assets/templates/specs/000-feature-name/rulings.md), in the same commit as the
+code it concerns. It is the feature's small ledger of low-impact decisions, in a fixed format: what
+was decided, why, the alternatives considered, and what it costs if it is wrong.
+
+A ruling is never a [decision](spec.md#what-is-a-decision): it applies inside this feature only. A
+choice that would bind future work, or that only the human can make, is a reason to stop, below.
 
 ### When you must stop
 
@@ -90,9 +94,9 @@ amended and approved, and the plan revised: the unchecked tasks follow the new p
 
 Once every step is checked, review the whole branch, even when each task was reviewed. Give a fresh
 reviewer agent, on the most capable model available, the diff since the branch started, the spec,
-the plan, its **Review focus** to check one item at a time, and the rulings from the commit bodies.
-Without a reviewer agent, review the branch yourself as a separate pass, and say so in the pull
-request: a review by the author is weaker.
+the plan, its **Review focus** to check one item at a time, and `rulings.md`. Without a reviewer
+agent, review the branch yourself as a separate pass, and say so in the pull request: a review by
+the author is weaker.
 
 Grade each finding by what a user gets if the branch ships, not by whether the spec names the input
 that triggers it:
@@ -101,7 +105,7 @@ that triggers it:
   full validation. Commit with the feature's scope: `fix(001): keep the undo after a reload`.
 - **Minor**: do not fix them. List them in the pull request, for the human to decide.
 
-A finding you decide not to fix is a ruling, listed with the others.
+A finding you decide not to fix is a ruling, written in `rulings.md` with the others.
 
 ## Pull request
 
@@ -119,7 +123,7 @@ like a file waiting for the human, following
   without a fresh reviewer.
 - **Links** to `spec.md` and `plan.md`.
 - **Tests**: each acceptance scenario and review-focus item, with the test that covers it.
-- **Rulings**: every one, with what it costs if wrong.
+- **Rulings**: a link to `rulings.md`, and the ones that change behaviour, one line each.
 - **Deferred minors**: the minor findings of the final review.
 
 If you cannot open a pull request, push the branch, and put the description in the body of the last

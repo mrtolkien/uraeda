@@ -27,8 +27,9 @@ its own instructions in `references/`.
 
 1. **Humans make the decisions.** Stay within the approved scope and decisions. Never activate a
    decision unless a human asked for it, for example by approving the spec that lists it.
-2. **Work autonomously, in depth.** Decide yourself how deep each topic goes, and go as deep as it
-   deserves: read the code, the documentation, and online sources before asking anything. Never ask
+2. **Work autonomously, in depth.** The workflow is asynchronous so that you have the time to
+   research before the human is involved: use it. Read the code, the documentation, and online
+   sources, broadly and completely, beyond the project and beyond what you already know. Never ask
    the human for something you could find out or settle yourself.
 3. **Ask only what only the human can decide**: product direction, tradeoffs between their goals,
    choices that become decisions, and conflicts with the constitution or an active decision. Settle
@@ -64,6 +65,7 @@ specs/
     clarifications-02.md
     spec.md                 # agent: behaviour and design, approved by a human, amended in place
     plan.md                 # agent: tasks with files and test-first steps, checked off as built
+    rulings.md              # agent: low-impact choices made while planning and building
     data-model.md           # agent, when needed
     contracts/              # agent, when needed
     mockups/                # agent, when a visual direction matters

@@ -6,15 +6,15 @@ the codebase nor the spec.
 
 - **Runs when**: `spec.md` is `approved` and its decisions are active, and there is no `plan.md`, or
   its `spec-revision` is lower than the spec's `revision`; or `plan.md` is `changes-requested`
-- **Writes**: `plan.md`, and `data-model.md` or `contracts/` when needed
-- **Ends at**: a human gate (`awaiting-human`), or the [implementation](implementation.md) step
-  (`auto-approved`)
+- **Writes**: `plan.md`, `rulings.md` when there are rulings, and `data-model.md` or `contracts/`
+  when needed
+- **Ends at**: a human gate (`awaiting-human`), the [implementation](implementation.md) step
+  (`auto-approved`), or, rarely, a new round of questions (see
+  [Stopping to go back to the human](#stopping-to-go-back-to-the-human))
 
-This step follows superpowers'
-[writing plans](https://github.com/obra/superpowers/blob/main/skills/writing-plans/SKILL.md)
-closely: read this file in full before writing, even if you know that skill. Uraeda adds the parts
-an asynchronous, file-based workflow needs: the review block, the code read, the constitution check,
-the decisions, and complexity tracking.
+Read this file in full before writing. Beyond the tasks, the plan holds the parts an asynchronous,
+file-based workflow needs: the review block, the code read, the constitution check, the decisions,
+and complexity tracking.
 
 ## Overview
 
@@ -50,10 +50,10 @@ because the spec proposes no decision: turn the block into a record, as describe
 ## Scope check
 
 If the spec covers several independent subsystems, it should have been split before approval. If it
-was not, do not write one plan for all of them: start a new round of questions, following
-[going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions), proposing the
-split, with the recommended split as option A. Each plan must produce working, testable software on
-its own.
+was not, do not write one plan for all of them: stop, as described in
+[Stopping to go back to the human](#stopping-to-go-back-to-the-human), with a question proposing the
+split, the recommended split as option A. Each plan must produce working, testable software on its
+own.
 
 ## File structure
 
@@ -295,15 +295,48 @@ fix what you find inline. This is a checklist you run yourself.
    the document, replace bodies with signatures, test names, and assertions, and check that each
    step is still unambiguous.
 8. **The spec itself**: when two of its sections disagree, or an edge case cannot be met with its
-   data, do not pick one: start a new round of questions, following
-   [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
+   data, do not pick one: stop, as described in
+   [Stopping to go back to the human](#stopping-to-go-back-to-the-human).
 
-## No new decisions, no exceptions
+## Rulings while planning
 
-The plan must not need a new [decision](spec.md#what-is-a-decision), or go against an active
-decision. If it does, do not commit a plan: start a new round of questions, following
-[going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions), so the human
-decides. The spec is then amended and approved again.
+Planning settles many small technical choices the spec leaves open: a library call, a data
+structure, a file's name. Settle them yourself: that is the plan's job. When a later reader would
+want one explained, because it was a close call or because it bends a pattern of the codebase, write
+it in the feature's `rulings.md`, from
+[the template](../assets/templates/specs/000-feature-name/rulings.md): what was decided, why, the
+alternatives, and what it costs if wrong. A ruling never binds future work: a choice that would is a
+decision, and a reason to stop.
+
+## Stopping to go back to the human
+
+Nobody is in a conversation with you to ask while you plan. You may stop on your own, without
+writing a plan, and go back to the human with new questions. Do it rarely: only for a problem of
+high severity that only the human can resolve. Everything else, you settle, as a ruling or in the
+plan itself.
+
+Stop when the plan would need:
+
+- **A new [decision](spec.md#what-is-a-decision)**, or to go against an active one.
+- **A constitution exception** the human has not accepted in the questions.
+- **A different behaviour than the spec**: the spec cannot be built as written, because the code, a
+  dependency, or a platform does not allow it, and every way around it changes what users get.
+- **To pick between two sections of the spec that disagree**, or to meet an edge case its data
+  cannot support.
+- **A split** of a spec that covers several independent subsystems (see
+  [Scope check](#scope-check)).
+- **A new limit or rule** the spec does not state, like a maximum, that users would notice.
+
+Do not stop for what you can settle within the spec, the constitution, and the active decisions:
+names, files, libraries already in the project, test helpers, the order of tasks, an algorithm the
+spec's data already determines.
+
+To stop: do not commit a `plan.md`. Start a new round instead, following
+[going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions): a new
+`discovery-NN.md` with what you found, the code and sources included, and a new
+`clarifications-NN.md` with the questions, each with its options and recommendation, in one commit.
+Once the human answers, the spec is amended and approved again, and the plan is written from the new
+revision.
 
 Constitution exceptions are exceptional: only one the human accepted in the questions is allowed. It
 is spelled out in **Complexity tracking**: which principle, why, and the simpler alternative
@@ -339,5 +372,5 @@ uncheck or rewrite the others, and set the status again from the table.
 
 ## Commit
 
-Commit the plan files: `plan(<number>): <feature name>`, or what changed when revising. When the
-plan waits for a review, the commit message body is the first line of the block.
+Commit the plan files and `rulings.md`: `plan(<number>): <feature name>`, or what changed when
+revising. When the plan waits for a review, the commit message body is the first line of the block.
