@@ -68,9 +68,9 @@ session's history. Otherwise, implement it yourself.
 Settle implementation details yourself: the spec is the authority, the plan argues from it, and your
 judgement settles what neither answers. Every deviation from the plan, and every choice a later
 reader would want explained, is a ruling: write it in the feature's `rulings.md`, from
-[the template](../assets/templates/specs/000-feature-name/rulings.md), in the same commit as the
-code it concerns. It is the feature's small ledger of low-impact decisions, in a fixed format: what
-was decided, why, the alternatives considered, and what it costs if it is wrong.
+[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md), in the same commit as
+the code it concerns. It is the feature's small ledger of low-impact decisions, in a fixed format:
+what was decided, why, the alternatives considered, and what it costs if it is wrong.
 
 A ruling is never a [decision](spec.md#what-is-a-decision): it applies inside this feature only. A
 choice that would bind future work, or that only the human can make, is a reason to stop, below.
@@ -102,7 +102,8 @@ Grade each finding by what a user gets if the branch ships, not by whether the s
 that triggers it:
 
 - **Critical and important**: fix them in one pass, each with a test that fails first, then run the
-  full validation. Commit with the feature's scope: `fix(001): keep the undo after a reload`.
+  full validation. Commit with the feature's scope:
+  `fix(recurring-tasks): keep the undo after a reload`.
 - **Minor**: do not fix them. List them in the pull request, for the human to decide.
 
 A finding you decide not to fix is a ruling, written in `rulings.md` with the others.

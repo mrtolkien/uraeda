@@ -21,8 +21,9 @@ editing it.
 ## Understanding the workflow
 
 - `skills/uraeda/SKILL.md` and its `references/`: the workflow, its source of truth.
-- `skills/uraeda/assets/example/specs/001-recurring-tasks/`: the reference for what good artifacts
-  look like. Read it before writing or changing a template, a reference, or an example file.
+- `skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/`: the reference for what good
+  artifacts look like. Read it before writing or changing a template, a reference, or an example
+  file.
 - `README.md`: user-facing, for people discovering the project. It describes what Uraeda is and
   links into the skill and the example. It holds no workflow rules: update it when a change to the
   workflow makes it wrong.

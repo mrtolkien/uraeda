@@ -170,6 +170,11 @@ due date, and returns the previous one. The row keeps it for 5 seconds, for undo
 - **Task row** ([`TaskRow.tsx`](/src/components/TaskRow.tsx)): the repeat icon, and the confirmation
   "Next: Monday 12" with its undo button after a completion.
 
+### Mockups
+
+- [Repeat](mockups/repeat.html): the repeat menu open in the edit panel, the custom repeat screen,
+  and a task row just after a completion, with its undo.
+
 ### Error handling
 
 - The upgrade meets a saved due date that is not a valid timestamp: it sets it to `null`, logs the

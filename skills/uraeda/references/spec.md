@@ -126,7 +126,7 @@ Two sections are optional, at their place in the template. Leave them out unless
 
 ## Spec document
 
-Use [the template](../assets/templates/specs/000-feature-name/spec.md). Every spec has this
+Use [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/spec.md). Every spec has this
 frontmatter and these sections, in this order:
 
 ```markdown
@@ -164,6 +164,8 @@ clarifications.]
 ### Data
 
 ### Components
+
+### Mockups
 
 ### Error handling
 
@@ -214,6 +216,8 @@ words when it is nuanced.
 - **Data**: what is stored or changes, with exact types, the rules that apply to it, and how it
   flows between components. Data comes before components, so types are defined before they are used.
 - **Components**: the units the feature adds or changes.
+- **Mockups**: for UI work only, links to the mockups, each with what it shows. See
+  [Mockups](#mockups).
 - **Error handling**: what can fail, and what the user sees, with the exact text when the spec fixes
   it.
 - **Testing**: see [Tests](#tests).
@@ -236,7 +240,20 @@ Working in the existing codebase:
   way a good developer improves code they work in.
 - Do not propose unrelated refactoring. Stay focused on what serves the feature.
 
-When a visual direction matters, add a mockup in `mockups/`, next to the spec, and link it.
+## Mockups
+
+Any UI work requires mockups: a new screen, a new control, or a visible change to an existing one.
+The human approves what users will see, not a description of it, and the implementation follows it.
+Put them in `mockups/`, next to the spec, and link each one from the spec's **Mockups** section.
+
+The format is yours: use whatever shows the change best, and is quickest for the human to check. For
+example, a static HTML page when layout or interaction matters, an SVG for a single screen or
+component, a generated image when the look matters more than the exact layout, or code, when the UI
+is simple to build: a small component in the project's own stack, that the human can run or read.
+
+Show every state the user stories name, like an open menu, an empty list, or an error, with the
+exact text the spec fixes. A mockup shows what users see: the spec's text stays the reference for
+behaviour, and wins when the two disagree.
 
 ## Tests
 
@@ -300,9 +317,9 @@ Before committing, read the spec again with fresh eyes, and fix what you find in
    Open questions go back to [discovery](discovery.md).
 2. **Answers**: every answer and settled point shows up in the spec, the human's own words included,
    and nothing in the spec contradicts one.
-3. **Consistency**: no section contradicts another; the design delivers every user story; the data
-   supports every edge case, over two consecutive occurrences when it repeats; the Testing table
-   covers every scenario, edge case, and success criterion.
+3. **Consistency**: no section contradicts another; every UI change has a mockup; the design
+   delivers every user story; the data supports every edge case, over two consecutive occurrences
+   when it repeats; the Testing table covers every scenario, edge case, and success criterion.
 4. **Scope**: the spec fits a single plan. If it does not, start a new round, following
    [Discovery](discovery.md), with a question proposing the split, the recommended split as option
    A. Answered rounds are never edited.
@@ -338,6 +355,6 @@ again. The `> [!IMPORTANT]` block says what changed since the last review.
 
 ## Commit
 
-Commit the spec and its decisions together: `spec(<number>): <feature name>`, or what changed when
+Commit the spec and its decisions together: `spec(<slug>): <feature name>`, or what changed when
 revising. The commit message body is the first line of the block, for example "Spec to review, about
 15 minutes." Then stop at the gate.

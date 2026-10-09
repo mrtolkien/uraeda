@@ -214,7 +214,7 @@ test("removes a saved due date that is not a date, keeps the task, and logs it",
 
 ```bash
 git add src/lib/dates.ts src/store src/components tests package.json vitest.config.ts
-git commit -m "feat(001): calendar-day due dates, with upgrade 2"
+git commit -m "feat(recurring-tasks): calendar-day due dates, with upgrade 2"
 ```
 
 ## Task 2: Completing a repeating task
@@ -380,7 +380,7 @@ with the checkbox disabled meanwhile, and "Could not save" when the store reject
 
 ```bash
 git add src/lib/repeat.ts src/store src/components/TaskRow.tsx tests
-git commit -m "feat(001): complete a repeating task"
+git commit -m "feat(recurring-tasks): complete a repeating task"
 ```
 
 ## Task 3: The repeat menu
@@ -489,7 +489,7 @@ test("picking never stops the repeat, and keeps the due date", async () => {
 
 ```bash
 git add src/lib/repeat.ts src/store/tasks.ts src/components tests
-git commit -m "feat(001): repeat menu"
+git commit -m "feat(recurring-tasks): repeat menu"
 ```
 
 ## Task 4: The custom repeat screen
@@ -583,7 +583,7 @@ through the edit panel.
 
 ```bash
 git add src/components tests
-git commit -m "feat(001): custom repeat screen"
+git commit -m "feat(recurring-tasks): custom repeat screen"
 ```
 
 ## Task 5: Repeats typed in the title
@@ -695,5 +695,5 @@ a final period, for the phrases in the table, with any whole number from 1 as th
 
 ```bash
 git add src/lib/repeat.ts src/store/tasks.ts tests
-git commit -m "feat(001): repeats typed in the title"
+git commit -m "feat(recurring-tasks): repeats typed in the title"
 ```

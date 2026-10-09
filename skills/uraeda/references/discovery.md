@@ -143,8 +143,8 @@ answer calls for, and link to earlier rounds' sections rather than repeating the
 ## The discovery file
 
 Write a new file for the round, from
-[the template](../assets/templates/specs/000-feature-name/discovery-01.md). Knowledge comes first,
-approaches last, in this order:
+[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/discovery-01.md). Knowledge comes
+first, approaches last, in this order:
 
 ```markdown
 # Discovery, round [NN]: [Feature name]
@@ -242,7 +242,7 @@ project, dozens are normal.
 ## The questions file
 
 Write a new file for the round, from
-[the template](../assets/templates/specs/000-feature-name/clarifications-01.md), and set
+[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/clarifications-01.md), and set
 `status: awaiting-human`. The human answers every question in a single commit: the workflow does not
 move on until they have.
 
@@ -369,6 +369,6 @@ Before committing, read both files again with fresh eyes, and fix what you find 
 
 ## Commit
 
-Commit both files: `discovery(<number>): <feature name>`, or what the new round is about. The commit
+Commit both files: `discovery(<slug>): <feature name>`, or what the new round is about. The commit
 message body is the first line of the block, for example "12 questions, about 30 minutes." Then stop
 at the gate.

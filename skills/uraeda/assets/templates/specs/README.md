@@ -17,18 +17,18 @@ Without it, the file names and their `status` fields still tell where each featu
   rounds and questions it had, kept for when it starts again
 - `decisions/`: the decision ledger, one file per topic, named after the question it answers:
   high-impact choices made by humans, binding for all work once `active`
-- `bugs/<slug>/`: a bug `report.md` from a human, and its `assessment.md` from an agent, on the
-  branch `fix/<slug>`
-- `NNN-feature-slug/`: one numbered folder per feature, on the branch of the same name until its
-  pull request is merged, with these files, in workflow order:
+- `bugs/YYYY-MM-DD-<slug>/`: a bug `report.md` from a human, and its `assessment.md` from an agent,
+  on the branch `fix/YYYY-MM-DD-<slug>`
+- `YYYY-MM-DD-feature-slug/`: one folder per feature, dated the day it started, on the branch of the
+  same name until its pull request is merged, with these files, in workflow order:
   - `proposal.md`: what and why, written by a human
   - `discovery-NN.md`: the agent's investigation of the code and outside sources, with the options
     found, never decisions
   - `clarifications-NN.md`: the questions only a human can decide, with their answers
   - `spec.md`: the feature's behaviour and technical design, approved by a human, amended in place
   - `plan.md`: the implementation tasks, with the files and tests of each, amended in place
-  - `data-model.md`, `contracts/`, and `mockups/`: entities, interfaces, and visual mockups, when
-    needed
+  - `data-model.md` and `contracts/`: entities and interfaces, when needed
+  - `mockups/`: what users will see, for any UI work
 
 Discovery and clarifications come in numbered rounds, `01`, `02`, ...: a later round is a new pair
 of files, and earlier rounds stay as they were.
@@ -44,7 +44,7 @@ Workflow files have a `status` field in their frontmatter:
 A spec's `risk-tier`, `low`, `medium`, or `high`, decides whether its plan waits for a human.
 
 Decisions are `proposed` or `active`. A change to an active decision is proposed in a
-`## Proposed change (NNN-feature-slug)` section at the end of its file, and applied when that
+`## Proposed change (YYYY-MM-DD-feature-slug)` section at the end of its file, and applied when that
 feature's spec is approved.
 
 ## Review blocks

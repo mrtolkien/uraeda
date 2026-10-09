@@ -33,12 +33,12 @@ discovery topic.]
 
 [Optional: the condition or date that ends a temporary decision.]
 
-## Proposed change ([NNN-feature-slug])
+## Proposed change ([YYYY-MM-DD-feature-slug])
 
 [Only on an active decision, while a spec proposes to change it. On approval, this section replaces
 the decision's text.]
 
-Proposed by the [spec](../NNN-feature-slug/spec.md). [The change, in a sentence or two.]
+Proposed by the [spec](../YYYY-MM-DD-feature-slug/spec.md). [The change, in a sentence or two.]
 
 The rules become:
 
