@@ -4,31 +4,28 @@ status: [awaiting-human | auto-approved]
 
 # Plan: [Feature name]
 
-Implements [the spec](spec.md).
+> [!IMPORTANT]
+>
+> [Only when the plan waits for a review.] Plan to review, about [M] minutes.
+>
+> - [Where your attention matters most, one line each: where the plan goes beyond the spec's design,
+>   complexity, risky steps]
+>
+> Set `status: approved` and commit, or set `status: changes-requested` and write your feedback in a
+> `## Review` section at the end.
 
-## Summary
+Implements the design of [the spec](spec.md).
 
-[The main requirement and the technical approach, in a few sentences.]
+## Files
 
-## Technical context
-
-- **Language and version**:
-- **Dependencies**:
-- **Storage**:
-- **Testing**:
-- **Constraints**:
+- [`path`](/path): [what changes]
+- `path`, new: [what it holds]
 
 ## Constitution check
 
 | Principle or decision | Complies | Notes |
 | --------------------- | -------- | ----- |
 | I. [Principle]        | yes      |       |
-
-## Project structure
-
-```sh
-[files and folders the feature adds or changes]
-```
 
 ## Complexity tracking
 

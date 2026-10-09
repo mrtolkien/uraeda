@@ -7,9 +7,10 @@ comes back for the next time.
 
 ## Why
 
-Users recreate the same tasks by hand every week, and some stop using the app because of it.
+It's a core feature of TODO apps, and a core use-case.
 
 ## Notes
 
-- It must stay simple: my parents use this app.
+- It must stay simple: my parents use this app
+- Two clicks should be enough: task -> recurrence -> weekly
 - Google Calendar's custom repeat screen is the opposite of what I want.

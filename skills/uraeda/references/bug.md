@@ -21,7 +21,8 @@ Finds the root cause of a reported bug and suggests a fix, without going through
 4. Suggest a fix, and the test that proves it.
 
 Write `assessment.md` from [the template](../assets/templates/specs/bugs/bug-slug/assessment.md),
-and set `status: awaiting-human`.
+open it with the `> [!IMPORTANT]` block described in
+[Coming back to the human](../SKILL.md#coming-back-to-the-human), and set `status: awaiting-human`.
 
 If you cannot reproduce the bug, say what you tried and ask for what you need. If the fix needs a
 decision, or the expected behaviour is unclear, ask in the assessment, with a recommended answer.

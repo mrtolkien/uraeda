@@ -16,6 +16,18 @@ It will provide, once fully built:
 - A server listening to git changes to automatically trigger agent runs on human proposals
   - Optional but that's how I use it
 
+## Vision
+
+Uraeda works like an asynchronous [superpowers](https://github.com/obra/superpowers): the same care
+for design before code, without having to stay in a chat session for hours. The hard work happens
+upfront, done by a capable agent on its own: in-depth investigation of the code, the documentation,
+and online sources, options, and a complete design. The human only steps in where they add the most
+value: the questions only they can answer, and one spec to approve. Every message to the human is a
+file built so their time goes into thinking, not searching, whenever they have time.
+
+For now, Uraeda targets technical users, who read code and designs. Support for non-technical users
+is a later goal.
+
 ## Inspirations
 
 Uraeda's files follow the formats and vocabulary of [Spec Kit](https://github.com/github/spec-kit):
@@ -29,10 +41,10 @@ and [superpowers](https://github.com/obra/superpowers).
 
 > [!WARNING]
 >
-> The content below shouldn't be in a README.md, we will re-organize this before making the repo
-> public, and only keep information that should be user-facing.
->
-> The actual workflow files are the source of truth for the behaviour.
+> **Obsolete.** The sections below describe an earlier version of the workflow, and are no longer
+> kept up to date while the PoC is built. The source of truth is the Uraeda skill, in
+> [`skills/uraeda/`](skills/uraeda/SKILL.md). These sections will be rewritten from the skill once
+> the PoC is done, keeping only what users need.
 
 # Files organization
 
@@ -58,7 +70,7 @@ specs/
       assessment.md               # agent: root cause and suggested fix
   001-recurring-tasks/            # one numbered folder per feature
     proposal.md                   # human: what and why
-    research.md                   # agent: findings and options, before questions
+    discovery.md                   # agent: findings and options, before questions
     clarifications.md             # agent questions, human answers
     spec.md                       # agent: behaviour, reviewed by a human
     plan.md                       # agent: technical approach and implementation steps
@@ -66,8 +78,11 @@ specs/
     contracts/                    # agent, when needed: exact interface definitions
 ```
 
-Spec folders are numbered, so listing them shows the order in which features were started. Files
-inside a spec folder use the same names as Spec Kit.
+Spec folders are numbered, so listing them shows the order in which features were started.
+`spec.md`, `plan.md`, `data-model.md`, and `contracts/` keep Spec Kit's names. `discovery.md` is
+Uraeda's own: the investigation before the questions. Spec Kit's `research.md`, the agent's log of
+technical choices written after the spec, has no equivalent: in Uraeda, important choices become
+decisions made by the human, and small ones are settled in the plan.
 
 ## Workflow status
 
@@ -101,12 +116,34 @@ Alternatives considered:
   gets out of sync.
 - Commit message trailers (`Uraeda-Step: spec-approved`): invisible when reading the files.
 
+## Coming back to the human
+
+Every file waiting for the human opens with a `> [!IMPORTANT]` block: what is asked, an honest
+estimate of the time it takes to think through, where their attention matters most, and how to
+answer. The block orients the human, it does not replace reading: questions and specs need their
+judgement. The commit message repeats its first line, so `git log` or a git listener shows what is
+waiting.
+
+```md
+> [!IMPORTANT]
+>
+> 4 questions on recurring tasks, about 20 minutes.
+>
+> - Two choices last beyond this feature: how users pick when a task repeats, which decides what
+>   "every 2 weeks" would cost later, and how due dates are stored, which every future feature with
+>   dates will follow, and which needs a one-time upgrade of saved tasks.
+> - The questions on when the next occurrence appears and which date it counts from work together.
+>
+> Answer each question with an option letter, `yes` for the recommendation, or your own words. Then
+> set `status: answered` and commit.
+```
+
 ## Links
 
 Any markdown file can link to any file in the repository, including source code:
 
-- Markdown links, with a relative path (`[research](../001-recurring-tasks/research.md)`) or a path
-  from the repository root (`[auth](/src/auth.ts)`)
+- Markdown links, with a relative path (`[discovery](../001-recurring-tasks/discovery.md)`) or a
+  path from the repository root (`[auth](/src/auth.ts)`)
 - Wikilinks, with the file name (`[[due-dates]]`), or a partial path when the name is ambiguous
   (`[[001-recurring-tasks/spec]]`)
 
@@ -130,7 +167,7 @@ Decisions are close to the constitution or an `AGENTS.md`, except that:
   human wants
 - They change: a decision can be temporary, like two solvers kept side by side during a trial, and
   is edited when the human changes their mind
-- They are short and easy to review: a reviewer understands one without reading the research
+- They are short and easy to review: a reviewer understands one without reading the discovery
 
 A choice becomes a decision only if an agent would not guess it, it shapes work beyond the feature
 that raised it, and getting it wrong is costly. Behaviour inside one feature belongs in the spec,
@@ -164,9 +201,9 @@ conflict.
 
 A decision opens with a plain summary, then its rules, written with MUST, SHOULD, and MUST NOT so
 specs, plans, and code can be checked against them. **Why** explains the problem, with links to the
-clarification question and the research. **Consequences** lists what gets easier and what gets
-harder. **Applies to** links to the code it governs, so agents find the decisions relevant to what
-they touch. **Alternatives considered** and **Revisit when** are optional.
+clarification question and the discovery topic. **Consequences** lists what gets easier and what
+gets harder. **Applies to** links to the code it governs, so agents find the decisions relevant to
+what they touch. **Alternatives considered** and **Revisit when** are optional.
 
 ```md
 ---
@@ -326,8 +363,8 @@ flowchart TD
     end
 
     proposal["Create proposal.md in a new spec folder, ideally on a feature branch"]
-    proposal --> research["Research code, local references, and online sources"]
-    research --> questions["Commit research.md, and questions with recommended answers in clarifications.md"]
+    proposal --> research["Investigate the code, documentation, and online sources"]
+    research --> questions["Commit discovery.md, and questions with recommended answers in clarifications.md"]
     questions --> answers["Answer questions and commit responses"]
     answers --> decisions["Propose decisions"]
     decisions -.-> ledger[("Decision ledger: /specs/decisions")]
@@ -366,24 +403,27 @@ from promoting a draft: the draft file is moved to the new spec folder and renam
 >
 > Proposal example: what goes into it, what's a good proposal, ..
 
-## Research and questions
+## Discovery and questions
 
-When a `proposal.md` file is created in a spec folder, an agent picks it up and:
+When a `proposal.md` file is created in a spec folder, an agent picks it up and investigates it in
+depth, before asking any question:
 
-- Reads the relevant existing code in the app
-- Reads the relevant local references (documentation, ...)
-- Searches for necessary references and information online
-- Identifies parts requiring human input: behaviour details, visual direction, library selection,
-  reusability level required of the produced code, ...
+- **The code**: the files the feature touches, the existing patterns to follow, and the files it
+  will likely change
+- **Documentation**: local docs, and the official docs of the dependencies involved
+- **Online sources**: how established products and libraries solve the same problem, libraries that
+  could do the work, known pitfalls
 
-The agent writes its findings in `research.md`, before asking any question. For each topic, it lists
-what it found, the options it considered with their pros and cons, and its sources.
+It writes its findings in `discovery.md`: a map of the code, then one section per topic, with at
+least two or three genuinely different approaches, evaluated against the same criteria, taken from
+the constitution, active decisions, and the proposal. Every finding links to its source, and what
+could not be checked is listed, so the next agent does not repeat dead ends.
 
-`research.md` holds findings and options, never decisions: decisions come from the human's answers.
-It gives the questions a documented basis, and lets a different agent resume the work later without
-redoing the research.
+`discovery.md` holds findings and options, never decisions: decisions come from the human's answers.
+It is the evidence behind the questions' recommended answers, the basis of the spec's design, and
+the map of the code the plan reuses. A different agent can resume the work without redoing it.
 
-Like clarifications, each research round is a new session in the same file, so earlier findings are
+Like clarifications, each discovery round is a new session in the same file, so earlier findings are
 kept.
 
 ## Clarifications and Decisions
@@ -394,30 +434,50 @@ are committed in the spec folder as `clarifications.md`.
 There is no limit on the number of questions: early in a project, it is normal to have a lot of
 them. Questions are sorted by impact, so the most important ones come first.
 
-Each question follows Spec Kit's clarification format: a "Why it matters" sentence, a recommended
-answer with its reasoning, and the options in a table. Each clarification round is a new session in
-the same file.
+The human reads the file once, from top to bottom, without the discovery open next to it, so it
+reads linearly. Each session opens with the `> [!IMPORTANT]` block, which names subjects rather than
+question numbers the reader has not seen yet, then a short **Context** section: what the proposal
+asks, and what exists today, with links to the code. Each question then:
+
+- Explains what the reader needs to answer it: the current code, the documentation, how others solve
+  it, every fact linked to its source
+- Says why it matters, with a link to its discovery topic
+- Lists its options as bullets: what each is in practice, when to pick it, and what it costs
+- Ends with a recommendation and its reason, after the options, so the reader forms their own view
+  first
+
+Each clarification round is a new session in the same file.
 
 ```md
-## Session 2026-10-07
+### Q3: Which date does the next due date count from?
 
-### Q1: How should users choose when a task repeats?
+Once a repeating task is completed, its next occurrence needs a due date. Todoist offers both
+options below: "every" counts from the previous due date, and "every!" from the day the task was
+completed
+([Todoist help](https://todoist.com/help/articles/introduction-to-recurring-dates-YUYVJJAV)).
 
-Why it matters: this decides how complex the repeat settings screen is.
+Why it matters: for a weekly task due Monday and completed on Thursday, this decides whether it
+stays a Monday task. More in [discovery](discovery.md#next-due-date).
 
-**Recommended:** Option A - presets cover most needs and keep the UI simple for non-technical users.
+Options:
 
-| Option | Description                                       |
-| ------ | ------------------------------------------------- |
-| A      | Presets: daily, weekly, monthly                   |
-| B      | Presets plus custom rules (every N days, ...)     |
-| C      | Free text, parsed by the app ("every 2nd Monday") |
+- **A. From the previous due date.** Monday tasks stay on Mondays, whenever they are completed. Pick
+  it for a predictable schedule. A task completed very late can get a next due date that is already
+  past: Todoist skips to the next date in the future in that case.
+- **B. From the day the task was completed.** A weekly task done on Thursday comes back next
+  Thursday. Pick it when the gap matters more than the day, like watering plants. The schedule
+  drifts every time a task is done late.
 
-**Answer:** yes
+**Recommended:** A. Schedules are what users set repeating tasks up for.
+
+**Answer:** A, but if that date is already past, use the next one in the future.
 ```
 
 The human answers each question with an option letter, `yes` to accept the recommendation, or a
 short answer of their own, then commits the file to git.
+
+Agents ask only what only the human can decide, and everything in one round: they settle the rest
+themselves, as assumptions in the spec.
 
 An agent picks up the responses and:
 
@@ -429,17 +489,27 @@ An agent picks up the responses and:
 ## Spec
 
 Once the human clearly answers the clarifications questions and the scope is clear and defined, the
-agent writes the spec in `spec.md`.
+agent writes the spec in `spec.md`, together with the decisions it proposes, in a single commit.
 
-The spec is a human-readable document of reasonable length. It follows Spec Kit's spec template:
+The spec says what the feature does and how it will be built, for a human to approve before any
+code. It starts from Spec Kit's spec template, for the behaviour:
 
 - User stories, ranked by priority (P1, P2, ...), each with acceptance scenarios written as Given /
   When / Then
 - Edge cases
-- Functional requirements (FR-001, ...) and measurable success criteria (SC-001, ...)
+- Measurable success criteria (SC-001, ...)
 - Assumptions
 
-Uraeda adds three sections to it:
+It adds a **Design** section, following [superpowers](https://github.com/obra/superpowers)' design
+documents: the approach, the components (each with one clear purpose, how it is used, and what it
+depends on), the data and how it flows, error handling, and testing. Each part is scaled to the
+feature, from a few sentences to a few hundred words.
+
+The spec is the main review of the workflow: once it is approved, most features reach the pull
+request without the human. It is written for a technical reviewer, complete enough to approve with
+confidence and fast to check.
+
+Uraeda also adds:
 
 - **Decisions**: the new decisions and proposed changes, reviewed together with the spec, and the
   active decisions it relies on
@@ -448,17 +518,9 @@ Uraeda adds three sections to it:
 - **Risk tier**: the feature's impact, proposed by the agent with a one-line reason. See
   [Risk tiers](#risk-tiers).
 
-The spec must not contain any `[NEEDS CLARIFICATION]` markers when it is submitted for review: open
-questions go back to `clarifications.md`.
-
-> [!TODO]
->
-> We'll need to give some examples here. Finding the right level of abstraction for this step will
-> be an important part of the workflow development.
-
-- This step should be adapted to the user: a non technical user should be made aware of the
-  tradeoffs of the decisions, while a technical user can also read the plan.
-- When relevant, includes a visual mockup (HTML, AI-generated PNG, ...)
+Before submitting it, the agent reviews the spec for placeholders, contradictions, scope (it must
+fit a single plan), and ambiguity. Open questions go back to `clarifications.md`. When relevant, the
+spec includes a visual mockup (HTML, AI-generated PNG, ...).
 
 ## Validation
 
@@ -503,37 +565,37 @@ plan-review: true
 
 ## Plan
 
-Once a spec has been validated by the user, an agent writes the technical plan in `plan.md`. It
-follows Spec Kit's plan template:
+Once a spec has been validated by the user, an agent turns its design into a plan, in `plan.md`:
 
-- **Summary**: the main requirement and the technical approach, in a few sentences
-- **Technical context**: languages, dependencies, storage, testing, constraints, ...
-- **Constitution check**: a gate that checks the plan against the constitution and active decisions
-- **Project structure**: the files and folders the feature adds or changes
-- **Complexity tracking**: only filled in when the plan breaks a principle, with the reason and the
-  simpler alternative that was rejected
+- **Files**: every file the feature adds or changes, with what changes in it
+- **Constitution check**: a gate that checks the plan against the constitution and active decisions,
+  for what the spec's design did not settle
+- **Complexity tracking**: only filled in when the plan adds an abstraction or breaks a principle,
+  with the reason and the simpler alternative that was rejected
+- **Steps**: an ordered checklist of implementation steps, each one a commit with its tests. Steps
+  stay coarse: the implementing agent breaks each one down further in its own session. The
+  checkboxes track progress, so a different agent can resume the implementation.
 
-Uraeda adds a **Steps** section at the end: an ordered checklist of implementation steps, each one a
-commit with its tests. Steps stay coarse: the implementing agent breaks each one down further in its
-own session. The checkboxes track progress, so a different agent can resume the implementation.
+The plan does not repeat the spec: the summary, approach, and testing strategy are in its design.
+The project's stack and commands belong in `AGENTS.md`, not in every plan.
 
-Spec Kit puts these steps in a separate `tasks.md`. Uraeda keeps them in the plan: a separate file
+Spec Kit puts the steps in a separate `tasks.md`. Uraeda keeps them in the plan: a separate file
 repeats the plan, gets out of sync with it, and nobody reviews it.
 
 When the feature needs them, the plan comes with two extra files:
 
 - `data-model.md`: the entities the feature adds or changes, their fields, relationships, validation
-  rules, and state transitions. Small data changes stay in a section of `plan.md`.
+  rules, and state transitions. Small data changes stay in the spec's design.
 - `contracts/`: exact definitions of the interfaces the feature exposes to users or other systems,
   in the format that fits the project: API schemas, CLI command definitions, file formats, ...
 
-The plan must not introduce new important decisions or constitution exceptions: those should have
-been settled during clarifications. If the plan needs one, the workflow goes back to research and
-questions, so the human makes the decision. The spec is then updated and validated again.
+The plan must not introduce new decisions or constitution exceptions: those should have been settled
+during clarifications. If the plan needs one, the workflow goes back to discovery and questions, so
+the human makes the decision. The spec is then updated and validated again.
 
-If the feature's risk tier requires it, the workflow waits for the human to review and approve the
-plan. Otherwise, the agent sets the plan's status to `auto-approved` and moves on to the
-implementation.
+Since the design was already reviewed with the spec, most plans need no human review. If the
+feature's risk tier requires it, the workflow waits for the human to review and approve the plan.
+Otherwise, the agent sets the plan's status to `auto-approved` and moves on to the implementation.
 
 ## Implementation
 
