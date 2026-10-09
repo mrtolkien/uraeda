@@ -1,25 +1,31 @@
 # Uraeda
 
-Uraeda is a git-driven, opinionated software development harness. Humans write proposals, agents
-research, ask questions, and write specs and plans, and every step is checkpointed as plain text in
-git. The project is early: most of it is still design documents.
+Uraeda is a git-driven, asynchronous development workflow for coding agents. Humans write proposals,
+answer questions, and approve specs. Agents investigate, ask, and write specs, plans, and code, and
+every step is checkpointed as plain text in git. The project is an early proof of concept: the
+workflow ships as an agent skill, and the tools come later.
 
 It works like an asynchronous [superpowers](https://github.com/obra/superpowers), with
 [Spec Kit](https://github.com/github/spec-kit)'s file names where they fit: a capable agent does the
 hard work upfront, autonomously, and the human only answers the questions only they can decide and
 approves specs, in files built so their time goes into thinking, not searching. It targets technical
-users for now: see "Vision" in `README.md`.
+users for now.
 
 ## Constitution
 
 Read `specs/CONSTITUTION.md` before any work. It holds the project's principles, ordered by
 priority: when two conflict, the higher one wins. Its MUST and SHOULD rules are binding, and any
-conflict with them must be resolved by a human.
+conflict with them must be resolved by a human. Only a human amends it: report a problem instead of
+editing it.
 
-## Understanding the workflows
+## Understanding the workflow
 
-- `skills/uraeda/SKILL.md`: the workflow, the source of truth while the PoC is built. The workflow
-  sections of `README.md` are obsolete.
+- `skills/uraeda/SKILL.md` and its `references/`: the workflow, its source of truth.
+- `skills/uraeda/assets/example/specs/001-recurring-tasks/`: the reference for what good artifacts
+  look like. Read it before writing or changing a template, a reference, or an example file.
+- `README.md`: user-facing, for people discovering the project. It describes what Uraeda is and
+  links into the skill and the example. It holds no workflow rules: update it when a change to the
+  workflow makes it wrong.
 - `specs/PRIORITIES.md`: what is being worked on now, next, and later.
 
 ## Repository layout
@@ -32,6 +38,9 @@ conflict with them must be resolved by a human.
   - `assets/templates/specs/`: artifact skeletons, at the same paths as in a user's `specs/` folder
   - `assets/example/specs/`: a filled-in example project (todo app), at the same paths
 - `specs/`: Uraeda's own workflow files. Not the templates installed in users' projects.
+
+A change to the workflow touches the skill, its templates, and the example together: a step's
+reference, its template, and the example's file must agree.
 
 Markdown files can link to any file in the repository. Write markdown links with a relative path or
 a path from the repository root (`/src/...`). Humans may also write wikilinks (`[[file-name]]`).

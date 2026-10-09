@@ -54,5 +54,5 @@ Only if you picked B in Q1. [Context.]
 
 ## Settled without the human
 
-- **[Point]**: [what was chosen, and why. "With A in Q2, ..." when it depends on an answer]. See
-  [discovery](discovery-01.md#topic).
+- **[The point]** [what you chose, as a sentence that continues the point, and why. "With A in Q2,
+  ..." when it depends on an answer]. See [discovery](discovery-01.md#topic).

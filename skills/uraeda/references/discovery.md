@@ -15,14 +15,24 @@ its source. Later steps build on it: the questions link to its paragraphs, the s
 behaviour and design on it, and the plan reuses its map of the code. The human does not read it by
 default: they follow the questions' links when they want more.
 
+This step is superpowers'
+[brainstorming](https://github.com/obra/superpowers/blob/main/skills/brainstorming/SKILL.md) made
+asynchronous: explore the project context, understand the intent, find two or three approaches with
+their tradeoffs, and ask what only the human can answer. The difference is that the human is not in
+the conversation: you do the exploration alone and in depth, then ask everything at once, in a file.
+
 ## Read first
 
 1. `proposal.md`
 2. Earlier rounds, if any: their discovery files, questions, and answers. Build on them, and never
    edit them: a round is a record of what the human was asked and answered.
-3. The `## Review` section of `spec.md`, or the reason given by the plan or implementation step, if
-   one sent the workflow back here
+3. The `## Changes requested` section of `spec.md`, or the reason given by the plan or
+   implementation step, if one sent the workflow back here
 4. The constitution, and the active decisions whose **Applies to** covers the feature
+5. Other features in flight: list the open feature branches (`git branch -a`), and read the specs,
+   proposed decisions, and data changes of those that touch the same code, stored data, or decisions
+   (`git show <branch>:specs/...`). Record the overlaps under **The code**: two features upgrading
+   the same database, or one changing a decision the other relies on, is a finding.
 
 ## Investigate in depth
 
@@ -63,13 +73,16 @@ into one file. Go deep on both sides.
 
 - Check the proposal against what you found: constraints that cannot be met as written, ambiguous
   wording, gaps. A proposal is a human's first draft, not a specification. Do not interpret it
-  silently: each point becomes a finding, and a question for the human.
+  silently: each point becomes a finding, then a question for the human, or a settled point when the
+  constitution and active decisions already answer it. A gap about scope, what the feature includes
+  or leaves out, is always a question.
 
 Scale the depth to the impact: a topic that could become a [decision](spec.md#what-is-a-decision)
 deserves several sources, a minor topic a quick check. Every topic still gets both the code and an
-outside source. If you cannot search the web or read a source, say so in **Not checked** rather than
-writing from memory. **Not checked** is for what could not be found or reached, never for work
-skipped.
+outside source. Cite only pages you actually read: a fact seen only in a search result's snippet or
+summary is marked as such where it is used, and its page goes in **Not checked**. If you cannot
+search the web or read a source, say so in **Not checked** rather than writing from memory. **Not
+checked** is for what could not be found or reached, never for work skipped.
 
 **Later rounds** start from what triggered them: an answer that raised a new unknown, a spec review
 asking for options, a blocked plan. They research new information, for example the UI patterns an
@@ -100,7 +113,14 @@ approaches last:
 
 Give a heading to anything the questions may link to: in Markdown, only headings can be linked to.
 Every fact links to its source: a file, a documentation page, a URL. Mark your own judgements as
-judgements. Do not recommend in the discovery file: recommendations go with the questions.
+judgements. Do not recommend, and do not choose, in the discovery file: recommendations go with the
+questions, and choices you settle go under **Settled without the human** in the questions file.
+**Needs no choice** only lists capabilities that leave nothing to decide.
+
+Approaches criteria come from the proposal, the constitution, active decisions, and the standards
+from **Standards and libraries** the project must meet, such as an accessibility guideline, marked
+as such. When a topic only matters with one option of another topic, say so on its first line: "Only
+with option A of [generating occurrences](#generating-occurrences)".
 
 ## Write `clarifications-NN.md`
 
@@ -113,8 +133,9 @@ Ask only what only the human can decide: product direction, scope boundaries, tr
 their goals, visual direction, and any choice that would become a
 [decision](spec.md#what-is-a-decision). Settle everything else yourself, within the constitution and
 active decisions, and list it under **Settled without the human** in the questions file: the topic,
-the option, and why. The human sees it when answering, and can object. The spec copies it into its
-assumptions.
+the option, and why. Adding a dependency is a question; reusing what exists, or writing a small
+module instead, can be settled. The human sees it when answering, and can object. The spec copies it
+into its assumptions.
 
 Ask everything at once: anticipate the questions their answers would raise, and ask them now, so the
 human answers once.
@@ -126,7 +147,9 @@ so it reads linearly, with every piece of context they need at the point they ne
   not question numbers: the reader has not seen "Q4" yet. Open the file with the block described in
   [Coming back to the human](../SKILL.md#coming-back-to-the-human): how many questions, how long
   they take to think through, the choices that last beyond the feature, the questions that work
-  together, the gaps found in the proposal, and how many points you settled.
+  together, the gaps found in the proposal, and how many points you settled. Count two to five
+  minutes per question, depending on its weight, and say "about": the estimate is honest, not
+  precise.
 - **Then a short Context section**: what the proposal asks for, and what exists today, with links to
   the code. In a later round, what happened since the last one, and why new questions came up.
 - **Each question gives just the context needed to answer it**, in two or three sentences: what
@@ -138,14 +161,16 @@ so it reads linearly, with every piece of context they need at the point they ne
   rule is typed in.
 - **The recommended option comes first, as A**, labelled "A (recommended)", with a "Why recommended"
   line under its pros and cons. It is your best reading of the evidence, not an answer to
-  rubber-stamp: the questions exist because they need the human's judgement.
+  rubber-stamp: the questions exist because they need the human's judgement. When the best answer is
+  a combination of options that combine, the "Why recommended" line names it: "A, with C on top".
 - **Options exclude each other**, unless the question says which ones combine: "C can come on top of
   A or B".
 - **Questions that depend on each other say so**, in the context of both: "Where the choice appears
   is Q6", "With A or C in Q3, ...".
 - **A question that only matters for one answer is a follow-up**, right after its parent, numbered
-  by the answer it depends on: `Q2.B`, starting with "Only if you picked B in Q2". Never ask a
-  separate question that an earlier answer already decides.
+  by the answer it depends on: `Q2.B`, starting with "Only if you picked B in Q2". When it depends
+  on several answers, number it by the first and list them all: `Q1.B`, "Only if you picked B or C
+  in Q1". Never ask a separate question that an earlier answer already decides.
 
 Ordering and numbering:
 

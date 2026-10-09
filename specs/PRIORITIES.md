@@ -14,7 +14,6 @@
 - Ping user when input is needed
 - WebUI for _editing_ files related to the workflow
 - Small onboarding explanation (what to read and in which order)
-- Rewrite the README's workflow sections from the skill, once the PoC is done (marked obsolete)
 
 ## Later
 
@@ -26,7 +25,7 @@
 - Code quality and style guides, workflow improvements
 - Use Jev-like model (Clef) for one-shot classification of decisions: "Is this decision relevant to
   this proposal?", "Is this a valuable decision?", "Is this code change in line with the
-  consitution?", ...
+  constitution?", ...
 - Optional embeddings for code and docs search with Gemma Embeddings 2
 - Public documentation maintenance / hooks?
 - Setup with agent (checks project and creates relevant files)

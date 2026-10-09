@@ -56,6 +56,8 @@ Criteria come from [the proposal, the constitution, and active decisions: list t
 
 [What this topic is about, in one sentence. Links to the sections above it relies on.]
 
+[Optional: "Only with option A of [topic](#topic).", when this topic depends on another one.]
+
 | Option | [Criterion] | [Criterion] | [Criterion] |
 | ------ | ----------- | ----------- | ----------- |
 | A. ... |             |             |             |
@@ -63,7 +65,8 @@ Criteria come from [the proposal, the constitution, and active decisions: list t
 
 ### Needs no choice
 
-- [Capability from "What they have in common"]: [why it needs no choice here]
+- [Optional: each capability from "What they have in common" that gets no topic above, and why it
+  needs no choice here]
 
 ## Not checked
 

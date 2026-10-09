@@ -16,12 +16,15 @@ spec-revision: [the spec's revision]
 
 **Architecture:** [two or three sentences on the approach. See the [spec's design](spec.md#design).]
 
+**Spec:** [spec.md](spec.md): the plan argues from the spec, so the implementer reads both.
+
 ## Review focus
 
 Inputs the spec does not mention, most likely to bite a user first. Each gets a test in the task
 that owns the code.
 
-1. **[Input or failure mode]**: [the behaviour a reasonable person would expect]. Task [N].
+1. **[An input or failure mode the spec does not mention]** [the behaviour a reasonable person would
+   expect]. Task [N].
 
 ## Global constraints
 
@@ -69,9 +72,10 @@ accepted. "None." otherwise.]
 - Consumes: [what this task uses from earlier tasks, with exact signatures]
 - Produces: [what later tasks rely on: exact names, parameters, and return types]
 
-- [ ] **Step 1: Write the failing tests**
+- [ ] **Step 1: Write the failing tests, and the helpers they use**
 
 ```ts
+// tests/exact/path
 test("[the scenario, in words]", async () => {
   // Arrange, with the shared helpers
   // Act
@@ -82,20 +86,21 @@ test("[the scenario, in words]", async () => {
 - [ ] **Step 2: Run them to check they fail**
 
 - Run: `[command]`
-- Expected: FAIL, [the expected failure].
+- Expected: FAIL, [the first failure the run will hit].
 
 - [ ] **Step 3: Implement**
 
 [Exact signatures and files, the values the spec pins, and one line on the approach when the
 signature and tests leave a choice.]
 
-- [ ] **Step 4: Run all tests**
+- [ ] **Step 4: Run all tests[, and the benchmark]**
 
 - Run: `[command]`
-- Expected: PASS[, and the benchmark result].
+- Expected: PASS[, and no benchmark slower than its baseline beyond the tolerance the spec sets].
 
 - [ ] **Step 5: Commit**
 
 ```bash
+git add [the files of this task]
 git commit -m "feat([number]): [what this task delivers]"
 ```

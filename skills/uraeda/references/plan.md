@@ -1,7 +1,8 @@
 # Plan
 
-Turns the approved spec into tasks small enough for an agent who has seen neither the codebase nor
-the spec, with every decision they could not make alone.
+Turns the approved spec into an implementation plan: bite-sized tasks, each with its exact files,
+interfaces, failing tests as code, commands, and commit, written for an agent who has seen neither
+the codebase nor the spec.
 
 - **Runs when**: `spec.md` is `approved` and its decisions are active, and there is no `plan.md`, or
   its `spec-revision` is lower than the spec's `revision`; or `plan.md` is `changes-requested`
@@ -9,117 +10,292 @@ the spec, with every decision they could not make alone.
 - **Ends at**: a human gate (`awaiting-human`), or the [implementation](implementation.md) step
   (`auto-approved`)
 
-The implementing agent writes idiomatic code once it knows the exact interface and the exact test,
-and makes a reasonable choice wherever the plan leaves one open. What it cannot know is what was
-decided: which files, which names and signatures, which values from the spec, which tests prove each
-task. The plan records exactly that, as bite-sized tasks, each with its tests first and its own
-commit. It follows superpowers'
-[writing plans](https://github.com/obra/superpowers/blob/main/skills/writing-plans/SKILL.md).
+This step follows superpowers'
+[writing plans](https://github.com/obra/superpowers/blob/main/skills/writing-plans/SKILL.md)
+closely: read this file in full before writing, even if you know that skill. Uraeda adds the parts
+an asynchronous, file-based workflow needs: the review block, the code read, the constitution check,
+the decisions, and complexity tracking.
 
-## Read
+## Overview
 
-1. `spec.md`, especially its **Design** and **Testing**, and the decisions it lists
+Write the plan for an engineer who has not seen this codebase or this spec. Assume they write
+idiomatic code in the project's language once they know the exact interface and the exact test, and
+that they will make a reasonable choice wherever the plan leaves one open. What they cannot know is
+what you decided: which files, which names and signatures, which values from the spec, which tests
+prove each task. Document those. Give them the whole plan as bite-sized tasks. DRY. YAGNI. Tests
+first. Frequent commits.
+
+In Uraeda, this is literally true: the implementation runs later, often in another session, often by
+another agent, and each task may go to a fresh agent that sees only that task. Anything you leave
+out, they guess.
+
+## Read first
+
+1. `spec.md` in full, especially its **Design**, **Testing**, and **Assumptions**, and the decisions
+   it lists.
 2. The constitution, and the active decisions that apply to the code you will touch, as they are
    now: a human may have changed one since the spec was approved. If one now conflicts with the
    spec, start a new round of questions, following
    [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
-3. The discovery files of every round
-4. The code: its structure and patterns, the test setup and its helpers, every place that reads or
-   writes data the feature changes, and the validation commands
+3. The discovery files of every round: their map of the code is your starting point.
+4. The code itself: its structure and patterns, the test setup and existing helpers, every place
+   that reads or writes data the feature changes, and the commands that validate the project
+   (formatter, linter, type checker, tests, benchmarks). Read it: do not plan from the discovery's
+   summary alone.
 
-## Write `plan.md`
+If `spec.md` still opens with a `> [!IMPORTANT]` block, the approval step did not run, for example
+because the spec proposes no decision: turn the block into a record, as described in
+[Coming back to the human](../SKILL.md#coming-back-to-the-human), in the plan's commit.
 
-Use [the template](../assets/templates/specs/000-feature-name/plan.md), and set `spec-revision` to
-the spec's `revision`. In this order:
+## Scope check
 
-- **Goal**: one sentence on what the feature builds.
-- **Architecture**: two or three sentences on the approach, linking to the spec's design.
-- **Review focus**: up to five inputs or failure modes the spec implies but does not mention, most
-  likely to bite a user first, each with the behaviour a reasonable person would expect, and the
-  task whose tests cover it. The spec says what the feature must do, not everything it will meet:
-  its silence on an input is not permission to break on it. These are the only behaviours the plan
-  adds, so they come first. A review-focus item never narrows a rule of the spec: a new limit, like
-  a maximum, is a question for the human.
-- **Global constraints**: the rules every task must follow, copied word for word from the decisions
-  and the spec: formats, exact user-facing text, limits, names. Every task's requirements include
-  them.
-- **Code read**: the code the plan relies on, with links and what each showed. Claims about the code
-  rest on this section.
-- **Constitution check**: the plan against every principle of the constitution.
-- **Decisions**: only the decisions the plan relies on, each with where the plan follows it.
-- **Complexity tracking**: every new abstraction (a type, module, layer, wrapper, or helper shared
-  by several parts, tests included, even when the spec's design introduced it), and every
-  constitution exception the human accepted, each with why it is needed and the simpler alternative
-  rejected. "None." otherwise.
-- **Tasks**: see below.
+If the spec covers several independent subsystems, it should have been split before approval. If it
+was not, do not write one plan for all of them: start a new round of questions, following
+[going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions), proposing the
+split, with the recommended split as option A. Each plan must produce working, testable software on
+its own.
+
+## File structure
+
+Before defining tasks, map out which files will be created or modified, and what each one is
+responsible for. This is where the decomposition decisions get locked in.
+
+- Design units with clear boundaries and well-defined interfaces. Each file has one clear
+  responsibility.
+- You reason best about code you can hold in context at once, and edits are more reliable when files
+  are focused. Prefer smaller, focused files over large ones that do too much.
+- Files that change together live together. Split by responsibility, not by technical layer.
+- In an existing codebase, follow its established patterns. If it uses large files, do not
+  restructure it unilaterally; but if a file you are modifying has grown unwieldy, a targeted split
+  in the plan is reasonable.
+- Tests are code too. They follow the project's test layout, and share helpers, fixtures, and fakes
+  (rendering the app, seeding the store, setting the clock), so each test stays a few lines long.
+  The spec's [Tests](spec.md#tests) rules apply: integration tests by default, Arrange, Act, Assert.
+
+This structure informs the task decomposition. Each task produces self-contained changes that make
+sense on their own.
+
+## Task right-sizing
+
+A task is the smallest unit that carries its own test cycle and is worth a fresh reviewer's gate.
+When drawing task boundaries:
+
+- Fold setup, configuration, scaffolding, test helpers, and documentation into the task whose
+  deliverable needs them. A helper is created in the first task whose tests use it.
+- Split only where a reviewer could meaningfully reject one task while approving its neighbour.
+- Order the tasks so each one is built and tested on what the earlier ones made: data changes come
+  before the code that relies on them.
+- Each task ends with an independently testable deliverable, and leaves the project working.
+
+## Step granularity
+
+Each step is one action with a checkable result:
+
+- "Write the failing tests" is a step.
+- "Run them to check they fail" is a step.
+- "Implement the code that makes them pass" is a step.
+- "Run all tests" is a step.
+- "Commit" is a step.
+
+## Plan document
+
+Use [the template](../assets/templates/specs/000-feature-name/plan.md). Every plan has this
+frontmatter and these sections, in this order:
+
+```markdown
+---
+status: [awaiting-human | auto-approved]
+spec-revision: [the spec's revision]
+---
+
+# Plan: [Feature name]
+
+> [!IMPORTANT]
+>
+> [Only when the plan waits for a review: see "Set the status".]
+
+**Goal:** [One sentence on what this builds]
+
+**Architecture:** [Two or three sentences on the approach, linking to the spec's design]
+
+**Spec:** [spec.md](spec.md): the plan argues from the spec, so the implementer reads both.
+
+## Review focus
+
+[The five input classes or failure modes the spec implies but no task's tests would otherwise
+exercise, most likely to bite a person using this software first, one line each: the input or
+condition, the behaviour a reasonable person would expect, and the task whose tests cover it.]
+
+## Global constraints
+
+[The project-wide rules every task must follow, one line each, copied word for word from the
+decisions and the spec, with their source: formats, limits, exact user-facing text, names, timings.
+Every task's requirements implicitly include this section.]
+
+## Code read
+
+[The code the plan relies on, with links and what each showed.]
+
+## Constitution check
+
+[Every principle of the constitution, against the plan.]
+
+## Decisions
+
+[Only the decisions the plan relies on, each with where the plan follows it.]
+
+## Complexity tracking
+
+[Every new abstraction, and every constitution exception the human accepted.]
+
+---
+
+[The tasks, in order.]
+```
+
+What goes in each section:
+
+- **Review focus**: the spec is a vision document. It says what the software must do, not everything
+  it will meet, and its silence on an input is not permission for that input to break the program.
+  Write the list here, once, with the spec in front of you. Then, for each line, add the test that
+  pins it to the task that owns the code, in that task's own step style. These are the only
+  behaviours the plan adds to the spec, which is why they come first, and why the review block
+  always mentions them. A review-focus item never narrows a rule of the spec: a new limit, like a
+  maximum length or count, is a question for the human, not a review-focus item.
+- **Global constraints**: copy, do not paraphrase. When a decision says "Components MUST NOT call
+  IndexedDB or the `idb` library directly", the plan says exactly that.
+- **Code read**: claims about the code rest on this section. Name the test setup and its layout, the
+  validation commands, and every place that reads or writes data the feature changes.
+- **Constitution check**: a table with one row per principle, all of them: principles always apply.
+  Decisions are not part of it.
+- **Decisions**: the decisions that apply to the code this plan touches, not the whole ledger.
+- **Complexity tracking**: every new abstraction, meaning a type, module, layer, wrapper, or helper
+  shared by several parts, tests included, even when the spec's design introduced it; and every
+  constitution exception the human accepted. Each row says why it is needed, and the simpler
+  alternative rejected. "None." when there is none.
 
 Add `data-model.md` when the feature adds or changes entities beyond a few fields: fields,
 relationships, validation rules, state transitions. Smaller changes stay in the spec's **Data**
 section. Add `contracts/` when the feature exposes an interface to users or other systems: API
-schemas, CLI commands, file formats, in the format that fits the project.
+schemas, CLI commands, file formats, written in the format the project already uses for them.
 
-## Files and tasks
+## Task structure
 
-Map the files before writing the tasks: this is where the decomposition is decided.
+Every task follows this structure. The steps are checkboxes: the implementation step checks them in
+the task's commit, which is how any agent knows how far the work went.
 
-- Each file has one clear responsibility. Prefer small, focused files over large ones; files that
-  change together live together. Follow the codebase's existing patterns: split a file that grew
-  unwieldy only when the feature works in it.
-- Tests are code: they follow the project's test layout, and share helpers, fixtures, and fakes so
-  each test stays a few lines long. Create the ones the spec's tests and error cases need, in the
-  first task that needs them.
+````markdown
+## Task N: [Component or deliverable]
 
-A task is the smallest unit with its own test cycle that a reviewer could accept while rejecting its
-neighbour. Fold setup, configuration, and helpers into the task whose deliverable needs them. Order
-tasks so each one is built and tested on what the earlier ones made: data changes before the code
-that relies on them. Every task ends with working, tested software.
+**Files:**
 
-Each task has:
+- Create: `exact/path/to/file.ts`
+- Modify: `exact/path/to/existing.ts` (`functionName`, or lines 123-145)
+- Test: `tests/exact/path/to/feature.test.ts`
 
-- **Files**: `Create:`, `Modify:` (with the function or line range when it helps), and `Test:`.
-- **Interfaces**: `Consumes:` what it uses from earlier tasks, and `Produces:` what later tasks rely
-  on, with exact names, parameters, and return types. The implementer of a task only sees that task:
-  this is how it learns the names its neighbours use.
-- **Steps**, as checkboxes, each one action with a checkable result:
-  1. **Write the failing tests**: as code, with the spec's exact values. Integration tests by
-     default, following the spec step's [Tests](spec.md#tests) rules: Arrange, Act, Assert, on the
-     shared helpers.
-  2. **Run them to check they fail**: the command, and the first failure the run will actually hit.
-  3. **Implement**: the exact signatures and files, the values the spec pins, and one line on the
-     approach when the signature and tests leave a choice. A body only for an algorithm they do not
-     determine, or for exact text the spec fixes.
-  4. **Run all tests**: the command, the expected result, and the benchmark when the task touches
-     what the constitution says to benchmark, compared to one baseline recorded before the first
-     task, with the tolerance the spec sets.
-  5. **Commit**: the message, following [Commits](../SKILL.md#commits).
+**Interfaces:**
 
-A step is done when the implementer can write exactly one reasonable thing from it: unambiguous, not
-complete. A plan longer than the code it describes has written the code instead. Lines that decide
-nothing ("handle edge cases", "add validation", "write tests for the above", a function no task
-defines) are the opposite failure.
+- Consumes: [what this task uses from earlier tasks, with exact signatures]
+- Produces: [what later tasks rely on: exact function names, parameter and return types, and any
+  change to the behaviour of an existing function. A task's implementer sees only their own task:
+  this block is how they learn the names and types neighbouring tasks use.]
+
+- [ ] **Step 1: Write the failing tests, and the helpers they use**
+
+```ts
+// tests/exact/path/to/feature.test.ts
+test("a weekly task completed on its due date moves a week later", async () => {
+  const { user } = await renderApp({ today: "2026-10-05", tasks: [weeklyTask] });
+
+  await user.click(completeBox("Water the plants"));
+
+  expect(dueDateOf("Water the plants")).toBe("2026-10-12");
+});
+```
+
+- [ ] **Step 2: Run them to check they fail**
+
+- Run: `npx vitest run tests/exact/path/to/feature.test.ts`
+- Expected: FAIL, `expected '2026-10-05' to be '2026-10-12'`
+
+- [ ] **Step 3: Implement `completeTask(id: string): Promise<{ previousDueDate: CalendarDay }>` in
+      `src/store/tasks.ts`**
+
+[One line on the approach when the signature and the tests leave a choice: which library call, which
+data structure. A code block only for an algorithm they do not determine.]
+
+- [ ] **Step 4: Run all tests**
+
+- Run: `npx vitest run`
+- Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/store/tasks.ts tests/exact/path/to/feature.test.ts
+git commit -m "feat(001): complete a repeating task"
+```
+````
+
+Adapt the steps to the task when needed: a first task may record a benchmark baseline before any
+change; a task that touches what the constitution says to benchmark runs the benchmark in its last
+run step. Keep one action per step.
+
+## What a step contains
+
+A step is done when the implementer can write exactly one reasonable thing from it. That is the
+whole requirement: unambiguous, not complete. Each kind of step carries what makes it unambiguous,
+and nothing more:
+
+- **A test step**: the tests' names and their assertions, as code, with the spec's exact values in
+  them. Integration tests by default, short, Arrange, Act, Assert, on the shared helpers. The step
+  also creates the helpers its tests use, so the first failure is about the feature, not a missing
+  helper.
+- **A run step**: the command to run, and the output that means it worked. For a failing run, the
+  first failure the run will actually hit: not "the test fails", but the message.
+- **A code step**: the exact signature (name, parameters, return type), the file it lives in, and
+  the specific values the spec pins. The implementer writes the body. A body appears only for an
+  algorithm the signature and tests do not determine, like date arithmetic, or for exact text the
+  spec fixes.
+- **A commit step**: the files to add, and the message, following [Commits](../SKILL.md#commits).
+- **A reference to another task**: that task's Interfaces block says what to use. The plan does not
+  repeat that task's code.
+
+A plan is the set of decisions the implementer cannot make alone. A plan longer than the code it
+describes has written the code instead. Lines that decide nothing are the opposite failure: "TBD",
+"handle edge cases", "add appropriate validation", "write tests for the above", or a type or
+function no task defines. The self-review catches both.
 
 ## Self-review
 
-Before committing, read the spec again, check the plan against it, and fix what you find:
+After writing the complete plan, read the spec again with fresh eyes, check the plan against it, and
+fix what you find inline. This is a checklist you run yourself.
 
-1. **Coverage**: every requirement, component, line of the spec's **Testing** table, and global
-   constraint has a task and a test asserting it, exact text and timings included.
-2. **Step scan**: every step lets the implementer write exactly one reasonable thing. No line that
-   decides nothing, no body that the signature and tests already determine. An algorithm the tests
-   do not pin down, like date arithmetic, is written out.
-3. **Expected values**: work out every value a test expects from the plan's own algorithm, and
-   follow each edge case over two consecutive occurrences, not one.
-4. **Consistency**: names, types, and signatures match between `Produces` and `Consumes`. A task
-   that changes the behaviour of an existing function declares it in `Produces`. No two functions
-   share a name, helpers included.
-5. **Review focus**: every failure mode the spec implies is covered by a task's tests. The five most
-   likely to bite a user are listed, each with its test in the owning task.
-6. **Order**: each task can be built and tested with what the earlier tasks made, and its expected
-   failure is the first one the run will hit.
-7. **Proportion**: the plan is shorter than the code it describes. When code blocks are most of the
-   document, replace bodies with signatures, test names, and assertions.
+1. **Spec coverage**: skim each user story, acceptance scenario, edge case, success criterion, line
+   of the **Testing** table, and global constraint. Can you point to a task and a test that asserts
+   it, exact text and timings included? Add a task for any requirement without one.
+2. **Step scan**: every step lets the implementer write exactly one reasonable thing, and no step
+   carries more than that. A line that decides nothing is a gap; a function body the signature and
+   tests already determine is a transcript. Fix both. An algorithm the tests do not pin down is
+   written out.
+3. **Expected values**: work out every value a test expects from the plan's own algorithm, by hand.
+   Follow each edge case over two consecutive occurrences, not one: a month-end clamp that holds
+   once can drift the second time.
+4. **Type consistency**: the types, signatures, and names used in later tasks match what earlier
+   tasks define. A function called `clearLayers()` in task 3 but `clearFullLayers()` in task 7 is a
+   bug. A task that changes the behaviour of an existing function declares it in **Produces**. No
+   two functions share a name, test helpers included.
+5. **Review focus**: for each input class or failure mode the spec implies, is there a task whose
+   tests exercise it? The five uncovered ones most likely to bite a person go in **Review focus**,
+   each with its test added to the owning task. An empty section means you checked and found none,
+   not that you skipped the check.
+6. **Order**: each task can be built and tested with what the earlier tasks made, and each expected
+   failure is the first one its run will actually hit.
+7. **Proportion**: compare the plan's length to the code it describes. If code blocks are most of
+   the document, replace bodies with signatures, test names, and assertions, and check that each
+   step is still unambiguous.
 8. **The spec itself**: when two of its sections disagree, or an edge case cannot be met with its
-   data, do not pick: start a new round of questions, following
+   data, do not pick one: start a new round of questions, following
    [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
 
 ## No new decisions, no exceptions
@@ -135,7 +311,7 @@ rejected. A plan with an exception always waits for the human's review, whatever
 
 ## Set the status
 
-| Spec frontmatter                          | Plan status      | Next                                |
+| When                                      | Plan status      | Next                                |
 | ----------------------------------------- | ---------------- | ----------------------------------- |
 | The plan lists a constitution exception   | `awaiting-human` | Human gate                          |
 | `risk-tier: low`                          | `auto-approved`  | [Implementation](implementation.md) |
@@ -144,16 +320,17 @@ rejected. A plan with an exception always waits for the human's review, whatever
 | `risk-tier: high`                         | `awaiting-human` | Human gate                          |
 
 When the plan waits for a review, open it with the `> [!IMPORTANT]` block described in
-[Coming back to the human](../SKILL.md#coming-back-to-the-human): what most needs attention is where
-the plan goes beyond the spec. That is always the review focus, then any new dependency, even one
-used only by tests, and the order of risky tasks. An auto-approved plan has no block. Once the human
-approves the plan, the implementation step turns the block into a record, as for the spec.
+[Coming back to the human](../SKILL.md#coming-back-to-the-human). What most needs attention is where
+the plan goes beyond the spec: always the review focus, then any new dependency, even one used only
+by tests, and the order of risky tasks. An auto-approved plan has no block. Once the human approves
+the plan, the implementation step turns the block into a record, as for the spec.
 
 ## Revising
 
-When `plan.md` is `changes-requested`, read its `## Review` section, apply it, remove the section,
-and set the status again from the table. If the feedback needs a new decision, start a new round of
-questions, following
+When `plan.md` is `changes-requested`, read its `## Changes requested` section, apply it, and set
+the status again from the table. The previous block becomes a record of the request, as described in
+[Coming back to the human](../SKILL.md#coming-back-to-the-human). If the feedback needs a new
+decision, start a new round of questions, following
 [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
 
 When the spec's `revision` is higher than the plan's `spec-revision`, update the plan to match the

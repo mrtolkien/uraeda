@@ -1,24 +1,24 @@
 ---
 name: uraeda
 description:
-  Git-driven spec workflow where humans write proposals and make decisions, and agents research, ask
-  questions, and write specs, plans, and code. Use in a repository with a `specs/` folder that
-  follows Uraeda conventions, to find and run the next workflow step of a feature or bug, or to set
-  up `specs/` in a new project. Stops at human gates.
+  Asynchronous, git-driven spec workflow. Humans write proposals, answer questions, and approve
+  specs; agents research, ask, and write specs, plans, code, and pull requests, committing every
+  step. Use in a repository with a `specs/` folder when the user wants a feature or bug moved
+  forward ("continue feature 001", "I answered the questions", "the spec is approved", "what is
+  next?", "start the keyboard shortcuts draft", "assess the bug in specs/bugs/"), or to set Uraeda
+  up ("set up specs/"). Finds the next step from the repository alone, and stops at human gates.
 metadata:
   version: "0.1.0"
 ---
 
 # Uraeda
 
-Uraeda is an asynchronous design and development workflow, where every step is checkpointed as plain
-text in git. Humans write proposals, answer questions, and approve specs. Agents do everything in
-between: the investigation, the options, the design, the plan, and the code.
-
-The hard work happens upfront, without the human: a capable agent investigates in depth and comes
-back with the questions only the human can answer, then with a complete design to approve. The human
-never has to stay in a chat session: they answer when they have time, in files built so their time
-goes into thinking, not searching. Assume the human is a technical user, who reads code and designs.
+Uraeda is an asynchronous design and development workflow: every step is checkpointed as plain text
+in git. Humans write proposals, answer questions, and approve specs. Agents do the rest, and the
+hard work upfront: an in-depth investigation, the questions only the human can answer, a complete
+design to approve, then the plan, the code, and a pull request. The human never stays in a chat:
+they answer when they have time, in files built so their time goes into thinking, not searching.
+Assume a technical user, who reads code and designs.
 
 This file holds the conventions shared by all steps, and tells you which step to run. Each step has
 its own instructions in `references/`.
@@ -26,15 +26,14 @@ its own instructions in `references/`.
 ## Rules for agents
 
 1. **Humans make the decisions.** Stay within the approved scope and decisions. Never activate a
-   decision unless a human asked for it, for example by approving the spec that lists it. Conflicts
-   with the constitution or active decisions go to the human as questions.
+   decision unless a human asked for it, for example by approving the spec that lists it.
 2. **Work autonomously, in depth.** Decide yourself how deep each topic goes, and go as deep as it
    deserves: read the code, the documentation, and online sources before asking anything. Never ask
    the human for something you could find out or settle yourself.
 3. **Ask only what only the human can decide**: product direction, tradeoffs between their goals,
-   and choices that become decisions. Settle everything else within the constitution and active
-   decisions, and record it as an assumption the human can object to. Every question comes with a
-   recommended answer and its reason.
+   choices that become decisions, and conflicts with the constitution or an active decision. Settle
+   everything else within the constitution and active decisions, and record it as an assumption the
+   human can object to. Every question comes with a recommended answer and its reason.
 4. **Ask everything in one round.** Anticipate follow-up questions, so the human answers once. A new
    round is only for unknowns their answers created.
 5. **Write for a human reading top to bottom.** Humans read a document once, in order: never refer
@@ -58,15 +57,16 @@ specs/
   decisions/                # decision ledger, one file per topic: due-dates.md
   bugs/<slug>/              # report.md (human), assessment.md (agent)
   NNN-feature-slug/         # one numbered folder per feature
-    proposal.md             # human: what and why
+    proposal.md             # human: what and why, in their own words
     discovery-01.md         # agent: findings and options, never decisions
     clarifications-01.md    # agent questions, human answers
     discovery-02.md         # a later round, when one is needed
     clarifications-02.md
     spec.md                 # agent: behaviour and design, approved by a human, amended in place
-    plan.md                 # agent: files and implementation steps, amended in place
+    plan.md                 # agent: tasks with files and test-first steps, checked off as built
     data-model.md           # agent, when needed
     contracts/              # agent, when needed
+    mockups/                # agent, when a visual direction matters
 ```
 
 Discovery and questions come in numbered rounds: each round is a new pair of files, and earlier
@@ -79,17 +79,16 @@ and decisions win over specs and plans. Decisions are high-impact choices made b
 they change over time: see [what is a decision](references/spec.md#what-is-a-decision).
 
 Templates for every file are in `assets/templates/specs/`, at the same paths. A filled-in example,
-for a todo app, is in `assets/example/specs/`. It shows a finished workflow: the blocks that waited
-for the human are kept as records (see [Coming back to the human](#coming-back-to-the-human)).
+for a todo app, is in `assets/example/specs/`: feature 001 is the model of every file, from the
+proposal to a fully checked plan, with the blocks that waited for the human kept as records. Other
+files show work still waiting for the human.
 
 ### Markdown
 
 Workflow files must read well as plain text, on GitHub, and in Obsidian, the reference renderer. Use
 GitHub Flavored Markdown, plus these extensions, which stay readable where they do not render:
 
-- **Callouts**: `> [!IMPORTANT]`, `> [!NOTE]`, `> [!TIP]`, `> [!WARNING]`, `> [!QUESTION]`. A file
-  waiting for the human always opens with `> [!IMPORTANT]`, which becomes `> [!NOTE]` once they have
-  acted.
+- **Callouts**: `> [!IMPORTANT]`, `> [!NOTE]`, `> [!TIP]`, `> [!WARNING]`, `> [!QUESTION]`.
 - **Typed bullets**, with a word or sign that reads on its own: `- [pro]`, `- [con]`, `- [?]`
   question, `- [!]` important.
 - **List callouts**, a marker after the dash, to highlight one bullet: `- ! warning`,
@@ -114,9 +113,8 @@ Templates are strict where tools and agents need to find things, and free elsewh
 Each feature lives on its own branch, named after its folder (`001-recurring-tasks`), from the
 proposal to the code: discovery, questions, spec, decisions, plan, and implementation. Its pull
 request merges all of it at once. Decisions become active on the branch when its spec is approved,
-and bind the rest of the project once the branch is merged. A bug lives on `fix/<slug>`.
-
-Run every step on the feature's branch. The human answers and approves on that branch too.
+and bind the rest of the project once the branch is merged. A bug lives on `fix/<slug>`. Run every
+step on the target's branch: the human answers and approves on it too.
 
 ### Workflow status
 
@@ -128,27 +126,30 @@ Workflow files track their state in frontmatter fields.
 | `spec.md`              | `status`         | `awaiting-human`                      | `approved` or `changes-requested` |
 | `spec.md`              | `revision`       | `1`, then `+1` at every change        | `+1` when editing it              |
 | `spec.md`              | `clarifications` | the last round it includes: `2`       |                                   |
+| `spec.md`              | `risk-tier`      | `low`, `medium`, or `high`            | may change it on approval         |
+| `spec.md`              | `plan-review`    | `false`, for `medium` only            | `true` to review the plan         |
 | `plan.md`              | `status`         | `awaiting-human` or `auto-approved`   | `approved` or `changes-requested` |
 | `plan.md`              | `spec-revision`  | the spec `revision` it implements     |                                   |
 | `decisions/*.md`       | `status`         | `proposed`, then `active` on approval | `active`                          |
 | `decisions/*.md`       | `approved-by`    | the approver, on approval, if known   | the approver                      |
 | `bugs/*/assessment.md` | `status`         | `awaiting-human`                      | `approved` or `changes-requested` |
 
-The `assessment.md` statuses are an agent-authored draft that needs human review: see
-[Bug](references/bug.md).
+The bug flow is an agent-authored draft that needs human review: see [Bug](references/bug.md).
 
 Only set a human status when the human expressly asks you to in the session, for example "the spec
 is approved". Say so in the commit message: `spec(001): approved by the human in chat`. With
-`changes-requested`, the human's feedback is in a `## Review` section at the end of the file.
+`changes-requested`, the human's feedback is in a `## Changes requested` section at the end of the
+file.
 
 An active decision is never edited before approval: changes are proposed in a `## Proposed change`
 section at the end of the file, and applied when the spec that links to them is approved.
 
 ## Finding the next step
 
-1. **Pick the target.** Use the feature or bug the human named. Otherwise, list the feature and bug
-   branches (`git branch -a`), and take the first one with work for an agent, in the order of the
-   **Now** section of `specs/PRIORITIES.md`. Starting a feature is a human action: see
+1. **Pick the target.** Use the feature or bug the human named. Otherwise, read
+   `specs/PRIORITIES.md` on the default branch, list the feature and bug branches (`git branch -a`),
+   and take the first branch with work for an agent, in the order of the **Now** section. An entry
+   matches the branch whose slug matches its file's name. Starting a feature is a human action: see
    [below](#starting-postponing-and-dropping-a-feature).
 2. **Find the step.** Check out the target's branch. In its spec folder, `NN` is the highest
    clarifications round. Go down this table and run the first row that matches.
@@ -163,8 +164,9 @@ section at the end of the file, and applied when the spec that links to them is 
 | `spec.md` is `approved`, and there is no `plan.md`                                              | [Plan](references/plan.md)                                   |
 | `spec.md` is `approved`, and the plan's `spec-revision` < the spec's `revision`                 | [Plan](references/plan.md), revision                         |
 | `plan.md` is `changes-requested`                                                                | [Plan](references/plan.md), revision                         |
-| `plan.md` is `approved` or `auto-approved`, with unchecked steps                                | [Implementation](references/implementation.md)               |
-| Every step of `plan.md` is checked, and the branch has no pull request                          | [Implementation](references/implementation.md), pull request |
+| `plan.md` is `approved` or `auto-approved`, with unchecked steps                                | [Implementation](references/implementation.md), next task    |
+| Every step of `plan.md` is checked, and the branch has no pull request                          | [Implementation](references/implementation.md), final review |
+| The branch's pull request has changes requested                                                 | [Implementation](references/implementation.md), changes      |
 | The branch has an open pull request                                                             | **Human gate**: the review happens on the pull request       |
 
 For a bug branch, see [Bug](references/bug.md).
@@ -185,27 +187,32 @@ the first ones, and the spec is amended once they are answered.
 ### Coming back to the human
 
 A step that ends at a human gate stops there: do not start the next step early, even partly. It
-comes back to the human the same way every time, so they know at once what is asked of them and
-where to put their attention.
+comes back to the human the same way every time, so they see at once what is asked of them.
 
 1. **The file waiting for them opens with a `> [!IMPORTANT]` block**, right after the title:
    - First line: what is asked, and an honest estimate of the time it takes to think it through. "12
      questions, about 30 minutes."
-   - Then what most needs their attention, most important first, one line each, named by subject
-     rather than by number or section the reader has not seen yet: the choices that last beyond the
-     feature, the questions that work together, the points settled without them, a decision that
-     changes, a risky assumption, a cost. The block orients the human: the details stay in the file.
+   - Then what most needs their attention, most important first, one line each, named by subject,
+     not by a number the reader has not seen yet: choices that last beyond the feature, questions
+     that work together, points settled without them, a changed decision, a risky assumption, a
+     cost. The block orients the human: the details stay in the file.
    - On a revision: what changed since their last review.
 2. **The commit message body repeats the block's first line**, so `git log` and any git listener
    show what is waiting, and for how long.
 3. **In a chat session**, say the same in one or two sentences, with the file's path. If you were
    triggered without a chat session, the commit is the message: say nothing else.
 
+A pull request's description opens the same way, as the implementation step describes.
+
 **Once the human has answered or approved, the block becomes a record**, kept for later agents and
 readers: it says what the human was asked to weigh. Its callout becomes `> [!NOTE]`, and its first
 line becomes the outcome and its date: "Answered on 2026-10-08", "Approved on 2026-10-09". The items
-stay as they were. If the human or a tool did not do it, the next step does it in its own commit: it
-is the only edit allowed in an answered round of questions.
+stay as they were. If the human or a tool did not do it, the next step does it, in that step's
+commit: it is the only edit allowed in an answered round of questions.
+
+**When the human requests changes, the block becomes a record too**: `> [!NOTE]`, with "Changes
+requested on <date>" and their feedback in one line, under the new `> [!IMPORTANT]` block of the
+revision. The `## Changes requested` section is then removed: git keeps it.
 
 Documents never explain how to use the workflow ("set `status: approved` and commit"): tools and
 this skill do. Never bury something the human must decide in prose: it is a question in a
@@ -220,38 +227,41 @@ first line of its block, and commit.
 Do these only when a human asks.
 
 - **Start**: take the next number: the highest ever used, in folders and branches, including deleted
-  ones (`git log --all --name-only --format= -- specs/`, `git branch -a`), plus one. Create the
-  branch `NNN-feature-slug` from the default branch. On it, create `specs/NNN-feature-slug/`, move
-  the draft or backlog file into it as `proposal.md`, and point the `PRIORITIES.md` entry to the
-  folder. Commit with `chore(<number>): start <feature name>`.
-- **Postpone or block**: on the feature's branch, move `proposal.md` back to
-  `specs/drafts/<slug>.md` or `specs/backlog/<slug>.md`, as the human prefers, and delete the rest
-  of the folder. Move the `PRIORITIES.md` entry to the right section, with the reason when it is
-  blocked. Merge only this change, or let the human close the branch: git history keeps the
-  discovery and questions.
-- **Drop**: delete the branch, after the human confirms.
-
-When postponing, delete the feature's decisions that are still `proposed`, and the
-`## Proposed change` sections it added. Commit with `chore(<number>): postpone <feature name>`.
+  ones (`git log --all --name-only --format= -- specs/`, `git branch -a`), plus one.
+  1. On the default branch, move the feature's `PRIORITIES.md` entry to **Now**, unless the human
+     says otherwise, and commit with `chore(<number>): start <feature name>`. `PRIORITIES.md` lives
+     on the default branch: feature branches only remove their own entry, in their last commit.
+  2. Create the branch `NNN-feature-slug` from there. On it, create `specs/NNN-feature-slug/`, and
+     move the draft or backlog file into it as `proposal.md`, unchanged: the proposal is the human's
+     words, never rewritten. When the entry has no file, write `proposal.md` from the template with
+     only what the human said. Commit with `chore(<number>): proposal`.
+  3. Then run [Discovery](references/discovery.md), round 01, in the same session when you can.
+- **Postpone or block**: on the default branch, move the `PRIORITIES.md` entry to the right section,
+  with the reason when it is blocked, and commit with `chore(<number>): postpone <feature name>`. On
+  the feature's branch, move `proposal.md` back to `specs/drafts/<slug>.md` or
+  `specs/backlog/<slug>.md`, as the human prefers, delete the rest of the folder, the feature's
+  `proposed` decisions, and the `## Proposed change` sections it added. Merge only this change, or
+  let the human close the branch: git history keeps the discovery and questions.
+- **Drop**: delete the branch, and the `PRIORITIES.md` entry, after the human confirms.
 
 ## Commits
 
-One commit per step, containing only that step's files. Messages follow
-[Conventional Commits](https://www.conventionalcommits.org/), with one extra type per workflow step.
-The scope is the spec folder's number, or the bug's slug. The description is the feature name for a
-first version, and what changed for later commits.
+One commit per step, and one per task during the implementation, containing only its files. Messages
+follow [Conventional Commits](https://www.conventionalcommits.org/), with one extra type per
+workflow step. The scope is the spec folder's number, or the bug's slug. The description is the
+feature name for a first version, and what changed for later commits.
 
-| Type          | Step                                     | Example                                                     |
-| ------------- | ---------------------------------------- | ----------------------------------------------------------- |
-| `discovery:`  | A discovery and questions round          | `discovery(001): recurring tasks`                           |
-| `decision:`   | Apply approved decisions                 | `decision(001): apply due dates`                            |
-| `spec:`       | Write or revise a spec and its decisions | `spec(001): recurring tasks`                                |
-| `plan:`       | Write or revise a plan                   | `plan(001): split the store migration`                      |
-| `assessment:` | Assess a bug                             | `assessment(completed-tasks-reappear): race between writes` |
+| Type          | Step                                     | Example                                                  |
+| ------------- | ---------------------------------------- | -------------------------------------------------------- |
+| `discovery:`  | A discovery and questions round          | `discovery(001): recurring tasks`                        |
+| `decision:`   | Apply approved decisions                 | `decision(001): apply due dates`                         |
+| `spec:`       | Write or revise a spec and its decisions | `spec(001): recurring tasks`                             |
+| `plan:`       | Write or revise a plan                   | `plan(001): split the store migration`                   |
+| `assessment:` | Assess a bug                             | `assessment(completed-tasks-reappear): stale copy saved` |
 
-Code commits during the implementation use the standard types, with the same scope:
-`feat(001): repeat dropdown`, `fix(completed-tasks-reappear): queue writes per task`. The commit
-type is only a label: the `status` fields stay the source of truth for the workflow.
+Code commits use the plan's messages, with the standard types and the same scope:
+`feat(001): repeat menu`, `fix(completed-tasks-reappear): save new tasks as they are`. The commit
+type is only a label: the `status` fields and the checkboxes are the source of truth.
 
 ## Setting up a project
 

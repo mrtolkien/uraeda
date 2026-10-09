@@ -24,6 +24,8 @@ edited, or renamed. The edit panel, the custom screen, and the title parser all 
 `RepeatPattern`, which the store turns into a `RepeatRule` with its starting date. See the
 [spec's design](spec.md#design).
 
+**Spec:** [spec.md](spec.md): the plan argues from the spec, so the implementer reads both.
+
 ## Review focus
 
 Inputs the spec does not mention, most likely to bite a user first. Each gets a test in the task
@@ -40,23 +42,44 @@ that owns the code.
 
 ## Global constraints
 
-From the decisions and the spec, every task's requirements include these:
+From the decisions and the spec, word for word. Every task's requirements include these.
 
-- Due dates MUST be stored as `YYYY-MM-DD` strings. Code MUST NOT convert a due date to a `Date`,
-  except inside `src/lib/dates.ts` and to display it ([due dates](../decisions/due-dates.md)).
-- A repeating task MUST be a single task. Completing it MUST move its due date, and MUST NOT create
-  a new task ([repeating tasks](../decisions/repeating-tasks.md)).
-- Components MUST NOT call IndexedDB. A change to stored data MUST come with a versioned upgrade in
-  `src/store/upgrades.ts`, tested on version 1 data ([task storage](../decisions/task-storage.md)).
-- No UI component library: controls are built in `src/components/`, styled with CSS modules and the
-  variables in `src/styles/theme.css` ([UI components](../decisions/ui-components.md)).
-- The repeat menu's entries, in order: "Never", "Daily", "Weekdays", "Weekends", "Weekly",
-  "Monthly", "Yearly", "Custom...".
-- User-facing text, exactly: "Next: " then the next due date in date-fns' `EEEE d` format ("Next:
-  Monday 12"), "Undo", "Could not save".
-- The confirmation after a completion shows for 5 seconds.
-- SC-002: the list benchmark is not slower than its baseline from before task 1, beyond the
-  benchmark's own reported margin of error.
+From [due dates](../decisions/due-dates.md):
+
+- Due dates MUST be stored as `YYYY-MM-DD` strings.
+- Date arithmetic MUST go through `src/lib/dates.ts`.
+- Code MUST NOT convert a due date to a `Date`, except inside `src/lib/dates.ts` and to display it.
+
+From [repeating tasks](../decisions/repeating-tasks.md):
+
+- A repeating task MUST be a single task, with its repeat rule stored on it.
+- Completing a repeating task MUST move its due date to the next occurrence, and MUST NOT create a
+  new task.
+- Features MUST NOT rely on a history of completed occurrences: there is none.
+
+From [task storage](../decisions/task-storage.md):
+
+- Data MUST be stored in IndexedDB, through `src/store/`.
+- Components MUST NOT call IndexedDB or the `idb` library directly.
+- A change to stored data MUST come with a versioned upgrade in `src/store/upgrades.ts`, tested on
+  data saved by the previous version.
+
+From [UI components](../decisions/ui-components.md):
+
+- Components MUST be written in the project, in `src/components/`.
+- Styles MUST use CSS modules, with the variables in `src/styles/theme.css`.
+- Code MUST NOT add a UI component library (MUI, Chakra, shadcn/ui, ...) or a CSS framework.
+
+From [the spec](spec.md):
+
+- The repeat menu offers: never, daily, weekdays, weekends, weekly, monthly, yearly, and custom. Its
+  entries read, in order: "Never", "Daily", "Weekdays", "Weekends", "Weekly", "Monthly", "Yearly",
+  "Custom...".
+- The confirmation after a completion reads "Next: " then the next due date, as in "Next: Monday 12"
+  (date-fns' `EEEE d` format), with an "Undo" button, for 5 seconds. A failed save shows "Could not
+  save".
+- SC-002: rendering a list of 5,000 tasks is not slower than before the feature: no benchmark slower
+  than its baseline from before task 1, beyond the benchmark's own reported margin of error.
 
 ## Code read
 
@@ -66,8 +89,8 @@ From the decisions and the spec, every task's requirements include these:
   an empty store mock. No test uses IndexedDB.
 - Due dates are read in three places: `createTask` in [the task store](/src/store/tasks.ts), the
   date input of [the edit panel](/src/components/EditPanel.tsx), and
-  [the task row](/src/components/TaskRow.tsx), which shows them in a `<time>` element formatted with
-  date-fns' `EEE, MMM d`.
+  [the task row](/src/components/TaskRow.tsx), which shows them in a `<time>` element: its text
+  formatted with date-fns' `EEE, MMM d`, its `dateTime` attribute the timestamp's `toISOString()`.
 - The edit panel saves its date input with `updateTask(id, { dueDate })`, and has a "Delete" button
   calling `deleteTask(id)`, both in [the task store](/src/store/tasks.ts).
 - [`src/store/db.ts`](/src/store/db.ts): `openDatabase()` opens the `todo` database with the `idb`
@@ -125,7 +148,7 @@ The decisions this plan relies on, and where it follows them:
   Monday of its week; `fromTimestamp(ms: unknown): CalendarDay | null`, in the local timezone,
   `null` when `ms` is not a finite number.
 - Produces, in `tests/helpers/app.tsx`:
-  `renderApp(options?: { tasks?: SeedTask[]; today?: CalendarDay; timezone?: string; failingStore?: boolean }): Promise<{ user: UserEvent }>`,
+  `renderApp(options?: { tasks?: SeedTask[]; today?: CalendarDay; timezone?: string }): Promise<{ user: UserEvent }>`,
   with `today` defaulting to `"2026-10-05"` and `timezone` to `"UTC"`, where `SeedTask` is
   `{ title: string; dueDate?: CalendarDay | null; done?: boolean }`;
   `dueDateOf(title: string): CalendarDay | null`, read from the row's `<time dateTime>`;
@@ -138,7 +161,12 @@ The decisions this plan relies on, and where it follows them:
 - Run: `npx vitest bench --run --outputJson bench/baseline.json`
 - Expected: `bench/baseline.json` written, before any change.
 
-- [x] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests, and the helpers they use**
+
+The helpers: `tests/setup.ts` imports `fake-indexeddb/auto`, with a fresh `IDBFactory` before each
+test. `renderApp` sets `process.env.TZ`, fakes the clock with `vi.setSystemTime`, writes the seed
+tasks to the database directly, then starts the app. `versionOneDatabase` writes tasks as version 1
+saved them. `loggedWarnings` spies on `console.warn`.
 
 ```tsx
 // tests/recurring-tasks/upgrade.test.tsx
@@ -167,14 +195,11 @@ test("removes a saved due date that is not a date, keeps the task, and logs it",
 - [x] **Step 3: Run them to check they fail**
 
 - Run: `npx vitest run tests/recurring-tasks/upgrade.test.tsx`
-- Expected: FAIL, `versionOneDatabase is not a function`.
+- Expected: FAIL, `expected '2026-10-05T07:00:00.000Z' to be '2026-10-05'`: the row still holds the
+  version 1 timestamp.
 
 - [x] **Step 4: Implement**
 
-- `tests/setup.ts`: `import "fake-indexeddb/auto"`, and a fresh `IDBFactory` before each test.
-- `tests/helpers/*`: the helpers above. `renderApp` sets `process.env.TZ`, fakes the clock with
-  `vi.setSystemTime`, writes the seed tasks to the database directly, then starts the app; with
-  `failingStore`, it wraps the app's store so every save rejects, after seeding.
 - `src/lib/dates.ts`: the functions above, on date-fns.
 - `upgrades.ts`, version 2: `dueDate = fromTimestamp(dueDate)` for every task, with
   `console.warn("Due date is not a date:", raw)` when it returns `null`.
@@ -188,6 +213,7 @@ test("removes a saved due date that is not a date, keeps the task, and logs it",
 - [x] **Step 6: Commit**
 
 ```bash
+git add src/lib/dates.ts src/store src/components tests package.json vitest.config.ts
 git commit -m "feat(001): calendar-day due dates, with upgrade 2"
 ```
 
@@ -198,8 +224,8 @@ git commit -m "feat(001): calendar-day due dates, with upgrade 2"
 - Create: `src/lib/repeat.ts`
 - Modify: `src/store/tasks.ts` (`repeat` field, `completeTask`, `restoreDueDate`, `updateTask` for
   due dates), `src/store/upgrades.ts` (`repeat: null` in upgrade 2), `src/components/TaskRow.tsx`
-- Modify: `tests/helpers/app.tsx` (`SeedTask` gets `repeat`; `completeBox`, `openTask`,
-  `moveDueDate`, `deleteFromPanel`)
+- Modify: `tests/helpers/app.tsx` (`SeedTask` gets `repeat`; `renderApp` gets `failingStore`;
+  `completeBox`, `openTask`, `moveDueDate`, `deleteFromPanel`)
 - Test: `tests/recurring-tasks/complete-a-repeating-task.test.tsx`
 
 **Interfaces:**
@@ -213,7 +239,8 @@ git commit -m "feat(001): calendar-day due dates, with upgrade 2"
   `completeTask(id: string): Promise<{ previousDueDate: CalendarDay | null }>`;
   `restoreDueDate(id: string, day: CalendarDay | null): Promise<void>`;
   `updateTask(id, { dueDate })` now also sets `repeat.from` to the new date on a repeating task.
-- Produces, in `tests/helpers/app.tsx`: `SeedTask.repeat?: RepeatRule | null`;
+- Produces, in `tests/helpers/app.tsx`: `SeedTask.repeat?: RepeatRule | null`; `renderApp`'s
+  `failingStore?: boolean`, which wraps the app's store so every save rejects, after seeding;
   `completeBox(title: string): HTMLElement`; `openTask(user, title): Promise<void>`;
   `moveDueDate(user, title: string, day: CalendarDay): Promise<void>`;
   `deleteFromPanel(user, title: string): Promise<void>`.
@@ -352,6 +379,7 @@ with the checkbox disabled meanwhile, and "Could not save" when the store reject
 - [x] **Step 5: Commit**
 
 ```bash
+git add src/lib/repeat.ts src/store src/components/TaskRow.tsx tests
 git commit -m "feat(001): complete a repeating task"
 ```
 
@@ -460,6 +488,7 @@ test("picking never stops the repeat, and keeps the due date", async () => {
 - [x] **Step 5: Commit**
 
 ```bash
+git add src/lib/repeat.ts src/store/tasks.ts src/components tests
 git commit -m "feat(001): repeat menu"
 ```
 
@@ -553,6 +582,7 @@ through the edit panel.
 - [x] **Step 5: Commit**
 
 ```bash
+git add src/components tests
 git commit -m "feat(001): custom repeat screen"
 ```
 
@@ -664,5 +694,6 @@ a final period, for the phrases in the table, with any whole number from 1 as th
 - [x] **Step 5: Commit**
 
 ```bash
+git add src/lib/repeat.ts src/store/tasks.ts tests
 git commit -m "feat(001): repeats typed in the title"
 ```
