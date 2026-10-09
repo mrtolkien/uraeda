@@ -2,9 +2,8 @@
 
 ## Now
 
-1. [Recurring tasks](001-recurring-tasks)
-2. [Due date reminders](002-due-date-reminders)
-3. [Completed tasks reappear after reload](bugs/completed-tasks-reappear)
+1. [Due date reminders](002-due-date-reminders)
+2. [Completed tasks reappear after reload](bugs/completed-tasks-reappear)
 
 ## Next
 

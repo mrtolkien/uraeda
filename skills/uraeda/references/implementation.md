@@ -1,46 +1,142 @@
 # Implementation
 
-Builds the plan, one step per commit, and delivers it as a pull request.
+Builds the plan one task at a time, one commit per task, then delivers the branch as a pull request
+for the human to review.
 
-- **Runs when**: `plan.md` is `approved` or `auto-approved`, with unchecked steps
-- **Writes**: code, tests, and the step checkboxes in `plan.md`
-- **Ends at**: a pull request, reviewed by a human
+- **Runs when**: `plan.md` is `approved` or `auto-approved`, with unchecked steps; or every step is
+  checked and the branch has no pull request; or its pull request has changes requested
+- **Writes**: code and tests, the step checkboxes of `plan.md`, and the pull request
+- **Ends at**: a human gate, the pull request; or a new [discovery](discovery.md) round, when
+  blocked
 
-> [!NOTE]
->
-> Draft: this step will be refined once the earlier steps work.
+The plan already did the thinking: execute it exactly, prove each task with tests you watched fail
+then pass, and leave the record in git. Nobody waits in a chat: do not stop to check in between
+tasks. This step adapts superpowers'
+[executing plans](https://github.com/obra/superpowers/blob/main/skills/executing-plans/SKILL.md) and
+[subagent-driven development](https://github.com/obra/superpowers/blob/main/skills/subagent-driven-development/SKILL.md)
+to a workflow where git is the only memory: the checked boxes of `plan.md` and the commits say how
+far the work went, so any agent can resume it.
 
-## Branch
+## Before the first task
 
-Work on the feature's branch, where the spec and plan already are. Code is always delivered through
-its pull request, which also merges the spec, the plan, and the decisions.
+1. Read `plan.md` in full. Its **Global constraints** apply to every task, and its **Review focus**
+   lists the behaviours the plan adds to the spec.
+2. Read `spec.md`: the plan argues from it. When they disagree, the spec wins.
+3. Read the constitution, and the active decisions that apply to the code you will touch, as they
+   are now. A human may have changed one since the plan was written: if it now conflicts with the
+   spec or the plan, stop and start a new round of questions, following
+   [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
+4. If the human reviewed the plan, turn its `> [!IMPORTANT]` block into a record, in the first
+   task's commit: see [Coming back to the human](../SKILL.md#coming-back-to-the-human).
+5. Run the project's validation once, before any change: formatter, linter, type checker, tests. A
+   failure that is already there is reported in the pull request, not fixed in passing.
 
-## For each unchecked step, in order
+**Resuming**: start at the first task with an unchecked step. Commits are the only progress: a task
+whose boxes are checked is done, even if you do not remember doing it. Changes left uncommitted by
+an interrupted session are not trusted: read them, and redo that task from its first step.
 
-Before starting, read the active decisions that apply to the code you will touch, as they are now. A
-human may have changed one since the plan was written: if it now conflicts with the spec or the
-plan, stop and start a new round of questions, following
-[going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
+## For each task, in order
 
-1. Break the step down into small tasks, in your own session. They are not written to `plan.md`.
-2. Write the tests for the acceptance scenarios the step covers, and check that they fail.
-3. Implement the step, keeping the code explicit and simple.
-4. Run the project's validation: formatter, linter, type checker, tests.
-5. Check the step's box in `plan.md`, and commit it with the code, following the project's commit
-   conventions.
+One task at a time, in the plan's order: each task is built and tested on what the earlier ones
+made. If your harness can run agents, give each task to a fresh implementer agent, with the task's
+text, the global constraints, the path of the spec, and what earlier tasks produced, but not your
+session's history. Otherwise, implement it yourself.
 
-Settle implementation details yourself. If a step needs something the spec, plan, and decisions do
-not allow, stop and start a new round of questions, following
-[going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions). Do not work
-around it.
+1. **Read the task**, all of it, even one you remember: its text has the exact values. Check its
+   **Consumes** against what the earlier tasks actually produced in the code.
+2. **Work its steps in order.** Write the tests first, run them, and watch them fail. A test that
+   passes before the implementation exists proves nothing: fix the test. Then implement, and run
+   every command the plan gives. Compare each output with the step's **Expected** line:
+   - **It matches**: go to the next step.
+   - **The code is wrong**: find the root cause before changing anything, following superpowers'
+     [systematic debugging](https://github.com/obra/superpowers/blob/main/skills/systematic-debugging/SKILL.md).
+     Never change a test or an expected value to make a run pass.
+   - **The plan is wrong**: a name that does not match its producer, a command that cannot run, a
+     failure that cannot happen. Make the smallest change that satisfies the spec, edit the plan's
+     text to describe what was built, so later tasks read the right names, and record a ruling.
+3. **Run the project's validation**: formatter, linter, type checker, and every test.
+4. **Check the task's boxes** in `plan.md`, and commit them with the code and tests, using the
+   plan's commit message. Check a box only for a step that ran, with the output the plan expects:
+   the next agent trusts it without running it again.
+5. **Review the task**, when your harness can run a fresh reviewer agent. Give it the task's text,
+   the spec, the global constraints, and the diff of the task's commits. It checks that the code
+   does what the task and the spec say, nothing missing and nothing extra, then the code's quality.
+   Fix what matters in new commits, each fix with a test that fails first. After three rounds, rule
+   on what remains, and go on.
+
+### Rulings
+
+Settle implementation details yourself: the spec is the authority, the plan argues from it, and your
+judgement settles what neither answers. Record every deviation from the plan in the body of the
+task's commit, one line each: `Ruling: <what you decided>, because <why>. If wrong: <the cost>.` The
+pull request lists them all, so the human sees every choice made on their behalf.
+
+### When you must stop
+
+Stop, and start a new round of questions, following
+[going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions), when a task
+needs:
+
+- Something the spec, the active decisions, or the constitution do not allow, or a choice that would
+  become a [decision](spec.md#what-is-a-decision)
+- A plan so broken that every way forward is a guess
+- An irreversible or destructive operation, a security-sensitive action, or a side effect outside
+  the branch: deleting real data, pushing to another branch, publishing
+
+Never work around it. The tasks already committed stay checked. Once the human answers, the spec is
+amended and approved, and the plan revised: the unchecked tasks follow the new plan.
+
+## Final review
+
+Once every step is checked, review the whole branch, even when each task was reviewed. Give a fresh
+reviewer agent, on the most capable model available, the diff since the branch started, the spec,
+the plan, its **Review focus** to check one item at a time, and the rulings from the commit bodies.
+Without a reviewer agent, review the branch yourself as a separate pass, and say so in the pull
+request: a review by the author is weaker.
+
+Grade each finding by what a user gets if the branch ships, not by whether the spec names the input
+that triggers it:
+
+- **Critical and important**: fix them in one pass, each with a test that fails first, then run the
+  full validation. Commit with the feature's scope: `fix(001): keep the undo after a reload`.
+- **Minor**: do not fix them. List them in the pull request, for the human to decide.
+
+A finding you decide not to fix is a ruling, listed with the others.
 
 ## Pull request
 
-Once every step is checked, open a pull request, or mark it ready for review:
+In the last commit before the pull request, remove the feature's entry from `PRIORITIES.md`: the
+entry disappears when the branch is merged. Leave other entries unchanged.
 
-- Link to `spec.md` and `plan.md`
-- List each acceptance scenario with the test that covers it
-- List any assumption you made during the implementation
+Push the branch and open the pull request, or mark it ready for review. It is the feature's last
+human gate: it merges the spec, the decisions, the plan, and the code at once. Its description reads
+like a file waiting for the human, following
+[Coming back to the human](../SKILL.md#coming-back-to-the-human):
 
-In the commit that checks the last step, also remove the feature's entry from `PRIORITIES.md`: the
-entry disappears when the pull request is merged, not before. Leave other entries unchanged.
+- **First line**: what is asked, and an honest time: "Pull request to review, about 20 minutes."
+- **What most needs attention**, one line each: the rulings that change behaviour, the plan's text
+  edited during the work, a new dependency, a failure that was already there, a final review done
+  without a fresh reviewer.
+- **Links** to `spec.md` and `plan.md`.
+- **Tests**: each acceptance scenario and review-focus item, with the test that covers it.
+- **Rulings**: every one, with what it costs if wrong.
+- **Deferred minors**: the minor findings of the final review.
+
+If you cannot open a pull request, push the branch, and put the description in the body of the last
+commit. In a chat session, say the same in one or two sentences, with the pull request's link.
+
+## Changes requested on the pull request
+
+Read every comment. Apply each requested change in a new commit, a change of behaviour with a test
+that fails first, and answer the comment with the commit that addresses it. When a change goes
+against the spec, amend the spec in place in the same commit, increase its `revision`, and update
+the plan and its `spec-revision`: the merged spec describes the merged code. The spec stays
+`approved`: the human asked for the change. When a change needs a new decision, or the comment
+leaves a choice open, start a new round of questions instead. Then the pull request waits for the
+human again.
+
+## Commit
+
+One commit per task, with the plan's message, following [Commits](../SKILL.md#commits): its code,
+its tests, and its checked boxes in `plan.md`. Fixes from reviews are separate commits with the same
+scope.

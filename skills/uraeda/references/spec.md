@@ -67,9 +67,12 @@ First, look for an existing decision on the same topic.
 - **None**: write a new file from
   [the template](../assets/templates/specs/decisions/decision-topic.md), with `status: proposed`.
 - **One exists**: never edit its active text before approval, since other work relies on it. Add a
-  `## Proposed change (<spec folder>)` section at the end of the file instead, linking to the spec.
-  Describe the change, and write the new or changed rules in full. To remove a decision, propose the
-  change "Delete this decision", with the reason.
+  `## Proposed change (<spec folder>)` section at the end of the file instead, from the template's
+  skeleton: who proposes it (a link to the spec), the change in a sentence or two, **every rule of
+  the decision as it would read after the change** (not only the new ones), why, with links to the
+  question and discovery topic, and each consequence that changes. On approval, this section
+  replaces the decision's text. To remove a decision, propose the change "Delete this decision",
+  with the reason.
 
 ### Writing a decision
 
@@ -84,7 +87,7 @@ Write for a reviewer who has not read the discovery:
 - **Applies to**: links to the code, folders, or kinds of features it governs, so agents find the
   decisions relevant to what they touch
 
-Two sections are optional. Leave them out unless they apply:
+Two sections are optional, at their place in the template. Leave them out unless they apply:
 
 - **Alternatives considered**: only the rejected options that were close calls, one line each. When
   a change reverses an earlier choice, always list the earlier choice and why it was abandoned, so
@@ -134,7 +137,8 @@ tier, and any cost or migration. On a revision, say what changed since the last 
 - **Risk tier**: see below
 
 The design stays at the level of components and data: file-by-file changes and implementation steps
-belong in the plan. When a visual direction matters, add a mockup next to the spec and link it.
+belong in the plan. When a visual direction matters, add a mockup in `mockups/`, next to the spec,
+and link it.
 
 ## Tests
 
@@ -156,8 +160,9 @@ Before committing, read the spec again with fresh eyes, and fix what you find:
 1. **Placeholders**: no `TBD`, `TODO`, `[NEEDS CLARIFICATION]`, empty section, or vague requirement.
    Open questions go back to [discovery](discovery.md).
 2. **Consistency**: no section contradicts another, and the design delivers every user story.
-3. **Scope**: the spec fits a single plan. If it does not, propose splitting the feature in the
-   clarifications.
+3. **Scope**: the spec fits a single plan. If it does not, start a new round, following
+   [Discovery](discovery.md), with a question proposing the split, the recommended split as option
+   A. Answered rounds are never edited.
 4. **Ambiguity**: a requirement that can be read two ways is rewritten to say one.
 
 ## Risk tier
@@ -185,10 +190,11 @@ reason in the spec.
 
 The spec is amended in place: it stays the single source of truth for the implementation.
 
-- **`changes-requested`**: read its `## Review` section. If the feedback asks for more options or
-  raises a new question, start a new round, following [Discovery](discovery.md). Otherwise, apply
-  the feedback, update the proposed decisions it affects, and remove the `## Review` section: git
-  keeps it.
+- **`changes-requested`**: read its `## Changes requested` section. If the feedback asks for more
+  options or raises a new question, start a new round, following [Discovery](discovery.md).
+  Otherwise, apply the feedback, and update the proposed decisions it affects. Turn the previous
+  block into a record of the request, and remove the section, as described in
+  [Coming back to the human](../SKILL.md#coming-back-to-the-human).
 - **A newer round is answered**: read its answers, propose their decisions, and amend the spec.
 
 Increase `revision`, set `clarifications` to the latest round, and set `status: awaiting-human`

@@ -47,7 +47,8 @@ topics behind it.]
 
 ### Data
 
-[What is stored or changes, and how data flows between the components.]
+[What is stored or changes, with exact types, the rules that apply to it, and how it flows between
+the components.]
 
 ### Components
 
@@ -59,13 +60,22 @@ topics behind it.]
 
 ### Testing
 
-| What                                       | How                                              |
+[How the integration tests run: what they render, on which store, with which clock, and how they
+drive the feature like a user.]
+
+| What                                       | Test                                             |
 | ------------------------------------------ | ------------------------------------------------ |
 | [Acceptance scenarios, edge cases, SC-00x] | [Integration test, table-driven test, benchmark] |
 
 ## Assumptions
 
-- [The points settled in the clarifications, then what the agent settled while writing the spec.]
+Settled in the [clarifications](clarifications-01.md#settled-without-the-human):
+
+- [Each point settled without the human, in a sentence]
+
+Settled while writing this spec:
+
+- [Each point you settled yourself, in a sentence, with a link to its source]
 
 ## Decisions
 
@@ -73,9 +83,10 @@ New, applied when this spec is approved:
 
 - [Topic](../decisions/decision-topic.md): [the rule, in a sentence]
 
-Changed:
+Changed, applied when this spec is approved:
 
-- [Topic](../decisions/decision-topic.md): [the proposed change]
+- [Topic](../decisions/decision-topic.md): [the proposed change, in a sentence. Link to its
+  `## Proposed change (NNN-feature-name)` section]
 
 Relied on:
 
