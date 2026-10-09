@@ -55,6 +55,7 @@ specs/
   PRIORITIES.md             # Now, Next, Later, Blocked
   drafts/                   # upcoming features, human-written, free form
   backlog/                  # nice-to-have features, not scheduled
+                            # in both, a folder is a postponed feature: <slug>/proposal.md, ...
   decisions/                # decision ledger, one file per topic: due-dates.md
   bugs/<slug>/              # report.md (human), assessment.md (agent)
   NNN-feature-slug/         # one numbered folder per feature
@@ -235,15 +236,21 @@ Do these only when a human asks.
      on the default branch: feature branches only remove their own entry, in their last commit.
   2. Create the branch `NNN-feature-slug` from there. On it, create `specs/NNN-feature-slug/`, and
      move the draft or backlog file into it as `proposal.md`, unchanged: the proposal is the human's
-     words, never rewritten. When the entry has no file, write `proposal.md` from the template with
-     only what the human said. Commit with `chore(<number>): proposal`.
-  3. Then run [Discovery](references/discovery.md), round 01, in the same session when you can.
-- **Postpone or block**: on the default branch, move the `PRIORITIES.md` entry to the right section,
-  with the reason when it is blocked, and commit with `chore(<number>): postpone <feature name>`. On
-  the feature's branch, move `proposal.md` back to `specs/drafts/<slug>.md` or
-  `specs/backlog/<slug>.md`, as the human prefers, delete the rest of the folder, the feature's
-  `proposed` decisions, and the `## Proposed change` sections it added. Merge only this change, or
-  let the human close the branch: git history keeps the discovery and questions.
+     words, never rewritten. When the entry is a folder, a feature postponed earlier, move all its
+     files into it, unchanged. When the entry has no file, write `proposal.md` from the template
+     with only what the human said. Commit with `chore(<number>): proposal`.
+  3. Then run the next step in the same session when you can: [Discovery](references/discovery.md),
+     round 01, for a proposal alone, or the first matching row of
+     [the table](#finding-the-next-step) for a folder. A round left waiting for answers stays at its
+     gate. When the human asks for fresh research, start a new round instead, following
+     [going back to the human](#going-back-to-the-human-with-new-questions).
+- **Postpone or block**: on the feature's branch, move the whole folder to `specs/drafts/<slug>/` or
+  `specs/backlog/<slug>/`, as the human prefers, without its number: the proposal, the discovery
+  rounds, and the questions, answered or not, stay as they are. Delete the feature's `proposed`
+  decisions, and the `## Proposed change` sections it added. In the same commit, move the
+  `PRIORITIES.md` entry to the right section, with the reason when it is blocked, and link it to the
+  folder's `proposal.md`. Commit with `chore: postpone <feature name>`, merge the branch into the
+  default branch, and delete it.
 - **Drop**: delete the branch, and the `PRIORITIES.md` entry, after the human confirms.
 
 ## Commits

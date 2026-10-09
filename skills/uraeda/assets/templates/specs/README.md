@@ -13,6 +13,8 @@ Without it, the file names and their `status` fields still tell where each featu
 - `PRIORITIES.md`: what is worked on now, next, and later, and what is blocked
 - `drafts/`: upcoming features, written by humans, free form
 - `backlog/`: nice-to-have features, not scheduled
+- In `drafts/` and `backlog/`, a folder is a postponed feature: its proposal, with the discovery
+  rounds and questions it had, kept for when it starts again
 - `decisions/`: the decision ledger, one file per topic, named after the question it answers:
   high-impact choices made by humans, binding for all work once `active`
 - `bugs/<slug>/`: a bug `report.md` from a human, and its `assessment.md` from an agent, on the
