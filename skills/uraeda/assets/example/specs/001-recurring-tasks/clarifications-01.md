@@ -2,9 +2,7 @@
 status: answered
 ---
 
-# Clarifications: Recurring tasks
-
-## Session 2026-10-07
+# Clarifications, round 01: Recurring tasks
 
 > [!IMPORTANT]
 >
@@ -18,7 +16,7 @@ status: answered
 > Answer each question with an option letter, `yes` for the recommendation, or your own words. Then
 > set `status: answered` and commit.
 
-### Context
+## Context
 
 The [proposal](proposal.md) asks for tasks that come back once completed, like "water the plants"
 every week, while the app stays simple for the people who use it.
@@ -28,9 +26,9 @@ Today, a task has a title, a due date, and a done flag, stored in IndexedDB by t
 ([edit panel](/src/components/EditPanel.tsx)). The app only runs while it is open: there is no
 background process ([app entry point](/src/main.ts)).
 
-The full investigation is in [discovery](discovery.md). Each question below links to its topic.
+The full investigation is in [discovery](discovery-01.md). Each question below links to its topic.
 
-### Q1: How should users choose when a task repeats?
+## Q1: How should users choose when a task repeats?
 
 Repeating needs a new setting in the edit panel. Other apps take different paths:
 
@@ -46,7 +44,7 @@ Repeating needs a new setting in the edit panel. Other apps take different paths
 Why it matters: this sets how complex the edit panel gets, and what a later "every 2 weeks" would
 cost. The constitution puts a simple UI first
 ([principle I](../CONSTITUTION.md#i-simple-for-non-technical-users)). More in
-[discovery](discovery.md#recurrence-rules).
+[discovery](discovery-01.md#recurrence-rules).
 
 Options:
 
@@ -63,9 +61,10 @@ Options:
 **Recommended:** A. The constitution puts simplicity first, nothing in the proposal asks for
 intervals, and A can grow into B later.
 
-**Answer:** yes
+**Answer:** B and C: we need to easily handle weekdays vs weekend as those come up often. B will be
+the UI path, and C will only happen when editing the task's title (like todoist).
 
-### Q2: When does the next occurrence appear?
+## Q2: When does the next occurrence appear?
 
 The app cannot create tasks while it is closed, so occurrences can only appear when the user does
 something, or ahead of time. Todoist keeps a single task, and moves its due date when it is
@@ -75,7 +74,7 @@ completed
 Why it matters: this decides whether users see future tasks, whether they keep a history of
 completed ones, and how fast lists grow. The constitution requires the app to stay fast with
 thousands of tasks ([principle III](../CONSTITUTION.md#iii-fast-with-thousands-of-tasks)). More in
-[discovery](discovery.md#generating-occurrences).
+[discovery](discovery-01.md#generating-occurrences).
 
 Options:
 
@@ -93,7 +92,7 @@ Options:
 
 **Answer:** A
 
-### Q3: Which date does the next due date count from?
+## Q3: Which date does the next due date count from?
 
 Once a repeating task is completed, its next occurrence needs a due date. Todoist offers both
 options below: "every" counts from the previous due date, and "every!" from the day the task was
@@ -101,7 +100,7 @@ completed
 ([Todoist help](https://todoist.com/help/articles/introduction-to-recurring-dates-YUYVJJAV)).
 
 Why it matters: for a weekly task due Monday and completed on Thursday, this decides whether it
-stays a Monday task. More in [discovery](discovery.md#next-due-date).
+stays a Monday task. More in [discovery](discovery-01.md#next-due-date).
 
 Options:
 
@@ -118,7 +117,7 @@ Options:
 
 **Answer:** A, but if that date is already past, use the next one in the future.
 
-### Q4: How should the app store due dates?
+## Q4: How should the app store due dates?
 
 Due dates are stored as timestamps at local midnight ([task store](/src/store/tasks.ts)). Repeating
 tasks add date arithmetic, which breaks with timestamps:
@@ -133,7 +132,7 @@ tasks add date arithmetic, which breaks with timestamps:
 
 Why it matters: this outlives the feature. Reminders, next in the [priorities](../PRIORITIES.md),
 and every later feature with dates will follow it, so the answer becomes a project decision. More in
-[discovery](discovery.md#date-handling).
+[discovery](discovery-01.md#date-handling).
 
 Options:
 
@@ -153,4 +152,4 @@ Options:
 **Recommended:** A. It fixes the bug with a dependency the project already has. Temporal can replace
 date-fns later, inside a single module.
 
-**Answer:** yes
+**Answer:** A

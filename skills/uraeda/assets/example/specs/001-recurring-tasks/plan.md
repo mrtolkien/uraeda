@@ -1,5 +1,6 @@
 ---
 status: auto-approved
+spec-revision: 1
 ---
 
 # Plan: Recurring tasks

@@ -17,12 +17,14 @@ names and their `status` fields should still tell you where each feature stands.
 - `decisions/`: the decision ledger, one file per topic: high-impact choices made by humans.
   `active` decisions are binding, and they change when the human changes their mind.
 - `bugs/<slug>/`: a bug `report.md` from a human, and its `assessment.md` from an agent
-- `NNN-feature-slug/`: one numbered folder per feature, with these files, in workflow order:
+- `NNN-feature-slug/`: one numbered folder per feature, on its own branch until merged, with these
+  files, in workflow order:
   - `proposal.md`: what and why, written by a human
-  - `discovery.md`: the investigation of the code and outside sources, with the options found
-  - `clarifications.md`: questions for the human, with their answers
-  - `spec.md`: the feature's behaviour, approved by a human
-  - `plan.md`: the technical approach and implementation steps
+  - `discovery-NN.md`: the investigation of the code and outside sources, with the options found, in
+    numbered rounds: `01`, `02`, ...
+  - `clarifications-NN.md`: each round's questions for the human, with their answers
+  - `spec.md`: the feature's behaviour and design, approved by a human, amended in place
+  - `plan.md`: the files to change and the implementation steps, amended in place
   - `data-model.md` and `contracts/`: entities and interfaces, when needed
 
 ## Status

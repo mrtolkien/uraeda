@@ -1,29 +1,16 @@
 ---
 status: approved
+revision: 1
+clarifications: 1
 risk-tier: medium
 plan-review: false
 ---
 
 # Spec: Recurring tasks
 
-> [!IMPORTANT]
->
-> Spec to review, about 15 minutes.
->
-> - New decision: [due dates](../decisions/due-dates.md) become calendar days, for every future
->   feature with dates.
-> - Every saved due date is converted once, when users get the new version. A task whose date cannot
->   be read keeps it, and nothing is deleted.
-> - Completing a repeating task creates a new task: completed occurrences stay in the list.
-> - Risk tier `medium`: no plan review unless you set `plan-review: true`.
->
-> Set `status: approved` and commit: this also applies the new decisions and proposed changes below.
-> You can change the risk tier, and set `plan-review: true` to review the plan. To request changes,
-> set `status: changes-requested` and write your feedback in a `## Review` section at the end.
-
 Users can make a task repeat daily, weekly, or monthly. When they complete it, the next occurrence
-appears in their list. See the [proposal](proposal.md), [discovery](discovery.md), and
-[clarifications](clarifications.md).
+appears in their list. See the [proposal](proposal.md), [discovery](discovery-01.md), and
+[clarifications](clarifications-01.md).
 
 ## User stories
 
@@ -77,7 +64,7 @@ A repeating task stays a normal task with one more field. Completing it creates 
 as a new task, in the same database transaction, so a reload can never show one without the other.
 Due dates become calendar days, following the new [due dates](../decisions/due-dates.md) decision,
 so the next date is computed without timezone bugs. See the
-[discovery](discovery.md#generating-occurrences).
+[discovery](discovery-01.md#generating-occurrences).
 
 ### Components
 

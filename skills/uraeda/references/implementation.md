@@ -12,15 +12,15 @@ Builds the plan, one step per commit, and delivers it as a pull request.
 
 ## Branch
 
-Code is always delivered through a pull request. If you are on the default branch, create a branch
-named after the spec folder, `001-recurring-tasks`. If a branch or pull request already exists for
-it, continue there.
+Work on the feature's branch, where the spec and plan already are. Code is always delivered through
+its pull request, which also merges the spec, the plan, and the decisions.
 
 ## For each unchecked step, in order
 
 Before starting, read the active decisions that apply to the code you will touch, as they are now. A
 human may have changed one since the plan was written: if it now conflicts with the spec or the
-plan, stop and go back to [discovery](discovery.md).
+plan, stop and start a new round of questions, following
+[going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
 
 1. Break the step down into small tasks, in your own session. They are not written to `plan.md`.
 2. Write the tests for the acceptance scenarios the step covers, and check that they fail.
@@ -30,8 +30,9 @@ plan, stop and go back to [discovery](discovery.md).
    conventions.
 
 Settle implementation details yourself. If a step needs something the spec, plan, and decisions do
-not allow, stop: write the reason in a new `discovery.md` session and go back to
-[discovery](discovery.md). Do not work around it.
+not allow, stop and start a new round of questions, following
+[going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions). Do not work
+around it.
 
 ## Pull request
 

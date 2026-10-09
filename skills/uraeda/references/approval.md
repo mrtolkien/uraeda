@@ -26,6 +26,11 @@ approval anyway.
 
 If the human edited a decision or a proposed change before approving the spec, keep their wording.
 
+## Clean up the spec
+
+Remove the spec's `> [!IMPORTANT]` block if the human, or a tool, did not already: the spec is no
+longer waiting for anyone.
+
 ## Check the review settings
 
 Read the `risk-tier` and `plan-review` the human confirmed in the spec's frontmatter. The plan step

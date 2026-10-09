@@ -2,9 +2,7 @@
 status: answered
 ---
 
-# Clarifications: Due date reminders
-
-## Session 2026-10-14
+# Clarifications, round 01: Due date reminders
 
 > [!IMPORTANT]
 >
@@ -18,7 +16,7 @@ status: answered
 > Answer each question with an option letter, `yes` for the recommendation, or your own words. Then
 > set `status: answered` and commit.
 
-### Context
+## Context
 
 The [proposal](proposal.md) asks the app to remind people of tasks with a due date, on the day or
 the day before, without a server.
@@ -28,9 +26,9 @@ Since recurring tasks, due dates are calendar days without a time
 The app registers no service worker ([app entry point](/src/main.ts)), so nothing of it runs while
 it is closed.
 
-The full investigation is in [discovery](discovery.md). Each question below links to its topic.
+The full investigation is in [discovery](discovery-01.md). Each question below links to its topic.
 
-### Q1: How do reminders reach the user?
+## Q1: How do reminders reach the user?
 
 Browsers show notifications from an open page or a service worker, once the user allows it
 ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API)). Without a push server,
@@ -41,7 +39,7 @@ notification in advance, Notification Triggers, but never launched it
 Why it matters: a reminder that arrives with the app closed needs a server, and the constitution
 does not allow sending user data to one without your approval
 ([principle II](../CONSTITUTION.md#ii-local-first)). More in
-[discovery](discovery.md#showing-reminders).
+[discovery](discovery-01.md#showing-reminders).
 
 Options:
 
@@ -57,13 +55,13 @@ not a reminder feature.
 
 **Answer:** yes
 
-### Q2: When does a reminder fire?
+## Q2: When does a reminder fire?
 
 A reminder needs a time of day, but due dates have none
 ([due dates decision](../decisions/due-dates.md)).
 
 Why it matters: a time per task changes the due dates decision, which every feature with dates
-follows. More in [discovery](discovery.md#reminder-time).
+follows. More in [discovery](discovery-01.md#reminder-time).
 
 Options:
 

@@ -2,8 +2,8 @@
 
 Turns the human's answers into proposed decisions and a spec, for the human to approve together.
 
-- **Runs when**: `clarifications.md` is `answered` and newer than `spec.md` (or there is no spec
-  yet), or `spec.md` is `changes-requested`
+- **Runs when**: the latest round, `clarifications-NN.md`, is `answered`, and there is no `spec.md`
+  or the spec's `clarifications` field is lower than `NN`; or `spec.md` is `changes-requested`
 - **Writes**: `spec.md`, and new files in `specs/decisions/` or `## Proposed change` sections in
   existing ones
 - **Ends at**: a human gate, `spec.md` with `status: awaiting-human`, or a new
@@ -11,19 +11,21 @@ Turns the human's answers into proposed decisions and a spec, for the human to a
 
 ## Read the answers
 
-Read the latest session of `clarifications.md`. An answer can be:
+Read every round's questions and answers, the latest last: later answers win. An answer can be:
 
 - An option letter
 - `yes`: the recommended answer
-- Free text: the human's own answer. When it is ambiguous, ask again in the next session, with your
+- Free text: the human's own answer. When it is ambiguous, ask again in a new round, with your
   reading of it as the recommended answer.
-- Empty: the question is still open
+
+The workflow only moves on once every question is answered: see
+[Coming back to the human](../SKILL.md#coming-back-to-the-human) for blank answers.
 
 ## Is the scope clear?
 
-Go back to [discovery](discovery.md) when questions are still open, when an answer raises a new
-unknown, or when the human asked for more options. Otherwise, propose the decisions, then write the
-spec.
+Start a new round, following [Discovery](discovery.md), when an answer raises a new unknown, when an
+answer is ambiguous, or when the human asked for more options. Otherwise, propose the decisions,
+then write the spec.
 
 ## Propose decisions
 
@@ -116,7 +118,9 @@ tier, and any cost or migration. On a revision, say what changed since the last 
 - **Decisions**: links to the new decisions and proposed changes, then to the active decisions the
   spec relies on. Approving the spec applies the new decisions and changes.
 - **Constitution check**: how the spec complies with each principle and each relevant active
-  decision. A conflict cannot be approved: it goes back to [discovery](discovery.md) as a question.
+  decision. A conflict goes back to the human as a new round of questions, following
+  [Discovery](discovery.md). A decision that must give way gets a proposed change, and a
+  constitution exception the human accepted is named here and spelled out in the plan.
 - **Risk tier**: see below
 
 The design stays at the level of components and data: file-by-file changes and implementation steps
@@ -147,17 +151,25 @@ reason in the spec.
 - For `medium`, add `plan-review: false`.
 - When unsure between two tiers, propose the higher one.
 
+## Spec frontmatter
+
+- `revision`: `1` for the first spec, then one more at every change, by you or by the human
+- `clarifications`: the number of the latest round the spec includes, so the next agent knows
+  whether a newer round is answered
+- `risk-tier`, and `plan-review` for `medium` only: see above
+
 ## Revising
 
-When `spec.md` is `changes-requested`, read its `## Review` section.
+The spec is amended in place: it stays the single source of truth for the implementation.
 
-- If the feedback asks for more options or raises a new question, go to [discovery](discovery.md).
-- If a newer clarification session was answered since the review, read its answers and propose their
-  decisions first.
-- Otherwise, apply the feedback, update the proposed decisions it affects, and remove the
-  `## Review` section: git keeps it.
+- **`changes-requested`**: read its `## Review` section. If the feedback asks for more options or
+  raises a new question, start a new round, following [Discovery](discovery.md). Otherwise, apply
+  the feedback, update the proposed decisions it affects, and remove the `## Review` section: git
+  keeps it.
+- **A newer round is answered**: read its answers, propose their decisions, and amend the spec.
 
-Set `status: awaiting-human` again.
+Increase `revision`, set `clarifications` to the latest round, and set `status: awaiting-human`
+again. The `> [!IMPORTANT]` block says what changed since the last review.
 
 ## Commit
 
