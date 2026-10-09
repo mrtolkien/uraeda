@@ -131,6 +131,7 @@ specs/
   drafts/                   # upcoming features, free form: one becomes a numbered folder when you
                             # say "start it"
   backlog/                  # nice-to-have features, not scheduled
+                            # a postponed feature keeps its folder here, without its number
   decisions/                # decision ledger, one file per topic
   bugs/<slug>/              # a bug report, and the agent's assessment with its fix
   001-recurring-tasks/      # one numbered folder per feature
