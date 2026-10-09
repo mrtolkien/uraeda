@@ -14,7 +14,7 @@ approved-by:
 ## Why
 
 [The problem and what the choice optimizes for. Links to the clarification question and the
-research.]
+discovery topic.]
 
 ## Consequences
 

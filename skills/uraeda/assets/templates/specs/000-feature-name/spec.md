@@ -6,13 +6,19 @@ plan-review: false
 
 # Spec: [Feature name]
 
-[One paragraph: what the feature does and why. Links to the [proposal](proposal.md) and
-[clarifications](clarifications.md).]
+> [!IMPORTANT]
+>
+> Spec to review, about [M] minutes.
+>
+> - [Where your attention matters most, one line each: new and changed decisions, risky assumptions,
+>   the risk tier, costs or migrations]
+>
+> Set `status: approved` and commit: this also applies the new decisions and proposed changes below.
+> You can change the risk tier, and set `plan-review: true` to review the plan. To request changes,
+> set `status: changes-requested` and write your feedback in a `## Review` section at the end.
 
-To approve this spec, set `status: approved` and commit: this also applies the new decisions and
-proposed changes below. You can change the risk tier, and set `plan-review: true` to review the
-plan. To request changes, set `status: changes-requested` and write your feedback in a `## Review`
-section at the end.
+[One paragraph: what the feature does, for whom, and why. Links to the [proposal](proposal.md),
+[discovery](discovery.md), and [clarifications](clarifications.md).]
 
 ## User stories
 
@@ -30,17 +36,38 @@ Acceptance scenarios:
 
 - [What happens when ...]
 
-## Requirements
-
-- **FR-001**: [The system MUST ...]
-
 ## Success criteria
 
 - **SC-001**: [Measurable outcome]
 
+## Design
+
+### Approach
+
+[The chosen approach in a few sentences, and why it fits. Links to the decisions and discovery
+topics behind it.]
+
+### Components
+
+- **[Unit]** ([`path`](/path)): [what it does, how it is used, what it depends on]
+
+### Data
+
+[What is stored or changes, and how data flows between the components.]
+
+### Error handling
+
+- [What can fail, and what the user sees]
+
+### Testing
+
+[How the acceptance scenarios and success criteria are tested: unit, component, end to end,
+benchmarks.]
+
 ## Assumptions
 
-- [What the agent settled without asking]
+- [What the agent settled without asking. What the human said is in the proposal and
+  clarifications.]
 
 ## Decisions
 

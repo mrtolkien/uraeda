@@ -4,7 +4,15 @@ status: awaiting-human
 
 # Assessment: [Bug title]
 
-Assesses [the report](report.md). To have the fix implemented, set `status: approved` and commit.
+> [!IMPORTANT]
+>
+> Assessment to review, about [M] minutes.
+>
+> - [The root cause in one line, the fix's risk, any question]
+>
+> To have the fix implemented, set `status: approved` and commit.
+
+Assesses [the report](report.md).
 
 ## Reproduction
 

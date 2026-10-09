@@ -19,7 +19,7 @@ names and their `status` fields should still tell you where each feature stands.
 - `bugs/<slug>/`: a bug `report.md` from a human, and its `assessment.md` from an agent
 - `NNN-feature-slug/`: one numbered folder per feature, with these files, in workflow order:
   - `proposal.md`: what and why, written by a human
-  - `research.md`: findings and options
+  - `discovery.md`: the investigation of the code and outside sources, with the options found
   - `clarifications.md`: questions for the human, with their answers
   - `spec.md`: the feature's behaviour, approved by a human
   - `plan.md`: the technical approach and implementation steps

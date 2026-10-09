@@ -4,6 +4,12 @@ Uraeda is a git-driven, opinionated software development harness. Humans write p
 research, ask questions, and write specs and plans, and every step is checkpointed as plain text in
 git. The project is early: most of it is still design documents.
 
+It works like an asynchronous [superpowers](https://github.com/obra/superpowers), with
+[Spec Kit](https://github.com/github/spec-kit)'s file names where they fit: a capable agent does the
+hard work upfront, autonomously, and the human only answers the questions only they can decide and
+approves specs, in files built so their time goes into thinking, not searching. It targets technical
+users for now: see "Vision" in `README.md`.
+
 ## Constitution
 
 Read `specs/CONSTITUTION.md` before any work. It holds the project's principles, ordered by
