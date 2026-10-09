@@ -104,9 +104,10 @@ Acceptance scenarios:
 
 ## Edge cases
 
-- A monthly task due on the 29th to 31st is due on the last day of shorter months.
-- Moving the due date of a repeating task by hand moves its schedule: the next date counts from the
-  new one. This is how users skip an occurrence.
+- A monthly task due on the 29th to 31st is due on the last day of shorter months, and back on its
+  day in longer ones.
+- Moving the due date of a repeating task by hand restarts its schedule from the new date: by its
+  interval from it, or on the chosen days after it. This is how users skip an occurrence.
 - Deleting a repeating task deletes it, which ends the repetition.
 - A title made only of a repeat phrase ("every monday") is kept as a title, without a repeat.
 
@@ -131,15 +132,19 @@ menu, the custom screen, and the title parser all produce the same rule. See the
 ### Data
 
 A task gets `repeat: RepeatRule | null`, where `RepeatRule` is
-`{ unit: "day" | "week" | "month" | "year", interval: number, weekdays?: number[] }`. `dueDate`
-becomes a `YYYY-MM-DD` string or `null`.
+`{ unit: "day" | "week" | "month" | "year", interval: number, weekdays?: number[], from: CalendarDay }`.
+`dueDate` becomes a `YYYY-MM-DD` string or `null`.
 
 - Weekly rules always store their days: "weekly" is every week on the due date's day, "weekdays"
   every week on Monday to Friday, "weekends" every week on Saturday and Sunday.
-- Setting a weekly rule moves the due date to the first chosen day on or after it, or after today if
-  the task has none.
+- Setting a repeat on a task without a due date sets it to today. Setting a weekly rule then moves
+  the due date to the first chosen day on or after it.
+- `from` is the date the schedule starts from: the due date when the repeat is set, or when the user
+  moves the due date by hand. The rule's dates are counted from it: every N days, every N months on
+  its day of the month, or the chosen days of every Nth week from its week. Counting from `from`
+  keeps a task due on the 31st on the 31st, after a shorter month.
 - The next due date is the first date of the rule after the previous due date, skipping dates
-  already past. With chosen days, that is the next chosen day.
+  already past.
 
 Completing a repeating task: the task row calls `completeTask`, which computes and saves the next
 due date, and returns the previous one. The row keeps it for 5 seconds, for undo.
@@ -210,22 +215,27 @@ Settled while writing this spec:
 
 ## Decisions
 
-- [Repeating tasks](../decisions/repeating-tasks.md): new
-- [Due dates](../decisions/due-dates.md): new
-- [Task storage](../decisions/task-storage.md): relied on
-- [UI components](../decisions/ui-components.md): relied on
+New, applied when this spec is approved:
+
+- [Repeating tasks](../decisions/repeating-tasks.md): a repeating task is one task, whose due date
+  moves when it is completed.
+- [Due dates](../decisions/due-dates.md): due dates are calendar days, and all date arithmetic lives
+  in `src/lib/dates.ts`.
+
+Relied on:
+
+- [Task storage](../decisions/task-storage.md): the `repeat` field and the new due date format come
+  with upgrade 2.
+- [UI components](../decisions/ui-components.md): the menu uses `Select`, and the custom screen is
+  built in the project.
 
 ## Constitution check
 
-| Principle or decision             | Complies | Notes                                                   |
-| --------------------------------- | -------- | ------------------------------------------------------- |
-| I. Simple for non-technical users | yes      | One menu in the existing panel, one new screen          |
-| II. Local first                   | yes      | Nothing leaves the device                               |
-| III. Fast with thousands of tasks | yes      | Lists do not grow; SC-002 checks it                     |
-| Repeating tasks (new)             | yes      | One task, its due date moves                            |
-| Due dates (new)                   | yes      | All date arithmetic in `src/lib/dates.ts`               |
-| Task storage                      | yes      | One new field, and upgrade 2 for due dates              |
-| UI components                     | yes      | The menu uses `Select`, the custom screen is built here |
+| Principle                         | Complies | Notes                                          |
+| --------------------------------- | -------- | ---------------------------------------------- |
+| I. Simple for non-technical users | yes      | One menu in the existing panel, one new screen |
+| II. Local first                   | yes      | Nothing leaves the device                      |
+| III. Fast with thousands of tasks | yes      | Lists do not grow; SC-002 checks it            |
 
 ## Risk tier
 

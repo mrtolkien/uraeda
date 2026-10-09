@@ -69,13 +69,23 @@ topics behind it.]
 
 ## Decisions
 
-- [Topic](../decisions/decision-topic.md): new, changed, or relied on
+New, applied when this spec is approved:
+
+- [Topic](../decisions/decision-topic.md): [the rule, in a sentence]
+
+Changed:
+
+- [Topic](../decisions/decision-topic.md): [the proposed change]
+
+Relied on:
+
+- [Topic](../decisions/decision-topic.md): [how the spec follows it]
 
 ## Constitution check
 
-| Principle or decision | Complies | Notes |
-| --------------------- | -------- | ----- |
-| I. [Principle]        | yes      |       |
+| Principle      | Complies | Notes |
+| -------------- | -------- | ----- |
+| I. [Principle] | yes      |       |
 
 ## Risk tier
 

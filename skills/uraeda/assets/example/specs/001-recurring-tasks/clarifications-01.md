@@ -6,8 +6,7 @@ status: answered
 
 > [!NOTE]
 >
-> Answered on 2026-10-08. 7 questions on recurring tasks, plus one follow-up that only applies to
-> one answer.
+> Answered on 2026-10-08.
 >
 > - Two choices last beyond this feature: how users pick a repeat, which decides what "every 2
 >   weeks" would cost later, and how due dates are stored, which every future feature with dates

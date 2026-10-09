@@ -6,7 +6,7 @@ status: answered
 
 > [!NOTE]
 >
-> Answered on 2026-10-14. 2 questions on reminders.
+> Answered on 2026-10-14.
 >
 > - How reminders reach users: without a server, they only show while the app is open. The
 >   alternative goes against the constitution's local first principle.
