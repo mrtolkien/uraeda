@@ -2,7 +2,6 @@
 
 ## Now
 
-- Benchmarks (harness, model, ...) -> find real software issues where we could apply the full flow
 - Technical stack decision
 - CLI for basic setup and upkeep
 - Basic web UI for _viewing_ the workflow files -> React + Astryx + Fate stack, see
@@ -34,3 +33,6 @@
 - Monorepo support: multiple `specs` folders, principles per package, ...
 
 ## Blocked
+
+- Benchmarks (harness, model, ...): blocked until the harness and the Claude Code integration are
+  ready, see [backlog](backlog/benchmarks/proposal.md), with a discovery round and partial answers.
