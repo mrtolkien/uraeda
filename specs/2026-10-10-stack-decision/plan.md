@@ -343,7 +343,7 @@ git commit -m "feat(stack-decision): ura status"
   `FileStatus`, `Status` (`"awaiting-human" | "answered" | ...`). Errors throw a JS `Error` whose
   message is the `CoreError`'s `Display`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // packages/binding/index.test.ts
@@ -365,21 +365,26 @@ test("throws on a missing folder", () => {
 `status` and `problem` absent from the object when `None`. `fixture()` lives in
 `packages/binding/test-utils.ts`, exported for the server's and the UI's tests.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test packages/binding`
 - Expected: FAIL, cannot find `./index.js`
 
-- [ ] **Step 3: Implement the two `#[napi]` functions in `crates/binding/src/lib.rs`, each with
+- [x] **Step 3: Implement the two `#[napi]` functions in `crates/binding/src/lib.rs`, each with
       `// TEMPORARY: replaced by the CLI feature.`; build with
       `vp run --filter uraeda-binding build`**
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
+- In `ready`, `cargo test --workspace` becomes `cargo test --workspace --exclude uraeda-binding`:
+  with the binding selected, cargo unifies features and links the core's napi symbols into `ura`'s
+  test binaries, which fails outside Node. A root `tsconfig.base.json` (Node types, `nodenext`,
+  `erasableSyntaxOnly`, `verbatimModuleSyntax`, `allowImportingTsExtensions`) is extended by each
+  package's `tsconfig.json`; the binding adds `@types/node`.
 - Run: `vp run ready`
 - Expected: PASS, with `index.d.ts` declaring `FolderStatus`, `FileStatus`, and `Status` as a union
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/binding packages/binding pnpm-workspace.yaml pnpm-lock.yaml package.json .gitignore vite.config.ts Cargo.lock specs/2026-10-10-stack-decision/plan.md

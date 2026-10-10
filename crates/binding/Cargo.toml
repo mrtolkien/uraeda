@@ -1,0 +1,25 @@
+[package]
+name = "uraeda-binding"
+description = "The core's Node binding, built with napi-rs."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+# A cdylib built for Node does not link outside Node: it is tested from TypeScript.
+test = false
+doctest = false
+
+[dependencies]
+napi.workspace = true
+napi-derive.workspace = true
+uraeda-core = { workspace = true, features = ["napi"] }
+
+[build-dependencies]
+napi-build.workspace = true
+
+[lints]
+workspace = true
