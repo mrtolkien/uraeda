@@ -9,13 +9,25 @@
  */
 export declare const __napiBindingTarget: 'native' | 'wasm32-wasi' | 'wasm32-wasip1'
 
-/** Reads the workflow files of one feature folder. */
+/**
+ * TEMPORARY: replaced by the CLI feature.
+ *
+ * Reads the workflow files of one feature folder.
+ */
 export declare function temporaryReadFolder(path: string): FolderStatus
 
-/** Reads every feature folder of a `specs/` folder, newest first. */
+/**
+ * TEMPORARY: replaced by the CLI feature.
+ *
+ * Reads every feature folder of a `specs/` folder, newest first.
+ */
 export declare function temporaryReadSpecs(path: string): Array<FolderStatus>
 
-/** One workflow file: exactly one of `status` and `problem` is set. */
+/**
+ * TEMPORARY: replaced by the CLI feature.
+ *
+ * One workflow file: exactly one of `status` and `problem` is set.
+ */
 export interface FileStatus {
   /** The file's name, like `clarifications-01.md`. */
   file: string
@@ -26,6 +38,8 @@ export interface FileStatus {
 }
 
 /**
+ * TEMPORARY: replaced by the CLI feature.
+ *
  * A feature folder and its workflow files: clarifications rounds in order, then `spec.md`, then
  * `plan.md`.
  */
@@ -35,5 +49,9 @@ export interface FolderStatus {
   files: Array<FileStatus>
 }
 
-/** A workflow file's status, as written in its frontmatter. */
+/**
+ * TEMPORARY: replaced by the CLI feature.
+ *
+ * A workflow file's status, as written in its frontmatter.
+ */
 export type Status = 'awaiting-human' | 'answered' | 'approved' | 'changes-requested' | 'auto-approved'

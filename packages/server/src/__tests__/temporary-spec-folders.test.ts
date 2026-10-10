@@ -3,10 +3,10 @@ import { cpSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
-import { fixture, listSpecFolders, testApp } from "./helpers.ts";
+import { fixture, temporaryListSpecFolders, testApp } from "./helpers.ts";
 
 test("lists the spec folders, newest first", async () => {
-  const folders = await listSpecFolders(testApp());
+  const folders = await temporaryListSpecFolders(testApp());
 
   expect(folders.map((folder) => folder.id)).toEqual([
     "2026-13-99-not-a-date",
@@ -23,17 +23,17 @@ test("lists the spec folders, newest first", async () => {
 });
 
 test("lists nothing without feature folders", async () => {
-  expect(await listSpecFolders(testApp(fixture("no-features/specs")))).toEqual([]);
+  expect(await temporaryListSpecFolders(testApp(fixture("no-features/specs")))).toEqual([]);
 });
 
 test("reads the files again on every request", async () => {
   const specs = mkdtempSync(join(tmpdir(), "uraeda-"));
   cpSync(fixture("specs"), specs, { recursive: true });
   const app = testApp(specs);
-  await listSpecFolders(app);
+  await temporaryListSpecFolders(app);
 
   writeFileSync(join(specs, "2026-10-06-recurring-tasks/plan.md"), "---\nstatus: approved\n---\n");
 
-  const folders = await listSpecFolders(app);
+  const folders = await temporaryListSpecFolders(app);
   expect(folders[3].files).toContainEqual({ file: "plan.md", status: "approved" });
 });

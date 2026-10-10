@@ -16,8 +16,9 @@ export function testApp(specs = fixture("specs")) {
   });
 }
 
+// TEMPORARY: replaced by the web UI feature.
 /** Sends one native fate operation listing the spec folders. */
-export async function listSpecFolders(app: ReturnType<typeof testApp>) {
+export async function temporaryListSpecFolders(app: ReturnType<typeof testApp>) {
   const response = await app.request(`http://127.0.0.1:${port}/fate`, {
     method: "POST",
     headers: { "content-type": "application/json" },

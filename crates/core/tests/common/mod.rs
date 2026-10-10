@@ -9,6 +9,7 @@ pub fn fixture(path: &str) -> PathBuf {
         .join(path)
 }
 
+// TEMPORARY: replaced by the CLI feature.
 /// Each file of a folder with its status, or `invalid: ` and its problem, as `ura status` shows it.
 pub fn summary(folder: &FolderStatus) -> Vec<(String, String)> {
     folder
@@ -26,6 +27,7 @@ fn describe(file: &FileStatus) -> String {
     }
 }
 
+// TEMPORARY: replaced by the CLI feature.
 pub fn rows(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
     pairs
         .iter()
