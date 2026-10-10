@@ -2,7 +2,7 @@
 
 ## Now
 
-- Technical stack decision
+- Technical stack decision -> Repo organization, programming languages, ...
 - CLI for basic setup and upkeep
 - Basic web UI for _viewing_ the workflow files -> React + Astryx + Fate stack, see
   [draft](drafts/web-ui.md)
