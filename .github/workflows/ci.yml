@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ready:
+    # Validation runs on Linux x64 only; release builds for every platform come with the CLI.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install dependencies
+        run: nix develop --command pnpm install --frozen-lockfile
+
+      - name: Run every check
+        run: nix develop --command pnpm exec vp run ready
+
+      - name: Check generated files are committed
+        run: |
+          git status --porcelain
+          test -z "$(git status --porcelain)"
+
+      - name: Check the size of ura
+        run: |
+          nix develop --command cargo build --release -p uraeda-cli
+          size=$(stat -c %s target/release/ura)
+          echo "ura: $size bytes"
+          test "$size" -lt 3000000

@@ -165,6 +165,20 @@ The workflow itself is in the [Uraeda skill](skills/uraeda/SKILL.md), with one
 - [Plain Text Team](https://github.com/0atman/noboilerplate/blob/main/scripts/34-Plain-Text-Team.md):
   a team's work kept as plain text in git, instead of in a project management tool.
 
+## Building the tools
+
+The tools are a skeleton for now: a Rust core, the `ura` CLI, a server, and a web UI, which only
+show the status of workflow files. With Rust, Node 24, and pnpm, or `nix develop`:
+
+```sh
+vp install         # dependencies
+vp run ready       # every check and test, as CI runs them
+vp run start       # the web UI on http://127.0.0.1:4310, reading ./specs
+cargo run -p uraeda-cli -- status specs/2026-10-10-stack-decision
+```
+
+The code is under the MIT or Apache-2.0 licenses, at your option.
+
 ## Project status
 
 What is being built now, and next, is in [specs/PRIORITIES.md](specs/PRIORITIES.md): the skill
