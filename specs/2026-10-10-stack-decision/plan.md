@@ -402,8 +402,8 @@ git commit -m "feat(stack-decision): napi-rs binding"
   `allowImportingTsExtensions`, `noEmit`)
 - Create: `packages/server/src/app.ts`, `src/guard.ts`, `src/fate.ts`,
   `src/temporary-spec-folders.ts`, `src/options.ts`, `src/main.ts`, `src/binding.ts`
-- Test: `packages/server/src/__tests__/guard.test.ts`, `fate.test.ts`, `main.test.ts`, with helpers
-  in `packages/server/src/__tests__/helpers.ts`
+- Test: `packages/server/src/__tests__/guard.test.ts`, `temporary-spec-folders.test.ts`,
+  `main.test.ts`, with helpers in `packages/server/src/__tests__/helpers.ts`
 
 **Interfaces:**
 
@@ -411,14 +411,16 @@ git commit -m "feat(stack-decision): napi-rs binding"
 - Produces:
   - `parseOptions(argv: string[]): { specs: string; port: number; allowOrigins: string[] }`
     (defaults `specs`, `4310`, `[]`)
-  - `createApp(options: { specs: string; port: number; allowOrigins: string[]; webRoot?: string }): Hono`
+  - `createApp(options: Options & { readSpecs: TemporaryReadSpecs }): Hono`, where
+    `Options = { specs: string; port: number; allowOrigins: string[]; webRoot?: string }` and the
+    binding's `temporaryReadSpecs` is passed in, so only `main.ts` loads the native addon
   - `fate` server module `packages/server/src/fate.ts`, exporting `createFate(specs: string)` and
     the `Root` views: `specFolders: list(temporarySpecFolderView)`, type `SpecFolder`
-  - `loadBinding(load = () => import("uraeda-binding"))`: exits with the spec's message when it
-    throws
+  - `loadBinding(load = () => import("uraeda-binding"))`: rejects with the spec's message when the
+    import throws; `main.ts` prints any startup error as `uraeda-server: <message>` and exits 1
   - `main(argv)`: checks the specs folder, binds `127.0.0.1:<port>`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `guard.test.ts`, table-driven, one row per header pair, on
   `createApp({ specs, port: 4310, allowOrigins: ["http://localhost:5173"] })` and
@@ -426,20 +428,20 @@ git commit -m "feat(stack-decision): napi-rs binding"
   → 403 `Forbidden host`; `127.0.0.1` (no port) → 403 `Forbidden host`; Origin
   `http://localhost:4310` → passes; Origin `http://localhost:5173` → passes; Origin
   `https://evil.com` → 403 `Forbidden origin`.
-- `fate.test.ts`: a native `list` operation `specFolders` with `select: ["id", "name", "files"]`
-  returns the four folders, newest first, `id` equal to `name`, files as in the core (US2.1-2.3);
-  the same on `fixtures/no-features/specs` returns no items; editing a temporary copy of a fixture
-  between two requests returns the new status (US2.5).
-- `main.test.ts`: `main(["--specs", "missing"])` writes `uraeda-server: missing: no such folder` to
-  stderr and exits 1; `loadBinding` with a loader that throws exits 1 with
-  `uraeda-server: the native binding is not built; run vp run ready`.
+- `temporary-spec-folders.test.ts`: a native `list` operation `specFolders` with
+  `select: ["id", "name", "files"]` returns the four folders, newest first, `id` equal to `name`,
+  files as in the core (US2.1-2.3); the same on `fixtures/no-features/specs` returns no items;
+  editing a temporary copy of a fixture between two requests returns the new status (US2.5).
+- `main.test.ts`: running `node src/main.ts --specs missing` writes
+  `uraeda-server: missing: no such folder` to stderr and exits 1; `loadBinding` with a loader that
+  throws exits 1 with `uraeda-server: the native binding is not built; run vp run ready`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server`
 - Expected: FAIL, cannot find `../app.ts`
 
-- [ ] **Step 3: Implement the server**
+- [x] **Step 3: Implement the server**
 
 `guard.ts` is Hono middleware. `temporary-spec-folders.ts` (with
 `// TEMPORARY: replaced by the web UI feature.`) defines
@@ -450,12 +452,12 @@ served from `webRoot` with `serveStatic` when given. **Fallback**: if this needs
 `@nkzw/fate/server` does not export, or a patch, replace fate with a Hono route
 `GET /api/temporary/spec-folders`, exported `AppType` for `hc`, and write a ruling.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server pnpm-lock.yaml package.json specs/2026-10-10-stack-decision/plan.md
