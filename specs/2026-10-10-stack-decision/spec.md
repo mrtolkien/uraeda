@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 2
 clarifications: 1
 risk-tier: high
@@ -7,9 +7,9 @@ risk-tier: high
 
 # Spec: Technical stack decision
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review again, about 10 minutes: what changed since your feedback.
+> Approved on 2026-10-10.
 >
 > - CI validates on Linux x64 only, in the Nix shell; the build matrix for every platform comes with
 >   releases. The macOS clash and the billing note are gone.
