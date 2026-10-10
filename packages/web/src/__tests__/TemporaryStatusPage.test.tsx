@@ -1,4 +1,7 @@
 // TEMPORARY: replaced by the web UI feature.
+import { mkdirSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { screen } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { fixture, renderPage } from "./helpers.tsx";
@@ -37,4 +40,15 @@ test("shows when the server cannot be reached", async () => {
   await renderPage(fixture("specs"), () => Promise.reject(new TypeError("Failed to fetch")));
 
   expect(await screen.findByText("Could not reach the Uraeda server.")).toBeTruthy();
+});
+
+test("lists more folders than fate's default page", async () => {
+  const specs = mkdtempSync(join(tmpdir(), "uraeda-"));
+  for (let day = 1; day <= 25; day++) {
+    mkdirSync(join(specs, `2026-10-${String(day).padStart(2, "0")}-feature`));
+  }
+
+  await renderPage(specs);
+
+  expect(await screen.findAllByRole("heading", { level: 2 })).toHaveLength(25);
 });

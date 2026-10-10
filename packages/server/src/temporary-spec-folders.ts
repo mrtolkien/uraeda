@@ -60,6 +60,9 @@ export function temporarySpecFolderSources() {
         }) => {
           const folders = read(ctx);
           const start = cursor ? folders.findIndex((folder) => folder.id === cursor) + 1 : 0;
+          if (cursor && start === 0) {
+            return [];
+          }
           return folders.slice(start, start + take);
         },
       },

@@ -16,7 +16,9 @@ const TemporarySpecFolderView = view<SpecFolder>()({
 });
 
 // TEMPORARY: replaced by the web UI feature.
+// fate pages lists by 20 by default: one large page shows every folder, without a "load more".
 const TemporarySpecFoldersView = {
+  args: { first: 1000 },
   items: { node: TemporarySpecFolderView },
 };
 
