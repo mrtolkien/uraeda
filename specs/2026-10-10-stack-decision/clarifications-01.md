@@ -1,13 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Technical stack decision
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 11 questions on the stack and the skeleton, plus one follow-up for your language choice, about 45
-> minutes.
+> Answered on 2026-10-10.
 >
 > - The language split is the choice everything else follows, for the life of the project: it
 >   decides the binary size, the data client, and how Claude Code is driven. Each answer but one has
@@ -385,10 +384,6 @@ Bun builds binaries for every platform. With A in Q5, CI runs on Linux and macOS
 
 ## Settled without the human
 
-> [!WARNING] I want the binary to be called `ura` and not `uraeda`
->
-> An agent should delete that message after acknowledging it and changing the name below
-
 - **Git integration** stays out of the skeleton, which needs no git. Embedding git, or using the
   system `git`, is decided by the CLI or git listener feature, with these findings: gix cannot push,
   libgit2 brings C and OpenSSL, and jujutsu itself runs the system `git`. See
@@ -415,7 +410,7 @@ Bun builds binaries for every platform. With A in Q5, CI runs on Linux and macOS
   [discovery](discovery-01.md#monorepo-tooling).
 - **The Rust toolchain** is the latest stable release, pinned in `rust-toolchain.toml`, with the
   2024 edition. See [discovery](discovery-01.md#rust-binaries).
-- **Names**: the binary is `uraeda`, and crates and packages are `uraeda-*`. Nothing is published by
+- **Names**: the binary is `ura`, and crates and packages are `uraeda-*`. Nothing is published by
   this feature; both names are free on npm and crates.io today. See
   [discovery](discovery-01.md#licenses-and-names).
 - **A desktop app** stays out of the skeleton. With A in Q1, Tauri can wrap the same UI around the
