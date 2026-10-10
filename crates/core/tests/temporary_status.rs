@@ -36,17 +36,15 @@ fn plan_with_unknown_status_is_invalid() {
 #[test]
 fn reports_each_invalid_file() {
     let folder = temporary_read_folder(&fixture("broken")).unwrap();
-    let mut actual = summary(&folder);
-    let (_, yaml) = actual.remove(1);
 
-    assert!(
-        yaml.starts_with("invalid: frontmatter is not valid YAML: "),
-        "{yaml}"
-    );
     assert_eq!(
-        actual,
+        summary(&folder),
         rows(&[
             ("clarifications-01.md", "invalid: no frontmatter"),
+            (
+                "clarifications-02.md",
+                "invalid: frontmatter is not valid YAML: line 1 column 9: unclosed bracket '['",
+            ),
             ("clarifications-03.md", "invalid: no status field"),
             ("clarifications-04.md", "invalid: status is not a string"),
             (
