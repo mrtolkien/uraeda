@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: CLI core features
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 16 questions on the `ura` CLI and its TUIs, about 50 minutes.
+> Answered on 2026-10-11.
 >
 > - Scope comes first: the proposal holds a core, five commands, three TUIs, the skill's rewrite,
 >   and the release pipeline the stack decision moved here. The recommendation splits the TUIs into
@@ -69,7 +69,7 @@ the TUI feature starts from your answers.
   - [pro] you get the screens soonest.
   - [con] agents keep the manual path longer, and nobody can install `ura` without Rust meanwhile.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How does the skill send agents through the CLI?
 
@@ -97,7 +97,7 @@ rule can live only in the CLI.
   - [pro] the fewest agent errors, and a much shorter skill.
   - [con] conflicts with principle V: it needs you to amend the constitution first.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Which commands come beyond the proposal's five?
 
@@ -126,7 +126,7 @@ in step with the skill.
   - [con] `postpone` merges and deletes branches, the riskiest automation, for an operation done
     rarely.
 
-**Answer:**
+**Answer:** B, we'll do `ura start` later
 
 ## Q4: What does `ura draft` create?
 
@@ -156,7 +156,7 @@ a feature.
   - [con] the folder sits on the default branch, against the skill's branch rule, and the agent has
     to move it.
 
-**Answer:**
+**Answer:** A, simpler.
 
 ## Q5: What does `ura status` show?
 
@@ -183,7 +183,7 @@ Why it matters: it decides whether `status` answers "what is waiting for me?" fr
   - [pro] fast and simple.
   - [con] blind to every feature not checked out.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: How does `ura` run git?
 
@@ -210,7 +210,7 @@ Why it matters: it becomes a decision for every tool, including the future git l
   - [pro] no `git` needed at runtime.
   - [con] no hooks, manual signing, and a C build.
 
-**Answer:**
+**Answer:** B
 
 ## Q7: Where do `answer` and `review` write when the feature's branch is not checked out?
 
@@ -236,7 +236,7 @@ open.
   - [pro] instant, and nothing on disk changes.
   - [con] no hooks, no formatting, and the files on disk differ from the branch until you pull.
 
-**Answer:**
+**Answer:** A
 
 ## Q8: Do the commands commit your answers and reviews?
 
@@ -255,7 +255,7 @@ Why it matters: it decides whether submitting is the last thing you do.
   - [pro] you control every commit.
   - [con] one more step, easy to forget, and agents wait meanwhile.
 
-**Answer:**
+**Answer:** A
 
 ## Q9: What can a review conclude?
 
@@ -286,7 +286,7 @@ another review, and the approved spec must not change silently.
   - [pro] notes to yourself mid-review.
   - [con] a third state that wakes no agent; with the TUI, a review can be saved in progress anyway.
 
-**Answer:**
+**Answer:** A
 
 ## Q10: Where do review comments live?
 
@@ -319,7 +319,9 @@ whether each comment's outcome is recorded.
   - [con] literal braces on GitHub and in Obsidian, limited to one paragraph, and the agent's file
     gets edited by the review.
 
-**Answer:**
+**Answer:** A, but I don't think we need a round number since it'll usually be a single round + the
+history makes no sense after a round (so we can override/remove the old one). The file is optional
+and only exists if there are comments.
 
 ## Q11: How does a comment point to its place?
 
@@ -347,7 +349,7 @@ meaningful after the revision.
   - [con] the review edits the spec, the link works only in Obsidian, and the skill has agents write
     no wikilinks.
 
-**Answer:**
+**Answer:** A
 
 ## Q12: What does `ura review` show, and what is the "active line"?
 
@@ -372,7 +374,7 @@ Why it matters: it decides what a comment anchors to, and how much rendering cod
   - [pro] both precisions.
   - [con] two views to build and keep coherent.
 
-**Answer:**
+**Answer:** A
 
 ## Q13: How does typing start in `ura answer`?
 
@@ -397,7 +399,7 @@ Why it matters: it is the main keystroke of the answer screen.
   - [pro] typing never surprises.
   - [con] no vi motions on the answer screen.
 
-**Answer:**
+**Answer:** A
 
 ## Q14: What should the TUIs look like?
 
@@ -444,7 +446,7 @@ Why it matters: it sets the visual identity every later screen follows.
   - [pro] the most robust.
   - [con] the least distinctive.
 
-**Answer:**
+**Answer:** A
 
 ## Q15: Does `ura init` install the skill?
 
@@ -472,7 +474,7 @@ it from git.
   - [pro] reaches agents that read no skills folder.
   - [con] edits a file you own; OpenSpec avoids it on purpose.
 
-**Answer:**
+**Answer:** A, but have CLI options for B (`ura init --no-skill` or similar)
 
 ## Q16: How do users install `ura`?
 
@@ -497,7 +499,7 @@ C can come on top of A.
   - [pro] native for Nix and macOS users.
   - [con] two more channels to keep working.
 
-**Answer:**
+**Answer:** C if it's not too much work and they can install the binary directly. Otherwise A.
 
 ## Settled without the human
 
@@ -547,3 +549,6 @@ C can come on top of A.
   Shift+Enter works where the terminal reports it; Ctrl+J and Alt+Enter work everywhere, and the
   bottom bar shows the one that works. See
   [Shift+Enter](discovery-01.md#shiftenter-and-the-kitty-keyboard-protocol).
+
+**Notes**: LGTM, and we should add this "Notes" space to the clarification templates for feedback on
+the decisions settled by the agent!
