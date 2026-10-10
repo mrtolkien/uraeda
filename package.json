@@ -4,7 +4,9 @@
   "license": "MIT OR Apache-2.0",
   "scripts": {
     "prepare": "vp config",
-    "ready": "cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace --exclude uraeda-binding && (! cargo tree -p uraeda-cli -e features --prefix none | grep -qE '^napi(-derive)? v') && vp run --filter uraeda-binding build && vp check && vp test"
+    "ready": "cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace --exclude uraeda-binding && (! cargo tree -p uraeda-cli -e features --prefix none | grep -qE '^napi(-derive)? v') && vp run --filter uraeda-binding build && vp check && vp test && vp run --filter uraeda-web build",
+    "dev": "vp run --filter uraeda-server --filter uraeda-web --parallel dev",
+    "start": "vp run --filter uraeda-web build && node packages/server/src/main.ts --web-root packages/web/dist"
   },
   "devDependencies": {
     "vite-plus": "catalog:"

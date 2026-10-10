@@ -414,8 +414,10 @@ git commit -m "feat(stack-decision): napi-rs binding"
   - `createApp(options: Options & { readSpecs: TemporaryReadSpecs }): Hono`, where
     `Options = { specs: string; port: number; allowOrigins: string[]; webRoot?: string }` and the
     binding's `temporaryReadSpecs` is passed in, so only `main.ts` loads the native addon
-  - `fate` server module `packages/server/src/fate.ts`, exporting `createFate(specs: string)` and
-    the `Root` views: `specFolders: list(temporarySpecFolderView)`, type `SpecFolder`
+  - fate server module `packages/server/src/fate.ts`
+    ([R4](rulings.md#r4-one-fate-server-with-a-request-context)), exporting `fateServer`,
+    `SpecFolder`, and the `Root` views: `specFolders: list(temporarySpecFolderView)`, type
+    `SpecFolder`
   - `loadBinding(load = () => import("uraeda-binding"))`: rejects with the spec's message when the
     import throws; `main.ts` prints any startup error as `uraeda-server: <message>` and exits 1
   - `main(argv)`: checks the specs folder, binds `127.0.0.1:<port>`
@@ -477,6 +479,10 @@ git commit -m "feat(stack-decision): server with fate"
 - Modify: root `package.json` (`ready` ends with `vp run --filter uraeda-web build`; `dev` runs the
   server's and the UI's `dev`; `start` builds the UI and starts the server with
   `--web-root packages/web/dist`), `packages/server/src/options.ts` (`--web-root`)
+- Create: `packages/web/.fate/client.generated.ts`, written by fate's Vite plugin, committed like
+  the binding's generated files, and included by `packages/web/tsconfig.json` (`.fate/*.ts`)
+- Modify: root `vite.config.ts` (`test.projects: ["packages/*"]`, so each package's tests run with
+  its own Vite config; `dist/` and `.fate/` left out of formatting and linting)
 - Test: `packages/web/src/__tests__/TemporaryStatusPage.test.tsx`, helper `renderPage(specs)` in
   `packages/web/src/__tests__/helpers.tsx`
 
@@ -485,7 +491,7 @@ git commit -m "feat(stack-decision): server with fate"
 - Consumes: `createApp` (task 4), its fate module, `fixture` (task 3).
 - Produces: `TemporaryStatusPage` component.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `renderPage(specs)` renders `<App client={client}>` with a fate client whose `fetch` calls
 `createApp({ specs, port: 4310, allowOrigins: [] }).request(...)`, with `Host: 127.0.0.1:4310`.
@@ -499,20 +505,20 @@ git commit -m "feat(stack-decision): server with fate"
 - `shows when the server cannot be reached`: a `fetch` that rejects → text
   `Could not reach the Uraeda server.`
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web`
 - Expected: FAIL, cannot find `../TemporaryStatusPage.tsx`
 
-- [ ] **Step 3: Implement `TemporaryStatusPage` with Astryx components, following the
+- [x] **Step 3: Implement `TemporaryStatusPage` with Astryx components, following the
       [mockup](mockups/status-page.html), with `// TEMPORARY: replaced by the web UI feature.`**
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web packages/server pnpm-lock.yaml package.json specs/2026-10-10-stack-decision/plan.md

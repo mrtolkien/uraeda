@@ -17,6 +17,10 @@ export type TemporarySpecFolder = { [Key in keyof FolderStatus]: FolderStatus[Ke
 export type TemporaryReadSpecs = (path: string) => Array<FolderStatus>;
 
 // TEMPORARY: replaced by the web UI feature.
+/** fate's request context: where the spec folders of this server are read from. */
+export type TemporarySpecFolderContext = { readSpecFolders: () => Array<FolderStatus> };
+
+// TEMPORARY: replaced by the web UI feature.
 export const temporarySpecFolderView = dataView<TemporarySpecFolder>("SpecFolder")({
   id: true,
   name: true,
@@ -33,26 +37,34 @@ const temporarySpecFolderSource: SourceDefinition<TemporarySpecFolder> = {
 };
 
 // TEMPORARY: replaced by the web UI feature.
-/** The fate sources reading spec folders from `specs` on every request. */
-export function temporarySpecFolderSources(specs: string, readSpecs: TemporaryReadSpecs) {
-  const read = (): Array<TemporarySpecFolder> =>
-    readSpecs(specs).map((folder) => ({ ...folder, id: folder.name }));
+/** The fate sources reading the spec folders of the request's context, on every request. */
+export function temporarySpecFolderSources() {
+  const read = (ctx: TemporarySpecFolderContext): Array<TemporarySpecFolder> =>
+    ctx.readSpecFolders().map((folder) => ({ ...folder, id: folder.name }));
 
   // fate's own tests build a registry this way; the executor type is not exported.
   const registry = new Map([
     [
       temporarySpecFolderSource,
       {
-        byIds: async ({ ids }: { ids: Array<string> }) =>
-          read().filter((folder) => ids.includes(folder.id)),
-        connection: async ({ cursor, take }: { cursor?: string; take: number }) => {
-          const folders = read();
+        byIds: async ({ ctx, ids }: { ctx: TemporarySpecFolderContext; ids: Array<string> }) =>
+          read(ctx).filter((folder) => ids.includes(folder.id)),
+        connection: async ({
+          ctx,
+          cursor,
+          take,
+        }: {
+          ctx: TemporarySpecFolderContext;
+          cursor?: string;
+          take: number;
+        }) => {
+          const folders = read(ctx);
           const start = cursor ? folders.findIndex((folder) => folder.id === cursor) + 1 : 0;
           return folders.slice(start, start + take);
         },
       },
     ],
-  ]) as unknown as SourceRegistry<unknown>;
+  ]) as unknown as SourceRegistry<TemporarySpecFolderContext>;
 
   return {
     // One source serves every view: fate asks for the source of a view or of a type.
