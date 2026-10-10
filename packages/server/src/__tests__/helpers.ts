@@ -18,9 +18,9 @@ export function testApp(specs = fixture("specs")) {
 
 /** Sends one native fate operation listing the spec folders. */
 export async function listSpecFolders(app: ReturnType<typeof testApp>) {
-  const response = await app.request("/fate", {
+  const response = await app.request(`http://127.0.0.1:${port}/fate`, {
     method: "POST",
-    headers: { "content-type": "application/json", host: `127.0.0.1:${port}` },
+    headers: { "content-type": "application/json" },
     body: JSON.stringify({
       operations: [{ id: "1", kind: "list", name: "specFolders", select: ["id", "name", "files"] }],
       version: 1,
