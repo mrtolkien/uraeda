@@ -246,7 +246,7 @@ fn read_status(kind: Kind, path: &Path) -> Result<Status, String> {
         None
     } else {
         serde_saphyr::from_str(yaml)
-            .map_err(|error| format!("frontmatter is not valid YAML: {error}"))?
+            .map_err(|error| format!("frontmatter is not valid YAML: {}", yaml_message(&error)))?
     };
     let value = match frontmatter.and_then(|frontmatter| frontmatter.status) {
         None => return Err("no status field".to_string()),
@@ -276,4 +276,12 @@ fn frontmatter(text: &str) -> Option<&str> {
         end += line.len();
     }
     None
+}
+
+/// The parser's message on one line: its first line, without its own `error: ` prefix, and
+/// without the code snippet that follows.
+fn yaml_message(error: &impl std::fmt::Display) -> String {
+    let message = error.to_string();
+    let first = message.lines().next().unwrap_or_default();
+    first.strip_prefix("error: ").unwrap_or(first).to_string()
 }
