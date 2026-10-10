@@ -1,13 +1,16 @@
 export default {
   staged: {
-    "*": "vp check --fix",
+    "*.rs": "rustfmt",
+    "!(*.rs)": "vp check --fix",
   },
   lint: {
+    ignorePatterns: ["fixtures/**"],
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
     rules: { "vite-plus/prefer-vite-plus-imports": "error" },
     options: { typeAware: true, typeCheck: true },
   },
   fmt: {
+    ignorePatterns: ["fixtures/**"],
     proseWrap: "always",
   },
 };
