@@ -87,3 +87,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: fixing them all now: more code in a slice meant to be replaced.
 - **If wrong**: each is a small fix with a test, listed here so it is not lost.
 - **Where**: final review
+
+## R7: CI installs without scripts
+
+- **Decision**: CI runs `pnpm install --frozen-lockfile --ignore-scripts`.
+- **Rationale**: the root `prepare` script, `vp config`, sets up git hooks and rewrites the Vite+
+  section of AGENTS.md without its line wrapping, so the first CI run failed the formatting check.
+  CI needs neither.
+- **Alternatives considered**: leaving AGENTS.md out of formatting: it would lose its checks.
+- **If wrong**: a dependency that needs its install script in CI fails the build; none does today.
+  Locally, `vp install` still rewrites AGENTS.md, as it did before this feature.
+- **Where**: `.github/workflows/ci.yml`
