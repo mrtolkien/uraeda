@@ -12,7 +12,8 @@ use std::path::{Path, PathBuf};
 use napi_derive::napi;
 use serde::Deserialize;
 
-// TEMPORARY: replaced by the CLI feature.
+/// TEMPORARY: replaced by the CLI feature.
+///
 /// A workflow file's status, as written in its frontmatter.
 #[cfg_attr(feature = "napi", napi(string_enum = "kebab-case"))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -24,6 +25,7 @@ pub enum Status {
     AutoApproved,
 }
 
+// TEMPORARY: replaced by the CLI feature.
 impl Status {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -36,7 +38,8 @@ impl Status {
     }
 }
 
-// TEMPORARY: replaced by the CLI feature.
+/// TEMPORARY: replaced by the CLI feature.
+///
 /// One workflow file: exactly one of `status` and `problem` is set.
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -49,7 +52,8 @@ pub struct FileStatus {
     pub problem: Option<String>,
 }
 
-// TEMPORARY: replaced by the CLI feature.
+/// TEMPORARY: replaced by the CLI feature.
+///
 /// A feature folder and its workflow files: clarifications rounds in order, then `spec.md`, then
 /// `plan.md`.
 #[cfg_attr(feature = "napi", napi(object))]

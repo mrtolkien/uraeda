@@ -12,18 +12,19 @@ export function App({ client }: { client: ReturnType<typeof createFateClient> })
       <Stack gap={4} padding={6} maxWidth={720}>
         <Text type="label">Uraeda</Text>
         <Heading level={1}>Specs</Heading>
-        <ServerErrorBoundary>
+        <TemporaryServerErrorBoundary>
           <Suspense fallback={<Text type="supporting">Loading…</Text>}>
             <TemporaryStatusPage />
           </Suspense>
-        </ServerErrorBoundary>
+        </TemporaryServerErrorBoundary>
       </Stack>
     </FateClient>
   );
 }
 
+// TEMPORARY: replaced by the web UI feature.
 /** Shows that the server could not be reached when a request fails. */
-class ServerErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+class TemporaryServerErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
 
   static getDerivedStateFromError() {

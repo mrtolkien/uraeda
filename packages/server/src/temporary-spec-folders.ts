@@ -31,6 +31,7 @@ export const temporarySpecFolderView = dataView<TemporarySpecFolder>("SpecFolder
 /** Every feature folder, newest first: names start with their date. */
 export const temporarySpecFolders = list(temporarySpecFolderView, { orderBy: { id: "desc" } });
 
+// TEMPORARY: replaced by the web UI feature.
 const temporarySpecFolderSource: SourceDefinition<TemporarySpecFolder> = {
   id: "id",
   view: temporarySpecFolderView,

@@ -168,7 +168,8 @@ The workflow itself is in the [Uraeda skill](skills/uraeda/SKILL.md), with one
 ## Building the tools
 
 The tools are a skeleton for now: a Rust core, the `ura` CLI, a server, and a web UI, which only
-show the status of workflow files. With Rust, Node 24, and pnpm, or `nix develop`:
+show the status of workflow files. With Rust, Node 24, and pnpm, or in `nix develop`, where
+`pnpm install` stands for `vp install`:
 
 ```sh
 vp install         # dependencies
