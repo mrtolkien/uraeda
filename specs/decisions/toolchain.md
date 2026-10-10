@@ -6,16 +6,16 @@ approved-by:
 # Toolchain
 
 One command, `vp run ready`, runs every format check, lint, type check, test, and build of the
-repository, in both languages, and CI runs that command, inside the Nix dev shell where Nixpkgs
-supports the platform, on Linux and macOS. Every tool is pinned, so a contributor, an agent, and CI
-get the same results.
+repository, in both languages, and CI runs that command inside the Nix dev shell, on Linux x64.
+Every tool is pinned, so a contributor, an agent, and CI get the same results.
 
 ## Rules
 
 - `vp run ready` MUST run every check of the repository. A new language, package, crate, or tool
   MUST add its checks to it.
-- CI MUST run `vp run ready` on Linux and macOS, on x64 and arm64, inside the `flake.nix` dev shell
-  on every platform Nixpkgs supports, and MUST fail when the build leaves the working tree changed.
+- CI MUST run `vp run ready` inside the `flake.nix` dev shell, on Linux x64, and MUST fail when the
+  build leaves the working tree changed. Other platforms are built by the release matrix, not
+  validated.
 - Checks too slow for every local run, like the release binary's size, MAY run in CI only.
 - Rust code MUST pass `cargo fmt --check`, `cargo clippy` with warnings as errors, and `cargo test`.
 - The Rust toolchain MUST be pinned in `rust-toolchain.toml`, with the 2024 edition; Node and pnpm
@@ -32,8 +32,10 @@ the only entry point
 a Nix dev shell that CI uses
 ([Q10](../2026-10-10-stack-decision/clarifications-01.md#q10-how-do-contributors-and-agents-get-the-toolchain)),
 and Linux and macOS first
-([Q5](../2026-10-10-stack-decision/clarifications-01.md#q5-which-platforms-are-supported)). Agents
-check their own work: one command they cannot forget a part of keeps them honest
+([Q5](../2026-10-10-stack-decision/clarifications-01.md#q5-which-platforms-are-supported)),
+validated on Linux x64 only, as the human asked when reviewing the
+[spec](../2026-10-10-stack-decision/spec.md). Agents check their own work: one command they cannot
+forget a part of keeps them honest
 ([monorepo tooling](../2026-10-10-stack-decision/discovery-01.md#monorepo-tooling)).
 
 ## Alternatives considered
@@ -45,8 +47,8 @@ check their own work: one command they cannot forget a part of keeps them honest
 
 - A green `vp run ready` locally means a green CI, except for committed generated files and the
   CI-only checks.
-- macOS x64 runs outside Nix, since Nixpkgs drops it after 2026.
-- CI is slower: it installs the Nix shell and builds Rust on four runners.
+- CI is slower: it installs the Nix shell and builds Rust.
+- A bug specific to macOS or arm64 is only caught by the release builds, or by a contributor.
 - Generated declarations show up in diffs, so a reviewer sees every change to the types crossing
   from Rust.
 

@@ -24,8 +24,11 @@ hand.
   states.
 - The TypeScript types of core data MUST come from the declarations napi-rs generates for the
   binding. They MUST NOT be redeclared by hand in TypeScript.
-- The web UI MUST use React, Astryx components, and fate, live in [`packages/web`](/packages/web/),
-  and get its data only from the server, through fate.
+- The web UI MUST use React and Astryx components, live in [`packages/web`](/packages/web/), and get
+  its data only from the server, through fate unless the next rule replaced it.
+- If fate needs anything `@nkzw/fate` does not export, or a patch, to read data that is not in a
+  database, the stack-decision feature MUST replace it with JSON routes read by Hono's typed client
+  (`hc`) and TanStack Query, and say so in its pull request.
 - The server MUST listen on 127.0.0.1 only, and MUST reject requests whose `Host` is not `127.0.0.1`
   or `localhost` on its port, or whose `Origin`, when present, is not an allowed origin.
 
@@ -41,6 +44,12 @@ share one core without a second parser
 [language split](../2026-10-10-stack-decision/discovery-01.md#language-split)). The server will
 commit to git and start agents, so a web page the user visits must not reach it
 ([local server security](../2026-10-10-stack-decision/discovery-01.md#local-server-security)).
+
+fate is preferred over a plain JSON client because the web UI will hold live, graph-like data:
+sub-agents and their runs, streamed responses, and drafts of answers edited in the browser. fate's
+normalized cache, live views, and optimistic updates are built for that; with TanStack Query, each
+of them is written by hand. Today's status page needs none of it, which is why fate may still be
+dropped if it cannot read data that is not in a database.
 
 ## Alternatives considered
 
@@ -64,3 +73,8 @@ commit to git and start agents, so a web page the user visits must not reach it
 
 - [`crates/`](/crates/) and [`packages/`](/packages/), and every feature that adds logic, a command,
   an endpoint, or a page
+
+## Revisit when
+
+The stack-decision feature's pull request reports whether fate shipped: the data layer rules then
+keep only the one that did.
