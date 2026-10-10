@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stack decision: status page mockups</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        font:
+          15px/1.4 system-ui,
+          sans-serif;
+        color: #1f2328;
+        background: #f6f7f9;
+      }
+      h2 {
+        margin: 0 0 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #59636e;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .screens {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 32px;
+        align-items: flex-start;
+      }
+      .page {
+        width: 420px;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+        overflow: hidden;
+      }
+      .bar {
+        padding: 12px 16px;
+        border-bottom: 1px solid #eef0f2;
+        font-weight: 600;
+      }
+      .content {
+        padding: 16px;
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: 20px;
+      }
+      .folder {
+        margin-bottom: 16px;
+      }
+      .folder h3 {
+        margin: 0 0 4px;
+        font-size: 15px;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 6px 0;
+        border-bottom: 1px solid #eef0f2;
+      }
+      .file {
+        font-family: ui-monospace, monospace;
+        font-size: 13px;
+      }
+      .badge {
+        padding: 1px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .waiting {
+        background: #fff4d6;
+        color: #7a5200;
+      }
+      .done {
+        background: #dcf5e3;
+        color: #1a6b34;
+      }
+      .error {
+        background: #ffe1e1;
+        color: #a01c1c;
+      }
+      .muted {
+        color: #59636e;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="screens">
+      <section>
+        <h2>Feature folders, newest first</h2>
+        <div class="page">
+          <div class="bar">Uraeda</div>
+          <div class="content">
+            <h1>Specs</h1>
+            <div class="folder">
+              <h3>2026-10-12-keyboard-shortcuts</h3>
+              <div class="muted">No workflow files yet</div>
+            </div>
+            <div class="folder">
+              <h3>2026-10-10-stack-decision</h3>
+              <div class="row">
+                <span class="file">clarifications-01.md</span
+                ><span class="badge done">answered</span>
+              </div>
+              <div class="row">
+                <span class="file">spec.md</span><span class="badge waiting">awaiting-human</span>
+              </div>
+            </div>
+            <div class="folder">
+              <h3>2026-10-06-recurring-tasks</h3>
+              <div class="row">
+                <span class="file">clarifications-01.md</span
+                ><span class="badge done">answered</span>
+              </div>
+              <div class="row">
+                <span class="file">spec.md</span><span class="badge done">approved</span>
+              </div>
+              <div class="row">
+                <span class="file">plan.md</span
+                ><span class="badge error">Invalid: unknown status "done"</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2>No feature folder</h2>
+        <div class="page">
+          <div class="bar">Uraeda</div>
+          <div class="content">
+            <h1>Specs</h1>
+            <div class="muted">No feature folders in specs/</div>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2>Server unreachable</h2>
+        <div class="page">
+          <div class="bar">Uraeda</div>
+          <div class="content">
+            <h1>Specs</h1>
+            <div class="badge error">Could not reach the Uraeda server.</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>
