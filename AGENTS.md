@@ -39,6 +39,20 @@ editing it.
   - `assets/templates/specs/`: artifact skeletons, at the same paths as in a user's `specs/` folder
   - `assets/example/specs/`: a filled-in example project (todo app), at the same paths
 - `specs/`: Uraeda's own workflow files. Not the templates installed in users' projects.
+- `crates/`: Rust, in one cargo workspace
+  - `core/` (`uraeda-core`): the workflow logic, parsing, validation, and states, shared by every
+    tool
+  - `cli/` (`uraeda-cli`): the `ura` binary
+  - `binding/` (`uraeda-binding`): the core's Node binding, built with napi-rs
+- `packages/`: TypeScript, in one pnpm workspace
+  - `binding/`: the binding's npm package, with its generated `index.js` and `index.d.ts`
+  - `server/`: the Hono server on Node, serving fate's protocol at `/fate` and the built UI
+  - `web/`: the React web UI, with Astryx components and fate
+- `fixtures/`: workflow files shared by the Rust and TypeScript tests, some broken on purpose
+
+The [stack](specs/decisions/stack.md) and [toolchain](specs/decisions/toolchain.md) decisions say
+what goes where. Code marked `TEMPORARY:` is a placeholder that a named feature replaces: change it
+freely, and do not build on it.
 
 A change to the workflow touches the skill, its templates, and the example together: a step's
 reference, its template, and the example's file must agree.
@@ -89,7 +103,8 @@ local `vite-plus` package. Use `vp why <package>` to show the package-manager de
 ## Review Checklist
 
 - [ ] Run `vp install` after pulling remote changes and before getting started.
-- [ ] Run `vp check` and `vp test` to format, lint, type check and test changes.
+- [ ] Run `vp run ready` to format, lint, type check, test, and build everything, Rust included.
+      `vp check` and `vp test` alone do not run cargo. `nix develop` gives the pinned toolchain.
 - [ ] Check if there are `vite.config.ts` tasks or `package.json` scripts necessary for validation,
       run via `vp run <script>`.
 - [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include

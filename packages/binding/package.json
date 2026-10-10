@@ -1,0 +1,25 @@
+{
+  "name": "uraeda-binding",
+  "private": true,
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./test-utils": "./test-utils.ts"
+  },
+  "scripts": {
+    "build": "napi build --platform --esm --no-const-enum --manifest-path ../../crates/binding/Cargo.toml --output-dir ."
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "3.10.8",
+    "@types/node": "^24.19.1"
+  },
+  "napi": {
+    "binaryName": "uraeda-binding"
+  }
+}

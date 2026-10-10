@@ -1,0 +1,23 @@
+{
+  "name": "uraeda-server",
+  "private": true,
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/app.ts",
+    "./fate": "./src/fate.ts"
+  },
+  "scripts": {
+    "start": "node src/main.ts",
+    "dev": "node --watch src/main.ts --specs ../../specs --allow-origin http://localhost:5173"
+  },
+  "dependencies": {
+    "@hono/node-server": "2.1.4",
+    "@nkzw/fate": "1.7.7",
+    "hono": "4.13.13",
+    "uraeda-binding": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.1"
+  }
+}
