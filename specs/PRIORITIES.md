@@ -2,7 +2,7 @@
 
 ## Now
 
-- CLI for basic setup and upkeep
+- [CLI for basic setup and upkeep](/specs/2026-10-10-cli-core/proposal.md)
 - Basic web UI for _viewing_ the workflow files -> React + Astryx + Fate stack, see
   [draft](drafts/web-ui.md)
 
