@@ -275,7 +275,7 @@ git commit -m "feat(stack-decision): core reads workflow statuses"
 - Produces: the binary `ura`, with `ura status <folder>`;
   `fn temporary_render(&FolderStatus) -> String` in `crates/cli/src/temporary_status.rs`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Run the binary from `env!("CARGO_BIN_EXE_ura")` with `std::process::Command`, through a helper
 `ura(args) -> (stdout, stderr, code)` in `crates/cli/tests/common/mod.rs`:
@@ -294,24 +294,25 @@ Run the binary from `env!("CARGO_BIN_EXE_ura")` with `std::process::Command`, th
   `(temporary)`.
 - `unknown_command_exits_with_two`: `ura nope` → code 2.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-cli`
 - Expected: FAIL, `package ID specification uraeda-cli did not match any packages`
 
-- [ ] **Step 3: Implement `main` with clap derive, and
+- [x] **Step 3: Implement `main` with clap derive, and
       `temporary_status::run(path: &Path) ->     ExitCode`**
 
 The path is printed as the user typed it. Lines are padded to the longest file name plus two spaces.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Add to `ready`, after `cargo test`:
-  `cargo tree -p uraeda-cli -e features --prefix none | (! grep -q '^napi')`.
+  `(! cargo tree -p uraeda-cli -e features --prefix none | grep -qE '^napi(-derive)? v')`, which
+  ignores the core's `napi-build` build dependency.
 - Run: `vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/cli Cargo.lock package.json specs/2026-10-10-stack-decision/plan.md

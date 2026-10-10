@@ -4,7 +4,7 @@
   "license": "MIT OR Apache-2.0",
   "scripts": {
     "prepare": "vp config",
-    "ready": "cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace && vp check && vp test --passWithNoTests"
+    "ready": "cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace && (! cargo tree -p uraeda-cli -e features --prefix none | grep -qE '^napi(-derive)? v') && vp check && vp test --passWithNoTests"
   },
   "devDependencies": {
     "vite-plus": "catalog:"
