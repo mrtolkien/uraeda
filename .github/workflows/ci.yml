@@ -14,7 +14,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Install dependencies
-        run: nix develop --command pnpm install --frozen-lockfile
+        # Without scripts: `prepare` runs `vp config`, which sets up git hooks and rewrites the
+        # Vite+ section of AGENTS.md unwrapped, failing the formatting check.
+        run: nix develop --command pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Run every check
         run: nix develop --command pnpm exec vp run ready
