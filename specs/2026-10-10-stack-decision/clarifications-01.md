@@ -78,7 +78,8 @@ Why it matters: this lasts for the life of the project, and every later feature 
   - [con] no Astryx: Rust component libraries are small, and the frameworks are pre-1.0, with
     breaking changes.
 
-**Answer:**
+**Answer:** C but with napi-rs to integrate the Rust code instead. Take inspiration from oxc/vite
+plus if you need.
 
 ### Q1.A: How does the React UI get its data from the Rust backend?
 
@@ -172,7 +173,12 @@ Why it matters: it decides what a user installs, and how the skeleton's crates f
   - [pro] ready for servers and remote runners.
   - [con] Docker is required to use the UI locally.
 
-**Answer:**
+**Answer:** The CLI is a Rust binary, the server is a Typscript program, so it's B/C.
+
+The CLI is meant for human/coding agent usage, and the server is meant for fully autonomous
+workflows. The CLI should stay relatively small. Making the server into a container image should be
+trivial, but we'll develop locally with node. This aligns with my Q1: CLI only in Rust, full server
+in typescript integrating a Rust module for all the workflow logic (shared with the CLI).
 
 ## Q3: Where are workflow files parsed and validated?
 
@@ -197,7 +203,7 @@ Why it matters: two parsers would disagree on the same file.
   - [pro] one parser, running in the browser.
   - [con] bindings and serialization to maintain, and a bundle size not measured.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: What does the skeleton do?
 
@@ -219,7 +225,8 @@ it to the next ones.
   - [pro] every design is left to its feature.
   - [con] sharing and type generation stay untested until the next feature.
 
-**Answer:**
+**Answer:** A, and we should pay a particular focus to how seamless the types and languages
+frontiers are. If implementation is painful, we might change the approach.
 
 ## Q5: Which platforms are supported?
 
@@ -241,7 +248,7 @@ Why it matters: it sets the CI matrix now, and the release targets later.
   - [pro] the smallest setup.
   - [con] no macOS, where many developers work.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: Under which license is Uraeda published?
 
@@ -264,7 +271,7 @@ others contribute.
   - [pro] nothing is given away early.
   - [con] nobody may legally use or contribute to the code meanwhile.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: Which Rust libraries does the skeleton start from?
 
@@ -287,7 +294,7 @@ Why it matters: these become the project's first dependencies, and later feature
   - [pro] an OpenAPI description of the API, usable by other clients.
   - [con] handlers carry annotations, and the types go through one more format.
 
-**Answer:**
+**Answer:** I trust you with the specific selection of dependencies, knowing we'll use napi-rs.
 
 ## Q8: How is the repository laid out?
 
@@ -307,7 +314,7 @@ With B in Q1, everything is in `packages/`. More in [discovery](discovery-01.md#
   - [pro] the fewest folders.
   - [con] the core cannot be shared without splitting the crate later.
 
-**Answer:**
+**Answer:** A with `crates` and `packages`
 
 ## Q9: Which single command runs every check?
 
@@ -329,7 +336,7 @@ needs no new tool. More in [discovery](discovery-01.md#root-command).
   - [pro] parallel tasks that skip unchanged work, and pinned tools.
   - [con] a new tool that also overlaps with what Vite+ manages.
 
-**Answer:**
+**Answer:** A
 
 ## Q10: How do contributors and agents get the toolchain?
 
@@ -354,7 +361,7 @@ Today only pnpm is pinned, through `devEngines`, and Vite+ manages Node. Vite+ i
   - [pro] services, processes, and containers built from the environment.
   - [con] one more tool, and no Windows.
 
-**Answer:**
+**Answer:** A
 
 ## Q11: What does the skeleton set up beyond local checks?
 
@@ -374,9 +381,13 @@ Bun builds binaries for every platform. With A in Q5, CI runs on Linux and macOS
   - [pro] no setup.
   - [con] the root command is only as reliable as each contributor's habit.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
+
+> [!WARNING] I want the binary to be called `ura` and not `uraeda`
+>
+> An agent should delete that message after acknowledging it and changing the name below
 
 - **Git integration** stays out of the skeleton, which needs no git. Embedding git, or using the
   system `git`, is decided by the CLI or git listener feature, with these findings: gix cannot push,
