@@ -1,8 +1,10 @@
 {
   "name": "uraeda",
   "private": true,
+  "license": "MIT OR Apache-2.0",
   "scripts": {
-    "prepare": "vp config"
+    "prepare": "vp config",
+    "ready": "cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace && vp check && vp test --passWithNoTests"
   },
   "devDependencies": {
     "vite-plus": "catalog:"
@@ -11,6 +13,11 @@
     "packageManager": {
       "name": "pnpm",
       "version": "12.9.1",
+      "onFail": "download"
+    },
+    "runtime": {
+      "name": "node",
+      "version": "^24.0.0",
       "onFail": "download"
     }
   }

@@ -174,14 +174,14 @@ Fixtures, one folder per case, under `fixtures/specs/`:
     `Status::as_str(&self) -> &'static str` returning the kebab-case value
   - `struct FileStatus { file: String, status: Option<Status>, problem: Option<String> }`
   - `struct FolderStatus { name: String, files: Vec<FileStatus> }`
-  - `enum CoreError { NoSuchFolder(PathBuf), NotAFolder(PathBuf), Io(PathBuf, String) }`, with
-    `Display`: `"{path}: no such folder"`, `"{path}: not a folder"`, `"{path}: {message}"`
+  - `enum CoreError { NoSuchFolder(PathBuf), NotAFolder(PathBuf), Io { path: PathBuf, message: String } }`,
+    with `Display`: `"{path}: no such folder"`, `"{path}: not a folder"`, `"{path}: {message}"`
   - `fn temporary_read_folder(path: &Path) -> Result<FolderStatus, CoreError>`
   - `fn temporary_read_specs(path: &Path) -> Result<Vec<FolderStatus>, CoreError>`
-  - With the `napi` feature: `Status` is a `#[napi(string_enum)]` with `#[napi(value = "...")]` per
-    variant, and the two structs are `#[napi(object)]`.
+  - With the `napi` feature: `Status` is a `#[napi(string_enum = "kebab-case")]`, and the two
+    structs are `#[napi(object)]` ([R1](rulings.md#r1-kebab-case-string-enum)).
 
-- [ ] **Step 1: Write the failing tests, and the fixtures they use**
+- [x] **Step 1: Write the failing tests, and the fixtures they use**
 
 ```rust
 // crates/core/tests/temporary_status.rs
@@ -227,12 +227,12 @@ Also: `plan_with_unknown_status_is_invalid` (recurring-tasks: `plan.md` →
 `CARGO_MANIFEST_DIR/../../fixtures`) and `summary(&FolderStatus) -> Vec<(&str, String)>` live in
 `crates/core/tests/common/mod.rs`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core`
 - Expected: FAIL to compile, `unresolved import uraeda_core::temporary_status`
 
-- [ ] **Step 3: Implement `temporary_read_folder` and `temporary_read_specs` in
+- [x] **Step 3: Implement `temporary_read_folder` and `temporary_read_specs` in
       `crates/core/src/temporary_status.rs`**
 
 The module and each item open with `// TEMPORARY: replaced by the CLI feature.` Workflow files match
@@ -245,14 +245,15 @@ only, sorted by name descending. `build.rs` calls `napi_build::setup()` only whe
 `CARGO_FEATURE_NAPI` is set. The `napi` feature enables the optional `napi` and `napi-derive`
 dependencies (`napi` with default features off and `napi4`), and `napi-build` is a build dependency.
 
-- [ ] **Step 4: Run all tests, and set up `ready`**
+- [x] **Step 4: Run all tests, and set up `ready`**
 
 - Add to `package.json`:
-  `"ready": "cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace && vp check && vp test"`.
+  `"ready": "cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace && vp check && vp test --passWithNoTests"`.
+  `--passWithNoTests` goes away in task 3, with the first TypeScript test.
 - Run: `vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Cargo.toml Cargo.lock rust-toolchain.toml rustfmt.toml LICENSE-MIT LICENSE-APACHE crates/core fixtures package.json .gitignore vite.config.ts specs/2026-10-10-stack-decision/plan.md
