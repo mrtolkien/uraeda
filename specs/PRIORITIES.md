@@ -16,6 +16,7 @@
 
 ## Later
 
+- ?Slack integration?
 - Nix + Docker based execution environments
 - Dedicated Pi-durable runtime with basic tooling
   - Web tools in pi-durable
