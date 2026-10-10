@@ -529,6 +529,8 @@ git commit -m "feat(stack-decision): temporary status page"
 
 **Files:**
 
+- Modify: `pnpm-workspace.yaml` (`allowBuilds: { "@astryxdesign/core": false }`: its postinstall
+  only prints a nudge, and a frozen install fails on unapproved build scripts)
 - Create: `flake.nix`, `flake.lock` (nixpkgs unstable, rust-overlay reading `rust-toolchain.toml`,
   `nodejs_24`, `pnpm`), `.github/workflows/ci.yml`
 - Modify: `AGENTS.md` (layout, stack, `vp run ready` in the checklist), `README.md` (building and
@@ -539,26 +541,26 @@ git commit -m "feat(stack-decision): temporary status page"
 - Consumes: the `ready`, `dev`, and `start` scripts (tasks 1 to 5).
 - Produces: CI on `ubuntu-latest`.
 
-- [ ] **Step 1: Write the CI workflow**
+- [x] **Step 1: Write the CI workflow**
 
 On push and pull request: checkout, install Nix (`cachix/install-nix-action`), then in
 `nix develop --command`: `pnpm install --frozen-lockfile`, `pnpm exec vp run ready`,
 `test -z "$(git status --porcelain)"`, and `cargo build --release -p uraeda-cli` followed by a size
 check of `target/release/ura` under 3,000,000 bytes.
 
-- [ ] **Step 2: Run the CI steps locally in the dev shell**
+- [x] **Step 2: Run the CI steps locally in the dev shell**
 
 - Run: `nix develop --command bash -c 'pnpm install --frozen-lockfile && pnpm exec vp run ready'`
 - Expected: PASS
 
-- [ ] **Step 3: Update AGENTS.md and the README**
+- [x] **Step 3: Update AGENTS.md and the README**
 
-- [ ] **Step 4: Run all checks**
+- [x] **Step 4: Run all checks**
 
 - Run: `vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add flake.nix flake.lock .github AGENTS.md README.md specs/2026-10-10-stack-decision/plan.md
