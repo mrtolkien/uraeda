@@ -53,3 +53,37 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the wrong folder in tests and with `--specs`.
 - **If wrong**: nothing outside the temporary source depends on the context's shape.
 - **Where**: task 5, `packages/server/src/fate.ts`, `packages/server/src/app.ts`
+
+## R5: One page of 1,000 spec folders
+
+- **Decision**: the status page asks fate for its list with `first: 1000`.
+- **Rationale**: fate pages lists by 20 by default, and the final review found the page silently
+  dropped every folder past the 20th. Its in-memory connection helper is not exported, so a custom
+  list resolver would rebuild fate's pagination by hand.
+- **Alternatives considered**: a "load more" button: UI the web UI feature should design.
+- **If wrong**: a repository with more than 1,000 feature folders shows the 1,000 newest; the page
+  is temporary.
+- **Where**: final review, `packages/web/src/TemporaryStatusPage.tsx`
+
+## R6: Minor findings of the final review left as they are
+
+- **Decision**: these stay unfixed, for the human to decide, since the status slice is temporary and
+  its replacements will redesign them:
+  - a UTF-8 byte order mark before `---` reads as "no frontmatter"; `status: ~` reads as "no status
+    field";
+  - symbolic links to files or folders are skipped;
+  - one unreadable feature folder fails the whole list, and the page shows "Could not reach the
+    Uraeda server.";
+  - the temporary source ignores backward pagination;
+  - `loadBinding` reports any load failure, an ABI mismatch included, as "not built";
+  - `--port 80` rejects every request, since a URL drops its default port;
+  - `vp run dev` allows the origin `http://localhost:5173` only;
+  - CI runs twice on a pull request's pushes, pins actions by tag, and its Rust cache step runs
+    outside the Nix shell;
+  - some tests check less than they could: each folder's files on the page, the badge's error
+    variant, the exact two-space line of a lone `plan.md`, static files behind the guard.
+- **Rationale**: none changes what the skeleton proves; each is cheap to fix when its feature needs
+  it.
+- **Alternatives considered**: fixing them all now: more code in a slice meant to be replaced.
+- **If wrong**: each is a small fix with a test, listed here so it is not lost.
+- **Where**: final review
