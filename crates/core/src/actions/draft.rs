@@ -60,6 +60,22 @@ pub fn run(place: &Place, query: &str) -> Result<Drafted, ActionError> {
             )));
         }
     };
+    draft_entry(place, &text, entry)
+}
+
+/// Drafts the line of `PRIORITIES.md` with the id `id`, like `next-2`, as the web UI names it.
+pub fn create(place: &Place, id: &str) -> Result<Drafted, ActionError> {
+    let text = fs::read_to_string(place.root.join(PRIORITIES))?;
+    let entries = priorities::parse(&text);
+    let entry = entries
+        .iter()
+        .find(|entry| format!("{}-{}", entry.section.id(), entry.position) == id)
+        .ok_or_else(|| ActionError::Refused(format!("no priority {id}")))?;
+    draft_entry(place, &text, entry)
+}
+
+fn draft_entry(place: &Place, text: &str, entry: &Entry) -> Result<Drafted, ActionError> {
+    let priorities_path = place.root.join(PRIORITIES);
     if let Some(link) = &entry.link {
         return Err(ActionError::Refused(format!(
             "{} already links {link}",
@@ -75,7 +91,7 @@ pub fn run(place: &Place, query: &str) -> Result<Drafted, ActionError> {
         .ok_or_else(|| ActionError::Refused("no proposal template".into()))?;
     let content = template.replacen("# [Feature name]", &format!("# {}", entry.text), 1);
     let target = path.trim_start_matches("specs/");
-    let linked = priorities::link(&text, entry.line, target)
+    let linked = priorities::link(text, entry.line, target)
         .ok_or_else(|| ActionError::Refused("cannot link the line".into()))?;
     fs::create_dir_all(draft.parent().unwrap_or(&place.root))?;
     fs::write(&draft, content)?;

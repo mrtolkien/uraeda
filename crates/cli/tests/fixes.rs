@@ -219,7 +219,8 @@ fn start_moves_a_folder_with_an_ignored_file() {
     let output = ura(&repo, &["start", "specs/backlog/bench"]);
 
     assert_eq!(output.code, 0, "{}", output.stderr);
-    assert!(repo.exists("specs/2026-10-11-bench/proposal.md"));
+    assert!(repo.exists(".worktrees/2026-10-11-bench/specs/2026-10-11-bench/proposal.md"));
+    assert!(!repo.exists(".worktrees/2026-10-11-bench/specs/backlog/bench/proposal.md"));
     assert_eq!(repo.porcelain(), "");
 }
 
@@ -267,7 +268,7 @@ fn a_drafted_unicode_line_starts() {
 }
 
 #[test]
-fn a_failed_start_commit_stays_on_the_default_branch() {
+fn a_failed_start_commit_leaves_the_checkout_on_its_branch() {
     let repo = TestRepo::new();
     specs(
         &repo,
@@ -284,7 +285,11 @@ fn a_failed_start_commit_stays_on_the_default_branch() {
     let output = ura(&repo, &["start", "tags"]);
 
     assert_eq!(output.code, 1);
-    assert_eq!(repo.current_branch(), "main");
+    assert_eq!(repo.current_branch(), "other");
+    assert!(
+        repo.read(".worktrees/main/specs/PRIORITIES.md")
+            .contains("- [Tags](/specs/2026-10-11-tags/proposal.md)")
+    );
     assert!(
         output.stderr.ends_with(
             "ura: git commit failed: boom\nLeft: commit specs/PRIORITIES.md on main as \"chore(tags): start Tags\", then create the branch 2026-10-11-tags, then move specs/drafts/tags.md to specs/2026-10-11-tags, then commit specs/2026-10-11-tags/proposal.md as \"chore(tags): proposal\".\n"

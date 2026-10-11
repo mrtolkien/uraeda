@@ -20,6 +20,8 @@ pub struct Started {
     pub default_branch: String,
     pub start_subject: String,
     pub branch: String,
+    /// The worktree the branch is checked out in, from the main checkout, unless `--switch`.
+    pub worktree: Option<String>,
     /// Each file moved, from and to, from the top level.
     pub moves: Vec<(String, String)>,
     pub proposal_subject: String,
@@ -114,34 +116,43 @@ fn draft_files(root: &Path, draft: &str) -> Result<Vec<String>, StartError> {
     Ok(files)
 }
 
-/// Starts the feature written in a draft.
+/// Starts the feature written in a draft: its branch in a worktree at `.worktrees/<folder>/`, or,
+/// with `switch`, in this working tree, switched to it.
 pub fn run(
     git: &Git,
     workspace: &Workspace,
     draft: &str,
     slug: Option<&str>,
     today: Date,
+    switch: bool,
 ) -> Result<Started, StartError> {
     let default = workspace
         .default_branch
         .clone()
         .ok_or_else(|| StartError::Refused("no default branch: commit on main first".into()))?;
     let previous = git.current_branch();
-    let place = place::reach_switching(git, &default)?;
-    let result = start(&place, workspace, draft, slug, today, &default);
+    let place = if switch {
+        place::reach_switching(git, &default)?
+    } else {
+        place::reach(git, &default)?
+    };
+    let result = start(git, &place, workspace, draft, slug, today, &default, switch);
     if let Err(StartError::Refused(_)) = &result {
         place::switch_back(git, &place, previous.as_deref());
     }
     result
 }
 
+#[allow(clippy::too_many_arguments)]
 fn start(
+    git: &Git,
     place: &place::Place,
     workspace: &Workspace,
     draft: &str,
     slug: Option<&str>,
     today: Date,
     default: &str,
+    switch: bool,
 ) -> Result<Started, StartError> {
     let default = default.to_string();
     let at = Git::open(&place.root)?;
@@ -179,6 +190,10 @@ fn start(
         return Err(StartError::Refused(format!(
             "{folder} exists: choose another slug with --slug"
         )));
+    }
+    let worktree = place::worktree_path(git, &folder);
+    if !switch && worktree.exists() {
+        return Err(GitError::WorktreeExists(format!(".worktrees/{folder}")).into());
     }
     // Which of the draft's files are committed, read before any write of ours.
     let head = at.head();
@@ -270,14 +285,30 @@ fn start(
     let mut done = vec![format!("the start commit on {default}")];
 
     // The branch, and the draft moved into the dated folder.
-    if let Err(error) = at.switch_new(&folder, &default) {
-        let left = vec![
-            format!("create the branch {folder}"),
-            format!("move {draft} to {destination}"),
-            commit_left,
-        ];
-        return Err(partial(&done, left, error.to_string()));
-    }
+    let target_root = if switch {
+        if let Err(error) = at.switch_new(&folder, &default) {
+            let left = vec![
+                format!("create the branch {folder}"),
+                format!("move {draft} to {destination}"),
+                commit_left,
+            ];
+            return Err(partial(&done, left, error.to_string()));
+        }
+        root.to_path_buf()
+    } else {
+        let created = git
+            .exclude_worktrees()
+            .and_then(|()| at.add_worktree_new(&worktree, &folder, &default));
+        if let Err(error) = created {
+            let left = vec![
+                format!("create the branch {folder} in .worktrees/{folder}"),
+                format!("move {draft} to {destination}"),
+                commit_left,
+            ];
+            return Err(partial(&done, left, error.to_string()));
+        }
+        std::fs::canonicalize(&worktree).unwrap_or(worktree.clone())
+    };
     done.push(format!("the branch {folder}"));
     let mut moves = Vec::new();
     for file in &files {
@@ -289,14 +320,29 @@ fn start(
         } else {
             format!("{destination}/proposal.md")
         };
-        if let Some(parent) = root.join(&to).parent() {
+        if let Some(parent) = target_root.join(&to).parent() {
             fs::create_dir_all(parent)?;
         }
-        fs::rename(root.join(file), root.join(&to))?;
+        if switch {
+            fs::rename(root.join(file), target_root.join(&to))?;
+        } else {
+            // The draft as it is here, uncommitted edits included, goes to the new branch; the
+            // default branch keeps its committed version.
+            fs::copy(root.join(file), target_root.join(&to))?;
+            let _ = fs::remove_file(target_root.join(file));
+            if tracked.contains(file) {
+                at.restore(file)?;
+            } else {
+                fs::remove_file(root.join(file))?;
+            }
+        }
         moves.push((file.clone(), to));
     }
     if folder_draft {
-        let _ = fs::remove_dir_all(root.join(draft));
+        let _ = fs::remove_dir_all(target_root.join(draft));
+        if !switch && tracked.is_empty() {
+            let _ = fs::remove_dir_all(root.join(draft));
+        }
     }
     done.push("the move of the draft".to_string());
     // Folders as pathspecs, so files git ignores, like `.DS_Store`, stay out of the commit.
@@ -315,13 +361,15 @@ fn start(
         }
     }
     paths.sort();
-    if let Err(error) = at.commit(&paths, &proposal_subject, None) {
+    let on_branch = Git::open(&target_root)?;
+    if let Err(error) = on_branch.commit(&paths, &proposal_subject, None) {
         return Err(partial(&done, vec![commit_left], error.to_string()));
     }
     Ok(Started {
         default_branch: default,
         start_subject,
-        branch: folder,
+        branch: folder.clone(),
+        worktree: (!switch).then(|| format!(".worktrees/{folder}")),
         moves,
         proposal_subject,
     })
