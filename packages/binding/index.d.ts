@@ -9,6 +9,90 @@
  */
 export declare const __napiBindingTarget: 'native' | 'wasm32-wasi' | 'wasm32-wasip1'
 
+/** A running watch of a repository. */
+export declare class WatchHandle {
+  /** Stops the watch. */
+  close(): void
+}
+
+/** Comments on lines of a file as committed, or on the whole file without lines. */
+export declare function addComment(repo: string, folder: string, file: string, startLine: number | undefined | null, endLine: number | undefined | null, text: string): Promise<FileView>
+
+/** Adds a line at the end of a section of the priorities. */
+export declare function addPriority(repo: string, section: string, text: string, previous: string): Promise<Priorities>
+
+/** Approves a spec, a plan, or an assessment, and commits it. */
+export declare function approve(repo: string, folder: string, file: string, summary?: string | undefined | null, riskTier?: string | undefined | null, planReview?: boolean | undefined | null): Promise<FileView>
+
+/** Commits the priorities alone. */
+export declare function commitPriorities(repo: string): Promise<Priorities>
+
+/** Commits a draft, with the priorities when they changed, or a proposal. */
+export declare function commitText(repo: string, path: string): Promise<CommitView>
+
+/** Drafts a priority line by its id, like `next-2`. */
+export declare function createDraft(repo: string, id: string): Promise<DraftView>
+
+/** Restores the committed priorities. */
+export declare function discardPriorities(repo: string): Promise<Priorities>
+
+/** Replaces the text of a pending comment. */
+export declare function editComment(repo: string, folder: string, file: string, number: number, text: string): Promise<FileView>
+
+/** Replaces a priority line's text. */
+export declare function editPriority(repo: string, id: string, text: string, previous: string): Promise<Priorities>
+
+/** Moves a priority line before the line at `index` of a section, or to its end. */
+export declare function movePriority(repo: string, id: string, section: string, index: number, previous: string): Promise<Priorities>
+
+/** A draft, by its path from the top level. */
+export declare function readDraft(repo: string, path: string): Promise<DraftView>
+
+/** One feature, by its folder. */
+export declare function readFeature(repo: string, folder: string): Promise<FeatureView>
+
+/** A workflow file of a feature, with its document, items, committed version, and review. */
+export declare function readFile(repo: string, folder: string, name: string): Promise<FileView>
+
+/** `PRIORITIES.md`, with its changes since the last commit. */
+export declare function readPriorities(repo: string): Promise<Priorities>
+
+/** Every feature, bug, and priority of the repository at `repo`. */
+export declare function readWorkspace(repo: string): Promise<WorkspaceView>
+
+/** Removes a pending comment. */
+export declare function removeComment(repo: string, folder: string, file: string, number: number): Promise<FileView>
+
+/** Removes a priority line and its nested lines. */
+export declare function removePriority(repo: string, id: string, previous: string): Promise<Priorities>
+
+/** Requests changes on a spec, a plan, or an assessment, and commits it. */
+export declare function requestChanges(repo: string, folder: string, file: string, summary?: string | undefined | null): Promise<FileView>
+
+/** Commits files a hook refused to commit, once the hook is fixed. */
+export declare function retryCommit(repo: string, folder: string, subject: string, paths: Array<string>): Promise<CommitView>
+
+/** Saves an answer from the letters picked and a comment, over the answer last read. */
+export declare function saveAnswer(repo: string, folder: string, question: string, letters: Array<string>, comment: string, previous: string): Promise<FileView>
+
+/** Saves the notes on the settled points, over the notes last read. */
+export declare function saveNotes(repo: string, folder: string, notes: string, previous: string): Promise<FileView>
+
+/**
+ * Saves a draft or a proposal as typed, over the version read at `previous`; resolves with the
+ * new hash.
+ */
+export declare function saveText(repo: string, path: string, text: string, previous: string): Promise<string>
+
+/** Starts a drafted feature in its own worktree. */
+export declare function startFeature(repo: string, draft: string, slug?: string | undefined | null): Promise<StartedView>
+
+/** Deletes the pending review of a file. */
+export declare function startOver(repo: string, folder: string, file: string): Promise<FileView>
+
+/** Submits the latest round of questions, and commits it. */
+export declare function submitAnswers(repo: string, folder: string): Promise<FileView>
+
 /**
  * TEMPORARY: replaced by the CLI feature.
  *
@@ -24,6 +108,156 @@ export declare function temporaryReadFolder(path: string): FolderStatus
 export declare function temporaryReadSpecs(path: string): Array<FolderStatus>
 
 /**
+ * Watches the repository at `repo`, and calls `onChange` with what changed after each burst of
+ * file events. The watch does not keep Node running.
+ */
+export declare function watch(repo: string, onChange: (changes: Changes) => void): WatchHandle
+
+/** A block, its place in the tree, its lines, and the fields of its kind. */
+export interface Block {
+  /** Its index in the document's blocks. */
+  id: number
+  parent?: number
+  kind: BlockKind
+  startLine: number
+  endLine: number
+  /** The text of the nearest heading at or above its first line, for review anchors. */
+  heading?: string
+  /** A heading's level. */
+  level?: number
+  /** A heading's anchor, numbered like GitHub's when several share a slug. */
+  anchor?: string
+  /** The text of a heading, a paragraph, a cell, an item's own text, or a callout's title. */
+  spans: Array<Span>
+  /** A list's kind, and the number of its first item. */
+  ordered?: boolean
+  start?: number
+  marker?: ItemMarker
+  /** A task's checkbox. */
+  checked?: boolean
+  calloutKind?: CalloutKind
+  /** Whether a row is the table's header. */
+  header?: boolean
+  /** A cell's alignment: `left`, `center`, `right`, or `None`. */
+  align?: string
+  /** A code block's language. */
+  language?: string
+  /** A code block's or an HTML block's text, shown as text. */
+  text?: string
+}
+
+export type BlockKind = 'heading' | 'paragraph' | 'list' | 'item' | 'callout' | 'quote' | 'table' | 'row' | 'cell' | 'code' | 'rule' | 'html'
+
+export type CalloutKind = 'note' | 'tip' | 'important' | 'warning' | 'caution' | 'question'
+
+/** What changed since the last report. */
+export interface Changes {
+  /** The folders of the features whose files or step changed. */
+  features: Array<string>
+  /** The files whose text changed, as `<folder>/<name>`. */
+  files: Array<string>
+  /** Whether `PRIORITIES.md` or the drafts changed. */
+  priorities: boolean
+  /** Whether a feature, a branch, or a worktree appeared or went. */
+  workspace: boolean
+}
+
+/** An option of a question. */
+export interface Choice {
+  letter: string
+  recommended: boolean
+  /** The option's text, without its letter. */
+  summary: Array<Span>
+  /** The item blocks of its `[pro]` and `[con]` bullets. */
+  pros: Array<number>
+  cons: Array<number>
+  /** Its "Why recommended" item. */
+  why?: number
+  /** Its other nested blocks. */
+  other: Array<number>
+  /** Its item block. */
+  block: number
+}
+
+export interface CommentItem {
+  number: number
+  /** The lines it points to, 0 for a general comment. */
+  startLine: number
+  endLine: number
+  heading?: string
+  general: boolean
+  quote: Array<string>
+  text: string
+}
+
+/** A commit an action made. */
+export interface CommitView {
+  subject: string
+  commit: string
+}
+
+export interface Criterion {
+  /** `SC-001`. */
+  id: string
+  block: number
+}
+
+/** The tree of one workflow file. */
+export interface Document {
+  blocks: Array<Block>
+  frontmatterLines?: LineRange
+  /** The SHA-256 of the text, in hexadecimal, to refuse saves over a change made elsewhere. */
+  hash: string
+}
+
+/** A draft or a postponed proposal, for its editor. */
+export interface DraftView {
+  /** From the repository's top level. */
+  path: string
+  title: string
+  text: string
+  hash: string
+  document: Document
+  /** Whether its current text is committed. */
+  committed: boolean
+  /** The priority line linking it. */
+  entry?: PriorityView
+  /** How many priority changes are not committed, which its commit takes along. */
+  priorityChanges: number
+}
+
+/** An entry of `PRIORITIES.md`, for editing: its markdown, its spans, and its nested lines. */
+export interface EntryItem {
+  /** `next-2`: its section and its position in it, from 1. */
+  id: string
+  /** The markdown of its text, after its marker, on one line. */
+  text: string
+  spans: Array<Span>
+  startLine: number
+  endLine: number
+  /** Its nested lines, as written. */
+  nested: Array<string>
+}
+
+export interface FeatureView {
+  /** `feature` or `bug`. */
+  kind: string
+  folder: string
+  slug: string
+  /** The title of its proposal or report. */
+  title: string
+  branch?: string
+  /** `working-tree`, `local`, `remote`, or `default-branch`. */
+  source: string
+  worktree?: string
+  uncommitted: boolean
+  behind?: number
+  files: Array<FileSummary>
+  step: StepView
+  problems: Array<ProblemView>
+}
+
+/**
  * TEMPORARY: replaced by the CLI feature.
  *
  * One workflow file: exactly one of `status` and `problem` is set.
@@ -35,6 +269,38 @@ export interface FileStatus {
   status?: Status
   /** What is wrong with the file, like `unknown status "done"`. `None` when it is valid. */
   problem?: string
+}
+
+export interface FileSummary {
+  name: string
+  /** `proposal`, `clarifications`, `spec`, ... */
+  kind: string
+  round?: number
+  status?: string
+  /** The first line of its `> [!IMPORTANT]` block. */
+  waitingLine?: string
+}
+
+/**
+ * A workflow file: the version on disk, the version committed at its branch's tip when it
+ * differs, and its pending review.
+ */
+export interface FileView {
+  /** `<folder>/<name>`. */
+  id: string
+  folder: string
+  name: string
+  /** From the repository's top level. */
+  path: string
+  kind: string
+  status?: string
+  current: VersionView
+  /** The short hash of the branch's tip. */
+  tip?: string
+  /** The version at the tip, when it differs from `current`. */
+  committed?: VersionView
+  /** The items of its review file, `spec-review.md` for `spec.md`, when there is one. */
+  review?: Items
 }
 
 /**
@@ -50,8 +316,211 @@ export interface FolderStatus {
 }
 
 /**
+ * What a list item is, from its marker: a task, a typed bullet (`[pro]`, `[con]`, `[?]`, `[!]`),
+ * or a list callout (`!`, `?`, `&`).
+ */
+export type ItemMarker = 'plain' | 'task' | 'pro' | 'con' | 'question' | 'important' | 'warning' | 'ask' | 'note'
+
+/** The items of a file, by its kind: at most one field is set. */
+export interface Items {
+  clarifications?: RoundItems
+  spec?: SpecItems
+  plan?: PlanItems
+  review?: ReviewItems
+  rulings?: Array<Ruling>
+}
+
+/** Lines of a file, 1-based and inclusive. */
+export interface LineRange {
+  start: number
+  end: number
+}
+
+export interface PlanItems {
+  tasks: Array<TaskItem>
+}
+
+/** `PRIORITIES.md` read for editing. */
+export interface Priorities {
+  /** The SHA-256 of the text, to refuse edits over a change made elsewhere. */
+  hash: string
+  sections: Array<SectionItems>
+  /** How many entries were added, moved, edited, or removed since the last commit. */
+  changes: number
+}
+
+export interface PriorityView {
+  /** `next-2`. */
+  id: string
+  /** `now`, `next`, `later`, or `blocked`. */
+  section: string
+  position: number
+  text: string
+  link?: string
+  /** The folder of the feature it links. */
+  feature?: string
+  /** The draft it links. */
+  draft?: string
+}
+
+export interface ProblemView {
+  file: string
+  line?: number
+  rule: string
+  message: string
+}
+
+export interface QuestionItem {
+  /** `Q2`, or `Q2.B`. */
+  id: string
+  parent?: string
+  /** The parent's option a follow-up depends on. */
+  parentLetter?: string
+  title: string
+  startLine: number
+  endLine: number
+  headingBlock: number
+  /** Its context: the blocks between its heading and its answer, options aside. */
+  context: Array<number>
+  options: Array<Choice>
+  answer: string
+  /** The answer split as the UI composes it. */
+  letters: Array<string>
+  comment: string
+  /** `yes`, `no`, or `unclear`: whether it needs an answer, from its parent's. */
+  applies: string
+  /** The line of its `**Answer:**` marker, or 0. */
+  answerLine: number
+}
+
+export interface ReviewItems {
+  verdict: string
+  commit: string
+  summary?: string
+  comments: Array<CommentItem>
+}
+
+export interface RoundItems {
+  status?: string
+  /** The `> [!IMPORTANT]` block, or its `> [!NOTE]` record. */
+  block?: number
+  /** The blocks of the round's context section. */
+  context: Array<number>
+  questions: Array<QuestionItem>
+  /** The blocks of the points settled without the human. */
+  settled: Array<number>
+  notes?: string
+  notesLine?: number
+}
+
+export interface Ruling {
+  /** `R1`. */
+  id: string
+  title: string
+  headingBlock: number
+  blocks: Array<number>
+}
+
+export interface Scenario {
+  number: number
+  block: number
+}
+
+export interface SectionItems {
+  /** `now`, `next`, `later`, or `blocked`. */
+  section: string
+  title: string
+  entries: Array<EntryItem>
+}
+
+/** A run of text with the same marks. */
+export interface Span {
+  text: string
+  strong: boolean
+  emphasis: boolean
+  code: boolean
+  strike: boolean
+  link?: SpanLink
+}
+
+/** A link of a span: its target as written, and the file it points to in the repository. */
+export interface SpanLink {
+  target: string
+  wiki: boolean
+  /** The file from the repository's top level, `None` for a web link or an anchor in the page. */
+  path?: string
+}
+
+export interface SpecItems {
+  stories: Array<Story>
+  criteria: Array<Criterion>
+}
+
+/** A feature started. */
+export interface StartedView {
+  folder: string
+  branch: string
+  worktree?: string
+}
+
+/**
  * TEMPORARY: replaced by the CLI feature.
  *
  * A workflow file's status, as written in its frontmatter.
  */
 export type Status = 'awaiting-human' | 'answered' | 'approved' | 'changes-requested' | 'auto-approved'
+
+export interface StepItem {
+  block: number
+  checked: boolean
+}
+
+export interface StepView {
+  /** `human-gate`, `plan`, `implementation`, `done`, ... */
+  name: string
+  /** `human`, `agent`, or `nobody`. */
+  waitsOn: string
+  /** The file waiting for the human, at a gate. */
+  file?: string
+  /** The first unchecked task, for implementation. */
+  task?: string
+}
+
+export interface Story {
+  /** `US2`. */
+  id: string
+  title: string
+  /** `P1`. */
+  priority: string
+  headingBlock: number
+  /** Its top-level blocks after the heading. */
+  blocks: Array<number>
+  /** Its "Why this priority" paragraph. */
+  why?: number
+  scenarios: Array<Scenario>
+}
+
+export interface TaskItem {
+  number: number
+  title: string
+  headingBlock: number
+  steps: Array<StepItem>
+  done: number
+  total: number
+}
+
+/** A file's document and items, at one version. */
+export interface VersionView {
+  text: string
+  document: Document
+  items: Items
+}
+
+export interface WorkspaceView {
+  root: string
+  defaultBranch?: string
+  currentBranch?: string
+  features: Array<FeatureView>
+  priorities: Array<PriorityView>
+  drafts: Array<string>
+}
