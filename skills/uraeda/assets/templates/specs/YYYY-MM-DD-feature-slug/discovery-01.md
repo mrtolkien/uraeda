@@ -2,7 +2,8 @@
 
 ## Why this round
 
-[Later rounds only: what triggered this round, with a link to it. Remove this section in round 01.]
+[Optional, later rounds only: what triggered this round, with a link to it. Remove this section in
+round 01.]
 
 ## Summary
 

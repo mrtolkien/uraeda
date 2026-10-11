@@ -502,7 +502,7 @@ The rules, each stated in the skill by task 11:
   heading of it; wikilinks resolve to a file name in `specs/`.
 - `reviews.*`: the review file rules of the [spec](spec.md#data).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `crates/core/tests/check.rs`, table-driven: one row per rule with a fixture text and the expected
   problem; the US3 messages exactly (`status "done" is not one of awaiting-human, answered`,
@@ -512,23 +512,23 @@ The rules, each stated in the skill by task 11:
   US3.7 (the example, exit 0), `json_lists_problems`, and one test per file of `fixtures/broken/`
   (SC-003).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-cli --test check`
 - Expected: FAIL, `unrecognized subcommand 'check'`.
 
-- [ ] **Step 3: Implement, then fix the files `ura check` reports in `specs/` and the example**
+- [x] **Step 3: Implement, then fix the files `ura check` reports in `specs/` and the example**
 
 Templates are read from `embedded::SKILL`; the section rules come from parsing them, `[...]`
 headings being patterns. Fixes to existing files go in this task's commit, each a correction to the
 skill's rules, never a weakened rule.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS, including the two new `ura check` runs.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates package.json skills/uraeda/assets fixtures specs
