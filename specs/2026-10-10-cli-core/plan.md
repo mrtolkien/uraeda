@@ -666,29 +666,29 @@ git commit -m "feat(cli-core): ura review"
   `InitLine::{Created(String), Kept(String, Option<String>), Updated(String, usize), Linked(String, String)}`.
   The manifest `.agents/skills/uraeda/.ura-manifest` holds `<sha256>  <path>` lines.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 US6.1 to US6.5 with the spec's paths and the [mockup](mockups/cli-output.md#ura-init)'s lines; the
 edge case `existing_claude_skill_folder_is_kept`; `manifest_checks_with_sha256sum` (runs
 `sha256sum -c .ura-manifest` in the skill folder when `sha256sum` exists).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-cli --test init`
 - Expected: FAIL, `unrecognized subcommand 'init'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `specs/README.md`, `CONSTITUTION.md`, `PRIORITIES.md` from the templates; the four `.gitkeep` files;
 the skill's files from `embedded::SKILL`; the symbolic link `../../.agents/skills/uraeda`. A skill
 file is updated when its current hash matches the manifest, kept otherwise.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates Cargo.lock

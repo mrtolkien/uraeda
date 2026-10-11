@@ -2,6 +2,7 @@
 
 mod answer;
 mod check;
+mod init;
 mod next;
 mod output;
 mod review;
@@ -20,6 +21,12 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Set the project up: the specs/ folder, and the skill for your agents
+    Init {
+        /// Leave the skill out, to install it another way
+        #[arg(long)]
+        no_skill: bool,
+    },
     /// Show where every feature and bug stands, across branches
     Status {
         /// Print JSON
@@ -84,6 +91,7 @@ enum Command {
 
 fn main() -> ExitCode {
     let result = match Cli::parse().command {
+        Command::Init { no_skill } => init::run(no_skill),
         Command::Status { json } => status::run(json),
         Command::Next { target, json } => next::run(target, json),
         Command::Check { target, json } => check::run(target, json),
