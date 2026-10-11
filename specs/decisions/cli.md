@@ -19,13 +19,19 @@ agents alike, with flags for every interactive action and versioned JSON for eve
   skill rule a command follows MUST update the command.
 - The CLI MUST embed the skill and its templates from `skills/uraeda/` at build time. No second copy
   of a template or a rule MAY live in the code.
+- Commands that act on a feature, a bug, a draft, or a workflow file MUST take it as one optional
+  target argument, resolved the same way everywhere: a path under `specs/`, or a name matching
+  exactly one item (a folder name, a slug, or a draft's file name). Without a target, a command MUST
+  use the current branch's feature, or the only item waiting for that action, and otherwise exit 1
+  listing the candidates. Several matches MUST exit 1 listing them.
 - Every action a TUI offers MUST also be available through flags, without a terminal. A TUI MUST
   start only when stdin and stdout are terminals and `--no-input` is not set; otherwise the command
   MUST exit 1 and name the flags to pass.
 - Every read command MUST offer `--json`: an object with a top-level `"version"`, increased only for
   incompatible changes. Adding a field or a value MUST NOT increase it.
 - Commands MUST print data to stdout and messages to stderr, exit 0 on success and 1 on any error,
-  validation errors included, and print no colour without a terminal or when `NO_COLOR` is set.
+  validation errors included, except a path not built yet, which MAY stop with `unimplemented!`, and
+  print no colour without a terminal or when `NO_COLOR` is set.
 
 ## Why
 
