@@ -298,7 +298,7 @@ git commit -m "feat(cli-core): git module"
     `priorities::move_to_now(text, line, link_text, target) -> String`,
     `priorities::add_to_now(text, link_text, target) -> String`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Table-driven tests in `crates/core/tests/files.rs`, one row per case:
 
@@ -318,24 +318,24 @@ Table-driven tests in `crates/core/tests/files.rs`, one row per case:
   Now.
 - Plan tasks: the example's plan → every task with `done == total`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test files`
 - Expected: FAIL to compile, `unresolved import uraeda_core::files`.
 
-- [ ] **Step 3: Implement the parsers**
+- [x] **Step 3: Implement the parsers**
 
 pulldown-cmark with `into_offset_iter()` and
 `ENABLE_GFM | ENABLE_TABLES | ENABLE_TASKLISTS | ENABLE_YAML_STYLE_METADATA_BLOCKS | ENABLE_WIKILINKS`;
 byte offsets mapped to lines once. Edits are string splices at known lines, so the rest stays byte
 for byte; they detect `\r\n` and write lines with it.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS, the temporary status tests included.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core
