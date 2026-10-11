@@ -19,6 +19,8 @@ pub enum GitError {
     Command { subcommand: String, message: String },
     #[error("git not found: install git to commit")]
     GitNotFound,
+    #[error("other files are staged: {}: commit or unstage them first", .0.join(", "))]
+    OtherStagedFiles(Vec<String>),
 }
 
 /// A branch, local, on `origin`, or both.
@@ -307,13 +309,42 @@ impl Git {
         self.run("switch", &["switch", "--create", branch, from])
     }
 
-    /// Commits `paths` as they are in the working tree, and nothing else, running the hooks.
+    /// The files staged here: those whose index entry differs from `HEAD`, sorted.
+    pub fn staged_files(&self) -> Result<Vec<String>, GitError> {
+        let status = self
+            .repo
+            .status(gix::progress::Discard)
+            .map_err(read_error("the index"))?
+            .untracked_files(gix::status::UntrackedFiles::None)
+            .index_worktree_rewrites(None);
+        let mut files = Vec::new();
+        for item in status.into_iter(None).map_err(read_error("the index"))? {
+            let item = item.map_err(read_error("the index"))?;
+            if let gix::status::Item::TreeIndex(change) = &item {
+                files.push(change.location().to_string());
+            }
+        }
+        files.sort();
+        files.dedup();
+        Ok(files)
+    }
+
+    /// Commits `paths` as they are in the working tree, running the hooks, which may reformat
+    /// them. Refuses when other files are staged, which the commit would carry along.
     pub fn commit(
         &self,
         paths: &[String],
         subject: &str,
         body: Option<&str>,
     ) -> Result<(), GitError> {
+        let others: Vec<String> = self
+            .staged_files()?
+            .into_iter()
+            .filter(|file| !paths.contains(file))
+            .collect();
+        if !others.is_empty() {
+            return Err(GitError::OtherStagedFiles(others));
+        }
         let mut add = vec!["add", "--all", "--"];
         add.extend(paths.iter().map(String::as_str));
         self.run("add", &add)?;
@@ -321,8 +352,6 @@ impl Git {
         if let Some(body) = body {
             commit.extend(["--message", body]);
         }
-        commit.push("--");
-        commit.extend(paths.iter().map(String::as_str));
         self.run("commit", &commit)
     }
 

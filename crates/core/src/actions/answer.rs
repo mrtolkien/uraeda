@@ -1,0 +1,93 @@
+//! Answering a round of questions: one answer at a time, then the submission.
+
+use std::fs;
+
+use crate::files::clarifications::{self, Applicability};
+use crate::files::{frontmatter, markdown};
+use crate::today::Date;
+use crate::workspace::{Feature, FileKind};
+
+use super::place::Place;
+use super::{ActionError, Change, list};
+
+/// The latest round of a feature: its file name and number.
+fn latest_round(feature: &Feature) -> Result<(String, u32), ActionError> {
+    feature
+        .files
+        .iter()
+        .filter(|file| file.kind == FileKind::Clarifications)
+        .max_by_key(|file| file.round)
+        .map(|file| (file.name.clone(), file.round.unwrap_or(0)))
+        .ok_or_else(|| ActionError::Refused(format!("{} has no questions", feature.folder)))
+}
+
+/// An answer written: in which file, and how many applicable questions are answered.
+pub struct Written {
+    pub file: String,
+    pub answered: usize,
+    pub total: usize,
+}
+
+/// Writes one answer, or the notes with `notes`, in the latest round. Commits nothing.
+pub fn write(
+    place: &Place,
+    feature: &Feature,
+    id: &str,
+    answer: &str,
+) -> Result<Written, ActionError> {
+    let (name, _) = latest_round(feature)?;
+    let file = format!("{}/{name}", feature.path);
+    let path = place.root.join(&file);
+    let text = fs::read_to_string(&path)?;
+    let edited = clarifications::set_answer(&text, id, answer)?;
+    fs::write(&path, &edited)?;
+    let questions = clarifications::parse(&edited);
+    let applicable: Vec<_> = questions
+        .iter()
+        .filter(|q| q.applies(&questions) != Applicability::No)
+        .collect();
+    Ok(Written {
+        file,
+        answered: applicable.iter().filter(|q| !q.answer.is_empty()).count(),
+        total: applicable.len(),
+    })
+}
+
+/// Submits the latest round: every applicable question answered, `status: answered`, and the
+/// block turned into its record.
+pub fn submit(place: &Place, feature: &Feature, today: Date) -> Result<Change, ActionError> {
+    let (name, round) = latest_round(feature)?;
+    let file = format!("{}/{name}", feature.path);
+    let path = place.root.join(&file);
+    let text = fs::read_to_string(&path)?;
+    let status = frontmatter::parse(&text)
+        .ok()
+        .and_then(|front| front.text("status").map(String::from));
+    if status.as_deref() != Some("awaiting-human") {
+        return Err(ActionError::Refused(format!(
+            "{name} is not waiting for answers"
+        )));
+    }
+    let questions = clarifications::parse(&text);
+    let blank: Vec<String> = questions
+        .iter()
+        .filter(|q| q.answer.is_empty() && q.applies(&questions) != Applicability::No)
+        .map(|q| q.id.clone())
+        .collect();
+    if !blank.is_empty() {
+        let verb = if blank.len() == 1 { "has" } else { "have" };
+        return Err(ActionError::Refused(format!(
+            "{} {verb} no answer",
+            list(&blank)
+        )));
+    }
+    let answered = frontmatter::set(&text, "status", "answered");
+    let recorded =
+        markdown::record_block(&answered, &format!("Answered on {today}.")).unwrap_or(answered);
+    fs::write(&path, recorded)?;
+    Ok(Change {
+        paths: vec![file],
+        subject: format!("discovery({}): answer round {round:02}", feature.slug),
+        body: None,
+    })
+}

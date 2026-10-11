@@ -6,6 +6,7 @@ use std::process::ExitCode;
 use serde::Serialize;
 use uraeda_core::check;
 use uraeda_core::git::Git;
+use uraeda_core::target::{Purpose, Target};
 use uraeda_core::workspace::Problem;
 
 use crate::output;
@@ -24,6 +25,14 @@ pub fn run(target: Option<String>, json: bool) -> Result<ExitCode, String> {
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
     let root = root(&cwd);
     let target_path = match &target {
+        Some(name) if !cwd.join(name).exists() && !name.contains('/') => {
+            let (_, workspace) = output::workspace()?;
+            match output::target(&workspace, Some(name), Purpose::Inspect)? {
+                Target::Feature(index) => root.join(&workspace.features[index].path),
+                Target::File(index, file) => root.join(&workspace.features[index].path).join(file),
+                Target::Draft(draft) => root.join(draft),
+            }
+        }
         Some(target) => cwd.join(target),
         None => root.join("specs"),
     };

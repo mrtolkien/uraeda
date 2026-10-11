@@ -192,6 +192,9 @@ pub struct Workspace {
     pub fetched_at: Option<String>,
     pub priorities: Vec<PriorityEntry>,
     pub features: Vec<Feature>,
+    /// Drafts and postponed features, from the default branch: `specs/drafts/x.md`,
+    /// `specs/backlog/y` for a folder.
+    pub drafts: Vec<String>,
     pub problems: Vec<Problem>,
     #[serde(skip)]
     pub fetched_ago: Option<String>,
@@ -272,6 +275,41 @@ impl Reader<'_> {
                 names
             }
         }
+    }
+
+    /// The drafts and postponed folders of `specs/drafts/` and `specs/backlog/`.
+    fn drafts(&self, from: From) -> Vec<String> {
+        let mut drafts = BTreeSet::new();
+        for dir in ["specs/drafts", "specs/backlog"] {
+            let paths: Vec<String> = match from {
+                From::Commit(commit) => self.git.list_files(commit, dir).unwrap_or_default(),
+                From::Disk => fs::read_dir(self.git.root().join(dir))
+                    .into_iter()
+                    .flatten()
+                    .flatten()
+                    .filter_map(|entry| {
+                        let name = entry.file_name().into_string().ok()?;
+                        let is_dir = entry.file_type().is_ok_and(|t| t.is_dir());
+                        Some(if is_dir {
+                            format!("{dir}/{name}/")
+                        } else {
+                            format!("{dir}/{name}")
+                        })
+                    })
+                    .collect(),
+            };
+            for path in paths {
+                let Some(rest) = path.strip_prefix(dir).and_then(|r| r.strip_prefix('/')) else {
+                    continue;
+                };
+                match rest.split_once('/') {
+                    Some((folder, _)) => drafts.insert(format!("{dir}/{folder}")),
+                    None if rest.ends_with(".md") => drafts.insert(path.clone()),
+                    None => false,
+                };
+            }
+        }
+        drafts.into_iter().collect()
     }
 
     /// The feature and bug folders under `specs/`.
@@ -408,6 +446,7 @@ impl Workspace {
                 }
             })
             .collect();
+        let drafts = reader.drafts(priorities_from);
         let fetched = git.fetched_at();
         Ok(Workspace {
             root,
@@ -417,6 +456,7 @@ impl Workspace {
             fetched_ago: fetched.map(today::ago),
             priorities,
             features,
+            drafts,
             problems: Vec::new(),
         })
     }
