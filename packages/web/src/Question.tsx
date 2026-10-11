@@ -1,6 +1,6 @@
 import { Button } from "@astryxdesign/core/Button";
 import { TextArea } from "@astryxdesign/core/TextArea";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { Choice, Document, QuestionItem } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
@@ -8,6 +8,9 @@ import { refusal } from "./errors.ts";
 import { Spans } from "./Spans.tsx";
 import { type SaveState, useSave } from "./useSave.ts";
 import { FileView } from "./views.ts";
+
+/** Where questions put what they still have to save, so Submit saves it first. */
+export const PendingSaves = createContext<Set<() => Promise<void>>>(new Set());
 
 /** The answer as the core writes it, to show while it saves. */
 export function composed(letters: ReadonlyArray<string>, comment: string) {
@@ -152,8 +155,25 @@ export function Question({
     },
     question.answer,
   );
-  const { settle } = save;
-  useEffect(() => settle(question.answer), [question.answer, settle]);
+  const { settle, idle, flush } = save;
+  const local = useRef({ letters, comment });
+  local.current = { letters, comment };
+  // An answer changed elsewhere replaces this one when nothing of it waits to be saved.
+  useEffect(() => {
+    const shown = composed(local.current.letters, local.current.comment);
+    if (idle() && question.answer.trim() !== shown) {
+      setLetters(question.letters);
+      setComment(question.comment);
+    }
+    settle(question.answer);
+  }, [question.answer, question.letters, question.comment, idle, settle]);
+  const pending = useContext(PendingSaves);
+  useEffect(() => {
+    pending.add(flush);
+    return () => {
+      pending.delete(flush);
+    };
+  }, [pending, flush]);
 
   const toggle = (letter: string) => {
     const next = letters.includes(letter)

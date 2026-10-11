@@ -168,3 +168,10 @@ test("an edit over a change made elsewhere is refused, and the list reads again"
   ).toBeTruthy();
   expect(await screen.findByText("Claude runner (triggered manually)")).toBeTruthy();
 });
+
+/** Review C3: nested lines show as text, from the core. */
+test("nested lines show their text", async () => {
+  await renderPage("/priorities");
+
+  expect(await screen.findByText("with a cache")).toBeTruthy();
+});
