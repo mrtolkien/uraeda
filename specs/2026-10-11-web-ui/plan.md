@@ -524,20 +524,20 @@ git commit -m "feat(web-ui): actions that save, check, and commit in the core"
     `priorities::remove(text, id) -> Option<String>`: whole entries with their nested lines, every
     other byte kept.
   - `actions::priorities::{add, move_entry, edit, remove}(place, …, hash: &str) -> Result<String, ActionError>`
-    (new hash; `Changed` with message "PRIORITIES.md changed on disk. Your change was not
-    applied."), `commit(place) -> Committed` (`chore: update the priorities`, the file alone),
-    `discard(place)` (`git checkout -- specs/PRIORITIES.md`, through `git.rs`),
-    `changes(place) -> usize` (lines differing from `HEAD`'s file).
+    (new hash; refused with "PRIORITIES.md changed on disk. Your change was not applied."),
+    `commit(place) -> Committed` (`chore: update the priorities`, the file alone), `discard(place)`
+    (`Git::restore`), `read(place) -> Priorities` whose `changes` counts the entries added, moved,
+    edited, or removed since `HEAD`: those outside the longest common sequence of entries, so a swap
+    is one change.
+  - `draft::create(place, id)`: drafts a priority line by its id.
   - `start::run(git, workspace, draft, slug, today, switch: bool)`;
-    `Started { worktree: Option<PathBuf>, .. }`.
+    `Started { worktree: Option<String>, .. }`; `Git::add_worktree_new(path, branch, from)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - US7.1: `add(text, Next, "Show the agent's last commit on the feature page")` ends Next with
   `- Show the agent's last commit on the feature page`; US7.2 with Later.
-- US7.3: `move_entry("next-2", Next, 0)` swaps the two Next lines; `changes` is 2 lines, shown as "1
-  change" by the UI from the entry count it reports (`changes` counts entries moved, added, edited,
-  or removed: return entries, not lines).
+- US7.3: `move_entry("next-2", Next, 0)` swaps the two Next lines, and `changes` is 1.
 - US7.4 / review focus 3: a Later entry `- [Nice TUI](drafts/cli-tuis.md)` with a nested `  - x`
   moved to Next keeps both lines byte for byte, and Later loses them.
 - US7.5: `edit` writes the markdown as given, link included.
@@ -551,25 +551,25 @@ git commit -m "feat(web-ui): actions that save, check, and commit in the core"
   checkout is still on `main`, the entry is in Now; US5.7: `--switch` switches the checkout as
   before. Existing start tests switch to asserting the worktree.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test priorities`
 - Expected: FAIL to compile, `cannot find function read in module priorities`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `start` commits the priorities on the default branch where `reach` finds it, then
 `git worktree add -b <folder> .worktrees/<folder> <default>` (through `Git::add_worktree_new`),
 moves the draft into the worktree, and commits there. A draft not committed moves from the default
 branch's checkout into the worktree (edge case of the spec).
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run:
   `cargo test --workspace --exclude uraeda-binding && cargo clippy --workspace --all-targets -- -D warnings`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates

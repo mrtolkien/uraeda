@@ -396,6 +396,11 @@ impl Git {
         self.run("switch", &["switch", branch])
     }
 
+    /// Restores a file to its committed version in this working tree.
+    pub fn restore(&self, path: &str) -> Result<(), GitError> {
+        self.run("checkout", &["checkout", "--quiet", "--", path])
+    }
+
     /// Creates `branch` from `from`, and switches this working tree to it.
     pub fn switch_new(&self, branch: &str, from: &str) -> Result<(), GitError> {
         self.run("switch", &["switch", "--create", branch, from])

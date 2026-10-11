@@ -46,6 +46,10 @@ enum Command {
         /// The slug of the feature's folder and branch, instead of the draft's name
         #[arg(long)]
         slug: Option<String>,
+        /// Switch this checkout to the new branch, instead of creating its worktree in
+        /// .worktrees/
+        #[arg(long)]
+        switch: bool,
     },
     /// Show where every feature and bug stands, across branches
     Status {
@@ -126,7 +130,11 @@ fn main() -> ExitCode {
     let result = match cli.command {
         Command::Init { no_skill } => init::run(no_skill),
         Command::Draft { text, no_edit } => draft::run(text, no_edit),
-        Command::Start { target, slug } => start::run(target, slug),
+        Command::Start {
+            target,
+            slug,
+            switch,
+        } => start::run(target, slug, switch),
         Command::Status { json } => status::run(json),
         Command::Next { target, json } => next::run(target, json),
         Command::Check { target, json } => check::run(target, json),
