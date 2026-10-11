@@ -7,7 +7,7 @@ import { Switch } from "@astryxdesign/core/Switch";
 import { useMemo, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { Block, CommentItem } from "uraeda-binding";
-import { Blocks } from "./Blocks.tsx";
+import { Blocks, selectable } from "./Blocks.tsx";
 import type { useFile } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
 import { GrowingTextArea } from "./Question.tsx";
@@ -39,13 +39,6 @@ function anchor(range: Range) {
   const lines =
     range.start === range.end ? `Line ${range.start}` : `Lines ${range.start}–${range.end}`;
   return `${lines}, under "${range.heading}"`;
-}
-
-/** Whether a block can carry a comment: what the selection makes tappable. */
-function selectable(block: Block) {
-  return block.parent === undefined
-    ? block.kind !== "list" && block.kind !== "table"
-    : block.kind === "item";
 }
 
 /**
@@ -287,14 +280,19 @@ export function ReviewPage({ file }: { file: File }) {
       <div className="band" />
       <div className="label">Your review</div>
       {comments.length === 0 && <p className="muted small">No comment yet.</p>}
-      {comments.map((comment) => (
-        <div key={comment.number} className="row">
-          <span className="grow">
-            <span className="small muted">{where(comment)}</span>
-            <div>{comment.text}</div>
-          </span>
-        </div>
-      ))}
+      {comments.map((comment) =>
+        // A general comment has no block to show under: it is edited and removed here.
+        comment.general ? (
+          pendingNote(comment)
+        ) : (
+          <div key={comment.number} className="row">
+            <span className="grow">
+              <span className="small muted">{where(comment)}</span>
+              <div>{comment.text}</div>
+            </span>
+          </div>
+        ),
+      )}
       <div className="actions">
         <Button
           label="Add a general comment"

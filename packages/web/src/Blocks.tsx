@@ -49,15 +49,20 @@ type Context = {
   override?: (block: Block) => ReactNode | undefined;
 };
 
-/** A block that a review can select: the top-level blocks, list items, and table rows. */
-function selectable(block: Block) {
-  return block.parent === undefined || block.kind === "item" || block.kind === "row";
+/**
+ * Whether a review can select a block, and so place a comment under it: a top-level block but a
+ * list or a table, a list item, or a table row.
+ */
+export function selectable(block: Block) {
+  return block.parent === undefined
+    ? block.kind !== "list" && block.kind !== "table"
+    : block.kind === "item" || block.kind === "row";
 }
 
 /** The attributes that make a block tappable in a review, or nothing outside one. */
 function selectProps(block: Block, context: Context) {
   const { selection } = context;
-  if (!selection || !selectable(block) || block.kind === "list" || block.kind === "table") {
+  if (!selection || !selectable(block)) {
     return undefined;
   }
   return {
@@ -158,19 +163,29 @@ function BlockNode({ block, context }: { block: Block; context: Context }): Reac
         </div>
       );
       break;
-    case "row":
-      node = (
-        <tr>
-          {(context.children.get(block.id) ?? []).map((cell) =>
-            createElement(
-              block.header ? "th" : "td",
-              { key: cell.id, style: { textAlign: cell.align ?? undefined } },
-              <Spans spans={cell.spans} />,
-            ),
+    case "row": {
+      // A row is tapped in place, and its comments follow it as a row of their own.
+      const cells = context.children.get(block.id) ?? [];
+      const after = context.selection?.after?.(block);
+      return (
+        <>
+          <tr {...selectProps(block, context)}>
+            {cells.map((cell) =>
+              createElement(
+                block.header ? "th" : "td",
+                { key: cell.id, style: { textAlign: cell.align ?? undefined } },
+                <Spans spans={cell.spans} />,
+              ),
+            )}
+          </tr>
+          {after && (
+            <tr>
+              <td colSpan={cells.length}>{after}</td>
+            </tr>
           )}
-        </tr>
+        </>
       );
-      break;
+    }
     case "cell":
       node = <Spans spans={block.spans} />;
       break;
@@ -185,7 +200,7 @@ function BlockNode({ block, context }: { block: Block; context: Context }): Reac
       node = <pre className="html">{block.text}</pre>;
       break;
   }
-  const props = block.kind === "row" ? undefined : selectProps(block, context);
+  const props = selectProps(block, context);
   if (!props) {
     return node;
   }
@@ -199,7 +214,7 @@ function BlockNode({ block, context }: { block: Block; context: Context }): Reac
 
 /**
  * Draws blocks of a document: `ids` the top-level ones to draw, all of them by default. With a
- * selection, top-level blocks and list items become tappable.
+ * selection, top-level blocks, list items, and table rows become tappable.
  */
 export function Blocks({
   document,
