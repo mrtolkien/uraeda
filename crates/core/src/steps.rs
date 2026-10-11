@@ -256,3 +256,41 @@ pub fn pull_request(branch: &str) -> PullRequest {
         Some(_) => PullRequest::Open,
     }
 }
+
+/// The skill's target rule: the first feature of **Now** whose step waits on an agent, asking
+/// `lookup` for the pull request of the features at the pull request rows.
+pub fn next_target(
+    workspace: &mut crate::workspace::Workspace,
+    lookup: impl Fn(&str) -> PullRequest,
+) -> Option<usize> {
+    use crate::files::priorities::Section;
+    let folders: Vec<String> = workspace
+        .priorities
+        .iter()
+        .filter(|entry| entry.section == Section::Now)
+        .filter_map(|entry| entry.feature.clone())
+        .collect();
+    for folder in folders {
+        let Some(index) = workspace.features.iter().position(|f| f.folder == folder) else {
+            continue;
+        };
+        let feature = &mut workspace.features[index];
+        refresh_pull_request(feature, &lookup);
+        if feature.step.waits_on == WaitsOn::Agent && feature.step.name != StepName::None {
+            return Some(index);
+        }
+    }
+    None
+}
+
+/// Recomputes a feature's step with its pull request's state, when the step depends on it.
+pub fn refresh_pull_request(
+    feature: &mut crate::workspace::Feature,
+    lookup: impl Fn(&str) -> PullRequest,
+) {
+    if feature.step.depends_on_pull_request()
+        && let Some(branch) = feature.branch.clone()
+    {
+        feature.with_pull_request(lookup(&branch));
+    }
+}

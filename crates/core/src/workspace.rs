@@ -457,73 +457,39 @@ fn read_feature(
     committed: Option<ObjectId>,
 ) -> Feature {
     let path = folder_path(kind, folder);
-    let slug = folder_slug(folder).unwrap_or(folder).to_string();
     let mut texts = BTreeMap::new();
-    let mut files = Vec::new();
-    let mut problems = Vec::new();
+    let mut unreadable = Vec::new();
     for name in reader.files(from, &path) {
-        let Some((file_kind, round)) = FileKind::of(&name) else {
+        if FileKind::of(&name).is_none() {
             continue;
-        };
-        let file_path = format!("{path}/{name}");
-        let Some(text) = reader.read(from, &file_path) else {
-            problems.push(Problem {
-                file: file_path,
-                line: None,
-                rule: "file.utf8".into(),
-                message: "not UTF-8".into(),
-            });
-            continue;
-        };
-        let mut status = None;
-        if !file_kind.statuses().is_empty() {
-            match frontmatter::parse(&text) {
-                Ok(front) => match front.text("status") {
-                    Some(value) if file_kind.statuses().contains(&value) => {
-                        status = Some(value.to_string());
-                    }
-                    other => problems.push(Problem {
-                        file: file_path.clone(),
-                        line: front.line("status"),
-                        rule: "frontmatter.status".into(),
-                        message: match other {
-                            Some(value) => format!(
-                                "status \"{value}\" is not one of {}",
-                                file_kind.statuses().join(", ")
-                            ),
-                            None => "no status field".into(),
-                        },
-                    }),
-                },
-                Err(error) => problems.push(Problem {
-                    file: file_path.clone(),
-                    line: Some(1),
-                    rule: "frontmatter.parse".into(),
-                    message: error.to_string(),
-                }),
-            }
         }
-        let callout = markdown::Document::parse(&text).callout;
-        let waiting_line = callout
-            .filter(|callout| callout.kind == markdown::CalloutKind::Important)
-            .map(|callout| callout.first_line);
-        files.push(WorkflowFile {
-            name: name.clone(),
-            kind: file_kind,
-            round,
-            status,
-            waiting_line,
-        });
-        texts.insert(name, text);
+        match reader.read(from, &format!("{path}/{name}")) {
+            Some(text) => {
+                texts.insert(name, text);
+            }
+            None => unreadable.push(name),
+        }
     }
-    files.sort_by_key(|file| (file.kind, file.round));
-
+    let mut feature = Feature::from_texts(kind, folder, texts);
+    for name in unreadable {
+        feature.problems.push(Problem {
+            file: format!("{path}/{name}"),
+            line: None,
+            rule: "file.utf8".into(),
+            message: "not UTF-8".into(),
+        });
+    }
+    feature.branch = branch;
+    feature.source = match from {
+        From::Disk => Source::WorkingTree,
+        From::Commit(_) => Source::Local,
+    };
     let first_file = match kind {
         Kind::Feature => "proposal.md",
         Kind::Bug => "report.md",
     };
     let first_path = format!("{path}/{first_file}");
-    let proposal_committed = committed.is_some_and(|commit| {
+    feature.proposal_committed = committed.is_some_and(|commit| {
         reader
             .git
             .read_file(commit, &first_path)
@@ -531,33 +497,94 @@ fn read_feature(
             .flatten()
             .is_some()
     });
-    let uncommitted = matches!(from, From::Disk)
-        && texts.iter().any(|(name, text)| {
+    feature.uncommitted = matches!(from, From::Disk)
+        && feature.texts.iter().any(|(name, text)| {
             let committed_text = committed
                 .and_then(|commit| reader.read(From::Commit(commit), &format!("{path}/{name}")));
             committed_text.as_deref() != Some(text.as_str())
         });
-    let decisions_pending = texts
+    feature.decisions_pending = feature
+        .texts
         .get("spec.md")
         .is_some_and(|spec| decisions_pending(reader, from, &path, folder, spec));
-    Feature {
-        kind,
-        folder: folder.to_string(),
-        slug,
-        branch,
-        source: match from {
-            From::Disk => Source::WorkingTree,
-            From::Commit(_) => Source::Local,
-        },
-        uncommitted,
-        behind: None,
-        files,
-        step: Step::none(),
-        problems,
-        path,
-        proposal_committed,
-        decisions_pending,
-        texts,
+    feature
+}
+
+impl Feature {
+    /// A feature or bug from its files' texts, by name, with their statuses and problems. It is
+    /// taken as committed, on its own branch, with no pending decision.
+    pub fn from_texts(kind: Kind, folder: &str, texts: BTreeMap<String, String>) -> Feature {
+        let path = folder_path(kind, folder);
+        let mut files = Vec::new();
+        let mut problems = Vec::new();
+        for (name, text) in &texts {
+            let Some((file_kind, round)) = FileKind::of(name) else {
+                continue;
+            };
+            let file_path = format!("{path}/{name}");
+            let mut status = None;
+            if !file_kind.statuses().is_empty() {
+                match frontmatter::parse(text) {
+                    Ok(front) => match front.text("status") {
+                        Some(value) if file_kind.statuses().contains(&value) => {
+                            status = Some(value.to_string());
+                        }
+                        other => problems.push(Problem {
+                            file: file_path.clone(),
+                            line: front.line("status"),
+                            rule: "frontmatter.status".into(),
+                            message: match other {
+                                Some(value) => format!(
+                                    "status \"{value}\" is not one of {}",
+                                    file_kind.statuses().join(", ")
+                                ),
+                                None => "no status field".into(),
+                            },
+                        }),
+                    },
+                    Err(error) => problems.push(Problem {
+                        file: file_path.clone(),
+                        line: Some(1),
+                        rule: "frontmatter.parse".into(),
+                        message: error.to_string(),
+                    }),
+                }
+            }
+            let waiting_line = markdown::Document::parse(text)
+                .callout
+                .filter(|callout| callout.kind == markdown::CalloutKind::Important)
+                .map(|callout| callout.first_line);
+            files.push(WorkflowFile {
+                name: name.clone(),
+                kind: file_kind,
+                round,
+                status,
+                waiting_line,
+            });
+        }
+        files.sort_by_key(|file| (file.kind, file.round));
+        let first_file = match kind {
+            Kind::Feature => "proposal.md",
+            Kind::Bug => "report.md",
+        };
+        let mut feature = Feature {
+            kind,
+            folder: folder.to_string(),
+            slug: folder_slug(folder).unwrap_or(folder).to_string(),
+            branch: Some(folder_branch(kind, folder)),
+            source: Source::Local,
+            uncommitted: false,
+            behind: None,
+            files,
+            step: Step::none(),
+            problems,
+            path,
+            proposal_committed: texts.contains_key(first_file),
+            decisions_pending: false,
+            texts,
+        };
+        feature.step = steps::step(&feature, PullRequest::Unknown);
+        feature
     }
 }
 
