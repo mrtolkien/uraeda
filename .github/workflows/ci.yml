@@ -18,15 +18,8 @@ jobs:
         # Vite+ section of AGENTS.md unwrapped, failing the formatting check.
         run: nix develop --command pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Allow WebKit's sandbox
-        # Ubuntu 24.04 restricts unprivileged user namespaces, which WebKit's sandbox needs for the
-        # web UI's layout tests.
-        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-
       - name: Run every check
         run: nix develop --command pnpm exec vp run ready
-        env:
-          DEBUG: pw:browser
 
       - name: Check generated files are committed
         run: |

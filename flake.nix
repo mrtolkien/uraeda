@@ -43,6 +43,8 @@
           PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
           PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "true";
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
+          # WebKit needs an EGL driver, which machines without a GPU stack, like CI's, lack.
+          __EGL_VENDOR_LIBRARY_DIRS = "${pkgs.mesa}/share/glvnd/egl_vendor.d";
         };
       });
 
