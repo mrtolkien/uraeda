@@ -111,7 +111,8 @@ pub fn parse(text: &str) -> Result<Review, ReviewError> {
     let verdict =
         Verdict::from_str(verdict).ok_or_else(|| ReviewError::UnknownVerdict(verdict.into()))?;
     let commit = front
-        .text("commit")
+        .raw("commit")
+        .filter(|commit| !commit.is_empty())
         .ok_or(ReviewError::NoCommit)?
         .to_string();
     let mut summary = String::new();

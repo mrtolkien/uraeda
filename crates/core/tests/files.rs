@@ -434,3 +434,12 @@ fn priorities_follow_numbered_lists() {
         "{added}"
     );
 }
+
+#[test]
+fn a_commit_of_digits_stays_text() {
+    let text = REVIEW.replace("commit: a1b2c3d", "commit: 0012345");
+
+    let parsed = review::parse(&text).unwrap();
+
+    assert_eq!(parsed.commit, "0012345");
+}

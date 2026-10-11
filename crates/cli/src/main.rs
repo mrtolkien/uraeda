@@ -4,6 +4,7 @@ mod answer;
 mod check;
 mod next;
 mod output;
+mod review;
 mod status;
 
 use std::process::ExitCode;
@@ -37,6 +38,32 @@ enum Command {
         #[arg(long)]
         no_commit: bool,
     },
+    /// Review a spec, a plan, or an assessment: comment, then approve or request changes
+    Review {
+        /// The feature or bug, or the file's path
+        target: Option<String>,
+        /// Comment on lines of the committed file, or on all of it: 50, 50-52, or general
+        #[arg(long, num_args = 2, value_names = ["LINES", "TEXT"])]
+        comment: Option<Vec<String>>,
+        /// Approve the file, with the pending comments for the next step
+        #[arg(long)]
+        approve: bool,
+        /// Request changes, with the pending comments
+        #[arg(long)]
+        request_changes: bool,
+        /// A summary of the review, for its record and its commit
+        #[arg(long)]
+        summary: Option<String>,
+        /// Change the spec's risk tier on approval: low, medium, or high
+        #[arg(long)]
+        risk_tier: Option<String>,
+        /// Whether a medium-risk plan waits for your review
+        #[arg(long)]
+        plan_review: Option<bool>,
+        /// Leave the files for you to commit
+        #[arg(long)]
+        no_commit: bool,
+    },
     /// Check workflow files against the skill's rules
     Check {
         /// A specs/ folder, a folder under it, or a file; specs/ by default
@@ -60,6 +87,27 @@ fn main() -> ExitCode {
         Command::Status { json } => status::run(json),
         Command::Next { target, json } => next::run(target, json),
         Command::Check { target, json } => check::run(target, json),
+        Command::Review {
+            target,
+            comment,
+            approve,
+            request_changes,
+            summary,
+            risk_tier,
+            plan_review,
+            no_commit,
+        } => review::run(review::Options {
+            target,
+            comment,
+            approve,
+            request_changes,
+            summary,
+            tier: uraeda_core::actions::review::Tier {
+                risk_tier,
+                plan_review,
+            },
+            no_commit,
+        }),
         Command::Answer {
             arguments,
             submit,

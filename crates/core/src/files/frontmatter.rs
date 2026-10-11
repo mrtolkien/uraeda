@@ -31,6 +31,7 @@ pub struct Frontmatter {
     /// The line of the closing `---`.
     pub end_line: usize,
     lines: Vec<(String, usize)>,
+    raw: Vec<(String, String)>,
 }
 
 impl Frontmatter {
@@ -55,6 +56,15 @@ impl Frontmatter {
             Some(Value::Integer(value)) => Some(*value),
             _ => None,
         }
+    }
+
+    /// A field's value as written, without quotes: `0000000` stays text, where YAML reads a
+    /// number.
+    pub fn raw(&self, key: &str) -> Option<&str> {
+        self.raw
+            .iter()
+            .find(|(name, _)| name == key)
+            .map(|(_, value)| value.as_str())
     }
 
     /// The line a field is written on.
@@ -115,22 +125,29 @@ pub fn parse(text: &str) -> Result<Frontmatter, FrontmatterError> {
             (key, value)
         })
         .collect();
-    let lines = yaml
-        .lines()
-        .enumerate()
-        .filter_map(|(index, line)| {
-            let (key, _) = line.split_once(':')?;
-            let valid = !key.is_empty()
-                && key
-                    .chars()
-                    .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
-            valid.then(|| (key.to_string(), index + 2))
-        })
-        .collect();
+    let mut lines = Vec::new();
+    let mut raw = Vec::new();
+    for (index, line) in yaml.lines().enumerate() {
+        let Some((key, value)) = line.split_once(':') else {
+            continue;
+        };
+        let valid = !key.is_empty()
+            && key
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+        if !valid {
+            continue;
+        }
+        lines.push((key.to_string(), index + 2));
+        let value = value.split(" #").next().unwrap_or_default().trim();
+        let value = value.trim_matches(|c| c == '"' || c == '\'');
+        raw.push((key.to_string(), value.to_string()));
+    }
     Ok(Frontmatter {
         fields,
         end_line,
         lines,
+        raw,
     })
 }
 
@@ -162,4 +179,24 @@ pub(crate) fn yaml_message(error: &impl std::fmt::Display) -> String {
     let message = error.to_string();
     let first = message.lines().next().unwrap_or_default();
     first.strip_prefix("error: ").unwrap_or(first).to_string()
+}
+
+/// Removes a field's line, when the frontmatter has it.
+pub fn remove(text: &str, key: &str) -> String {
+    let result: Result<String, ()> = super::with_unix_newlines(text, |text| {
+        let Ok((_, end_line)) = block(text) else {
+            return Ok(text.to_string());
+        };
+        let prefix = format!("{key}:");
+        let lines: Vec<&str> = text
+            .split('\n')
+            .enumerate()
+            .filter(|(index, line)| {
+                !(*index > 0 && *index < end_line - 1 && line.starts_with(&prefix))
+            })
+            .map(|(_, line)| line)
+            .collect();
+        Ok(lines.join("\n"))
+    });
+    result.unwrap_or_else(|()| text.to_string())
 }
