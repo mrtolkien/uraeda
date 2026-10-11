@@ -397,9 +397,9 @@ The TUI stack without syntect brings `ura` to about 1.9 MB.
   of 3 MB.
 - [`SKILL.md`](/skills/uraeda/SKILL.md) and its [references](/skills/uraeda/references/): the
   operations listed below.
-- [`specs/drafts/web-ui.md`](../drafts/web-ui.md): the web UI will also answer, approve, and request
-  changes, set the statuses, turn the block into a record, and commit. Both tools need the same
-  actions, in the core.
+- [`specs/drafts/web-ui.md`](../2026-10-11-web-ui/proposal.md): the web UI will also answer,
+  approve, and request changes, set the statuses, turn the block into a record, and commit. Both
+  tools need the same actions, in the core.
 
 ### Mechanical operations in the skill
 
