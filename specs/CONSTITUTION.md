@@ -37,7 +37,6 @@ the other.
 - Documents written for human review MUST explain needs and tradeoffs in terms the reader
   understands.
 - Every question asked to a human MUST come with a recommended answer.
-- The amount of human review MUST scale with the risk tier of the change.
 - Agents SHOULD settle implementation details within the approved spec without asking.
 
 Rationale: human attention is the scarcest resource in the workflow.
@@ -71,4 +70,4 @@ Rationale: "high-quality code" cannot be checked, but acceptance tests and justi
 - Specs and plans MUST include a constitution check. Exceptions MUST be listed in the plan's
   complexity tracking and approved by a human.
 
-**Version**: 1.2.0 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-08
+**Version**: 1.2.1 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-11
