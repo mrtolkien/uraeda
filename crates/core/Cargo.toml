@@ -16,6 +16,7 @@ napi = { workspace = true, optional = true }
 napi-derive = { workspace = true, optional = true }
 pulldown-cmark.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 serde-saphyr.workspace = true
 thiserror.workspace = true
 

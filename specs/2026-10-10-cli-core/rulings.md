@@ -24,3 +24,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: `awaiting-human`, as the tier asks, against the human's request.
 - **If wrong**: the pull request's review covers what the plan's would have.
 - **Where**: `plan.md`'s frontmatter
+
+## R3: The local date from `date`
+
+- **Decision**: `today()` reads `URA_TODAY`, else runs `date +%F`, else takes the UTC date from the
+  system clock. Timestamps for JSON and "2 hours ago" are computed in the code, without a crate.
+- **Rationale**: the standard library has no local time zone. The `time` crate refuses the local
+  offset once the process has threads, which gix may start; `jiff` adds a time zone database for one
+  date. `date` exists on every supported platform, Linux and macOS.
+- **Alternatives considered**: `time` with `local-offset`, `jiff`, `chrono`.
+- **If wrong**: a machine without `date` gets the UTC date, a day off near midnight; the record
+  blocks carry that date.
+- **Where**: task 3, `crates/core/src/today.rs`

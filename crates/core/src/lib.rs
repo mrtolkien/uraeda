@@ -2,4 +2,7 @@
 
 pub mod files;
 pub mod git;
+pub mod steps;
 pub mod temporary_status;
+pub mod today;
+pub mod workspace;
