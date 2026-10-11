@@ -1,5 +1,5 @@
-//! Where an action writes: the working tree that has the branch, or this one, switched to it when
-//! it has no uncommitted change.
+//! Where an action writes: the working tree that has the branch, or a worktree created for it at
+//! `.worktrees/<branch>/`, never by switching the user's checkout (see `specs/decisions/git.md`).
 
 use std::path::PathBuf;
 
@@ -9,7 +9,9 @@ use crate::git::{Git, GitError, others_staged};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Place {
     pub root: PathBuf,
-    /// The branch this working tree was switched to, if it was.
+    /// Whether the worktree was created to reach the branch.
+    pub created: bool,
+    /// The branch this working tree was switched to, with `--switch` only.
     pub switched: Option<String>,
 }
 
@@ -23,23 +25,54 @@ pub enum PlaceError {
     Git(#[from] GitError),
 }
 
-/// Reaches a branch: this working tree when it has it, another one that has it, or this one
-/// switched to it when it has no uncommitted change.
+/// Where a branch's worktree goes: `<main checkout>/.worktrees/<branch>`.
+pub fn worktree_path(git: &Git, branch: &str) -> PathBuf {
+    git.main_root().join(".worktrees").join(branch)
+}
+
+/// Reaches a branch: this working tree when it has it, another one that has it, or a worktree
+/// created for it at `.worktrees/<branch>/`.
 pub fn reach(git: &Git, branch: &str) -> Result<Place, PlaceError> {
+    if git.current_branch().as_deref() == Some(branch) {
+        return Ok(Place {
+            root: git.root().to_path_buf(),
+            created: false,
+            switched: None,
+        });
+    }
+    let worktrees = git.worktrees()?;
+    if let Some(worktree) = worktrees
+        .iter()
+        .find(|worktree| worktree.branch.as_deref() == Some(branch) && worktree.path.exists())
+    {
+        return Ok(Place {
+            root: worktree.path.clone(),
+            created: false,
+            switched: None,
+        });
+    }
+    let path = worktree_path(git, branch);
+    if path.exists() {
+        return Err(GitError::WorktreeExists(format!(".worktrees/{branch}")).into());
+    }
+    git.exclude_worktrees()?;
+    git.add_worktree(&path, branch)?;
+    let root = std::fs::canonicalize(&path).unwrap_or(path);
+    Ok(Place {
+        root,
+        created: true,
+        switched: None,
+    })
+}
+
+/// Reaches a branch by switching this working tree to it when it has no uncommitted change, for
+/// the commands the human runs with `--switch`.
+pub fn reach_switching(git: &Git, branch: &str) -> Result<Place, PlaceError> {
     let current = git.current_branch();
     if current.as_deref() == Some(branch) {
         return Ok(Place {
             root: git.root().to_path_buf(),
-            switched: None,
-        });
-    }
-    if let Some(worktree) = git
-        .worktrees()?
-        .into_iter()
-        .find(|worktree| worktree.branch.as_deref() == Some(branch))
-    {
-        return Ok(Place {
-            root: worktree.path,
+            created: false,
             switched: None,
         });
     }
@@ -56,6 +89,7 @@ pub fn reach(git: &Git, branch: &str) -> Result<Place, PlaceError> {
     git.switch(branch)?;
     Ok(Place {
         root: git.root().to_path_buf(),
+        created: false,
         switched: Some(branch.to_string()),
     })
 }

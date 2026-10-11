@@ -308,16 +308,13 @@ fn a_bug_assessment() {
     let output = ura(&repo, &["review", "completed-tasks-reappear", "--approve"]);
 
     assert_eq!(output.code, 0, "{}", output.stderr);
-    assert_eq!(
-        repo.current_branch(),
-        "fix/2026-10-14-completed-tasks-reappear"
-    );
+    assert_eq!(repo.current_branch(), "main");
     assert!(
-        repo.read("specs/bugs/2026-10-14-completed-tasks-reappear/assessment.md")
+        repo.read(".worktrees/fix/2026-10-14-completed-tasks-reappear/specs/bugs/2026-10-14-completed-tasks-reappear/assessment.md")
             .contains("status: approved\n")
     );
     assert_eq!(
-        repo.subjects("HEAD")[0],
+        repo.subjects("fix/2026-10-14-completed-tasks-reappear")[0],
         "assessment(completed-tasks-reappear): approve"
     );
 }

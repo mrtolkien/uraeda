@@ -80,10 +80,15 @@ pub fn target(
     target::resolve(workspace, &cwd, target, purpose).map_err(|error| error.to_string())
 }
 
-/// Says which branch a working tree was switched to, if it was.
-pub fn say_switched(place: &Place) {
+/// Says where an action wrote, when it is not this working tree: the worktree created or found
+/// for its branch, from the main checkout, or the branch this one was switched to.
+pub fn say_place(git: &Git, place: &Place) {
     if let Some(branch) = &place.switched {
         println!("switched to {branch}");
+    } else if place.root != git.root() {
+        let main = git.main_root();
+        let shown = place.root.strip_prefix(&main).unwrap_or(&place.root);
+        println!("wrote in {}", shown.display());
     }
 }
 

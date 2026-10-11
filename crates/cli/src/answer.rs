@@ -71,7 +71,7 @@ pub fn run(arguments: Vec<String>, submit: bool, no_commit: bool) -> Result<Exit
         }
         let change =
             answer::submit(&place, feature, today::today()).map_err(|e| refused(e.to_string()))?;
-        output::say_switched(&place);
+        output::say_place(&git, &place);
         let round = change
             .subject
             .rsplit(' ')
@@ -90,7 +90,7 @@ pub fn run(arguments: Vec<String>, submit: bool, no_commit: bool) -> Result<Exit
     } else if let (Some(question), Some(text)) = (question, text) {
         let written =
             answer::write(&place, feature, question, text).map_err(|e| refused(e.to_string()))?;
-        output::say_switched(&place);
+        output::say_place(&git, &place);
         let what = if question == "notes" {
             "Notes written".to_string()
         } else {
