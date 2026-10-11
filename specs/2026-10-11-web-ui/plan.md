@@ -682,51 +682,60 @@ git commit -m "feat(web-ui): watch the repository for changes in the core"
 
 **Files:**
 
+- Create: `crates/core/src/view.rs` (the napi objects the UI reads: `WorkspaceView`, `FeatureView`,
+  `FileView`, `DraftView`, `CommitView`, `StartedView`), `crates/core/src/api.rs` (one function per
+  binding call, by repository path, with `ApiError { code, message, output }`), `fixtures/repo/`
+  (`main/` and `branches/<branch>/`, mostly from the skill's example)
 - Modify: `crates/binding/src/lib.rs`, `packages/binding/index.d.ts`, `packages/binding/index.js`
   (generated), `packages/binding/index.test.ts`, `packages/binding/test-utils.ts`
-- Delete: `crates/core/src/temporary_status.rs`, `crates/core/tests/temporary_status.rs`
+- The temporary functions stay until tasks 9 and 10 replace the server and UI code calling them;
+  task 10 deletes them, with `crates/core/src/temporary_status.rs`.
 
 **Interfaces:**
 
 - Consumes: everything above.
-- Produces (TypeScript names, all async except `watch`):
-  `readWorkspace(repo): Promise<WorkspaceView>`, `readFile(repo, path): Promise<FileView>`
-  (`{ path, name, kind, document, items, onDisk, committed }`), `readPriorities(repo)`,
-  `saveAnswer(repo, file, question, letters, comment, previous)`, `saveNotes`, `submitAnswers`,
-  `addComment(repo, file, lines | null, text)`, `editComment`, `removeComment`, `startOver`,
-  `approve(repo, file, summary, tier, planReview)`, `requestChanges`, `createDraft(repo, entryId)`,
-  `saveText(repo, path, text, hash)`, `commitText(repo, path)`, `startFeature(repo, draft, slug)`,
-  `addPriority(repo, section, text, hash)`, `movePriority`, `editPriority`, `removePriority`,
-  `commitPriorities`, `discardPriorities`, and
+- Produces (TypeScript names, all async except `watch`): `readWorkspace(repo)`,
+  `readFeature(repo, folder)`, `readFile(repo, folder, name): Promise<FileView>`
+  (`{ id, folder, name, path, kind, status, current: { text, document, items }, tip, committed, review }`),
+  `readPriorities(repo)`, `readDraft(repo, path)`,
+  `saveAnswer(repo, folder, question, letters, comment, previous)`,
+  `saveNotes(repo, folder, notes, previous)`, `submitAnswers(repo, folder)`,
+  `retryCommit(repo, folder, subject, paths)`,
+  `addComment(repo, folder, file, startLine?, endLine?, text)`, `editComment`, `removeComment`,
+  `startOver`, `approve(repo, folder, file, summary?, riskTier?, planReview?)`, `requestChanges`,
+  `createDraft(repo, id)`, `saveText(repo, path, text, previous)`, `commitText(repo, path)`,
+  `startFeature(repo, draft, slug?)`, `addPriority(repo, section, text, previous)`, `movePriority`,
+  `editPriority`, `removePriority`, `commitPriorities`, `discardPriorities`, and
   `watch(repo, onChange: (changes: Changes) => void): WatchHandle` with `close()`. Errors reject
-  with the core's message; a hook refusal's message starts with `hook:` followed by the output.
-- `test-utils.ts`: `fixtureRepo(name = "specs")`, a temporary git repository built by running `git`
-  over a copy of `fixtures/<name>`, with a feature branch per dated folder.
+  with `<code>: <message>`, `code` being `refused`, `conflict`, or `hook`, the hook's output after a
+  blank line.
+- `test-utils.ts`: `fixtureRepo(name = "repo")`, a temporary git repository built by running `git`:
+  `fixtures/<name>/main/` committed on `main`, each `fixtures/<name>/branches/<branch>/` on its
+  branch; `git(cwd, ...args)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `packages/binding/index.test.ts`: `readWorkspace(fixtureRepo())` lists the fixture's features;
 `readFile` of a round returns `items.clarifications.questions` with letters; `saveAnswer` writes
 `A`; `watch` calls back after a write, then `close()` stops it.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp run --filter uraeda-binding build && vp test packages/binding`
 - Expected: FAIL, `readWorkspace is not a function`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-`#[napi]` async functions run the core on libuv's pool (`AsyncTask` or `async fn` with
-`tokio_rt`-less `napi::bindgen_prelude::spawn_blocking`); `watch` takes a `ThreadsafeFunction`.
+Each `#[napi]` function returns an `AsyncTask` of one generic `Job<T>`, which runs its `api` call on
+libuv's pool, with `ts_return_type` naming its promise; `watch` takes a weak `ThreadsafeFunction`,
+so it does not keep Node running.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
-- Expected: PASS, except the server and web tests that still use the temporary functions: those are
-  replaced in tasks 9 and 10, so this task updates their imports only where they break the build.
-  (Ruling if the temporary tests must go now.)
+- Expected: PASS, the temporary functions and their callers kept.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages/binding
