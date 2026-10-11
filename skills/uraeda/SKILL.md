@@ -370,6 +370,7 @@ one waiting for that action.
 | `ura start <draft>`                                                | [Starts](#starting-postponing-and-dropping-a-feature) a feature   |
 | `ura answer [feature] <Q2> <answer>`, `--submit`                   | Answers a round of questions, then submits it                     |
 | `ura review [feature] --comment`, `--approve`, `--request-changes` | [Reviews](#review-files) a spec, plan, or assessment              |
+| `ura upgrade`                                                      | Installs `ura`'s latest release                                   |
 
 `ura answer --submit` and `ura review` set the human's status, record the block, and commit: a human
 runs them, or an agent the human asked, with `--no-commit`.
