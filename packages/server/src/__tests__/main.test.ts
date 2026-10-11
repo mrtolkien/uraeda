@@ -1,14 +1,19 @@
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, realpathSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vite-plus/test";
 import { loadBinding } from "../binding.ts";
 
 const main = fileURLToPath(new URL("../main.ts", import.meta.url));
 
-test("refuses to start on a missing specs folder", () => {
-  const result = spawnSync(process.execPath, [main, "--specs", "missing"], { encoding: "utf8" });
+test("refuses to start on a folder that is not a repository", () => {
+  const folder = realpathSync(mkdtempSync(join(tmpdir(), "uraeda-none-")));
 
-  expect(result.stderr).toBe("uraeda-server: missing: no such folder\n");
+  const result = spawnSync(process.execPath, [main, "--repo", folder], { encoding: "utf8" });
+
+  expect(result.stderr).toBe(`uraeda-server: ${folder} is not a git repository\n`);
   expect(result.status).toBe(1);
 });
 

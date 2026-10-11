@@ -746,35 +746,41 @@ git commit -m "feat(web-ui): the binding's async functions and watcher"
 
 **Files:**
 
-- Create: `packages/server/src/fate/source.ts`, `packages/server/src/fate/views.ts`,
-  `packages/server/src/fate/mutations.ts`, `packages/server/src/env.ts`,
-  `packages/server/src/live.ts`, `packages/server/src/files.ts`, `.env.example`
-- Modify: `packages/server/src/{app,fate,guard,main,options}.ts`, `.gitignore` (`.env`)
-- Delete: `packages/server/src/temporary-spec-folders.ts` and its test
+- Create: `packages/server/src/fate/{source,views,sources,mutations,context,errors}.ts`,
+  `packages/server/src/env.ts`, `packages/server/src/live.ts`, `packages/server/src/files.ts`,
+  `.env.example`
+- Modify: `packages/server/src/{app,fate,guard,main,options}.ts`, `.gitignore` (`.env`),
+  `crates/core/src/api.rs` and `crates/binding/src/lib.rs` (`readText`, `readRaw`)
+- Delete: `packages/server/src/__tests__/temporary-spec-folders.test.ts`; the temporary source
+  stays, among the new ones, until task 10 replaces the status page
 - Test: `packages/server/src/__tests__/{guard,env,fate,live,files,main}.test.ts`
 
 **Interfaces:**
 
 - Consumes: the binding (task 8).
 - Produces:
-  - `loadEnv(root: string): { allowedHosts: string[]; port: number; repo: string }` from
-    `<root>/.env` and `process.env`.
+  - `loadEnv(root, environment = process.env): { allowedHosts: string[]; port: number; repo: string }`
+    from `<root>/.env`, the environment winning; `parseOptions(argv, env)` with `--repo`, `--port`,
+    `--allow-origin`, `--web-root` over them.
   - `guard({ port, allowedHosts, allowOrigins })`: hosts `127.0.0.1:<port>`, `localhost:<port>`, and
-    each allowed host with or without a port; origins `http://` those, `https://<allowed>`.
-  - `fileSource(view, { byIds, list? })` returning `{ definition, executor }`, and
-    `createSources(entries)` returning fate's `{ getSource, registry }`.
-  - Entities `Workspace` (`id: "workspace"`), `Feature`, `WorkflowFile`, `Priorities`, `Draft`;
-    roots `workspace`, `priorities` as queries, `feature`, `file`, `draft` by id.
-  - Mutations named as in the spec's **Mutations**, each returning the changed `WorkflowFile`,
-    `Feature`, `Priorities`, or `Draft`; errors as fate `FateRequestError` with code `BAD_REQUEST`
-    and the core's message, `CONFLICT` for `Changed`, `HOOK` for a hook refusal.
+    each allowed host with or without the port; origins `http://` the first two, `https://` each
+    allowed host, and the allowed origins.
+  - `fileSource(view, { byIds, list? })` and `createSources(entries)`, returning fate's
+    `{ getSource, registry }` and `masked(view, ctx, record, select)`, which masks a mutation's
+    record to the client's selection.
+  - Entities, each read by id: `Workspace` (`id: "workspace"`), `Feature` (its folder),
+    `WorkflowFile` (`<folder>/<name>`), `Priorities` (`id: "priorities"`), `Draft` (its path); the
+    roots list each type, so fate registers every source.
+  - Mutations named as in the spec's **Mutations**, plus `commit.retry`, each returning the changed
+    `WorkflowFile`, `Feature`, `Priorities`, or `Draft`; refusals as `BAD_REQUEST`, their kind in
+    the message (ruling R3).
   - `createApp({ repo, port, allowedHosts, allowOrigins, webRoot?, binding })`; `/fate` and
-    `/fate/live` on one handler; `GET /raw/<path>` (text/plain) and `GET /mockups/<path>` with
-    `Content-Security-Policy: sandbox`.
-  - `startLive(app, binding, repo)`: the core's watcher, each `Changes` mapped to `live.update` of
-    `Workspace`, the features, and the files named.
+    `/fate/live` on one handler; `GET /raw/<path>` (text/plain) and `GET /mockups/<path>` with its
+    type and `Content-Security-Policy: sandbox allow-scripts`, both through `readRaw`.
+  - `startLive(binding, repo)`: the core's watcher, each `Changes` published as `live.update` of the
+    workspace, the features, the files, and the priorities.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - US6.1/6.2 in `guard.test.ts` with `allowedHosts: ["mac.tail1234.ts.net"]`: Host
   `mac.tail1234.ts.net` + Origin `https://mac.tail1234.ts.net` → 200; Host `evil.example` → 403
@@ -791,19 +797,19 @@ git commit -m "feat(web-ui): the binding's async functions and watcher"
   repository", exit 1; the binding message test stays.
 - SC-001: a repository with 20 feature branches answers the `workspace` query in under 500 ms.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server`
 - Expected: FAIL, `Cannot find module '../env.ts'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check && vp test packages/server`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server .env.example .gitignore

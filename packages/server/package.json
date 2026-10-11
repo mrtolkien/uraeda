@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node src/main.ts",
-    "dev": "node --watch src/main.ts --specs ../../specs --allow-origin http://localhost:5173"
+    "dev": "node --watch src/main.ts --repo ../.. --allow-origin http://localhost:5173"
   },
   "dependencies": {
     "@hono/node-server": "2.1.4",
