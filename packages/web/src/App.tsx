@@ -6,8 +6,10 @@ import { Component, type ReactNode, Suspense, useState } from "react";
 import { FateClient } from "react-fate";
 import type { createFateClient } from "react-fate/client";
 import { FeaturePage } from "./FeaturePage.tsx";
+import { EditorPage } from "./EditorPage.tsx";
 import { FilePage } from "./FilePage.tsx";
 import { Home } from "./Home.tsx";
+import { PrioritiesPage } from "./PrioritiesPage.tsx";
 import { type Route, useRoute } from "./routes.tsx";
 import { Shell } from "./Shell.tsx";
 import { ThemeModeProvider } from "./theme.tsx";
@@ -55,6 +57,10 @@ function Page({ route }: { route: Route }) {
       return <FeaturePage folder={route.folder} />;
     case "file":
       return <FilePage folder={route.folder} name={route.name} />;
+    case "priorities":
+      return <PrioritiesPage />;
+    case "edit":
+      return <EditorPage key={route.path} path={route.path} />;
     default:
       return (
         <div className="page">
