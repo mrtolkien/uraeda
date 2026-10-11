@@ -440,13 +440,22 @@ impl Git {
         subject: &str,
         body: Option<&str>,
     ) -> Result<(), GitError> {
-        let others = others_staged(&self.staged_files()?, paths);
+        let staged = self.staged_files()?;
+        let others = others_staged(&staged, paths);
         if !others.is_empty() {
             return Err(GitError::OtherStagedFiles(others));
         }
-        let mut add = vec!["add", "--all", "--"];
-        add.extend(paths.iter().map(String::as_str));
-        self.run("add", &add)?;
+        // A deletion already staged, after a refused commit, is not a path git can add again.
+        let addable: Vec<&str> = paths
+            .iter()
+            .filter(|path| self.root.join(path).exists() || !staged.contains(path))
+            .map(String::as_str)
+            .collect();
+        if !addable.is_empty() {
+            let mut add = vec!["add", "--all", "--"];
+            add.extend(addable);
+            self.run("add", &add)?;
+        }
         let hooks = self
             .hooks_override()
             .map(|path| format!("core.hooksPath={path}"));
