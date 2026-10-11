@@ -263,6 +263,8 @@ pub struct EntryItem {
     pub end_line: u32,
     /// Its nested lines, as written.
     pub nested: Vec<String>,
+    /// The text of each nested item, without its marker.
+    pub nested_spans: Vec<Vec<super::document::Span>>,
 }
 
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
@@ -336,6 +338,7 @@ pub fn read(text: &str, committed: Option<&str>) -> Priorities {
                         .iter()
                         .map(|l| l.to_string())
                         .collect(),
+                    nested_spans: nested_spans(&lines[entry.text_end..entry.end]),
                 }
             })
             .collect(),
@@ -485,4 +488,24 @@ pub fn remove(text: &str, id: &str) -> Option<String> {
         Ok::<_, ()>(lines.join("\n"))
     })
     .ok()
+}
+
+/// The text of each item of nested lines, read as markdown.
+fn nested_spans(lines: &[&str]) -> Vec<Vec<super::document::Span>> {
+    let indent = lines
+        .iter()
+        .filter(|l| !l.trim().is_empty())
+        .map(|l| l.len() - l.trim_start().len())
+        .min()
+        .unwrap_or(0);
+    let text: Vec<&str> = lines
+        .iter()
+        .map(|l| l.get(indent..).unwrap_or(""))
+        .collect();
+    let doc = super::document::parse(&text.join("\n"), "specs");
+    doc.blocks
+        .iter()
+        .filter(|b| b.kind == super::document::BlockKind::Item)
+        .map(|b| b.spans.clone())
+        .collect()
 }
