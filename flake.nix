@@ -38,6 +38,11 @@
             pnpm
             (rust-bin.fromRustupToolchainFile ./rust-toolchain.toml)
           ];
+          # The browsers of the web UI's layout tests: the playwright package pins the same version
+          # as nixpkgs' driver, so its browsers run here without a download.
+          PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
+          PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "true";
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
         };
       });
 
