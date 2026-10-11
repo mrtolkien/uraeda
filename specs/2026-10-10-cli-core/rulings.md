@@ -98,3 +98,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `cargo-dist-version` in `dist-workspace.toml` pins another version, and
   `dist generate` rewrites the workflow.
 - **Where**: task 12, `dist-workspace.toml`, `.github/workflows/release.yml`, `vite.config.ts`
+
+## R9: The TUIs stay where the human put them, in Later
+
+- **Decision**: the last commit removes this feature's **Now** entry, and links the draft
+  `specs/drafts/cli-tuis.md` from the human's own "Nice TUI" entry, in **Later**, rather than adding
+  a "CLI TUIs" entry to **Now**.
+- **Rationale**: Q1's answer put the TUIs next, in **Now**; the human then added "Nice TUI" to
+  **Later** on `main`, after answering. The latest edit wins, and one entry for the same work avoids
+  a duplicate.
+- **Alternatives considered**: a new **Now** entry, as the plan said, next to "Nice TUI" in
+  **Later**.
+- **If wrong**: move the line to **Now** by hand.
+- **Where**: task 13, `specs/PRIORITIES.md`

@@ -889,22 +889,23 @@ git commit -m "build(cli-core): release and install"
 - Create: `specs/drafts/cli-tuis.md`
 - Modify: `specs/PRIORITIES.md` (in the pull request's last commit, after merging `main`)
 
-- [ ] **Step 1: Write the draft**
+- [x] **Step 1: Write the draft**
 
 The proposal's TUI parts, quoted as the human wrote them, with links to Q4 and Q12 to Q14 of
 [the clarifications](clarifications-01.md) and to the settled TUI libraries and keys.
 
-- [ ] **Step 2: Replace the entry**
+- [x] **Step 2: Replace the entry**
 
-Merge `main` into the branch, then replace this feature's **Now** entry with
-`- [CLI TUIs](drafts/cli-tuis.md)`, at the same place.
+Merge `main` into the branch, then remove this feature's **Now** entry, and link the human's "Nice
+TUI" entry, in **Later**, to `drafts/cli-tuis.md`
+([R9](rulings.md#r9-the-tuis-stay-where-the-human-put-them-in-later)).
 
-- [ ] **Step 3: Run all tests**
+- [x] **Step 3: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS, `ura check` included.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add specs/drafts/cli-tuis.md specs/PRIORITIES.md

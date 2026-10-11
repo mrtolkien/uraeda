@@ -344,8 +344,8 @@ fn review_single_line_anchor() {
 }
 
 #[test]
-fn priorities_entries_of_this_repository() {
-    let text = repository_file("specs/PRIORITIES.md");
+fn priorities_entries_of_a_real_file() {
+    let text = repository_file("fixtures/PRIORITIES.md");
 
     let entries = priorities::parse(&text);
 
