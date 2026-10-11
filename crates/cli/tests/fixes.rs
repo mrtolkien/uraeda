@@ -39,7 +39,7 @@ fn check_accepts_priorities_links_to_features_on_their_branches() {
 }
 
 #[test]
-fn a_refused_answer_switches_back() {
+fn a_refused_answer_leaves_the_checkout() {
     let repo = waiting(&["A", "", "A"]);
 
     let output = ura(&repo, &["answer", "cli-core", "--submit"]);

@@ -27,7 +27,7 @@ pub fn run(text: Option<String>, no_edit: bool) -> Result<ExitCode, String> {
         )));
     };
     let drafted = draft::run(&place, &text).map_err(|e| refused(e.to_string()))?;
-    output::say_switched(&place);
+    output::say_place(&git, &place);
     println!("created {}", drafted.path);
     println!("linked  \"{}\" in specs/PRIORITIES.md", drafted.text);
     if !no_edit && editor::available() && !editor::open(&place.root.join(&drafted.path)) {

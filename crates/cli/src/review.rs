@@ -72,7 +72,7 @@ pub fn run(options: Options) -> Result<ExitCode, String> {
         let lines = lines(range).map_err(refused)?;
         let added = review::comment(&git, &place, feature, &file, lines, text)
             .map_err(|e| refused(e.to_string()))?;
-        output::say_switched(&place);
+        output::say_place(&git, &place);
         if added.replaced {
             println!("replaced a pending review of an older version");
         }
@@ -103,7 +103,7 @@ pub fn run(options: Options) -> Result<ExitCode, String> {
         review::request_changes(&place, feature, &file, summary, today)
     }
     .map_err(|e| refused(e.to_string()))?;
-    output::say_switched(&place);
+    output::say_place(&git, &place);
     finish(&place, &change, &file, options.approve, options.no_commit)
 }
 

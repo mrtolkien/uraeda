@@ -363,7 +363,7 @@ git commit -m "feat(web-ui): structured items of each workflow file"
     `Place { root, created: bool }` (the `switched` field goes).
   - `place::reach_switching(git, branch)`: today's behaviour, for `ura start --switch`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `crates/core/tests/worktrees.rs`, on `TestRepo` with a feature branch `2026-10-11-web-ui`:
 
@@ -391,24 +391,24 @@ In the CLI tests, rewrite `switches_to_the_branch_from_a_clean_main` as
 `a_refused_answer_switches_back` becomes `a_refused_answer_leaves_the_checkout` (SC-002: branch
 unchanged).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test worktrees`
-- Expected: FAIL to compile, `no method named add_worktree`.
+- Expected: FAIL to compile, `no field created on type Place`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `commit` passes `-c core.hooksPath=<abs>` when the configured value is relative and this is a linked
 worktree, `<abs>` = `main_root().join(value)`. `run` returns the whole output in `output`, and keeps
 `message` its first line.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run:
   `cargo test --workspace --exclude uraeda-binding && cargo clippy --workspace --all-targets -- -D warnings`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates
