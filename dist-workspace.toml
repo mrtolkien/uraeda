@@ -24,3 +24,5 @@ targets = [
 install-path = "CARGO_HOME"
 # Whether to install an updater program
 install-updater = false
+# Build each package alone: a workspace build turns on the binding's napi feature in `ura`
+precise-builds = true
