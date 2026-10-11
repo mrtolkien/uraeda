@@ -14,8 +14,8 @@ spec-revision: 3
 >   subfolder, a branch name with a slash, answers containing `**Answer:**`, and a hook that
 >   reformats the files `ura` commits.
 > - The CI size limit rises to 5 MB, as you accepted for gix's `status` feature.
-> - New dependencies: gix (reads), pulldown-cmark, serde_json, sha2, include_dir, time; tempfile for
->   tests only.
+> - New dependencies: gix (reads), pulldown-cmark, serde_json, sha2, include_dir; tempfile for tests
+>   only.
 > - The riskiest tasks come late, on tested reads: branch access (task 6), then the actions that
 >   commit (tasks 6 to 10).
 
@@ -365,8 +365,9 @@ git commit -m "feat(cli-core): workflow file parsers"
     skill's tables (spec revision rows included), with `reference` paths
     `skills/uraeda/references/<file>.md`. A feature without a committed `proposal.md` is a
     `human-gate` on `proposal.md`.
-  - `today::today() -> Result<Date, CoreError>` (`URA_TODAY` or the local date), `Date::to_string()`
-    as `YYYY-MM-DD`.
+  - `today::today() -> Date` (`URA_TODAY`, else the local date from `date +%F`, else the UTC date),
+    `Date::parse(&str) -> Option<Date>`, `Date::to_string()` as `YYYY-MM-DD`, `today::rfc3339`, and
+    `today::ago` ([R3](rulings.md#r3-the-local-date-from-date)).
   - CLI: `output::print_json(&impl Serialize)`, `output::style(Style::{Bold, Dim}, &str) -> String`
     honouring the terminal and `NO_COLOR`; errors through `output::fail(message) -> ExitCode`.
   - CLI test helper: `common::ura(repo: &TestRepo, args: &[&str]) -> Output` (cwd the repository,
@@ -375,7 +376,7 @@ git commit -m "feat(cli-core): workflow file parsers"
     `common::clarifications(status, questions)`, `common::spec(status)`,
     `common::plan(status, tasks)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 One test per scenario of US1 and its edge cases, in `crates/cli/tests/status.rs`, each building a
 `TestRepo`: `waiting_on_you_across_branches` (US1.1, exact line from the
@@ -386,12 +387,12 @@ the fetch line), `invalid_files_instead_of_a_step`, `impossible_date_is_skipped`
 (`ura: no specs/ folder at <top level>: run ura init`, exit 1), `branch_with_a_slash` (review focus
 3: `fix/2026-10-14-x` listed under **Not in priorities**).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-cli --test status`
 - Expected: FAIL, the first test's stdout is clap's `unrecognized subcommand` error.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `Workspace::read`: PRIORITIES and merged features from the default branch's tip; every branch named
 `YYYY-MM-DD-<slug>` or `fix/YYYY-MM-DD-<slug>` not merged into the default branch, from its local
@@ -400,12 +401,12 @@ tip, else its remote tip; the current branch from the working tree, with `uncomm
 `status` prints the [mockup](mockups/cli-output.md#ura-status)'s layout: sections in PRIORITIES
 order, then **Not in priorities**.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/cli crates/core

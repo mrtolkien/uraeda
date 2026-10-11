@@ -1,8 +1,8 @@
 //! `ura`, Uraeda's command-line tool.
 
-mod temporary_status;
+mod output;
+mod status;
 
-use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
@@ -16,15 +16,17 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Show the status of each workflow file in a feature folder (temporary)
+    /// Show where every feature and bug stands, across branches
     Status {
-        /// The feature folder, like specs/2026-10-10-stack-decision
-        folder: PathBuf,
+        /// Print JSON
+        #[arg(long)]
+        json: bool,
     },
 }
 
 fn main() -> ExitCode {
-    match Cli::parse().command {
-        Command::Status { folder } => temporary_status::temporary_status(&folder),
-    }
+    let result = match Cli::parse().command {
+        Command::Status { json } => status::run(json),
+    };
+    result.unwrap_or_else(|message| output::fail(&message))
 }
