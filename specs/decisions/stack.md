@@ -25,12 +25,13 @@ hand.
 - The TypeScript types of core data MUST come from the declarations napi-rs generates for the
   binding. They MUST NOT be redeclared by hand in TypeScript.
 - The web UI MUST use React and Astryx components, live in [`packages/web`](/packages/web/), and get
-  its data only from the server, through fate unless the next rule replaced it.
-- If fate needs anything `@nkzw/fate` does not export, or a patch, to read data that is not in a
-  database, the stack-decision feature MUST replace it with JSON routes read by Hono's typed client
-  (`hc`) and TanStack Query, and say so in its pull request.
-- The server MUST listen on 127.0.0.1 only, and MUST reject requests whose `Host` is not `127.0.0.1`
-  or `localhost` on its port, or whose `Origin`, when present, is not an allowed origin.
+  its data only from the server, through fate.
+- The web UI MUST draw workflow files from the document tree the core sends, and MUST NOT parse
+  markdown, with a library or by hand.
+- The server MUST listen on 127.0.0.1 only. It MUST reject requests whose `Host` is not `127.0.0.1`
+  or `localhost` on its port, or a host name listed in `URAEDA_ALLOWED_HOSTS`, and requests whose
+  `Origin`, when present, is not the server's own, `https://` and a listed host name, or an allowed
+  origin.
 
 ## Why
 
@@ -48,8 +49,17 @@ commit to git and start agents, so a web page the user visits must not reach it
 fate is preferred over a plain JSON client because the web UI will hold live, graph-like data:
 sub-agents and their runs, streamed responses, and drafts of answers edited in the browser. fate's
 normalized cache, live views, and optimistic updates are built for that; with TanStack Query, each
-of them is written by hand. Today's status page needs none of it, which is why fate may still be
-dropped if it cannot read data that is not in a database.
+of them is written by hand. fate reads data that is not in a database through sources built with the
+types it exports, so it stays the data layer
+([Q5](../2026-10-11-web-ui/clarifications-01.md#q5-does-fate-stay-the-data-layer)).
+
+The server listens on 127.0.0.1 only, but accepts the host names listed in `URAEDA_ALLOWED_HOSTS`,
+so a phone reaches it through `tailscale serve`, which keeps it on 127.0.0.1 and passes the
+machine's `*.ts.net` name
+([Q2](../2026-10-11-web-ui/clarifications-01.md#q2-how-does-your-iphone-reach-the-server)). The web
+UI draws the core's document tree, since a second markdown parser in TypeScript would disagree with
+the core on callouts, typed bullets, and source lines
+([Q4](../2026-10-11-web-ui/clarifications-01.md#q4-where-does-the-structure-the-ui-draws-come-from)).
 
 ## Alternatives considered
 
@@ -58,6 +68,11 @@ dropped if it cannot read data that is not in a database.
   fate only through GraphQL.
 - A TypeScript server calling the CLI with `--json`: no binding, but the server reaches the logic
   only through the CLI's output, one process per call.
+- JSON routes read by Hono's typed client and TanStack Query, the fallback if fate could not read
+  data outside a database: dropped once fate's sources did
+  ([data layer](../2026-10-11-web-ui/discovery-01.md#data-layer)).
+- Astryx's `Markdown` component, or a TypeScript parser, for the UI's rendering: dropped for the
+  core's document tree, the only parser that knows the skill's markdown and its source lines.
 
 ## Consequences
 
@@ -68,62 +83,13 @@ dropped if it cannot read data that is not in a database.
   the TypeScript tests run.
 - Shipping the server means shipping a native addon per platform, or a container image.
 - Every core type the TypeScript side uses must be expressible through napi-rs.
-
-## Applies to
-
-- [`crates/`](/crates/) and [`packages/`](/packages/), and every feature that adds logic, a command,
-  an endpoint, or a page
-
-## Revisit when
-
-The stack-decision feature's pull request reports whether fate shipped: the data layer rules then
-keep only the one that did.
-
-## Proposed change (2026-10-11-web-ui)
-
-Proposed by the [spec](../2026-10-11-web-ui/spec.md). fate stays the data layer, and its fallback
-rule goes. The server also accepts host names the user lists in the repository's `.env`, so a phone
-reaches it through `tailscale serve`, still listening on 127.0.0.1 only. The web UI draws workflow
-files from the core's document tree, and never parses markdown itself.
-
-The rules become:
-
-- Workflow logic, parsing, validation, and workflow states MUST live in the Rust core,
-  [`crates/core`](/crates/core/).
-- The CLI MUST be written in Rust, in [`crates/cli`](/crates/cli/), build the binary `ura`, and MUST
-  NOT need Node or any other runtime to run.
-- The server MUST be written in TypeScript, run on Node, and live in
-  [`packages/server`](/packages/server/).
-- TypeScript code MUST reach the core only through the binding,
-  [`packages/binding`](/packages/binding/), and MUST NOT reimplement its parsing, validation, or
-  states.
-- The TypeScript types of core data MUST come from the declarations napi-rs generates for the
-  binding. They MUST NOT be redeclared by hand in TypeScript.
-- The web UI MUST use React and Astryx components, live in [`packages/web`](/packages/web/), and get
-  its data only from the server, through fate.
-- The web UI MUST draw workflow files from the document tree the core sends, and MUST NOT parse
-  markdown, with a library or by hand.
-- The server MUST listen on 127.0.0.1 only. It MUST reject requests whose `Host` is not `127.0.0.1`
-  or `localhost` on its port, or a host name listed in `URAEDA_ALLOWED_HOSTS`, and requests whose
-  `Origin`, when present, is not the server's own, `https://` and a listed host name, or an allowed
-  origin.
-
-Why: you access the UI from your iPhone over Tailscale, through `tailscale serve`, which keeps the
-server on 127.0.0.1 but passes the machine's `*.ts.net` name
-([Q2](../2026-10-11-web-ui/clarifications-01.md#q2-how-does-your-iphone-reach-the-server),
-[network access](../2026-10-11-web-ui/discovery-01.md#network-access)). fate reads data outside a
-database with the types it exports, so the condition for the fallback is not met
-([Q5](../2026-10-11-web-ui/clarifications-01.md#q5-does-fate-stay-the-data-layer),
-[data layer](../2026-10-11-web-ui/discovery-01.md#data-layer)). A second markdown parser in
-TypeScript would disagree with the core on callouts, typed bullets, and source lines
-([Q4](../2026-10-11-web-ui/clarifications-01.md#q4-where-does-the-structure-the-ui-draws-come-from),
-[rendering](../2026-10-11-web-ui/discovery-01.md#where-the-rendering-structure-comes-from)).
-
-Consequences that change:
-
 - fate's custom sources rely on types it exports without documenting them: a fate release can break
   them, so its versions stay pinned and upgrades are deliberate.
 - Anyone who can reach a listed host name reaches the server: the tailnet's access rules are its
   only protection there.
 - Every markdown feature the UI shows, like a new callout type, is added to the core first.
-- The **Revisit when** section goes: fate shipped.
+
+## Applies to
+
+- [`crates/`](/crates/) and [`packages/`](/packages/), and every feature that adds logic, a command,
+  an endpoint, or a page
