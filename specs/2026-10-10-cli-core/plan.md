@@ -709,11 +709,10 @@ git commit -m "feat(cli-core): ura init"
 - Consumes: `priorities::{parse, link}`, `embedded::template`, `place::reach` on the default branch.
 - Produces: `slug::from_text(text: &str) -> String` (the spec's rule: lowercase, runs of other
   characters than letters and digits to one hyphen, at most 50 characters cut on a hyphen);
-  `draft::run(place, text: &str) -> Result<PathBuf, ActionError>`;
-  `editor::open(path: &Path, line: Option<usize>) -> Result<(), String>` (`$VISUAL`, `$EDITOR`,
-  `vi`, through `sh -c`).
+  `draft::run(place, text: &str) -> Result<Drafted, ActionError>` (`Drafted { path, text }`);
+  `editor::open(path: &Path) -> bool` (`$VISUAL`, `$EDITOR`, `vi`, through `sh -c`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 US7.1 to US7.4 (with `EDITOR` set to a script recording its argument, and no terminal for US7.4);
 `slug` table: `Git listener process` → `git-listener-process`,
@@ -721,21 +720,21 @@ US7.1 to US7.4 (with `EDITOR` set to a script recording its argument, and no ter
 hyphen; the edge case `no_editor_found` (`EDITOR` and `VISUAL` unset, `PATH` without `vi` → path
 printed).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-cli --test draft`
 - Expected: FAIL, `unrecognized subcommand 'draft'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 The editor opens only when stdin and stdout are terminals and `--no-edit` is not set.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates

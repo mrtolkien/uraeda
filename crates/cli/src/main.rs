@@ -2,6 +2,8 @@
 
 mod answer;
 mod check;
+mod draft;
+mod editor;
 mod init;
 mod next;
 mod output;
@@ -26,6 +28,14 @@ enum Command {
         /// Leave the skill out, to install it another way
         #[arg(long)]
         no_skill: bool,
+    },
+    /// Turn a line of PRIORITIES.md into a draft, and open it in your editor
+    Draft {
+        /// Text of the line, matched without case
+        text: Option<String>,
+        /// Do not open the editor
+        #[arg(long)]
+        no_edit: bool,
     },
     /// Show where every feature and bug stands, across branches
     Status {
@@ -92,6 +102,7 @@ enum Command {
 fn main() -> ExitCode {
     let result = match Cli::parse().command {
         Command::Init { no_skill } => init::run(no_skill),
+        Command::Draft { text, no_edit } => draft::run(text, no_edit),
         Command::Status { json } => status::run(json),
         Command::Next { target, json } => next::run(target, json),
         Command::Check { target, json } => check::run(target, json),
