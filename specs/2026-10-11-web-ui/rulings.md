@@ -102,3 +102,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: each is a small change in `api.rs`, `dev.ts`, `clarifications.rs`, `SKILL.md`, or
   `RoundPage.tsx`.
 - **Where**: the final review.
+
+## R8: A feature and a bug sharing a folder name stay one record
+
+- **Decision**: the UI and the server name a feature or a bug by its folder alone, as `ura` does. A
+  feature `2026-10-11-x` and a bug `fix/2026-10-11-x` at once show as one: the first read.
+- **Rationale**: both need the same date and slug, which `ura draft` and the bug flow make from
+  different titles; telling them apart changes every route, record id, and core call that takes a
+  folder. Raised by the pull request's automated review.
+- **Alternatives considered**: ids of `bugs/<folder>` for bugs, through the routes, the records, and
+  the core's `find`.
+- **If wrong**: rename one of the two folders, or give bugs their `bugs/` prefix as their id.
+- **Where**: the pull request's review.
