@@ -104,7 +104,7 @@ $ ura next
 ```
 
 ```text
-$ ura next 2026-10-06-recurring-tasks
+$ ura next recurring-tasks
 2026-10-06-recurring-tasks: implementation, Task 3: Repeat menu
   branch     2026-10-06-recurring-tasks
   follow     skills/uraeda/references/implementation.md
@@ -120,6 +120,11 @@ Nothing for an agent: every feature in Now waits on you. Run ura status.
 ```text
 $ ura check
 specs/: no problems
+```
+
+```text
+$ ura check cli-core --json
+{ "version": 1, "problems": [] }
 ```
 
 ```text
@@ -158,23 +163,23 @@ ura: cannot switch to 2026-10-10-cli-core: uncommitted changes in README.md
 ## `ura review`
 
 ```text
-$ ura review cli-core spec --comment 50-52 "Name the field"
+$ ura review cli-core --comment 50-52 "Name the field"
 C1 added to specs/2026-10-10-cli-core/spec-review.md, on lines 50–52, under "US2: Edit a repeat (P1)".
 ```
 
 ```text
-$ ura review cli-core spec --request-changes --summary "Name the field"
+$ ura review cli-core --request-changes --summary "Name the field"
 Changes requested on spec.md, committed as "spec(cli-core): request changes".
 ```
 
 ```text
-$ ura review cli-core spec --approve
+$ ura review cli-core --approve
 spec.md approved, committed as "spec(cli-core): approve". The agent applies its decisions next.
 ```
 
 ```text
-$ ura review cli-core spec --request-changes
-ura: a request for changes needs at least one comment: ura review cli-core spec --comment <lines> <text>
+$ ura review cli-core --request-changes
+ura: a request for changes needs at least one comment: ura review cli-core --comment <lines> <text>
 ```
 
 ## `ura init`
@@ -215,4 +220,46 @@ $ ura draft "web ui"
 ura: 2 lines match "web ui":
   Now   Basic web UI for viewing the workflow files
   Next  WebUI for editing files related to the workflow
+```
+
+## `ura start`
+
+```text
+$ ura start specs/drafts/git-listener-process.md
+on main: committed "chore(git-listener-process): start Git listener process"
+created branch 2026-10-11-git-listener-process
+moved   specs/drafts/git-listener-process.md -> specs/2026-10-11-git-listener-process/proposal.md
+committed "chore(git-listener-process): proposal"
+Next: discovery. Ask an agent, or run ura next.
+```
+
+```text
+$ ura start git-listener-process
+ura: 2026-10-11-git-listener-process exists: choose another slug with --slug
+```
+
+```text
+$ ura start specs/2026-10-10-cli-core/proposal.md
+ura: not a draft: ura start takes a file or folder in specs/drafts/ or specs/backlog/
+```
+
+```text
+$ ura start specs/drafts/git-listener-process.md
+ura: specs/drafts/git-listener-process.md still holds the template's placeholders: write it first
+```
+
+```text
+$ ura start specs/drafts/git-listener-process.md
+on main: committed "chore(git-listener-process): start Git listener process"
+created branch 2026-10-11-git-listener-process
+ura: git commit failed: <the hook's first line of error>
+Done: the start commit on main, the branch.
+Left: move the draft to specs/2026-10-11-git-listener-process/proposal.md, then commit
+"chore(git-listener-process): proposal".
+```
+
+```text
+$ ura start specs/bugs/2026-10-14-completed-tasks-reappear/report.md
+thread 'main' panicked at crates/core/src/actions/start.rs:
+not implemented: starting a bug, until the bug flow has its spec
 ```
