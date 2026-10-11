@@ -3,6 +3,9 @@
 ## Now
 
 - [CLI for basic setup and upkeep](/specs/2026-10-10-cli-core/proposal.md)
+- Small reword regarding risk tier: whatever the risk tier, human decides if it needs implementation
+  approval or not
+- Nvim plugin
 - Basic web UI for _viewing_ the workflow files -> React + Astryx + Fate stack, see
   [draft](drafts/web-ui.md)
 
@@ -16,10 +19,7 @@
 
 ## Later
 
-- ?Slack integration?
 - Nix + Docker based execution environments
-- Dedicated Pi-durable runtime with basic tooling
-  - Web tools in pi-durable
 - References (docs) querying and storing workflow -> our own local context8
 - Code quality and style guides, workflow improvements
 - Use Jev-like model (Clef) for one-shot classification of decisions: "Is this decision relevant to
@@ -31,6 +31,11 @@
 - Non-technical users: a technical level in the proposal, adapting the spec's contents (plain
   language behaviour, design summarized or hidden, mockups) and the questions asked
 - Monorepo support: multiple `specs` folders, principles per package, ...
+- Dedicated Pi-durable runtime with basic tooling
+  - Web tools in pi-durable
+- ?Slack integration?
+- Nice TUI
+- CLI auto-expand in fish
 
 ## Blocked
 
