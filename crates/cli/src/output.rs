@@ -4,7 +4,10 @@ use std::io::IsTerminal;
 use std::process::ExitCode;
 
 use serde::Serialize;
-use uraeda_core::git::Git;
+use uraeda_core::actions::Change;
+use uraeda_core::actions::place::Place;
+use uraeda_core::git::{Git, GitError};
+use uraeda_core::target::{self, Purpose, Target};
 use uraeda_core::workspace::Workspace;
 
 /// The version of every command's JSON, increased only for incompatible changes.
@@ -65,4 +68,34 @@ pub fn workspace() -> Result<(Git, Workspace), String> {
     let git = Git::discover(&cwd).map_err(|error| error.to_string())?;
     let workspace = Workspace::read(&git).map_err(|error| error.to_string())?;
     Ok((git, workspace))
+}
+
+/// Resolves a command's target in the workspace, from the current folder.
+pub fn target(
+    workspace: &Workspace,
+    target: Option<&str>,
+    purpose: Purpose,
+) -> Result<Target, String> {
+    let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
+    target::resolve(workspace, &cwd, target, purpose).map_err(|error| error.to_string())
+}
+
+/// Says which branch a working tree was switched to, if it was.
+pub fn say_switched(place: &Place) {
+    if let Some(branch) = &place.switched {
+        println!("switched to {branch}");
+    }
+}
+
+/// Commits an action's files in the working tree it wrote in. A failing hook leaves them written.
+pub fn commit(place: &Place, change: &Change) -> Result<(), String> {
+    let git = Git::open(&place.root).map_err(|error| error.to_string())?;
+    match git.commit(&change.paths, &change.subject, change.body.as_deref()) {
+        Ok(()) => Ok(()),
+        Err(error @ GitError::Command { .. }) if error.to_string().starts_with("git commit") => {
+            eprintln!("ura: {error}");
+            Err("commit failed: fix the hook's error, then commit".to_string())
+        }
+        Err(error) => Err(error.to_string()),
+    }
 }

@@ -70,3 +70,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: every relative link; none.
 - **If wrong**: a broken link to a code file goes unnoticed, as it does today.
 - **Where**: task 5, `crates/core/src/check/links.rs`
+
+## R7: Commits refuse other staged files
+
+- **Decision**: `ura` stages its own files and runs `git commit` on the index, after refusing when
+  other files are staged: `other files are staged: b.md: commit or unstage them first`.
+- **Rationale**: `git commit -- <paths>`, as the plan said, commits through a temporary index; a
+  pre-commit hook that reformats and stages files, like this repository's `vp check --fix`, then
+  leaves the file both staged and modified (`MM`) after the commit. A commit of the index keeps what
+  the hook did, and the working tree clean (review focus 5).
+- **Alternatives considered**: `git commit -- <paths>`, with the hook's changes left behind;
+  committing the other staged files along with ours.
+- **If wrong**: a user with staged work must commit or unstage it before `ura answer --submit` or
+  `ura review`, or use `--no-commit`.
+- **Where**: task 6, `crates/core/src/git.rs`

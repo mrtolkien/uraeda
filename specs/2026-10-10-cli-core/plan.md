@@ -240,9 +240,10 @@ Tests in `crates/core/tests/git.rs`, one per behaviour:
 - [x] **Step 3: Implement `crates/core/src/git.rs`**
 
 gix for every read; `changed_files` runs gix's status and keeps the tracked files that differ from
-`HEAD` or the index. `commit` runs `git add -A -- <paths>`, then
-`git commit -m <subject> [-m <body>] -- <paths>`, so other staged files stay out of the commit; it
-never passes `--no-verify`. A missing `git` binary is `GitError::GitNotFound`.
+`HEAD` or the index. `commit` refuses when other files are staged, runs `git add -A -- <paths>`,
+then `git commit -m <subject> [-m <body>]`, so what the hook reformats is committed
+([R7](rulings.md#r7-commits-refuse-other-staged-files)); it never passes `--no-verify`. A missing
+`git` binary is `GitError::GitNotFound`.
 
 - [x] **Step 4: Run all tests**
 
@@ -549,23 +550,24 @@ git commit -m "feat(cli-core): ura check"
 
 - Consumes: `Workspace`, `Git::{worktrees, changed_files, switch, commit}`, the parsers.
 - Produces:
-  - `target::resolve(ws: &Workspace, cwd: &Path, target: Option<&str>, waiting: Waiting) -> Result<Target, TargetError>`;
-    `Target::{Feature(&Feature), File(&Feature, String), Draft(PathBuf)}`;
-    `Waiting::{Answers, Review, Any}`. Messages: `<target> matches 2 items: <a>, <b>`,
+  - `target::resolve(ws: &Workspace, cwd: &Path, target: Option<&str>, purpose: Purpose) -> Result<Target, TargetError>`;
+    `Target::{Feature(usize), File(usize, String), Draft(String)}`, indexes into `ws.features`;
+    `Purpose::{Answers, Review, Inspect, Start}`; `Workspace.drafts` lists `specs/drafts/` and
+    `specs/backlog/`. Messages: `<target> matches 2 items: <a>, <b>`,
     `no feature or draft named <target>`, `several items wait: name one of <a>, <b>`.
-  - `place::reach(ws: &Workspace, git: &Git, branch: &str) -> Result<Place, PlaceError>`;
-    `Place { root: PathBuf, switched: bool }`: the current worktree when it has the branch, another
-    worktree that has it, or a switch when `changed_files()` is empty;
+  - `place::reach(git: &Git, branch: &str) -> Result<Place, PlaceError>`;
+    `Place { root: PathBuf, switched: Option<String> }`: the current worktree when it has the
+    branch, another worktree that has it, or a switch when `changed_files()` is empty;
     `cannot switch to <branch>: uncommitted changes in <files>`,
     `detached HEAD: switch to a branch first`.
   - `pub struct Change { paths: Vec<String>, subject: String, body: Option<String> }` returned by
     every action, committed by the CLI through `Git::commit` unless `--no-commit`.
-  - `answer::write(place, feature, id: &str, text: &str) -> Result<Change, ActionError>` (no commit:
-    `paths` empty after writing) and
+  - `answer::write(place, feature, id: &str, text: &str) -> Result<Written, ActionError>` (no
+    commit; `Written { file, answered, total }`) and
     `answer::submit(place, feature, today) -> Result<Change, ActionError>`
     (`Q7 and Q9 have no answer`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `crates/cli/tests/answer.rs`: US4.1 to US4.8 with the spec's values; the hook's run counted after
   the submit (SC-005); `hook_reformatting_leaves_a_clean_tree` (review focus 5: a hook rewriting the
@@ -574,24 +576,23 @@ git commit -m "feat(cli-core): ura check"
   `slug_and_folder_name_are_equivalent`, `no_target_uses_the_current_branch`,
   `no_target_with_two_waiting_lists_them`, `next_takes_a_path` (task 4's `next` on `resolve`).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-cli --test answer --test targets`
 - Expected: FAIL, `unrecognized subcommand 'answer'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `ura answer [target] <question> <text>`, `ura answer [target] --submit [--no-commit]`; a first
-argument matching `^(Q\d+(\.[A-Z])?|notes)$` is the question. After a commit, if the hook changed
-the files, they are already in the commit (`git commit -- <paths>` takes the working tree as the
-hook left it); the test pins it.
+argument matching `^(Q\d+(\.[A-Z])?|notes)$` is the question. After a commit, what the hook changed
+and staged is in the commit; the test pins it.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates
