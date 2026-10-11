@@ -201,16 +201,22 @@ Every command works without a terminal, and the read commands print JSON with `-
 
 ## Building the tools
 
-The tools are a Rust core, the `ura` CLI, and a server with a web UI that only shows the status of
-workflow files for now. With Rust, Node 24, and pnpm, or in `nix develop`, where `pnpm install`
-stands for `vp install`:
+The tools are a Rust core, the `ura` CLI, and a web UI served with its server: it shows every
+feature and file with its structure, and performs every human step, answering, reviewing, drafting,
+and jotting down priorities, from a phone too. With Rust, Node 24, and pnpm, or in `nix develop`,
+where `pnpm install` stands for `vp install` and the layout tests find their WebKit browser:
 
 ```sh
 vp install         # dependencies
 vp run ready       # every check and test, as CI runs them
-vp run start       # the web UI on http://127.0.0.1:4310, reading ./specs
+vp dev             # the web UI on http://127.0.0.1:4310, for this repository
 cargo run -p uraeda-cli -- status
 ```
+
+`vp dev` reads `.env` at the root, from [`.env.example`](.env.example): `URAEDA_REPO` opens another
+repository, `URAEDA_PORT` changes the port, and `URAEDA_ALLOWED_HOSTS` lists the host names it
+accepts besides 127.0.0.1, like your machine's name on your tailnet, so `tailscale serve` reaches it
+from your phone.
 
 The code is under the MIT or Apache-2.0 licenses, at your option.
 

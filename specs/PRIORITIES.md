@@ -2,8 +2,6 @@
 
 ## Now
 
-- [Basic web UI for viewing the workflow files -> React + Astryx + Fate stack, see draft](/specs/2026-10-11-web-ui/proposal.md)
-
 ## Next
 
 - Claude Code runner (triggered manually): https://code.claude.com/docs/en/headless
