@@ -628,10 +628,9 @@ git commit -m "feat(web-ui): merged features, worktrees, and drafts in the works
 **Files:**
 
 - Create: `crates/core/src/watch.rs`
-- Modify: `Cargo.toml`
-  (`notify = { version = "8.2.0", default-features = false, features = ["macos_fsevent"] }`,
-  `notify-debouncer-full = { version = "0.7.0", default-features = false }`),
-  `crates/core/Cargo.toml`, `crates/core/src/lib.rs`
+- Modify: `Cargo.toml` (`notify = "8.2.0"`), `crates/core/Cargo.toml`, `crates/core/src/lib.rs`,
+  `crates/core/src/git.rs` (`common_dir`)
+- Create: `specs/2026-10-11-web-ui/rulings.md` (R1: no `notify-debouncer-full`)
 - Test: `crates/core/tests/watch.rs`
 
 **Interfaces:**
@@ -642,7 +641,7 @@ git commit -m "feat(web-ui): merged features, worktrees, and drafts in the works
   `Changes { features: Vec<String>, files: Vec<String>, priorities: bool, workspace: bool }`;
   `Watcher` stops when dropped; `WatchError` carries notify's message.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Each waits on a channel for at most 5 s:
 
@@ -654,24 +653,25 @@ Each waits on a channel for at most 5 s:
 - Creating a worktree → `workspace: true`, and an edit inside it afterwards is reported.
 - Ten writes within 100 ms → one `Changes` (200 ms quiet time).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test watch`
 - Expected: FAIL to compile, `unresolved import uraeda_core::watch`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-A debouncer of 200 ms watching `specs/` of every worktree and the git dir's `HEAD`, `packed-refs`,
-`refs/`, `worktrees/` recursively; on events, a thread re-reads the workspace, hashes each feature's
-texts and each file's text, compares them with the last snapshot, and calls `on_change` when
-anything differs; it adds watches for new worktrees.
+`notify` watching `specs/` of every worktree recursively, each worktree's top level and the git
+common dir without recursion, and its `refs/` and `worktrees/` recursively; a thread waits for 200
+ms without events (ruling R1), re-reads the workspace, hashes each feature's texts and each file's
+text, compares them with the last snapshot, and calls `on_change` when anything differs; it adds
+watches for new worktrees.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo test -p uraeda-core && cargo clippy --workspace --all-targets -- -D warnings`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Cargo.toml Cargo.lock crates/core
