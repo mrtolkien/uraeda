@@ -1,25 +1,24 @@
 ---
-status: awaiting-human
+status: approved
 revision: 2
 clarifications: 1
 risk-tier: high
-plan-review: true
+plan-review: false
 ---
 
 # Spec: Web UI for the workflow files
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 40 minutes.
+> Approved on 2026-10-11, with the plan's review waived in chat.
 >
 > - Revision 2, from your review in chat: every question and option in full, the reading layout
 >   without nested boxes at iPhone 17 size, a light and dark switch, jotting and reordering
 >   priorities (US7), and the file watcher in the core.
-> - Two changed decisions. [Stack](../decisions/stack.md#proposed-change-2026-10-11-web-ui): the
->   server accepts the host names listed in `URAEDA_ALLOWED_HOSTS`, fate's fallback rule goes, and
->   the UI never parses markdown. [Git](../decisions/git.md#proposed-change-2026-10-11-web-ui):
->   tools never switch your checkout, they write in a worktree at `.worktrees/<branch>/`, and
->   `ura start` creates one by default, as you asked.
+> - Two changed decisions. [Stack](../decisions/stack.md): the server accepts the host names listed
+>   in `URAEDA_ALLOWED_HOSTS`, fate's fallback rule goes, and the UI never parses markdown.
+>   [Git](../decisions/git.md): tools never switch your checkout, they write in a worktree at
+>   `.worktrees/<branch>/`, and `ura start` creates one by default, as you asked.
 > - `ura answer` and `ura review` change too: they write in a worktree instead of switching your
 >   checkout, which reverses Q7 of the CLI core. `ura start --switch` keeps the old behaviour on
 >   request.
@@ -660,10 +659,10 @@ Changed, applied when this spec is approved:
 
 - [Stack](../decisions/stack.md): the server accepts the hosts listed in `URAEDA_ALLOWED_HOSTS`,
   fate's fallback rule goes, and the UI draws the core's document tree without parsing markdown. See
-  [its proposed change](../decisions/stack.md#proposed-change-2026-10-11-web-ui).
+  [its proposed change](../decisions/stack.md).
 - [Git](../decisions/git.md): tools never switch the checkout; they write in a worktree at
   `.worktrees/<branch>/`, `ura start` creates one by default, and hooks resolve against the main
-  checkout. See [its proposed change](../decisions/git.md#proposed-change-2026-10-11-web-ui).
+  checkout. See [its rules](../decisions/git.md#rules).
 
 Relied on:
 
