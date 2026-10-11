@@ -1,16 +1,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
-import {
-  readFile,
-  readWorkspace,
-  saveAnswer,
-  temporaryReadFolder,
-  temporaryReadSpecs,
-  watch,
-  type Changes,
-} from "./index.js";
-import { fixture, fixtureRepo } from "./test-utils.ts";
+import { readFile, readWorkspace, saveAnswer, watch, type Changes } from "./index.js";
+import { fixtureRepo } from "./test-utils.ts";
 
 const ROUND = "specs/2026-10-11-web-ui/clarifications-01.md";
 
@@ -71,24 +63,4 @@ test("watches the repository until closed", async () => {
   handle.close();
 
   expect(seen[0].files).toEqual(["2026-10-11-web-ui/clarifications-01.md"]);
-});
-
-// TEMPORARY: replaced by the web UI feature.
-test("reads the same statuses as the core", () => {
-  const specs = temporaryReadSpecs(fixture("specs"));
-
-  expect(specs.map((folder) => folder.name)).toEqual([
-    "2026-13-99-not-a-date",
-    "2026-10-12-keyboard-shortcuts",
-    "2026-10-10-stack-decision",
-    "2026-10-06-recurring-tasks",
-  ]);
-  expect(specs[2].files[0]).toEqual({ file: "clarifications-01.md", status: "answered" });
-});
-
-// TEMPORARY: replaced by the web UI feature.
-test("reports an invalid file", () => {
-  const folder = temporaryReadFolder(fixture("specs/2026-10-06-recurring-tasks"));
-
-  expect(folder.files.at(-1)).toEqual({ file: "plan.md", problem: 'unknown status "done"' });
 });

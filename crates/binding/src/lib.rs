@@ -13,27 +13,8 @@ use napi::{Env, Status, Task};
 use napi_derive::napi;
 use uraeda_core::api::{self, ApiError};
 use uraeda_core::files::priorities::Priorities;
-use uraeda_core::temporary_status::{
-    FolderStatus, temporary_read_folder as read_folder, temporary_read_specs as read_specs,
-};
 use uraeda_core::view::{CommitView, DraftView, FeatureView, FileView, StartedView, WorkspaceView};
 use uraeda_core::watch::{self, Changes};
-
-/// TEMPORARY: replaced by the CLI feature.
-///
-/// Reads the workflow files of one feature folder.
-#[napi]
-pub fn temporary_read_folder(path: String) -> napi::Result<FolderStatus> {
-    read_folder(Path::new(&path)).map_err(|error| napi::Error::from_reason(error.to_string()))
-}
-
-/// TEMPORARY: replaced by the CLI feature.
-///
-/// Reads every feature folder of a `specs/` folder, newest first.
-#[napi]
-pub fn temporary_read_specs(path: String) -> napi::Result<Vec<FolderStatus>> {
-    read_specs(Path::new(&path)).map_err(|error| napi::Error::from_reason(error.to_string()))
-}
 
 /// A core operation, run off the main thread.
 pub struct Job<T: Send + 'static> {

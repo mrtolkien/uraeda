@@ -48,12 +48,12 @@ Only if you picked B in Q1.
 ## Q2: How does your iPhone reach the server?
 
 The proposal says no security is needed, since you access it through Tailscale only. The active
-[stack decision](../decisions/stack.md) requires the server to listen on 127.0.0.1, and to reject
+stack decision requires the server to listen on 127.0.0.1, and to reject
 any `Host` but `127.0.0.1` or `localhost`, and foreign origins, because the server will commit and
 start agents, and a web page you open could otherwise reach it. `tailscale serve` keeps the server
 on 127.0.0.1, but passes your machine's `*.ts.net` name, which both Vite and the server's guard
 reject today. Tailscale keeps other machines out, not a malicious page opened on your Mac or phone.
-More in [discovery](discovery-01.md#network-access).
+More in [discovery](discovery-01.md).
 
 Why it matters: it amends an active decision, which every later server feature follows.
 

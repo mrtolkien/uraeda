@@ -15,7 +15,7 @@ use crate::view::{
     CommitView, DraftView, FeatureView, FileView, PriorityView, StartedView, VersionView,
     WorkspaceView, title,
 };
-use crate::workspace::{Feature, FileKind, Problem, Source, Workspace};
+use crate::workspace::{Feature, FileKind, Problem, Source, Workspace, WorkspaceError};
 
 /// An operation refused or failed: `code` is `refused`, `conflict` for a change made elsewhere,
 /// or `hook` for a commit a hook refused, with its whole `output`.
@@ -114,7 +114,23 @@ fn checked(git: &Git, feature: &Feature) -> Vec<Problem> {
 
 /// Every feature, bug, and priority, with each feature's step and problems.
 pub fn read_workspace(repo: &Path) -> Result<WorkspaceView> {
-    let (git, workspace) = open(repo)?;
+    let git = Git::discover(repo)?;
+    let workspace = match Workspace::read(&git) {
+        Ok(workspace) => workspace,
+        Err(WorkspaceError::NoSpecs(root)) => {
+            let root = root.to_string_lossy().into_owned();
+            return Ok(WorkspaceView {
+                root: root.clone(),
+                default_branch: git.default_branch(),
+                current_branch: git.current_branch(),
+                features: Vec::new(),
+                priorities: Vec::new(),
+                drafts: Vec::new(),
+                no_specs: Some(root),
+            });
+        }
+        Err(error) => return Err(refused(error.to_string())),
+    };
     Ok(WorkspaceView::new(&workspace, |feature| {
         checked(&git, feature)
     }))

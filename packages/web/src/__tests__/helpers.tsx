@@ -1,38 +1,64 @@
 import { act, cleanup, render } from "@testing-library/react";
 import { createFateClient } from "react-fate/client";
-import { afterEach } from "vite-plus/test";
-import { dirname } from "node:path";
+import { afterEach, beforeEach } from "vite-plus/test";
 import * as binding from "uraeda-binding";
-import { fixture } from "uraeda-binding/test-utils";
+import { fixture, fixtureRepo, git } from "uraeda-binding/test-utils";
 import { createApp } from "uraeda-server";
 import { App } from "../App.tsx";
 
-export { fixture };
+export { fixture, fixtureRepo, git };
 
 const port = 4310;
+const origin = `http://127.0.0.1:${port}`;
+
+/**
+ * happy-dom has no EventSource: live views subscribe, and receive nothing, in these tests. The
+ * server's own tests check live updates.
+ */
+class SilentEventSource {
+  readyState = 0;
+  url: string;
+  constructor(url: string) {
+    this.url = url;
+  }
+  addEventListener() {}
+  removeEventListener() {}
+  close() {}
+}
+
+beforeEach(() => {
+  (globalThis as { EventSource?: unknown }).EventSource = SilentEventSource;
+  try {
+    window.localStorage.clear();
+  } catch {
+    // No storage: nothing to clear.
+  }
+});
 
 afterEach(cleanup);
 
-/** Renders the UI on a fixtures folder, with its requests sent to the server's app in process. */
+/** The requests the UI sent, for the tests that count them. */
+export const sent: Array<string> = [];
+
+/** Renders the UI at a path, on a repository, with its requests sent to the server in process. */
 export async function renderPage(
-  specs = fixture("specs"),
-  fetch: typeof globalThis.fetch = serverFetch(specs),
+  path = "/",
+  repo = fixtureRepo(),
+  fetch: typeof globalThis.fetch = serverFetch(repo),
 ) {
-  const client = createFateClient({ url: `http://127.0.0.1:${port}/fate`, fetch });
+  window.history.replaceState(null, "", path);
+  const client = createFateClient({ url: `${origin}/fate`, fetch });
   // The page suspends while fate loads: an awaited act lets React render the data.
-  return await act(async () => render(<App client={client} />));
+  const rendered = await act(async () => render(<App client={client} />));
+  return { ...rendered, repo };
 }
 
-function serverFetch(specs: string): typeof globalThis.fetch {
-  const app = createApp({
-    repo: dirname(specs),
-    port,
-    allowedHosts: [],
-    allowOrigins: [],
-    binding,
-  });
+function serverFetch(repo: string): typeof globalThis.fetch {
+  const app = createApp({ repo, port, allowedHosts: [], allowOrigins: [], binding });
   return async (input, init) => {
-    const response = await app.request(input instanceof Request ? input.url : input.toString(), {
+    const url = input instanceof Request ? input.url : input.toString();
+    sent.push(typeof init?.body === "string" ? init.body : url);
+    const response = await app.request(url, {
       method: init?.method,
       body: init?.body as string,
       headers: { "content-type": "application/json" },

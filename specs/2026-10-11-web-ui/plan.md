@@ -820,24 +820,30 @@ git commit -m "feat(web-ui): the server's fate sources, mutations, and live upda
 
 **Files:**
 
-- Create:
-  `packages/web/src/{routes,theme,Shell,Home,FeaturePage,DocumentPage,Blocks,Spans, QuickAdd}.tsx`,
-  `packages/web/src/reading.stylex.ts`
+- Create: `packages/web/src/{routes,theme,Shell,Home,FeaturePage,DocumentPage,Blocks,Spans}.tsx`,
+  `packages/web/src/{data,views,labels,errors}.ts`, `packages/web/src/styles.css` (the reading
+  layout, on Astryx's CSS variables: a plain stylesheet, as the app has no StyleX compiler),
+  `packages/web/src/css.d.ts`, `packages/server/src/fate/select.ts` (ruling R4)
 - Modify: `packages/web/src/{App,main}.tsx`, `packages/web/package.json`
-  (`@astryxdesign/theme-neutral` 0.6.7), `packages/web/vite.config.ts`
-- Delete: `packages/web/src/TemporaryStatusPage.tsx` and its test
+  (`@astryxdesign/theme-neutral` 0.6.7), `packages/web/vite.config.ts` (the test URL),
+  `packages/server/src/app.ts`, `crates/core/src/{view,api}.rs` (`noSpecs`)
+- Delete: the temporary status page, source, binding functions, and their tests, with
+  `crates/core/src/temporary_status.rs`
 - Test: `packages/web/src/__tests__/{home,feature,document,theme}.test.tsx`, helpers on
   `fixtureRepo()`
 
 **Interfaces:**
 
 - Consumes: the fate client from the server's module.
-- Produces: `routes.ts` with `useRoute()` and `navigate(path)` over `location.hash` (`#/`,
-  `#/f/<folder>`, `#/f/<folder>/<file>`, `#/priorities`, `#/draft/<path>`);
-  `<Blocks blocks ids onSelect? selected? />` drawing every block kind; `<Spans spans />`;
-  `useTheme(): ["system" | "light" | "dark", set]`, stored under `uraeda.theme`.
+- Produces: `routes.tsx` with `useRoute()`, `navigate(path)`, `<Link to>`, and `pathLink(path)` over
+  the location's path (`/`, `/f/<folder>`, `/f/<folder>/<file>`, `/priorities`, `/edit/<path>`), so
+  in-page anchors keep working; `<Blocks document ids? selection? />` drawing every block kind, a
+  selection making top-level blocks and items tappable; `<Spans spans />`;
+  `useThemeMode(): [mode, set]`, stored under `uraeda.theme`; `useWorkspace()`, `useFeature()`,
+  `useFile()`, `usePriorities()`, `useDraft()`, each a live view read again when the page is shown
+  again; `refusal(error)` reading the core's code from a message (ruling R3).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - US1.1: home shows "Waiting on you", the feature's title under "Answer", and its block line.
 - US1.2: "Agents at work" with the step "Plan".
@@ -855,23 +861,24 @@ git commit -m "feat(web-ui): the server's fate sources, mutations, and live upda
 - US6.7: picking Dark sets `data-theme="dark"` and `localStorage["uraeda.theme"] = "dark"`; a
   remount reads it back; System removes the key.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web`
-- Expected: FAIL, `Cannot find module '../Home.tsx'`.
+- Expected: FAIL, `Failed to resolve import "./Home.tsx"`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 The reading layout of the spec: one 16 px inset, no `Card`, 17 px body text on narrow screens,
-labels, bands, hairlines, tints with a 4 px accent bar. `AppShell` with `SideNav` and
-`MobileNav`; ＋ opens `QuickAdd` (task 13 fills it).
+labels, bands, hairlines, tints with a 4 px accent bar. `AppShell` with a `SideNav`, which it turns
+into the phone's menu, the theme switch in its footer; ＋ comes with the quick add, in task 13.
+Callouts are a bar, not a `Banner` (ruling R5).
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check && vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web

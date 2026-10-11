@@ -1,30 +1,22 @@
-import { Heading } from "@astryxdesign/core/Heading";
-import { Stack } from "@astryxdesign/core/Stack";
-import { Text } from "@astryxdesign/core/Text";
-import { Component, type ReactNode, Suspense } from "react";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Button } from "@astryxdesign/core/Button";
+import { Theme } from "@astryxdesign/core/theme";
+import { neutralTheme } from "@astryxdesign/theme-neutral/built";
+import { Component, type ReactNode, Suspense, useState } from "react";
 import { FateClient } from "react-fate";
 import type { createFateClient } from "react-fate/client";
-import { TemporaryStatusPage } from "./TemporaryStatusPage.tsx";
+import { DocumentPage } from "./DocumentPage.tsx";
+import { FeaturePage } from "./FeaturePage.tsx";
+import { Home } from "./Home.tsx";
+import { type Route, useRoute } from "./routes.tsx";
+import { Shell } from "./Shell.tsx";
+import { ThemeModeProvider } from "./theme.tsx";
 
-export function App({ client }: { client: ReturnType<typeof createFateClient> }) {
-  return (
-    <FateClient client={client}>
-      <Stack gap={4} padding={6} maxWidth={720}>
-        <Text type="label">Uraeda</Text>
-        <Heading level={1}>Specs</Heading>
-        <TemporaryServerErrorBoundary>
-          <Suspense fallback={<Text type="supporting">Loading…</Text>}>
-            <TemporaryStatusPage />
-          </Suspense>
-        </TemporaryServerErrorBoundary>
-      </Stack>
-    </FateClient>
-  );
-}
-
-// TEMPORARY: replaced by the web UI feature.
-/** Shows that the server could not be reached when a request fails. */
-class TemporaryServerErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+/** Shows that the server could not be reached, with a way to try again. */
+class ServerErrorBoundary extends Component<
+  { children: ReactNode; onRetry: () => void },
+  { failed: boolean }
+> {
   state = { failed: false };
 
   static getDerivedStateFromError() {
@@ -32,10 +24,66 @@ class TemporaryServerErrorBoundary extends Component<{ children: ReactNode }, { 
   }
 
   render() {
-    return this.state.failed ? (
-      <Text color="secondary">Could not reach the Uraeda server.</Text>
-    ) : (
-      this.props.children
+    if (!this.state.failed) {
+      return this.props.children;
+    }
+    return (
+      <div className="page">
+        <Banner
+          status="error"
+          title="Could not reach the Uraeda server."
+          endContent={
+            <Button
+              label="Try again"
+              onClick={() => {
+                this.setState({ failed: false });
+                this.props.onRetry();
+              }}
+            />
+          }
+        />
+      </div>
     );
   }
+}
+
+function Page({ route }: { route: Route }) {
+  switch (route.page) {
+    case "home":
+      return <Home />;
+    case "feature":
+      return <FeaturePage folder={route.folder} />;
+    case "file":
+      return <DocumentPage folder={route.folder} name={route.name} />;
+    default:
+      return (
+        <div className="page">
+          <p>Nothing here.</p>
+        </div>
+      );
+  }
+}
+
+export function App({ client }: { client: ReturnType<typeof createFateClient> }) {
+  const route = useRoute();
+  const [attempt, setAttempt] = useState(0);
+  return (
+    <FateClient client={client}>
+      <ThemeModeProvider>
+        {(mode) => (
+          <Theme theme={neutralTheme} mode={mode}>
+            <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
+              <Suspense fallback={<div className="page muted">Loading…</div>}>
+                <Shell>
+                  <Suspense fallback={<div className="page muted">Loading…</div>}>
+                    <Page route={route} />
+                  </Suspense>
+                </Shell>
+              </Suspense>
+            </ServerErrorBoundary>
+          </Theme>
+        )}
+      </ThemeModeProvider>
+    </FateClient>
+  );
 }
