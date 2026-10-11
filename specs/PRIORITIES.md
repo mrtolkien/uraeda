@@ -2,7 +2,6 @@
 
 ## Now
 
-- [CLI for basic setup and upkeep](/specs/2026-10-10-cli-core/proposal.md)
 - Small reword regarding risk tier: whatever the risk tier, human decides if it needs implementation
   approval or not
 - Nvim plugin
@@ -34,7 +33,7 @@
 - Dedicated Pi-durable runtime with basic tooling
   - Web tools in pi-durable
 - ?Slack integration?
-- Nice TUI
+- [Nice TUI](drafts/cli-tuis.md)
 - CLI auto-expand in fish
 
 ## Blocked
