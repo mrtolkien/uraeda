@@ -754,33 +754,33 @@ git commit -m "feat(cli-core): ura draft"
 - Consumes: `target::resolve` (`Target::Draft`), `place::reach` on the default branch,
   `Git::{switch_new, commit, branches}`, `priorities::{move_to_now, add_to_now}`, `slug`.
 - Produces:
-  `start::run(ws, git, draft: &Path, slug: Option<&str>, today) -> Result<StartReport, StartError>`;
+  `start::run(git, ws, draft: &str, slug: Option<&str>, today) -> Result<Started, StartError>`;
   `StartError::Partial { done: Vec<String>, left: Vec<String>, cause: String }` for a failure after
   the first commit.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 US8.1 to US8.10 with the spec's values; the edge cases: `failure_after_the_first_commit` (a hook
 failing only on the second commit → the [mockup](mockups/cli-output.md#ura-start)'s `Done:` and
 `Left:` lines, exit 1), `other_uncommitted_changes_refuse`, `draft_linked_by_two_lines_refuses`,
 `priorities_edits_go_into_the_start_commit`; US8.10 asserts the panic message and exit code 101.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-cli --test start`
 - Expected: FAIL, `unrecognized subcommand 'start'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Every refusal is checked before the first write; the draft is moved with a file rename on the new
 branch, its uncommitted content carried by `git switch -c` as an untracked or modified file.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates

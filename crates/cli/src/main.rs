@@ -8,6 +8,7 @@ mod init;
 mod next;
 mod output;
 mod review;
+mod start;
 mod status;
 
 use std::process::ExitCode;
@@ -36,6 +37,14 @@ enum Command {
         /// Do not open the editor
         #[arg(long)]
         no_edit: bool,
+    },
+    /// Start a drafted feature: its entry in Now, its branch, and its proposal
+    Start {
+        /// The draft: a file or folder in specs/drafts/ or specs/backlog/, or its name
+        target: Option<String>,
+        /// The slug of the feature's folder and branch, instead of the draft's name
+        #[arg(long)]
+        slug: Option<String>,
     },
     /// Show where every feature and bug stands, across branches
     Status {
@@ -103,6 +112,7 @@ fn main() -> ExitCode {
     let result = match Cli::parse().command {
         Command::Init { no_skill } => init::run(no_skill),
         Command::Draft { text, no_edit } => draft::run(text, no_edit),
+        Command::Start { target, slug } => start::run(target, slug),
         Command::Status { json } => status::run(json),
         Command::Next { target, json } => next::run(target, json),
         Command::Check { target, json } => check::run(target, json),
