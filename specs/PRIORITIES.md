@@ -2,8 +2,6 @@
 
 ## Now
 
-- Small reword regarding risk tier: whatever the risk tier, human decides if it needs implementation
-  approval or not, when approving the spec
 - Basic web UI for _viewing_ the workflow files -> React + Astryx + Fate stack, see
   [draft](drafts/web-ui.md)
 
