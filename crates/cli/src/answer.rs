@@ -65,26 +65,21 @@ pub fn run(arguments: Vec<String>, submit: bool, no_commit: bool) -> Result<Exit
         error
     };
     if submit {
-        if !no_commit {
-            let path = answer::round_path(feature).map_err(|e| refused(e.to_string()))?;
-            place::ensure_only_staged(&place, &[path]).map_err(|e| refused(e.to_string()))?;
-        }
-        let change =
-            answer::submit(&place, feature, today::today()).map_err(|e| refused(e.to_string()))?;
-        output::say_place(&git, &place);
-        let round = change
-            .subject
-            .rsplit(' ')
-            .next()
-            .unwrap_or_default()
-            .to_string();
+        let round = |subject: &str| subject.rsplit(' ').next().unwrap_or_default().to_string();
         if no_commit {
+            let change = answer::submit(&place, feature, today::today())
+                .map_err(|e| refused(e.to_string()))?;
+            output::say_place(&git, &place);
+            let round = round(&change.subject);
             println!("Round {round} answered in {}: commit it.", change.paths[0]);
         } else {
-            output::commit(&place, &change)?;
+            let committed = answer::submit_and_commit(&place, feature, today::today())
+                .map_err(|e| refused(output::action_error(e)))?;
+            output::say_place(&git, &place);
+            let subject = &committed.change.subject;
             println!(
-                "Round {round} answered, committed as \"{}\".",
-                change.subject
+                "Round {} answered, committed as \"{subject}\".",
+                round(subject)
             );
         }
     } else if let (Some(question), Some(text)) = (question, text) {
