@@ -979,30 +979,39 @@ git commit -m "feat(web-ui): review a spec, a plan, or an assessment"
 
 **Files:**
 
-- Create: `packages/web/src/EditorPage.tsx`, `packages/web/src/DraftPage.tsx`,
-  `packages/web/src/PrioritiesPage.tsx`; fill `packages/web/src/QuickAdd.tsx`
+- Create: `packages/web/src/{EditorPage,PrioritiesPage,QuickAdd}.tsx` (the draft's page is the
+  editor's, with Start for drafts)
+- Modify: `packages/web/src/{App,Shell,DocumentPage}.tsx` (the routes, ＋ in the navigation's
+  header, Edit on a proposal), `packages/web/src/labels.ts` (a proposal's gate opens its editor)
 - Test: `packages/web/src/__tests__/{editor,priorities}.test.tsx`
 
-- [ ] **Step 1: Write the failing tests**
+**Interfaces:**
+
+- Consumes: `draft.create`, `text.save`, `text.commit`, `feature.start`, `priorities.*`; `useSave`;
+  `usePriorities`, `useDraft`.
+- Produces: a line's menu as a bottom sheet of actions (Move up, Move down, Move to a section, Edit,
+  Delete); dragging by its handle with pointer events.
+
+- [x] **Step 1: Write the failing tests**
 
 US4.1 to US4.6 and US7.1 to US7.8 with the spec's values; edges: "Copy my text" and "Load the new
 version" after a conflict; "Your 2 priority changes are committed with it." before a draft commit or
 a start with pending priority changes; "Add" disabled while empty; dragging covered by the menu's
 Move up and Move down (pointer dragging is tested by the browser project of task 14).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
-- Run: `vp test packages/web -t priorities`
-- Expected: FAIL, `Cannot find module '../PrioritiesPage.tsx'`.
+- Run: `vp test packages/web/src/__tests__/priorities.test.tsx`
+- Expected: FAIL, `Failed to resolve import "./PrioritiesPage.tsx"`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check && vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web

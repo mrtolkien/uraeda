@@ -34,7 +34,13 @@ export function waiting(feature: Pick<FeatureView, "folder" | "step" | "files">)
         : kind === "proposal" || kind === "report"
           ? { verb: "Write", title: `Write the ${kind}` }
           : { verb: stepLabel(feature.step.name), title: stepLabel(feature.step.name) };
-  const href = file ? `/f/${feature.folder}/${file}` : `/f/${feature.folder}`;
+  const folder = kind === "report" ? `bugs/${feature.folder}` : feature.folder;
+  const href =
+    kind === "proposal" || kind === "report"
+      ? `/edit/specs/${folder}/${file}`
+      : file
+        ? `/f/${feature.folder}/${file}`
+        : `/f/${feature.folder}`;
   return { ...action, line: summary?.waitingLine, href };
 }
 
