@@ -402,9 +402,10 @@ impl Git {
         self.run("switch", &["switch", branch])
     }
 
-    /// Restores a file to its committed version in this working tree.
+    /// Restores a file to its version at `HEAD` in this working tree and its index, dropping staged
+    /// changes too.
     pub fn restore(&self, path: &str) -> Result<(), GitError> {
-        self.run("checkout", &["checkout", "--quiet", "--", path])
+        self.run("checkout", &["checkout", "--quiet", "HEAD", "--", path])
     }
 
     /// Creates `branch` from `from`, and switches this working tree to it.

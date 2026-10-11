@@ -30,8 +30,8 @@ export declare function commitPriorities(repo: string): Promise<Priorities>
 /** Commits a draft, with the priorities when they changed, or a proposal. */
 export declare function commitText(repo: string, path: string): Promise<CommitView>
 
-/** Drafts a priority line by its id, like `next-2`. */
-export declare function createDraft(repo: string, id: string): Promise<DraftView>
+/** Drafts a priority line by its id, like `next-2`, over the priorities read at `previous`. */
+export declare function createDraft(repo: string, id: string, previous: string): Promise<DraftView>
 
 /** Restores the committed priorities. */
 export declare function discardPriorities(repo: string): Promise<Priorities>
@@ -488,6 +488,8 @@ export interface WorkspaceView {
   currentBranch?: string
   features: Array<FeatureView>
   priorities: Array<PriorityView>
+  /** The hash of `PRIORITIES.md` as read, for drafting a line by its id. */
+  prioritiesHash: string
   drafts: Array<string>
   /** The repository's path when it has no `specs/` folder: nothing else is read. */
   noSpecs?: string
