@@ -1,11 +1,11 @@
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { Blocks } from "./Blocks.tsx";
 import { type Refusal, refusal } from "./errors.ts";
-import { GrowingTextArea, Question } from "./Question.tsx";
+import { GrowingTextArea, PendingSaves, Question } from "./Question.tsx";
 import { plain } from "./Spans.tsx";
 import { useSave } from "./useSave.ts";
 import { FileView } from "./views.ts";
@@ -50,6 +50,7 @@ export function RoundPage({ file }: { file: File }) {
   const readOnly = file.status !== "awaiting-human";
   const [notes, setNotes] = useState(round?.notes ?? "");
   const [error, setError] = useState<Refusal>();
+  const pending = useRef(new Set<() => Promise<void>>()).current;
   const notesSave = useSave<string>(async (value, previous) => {
     const result = await fate.mutations.notes.save({
       input: { folder: file.folder, notes: value, previous },
@@ -79,6 +80,9 @@ export function RoundPage({ file }: { file: File }) {
 
   const submit = async () => {
     setError(undefined);
+    // What is still being typed is saved first.
+    await Promise.all([...pending].map((flush) => flush()));
+    await notesSave.flush();
     const result = await fate.mutations.answers.submit({
       input: { folder: file.folder },
       view: FileView,
@@ -96,102 +100,106 @@ export function RoundPage({ file }: { file: File }) {
   };
 
   return (
-    <div className="page">
-      {!readOnly && applicable.length > 0 && (
-        <div
-          className="progress"
-          role="progressbar"
-          aria-valuenow={applicable.length - blank.length}
-          aria-valuemax={applicable.length}
-        >
+    <PendingSaves value={pending}>
+      <div className="page">
+        {!readOnly && applicable.length > 0 && (
           <div
-            style={{ width: `${((applicable.length - blank.length) / applicable.length) * 100}%` }}
-          />
-        </div>
-      )}
-      <p className="small muted">
-        {applicable.length - blank.length} of {applicable.length} answered
-      </p>
-      {title && <h1 className="title-l">{plain(title.spans)}</h1>}
-      {round.block !== undefined && <Blocks document={document} ids={[round.block]} />}
-      <Blocks document={document} ids={round.context} />
-      {questions
-        .filter((q) => !q.parent)
-        .map((question) => (
-          <div key={question.id}>
-            <div className="band" />
-            <Question
-              folder={file.folder}
-              question={question}
-              followUps={questions.filter((q) => q.parent === question.id && shown(q))}
-              document={document}
-              readOnly={readOnly}
+            className="progress"
+            role="progressbar"
+            aria-valuenow={applicable.length - blank.length}
+            aria-valuemax={applicable.length}
+          >
+            <div
+              style={{
+                width: `${((applicable.length - blank.length) / applicable.length) * 100}%`,
+              }}
             />
           </div>
-        ))}
-      <div className="band" />
-      {round.settled.length > 0 && (
-        <>
-          <div className="label">Settled without you</div>
-          <Blocks document={document} ids={round.settled} />
-        </>
-      )}
-      {readOnly ? (
-        notes && (
-          <p>
-            <strong>Notes:</strong> {notes}
-          </p>
-        )
-      ) : (
-        <>
-          <GrowingTextArea
-            label="Notes"
-            value={notes}
-            onChange={(value) => {
-              setNotes(value);
-              notesSave.schedule(value);
-            }}
-          />
-          {notesSave.state.kind === "error" && (
-            <p className="not-saved">Not saved: {notesSave.state.message}</p>
-          )}
-          {blank.length > 0 && (
-            <div style={{ margin: "14px 0" }}>
-              <Banner
-                status="error"
-                title={
-                  <>
-                    {blank.length} {blank.length === 1 ? "question" : "questions"} left:{" "}
-                    {blank.map((q, index) => (
-                      <span key={q.id}>
-                        {index > 0 && ", "}
-                        <a href={`#${q.id}`}>{q.id}</a>
-                      </span>
-                    ))}
-                  </>
-                }
+        )}
+        <p className="small muted">
+          {applicable.length - blank.length} of {applicable.length} answered
+        </p>
+        {title && <h1 className="title-l">{plain(title.spans)}</h1>}
+        {round.block !== undefined && <Blocks document={document} ids={[round.block]} />}
+        <Blocks document={document} ids={round.context} />
+        {questions
+          .filter((q) => !q.parent)
+          .map((question) => (
+            <div key={question.id}>
+              <div className="band" />
+              <Question
+                folder={file.folder}
+                question={question}
+                followUps={questions.filter((q) => q.parent === question.id && shown(q))}
+                document={document}
+                readOnly={readOnly}
               />
             </div>
-          )}
-          {error?.kind === "hook" ? (
-            <HookRefusal
-              error={error}
-              what="Your answers are saved, not committed."
-              onRetry={retry}
+          ))}
+        <div className="band" />
+        {round.settled.length > 0 && (
+          <>
+            <div className="label">Settled without you</div>
+            <Blocks document={document} ids={round.settled} />
+          </>
+        )}
+        {readOnly ? (
+          notes && (
+            <p>
+              <strong>Notes:</strong> {notes}
+            </p>
+          )
+        ) : (
+          <>
+            <GrowingTextArea
+              label="Notes"
+              value={notes}
+              onChange={(value) => {
+                setNotes(value);
+                notesSave.schedule(value);
+              }}
             />
-          ) : (
-            error && <p className="not-saved">{error.message}</p>
-          )}
-          <div className="actions">
-            <Button
-              variant="primary"
-              label="Submit answers"
-              isDisabled={blank.length > 0}
-              clickAction={submit}
-            />
-          </div>
-        </>
-      )}
-    </div>
+            {notesSave.state.kind === "error" && (
+              <p className="not-saved">Not saved: {notesSave.state.message}</p>
+            )}
+            {blank.length > 0 && (
+              <div style={{ margin: "14px 0" }}>
+                <Banner
+                  status="error"
+                  title={
+                    <>
+                      {blank.length} {blank.length === 1 ? "question" : "questions"} left:{" "}
+                      {blank.map((q, index) => (
+                        <span key={q.id}>
+                          {index > 0 && ", "}
+                          <a href={`#${q.id}`}>{q.id}</a>
+                        </span>
+                      ))}
+                    </>
+                  }
+                />
+              </div>
+            )}
+            {error?.kind === "hook" ? (
+              <HookRefusal
+                error={error}
+                what="Your answers are saved, not committed."
+                onRetry={retry}
+              />
+            ) : (
+              error && <p className="not-saved">{error.message}</p>
+            )}
+            <div className="actions">
+              <Button
+                variant="primary"
+                label="Submit answers"
+                isDisabled={blank.length > 0}
+                clickAction={submit}
+              />
+            </div>
+          </>
+        )}
+      </div>
+    </PendingSaves>
   );
 }

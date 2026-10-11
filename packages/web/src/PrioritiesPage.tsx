@@ -16,6 +16,18 @@ const TITLES: Record<string, string> = {
   blocked: "Blocked",
 };
 
+type Spot = { section: string; index: number };
+
+/**
+ * Where a line dropped above another goes, as the core counts it: among the lines once the
+ * dragged one is taken out, so a line moved down its own section lands one place earlier.
+ */
+export function dropIndex(from: Spot, target: Spot) {
+  return from.section === target.section && from.index < target.index
+    ? target.index - 1
+    : target.index;
+}
+
 /**
  * Every line of `PRIORITIES.md`, by section: dragged by its handle, or moved, edited, and deleted
  * from its menu, each change written at once; a bar commits or discards them.
@@ -27,7 +39,7 @@ export function PrioritiesPage() {
   const [editing, setEditing] = useState<string>();
   const [message, setMessage] = useState<string>();
   const [confirm, setConfirm] = useState(false);
-  const dragged = useRef<{ id: string; y: number }>(undefined);
+  const dragged = useRef<{ id: string; y: number; from: Spot }>(undefined);
   if (!priorities) {
     return null;
   }
@@ -70,7 +82,8 @@ export function PrioritiesPage() {
       return clientY < box.top + box.height / 2;
     });
     if (target) {
-      void move(from.id, target.dataset.section!, Number(target.dataset.index));
+      const spot = { section: target.dataset.section!, index: Number(target.dataset.index) };
+      void move(from.id, spot.section, dropIndex(from.from, spot));
     } else {
       const last = rows.at(-1);
       void move(from.id, last?.dataset.section ?? "later", Number.MAX_SAFE_INTEGER);
@@ -97,7 +110,11 @@ export function PrioritiesPage() {
                 className="handle"
                 aria-hidden="true"
                 onPointerDown={(event) => {
-                  dragged.current = { id: entry.id, y: event.clientY };
+                  dragged.current = {
+                    id: entry.id,
+                    y: event.clientY,
+                    from: { section: section.section, index },
+                  };
                   event.currentTarget.setPointerCapture?.(event.pointerId);
                 }}
                 onPointerUp={(event) => drop(event.clientY)}
@@ -106,11 +123,11 @@ export function PrioritiesPage() {
               </span>
               <span className="grow">
                 <Spans spans={entry.spans} />
-                {entry.nested.length > 0 && (
-                  <div className="sub">
-                    {entry.nested.map((line) => line.trim().replace(/^[-*] /, "")).join(" · ")}
+                {entry.nestedSpans.map((spans, line) => (
+                  <div key={line} className="sub">
+                    <Spans spans={spans} />
                   </div>
-                )}
+                ))}
               </span>
               <Button
                 variant="ghost"

@@ -87,3 +87,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a badge given a long label could be cut without the test seeing a declared ellipsis;
   its clipping is still measured.
 - **Where**: task 14.
+
+## R7: Minor findings of the final review, left for the pull request
+
+- **Decision**: these minor findings stay as they are, listed in the pull request for the human: a
+  worktree deleted by hand without `git worktree prune` makes the reads of the default branch skip
+  it only once it is written to; `vp dev` with the binding not built fails on the first request
+  rather than at start; an answer with an unclosed code fence breaks the questions after it, as it
+  would when typed by hand; the skill's setup section does not repeat the worktrees, which its
+  branches section covers; the UI computes which follow-ups to show and the answer it displays while
+  a save runs from the core's `applies`, letters, and comment.
+- **Rationale**: none loses a human's text or makes a wrong commit; each has a local fix.
+- **Alternatives considered**: fixing them in this branch, which grows it further.
+- **If wrong**: each is a small change in `api.rs`, `dev.ts`, `clarifications.rs`, `SKILL.md`, or
+  `RoundPage.tsx`.
+- **Where**: the final review.
