@@ -54,6 +54,12 @@ body {
   margin: 0 0 10px;
 }
 
+/* Astryx's theme sets text to its 14 px body size: the page's text keeps the page's size. */
+.page :where(p, li, blockquote, td, th) {
+  font-size: inherit;
+  line-height: inherit;
+}
+
 .label {
   font-size: 13px;
   font-weight: 600;
@@ -289,6 +295,20 @@ body {
   background: var(--reading-tint);
 }
 
+/* A list item keeps its place under its number: its tint runs to the screen's edges through a
+   shadow clipped to its height, without moving its text. */
+li.block {
+  display: list-item;
+  margin: 0;
+  padding: 0;
+  border-left: 0;
+}
+
+li.block[aria-selected="true"] {
+  box-shadow: 0 0 0 100vmax var(--reading-tint);
+  clip-path: inset(0 -100vmax);
+}
+
 .scenarios {
   margin: 0;
   padding: 0;
@@ -350,6 +370,20 @@ body {
 .doc ol {
   margin: 0 0 10px;
   padding-left: 22px;
+}
+
+/* Astryx's reset removes list markers: scenarios and steps keep their numbers. */
+.doc ul {
+  list-style: disc;
+}
+
+.doc ol {
+  list-style: decimal;
+}
+
+.callout ul,
+.callout ol {
+  padding-left: 18px;
 }
 
 .doc li {

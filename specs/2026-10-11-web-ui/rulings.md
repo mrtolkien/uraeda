@@ -72,3 +72,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   it.
 - **If wrong**: one case of `Blocks.tsx` changes.
 - **Where**: task 10.
+
+## R6: The layout test counts text as cut where an element clips it
+
+- **Decision**: SC-007's test fails on an element that clips its content, by an ellipsis or a hidden
+  overflow, and whose text is wider than it; on anything reaching past the screen's right edge; and
+  on a page scrolling sideways. An element declaring an ellipsis on a text that fits, like Astryx's
+  badges, passes, as do the bands and tints that run into the page's own padding.
+- **Rationale**: the criterion is about text a person cannot read; the badges' "Review" and "Merged"
+  fit, and the full-bleed bands are the reading layout's design
+  ([`layout.test.tsx`](/packages/web/src/__browser__/layout.test.tsx)).
+- **Alternatives considered**: failing on any declared ellipsis, which means restyling Astryx's
+  badges for text they never cut.
+- **If wrong**: a badge given a long label could be cut without the test seeing a declared ellipsis;
+  its clipping is still measured.
+- **Where**: task 14.

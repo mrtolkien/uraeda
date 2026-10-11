@@ -3,3 +3,4 @@ target/
 *.node
 dist/
 .env
+.vitest/

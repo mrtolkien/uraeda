@@ -1,4 +1,6 @@
 export default {
+  // `vp dev` at the root runs the web UI, with the server in its process.
+  defaultPackage: "./packages/web",
   staged: {
     "*.rs": "rustfmt",
     "!(*.rs)": "vp check --fix",
@@ -16,7 +18,13 @@ export default {
   },
   test: {
     // Each package runs with its own Vite config: the UI's needs React, fate, and happy-dom.
-    projects: ["packages/*"],
+    projects: [
+      "packages/binding",
+      "packages/server",
+      "packages/web",
+      // The layout at an iPhone 17's size, in WebKit: `nix develop` provides the browser.
+      "packages/web/vite.browser.config.ts",
+    ],
   },
   fmt: {
     ignorePatterns: [

@@ -1022,44 +1022,48 @@ git commit -m "feat(web-ui): drafts, proposals, starting, and priorities"
 
 **Files:**
 
-- Modify: `vite.config.ts` (`defaultPackage: "./packages/web"`, a browser test project),
-  `packages/web/vite.config.ts` (the server mounted in Vite's middleware, `server.host`,
-  `server.port`, `server.allowedHosts` from `.env`), `package.json` (`dev` script removed, `ready`
-  unchanged), `flake.nix` (`playwright-driver.browsers`, `PLAYWRIGHT_BROWSERS_PATH`,
-  `PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS`)
-- Modify: `packages/web/package.json` (`@vitest/browser-playwright` 5.0.1, `playwright` 1.63.0, the
-  version nixpkgs pins)
-- Create: `packages/web/src/__browser__/layout.test.tsx`, `packages/web/src/__tests__/dev.test.ts`
+- Create: `packages/server/src/dev.ts` (`devServer(env)`, `devHandler(root)`: the server's routes in
+  Vite's middleware, for the repository of `.env` or a later `URAEDA_REPO`, on the port each request
+  came in on), `packages/web/vite.browser.config.ts` (the WebKit project at 402 × 874),
+  `packages/web/src/__browser__/{setup.ts,layout.test.tsx}`,
+  `packages/server/src/__tests__/{dev,stack}.test.ts`
+- Modify: `vite.config.ts` (`defaultPackage: "./packages/web"`, the projects listed),
+  `packages/web/vite.config.ts` (the handler mounted, `server` from `.env`, the browser tests left
+  out), `packages/server/package.json` (`./dev`; its `dev` script goes), `package.json` (the `dev`
+  script goes), `flake.nix` (`playwright-driver.browsers`, `PLAYWRIGHT_BROWSERS_PATH`,
+  `PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS`, `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD`),
+  `packages/web/package.json` (`@vitest/browser-playwright` 5.0.1, `playwright` 1.63.0, the version
+  nixpkgs pins), `.gitignore` (`.vitest/`), `packages/web/src/styles.css` (text keeps the page's
+  size under Astryx's 14 px body text; list markers)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - US6.3 / US6.4 in `dev.test.ts`: the config with no `URAEDA_PORT` has `server.port` 4310,
   `server.host` `127.0.0.1`, `strictPort: true`; with `URAEDA_ALLOWED_HOSTS=mac.tail1234.ts.net`,
   `server.allowedHosts` contains it; `URAEDA_REPO` reaches the mounted app.
-- SC-007 in `layout.test.tsx`, WebKit at 402 × 874, on this repository's own files: home, this
-  feature's round, the example's spec review, the example's plan, the priorities: for every element,
-  `scrollWidth <= clientWidth` unless it is a table or code block (which scroll); no computed
-  `text-overflow: ellipsis` or `-webkit-line-clamp`; `document.documentElement.scrollWidth <= 402`;
-  every paragraph's computed font size ≥ 16 px; every question, option, story, and scenario text's
-  left edge ≤ 50 px.
-- SC-005: under `pointer: coarse` emulation, every button's height ≥ 44 px.
+- SC-007 in `layout.test.tsx`, WebKit at 402 × 874, on the fixture repository: home, a round, a spec
+  review, a plan, the priorities: no element clipping its text, by an ellipsis or a hidden overflow,
+  unless it scrolls (tables, code); nothing past the screen's right edge; no line clamp;
+  `document.documentElement.scrollWidth <= 402`; every paragraph's computed font size ≥ 16 px; every
+  question, option, story, and scenario text's left edge ≤ 50 px (ruling R6).
+- SC-005: the stylesheet's `pointer: coarse` rule sets Astryx's three element heights to 44 px.
 - SC-004: a test reading every `packages/*/package.json` finds no `marked`, `markdown-it`, `remark`,
   `micromark`, `react-markdown`, `mdast`, or `@astryxdesign/core/Markdown` import in
   `packages/*/src`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
-- Run: `vp test`
-- Expected: FAIL, `server.port` is `5173`.
+- Run: `vp test packages/server/src/__tests__/dev.test.ts`
+- Expected: FAIL, `Cannot find module '../dev.ts'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `nix develop --command vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add vite.config.ts package.json flake.nix packages pnpm-lock.yaml

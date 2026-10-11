@@ -66,7 +66,14 @@ export function RoundPage({ file }: { file: File }) {
     return null;
   }
   const questions = round.questions;
-  const applicable = questions.filter((q) => q.applies !== "no");
+  // A follow-up shows once its parent's answer makes it apply: with its letter, or with no
+  // letter at all, when it needs an answer, `-` if it does not apply.
+  const answers = new Map(questions.map((q) => [q.id, q.answer.trim()]));
+  const shown = (q: (typeof questions)[number]) =>
+    q.applies === "yes"
+      ? !q.parent || answers.get(q.parent) !== ""
+      : q.applies === "unclear" && answers.get(q.parent ?? "") !== "";
+  const applicable = questions.filter(shown);
   const blank = applicable.filter((q) => !q.answer.trim());
   const title = document.blocks.find((b) => b.kind === "heading" && b.level === 1);
 
@@ -116,7 +123,7 @@ export function RoundPage({ file }: { file: File }) {
             <Question
               folder={file.folder}
               question={question}
-              followUps={questions.filter((q) => q.parent === question.id && q.applies !== "no")}
+              followUps={questions.filter((q) => q.parent === question.id && shown(q))}
               document={document}
               readOnly={readOnly}
             />
