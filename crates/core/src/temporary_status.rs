@@ -245,7 +245,7 @@ enum Field {
 fn read_status(kind: Kind, path: &Path) -> Result<Status, String> {
     let bytes = fs::read(path).map_err(|error| error.to_string())?;
     let text = String::from_utf8(bytes).map_err(|_| "not UTF-8".to_string())?;
-    let yaml = frontmatter(&text).ok_or("no frontmatter")?;
+    let (yaml, _) = crate::files::frontmatter::block(&text).map_err(|_| "no frontmatter")?;
     let frontmatter: Option<Frontmatter> = if yaml.trim().is_empty() {
         None
     } else {
@@ -264,28 +264,4 @@ fn read_status(kind: Kind, path: &Path) -> Result<Status, String> {
         .ok_or_else(|| format!("unknown status \"{value}\""))
 }
 
-/// The text between a first line `---` and the next line `---`.
-fn frontmatter(text: &str) -> Option<&str> {
-    let mut lines = text.split_inclusive('\n');
-    let first = lines.next()?;
-    if first.trim_end_matches(['\r', '\n']) != "---" {
-        return None;
-    }
-    let start = first.len();
-    let mut end = start;
-    for line in lines {
-        if line.trim_end_matches(['\r', '\n']) == "---" {
-            return Some(&text[start..end]);
-        }
-        end += line.len();
-    }
-    None
-}
-
-/// The parser's message on one line: its first line, without its own `error: ` prefix, and
-/// without the code snippet that follows.
-fn yaml_message(error: &impl std::fmt::Display) -> String {
-    let message = error.to_string();
-    let first = message.lines().next().unwrap_or_default();
-    first.strip_prefix("error: ").unwrap_or(first).to_string()
-}
+use crate::files::frontmatter::yaml_message;

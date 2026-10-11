@@ -38,3 +38,13 @@ pub fn rows(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
         .map(|(file, status)| (file.to_string(), status.to_string()))
         .collect()
 }
+
+/// A file of this repository, from its top level.
+pub fn repository_file(path: &str) -> String {
+    std::fs::read_to_string(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .join(path),
+    )
+    .unwrap()
+}
