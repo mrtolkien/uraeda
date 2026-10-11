@@ -127,7 +127,7 @@ pub fn run(
         .clone()
         .ok_or_else(|| StartError::Refused("no default branch: commit on main first".into()))?;
     let previous = git.current_branch();
-    let place = place::reach(git, &default)?;
+    let place = place::reach_switching(git, &default)?;
     let result = start(&place, workspace, draft, slug, today, &default);
     if let Err(StartError::Refused(_)) = &result {
         place::switch_back(git, &place, previous.as_deref());
