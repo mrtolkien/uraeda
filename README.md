@@ -156,6 +156,19 @@ The workflow itself is in the [Uraeda skill](skills/uraeda/SKILL.md), with one
 [reference](skills/uraeda/references/) per step and
 [templates](skills/uraeda/assets/templates/specs/) for every file.
 
+## Install
+
+`ura` runs on Linux and macOS, on x64 and arm64. From a release:
+
+```sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/mrtolkien/uraeda/releases/latest/download/uraeda-cli-installer.sh | sh
+brew install mrtolkien/tap/ura                     # or with Homebrew
+nix run github:mrtolkien/uraeda -- --version       # or with Nix, built from source
+```
+
+Then, in your repository, `ura init` sets up `specs/` and installs the skill for your agents. To
+install the skill alone, for any agent, run `npx skills add mrtolkien/uraeda`.
+
 ## The `ura` CLI
 
 `ura` performs the mechanical parts of the workflow, for you and for agents. It is optional: the

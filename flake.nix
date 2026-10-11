@@ -1,5 +1,5 @@
 {
-  description = "Uraeda's development shell: Node, pnpm, and the pinned Rust toolchain";
+  description = "Uraeda: the ura CLI, and the development shell with Node, pnpm, and the pinned Rust toolchain";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
@@ -40,5 +40,31 @@
           ];
         };
       });
+
+      # `nix run github:mrtolkien/uraeda`: the ura CLI, built from source with the pinned toolchain.
+      packages = forAllSystems (
+        pkgs:
+        let
+          toolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+          rustPlatform = pkgs.makeRustPlatform {
+            cargo = toolchain;
+            rustc = toolchain;
+          };
+        in
+        {
+          default = rustPlatform.buildRustPackage {
+            pname = "ura";
+            version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).workspace.package.version;
+            src = ./.;
+            cargoLock.lockFile = ./Cargo.lock;
+            cargoBuildFlags = [
+              "-p"
+              "uraeda-cli"
+            ];
+            doCheck = false;
+            meta.mainProgram = "ura";
+          };
+        }
+      );
     };
 }

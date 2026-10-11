@@ -84,3 +84,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a user with staged work must commit or unstage it before `ura answer --submit` or
   `ura review`, or use `--no-commit`.
 - **Where**: task 6, `crates/core/src/git.rs`
+
+## R8: dist 0.33, and its own pull request check
+
+- **Decision**: the release uses dist 0.33.0, the version in nixpkgs, instead of the 0.32 the spec
+  names. `ci.yml` does not run `dist plan`: dist's generated `release.yml` already runs its plan on
+  every pull request. `release.yml` is left out of the formatter, since dist checks that it is
+  unchanged. The CLI crate opts into dist with `dist = true`, as every crate is `publish = false`,
+  and its Homebrew formula is named `ura`.
+- **Rationale**: 0.33.0 is what the Nix shell provides, and `dist generate --check` passes with it.
+  A second `dist plan` in `ci.yml` would duplicate the release workflow's.
+- **Alternatives considered**: installing dist 0.32 with cargo; a `dist plan` step in `ci.yml`.
+- **If wrong**: `cargo-dist-version` in `dist-workspace.toml` pins another version, and
+  `dist generate` rewrites the workflow.
+- **Where**: task 12, `dist-workspace.toml`, `.github/workflows/release.yml`, `vite.config.ts`
