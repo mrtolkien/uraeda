@@ -351,3 +351,102 @@ pub fn request_changes(
         body: summary.map(String::from),
     })
 }
+
+/// The pending review of a file, read for an edit, refused when there is none.
+fn pending_text(place: &Place, feature: &Feature, file: &str) -> Result<String, ActionError> {
+    let path = place.root.join(&feature.path).join(review_name(file));
+    let text = fs::read_to_string(&path)
+        .map_err(|_| ActionError::Refused(format!("{file} has no pending review")))?;
+    let parsed = review::parse(&text).map_err(|error| {
+        ActionError::Refused(format!("{} does not parse: {error}", review_name(file)))
+    })?;
+    if parsed.verdict != Verdict::Pending {
+        return Err(ActionError::Refused(format!(
+            "{file} has no pending review"
+        )));
+    }
+    Ok(text)
+}
+
+/// Replaces the text of a pending comment. Commits nothing.
+pub fn edit(
+    place: &Place,
+    feature: &Feature,
+    file: &str,
+    number: u32,
+    text: &str,
+) -> Result<(), ActionError> {
+    if text.lines().any(|line| line.trim_start().starts_with('#')) {
+        return Err(ActionError::Refused(
+            "a comment line cannot start with \"#\"".to_string(),
+        ));
+    }
+    let current = pending_text(place, feature, file)?;
+    let edited = review::edit_comment(&current, number, text)
+        .map_err(|error| ActionError::Refused(error.to_string()))?;
+    fs::write(
+        place.root.join(&feature.path).join(review_name(file)),
+        edited,
+    )?;
+    Ok(())
+}
+
+/// Removes a pending comment; the review file goes with its last comment. Commits nothing.
+pub fn remove(
+    place: &Place,
+    feature: &Feature,
+    file: &str,
+    number: u32,
+) -> Result<(), ActionError> {
+    let current = pending_text(place, feature, file)?;
+    let path = place.root.join(&feature.path).join(review_name(file));
+    match review::remove_comment(&current, number)
+        .map_err(|error| ActionError::Refused(error.to_string()))?
+    {
+        Some(edited) => fs::write(path, edited)?,
+        None => fs::remove_file(path)?,
+    }
+    Ok(())
+}
+
+/// Deletes the pending review of a file, to review its new version from scratch.
+pub fn start_over(place: &Place, feature: &Feature, file: &str) -> Result<(), ActionError> {
+    pending_text(place, feature, file)?;
+    fs::remove_file(place.root.join(&feature.path).join(review_name(file)))?;
+    Ok(())
+}
+
+/// The files a verdict writes, checked against the staged files before anything is written.
+fn verdict_paths(feature: &Feature, file: &str) -> [String; 2] {
+    [
+        format!("{}/{file}", feature.path),
+        format!("{}/{}", feature.path, review_name(file)),
+    ]
+}
+
+/// Approves a file and commits it.
+pub fn approve_and_commit(
+    place: &Place,
+    feature: &Feature,
+    file: &str,
+    summary: Option<&str>,
+    tier: &Tier,
+    today: Date,
+) -> Result<super::Committed, ActionError> {
+    super::place::ensure_only_staged(place, &verdict_paths(feature, file))?;
+    let change = approve(place, feature, file, summary, tier, today)?;
+    super::commit::commit(place, &change)
+}
+
+/// Requests changes on a file and commits it.
+pub fn request_changes_and_commit(
+    place: &Place,
+    feature: &Feature,
+    file: &str,
+    summary: Option<&str>,
+    today: Date,
+) -> Result<super::Committed, ActionError> {
+    super::place::ensure_only_staged(place, &verdict_paths(feature, file))?;
+    let change = request_changes(place, feature, file, summary, today)?;
+    super::commit::commit(place, &change)
+}

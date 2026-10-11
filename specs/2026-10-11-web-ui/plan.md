@@ -422,8 +422,7 @@ git commit -m "feat(web-ui): write on branches through worktrees, never switchin
 - Create: `crates/core/src/actions/commit.rs`, `crates/core/src/actions/text.rs`
 - Modify: `crates/core/src/actions/answer.rs` (`save`, `save_notes`, `submit_and_commit`),
   `crates/core/src/actions/review.rs` (`edit`, `remove`, `start_over`, committing verdicts),
-  `crates/core/src/actions/draft.rs` (`create` by priority entry id),
-  `crates/core/src/actions/mod.rs` (`ActionError::Hook`, `ActionError::Changed`)
+  `crates/core/src/actions/mod.rs` (`ActionError::Hook`, `ActionError::Changed`, `Committed`)
 - Modify: `crates/cli/src/answer.rs`, `crates/cli/src/review.rs`, `crates/cli/src/output.rs`
 - Test: `crates/core/tests/actions.rs`
 
@@ -446,11 +445,13 @@ git commit -m "feat(web-ui): write on branches through worktrees, never switchin
     `review::request_changes_and_commit` returning `Committed`.
   - `text::save(place: &Place, path: &str, text: &str, hash: &str) -> Result<String, ActionError>`
     (the new hash; `Changed` when the file's hash on disk is not `hash`; an absent file has the hash
-    of `""`), `text::commit(place, path, subject: &str) -> Result<Committed, ActionError>`.
+    of `""`), `text::commit(place, path) -> Result<Committed, ActionError>`, which names the commit
+    itself: `chore: draft <title>` with `PRIORITIES.md` when it changed, `chore(<slug>): proposal`,
+    or `chore(<slug>): edit the proposal`.
   - `ActionError::Changed { path: String }`, message "<file name> changed on disk since you opened
     it. Your text was not saved.".
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `crates/core/tests/actions.rs`, on a `TestRepo` holding the example's clarifications round:
 
@@ -472,27 +473,27 @@ In `crates/core/tests/actions.rs`, on a `TestRepo` holding the example's clarifi
 - US3.4: approve with tier `high` from `medium` → `approved`, `risk-tier: high`,
   `plan-review: true`, one commit.
 - US4.2: `text::save` writes the text byte for byte; with a stale hash → `Changed`, file untouched.
-- US4.3: `text::commit("specs/drafts/git-listener-process.md", "chore: draft Git listener process")`
-  with `PRIORITIES.md` changed commits both.
+- US4.3: `text::commit("specs/drafts/git-listener-process.md")` with `PRIORITIES.md` changed commits
+  both, as `chore: draft Git listener process`.
 - SC-002: every test asserts `repo.current_branch()` is unchanged.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test actions`
-- Expected: FAIL to compile, `cannot find function save in module answer`.
+- Expected: FAIL to compile, `unresolved import uraeda_core::actions::text`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `ura answer` and `ura review` call the committing functions; their output and the existing CLI tests
 stay as they are, except the place line of task 3.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run:
   `cargo test --workspace --exclude uraeda-binding && cargo clippy --workspace --all-targets -- -D warnings`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates

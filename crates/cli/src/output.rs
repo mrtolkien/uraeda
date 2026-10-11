@@ -4,9 +4,9 @@ use std::io::IsTerminal;
 use std::process::ExitCode;
 
 use serde::Serialize;
-use uraeda_core::actions::Change;
+use uraeda_core::actions::ActionError;
 use uraeda_core::actions::place::Place;
-use uraeda_core::git::{Git, GitError};
+use uraeda_core::git::Git;
 use uraeda_core::target::{self, Purpose, Target};
 use uraeda_core::workspace::Workspace;
 
@@ -92,15 +92,13 @@ pub fn say_place(git: &Git, place: &Place) {
     }
 }
 
-/// Commits an action's files in the working tree it wrote in. A failing hook leaves them written.
-pub fn commit(place: &Place, change: &Change) -> Result<(), String> {
-    let git = Git::open(&place.root).map_err(|error| error.to_string())?;
-    match git.commit(&change.paths, &change.subject, change.body.as_deref()) {
-        Ok(()) => Ok(()),
-        Err(error @ GitError::Command { .. }) if error.to_string().starts_with("git commit") => {
+/// The message of a committing action's error: a hook's refusal is printed, then explained.
+pub fn action_error(error: ActionError) -> String {
+    match error {
+        error @ ActionError::Hook { .. } => {
             eprintln!("ura: {error}");
-            Err("commit failed: fix the hook's error, then commit".to_string())
+            "commit failed: fix the hook's error, then commit".to_string()
         }
-        Err(error) => Err(error.to_string()),
+        error => error.to_string(),
     }
 }
