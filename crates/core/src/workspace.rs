@@ -537,12 +537,17 @@ fn read_feature(
             .flatten()
             .is_some()
     });
+    // Git's changes add the deleted files to the texts that differ from the commit.
+    let folder_prefix = format!("{path}/");
     feature.uncommitted = matches!(from, From::Disk)
-        && feature.texts.iter().any(|(name, text)| {
+        && (feature.texts.iter().any(|(name, text)| {
             let committed_text = committed
                 .and_then(|commit| reader.read(From::Commit(commit), &format!("{path}/{name}")));
             committed_text.as_deref() != Some(text.as_str())
-        });
+        }) || reader
+            .git
+            .changed_files()
+            .is_ok_and(|files| files.iter().any(|file| file.starts_with(&folder_prefix))));
     feature.decisions_pending = feature
         .texts
         .get("spec.md")

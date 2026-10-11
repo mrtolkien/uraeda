@@ -177,6 +177,11 @@ fn each_rule() {
             format!("{spec}:{}: \"## Edge cases\" must come before \"## Success criteria\", as in the template", spec_line("## Success criteria")),
         ),
         (
+            "numbered heading without its colon",
+            |e| e.edit(&format!("{FEATURE}/clarifications-01.md"), "## Q4: How", "## Q4 How"),
+            format!("{clarifications}:{}: unknown section \"## Q4 How should the app store due dates?\"", link_line("## Q4: How")),
+        ),
+        (
             "unknown section",
             |e| e.edit(&format!("{FEATURE}/spec.md"), "## Assumptions", "## Notes\n\nA note.\n\n## Assumptions"),
             format!("{spec}:{}: unknown section \"## Notes\"", spec_line("## Assumptions")),

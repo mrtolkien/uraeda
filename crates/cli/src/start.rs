@@ -61,7 +61,9 @@ pub fn run(target_name: Option<String>, slug: Option<String>) -> Result<ExitCode
         }
         Err(StartError::Partial { done, left, cause }) => {
             eprintln!("ura: {cause}");
-            eprintln!("Done: {}.", done.join(", "));
+            if !done.is_empty() {
+                eprintln!("Done: {}.", done.join(", "));
+            }
             eprintln!("Left: {}.", left.join(", then "));
             Ok(ExitCode::FAILURE)
         }
