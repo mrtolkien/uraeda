@@ -4,7 +4,8 @@ use std::process::ExitCode;
 
 use serde::Serialize;
 use uraeda_core::steps::{self, Step, WaitsOn};
-use uraeda_core::workspace::{Feature, Workspace};
+use uraeda_core::target::{Purpose, Target};
+use uraeda_core::workspace::Feature;
 
 use crate::output;
 use crate::status;
@@ -21,7 +22,10 @@ pub fn run(target: Option<String>, json: bool) -> Result<ExitCode, String> {
     let (_, mut workspace) = output::workspace()?;
     let index = match target {
         Some(target) => {
-            let index = find(&workspace, &target)?;
+            let index = match output::target(&workspace, Some(&target), Purpose::Inspect)? {
+                Target::Feature(index) | Target::File(index, _) => index,
+                Target::Draft(draft) => return Err(format!("{draft} is not started")),
+            };
             steps::refresh_pull_request(&mut workspace.features[index], steps::pull_request);
             Some(index)
         }
@@ -38,15 +42,6 @@ pub fn run(target: Option<String>, json: bool) -> Result<ExitCode, String> {
         print!("{}", render(feature));
     }
     Ok(ExitCode::SUCCESS)
-}
-
-/// The feature a name or folder names. Task 6 replaces this with the shared target rules.
-fn find(workspace: &Workspace, target: &str) -> Result<usize, String> {
-    workspace
-        .features
-        .iter()
-        .position(|f| f.folder == target || f.slug == target)
-        .ok_or_else(|| format!("no feature or bug named {target}"))
 }
 
 fn render(feature: Option<&Feature>) -> String {

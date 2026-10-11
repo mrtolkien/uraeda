@@ -150,7 +150,6 @@ fn commit_runs_the_hook_and_commits_only_the_given_paths() {
     repo.commit("files");
     repo.write("a.md", "a2\n");
     repo.write("b.md", "b2\n");
-    repo.git(&["add", "b.md"]);
 
     let git = Git::discover(repo.path()).unwrap();
     git.commit(&["a.md".to_string()], "docs: a", Some("Body."))
@@ -158,8 +157,43 @@ fn commit_runs_the_hook_and_commits_only_the_given_paths() {
 
     assert_eq!(repo.subjects("main")[0], "docs: a");
     assert_eq!(repo.changed_in("HEAD"), ["a.md"]);
-    assert_eq!(repo.porcelain(), "M  b.md\n");
+    assert_eq!(repo.porcelain(), " M b.md\n");
     assert_eq!(repo.hook_runs(), 1);
+}
+
+#[test]
+fn commit_refuses_other_staged_files() {
+    let repo = TestRepo::new();
+    repo.write("a.md", "a\n");
+    repo.write("b.md", "b\n");
+    repo.git(&["add", "b.md"]);
+
+    let error = Git::discover(repo.path())
+        .unwrap()
+        .commit(&["a.md".to_string()], "docs: a", None)
+        .err()
+        .unwrap();
+
+    assert_eq!(
+        error.to_string(),
+        "other files are staged: b.md: commit or unstage them first"
+    );
+    assert_eq!(repo.subjects("main").len(), 1);
+}
+
+#[test]
+fn commit_keeps_what_the_hook_reformats() {
+    let repo = TestRepo::new();
+    repo.set_hook("for f in $(git diff --cached --name-only); do echo formatted >> \"$f\"; git add \"$f\"; done");
+    repo.write("a.md", "a\n");
+
+    Git::discover(repo.path())
+        .unwrap()
+        .commit(&["a.md".to_string()], "docs: a", None)
+        .unwrap();
+
+    assert_eq!(repo.git(&["show", "HEAD:a.md"]), "a\nformatted\n");
+    assert_eq!(repo.porcelain(), "");
 }
 
 #[test]

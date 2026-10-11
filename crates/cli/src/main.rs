@@ -1,5 +1,6 @@
 //! `ura`, Uraeda's command-line tool.
 
+mod answer;
 mod check;
 mod next;
 mod output;
@@ -24,6 +25,18 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Answer a round of questions, one question at a time, then submit it
+    Answer {
+        /// [target] <question> <answer>: the feature (optional), the question (Q2, Q2.B, or
+        /// notes), and the answer
+        arguments: Vec<String>,
+        /// Submit the round: set it answered, record its block, and commit
+        #[arg(long)]
+        submit: bool,
+        /// Leave the files for you to commit
+        #[arg(long)]
+        no_commit: bool,
+    },
     /// Check workflow files against the skill's rules
     Check {
         /// A specs/ folder, a folder under it, or a file; specs/ by default
@@ -47,6 +60,11 @@ fn main() -> ExitCode {
         Command::Status { json } => status::run(json),
         Command::Next { target, json } => next::run(target, json),
         Command::Check { target, json } => check::run(target, json),
+        Command::Answer {
+            arguments,
+            submit,
+            no_commit,
+        } => answer::run(arguments, submit, no_commit),
     };
     result.unwrap_or_else(|message| output::fail(&message))
 }
