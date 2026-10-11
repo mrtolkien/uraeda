@@ -79,6 +79,16 @@ impl From<place::PlaceError> for ApiError {
 
 type Result<T> = std::result::Result<T, ApiError>;
 
+/// One write at a time, whatever the repository: reaching a branch creates its worktree, and an
+/// action reads, edits, and writes a file, which two calls at once would interleave.
+static WRITES: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+fn write_lock() -> std::sync::MutexGuard<'static, ()> {
+    WRITES
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
 fn open(repo: &Path) -> Result<(Git, Workspace)> {
     let git = Git::discover(repo)?;
     let workspace = Workspace::read(&git).map_err(|error| refused(error.to_string()))?;
@@ -252,6 +262,7 @@ pub fn save_answer(
     comment: &str,
     previous: &str,
 ) -> Result<FileView> {
+    let _lock = write_lock();
     let (_, feature, place) = reach(repo, folder)?;
     answer::save(&place, &feature, question, letters, comment, previous)?;
     read_file(repo, folder, &round_name(&feature)?)
@@ -259,6 +270,7 @@ pub fn save_answer(
 
 /// Saves the notes on the settled points, over the notes last read.
 pub fn save_notes(repo: &Path, folder: &str, notes: &str, previous: &str) -> Result<FileView> {
+    let _lock = write_lock();
     let (_, feature, place) = reach(repo, folder)?;
     answer::save_notes(&place, &feature, notes, previous)?;
     read_file(repo, folder, &round_name(&feature)?)
@@ -266,6 +278,7 @@ pub fn save_notes(repo: &Path, folder: &str, notes: &str, previous: &str) -> Res
 
 /// Submits the latest round and commits it.
 pub fn submit_answers(repo: &Path, folder: &str) -> Result<FileView> {
+    let _lock = write_lock();
     let (_, feature, place) = reach(repo, folder)?;
     answer::submit_and_commit(&place, &feature, today::today())?;
     read_file(repo, folder, &round_name(&feature)?)
@@ -274,6 +287,7 @@ pub fn submit_answers(repo: &Path, folder: &str) -> Result<FileView> {
 /// Commits again what a hook refused to commit, its files left written: a submitted round, or a
 /// verdict on a spec, a plan, or an assessment, with its review file.
 pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView> {
+    let _lock = write_lock();
     let (_, feature, place) = reach(repo, folder)?;
     let path = format!("{}/{name}", feature.path);
     let text = std::fs::read_to_string(place.root.join(&path))
@@ -297,7 +311,12 @@ pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView>
             };
             let review_path = format!("{}/{}", feature.path, review::review_name(name));
             let mut paths = vec![path];
-            if place.root.join(&review_path).exists() {
+            // The review file, written or deleted by the verdict.
+            let tracked = Git::open(&place.root).ok().is_some_and(|git| {
+                git.head()
+                    .is_some_and(|head| git.read_file(head, &review_path).ok().flatten().is_some())
+            });
+            if place.root.join(&review_path).exists() || tracked {
                 paths.push(review_path);
             }
             (format!("{kind}({}): {action}", feature.slug), paths)
@@ -325,6 +344,7 @@ pub fn add_comment(
     lines: Option<(u32, u32)>,
     text: &str,
 ) -> Result<FileView> {
+    let _lock = write_lock();
     let (git, feature, place) = reach(repo, folder)?;
     let lines = lines.map(|(start, end)| (start as usize, end as usize));
     review::comment(&git, &place, &feature, file, lines, text)?;
@@ -339,6 +359,7 @@ pub fn edit_comment(
     number: u32,
     text: &str,
 ) -> Result<FileView> {
+    let _lock = write_lock();
     let (_, feature, place) = reach(repo, folder)?;
     review::edit(&place, &feature, file, number, text)?;
     read_file(repo, folder, file)
@@ -346,6 +367,7 @@ pub fn edit_comment(
 
 /// Removes a pending comment.
 pub fn remove_comment(repo: &Path, folder: &str, file: &str, number: u32) -> Result<FileView> {
+    let _lock = write_lock();
     let (_, feature, place) = reach(repo, folder)?;
     review::remove(&place, &feature, file, number)?;
     read_file(repo, folder, file)
@@ -353,9 +375,28 @@ pub fn remove_comment(repo: &Path, folder: &str, file: &str, number: u32) -> Res
 
 /// Deletes the pending review, to review the new version from scratch.
 pub fn start_over(repo: &Path, folder: &str, file: &str) -> Result<FileView> {
+    let _lock = write_lock();
     let (_, feature, place) = reach(repo, folder)?;
     review::start_over(&place, &feature, file)?;
     read_file(repo, folder, file)
+}
+
+/// Refuses a verdict on a file whose text on disk differs from its branch's tip: the page shows the
+/// committed version, and the verdict must not commit another.
+fn as_committed(git: &Git, feature: &Feature, place: &place::Place, file: &str) -> Result<()> {
+    let path = format!("{}/{file}", feature.path);
+    let on_disk = std::fs::read(place.root.join(&path)).ok();
+    let at_tip = feature
+        .branch
+        .as_deref()
+        .and_then(|branch| git.tip(branch))
+        .and_then(|tip| git.read_file(tip, &path).ok().flatten());
+    if on_disk != at_tip {
+        return Err(refused(format!(
+            "{file} has changes not committed: the review is of the committed version"
+        )));
+    }
+    Ok(())
 }
 
 /// Approves a spec, a plan, or an assessment, and commits it.
@@ -367,7 +408,9 @@ pub fn approve(
     risk_tier: Option<String>,
     plan_review: Option<bool>,
 ) -> Result<FileView> {
-    let (_, feature, place) = reach(repo, folder)?;
+    let _lock = write_lock();
+    let (git, feature, place) = reach(repo, folder)?;
+    as_committed(&git, &feature, &place, file)?;
     let tier = Tier {
         risk_tier,
         plan_review,
@@ -384,7 +427,9 @@ pub fn request_changes(
     file: &str,
     summary: Option<&str>,
 ) -> Result<FileView> {
-    let (_, feature, place) = reach(repo, folder)?;
+    let _lock = write_lock();
+    let (git, feature, place) = reach(repo, folder)?;
+    as_committed(&git, &feature, &place, file)?;
     let summary = summary.filter(|s| !s.trim().is_empty());
     review::request_changes_and_commit(&place, &feature, file, summary, today::today())?;
     read_file(repo, folder, file)
@@ -458,6 +503,7 @@ fn reach_default(repo: &Path) -> Result<place::Place> {
 
 /// Drafts a priority line by its id, like `next-2`.
 pub fn create_draft(repo: &Path, id: &str) -> Result<DraftView> {
+    let _lock = write_lock();
     let place = reach_default(repo)?;
     let drafted = draft::create(&place, id)?;
     read_draft(repo, &drafted.path)
@@ -479,12 +525,14 @@ fn text_place(repo: &Path, path: &str) -> Result<place::Place> {
 /// Saves a draft or a proposal as typed, over the version read at `previous`. Returns the new
 /// hash.
 pub fn save_text(repo: &Path, path: &str, content: &str, previous: &str) -> Result<String> {
+    let _lock = write_lock();
     let place = text_place(repo, path)?;
     Ok(text::save(&place, path, content, previous)?)
 }
 
 /// Commits a draft, with the priorities when they changed, or a proposal.
 pub fn commit_text(repo: &Path, path: &str) -> Result<CommitView> {
+    let _lock = write_lock();
     let place = text_place(repo, path)?;
     let committed = text::commit(&place, path)?;
     Ok(CommitView {
@@ -495,6 +543,7 @@ pub fn commit_text(repo: &Path, path: &str) -> Result<CommitView> {
 
 /// Starts a drafted feature in its own worktree.
 pub fn start_feature(repo: &Path, draft: &str, slug: Option<&str>) -> Result<StartedView> {
+    let _lock = write_lock();
     let (git, workspace) = open(repo)?;
     match start::run(&git, &workspace, draft, slug, today::today(), false) {
         Ok(started) => Ok(StartedView {
@@ -522,6 +571,7 @@ pub fn add_priority(
     line: &str,
     previous: &str,
 ) -> Result<Priorities> {
+    let _lock = write_lock();
     let place = reach_default(repo)?;
     edits::add(&place, section(section_id)?, line, previous)?;
     Ok(edits::read(&place))
@@ -535,6 +585,7 @@ pub fn move_priority(
     index: u32,
     previous: &str,
 ) -> Result<Priorities> {
+    let _lock = write_lock();
     let place = reach_default(repo)?;
     edits::move_entry(&place, id, section(section_id)?, index as usize, previous)?;
     Ok(edits::read(&place))
@@ -542,6 +593,7 @@ pub fn move_priority(
 
 /// Replaces a line's text.
 pub fn edit_priority(repo: &Path, id: &str, line: &str, previous: &str) -> Result<Priorities> {
+    let _lock = write_lock();
     let place = reach_default(repo)?;
     edits::edit(&place, id, line, previous)?;
     Ok(edits::read(&place))
@@ -549,6 +601,7 @@ pub fn edit_priority(repo: &Path, id: &str, line: &str, previous: &str) -> Resul
 
 /// Removes a line and its nested lines.
 pub fn remove_priority(repo: &Path, id: &str, previous: &str) -> Result<Priorities> {
+    let _lock = write_lock();
     let place = reach_default(repo)?;
     edits::remove(&place, id, previous)?;
     Ok(edits::read(&place))
@@ -556,6 +609,7 @@ pub fn remove_priority(repo: &Path, id: &str, previous: &str) -> Result<Prioriti
 
 /// Commits the priorities alone.
 pub fn commit_priorities(repo: &Path) -> Result<Priorities> {
+    let _lock = write_lock();
     let place = reach_default(repo)?;
     edits::commit(&place)?;
     Ok(edits::read(&place))
@@ -563,6 +617,7 @@ pub fn commit_priorities(repo: &Path) -> Result<Priorities> {
 
 /// Restores the committed priorities.
 pub fn discard_priorities(repo: &Path) -> Result<Priorities> {
+    let _lock = write_lock();
     let place = reach_default(repo)?;
     edits::discard(&place)?;
     Ok(edits::read(&place))
@@ -605,7 +660,11 @@ pub fn read_text(repo: &Path, path: &str) -> Result<DraftView> {
 /// A file of the repository as text, for links to code and mockups: a feature's file from where
 /// its feature is read, any other from the checkout.
 pub fn read_raw(repo: &Path, path: &str) -> Result<String> {
-    if path.split('/').any(|part| part == ".." || part.is_empty()) || path.starts_with('/') {
+    // Hidden files and folders, like `.env` and `.git/`, are never served.
+    if path
+        .split('/')
+        .any(|part| part.is_empty() || part.starts_with('.'))
+    {
         return Err(refused(format!("{path}: no such file")));
     }
     let (git, workspace) = open(repo)?;
@@ -628,7 +687,11 @@ pub fn read_raw(repo: &Path, path: &str) -> Result<String> {
                 })
                 .and_then(|tip| git.read_file(tip, path).ok().flatten()),
         },
-        None => std::fs::read(git.root().join(path)).ok(),
+        // Any other file: only when it is tracked, read as it is in the checkout.
+        None => git
+            .head()
+            .and_then(|head| git.read_file(head, path).ok().flatten())
+            .and_then(|_| std::fs::read(git.root().join(path)).ok()),
     };
     bytes
         .and_then(|bytes| String::from_utf8(bytes).ok())

@@ -229,6 +229,8 @@ export interface EntryItem {
   endLine: number
   /** Its nested lines, as written. */
   nested: Array<string>
+  /** The text of each nested item, without its marker. */
+  nestedSpans: Array<Array<Span>>
 }
 
 export interface FeatureView {
