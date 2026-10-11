@@ -174,8 +174,12 @@ export const mutations = {
   },
   "draft.create": {
     type: "Draft",
-    resolve: async ({ ctx, input, select }: Resolver<{ line: string }>) =>
-      draft(ctx, await refusable(() => ctx.binding.createDraft(ctx.repo, input.line)), select),
+    resolve: async ({ ctx, input, select }: Resolver<{ line: string; hash: string }>) =>
+      draft(
+        ctx,
+        await refusable(() => ctx.binding.createDraft(ctx.repo, input.line, input.hash)),
+        select,
+      ),
   },
   "text.save": {
     type: "Draft",

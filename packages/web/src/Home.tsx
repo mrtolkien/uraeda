@@ -40,7 +40,10 @@ export function Home() {
 
   const draft = async (id: string) => {
     setError(undefined);
-    const result = await fate.mutations.draft.create({ input: { line: id }, view: DraftView });
+    const result = await fate.mutations.draft.create({
+      input: { line: id, hash: workspace.prioritiesHash },
+      view: DraftView,
+    });
     if (result.error) {
       setError(refusal(result.error).message);
     } else if (typeof result.result?.path === "string") {
