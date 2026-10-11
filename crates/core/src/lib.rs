@@ -10,4 +10,5 @@ pub mod steps;
 pub mod target;
 pub mod temporary_status;
 pub mod today;
+pub mod watch;
 pub mod workspace;
