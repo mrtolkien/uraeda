@@ -3,6 +3,8 @@
 ## Now
 
 - [Basic web UI for viewing the workflow files -> React + Astryx + Fate stack, see draft](/specs/2026-10-11-web-ui/proposal.md)
+- "Finish feature"
+- Add line in priorities from webui
 
 ## Next
 
