@@ -37,8 +37,10 @@ out, they guess.
    now: a human may have changed one since the spec was approved. If one now conflicts with the
    spec, start a new round of questions, following
    [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
-3. The discovery files of every round: their map of the code is your starting point.
-4. The code itself: its structure and patterns, the test setup and existing helpers, every place
+3. `spec-review.md`, when the spec was approved with comments: the plan carries out each one, and
+   says how in its `## Review comments` section. The approved spec is not changed for them.
+4. The discovery files of every round: their map of the code is your starting point.
+5. The code itself: its structure and patterns, the test setup and existing helpers, every place
    that reads or writes data the feature changes, and the commands that validate the project
    (formatter, linter, type checker, tests, benchmarks). Read it: do not plan from the discovery's
    summary alone.
@@ -148,6 +150,11 @@ Every task's requirements implicitly include this section.]
 
 [Every new abstraction, and every constitution exception the human accepted.]
 
+## Review comments
+
+[Only when the spec was approved with comments: each comment of `spec-review.md`, and the task that
+carries it out.]
+
 ---
 
 [The tasks, in order.]
@@ -169,6 +176,9 @@ What goes in each section:
 - **Constitution check**: a table with one row per principle, all of them: principles always apply.
   Decisions are not part of it.
 - **Decisions**: the decisions that apply to the code this plan touches, not the whole ledger.
+- **Review comments**: only when the spec was approved with comments in `spec-review.md`: each
+  comment, by its number, and the task that carries it out. The approved spec is not changed for
+  them.
 - **Complexity tracking**: every new abstraction, meaning a type, module, layer, wrapper, or helper
   shared by several parts, tests included, even when the spec's design introduced it; and every
   constitution exception the human accepted. Each row says why it is needed, and the simpler
@@ -360,15 +370,18 @@ the plan, the implementation step turns the block into a record, as for the spec
 
 ## Revising
 
-When `plan.md` is `changes-requested`, read its `## Changes requested` section, apply it, and set
-the status again from the table. The previous block becomes a record of the request, as described in
-[Coming back to the human](../SKILL.md#coming-back-to-the-human). If the feedback needs a new
-decision, start a new round of questions, following
+When `plan.md` is `changes-requested`, read `plan-review.md`, apply its comments, and set the status
+again from the table. The previous block becomes a record of the request, as described in
+[Coming back to the human](../SKILL.md#coming-back-to-the-human), and the new block says how each
+comment was handled: "C1: done", "C2: declined, because ..." If the feedback needs a new decision,
+start a new round of questions, following
 [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
 
 When the spec's `revision` is higher than the plan's `spec-revision`, update the plan to match the
 spec, and set `spec-revision` to the spec's `revision`. Keep the checked steps that still hold,
 uncheck or rewrite the others, and set the status again from the table.
+
+With `ura`, run `ura check` on the feature's folder before committing.
 
 ## Commit
 

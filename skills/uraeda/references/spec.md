@@ -35,8 +35,9 @@ ruthlessly: every part of the design serves a user story or an answer.
 
 ## Read the answers
 
-Read every round's questions, answers, and settled points, the latest last: later answers win. A
-settled point the human objected to in an answer follows their answer. An answer can be:
+Read every round's questions, answers, settled points, and **Notes:**, the latest last: later
+answers win. A settled point the human objected to in an answer or a note follows them. An answer
+can be:
 
 - **One or more option letters.** Letters from options that exclude each other, when the question
   does not say they combine, are ambiguous: ask again in a new round.
@@ -343,15 +344,20 @@ Before committing, read the spec again with fresh eyes, and fix what you find in
 
 The spec is amended in place: it stays the single source of truth for the implementation.
 
-- **`changes-requested`**: read its `## Changes requested` section. If the feedback asks for more
+- **`changes-requested`**: read `spec-review.md`, its comments and its summary; each line comment
+  quotes the lines it is about, as they were at the review's `commit`. If the feedback asks for more
   options or raises a new question, start a new round, following [Discovery](discovery.md).
   Otherwise, apply the feedback, and update the proposed decisions it affects. Turn the previous
-  block into a record of the request, and remove the section, as described in
-  [Coming back to the human](../SKILL.md#coming-back-to-the-human).
+  block into a record of the request, as described in
+  [Coming back to the human](../SKILL.md#coming-back-to-the-human). The new block says how each
+  comment was handled: "C1: done", "C2: declined, because ...". Leave the review file as it is: the
+  next review replaces it.
 - **A newer round is answered**: read its answers, propose their decisions, and amend the spec.
 
 Increase `revision`, set `clarifications` to the latest round, and set `status: awaiting-human`
 again. The `> [!IMPORTANT]` block says what changed since the last review.
+
+With `ura`, run `ura check` on the feature's folder before committing.
 
 ## Commit
 

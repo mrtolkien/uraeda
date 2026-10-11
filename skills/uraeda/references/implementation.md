@@ -24,13 +24,16 @@ went, so any agent can resume it.
    spec or the plan, stop and start a new round of questions, following
    [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
 4. If the human reviewed the plan, turn its `> [!IMPORTANT]` block into a record, in the first
-   task's commit: see [Coming back to the human](../SKILL.md#coming-back-to-the-human).
+   task's commit: see [Coming back to the human](../SKILL.md#coming-back-to-the-human). When they
+   approved it with comments, `plan-review.md` holds them: carry each one out, and say how in the
+   pull request's description.
 5. Run the project's validation once, before any change: formatter, linter, type checker, tests. A
    failure that is already there is reported in the pull request, not fixed in passing.
 
-**Resuming**: start at the first task with an unchecked step. Commits are the only progress: a task
-whose boxes are checked is done, even if you do not remember doing it. Changes left uncommitted by
-an interrupted session are not trusted: read them, and redo that task from its first step.
+**Resuming**: start at the first task with an unchecked step; with `ura`, `ura next` names it.
+Commits are the only progress: a task whose boxes are checked is done, even if you do not remember
+doing it. Changes left uncommitted by an interrupted session are not trusted: read them, and redo
+that task from its first step.
 
 ## For each task, in order
 
@@ -125,6 +128,7 @@ like a file waiting for the human, following
 - **Links** to `spec.md` and `plan.md`.
 - **Tests**: each acceptance scenario and review-focus item, with the test that covers it.
 - **Rulings**: a link to `rulings.md`, and the ones that change behaviour, one line each.
+- **Review comments**: when the plan was approved with comments, how each was carried out.
 - **Deferred minors**: the minor findings of the final review.
 
 If you cannot open a pull request, push the branch, and put the description in the body of the last

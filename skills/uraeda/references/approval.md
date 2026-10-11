@@ -29,9 +29,10 @@ and git history records the approval anyway.
 
 ## Record the review
 
-Turn the spec's `> [!IMPORTANT]` block into a record, if the human or a tool did not already: see
-[Coming back to the human](../SKILL.md#coming-back-to-the-human). When an approved spec links no
-decision to apply, this step does not run, and the plan step records the review instead.
+Turn the spec's `> [!IMPORTANT]` block into a record, if the human or a tool did not already, as
+`ura review --approve` does: see [Coming back to the human](../SKILL.md#coming-back-to-the-human).
+When an approved spec links no decision to apply, this step does not run, and the plan step records
+the review instead.
 
 ## Check the review settings
 

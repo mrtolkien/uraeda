@@ -72,9 +72,10 @@ that is unclear, a fix that needs a [decision](spec.md#what-is-a-decision) or go
 report that asks for a feature. If you cannot reproduce the bug, say what you tried, and ask for
 what you need.
 
-**Revision**: when `assessment.md` is `changes-requested`, read its `## Changes requested` section,
-investigate again where it asks, apply it, remove the section, and set `status: awaiting-human`
-again. The block says what changed.
+**Revision**: when `assessment.md` is `changes-requested`, read `assessment-review.md`, investigate
+again where it asks, apply it, and set `status: awaiting-human` again. The block says what changed,
+and how each comment was handled. When the assessment was approved with comments, the fix carries
+them out, and the pull request's description says how.
 
 ## Fix
 
