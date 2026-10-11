@@ -1,0 +1,255 @@
+//! The questions of a clarifications file, their options, and their answers.
+
+const ANSWER: &str = "**Answer:**";
+const NOTES: [&str; 2] = ["**Notes:**", "**Notes**:"];
+
+/// A question, `## Q2: ...`, or a follow-up, `### Q2.B: ...`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Question {
+    /// `Q2`, or `Q2.B` for a follow-up.
+    pub id: String,
+    /// The parent's id, for a follow-up.
+    pub parent: Option<String>,
+    /// The parent's option a follow-up depends on.
+    pub letter: Option<char>,
+    pub title: String,
+    /// The line of its heading.
+    pub line: usize,
+    /// The letters of its options, in order.
+    pub options: Vec<char>,
+    /// The answer, trimmed; empty when blank.
+    pub answer: String,
+    /// The line of its `**Answer:**` marker, or 0 when it has none.
+    pub answer_line: usize,
+}
+
+/// Whether a follow-up needs an answer, from its parent's answer.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Applicability {
+    Yes,
+    No,
+    /// The parent's answer names no option letter.
+    Unclear,
+}
+
+impl Question {
+    /// A question applies unless it is a follow-up whose parent's answer picked other options.
+    pub fn applies(&self, all: &[Question]) -> Applicability {
+        let (Some(parent), Some(letter)) = (&self.parent, self.letter) else {
+            return Applicability::Yes;
+        };
+        let Some(parent) = all.iter().find(|question| &question.id == parent) else {
+            return Applicability::Unclear;
+        };
+        let picked = picked_letters(&parent.answer, &parent.options);
+        if picked.is_empty() {
+            Applicability::Unclear
+        } else if picked.contains(&letter) {
+            Applicability::Yes
+        } else {
+            Applicability::No
+        }
+    }
+}
+
+/// The option letters an answer starts with: "B and C: ..." is B and C, "C, we want ..." is C.
+fn picked_letters(answer: &str, options: &[char]) -> Vec<char> {
+    let mut picked = Vec::new();
+    for word in answer
+        .split(|c: char| !(c.is_alphanumeric() || c == '\''))
+        .filter(|word| !word.is_empty())
+    {
+        let mut chars = word.chars();
+        match (chars.next(), chars.next()) {
+            (Some(letter), None) if options.contains(&letter) => picked.push(letter),
+            _ if word.eq_ignore_ascii_case("and") || word.eq_ignore_ascii_case("or") => {}
+            _ => break,
+        }
+    }
+    picked
+}
+
+/// A question heading's id, its parent and letter for a follow-up, and its title.
+type QuestionHeading = (String, Option<(String, char)>, String);
+
+fn heading(line: &str) -> Option<QuestionHeading> {
+    let (rest, follow_up) = if let Some(rest) = line.strip_prefix("### Q") {
+        (rest, true)
+    } else if let Some(rest) = line.strip_prefix("## Q") {
+        (rest, false)
+    } else {
+        return None;
+    };
+    let (id, title) = rest.split_once(':')?;
+    let title = title.trim().to_string();
+    if follow_up {
+        let (number, letter) = id.split_once('.')?;
+        let mut letters = letter.chars();
+        let letter = letters.next().filter(|c| c.is_ascii_uppercase())?;
+        if letters.next().is_some() || !is_number(number) {
+            return None;
+        }
+        Some((
+            format!("Q{id}"),
+            Some((format!("Q{number}"), letter)),
+            title,
+        ))
+    } else {
+        is_number(id).then(|| (format!("Q{id}"), None, title))
+    }
+}
+
+fn is_number(text: &str) -> bool {
+    !text.is_empty() && text.bytes().all(|byte| byte.is_ascii_digit())
+}
+
+/// The letter of an option line, `- **A (recommended). ...**` or `- **B. ...**`.
+fn option_letter(line: &str) -> Option<char> {
+    let rest = line.strip_prefix("- **")?;
+    let mut chars = rest.chars();
+    let letter = chars.next().filter(|c| c.is_ascii_uppercase())?;
+    let rest = chars.as_str();
+    (rest.starts_with(". ") || rest.starts_with(" (recommended).")).then_some(letter)
+}
+
+/// Every question and follow-up of a clarifications file, in order.
+pub fn parse(text: &str) -> Vec<Question> {
+    let mut questions: Vec<Question> = Vec::new();
+    let mut in_answer = false;
+    for (number, line) in super::lines_outside_code(text) {
+        if line.starts_with('#') {
+            in_answer = false;
+            if let Some((id, parent, title)) = heading(line) {
+                questions.push(Question {
+                    id,
+                    parent: parent.as_ref().map(|(id, _)| id.clone()),
+                    letter: parent.map(|(_, letter)| letter),
+                    title,
+                    line: number,
+                    options: Vec::new(),
+                    answer: String::new(),
+                    answer_line: 0,
+                });
+            } else if line.starts_with("## ") {
+                // A section that is not a question ends the last one.
+                questions.push(Question {
+                    id: String::new(),
+                    parent: None,
+                    letter: None,
+                    title: String::new(),
+                    line: number,
+                    options: Vec::new(),
+                    answer: String::new(),
+                    answer_line: 0,
+                });
+            }
+            continue;
+        }
+        let Some(question) = questions.last_mut() else {
+            continue;
+        };
+        if let Some(answer) = line.strip_prefix(ANSWER) {
+            question.answer_line = number;
+            question.answer = answer.trim().to_string();
+            in_answer = true;
+        } else if in_answer {
+            question.answer.push('\n');
+            question.answer.push_str(line);
+        } else if let Some(letter) = option_letter(line) {
+            question.options.push(letter);
+        }
+    }
+    questions.retain(|question| !question.id.is_empty());
+    for question in &mut questions {
+        question.answer = question.answer.trim().to_string();
+    }
+    questions
+}
+
+/// The `**Notes:**` line and its text, when the file has one.
+pub fn notes(text: &str) -> Option<(usize, String)> {
+    let mut found: Option<(usize, String)> = None;
+    for (number, line) in super::lines_outside_code(text) {
+        if line.starts_with('#') {
+            if found.is_some() {
+                break;
+            }
+            continue;
+        }
+        if let Some((_, rest)) = NOTES
+            .iter()
+            .find_map(|marker| line.strip_prefix(marker).map(|rest| (marker, rest)))
+        {
+            found = Some((number, rest.trim().to_string()));
+        } else if let Some((_, notes)) = found.as_mut() {
+            notes.push('\n');
+            notes.push_str(line);
+        }
+    }
+    found.map(|(line, notes)| (line, notes.trim().to_string()))
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+pub enum AnswerError {
+    #[error("no question {0}")]
+    UnknownQuestion(String),
+    #[error("{0} has no **Answer:** line")]
+    NoAnswerLine(String),
+    #[error("the file has no **Notes:** line")]
+    NoNotesLine,
+    #[error("an answer line cannot start with \"#\" or \"**Answer:**\"")]
+    Structure,
+}
+
+/// Writes an answer after a question's `**Answer:**` marker, replacing the earlier one. The id
+/// `notes` writes after the `**Notes:**` marker.
+pub fn set_answer(text: &str, id: &str, answer: &str) -> Result<String, AnswerError> {
+    let answer = answer.replace("\r\n", "\n");
+    if answer.lines().any(|line| {
+        let line = line.trim_start();
+        line.starts_with('#')
+            || line.starts_with(ANSWER)
+            || NOTES.iter().any(|m| line.starts_with(m))
+    }) {
+        return Err(AnswerError::Structure);
+    }
+    super::with_unix_newlines(text, |text| {
+        let (marker_line, marker) = if id == "notes" {
+            (notes(text).ok_or(AnswerError::NoNotesLine)?.0, NOTES[0])
+        } else {
+            let question = parse(text)
+                .into_iter()
+                .find(|question| question.id == id)
+                .ok_or_else(|| AnswerError::UnknownQuestion(id.to_string()))?;
+            if question.answer_line == 0 {
+                return Err(AnswerError::NoAnswerLine(id.to_string()));
+            }
+            (question.answer_line, ANSWER)
+        };
+        let mut lines: Vec<&str> = text.split('\n').collect();
+        let start = marker_line - 1;
+        let mut end = start + 1;
+        let mut in_code = false;
+        while end < lines.len() {
+            let line = lines[end];
+            if super::is_fence(line) {
+                in_code = !in_code;
+            }
+            if !in_code && line.starts_with('#') {
+                break;
+            }
+            end += 1;
+        }
+        let answer = answer.trim();
+        let first = if answer.is_empty() {
+            marker.to_string()
+        } else {
+            format!("{marker} {answer}")
+        };
+        // A blank line before the next heading, or the file's last newline.
+        let replacement: Vec<&str> = first.split('\n').chain([""]).collect();
+        lines.splice(start..end, replacement);
+        let joined = lines.join("\n");
+        Ok(joined)
+    })
+}
