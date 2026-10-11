@@ -45,6 +45,8 @@ function useChildren(document: Document) {
 type Context = {
   children: Map<number | undefined, Array<Block>>;
   selection?: Selection;
+  /** Draws a block its own way, when it returns something. */
+  override?: (block: Block) => ReactNode | undefined;
 };
 
 /** A block that a review can select: the top-level blocks, list items, and table rows. */
@@ -86,6 +88,10 @@ function Children({ block, context }: { block: Block; context: Context }) {
 
 function BlockNode({ block, context }: { block: Block; context: Context }): ReactNode {
   const spans = <Spans spans={block.spans} />;
+  const own = context.override?.(block);
+  if (own !== undefined) {
+    return own;
+  }
   let node: ReactNode;
   switch (block.kind) {
     case "heading":
@@ -199,13 +205,15 @@ export function Blocks({
   document,
   ids,
   selection,
+  override,
 }: {
   document: Document;
   ids?: ReadonlyArray<number>;
   selection?: Selection;
+  override?: (block: Block) => ReactNode | undefined;
 }) {
   const children = useChildren(document);
-  const context = { children, selection };
+  const context = { children, selection, override };
   const blocks = ids
     ? ids.map((id) => document.blocks[id]).filter(Boolean)
     : (children.get(undefined) ?? []);

@@ -186,6 +186,22 @@ fn file_view(git: &Git, feature: &Feature, name: &str) -> Result<FileView> {
             let doc = document::parse(review_text, &feature.path);
             Some(items(&review_name, review_text, &doc))
         });
+    // A pending review is stale when the file at its commit differs from the file at the tip.
+    let review_stale = review
+        .as_ref()
+        .and_then(|items| items.review.as_ref())
+        .filter(|review| review.verdict == "pending")
+        .is_some_and(|review| {
+            let at = |commit| {
+                git.read_file(commit, &path)
+                    .ok()
+                    .flatten()
+                    .and_then(|bytes| String::from_utf8(bytes).ok())
+            };
+            let reviewed = git.resolve(&review.commit).and_then(at);
+            let latest = tip.and_then(at);
+            reviewed != latest
+        });
     let status = feature
         .files
         .iter()
@@ -206,6 +222,7 @@ fn file_view(git: &Git, feature: &Feature, name: &str) -> Result<FileView> {
         tip: tip.map(|tip| tip.to_hex_with_len(7).to_string()),
         committed,
         review,
+        review_stale,
     })
 }
 

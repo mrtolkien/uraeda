@@ -113,6 +113,9 @@ pub struct Criterion {
 pub struct SpecItems {
     pub stories: Vec<Story>,
     pub criteria: Vec<Criterion>,
+    /// The frontmatter's `risk-tier` and `plan-review`, which an approval may change.
+    pub risk_tier: Option<String>,
+    pub plan_review: Option<bool>,
 }
 
 #[cfg_attr(feature = "napi", napi(object))]
@@ -194,7 +197,18 @@ pub fn items(name: &str, text: &str, doc: &Document) -> Items {
     let mut items = Items::default();
     match FileKind::of(name).map(|(kind, _)| kind) {
         Some(FileKind::Clarifications) => items.clarifications = Some(round(text, doc)),
-        Some(FileKind::Spec) => items.spec = Some(super::spec::items(doc)),
+        Some(FileKind::Spec) => {
+            let front = frontmatter::parse(text).ok();
+            let mut spec = super::spec::items(doc);
+            spec.risk_tier = front
+                .as_ref()
+                .and_then(|f| f.text("risk-tier").map(String::from));
+            spec.plan_review = front.and_then(|f| match f.get("plan-review") {
+                Some(frontmatter::Value::Bool(value)) => Some(*value),
+                _ => None,
+            });
+            items.spec = Some(spec);
+        }
         Some(FileKind::Plan) => items.plan = Some(PlanItems { tasks: tasks(doc) }),
         Some(FileKind::Review) => items.review = review_items(text),
         Some(FileKind::Rulings) => items.rulings = Some(super::rulings::items(doc)),

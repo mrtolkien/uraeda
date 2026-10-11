@@ -19,7 +19,7 @@ const ItemsSelection = {
     notes: true,
     notesLine: true,
   },
-  spec: { stories: true, criteria: true },
+  spec: { stories: true, criteria: true, riskTier: true, planReview: true },
   plan: { tasks: true },
   review: { verdict: true, commit: true, summary: true, comments: true },
   rulings: true,
@@ -69,6 +69,7 @@ export const FileView = view<WorkflowFile>()({
   tip: true,
   committed: VersionSelection,
   review: ItemsSelection,
+  reviewStale: true,
 });
 
 export const PrioritiesView = view<Priorities>()({
