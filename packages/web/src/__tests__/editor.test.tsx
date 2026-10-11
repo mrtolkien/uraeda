@@ -40,6 +40,22 @@ test("Draft turns a line into a draft, linked, and opens its editor", async () =
   expect(await screen.findByRole("textbox", { name: "Text" })).toBeTruthy();
 });
 
+/** Codex review: Draft drafts the line the human saw, or nothing. */
+test("Draft is refused once the priorities changed elsewhere", async () => {
+  const { repo } = await renderPage("/");
+  const main = within(await screen.findByRole("main"));
+  const row = (await main.findByText("Claude Code runner (triggered manually)")).closest(".row");
+  const file = join(repo, "specs/PRIORITIES.md");
+  // Another line takes `next-1` before the click.
+  writeFileSync(file, readFileSync(file, "utf8").replace("## Next\n\n", "## Next\n\n- Other\n"));
+
+  await click(within(row as HTMLElement).getByRole("button", { name: "Draft" }));
+
+  expect(await main.findByText(/PRIORITIES.md changed/)).toBeTruthy();
+  expect(existsSync(join(repo, "specs/drafts/other.md"))).toBe(false);
+  expect(window.location.pathname).toBe("/");
+});
+
 /** US4.2 */
 test("a draft is saved as typed, byte for byte", async () => {
   const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
@@ -79,6 +95,37 @@ test("a draft is committed with the priorities it changed", async () => {
     "specs/PRIORITIES.md",
     "specs/drafts/git-listener.md",
   ]);
+});
+
+/** Codex review: Commit stops when the text shown could not be saved. */
+test("Commit stops when the text could not be saved", async () => {
+  const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
+  const field = await screen.findByRole("textbox", { name: "Text" });
+  const file = join(repo, "specs/drafts/git-listener.md");
+  writeFileSync(file, "# Theirs\n");
+  const before = git(repo, "rev-parse", "HEAD");
+
+  await type(field, "# Mine\n");
+  await click(screen.getByRole("button", { name: "Commit" }));
+
+  expect(await screen.findByText(/nothing was committed/)).toBeTruthy();
+  expect(git(repo, "rev-parse", "HEAD")).toBe(before);
+});
+
+/** Codex review: a draft changed elsewhere shows when the page comes back. */
+test("a draft changed elsewhere shows when the page reads again", async () => {
+  const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
+  const field = (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
+  const file = join(repo, "specs/drafts/git-listener.md");
+  writeFileSync(file, "# Theirs\n");
+
+  await act(async () => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+
+  await waitFor(() => expect(field.value).toBe("# Theirs\n"));
+  await type(field, "# Theirs, and mine\n");
+  await waitFor(() => expect(readFileSync(file, "utf8")).toBe("# Theirs, and mine\n"));
 });
 
 /** US4.4 */

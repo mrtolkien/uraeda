@@ -2,7 +2,7 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { TextArea } from "@astryxdesign/core/TextArea";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { Blocks } from "./Blocks.tsx";
 import { useDraft } from "./data.ts";
@@ -50,12 +50,19 @@ export function EditorPage({ path }: { path: string }) {
     }
     return { ok: true, saved: result.result?.hash ?? previous };
   }, draft?.hash ?? "");
-  const { settle } = save;
+  const { settle, idle } = save;
+  const shown = useRef(text);
+  shown.current = text;
+  // A text changed elsewhere replaces this one when nothing of it waits to be saved.
   useEffect(() => {
-    if (draft) {
-      settle(draft.hash);
+    if (!draft) {
+      return;
     }
-  }, [draft, settle]);
+    if (idle() && draft.text !== shown.current) {
+      setText(draft.text);
+    }
+    settle(draft.hash);
+  }, [draft, idle, settle]);
 
   if (!draft) {
     return (
@@ -73,13 +80,19 @@ export function EditorPage({ path }: { path: string }) {
 
   const commit = async () => {
     setMessage(undefined);
-    await save.flush();
+    if (!(await save.flush())) {
+      setMessage("Your text is not saved: nothing was committed.");
+      return;
+    }
     const result = await fate.mutations.text.commit({ input: { path }, view: DraftView });
     setMessage(result.error ? refusal(result.error).message : "Committed.");
   };
   const start = async () => {
     setMessage(undefined);
-    await save.flush();
+    if (!(await save.flush())) {
+      setMessage("Your text is not saved: the feature was not started.");
+      return;
+    }
     const result = await fate.mutations.feature.start({
       input: { draft: path, slug },
       view: FeatureView,

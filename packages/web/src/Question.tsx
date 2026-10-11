@@ -10,7 +10,7 @@ import { type SaveState, useSave } from "./useSave.ts";
 import { FileView } from "./views.ts";
 
 /** Where questions put what they still have to save, so Submit saves it first. */
-export const PendingSaves = createContext<Set<() => Promise<void>>>(new Set());
+export const PendingSaves = createContext<Set<() => Promise<boolean>>>(new Set());
 
 /** The answer as the core writes it, to show while it saves. */
 export function composed(letters: ReadonlyArray<string>, comment: string) {
