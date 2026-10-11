@@ -2,6 +2,9 @@
 
 ## Now
 
+- "Finish feature"
+- Add line in priorities from webui
+
 ## Next
 
 - Claude Code runner (triggered manually): https://code.claude.com/docs/en/headless
