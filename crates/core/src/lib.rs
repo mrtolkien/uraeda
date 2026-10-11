@@ -5,6 +5,7 @@ pub mod check;
 pub mod embedded;
 pub mod files;
 pub mod git;
+pub mod slug;
 pub mod steps;
 pub mod target;
 pub mod temporary_status;
