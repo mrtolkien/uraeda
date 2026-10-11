@@ -36,8 +36,10 @@ the review instead.
 
 ## Check the review settings
 
-Read the `risk-tier` and `plan-review` in the spec's frontmatter. The human may have changed them
-when approving: the plan step uses them as they are now, not as you proposed them.
+Read the `plan-review` in the spec's frontmatter. The human decided it when approving, whatever the
+risk tier: the plan step uses it as it is now, not as you proposed it. If the human changed the
+`risk-tier` but left `plan-review` as you proposed it, set `plan-review` to the new tier's default,
+as `ura review` does.
 
 ## Commit
 

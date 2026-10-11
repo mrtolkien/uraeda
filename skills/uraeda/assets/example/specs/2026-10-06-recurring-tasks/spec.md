@@ -3,6 +3,7 @@ status: approved
 revision: 1
 clarifications: 1
 risk-tier: high
+plan-review: true
 ---
 
 # Spec: Recurring tasks

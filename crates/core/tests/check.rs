@@ -158,9 +158,9 @@ fn each_rule() {
             format!("{spec}:6: unknown field \"owner\""),
         ),
         (
-            "plan review without medium",
-            |e| e.edit(&format!("{FEATURE}/spec.md"), "risk-tier: high", "risk-tier: high\nplan-review: true"),
-            format!("{spec}:6: plan-review is only for risk-tier: medium"),
+            "plan review not a boolean",
+            |e| e.edit(&format!("{FEATURE}/spec.md"), "plan-review: true", "plan-review: often"),
+            format!("{spec}:6: plan-review \"often\" is not true or false"),
         ),
         (
             "spec ahead of its rounds",
@@ -213,6 +213,18 @@ fn each_rule() {
             "{name}: {expected}\nin {problems:#?}"
         );
     }
+}
+
+#[test]
+fn plan_review_on_any_tier() {
+    let example = Example::new();
+    example.edit(
+        &format!("{FEATURE}/spec.md"),
+        "risk-tier: high",
+        "risk-tier: low",
+    );
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
 }
 
 fn line_of(file: &str, needle: &str) -> usize {

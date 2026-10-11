@@ -246,27 +246,26 @@ pub fn approve(
             "risk tier \"{tier}\" is not one of low, medium, high"
         )));
     }
+    let proposed_tier = frontmatter::parse(&text)
+        .ok()
+        .and_then(|f| f.text("risk-tier").map(String::from));
+    let tier_changed = tier
+        .risk_tier
+        .as_ref()
+        .is_some_and(|tier| Some(tier) != proposed_tier.as_ref());
     let mut edited = frontmatter::set(&text, "status", "approved");
     if let Some(risk_tier) = &tier.risk_tier {
         edited = frontmatter::set(&edited, "risk-tier", risk_tier);
     }
-    let medium = frontmatter::parse(&edited).is_ok_and(|f| f.text("risk-tier") == Some("medium"));
-    if tier.plan_review.is_some() && !medium {
-        return Err(ActionError::Refused(
-            "plan-review is only for risk-tier: medium: add --risk-tier medium".to_string(),
-        ));
-    }
-    if medium {
-        let current = frontmatter::parse(&edited)
-            .ok()
-            .and_then(|f| match f.get("plan-review") {
-                Some(frontmatter::Value::Bool(value)) => Some(*value),
-                _ => None,
-            });
-        let value = tier.plan_review.or(current).unwrap_or(false);
+    if file == "spec.md" {
+        let front = frontmatter::parse(&edited).ok();
+        let current = match front.as_ref().and_then(|f| f.get("plan-review")) {
+            Some(frontmatter::Value::Bool(value)) if !tier_changed => Some(*value),
+            _ => None,
+        };
+        let high = front.is_some_and(|f| f.text("risk-tier") == Some("high"));
+        let value = tier.plan_review.or(current).unwrap_or(high);
         edited = frontmatter::set(&edited, "plan-review", &value.to_string());
-    } else if file == "spec.md" {
-        edited = frontmatter::remove(&edited, "plan-review");
     }
     let edited =
         markdown::record_block(&edited, &format!("Approved on {today}.")).unwrap_or(edited);

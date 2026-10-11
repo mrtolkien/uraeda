@@ -18,8 +18,9 @@ in a file: the spec must be complete enough to approve with confidence, and fast
 
 The spec says what the feature does and how it will be built, for a technical human to approve
 before any code. It is the main review of the workflow: once it is approved, most features reach the
-pull request without the human, since the plan follows the spec, and only high-risk plans are
-reviewed. Anything the spec leaves vague, a later agent decides alone.
+pull request without the human, since the plan follows the spec, and only the plans the human chose
+to review when approving it wait for them. Anything the spec leaves vague, a later agent decides
+alone.
 
 - **Behaviour first**: user stories with acceptance scenarios, edge cases, and success criteria.
   They say what users get, with the exact values the tests will check.
@@ -27,7 +28,7 @@ reviewed. Anything the spec leaves vague, a later agent decides alone.
   to the feature. It says how the feature is built, at the level of components and data:
   file-by-file changes and implementation steps belong in the plan.
 - **Then what the human must weigh**: the assumptions you made, the decisions the spec proposes or
-  relies on, the constitution check, and the risk tier.
+  relies on, the constitution check, the risk tier, and whether the plan waits for a review.
 
 Decide the design: do not list possibilities. The questions already settled what needed the human;
 everything else is yours to settle, and to state as an assumption the human can object to. YAGNI
@@ -136,7 +137,7 @@ status: awaiting-human
 revision: 1
 clarifications: [the latest round included]
 risk-tier: [low | medium | high]
-plan-review: false # medium only
+plan-review: [true for high, false otherwise]
 ---
 
 # Spec: [Feature name]
@@ -184,8 +185,8 @@ clarifications.]
 The `> [!IMPORTANT]` block, as described in
 [Coming back to the human](../SKILL.md#coming-back-to-the-human): how long the review takes, then
 what most needs attention, one line each: the new and changed decisions, the answers you read one
-way among several, the riskiest assumptions, the risk tier, and any cost or migration. On a
-revision, what changed since the last review.
+way among several, the riskiest assumptions, the risk tier and whether the plan waits for a review,
+and any cost or migration. On a revision, what changed since the last review.
 
 ## Behaviour
 
@@ -289,16 +290,18 @@ mapping every acceptance scenario, edge case, and success criterion to its test.
 
 ## Risk tier
 
-The tier decides whether the human reviews the plan. Propose it in the frontmatter, with a one-line
-reason in the spec. The human confirms or changes it when approving.
+The tier tells the human how much the feature can break, and sets the default for `plan-review`:
+whether the plan waits for the human's review before the implementation. Propose both in the
+frontmatter, with a one-line reason for the tier in the spec. The human decides both when approving
+the spec, whatever the tier.
 
-| Tier     | Plan review                          | Typical features                                          |
-| -------- | ------------------------------------ | --------------------------------------------------------- |
-| `low`    | none, the plan is auto-approved      | No data format change, no new table, no new interface     |
-| `medium` | chosen by the human, none by default | Small data format changes, minimal UI, low impact         |
-| `high`   | required                             | Security changes, new complex data structures or services |
+| Tier     | Default `plan-review` | Typical features                                          |
+| -------- | --------------------- | --------------------------------------------------------- |
+| `low`    | `false`               | No data format change, no new table, no new interface     |
+| `medium` | `false`               | Small data format changes, minimal UI, low impact         |
+| `high`   | `true`                | Security changes, new complex data structures or services |
 
-- For `medium`, add `plan-review: false`.
+- Propose the default for the tier. A spec with no `plan-review` takes its tier's default.
 - When unsure between two tiers, propose the higher one. A change to the format of data users
   already have is at least `medium`; converting every saved record is `high`.
 
@@ -308,7 +311,7 @@ reason in the spec. The human confirms or changes it when approving.
 - `revision`: `1` for the first spec, then one more at every change, by you or by the human.
 - `clarifications`: the number of the latest round the spec includes, so the next agent knows
   whether a newer round is answered.
-- `risk-tier`, and `plan-review` for `medium` only: see above.
+- `risk-tier` and `plan-review`: see above.
 
 ## Self-review
 

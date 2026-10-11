@@ -183,23 +183,3 @@ pub(crate) fn yaml_message(error: &impl std::fmt::Display) -> String {
     let first = message.lines().next().unwrap_or_default();
     first.strip_prefix("error: ").unwrap_or(first).to_string()
 }
-
-/// Removes a field's line, when the frontmatter has it.
-pub fn remove(text: &str, key: &str) -> String {
-    let result: Result<String, ()> = super::with_unix_newlines(text, |text| {
-        let Ok((_, end_line)) = block(text) else {
-            return Ok(text.to_string());
-        };
-        let prefix = format!("{key}:");
-        let lines: Vec<&str> = text
-            .split('\n')
-            .enumerate()
-            .filter(|(index, line)| {
-                !(*index > 0 && *index < end_line - 1 && line.starts_with(&prefix))
-            })
-            .map(|(_, line)| line)
-            .collect();
-        Ok(lines.join("\n"))
-    });
-    result.unwrap_or_else(|()| text.to_string())
-}

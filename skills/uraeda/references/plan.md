@@ -350,17 +350,18 @@ revision.
 
 Constitution exceptions are exceptional: only one the human accepted in the questions is allowed. It
 is spelled out in **Complexity tracking**: which principle, why, and the simpler alternative
-rejected. A plan with an exception always waits for the human's review, whatever the risk tier.
+rejected. A plan with an exception always waits for the human's review, whatever the spec's
+`plan-review`.
 
 ## Set the status
 
-| When                                      | Plan status      | Next                                |
-| ----------------------------------------- | ---------------- | ----------------------------------- |
-| The plan lists a constitution exception   | `awaiting-human` | Human gate                          |
-| `risk-tier: low`                          | `auto-approved`  | [Implementation](implementation.md) |
-| `risk-tier: medium`, `plan-review: false` | `auto-approved`  | [Implementation](implementation.md) |
-| `risk-tier: medium`, `plan-review: true`  | `awaiting-human` | Human gate                          |
-| `risk-tier: high`                         | `awaiting-human` | Human gate                          |
+| When                                    | Plan status      | Next                                |
+| --------------------------------------- | ---------------- | ----------------------------------- |
+| The plan lists a constitution exception | `awaiting-human` | Human gate                          |
+| `plan-review: true`                     | `awaiting-human` | Human gate                          |
+| `plan-review: false`                    | `auto-approved`  | [Implementation](implementation.md) |
+
+A spec with no `plan-review` takes its tier's default: `true` for `high`, `false` otherwise.
 
 When the plan waits for a review, open it with the `> [!IMPORTANT]` block described in
 [Coming back to the human](../SKILL.md#coming-back-to-the-human). What most needs attention is where
