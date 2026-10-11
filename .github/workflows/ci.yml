@@ -25,6 +25,8 @@ jobs:
 
       - name: Run every check
         run: nix develop --command pnpm exec vp run ready
+        env:
+          DEBUG: pw:browser
 
       - name: Check generated files are committed
         run: |
