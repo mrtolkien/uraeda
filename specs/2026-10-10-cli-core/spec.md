@@ -1,6 +1,6 @@
 ---
 status: approved
-revision: 2
+revision: 3
 clarifications: 1
 risk-tier: high
 ---
@@ -429,7 +429,9 @@ Acceptance scenarios:
 
 - **SC-001**: `ura status` and `ura next` complete in under 1 second on a repository with 20 feature
   branches, on Linux x64.
-- **SC-002**: the release build of `ura` stays under 3 MB, the existing CI limit.
+- **SC-002**: the release build of `ura` stays under 5 MB. The CI limit rises from 3 MB, as the
+  human accepted in chat: gix's `status` feature costs about 1 MB, and the TUIs of the next feature
+  about 0.75 MB more.
 - **SC-003**: `ura check` exits 0 on this repository's `specs/` and on the skill's example, and each
   file of `fixtures/broken/` fails with its expected message.
 - **SC-004**: every `ura` subcommand is named in the skill's references.
@@ -609,7 +611,7 @@ table-driven tests.
 | Edge cases                                       | One integration test each                                       |
 | Follow-up applicability, comment headings, slugs | Table-driven tests of the parsers                               |
 | SC-001                                           | A test creating 20 feature branches, timing `status` and `next` |
-| SC-002                                           | The existing CI size check                                      |
+| SC-002                                           | The CI size check, at 5,000,000 bytes                           |
 | SC-003                                           | `ura check` in `vp run ready`, and one test per broken fixture  |
 | SC-005                                           | The recording hook, asserted after every committing test        |
 | SC-006                                           | The integration tests, all run without a terminal               |
