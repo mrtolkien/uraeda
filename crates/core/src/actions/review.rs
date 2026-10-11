@@ -89,6 +89,11 @@ pub fn comment(
     lines: Option<(usize, usize)>,
     text: &str,
 ) -> Result<Commented, ActionError> {
+    if text.lines().any(|line| line.trim_start().starts_with('#')) {
+        return Err(ActionError::Refused(
+            "a comment line cannot start with \"#\"".to_string(),
+        ));
+    }
     waiting_text(place, feature, file)?;
     let branch = feature.branch.as_deref().unwrap_or_default();
     let tip = git
@@ -124,14 +129,21 @@ pub fn comment(
     };
     let review_path = format!("{}/{}", feature.path, review_name(file));
     let on_disk = place.root.join(&review_path);
-    let existing = fs::read_to_string(&on_disk)
-        .ok()
-        .and_then(|text| review::parse(&text).ok());
+    let existing = existing_review(place, feature, file)?;
+    // A pending review stays while the reviewed file is the same as at its commit.
+    let current = existing.as_ref().is_some_and(|r| {
+        r.verdict == Verdict::Pending
+            && (r.commit == commit
+                || git
+                    .resolve(&r.commit)
+                    .and_then(|old| git.read_file(old, &path).ok().flatten())
+                    .is_some_and(|old| old == committed.as_bytes()))
+    });
     let replaced = existing
         .as_ref()
-        .is_some_and(|r| r.verdict == Verdict::Pending && r.commit != commit);
+        .is_some_and(|r| r.verdict == Verdict::Pending && !current);
     let mut review = match existing {
-        Some(review) if review.verdict == Verdict::Pending && review.commit == commit => review,
+        Some(review) if current => review,
         _ => Review {
             verdict: Verdict::Pending,
             commit,
@@ -156,12 +168,28 @@ pub fn comment(
     })
 }
 
-/// The pending review of a file at the current commit, if it has comments.
-fn pending(place: &Place, feature: &Feature, file: &str) -> Option<Review> {
-    let text = fs::read_to_string(place.root.join(&feature.path).join(review_name(file))).ok()?;
-    review::parse(&text)
-        .ok()
-        .filter(|r| r.verdict == Verdict::Pending && !r.comments.is_empty())
+/// The review file of a file, when there is one. One that does not parse is refused, never
+/// overwritten: it may hold the human's comments.
+fn existing_review(
+    place: &Place,
+    feature: &Feature,
+    file: &str,
+) -> Result<Option<Review>, ActionError> {
+    let name = review_name(file);
+    let Ok(text) = fs::read_to_string(place.root.join(&feature.path).join(&name)) else {
+        return Ok(None);
+    };
+    review::parse(&text).map(Some).map_err(|error| {
+        ActionError::Refused(format!(
+            "{name} does not parse: {error}: fix it, or delete it"
+        ))
+    })
+}
+
+/// The pending review of a file, if it has comments.
+fn pending(place: &Place, feature: &Feature, file: &str) -> Result<Option<Review>, ActionError> {
+    Ok(existing_review(place, feature, file)?
+        .filter(|r| r.verdict == Verdict::Pending && !r.comments.is_empty()))
 }
 
 /// The risk tier and plan review a human may change when approving a spec.
@@ -216,7 +244,14 @@ pub fn approve(
     let path = format!("{}/{file}", feature.path);
     let review_path = format!("{}/{}", feature.path, review_name(file));
     let mut paths = vec![path.clone()];
-    match pending(place, feature, file) {
+    let pending = pending(place, feature, file)?;
+    let tracked = |path: &str| {
+        crate::git::Git::open(&place.root).is_ok_and(|git| {
+            git.head()
+                .is_some_and(|head| git.read_file(head, path).ok().flatten().is_some())
+        })
+    };
+    match pending {
         Some(mut review) => {
             review.verdict = Verdict::Approved;
             review.summary = summary.map(String::from).or(review.summary);
@@ -228,7 +263,9 @@ pub fn approve(
         }
         None if place.root.join(&review_path).exists() => {
             fs::remove_file(place.root.join(&review_path))?;
-            paths.push(review_path);
+            if tracked(&review_path) {
+                paths.push(review_path);
+            }
         }
         None => {}
     }
@@ -251,7 +288,7 @@ pub fn request_changes(
     today: Date,
 ) -> Result<Change, ActionError> {
     let text = waiting_text(place, feature, file)?;
-    let Some(mut review) = pending(place, feature, file) else {
+    let Some(mut review) = pending(place, feature, file)? else {
         return Err(ActionError::Refused(format!(
             "a request for changes needs at least one comment: ura review {} --comment <lines> <text>",
             feature.slug

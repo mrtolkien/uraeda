@@ -82,6 +82,14 @@ pub(super) fn check_links(file: &File<'_>, document: &Document, problems: &mut V
             continue;
         }
         let target = file.root.join(&resolved);
+        // PRIORITIES.md links to started features, whose files live on their own branches.
+        let on_a_branch = file.kind == super::Checked::Priorities
+            && resolved
+                .split('/')
+                .any(|part| crate::workspace::folder_slug(part).is_some());
+        if !target.exists() && on_a_branch {
+            continue;
+        }
         if !target.exists() {
             problems.push(file.problem(Some(link.line), "links.file", format!("no file {path}")));
             continue;

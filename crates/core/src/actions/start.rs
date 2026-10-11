@@ -80,12 +80,13 @@ fn unwritten(text: &str) -> bool {
     })
 }
 
+/// A slug as `ura draft` makes them: lowercase letters, digits, and hyphens.
 fn valid_slug(slug: &str) -> bool {
     !slug.is_empty()
         && !slug.starts_with('-')
         && slug
             .chars()
-            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+            .all(|c| (c.is_alphanumeric() && !c.is_uppercase()) || c == '-')
 }
 
 /// The files of a draft: the file itself, or every file of a postponed folder, from the top
@@ -125,7 +126,24 @@ pub fn run(
         .default_branch
         .clone()
         .ok_or_else(|| StartError::Refused("no default branch: commit on main first".into()))?;
+    let previous = git.current_branch();
     let place = place::reach(git, &default)?;
+    let result = start(&place, workspace, draft, slug, today, &default);
+    if let Err(StartError::Refused(_)) = &result {
+        place::switch_back(git, &place, previous.as_deref());
+    }
+    result
+}
+
+fn start(
+    place: &place::Place,
+    workspace: &Workspace,
+    draft: &str,
+    slug: Option<&str>,
+    today: Date,
+    default: &str,
+) -> Result<Started, StartError> {
+    let default = default.to_string();
     let at = Git::open(&place.root)?;
     let root = place.root.as_path();
 
@@ -147,7 +165,7 @@ pub fn run(
     let slug = slug.unwrap_or_else(|| draft_name(draft)).to_string();
     if !valid_slug(&slug) {
         return Err(StartError::Refused(format!(
-            "\"{slug}\" is not a slug: lowercase letters, digits, and hyphens"
+            "\"{slug}\" is not a slug: lowercase letters, digits, and hyphens; choose one with --slug"
         )));
     }
     let folder = format!("{today}-{slug}");
@@ -179,6 +197,10 @@ pub fn run(
             "cannot start: uncommitted changes in {}",
             others.join(", ")
         )));
+    }
+    let staged = crate::git::others_staged(&at.staged_files()?, &["specs/PRIORITIES.md".into()]);
+    if !staged.is_empty() {
+        return Err(GitError::OtherStagedFiles(staged).into());
     }
     let priorities_path = root.join("specs/PRIORITIES.md");
     let priorities_text = fs::read_to_string(&priorities_path).unwrap_or_default();
@@ -268,11 +290,19 @@ pub fn run(
         let _ = fs::remove_dir_all(root.join(draft));
     }
     done.push("the move of the draft".to_string());
+    // Folders as pathspecs, so files git ignores, like `.DS_Store`, stay out of the commit.
     let mut paths: Vec<String> = Vec::new();
-    for (from, to) in &moves {
-        paths.push(to.clone());
-        if tracked.contains(from) {
-            paths.push(from.clone());
+    if folder_draft {
+        paths.push(destination.clone());
+        if !tracked.is_empty() {
+            paths.push(draft.to_string());
+        }
+    } else {
+        for (from, to) in &moves {
+            paths.push(to.clone());
+            if tracked.contains(from) {
+                paths.push(from.clone());
+            }
         }
     }
     paths.sort();

@@ -146,6 +146,15 @@ impl Git {
         Ok(branches.into_values().collect())
     }
 
+    /// The commit a revision names, like a short hash.
+    pub fn resolve(&self, revision: &str) -> Option<ObjectId> {
+        let id = self.repo.rev_parse_single(revision).ok()?;
+        self.repo
+            .find_commit(id.detach())
+            .ok()
+            .map(|commit| commit.id)
+    }
+
     /// The commit a branch points to: the local branch, else `origin`'s.
     pub fn tip(&self, branch: &str) -> Option<ObjectId> {
         [
@@ -337,11 +346,7 @@ impl Git {
         subject: &str,
         body: Option<&str>,
     ) -> Result<(), GitError> {
-        let others: Vec<String> = self
-            .staged_files()?
-            .into_iter()
-            .filter(|file| !paths.contains(file))
-            .collect();
+        let others = others_staged(&self.staged_files()?, paths);
         if !others.is_empty() {
             return Err(GitError::OtherStagedFiles(others));
         }
@@ -384,4 +389,17 @@ impl Git {
             message,
         })
     }
+}
+
+/// The staged files that are neither one of `paths` nor inside a folder of `paths`.
+pub fn others_staged(staged: &[String], paths: &[String]) -> Vec<String> {
+    staged
+        .iter()
+        .filter(|file| {
+            !paths.iter().any(|path| {
+                *file == path || file.starts_with(&format!("{}/", path.trim_end_matches('/')))
+            })
+        })
+        .cloned()
+        .collect()
 }
