@@ -78,3 +78,52 @@ dropped if it cannot read data that is not in a database.
 
 The stack-decision feature's pull request reports whether fate shipped: the data layer rules then
 keep only the one that did.
+
+## Proposed change (2026-10-11-web-ui)
+
+Proposed by the [spec](../2026-10-11-web-ui/spec.md). fate stays the data layer, and its fallback
+rule goes. The server also accepts host names the user lists in the repository's `.env`, so a phone
+reaches it through `tailscale serve`, still listening on 127.0.0.1 only. The web UI draws workflow
+files from the core's document tree, and never parses markdown itself.
+
+The rules become:
+
+- Workflow logic, parsing, validation, and workflow states MUST live in the Rust core,
+  [`crates/core`](/crates/core/).
+- The CLI MUST be written in Rust, in [`crates/cli`](/crates/cli/), build the binary `ura`, and MUST
+  NOT need Node or any other runtime to run.
+- The server MUST be written in TypeScript, run on Node, and live in
+  [`packages/server`](/packages/server/).
+- TypeScript code MUST reach the core only through the binding,
+  [`packages/binding`](/packages/binding/), and MUST NOT reimplement its parsing, validation, or
+  states.
+- The TypeScript types of core data MUST come from the declarations napi-rs generates for the
+  binding. They MUST NOT be redeclared by hand in TypeScript.
+- The web UI MUST use React and Astryx components, live in [`packages/web`](/packages/web/), and get
+  its data only from the server, through fate.
+- The web UI MUST draw workflow files from the document tree the core sends, and MUST NOT parse
+  markdown, with a library or by hand.
+- The server MUST listen on 127.0.0.1 only. It MUST reject requests whose `Host` is not `127.0.0.1`
+  or `localhost` on its port, or a host name listed in `URAEDA_ALLOWED_HOSTS`, and requests whose
+  `Origin`, when present, is not the server's own, `https://` and a listed host name, or an allowed
+  origin.
+
+Why: you access the UI from your iPhone over Tailscale, through `tailscale serve`, which keeps the
+server on 127.0.0.1 but passes the machine's `*.ts.net` name
+([Q2](../2026-10-11-web-ui/clarifications-01.md#q2-how-does-your-iphone-reach-the-server),
+[network access](../2026-10-11-web-ui/discovery-01.md#network-access)). fate reads data outside a
+database with the types it exports, so the condition for the fallback is not met
+([Q5](../2026-10-11-web-ui/clarifications-01.md#q5-does-fate-stay-the-data-layer),
+[data layer](../2026-10-11-web-ui/discovery-01.md#data-layer)). A second markdown parser in
+TypeScript would disagree with the core on callouts, typed bullets, and source lines
+([Q4](../2026-10-11-web-ui/clarifications-01.md#q4-where-does-the-structure-the-ui-draws-come-from),
+[rendering](../2026-10-11-web-ui/discovery-01.md#where-the-rendering-structure-comes-from)).
+
+Consequences that change:
+
+- fate's custom sources rely on types it exports without documenting them: a fate release can break
+  them, so its versions stay pinned and upgrades are deliberate.
+- Anyone who can reach a listed host name reaches the server: the tailnet's access rules are its
+  only protection there.
+- Every markdown feature the UI shows, like a new callout type, is added to the core first.
+- The **Revisit when** section goes: fate shipped.
