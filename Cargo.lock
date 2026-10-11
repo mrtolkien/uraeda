@@ -1780,6 +1780,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_json"
+version = "1.0.152"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1741ab7a6cc54a03a89b5d563ed60075c277d9e3cfa73ad0c1f23f23974703c6"
+dependencies = [
+ "itoa",
+ "memchr",
+ "serde",
+ "serde_core",
+ "zmij",
+]
+
+[[package]]
 name = "sha1dc"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1930,6 +1943,9 @@ name = "uraeda-cli"
 version = "0.0.0"
 dependencies = [
  "clap",
+ "serde",
+ "serde_json",
+ "tempfile",
  "uraeda-core",
 ]
 
@@ -1944,6 +1960,7 @@ dependencies = [
  "pulldown-cmark",
  "serde",
  "serde-saphyr",
+ "serde_json",
  "tempfile",
  "thiserror",
 ]

@@ -42,3 +42,19 @@ pub fn tasks(text: &str) -> Vec<Task> {
     }
     tasks
 }
+
+/// How many checkboxes of a file are checked, out of all of them, outside code blocks.
+pub fn checkboxes(text: &str) -> (usize, usize) {
+    let mut done = 0;
+    let mut total = 0;
+    for (_, line) in super::lines_outside_code(text) {
+        let item = line.trim_start();
+        if item.starts_with("- [ ]") {
+            total += 1;
+        } else if item.starts_with("- [x]") || item.starts_with("- [X]") {
+            total += 1;
+            done += 1;
+        }
+    }
+    (done, total)
+}
