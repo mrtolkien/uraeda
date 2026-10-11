@@ -110,24 +110,45 @@ fn uncommitted_changes_on_the_current_branch() {
     );
 }
 
+/// US1.3: merged features show once, under Done, read from the default branch, even with their
+/// remote branch left.
 #[test]
-fn merged_remote_branch_is_hidden() {
+fn merged_features_are_done() {
     let repo = repo_with_priorities();
-    feature(
-        &repo,
-        "2026-10-10-stack-decision",
-        &[("proposal.md", proposal())],
-    );
+    for folder in ["2026-10-10-stack-decision", "2026-10-10-cli-core"] {
+        feature(&repo, folder, &[("proposal.md", proposal())]);
+        repo.git(&["merge", "--quiet", "--no-edit", folder]);
+    }
     repo.push("2026-10-10-stack-decision");
-    repo.git(&["merge", "--quiet", "--no-edit", "2026-10-10-stack-decision"]);
     repo.delete_branch("2026-10-10-stack-decision");
 
     let output = ura(&repo, &["status"]);
 
+    assert!(output.stdout.contains("\nDone\n"), "{}", output.stdout);
+    let rows: Vec<&str> = output
+        .stdout
+        .lines()
+        .filter(|line| line.contains("stack-decision") || line.contains("cli-core"))
+        .collect();
+    assert_eq!(rows.len(), 2, "{}", output.stdout);
     assert!(
-        !output.stdout.contains("stack-decision"),
-        "{}",
-        output.stdout
+        rows.iter().all(|row| row.ends_with("-      merged")),
+        "{rows:?}"
+    );
+
+    let json = ura(&repo, &["status", "--json"]);
+    let json: serde_json::Value = serde_json::from_str(&json.stdout).unwrap();
+    assert_eq!(json["version"], 1);
+    let done: Vec<&serde_json::Value> = json["features"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|f| f["step"]["name"] == "done")
+        .collect();
+    assert_eq!(done.len(), 2);
+    assert!(
+        done.iter()
+            .all(|f| f["source"] == "default-branch" && f["branch"].is_null())
     );
 }
 

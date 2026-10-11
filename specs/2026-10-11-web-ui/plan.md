@@ -582,16 +582,18 @@ git commit -m "feat(web-ui): start features in worktrees, and edit the prioritie
 
 - Modify: `crates/core/src/workspace.rs`, `crates/core/src/steps.rs` (`StepName::Done`),
   `crates/cli/src/status.rs` (the Done group)
-- Test: `crates/core/tests/steps.rs`, `crates/cli/tests/status.rs`
+- Test: `crates/core/tests/workspace.rs`, `crates/cli/tests/status.rs` (`merged_features_are_done`
+  replaces `merged_remote_branch_is_hidden`, the cli-core ruling R10 this spec reverses)
 
 **Interfaces:**
 
 - Consumes: `Git::worktrees`.
-- Produces: `Feature.worktree: Option<String>`; merged folders as features with
-  `source: default-branch`, `branch: None`, step `done`; `PriorityEntry.draft: Option<String>`;
-  `Workspace::read` reads a feature checked out in any worktree from that worktree's disk.
+- Produces: `Feature.worktree: Option<String>`, from the main checkout (`.` for it); merged folders
+  as features with `source: default-branch`, `branch: None`, step `done`, waiting on `nobody` (a new
+  `WaitsOn` value); `PriorityEntry.draft: Option<String>`; `Workspace::read` reads a feature checked
+  out in any worktree from that worktree's disk.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - US1.3: two feature folders committed on `main` → both features with step `done` and source
   `default-branch`; `ura status` prints them under "Done", and `--json` has `"version": 1`.
@@ -602,19 +604,19 @@ git commit -m "feat(web-ui): start features in worktrees, and edit the prioritie
   `None`.
 - Edge: a merged feature whose branch still exists → one feature, `done`, read from `main`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
-- Run: `cargo test -p uraeda-core --test steps && cargo test -p uraeda-cli --test status`
-- Expected: FAIL, `no variant named Done`.
+- Run: `cargo test -p uraeda-core --test workspace && cargo test -p uraeda-cli --test status`
+- Expected: FAIL to compile, `no field worktree on type &Feature`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo test --workspace --exclude uraeda-binding`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates
