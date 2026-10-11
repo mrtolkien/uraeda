@@ -75,8 +75,8 @@ export declare function removePriority(repo: string, id: string, previous: strin
 /** Requests changes on a spec, a plan, or an assessment, and commits it. */
 export declare function requestChanges(repo: string, folder: string, file: string, summary?: string | undefined | null): Promise<FileView>
 
-/** Commits files a hook refused to commit, once the hook is fixed. */
-export declare function retryCommit(repo: string, folder: string, subject: string, paths: Array<string>): Promise<CommitView>
+/** Commits again what a hook refused to commit: a submitted round, or a verdict. */
+export declare function retryCommit(repo: string, folder: string, name: string): Promise<CommitView>
 
 /** Saves an answer from the letters picked and a comment, over the answer last read. */
 export declare function saveAnswer(repo: string, folder: string, question: string, letters: Array<string>, comment: string, previous: string): Promise<FileView>

@@ -59,6 +59,8 @@ export function createSources<Context>(entries: Array<Entry<Context>>) {
     ctx: Context,
     record: Item,
     select: Iterable<string>,
-  ) => createSourcePlan({ ctx, select, source: getSource(view) }).resolve(record);
+  ) =>
+    // The plan keeps the selected fields of the record: the client's view types what it reads.
+    createSourcePlan({ ctx, select, source: getSource(view) }).resolve(record) as Promise<Item>;
   return { getSource, registry, masked };
 }

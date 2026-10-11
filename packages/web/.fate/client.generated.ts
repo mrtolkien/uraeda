@@ -17,10 +17,10 @@ const mutations = {
     FateAPI['mutations']['answers.submit']['output']
   >('WorkflowFile'),
   'commit.retry': mutation<
-    Feature,
+    WorkflowFile,
     FateAPI['mutations']['commit.retry']['input'],
     FateAPI['mutations']['commit.retry']['output']
-  >('Feature'),
+  >('WorkflowFile'),
   'draft.create': mutation<
     Draft,
     FateAPI['mutations']['draft.create']['input'],

@@ -76,17 +76,10 @@ export const mutations = {
       file(ctx, await refusable(() => ctx.binding.submitAnswers(ctx.repo, input.folder)), select),
   },
   "commit.retry": {
-    type: "Feature",
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{ folder: string; subject: string; paths: Array<string> }>) => {
-      await refusable(() =>
-        ctx.binding.retryCommit(ctx.repo, input.folder, input.subject, input.paths),
-      );
-      const feature = await ctx.binding.readFeature(ctx.repo, input.folder);
-      return sources.masked(featureDataView, ctx, { id: feature.folder, ...feature }, select);
+    type: "WorkflowFile",
+    resolve: async ({ ctx, input, select }: Resolver<FileInput>) => {
+      await refusable(() => ctx.binding.retryCommit(ctx.repo, input.folder, input.file));
+      return file(ctx, await ctx.binding.readFile(ctx.repo, input.folder, input.file), select);
     },
   },
   "review.comment": {

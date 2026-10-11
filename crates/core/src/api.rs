@@ -254,18 +254,43 @@ pub fn submit_answers(repo: &Path, folder: &str) -> Result<FileView> {
     read_file(repo, folder, &round_name(&feature)?)
 }
 
-/// Commits the files an earlier commit left written, after a hook's refusal: the round, or the
-/// reviewed file and its review.
-pub fn retry_commit(
-    repo: &Path,
-    folder: &str,
-    subject: &str,
-    paths: &[String],
-) -> Result<CommitView> {
-    let (_, _, place) = reach(repo, folder)?;
+/// Commits again what a hook refused to commit, its files left written: a submitted round, or a
+/// verdict on a spec, a plan, or an assessment, with its review file.
+pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView> {
+    let (_, feature, place) = reach(repo, folder)?;
+    let path = format!("{}/{name}", feature.path);
+    let text = std::fs::read_to_string(place.root.join(&path))
+        .map_err(|_| refused(format!("{folder} has no {name}")))?;
+    let status = crate::files::frontmatter::parse(&text)
+        .ok()
+        .and_then(|front| front.text("status").map(String::from));
+    let kind = name.strip_suffix(".md").unwrap_or(name);
+    let (subject, mut paths) = match (FileKind::of(name), status.as_deref()) {
+        (Some((FileKind::Clarifications, Some(round))), Some("answered")) => (
+            format!("discovery({}): answer round {round:02}", feature.slug),
+            vec![path],
+        ),
+        (Some((FileKind::Spec | FileKind::Plan | FileKind::Assessment, _)), Some(verdict))
+            if verdict == "approved" || verdict == "changes-requested" =>
+        {
+            let action = if verdict == "approved" {
+                "approve"
+            } else {
+                "request changes"
+            };
+            let review_path = format!("{}/{}", feature.path, review::review_name(name));
+            let mut paths = vec![path];
+            if place.root.join(&review_path).exists() {
+                paths.push(review_path);
+            }
+            (format!("{kind}({}): {action}", feature.slug), paths)
+        }
+        _ => return Err(refused(format!("{name} has nothing to commit again"))),
+    };
+    paths.sort();
     let change = crate::actions::Change {
-        paths: paths.to_vec(),
-        subject: subject.to_string(),
+        paths,
+        subject,
         body: None,
     };
     let committed = crate::actions::commit::commit(&place, &change)?;

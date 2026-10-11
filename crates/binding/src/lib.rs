@@ -134,15 +134,10 @@ pub fn submit_answers(repo: String, folder: String) -> AsyncTask<Job<FileView>> 
     job(move || api::submit_answers(Path::new(&repo), &folder))
 }
 
-/// Commits files a hook refused to commit, once the hook is fixed.
+/// Commits again what a hook refused to commit: a submitted round, or a verdict.
 #[napi(ts_return_type = "Promise<CommitView>")]
-pub fn retry_commit(
-    repo: String,
-    folder: String,
-    subject: String,
-    paths: Vec<String>,
-) -> AsyncTask<Job<CommitView>> {
-    job(move || api::retry_commit(Path::new(&repo), &folder, &subject, &paths))
+pub fn retry_commit(repo: String, folder: String, name: String) -> AsyncTask<Job<CommitView>> {
+    job(move || api::retry_commit(Path::new(&repo), &folder, &name))
 }
 
 /// Comments on lines of a file as committed, or on the whole file without lines.
