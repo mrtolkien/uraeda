@@ -1,6 +1,6 @@
 ---
 status: awaiting-human
-revision: 1
+revision: 2
 clarifications: 1
 risk-tier: high
 ---
@@ -9,7 +9,35 @@ risk-tier: high
 
 > [!IMPORTANT]
 >
-> Spec to review, about 40 minutes.
+> Spec to review again, about 10 minutes for what changed.
+>
+> - New: `ura start <target>`, in [US8](#us8-start-a-drafted-feature-p2), as you asked. Given a
+>   draft file or a postponed folder, it runs the skill's start: the entry moves to Now as a link,
+>   one commit on the default branch, the draft moved unchanged to `proposal.md` and committed on
+>   the new branch. It refuses a draft still holding the template's placeholders.
+> - `ura start specs/bugs/...` is accepted and stops with `unimplemented!`, as you asked. That
+>   panics with exit code 101, the one exception to the [CLI](../decisions/cli.md) decision's exit
+>   code 1, until the bug flow has its spec.
+> - The skill's manual start changes: for an entry without a draft, the agent writes `proposal.md`
+>   from your words but does not commit it. You commit it once it is ready, and only then does
+>   discovery run: the feature waits on you, at a gate on `proposal.md`, in between.
+> - It is the first command that commits on the default branch: it refuses unless every step can
+>   run, and an edge case covers a failure between the two commits.
+> - `ura start` accepts a draft you have not committed yet, and commits it as the proposal: starting
+>   is the signal that it is ready, so you no longer commit it by hand first.
+> - The link written at start becomes a skill rule, which the first revision had dropped.
+> - Commands name what they act on the same way, a rule added to the [CLI](../decisions/cli.md)
+>   decision: an optional target, a path under `specs/` or a unique name. `ura review` loses its
+>   `spec`/`plan`/`assessment` argument, since one file at most waits for review in a feature.
+> - Smaller fixes for coherence: `--summary` works on approvals too; `ura check --json`;
+>   `--no-commit` is for `answer` and `review` only; and a missing proposal is a `human-gate` on
+>   `proposal.md`, not a step of its own.
+> - The stories after `ura start` are renumbered: the skill story is US9, install US10.
+
+> [!NOTE]
+>
+> Changes requested on 2026-10-11: add `ura start`, for draft files only, and a manual start that
+> leaves the proposal uncommitted.
 >
 > - Two new decisions: [git](../decisions/git.md), gix for reads and the system `git` for writes, as
 >   your new Q6 answer says; and [CLI](../decisions/cli.md), the rules stay in the skill, every TUI
@@ -30,11 +58,11 @@ risk-tier: high
 >   for your review.
 
 `ura` becomes the fast path through the workflow, for humans and agents. It shows where every
-feature stands across branches, tells an agent its next step, validates the `specs/` folder, records
-answers and reviews with their commits, sets a project up with a version-matched skill, and ships as
-an installable binary. The skill names each command at the step it serves, and keeps its manual
-instructions. The answer, review, and draft TUIs are the next feature, built on these commands. See
-the [proposal](proposal.md), [discovery](discovery-01.md), and
+feature stands across branches, tells an agent its next step, validates the `specs/` folder, starts
+features, records answers and reviews with their commits, sets a project up with a version-matched
+skill, and ships as an installable binary. The skill names each command at the step it serves, and
+keeps its manual instructions. The answer, review, and draft TUIs are the next feature, built on
+these commands. See the [proposal](proposal.md), [discovery](discovery-01.md), and
 [clarifications](clarifications-01.md).
 
 ## User stories
@@ -71,7 +99,7 @@ Acceptance scenarios:
 
 An agent, or a future runner, runs `ura next` and gets the target and its step, from the skill's
 tables: the feature or bug, its branch, the step's name, the reference file to follow, and whether
-it is a human gate. `ura next <feature>` gives the step of one feature.
+it is a human gate. `ura next <target>` gives the step of one feature or bug.
 
 Why this priority: finding the step is a 12-row table that agents read by hand at every run, and the
 runner needs it as an entry point.
@@ -79,7 +107,7 @@ runner needs it as an entry point.
 Acceptance scenarios:
 
 1. **Given** a feature whose `clarifications-01.md` is `answered`, with no `spec.md`, **When** the
-   agent runs `ura next 2026-10-10-cli-core`, **Then** it prints the step `spec` with the reference
+   agent runs `ura next cli-core`, **Then** it prints the step `spec` with the reference
    `skills/uraeda/references/spec.md`.
 2. **Given** **Now** lists two features, the first waiting on the human and the second with an
    approved plan with unchecked steps, **When** the agent runs `ura next`, **Then** the target is
@@ -95,7 +123,7 @@ Acceptance scenarios:
 
 `ura check` validates every workflow file against the skill's rules, by itself or in CI and
 pre-commit hooks. It reports each problem with its file, line, and rule, and exits 1 when there is
-one.
+one. `ura check <target>` checks one feature, file, or `specs/` folder; `--json` lists the problems.
 
 Why this priority: agents break templates silently today, and later tools rely on well-formed files.
 
@@ -130,11 +158,11 @@ are easy to forget by hand. The TUI of the next feature calls the same actions.
 Acceptance scenarios:
 
 1. **Given** `clarifications-01.md` with an empty Q3 answer, **When** the human runs
-   `ura answer 2026-10-10-cli-core Q3 "B, we'll do it later"`, **Then** the line after Q3's
-   `**Answer:**` reads `**Answer:** B, we'll do it later`, and nothing is committed.
+   `ura answer cli-core Q3 "B, we'll do it later"`, **Then** the line after Q3's `**Answer:**` reads
+   `**Answer:** B, we'll do it later`, and nothing is committed.
 2. **Given** every applicable question is answered, on 2026-10-11, **When** the human runs
-   `ura answer 2026-10-10-cli-core --submit`, **Then** the file has `status: answered`, its block
-   starts with `> [!NOTE]` and `> Answered on 2026-10-11.`, its items unchanged, and one commit
+   `ura answer cli-core --submit`, **Then** the file has `status: answered`, its block starts with
+   `> [!NOTE]` and `> Answered on 2026-10-11.`, its items unchanged, and one commit
    `discovery(cli-core): answer round 01` holds only that file.
 3. **Given** Q7 and Q9 are blank, **When** the human runs `--submit`, **Then** nothing changes,
    stderr says `Q7 and Q9 have no answer`, and the exit code is 1.
@@ -150,14 +178,18 @@ Acceptance scenarios:
 7. **Given** a settled point the human disagrees with, **When** they run
    `ura answer cli-core notes "Keep .gitkeep out"`, **Then** the text is written after the file's
    `**Notes:**` line.
+8. **Given** the current branch is `2026-10-10-cli-core`, **When** the human runs
+   `ura answer Q2 "A"`, **Then** Q2 of its latest round is answered: a first argument shaped like a
+   question, `Q2`, `Q2.B`, or `notes`, is never read as a target.
 
 ### US5: Review a spec, plan, or assessment (P1)
 
-The human adds comments with `ura review <feature> spec --comment <lines> "<text>"`, then approves
-or requests changes. A comment quotes the lines it points to, with the nearest heading, in
-`spec-review.md` next to the spec. Approving may carry comments, which the next step carries out;
-requesting changes needs at least one. Either way, the status, the record block, and the review file
-are committed together.
+The human adds comments with `ura review <target> --comment <lines> "<text>"`, then approves or
+requests changes. The target is the feature or bug, whose one file waiting for review is the spec,
+the plan, or the assessment, or that file's path. A comment quotes the lines it points to, with the
+nearest heading, in `spec-review.md` next to the spec. Approving may carry comments, which the next
+step carries out; requesting changes needs at least one. Either way, the status, the record block,
+and the review file are committed together.
 
 Why this priority: reviewing is the human's other gate, and comments on a line are what the proposal
 asks for.
@@ -166,34 +198,36 @@ Acceptance scenarios:
 
 1. **Given** `spec.md` at commit `a1b2c3d`, whose lines 50 to 52 sit under
    `### US2: Edit a repeat (P1)`, **When** the human runs
-   `ura review cli-core spec --comment 50-52 "Name the field"`, **Then** `spec-review.md` gets
+   `ura review cli-core --comment 50-52 "Name the field"`, **Then** `spec-review.md` gets
    `verdict: pending`, `commit: a1b2c3d`, and a comment
    `## C1: Lines 50–52, under "US2: Edit a repeat (P1)"`, followed by the three lines quoted and the
    text.
 2. **Given** that pending review, on 2026-10-11, **When** the human runs
-   `ura review cli-core spec --request-changes --summary "Name the field"`, **Then** `spec.md` has
+   `ura review cli-core --request-changes --summary "Name the field"`, **Then** `spec.md` has
    `status: changes-requested`, its block becomes `> [!NOTE]` with
    `> Changes requested on 2026-10-11: Name the field`, `spec-review.md` has
    `verdict: changes-requested`, and one commit `spec(cli-core): request changes` holds both, with
    the summary as its body.
-3. **Given** no comments, **When** the human runs `ura review cli-core spec --request-changes`,
-   **Then** nothing changes, stderr says `a request for changes needs at least one comment`, and the
-   exit code is 1.
+3. **Given** no comments, **When** the human runs `ura review cli-core --request-changes`, **Then**
+   nothing changes, stderr says `a request for changes needs at least one comment`, and the exit
+   code is 1.
 4. **Given** no pending comments and an old `spec-review.md` from revision 1, **When** the human
-   runs `ura review cli-core spec --approve`, **Then** `spec.md` is `approved`, its block says
+   runs `ura review cli-core --approve`, **Then** `spec.md` is `approved`, its block says
    `Approved on 2026-10-11.`, the old `spec-review.md` is deleted in the same commit
    `spec(cli-core): approve`.
 5. **Given** one pending comment, **When** the human runs
-   `ura review cli-core spec --approve --risk-tier medium`, **Then** `spec.md` is `approved` with
+   `ura review cli-core --approve --risk-tier medium`, **Then** `spec.md` is `approved` with
    `risk-tier: medium` and `plan-review: false`, and `spec-review.md` stays, with
    `verdict: approved`.
 6. **Given** a bug branch `fix/2026-10-14-completed-tasks-reappear` with an assessment awaiting the
-   human, **When** the human runs `ura review completed-tasks-reappear assessment --approve`,
-   **Then** `assessment.md` is `approved`, committed as
-   `assessment(completed-tasks-reappear): approve`.
+   human, **When** the human runs `ura review completed-tasks-reappear --approve`, **Then**
+   `assessment.md` is `approved`, committed as `assessment(completed-tasks-reappear): approve`.
 7. **Given** `plan.md` with `status: auto-approved`, **When** the human runs
-   `ura review cli-core plan --approve`, **Then** nothing changes, and stderr says
-   `plan.md is not waiting for a review`.
+   `ura review specs/2026-10-10-cli-core/plan.md --approve`, **Then** nothing changes, and stderr
+   says `plan.md is not waiting for a review`.
+8. **Given** one pending comment, **When** the human runs `ura review cli-core --request-changes`,
+   without `--summary`, **Then** the record line reads
+   `> Changes requested on 2026-10-11: 1 comment in spec-review.md.`
 
 ### US6: Set a project up (P2)
 
@@ -245,11 +279,70 @@ Acceptance scenarios:
 4. **Given** no terminal, or `--no-edit`, **When** `ura draft listener` runs, **Then** it writes the
    files, prints the draft's path, and opens no editor.
 
-### US8: Agents follow the skill, with or without `ura` (P2)
+### US8: Start a drafted feature (P2)
+
+`ura start <target>` starts the feature written in a draft: a file in `specs/drafts/` or
+`specs/backlog/`, or a postponed folder there, named by its path or its name. The draft may be
+uncommitted: starting is the signal that it is ready. On the default branch, it moves the
+`PRIORITIES.md` entry linking the draft to the end of **Now**, or adds one there with the draft's
+title, turns it into a link to the future `proposal.md`, and commits. Then it creates the feature's
+branch, moves the draft or the folder into the dated folder unchanged, the draft becoming
+`proposal.md`, commits, and stays on the new branch. A draft still holding the template's
+placeholders is refused: a committed proposal is work for an agent, so it must be one the human
+wrote. `ura start specs/bugs/...` stops with `unimplemented!`: bugs have no spec'd flow yet.
+
+Why this priority: starting is the skill's most error-prone sequence, two commits on two branches,
+and it happens for every feature.
+
+Acceptance scenarios:
+
+1. **Given** the **Next** line `- [Git listener process](drafts/git-listener-process.md)` on `main`,
+   on 2026-10-11, with a clean working tree, **When** the human runs
+   `ura start specs/drafts/git-listener-process.md`, **Then** `main` gets one commit
+   `chore(git-listener-process): start Git listener process`, in which the line is the last of
+   **Now** and reads `- [Git listener process](/specs/2026-10-11-git-listener-process/proposal.md)`.
+2. **Given** the same start, **Then** the branch `2026-10-11-git-listener-process` exists from that
+   commit, is checked out, and has one more commit `chore(git-listener-process): proposal`, which
+   moves `specs/drafts/git-listener-process.md` to
+   `specs/2026-10-11-git-listener-process/proposal.md` with the same content.
+3. **Given** the draft `specs/drafts/slack-integration.md`, titled `# Slack integration`, that no
+   `PRIORITIES.md` line links, **When** the human runs
+   `ura start specs/drafts/slack-integration.md`, **Then** the start commit adds
+   `- [Slack integration](/specs/2026-10-11-slack-integration/proposal.md)` as the last line of
+   **Now**.
+4. **Given** the postponed folder `specs/backlog/benchmarks/`, holding `proposal.md`,
+   `discovery-01.md`, and `clarifications-01.md`, **When** the human runs
+   `ura start specs/backlog/benchmarks`, **Then** the three files move to
+   `specs/2026-10-11-benchmarks/`, unchanged.
+5. **Given** the branch `2026-10-11-git-listener-process` already exists, **When** the human runs
+   `ura start git-listener-process`, **Then** nothing changes, and stderr says
+   `2026-10-11-git-listener-process exists: choose another slug with --slug`.
+6. **Given** an uncommitted change to `README.md`, **When** the human runs
+   `ura start specs/drafts/git-listener-process.md`, **Then** nothing changes, and stderr says
+   `cannot start: uncommitted changes in README.md`.
+7. **Given** a target outside `specs/drafts/`, `specs/backlog/`, and `specs/bugs/`, like
+   `specs/2026-10-10-cli-core/proposal.md`, **When** the human runs `ura start` on it, **Then**
+   nothing changes, and stderr says
+   `not a draft: ura start takes a file or folder in specs/drafts/ or specs/backlog/`.
+8. **Given** `specs/drafts/git-listener-process.md` as `ura draft` wrote it, with the template's
+   `[What the feature does, from the user's point of view.]` still under `## What`, **When** the
+   human runs `ura start specs/drafts/git-listener-process.md`, **Then** nothing changes, and stderr
+   says
+   `specs/drafts/git-listener-process.md still holds the template's placeholders: write it first`.
+9. **Given** `specs/drafts/git-listener-process.md` written by the human but never committed, and
+   its `PRIORITIES.md` line uncommitted too, as `ura draft` left them, **When** the human runs
+   `ura start git-listener-process`, **Then** the start commit on `main` holds `PRIORITIES.md`, and
+   the proposal commit on the new branch adds the draft's content as `proposal.md`: the draft is
+   never committed in `specs/drafts/`.
+10. **Given** any path under `specs/bugs/`, **When** the human runs `ura start` on it, **Then**
+    `ura` stops with `not implemented: starting a bug, until the bug flow has its spec`, through
+    `unimplemented!`, and nothing changes.
+
+### US9: Agents follow the skill, with or without `ura` (P2)
 
 The skill names the command of each step it can serve, keeps its manual instructions, and describes
 the review files and the **Notes:** field. An agent in a project without `ura` follows the workflow
-as before; with `ura`, it uses `ura next`, `ura check`, and the actions.
+as before; with `ura`, it uses `ura next`, `ura check`, `ura start`, and the actions.
 
 Why this priority: it is what makes agents less error-prone, the proposal's goal, and it carries the
 workflow changes of this feature.
@@ -263,10 +356,17 @@ Acceptance scenarios:
 3. **Given** a spec with `status: changes-requested` and a `spec-review.md` with two comments,
    **When** the spec step revises it, **Then** the new `> [!IMPORTANT]` block says how each comment
    was handled, "C1: done", "C2: declined, because ...".
-4. **Given** the clarifications template, **When** an agent writes a new round, **Then** the file
+4. **Given** a `PRIORITIES.md` entry without a draft, **When** the human asks an agent to start it
+   without `ura`, **Then** the agent commits the entry's move to **Now** on the default branch,
+   creates the branch and `proposal.md` from the template with the human's words, does not commit
+   `proposal.md`, and tells the human to write and commit it.
+5. **Given** a feature branch whose `proposal.md` is not committed, **When** `ura next` or
+   `ura status` runs, **Then** the step is a `human-gate` on `proposal.md`, and discovery does not
+   run.
+6. **Given** the clarifications template, **When** an agent writes a new round, **Then** the file
    ends with `**Notes:**` after the settled points, and the spec step reads it like an answer.
 
-### US9: Install `ura` (P3)
+### US10: Install `ura` (P3)
 
 On each version tag, a release workflow builds `ura` for Linux and macOS, on x64 and arm64, and
 publishes it with a shell installer and a Homebrew formula. Nix users run it from the flake.
@@ -288,16 +388,17 @@ Acceptance scenarios:
 
 - **No `specs/` folder**: every command but `init` exits 1 with
   `no specs/ folder at <top level>: run ura init`.
-- **Detached HEAD**: `status`, `next`, and `check` work; `answer`, `review`, and `draft` refuse with
-  `detached HEAD: switch to a branch first` when they would write on the current working tree.
+- **Detached HEAD**: `status`, `next`, and `check` work; `answer`, `review`, `draft`, and `start`
+  refuse with `detached HEAD: switch to a branch first` when they would write on the current working
+  tree.
 - **A local branch behind its remote**: `status` reads the local branch and adds
   `(behind origin by 2)`; it never fetches. Its header says when the remote branches were last
   fetched.
 - **A branch only on the remote**: `status` reads it; `answer` and `review` switch to it, which
   creates the local branch tracking it, as `git switch` does.
-- **A feature argument matching several features**: `ura answer web` with two slugs containing "web"
-  exits 1 and lists them. Without an argument, the current branch's feature is used, or the only one
-  waiting for that action, or the command lists the candidates.
+- **A target matching several items**: `ura answer web` with two slugs containing "web" exits 1 and
+  lists them. Without a target, the current branch's feature is used, or the only one waiting for
+  that action, or the command lists the candidates.
 - **A follow-up whose parent's answer is free text without an option letter**: it counts as
   applicable, so `--submit` requires it, and `check` reports it blank, with
   `may not apply: answer "-" if so`.
@@ -310,6 +411,13 @@ Acceptance scenarios:
 - **An answer or comment with several paragraphs**: the text is written as given, newlines kept.
 - **`$VISUAL` and `$EDITOR` unset for `draft`**: `vi` is run; if it is missing, the draft is written
   and its path printed.
+- **`start` when a step fails after the first commit**, like a hook failing on the proposal commit:
+  `ura` stops, lists the steps done and the ones left, which the skill's start section describes,
+  and exits 1. The start commit on the default branch stays.
+- **`start` with uncommitted changes besides the draft and `PRIORITIES.md`**: it refuses, as in US8.
+  Uncommitted edits to other lines of `PRIORITIES.md` go into the start commit, and the output lists
+  them.
+- **`start` on a draft that several `PRIORITIES.md` lines link**: it refuses, and lists the lines.
 - **`init` where `.claude/skills/uraeda` exists as a folder**: it is kept, and listed as `kept`; the
   link is not made.
 - **A file that is not UTF-8, or frontmatter that is not YAML**: `check` reports it, and `status`
@@ -368,11 +476,19 @@ Nothing new is stored outside the workflow files. The core reads them into these
   `plan-revision`, `implementation`, `final-review`, `pull-request-changes`, `pull-request`,
   `assess`, `assess-revision`, `fix`, `none`; `waits_on` (`human` or `agent`); `reference` (the
   skill file to follow, like `skills/uraeda/references/spec.md`); `file` (the file waiting, for a
-  gate); `task` (the first unchecked task's title, for implementation and fix); `pull_request`
-  (`open`, `changes-requested`, `none`, or `unknown`).
+  gate: `proposal.md` while it is not committed); `task` (the first unchecked task's title, for
+  implementation and fix); `pull_request` (`open`, `changes-requested`, `none`, or `unknown`).
 - **`Problem`**: `file`, `line`, `rule` (a stable id, like `frontmatter.status`), `message`.
 
-The JSON of `status` and `next` is `{ "version": 1, ... }`, with the workspace or the step inside.
+The JSON of `status`, `next`, and `check` is `{ "version": 1, ... }`, with the workspace, the step,
+or the problems inside. A feature branch whose folder is not committed yet is a `Feature` with no
+files, waiting at a gate on `proposal.md`.
+
+**Targets**: every command that acts on a feature, bug, draft, or file resolves its target the same
+way, as the [CLI](../decisions/cli.md) decision says: a path under `specs/`, or a folder name, slug,
+or draft file name matching exactly one item, searched in the workspace across branches. For
+`answer`, a first argument shaped like a question (`Q2`, `Q2.B`, `notes`) is the question, not a
+target.
 
 **Review files**, a new workflow file: `spec-review.md`, `plan-review.md`, or
 `assessment-review.md`, next to the file reviewed. It exists only when the latest review has
@@ -433,24 +549,26 @@ and scripts.
   its id, over the parsed files. The section rules are read from the templates embedded in the
   binary, so a template change changes the check.
 - **Actions** ([`crates/core/src/actions/`](/crates/core/src/actions/)): `answer`, `submit_answers`,
-  `comment`, `approve`, `request_changes`, `draft`, `init`. Each takes the workspace, finds where to
-  write (the current working tree, the branch's worktree, or a switch when clean, as
+  `comment`, `approve`, `request_changes`, `draft`, `start`, `init`. Each takes the workspace,
+  checks every condition before writing anything, finds where to write (the current working tree,
+  the branch's worktree, or a switch when clean, as
   [Q7](clarifications-01.md#q7-where-do-answer-and-review-write-when-the-features-branch-is-not-checked-out)
   answered), edits the files, and returns the paths changed and the commit to make. Edits keep every
   other byte of the file.
 - **Embedded skill** ([`crates/core/src/embedded.rs`](/crates/core/src/embedded.rs)):
   `skills/uraeda/` included at build time, for the templates, the checks, and `init`.
 - **CLI** ([`crates/cli/src/`](/crates/cli/src/)): one module per command, with clap: `init`,
-  `status`, `next`, `check`, `draft`, `answer`, `review`. Each calls the core, renders text or JSON,
-  commits with the git module unless `--no-commit`, and maps errors to exit 1. The temporary
-  `status <folder>` command goes.
+  `status`, `next`, `check`, `draft`, `start`, `answer`, `review`. Each calls the core, renders text
+  or JSON, commits with the git module (`answer` and `review` take `--no-commit`), and maps errors
+  to exit 1. The temporary `status <folder>` command goes.
 - **Temporary server source**
   ([`crates/core/src/temporary_status.rs`](/crates/core/src/temporary_status.rs)): stays for the
   server's temporary page, now built on the workflow file parsers, and marked
   `TEMPORARY: replaced by the web UI feature.`
 - **Skill** ([`skills/uraeda/`](/skills/uraeda/)): each step names its command; the review files,
-  the approval comment rules, and the **Notes:** field in `SKILL.md`, the references, the templates
-  (a new `spec-review.md` template, used for plans and assessments too), and the example; templates
+  the approval comment rules, the **Notes:** field, the uncommitted proposal of a manual start and
+  its gate on `proposal.md`, and the start's link in `SKILL.md`, the references, the templates (a
+  new `spec-review.md` template, used for plans and assessments too), and the example; templates
   mark every optional section with a placeholder starting with `[Optional`, which `check` reads.
 - **Release** ([`.github/workflows/release.yml`](/.github/workflows/release.yml),
   `dist-workspace.toml`, [`flake.nix`](/flake.nix)): dist 0.32 with the shell and Homebrew
@@ -459,12 +577,12 @@ and scripts.
 ### Mockups
 
 - [Command output](mockups/cli-output.md): the text of `status`, `next`, `check`, `answer`,
-  `review`, `init`, and `draft`, in their success and error cases.
+  `review`, `init`, `draft`, and `start`, in their success and error cases.
 
 ### Error handling
 
-- Every error is one line on stderr, `ura: <message>`, then exit 1. Validation problems are listed
-  on stdout, one per line, `<file>:<line>: <message>`, then exit 1.
+- Every error is one line on stderr, `ura: <message>`, then exit 1, except `start` on a bug.
+  Validation problems are listed on stdout, one per line, `<file>:<line>: <message>`, then exit 1.
 - A git read that fails: `ura: cannot read <what>: <gix's message>`. A `git` command that fails:
   `ura: git <subcommand> failed: <git's first line of error>`. `git` missing from PATH, for a write:
   `ura: git not found: install git to commit`.
@@ -484,10 +602,10 @@ table-driven tests.
 
 | What                                             | Test                                                            |
 | ------------------------------------------------ | --------------------------------------------------------------- |
-| US1 to US7, every scenario                       | One integration test per scenario                               |
-| US8: commands named in the skill (SC-004)        | A test listing clap's subcommands and searching the references  |
-| US8: review comments, revision record, notes     | `ura check` tests on fixtures of each, and the skill example    |
-| US9                                              | `dist plan` in CI on pull requests; `nix build` once by hand    |
+| US1 to US8, every scenario                       | One integration test per scenario                               |
+| US9: commands named in the skill (SC-004)        | A test listing clap's subcommands and searching the references  |
+| US9: review comments, revision record, notes     | `ura check` tests on fixtures of each, and the skill example    |
+| US10                                             | `dist plan` in CI on pull requests; `nix build` once by hand    |
 | Edge cases                                       | One integration test each                                       |
 | Follow-up applicability, comment headings, slugs | Table-driven tests of the parsers                               |
 | SC-001                                           | A test creating 20 feature branches, timing `status` and `next` |
@@ -522,9 +640,23 @@ in your notes:
 
 Settled while writing this spec:
 
-- Without `ura start` (B in
-  [Q3](clarifications-01.md#q3-which-commands-come-beyond-the-proposals-five)), the clarifications'
-  point on linking the PRIORITIES entry at start is dropped: the skill's start stays as written.
+- `ura start` was added in this revision, at your request, after B in
+  [Q3](clarifications-01.md#q3-which-commands-come-beyond-the-proposals-five). The clarifications'
+  point on the link stands: at start, the entry becomes a link to the new `proposal.md`, from the
+  repository root, as you did for this feature, and the skill's start section says so.
+- `start` takes its slug from the draft's file name, or the postponed folder's name; `--slug`
+  overrides it. It refuses when the dated folder exists on any branch, or the branch exists locally
+  or on the remote.
+- A draft "still holds the template's placeholders" when its `## What` or `## Why` section is still
+  the template's bracketed text, or empty. `## Notes` may stay empty, as the template allows.
+- `ura start` on a bug uses Rust's `unimplemented!`, as you asked: a panic, exit code 101, marked
+  for the bug flow's spec to replace, and allowed by the CLI decision for paths not built yet.
+- `--summary` is optional with `--approve` and `--request-changes`: it goes in the review file and
+  the commit body. Without it, a request for changes records the number of comments in its line.
+- The skill's manual start, for an entry without a draft, still commits the entry's move to **Now**
+  on the default branch and creates the branch: only `proposal.md` waits for the human. The skill's
+  step table gets a first row: a feature whose `proposal.md` is not committed waits on the human, at
+  a gate on that file.
 - Review files have no round number, as you answered: one file per reviewed file, holding the latest
   review, deleted by a review without comments. `commit` pins the line numbers, for plans and
   assessments too, which have no `revision`.
@@ -537,6 +669,7 @@ Settled while writing this spec:
   `npx skills` does. The manifest lists each file's SHA-256, in `sha256sum` format, so a human can
   check it with `sha256sum -c`.
 - `init` requires a git repository, since every other command does.
+- `start` does not open the editor: the proposal is written before starting.
 - `draft` writes `PRIORITIES.md` on the default branch, with the same rules as `answer` for reaching
   a branch. The slug is the line's text, lowercased, with every run of other characters than letters
   and digits turned into one hyphen, cut at 50 characters on a hyphen.
