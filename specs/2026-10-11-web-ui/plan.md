@@ -1054,7 +1054,8 @@ git commit -m "feat(web-ui): drafts, proposals, starting, and priorities"
 - [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/__tests__/dev.test.ts`
-- Expected: FAIL, `Cannot find module '../dev.ts'`.
+- Expected: FAIL, `Cannot find module …/uraeda-server/src/dev.ts`, imported by the web package's
+  config.
 
 - [x] **Step 3: Implement**
 
@@ -1081,14 +1082,14 @@ git commit -m "feat(web-ui): vp dev at the root, checked at iPhone size"
 - Test: `crates/cli/tests/skill.rs` (unchanged, passes),
   `ura check skills/uraeda/assets/example/specs`
 
-- [ ] **Step 1: Update the skill and the README**
+- [x] **Step 1: Update the skill and the README**
 
-- [ ] **Step 2: Run all checks**
+- [x] **Step 2: Run all checks**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add skills README.md specs/PRIORITIES.md

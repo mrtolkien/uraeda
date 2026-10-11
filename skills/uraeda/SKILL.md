@@ -140,6 +140,13 @@ and bind the rest of the project once the branch is merged. A bug lives on `fix/
 named after its folder. Run every step on the target's branch: the human answers and approves on it
 too.
 
+Never switch the human's checkout to reach a branch. Write where the branch is checked out, the
+checkout itself or a worktree, or else in a worktree at `.worktrees/<branch>/`, at the root of the
+main checkout, created with `git worktree add`. Keep `.worktrees/` out of `git status` through the
+repository's `.git/info/exclude`, never a tracked file. When `core.hooksPath` is a relative path,
+commit in a worktree with it made absolute from the main checkout, so the same hooks run. Worktrees
+stay until removed with `git worktree remove`. `ura` does all of this.
+
 ### Workflow status
 
 Workflow files track their state in frontmatter fields.
@@ -204,8 +211,9 @@ step. By hand:
    and take the first branch with work for an agent, in the order of the **Now** section. An entry
    matches the branch whose slug matches its file's name. Starting a feature is a human action: see
    [below](#starting-postponing-and-dropping-a-feature).
-2. **Find the step.** Check out the target's branch. In its spec folder, `NN` is the highest
-   clarifications round. Go down this table and run the first row that matches.
+2. **Find the step.** Read the target's branch where it is checked out, or in its worktree (see
+   [Branches](#branches)). In its spec folder, `NN` is the highest clarifications round. Go down
+   this table and run the first row that matches.
 
 | State of the spec folder                                                                        | Step                                                         |
 | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -300,10 +308,11 @@ Do these only when a human asks.
      `chore(<slug>): start <feature name>`. Entries match branches through that link.
      `PRIORITIES.md` lives on the default branch: feature branches only remove their own entry, in
      their last commit.
-  2. Create the branch `YYYY-MM-DD-feature-slug` from there. On it, create
-     `specs/YYYY-MM-DD-feature-slug/`, and move the draft or backlog file into it as `proposal.md`,
-     unchanged: the proposal is the human's words, never rewritten. When the entry is a folder, a
-     feature postponed earlier, move all its files into it, unchanged. Commit with
+  2. Create the branch `YYYY-MM-DD-feature-slug` from there, checked out in its worktree,
+     `.worktrees/YYYY-MM-DD-feature-slug/`, unless the human asks to switch their checkout to it. On
+     it, create `specs/YYYY-MM-DD-feature-slug/`, and move the draft or backlog file into it as
+     `proposal.md`, unchanged: the proposal is the human's words, never rewritten. When the entry is
+     a folder, a feature postponed earlier, move all its files into it, unchanged. Commit with
      `chore(<slug>): proposal`. When the entry has no file, write `proposal.md` from the template
      with only what the human said, and do not commit it: the human writes it out, and commits it
      once it is ready. Until then, the feature waits at a gate on `proposal.md`, and no step runs.
@@ -367,20 +376,21 @@ one waiting for that action.
 | `ura next [feature]`                                               | The target and its step, from [the table](#finding-the-next-step) |
 | `ura check [path]`                                                 | The rules of [Markdown](#markdown), file by file                  |
 | `ura draft <text>`                                                 | [Drafts](#starting-postponing-and-dropping-a-feature) a line      |
-| `ura start <draft>`                                                | [Starts](#starting-postponing-and-dropping-a-feature) a feature   |
+| `ura start <draft>`, `--switch`                                    | [Starts](#starting-postponing-and-dropping-a-feature) a feature   |
 | `ura answer [feature] <Q2> <answer>`, `--submit`                   | Answers a round of questions, then submits it                     |
 | `ura review [feature] --comment`, `--approve`, `--request-changes` | [Reviews](#review-files) a spec, plan, or assessment              |
 | `ura upgrade`                                                      | Installs `ura`'s latest release                                   |
 
 `ura answer --submit` and `ura review` set the human's status, record the block, and commit: a human
-runs them, or an agent the human asked, with `--no-commit`.
+runs them, or an agent the human asked, with `--no-commit`. Every command writes on a branch through
+its worktree (see [Branches](#branches)); `ura start --switch` switches the checkout instead.
 
 `ura` refuses, before writing anything, what would break these rules by hand too:
 
 - An answer or a note with a line starting with `#`, `**Answer:**`, or `**Notes:**`, and a review
   comment with a line starting with `#`: they would read as a new heading or answer.
-- A commit while other files are staged, since it would carry them; a branch switch over uncommitted
-  changes.
+- A commit while other files are staged, since it would carry them; with `--switch`, a branch switch
+  over uncommitted changes; a worktree whose folder is taken by something else.
 - A draft that still holds the proposal template's placeholders, or an empty `## What` or `## Why`
   section: a committed proposal is work for an agent, so it must be the human's.
 - A review file that does not parse: it may hold the human's comments, and is never overwritten.
