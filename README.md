@@ -215,8 +215,9 @@ cargo run -p uraeda-cli -- status
 
 `vp dev` reads `.env` at the root, from [`.env.example`](.env.example): `URAEDA_REPO` opens another
 repository, `URAEDA_PORT` changes the port, and `URAEDA_ALLOWED_HOSTS` lists the host names it
-accepts besides 127.0.0.1, like your machine's name on your tailnet, so `tailscale serve` reaches it
-from your phone.
+accepts besides 127.0.0.1, like your machine's full name on your tailnet, `mac.tail1234.ts.net`. The
+server listens on 127.0.0.1 only: `tailscale serve --bg 4310` reaches it from your phone, at
+`https://mac.tail1234.ts.net/`.
 
 The code is under the MIT or Apache-2.0 licenses, at your option.
 
