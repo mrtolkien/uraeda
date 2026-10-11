@@ -307,3 +307,42 @@ test("Submit waits for the notes being typed", async () => {
   );
   expect(git(repo, "show", `${FOLDER}:${ROUND}`)).toContain("**Notes:** LGTM");
 });
+
+/** Codex review: notes changed elsewhere show, and the next save builds on them. */
+test("notes changed elsewhere show when the page reads again", async () => {
+  const repo = answered({});
+  await renderPage(PAGE, repo);
+  const notes = (await screen.findByLabelText("Notes")) as HTMLTextAreaElement;
+  const path = join(repo, ".worktrees", FOLDER, ROUND);
+  writeFileSync(
+    path,
+    readFileSync(path, "utf8").replace(/\*\*Notes:\*\*\n?$/, "**Notes:** theirs\n"),
+  );
+
+  await act(async () => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+
+  await waitFor(() => expect(notes.value).toBe("theirs"));
+  await type(notes, "theirs, and mine");
+  await waitFor(() =>
+    expect(text(repo).trimEnd().endsWith("**Notes:** theirs, and mine")).toBe(true),
+  );
+});
+
+/** Codex review: Submit stops when what was typed could not be saved. */
+test("Submit stops when an answer could not be saved", async () => {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  await renderPage(PAGE, repo);
+  await screen.findByText("How does your iPhone reach the server?");
+  const path = join(repo, ".worktrees", FOLDER, ROUND);
+  writeFileSync(path, readFileSync(path, "utf8").replace("**Answer:** A", "**Answer:** B"));
+
+  await type(comment("Q1"), "mine");
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+
+  expect(await screen.findByText(/Some answers were not saved/)).toBeTruthy();
+  expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).not.toBe(
+    "discovery(web-ui): answer round 01",
+  );
+});
