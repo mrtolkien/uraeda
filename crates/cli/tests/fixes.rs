@@ -1,4 +1,4 @@
-//! Regressions found by the final review.
+//! Regressions found by the final review, and by the pull request's review.
 mod common;
 
 use common::*;
@@ -264,4 +264,111 @@ fn a_drafted_unicode_line_starts() {
     let output = ura(&repo, &["start", "café-sync"]);
 
     assert_eq!(output.code, 0, "{}", output.stderr);
+}
+
+#[test]
+fn a_failed_start_commit_stays_on_the_default_branch() {
+    let repo = TestRepo::new();
+    specs(
+        &repo,
+        "# Priorities\n\n## Now\n\n## Next\n\n- [Tags](drafts/tags.md)\n\n## Later\n\n## Blocked\n",
+    );
+    repo.write(
+        "specs/drafts/tags.md",
+        "# Tags\n\n## What\n\nTags.\n\n## Why\n\nFilters.\n",
+    );
+    repo.commit("tags");
+    repo.switch_new("other");
+    repo.set_hook("echo boom >&2; exit 1");
+
+    let output = ura(&repo, &["start", "tags"]);
+
+    assert_eq!(output.code, 1);
+    assert_eq!(repo.current_branch(), "main");
+    assert!(
+        output.stderr.ends_with(
+            "ura: git commit failed: boom\nLeft: commit specs/PRIORITIES.md on main as \"chore(tags): start Tags\", then create the branch 2026-10-11-tags, then move specs/drafts/tags.md to specs/2026-10-11-tags, then commit specs/2026-10-11-tags/proposal.md as \"chore(tags): proposal\".\n"
+        ),
+        "{}",
+        output.stderr
+    );
+}
+
+#[test]
+fn approving_refuses_a_review_of_an_older_version() {
+    let repo = spec_waiting();
+    ura(&repo, &["review", "--comment", "general", "first"]);
+    let spec = "specs/2026-10-10-cli-core/spec.md";
+    repo.write(spec, &format!("{}Line C.\n", repo.read(spec)));
+    repo.git(&["add", spec]);
+    repo.git(&["commit", "--quiet", "--no-verify", "--message", "edit"]);
+
+    let output = ura(&repo, &["review", "--approve"]);
+
+    assert_eq!(
+        output.stderr,
+        "ura: spec-review.md comments on an older spec.md: comment again to replace it, or delete it\n"
+    );
+    assert!(repo.read(spec).contains("status: awaiting-human"));
+    assert!(repo.read(REVIEW).contains("first"));
+}
+
+#[test]
+fn plan_review_needs_a_medium_tier() {
+    let repo = spec_waiting();
+
+    let output = ura(&repo, &["review", "--approve", "--plan-review", "true"]);
+
+    assert_eq!(
+        output.stderr,
+        "ura: plan-review is only for risk-tier: medium: add --risk-tier medium\n"
+    );
+    assert!(
+        repo.read("specs/2026-10-10-cli-core/spec.md")
+            .contains("status: awaiting-human")
+    );
+}
+
+#[test]
+fn a_deleted_file_is_an_uncommitted_change() {
+    let repo = waiting(&["", "", ""]);
+    repo.switch("2026-10-10-cli-core");
+    repo.remove(FILE);
+
+    let output = ura(&repo, &["status"]);
+
+    assert!(
+        output.row("2026-10-10-cli-core")[2].ends_with("(uncommitted changes)"),
+        "{}",
+        output.stdout
+    );
+}
+
+#[test]
+fn a_submitted_round_takes_no_answer() {
+    let repo = TestRepo::new();
+    specs(
+        &repo,
+        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
+    );
+    feature(
+        &repo,
+        "2026-10-10-cli-core",
+        &[
+            ("proposal.md", proposal()),
+            (
+                "clarifications-01.md",
+                clarifications("answered", "Answered on 2026-10-08.", &["A"]),
+            ),
+        ],
+    );
+    repo.switch("2026-10-10-cli-core");
+
+    let output = ura(&repo, &["answer", "Q1", "B"]);
+
+    assert_eq!(
+        output.stderr,
+        "ura: clarifications-01.md is not waiting for answers\n"
+    );
+    assert!(repo.read(FILE).contains("**Answer:** A\n"));
 }
