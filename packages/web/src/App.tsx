@@ -5,8 +5,8 @@ import { neutralTheme } from "@astryxdesign/theme-neutral/built";
 import { Component, type ReactNode, Suspense, useState } from "react";
 import { FateClient } from "react-fate";
 import type { createFateClient } from "react-fate/client";
-import { DocumentPage } from "./DocumentPage.tsx";
 import { FeaturePage } from "./FeaturePage.tsx";
+import { FilePage } from "./FilePage.tsx";
 import { Home } from "./Home.tsx";
 import { type Route, useRoute } from "./routes.tsx";
 import { Shell } from "./Shell.tsx";
@@ -54,7 +54,7 @@ function Page({ route }: { route: Route }) {
     case "feature":
       return <FeaturePage folder={route.folder} />;
     case "file":
-      return <DocumentPage folder={route.folder} name={route.name} />;
+      return <FilePage folder={route.folder} name={route.name} />;
     default:
       return (
         <div className="page">

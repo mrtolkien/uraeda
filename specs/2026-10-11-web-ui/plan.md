@@ -889,17 +889,22 @@ git commit -m "feat(web-ui): the shell, home, feature, and document pages"
 
 **Files:**
 
-- Create: `packages/web/src/RoundPage.tsx`, `packages/web/src/Question.tsx`,
-  `packages/web/src/useSave.ts`
+- Create: `packages/web/src/{RoundPage,Question,FilePage}.tsx`, `packages/web/src/useSave.ts`
+- Modify: `packages/web/src/{App,DocumentPage}.tsx`; `crates/core/src/api.rs`,
+  `crates/binding/src/lib.rs`, and the server's `commit.retry`, which take the file's name and let
+  the core name the commit
 - Test: `packages/web/src/__tests__/round.test.tsx`
 
 **Interfaces:**
 
-- Consumes: `answer.save`, `notes.save`, `answers.submit`; `Blocks`.
-- Produces: `useSave(save, delay = 400)`: debounced saves, in order, each with the last saved text
-  as `previous`; state `idle | saving | saved | error(message)`.
+- Consumes: `answer.save`, `notes.save`, `answers.submit`, `commit.retry`; `Blocks`.
+- Produces: `useSave(run, initial, delay = 400)`: saves in order, each with the text the last one
+  wrote as `previous`, after `delay` without changes or at once; state
+  `idle | saving | saved | error(message)`; `settle(text)` takes the file's text when nothing waits.
+  `HookRefusal`, the hook's banner with its output and "Try again", for the review page too.
+  `FilePage` picks a file's page by its kind.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 US2.1 to US2.11 on a fixture round, one test each, with the spec's values; plus review focus 5: two
 comment edits 100 ms apart produce two saves, the second with the first's text as `previous`, and no
@@ -907,22 +912,22 @@ conflict; a refused save shows "Not saved: <message>" and keeps the field's text
 shows "The pre-commit hook refused the commit. Your answers are saved, not committed." and "Try
 again"; a round submitted elsewhere turns read-only.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
-- Run: `vp test packages/web -t round`
-- Expected: FAIL, `Cannot find module '../RoundPage.tsx'`.
+- Run: `vp test packages/web/src/__tests__/round.test.tsx`
+- Expected: FAIL, `Failed to resolve import "./RoundPage.tsx"`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Options are rows with the letter floated beside the first line, "Recommended" as a label above,
 every text in full; tapping anywhere on a row toggles its letter.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check && vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web
