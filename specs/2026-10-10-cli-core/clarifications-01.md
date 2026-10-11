@@ -241,8 +241,8 @@ open.
 ## Q8: Do the commands commit your answers and reviews?
 
 The skill asks for one commit per step, and the web UI draft says the UI "sets the `status` fields
-and commits" ([draft](../drafts/web-ui.md)). Uncommitted, an answer reaches no agent (principle
-III). More in [discovery](discovery-01.md#committing).
+and commits" ([draft](../2026-10-11-web-ui/proposal.md)). Uncommitted, an answer reaches no agent
+(principle III). More in [discovery](discovery-01.md#committing).
 
 Why it matters: it decides whether submitting is the last thing you do.
 
