@@ -102,6 +102,18 @@ pub fn read_draft(repo: String, path: String) -> AsyncTask<Job<DraftView>> {
     job(move || api::read_draft(Path::new(&repo), &path))
 }
 
+/// A draft or a proposal, for its editor, by its path from the top level.
+#[napi(ts_return_type = "Promise<DraftView>")]
+pub fn read_text(repo: String, path: String) -> AsyncTask<Job<DraftView>> {
+    job(move || api::read_text(Path::new(&repo), &path))
+}
+
+/// A file of the repository as text, for links to code and mockups.
+#[napi(ts_return_type = "Promise<string>")]
+pub fn read_raw(repo: String, path: String) -> AsyncTask<Job<String>> {
+    job(move || api::read_raw(Path::new(&repo), &path))
+}
+
 /// Saves an answer from the letters picked and a comment, over the answer last read.
 #[napi(ts_return_type = "Promise<FileView>")]
 pub fn save_answer(

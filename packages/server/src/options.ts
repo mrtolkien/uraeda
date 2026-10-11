@@ -1,28 +1,29 @@
 import { parseArgs } from "node:util";
+import { resolve } from "node:path";
+import type { Env } from "./env.ts";
 
-export type Options = {
-  /** The `specs/` folder to read. */
-  specs: string;
-  port: number;
-  /** Origins allowed besides the server's own, like the UI's dev server. */
+export type Options = Env & {
+  /** Origins allowed besides the server's own and the allowed hosts', like a dev server's. */
   allowOrigins: Array<string>;
   /** The built UI, served as static files when set. */
   webRoot?: string;
 };
 
-export function parseOptions(argv: Array<string>): Options {
+/** The command line's options, over the settings of `.env`. */
+export function parseOptions(argv: Array<string>, env: Env): Options {
   const { values } = parseArgs({
     args: argv,
     options: {
-      specs: { type: "string", default: "specs" },
-      port: { type: "string", default: "4310" },
+      repo: { type: "string" },
+      port: { type: "string" },
       "allow-origin": { type: "string", multiple: true, default: [] },
       "web-root": { type: "string" },
     },
   });
   return {
-    specs: values.specs,
-    port: Number(values.port),
+    ...env,
+    repo: values.repo ? resolve(values.repo) : env.repo,
+    port: values.port ? Number(values.port) : env.port,
     allowOrigins: values["allow-origin"],
     webRoot: values["web-root"],
   };
