@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 2
 clarifications: 1
 risk-tier: high
@@ -7,9 +7,9 @@ risk-tier: high
 
 # Spec: CLI core features
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review again, about 10 minutes for what changed.
+> Approved on 2026-10-11.
 >
 > - New: `ura start <target>`, in [US8](#us8-start-a-drafted-feature-p2), as you asked. Given a
 >   draft file or a postponed folder, it runs the skill's start: the entry moves to Now as a link,
