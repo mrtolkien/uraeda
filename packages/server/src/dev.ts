@@ -32,19 +32,15 @@ const SERVER_PATHS = /^\/(fate|raw|mockups)(\/|\?|$)/;
 export function devHandler(root: string) {
   const env = loadEnv(root);
   const apps = new Map<string, (req: IncomingMessage, res: ServerResponse) => Promise<void>>();
-  const watched = new Set<string>();
   const listener = async (repo: string, port: number) => {
     const key = `${port} ${repo}`;
     let app = apps.get(key);
     if (!app) {
       const binding = await loadBinding();
-      if (!watched.has(repo)) {
-        watched.add(repo);
-        try {
-          startLive(binding, repo);
-        } catch (error) {
-          console.error(`uraeda: ${(error as Error).message}; pages refresh when shown again`);
-        }
+      try {
+        startLive(binding, repo);
+      } catch (error) {
+        console.error(`uraeda: ${(error as Error).message}; pages refresh when shown again`);
       }
       app = getRequestListener(createApp({ ...env, port, repo, allowOrigins: [], binding }).fetch);
       apps.set(key, app);

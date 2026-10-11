@@ -18,7 +18,18 @@ export function publish(changes: Changes) {
   }
 }
 
-/** Watches the repository, and publishes its changes, until the handle is closed. */
+/**
+ * The watch of each repository. The core stops watching once its handle is collected, so the
+ * server keeps them for as long as it runs.
+ */
+const watches = new Map<string, WatchHandle>();
+
+/** Watches the repository, once, and publishes its changes until the handle is closed. */
 export function startLive(binding: Binding, repo: string): WatchHandle {
-  return binding.watch(repo, publish);
+  let handle = watches.get(repo);
+  if (!handle) {
+    handle = binding.watch(repo, publish);
+    watches.set(repo, handle);
+  }
+  return handle;
 }
