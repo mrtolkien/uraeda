@@ -124,12 +124,12 @@ Templates are strict where tools and agents need to find things, and free elsewh
 With `ura`, run `ura check` before every commit of workflow files: it verifies the rules of this
 file, and reports each problem with its file and line. In short: folder names `YYYY-MM-DD-<slug>`
 with a real date, and rounds with two digits; the frontmatter fields of each file, with the values
-of the [status table](#workflow-status), `plan-review` only with `risk-tier: medium`, a spec's
-`clarifications` at most its last round, and a plan's `spec-revision` at most the spec's `revision`;
-the template's title, sections, and order, and no level-2 section the template does not have; the
-structured items above; an answer for every question that applies once a round is `answered`; the
-`> [!IMPORTANT]` block of a file waiting for the human; links to markdown files and into `specs/`
-that resolve, anchors included; and the [review files](#review-files) rules.
+of the [status table](#workflow-status), `plan-review` `true` or `false`, a spec's `clarifications`
+at most its last round, and a plan's `spec-revision` at most the spec's `revision`; the template's
+title, sections, and order, and no level-2 section the template does not have; the structured items
+above; an answer for every question that applies once a round is `answered`; the `> [!IMPORTANT]`
+block of a file waiting for the human; links to markdown files and into `specs/` that resolve,
+anchors included; and the [review files](#review-files) rules.
 
 ### Branches
 
@@ -151,7 +151,7 @@ Workflow files track their state in frontmatter fields.
 | `spec.md`              | `revision`       | `1`, then `+1` at every change        | `+1` when editing it              |
 | `spec.md`              | `clarifications` | the last round it includes: `2`       |                                   |
 | `spec.md`              | `risk-tier`      | `low`, `medium`, or `high`            | may change it on approval         |
-| `spec.md`              | `plan-review`    | `false`, for `medium` only            | `true` to review the plan         |
+| `spec.md`              | `plan-review`    | `true` for `high`, else `false`       | may change it on approval         |
 | `plan.md`              | `status`         | `awaiting-human` or `auto-approved`   | `approved` or `changes-requested` |
 | `plan.md`              | `spec-revision`  | the spec `revision` it implements     |                                   |
 | `decisions/*.md`       | `status`         | `proposed`, then `active` on approval | `active`                          |
@@ -162,8 +162,10 @@ The bug flow is an agent-authored draft that needs human review: see [Bug](refer
 
 Only set a human status when the human expressly asks you to in the session, for example "the spec
 is approved". Say so in the commit message: `spec(recurring-tasks): approved by the human in chat`.
-With `ura`, pass `--no-commit` to `ura answer` or `ura review`, and commit with that message. With
-`changes-requested`, the human's feedback is in the file's [review file](#review-files).
+When the human changes a spec's `risk-tier` on approval without naming `plan-review`, set
+`plan-review` to the new tier's default. With `ura`, pass `--no-commit` to `ura answer` or
+`ura review`, and commit with that message. With `changes-requested`, the human's feedback is in the
+file's [review file](#review-files).
 
 ### Review files
 

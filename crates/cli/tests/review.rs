@@ -153,6 +153,108 @@ fn approve_deletes_an_old_review() {
 }
 
 #[test]
+fn approve_with_a_high_risk_tier_reviews_the_plan() {
+    let repo = waiting();
+
+    ura(
+        &repo,
+        &["review", "cli-core", "--approve", "--risk-tier", "high"],
+    );
+
+    assert!(
+        repo.read(SPEC)
+            .contains("risk-tier: high\nplan-review: true\n"),
+        "{}",
+        repo.read(SPEC)
+    );
+}
+
+#[test]
+fn approve_keeps_the_proposed_plan_review() {
+    let repo = waiting();
+    repo.write(
+        SPEC,
+        &long_spec().replace("risk-tier: low\n", "risk-tier: low\nplan-review: true\n"),
+    );
+    repo.commit("spec with a plan review");
+
+    ura(&repo, &["review", "cli-core", "--approve"]);
+
+    assert!(
+        repo.read(SPEC)
+            .contains("risk-tier: low\nplan-review: true\n"),
+        "{}",
+        repo.read(SPEC)
+    );
+}
+
+/// `long_spec()` with `risk-tier: <tier>` and `plan-review: <value>`.
+fn spec_with(tier: &str, plan_review: &str) -> String {
+    long_spec().replace(
+        "risk-tier: low\n",
+        &format!("risk-tier: {tier}\nplan-review: {plan_review}\n"),
+    )
+}
+
+/// Approves a spec committed with `text`, with `flags`, and returns the approved spec.
+fn approved(text: &str, flags: &[&str]) -> String {
+    let repo = waiting();
+    if text != long_spec() {
+        repo.write(SPEC, text);
+        repo.commit("spec");
+    }
+    let mut args = vec!["review", "cli-core", "--approve"];
+    args.extend_from_slice(flags);
+    let output = ura(&repo, &args);
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    repo.read(SPEC)
+}
+
+#[test]
+fn approve_sets_the_plan_review_for_any_tier() {
+    for (text, flags, expected) in [
+        (
+            spec_with("high", "true"),
+            &["--plan-review", "false"][..],
+            "risk-tier: high\nplan-review: false\n",
+        ),
+        (
+            long_spec(),
+            &["--risk-tier", "high", "--plan-review", "false"],
+            "risk-tier: high\nplan-review: false\n",
+        ),
+        (
+            long_spec(),
+            &["--plan-review", "true"],
+            "risk-tier: low\nplan-review: true\n",
+        ),
+        (
+            spec_with("high", "true"),
+            &["--risk-tier", "medium"],
+            "risk-tier: medium\nplan-review: false\n",
+        ),
+        (
+            spec_with("medium", "true"),
+            &["--risk-tier", "medium"],
+            "risk-tier: medium\nplan-review: true\n",
+        ),
+        (
+            spec_with("high", "\"yes\""),
+            &[],
+            "risk-tier: high\nplan-review: true\n",
+        ),
+        (
+            long_spec().replace("risk-tier: low", "risk-tier: high"),
+            &[],
+            "risk-tier: high\nplan-review: true\n",
+        ),
+    ] {
+        let spec = approved(&text, flags);
+        assert!(spec.contains(expected), "{flags:?}: {spec}");
+    }
+}
+
+#[test]
 fn approve_with_a_comment_and_a_new_risk_tier() {
     let repo = waiting();
     ura(

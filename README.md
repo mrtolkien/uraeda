@@ -29,10 +29,10 @@ once in a file, and you answer in a few words when you have time.
   decision files that every later feature must follow. An agent cannot work around one: when a new
   feature needs to change it, the agent proposes the change in that feature's spec, and it only
   takes effect when you approve the spec.
-- **Review scales with risk.** The agent proposes a risk tier in each spec, with its reason, and you
-  confirm or change it when you approve. Low and medium risk go from approved spec to pull request
-  without you, unless you ask to review the plan. High risk, like a change to every saved record,
-  always waits for your review of the plan.
+- **Review scales with risk.** The agent proposes a risk tier in each spec, with its reason, and
+  whether the plan waits for your review: by default, only for high risk, like a change to every
+  saved record. When you approve the spec, you decide, whatever the tier. When the plan does not
+  wait for you, the approved spec goes to a pull request without you.
 - **Plain text in git, no service.** Markdown in a `specs/` folder, readable on GitHub or in
   Obsidian, with each file's state in its frontmatter. No Jira, no Linear.
 
@@ -97,8 +97,8 @@ feature went through the whole workflow:
    it, and the decisions become active.
 5. **It writes the [plan](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/plan.md)**,
    in the style of superpowers: tasks with the files they touch, their interfaces, and their failing
-   tests written out. The spec's risk tier is high, since every saved due date is upgraded, so you
-   review the plan too.
+   tests written out. The spec's risk tier is high, since every saved due date is upgraded, so it
+   proposed that you review the plan too, and you kept that when approving it.
 6. **It implements the plan, task by task, and opens a pull request**, where you review the code.
 
 Every file waiting for you opens with a summary of what is asked, how long it takes, and what to

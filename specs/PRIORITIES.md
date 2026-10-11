@@ -3,8 +3,7 @@
 ## Now
 
 - Small reword regarding risk tier: whatever the risk tier, human decides if it needs implementation
-  approval or not
-- Nvim plugin
+  approval or not, when approving the spec
 - Basic web UI for _viewing_ the workflow files -> React + Astryx + Fate stack, see
   [draft](drafts/web-ui.md)
 
@@ -15,6 +14,7 @@
 - Ping user when input is needed
 - WebUI for _editing_ files related to the workflow
 - Small onboarding explanation (what to read and in which order)
+- Nvim plugin
 
 ## Later
 

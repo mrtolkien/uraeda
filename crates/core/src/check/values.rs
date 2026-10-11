@@ -132,20 +132,14 @@ fn check_spec_numbers(file: &File<'_>, front: &Frontmatter, problems: &mut Vec<P
             ));
         }
     }
-    if let Some(value) = front.get("plan-review") {
-        if front.text("risk-tier") != Some("medium") {
-            problems.push(file.problem(
-                front.line("plan-review"),
-                "frontmatter.plan-review",
-                "plan-review is only for risk-tier: medium",
-            ));
-        } else if !matches!(value, Value::Bool(_)) {
-            problems.push(file.problem(
-                front.line("plan-review"),
-                "frontmatter.plan-review",
-                format!("plan-review {} is not true or false", shown(value)),
-            ));
-        }
+    if let Some(value) = front.get("plan-review")
+        && !matches!(value, Value::Bool(_))
+    {
+        problems.push(file.problem(
+            front.line("plan-review"),
+            "frontmatter.plan-review",
+            format!("plan-review {} is not true or false", shown(value)),
+        ));
     }
 }
 

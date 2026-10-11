@@ -40,9 +40,11 @@ Workflow files have a `status` field in their frontmatter:
 
 - `awaiting-human`: waiting for a human to answer or review
 - `answered`, `approved`, `changes-requested`: set by a human, an agent can continue
-- `auto-approved`: a plan that the feature's risk tier lets skip human review
+- `auto-approved`: a plan that skips human review, since its spec's `plan-review` is `false`
 
-A spec's `risk-tier`, `low`, `medium`, or `high`, decides whether its plan waits for a human.
+A spec's `risk-tier`, `low`, `medium`, or `high`, tells how much the feature can break. Its
+`plan-review`, `true` by default for `high` only, says whether its plan waits for a human, who
+decides it when approving the spec.
 
 Decisions are `proposed` or `active`. A change to an active decision is proposed in a
 `## Proposed change (YYYY-MM-DD-feature-slug)` section at the end of its file, and applied when that

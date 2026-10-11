@@ -314,22 +314,6 @@ fn approving_refuses_a_review_of_an_older_version() {
 }
 
 #[test]
-fn plan_review_needs_a_medium_tier() {
-    let repo = spec_waiting();
-
-    let output = ura(&repo, &["review", "--approve", "--plan-review", "true"]);
-
-    assert_eq!(
-        output.stderr,
-        "ura: plan-review is only for risk-tier: medium: add --risk-tier medium\n"
-    );
-    assert!(
-        repo.read("specs/2026-10-10-cli-core/spec.md")
-            .contains("status: awaiting-human")
-    );
-}
-
-#[test]
 fn a_deleted_file_is_an_uncommitted_change() {
     let repo = waiting(&["", "", ""]);
     repo.switch("2026-10-10-cli-core");

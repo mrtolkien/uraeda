@@ -83,7 +83,8 @@ enum Command {
         /// Change the spec's risk tier on approval: low, medium, or high
         #[arg(long)]
         risk_tier: Option<String>,
-        /// Whether a medium-risk plan waits for your review
+        /// Whether the plan waits for your review: true or false; by default, the spec's value, or
+        /// with a new --risk-tier, that tier's default (true for high)
         #[arg(long)]
         plan_review: Option<bool>,
         /// Leave the files for you to commit
