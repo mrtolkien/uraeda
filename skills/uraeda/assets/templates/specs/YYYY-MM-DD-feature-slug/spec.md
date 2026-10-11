@@ -56,7 +56,7 @@ the components.]
 
 ### Mockups
 
-[UI work only: remove this section otherwise.]
+[Optional, UI work only: remove this section otherwise.]
 
 - [[Screen or state](mockups/screen-name.html): what it shows]
 

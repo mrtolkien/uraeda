@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![allow(dead_code, unused_imports)]
 
 #[path = "../../../core/tests/common/repo.rs"]
 pub mod repo;

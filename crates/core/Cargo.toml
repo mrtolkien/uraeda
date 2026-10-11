@@ -12,6 +12,7 @@ napi = ["dep:napi", "dep:napi-derive"]
 
 [dependencies]
 gix.workspace = true
+include_dir.workspace = true
 napi = { workspace = true, optional = true }
 napi-derive = { workspace = true, optional = true }
 pulldown-cmark.workspace = true
