@@ -57,6 +57,12 @@ export declare function readFile(repo: string, folder: string, name: string): Pr
 /** `PRIORITIES.md`, with its changes since the last commit. */
 export declare function readPriorities(repo: string): Promise<Priorities>
 
+/** A file of the repository as text, for links to code and mockups. */
+export declare function readRaw(repo: string, path: string): Promise<string>
+
+/** A draft or a proposal, for its editor, by its path from the top level. */
+export declare function readText(repo: string, path: string): Promise<DraftView>
+
 /** Every feature, bug, and priority of the repository at `repo`. */
 export declare function readWorkspace(repo: string): Promise<WorkspaceView>
 

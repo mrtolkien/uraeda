@@ -43,7 +43,8 @@ test("shows when the server cannot be reached", async () => {
 });
 
 test("lists more folders than fate's default page", async () => {
-  const specs = mkdtempSync(join(tmpdir(), "uraeda-"));
+  const specs = join(mkdtempSync(join(tmpdir(), "uraeda-")), "specs");
+  mkdirSync(specs);
   for (let day = 1; day <= 25; day++) {
     mkdirSync(join(specs, `2026-10-${String(day).padStart(2, "0")}-feature`));
   }

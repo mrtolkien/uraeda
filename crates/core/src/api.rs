@@ -509,3 +509,70 @@ pub fn discard_priorities(repo: &Path) -> Result<Priorities> {
     edits::discard(&place)?;
     Ok(edits::read(&place))
 }
+
+/// A draft or a proposal, for its editor: a draft from the default branch, a proposal from its
+/// feature.
+pub fn read_text(repo: &Path, path: &str) -> Result<DraftView> {
+    if path.starts_with("specs/drafts/") || path.starts_with("specs/backlog/") {
+        return read_draft(repo, path);
+    }
+    let (git, workspace) = open(repo)?;
+    let (folder, name) = path
+        .strip_prefix("specs/")
+        .and_then(|rest| rest.split_once('/'))
+        .ok_or_else(|| refused(format!("{path} is not a file of specs/")))?;
+    let feature = find(&workspace, folder)?;
+    let text = feature
+        .text(name)
+        .ok_or_else(|| refused(format!("{folder} has no {name}")))?
+        .to_string();
+    let committed = feature
+        .branch
+        .as_deref()
+        .and_then(|branch| git.tip(branch))
+        .and_then(|tip| git.read_file(tip, path).ok().flatten())
+        .is_some_and(|bytes| bytes == text.as_bytes());
+    Ok(DraftView {
+        path: path.to_string(),
+        title: title(&text).unwrap_or_else(|| path.to_string()),
+        hash: hash(&text),
+        document: document::parse(&text, &feature.path),
+        committed,
+        entry: None,
+        priority_changes: 0,
+        text,
+    })
+}
+
+/// A file of the repository as text, for links to code and mockups: a feature's file from where
+/// its feature is read, any other from the checkout.
+pub fn read_raw(repo: &Path, path: &str) -> Result<String> {
+    if path.split('/').any(|part| part == ".." || part.is_empty()) || path.starts_with('/') {
+        return Err(refused(format!("{path}: no such file")));
+    }
+    let (git, workspace) = open(repo)?;
+    let feature = path
+        .strip_prefix("specs/")
+        .and_then(|rest| rest.split_once('/'))
+        .and_then(|(folder, _)| workspace.feature(folder));
+    let bytes = match feature {
+        Some(feature) => match feature_dir(&git, feature) {
+            Some(dir) => std::fs::read(dir.join(path)).ok(),
+            None => feature
+                .branch
+                .as_deref()
+                .and_then(|branch| git.tip(branch))
+                .or_else(|| {
+                    workspace
+                        .default_branch
+                        .as_deref()
+                        .and_then(|branch| git.tip(branch))
+                })
+                .and_then(|tip| git.read_file(tip, path).ok().flatten()),
+        },
+        None => std::fs::read(git.root().join(path)).ok(),
+    };
+    bytes
+        .and_then(|bytes| String::from_utf8(bytes).ok())
+        .ok_or_else(|| refused(format!("{path}: no such file")))
+}

@@ -1,7 +1,8 @@
 import { act, cleanup, render } from "@testing-library/react";
 import { createFateClient } from "react-fate/client";
 import { afterEach } from "vite-plus/test";
-import { temporaryReadSpecs } from "uraeda-binding";
+import { dirname } from "node:path";
+import * as binding from "uraeda-binding";
 import { fixture } from "uraeda-binding/test-utils";
 import { createApp } from "uraeda-server";
 import { App } from "../App.tsx";
@@ -23,7 +24,13 @@ export async function renderPage(
 }
 
 function serverFetch(specs: string): typeof globalThis.fetch {
-  const app = createApp({ specs, port, allowOrigins: [], readSpecs: temporaryReadSpecs });
+  const app = createApp({
+    repo: dirname(specs),
+    port,
+    allowedHosts: [],
+    allowOrigins: [],
+    binding,
+  });
   return async (input, init) => {
     const response = await app.request(input instanceof Request ? input.url : input.toString(), {
       method: init?.method,
