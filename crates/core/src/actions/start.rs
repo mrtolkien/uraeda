@@ -245,8 +245,6 @@ fn start(
     // The start commit, on the default branch.
     fs::write(&priorities_path, edited)?;
     let start_subject = format!("chore({slug}): start {name}");
-    at.commit(&["specs/PRIORITIES.md".to_string()], &start_subject, None)?;
-    let mut done = vec![format!("the start commit on {default}")];
     let partial = |done: &[String], left: Vec<String>, cause: String| StartError::Partial {
         done: done.to_vec(),
         left,
@@ -259,6 +257,17 @@ fn start(
     } else {
         format!("commit {destination}/proposal.md as \"{proposal_subject}\"")
     };
+    // Written, so a failed commit stays here: switching back could carry the staged file away.
+    if let Err(error) = at.commit(&["specs/PRIORITIES.md".to_string()], &start_subject, None) {
+        let left = vec![
+            format!("commit specs/PRIORITIES.md on {default} as \"{start_subject}\""),
+            format!("create the branch {folder}"),
+            format!("move {draft} to {destination}"),
+            commit_left,
+        ];
+        return Err(partial(&[], left, error.to_string()));
+    }
+    let mut done = vec![format!("the start commit on {default}")];
 
     // The branch, and the draft moved into the dated folder.
     if let Err(error) = at.switch_new(&folder, &default) {

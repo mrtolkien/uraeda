@@ -4,7 +4,7 @@ use std::fs;
 
 use crate::files::review::{self, Anchor, Comment, Review, Verdict};
 use crate::files::{frontmatter, markdown};
-use crate::git::Git;
+use crate::git::{Git, ObjectId};
 use crate::today::Date;
 use crate::workspace::Feature;
 
@@ -132,12 +132,7 @@ pub fn comment(
     let existing = existing_review(place, feature, file)?;
     // A pending review stays while the reviewed file is the same as at its commit.
     let current = existing.as_ref().is_some_and(|r| {
-        r.verdict == Verdict::Pending
-            && (r.commit == commit
-                || git
-                    .resolve(&r.commit)
-                    .and_then(|old| git.read_file(old, &path).ok().flatten())
-                    .is_some_and(|old| old == committed.as_bytes()))
+        r.verdict == Verdict::Pending && fresh(git, r, &path, tip, committed.as_bytes())
     });
     let replaced = existing
         .as_ref()
@@ -186,10 +181,39 @@ fn existing_review(
     })
 }
 
-/// The pending review of a file, if it has comments.
+/// Whether a review comments on the reviewed file as committed at `tip`: written at that commit,
+/// or at one where the file was the same.
+fn fresh(git: &Git, review: &Review, path: &str, tip: ObjectId, committed: &[u8]) -> bool {
+    tip.to_hex_with_len(7) == review.commit
+        || git
+            .resolve(&review.commit)
+            .and_then(|old| git.read_file(old, path).ok().flatten())
+            .is_some_and(|old| old == committed)
+}
+
+/// The pending review of a file, if it has comments. One on an older version of the file is
+/// refused, never applied or deleted: it holds the human's comments.
 fn pending(place: &Place, feature: &Feature, file: &str) -> Result<Option<Review>, ActionError> {
-    Ok(existing_review(place, feature, file)?
-        .filter(|r| r.verdict == Verdict::Pending && !r.comments.is_empty()))
+    let Some(review) = existing_review(place, feature, file)?
+        .filter(|r| r.verdict == Verdict::Pending && !r.comments.is_empty())
+    else {
+        return Ok(None);
+    };
+    let git = Git::open(&place.root)?;
+    let path = format!("{}/{file}", feature.path);
+    let current = git.head().is_some_and(|head| {
+        git.read_file(head, &path)
+            .ok()
+            .flatten()
+            .is_some_and(|committed| fresh(&git, &review, &path, head, &committed))
+    });
+    if !current {
+        return Err(ActionError::Refused(format!(
+            "{} comments on an older {file}: comment again to replace it, or delete it",
+            review_name(file)
+        )));
+    }
+    Ok(Some(review))
 }
 
 /// The risk tier and plan review a human may change when approving a spec.
@@ -227,6 +251,11 @@ pub fn approve(
         edited = frontmatter::set(&edited, "risk-tier", risk_tier);
     }
     let medium = frontmatter::parse(&edited).is_ok_and(|f| f.text("risk-tier") == Some("medium"));
+    if tier.plan_review.is_some() && !medium {
+        return Err(ActionError::Refused(
+            "plan-review is only for risk-tier: medium: add --risk-tier medium".to_string(),
+        ));
+    }
     if medium {
         let current = frontmatter::parse(&edited)
             .ok()

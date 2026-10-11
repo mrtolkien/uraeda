@@ -107,10 +107,24 @@ fn matches(slot: &Slot, heading: &Heading) -> bool {
         Slot::Item(prefix) => heading
             .text
             .strip_prefix(prefix.as_str())
-            .is_some_and(|rest| rest.starts_with(|c: char| c.is_ascii_digit())),
+            .is_some_and(numbered),
         Slot::Prefix(prefix) => heading.text.starts_with(prefix.as_str()),
         Slot::Free => true,
     }
+}
+
+/// What follows an item's prefix: its number, a follow-up's letter like `.B`, then `:`.
+fn numbered(rest: &str) -> bool {
+    let digits = rest.len() - rest.trim_start_matches(|c: char| c.is_ascii_digit()).len();
+    if digits == 0 {
+        return false;
+    }
+    let rest = &rest[digits..];
+    let rest = rest
+        .strip_prefix('.')
+        .and_then(|letter| letter.strip_prefix(|c: char| c.is_ascii_uppercase()))
+        .unwrap_or(rest);
+    rest.starts_with(':')
 }
 
 pub(super) fn check_sections(file: &File<'_>, document: &Document, problems: &mut Vec<Problem>) {

@@ -27,6 +27,20 @@ pub fn round_path(feature: &Feature) -> Result<String, ActionError> {
     Ok(format!("{}/{name}", feature.path))
 }
 
+/// Refuses a round that is not `awaiting-human`: an answered round is a record.
+fn waiting(text: &str, name: &str) -> Result<(), ActionError> {
+    let status = frontmatter::parse(text)
+        .ok()
+        .and_then(|front| front.text("status").map(String::from));
+    if status.as_deref() == Some("awaiting-human") {
+        Ok(())
+    } else {
+        Err(ActionError::Refused(format!(
+            "{name} is not waiting for answers"
+        )))
+    }
+}
+
 /// An answer written: in which file, and how many applicable questions are answered.
 pub struct Written {
     pub file: String,
@@ -45,6 +59,7 @@ pub fn write(
     let file = format!("{}/{name}", feature.path);
     let path = place.root.join(&file);
     let text = fs::read_to_string(&path)?;
+    waiting(&text, &name)?;
     let edited = clarifications::set_answer(&text, id, answer)?;
     fs::write(&path, &edited)?;
     let questions = clarifications::parse(&edited);
@@ -66,14 +81,7 @@ pub fn submit(place: &Place, feature: &Feature, today: Date) -> Result<Change, A
     let file = format!("{}/{name}", feature.path);
     let path = place.root.join(&file);
     let text = fs::read_to_string(&path)?;
-    let status = frontmatter::parse(&text)
-        .ok()
-        .and_then(|front| front.text("status").map(String::from));
-    if status.as_deref() != Some("awaiting-human") {
-        return Err(ActionError::Refused(format!(
-            "{name} is not waiting for answers"
-        )));
-    }
+    waiting(&text, &name)?;
     let questions = clarifications::parse(&text);
     let blank: Vec<String> = questions
         .iter()
