@@ -580,7 +580,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { WatchHandle, addComment, addPriority, approve, commitPriorities, commitText, createDraft, discardPriorities, editComment, editPriority, movePriority, readDraft, readFeature, readFile, readPriorities, readRaw, readText, readWorkspace, removeComment, removePriority, requestChanges, retryCommit, saveAnswer, saveNotes, saveText, startFeature, startOver, submitAnswers, temporaryReadFolder, temporaryReadSpecs, watch, BlockKind, CalloutKind, ItemMarker, Status } = nativeBinding
+const { WatchHandle, addComment, addPriority, approve, commitPriorities, commitText, createDraft, discardPriorities, editComment, editPriority, movePriority, readDraft, readFeature, readFile, readPriorities, readRaw, readText, readWorkspace, removeComment, removePriority, requestChanges, retryCommit, saveAnswer, saveNotes, saveText, startFeature, startOver, submitAnswers, watch, BlockKind, CalloutKind, ItemMarker } = nativeBinding
 export { WatchHandle }
 export { addComment }
 export { addPriority }
@@ -609,11 +609,8 @@ export { saveText }
 export { startFeature }
 export { startOver }
 export { submitAnswers }
-export { temporaryReadFolder }
-export { temporaryReadSpecs }
 export { watch }
 export { BlockKind }
 export { CalloutKind }
 export { ItemMarker }
-export { Status }
 export const __napiBindingTarget = __napiLoadedBindingTarget

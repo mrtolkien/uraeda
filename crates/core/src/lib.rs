@@ -9,7 +9,6 @@ pub mod git;
 pub mod slug;
 pub mod steps;
 pub mod target;
-pub mod temporary_status;
 pub mod today;
 pub mod view;
 pub mod watch;

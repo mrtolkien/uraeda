@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@astryxdesign/core": "0.6.7",
+    "@astryxdesign/theme-neutral": "0.6.7",
     "@nkzw/fate": "1.7.7",
     "@stylexjs/stylex": "^0.19.1",
     "react": "19.3.0",

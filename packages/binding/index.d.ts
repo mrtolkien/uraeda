@@ -100,20 +100,6 @@ export declare function startOver(repo: string, folder: string, file: string): P
 export declare function submitAnswers(repo: string, folder: string): Promise<FileView>
 
 /**
- * TEMPORARY: replaced by the CLI feature.
- *
- * Reads the workflow files of one feature folder.
- */
-export declare function temporaryReadFolder(path: string): FolderStatus
-
-/**
- * TEMPORARY: replaced by the CLI feature.
- *
- * Reads every feature folder of a `specs/` folder, newest first.
- */
-export declare function temporaryReadSpecs(path: string): Array<FolderStatus>
-
-/**
  * Watches the repository at `repo`, and calls `onChange` with what changed after each burst of
  * file events. The watch does not keep Node running.
  */
@@ -263,20 +249,6 @@ export interface FeatureView {
   problems: Array<ProblemView>
 }
 
-/**
- * TEMPORARY: replaced by the CLI feature.
- *
- * One workflow file: exactly one of `status` and `problem` is set.
- */
-export interface FileStatus {
-  /** The file's name, like `clarifications-01.md`. */
-  file: string
-  /** `None` when the file is invalid. */
-  status?: Status
-  /** What is wrong with the file, like `unknown status "done"`. `None` when it is valid. */
-  problem?: string
-}
-
 export interface FileSummary {
   name: string
   /** `proposal`, `clarifications`, `spec`, ... */
@@ -307,18 +279,6 @@ export interface FileView {
   committed?: VersionView
   /** The items of its review file, `spec-review.md` for `spec.md`, when there is one. */
   review?: Items
-}
-
-/**
- * TEMPORARY: replaced by the CLI feature.
- *
- * A feature folder and its workflow files: clarifications rounds in order, then `spec.md`, then
- * `plan.md`.
- */
-export interface FolderStatus {
-  /** The folder's name, like `2026-10-10-stack-decision`. */
-  name: string
-  files: Array<FileStatus>
 }
 
 /**
@@ -469,13 +429,6 @@ export interface StartedView {
   worktree?: string
 }
 
-/**
- * TEMPORARY: replaced by the CLI feature.
- *
- * A workflow file's status, as written in its frontmatter.
- */
-export type Status = 'awaiting-human' | 'answered' | 'approved' | 'changes-requested' | 'auto-approved'
-
 export interface StepItem {
   block: number
   checked: boolean
@@ -529,4 +482,6 @@ export interface WorkspaceView {
   features: Array<FeatureView>
   priorities: Array<PriorityView>
   drafts: Array<string>
+  /** The repository's path when it has no `specs/` folder: nothing else is read. */
+  noSpecs?: string
 }

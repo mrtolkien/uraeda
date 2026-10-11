@@ -1,0 +1,491 @@
+/*
+ * The reading layout (see the spec): one 16 px inset, no box inside a box, hierarchy from type,
+ * bands between siblings, hairlines inside them, and a tint with an accent bar for state. Colors
+ * come from Astryx's tokens, so light and dark follow the theme.
+ */
+
+:root {
+  --reading-inset: 16px;
+  --reading-band: var(--color-background-muted);
+  --reading-rule: var(--color-border);
+  --reading-tint: var(--color-accent-muted);
+  --reading-accent: var(--color-accent);
+  --reading-muted: var(--color-text-secondary);
+  --reading-pro: var(--color-success);
+  --reading-con: var(--color-error);
+  --reading-why: var(--color-warning);
+}
+
+/* Touch screens: every control at least 44 px tall (SC-005). */
+@media (pointer: coarse) {
+  :root,
+  [data-theme] {
+    --size-element-sm: 44px;
+    --size-element-md: 44px;
+    --size-element-lg: 44px;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--color-background-body);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-body);
+}
+
+.page {
+  box-sizing: border-box;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--reading-inset);
+  font-size: 17px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 768px) {
+  .page {
+    font-size: 16px;
+    padding: 24px 32px;
+  }
+}
+
+.page p {
+  margin: 0 0 10px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--reading-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.title-l {
+  margin: 2px 0 8px;
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.muted {
+  color: var(--reading-muted);
+}
+
+.small {
+  font-size: 15px;
+}
+
+.mono,
+.page code {
+  font-family: var(--font-family-code);
+  font-size: 0.88em;
+}
+
+.page a {
+  color: var(--color-text-accent);
+}
+
+/* A band running to the screen's edges between sibling items. */
+.band {
+  height: 8px;
+  margin: 20px calc(-1 * var(--reading-inset));
+  background: var(--reading-band);
+}
+
+/* Rows of a list of things, split by hairlines. */
+.group {
+  margin: 20px 0 2px;
+}
+
+.group:first-child {
+  margin-top: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--reading-rule);
+  color: inherit;
+  text-decoration: none;
+}
+
+.page a.row {
+  color: inherit;
+}
+
+.row .grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.row .sub {
+  font-size: 15px;
+  color: var(--reading-muted);
+}
+
+.chevron {
+  color: var(--reading-muted);
+}
+
+/* Options: full text, full width, hairlines between them; the selected one tinted to the edges. */
+.options {
+  margin: 14px calc(-1 * var(--reading-inset)) 0;
+  border-top: 1px solid var(--reading-rule);
+}
+
+.option {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px var(--reading-inset) 12px calc(var(--reading-inset) - 4px);
+  border: 0;
+  border-bottom: 1px solid var(--reading-rule);
+  border-left: 4px solid transparent;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.option[aria-pressed="true"] {
+  border-left-color: var(--reading-accent);
+  background: var(--reading-tint);
+}
+
+.option:disabled {
+  cursor: default;
+}
+
+.letter {
+  float: left;
+  width: 28px;
+  height: 28px;
+  margin: 0 10px 0 0;
+  border: 2px solid var(--reading-muted);
+  border-radius: 50%;
+  box-sizing: border-box;
+  text-align: center;
+  line-height: 24px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--reading-muted);
+}
+
+.option[aria-pressed="true"] .letter {
+  border-color: var(--reading-accent);
+  background: var(--reading-accent);
+  color: var(--color-on-accent);
+}
+
+.tag {
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--reading-why);
+}
+
+.summary {
+  font-weight: 600;
+}
+
+.points {
+  clear: left;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 16px;
+}
+
+.points li {
+  position: relative;
+  margin-top: 4px;
+  padding-left: 18px;
+}
+
+.points li::before {
+  position: absolute;
+  left: 0;
+  font-weight: 700;
+}
+
+.pro::before {
+  content: "+";
+  color: var(--reading-pro);
+}
+
+.con::before {
+  content: "−";
+  color: var(--reading-con);
+}
+
+.why::before {
+  content: "★";
+  color: var(--reading-why);
+}
+
+.follow-up {
+  margin-top: 16px;
+  padding-left: 12px;
+  border-left: 3px solid var(--reading-accent);
+}
+
+.follow-up .options {
+  margin-left: -12px;
+}
+
+.answer-line {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+.answer-line .value {
+  flex: 1;
+  font-family: var(--font-family-code);
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+
+.saved {
+  color: var(--reading-pro);
+}
+
+.not-saved {
+  color: var(--reading-con);
+}
+
+.progress {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 4px;
+  margin: calc(-1 * var(--reading-inset)) calc(-1 * var(--reading-inset)) var(--reading-inset);
+  background: var(--reading-band);
+}
+
+.progress div {
+  height: 100%;
+  background: var(--reading-accent);
+}
+
+/* Reviewable blocks: selection tints a block to the edges, with an accent bar. */
+.block {
+  display: block;
+  margin: 0 calc(-1 * var(--reading-inset));
+  padding: 6px var(--reading-inset) 6px calc(var(--reading-inset) - 4px);
+  border-left: 4px solid transparent;
+  cursor: pointer;
+}
+
+.block[aria-selected="true"] {
+  border-left-color: var(--reading-accent);
+  background: var(--reading-tint);
+}
+
+.scenarios {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scenario {
+  display: flex;
+  gap: 8px;
+}
+
+.scenario .number {
+  flex: none;
+  width: 18px;
+  color: var(--reading-muted);
+  font-weight: 600;
+}
+
+.pending {
+  margin: 2px 0 8px 26px;
+  padding: 6px 0 6px 12px;
+  border-left: 3px solid var(--reading-why);
+  font-size: 16px;
+}
+
+.pending .meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--reading-muted);
+}
+
+/* The document: markdown blocks, without boxes. */
+.doc h1 {
+  font-size: 24px;
+  line-height: 1.25;
+  margin: 0 0 12px;
+}
+
+.doc h2 {
+  font-size: 20px;
+  margin: 28px 0 8px;
+}
+
+.doc h3 {
+  font-size: 18px;
+  margin: 20px 0 6px;
+}
+
+.doc h4,
+.doc h5,
+.doc h6 {
+  font-size: 16px;
+  margin: 16px 0 4px;
+}
+
+.doc ul,
+.doc ol {
+  margin: 0 0 10px;
+  padding-left: 22px;
+}
+
+.doc li {
+  margin: 4px 0;
+}
+
+.doc li.typed {
+  list-style: none;
+  margin-left: -18px;
+  padding-left: 18px;
+  position: relative;
+}
+
+.doc li.typed > .sign {
+  position: absolute;
+  left: 0;
+  font-weight: 700;
+}
+
+.doc blockquote {
+  margin: 0 0 10px;
+  padding-left: 12px;
+  border-left: 3px solid var(--reading-rule);
+  color: var(--reading-muted);
+}
+
+.callout {
+  margin: 0 0 14px;
+  padding: 2px 0 2px 12px;
+  border-left: 4px solid var(--reading-accent);
+}
+
+.callout.important {
+  border-left-color: #8250df;
+}
+
+.callout.warning,
+.callout.caution {
+  border-left-color: var(--color-warning);
+}
+
+.callout > .callout-title {
+  display: block;
+  font-weight: 700;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  margin: 0 0 12px;
+}
+
+.table-scroll table {
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.table-scroll th,
+.table-scroll td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--reading-rule);
+  vertical-align: top;
+}
+
+.doc pre {
+  overflow-x: auto;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--reading-band);
+  font-size: 14px;
+  white-space: pre;
+}
+
+.doc hr {
+  border: 0;
+  border-top: 1px solid var(--reading-rule);
+  margin: 20px 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.actions > * {
+  flex: 1;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 48px;
+  padding: 0 4px 0 12px;
+  border-bottom: 1px solid var(--reading-rule);
+  font-weight: 600;
+}
+
+.bar .title {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.commit-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px calc(-1 * var(--reading-inset)) calc(-1 * var(--reading-inset));
+  padding: 10px var(--reading-inset);
+  border-top: 1px solid var(--reading-rule);
+  background: var(--color-background-body);
+  font-size: 15px;
+}
+
+.commit-bar .grow {
+  flex: 1;
+}
+
+.field-label {
+  display: block;
+  margin: 14px 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.handle {
+  flex: none;
+  width: 32px;
+  text-align: center;
+  color: var(--reading-muted);
+  font-size: 20px;
+  touch-action: none;
+  cursor: grab;
+}

@@ -12,16 +12,8 @@ import {
   Root as Views,
   workspaceDataView,
 } from "./fate/views.ts";
-import { temporarySpecFolders, temporarySpecFolderView } from "./temporary-spec-folders.ts";
 
-export {
-  draftDataView,
-  featureDataView,
-  fileDataView,
-  prioritiesDataView,
-  temporarySpecFolderView,
-  workspaceDataView,
-};
+export { draftDataView, featureDataView, fileDataView, prioritiesDataView, workspaceDataView };
 export { PRIORITIES_ID, WORKSPACE_ID } from "./fate/views.ts";
 
 /** The types fate's generated client and the UI's views use, named after each view's type. */
@@ -30,16 +22,10 @@ export type Feature = Entity<typeof featureDataView, "Feature">;
 export type WorkflowFile = Entity<typeof fileDataView, "WorkflowFile">;
 export type Priorities = Entity<typeof prioritiesDataView, "Priorities">;
 export type Draft = Entity<typeof draftDataView, "Draft">;
-// TEMPORARY: replaced by the web UI feature.
-export type SpecFolder = Entity<typeof temporarySpecFolderView, "SpecFolder">;
 
 export type FateVariables = { fate: Context };
 
-export const Root = {
-  ...Views,
-  // TEMPORARY: replaced by the web UI feature.
-  specFolders: temporarySpecFolders,
-};
+export const Root = Views;
 
 /** Live updates: the core's watcher marks what changed, and fate sends it to the views. */
 export const live = createLiveEventBus();
