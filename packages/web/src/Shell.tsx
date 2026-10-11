@@ -3,6 +3,7 @@ import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/Segme
 import { SideNav, SideNavHeading, SideNavItem, SideNavSection } from "@astryxdesign/core/SideNav";
 import type { ReactNode } from "react";
 import { useWorkspace } from "./data.ts";
+import { QuickAdd } from "./QuickAdd.tsx";
 import { navigate, usePathname } from "./routes.tsx";
 import { type ThemeMode, useThemeMode } from "./theme.tsx";
 
@@ -51,7 +52,9 @@ function Nav() {
   const repository = workspace?.root.split("/").pop() ?? "uraeda";
   return (
     <SideNav
-      header={<SideNavHeading heading="Uraeda" subheading={repository} />}
+      header={
+        <SideNavHeading heading="Uraeda" subheading={repository} headerEndContent={<QuickAdd />} />
+      }
       footer={<ThemeSwitch />}
     >
       <Item label="Home" to="/" pathname={pathname} />
