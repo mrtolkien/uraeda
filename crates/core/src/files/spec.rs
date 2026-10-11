@@ -76,5 +76,10 @@ pub fn items(doc: &Document) -> SpecItems {
             })
         })
         .collect();
-    SpecItems { stories, criteria }
+    SpecItems {
+        stories,
+        criteria,
+        risk_tier: None,
+        plan_review: None,
+    }
 }

@@ -141,6 +141,8 @@ pub struct FileView {
     pub committed: Option<VersionView>,
     /// The items of its review file, `spec-review.md` for `spec.md`, when there is one.
     pub review: Option<Items>,
+    /// Whether the pending review comments on an older version of the file than its tip's.
+    pub review_stale: bool,
 }
 
 /// A draft or a postponed proposal, for its editor.
