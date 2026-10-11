@@ -4,10 +4,13 @@
 pub mod clarifications;
 pub mod document;
 pub mod frontmatter;
+pub mod items;
 pub mod markdown;
 pub mod plan;
 pub mod priorities;
 pub mod review;
+pub mod rulings;
+pub mod spec;
 
 /// Runs an edit on the text with `\n` line endings, and gives the result the text's own endings.
 pub(crate) fn with_unix_newlines<T>(

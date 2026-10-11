@@ -70,7 +70,7 @@ fn picked_letters(answer: &str, options: &[char]) -> Vec<char> {
 }
 
 /// A question heading's id, its parent and letter for a follow-up, and its title.
-type QuestionHeading = (String, Option<(String, char)>, String);
+pub type QuestionHeading = (String, Option<(String, char)>, String);
 
 fn heading(line: &str) -> Option<QuestionHeading> {
     let (rest, follow_up) = if let Some(rest) = line.strip_prefix("### Q") {
@@ -252,4 +252,72 @@ pub fn set_answer(text: &str, id: &str, answer: &str) -> Result<String, AnswerEr
         let joined = lines.join("\n");
         Ok(joined)
     })
+}
+
+/// An answer from the letters picked and a comment, as the web UI composes it: `A`, `B and C`,
+/// `A, B and C`, then `: <comment>`; a comment alone is written as it is.
+pub fn compose_answer(letters: &[String], comment: &str) -> String {
+    let mut letters: Vec<&str> = letters.iter().map(String::as_str).collect();
+    letters.sort_unstable();
+    letters.dedup();
+    let comment = comment.trim();
+    let picked = match letters.as_slice() {
+        [] => return comment.to_string(),
+        [one] => one.to_string(),
+        [rest @ .., last] => format!("{} and {last}", rest.join(", ")),
+    };
+    if comment.is_empty() {
+        picked
+    } else {
+        format!("{picked}: {comment}")
+    }
+}
+
+/// An answer split into the option letters it starts with and its comment, when it starts with
+/// letters joined by `, ` and ` and `, followed by `:` or its end. Any other answer is a comment.
+pub fn split_answer(answer: &str, options: &[char]) -> (Vec<String>, String) {
+    let whole = || (Vec::new(), answer.trim().to_string());
+    let mut letters = Vec::new();
+    let mut rest = answer.trim();
+    loop {
+        let mut chars = rest.chars();
+        let Some(letter) = chars.next().filter(|c| options.contains(c)) else {
+            return whole();
+        };
+        letters.push(letter.to_string());
+        rest = chars.as_str();
+        if rest.is_empty() {
+            return (letters, String::new());
+        }
+        if let Some(comment) = rest.strip_prefix(':') {
+            return (letters, comment.trim().to_string());
+        }
+        rest = match [", and ", " and ", ", "]
+            .iter()
+            .find_map(|joint| rest.strip_prefix(joint))
+        {
+            Some(next) => next,
+            None => return whole(),
+        };
+    }
+}
+
+/// A question heading's id, its parent and the parent's option for a follow-up, and its title,
+/// from a heading's level and text.
+pub fn question_heading(level: u32, text: &str) -> Option<QuestionHeading> {
+    heading(&format!("{} {text}", "#".repeat(level as usize)))
+}
+
+/// A question's option letter, `- **A (recommended). ...**`, from an item's first strong text,
+/// with whether it is recommended and the text after it.
+pub fn option_heading(strong: &str) -> Option<(char, bool, &str)> {
+    let mut chars = strong.chars();
+    let letter = chars.next().filter(|c| c.is_ascii_uppercase())?;
+    let rest = chars.as_str();
+    if let Some(text) = rest.strip_prefix(" (recommended).") {
+        return Some((letter, true, text.trim_start()));
+    }
+    rest.strip_prefix(". ")
+        .or_else(|| (rest == ".").then_some(""))
+        .map(|text| (letter, false, text))
 }

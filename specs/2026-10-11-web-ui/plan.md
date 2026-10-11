@@ -255,9 +255,9 @@ git commit -m "feat(web-ui): the document tree of a workflow file"
 
 - Create: `crates/core/src/files/items.rs`, `crates/core/src/files/spec.rs`,
   `crates/core/src/files/rulings.rs`
-- Modify: `crates/core/src/files/clarifications.rs` (options, context, answer split and compose),
-  `crates/core/src/files/plan.rs` (steps with lines), `crates/core/src/files/review.rs` (edit and
-  remove a comment)
+- Modify: `crates/core/src/files/clarifications.rs` (answer split and compose, question and option
+  headings), `crates/core/src/files/review.rs` (edit and remove a comment); plan tasks with their
+  steps are read in `items.rs`, from the document's task items
 - Test: `crates/core/tests/items.rs`, `crates/core/tests/files.rs`
 
 **Interfaces:**
@@ -284,7 +284,7 @@ git commit -m "feat(web-ui): the document tree of a workflow file"
     `review::remove_comment(text: &str, number: u32) -> Result<Option<String>, ReviewError>` (`None`
     when no comment is left), renumbering from C1.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `compose_answer`: `(["A"], "")` → `A`; `(["B","C"], "")` → `B and C`; `(["A","B","C"], "")` →
   `A, B and C`; `(["A"], "but only for the dev server")` → `A: but only for the dev server`;
@@ -307,12 +307,12 @@ git commit -m "feat(web-ui): the document tree of a workflow file"
 - `edit_comment` replaces C1's text, quote kept; `remove_comment` of C1 of two renumbers C2 to C1;
   of the last returns `None`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test items`
 - Expected: FAIL to compile, `cannot find function items`.
 
-- [ ] **Step 3: Implement the items and the helpers**
+- [x] **Step 3: Implement the items and the helpers**
 
 Walk the document's blocks: a question is a heading block whose text matches `clarifications`'
 `heading`; its option items are the list items whose first `strong` span starts with `A.` or
@@ -321,12 +321,12 @@ recommended:" as `why`. Story headings `US\d+: Title (P\d)`; scenarios are the i
 ordered list after "Acceptance scenarios:". `answer` and `answer_line` come from
 `clarifications::parse`, so both stay one parser.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo test -p uraeda-core && cargo clippy --workspace --all-targets -- -D warnings`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core/src/files crates/core/tests

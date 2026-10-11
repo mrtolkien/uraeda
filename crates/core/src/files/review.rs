@@ -83,6 +83,8 @@ pub enum ReviewError {
         "line {line}: \"{heading}\" is not \"Lines N–M, under \\\"<heading>\\\"\", \"Line N, under \\\"<heading>\\\"\", or \"General\""
     )]
     BadAnchor { line: usize, heading: String },
+    #[error("no comment C{0}")]
+    NoComment(u32),
 }
 
 fn anchor(text: &str) -> Option<Anchor> {
@@ -204,4 +206,43 @@ pub fn render(review: &Review, title: &str) -> String {
     text.truncate(text.trim_end().len());
     text.push('\n');
     text
+}
+
+/// The title of a review file, from its `# ` line.
+fn title_of(text: &str) -> String {
+    text.lines()
+        .find_map(|line| line.strip_prefix("# "))
+        .unwrap_or_default()
+        .trim()
+        .to_string()
+}
+
+/// Replaces the text of comment `number`, its anchor and quote kept.
+pub fn edit_comment(text: &str, number: u32, comment: &str) -> Result<String, ReviewError> {
+    let mut review = parse(text)?;
+    let found = review
+        .comments
+        .iter_mut()
+        .find(|c| c.number == number)
+        .ok_or(ReviewError::NoComment(number))?;
+    found.text = comment.trim().to_string();
+    Ok(render(&review, &title_of(text)))
+}
+
+/// Removes comment `number`, and numbers the others from C1 again. `None` when no comment is left,
+/// so the review file goes.
+pub fn remove_comment(text: &str, number: u32) -> Result<Option<String>, ReviewError> {
+    let mut review = parse(text)?;
+    let before = review.comments.len();
+    review.comments.retain(|c| c.number != number);
+    if review.comments.len() == before {
+        return Err(ReviewError::NoComment(number));
+    }
+    if review.comments.is_empty() {
+        return Ok(None);
+    }
+    for (index, comment) in review.comments.iter_mut().enumerate() {
+        comment.number = index as u32 + 1;
+    }
+    Ok(Some(render(&review, &title_of(text))))
 }
