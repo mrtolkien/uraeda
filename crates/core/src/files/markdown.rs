@@ -55,10 +55,10 @@ pub(crate) fn options() -> Options {
 }
 
 /// The 1-based line of each byte offset.
-struct Lines(Vec<usize>);
+pub(crate) struct Lines(Vec<usize>);
 
 impl Lines {
-    fn new(text: &str) -> Lines {
+    pub(crate) fn new(text: &str) -> Lines {
         Lines(
             std::iter::once(0)
                 .chain(text.match_indices('\n').map(|(index, _)| index + 1))
@@ -66,7 +66,7 @@ impl Lines {
         )
     }
 
-    fn of(&self, offset: usize) -> usize {
+    pub(crate) fn of(&self, offset: usize) -> usize {
         self.0.partition_point(|&start| start <= offset)
     }
 }

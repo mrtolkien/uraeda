@@ -199,7 +199,7 @@ From the spec, exact texts and values:
   - `LineRange { start: u32, end: u32 }`. Every type derives `serde::Serialize` (camelCase) and
     `napi(object)` / `napi(string_enum)` behind `cfg_attr(feature = "napi", ...)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Table-driven, each `(markdown, expected blocks as (kind, parent, start_line, end_line))`:
 
@@ -223,12 +223,12 @@ title spans; `- [pro] a` gives marker `pro` and spans `a`; `- ! careful` gives `
 work?"`→`q2-how-does-it-work`, duplicates `-1`); every block gets `heading`, the nearest heading above it; `hash`is 64 hex characters and changes with the text. SC-006:`every_example_and_specs_file_parses`reads every`.md`under`skills/uraeda/assets/example/specs`and`specs/`,
 and asserts every line belongs to a block or the frontmatter, or is blank.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test document`
 - Expected: FAIL to compile, `unresolved import uraeda_core::files::document`.
 
-- [ ] **Step 3: Implement `document::parse`**
+- [x] **Step 3: Implement `document::parse`**
 
 pulldown-cmark's offset iterator with `markdown::options()` plus `ENABLE_GFM`; a stack of open
 blocks gives `parent`; lines from the offsets, as `markdown.rs`'s `Lines` does (make it
@@ -237,12 +237,12 @@ from the spans. Links resolve with `workspace::resolve(dir, target)`, `None` for
 `>` callout kind from `BlockQuoteKind`; `[!QUESTION]`, which pulldown-cmark does not know, from the
 quote's first line.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo test -p uraeda-core && cargo clippy --workspace --all-targets -- -D warnings`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core/src/files crates/core/tests/document.rs
