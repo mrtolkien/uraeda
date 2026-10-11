@@ -36,3 +36,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a machine without `date` gets the UTC date, a day off near midnight; the record
   blocks carry that date.
 - **Where**: task 3, `crates/core/src/today.rs`
+
+## R4: `ura next --json` with nothing to do
+
+- **Decision**: with no work for an agent, `ura next --json` prints `"feature": null` and a step
+  whose `name` is `"none"`, the same object as every other step.
+- **Rationale**: US2.5 says it prints `"step": "none"`; a step that is an object everywhere else and
+  a string here would force every reader to check its type.
+- **Alternatives considered**: `"step": "none"` as a string, as the scenario reads literally.
+- **If wrong**: readers checking `step == "none"` must read `step.name` instead.
+- **Where**: task 4, `crates/cli/src/next.rs`

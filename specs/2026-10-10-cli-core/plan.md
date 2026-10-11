@@ -430,7 +430,7 @@ git commit -m "feat(cli-core): ura status"
   `Unknown`), and `target::resolve` from task 6 is not needed yet: `next` takes a folder name or
   slug here, and task 6 moves it onto `resolve`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `crates/core/tests/steps.rs`, table-driven: one row per row of the skill's two tables, with the
   feature state and the expected step name, including `spec-revision` (spec `changes-requested`),
@@ -439,22 +439,22 @@ git commit -m "feat(cli-core): ura status"
 - `crates/cli/tests/next.rs`: US2.1 to US2.5, with the [mockup](mockups/cli-output.md#ura-next)'s
   text; US2.4 runs with `PATH` lacking `gh`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-cli --test next`
 - Expected: FAIL, `unrecognized subcommand 'next'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `next` prints the step's name, the branch, and `follow <reference>`; `--json` prints
 `{ "version": 1, "feature": ..., "step": ... }`, or `"step": "none"` with exit 0.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates

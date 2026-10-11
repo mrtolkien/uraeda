@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 pub mod repo;
+pub mod texts;
 
 use std::path::PathBuf;
 

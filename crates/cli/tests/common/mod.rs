@@ -2,11 +2,14 @@
 
 #[path = "../../../core/tests/common/repo.rs"]
 pub mod repo;
+#[path = "../../../core/tests/common/texts.rs"]
+pub mod texts;
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 pub use repo::TestRepo;
+pub use texts::*;
 
 /// A path inside the repository's shared `fixtures/` folder.
 pub fn fixture(path: &str) -> String {
@@ -102,60 +105,4 @@ pub fn feature_path(folder: &str) -> String {
         Some(bug) => format!("specs/bugs/{bug}"),
         None => format!("specs/{folder}"),
     }
-}
-
-pub fn proposal() -> String {
-    "# Feature\n\n## What\n\nA thing.\n\n## Why\n\nA reason.\n".to_string()
-}
-
-fn block(status: &str, first_line: &str) -> String {
-    let kind = if status == "awaiting-human" {
-        "IMPORTANT"
-    } else {
-        "NOTE"
-    };
-    format!("> [!{kind}]\n>\n> {first_line}\n>\n> - A point.\n")
-}
-
-/// A round of questions: one question per answer, each with options A and B.
-pub fn clarifications(status: &str, first_line: &str, answers: &[&str]) -> String {
-    let mut text = format!(
-        "---\nstatus: {status}\n---\n\n# Clarifications, round 01: Feature\n\n{}\n## Context\n\nContext.\n",
-        block(status, first_line)
-    );
-    for (index, answer) in answers.iter().enumerate() {
-        let separator = if answer.is_empty() { "" } else { " " };
-        text.push_str(&format!(
-            "\n## Q{}: Question {}?\n\nWhy.\n\n- **A (recommended). One.**\n  - [pro] p\n- **B. Two.**\n  - [con] c\n\n**Answer:**{separator}{answer}\n",
-            index + 1,
-            index + 1
-        ));
-    }
-    text.push_str("\n## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n");
-    text
-}
-
-pub fn spec(status: &str, revision: u32, clarifications: u32) -> String {
-    format!(
-        "---\nstatus: {status}\nrevision: {revision}\nclarifications: {clarifications}\nrisk-tier: low\n---\n\n# Spec: Feature\n\n{}\nA feature.\n\n## Decisions\n\nRelied on:\n\n- None.\n",
-        block(status, "Spec to review, about 20 minutes.")
-    )
-}
-
-/// A plan whose tasks have `done` of `total` steps checked.
-pub fn plan(status: &str, spec_revision: u32, tasks: &[(&str, usize, usize)]) -> String {
-    let mut text =
-        format!("---\nstatus: {status}\nspec-revision: {spec_revision}\n---\n\n# Plan: Feature\n");
-    for (index, (title, done, total)) in tasks.iter().enumerate() {
-        text.push_str(&format!("\n## Task {}: {title}\n\n", index + 1));
-        for step in 0..*total {
-            let mark = if step < *done { "x" } else { " " };
-            text.push_str(&format!("- [{mark}] **Step {}: Do**\n", step + 1));
-        }
-    }
-    text
-}
-
-pub fn decision(status: &str) -> String {
-    format!("---\nstatus: {status}\napproved-by:\n---\n\n# Topic\n\nA choice.\n")
 }
