@@ -135,15 +135,18 @@ pub fn read_workspace(repo: &Path) -> Result<WorkspaceView> {
                 current_branch: git.current_branch(),
                 features: Vec::new(),
                 priorities: Vec::new(),
+                priorities_hash: String::new(),
                 drafts: Vec::new(),
                 no_specs: Some(root),
             });
         }
         Err(error) => return Err(refused(error.to_string())),
     };
-    Ok(WorkspaceView::new(&workspace, |feature| {
-        checked(&git, feature)
-    }))
+    let (priorities, _) = on_default(&git, &workspace, edits::PATH);
+    Ok(WorkspaceView {
+        priorities_hash: hash(&priorities.unwrap_or_default()),
+        ..WorkspaceView::new(&workspace, |feature| checked(&git, feature))
+    })
 }
 
 /// One feature.
@@ -157,6 +160,45 @@ fn find<'a>(workspace: &'a Workspace, folder: &str) -> Result<&'a Feature> {
     workspace
         .feature(folder)
         .ok_or_else(|| refused(format!("no feature {folder}")))
+}
+
+/// Whether a path from the top level is plain: relative, without `.`, `..`, or hidden parts.
+fn plain(path: &str) -> bool {
+    path.split('/')
+        .all(|part| !part.is_empty() && !part.starts_with('.'))
+}
+
+fn is_draft(path: &str) -> bool {
+    path.starts_with("specs/drafts/") || path.starts_with("specs/backlog/")
+}
+
+/// Refuses any path but a draft's: a file or a postponed folder of `specs/drafts/` or
+/// `specs/backlog/`, or a file of that folder.
+fn draft_path(path: &str) -> Result<()> {
+    let rest = path
+        .strip_prefix("specs/drafts/")
+        .or_else(|| path.strip_prefix("specs/backlog/"));
+    match rest {
+        Some(rest) if plain(path) && rest.split('/').count() <= 2 => Ok(()),
+        _ => Err(refused(format!("{path} is not a draft"))),
+    }
+}
+
+/// The feature or bug whose folder holds `path`.
+fn feature_of<'a>(workspace: &'a Workspace, path: &str) -> Option<&'a Feature> {
+    workspace.features.iter().find(|feature| {
+        path.strip_prefix(&feature.path)
+            .is_some_and(|rest| rest.starts_with('/'))
+    })
+}
+
+/// The feature or bug of a workflow file, `specs/<folder>/<name>` or `specs/bugs/<folder>/<name>`,
+/// and the file's name.
+fn feature_file<'a, 'p>(workspace: &'a Workspace, path: &'p str) -> Result<(&'a Feature, &'p str)> {
+    feature_of(workspace, path)
+        .map(|feature| (feature, &path[feature.path.len() + 1..]))
+        .filter(|(_, name)| plain(path) && !name.contains('/'))
+        .ok_or_else(|| refused(format!("{path} is not a file of a feature")))
 }
 
 fn version(name: &str, text: String, dir: &str) -> VersionView {
@@ -472,6 +514,7 @@ pub fn read_priorities(repo: &Path) -> Result<Priorities> {
 
 /// A draft, for its editor.
 pub fn read_draft(repo: &Path, path: &str) -> Result<DraftView> {
+    draft_path(path)?;
     let (git, workspace) = open(repo)?;
     let (text, committed) = on_default(&git, &workspace, path);
     let text = text.ok_or_else(|| refused(format!("no draft {path}")))?;
@@ -501,25 +544,37 @@ fn reach_default(repo: &Path) -> Result<place::Place> {
     Ok(place::reach(&git, &default)?)
 }
 
-/// Drafts a priority line by its id, like `next-2`.
-pub fn create_draft(repo: &Path, id: &str) -> Result<DraftView> {
+/// Drafts a priority line by its id, like `next-2`, over the priorities read at `previous`: an id
+/// names another line once lines are added or moved.
+pub fn create_draft(repo: &Path, id: &str, previous: &str) -> Result<DraftView> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
+    if edits::read(&place).hash != previous {
+        return Err(ApiError {
+            code: "conflict",
+            message: "PRIORITIES.md changed on disk. Nothing was drafted.".to_string(),
+            output: None,
+        });
+    }
     let drafted = draft::create(&place, id)?;
     read_draft(repo, &drafted.path)
 }
 
 /// The place a text file is written in: the default branch for drafts, else the feature's branch.
 fn text_place(repo: &Path, path: &str) -> Result<place::Place> {
-    if path.starts_with("specs/drafts/") || path.starts_with("specs/backlog/") {
+    if is_draft(path) {
+        draft_path(path)?;
         return reach_default(repo);
     }
-    let folder = path
-        .strip_prefix("specs/")
-        .and_then(|rest| rest.split_once('/'))
-        .map(|(folder, _)| folder)
-        .ok_or_else(|| refused(format!("{path} is not a file of specs/")))?;
-    Ok(reach(repo, folder)?.2)
+    let (git, workspace) = open(repo)?;
+    let (feature, _) = feature_file(&workspace, path)?;
+    let branch = feature.branch.as_deref().ok_or_else(|| {
+        refused(format!(
+            "{} is merged: it has no branch to write on",
+            feature.folder
+        ))
+    })?;
+    Ok(place::reach(&git, branch)?)
 }
 
 /// Saves a draft or a proposal as typed, over the version read at `previous`. Returns the new
@@ -543,6 +598,7 @@ pub fn commit_text(repo: &Path, path: &str) -> Result<CommitView> {
 
 /// Starts a drafted feature in its own worktree.
 pub fn start_feature(repo: &Path, draft: &str, slug: Option<&str>) -> Result<StartedView> {
+    draft_path(draft)?;
     let _lock = write_lock();
     let (git, workspace) = open(repo)?;
     match start::run(&git, &workspace, draft, slug, today::today(), false) {
@@ -626,18 +682,14 @@ pub fn discard_priorities(repo: &Path) -> Result<Priorities> {
 /// A draft or a proposal, for its editor: a draft from the default branch, a proposal from its
 /// feature.
 pub fn read_text(repo: &Path, path: &str) -> Result<DraftView> {
-    if path.starts_with("specs/drafts/") || path.starts_with("specs/backlog/") {
+    if is_draft(path) {
         return read_draft(repo, path);
     }
     let (git, workspace) = open(repo)?;
-    let (folder, name) = path
-        .strip_prefix("specs/")
-        .and_then(|rest| rest.split_once('/'))
-        .ok_or_else(|| refused(format!("{path} is not a file of specs/")))?;
-    let feature = find(&workspace, folder)?;
+    let (feature, name) = feature_file(&workspace, path)?;
     let text = feature
         .text(name)
-        .ok_or_else(|| refused(format!("{folder} has no {name}")))?
+        .ok_or_else(|| refused(format!("{} has no {name}", feature.folder)))?
         .to_string();
     let committed = feature
         .branch
@@ -668,10 +720,7 @@ pub fn read_raw(repo: &Path, path: &str) -> Result<String> {
         return Err(refused(format!("{path}: no such file")));
     }
     let (git, workspace) = open(repo)?;
-    let feature = path
-        .strip_prefix("specs/")
-        .and_then(|rest| rest.split_once('/'))
-        .and_then(|(folder, _)| workspace.feature(folder));
+    let feature = feature_of(&workspace, path);
     let bytes = match feature {
         Some(feature) => match feature_dir(&git, feature) {
             Some(dir) => std::fs::read(dir.join(path)).ok(),

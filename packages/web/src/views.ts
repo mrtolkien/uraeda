@@ -38,6 +38,7 @@ export const WorkspaceView = view<Workspace>()({
   currentBranch: true,
   features: true,
   priorities: true,
+  prioritiesHash: true,
   drafts: true,
   noSpecs: true,
 });

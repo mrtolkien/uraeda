@@ -82,7 +82,8 @@ export function Link({
 export function pathLink(path: string): { href: string; inApp: boolean } {
   const [, hash = ""] = path.split("#");
   const file = path.split("#")[0];
-  const feature = /^specs\/(\d{4}-\d{2}-\d{2}-[^/]+)\/([^/]+\.md)$/.exec(file);
+  // A feature's folder is in `specs/`, a bug's in `specs/bugs/`: both open at `/f/<folder>`.
+  const feature = /^specs\/(?:bugs\/)?(\d{4}-\d{2}-\d{2}-[^/]+)\/([^/]+\.md)$/.exec(file);
   if (feature) {
     return { href: `/f/${feature[1]}/${feature[2]}${hash ? `#${hash}` : ""}`, inApp: true };
   }

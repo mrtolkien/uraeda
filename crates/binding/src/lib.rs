@@ -216,10 +216,10 @@ pub fn request_changes(
     job(move || api::request_changes(Path::new(&repo), &folder, &file, summary.as_deref()))
 }
 
-/// Drafts a priority line by its id, like `next-2`.
+/// Drafts a priority line by its id, like `next-2`, over the priorities read at `previous`.
 #[napi(ts_return_type = "Promise<DraftView>")]
-pub fn create_draft(repo: String, id: String) -> AsyncTask<Job<DraftView>> {
-    job(move || api::create_draft(Path::new(&repo), &id))
+pub fn create_draft(repo: String, id: String, previous: String) -> AsyncTask<Job<DraftView>> {
+    job(move || api::create_draft(Path::new(&repo), &id, &previous))
 }
 
 /// Saves a draft or a proposal as typed, over the version read at `previous`; resolves with the

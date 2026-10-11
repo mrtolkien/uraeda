@@ -44,7 +44,8 @@ pub fn save(place: &Place, path: &str, text: &str, previous: &str) -> Result<Str
 }
 
 /// The commit of a draft, `chore: draft <title>`, with `PRIORITIES.md` when it changed; of a
-/// proposal, `chore(<slug>): proposal`, or `chore(<slug>): edit the proposal` once committed.
+/// proposal, `chore(<slug>): proposal`, or `chore(<slug>): edit the proposal` once committed; and
+/// the same for a bug's report.
 pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
     checked(path)?;
     let git = Git::open(&place.root)?;
@@ -66,19 +67,25 @@ pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
             paths.push(PRIORITIES.to_string());
         }
         format!("chore: draft {title}")
-    } else if let Some(folder) = path
-        .strip_prefix("specs/")
-        .and_then(|rest| rest.strip_suffix("/proposal.md"))
-        && let Some(slug) = folder_slug(folder)
+    } else if let Some((slug, file)) = path
+        .strip_prefix("specs/bugs/")
+        .and_then(|rest| rest.strip_suffix("/report.md"))
+        .map(|folder| (folder, "report"))
+        .or_else(|| {
+            path.strip_prefix("specs/")
+                .and_then(|rest| rest.strip_suffix("/proposal.md"))
+                .map(|folder| (folder, "proposal"))
+        })
+        .and_then(|(folder, file)| Some((folder_slug(folder)?, file)))
     {
         if committed(path).is_some() {
-            format!("chore({slug}): edit the proposal")
+            format!("chore({slug}): edit the {file}")
         } else {
-            format!("chore({slug}): proposal")
+            format!("chore({slug}): {file}")
         }
     } else {
         return Err(ActionError::Refused(format!(
-            "{path} is not a draft or a proposal"
+            "{path} is not a draft, a proposal, or a report"
         )));
     };
     if committed(path).is_some_and(|bytes| bytes == text.as_bytes()) && paths.len() == 1 {

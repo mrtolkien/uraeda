@@ -105,6 +105,8 @@ pub struct WorkspaceView {
     pub current_branch: Option<String>,
     pub features: Vec<FeatureView>,
     pub priorities: Vec<PriorityView>,
+    /// The hash of `PRIORITIES.md` as read, for drafting a line by its id.
+    pub priorities_hash: String,
     pub drafts: Vec<String>,
     /// The repository's path when it has no `specs/` folder: nothing else is read.
     pub no_specs: Option<String>,
@@ -281,6 +283,7 @@ impl WorkspaceView {
                     draft: entry.draft.clone(),
                 })
                 .collect(),
+            priorities_hash: String::new(),
             drafts: workspace.drafts.clone(),
             no_specs: None,
         }

@@ -139,3 +139,110 @@ fn nested_priority_lines_come_as_spans() {
     assert_eq!(text, "see notes");
     assert!(nested[0].iter().any(|s| s.link.is_some()));
 }
+
+const BUG: &str = "2026-10-11-crash";
+const REPORT: &str = "specs/bugs/2026-10-11-crash/report.md";
+
+fn with_bug(repo: &TestRepo) {
+    repo.switch_new(&format!("fix/{BUG}"));
+    repo.write(REPORT, "# Report: Crash\n\nIt breaks.\n");
+    repo.git(&["add", "specs"]);
+    repo.git(&["commit", "--quiet", "--no-verify", "-m", "report"]);
+    repo.switch("main");
+}
+
+/// Codex review: a draft path never leaves the drafts.
+#[test]
+fn draft_paths_stay_in_the_drafts() {
+    let repo = repo();
+    // With both folders there, `..` resolves through them.
+    repo.write("specs/drafts/idea.md", "# Idea\n");
+    repo.write("specs/backlog/later.md", "# Later\n");
+    let readme = uraeda_core::files::document::hash("# Specs\n");
+
+    for path in [
+        "specs/drafts/../README.md",
+        "specs/drafts/../../.env",
+        "specs/backlog/../PRIORITIES.md",
+    ] {
+        assert!(api::read_text(repo.path(), path).is_err(), "{path}");
+        assert!(api::read_draft(repo.path(), path).is_err(), "{path}");
+        assert!(
+            api::save_text(repo.path(), path, "x", &readme).is_err(),
+            "{path}"
+        );
+    }
+    assert_eq!(
+        std::fs::read_to_string(repo.path().join("specs/README.md")).unwrap(),
+        "# Specs\n"
+    );
+}
+
+/// Codex review: starting a feature takes a draft, never another file.
+#[test]
+fn a_feature_starts_from_a_draft_only() {
+    let repo = repo();
+    let outside = repo.parent().join("victim.md");
+    std::fs::write(&outside, "# Victim\n\n## What\n\nKeep me.\n").unwrap();
+
+    for draft in [
+        outside.to_str().unwrap(),
+        "specs/drafts/../../../victim.md",
+        "specs/README.md",
+    ] {
+        assert!(
+            api::start_feature(repo.path(), draft, Some("victim")).is_err(),
+            "{draft}"
+        );
+    }
+    assert!(outside.exists());
+    assert!(repo.path().join("specs/README.md").exists());
+}
+
+/// Codex review: a bug's report opens, saves, and commits in its editor.
+#[test]
+fn a_bug_report_is_edited_on_its_branch() {
+    let repo = repo();
+    with_bug(&repo);
+
+    let read = api::read_text(repo.path(), REPORT).unwrap();
+    assert_eq!(read.title, "Report: Crash");
+    api::save_text(
+        repo.path(),
+        REPORT,
+        "# Report: Crash\n\nIt breaks twice.\n",
+        &read.hash,
+    )
+    .unwrap();
+    api::commit_text(repo.path(), REPORT).unwrap();
+    assert_eq!(
+        repo.git(&["show", &format!("fix/{BUG}:{REPORT}")]),
+        "# Report: Crash\n\nIt breaks twice.\n"
+    );
+}
+
+/// Codex review: Discard drops staged edits too.
+#[test]
+fn discarding_the_priorities_drops_staged_edits() {
+    let repo = repo();
+    let read = api::read_priorities(repo.path()).unwrap();
+    api::add_priority(repo.path(), "now", "An idea", &read.hash).unwrap();
+    repo.git(&["add", "specs/PRIORITIES.md"]);
+
+    let read = api::discard_priorities(repo.path()).unwrap();
+
+    assert_eq!(read.changes, 0);
+    assert_eq!(repo.git(&["status", "--porcelain", "--", "specs"]), "");
+}
+
+/// Codex review: a draft is made for the line the human saw, or not at all.
+#[test]
+fn drafting_is_refused_once_the_priorities_changed() {
+    let repo = repo();
+    let read = api::read_priorities(repo.path()).unwrap();
+    let edited = api::add_priority(repo.path(), "now", "An idea", &read.hash).unwrap();
+
+    let error = api::create_draft(repo.path(), "now-1", &read.hash).unwrap_err();
+    assert_eq!(error.code, "conflict");
+    api::create_draft(repo.path(), "now-1", &edited.hash).unwrap();
+}
