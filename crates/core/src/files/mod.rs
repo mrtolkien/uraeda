@@ -2,6 +2,7 @@
 //! Windows line endings included.
 
 pub mod clarifications;
+pub mod document;
 pub mod frontmatter;
 pub mod markdown;
 pub mod plan;
