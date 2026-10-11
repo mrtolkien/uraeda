@@ -802,18 +802,18 @@ git commit -m "feat(cli-core): ura start"
 
 - Consumes: every command; `ura check`'s rule list (task 5).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `crates/cli/tests/skill.rs`: `every_command_is_named_in_the_references` (SC-004: each subcommand of
 `ura --help` appears as `` `ura <name>`` in `skills/uraeda/`), and
 `check_passes_on_the_templates_example_and_specs` (US9's files, through `ura check`).
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `cargo test -p uraeda-cli --test skill`
 - Expected: FAIL, `ura status` is not named in the references.
 
-- [ ] **Step 3: Write the skill changes**
+- [x] **Step 3: Write the skill changes**
 
 Each step's reference names its command next to the manual instructions (US9.1); the review files
 replace `## Changes requested` everywhere (SKILL's status table, coming back to the human, spec,
@@ -825,12 +825,12 @@ link from the repository root; the setup creates the four folders with `.gitkeep
 (US9.6); every rule of `ura check` (task 5) in words; agents set human statuses with `--no-commit`
 and their own commit message.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add skills specs/README.md README.md crates/cli/tests/skill.rs

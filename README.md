@@ -9,8 +9,8 @@ a plain text file, committed to git, and you answer whenever you have time.
 
 > [!WARNING]
 >
-> Uraeda is an early proof of concept. It ships today as an [agent skill](skills/uraeda/SKILL.md),
-> with templates and a filled-in example. Installation instructions will come later.
+> Uraeda is an early proof of concept. It ships as an [agent skill](skills/uraeda/SKILL.md), with
+> templates and a filled-in example, and an optional command-line tool, `ura`.
 
 ## Why Uraeda
 
@@ -43,7 +43,8 @@ It is built for technical users, who read code and designs.
 You run each step yourself: open your coding agent in the repository, and say "continue recurring
 tasks", "I answered the questions", or "what is next?". The agent reads the `specs/` folder, finds
 the next step from the files alone, does it, commits, and stops when it needs you. You answer or
-approve by editing the file, or by telling the agent, and run it again later.
+approve by editing the file, by telling the agent, or with `ura answer` and `ura review`, and run it
+again later.
 
 A runner that starts the agent when you push an answer is planned: see
 [the project status](#project-status). The skill follows the
@@ -148,12 +149,30 @@ raise new questions, a second round follows, `discovery-02.md` and `clarificatio
 on. Bugs get a lighter flow: the agent reproduces the bug with a failing test, finds the root cause,
 and proposes a fix for you to approve.
 
-To start in a project, ask the agent to "set up specs/": it creates the folder, and drafts the
-constitution with you.
+To start in a project, run `ura init`, or ask the agent to "set up specs/": either creates the
+folder, and the agent drafts the constitution with you.
 
 The workflow itself is in the [Uraeda skill](skills/uraeda/SKILL.md), with one
 [reference](skills/uraeda/references/) per step and
 [templates](skills/uraeda/assets/templates/specs/) for every file.
+
+## The `ura` CLI
+
+`ura` performs the mechanical parts of the workflow, for you and for agents. It is optional: the
+skill says how to do each step by hand, and names the command that does it.
+
+```sh
+ura init                                   # specs/, and the skill for your agents
+ura status                                 # every feature and bug, and who it waits on
+ura next                                   # the next step for an agent, from the skill's table
+ura check                                  # every workflow file against the skill's rules
+ura draft "listener"                       # a line of PRIORITIES.md becomes a draft
+ura start git-listener-process             # a written draft becomes a started feature
+ura answer cli-core Q3 "B, simpler"        # one answer; --submit sends the round
+ura review cli-core --comment 50-52 "Why?" # a comment; --approve or --request-changes
+```
+
+Every command works without a terminal, and the read commands print JSON with `--json`.
 
 ## Inspirations
 
@@ -167,15 +186,15 @@ The workflow itself is in the [Uraeda skill](skills/uraeda/SKILL.md), with one
 
 ## Building the tools
 
-The tools are a skeleton for now: a Rust core, the `ura` CLI, a server, and a web UI, which only
-show the status of workflow files. With Rust, Node 24, and pnpm, or in `nix develop`, where
-`pnpm install` stands for `vp install`:
+The tools are a Rust core, the `ura` CLI, and a server with a web UI that only shows the status of
+workflow files for now. With Rust, Node 24, and pnpm, or in `nix develop`, where `pnpm install`
+stands for `vp install`:
 
 ```sh
 vp install         # dependencies
 vp run ready       # every check and test, as CI runs them
 vp run start       # the web UI on http://127.0.0.1:4310, reading ./specs
-cargo run -p uraeda-cli -- status specs/2026-10-10-stack-decision
+cargo run -p uraeda-cli -- status
 ```
 
 The code is under the MIT or Apache-2.0 licenses, at your option.

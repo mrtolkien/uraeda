@@ -26,6 +26,7 @@ Without it, the file names and their `status` fields still tell where each featu
     found, never decisions
   - `clarifications-NN.md`: the questions only a human can decide, with their answers
   - `spec.md`: the feature's behaviour and technical design, approved by a human, amended in place
+  - `spec-review.md`, `plan-review.md`: a human's review comments, when the latest review has any
   - `plan.md`: the implementation tasks, with the files and tests of each, amended in place
   - `data-model.md` and `contracts/`: entities and interfaces, when needed
   - `mockups/`: what users will see, for any UI work
@@ -52,6 +53,16 @@ feature's spec is approved.
 A file waiting for a human opens with a `> [!IMPORTANT]` block: what is asked, how long it takes,
 and what needs attention. Once the human has acted, it becomes a `> [!NOTE]` block that records the
 outcome and its date, like "Approved on 2026-10-09".
+
+A review's comments are in a review file next to the reviewed one, `spec-review.md` for `spec.md`:
+each comment quotes the lines it is about, with their numbers and the heading above them. Questions
+end with **Notes:**, for the human's notes on the points settled without them.
+
+## The `ura` CLI
+
+The optional `ura` command-line tool reads and writes these files: `ura status` shows where each
+feature stands, `ura check` validates the files, `ura answer` and `ura review` record answers and
+reviews, and `ura draft` and `ura start` begin features. Everything it does can be done by hand.
 
 ## Links
 
