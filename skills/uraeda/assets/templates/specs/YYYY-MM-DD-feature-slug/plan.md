@@ -57,6 +57,11 @@ accepted. "None." otherwise.]
 | Abstraction or exception | Why it is needed | Simpler alternative rejected because |
 | ------------------------ | ---------------- | ------------------------------------ |
 
+## Review comments
+
+[Optional: only when the spec was approved with comments, each comment of `spec-review.md`, and the
+task that carries it out.]
+
 ---
 
 ## Task 1: [Component or deliverable]

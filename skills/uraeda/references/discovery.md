@@ -51,8 +51,8 @@ problem, so the human can choose a small scope knowingly, not by accident.
 1. `proposal.md`: the human's words. Read it for its intent as much as for its requests.
 2. Earlier rounds, if any: their discovery files, questions, and answers. Build on them, and never
    edit them: a round is a record of what the human was asked and answered.
-3. The `## Changes requested` section of `spec.md`, or the reason given by the plan or
-   implementation step, if one sent the workflow back here.
+3. The review file of `spec.md`, `spec-review.md`, when the spec's changes requested led here, or
+   the reason given by the plan or implementation step, if one sent the workflow back here.
 4. The constitution, and the active decisions whose **Applies to** covers the feature.
 5. Other features in flight: list the open feature branches (`git branch -a`), and read the specs,
    proposed decisions, and data changes of those that touch the same code, stored data, or decisions
@@ -259,7 +259,8 @@ so it reads linearly, with every piece of context they need at the point they ne
    code. It writes back your understanding: the human can see at once if you misread their intent.
    In a later round, what happened since the last one, and why new questions came up.
 3. **The questions**, sorted by impact, most important first, each followed by its follow-ups.
-4. **Settled without the human**, at the end.
+4. **Settled without the human**, at the end, then the line `**Notes:**`, left empty for the human's
+   notes on the settled points.
 
 ## Question structure
 
@@ -366,6 +367,9 @@ Before committing, read both files again with fresh eyes, and fix what you find 
 | "The options are clear enough as short labels"            | The human reads each option without the context. Write each as a full sentence.                  |
 | "I'll recommend in the discovery, it saves time"          | Discovery holds evidence. Recommendations go with the questions, where the human weighs them.    |
 | "Nobody will notice I didn't read that page"              | The next agent builds on your sources. Cite what you read; list the rest under **Not checked**.  |
+
+With `ura`, run `ura check` on the feature's folder last: it verifies the files' structure, the
+questions' numbering and answer lines, and their links.
 
 ## Commit
 

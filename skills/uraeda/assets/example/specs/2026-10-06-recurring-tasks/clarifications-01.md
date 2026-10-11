@@ -227,3 +227,5 @@ Why it matters: it decides whether the quick path from Q6 works on every task.
   date-fns' `addMonths` does. See [discovery](discovery-01.md#dates-in-javascript).
 - **Repeating tasks show a repeat icon** in the list, next to the due date, with the project's
   existing icons. See [discovery](discovery-01.md#important-reads).
+
+**Notes:**
