@@ -22,6 +22,8 @@ pub enum StepName {
     Assess,
     AssessRevision,
     Fix,
+    /// Merged into the default branch.
+    Done,
     None,
 }
 
@@ -42,6 +44,7 @@ impl StepName {
             StepName::Assess => "assess",
             StepName::AssessRevision => "assess-revision",
             StepName::Fix => "fix",
+            StepName::Done => "done",
             StepName::None => "none",
         }
     }
@@ -52,6 +55,8 @@ impl StepName {
 pub enum WaitsOn {
     Human,
     Agent,
+    /// Nothing is left to do: the feature is merged.
+    Nobody,
 }
 
 /// The state of a branch's pull request.
@@ -108,6 +113,11 @@ impl Step {
 
     pub fn none() -> Step {
         Step::new(StepName::None, WaitsOn::Agent)
+    }
+
+    /// The step of a feature merged into the default branch.
+    pub fn done() -> Step {
+        Step::new(StepName::Done, WaitsOn::Nobody)
     }
 
     /// Whether the pull request's state decides this step.
