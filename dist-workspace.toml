@@ -26,3 +26,5 @@ install-path = "CARGO_HOME"
 install-updater = false
 # Build each package alone: a workspace build turns on the binding's napi feature in `ura`
 precise-builds = true
+# The release workflow runs on tags only: CI runs `dist plan` on pull requests
+pr-run-mode = "skip"
