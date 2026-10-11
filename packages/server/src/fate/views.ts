@@ -49,6 +49,7 @@ export const fileDataView = dataView<FileRecord>("WorkflowFile")({
   tip: true,
   committed: true,
   review: true,
+  reviewStale: true,
 });
 
 export const prioritiesDataView = dataView<PrioritiesRecord>("Priorities")({

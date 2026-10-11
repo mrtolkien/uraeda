@@ -279,6 +279,8 @@ export interface FileView {
   committed?: VersionView
   /** The items of its review file, `spec-review.md` for `spec.md`, when there is one. */
   review?: Items
+  /** Whether the pending review comments on an older version of the file than its tip's. */
+  reviewStale: boolean
 }
 
 /**
@@ -420,6 +422,9 @@ export interface SpanLink {
 export interface SpecItems {
   stories: Array<Story>
   criteria: Array<Criterion>
+  /** The frontmatter's `risk-tier` and `plan-review`, which an approval may change. */
+  riskTier?: string
+  planReview?: boolean
 }
 
 /** A feature started. */

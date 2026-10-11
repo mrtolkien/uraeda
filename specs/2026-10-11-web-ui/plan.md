@@ -938,32 +938,37 @@ git commit -m "feat(web-ui): answer a round of questions"
 
 **Files:**
 
-- Create: `packages/web/src/ReviewPage.tsx`, `packages/web/src/Verdict.tsx`
+- Create: `packages/web/src/ReviewPage.tsx`, the verdict included
+- Modify: `packages/web/src/{Blocks,FilePage}.tsx` (`override`, to draw story and task headings),
+  `crates/core/src/files/items.rs` (`SpecItems.risk_tier`, `plan_review`, from the frontmatter),
+  `crates/core/src/{view,api}.rs` (`FileView.review_stale`: the file at the review's commit differs
+  from the file at the tip)
 - Test: `packages/web/src/__tests__/review.test.tsx`
 
 **Interfaces:**
 
-- Consumes: `review.*` mutations; `Blocks` with selection.
+- Consumes: `review.*` mutations, `commit.retry`; `Blocks` with a selection and an override;
+  `HookRefusal`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 US3.1 to US3.7 with the spec's values, on a fixture spec whose scenario 1 of US2 spans lines 92–93;
 review focus 4: a spec without stories still renders and selects blocks; "Start over" deletes the
 pending review.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
-- Run: `vp test packages/web -t review`
-- Expected: FAIL, `Cannot find module '../ReviewPage.tsx'`.
+- Run: `vp test packages/web/src/__tests__/review.test.tsx`
+- Expected: FAIL, `Failed to resolve import "./ReviewPage.tsx"`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check && vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web
