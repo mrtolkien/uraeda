@@ -611,12 +611,14 @@ git commit -m "feat(cli-core): ura answer"
 
 - Consumes: `target::resolve` with `Waiting::Review`, `place::reach`, `review::{parse, render}`,
   `markdown::{Document, record_block}`, `frontmatter::set`, `Git::tip`.
-- Produces:
-  `review::comment(place, file, lines: Option<(usize, usize)>, text, head: ObjectId) -> Result<Change, ActionError>`,
-  `review::approve(place, file, summary: Option<&str>, risk_tier: Option<RiskTier>, plan_review: Option<bool>, today) -> Result<Change, ActionError>`,
-  `review::request_changes(place, file, summary: Option<&str>, today) -> Result<Change, ActionError>`.
+- Produces: `review::reviewed_file(feature, named: Option<&str>) -> Result<String, ActionError>`,
+  `review::comment(git, place, feature, file, lines: Option<(usize, usize)>, text) -> Result<Commented, ActionError>`
+  (commits nothing),
+  `review::approve(place, feature, file, summary: Option<&str>, tier: &Tier, today) -> Result<Change, ActionError>`,
+  `review::request_changes(place, feature, file, summary: Option<&str>, today) -> Result<Change, ActionError>`;
+  `Frontmatter::raw(key)` reads a value as written, so a commit of digits stays text.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 US5.1 to US5.8 with the spec's exact values: the comment heading, quote, `verdict`, `commit`; the
 record lines `Changes requested on 2026-10-11: Name the field` and
@@ -625,24 +627,24 @@ record lines `Changes requested on 2026-10-11: Name the field` and
 focus 3); the auto-approved plan refused. Edge cases: `comment_outside_the_file`
 (`spec.md has 400 lines`), `pending_review_of_an_older_version_is_replaced`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-cli --test review`
 - Expected: FAIL, `unrecognized subcommand 'review'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `ura review [target] --comment <N[-M]|general> <text>`,
 `--approve [--summary <text>] [--risk-tier <tier>] [--plan-review <bool>]`,
 `--request-changes [--summary <text>]`, `--no-commit`. The reviewed file's line numbers and quote
 come from its committed version at the branch's tip.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates
