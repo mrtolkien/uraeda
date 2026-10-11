@@ -119,10 +119,10 @@ impl TestRepo {
             .collect()
     }
 
-    /// The files a commit changed, sorted.
+    /// The files a commit changed, sorted, a rename as its two paths.
     pub fn changed_in(&self, commit: &str) -> Vec<String> {
         let mut files: Vec<String> = self
-            .git(&["show", "--name-only", "--format=", commit])
+            .git(&["show", "--name-only", "--no-renames", "--format=", commit])
             .lines()
             .filter(|line| !line.is_empty())
             .map(String::from)
