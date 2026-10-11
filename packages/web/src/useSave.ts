@@ -22,30 +22,32 @@ export function useSave<T>(
   const [state, setState] = useState<SaveState>({ kind: "idle" });
   const previous = useRef(initial);
   const queue = useRef<Promise<void>>(Promise.resolve());
+  const saved = useRef(true);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const latest = useRef<T | undefined>(undefined);
   const runRef = useRef(run);
   runRef.current = run;
 
+  /** Saves what waits at once; resolves with whether the value shown is saved. */
   const flush = useCallback(() => {
     clearTimeout(timer.current);
     timer.current = undefined;
-    if (latest.current === undefined) {
-      return queue.current;
-    }
     const value = latest.current;
     latest.current = undefined;
-    queue.current = queue.current.then(async () => {
-      setState({ kind: "saving" });
-      const result = await runRef.current(value, previous.current);
-      if (result.ok) {
-        previous.current = result.saved;
-        setState({ kind: "saved" });
-      } else {
-        setState({ kind: "error", message: result.message });
-      }
-    });
-    return queue.current;
+    if (value !== undefined) {
+      queue.current = queue.current.then(async () => {
+        setState({ kind: "saving" });
+        const result = await runRef.current(value, previous.current);
+        saved.current = result.ok;
+        if (result.ok) {
+          previous.current = result.saved;
+          setState({ kind: "saved" });
+        } else {
+          setState({ kind: "error", message: result.message });
+        }
+      });
+    }
+    return queue.current.then(() => saved.current);
   }, []);
 
   const schedule = useCallback(

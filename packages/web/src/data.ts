@@ -53,5 +53,6 @@ export function usePriorities() {
 export function useDraft(path: string) {
   const request = { draft: { id: path, view: DraftView } };
   const { draft } = useRequest(request);
+  useRefreshOnShow(request);
   return useLiveView(DraftView, draft);
 }

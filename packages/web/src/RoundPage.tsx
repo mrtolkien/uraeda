@@ -50,7 +50,7 @@ export function RoundPage({ file }: { file: File }) {
   const readOnly = file.status !== "awaiting-human";
   const [notes, setNotes] = useState(round?.notes ?? "");
   const [error, setError] = useState<Refusal>();
-  const pending = useRef(new Set<() => Promise<void>>()).current;
+  const pending = useRef(new Set<() => Promise<boolean>>()).current;
   const notesSave = useSave<string>(async (value, previous) => {
     const result = await fate.mutations.notes.save({
       input: { folder: file.folder, notes: value, previous },
@@ -61,8 +61,17 @@ export function RoundPage({ file }: { file: File }) {
     }
     return { ok: true, saved: result.result?.current.items.clarifications?.notes ?? value };
   }, round?.notes ?? "");
-  const { settle } = notesSave;
-  useEffect(() => settle(round?.notes ?? ""), [round?.notes, settle]);
+  const { settle, idle } = notesSave;
+  const shownNotes = useRef(notes);
+  shownNotes.current = notes;
+  // Notes changed elsewhere replace these when nothing of them waits to be saved.
+  useEffect(() => {
+    const read = round?.notes ?? "";
+    if (idle() && read !== shownNotes.current) {
+      setNotes(read);
+    }
+    settle(read);
+  }, [round?.notes, idle, settle]);
   if (!round) {
     return null;
   }
@@ -80,9 +89,16 @@ export function RoundPage({ file }: { file: File }) {
 
   const submit = async () => {
     setError(undefined);
-    // What is still being typed is saved first.
-    await Promise.all([...pending].map((flush) => flush()));
-    await notesSave.flush();
+    // What is still being typed is saved first, and nothing is submitted unless it all is.
+    const saved = await Promise.all([...[...pending].map((flush) => flush()), notesSave.flush()]);
+    if (!saved.every(Boolean)) {
+      setError({
+        kind: "refused",
+        message:
+          "Some answers were not saved: nothing was submitted. Check them, then submit again.",
+      });
+      return;
+    }
     const result = await fate.mutations.answers.submit({
       input: { folder: file.folder },
       view: FileView,
