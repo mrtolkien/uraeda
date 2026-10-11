@@ -3,6 +3,7 @@
 
 pub mod answer;
 pub mod place;
+pub mod review;
 
 use crate::files::clarifications::AnswerError;
 use crate::git::GitError;
