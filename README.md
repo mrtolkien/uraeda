@@ -167,7 +167,9 @@ nix run github:mrtolkien/uraeda -- --version       # or with Nix, built from sou
 ```
 
 Then, in your repository, `ura init` sets up `specs/` and installs the skill for your agents. To
-install the skill alone, for any agent, run `npx skills add mrtolkien/uraeda`.
+install the skill alone, for any agent, run `npx skills add mrtolkien/uraeda`. `ura upgrade`
+installs the latest release, through the installer script or Homebrew; with Nix, update the flake
+input.
 
 ## The `ura` CLI
 

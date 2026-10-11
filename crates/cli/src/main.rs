@@ -10,6 +10,7 @@ mod output;
 mod review;
 mod start;
 mod status;
+mod upgrade;
 
 use std::process::ExitCode;
 
@@ -107,6 +108,8 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Upgrade ura to the latest release, with the installer script or Homebrew it came from
+    Upgrade,
 }
 
 fn main() -> ExitCode {
@@ -127,6 +130,7 @@ fn main() -> ExitCode {
         Command::Status { json } => status::run(json),
         Command::Next { target, json } => next::run(target, json),
         Command::Check { target, json } => check::run(target, json),
+        Command::Upgrade => upgrade::run(),
         Command::Review {
             target,
             comment,
