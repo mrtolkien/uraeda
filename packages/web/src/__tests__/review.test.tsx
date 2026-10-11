@@ -225,3 +225,54 @@ test("the verdict waits while the spec has changes not committed", async () => {
     true,
   );
 });
+
+/** Codex review: a general comment is edited and removed like the others. */
+test("a general comment is edited, then removed", async () => {
+  const r = repo();
+  await renderPage(PAGE, r);
+  await click(await screen.findByRole("button", { name: "Add a general comment" }));
+  await comment("Too long");
+  await waitFor(() => expect(existsSync(join(r, WORKTREE, REVIEW))).toBe(true));
+  const general = await waitFor(() => {
+    const note = [...document.querySelectorAll<HTMLElement>(".pending")].find((n) =>
+      n.textContent?.includes("general"),
+    );
+    expect(note).toBeTruthy();
+    return note as HTMLElement;
+  });
+
+  await click(within(general).getByRole("button", { name: "Edit" }));
+  await comment("Too long by half");
+  await waitFor(() => expect(read(r, REVIEW)).toContain("\nToo long by half\n"));
+  await click(
+    within(document.querySelector(".pending") as HTMLElement).getByRole("button", {
+      name: "Remove",
+    }),
+  );
+  await waitFor(() => expect(existsSync(join(r, WORKTREE, REVIEW))).toBe(false));
+});
+
+/** Codex review: a table's row takes a comment on its line. */
+test("a table row takes a comment on its line", async () => {
+  const r = repo();
+  await renderPage(PAGE, r);
+  const row = await waitFor(() => {
+    const found = [...document.querySelectorAll<HTMLElement>("tr")].find((tr) =>
+      tr.textContent?.includes("Upgrade of version 1 data"),
+    );
+    expect(found?.getAttribute("role")).toBe("button");
+    return found as HTMLElement;
+  });
+
+  await click(row);
+  await comment("Which version?");
+
+  await waitFor(() => expect(read(r, REVIEW)).toContain("| Upgrade of version 1 data"));
+  await waitFor(() =>
+    expect(
+      [...document.querySelectorAll(".pending")].some((n) =>
+        n.textContent?.includes("Which version?"),
+      ),
+    ).toBe(true),
+  );
+});
