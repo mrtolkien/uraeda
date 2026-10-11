@@ -304,6 +304,14 @@ li.block {
   border-left: 0;
 }
 
+/* A table row keeps its cells in place: only its tint shows. */
+tr.block {
+  display: table-row;
+  margin: 0;
+  padding: 0;
+  border-left: 0;
+}
+
 li.block[aria-selected="true"] {
   box-shadow: 0 0 0 100vmax var(--reading-tint);
   clip-path: inset(0 -100vmax);
