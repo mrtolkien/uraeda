@@ -19,6 +19,7 @@ export const workspaceDataView = dataView<WorkspaceRecord>("Workspace")({
   features: true,
   priorities: true,
   drafts: true,
+  noSpecs: true,
 });
 
 export const featureDataView = dataView<FeatureRecord>("Feature")({

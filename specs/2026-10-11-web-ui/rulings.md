@@ -46,3 +46,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a refusal whose message starts with another word shows as `refused`; the codes live
   in `crates/binding/src/lib.rs` and the UI's error helper only.
 - **Where**: task 9.
+
+## R4: The server answers selections inside objects with the whole object
+
+- **Decision**: before fate reads a request, the server reduces each selected path to its first
+  segment, `step.name` to `step`, and sends the field whole.
+- **Rationale**: fate's client types ask views to select inside plain objects field by field, while
+  its server plan matches a field declared `true` by its own path only, and drops `step.name`
+  ([`fate/select.ts`](/packages/server/src/fate/select.ts)). Every field of the UI's records is
+  declared whole, so the reduction loses nothing the core sent.
+- **Alternatives considered**: declaring each object as a nested data view, which fate then
+  normalizes as an entity needing an id; or one view per object type, with a source each.
+- **If wrong**: a record later given a real relation would need its paths kept; the reduction lives
+  in one function.
+- **Where**: task 10, `packages/server/src/app.ts`.
+
+## R5: Callouts are drawn as a bar, not a boxed banner
+
+- **Decision**: the document page draws a callout with a 4 px bar on its left and its title in bold,
+  as the mockup's spec review shows, rather than Astryx's `Banner`.
+- **Rationale**: the reading layout allows no box inside a box, and a callout often holds lists and
+  paragraphs; the human approved the mockup's bar. `Banner` stays for the page's own messages, like
+  "Could not reach the Uraeda server.".
+- **Alternatives considered**: `Banner` for every callout, as the spec's component list first named
+  it.
+- **If wrong**: one case of `Blocks.tsx` changes.
+- **Where**: task 10.

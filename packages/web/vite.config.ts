@@ -18,5 +18,8 @@ export default defineConfig({
   },
   test: {
     environment: "happy-dom",
+    environmentOptions: { happyDOM: { url: "http://127.0.0.1:4310/" } },
+    // Each test builds a git repository and reads it through the binding.
+    testTimeout: 20_000,
   },
 });

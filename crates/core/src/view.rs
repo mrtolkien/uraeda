@@ -106,6 +106,8 @@ pub struct WorkspaceView {
     pub features: Vec<FeatureView>,
     pub priorities: Vec<PriorityView>,
     pub drafts: Vec<String>,
+    /// The repository's path when it has no `specs/` folder: nothing else is read.
+    pub no_specs: Option<String>,
 }
 
 /// A file's document and items, at one version.
@@ -278,6 +280,7 @@ impl WorkspaceView {
                 })
                 .collect(),
             drafts: workspace.drafts.clone(),
+            no_specs: None,
         }
     }
 }

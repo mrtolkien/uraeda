@@ -1,5 +1,3 @@
-import { join } from "node:path";
-import { temporarySpecFolderView } from "../temporary-spec-folders.ts";
 import type { Context } from "./context.ts";
 import { createSources, fileSource } from "./source.ts";
 import {
@@ -54,17 +52,5 @@ export const sources = createSources<Context>([
   fileSource(draftDataView, {
     byIds: ({ binding, repo }, ids) =>
       each(ids, async (id) => ({ id, ...(await binding.readText(repo, id)) })),
-  }),
-  // TEMPORARY: replaced by the web UI feature.
-  fileSource(temporarySpecFolderView, {
-    byIds: async ({ binding, repo }, ids) =>
-      binding
-        .temporaryReadSpecs(join(repo, "specs"))
-        .map((folder) => ({ ...folder, id: folder.name }))
-        .filter((folder) => ids.includes(folder.id)),
-    list: async ({ binding, repo }) =>
-      binding
-        .temporaryReadSpecs(join(repo, "specs"))
-        .map((folder) => ({ ...folder, id: folder.name })),
   }),
 ]);
