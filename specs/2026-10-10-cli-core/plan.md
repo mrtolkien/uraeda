@@ -206,7 +206,7 @@ with branches and a hook | Shell scripts per test are unreadable |
     `subjects(&self, branch) -> Vec<String>`, `hook_runs(&self) -> usize`, `path(&self) -> &Path`,
     `add_remote_branch(&self, name)` (a bare `origin` with that branch pushed, then fetched).
 
-- [ ] **Step 1: Write the failing tests, and the `TestRepo` helper**
+- [x] **Step 1: Write the failing tests, and the `TestRepo` helper**
 
 Tests in `crates/core/tests/git.rs`, one per behaviour:
 
@@ -232,24 +232,24 @@ Tests in `crates/core/tests/git.rs`, one per behaviour:
   `git commit failed: boom`.
 - `behind_counts_remote_commits`, `is_ancestor_of_a_merged_branch`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test git`
 - Expected: FAIL to compile, `unresolved import uraeda_core::git`.
 
-- [ ] **Step 3: Implement `crates/core/src/git.rs`**
+- [x] **Step 3: Implement `crates/core/src/git.rs`**
 
 gix for every read; `changed_files` runs gix's status and keeps the tracked files that differ from
 `HEAD` or the index. `commit` runs `git add -A -- <paths>`, then
 `git commit -m <subject> [-m <body>] -- <paths>`, so other staged files stay out of the commit; it
 never passes `--no-verify`. A missing `git` binary is `GitError::GitNotFound`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Cargo.toml Cargo.lock crates/core

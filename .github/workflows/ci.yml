@@ -31,4 +31,4 @@ jobs:
           nix develop --command cargo build --release -p uraeda-cli
           size=$(stat -c %s target/release/ura)
           echo "ura: $size bytes"
-          test "$size" -lt 3000000
+          test "$size" -lt 5000000

@@ -11,11 +11,15 @@ rust-version.workspace = true
 napi = ["dep:napi", "dep:napi-derive"]
 
 [dependencies]
+gix.workspace = true
 napi = { workspace = true, optional = true }
 napi-derive = { workspace = true, optional = true }
 serde.workspace = true
 serde-saphyr.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
 
 [build-dependencies]
 napi-build.workspace = true

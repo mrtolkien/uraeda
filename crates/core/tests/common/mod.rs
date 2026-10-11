@@ -1,3 +1,7 @@
+#![allow(dead_code)]
+
+pub mod repo;
+
 use std::path::PathBuf;
 
 use uraeda_core::temporary_status::{FileStatus, FolderStatus};
