@@ -56,6 +56,7 @@ export function EditorPage({ path }: { path: string }) {
       settle(draft.hash);
     }
   }, [draft, settle]);
+
   if (!draft) {
     return (
       <div className="page">
@@ -89,11 +90,21 @@ export function EditorPage({ path }: { path: string }) {
       navigate(`/f/${result.result.folder}`);
     }
   };
-  const reload = () => {
+  /** Reads the file again, and puts its text in place of the one that was not saved. */
+  const reload = async () => {
     setConflict(undefined);
-    void fate
-      .request({ draft: { id: path, view: DraftView } }, { mode: "network-only" })
-      .then(() => setText(draft.text));
+    const { draft: ref } = await fate.request(
+      { draft: { id: path, view: DraftView } },
+      { mode: "network-only" },
+    );
+    if (ref) {
+      // fate does not infer the view's type through `readView`: these are its fields.
+      const fresh = (await fate.readView(DraftView, ref)) as unknown as {
+        data: { text: string; hash: string };
+      };
+      setText(fresh.data.text);
+      settle(fresh.data.hash);
+    }
   };
 
   return (
@@ -125,7 +136,7 @@ export function EditorPage({ path }: { path: string }) {
                 label="Copy my text"
                 onClick={() => void navigator.clipboard?.writeText(text)}
               />
-              <Button label="Load the new version" onClick={reload} />
+              <Button label="Load the new version" clickAction={reload} />
             </div>
           </Banner>
         </div>

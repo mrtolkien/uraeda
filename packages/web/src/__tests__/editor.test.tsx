@@ -162,3 +162,26 @@ test("a save over a change made elsewhere keeps the text, and offers the new ver
     "# Changed elsewhere\n",
   );
 });
+
+/** Review C1: the new version replaces the text, and a later save does not undo it. */
+test("Load the new version loads it", async () => {
+  const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
+  const field = await screen.findByRole("textbox", { name: "Text" });
+  writeFileSync(join(repo, "specs/drafts/git-listener.md"), "# Changed elsewhere\n");
+  await type(field, "# Mine\n");
+  await screen.findByRole("button", { name: "Load the new version" });
+
+  await click(screen.getByRole("button", { name: "Load the new version" }));
+
+  await waitFor(() =>
+    expect((screen.getByRole("textbox", { name: "Text" }) as HTMLTextAreaElement).value).toBe(
+      "# Changed elsewhere\n",
+    ),
+  );
+  await type(screen.getByRole("textbox", { name: "Text" }), "# Changed elsewhere\n\nMore.\n");
+  await waitFor(() =>
+    expect(readFileSync(join(repo, "specs/drafts/git-listener.md"), "utf8")).toBe(
+      "# Changed elsewhere\n\nMore.\n",
+    ),
+  );
+});

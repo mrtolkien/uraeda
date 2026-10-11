@@ -343,15 +343,26 @@ export function ReviewPage({ file }: { file: File }) {
         />
       )}
       {message && <p className="not-saved">{message}</p>}
+      {file.committed && (
+        <p className="not-saved">
+          {file.name} has changes not committed: the review is of the committed version. Commit or
+          discard them first.
+        </p>
+      )}
       <div className="actions">
         <Button
           variant="destructive"
           label="Request changes"
-          isDisabled={comments.length === 0}
+          isDisabled={comments.length === 0 || file.committed != null}
           tooltip={comments.length === 0 ? "Add a comment first" : undefined}
           clickAction={() => verdict(false)}
         />
-        <Button variant="primary" label="Approve" clickAction={() => verdict(true)} />
+        <Button
+          variant="primary"
+          label="Approve"
+          isDisabled={file.committed != null}
+          clickAction={() => verdict(true)}
+        />
       </div>
       {comments.length === 0 && <p className="small muted">Request changes: Add a comment first</p>}
       <BottomSheet

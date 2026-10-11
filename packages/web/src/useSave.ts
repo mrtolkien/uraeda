@@ -70,5 +70,8 @@ export function useSave<T>(
     }
   }, []);
 
-  return { state, schedule, flush, settle };
+  /** Whether nothing waits to be saved. */
+  const idle = useCallback(() => latest.current === undefined && timer.current === undefined, []);
+
+  return { state, schedule, flush, settle, idle };
 }

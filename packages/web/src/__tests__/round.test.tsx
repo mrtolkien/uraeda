@@ -269,3 +269,41 @@ test("a hook's refusal keeps the answers, and Try again commits them", async () 
     ),
   );
 });
+
+/** Review I1: an answer changed elsewhere shows, and the next save builds on it. */
+test("an answer changed elsewhere shows when the page reads again", async () => {
+  const repo = answered({});
+  await renderPage(PAGE, repo);
+  await screen.findByText("How does your iPhone reach the server?");
+  const path = join(repo, ".worktrees", FOLDER, ROUND);
+  const lines = readFileSync(path, "utf8").split("\n");
+  const heading = lines.findIndex((line) => line.startsWith("## Q2:"));
+  const at = lines.findIndex((line, index) => index > heading && line.startsWith("**Answer:**"));
+  lines[at] = "**Answer:** C";
+  writeFileSync(path, lines.join("\n"));
+
+  await act(async () => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+
+  await waitFor(() => expect(option("Q2", "C").getAttribute("aria-pressed")).toBe("true"));
+  await type(comment("Q2"), "mine");
+  await waitFor(() => expect(answerLine(repo, "Q2")).toBe("**Answer:** C: mine"));
+});
+
+/** Review I2: Submit saves what is still being typed first. */
+test("Submit waits for the notes being typed", async () => {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  await renderPage(PAGE, repo);
+  const notes = await screen.findByLabelText("Notes");
+
+  await type(notes, "LGTM");
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+
+  await waitFor(() =>
+    expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(
+      "discovery(web-ui): answer round 01",
+    ),
+  );
+  expect(git(repo, "show", `${FOLDER}:${ROUND}`)).toContain("**Notes:** LGTM");
+});

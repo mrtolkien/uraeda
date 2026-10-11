@@ -207,3 +207,21 @@ test("a spec without stories still takes comments", async () => {
   await click(await scenario(FIRST));
   expect(screen.getByText(/^Lines \d+–\d+, under "User stories"$/)).toBeTruthy();
 });
+
+/** Review C2: no verdict on a spec whose file differs from what the page shows. */
+test("the verdict waits while the spec has changes not committed", async () => {
+  const r = repo();
+  const path = join(r, WORKTREE, SPEC);
+  writeFileSync(path, `${readFileSync(path, "utf8")}\nUnfinished edit.\n`);
+  await renderPage(PAGE, r);
+
+  expect(
+    await screen.findByText(
+      "spec.md has changes not committed: the review is of the committed version. Commit or discard them first.",
+    ),
+  ).toBeTruthy();
+  const approve = screen.getByRole("button", { name: "Approve" });
+  expect(approve.hasAttribute("disabled") || approve.getAttribute("aria-disabled") === "true").toBe(
+    true,
+  );
+});
