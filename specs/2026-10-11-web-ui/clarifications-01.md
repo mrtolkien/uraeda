@@ -61,7 +61,7 @@ Why it matters: it sets how many screens this feature builds, and what still nee
   - [pro] fixes a typo in a spec without a review round.
   - [con] a raw editor next to every structured screen, and edits that bypass the review files.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How does your iPhone reach the server?
 
@@ -90,7 +90,9 @@ Why it matters: it amends an active decision, which every later server feature f
   - [con] the stack decision's rule is removed, your local network reaches the server too, and any
     page you browse can.
 
-**Answer:**
+**Answer:** A for the moment, and the hosts it listens to should be easy to set through env
+variables in a `.env` at the repo root. Something like `URAEDA_HOST=...`, or whatever is the most
+standard way.
 
 ## Q3: Where does the UI write when a feature's branch is not checked out?
 
@@ -121,7 +123,7 @@ ever touches the checkout you work in.
   - [con] the server's code switches under it here, and a saved, unsubmitted answer blocks every
     later switch.
 
-**Answer:**
+**Answer:** A and we actually should go further: `ura start` should create a worktree by default.
 
 ## Q4: Where does the structure the UI draws come from?
 
@@ -152,7 +154,7 @@ Why it matters: it decides what the core owns, and whether the TUIs can reuse it
   - [con] HTML injected into the page, outside Astryx's components, with no source lines on list
     items.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: Does fate stay the data layer?
 
@@ -175,7 +177,7 @@ Why it matters: every later screen, the runner's included, uses this layer.
   - [pro] documented, widely used, simple for file-shaped data.
   - [con] optimistic updates written by hand for each action, and a new dependency.
 
-**Answer:**
+**Answer:** A, and I think making a fate adapter is supposed to be pretty easy.
 
 ## Q6: Do finished features show?
 
@@ -195,7 +197,8 @@ Why it matters: "view all steps of the workflow" reads as the history too.
   - [pro] no change to the core's model.
   - [con] finished specs are read on GitHub instead.
 
-**Answer:**
+**Answer:** A, but note that in the near future we'll add a better "finish feature" workflow that
+does not necessarily keep all artifacts.
 
 ## Q7: How are the screens organised?
 
@@ -235,7 +238,9 @@ A, on a phone:
   · CLI core features              │
 ```
 
-**Answer:**
+**Answer:** A, but there'll often be a single "waiting on you" or "in progress" step. It would make
+sense to also list what's in Now/Next with the option to turn it into a draft or a draft into a
+proposal.
 
 ## Q8: How is a round of questions answered?
 
@@ -281,7 +286,7 @@ A, on a phone:
  └─────────────────────────────────────────────────────┘
 ```
 
-**Answer:**
+**Answer:** A
 
 ## Q9: What do you type drafts, proposals, answers, and comments in?
 
@@ -303,7 +308,7 @@ Why it matters: it is a dependency, and how every text you write is typed.
   - [pro] highlighting and a monospace editor for whole files.
   - [con] a 175 KB dependency, and the iOS issues reported.
 
-**Answer:**
+**Answer:** A
 
 ## Q10: Which repositories does the UI open now?
 
@@ -325,7 +330,7 @@ Why it matters: packaging the server for any repository is a feature of its own.
   - [pro] the end goal.
   - [con] shipping the server and its native addon, a feature of its own.
 
-**Answer:**
+**Answer:** A
 
 ## Q11: Which dependencies does the UI add?
 
@@ -344,7 +349,7 @@ Why it matters: dependencies are decisions the project keeps.
   - [pro] nothing added.
   - [con] the UI departs from the documented setup.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -389,4 +394,4 @@ Why it matters: dependencies are decisions the project keeps.
 - **The temporary status page, source, and binding functions are replaced**, and their comments
   corrected: they still say "replaced by the CLI feature".
 
-**Notes:**
+**Notes:** LGTM
