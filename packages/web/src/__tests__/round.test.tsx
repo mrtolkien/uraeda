@@ -80,7 +80,7 @@ test("a tapped option is saved as the answer", async () => {
   await tap(option("Q2", "A"));
 
   await waitFor(() => expect(answerLine(repo, "Q2")).toBe("**Answer:** A"));
-  expect(within(question("Q2")).getByText("saved ✓")).toBeTruthy();
+  expect(await within(question("Q2")).findByText("saved ✓")).toBeTruthy();
   expect(option("Q2", "A").getAttribute("aria-pressed")).toBe("true");
 });
 
