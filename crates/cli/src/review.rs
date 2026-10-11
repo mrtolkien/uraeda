@@ -2,8 +2,8 @@
 
 use std::process::ExitCode;
 
+use uraeda_core::actions::place;
 use uraeda_core::actions::review::{self, Tier};
-use uraeda_core::actions::{Change, place};
 use uraeda_core::files::review::Anchor;
 use uraeda_core::target::{Purpose, Target};
 use uraeda_core::today;
@@ -88,42 +88,31 @@ pub fn run(options: Options) -> Result<ExitCode, String> {
         println!("C{} added to {}, {where_}.", added.number, added.review);
         return Ok(ExitCode::SUCCESS);
     }
-    if !options.no_commit {
-        let paths = [
-            format!("{}/{file}", feature.path),
-            format!("{}/{}", feature.path, review::review_name(&file)),
-        ];
-        place::ensure_only_staged(&place, &paths).map_err(|e| refused(e.to_string()))?;
-    }
     let today = today::today();
     let summary = options.summary.as_deref();
-    let change = if options.approve {
-        review::approve(&place, feature, &file, summary, &options.tier, today)
-    } else {
-        review::request_changes(&place, feature, &file, summary, today)
-    }
-    .map_err(|e| refused(e.to_string()))?;
-    output::say_place(&git, &place);
-    finish(&place, &change, &file, options.approve, options.no_commit)
-}
-
-fn finish(
-    place: &place::Place,
-    change: &Change,
-    file: &str,
-    approve: bool,
-    no_commit: bool,
-) -> Result<ExitCode, String> {
-    let done = if approve {
+    let done = if options.approve {
         format!("{file} approved")
     } else {
         format!("Changes requested on {file}")
     };
-    if no_commit {
+    if options.no_commit {
+        let change = if options.approve {
+            review::approve(&place, feature, &file, summary, &options.tier, today)
+        } else {
+            review::request_changes(&place, feature, &file, summary, today)
+        }
+        .map_err(|e| refused(e.to_string()))?;
+        output::say_place(&git, &place);
         println!("{done}: commit {}.", change.paths.join(" and "));
     } else {
-        output::commit(place, change)?;
-        println!("{done}, committed as \"{}\".", change.subject);
+        let committed = if options.approve {
+            review::approve_and_commit(&place, feature, &file, summary, &options.tier, today)
+        } else {
+            review::request_changes_and_commit(&place, feature, &file, summary, today)
+        }
+        .map_err(|e| refused(output::action_error(e)))?;
+        output::say_place(&git, &place);
+        println!("{done}, committed as \"{}\".", committed.change.subject);
     }
     Ok(ExitCode::SUCCESS)
 }
