@@ -26,11 +26,19 @@ fn is_question(argument: &str) -> bool {
 }
 
 pub fn run(arguments: Vec<String>, submit: bool, no_commit: bool) -> Result<ExitCode, String> {
+    let starts_with_question = arguments.first().is_some_and(|first| is_question(first));
+    let limit = if starts_with_question { 2 } else { 3 };
+    if arguments.len() > limit {
+        return Err("the answer is one argument: quote it".into());
+    }
     let (target, question, text) = match arguments.as_slice() {
         [] => (None, None, None),
-        [first, rest @ ..] if is_question(first) => (None, Some(first), rest.first()),
+        [first, rest @ ..] if starts_with_question => (None, Some(first), rest.first()),
         [target, rest @ ..] => (Some(target), rest.first(), rest.get(1)),
     };
+    if submit && question.is_some() {
+        return Err("--submit takes no answer: answer first, then submit".into());
+    }
     if !submit && question.is_none() {
         return Err(
             "name a question and its answer: ura answer [target] <question> <answer>, or --submit"
@@ -50,10 +58,20 @@ pub fn run(arguments: Vec<String>, submit: bool, no_commit: bool) -> Result<Exit
         .branch
         .clone()
         .ok_or_else(|| format!("{} has no branch", feature.folder))?;
+    let previous = git.current_branch();
     let place = place::reach(&git, &branch).map_err(|error| error.to_string())?;
-    output::say_switched(&place);
+    let refused = |error: String| {
+        place::switch_back(&git, &place, previous.as_deref());
+        error
+    };
     if submit {
-        let change = answer::submit(&place, feature, today::today()).map_err(|e| e.to_string())?;
+        if !no_commit {
+            let path = answer::round_path(feature).map_err(|e| refused(e.to_string()))?;
+            place::ensure_only_staged(&place, &[path]).map_err(|e| refused(e.to_string()))?;
+        }
+        let change =
+            answer::submit(&place, feature, today::today()).map_err(|e| refused(e.to_string()))?;
+        output::say_switched(&place);
         let round = change
             .subject
             .rsplit(' ')
@@ -70,7 +88,9 @@ pub fn run(arguments: Vec<String>, submit: bool, no_commit: bool) -> Result<Exit
             );
         }
     } else if let (Some(question), Some(text)) = (question, text) {
-        let written = answer::write(&place, feature, question, text).map_err(|e| e.to_string())?;
+        let written =
+            answer::write(&place, feature, question, text).map_err(|e| refused(e.to_string()))?;
+        output::say_switched(&place);
         let what = if question == "notes" {
             "Notes written".to_string()
         } else {

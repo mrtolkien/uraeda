@@ -109,7 +109,17 @@ enum Command {
 }
 
 fn main() -> ExitCode {
-    let result = match Cli::parse().command {
+    let cli = match Cli::try_parse() {
+        Ok(cli) => cli,
+        Err(error) if !error.use_stderr() => error.exit(),
+        Err(error) => {
+            let rendered = error.render().to_string();
+            let message = rendered.strip_prefix("error: ").unwrap_or(&rendered);
+            eprint!("ura: {message}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let result = match cli.command {
         Command::Init { no_skill } => init::run(no_skill),
         Command::Draft { text, no_edit } => draft::run(text, no_edit),
         Command::Start { target, slug } => start::run(target, slug),

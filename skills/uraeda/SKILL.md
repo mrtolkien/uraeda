@@ -371,3 +371,14 @@ one waiting for that action.
 
 `ura answer --submit` and `ura review` set the human's status, record the block, and commit: a human
 runs them, or an agent the human asked, with `--no-commit`.
+
+`ura` refuses, before writing anything, what would break these rules by hand too:
+
+- An answer or a note with a line starting with `#`, `**Answer:**`, or `**Notes:**`, and a review
+  comment with a line starting with `#`: they would read as a new heading or answer.
+- A commit while other files are staged, since it would carry them; a branch switch over uncommitted
+  changes.
+- A draft that still holds the proposal template's placeholders, or an empty `## What` or `## Why`
+  section: a committed proposal is work for an agent, so it must be the human's.
+- A review file that does not parse: it may hold the human's comments, and is never overwritten.
+- `ura start` on a bug: the bug flow starts by hand, until it has its spec.
