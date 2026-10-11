@@ -46,3 +46,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: `"step": "none"` as a string, as the scenario reads literally.
 - **If wrong**: readers checking `step == "none"` must read `step.name` instead.
 - **Where**: task 4, `crates/cli/src/next.rs`
+
+## R5: No rule against an `[!IMPORTANT]` block in an answered file
+
+- **Decision**: `ura check` requires the `> [!IMPORTANT]` block of a file waiting for the human
+  (`blocks.important`), but does not report one left in an answered or approved file.
+- **Rationale**: the skill lets the block stay until the next step turns it into a record: "If the
+  human or a tool did not do it, the next step does it". A rule against it would fail the human's
+  own commit of a hand-written answer, in this repository's pre-commit hook.
+- **Alternatives considered**: `blocks.note`, as the plan listed it.
+- **If wrong**: an agent that forgets the record is not caught by `check`; the next step's
+  instructions still require it.
+- **Where**: task 5, `crates/core/src/check/mod.rs`
+
+## R6: Links checked when they point to markdown or into `specs/`
+
+- **Decision**: `links.file` and `links.heading` check links whose target is a markdown file or
+  under `specs/`; links to code and other files are not checked.
+- **Rationale**: specs and plans link to code files the plan will create, like
+  `/crates/core/src/check/`, so a check of every link would fail every approved spec until its
+  feature is built. Workflow files link to each other through markdown, which is what agents get
+  wrong.
+- **Alternatives considered**: every relative link; none.
+- **If wrong**: a broken link to a code file goes unnoticed, as it does today.
+- **Where**: task 5, `crates/core/src/check/links.rs`
