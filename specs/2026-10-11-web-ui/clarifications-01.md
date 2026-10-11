@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Web UI for the workflow files
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 11 questions on the web UI, about 35 minutes.
+> Answered on 2026-10-11.
 >
 > - Two choices change active decisions: how your iPhone reaches the server, against the stack
 >   decision's 127.0.0.1 rule, and whether fate stays, with the decision's fallback rule removed.
