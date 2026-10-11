@@ -62,3 +62,13 @@ test("a commit on a branch is sent to a live subscription", async () => {
   expect(received).toContain("plan.md");
   expect(Date.now() - start).toBeLessThan(2000);
 });
+
+/** Codex review: the watch lives as long as the server, one per repository. */
+test("a repository's watch is kept, and started once", () => {
+  const repo = fixtureRepo();
+
+  const handle = startLive(binding, repo);
+
+  expect(startLive(binding, repo)).toBe(handle);
+  handle.close();
+});
