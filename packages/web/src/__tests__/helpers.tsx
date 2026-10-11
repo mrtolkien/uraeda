@@ -1,4 +1,4 @@
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, configure, render } from "@testing-library/react";
 import { createFateClient } from "react-fate/client";
 import { afterEach, beforeEach } from "vite-plus/test";
 import * as binding from "uraeda-binding";
@@ -7,6 +7,10 @@ import { createApp } from "uraeda-server";
 import { App } from "../App.tsx";
 
 export { fixture, fixtureRepo, git };
+
+// Saves wait 400 ms for typing to stop, then go through git: slower machines, like CI's, need
+// more than Testing Library's 1 s to see them.
+configure({ asyncUtilTimeout: 5000 });
 
 const port = 4310;
 const origin = `http://127.0.0.1:${port}`;
