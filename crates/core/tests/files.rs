@@ -443,3 +443,14 @@ fn a_commit_of_digits_stays_text() {
 
     assert_eq!(parsed.commit, "0012345");
 }
+
+#[test]
+fn a_commit_that_reads_as_a_float_stays_text() {
+    for commit in ["1e23456", "8e10000", "0e00000", "1234567", "0012345"] {
+        let text = REVIEW.replace("commit: a1b2c3d", &format!("commit: {commit}"));
+
+        let parsed = review::parse(&text);
+
+        assert_eq!(parsed.map(|r| r.commit), Ok(commit.to_string()), "{commit}");
+    }
+}

@@ -109,7 +109,10 @@ pub fn parse(text: &str) -> Result<Frontmatter, FrontmatterError> {
     let map: BTreeMap<String, Option<Field>> = if yaml.trim().is_empty() {
         BTreeMap::new()
     } else {
-        serde_saphyr::from_str(yaml)
+        // A short commit hash like `1e23456` reads as a float too large for YAML: keep it as text.
+        let mut options = serde_saphyr::Options::default();
+        options.reject_non_finite_typeless_float = false;
+        serde_saphyr::from_str_with_options(yaml, options)
             .map_err(|error| FrontmatterError::Yaml(yaml_message(&error)))?
     };
     let fields = map

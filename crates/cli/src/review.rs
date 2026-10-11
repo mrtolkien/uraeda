@@ -57,17 +57,22 @@ pub fn run(options: Options) -> Result<ExitCode, String> {
         .branch
         .clone()
         .ok_or_else(|| format!("{} has no branch", feature.folder))?;
+    let previous = git.current_branch();
     let place = place::reach(&git, &branch).map_err(|error| error.to_string())?;
-    output::say_switched(&place);
+    let refused = |error: String| {
+        place::switch_back(&git, &place, previous.as_deref());
+        error
+    };
     if let Some(comment) = &options.comment {
         let [range, text] = comment.as_slice() else {
             return Err(
                 "--comment takes the lines and the text: --comment 50-52 \"Name it\"".into(),
             );
         };
-        let lines = lines(range)?;
+        let lines = lines(range).map_err(refused)?;
         let added = review::comment(&git, &place, feature, &file, lines, text)
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| refused(e.to_string()))?;
+        output::say_switched(&place);
         if added.replaced {
             println!("replaced a pending review of an older version");
         }
@@ -83,6 +88,13 @@ pub fn run(options: Options) -> Result<ExitCode, String> {
         println!("C{} added to {}, {where_}.", added.number, added.review);
         return Ok(ExitCode::SUCCESS);
     }
+    if !options.no_commit {
+        let paths = [
+            format!("{}/{file}", feature.path),
+            format!("{}/{}", feature.path, review::review_name(&file)),
+        ];
+        place::ensure_only_staged(&place, &paths).map_err(|e| refused(e.to_string()))?;
+    }
     let today = today::today();
     let summary = options.summary.as_deref();
     let change = if options.approve {
@@ -90,7 +102,8 @@ pub fn run(options: Options) -> Result<ExitCode, String> {
     } else {
         review::request_changes(&place, feature, &file, summary, today)
     }
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| refused(e.to_string()))?;
+    output::say_switched(&place);
     finish(&place, &change, &file, options.approve, options.no_commit)
 }
 

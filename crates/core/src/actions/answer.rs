@@ -21,6 +21,12 @@ fn latest_round(feature: &Feature) -> Result<(String, u32), ActionError> {
         .ok_or_else(|| ActionError::Refused(format!("{} has no questions", feature.folder)))
 }
 
+/// The latest round's file, from the top level.
+pub fn round_path(feature: &Feature) -> Result<String, ActionError> {
+    let (name, _) = latest_round(feature)?;
+    Ok(format!("{}/{name}", feature.path))
+}
+
 /// An answer written: in which file, and how many applicable questions are answered.
 pub struct Written {
     pub file: String,

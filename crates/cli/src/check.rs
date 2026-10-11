@@ -34,6 +34,12 @@ pub fn run(target: Option<String>, json: bool) -> Result<ExitCode, String> {
             }
         }
         Some(target) => cwd.join(target),
+        None if !root.join("specs").is_dir() => {
+            return Err(format!(
+                "no specs/ folder at {}: run ura init",
+                root.display()
+            ));
+        }
         None => root.join("specs"),
     };
     let problems = check::check(&root, &target_path).map_err(|_| {

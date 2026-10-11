@@ -111,3 +111,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   **Later**.
 - **If wrong**: move the line to **Now** by hand.
 - **Where**: task 13, `specs/PRIORITIES.md`
+
+## R10: Minor findings of the final review, left for later
+
+- **Decision**: three minor findings are not fixed in this feature, and are listed in the pull
+  request: merged features are left out of the model, so `source: default-branch` is never produced,
+  and a postponed feature whose remote branch was never deleted shows as a feature waiting for its
+  proposal; a failing hook's error shows its first line only; checkboxes of a non-task section after
+  a plan's last task count toward that task.
+- **Rationale**: none loses data or blocks the workflow; each has a workaround (delete the stale
+  remote branch, run the commit by hand to read the hook's output, keep checklists inside tasks),
+  and each is cheaper to fix with the web UI's and the runner's needs known.
+- **Alternatives considered**: fixing them now, which the implementation step reserves for critical
+  and important findings.
+- **If wrong**: each is a small change behind the same functions: `Workspace::read`, `Git::run`,
+  `plan::tasks`.
+- **Where**: final review
