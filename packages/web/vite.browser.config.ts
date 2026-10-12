@@ -23,6 +23,10 @@ const shared = globalThis as { uraedaRepoTurn?: Promise<void>; uraedaRepoRelease
 
 type Context = { page: Page; frame: () => Promise<Frame> };
 
+/** The test server's agent, which the tests that follow a run drive. */
+const agent = new FakeAdapter();
+type AgentEvent = Parameters<FakeAdapter["emit"]>[0];
+
 const commands = {
   /** Waits for the repository, then gives the test a fresh copy of the fixture. */
   async takeRepo() {
@@ -45,6 +49,16 @@ const commands = {
   },
   writeRepo(_context: unknown, text: string, path = "specs/PRIORITIES.md") {
     writeFileSync(join(process.env.URAEDA_REPO!, path), text);
+  },
+  /** Sends events on the agent's current run, as Claude Code would print them. */
+  agentEmit(_context: unknown, events: Array<AgentEvent>) {
+    for (const event of events) {
+      agent.emit(event);
+    }
+  },
+  /** Ends the agent's current run. */
+  agentFinish(_context: unknown, code = 0, stderr = "") {
+    agent.finish(code, stderr);
   },
   /**
    * Real mouse moves, presses, and releases, at points of the test's page, which the browser
@@ -81,6 +95,8 @@ export type RepoCommands = {
   releaseRepo: () => Promise<void>;
   readRepo: (path?: string) => Promise<string>;
   writeRepo: (text: string, path?: string) => Promise<void>;
+  agentEmit: (events: Array<AgentEvent>) => Promise<void>;
+  agentFinish: (code?: number, stderr?: string) => Promise<void>;
   mouse: (
     steps: Array<{ type: "move" | "down" | "up" | "wait"; x?: number; y?: number; ms?: number }>,
   ) => Promise<void>;
@@ -88,7 +104,7 @@ export type RepoCommands = {
 
 export default defineConfig({
   ...base,
-  plugins: [...plugins, uraedaServer({ adapter: new FakeAdapter() })],
+  plugins: [...plugins, uraedaServer({ adapter: agent })],
   test: {
     name: "uraeda-web-browser",
     include: ["src/__browser__/**/*.test.tsx"],
