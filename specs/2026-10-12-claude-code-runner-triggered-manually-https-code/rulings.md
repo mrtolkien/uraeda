@@ -95,3 +95,41 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a file that fails to open only for a moment, like one locked by another process,
   loses its sessions and logs. Retrying before deleting is a few lines in `open`.
 - **Where**: task 2.
+
+## R9: The runner keys its one-run rule by the server's repository, and the cache by the main checkout
+
+- **Decision**: `Runner.start`, `running`, and `onChange` use the repository path the server was
+  given. The cache's rows use `nextStep`'s `mainRoot`, as the agents decision requires. `allow`
+  takes the server's repository too, `allow(repo, runId, seq)`, since a run's row holds only the
+  main checkout. `onChange` sends the run's state, and a runner change carries no repository.
+- **Rationale**: the one-run rule must hold before the first core call, so a second click in a row
+  is refused before `nextStep` returns. The server's live updates and write guard know only their
+  own repository.
+- **Alternatives considered**: keying everything by the main checkout, which needs a core call
+  before the refusal, and lets two clicks both pass it.
+- **If wrong**: two servers on two worktrees of one repository could each start a run on the same
+  feature. The dev server keeps one app per repository path.
+- **Where**: tasks 3 and 5.
+
+## R10: A bug's run message names `specs/bugs/<folder>/`
+
+- **Decision**: the runner reads the feature's kind with `readFeature`, and a bug's message reads
+  "Continue the bug specs/bugs/<folder>/, on branch fix/...". The rest of the template is the
+  spec's.
+- **Rationale**: the spec's template names `specs/<folder>/`, which is wrong for a bug, and its edge
+  cases say a bug runs the same way, in its own folder. `nextStep` does not give the kind.
+- **Alternatives considered**: a `kind` on `NextView`, which changes the core and task 1 for one
+  word; guessing from the `fix/` branch prefix, which reimplements the core.
+- **If wrong**: one more core read per run, or one sentence in `message.ts`.
+- **Where**: task 3.
+
+## R11: The runner is unavailable until its first check
+
+- **Decision**: `Runner.status()` reads unavailable before `check()` has run, and `start` refuses
+  then with "Claude Code is not available on this machine." The test helpers await one `check()`.
+- **Rationale**: the UI must not offer "Commit and continue" before the server knows `claude` works,
+  and the server checks at startup before serving.
+- **Alternatives considered**: available until a check fails, which would show the two buttons on a
+  machine without `claude` for the first request.
+- **If wrong**: the first requests after startup show one button.
+- **Where**: tasks 3 and 5.
