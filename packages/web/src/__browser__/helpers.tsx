@@ -141,9 +141,16 @@ function longestLine(element: Element) {
   return Math.max(0, ...lines.values());
 }
 
-/** No line of a paragraph holds more than about 75 characters (US6 3). */
+/**
+ * No line of reading text holds more than about 75 characters (US6 3): paragraphs, and the
+ * toggles that hold text of their own, like a question's options.
+ */
 export function checkMeasure() {
-  for (const paragraph of paragraphs()) {
+  const main = document.querySelector('[role="main"]') ?? document.body;
+  const toggles = [...main.querySelectorAll("[aria-pressed]")].filter(
+    (toggle) => toggle.textContent?.trim() && toggle.getBoundingClientRect().width > 4,
+  );
+  for (const paragraph of [...paragraphs(), ...toggles]) {
     expect(longestLine(paragraph), paragraph.textContent?.slice(0, 60)).toBeLessThanOrEqual(75);
   }
 }
