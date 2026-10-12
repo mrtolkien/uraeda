@@ -220,6 +220,7 @@ From the [spec](spec.md) and its [review](spec-review.md), exact texts:
 | `ToastUndo` helper (`useUndoToast`)                                   | ＋ and Delete both show a 5 s toast with one Undo                              | two hand-written toasts with the same timing                                         |
 | Astryx gap: the question's option is a raw `button`                   | a full-width toggle holding paragraphs and lists; no Astryx component draws it | `SelectableCard`: a card, which the reading layout forbids                           |
 | Astryx gap: the review's selectable block, `role="button"` on a `div` | a tappable block of document text, not a control                               | wrapping blocks in `Button`: breaks the document's text flow                         |
+| Browser commands taking the repository in turn                        | drag tests write `PRIORITIES.md`, and both sizes run at once on one server     | one shared repository: two drags at once refuse each other's moves on the hash       |
 
 ## Review comments
 
@@ -1103,25 +1104,40 @@ git commit -m "feat(ui-improvements): drafts open drawn, with hints for empty se
 
 **Files:**
 
-- Modify: `packages/web/src/PrioritiesPage.tsx` (rewrite), `App.tsx`
+- Modify: `packages/web/src/PrioritiesPage.tsx` (rewrite), `EditableLine.tsx` (`stayOpen`),
+  `layout/useUndoToast.ts` (`closeUndoToasts`), `packages/web/package.json` (`@dnd-kit/dom` 0.5.0,
+  exact), `packages/web/vite.browser.config.ts` (the repository's commands), `styles.css`
 - Test: `packages/web/src/__tests__/priorities.test.tsx` (rewrite), `drop.test.ts` (kept),
   `packages/web/src/__browser__/priorities.test.tsx`
 
 **Interfaces:**
 
 - Consumes: `TaskView`, `Panes` (tasks 5, 9), `@dnd-kit/react` `DragDropProvider`, `useSortable`,
-  `@dnd-kit/helpers` `move`.
-- Produces: each section a heading `<Section> · <count>`, Now larger; each line a row that opens its
-  task view (`navigate("/priorities/<key>", { from: "/priorities" })`), with a drag handle; no ⋯
-  menu and no edit in place (C3); each section ends with an "Add to <Section>" row, an
-  `EditableLine` that adds with `priorities.add` and stays open, empty, for the next line.
-- Dragging: one sortable group per section, items movable across sections; pointer sensor with no
-  delay on fine pointers and a 500 ms delay with 5 px tolerance on touch; keyboard sensor; a drop
-  calls `priorities.move` with `dropIndex`; a drop where it started, or Escape, writes nothing;
-  reduced motion turns the items' transition off. While a drag is active, live updates to the list
-  wait, and apply when it ends (review focus 4).
+  `useDroppable`, `@dnd-kit/helpers` `move`, `@dnd-kit/dom` `Accessibility` and
+  `PointerActivationConstraints`, which `@dnd-kit/react` does not re-export ([R14](rulings.md)).
+- Produces: each section a heading `<Section> · <count>`, Now larger; each line an Astryx `ListItem`
+  linking `/priorities/<key>`, which `RouterAnchor` opens with `{ from: "/priorities" }`, with a
+  handle button named "Move <text>"; the open line's row is selected; no ⋯ menu and no edit in place
+  (C3); each section ends with an "Add to <Section>" row, an `EditableLine` with `stayOpen` that
+  adds with `priorities.add` and stays open, empty, for the next line.
+- Produces: `EditableLine`'s `stayOpen` (a saved field empties and stays open; left empty, it
+  closes), and `closeUndoToasts()` in `layout/useUndoToast.ts`, which Commit calls once it succeeds.
+- Produces: `dropMove(before, after, key)` in `PrioritiesPage.tsx`: the core's section and index for
+  a drag, from the order before it and the order dnd-kit left; `undefined` when the line is back
+  where it started. The line dropped above, found in the order before the drag, feeds `dropIndex`.
+- Dragging: one sortable group per section, items movable across sections, each section a drop
+  target even when empty; pointer sensor on the whole line, starting at once from the handle with a
+  mouse or a pen, and from anywhere on the line after a 500 ms press with 5 px tolerance on touch;
+  keyboard sensor; announcements name the line and its place ("<text>, 3 of 4 in Now"); a drop calls
+  `priorities.move` with `dropIndex`, over the hash the drag started from; a drop where it started,
+  or Escape, writes nothing; reduced motion turns the items' transition off. While a drag is active,
+  and until its move is written, the list stays as the drag found it: live updates wait, and apply
+  when it ends (review focus 4).
+- Browser tests take the repository in turn, on a fresh copy of the fixture, through the browser
+  commands `takeRepo`, `releaseRepo`, `readRepo`, `writeRepo`, and `mouse` (real mouse moves) of
+  `vite.browser.config.ts`; a touch drag is dispatched as touch pointer events ([R14](rulings.md)).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // priorities.test.tsx
@@ -1140,8 +1156,7 @@ test("tapping a line opens its task view (C3)", async () => {
 
 test("an Add row adds and stays ready (US4 4)", async () => {
   const { repo } = await renderPage("/priorities");
-  await click(await screen.findByRole("button", { name: "Add to Later" }));
-  await type(screen.getByRole("textbox", { name: "Add to Later" }), "Ship a TUI{Enter}");
+  await add("Later", "Ship a TUI"); // taps the row, types, and presses Enter
   await waitFor(() => expect(read(repo)).toContain("  - with a cache\n- Ship a TUI\n"));
   expect(screen.getByRole("textbox", { name: "Add to Later" })).toHaveProperty("value", "");
 });
@@ -1162,26 +1177,31 @@ test("Escape cancels a drag, and nothing is written", async () => {
   /* file unchanged */
 });
 test("committing closes the page's toasts", async () => {
-  /* add via an Add row is visible, so delete from a task view then Commit on the list: no Undo button left */
+  /* add via an Add row is visible, so delete from a task view then Commit on the list: no Undo button left
+     (in the browser: happy-dom never ends the toast's exit transition) */
 });
 test("a live update during a drag waits for its end (review focus 4)", async () => {
   /* write the file mid-drag; rows unchanged until drop */
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
+
+The existing tests of the ⋯ menu go with C3: moving a line up and to another section, and editing it
+as markdown, are the task view's and the drags' (`task.test.tsx`, the browser tests); Commit,
+Discard, the feature branch's checkout, and a change made elsewhere are tested through an Add row.
 
 - Run: `vp test priorities.test`
 - Expected: FAIL, `Unable to find an accessible element with the role "heading" and name "Now · 4"`.
 
-- [ ] **Step 3: Implement** the interfaces.
+- [x] **Step 3: Implement** the interfaces.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src
