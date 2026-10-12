@@ -71,3 +71,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   control to the page.
 - **If wrong**: two labels in `ReviewPage.tsx`.
 - **Where**: task 6.
+
+## R7: The fake adapter keeps a transcript for each session it starts
+
+- **Decision**: every start of `FakeAdapter` adds its session ID to `sessions`, and a scripted run
+  exits with code 0 after its events. A test removes a session to make its transcript missing, and
+  drives an unscripted run with `emit` and `finish`.
+- **Rationale**: Claude Code writes a transcript for every session it runs, so a fake that does the
+  same resumes by default, as the real one does. The spec asks for a fake that "can make a
+  transcript appear missing", which is one `delete`.
+- **Alternatives considered**: an empty `sessions` that tests fill by hand, which makes every
+  resumed-session test restate what the real agent does.
+- **If wrong**: a test that expects a new session after a first run must clear `sessions` first.
+- **Where**: tasks 2 and 3.
+
+## R8: A cache that cannot be opened is replaced on open
+
+- **Decision**: `RunCache.open` deletes a file it cannot read or migrate, logs why on stderr, and
+  creates an empty database in its place.
+- **Rationale**: the spec's edge case, "the cache is deleted, or cannot be opened. It is created
+  again empty", had no task. It is a cache, so losing it costs only new sessions and the old logs.
+- **Alternatives considered**: refusing to start the server, which would block commits over a cache.
+- **If wrong**: a file that fails to open only for a moment, like one locked by another process,
+  loses its sessions and logs. Retrying before deleting is a few lines in `open`.
+- **Where**: task 2.

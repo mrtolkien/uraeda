@@ -460,9 +460,13 @@ export interface Adapter {
   - `installed = true`, `sessions = new Set<string>()`, and `ignoreInterrupt = false`;
   - `script(events: Array<AgentEvent | ((cwd: string) => void)>)`, which queues the next run's
     events. A function runs in the run's `cwd`, for example to commit a file;
-  - `emit(event)` and `finish(code = 0)`, which drive the current run by hand.
+  - `emit(event)` and `finish(code = 0, stderr = "")`, which drive the current run by hand.
 
-  An interrupted fake emits `{ type: "exit", code: 130 }`, unless `ignoreInterrupt` is set.
+  A scripted run exits with code 0 after its events, unless they hold an `exit`. A run started
+  without a script waits for `emit` and `finish`. Every start adds its session ID to `sessions`, as
+  Claude Code writes a transcript: a test removes it to make the transcript missing. An interrupted
+  fake emits `{ type: "exit", code: 130, stderr: "" }`, unless `ignoreInterrupt` is set, and a
+  terminated one `{ type: "exit", code: 143, stderr: "" }`.
 
 - Produces, in `cache.ts`:
 
@@ -484,7 +488,7 @@ export type RunRow = {
   endedAt: string | null;
 };
 export class RunCache {
-  static open(path: string): RunCache; // ":memory:" in tests; creates the folder
+  static open(path: string): RunCache; // ":memory:" in tests; creates the folder; replaces a broken file
   session(repo: string, folder: string): string | undefined;
   saveSession(repo: string, folder: string, sessionId: string): void;
   startRun(row: Omit<RunRow, "id" | "state" | "reason" | "costUsd" | "endedAt">): number;
@@ -499,7 +503,7 @@ export class RunCache {
 }
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/server/src/runner/__tests__/cache.test.ts
@@ -541,12 +545,12 @@ test("the schema is at version 1", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/runner`
 - Expected: FAIL, `Failed to resolve import "../cache.ts"`.
 
-- [ ] **Step 3: Implement `events.ts`, `adapter.ts`, `fake.ts`, and `cache.ts`**
+- [x] **Step 3: Implement `events.ts`, `adapter.ts`, `fake.ts`, and `cache.ts`**
 
 - The schema is the [spec's](spec.md#data), with these changes:
   - `sessions` has `repo` in its primary key, `(repo, folder)`, and no `model` or `effort` (C1, C2);
@@ -556,12 +560,12 @@ test("the schema is at version 1", () => {
 - `dataDir` uses `node:path`'s `win32.join` on Windows and `posix.join` elsewhere.
 - `RunEvent` data is stored as JSON in `events.data`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp test packages/server`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/runner
