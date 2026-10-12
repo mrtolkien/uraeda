@@ -2,17 +2,20 @@
 
 ## Now
 
-- Rename "Start and continue", wth is this: all buttons starting an agent should be EXTREMELY CLEAR
 - [Review uraeda init and skill install flow: I don't like the skill living in all repos, it's inelegant. uraeda init should offer to install the skill for the active user, not in the repo.](/specs/2026-10-12-review-uraeda-init/proposal.md)
 
 ## Next
 
 - Chat in the web UI: ask about a step without committing, see actual message that goes with the
   commit and push, ...
-- Look and feel pass for the web UI
-- Nvim plugin
-- Clean server code that can open any folder on the host + be run easily with node
-- Small onboarding explanation (what to read and in which order)
+- Nvim plugin -> can be parallel to pretty much everything here
+- Look and feel pass: components style, logo, favicon, ...
+
+- Clean server code that can open any folder on the host + be run easily with node -> make the tool
+  multi-repos
+
+- Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
+
 - Ping user when input is needed
 - Git listener process
 
@@ -40,3 +43,9 @@
 
 - Benchmarks (harness, model, ...): blocked until the harness and the Claude Code integration are
   ready, see [backlog](backlog/benchmarks/proposal.md), with a discovery round and partial answers.
+
+## Scratchpad
+
+- Tools path in the agent run view should be stripped and only show path from the repo root
+- Rename "Start and continue": all buttons starting an agent should be EXTREMELY CLEAR
+- Need icons for different harnesses (claude code, codex, pi, ...)
