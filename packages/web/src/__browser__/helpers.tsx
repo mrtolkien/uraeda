@@ -20,6 +20,20 @@ afterEach(() => {
 /** Renders the UI at a path, against the test server's own `/fate`, and waits for a text. */
 export async function show(path: string, text: string) {
   window.history.replaceState(null, "", path);
+  await mount(text);
+}
+
+/**
+ * Renders the UI again on the current history entry, as a reload does, and waits for a text: the
+ * entry's state, like its saved position, is kept.
+ */
+export async function reload(text: string) {
+  root?.unmount();
+  document.body.innerHTML = "";
+  await mount(text);
+}
+
+async function mount(text: string) {
   const container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);

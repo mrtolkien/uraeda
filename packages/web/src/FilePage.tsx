@@ -2,11 +2,13 @@ import { DocumentPage } from "./DocumentPage.tsx";
 import { useFile } from "./data.ts";
 import { ReviewPage } from "./ReviewPage.tsx";
 import { RoundPage } from "./RoundPage.tsx";
-import { Link } from "./routes.tsx";
+import { Link, useRestoreScroll } from "./routes.tsx";
 
 /** A workflow file, on the page its kind needs: a round to answer, or a document to read. */
 export function FilePage({ folder, name }: { folder: string; name: string }) {
   const file = useFile(folder, name);
+  // Its data is read before it draws: the position comes back at once.
+  useRestoreScroll(true);
   if (!file || file.missing) {
     return (
       <div className="page">
