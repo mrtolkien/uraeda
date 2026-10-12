@@ -16,10 +16,12 @@ const styles = stylex.create({
     minWidth: 0,
   },
   // The detail stays in view beside the list, which scrolls with the page, and scrolls on its own.
+  // As tall as the window, so its edge runs the whole height beside the list.
   detail: {
     position: "sticky",
     top: 0,
-    maxHeight: "var(--size-viewport-height)",
+    boxSizing: "border-box",
+    height: "var(--size-viewport-height)",
     overflowY: "auto",
     borderInlineStartWidth: borderVars["--border-width"],
     borderInlineStartStyle: "solid",
