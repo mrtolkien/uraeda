@@ -70,7 +70,7 @@ test("dragging with a mouse makes room and moves the line (US4 5)", async () => 
     { type: "wait", ms: 500 },
   ]);
   // The line passed over slides down to make room.
-  expect(top(/Claude Code runner/)).toBeGreaterThan(before + 10);
+  await expect.poll(() => top(/Claude Code runner/)).toBeGreaterThan(before + 10);
   await commands.mouse([{ type: "up" }]);
 
   await expect.poll(() => commands.readRepo(), { timeout: 10_000 }).toContain(NEXT_SWAPPED);
