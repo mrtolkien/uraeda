@@ -4,7 +4,7 @@ use common::repo::TestRepo;
 use uraeda_core::actions::priorities as actions;
 use uraeda_core::actions::{ActionError, draft, place};
 use uraeda_core::files::document::hash;
-use uraeda_core::files::priorities::{self, Section};
+use uraeda_core::files::priorities::{self, EntryChange, Section};
 use uraeda_core::git::Git;
 
 const TEXT: &str = "# Priorities\n\n## Now\n\n- [Web UI](/specs/2026-10-11-web-ui/proposal.md)\n\n## Next\n\n- Git listener process\n- Ping user when input is needed\n\n## Later\n\n- [Nice TUI](drafts/cli-tuis.md)\n  - with colours\n- Slack\n\n## Blocked\n\n- Benchmarks: blocked\n";
@@ -119,6 +119,113 @@ fn edits_keep_every_other_line() {
     assert_eq!(back, text);
 }
 
+#[test]
+fn changes_are_named_moves_edits_additions_and_removals() {
+    let moved = priorities::move_entry(TEXT, "later-1", Section::Next, 0).unwrap();
+    let edited = priorities::edit(
+        &moved,
+        "now-1",
+        "[Web UI, again](/specs/2026-10-11-web-ui/proposal.md)",
+    )
+    .unwrap();
+    let removed = priorities::remove(&edited, "blocked-1").unwrap();
+    let added = priorities::add(&removed, Section::Later, "An idea").unwrap();
+    let swapped = priorities::move_entry(&added, "next-3", Section::Next, 1).unwrap();
+
+    assert_eq!(
+        priorities::diff(TEXT, &swapped),
+        [
+            EntryChange::Edited {
+                section: Section::Now,
+                before: "Web UI".to_string(),
+                after: "Web UI, again".to_string(),
+            },
+            EntryChange::Moved {
+                from: Section::Later,
+                to: Section::Next,
+                text: "Nice TUI".to_string(),
+            },
+            EntryChange::Moved {
+                from: Section::Next,
+                to: Section::Next,
+                text: "Ping user when input is needed".to_string(),
+            },
+            EntryChange::Added {
+                section: Section::Later,
+                text: "An idea".to_string(),
+            },
+            EntryChange::Removed {
+                section: Section::Blocked,
+                text: "Benchmarks: blocked".to_string(),
+            },
+        ]
+    );
+    assert_eq!(priorities::changes(TEXT, &swapped), 5);
+}
+
+/// A removal and an addition in different places are two changes, not one edit.
+#[test]
+fn a_removal_and_an_addition_elsewhere_are_two_changes() {
+    let removed = priorities::remove(TEXT, "next-1").unwrap();
+    let added = priorities::add(&removed, Section::Later, "An idea").unwrap();
+
+    assert_eq!(priorities::changes(TEXT, &added), 2);
+}
+
+#[test]
+fn one_change_is_the_subject() {
+    let message = |after: &str| actions::message(TEXT, after);
+    let added = priorities::add(TEXT, Section::Next, "An idea").unwrap();
+    let long = priorities::add(
+        TEXT,
+        Section::Now,
+        "Discovery effort level in proposal -> the human can select low, medium, or high",
+    )
+    .unwrap();
+
+    assert_eq!(
+        message(&added),
+        ("chore: add \"An idea\" to Next".to_string(), None)
+    );
+    assert_eq!(
+        message(&long).0,
+        "chore: add \"Discovery effort level in proposal…\" to Now"
+    );
+    let removed = priorities::remove(TEXT, "next-1").unwrap();
+    assert_eq!(
+        message(&removed).0,
+        "chore: remove \"Git listener process\""
+    );
+    let moved = priorities::move_entry(TEXT, "next-1", Section::Later, 0).unwrap();
+    assert_eq!(
+        message(&moved).0,
+        "chore: move \"Git listener process\" to Later"
+    );
+    let edited = priorities::edit(TEXT, "later-2", "Slack app").unwrap();
+    assert_eq!(message(&edited).0, "chore: edit \"Slack app\"");
+    assert_eq!(
+        message(TEXT.trim_end()),
+        ("chore: update the priorities".to_string(), None)
+    );
+}
+
+#[test]
+fn more_changes_are_counted_and_listed_in_the_body() {
+    let edited = priorities::edit(TEXT, "next-1", "Git listener process, and triggering").unwrap();
+    let swapped = priorities::move_entry(&edited, "later-2", Section::Later, 0).unwrap();
+
+    assert_eq!(
+        actions::message(TEXT, &swapped),
+        (
+            "chore: edit \"Git listener process, and triggering\", and 1 more".to_string(),
+            Some(
+                "- Edit in Next: Git listener process -> Git listener process, and triggering\n- Move within Later: Slack"
+                    .to_string()
+            )
+        )
+    );
+}
+
 /// A repository on `main` with `PRIORITIES.md`.
 fn repo() -> TestRepo {
     let repo = TestRepo::new();
@@ -145,7 +252,14 @@ fn changes_are_committed_alone_or_discarded() {
     assert_eq!(actions::read(&place).changes, 2);
     let committed = actions::commit(&place).unwrap();
 
-    assert_eq!(committed.change.subject, "chore: update the priorities");
+    assert_eq!(
+        committed.change.subject,
+        "chore: move \"Ping user when input is needed\" within Next, and 1 more"
+    );
+    assert_eq!(
+        committed.change.body.as_deref(),
+        Some("- Move within Next: Ping user when input is needed\n- Add to Next: An idea")
+    );
     assert_eq!(repo.changed_in("main"), ["specs/PRIORITIES.md"]);
     assert_eq!(repo.porcelain(), " M README.md\n");
     assert_eq!(actions::read(&place).changes, 0);
