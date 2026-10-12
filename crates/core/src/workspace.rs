@@ -148,6 +148,9 @@ pub struct Feature {
     /// Commits behind its remote branch, when it has both.
     pub behind: Option<usize>,
     pub files: Vec<WorkflowFile>,
+    /// The `.html` files of its `mockups/` folder, sorted.
+    #[serde(skip)]
+    pub mockups: Vec<String>,
     pub step: Step,
     pub problems: Vec<Problem>,
     /// For a merged feature, its worktree still there, from the main checkout.
@@ -211,6 +214,8 @@ impl Feature {
 pub struct PriorityEntry {
     pub section: priorities::Section,
     pub position: usize,
+    /// Its address, from [`priorities::keys`].
+    pub key: String,
     pub text: String,
     pub link: Option<String>,
     pub feature: Option<String>,
@@ -604,9 +609,12 @@ impl Workspace {
             features.push(feature);
         }
 
-        let priorities = priorities::parse(&priorities_text)
+        let entries = priorities::parse(&priorities_text);
+        let keys = priorities::keys(&entries);
+        let priorities = entries
             .into_iter()
-            .map(|entry| {
+            .zip(keys)
+            .map(|(entry, key)| {
                 let feature = entry
                     .link
                     .as_deref()
@@ -619,6 +627,7 @@ impl Workspace {
                 PriorityEntry {
                     section: entry.section,
                     position: entry.position,
+                    key,
                     text: entry.text,
                     link: entry.link,
                     feature,
@@ -724,6 +733,12 @@ fn read_feature(
         return feature;
     }
     let mut feature = Feature::from_texts(kind, folder, texts);
+    feature.mockups = reader
+        .files(from, &format!("{path}/mockups"))
+        .into_iter()
+        .filter(|name| name.ends_with(".html"))
+        .collect();
+    feature.mockups.sort();
     for name in unreadable {
         feature.problems.push(Problem {
             file: format!("{path}/{name}"),
@@ -835,6 +850,7 @@ impl Feature {
             uncommitted: false,
             behind: None,
             files,
+            mockups: Vec::new(),
             step: Step::none(),
             problems,
             left_worktree: None,
@@ -889,6 +905,7 @@ impl Feature {
                 status: None,
                 waiting_line: None,
             }],
+            mockups: Vec::new(),
             step: Step::none(),
             problems,
             left_worktree: None,

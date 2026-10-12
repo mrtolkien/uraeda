@@ -88,6 +88,15 @@ impl TestRepo {
         self.git(&["commit", "--quiet", "--no-verify", "--message", message]);
     }
 
+    /// Commits a file on another branch, and comes back to the current one.
+    pub fn add_on_branch(&self, branch: &str, path: &str, text: &str) {
+        let current = self.current_branch();
+        self.switch(branch);
+        self.write(path, text);
+        self.commit(&format!("chore: add {path}"));
+        self.switch(&current);
+    }
+
     pub fn branch(&self, name: &str) {
         self.git(&["branch", name]);
     }

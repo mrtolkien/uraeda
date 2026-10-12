@@ -61,6 +61,23 @@ pub fn add(
     )
 }
 
+/// Inserts an entry's lines, nested lines included, before the entry at `index` of `section`, or
+/// at its end when `index` is past it: Undo of a removal.
+pub fn insert(
+    place: &Place,
+    section: Section,
+    index: usize,
+    lines: &[String],
+    previous: &str,
+) -> Result<String, ActionError> {
+    apply(
+        place,
+        previous,
+        |text| priorities::insert_entry(text, section, index, lines),
+        "a priority needs some text",
+    )
+}
+
 /// Moves an entry before the entry at `index` of `section`, or to its end.
 pub fn move_entry(
     place: &Place,

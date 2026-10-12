@@ -56,6 +56,11 @@ const mutations = {
     FateAPI['mutations']['priorities.edit']['input'],
     FateAPI['mutations']['priorities.edit']['output']
   >('Priorities'),
+  'priorities.insert': mutation<
+    Priorities,
+    FateAPI['mutations']['priorities.insert']['input'],
+    FateAPI['mutations']['priorities.insert']['output']
+  >('Priorities'),
   'priorities.move': mutation<
     Priorities,
     FateAPI['mutations']['priorities.move']['input'],

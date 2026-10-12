@@ -42,6 +42,12 @@ export declare function editComment(repo: string, folder: string, file: string, 
 /** Replaces a priority line's text. */
 export declare function editPriority(repo: string, id: string, text: string, previous: string): Promise<Priorities>
 
+/**
+ * Inserts a priority line with its nested lines, as written, before the line at `index` of a
+ * section, or at its end: Undo of a removal.
+ */
+export declare function insertPriority(repo: string, section: string, index: number, lines: Array<string>, previous: string): Promise<Priorities>
+
 /** Moves a priority line before the line at `index` of a section, or to its end. */
 export declare function movePriority(repo: string, id: string, section: string, index: number, previous: string): Promise<Priorities>
 
@@ -231,6 +237,8 @@ export interface DraftView {
 export interface EntryItem {
   /** `next-2`: its section and its position in it, from 1. */
   id: string
+  /** Its address, stable while its text or draft stays: see [`keys`]. */
+  key: string
   /** The markdown of its text, after its marker, on one line. */
   text: string
   spans: Array<Span>
@@ -256,6 +264,11 @@ export interface FeatureView {
   uncommitted: boolean
   behind?: number
   files: Array<FileSummary>
+  /**
+   * The `.html` files of its `mockups/` folder, sorted: from its working tree when its branch
+   * is checked out, otherwise from its branch's tip.
+   */
+  mockups: Array<string>
   step: StepView
   problems: Array<ProblemView>
   /** For a merged feature, its worktree still there, from the main checkout. */
@@ -360,6 +373,8 @@ export interface Priorities {
 export interface PriorityView {
   /** `next-2`. */
   id: string
+  /** Its address, `/priorities/<key>`: the linked draft's name, or the slug of its text. */
+  key: string
   /** `now`, `next`, `later`, or `blocked`. */
   section: string
   position: number

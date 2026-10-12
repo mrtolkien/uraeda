@@ -580,7 +580,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { WatchHandle, addComment, addPriority, approve, commitPriorities, commitText, createDraft, discardPriorities, editComment, editPriority, movePriority, nextStep, proposalHints, readDraft, readFeature, readFile, readPriorities, readRaw, readText, readWorkspace, removeComment, removePriority, requestChanges, retryCommit, saveAnswer, saveNotes, saveText, startFeature, startOver, submitAnswers, watch, workDir, BlockKind, CalloutKind, ItemMarker } = nativeBinding
+const { WatchHandle, addComment, addPriority, approve, commitPriorities, commitText, createDraft, discardPriorities, editComment, editPriority, insertPriority, movePriority, nextStep, proposalHints, readDraft, readFeature, readFile, readPriorities, readRaw, readText, readWorkspace, removeComment, removePriority, requestChanges, retryCommit, saveAnswer, saveNotes, saveText, startFeature, startOver, submitAnswers, watch, workDir, BlockKind, CalloutKind, ItemMarker } = nativeBinding
 export { WatchHandle }
 export { addComment }
 export { addPriority }
@@ -591,6 +591,7 @@ export { createDraft }
 export { discardPriorities }
 export { editComment }
 export { editPriority }
+export { insertPriority }
 export { movePriority }
 export { nextStep }
 export { proposalHints }

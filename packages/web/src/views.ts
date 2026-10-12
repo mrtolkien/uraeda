@@ -65,6 +65,7 @@ export const FeatureView = view<Feature>()({
   uncommitted: true,
   behind: true,
   files: true,
+  mockups: true,
   step: { name: true, waitsOn: true, file: true, task: true },
   problems: true,
   leftWorktree: true,
@@ -104,6 +105,7 @@ export const DraftView = view<Draft>()({
   committed: true,
   entry: {
     id: true,
+    key: true,
     section: true,
     position: true,
     text: true,
