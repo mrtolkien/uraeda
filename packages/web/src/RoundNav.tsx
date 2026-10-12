@@ -237,7 +237,8 @@ export function RoundNav({
           {action}
         </HStack>
       </TopBarSlot>
-      <Overlay label="Questions" isOpen={open} onClose={() => setOpen(false)}>
+      {/* No field to type in: the sheet needs no room for a keyboard, and the round shows above. */}
+      <Overlay label="Questions" isOpen={open} onClose={() => setOpen(false)} sheetHeight="capped">
         <VStack gap={2}>
           <Text color="secondary">{count}</Text>
           <Index
