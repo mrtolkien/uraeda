@@ -10,12 +10,12 @@ use crate::files::document::{self, hash};
 use crate::files::items::items;
 use crate::files::priorities::{self, Priorities, Section};
 use crate::git::{Git, GitError};
-use crate::today;
 use crate::view::{
-    CommitView, DraftView, FeatureView, FileView, PriorityView, StartedView, VersionView,
+    CommitView, DraftView, FeatureView, FileView, NextView, PriorityView, StartedView, VersionView,
     WorkspaceView, title,
 };
 use crate::workspace::{Feature, FileKind, Problem, Source, Workspace, WorkspaceError};
+use crate::{steps, today};
 
 /// An operation refused or failed: `code` is `refused`, `conflict` for a change made elsewhere,
 /// or `hook` for a commit a hook refused, with its whole `output`.
@@ -288,6 +288,31 @@ fn reach(repo: &Path, folder: &str) -> Result<(Git, Feature, place::Place)> {
         .ok_or_else(|| refused(format!("{folder} is merged: it has no branch to write on")))?;
     let place = place::reach(&git, &branch)?;
     Ok((git, feature, place))
+}
+
+/// A feature's next step, as `ura next` gives it, with the pull request's state from `gh`.
+pub fn next_step(repo: &Path, folder: &str) -> Result<NextView> {
+    let (git, workspace) = open(repo)?;
+    let mut feature = find(&workspace, folder)?.clone();
+    steps::refresh_pull_request(&mut feature, steps::pull_request);
+    Ok(NextView {
+        folder: feature.folder.clone(),
+        branch: feature.branch.clone(),
+        main_root: git.main_root().to_string_lossy().into_owned(),
+        step: (&feature.step).into(),
+    })
+}
+
+/// The directory an agent works on a feature in: the checkout that has its branch, or else a new
+/// worktree for it.
+pub fn work_dir(repo: &Path, folder: &str) -> Result<String> {
+    let _lock = write_lock();
+    let (_, workspace) = open(repo)?;
+    if find(&workspace, folder)?.branch.is_none() {
+        return Err(refused(format!("{folder} has no branch")));
+    }
+    let (_, _, place) = reach(repo, folder)?;
+    Ok(place.root.to_string_lossy().into_owned())
 }
 
 fn round_name(feature: &Feature) -> Result<String> {

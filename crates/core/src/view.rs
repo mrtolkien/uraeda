@@ -8,6 +8,7 @@ use serde::Serialize;
 use crate::files::document::{Document, Span};
 use crate::files::items::Items;
 use crate::files::markdown;
+use crate::steps::Step;
 use crate::workspace::{Feature, Problem, Workspace};
 
 #[cfg_attr(feature = "napi", napi(object))]
@@ -187,6 +188,50 @@ pub struct StartedView {
     pub folder: String,
     pub branch: String,
     pub worktree: Option<String>,
+}
+
+/// A feature's next step, as `ura next` gives it, for an agent's run.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NextStepView {
+    /// `human-gate`, `plan`, `implementation`, `done`, ...
+    pub name: String,
+    /// `human`, `agent`, or `nobody`.
+    pub waits_on: String,
+    /// The skill file to follow, like `skills/uraeda/references/spec.md`.
+    pub reference: Option<String>,
+    /// The file waiting for the human, at a gate.
+    pub file: Option<String>,
+    /// The first unchecked task, for implementation.
+    pub task: Option<String>,
+    /// `open`, `draft`, `changes-requested`, `none`, or `unknown`, when the step depends on it.
+    pub pull_request: Option<String>,
+}
+
+impl From<&Step> for NextStepView {
+    fn from(step: &Step) -> NextStepView {
+        NextStepView {
+            name: step.name.as_str().to_string(),
+            waits_on: kebab(&step.waits_on),
+            reference: step.reference.clone(),
+            file: step.file.clone(),
+            task: step.task.clone(),
+            pull_request: step.pull_request.as_ref().map(kebab),
+        }
+    }
+}
+
+/// A feature, its branch, and its next step, with the main checkout's path.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NextView {
+    pub folder: String,
+    pub branch: Option<String>,
+    /// The main checkout's path, whichever worktree the repository was opened from.
+    pub main_root: String,
+    pub step: NextStepView,
 }
 
 /// A span list for a priority line's markdown.
