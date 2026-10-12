@@ -1,6 +1,6 @@
 ---
 status: auto-approved
-spec-revision: 1
+spec-revision: 2
 ---
 
 # Plan: UI improvements
@@ -34,6 +34,9 @@ that owns the code.
    finger; the update applies once the drag ends. Task 11.
 5. **A comment on a mockup the spec does not link**: it is written as a general comment starting
    with "Mockup repeat.html: ". Task 13.
+6. **A run's address with another feature's run id**, like `/f/2026-10-12-cli-tuis/runs/7` where run
+   7 is `2026-10-11-web-ui`'s: "No run 7 in 2026-10-12-cli-tuis.", not the other feature's log.
+   Task 16.
 
 ## Global constraints
 
@@ -1551,4 +1554,104 @@ git commit -m "feat(ui-improvements): lint the UI decisions, check both sizes, d
 ```bash
 git add specs/2026-10-12-ui-improvements/screenshots packages/web/scripts packages/web/package.json
 git commit -m "docs(ui-improvements): screenshots of every changed view"
+```
+
+## Task 16: The agent's runs at both widths
+
+Spec revision 2, US8.
+
+**Files:**
+
+- Create: `packages/web/src/RunPage.tsx`, the run view
+- Modify: `packages/web/src/routes.tsx` (the `run` route), `packages/web/src/App.tsx` (the run view
+  in a pane beside the feature page, as `TaskRoute`), `packages/web/src/AgentPanel.tsx` (no log, no
+  collapsibles: a `List` of runs; Allow and continue under the command),
+  `packages/web/src/RunLog.tsx` (groups of tool calls controlled from the history entry; unfinished
+  calls of an ended run shown as `error`)
+- Test: `packages/web/src/__tests__/agent-panel.test.tsx`,
+  `packages/web/src/__tests__/run.test.tsx`, `packages/web/src/__browser__/run.test.tsx`;
+  `packages/web/src/__browser__/layout.test.tsx` (the run view at both sizes)
+
+**Interfaces:**
+
+- `parseRoute("/f/<folder>/runs/<id>")` → `{ page: "run", folder, id }`.
+- `RunPage({ folder, id })`: "No run <id> in <folder>." when the run is missing or another
+  feature's.
+- `RunLog({ run, ended })`: `ended` makes `running` and `pending` calls `error`, with "Not finished:
+  the run ended.".
+- `Entry.open?: Array<number>`: the opened groups, by their first call's `seq`.
+
+- [ ] **Step 1: Write the failing tests**: US8 scenarios 1, 2, 4, 6 and the missing run in
+      happy-dom; scenarios 3 and 5 in WebKit; the run view in `layout.test.tsx`'s checks. The
+      runner's tests that read the log on the feature page open the run view instead.
+- [ ] **Step 2: Run them to check they fail**
+
+- Run: `vp test agent-panel run.test`
+- Expected: FAIL, no row "Runs" on the feature page.
+
+- [ ] **Step 3: Implement**
+- [ ] **Step 4: Run all checks**
+
+- Run: `vp run ready`
+- Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add packages/web
+git commit -m "feat(ui-improvements): the agent's runs at both widths, with a run view"
+```
+
+## Task 17: A refused Undo shows in a banner
+
+Spec revision 2, error handling.
+
+**Files:**
+
+- Modify: `packages/web/src/layout/useUndoToast.ts` (a refusal goes to a shared store, not a toast),
+  `packages/web/src/Shell.tsx` (the banner under the top bar, with Dismiss)
+- Test: `packages/web/src/__tests__/priorities.test.tsx` or `task.test.tsx`, where Undo is refused
+  today
+
+- [ ] **Step 1: Write the failing test**: a refused Undo shows "Could not restore …" in a banner
+      that stays after 5 seconds and goes on Dismiss.
+- [ ] **Step 2: Run it to check it fails**
+
+- Run: `vp test task.test`
+- Expected: FAIL, no banner.
+
+- [ ] **Step 3: Implement**
+- [ ] **Step 4: Run all checks**
+
+- Run: `vp run ready`
+- Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add packages/web
+git commit -m "fix(ui-improvements): a refused Undo shows in a banner that stays"
+```
+
+## Task 18: Screenshots of the runs
+
+**Files:**
+
+- Modify: `packages/web/scripts/screenshots.ts` (the feature page with a failed run, the run view on
+  the phone, the run view in its pane on desktop, the Undo banner)
+- Modify: `specs/2026-10-12-ui-improvements/screenshots/`
+
+- [ ] **Step 1: Take the screenshots, and review each** against the four UI decisions and
+      [the mockups](mockups/ui-improvements.html).
+- [ ] **Step 2: Fix what the review found**, in the task its view belongs to.
+- [ ] **Step 3: Run all checks**
+
+- Run: `vp run ready`
+- Expected: PASS.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add specs/2026-10-12-ui-improvements/screenshots packages/web/scripts
+git commit -m "docs(ui-improvements): screenshots of the agent's runs"
 ```
