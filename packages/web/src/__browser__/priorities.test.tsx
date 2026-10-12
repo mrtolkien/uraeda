@@ -2,7 +2,7 @@
 // dragging lines on the priorities page with a mouse, a finger, and the keyboard. Each test takes
 // the repository in turn, on a fresh copy of the fixture (see `vite.browser.config.ts`).
 import { screen } from "@testing-library/react";
-import { afterEach, beforeEach, expect, test } from "vite-plus/test";
+import { expect, test } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
 import { show } from "./helpers.tsx";
@@ -11,14 +11,6 @@ const commands = browserCommands as unknown as RepoCommands;
 
 const NEXT_SWAPPED =
   "## Next\n\n- [Git listener process](drafts/git-listener.md)\n- Claude Code runner (triggered manually)\n";
-
-beforeEach(async () => {
-  await commands.takeRepo();
-});
-
-afterEach(async () => {
-  await commands.releaseRepo();
-});
 
 /** The middle of an element, in the page's coordinates. */
 function middle(element: Element) {

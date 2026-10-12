@@ -45,6 +45,17 @@
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
           # WebKit needs an EGL driver, which machines without a GPU stack, like CI's, lack.
           __EGL_VENDOR_LIBRARY_DIRS = "${pkgs.mesa}/share/glvnd/egl_vendor.d";
+          # The browsers' fonts, the same on every machine: text measured in the layout tests does not
+          # depend on the fonts a machine has installed.
+          FONTCONFIG_FILE = pkgs.writeText "fonts.conf" ''
+            <?xml version="1.0"?>
+            <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+            <fontconfig>
+              <include>${pkgs.fontconfig.out}/etc/fonts/conf.d</include>
+              <dir>${pkgs.dejavu_fonts}/share/fonts</dir>
+              <cachedir prefix="xdg">uraeda-fontconfig</cachedir>
+            </fontconfig>
+          '';
         };
       });
 
