@@ -4,7 +4,8 @@ use common::repo::TestRepo;
 use common::texts::{proposal, spec};
 use uraeda_core::actions::place::{self, Place};
 use uraeda_core::actions::review::{self, Tier};
-use uraeda_core::actions::{ActionError, answer, text};
+use uraeda_core::actions::{ActionError, answer, draft, start, text};
+use uraeda_core::embedded;
 use uraeda_core::files::document::hash;
 use uraeda_core::git::Git;
 use uraeda_core::today::Date;
@@ -377,4 +378,90 @@ fn drafts_and_proposals_are_committed_with_the_skills_messages() {
     let committed = text::commit(&place, proposal_path).unwrap();
     assert_eq!(committed.change.subject, "chore(web-ui): edit the proposal");
     assert_eq!(repo.current_branch(), "main");
+}
+
+/// A repository on `main` with the priorities of the shared fixture.
+fn fixture_repo() -> TestRepo {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write(
+        "specs/PRIORITIES.md",
+        &std::fs::read_to_string(common::fixture("repo/main/specs/PRIORITIES.md")).unwrap(),
+    );
+    repo.commit("chore: specs");
+    repo
+}
+
+/// US5.1: the line as the title and under What, the template's headings, and no placeholder.
+#[test]
+fn a_draft_holds_the_line_as_title_and_what_without_placeholders() {
+    let repo = fixture_repo();
+    let git = Git::discover(repo.path()).unwrap();
+    let main = place::reach(&git, "main").unwrap();
+
+    let drafted = draft::create(&main, "next-1").unwrap();
+
+    let text = read(&main, &drafted.path);
+    assert!(text.starts_with("---\ndiscovery: high"), "{text}");
+    assert!(
+        text.contains(
+            "# Claude Code runner (triggered manually)\n\n## What\n\nClaude Code runner (triggered manually)\n\n## Why\n\n## Notes\n"
+        ),
+        "{text}"
+    );
+    assert!(!text.contains('['), "{text}");
+}
+
+/// US5.3: the guidance the editor shows in each empty section.
+#[test]
+fn the_proposal_hints_are_the_templates_placeholders() {
+    let hints = embedded::proposal_hints();
+
+    assert_eq!(
+        hints,
+        [
+            (
+                "What".to_string(),
+                "What the feature does, from the user's point of view.".to_string()
+            ),
+            (
+                "Why".to_string(),
+                "The problem it solves, and for whom.".to_string()
+            ),
+            (
+                "Notes".to_string(),
+                "Optional: constraints, ideas, examples, links to similar products, things you already decided or want to avoid.".to_string()
+            ),
+        ]
+    );
+}
+
+/// Review C2: the proposal is freeform, so any draft starts.
+#[test]
+fn start_accepts_a_draft_with_placeholders_or_empty_sections() {
+    // The template as is, placeholders and all, then a draft with an empty Why.
+    let template = embedded::template(embedded::PROPOSAL).unwrap().to_string();
+    for text in [template, "# X\n\n## What\n\nX\n\n## Why\n\n".to_string()] {
+        let repo = TestRepo::new();
+        repo.write("specs/README.md", "# Specs\n");
+        repo.write(
+            "specs/PRIORITIES.md",
+            "# Priorities\n\n## Now\n\n## Next\n\n- [X](drafts/x.md)\n\n## Later\n\n## Blocked\n",
+        );
+        repo.write("specs/drafts/x.md", &text);
+        repo.commit("chore: draft X");
+        let git = Git::discover(repo.path()).unwrap();
+        let workspace = Workspace::read(&git).unwrap();
+
+        let started = start::run(
+            &git,
+            &workspace,
+            "specs/drafts/x.md",
+            Some("x"),
+            today(),
+            false,
+        );
+
+        assert!(started.is_ok(), "{}", started.err().unwrap());
+    }
 }

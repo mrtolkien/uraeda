@@ -250,22 +250,30 @@ not changed for them; these tasks carry them out.
 
 - Modify: `crates/core/src/actions/draft.rs` (`draft_entry`)
 - Modify: `crates/core/src/actions/start.rs` (remove `PLACEHOLDERS`, `unwritten`, and its check)
-- Modify: `crates/core/src/embedded.rs` (add `proposal_hints`)
+- Modify: `crates/core/src/embedded.rs` (add `PROPOSAL`, `is_placeholder`, `proposal_paragraphs`,
+  `proposal_hints`)
+- Modify: `crates/core/src/view.rs` (add `ProposalHint`), `crates/core/src/api.rs` (add
+  `proposal_hints`)
 - Modify: `crates/binding/src/lib.rs` (add `proposal_hints`), `packages/binding/index.d.ts`
   (generated)
-- Modify: `skills/uraeda/SKILL.md` (the Draft step, the refusal list)
-- Test: `crates/core/tests/actions.rs`, `crates/cli/tests/draft.rs`, `crates/cli/tests/start.rs`
+- Modify: `skills/uraeda/SKILL.md` (the Draft step, the Start step, the refusal list), `README.md`
+  (the `ura start` line no longer says "written")
+- Test: `crates/core/tests/actions.rs`, `crates/cli/tests/draft.rs`, `crates/cli/tests/start.rs`,
+  `packages/web/src/__tests__/editor.test.tsx` (the refused start becomes a start, [R2](rulings.md))
 
 **Interfaces:**
 
 - Produces: `embedded::proposal_hints() -> Vec<(String, String)>`: each `##` heading of the proposal
-  template with its placeholder text, brackets and the "Optional: " prefix kept as written, in
-  order: `("What", "What the feature does, from the user's point of view.")`,
+  template with its placeholder text, without the brackets, its lines joined with a space, and the
+  "Optional: " prefix kept ([R1](rulings.md)), in order:
+  `("What", "What the feature does, from the user's point of view.")`,
   `("Why", "The problem it solves, and for whom.")`, `("Notes", "Optional: constraints, ...")`.
-- Produces: binding `proposalHints(): Promise<Array<{ heading: string; hint: string }>>`.
+- Produces: binding `proposalHints(): Promise<Array<ProposalHint>>`, with
+  `ProposalHint { heading: string; hint: string }` declared in the core's `view.rs` and served by
+  `api::proposal_hints()`.
 - Produces: `ura start` no longer refuses a draft for its content.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/actions.rs
@@ -303,17 +311,20 @@ fn ura_draft_writes_what_the_ui_writes() {
 ```
 
 Remove the existing tests that expect a refusal for placeholders or an empty What or Why
-(`crates/core/tests/actions.rs`, `crates/cli/tests/start.rs`); they no longer match the spec, as the
-review's C2 asks.
+(`crates/cli/tests/start.rs`, and `editor.test.tsx`'s, which becomes a start that succeeds); they no
+longer match the spec, as the review's C2 asks. The Rust tests have no `fixture_repo()`: the core
+and CLI tests build a repository whose `PRIORITIES.md` is `fixtures/repo/main/specs/PRIORITIES.md`,
+and call `start::run(&git, &workspace, draft, Some("x"), today(), false)`. A test of
+`proposal_hints()`'s three pairs is added in `crates/core/tests/actions.rs`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test actions draft` then `start_accepts`
 - Expected: FAIL, the draft text contains `[What the feature does, from the user's point of view.]`;
   the start returns
   `Err(Refused("specs/drafts/x.md still holds the template's placeholders: write it first"))`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 - `draft_entry`: from the template, replace `# [Feature name]` with `# <line>`, replace the
   placeholder paragraph under `## What` with the line, and drop every other line that is a bracketed
@@ -329,12 +340,12 @@ review's C2 asks.
   step, if any.
 - Rebuild the binding: `vp run --filter uraeda-binding build`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo test --workspace --exclude uraeda-binding && vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates skills/uraeda/SKILL.md packages/binding/index.d.ts packages/binding/index.js

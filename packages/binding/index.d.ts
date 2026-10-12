@@ -48,6 +48,9 @@ export declare function movePriority(repo: string, id: string, section: string, 
 /** A feature's next step, with its branch and the main checkout's path, for an agent's run. */
 export declare function nextStep(repo: string, folder: string): Promise<NextView>
 
+/** Each section of the proposal template, with the guidance the editor shows while it is empty. */
+export declare function proposalHints(): Promise<Array<ProposalHint>>
+
 /** A draft, by its path from the top level. */
 export declare function readDraft(repo: string, path: string): Promise<DraftView>
 
@@ -373,6 +376,12 @@ export interface ProblemView {
   line?: number
   rule: string
   message: string
+}
+
+/** A section of the proposal template, with the guidance the editor shows while it is empty. */
+export interface ProposalHint {
+  heading: string
+  hint: string
 }
 
 export interface QuestionItem {
