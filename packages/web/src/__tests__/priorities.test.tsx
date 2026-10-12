@@ -119,7 +119,9 @@ test("Commit makes one commit of the priorities alone", async () => {
   await click(screen.getByRole("button", { name: "Commit" }));
 
   await waitFor(() =>
-    expect(git(repo, "log", "-1", "--format=%s").trim()).toBe("chore: update the priorities"),
+    expect(git(repo, "log", "-1", "--format=%s").trim()).toBe(
+      'chore: move "Git listener process" within Next',
+    ),
   );
   expect(git(repo, "show", "--name-only", "--format=", "HEAD").trim()).toBe(PATH);
   await waitFor(() => expect(screen.queryByText("1 change to commit")).toBeNull());
