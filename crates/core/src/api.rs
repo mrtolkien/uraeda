@@ -112,7 +112,7 @@ fn checked(git: &Git, feature: &Feature) -> Vec<Problem> {
     let Some(root) = feature_dir(git, feature) else {
         return Vec::new();
     };
-    let mut problems = check::check(&root, &root.join(&feature.path)).unwrap_or_default();
+    let mut problems = check::check(&root, &root.join(feature.checked_path())).unwrap_or_default();
     problems.retain(|problem| {
         !feature
             .problems

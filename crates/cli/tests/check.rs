@@ -101,3 +101,30 @@ fn missing_target() {
     );
     assert_eq!(output.code, 1);
 }
+
+/// Pull request review: a finished feature's check covers its record only.
+#[test]
+fn a_finished_features_check_covers_its_record_only() {
+    let repo = TestRepo::new();
+    specs(
+        &repo,
+        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
+    );
+    repo.write(
+        "specs/done/2026-10-10-cli-core.md",
+        &record("feature", "CLI core"),
+    );
+    repo.write(
+        "specs/done/2026-10-11-web-ui.md",
+        "---\nkind: feature\n---\n\n# Record: Web UI\n",
+    );
+    repo.commit("finish: two features");
+
+    let output = ura(&repo, &["check", "cli-core"]);
+
+    assert_eq!(
+        output.stdout,
+        "specs/done/2026-10-10-cli-core.md: no problems\n"
+    );
+    assert_eq!(output.code, 0, "{}", output.stderr);
+}
