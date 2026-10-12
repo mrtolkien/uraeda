@@ -129,8 +129,9 @@ of the [status table](#workflow-status), `plan-review` `true` or `false`, a spec
 at most its last round, and a plan's `spec-revision` at most the spec's `revision`; the template's
 title, sections, and order, and no level-2 section the template does not have; the structured items
 above; an answer for every question that applies once a round is `answered`; the `> [!IMPORTANT]`
-block of a file waiting for the human; links to markdown files and into `specs/` that resolve,
-anchors included; and the [review files](#review-files) rules.
+block of a file waiting for the human; a record's name, `YYYY-MM-DD-<slug>.md`, its `finished` date,
+its numbered rounds and questions, and its opening `> [!NOTE]` block; links to markdown files and
+into `specs/` that resolve, anchors included; and the [review files](#review-files) rules.
 
 ### Branches
 

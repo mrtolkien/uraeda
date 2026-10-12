@@ -28,7 +28,7 @@ pub fn run(target: Option<String>, json: bool) -> Result<ExitCode, String> {
         Some(name) if !cwd.join(name).exists() && !name.contains('/') => {
             let (_, workspace) = output::workspace()?;
             match output::target(&workspace, Some(name), Purpose::Inspect)? {
-                Target::Feature(index) => root.join(&workspace.features[index].path),
+                Target::Feature(index) => root.join(workspace.features[index].checked_path()),
                 Target::File(index, file) => root.join(&workspace.features[index].path).join(file),
                 Target::Draft(draft) => root.join(draft),
             }

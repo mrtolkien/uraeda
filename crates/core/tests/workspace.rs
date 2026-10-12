@@ -361,3 +361,18 @@ fn a_broken_record_is_a_problem() {
     assert_eq!(feature.problems[0].rule, "frontmatter.parse");
     assert_eq!(feature.problems[0].file, "specs/done/2026-10-11-web-ui.md");
 }
+
+/// Pull request review: a record whose kind disagrees with its branch is a problem.
+#[test]
+fn a_record_kind_must_match_its_branch() {
+    let repo = repo();
+    finish(&repo, FOLDER, "specs/2026-10-11-web-ui", FOLDER, "bug");
+
+    let feature = feature(&repo, FOLDER);
+
+    assert_eq!(feature.problems[0].rule, "frontmatter.kind");
+    assert_eq!(
+        feature.problems[0].message,
+        "kind is bug, but 2026-10-11-web-ui is a feature's branch"
+    );
+}
