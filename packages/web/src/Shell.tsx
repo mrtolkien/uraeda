@@ -213,15 +213,15 @@ function UndoErrors() {
   }
   return (
     <VStack gap={2} xstyle={[styles.errors, wide && styles.errorsWide]}>
-      {errors.map((error, index) => (
+      {errors.map((error) => (
         <Banner
-          key={`${index}-${error}`}
+          key={error.id}
           status="error"
-          title={error}
+          title={error.text}
           collapsible={false}
           isDismissable
           dismissLabel="Dismiss"
-          onDismiss={() => dismiss(index)}
+          onDismiss={() => dismiss(error.id)}
         />
       ))}
     </VStack>
