@@ -50,101 +50,12 @@ body {
   line-height: inherit;
 }
 
-.label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--reading-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.title-l {
-  margin: 2px 0 8px;
-  font-size: 20px;
-  line-height: 1.3;
-  font-weight: 700;
-}
-
 .muted {
   color: var(--reading-muted);
 }
 
-.small {
-  font-size: 15px;
-}
-
-.mono {
-  font-family: var(--font-family-code);
-  font-size: 0.88em;
-}
-
 .page a {
   color: var(--color-text-accent);
-}
-
-/* A band running to the screen's edges between sibling items. */
-.band {
-  height: 8px;
-  margin: 20px calc(-1 * var(--reading-inset));
-  background: var(--reading-band);
-}
-
-/* Rows of a list of things, split by hairlines. */
-.row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 48px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--reading-rule);
-  color: inherit;
-  text-decoration: none;
-}
-
-.page a.row {
-  color: inherit;
-}
-
-.row .grow {
-  flex: 1;
-  min-width: 0;
-}
-
-.not-saved {
-  color: var(--reading-con);
-}
-
-.pending {
-  margin: 2px 0 8px 26px;
-  padding: 6px 0 6px 12px;
-  border-left: 3px solid var(--reading-why);
-  font-size: 16px;
-}
-
-.pending .meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--reading-muted);
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.actions > * {
-  flex: 1;
-}
-
-.field-label {
-  display: block;
-  margin: 14px 0 6px;
-  font-size: 15px;
-  font-weight: 600;
 }
 
 /* "Commit and continue" and "Commit only": a long label takes its own line rather than being cut. */

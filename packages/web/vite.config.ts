@@ -44,7 +44,13 @@ export default defineConfig({
   server: devServer(loadEnv(root)),
   test: {
     environment: "happy-dom",
-    environmentOptions: { happyDOM: { url: "http://127.0.0.1:4310/" } },
+    // A mockup's frame is not loaded: the server in process answers only the UI's own requests.
+    environmentOptions: {
+      happyDOM: {
+        url: "http://127.0.0.1:4310/",
+        settings: { disableIframePageLoading: true },
+      },
+    },
     // The browser project checks the layout; its tests run in WebKit, from the root's config.
     exclude: ["src/__browser__/**", "**/node_modules/**"],
     // Each test builds a git repository and reads it through the binding.

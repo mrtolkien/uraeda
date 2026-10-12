@@ -1,20 +1,36 @@
 import { Badge } from "@astryxdesign/core/Badge";
 import { Banner } from "@astryxdesign/core/Banner";
-import { BottomSheet } from "@astryxdesign/core/BottomSheet";
 import { Button } from "@astryxdesign/core/Button";
+import { Code } from "@astryxdesign/core/Code";
+import { Heading } from "@astryxdesign/core/Heading";
+import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Switch } from "@astryxdesign/core/Switch";
-import { useMemo, useRef, useState } from "react";
+import { Text } from "@astryxdesign/core/Text";
+import { VStack } from "@astryxdesign/core/VStack";
+import {
+  borderVars,
+  colorVars,
+  radiusVars,
+  spacingVars,
+} from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
+import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
-import type { Block, CommentItem } from "uraeda-binding";
+import type { Block, CommentItem, Document } from "uraeda-binding";
 import { Blocks, selectable } from "./Blocks.tsx";
 import { CommitActions } from "./CommitActions.tsx";
+import { CommentForm, quoteOf } from "./CommentForm.tsx";
+import { Crumbs } from "./Crumbs.tsx";
 import type { useFile } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
-import { GrowingTextArea } from "./Question.tsx";
+import { Overlay } from "./layout/Overlay.tsx";
+import { Page } from "./layout/Page.tsx";
+import { useWidthClass } from "./layout/useWidthClass.ts";
+import { GrowingTextArea, statusStyles } from "./Question.tsx";
 import { HookRefusal } from "./RoundPage.tsx";
-import { Link } from "./routes.tsx";
 import { startRun } from "./runs.ts";
+import { plain } from "./Spans.tsx";
 import { FileView } from "./views.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
@@ -22,11 +38,50 @@ type File = NonNullable<ReturnType<typeof useFile>>;
 /** Lines of the reviewed file, and the heading above them. */
 type Range = { start: number; end: number; heading: string };
 
-/** What the comment sheet holds: a new comment on lines or on the whole file, or an edit. */
-type Sheet =
-  | { kind: "lines"; text: string }
-  | { kind: "general"; text: string }
+/** The comment being written: on the selected lines, on the whole file, or an edit of one. */
+type Draft =
+  | { kind: "lines" }
+  | { kind: "general" }
   | { kind: "edit"; number: number; text: string };
+
+const styles = stylex.create({
+  // A pending comment under its block: a bar down its side.
+  pending: {
+    marginBlockStart: spacingVars["--spacing-0-5"],
+    marginBlockEnd: spacingVars["--spacing-2"],
+    marginInlineStart: spacingVars["--spacing-6"],
+    paddingInlineStart: spacingVars["--spacing-3"],
+    borderInlineStartWidth: spacingVars["--spacing-1"],
+    borderInlineStartStyle: "solid",
+    borderInlineStartColor: colorVars["--color-warning"],
+    overflowWrap: "anywhere",
+  },
+  // The comment field under the block on wide screens.
+  inline: {
+    marginBlockEnd: spacingVars["--spacing-4"],
+    padding: spacingVars["--spacing-3"],
+    borderWidth: borderVars["--border-width"],
+    borderStyle: "solid",
+    borderColor: colorVars["--color-border"],
+    borderRadius: radiusVars["--radius-container"],
+  },
+  // A story's heading, after a band to the screen's edges on the phone.
+  band: {
+    height: spacingVars["--spacing-2"],
+    marginBlock: spacingVars["--spacing-5"],
+    backgroundColor: colorVars["--color-background-muted"],
+  },
+  bandBleed: {
+    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+  },
+  task: {
+    marginBlock: spacingVars["--spacing-4"],
+  },
+  // Room at the page's end, so the last block can rise above the comment sheet.
+  sheetRoom: {
+    height: "var(--size-viewport-height)",
+  },
+});
 
 function where(comment: CommentItem) {
   if (comment.general) {
@@ -37,19 +92,64 @@ function where(comment: CommentItem) {
     : `C${comment.number} · lines ${comment.startLine}–${comment.endLine}`;
 }
 
-function anchor(range: Range) {
+/** Where a comment on lines goes, as the review writes it. */
+export function anchor(range: Range) {
   const lines =
     range.start === range.end ? `Line ${range.start}` : `Lines ${range.start}–${range.end}`;
   return `${lines}, under "${range.heading}"`;
 }
 
+/** A block's text, a row's cells included. */
+export function textOf(document: Document, block: Block) {
+  const own = plain(block.spans);
+  if (own || block.kind !== "row") {
+    return own;
+  }
+  return document.blocks
+    .filter((cell) => cell.parent === block.id)
+    .map((cell) => plain(cell.spans))
+    .join(" | ");
+}
+
+function reducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
+
+/**
+ * Brings a selected block into the space between the top bar and the comment sheet, once the sheet
+ * has stopped moving: its bottom just above the sheet, or its top under the bar when it is taller
+ * than that space.
+ */
+function placeAboveSheet(element: HTMLElement, sheet: RefObject<HTMLElement | null>) {
+  const start = performance.now();
+  let last = Number.NaN;
+  const tick = () => {
+    const top = sheet.current?.getBoundingClientRect().top ?? Number.NaN;
+    if (performance.now() - start > 1500) {
+      return;
+    }
+    if (Number.isNaN(top) || top !== last) {
+      last = top;
+      requestAnimationFrame(tick);
+      return;
+    }
+    const bar = document.querySelector('[role="banner"]')?.getBoundingClientRect().bottom ?? 0;
+    const box = element.getBoundingClientRect();
+    const by = box.height > top - bar ? box.top - bar : box.bottom - top;
+    window.scrollBy({ top: by, behavior: reducedMotion() ? "auto" : "smooth" });
+  };
+  requestAnimationFrame(tick);
+}
+
 /**
  * A spec, a plan, or an assessment to review, as committed at its branch's tip: tapping blocks
  * selects lines to comment on, pending comments show under their blocks, and the end of the page
- * holds the verdict.
+ * holds the verdict. The comment field opens under the last tapped block on wide screens, and in
+ * a sheet on the phone, the block kept in view above it.
  */
 export function ReviewPage({ file }: { file: File }) {
   const fate = useFateClient();
+  const wide = useWidthClass() === "wide";
   const version = file.committed ?? file.current;
   const document = version.document;
   const isSpec = file.kind === "spec";
@@ -58,12 +158,15 @@ export function ReviewPage({ file }: { file: File }) {
   const review = file.review?.review;
   const comments = review?.verdict === "pending" ? review.comments : [];
   const [selection, setSelection] = useState<Range>();
-  const [sheet, setSheet] = useState<Sheet>();
+  const [draft, setDraft] = useState<Draft>();
+  const [last, setLast] = useState<number>();
+  const lastElement = useRef<HTMLElement>(null);
+  const sheet = useRef<HTMLDivElement>(null);
   const [summary, setSummary] = useState("");
   const [tier, setTier] = useState(spec?.riskTier ?? "low");
   const [planReview, setPlanReview] = useState<boolean>();
   const [error, setError] = useState<Refusal>();
-  const [message, setMessage] = useState<string>();
+  const [message, setMessage] = useState<{ text: string; ok: boolean }>();
   // The verdict last committed with "and continue", for its Try again.
   const continues = useRef<"approval" | "changes">(undefined);
 
@@ -83,6 +186,15 @@ export function ReviewPage({ file }: { file: File }) {
     return map;
   }, [comments, document]);
 
+  // On the phone, the last tapped block goes above the sheet, as it opens and at each tap.
+  useEffect(() => {
+    const element = lastElement.current;
+    if (wide || draft?.kind !== "lines" || !element) {
+      return;
+    }
+    placeAboveSheet(element, sheet);
+  }, [wide, draft?.kind, selection]);
+
   const stories = new Map(spec?.stories.map((story) => [story.headingBlock, story]) ?? []);
   const taskHeadings = new Map(tasks.map((task) => [task.headingBlock, task]));
 
@@ -95,14 +207,14 @@ export function ReviewPage({ file }: { file: File }) {
       if (failed.kind === "hook") {
         setError(failed);
       } else {
-        setMessage(failed.message);
+        setMessage({ text: failed.message, ok: false });
       }
       return false;
     }
     return true;
   };
 
-  const tap = (block: Block) => {
+  const tap = (block: Block, element: HTMLElement) => {
     const next = selection
       ? {
           start: Math.min(selection.start, block.startLine),
@@ -111,50 +223,52 @@ export function ReviewPage({ file }: { file: File }) {
         }
       : { start: block.startLine, end: block.endLine, heading: block.heading ?? "" };
     setSelection(next);
-    if (!sheet) {
-      setSheet({ kind: "lines", text: "" });
+    setLast(block.id);
+    lastElement.current = element;
+    if (draft?.kind !== "lines") {
+      setDraft({ kind: "lines" });
     }
   };
 
   const close = () => {
-    setSheet(undefined);
+    setDraft(undefined);
     setSelection(undefined);
+    setLast(undefined);
+    lastElement.current = null;
   };
 
-  const send = async () => {
-    if (!sheet) {
-      return;
+  const send = async (text: string) => {
+    if (!draft) {
+      return undefined;
     }
     const input = { folder: file.folder, file: file.name };
-    const done =
-      sheet.kind === "edit"
-        ? await run(() =>
-            fate.mutations.review.edit({
-              input: { ...input, number: sheet.number, text: sheet.text },
-              view: FileView,
-            }),
-          )
-        : await run(() =>
-            fate.mutations.review.comment({
-              input: {
-                ...input,
-                text: sheet.text,
-                ...(sheet.kind === "lines" && selection
-                  ? { startLine: selection.start, endLine: selection.end }
-                  : {}),
-              },
-              view: FileView,
-            }),
-          );
-    if (done) {
-      close();
+    const result =
+      draft.kind === "edit"
+        ? await fate.mutations.review.edit({
+            input: { ...input, number: draft.number, text },
+            view: FileView,
+          })
+        : await fate.mutations.review.comment({
+            input: {
+              ...input,
+              text,
+              ...(draft.kind === "lines" && selection
+                ? { startLine: selection.start, endLine: selection.end }
+                : {}),
+            },
+            view: FileView,
+          });
+    if (result.error) {
+      return refusal(result.error).message;
     }
+    close();
+    return undefined;
   };
 
   /** Starts the agent on the next step, once the verdict is committed. */
   const proceed = async (trigger: "approval" | "changes") => {
     const started = await startRun(fate, { folder: file.folder, trigger, file: file.name });
-    setMessage(started.message);
+    setMessage({ text: started.message, ok: started.ok });
   };
 
   const verdict = async (approve: boolean, next: boolean) => {
@@ -178,52 +292,94 @@ export function ReviewPage({ file }: { file: File }) {
     }
   };
 
-  const pendingNote = (comment: CommentItem) => (
-    <div key={comment.number} className="pending">
-      <div className="meta">
-        <span>{where(comment)}</span>
-        <span>
-          <Button
-            variant="ghost"
-            size="sm"
-            label="Edit"
-            onClick={(event: React.MouseEvent) => {
-              event.stopPropagation();
-              setSheet({ kind: "edit", number: comment.number, text: comment.text });
-            }}
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            label="Remove"
-            onClick={(event: React.MouseEvent) => {
-              event.stopPropagation();
-              void run(() =>
-                fate.mutations.review.remove({
-                  input: { folder: file.folder, file: file.name, number: comment.number },
-                  view: FileView,
-                }),
-              );
-            }}
-          />
-        </span>
-      </div>
-      {comment.text}
-    </div>
+  // The selected lines' first block, quoted in the comment field.
+  const first =
+    selection &&
+    document.blocks
+      .filter((b) => selectable(b) && b.startLine >= selection.start && b.endLine <= selection.end)
+      .sort((a, b) => a.startLine - b.startLine)[0];
+  const form = draft && (
+    <CommentForm
+      key={draft.kind === "edit" ? `edit-${draft.number}` : draft.kind}
+      anchor={
+        draft.kind === "lines" && selection
+          ? anchor(selection)
+          : draft.kind === "edit"
+            ? `Editing C${draft.number}`
+            : "General"
+      }
+      quote={draft.kind === "lines" && first ? quoteOf(textOf(document, first)) : undefined}
+      initial={draft.kind === "edit" ? draft.text : ""}
+      submitLabel={draft.kind === "edit" ? "Save comment" : "Add comment"}
+      onSubmit={send}
+      onCancel={close}
+    />
   );
+  /** The comment field, in the page on wide screens: on the phone, it is in the sheet. */
+  const inPage = (shown: boolean) =>
+    wide && shown && <div {...stylex.props(styles.inline)}>{form}</div>;
+
+  const pendingNote = (comment: CommentItem): ReactNode =>
+    draft?.kind === "edit" && draft.number === comment.number && wide ? (
+      <div key={comment.number}>{inPage(true)}</div>
+    ) : (
+      <div
+        key={comment.number}
+        role="group"
+        aria-label={where(comment)}
+        {...stylex.props(styles.pending)}
+      >
+        <HStack justify="between" align="center" gap={2} wrap="wrap">
+          <Text type="supporting" color="secondary">
+            {where(comment)}
+          </Text>
+          <HStack gap={1}>
+            <Button
+              variant="ghost"
+              size="sm"
+              label="Edit"
+              onClick={(event: React.MouseEvent) => {
+                event.stopPropagation();
+                setSelection(undefined);
+                setLast(undefined);
+                setDraft({
+                  kind: "edit",
+                  number: comment.number,
+                  text: comment.text,
+                });
+              }}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              label="Remove"
+              onClick={(event: React.MouseEvent) => {
+                event.stopPropagation();
+                void run(() =>
+                  fate.mutations.review.remove({
+                    input: { folder: file.folder, file: file.name, number: comment.number },
+                    view: FileView,
+                  }),
+                );
+              }}
+            />
+          </HStack>
+        </HStack>
+        <Text as="p" display="block">
+          {comment.text}
+        </Text>
+      </div>
+    );
 
   const plannedReview =
     planReview ??
     (tier !== spec?.riskTier ? tier === "high" : (spec?.planReview ?? tier === "high"));
 
   return (
-    <div className="page">
-      <p className="small muted">
-        <Link to={`/f/${file.folder}`}>{file.folder}</Link> ›{" "}
-        <span className="mono">{file.name}</span>
-      </p>
-      {file.reviewStale && comments.length > 0 && (
-        <div style={{ marginBottom: 14 }}>
+    <Page>
+      <Crumbs folder={file.folder} current={file.name} />
+      <VStack gap={3}>
+        {file.reviewStale && comments.length > 0 && (
           <Banner
             status="warning"
             title={`The ${file.kind} changed since your comments: your ${comments.length} pending ${
@@ -243,177 +399,177 @@ export function ReviewPage({ file }: { file: File }) {
               />
             }
           />
-        </div>
-      )}
-      <p className="small muted">
-        Tap a block to comment on it. Showing the version committed at{" "}
-        <span className="mono">{file.tip}</span>
-        {file.committed && ", which differs from the file on disk"}.
-      </p>
-      <Blocks
-        document={document}
-        selection={{
-          isSelected: (block) =>
-            selection !== undefined &&
-            block.startLine >= selection.start &&
-            block.endLine <= selection.end,
-          onTap: tap,
-          after: (block) => placed.get(block.id)?.map(pendingNote),
-        }}
-        override={(block) => {
-          const story = stories.get(block.id);
-          if (story) {
-            return (
-              <div key={block.id} id={block.anchor}>
-                <div className="band" />
-                <div className="label">
-                  {story.id} · {story.priority}
+        )}
+        <Text type="supporting" color="secondary">
+          Tap a block to comment on it. Showing the version committed at <Code>{file.tip}</Code>
+          {file.committed && ", which differs from the file on disk"}.
+        </Text>
+        <Blocks
+          document={document}
+          selection={{
+            isSelected: (block) =>
+              selection !== undefined &&
+              block.startLine >= selection.start &&
+              block.endLine <= selection.end,
+            onTap: tap,
+            after: (block) => (
+              <>
+                {placed.get(block.id)?.map(pendingNote)}
+                {inPage(draft?.kind === "lines" && block.id === last)}
+              </>
+            ),
+          }}
+          override={(block) => {
+            const story = stories.get(block.id);
+            if (story) {
+              return (
+                <div key={block.id} id={block.anchor}>
+                  <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />
+                  <Text type="supporting" color="secondary" weight="semibold">
+                    {story.id} · {story.priority}
+                  </Text>
+                  <Heading level={3}>{story.title}</Heading>
                 </div>
-                <h3 className="title-l">{story.title}</h3>
-              </div>
-            );
-          }
-          const task = taskHeadings.get(block.id);
-          if (task) {
-            return (
-              <div key={block.id} id={block.anchor} className="row">
-                <span className="grow">
-                  <strong>
-                    Task {task.number}: {task.title}
-                  </strong>
-                </span>
-                <Badge
-                  variant={task.done === task.total ? "success" : "neutral"}
-                  label={`${task.done}/${task.total}`}
-                />
-              </div>
-            );
-          }
-          return undefined;
-        }}
-      />
-      <div className="band" />
-      <div className="label">Your review</div>
-      {comments.length === 0 && <p className="muted small">No comment yet.</p>}
-      {comments.map((comment) =>
-        // A general comment has no block to show under: it is edited and removed here.
-        comment.general ? (
-          pendingNote(comment)
-        ) : (
-          <div key={comment.number} className="row">
-            <span className="grow">
-              <span className="small muted">{where(comment)}</span>
-              <div>{comment.text}</div>
-            </span>
-          </div>
-        ),
-      )}
-      <div className="actions">
-        <Button
-          label="Add a general comment"
-          onClick={() => setSheet({ kind: "general", text: "" })}
+              );
+            }
+            const task = taskHeadings.get(block.id);
+            if (task) {
+              return (
+                <div key={block.id} id={block.anchor} {...stylex.props(styles.task)}>
+                  <Heading level={3}>
+                    Task {task.number}: {task.title}{" "}
+                    <Badge
+                      variant={task.done === task.total ? "success" : "neutral"}
+                      label={`${task.done}/${task.total}`}
+                    />
+                  </Heading>
+                </div>
+              );
+            }
+            return undefined;
+          }}
         />
-      </div>
-      <GrowingTextArea
-        label="Summary"
-        value={summary}
-        onChange={setSummary}
-        placeholder="Optional"
-      />
-      {isSpec && (
-        <>
-          <div className="field-label">Risk tier</div>
-          <SegmentedControl
-            label="Risk tier"
-            value={tier}
-            onChange={(value: string) => setTier(value)}
-          >
-            <SegmentedControlItem value="low" label="low" />
-            <SegmentedControlItem value="medium" label="medium" />
-            <SegmentedControlItem value="high" label="high" />
-          </SegmentedControl>
-          <div style={{ marginTop: 12 }}>
+        <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />
+        <Heading level={2}>Your review</Heading>
+        {comments.length === 0 && (
+          <Text type="supporting" color="secondary">
+            No comment yet.
+          </Text>
+        )}
+        {comments.map((comment) =>
+          // A general comment has no block to show under: it is edited and removed here.
+          comment.general ? (
+            pendingNote(comment)
+          ) : (
+            <VStack key={comment.number} gap={0}>
+              <Text type="supporting" color="secondary">
+                {where(comment)}
+              </Text>
+              <Text as="p" display="block">
+                {comment.text}
+              </Text>
+            </VStack>
+          ),
+        )}
+        <HStack gap={2}>
+          <Button
+            label="Add a general comment"
+            onClick={() => {
+              setSelection(undefined);
+              setLast(undefined);
+              setDraft({ kind: "general" });
+            }}
+          />
+        </HStack>
+        {inPage(draft?.kind === "general")}
+        <GrowingTextArea
+          label="Summary"
+          value={summary}
+          onChange={setSummary}
+          placeholder="Optional"
+        />
+        {isSpec && (
+          <>
+            <SegmentedControl
+              label="Risk tier"
+              value={tier}
+              onChange={(value: string) => setTier(value)}
+            >
+              <SegmentedControlItem value="low" label="low" />
+              <SegmentedControlItem value="medium" label="medium" />
+              <SegmentedControlItem value="high" label="high" />
+            </SegmentedControl>
             <Switch
               label="The plan waits for your review"
               value={plannedReview}
               onChange={(checked: boolean) => setPlanReview(checked)}
             />
-          </div>
-        </>
-      )}
-      {error && (
-        <HookRefusal
-          error={error}
-          what="Your review is saved, not committed."
-          onRetry={async () => {
-            const done = await run(() =>
-              fate.mutations.commit.retry({
-                input: { folder: file.folder, file: file.name },
-                view: FileView,
-              }),
-            );
-            if (done && continues.current) {
-              await proceed(continues.current);
-            }
-          }}
-        />
-      )}
-      {message && <p className="not-saved">{message}</p>}
-      {file.committed && (
-        <p className="not-saved">
-          {file.name} has changes not committed: the review is of the committed version. Commit or
-          discard them first.
-        </p>
-      )}
-      <CommitActions
-        label="Request changes"
-        variant="destructive"
-        continueLabel="Request changes and continue"
-        onlyLabel="Request changes only"
-        isDisabled={comments.length === 0 || file.committed != null}
-        tooltip={comments.length === 0 ? "Add a comment first" : undefined}
-        onCommit={(next) => verdict(false, next)}
-      />
-      <CommitActions
-        label="Approve"
-        continueLabel="Approve and continue"
-        onlyLabel="Approve only"
-        isDisabled={file.committed != null}
-        onCommit={(next) => verdict(true, next)}
-      />
-      {comments.length === 0 && <p className="small muted">Request changes: Add a comment first</p>}
-      <BottomSheet
-        label="Comment"
-        isOpen={sheet !== undefined}
-        onOpenChange={(open: boolean) => !open && close()}
-        hasScrim={false}
-      >
-        {sheet && (
-          <div>
-            <p className="small muted">
-              {sheet.kind === "lines" && selection
-                ? anchor(selection)
-                : sheet.kind === "edit"
-                  ? `Editing C${sheet.number}`
-                  : "General"}
-            </p>
-            <GrowingTextArea
-              label="Comment text"
-              value={sheet.text}
-              onChange={(text) => setSheet({ ...sheet, text })}
-            />
-            <div className="actions">
-              <Button label="Cancel" onClick={close} />
-              <Button
-                variant="primary"
-                label={sheet.kind === "edit" ? "Save comment" : "Add comment"}
-                isDisabled={!sheet.text.trim()}
-                clickAction={send}
-              />
-            </div>
-          </div>
+          </>
         )}
-      </BottomSheet>
-    </div>
+        {error && (
+          <HookRefusal
+            error={error}
+            what="Your review is saved, not committed."
+            onRetry={async () => {
+              const done = await run(() =>
+                fate.mutations.commit.retry({
+                  input: { folder: file.folder, file: file.name },
+                  view: FileView,
+                }),
+              );
+              if (done && continues.current) {
+                await proceed(continues.current);
+              }
+            }}
+          />
+        )}
+
+        {file.committed && (
+          <span {...stylex.props(statusStyles.error)}>
+            {file.name} has changes not committed: the review is of the committed version. Commit or
+            discard them first.
+          </span>
+        )}
+        <CommitActions
+          label="Request changes"
+          variant="destructive"
+          continueLabel="Request changes and continue"
+          onlyLabel="Request changes only"
+          isDisabled={comments.length === 0 || file.committed != null}
+          tooltip={comments.length === 0 ? "Add a comment first" : undefined}
+          onCommit={(next) => verdict(false, next)}
+        />
+        <CommitActions
+          label="Approve"
+          continueLabel="Approve and continue"
+          onlyLabel="Approve only"
+          isDisabled={file.committed != null}
+          onCommit={(next) => verdict(true, next)}
+        />
+        {message && (
+          <span {...stylex.props(message.ok ? statusStyles.saved : statusStyles.error)}>
+            {message.text}
+          </span>
+        )}
+        {comments.length === 0 && (
+          <Text type="supporting" color="secondary">
+            Request changes: Add a comment first
+          </Text>
+        )}
+      </VStack>
+      {!wide && draft && <div {...stylex.props(styles.sheetRoom)} />}
+      {!wide && (
+        <Overlay
+          label="Comment"
+          isOpen={draft !== undefined}
+          onClose={close}
+          isModal={false}
+          sheetHeight="capped"
+          sheetRef={sheet}
+        >
+          {form}
+        </Overlay>
+      )}
+    </Page>
   );
 }
