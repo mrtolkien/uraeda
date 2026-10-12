@@ -6,6 +6,7 @@ pub mod clean;
 pub mod commit;
 pub mod draft;
 pub mod init;
+pub mod install;
 pub mod place;
 pub mod priorities;
 pub mod review;

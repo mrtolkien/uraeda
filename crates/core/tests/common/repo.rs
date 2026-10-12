@@ -45,6 +45,13 @@ impl TestRepo {
         self.dir.path()
     }
 
+    /// A home folder for the commands a test runs, next to the repository, created on first call.
+    pub fn home(&self) -> PathBuf {
+        let home = self.dir.path().join("home");
+        fs::create_dir_all(&home).unwrap();
+        home
+    }
+
     /// Replaces the pre-commit hook's script.
     pub fn set_hook(&self, script: &str) {
         let hook = self.path.join(".git/hooks/pre-commit");

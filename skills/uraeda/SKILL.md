@@ -413,18 +413,19 @@ A command that acts on a feature, a bug, or a draft takes it as a path under `sp
 matching one item, its folder name or slug; without it, the current branch's feature, or the only
 one waiting for that action.
 
-| Command                                                            | What it does                                                      |
-| ------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| `ura init`                                                         | [Sets a project up](#setting-up-a-project)                        |
-| `ura status`                                                       | Every feature and bug, its step, and who it waits on              |
-| `ura next [feature]`                                               | The target and its step, from [the table](#finding-the-next-step) |
-| `ura check [path]`                                                 | The rules of [Markdown](#markdown), file by file                  |
-| `ura draft <text>`                                                 | [Drafts](#starting-postponing-and-dropping-a-feature) a line      |
-| `ura start <draft>`, `--switch`                                    | [Starts](#starting-postponing-and-dropping-a-feature) a feature   |
-| `ura answer [feature] <Q2> <answer>`, `--submit`                   | Answers a round of questions, then submits it                     |
-| `ura review [feature] --comment`, `--approve`, `--request-changes` | [Reviews](#review-files) a spec, plan, or assessment              |
-| `ura clean [feature]`, `--all`, `--dry-run`                        | [Cleans](references/finish.md#after-the-merge) a merged feature   |
-| `ura upgrade`                                                      | Installs `ura`'s latest release                                   |
+| Command                                                               | What it does                                                      |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `ura init`                                                            | [Sets a project up](#setting-up-a-project)                        |
+| `ura install`, `--user`, `--repo`, `--agents`, `--claude`, `--update` | [Installs the skill](#setting-up-a-project)                       |
+| `ura status`                                                          | Every feature and bug, its step, and who it waits on              |
+| `ura next [feature]`                                                  | The target and its step, from [the table](#finding-the-next-step) |
+| `ura check [path]`                                                    | The rules of [Markdown](#markdown), file by file                  |
+| `ura draft <text>`                                                    | [Drafts](#starting-postponing-and-dropping-a-feature) a line      |
+| `ura start <draft>`, `--switch`                                       | [Starts](#starting-postponing-and-dropping-a-feature) a feature   |
+| `ura answer [feature] <Q2> <answer>`, `--submit`                      | Answers a round of questions, then submits it                     |
+| `ura review [feature] --comment`, `--approve`, `--request-changes`    | [Reviews](#review-files) a spec, plan, or assessment              |
+| `ura clean [feature]`, `--all`, `--dry-run`                           | [Cleans](references/finish.md#after-the-merge) a merged feature   |
+| `ura upgrade`                                                         | Installs `ura`'s latest release                                   |
 
 `ura answer --submit` and `ura review` set the human's status, record the block, and commit: a human
 runs them, or an agent the human asked, with `--no-commit`. Every command writes on a branch through

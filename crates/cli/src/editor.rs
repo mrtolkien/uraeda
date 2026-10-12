@@ -1,16 +1,8 @@
 //! Opening a file in the user's editor: `$VISUAL`, then `$EDITOR`, then `vi`, run through the
 //! shell, as git does.
 
-use std::io::IsTerminal;
 use std::path::Path;
 use std::process::Command;
-
-/// Whether an editor can run: stdin and stdout are a terminal that is not `dumb`.
-pub fn available() -> bool {
-    std::io::stdin().is_terminal()
-        && std::io::stdout().is_terminal()
-        && std::env::var("TERM").map_or(true, |term| term != "dumb")
-}
 
 fn command() -> String {
     ["VISUAL", "EDITOR"]

@@ -43,3 +43,36 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: the defaults, as measured in the discovery.
 - **If wrong**: a later TUI turns a feature on.
 - **Where**: task 4.
+
+## R5: `ura init`'s line for a `.claude` folder ura did not install
+
+- **Decision**: until task 3, `ura init` installs through the new action, so its test
+  `an_existing_claude_skill_folder_is_kept` expects
+  `kept    .claude/skills/uraeda: not installed by ura`, not the bare
+  `kept    .claude/skills/uraeda` it printed before.
+- **Rationale**: the spec's edge case reports a folder without `.ura-manifest` with that reason; the
+  plan expected `tests/init.rs` to pass unchanged, which this test could not.
+- **Alternatives considered**: keeping the old link logic in `init` until task 3, a second copy of
+  the code the task moves.
+- **If wrong**: task 3 removes the test with the other skill tests of `tests/init.rs`.
+- **Where**: task 1.
+
+## R6: Outside a repository, the scope is left out
+
+- **Decision**: `outside_a_repository` runs `ura install --agents`, without `--user`, to check the
+  `Install the Uraeda skill for: your user` line.
+- **Rationale**: the line is the answer to a scope the command implied; with `--user` given, nothing
+  was asked or implied, and no answer line prints, as in the spec's US1 scenario 1.
+- **Alternatives considered**: printing the line with `--user` too, which would break scenario 1's
+  exact stdout.
+- **If wrong**: one test's arguments.
+- **Where**: task 1.
+
+## R7: No `note` line when the home folder is the repository
+
+- **Decision**: `ura install` prints no `note` line when the other scope's folder is the same folder
+  as the base, like a dotfiles repository at the home folder.
+- **Rationale**: the copy found there is the one just installed, not another copy.
+- **Alternatives considered**: always printing it, which would name the installed copy as another.
+- **If wrong**: remove the comparison in `install::run`.
+- **Where**: task 1.
