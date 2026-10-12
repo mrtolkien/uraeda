@@ -164,7 +164,14 @@ fn a_merge_only_on_origin_counts() {
     let clone = repo.parent().join("clone");
     run_in(
         repo.parent(),
-        &["clone", "--quiet", "origin.git", clone.to_str().unwrap()],
+        &[
+            "clone",
+            "--quiet",
+            "--branch",
+            "main",
+            "origin.git",
+            clone.to_str().unwrap(),
+        ],
     );
     run_in(
         &clone,
