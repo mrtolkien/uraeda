@@ -3,10 +3,10 @@
 ## What
 
 The answer, review, and draft screens of `ura`, built with ratatui on the commands of the
-[CLI core features](../2026-10-10-cli-core/spec.md): `ura answer` walks through a round of
+[CLI core features](../done/2026-10-10-cli-core.md): `ura answer` walks through a round of
 questions, `ura review` shows a spec or plan to comment on and approve, and `ura draft` picks a line
 of `PRIORITIES.md`, each with a picker when several features wait. As the human wrote it in the
-CLI's [proposal](../2026-10-10-cli-core/proposal.md):
+CLI's [proposal](../done/2026-10-10-cli-core.md):
 
 > - Priorities.md bullet point to draft with TUI to pick the right priorities line
 >   - `ura draft`
@@ -41,19 +41,17 @@ CLI's [proposal](../2026-10-10-cli-core/proposal.md):
 ## Why
 
 The CLI core features moved these screens to their own feature, so agents got the commands first
-([Q1](../2026-10-10-cli-core/clarifications-01.md#q1-what-does-this-feature-deliver)). The human
-answered their design questions then:
+([Q1](../done/2026-10-10-cli-core.md#q1-what-does-this-feature-deliver)). The human answered their
+design questions then:
 
-- What `ura draft` creates:
-  [Q4](../2026-10-10-cli-core/clarifications-01.md#q4-what-does-ura-draft-create)
+- What `ura draft` creates: [Q4](../done/2026-10-10-cli-core.md#q4-what-does-ura-draft-create)
 - What `ura review` shows, and its active line:
-  [Q12](../2026-10-10-cli-core/clarifications-01.md#q12-what-does-ura-review-show-and-what-is-the-active-line)
+  [Q12](../done/2026-10-10-cli-core.md#q12-what-does-ura-review-show-and-what-is-the-active-line)
 - How typing starts in `ura answer`:
-  [Q13](../2026-10-10-cli-core/clarifications-01.md#q13-how-does-typing-start-in-ura-answer)
+  [Q13](../done/2026-10-10-cli-core.md#q13-how-does-typing-start-in-ura-answer)
 - What the TUIs look like, with a first mock:
-  [Q14](../2026-10-10-cli-core/clarifications-01.md#q14-what-should-the-tuis-look-like)
-- The libraries and keys settled without the human:
-  [settled points](../2026-10-10-cli-core/clarifications-01.md#settled-without-the-human)
+  [Q14](../done/2026-10-10-cli-core.md#q14-what-should-the-tuis-look-like)
+- The libraries and keys settled without the human: [settled points](../done/2026-10-10-cli-core.md)
 
 ## Notes
 

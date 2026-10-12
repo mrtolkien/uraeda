@@ -49,18 +49,17 @@ commits go through the same hooks, signing, and configuration as the user's own.
 Reads are most of what the tools do with git, across every feature branch at once, and gix does them
 in process, in pure Rust. gix runs no hooks and cannot switch branches or push, so writes go through
 `git`, where hooks, signing, and credentials follow the user's configuration: this repository's
-pre-commit hook formats files
-([Q6](../2026-10-10-cli-core/clarifications-01.md#q6-how-does-ura-run-git),
-[git backend](../2026-10-10-cli-core/discovery-01.md#git-backend),
-[git from Rust](../2026-10-10-cli-core/discovery-01.md#git-from-rust)).
+pre-commit hook formats files ([Q6](../done/2026-10-10-cli-core.md#q6-how-does-ura-run-git),
+[git backend](../done/2026-10-10-cli-core.md#q6-how-does-ura-run-git),
+[git from Rust](../done/2026-10-10-cli-core.md)).
 
 Tools write on a branch where it is checked out, or in a worktree under `.worktrees/`, never by
 switching the user's checkout: the web UI runs from one checkout and writes on every feature's
 branch, from a phone where you cannot switch branches or clean a checkout, and switching would also
 switch the running server's own code in this repository. `ura start` creates a worktree too, as the
 human asked
-([Q3](../2026-10-11-web-ui/clarifications-01.md#q3-where-does-the-ui-write-when-a-features-branch-is-not-checked-out),
-[writing to feature branches](../2026-10-11-web-ui/discovery-01.md#writing-to-feature-branches)).
+([Q3](../done/2026-10-11-web-ui.md#q3-where-does-the-ui-write-when-a-features-branch-is-not-checked-out),
+[writing to feature branches](../done/2026-10-11-web-ui.md#q3-where-does-the-ui-write-when-a-features-branch-is-not-checked-out)).
 
 Tools remove a merged feature's worktree and local branch only when the human asks: worktrees are
 full checkouts that pile up once their features are merged, and the human asked for `ura clean`, run
@@ -90,7 +89,7 @@ forge's: GitHub's automatic deletion setting covers them.
 
 - Switching the user's checkout to the feature's branch for `ura answer` and `ura review`, refused
   over uncommitted changes, chosen in
-  [Q7 of the CLI core](../2026-10-10-cli-core/clarifications-01.md#q7-where-do-answer-and-review-write-when-the-features-branch-is-not-checked-out):
+  [Q7 of the CLI core](../done/2026-10-10-cli-core.md#q7-where-do-answer-and-review-write-when-the-features-branch-is-not-checked-out):
   it assumed one person at one terminal, and was abandoned when the web UI had to write on every
   branch from one running checkout.
 
@@ -99,8 +98,8 @@ forge's: GitHub's automatic deletion setting covers them.
 - Reads need no `git` process; `git` must still be on PATH for writes.
 - Hooks, signing, and credentials behave as when the user commits by hand.
 - The binary grows: a CLI with clap, serde, a markdown parser, and gix measured 1.9 MB
-  ([Rust binaries](../2026-10-10-stack-decision/discovery-01.md#rust-binaries)), against a 3 MB
-  limit that the TUIs will also draw on.
+  ([Rust binaries](../done/2026-10-10-stack-decision.md)), against a 3 MB limit that the TUIs will
+  also draw on.
 - gix is 0.x and may break its API at each minor release: upgrades are deliberate.
 - Two ways to reach git, kept behind one module.
 - Your checkout stays on its branch, whatever the UI or `ura` writes: a feature is worked on in its

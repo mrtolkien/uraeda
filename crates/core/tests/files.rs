@@ -144,12 +144,14 @@ fn anchors_number_duplicates() {
 
 #[test]
 fn reads_the_callout_after_the_title() {
-    let text = repository_file("specs/2026-10-10-cli-core/clarifications-01.md");
+    let text = repository_file(
+        "skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/clarifications-01.md",
+    );
 
     let callout = Document::parse(&text).callout.unwrap();
 
     assert_eq!(callout.kind, CalloutKind::Note);
-    assert_eq!(callout.first_line, "Answered on 2026-10-11.");
+    assert_eq!(callout.first_line, "Answered on 2026-10-08.");
 }
 
 #[test]
