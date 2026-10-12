@@ -10,7 +10,6 @@ import { ChatMessageList } from "@astryxdesign/core/Chat";
 import { Theme } from "@astryxdesign/core/theme";
 import { VStack } from "@astryxdesign/core/VStack";
 import { act, fireEvent, screen, within } from "@testing-library/react";
-import axe from "axe-core";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, test } from "vite-plus/test";
 import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
@@ -20,6 +19,7 @@ import { Page } from "../layout/Page.tsx";
 import { type RunEvent, RunEvents } from "../RunLog.tsx";
 import { uraedaTheme } from "../theme/built/uraeda.js";
 import {
+  checkAccessibility,
   checkAlignment,
   checkControlHeights,
   checkInsets,
@@ -62,26 +62,31 @@ afterEach(() => {
   window.localStorage.removeItem("uraeda.theme");
 });
 
-/** axe-core's WCAG 2.1 A and AA rules, on the whole document. */
-async function checkAccessibility() {
-  const results = await axe.run(document, {
-    runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] },
-  });
-  const violations = results.violations.map(
-    (violation) =>
-      `${violation.id}: ${violation.nodes
-        .slice(0, 3)
-        .map((node) => node.html.slice(0, 120))
-        .join(" | ")}`,
-  );
-  expect(violations).toEqual([]);
-}
-
 const CASES = PAGES.flatMap(([name, path, text, insets]) =>
   (["light", "dark"] as const).map((mode) => ({ name, path, text, insets, mode })),
 );
 
 test.each(CASES)("$name, in $mode", async ({ path, text, insets, mode }) => {
+  // The run tests start the agent on the feature waiting on it: its page waits for its turn.
+  const agent = text === "Start the agent";
+  if (agent) {
+    await commands.takeRepo();
+  }
+  try {
+    await checkCase(path, text, insets, mode);
+  } finally {
+    if (agent) {
+      await commands.releaseRepo();
+    }
+  }
+});
+
+async function checkCase(
+  path: string,
+  text: string,
+  insets: string | null,
+  mode: "light" | "dark",
+) {
   window.localStorage.setItem("uraeda.theme", mode);
   await show(path, text);
   expect(document.documentElement.getAttribute("data-theme")).toBe(mode);
@@ -98,7 +103,7 @@ test.each(CASES)("$name, in $mode", async ({ path, text, insets, mode }) => {
     checkInsets(insets);
   }
   await checkAccessibility();
-});
+}
 
 test("a comment being typed keeps its text and focus when the window narrows (US7 2)", async () => {
   if (window.innerWidth < 768) {

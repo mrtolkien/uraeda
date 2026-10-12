@@ -85,14 +85,19 @@ export async function fakeAgent({ installed = true } = {}): Promise<Fake> {
 export async function renderPage(
   path = "/",
   repo = fixtureRepo(),
-  options: { agent?: boolean | Fake; fetch?: typeof globalThis.fetch } = {},
+  options: { agent?: boolean | Fake; fetch?: typeof globalThis.fetch; reload?: boolean } = {},
 ) {
   const fake =
     typeof options.agent === "object"
       ? options.agent
       : await fakeAgent({ installed: options.agent === true });
   const fetch = options.fetch ?? serverFetch(repo, fake.runner);
-  window.history.replaceState(null, "", path);
+  if (options.reload) {
+    // A reload: the page goes, and its history entry, with its state, stays.
+    cleanup();
+  } else {
+    window.history.replaceState(null, "", path);
+  }
   const client = createFateClient({ url: `${origin}/fate`, fetch });
   // The page suspends while fate loads: an awaited act lets React render the data.
   const rendered = await act(async () => render(<App client={client} />));

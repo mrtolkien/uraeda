@@ -413,7 +413,7 @@ binding call `proposalHints() -> Record<"What" | "Why" | "Notes", string>`.
 
 **History entries**: `history.state` holds `{ scroll: number }`, the page's scroll position, written
 with `replaceState` before each navigation and on `pagehide`, at most once every 500 ms while
-scrolling. A run view adds `open: string[]`, the groups of tool calls opened in its log, by the
+scrolling. A run view adds `open: number[]`, the groups of tool calls opened in its log, by the
 sequence number of their first call. `history.scrollRestoration` is `manual`.
 
 **Browser storage**, in `localStorage`, each read and write guarded as the theme's is:
@@ -471,7 +471,7 @@ sequence number of their first call. `history.scrollRestoration` is `manual`.
 - **Run view** (new, `RunPage.tsx`): the run's step as its heading, its state, reason, and blocked
   actions, Stop while it runs, then [`RunLog`](/packages/web/src/RunLog.tsx), whose groups of tool
   calls are controlled from the history entry. The page follows the log's end while it runs and the
-  human is at the end. A tool call still `running` or `pending` in an ended run shows as `error`.
+  human is at the end. A tool call still `running` in an ended run shows as `error`.
 - **Editable line** (new, `EditableLine.tsx`): the line's spans, turning into a `TextInput` on tap:
   Enter saves, Escape cancels, blur saves. Shared by the priorities page and the task view.
 - **Round** ([`RoundPage.tsx`](/packages/web/src/RoundPage.tsx), new `RoundNav.tsx`): the progress,

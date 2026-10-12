@@ -455,3 +455,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   review saw.
 - **If wrong**: each is a small change of its own, in a later branch.
 - **Where**: the final review; the files each bullet names
+
+## R26: A run view keeps its groups open, not each call's output
+
+- **Decision**: the history entry keeps the groups of tool calls opened in a run's log. A single
+  call's output, opened under its row, is not kept: Back or a reload closes it.
+- **Rationale**: Astryx's `ChatToolCalls` takes `isExpanded` for a group, but keeps each row's
+  output open in its own state, with no prop to set it. It is an Astryx gap.
+- **Alternatives considered**: drawing each call's row without `ChatToolCalls`, a second way to draw
+  what Astryx draws.
+- **If wrong**: `RunEvents` in `packages/web/src/RunLog.tsx`, once Astryx controls a row's output.
+- **Where**: Task 16

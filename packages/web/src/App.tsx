@@ -25,6 +25,7 @@ import {
   useRestoreScroll,
   useRoute,
 } from "./routes.tsx";
+import { RunPage } from "./RunPage.tsx";
 import { TaskView } from "./TaskView.tsx";
 import { Shell } from "./Shell.tsx";
 import { ThemeModeProvider } from "./theme.tsx";
@@ -81,6 +82,8 @@ function Page({ route }: { route: Route }) {
       return <EditorPage key={route.path} path={route.path} />;
     case "mockup":
       return <MockupPage folder={route.folder} name={route.name} />;
+    case "run":
+      return <RunRoute folder={route.folder} id={route.id} />;
     default:
       return <Nothing />;
   }
@@ -92,22 +95,45 @@ function Page({ route }: { route: Route }) {
  * on narrow screens, a page of its own.
  */
 function TaskRoute({ entryKey }: { entryKey: string }) {
-  const wide = useWidthClass() === "wide";
-  const [{ from, opener, scroll }] = useState(currentEntry);
+  const [{ from }] = useState(currentEntry);
   const list = from === "/" ? "/" : "/priorities";
+  useListPosition();
+  return (
+    <Panes
+      list={list === "/" ? <Home /> : <PrioritiesPage />}
+      detail={<TaskView entryKey={entryKey} />}
+      onCloseDetail={() => navigate(list)}
+    />
+  );
+}
+
+/**
+ * On wide screens, keeps the list beside a detail where it was when the detail was opened, unless
+ * the entry has a position of its own.
+ */
+function useListPosition() {
+  const wide = useWidthClass() === "wide";
+  const [{ opener, scroll }] = useState(currentEntry);
   useLayoutEffect(() => {
-    // The list stays where it was when the line was opened; a position of its own wins.
     if (wide && scroll === undefined && opener !== undefined) {
       window.scrollTo(0, opener);
     }
     // Once, when the view is drawn.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+}
+
+/**
+ * A run's view: on wide screens, in a pane beside its feature's page; on narrow screens, a page of
+ * its own.
+ */
+function RunRoute({ folder, id }: { folder: string; id: string }) {
+  useListPosition();
   return (
     <Panes
-      list={list === "/" ? <Home /> : <PrioritiesPage />}
-      detail={<TaskView entryKey={entryKey} />}
-      onCloseDetail={() => navigate(list)}
+      list={<FeaturePage folder={folder} />}
+      detail={<RunPage folder={folder} id={id} />}
+      onCloseDetail={() => navigate(`/f/${folder}`)}
     />
   );
 }

@@ -68,9 +68,9 @@ async function cachedRun(
 test("US2.1 and C3: an agent's text renders as markdown", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
-  await seedRun(fake, repo, CLI, [{ type: "text", text: "Reading **the answers**" }]);
+  const id = await seedRun(fake, repo, CLI, [{ type: "text", text: "Reading **the answers**" }]);
 
-  await renderPage(`/f/${CLI}`, repo, { agent: fake });
+  await renderPage(`/f/${CLI}/runs/${id}`, repo, { agent: fake });
 
   const strong = await screen.findByText("the answers");
   expect(strong.tagName).toBe("STRONG");
@@ -99,7 +99,7 @@ test("US2.2: a tool call shows its target and duration", async () => {
     clock.mockRestore();
   }
 
-  await renderPage(`/f/${CLI}`, repo, { agent: fake });
+  await renderPage(`/f/${CLI}/runs/${id}`, repo, { agent: fake });
 
   const target = await screen.findByText("vp run ready");
   const log = screen.getByRole("log", { name: "Run log" });
@@ -159,10 +159,12 @@ test("US2.6: earlier runs are listed", async () => {
 
   await renderPage(`/f/${CLI}`, repo, { agent: fake });
 
-  // The count of earlier runs is in the toggle's name.
-  expect(await screen.findByRole("button", { name: "Earlier runs 1" })).toBeTruthy();
-  expect(screen.getByText("The second run")).toBeTruthy();
-  expect(screen.queryByText("The first run")).toBeNull();
+  // US8: one row per run, newest first, each leading to its log.
+  const runs = within(await screen.findByRole("list", { name: "Runs" }));
+  const rows = runs.getAllByRole("link");
+  expect(rows).toHaveLength(2);
+  expect(rows[0].getAttribute("href")).toMatch(new RegExp(`^/f/${CLI}/runs/\\d+$`));
+  expect(screen.queryByText("The second run")).toBeNull();
 });
 
 /** US2.7 */
@@ -300,14 +302,14 @@ test("a blocked action without a target shows that its rule allows every call", 
 test("review focus 3: 250 events show in order", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
-  await seedRun(
+  const id = await seedRun(
     fake,
     repo,
     CLI,
     Array.from({ length: 250 }, (_, index) => ({ type: "text", text: `Event ${index + 1}.` })),
   );
 
-  await renderPage(`/f/${CLI}`, repo, { agent: fake });
+  await renderPage(`/f/${CLI}/runs/${id}`, repo, { agent: fake });
 
   await screen.findByText("Event 250.");
   const texts = screen.getAllByText(/^Event \d+\.$/).map((element) => element.textContent);
@@ -341,8 +343,8 @@ test("a merged feature shows its runs and no button", async () => {
 
   await renderPage(`/f/${folder}`, repo, { agent: fake });
 
-  expect(await screen.findByText("Finished.")).toBeTruthy();
-  expect(screen.getByText("Earlier runs")).toBeTruthy();
+  const runs = within(await screen.findByRole("list", { name: "Runs" }));
+  expect(await runs.findAllByRole("link")).toHaveLength(2);
   expect(screen.queryByRole("button", { name: "Start the agent" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Stop" })).toBeNull();
