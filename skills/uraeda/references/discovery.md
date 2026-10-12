@@ -41,10 +41,33 @@ the fewest, clearest questions.
 Discovery is the cheapest moment to find the right approach: a shallow discovery turns into bad
 questions, a weak spec, and rework. Nobody will ask you to go deeper, and nobody will notice what
 you skipped until it is expensive. A question you could have answered yourself, or a capability you
-did not know users expect, costs the human far more than a longer discovery. Spend the time.
+did not know users expect, costs the human far more than a longer discovery. Spend the time, as far
+as the proposal's [discovery effort](#discovery-effort) asks.
 
 YAGNI still applies to the feature, not to the research: depth and breadth go into understanding the
 problem, so the human can choose a small scope knowingly, not by accident.
+
+## Discovery effort
+
+The proposal's `discovery` frontmatter field tells how far the human wants the research to go, for
+every round of the feature. Without the field, or with another value, the effort is `high`.
+
+- **`low`**: the feature is small and its direction clear. Read the code, the project's decisions
+  and docs, and the documentation of the dependencies involved, to verify how they behave. Do not
+  compare products or look for alternatives online. Each topic has one or two approaches, often
+  "reuse what exists".
+- **`medium`**: also look online for how two or three established products or libraries solve the
+  problem, from their official documentation, with a source or two per topic. Stop at what the
+  approaches need: no community sentiment, no benchmarks.
+- **`high`**: everything this file describes, until new sources stop adding: products, standards,
+  libraries, community sentiment and known pitfalls, and benchmarks where performance is a
+  criterion.
+
+The level scales the research, never the rules: every fact still has its source, every gap in the
+proposal is still a question, and every question still has a recommendation. When what you find is
+bigger than the level suggests, like a topic that could become a decision, research that topic at
+the depth it needs, and say so in the `> [!IMPORTANT]` block, so the human can raise the level of
+the next features like it.
 
 ## Read first
 
@@ -130,7 +153,8 @@ leaves out, is always a question.
 
 - Scale the depth to the impact: a topic that could become a [decision](spec.md#what-is-a-decision)
   deserves several sources, a minor topic a quick check. Every topic still gets both the code and an
-  outside source.
+  outside source, a dependency's documentation at least, whatever the
+  [discovery effort](#discovery-effort).
 - Cite only pages you actually read. A fact seen only in a search result's snippet or summary is
   marked as such where it is used, and its page goes in **Not checked**.
 - If you cannot search the web or read a source, say so in **Not checked** rather than writing from
@@ -339,7 +363,8 @@ Before committing, read both files again with fresh eyes, and fix what you find 
 
 1. **Breadth and depth**: every part of the feature, every product worth comparing, every standard
    and dependency involved, and every dimension that applies (accessibility, locales, time, scale,
-   security, offline, existing data, removal) was researched, each until new sources stopped adding.
+   security, offline, existing data, removal) was researched as far as the
+   [discovery effort](#discovery-effort) asks: at `high`, each until new sources stopped adding.
    Every fact comes from a source read in this session, not from memory.
 2. **Coverage**: every topic of the discovery's **Approaches** and **The proposal** sections ends up
    in exactly one question or settled point.

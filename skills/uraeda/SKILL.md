@@ -155,6 +155,7 @@ Workflow files track their state in frontmatter fields.
 
 | File                   | Field            | Set by the agent                      | Set by the human                  |
 | ---------------------- | ---------------- | ------------------------------------- | --------------------------------- |
+| `proposal.md`          | `discovery`      |                                       | `low`, `medium`, or `high`        |
 | `clarifications-NN.md` | `status`         | `awaiting-human`                      | `answered`                        |
 | `spec.md`              | `status`         | `awaiting-human`                      | `approved` or `changes-requested` |
 | `spec.md`              | `revision`       | `1`, then `+1` at every change        | `+1` when editing it              |

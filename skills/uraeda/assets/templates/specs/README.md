@@ -45,6 +45,9 @@ Workflow files have a `status` field in their frontmatter:
 - `answered`, `approved`, `changes-requested`: set by a human, an agent can continue
 - `auto-approved`: a plan that skips human review, since its spec's `plan-review` is `false`
 
+A proposal's `discovery`, `low`, `medium`, or `high` by default, tells how far the agent researches
+before asking its questions.
+
 A spec's `risk-tier`, `low`, `medium`, or `high`, tells how much the feature can break. Its
 `plan-review`, `true` by default for `high` only, says whether its plan waits for a human, who
 decides it when approving the spec.
