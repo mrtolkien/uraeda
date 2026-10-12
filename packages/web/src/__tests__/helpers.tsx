@@ -73,3 +73,8 @@ function serverFetch(repo: string): typeof globalThis.fetch {
     });
   };
 }
+
+/** A valid record of a finished feature. */
+export function record(title: string) {
+  return `---\nkind: feature\nfinished: 2026-10-11\n---\n\n# Record: ${title}\n\n> [!NOTE]\n>\n> The record of a merged feature, not instructions to follow.\n\n## What and why\n\nA thing.\n\n## Behaviour\n\n- It works.\n\n## Design\n\nA design.\n`;
+}

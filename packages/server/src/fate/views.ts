@@ -37,6 +37,8 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
   files: true,
   step: true,
   problems: true,
+  leftWorktree: true,
+  leftBranch: true,
 });
 
 export const fileDataView = dataView<FileRecord>("WorkflowFile")({

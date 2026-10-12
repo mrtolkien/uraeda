@@ -737,7 +737,7 @@ git commit -m "feat(finish-feature): show finished features and their leftovers 
   JavaScript `leftWorktree` and `leftBranch`; a finished feature's `title` is its record's title
   without `Record: `.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 /** US2.6 */
@@ -773,12 +773,12 @@ test("a merged feature shows its record and what is left", async () => {
 `record(title)` is a small helper in `helpers.tsx` returning a valid record text, `kind: feature`,
 `finished: 2026-10-11`.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp run --filter uraeda-binding build && vp test packages/web/src/__tests__/feature.test.tsx`
 - Expected: FAIL, `Unable to find an element with the text: Dark mode`: the title is the slug.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `FeatureView::new` takes a finished feature's title from its record, and copies the two fields;
 `featureDataView` selects `leftWorktree` and `leftBranch`. `FeaturePage` shows, after the branch
@@ -787,12 +787,12 @@ left", "Worktree left", or "Branch left", and the text of the [mockup](mockups/w
 shows no "not yet" rows for a feature with a `record` file; a `record` file's badge reads `record`.
 `labels.ts`: `finish: "Finish"` in `STEPS`, `record: 0` in `RANK`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core/src/view.rs packages

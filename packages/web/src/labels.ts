@@ -11,6 +11,7 @@ const STEPS: Record<string, string> = {
   "final-review": "Final review",
   "pull-request-changes": "Pull request changes",
   "pull-request": "Pull request",
+  finish: "Finish",
   assess: "Assessment",
   "assess-revision": "Assessment revision",
   fix: "Fix",
@@ -45,6 +46,7 @@ export function waiting(feature: Pick<FeatureView, "folder" | "step" | "files">)
 }
 
 const RANK: Record<string, number> = {
+  record: 0,
   proposal: 0,
   report: 0,
   discovery: 1,

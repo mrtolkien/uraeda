@@ -31,8 +31,17 @@ export function FeaturePage({ folder }: { folder: string }) {
   }
   const gate = feature.step.waitsOn === "human" ? waiting(feature) : undefined;
   const files = workflowOrder(feature.files).filter((file) => file.kind !== "review");
+  const finished = feature.files.some((file) => file.kind === "record");
+  const left =
+    feature.leftWorktree && feature.leftBranch
+      ? "Worktree and branch left"
+      : feature.leftWorktree
+        ? "Worktree left"
+        : feature.leftBranch
+          ? "Branch left"
+          : undefined;
   const missing =
-    feature.kind === "feature"
+    feature.kind === "feature" && !finished
       ? ["spec.md", "plan.md"].filter((name) => !feature.files.some((f) => f.name === name))
       : [];
   const problemFiles = new Set(feature.problems.map((p) => p.file));
@@ -64,13 +73,30 @@ export function FeaturePage({ folder }: { folder: string }) {
         )}
         {feature.uncommitted && " · uncommitted changes"}
       </p>
+      {left && (
+        <div className="callout" style={{ marginBottom: 14 }}>
+          <span className="callout-title">{left}</span>
+          <p className="small">
+            {feature.leftWorktree && <span className="mono">{feature.leftWorktree}</span>}
+            {feature.leftWorktree && feature.leftBranch && " and the branch "}
+            {!feature.leftWorktree && "The branch "}
+            {feature.leftBranch && <span className="mono">{feature.leftBranch}</span>}
+            {feature.leftWorktree && feature.leftBranch ? " are" : " is"} still there. Run{" "}
+            <span className="mono">ura clean</span> to remove{" "}
+            {feature.leftWorktree && feature.leftBranch ? "them" : "it"}.
+          </p>
+        </div>
+      )}
       {files.map((file) => (
         <Link key={file.name} to={`/f/${folder}/${file.name}`} className="row">
           <span className="grow mono">{file.name}</span>
           {problemFiles.has(`specs/${folder}/${file.name}`) && (
             <Badge variant="error" label="problem" />
           )}
-          <Badge variant={statusVariant(file.status)} label={file.status ?? "committed"} />
+          <Badge
+            variant={statusVariant(file.status)}
+            label={file.kind === "record" ? "record" : (file.status ?? "committed")}
+          />
           <span className="chevron">›</span>
         </Link>
       ))}
