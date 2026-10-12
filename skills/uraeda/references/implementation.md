@@ -140,13 +140,12 @@ commit. In a chat session, say the same in one or two sentences, with the pull r
 ## Changes requested on the pull request
 
 Read every comment. Apply each requested change in a new commit, a change of behaviour with a test
-that fails first, and answer the comment with the commit that addresses it. The folder is already
-replaced by its record: when a change goes against what it says, update its **Behaviour** or
-**Design** in place in the same commit, and add a line under **Changes after approval**, so the
-merged record describes the merged code. When a change needs a new decision, or the comment leaves a
-choice open, bring the folder back and start a new round of questions instead, as
-[finish](finish.md#changes-asked-on-the-pull-request) describes. Then the pull request waits for the
-human again.
+that fails first. The folder is already replaced by its record: when a change goes against what it
+says, update its **Behaviour** or **Design** in place in the same commit, and add a line under
+**Changes after approval**, so the merged record describes the merged code. When a change needs a
+new decision, or the comment leaves a choice open, bring the folder back and start a new round of
+questions instead, as [finish](finish.md#changes-asked-on-the-pull-request) describes. Then the pull
+request waits for the human again.
 
 A pull request opened before the finish step existed still has its folder: amend the spec in place
 in the same commit, increase its `revision`, and update the plan and its `spec-revision`. The spec
