@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Claude Code runner (triggered manually)
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 7 questions on running Claude Code from the server, about 30 minutes.
+> Answered on 2026-10-12.
 >
 > - **Choices that outlast the feature:** how the server launches Claude Code, and what the agent
 >   may do without asking. They become a decision on how Uraeda runs agents. The launch also decides
@@ -95,7 +95,7 @@ dependencies, which binary and login run, and how Codex is added later.
   - [pro] Remote Control is documented there.
   - [con] no structured events, a native dependency, and fragile keystrokes.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: What may the agent do without asking?
 
@@ -131,7 +131,8 @@ credentials. It can be started from your phone.
   - [con] every new command is denied until it is added. A project's own allow rules are ignored in
     `-p` until its folder is trusted, so the list lives in Uraeda.
 
-**Answer:**
+**Answer:** A: If there's a blocked action, could we get a button in the webUI to accept it? If
+that's too hard, drop it. Auto has been pretty good for developing uraeda so far.
 
 ## Q3: How far does one trigger run?
 
@@ -153,7 +154,7 @@ Why it matters: it decides how often you come back to click, and how much one cl
   - [pro] each step's cost and result can be checked before the next.
   - [con] one click per step, including each implementation task.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: Which copy of the skill does the session use?
 
@@ -184,7 +185,7 @@ runs follow its own version.
   - [pro] nothing to change.
   - [con] the main checkout's version, and only for users who set the link up themselves.
 
-**Answer:**
+**Answer:** B
 
 ## Q5: What does the UI show of a run?
 
@@ -210,7 +211,14 @@ starts.
   - [pro] you can steer the agent.
   - [con] it is the "Chat in the web UI" feature, built here.
 
-**Answer:**
+**Answer:** A: Make sure you use the relevant Astryx components for it, they even have tool calls
+components.
+
+Also keep the core information in small local database (sqlite mostl likely): claude code session
+ID, session transcript parsed, ...
+
+We'll reuse that small local database for many future features: it is normal for the server to have
+a small local state that is not in git.
 
 ## Q6: How do "Commit and continue" and "Commit only" appear?
 
@@ -241,7 +249,7 @@ Why it matters: it decides how easy it is to start an agent, and how easy to sta
   - [pro] the fewest controls.
   - [con] the choice is hidden in a switch set earlier.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: How does Remote Control get turned on?
 
@@ -277,7 +285,7 @@ Why it matters: it is the only part of the proposal that the headless modes may 
   - [pro] the smallest feature.
   - [con] the proposal's toggle waits for another feature.
 
-**Answer:**
+**Answer:** C
 
 ## Settled without the human
 
@@ -343,4 +351,8 @@ Why it matters: it is the only part of the proposal that the headless modes may 
   written. Both features change the same pages, so the plan checks for conflicts with that branch.
   See [the code](discovery-01.md#likely-changes).
 
-**Notes:**
+**Notes:** > Model, effort, and other settings are your own Claude Code settings. The runner sets
+none in this feature, except the permission mode from Q2, which -p does not keep across resumes.
+
+It would be good if we could fetch the available models and effort levels, and offer an option to
+select it when starting work on a feature (so when a proposal is committed).
