@@ -102,7 +102,9 @@ test("a draft is committed with the priorities it changed", async () => {
   await click(screen.getByRole("button", { name: "Commit" }));
 
   await waitFor(() =>
-    expect(git(repo, "log", "-1", "--format=%s").trim()).toBe("chore: draft Git listener process"),
+    expect(git(repo, "log", "-1", "--format=%s").trim()).toBe(
+      "chore: edit the draft Git listener process",
+    ),
   );
   expect(git(repo, "show", "--name-only", "--format=", "HEAD").trim().split("\n").sort()).toEqual([
     "specs/PRIORITIES.md",
