@@ -397,3 +397,35 @@ fn finish_follows_its_reference() {
         Some("skills/uraeda/references/finish.md")
     );
 }
+
+/// Pull request review: changes requested win over a draft.
+#[test]
+fn pull_request_states_from_gh() {
+    let rows = [
+        (r#"[]"#, PullRequest::NoPullRequest),
+        (
+            r#"[{"reviewDecision":"","isDraft":true}]"#,
+            PullRequest::Draft,
+        ),
+        (
+            r#"[{"reviewDecision":"CHANGES_REQUESTED","isDraft":true}]"#,
+            PullRequest::ChangesRequested,
+        ),
+        (
+            r#"[{"reviewDecision":"CHANGES_REQUESTED","isDraft":false}]"#,
+            PullRequest::ChangesRequested,
+        ),
+        (
+            r#"[{"reviewDecision":"","isDraft":false}]"#,
+            PullRequest::Open,
+        ),
+        (r#"not json"#, PullRequest::Unknown),
+    ];
+    for (json, expected) in rows {
+        assert_eq!(
+            uraeda_core::steps::pull_request_state(json.as_bytes()),
+            expected,
+            "{json}"
+        );
+    }
+}
