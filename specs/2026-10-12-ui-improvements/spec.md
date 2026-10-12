@@ -1,6 +1,6 @@
 ---
 status: approved
-revision: 1
+revision: 2
 clarifications: 1
 risk-tier: medium
 plan-review: false
@@ -11,6 +11,10 @@ plan-review: false
 > [!NOTE]
 >
 > Approved on 2026-10-12.
+>
+> Amended in revision 2, at your request in chat, once the Claude Code runner was merged into main:
+> US8 gives the agent's runs a short section on the feature page and a run view, a pane on desktop
+> and a page on the phone; a refused Undo shows in a banner that stays, not only in a toast.
 >
 > - Four new decisions set how this app's UI is built, from your answers to the first four
 >   questions:
@@ -49,7 +53,8 @@ This feature makes it read and behave well on both:
 - a priorities page edited in place, with animated dragging;
 - drafts without placeholders;
 - the reviewed block in view while commenting;
-- a top bar that links home.
+- a top bar that links home;
+- the agent's runs, followed at both widths.
 
 It also sets four decisions, so the next view is built the same way. See the
 [proposal](proposal.md), [discovery](discovery-01.md), and [clarifications](clarifications-01.md).
@@ -259,6 +264,42 @@ Acceptance scenarios:
 2. **Given** a round with Q4's comment being typed in a window 800 px wide, **When** the window is
    narrowed to 700 px, **Then** the comment keeps its text and its focus.
 
+### US8: Follow the agent's runs at both widths (P1)
+
+The feature page's Agent section stays short at both widths: the latest run's state, its time and
+cost, why it failed, what auto mode blocked, with Allow and continue under the command, Stop, Start
+the agent or Try again, and a Runs list, one row per run, newest first, with its step, its state,
+and when it started. A row opens the run view, at `/f/<folder>/runs/<id>`: the run's state, its
+reason and blocked actions, Stop while it goes on, and its log. On wide screens, the run view opens
+in a pane beside the feature page, as a task view beside its list; on narrow screens, it is a page
+of its own. A group of tool calls the human opened stays open on Back and on a reload. While a run
+goes on, its log follows the end when the human is at the end, and stays put when they scrolled up.
+A tool call left unfinished by a run that ended shows as failed, "Not finished: the run ended.", not
+as running.
+
+Why this priority: the Claude Code runner, merged into main while this feature was built, drew a
+run's whole log inline on the feature page, in one column at both widths, and kept its earlier runs
+in collapsibles that Back closed. The human asked for it to follow the UI decisions in this feature.
+
+Acceptance scenarios:
+
+1. **Given** `2026-10-12-cli-tuis` with a run failed on Plan, "The tests failed.", and a blocked
+   `Bash: gh pr create --draft`, **When** its feature page opens on a 402 × 874 screen, **Then** the
+   Agent section shows "Failed on Plan", "The tests failed.", the blocked command with Allow and
+   continue under it, Try again, and a Runs list with the run's row, and no run log.
+2. **Given** that page, **When** the human taps the run's row, **Then**
+   `/f/2026-10-12-cli-tuis/runs/<id>` opens as a page of its own, with "Failed on Plan" and the
+   run's log; Back returns to the feature page at the same scroll position.
+3. **Given** a 1440 × 900 screen, **When** the human taps the run's row, **Then** the run view opens
+   in a pane beside the feature page, which stays usable, and Close returns to
+   `/f/2026-10-12-cli-tuis`.
+4. **Given** a run view whose group of 2 tool calls the human opened, **When** the page reloads, or
+   the human opens a file and comes Back, **Then** the group is open.
+5. **Given** a running run's view scrolled to its end, **When** the agent writes a new text,
+   **Then** it shows in view; scrolled up, the view does not move.
+6. **Given** a run that failed while a `Bash` call was running, **When** its view opens, **Then**
+   the call shows as failed, with "Not finished: the run ended.", and nothing spins.
+
 ## Edge cases
 
 - **A round with no applicable question blank at first open**: Next reads "Submit" at once, and the
@@ -297,6 +338,12 @@ Acceptance scenarios:
 - **The window crossing 1024 px**: text and controls change size; nothing else moves.
 - **Reduced motion**: the drag still follows the pointer, but lines jump instead of sliding, and
   scrolling to a question is instant.
+- **A run's address that names no run of this feature**: "No run 42 in 2026-10-12-cli-tuis.", with a
+  link to the feature.
+- **The window crossing 768 px with a run view open**: the pane becomes a page, or the page a pane
+  beside the feature page, with the same address.
+- **A run started while its run view is open**: the view keeps showing its run; the feature page's
+  Runs list gains the new row first.
 - **No storage in a private window**: the round opens at the first unanswered question, as on a new
   browser.
 
@@ -308,8 +355,8 @@ Acceptance scenarios:
   `style` prop, or a StyleX value that is not a token, unless the line carries a suppression with
   its reason.
 - **SC-003**: On a 402 × 874 and a 1440 × 900 screen in WebKit, the home, round, review, task view,
-  and priorities pages cut no text, never scroll sideways, and pass axe's WCAG 2.1 A and AA rules,
-  in light and in dark.
+  priorities, feature with a run, and run view pages cut no text, never scroll sideways, and pass
+  axe's WCAG 2.1 A and AA rules, in light and in dark.
 - **SC-004**: On a 402 px touch screen, every control is at least 44 px tall and body text at least
   17 px; on a 1440 px screen, body text is 19 px.
 - **SC-005**: From anywhere in a round, the next unanswered question is one tap or one key away.
@@ -366,7 +413,8 @@ binding call `proposalHints() -> Record<"What" | "Why" | "Notes", string>`.
 
 **History entries**: `history.state` holds `{ scroll: number }`, the page's scroll position, written
 with `replaceState` before each navigation and on `pagehide`, at most once every 500 ms while
-scrolling. `history.scrollRestoration` is `manual`.
+scrolling. A run view adds `open: string[]`, the groups of tool calls opened in its log, by the
+sequence number of their first call. `history.scrollRestoration` is `manual`.
 
 **Browser storage**, in `localStorage`, each read and write guarded as the theme's is:
 
@@ -389,17 +437,20 @@ scrolling. `history.scrollRestoration` is `manual`.
   `react/forbid-dom-props` and `react/forbid-component-props` for `style`; StyleX's lint plugin with
   `valid-styles` limited to tokens, scoped to `packages/web/src`.
 - **Router** ([`routes.tsx`](/packages/web/src/routes.tsx)): routes gain
-  `{ page: "task"; key: string }` at `/priorities/<key>`; `navigate()` saves the scroll position in
-  the current entry first, and `useRestoreScroll(ready)` restores it on Back once `ready` is true.
-  Pages keep their content during refetches through `useDeferredValue` on the route and fate's stale
-  data, so `Suspense` shows "Loading…" only on a first load.
+  `{ page: "task"; key: string }` at `/priorities/<key>`, and `{ page: "run"; folder; id }` at
+  `/f/<folder>/runs/<id>`; `navigate()` saves the scroll position in the current entry first, and
+  `useRestoreScroll(ready)` restores it on Back once `ready` is true. Pages keep their content
+  during refetches through `useDeferredValue` on the route and fate's stale data, so `Suspense`
+  shows "Loading…" only on a first load.
 - **Shell** ([`Shell.tsx`](/packages/web/src/Shell.tsx)): `SideNavHeading` with `headingHref="/"`. A
   `TopBarSlot` context lets the current page put its own controls at the bar's end: home and the
   priorities page put ＋, the round puts its navigation on narrow screens. The theme switch stays at
-  the navigation's end. A `Toast` viewport through the `AppShell`.
+  the navigation's end. A `Toast` viewport through the `AppShell`, and under the top bar the banner
+  of a refused Undo, with a Dismiss button.
 - **List-detail layout** (new, `Panes.tsx`): on wide screens, a list and a detail side by side, the
   detail at 40% of the width, at least 400 px; on narrow screens, the detail alone when the route
-  names one. Used by home and the priorities page with the task view.
+  names one. Used by home and the priorities page with the task view, and by the feature page with
+  the run view.
 - **Adaptive overlay** (new, `Overlay.tsx`): one component for short forms, a `Dialog` on wide
   screens and a `BottomSheet` on narrow ones, with a visible Close and Back closing it. Menus use
   Astryx's `presentation="adaptive"` directly.
@@ -413,6 +464,14 @@ scrolling. `history.scrollRestoration` is `manual`.
   headings with counts, each a sortable list of `@dnd-kit/react`, with a handle on fine pointers and
   a 500 ms press on touch; rows edit in place; an "Add to <section>" row ends each section; the ⋯
   `MoreMenu` is adaptive; the commit bar stays. `dropIndex` stays, fed by dnd-kit's indices.
+- **Agent section** ([`AgentPanel.tsx`](/packages/web/src/AgentPanel.tsx)): the latest run's state,
+  time and cost, reason, blocked actions as warning banners with Allow and continue under the
+  command, Stop, Start the agent or Try again, and a `List` of runs, each row linking to its run
+  view. No log, and no collapsibles.
+- **Run view** (new, `RunPage.tsx`): the run's step as its heading, its state, reason, and blocked
+  actions, Stop while it runs, then [`RunLog`](/packages/web/src/RunLog.tsx), whose groups of tool
+  calls are controlled from the history entry. The page follows the log's end while it runs and the
+  human is at the end. A tool call still `running` or `pending` in an ended run shows as `error`.
 - **Editable line** (new, `EditableLine.tsx`): the line's spans, turning into a `TextInput` on tap:
   Enter saves, Escape cancels, blur saves. Shared by the priorities page and the task view.
 - **Round** ([`RoundPage.tsx`](/packages/web/src/RoundPage.tsx), new `RoundNav.tsx`): the progress,
@@ -454,7 +513,10 @@ scrolling. `history.scrollRestoration` is `manual`.
     on desktop with the popover menu;
   - a new draft in the editor, with its hints;
   - the toasts "Added to Later, not committed" and "Deleted "Nvim plugin"", each with Undo;
-  - a missing file.
+  - a missing file;
+  - the feature page's Agent section on the phone, the run view on the phone, and the feature page
+    with a run view in its pane on desktop;
+  - the banner of a refused Undo.
 
 ### Error handling
 
@@ -464,8 +526,10 @@ scrolling. `history.scrollRestoration` is `manual`.
   list reloaded, the typed text kept.
 - **Undo after the toast's 5 seconds**: there is no toast; Discard in the commit bar still undoes
   every uncommitted change.
-- **Undo refused**, when the file changed in a way the insert cannot follow: the toast is replaced
-  by "Could not restore "Nvim plugin": PRIORITIES.md changed on disk."
+- **Undo refused**, when the file changed in a way the insert cannot follow: the toast closes, and
+  "Could not restore "Nvim plugin": PRIORITIES.md changed on disk." shows in a banner under the top
+  bar until the human dismisses it.
+- **A missing run**: "No run <id> in <folder>.", with a link to the feature.
 - **A missing file**: "No file <name> in <folder>.", with a link to the feature.
 - **A missing priority line**: "This line is no longer in PRIORITIES.md.", with a link to the
   priorities page.
@@ -496,6 +560,8 @@ beyond the measures the decisions set.
 | US6 scenarios 4 to 6                                 | `shell.test.tsx`                                                             |
 | US7 scenario 1                                       | `missing.test.tsx`: the message, and the requests counted                    |
 | US7 scenario 2                                       | browser `layout.test.tsx`: resize with focus kept                            |
+| US8 scenarios 1, 2, 4, 6, edge cases                 | `agent-panel.test.tsx`, `run.test.tsx`                                       |
+| US8 scenarios 3, 5                                   | browser `run.test.tsx` at 1440 × 900 and 402 × 874                           |
 | Edge cases: positions, `n`/`p` limits, no storage    | `round.test.tsx`                                                             |
 | Edge cases: duplicate keys, removed or renamed lines | core `priorities` table-driven test of `key`; `task.test.tsx`                |
 | Edge cases: empty edit, conflicts, Undo cases        | `priorities.test.tsx`; core tests of `insert`                                |
