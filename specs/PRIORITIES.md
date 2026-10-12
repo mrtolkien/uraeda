@@ -2,23 +2,18 @@
 
 ## Now
 
-- Make it SURE multiple agents can be running on features at the same time (worktrees) -> tell agent
-  to move into the worktree if not the case already?
-- Discovery effort level in proposal -> the human can select low/medium/high. Low = mostly read
-  local files and doc Medium = also look for alternatives online High = look far and wide for
-  alternatives, look up community sentiment, weigh pros and cons based on actual benchmarks, ...
 - [UI improvements](/specs/2026-10-12-ui-improvements/proposal.md)
-- Better commit messages for UI changes -> take the start of the new task for priorities, ...
 
 ## Next
 
-- Claude Code runner (triggered manually): https://code.claude.com/docs/en/headless
-- Git listener process + claude code automatic triggering
+- [Claude Code runner (triggered manually): https://code.claude.com/docs/en/headless](drafts/claude-code-runner-triggered-manually-https-code.md)
+- Chat in the web UI: ask about a step without committing, ...
 - Look and feel pass
 - Nvim plugin
 - Clean server code that can open any folder on the host + be run easily with node
 - Small onboarding explanation (what to read and in which order)
 - Ping user when input is needed
+- Git listener process
 
 ## Later
 
