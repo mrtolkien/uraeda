@@ -7,9 +7,10 @@ use crate::workspace::{FileKind, Problem};
 use super::{Checked, File};
 
 /// The fields of a kind of file: required ones, then optional ones. `None` for files without
-/// frontmatter.
+/// frontmatter. A file with optional fields only may have no frontmatter.
 fn fields(kind: Checked) -> Option<(&'static [&'static str], &'static [&'static str])> {
     match kind {
+        Checked::Workflow(FileKind::Proposal) => Some((&[], &["discovery"])),
         Checked::Workflow(FileKind::Clarifications | FileKind::Assessment) => {
             Some((&["status"], &[]))
         }
@@ -30,7 +31,7 @@ fn allowed(kind: Checked, key: &str) -> Option<&'static [&'static str]> {
         (Checked::Workflow(kind), "status") => Some(kind.statuses()),
         (Checked::Decision, "status") => Some(&["proposed", "active"]),
         (Checked::Record, "kind") => Some(&["feature", "bug"]),
-        (_, "risk-tier") => Some(&["low", "medium", "high"]),
+        (_, "risk-tier" | "discovery") => Some(&["low", "medium", "high"]),
         (_, "verdict") => Some(&["pending", "approved", "changes-requested"]),
         _ => None,
     }
@@ -54,6 +55,7 @@ pub(super) fn check_frontmatter(
     let (required, optional) = fields(file.kind)?;
     let front = match frontmatter::parse(file.text) {
         Ok(front) => front,
+        Err(frontmatter::FrontmatterError::Missing) if required.is_empty() => return None,
         Err(error) => {
             problems.push(file.problem(Some(1), "frontmatter.parse", error.to_string()));
             return None;

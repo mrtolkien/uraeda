@@ -1,3 +1,7 @@
+---
+discovery: high # low, medium, or high: how far the agent researches before asking
+---
+
 # [Feature name]
 
 ## What

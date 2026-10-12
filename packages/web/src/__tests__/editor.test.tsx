@@ -31,7 +31,7 @@ test("Draft turns a line into a draft, linked, and opens its editor", async () =
   const path = "specs/drafts/claude-code-runner-triggered-manually.md";
   await waitFor(() => expect(window.location.pathname).toBe(`/edit/${path}`));
   expect(readFileSync(join(repo, path), "utf8")).toMatch(
-    /^# Claude Code runner \(triggered manually\)\n/,
+    /\n---\n\n# Claude Code runner \(triggered manually\)\n/,
   );
   expect(readFileSync(join(repo, "specs/PRIORITIES.md"), "utf8")).toContain(
     "- [Claude Code runner (triggered manually)](drafts/claude-code-runner-triggered-manually.md)",
@@ -66,6 +66,19 @@ test("a draft is saved as typed, byte for byte", async () => {
 
   await waitFor(() =>
     expect(readFileSync(join(repo, "specs/drafts/git-listener.md"), "utf8")).toBe(typed),
+  );
+});
+
+test("the discovery effort is set in the proposal's frontmatter", async () => {
+  const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
+  const file = join(repo, "specs/drafts/git-listener.md");
+  const before = readFileSync(file, "utf8");
+  await screen.findByRole("textbox", { name: "Text" });
+
+  await click(await screen.findByRole("radio", { name: "Medium" }));
+
+  await waitFor(() =>
+    expect(readFileSync(file, "utf8")).toBe(`---\ndiscovery: medium\n---\n\n${before}`),
   );
 });
 

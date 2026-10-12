@@ -204,7 +204,7 @@ fn a_line_is_drafted_by_its_id() {
     assert_eq!(drafted.path, "specs/drafts/git-listener-process.md");
     assert!(
         repo.read(&drafted.path)
-            .starts_with("# Git listener process\n")
+            .contains("---\n\n# Git listener process\n")
     );
     assert!(
         repo.read("specs/PRIORITIES.md")
