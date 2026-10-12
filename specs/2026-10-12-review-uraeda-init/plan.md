@@ -540,7 +540,7 @@ git commit -m "feat(review-uraeda-init): pickers for ura install and ura init"
 - Produces: `fn installer(install: &Install, tag: &str, exe: &Path) -> Command`, and
   `fn newer(current: &str, latest: &str) -> bool` (`latest != current`, as today's check).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `upgrade.rs`'s tests:
 
@@ -554,22 +554,22 @@ In `upgrade.rs`'s tests:
 - `the_latest_release_installs_nothing`: `newer("0.2.0", "0.2.0")` is false,
   `newer("0.1.0", "0.2.0")` true.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-cli --bin ura upgrade`
 - Expected: FAIL to compile: no `installer`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `run` keeps `exec`ing, now `installer(...).exec()`. The `ura upgrade` row of `SKILL.md`'s table
 becomes `Installs \`ura\`'s latest release, then updates the user's skill`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/cli/src/upgrade.rs skills/uraeda/SKILL.md

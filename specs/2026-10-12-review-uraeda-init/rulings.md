@@ -99,3 +99,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: `ratatui::restore` on every return, as the plan said.
 - **If wrong**: call `ratatui::restore()` in the guard's `drop`.
 - **Where**: task 4.
+
+## R10: `set -e` in `ura upgrade`'s shell, not `&&`
+
+- **Decision**: the shell `ura upgrade` becomes starts with `set -e`, and runs the skill's update on
+  its own last line, after the installer or `brew upgrade`.
+- **Rationale**: the spec's `&&` and `set -e` both run the update only if the installer succeeded,
+  and exit with the installer's code otherwise; the installer script already used `set -e`, and the
+  plan's tests check that shape.
+- **Alternatives considered**: joining the last two lines with `&&`, which `set -e` makes redundant.
+- **If wrong**: join the lines with `&&` in `INSTALL` and `BREW`, and their tests.
+- **Where**: task 5.
