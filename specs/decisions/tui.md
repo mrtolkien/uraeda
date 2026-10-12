@@ -28,13 +28,13 @@ share their code, their keys, and their look, and no second library is added for
 ## Why
 
 The proposal names ratatui for `ura install`'s pickers
-([proposal](../2026-10-12-review-uraeda-init/proposal.md)), and the planned answer, review, and
-draft TUIs name it too ([draft](../drafts/cli-tuis.md)). A lighter prompt library for the pickers,
+([proposal](../done/2026-10-12-review-uraeda-init.md)), and the planned answer, review, and draft
+TUIs name it too ([draft](../drafts/cli-tuis.md)). A lighter prompt library for the pickers,
 dialoguer at 36 KB against ratatui's 210 KB, would become a second library, with a different look,
 once those TUIs come: the human chose ratatui
-([Q2](../2026-10-12-review-uraeda-init/clarifications-01.md#q2-which-library-draws-the-pickers),
-[picker libraries](../2026-10-12-review-uraeda-init/discovery-01.md#picker-libraries)). The
-terminal's 16 colours are the human's answer for the TUIs' look
+([Q2](../done/2026-10-12-review-uraeda-init.md#q2-which-library-draws-the-pickers),
+[picker libraries](../done/2026-10-12-review-uraeda-init.md)). The terminal's 16 colours are the
+human's answer for the TUIs' look
 ([Q14](../done/2026-10-10-cli-core.md#q14-what-should-the-tuis-look-like)).
 
 ## Alternatives considered

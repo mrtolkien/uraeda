@@ -2,8 +2,6 @@
 
 ## Now
 
-- [Review uraeda init and skill install flow: I don't like the skill living in all repos, it's inelegant. uraeda init should offer to install the skill for the active user, not in the repo.](/specs/2026-10-12-review-uraeda-init/proposal.md)
-
 ## Next
 
 - Chat in the web UI: ask about a step without committing, see actual message that goes with the

@@ -52,8 +52,8 @@ the binary that runs them
 The binary has no size limit in CI: the human chose to keep it "_as small as possible_ while
 bringing in necessary features", with binary optimization to come later, rather than a cap each new
 dependency must fit under
-([Q2.A](../2026-10-12-review-uraeda-init/clarifications-01.md#q2a-what-is-the-binarys-size-limit),
-[ratatui and the size limit](../2026-10-12-review-uraeda-init/discovery-01.md#ratatui-and-the-size-limit)).
+([Q2.A](../done/2026-10-12-review-uraeda-init.md#q2a-what-is-the-binarys-size-limit),
+[ratatui and the size limit](../done/2026-10-12-review-uraeda-init.md#q2a-what-is-the-binarys-size-limit)).
 
 ## Alternatives considered
 
