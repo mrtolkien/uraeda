@@ -84,6 +84,7 @@ export const FileView = view<WorkflowFile>()({
   committed: VersionSelection,
   review: ItemsSelection,
   reviewStale: true,
+  missing: true,
 });
 
 export const PrioritiesView = view<Priorities>()({

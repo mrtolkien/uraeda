@@ -16,7 +16,8 @@ export type FeatureRecord = Record_<FeatureView> & {
   /** The IDs of its runs, newest first. */
   runs: Array<string>;
 };
-export type FileRecord = Record_<FileView>;
+/** A workflow file, or `missing` alone when its feature has no such file. */
+export type FileRecord = Record_<FileView> & { missing?: boolean };
 export type PrioritiesRecord = Record_<Priorities> & { id: string };
 export type DraftRecord = Record_<DraftView> & { id: string };
 
@@ -94,6 +95,7 @@ export const fileDataView = dataView<FileRecord>("WorkflowFile")({
   committed: true,
   review: true,
   reviewStale: true,
+  missing: true,
 });
 
 export const prioritiesDataView = dataView<PrioritiesRecord>("Priorities")({
