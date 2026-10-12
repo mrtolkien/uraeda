@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { beforeAll, expect, test } from "vite-plus/test";
-import { fixtureRepo, git, renderPage } from "./helpers.tsx";
+import { afterEach, beforeAll, expect, test } from "vite-plus/test";
+import { atWidth, fixtureRepo, git, renderPage } from "./helpers.tsx";
 
 const FOLDER = "2026-10-11-web-ui";
 const PAGE = `/f/${FOLDER}/clarifications-01.md`;
@@ -49,10 +49,12 @@ function question(id: string) {
   return document.getElementById(id) as HTMLElement;
 }
 
-/** The option button of a question, by its letter. */
+/** The option of a question, not of its follow-ups, by the letter it shows. */
 function option(id: string, letter: string) {
-  const buttons = [...question(id).querySelectorAll(":scope > .options > .option")];
-  return buttons.find((b) => b.querySelector(".letter")?.textContent === letter) as HTMLElement;
+  const options = within(question(id))
+    .getAllByRole("button")
+    .filter((b) => b.hasAttribute("aria-pressed") && b.closest("section") === question(id));
+  return options.find((b) => within(b).queryByText(letter, { exact: true })) as HTMLElement;
 }
 
 /** The comment field of a question, not of its follow-ups. */
@@ -345,4 +347,106 @@ test("Submit stops when an answer could not be saved", async () => {
   expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).not.toBe(
     "discovery(web-ui): answer round 01",
   );
+});
+
+/** The key under which this browser keeps the round's position. */
+const POSITION = `uraeda.round.${FOLDER}/clarifications-01.md`;
+
+/** The title of the question that has the focus. */
+function focused() {
+  const element = document.activeElement;
+  return element && /^H[1-6]$/.test(element.tagName) ? (element.textContent ?? "") : "";
+}
+
+/** US1 1 */
+test("the bar counts and offers Next, without ＋ (US1 1)", async () => {
+  atWidth(402);
+  await renderPage(PAGE, answered({ Q1: "A" }));
+  expect(await screen.findByRole("button", { name: "1/3" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Next" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Add a priority" })).toBeNull();
+});
+
+/** US1 2, 3; SC-005 */
+test("Next goes to the first blank question after the one at the top, and focuses it (US1 2, 3)", async () => {
+  atWidth(402);
+  await renderPage(PAGE, answered({ Q1: "A" }));
+  await tap(await screen.findByRole("button", { name: "Next" }));
+  await waitFor(() => expect(focused()).toContain("How does your iPhone reach the server?"));
+});
+
+/** US1 4 */
+test("with nothing blank, Next becomes Submit (US1 4)", async () => {
+  atWidth(402);
+  await renderPage(PAGE, answered({ Q1: "A", Q2: "A", Q3: "A" }));
+  expect(await screen.findByRole("button", { name: "3/3" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Submit" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
+});
+
+/** US1 5 */
+test("the index lists the questions with their state, and jumps (US1 5)", async () => {
+  atWidth(402);
+  await renderPage(PAGE, answered({ Q1: "A" }));
+  await tap(await screen.findByRole("button", { name: "1/3" }));
+  const index = await screen.findByRole("dialog", { name: "Questions" });
+  const rows = within(index).getAllByRole("button", { name: /^[✓○] Q/ });
+  expect(rows.map((row) => row.textContent?.slice(0, 4))).toEqual(["✓ Q1", "○ Q2", "○ Q3"]);
+  expect(rows[0].textContent).toContain("Which human steps does the UI perform?");
+
+  await tap(within(index).getByRole("button", { name: /^○ Q3/ }));
+
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Questions" })).toBeNull());
+  await waitFor(() => expect(focused()).toContain("Which repositories does the UI open now?"));
+});
+
+/** US1 9 */
+test("the round reopens where it was left (US1 9)", async () => {
+  const repo = answered({});
+  window.localStorage.setItem(POSITION, "Q3");
+  await renderPage(PAGE, repo);
+  await screen.findByText("Which repositories does the UI open now?");
+  expect(focused()).toContain("Which repositories does the UI open now?");
+});
+
+/** US1 10 */
+test("a new browser opens at the first blank question (US1 10)", async () => {
+  await renderPage(PAGE, answered({ Q1: "A" }));
+  await screen.findByText("How does your iPhone reach the server?");
+  expect(focused()).toContain("How does your iPhone reach the server?");
+});
+
+/** Edge case: a position saved on a question that no longer applies. */
+test("a saved position on a question that no longer applies falls back", async () => {
+  const repo = answered({ Q1: "A" });
+  window.localStorage.setItem(POSITION, "Q1.B");
+  await renderPage(PAGE, repo);
+  await screen.findByText("How does your iPhone reach the server?");
+  expect(focused()).toContain("How does your iPhone reach the server?");
+});
+
+/** The window's own storage, while a test takes it away; `null` when it came from its prototype. */
+let storage: PropertyDescriptor | null | undefined;
+afterEach(() => {
+  if (storage) {
+    Object.defineProperty(window, "localStorage", storage);
+  } else if (storage === null) {
+    delete (window as { localStorage?: Storage }).localStorage;
+  }
+  storage = undefined;
+});
+
+/** Edge case: no storage, as in a private window. */
+test("without storage, the round opens at the first blank question", async () => {
+  const repo = answered({ Q1: "A" });
+  storage = Object.getOwnPropertyDescriptor(window, "localStorage") ?? null;
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    get() {
+      throw new Error("The storage is not available.");
+    },
+  });
+  await renderPage(PAGE, repo);
+  await screen.findByText("How does your iPhone reach the server?");
+  expect(focused()).toContain("How does your iPhone reach the server?");
 });

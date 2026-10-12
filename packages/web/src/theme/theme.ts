@@ -54,6 +54,8 @@ export const uraedaTheme = defineTheme({
     // height, scrolling on its own.
     "--size-pane-min": "400px",
     "--size-viewport-height": "100dvh",
+    // The round's index, a column beside its questions on wide screens.
+    "--size-round-index": "240px",
     // The selected block of a review: an amber tint and bar, apart from the muted background.
     "--color-selection": "var(--color-background-yellow)",
     "--color-selection-edge": "var(--color-border-yellow)",

@@ -43,6 +43,14 @@ beforeEach(() => {
 });
 
 afterEach(cleanup);
+afterEach(() => atWidth(1024));
+
+/** Gives the window a width, as a phone's (402) or a desktop's: happy-dom starts at 1024, wide. */
+export function atWidth(width: number) {
+  (
+    window as unknown as { happyDOM: { setViewport(size: { width: number }): void } }
+  ).happyDOM.setViewport({ width });
+}
 
 /** The requests the UI sent, for the tests that count them. */
 export const sent: Array<string> = [];

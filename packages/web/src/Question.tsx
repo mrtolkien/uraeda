@@ -1,13 +1,162 @@
 import { Button } from "@astryxdesign/core/Button";
+import { Heading } from "@astryxdesign/core/Heading";
+import { HStack } from "@astryxdesign/core/HStack";
+import { Text } from "@astryxdesign/core/Text";
 import { TextArea } from "@astryxdesign/core/TextArea";
+import {
+  borderVars,
+  colorVars,
+  fontWeightVars,
+  radiusVars,
+  spacingVars,
+  typeScaleVars,
+  typographyVars,
+} from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { Choice, Document, QuestionItem } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { refusal } from "./errors.ts";
 import { Spans } from "./Spans.tsx";
+import { useWidthClass } from "./layout/useWidthClass.ts";
 import { type SaveState, useSave } from "./useSave.ts";
 import { FileView } from "./views.ts";
+
+const styles = stylex.create({
+  // A jump puts the question at the top, below the phone's top bar, which stays in view.
+  question: {
+    marginBlockStart: 0,
+  },
+  belowBar: {
+    scrollMarginTop: `calc(${spacingVars["--spacing-12"]} + ${spacingVars["--spacing-2"]})`,
+  },
+  belowNothing: {
+    scrollMarginTop: spacingVars["--spacing-4"],
+  },
+  followUp: {
+    marginBlockStart: spacingVars["--spacing-4"],
+    paddingInlineStart: spacingVars["--spacing-3"],
+    borderInlineStartWidth: spacingVars["--spacing-1"],
+    borderInlineStartStyle: "solid",
+    borderInlineStartColor: colorVars["--color-accent"],
+  },
+  title: {
+    marginBlockStart: spacingVars["--spacing-0-5"],
+    marginBlockEnd: spacingVars["--spacing-2"],
+  },
+  // Options run to the screen's edges on the phone, split by hairlines.
+  options: {
+    marginBlockStart: spacingVars["--spacing-3"],
+    borderBlockStartWidth: borderVars["--border-width"],
+    borderBlockStartStyle: "solid",
+    borderBlockStartColor: colorVars["--color-border"],
+  },
+  bleed: {
+    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+  },
+  bleedFollowUp: {
+    marginInlineStart: `calc(-1 * ${spacingVars["--spacing-3"]})`,
+    marginInlineEnd: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+  },
+  option: {
+    display: "block",
+    width: "100%",
+    boxSizing: "border-box",
+    margin: 0,
+    paddingBlock: spacingVars["--spacing-3"],
+    paddingInlineStart: spacingVars["--spacing-3"],
+    paddingInlineEnd: spacingVars["--spacing-4"],
+    borderWidth: 0,
+    borderBlockEndWidth: borderVars["--border-width"],
+    borderBlockEndStyle: "solid",
+    borderBlockEndColor: colorVars["--color-border"],
+    borderInlineStartWidth: spacingVars["--spacing-1"],
+    borderInlineStartStyle: "solid",
+    borderInlineStartColor: "transparent",
+    backgroundColor: "transparent",
+    color: "inherit",
+    font: "inherit",
+    fontSize: "var(--text-reading-size)",
+    lineHeight: "var(--text-reading-line)",
+    textAlign: "start",
+    textWrap: "pretty",
+    cursor: "pointer",
+  },
+  optionOn: {
+    borderInlineStartColor: colorVars["--color-accent"],
+    backgroundColor: colorVars["--color-accent-muted"],
+  },
+  optionOff: {
+    cursor: "default",
+  },
+  tag: {
+    display: "block",
+    marginBlockEnd: spacingVars["--spacing-1"],
+    fontSize: typeScaleVars["--text-supporting-size"],
+    fontWeight: fontWeightVars["--font-weight-semibold"],
+    color: colorVars["--color-warning"],
+  },
+  summary: {
+    display: "block",
+    fontWeight: fontWeightVars["--font-weight-semibold"],
+  },
+  letter: {
+    float: "left",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxSizing: "border-box",
+    width: spacingVars["--spacing-7"],
+    height: spacingVars["--spacing-7"],
+    marginInlineEnd: spacingVars["--spacing-2"],
+    borderWidth: spacingVars["--spacing-0-5"],
+    borderStyle: "solid",
+    borderColor: colorVars["--color-text-secondary"],
+    borderRadius: radiusVars["--radius-full"],
+    fontSize: typeScaleVars["--text-supporting-size"],
+    fontWeight: fontWeightVars["--font-weight-bold"],
+    color: colorVars["--color-text-secondary"],
+  },
+  letterOn: {
+    borderColor: colorVars["--color-accent"],
+    backgroundColor: colorVars["--color-accent"],
+    color: colorVars["--color-on-accent"],
+  },
+  points: {
+    clear: "left",
+    marginBlock: spacingVars["--spacing-1-5"],
+    marginInline: 0,
+    padding: 0,
+    listStyle: "none",
+  },
+  point: {
+    position: "relative",
+    marginBlockStart: spacingVars["--spacing-1"],
+    paddingInlineStart: spacingVars["--spacing-5"],
+  },
+  sign: {
+    position: "absolute",
+    insetInlineStart: 0,
+    fontWeight: fontWeightVars["--font-weight-bold"],
+  },
+  pro: { color: colorVars["--color-success"] },
+  con: { color: colorVars["--color-error"] },
+  why: { color: colorVars["--color-warning"] },
+  spaced: {
+    marginBlockStart: spacingVars["--spacing-3"],
+  },
+  answer: {
+    marginBlockStart: spacingVars["--spacing-2"],
+  },
+  answerValue: {
+    flexGrow: 1,
+    minWidth: 0,
+    fontFamily: typographyVars["--font-family-code"],
+    fontSize: typeScaleVars["--text-code-size"],
+    whiteSpace: "pre-wrap",
+  },
+});
 
 /** Where questions put what they still have to save, so Submit saves it first. */
 export const PendingSaves = createContext<Set<() => Promise<boolean>>>(new Set());
@@ -26,14 +175,23 @@ export function composed(letters: ReadonlyArray<string>, comment: string) {
   return text ? `${picked}: ${text}` : picked;
 }
 
+export const statusStyles = stylex.create({
+  saved: { color: colorVars["--color-success"] },
+  error: { color: colorVars["--color-error"] },
+});
+
 function Status({ state }: { state: SaveState }) {
   switch (state.kind) {
     case "saving":
-      return <span className="muted">saving…</span>;
+      return (
+        <Text type="supporting" color="secondary">
+          saving…
+        </Text>
+      );
     case "saved":
-      return <span className="saved">saved ✓</span>;
+      return <span {...stylex.props(statusStyles.saved)}>saved ✓</span>;
     case "error":
-      return <span className="not-saved">Not saved: {state.message}</span>;
+      return <span {...stylex.props(statusStyles.error)}>Not saved: {state.message}</span>;
     default:
       return null;
   }
@@ -80,32 +238,31 @@ function Option({
   onToggle: () => void;
 }) {
   const spans = (id: number) => <Spans spans={document.blocks[id]?.spans ?? []} />;
+  const point = (id: number, sign: string, tone: stylex.StyleXStyles) => (
+    <li key={`${sign}${id}`} {...stylex.props(styles.point)}>
+      <span {...stylex.props(styles.sign, tone)}>{sign}</span>
+      {spans(id)}
+    </li>
+  );
   return (
+    // oxlint-disable-next-line react/forbid-elements -- a full-width toggle holding paragraphs and lists, which no Astryx component draws (an Astryx gap, see the plan)
     <button
       type="button"
-      className="option"
       aria-pressed={selected}
       disabled={disabled}
       onClick={onToggle}
+      {...stylex.props(styles.option, selected && styles.optionOn, disabled && styles.optionOff)}
     >
-      {choice.recommended && <div className="tag">Recommended</div>}
-      <div className="summary">
-        <span className="letter">{choice.letter}</span>
+      {choice.recommended && <span {...stylex.props(styles.tag)}>Recommended</span>}
+      <span {...stylex.props(styles.summary)}>
+        <span {...stylex.props(styles.letter, selected && styles.letterOn)}>{choice.letter}</span>{" "}
         <Spans spans={choice.summary} />
-      </div>
+      </span>
       {(choice.pros.length > 0 || choice.cons.length > 0 || choice.why !== undefined) && (
-        <ul className="points">
-          {choice.pros.map((id) => (
-            <li key={id} className="pro">
-              {spans(id)}
-            </li>
-          ))}
-          {choice.cons.map((id) => (
-            <li key={id} className="con">
-              {spans(id)}
-            </li>
-          ))}
-          {choice.why !== undefined && <li className="why">{spans(choice.why)}</li>}
+        <ul {...stylex.props(styles.points)}>
+          {choice.pros.map((id) => point(id, "+", styles.pro))}
+          {choice.cons.map((id) => point(id, "−", styles.con))}
+          {choice.why !== undefined && point(choice.why, "★", styles.why)}
         </ul>
       )}
       {choice.other.length > 0 && <Blocks document={document} ids={choice.other} />}
@@ -189,18 +346,30 @@ export function Question({
   const unclear = question.applies === "unclear";
   const answer = composed(letters, comment);
   const parent = question.parent;
+  const wide = useWidthClass() === "wide";
 
   return (
-    <section id={question.id} className={parent ? "follow-up" : undefined}>
-      <div className="label">
+    <section
+      id={question.id}
+      {...stylex.props(
+        styles.question,
+        wide ? styles.belowNothing : styles.belowBar,
+        parent !== undefined && styles.followUp,
+      )}
+    >
+      <Text type="supporting" color="secondary" weight="semibold">
         {question.id}
         {parent && question.applies === "yes" && ` · because you picked ${question.parentLetter}`}
         {parent && unclear && ` · ${parent} names no option`}
-      </div>
-      <h2 className="title-l">{question.title}</h2>
+      </Text>
+      <Heading level={2} id={`${question.id}-title`} tabIndex={-1} xstyle={styles.title}>
+        {question.title}
+      </Heading>
       <Blocks document={document} ids={question.context} />
       {question.options.length > 0 && (
-        <div className="options">
+        <div
+          {...stylex.props(styles.options, !wide && (parent ? styles.bleedFollowUp : styles.bleed))}
+        >
           {question.options.map((choice) => (
             <Option
               key={choice.letter}
@@ -214,7 +383,7 @@ export function Question({
         </div>
       )}
       {unclear && !readOnly && (
-        <div className="actions" style={{ marginTop: 12 }}>
+        <HStack gap={2} xstyle={styles.spaced}>
           <Button
             label="Does not apply"
             onClick={() => {
@@ -223,24 +392,26 @@ export function Question({
               save.schedule({ letters: [], comment: "-" }, true);
             }}
           />
-        </div>
+        </HStack>
       )}
       {readOnly ? (
         comment && (
-          <p className="small" style={{ marginTop: 12 }}>
+          <Text as="p" display="block" xstyle={styles.spaced}>
             {comment}
-          </p>
+          </Text>
         )
       ) : (
-        <div style={{ marginTop: 14 }}>
+        <div {...stylex.props(styles.spaced)}>
           <GrowingTextArea label="Comment" value={comment} onChange={type} />
         </div>
       )}
-      <div className="answer-line">
-        <span className="muted">Answer:</span>
-        <span className="value">{answer}</span>
+      <HStack gap={2} align="start" xstyle={styles.answer}>
+        <Text type="supporting" color="secondary">
+          Answer:
+        </Text>
+        <span {...stylex.props(styles.answerValue)}>{answer}</span>
         {!readOnly && <Status state={save.state} />}
-      </div>
+      </HStack>
       {followUps.map((followUp) => (
         <Question
           key={followUp.id}

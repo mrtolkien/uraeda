@@ -37,6 +37,31 @@ function Item({ label, to, pathname }: { label: string; to: string; pathname: st
 }
 
 /**
+ * The page's controls at the end of the heading. Astryx draws the heading as one link home around
+ * them: a tap on one of them, or in a sheet it opened (React passes its events up through the
+ * page's tree), is not a tap on the link.
+ */
+function SlotControls({ children }: { children: ReactNode }) {
+  return (
+    <span
+      onClick={(event) => {
+        event.stopPropagation();
+        const target = event.target as Element;
+        const control = target.closest("button, a, input, textarea, select, label");
+        if (
+          event.currentTarget.contains(target) &&
+          (!control || !event.currentTarget.contains(control))
+        ) {
+          event.preventDefault();
+        }
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+/**
  * The navigation: home, priorities, and every feature by what it waits for, then the theme. Its
  * heading goes home and ends with the page's own controls; on wide screens it folds away and
  * resizes, its width and state kept in the browser.
@@ -62,7 +87,7 @@ function Nav({ slot }: { slot: ReactNode }) {
           headingHref="/"
           as={RouterAnchor}
           subheading={repository}
-          headerEndContent={slot}
+          headerEndContent={slot && <SlotControls>{slot}</SlotControls>}
         />
       }
       footer={<ThemeSwitch />}

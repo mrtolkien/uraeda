@@ -32,7 +32,8 @@ test("home", async () => {
 test("a round of questions", async () => {
   await show("/f/2026-10-11-web-ui/clarifications-01.md", "How does your iPhone reach the server?");
   checkPage();
-  checkInsets("section > .title-l, .option .summary");
+  // Question titles, and the options' text.
+  checkInsets('[role="main"] section h2, [role="main"] section [aria-pressed]');
 });
 
 test("a spec under review", async () => {

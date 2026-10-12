@@ -1220,22 +1220,31 @@ git commit -m "feat(ui-improvements): the priorities page, opened by tap and dra
 
 **Interfaces:**
 
-- Produces: `RoundNav({ questions, blank, onJump })`: narrow, in `TopBarSlot`, a "<n>/<total>"
-  button that opens the index in an `Overlay` labelled "Questions", and "Next" (or "Submit" when
-  nothing is blank); wide, a sticky column, 240 px, with "<n> of <total> answered", Next or Submit,
-  and Astryx `Outline` of the applicable questions, follow-ups at level 2, each label prefixed ✓ or
-  ○, the question at the top marked current.
-- Produces: `jumpTo(id)`: scrolls the question to the top below the bar (`scroll-margin-top`), and
-  focuses its title (`tabIndex={-1}`); instant under reduced motion. Next goes to the first blank
-  question after the one at the top, wrapping to the first blank; Submit scrolls to the end.
+- Produces: `RoundNav({ questions, onSubmit })`, `questions` the applicable `NavQuestion`s
+  (`{ id, title, level, answered }`) in the page's order: narrow, in `TopBarSlot`, a
+  "<answered>/<total>" button that opens the index in an `Overlay` labelled "Questions", and "Next"
+  (or "Submit" when nothing is blank); wide, a sticky column, `--size-round-index` (240 px, a theme
+  token), labelled "Questions", with "<n> of <total> answered", Next or Submit, a `ProgressBar`, and
+  the index: an Astryx `List` of the applicable questions, follow-ups indented, each row's label
+  prefixed ✓ or ○ and wrapping, the question at the top marked current ([R15](rulings.md)). The
+  round's own "n of m answered" line and progress bar leave the page.
+- Produces: `jumpTo(id)` and `questionAtTop(ids)` (`RoundNav.tsx`): a jump scrolls the question to
+  the top below the bar (`scroll-margin-top`), and focuses its title (`<id>-title`,
+  `tabIndex={-1}`); instant under reduced motion. Next goes to the first blank question after the
+  one at the top, wrapping to the first blank; Submit scrolls to the end and focuses "Submit
+  answers". A row picked in the sheet jumps once the sheet's scroll lock is released.
 - Produces: `n` and `p` through Astryx `useHotkeys`, wide only, ignored while a text field has the
   focus; no blank question in that direction does nothing.
-- Produces: `useRoundPosition(folder, file)`: saves the id of the question at the top in
-  `localStorage` `uraeda.round.<folder>/<file>`, at most once a second; on opening without a Back
-  entry, jumps to it when it is still an applicable question, else to the first blank question, else
-  stays at the top; storage errors fall back silently.
+- Produces: `useRoundPosition(folder, file, questions)`: saves the id of the question at the top in
+  `localStorage` `uraeda.round.<folder>/<file>`, at most once a second; on opening without a
+  position in the history entry (not Back, not a reload), jumps to it when it is still an applicable
+  question, else to the first blank question, else stays at the top; storage errors fall back
+  silently.
+- Produces: the shell's `SlotControls`, which keeps a tap on the page's controls in the top bar, or
+  in a sheet they opened, from following the heading's link home ([R16](rulings.md)).
+- Produces: the happy-dom helper `atWidth(width)`, reset to 1024 after each test.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // round.test.tsx, on the fixture round: Q1, Q1.B, Q2, Q3; Q1.B applies once Q1 names no letter
@@ -1275,26 +1284,26 @@ test("without storage, the round opens at the first blank question", async () =>
 ```tsx
 // packages/web/src/__browser__/round.test.tsx, desktop
 test("the index is a column beside the questions, and n and p jump (US1 6, 7)", async () => {
-  /* Outline nav visible, sticky after scrolling; n → Q2 at the top; p → back; n in a comment field types n */
+  /* the "Questions" column beside the questions, sticky; n → Q2 at the top; p → back; n in a comment field types n */
 });
 test("at 1200 px with the navigation open, the questions get at least 600 px (C3)", async () => {
   /* set viewport 1200 × 900 */
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test round.test`
 - Expected: FAIL, `Unable to find an accessible element with the role "button" and name "1/3"`.
 
-- [ ] **Step 3: Implement** the interfaces.
+- [x] **Step 3: Implement** the interfaces.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src
