@@ -68,7 +68,9 @@ test("says how to set Uraeda up in a repository without specs/", async () => {
 });
 
 test("says when the server cannot be reached, with a way to try again", async () => {
-  await renderPage("/", undefined, () => Promise.reject(new TypeError("Failed to fetch")));
+  await renderPage("/", undefined, {
+    fetch: () => Promise.reject(new TypeError("Failed to fetch")),
+  });
 
   expect(await screen.findByText("Could not reach the Uraeda server.")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();

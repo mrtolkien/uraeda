@@ -6,10 +6,12 @@ import { TextInput } from "@astryxdesign/core/TextInput";
 import { useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { Blocks } from "./Blocks.tsx";
+import { CommitActions } from "./CommitActions.tsx";
 import { useDraft } from "./data.ts";
 import { discoveryOf, LEVELS, withDiscovery, type Level } from "./discovery.ts";
 import { refusal } from "./errors.ts";
 import { navigate } from "./routes.tsx";
+import { startRun } from "./runs.ts";
 import { useSave } from "./useSave.ts";
 import { DraftView, FeatureView } from "./views.ts";
 
@@ -28,6 +30,11 @@ function slugOf(path: string) {
   return name === "proposal.md" ? (path.split("/").at(-2) ?? "") : name.replace(/\.md$/, "");
 }
 
+/** The feature or bug folder of a proposal's or a report's path, `specs/[bugs/]<folder>/...`. */
+function folderOf(path: string) {
+  return /^specs\/(?:bugs\/)?(\d{4}-\d{2}-\d{2}-[^/]+)\//.exec(path)?.[1];
+}
+
 /**
  * A draft or a proposal, edited as text: saved as typed over the version it was read at, shown
  * rendered on demand, committed, and, for a draft, started as a feature.
@@ -38,7 +45,7 @@ export function EditorPage({ path }: { path: string }) {
   const [text, setText] = useState(draft?.text ?? "");
   const [preview, setPreview] = useState(false);
   const [conflict, setConflict] = useState<string>();
-  const [message, setMessage] = useState<string>();
+  const [message, setMessage] = useState<{ text: string; ok: boolean }>();
   const [slug, setSlug] = useState(slugOf(path));
   const save = useSave<string>(async (value, previous) => {
     const result = await fate.mutations.text.save({
@@ -83,19 +90,33 @@ export function EditorPage({ path }: { path: string }) {
       ? `Your ${changes} priority ${changes === 1 ? "change is" : "changes are"} committed with it.`
       : undefined;
 
-  const commit = async () => {
+  const commit = async (continues: boolean) => {
     setMessage(undefined);
     if (!(await save.flush())) {
-      setMessage("Your text is not saved: nothing was committed.");
+      setMessage({ text: "Your text is not saved: nothing was committed.", ok: false });
       return;
     }
     const result = await fate.mutations.text.commit({ input: { path }, view: DraftView });
-    setMessage(result.error ? refusal(result.error).message : "Committed.");
+    if (result.error) {
+      setMessage({ text: refusal(result.error).message, ok: false });
+      return;
+    }
+    const folder = folderOf(path);
+    if (continues && folder) {
+      const started = await startRun(fate, {
+        folder,
+        trigger: "proposal",
+        file: path.split("/").at(-1),
+      });
+      setMessage({ text: started.message, ok: started.ok });
+    } else {
+      setMessage({ text: "Committed.", ok: true });
+    }
   };
-  const start = async () => {
+  const start = async (continues: boolean) => {
     setMessage(undefined);
     if (!(await save.flush())) {
-      setMessage("Your text is not saved: the feature was not started.");
+      setMessage({ text: "Your text is not saved: the feature was not started.", ok: false });
       return;
     }
     const result = await fate.mutations.feature.start({
@@ -103,9 +124,14 @@ export function EditorPage({ path }: { path: string }) {
       view: FeatureView,
     });
     if (result.error) {
-      setMessage(refusal(result.error).message);
+      setMessage({ text: refusal(result.error).message, ok: false });
     } else if (typeof result.result?.folder === "string") {
-      navigate(`/f/${result.result.folder}`);
+      const folder = result.result.folder;
+      // A refused run leaves "Start the agent" on the feature's page.
+      if (continues) {
+        await startRun(fate, { folder, trigger: "start" });
+      }
+      navigate(`/f/${folder}`);
     }
   };
   /** Reads the file again, and puts its text in place of the one that was not saved. */
@@ -198,21 +224,30 @@ export function EditorPage({ path }: { path: string }) {
         <p className="not-saved">Not saved: {save.state.message}</p>
       )}
       {takesPriorities && <p className="small muted">{takesPriorities}</p>}
-      <div className="actions">
-        <Button label={preview ? "Edit" : "Preview"} onClick={() => setPreview(!preview)} />
-        <Button variant={isDraft ? "secondary" : "primary"} label="Commit" clickAction={commit} />
-      </div>
+      {isDraft ? (
+        <div className="actions">
+          <Button label={preview ? "Edit" : "Preview"} onClick={() => setPreview(!preview)} />
+          <Button variant="secondary" label="Commit" clickAction={() => commit(false)} />
+        </div>
+      ) : (
+        <CommitActions label="Commit" onCommit={commit}>
+          <Button label={preview ? "Edit" : "Preview"} onClick={() => setPreview(!preview)} />
+        </CommitActions>
+      )}
       {isDraft && (
         <>
           <div className="band" />
           <TextInput label="Slug" value={slug} onChange={(value: string) => setSlug(value)} />
-          <div className="actions">
-            <Button variant="primary" label="Start the feature" clickAction={start} />
-          </div>
+          <CommitActions
+            label="Start the feature"
+            continueLabel="Start and continue"
+            onlyLabel="Start only"
+            onCommit={start}
+          />
           <p className="small muted">Creates its branch and worktree, and moves the line to Now.</p>
         </>
       )}
-      {message && <p className={message === "Committed." ? "saved" : "not-saved"}>{message}</p>}
+      {message && <p className={message.ok ? "saved" : "not-saved"}>{message.text}</p>}
     </div>
   );
 }

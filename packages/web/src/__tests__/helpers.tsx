@@ -1,4 +1,4 @@
-import { act, cleanup, configure, render } from "@testing-library/react";
+import { act, cleanup, configure, render, waitFor } from "@testing-library/react";
 import { createFateClient } from "react-fate/client";
 import { afterEach, beforeEach } from "vite-plus/test";
 import * as binding from "uraeda-binding";
@@ -45,22 +45,51 @@ afterEach(cleanup);
 /** The requests the UI sent, for the tests that count them. */
 export const sent: Array<string> = [];
 
-/** Renders the UI at a path, on a repository, with its requests sent to the server in process. */
+/** A runner on the fake agent, as `fakeRunner` gives it: `adapter` is the agent. */
+export type Fake = ReturnType<typeof fakeRunner>;
+
+const runners: Array<Fake["runner"]> = [];
+
+afterEach(() => {
+  // Runs left going keep their watchdog's timer.
+  for (const runner of runners.splice(0)) {
+    runner.close();
+  }
+});
+
+/** A runner on the fake agent, checked, so the pages offer "Commit and continue". */
+export async function fakeAgent({ installed = true } = {}): Promise<Fake> {
+  const fake = fakeRunner({ installed });
+  runners.push(fake.runner);
+  if (installed) {
+    await fake.runner.check();
+  }
+  return fake;
+}
+
+/**
+ * Renders the UI at a path, on a repository, with its requests sent to the server in process.
+ * Without `agent`, the agent is not installed, and the pages keep their single buttons; `true`
+ * gives a new fake agent, which a test can also build first with `fakeAgent`.
+ */
 export async function renderPage(
   path = "/",
   repo = fixtureRepo(),
-  fetch: typeof globalThis.fetch = serverFetch(repo),
+  options: { agent?: boolean | Fake; fetch?: typeof globalThis.fetch } = {},
 ) {
+  const fake =
+    typeof options.agent === "object"
+      ? options.agent
+      : await fakeAgent({ installed: options.agent === true });
+  const fetch = options.fetch ?? serverFetch(repo, fake.runner);
   window.history.replaceState(null, "", path);
   const client = createFateClient({ url: `${origin}/fate`, fetch });
   // The page suspends while fate loads: an awaited act lets React render the data.
   const rendered = await act(async () => render(<App client={client} />));
-  return { ...rendered, repo };
+  return { ...rendered, repo, agent: fake.adapter, runner: fake.runner };
 }
 
-function serverFetch(repo: string): typeof globalThis.fetch {
-  // No agent on this machine: the pages keep their single buttons.
-  const { runner } = fakeRunner({ installed: false });
+function serverFetch(repo: string, runner: Fake["runner"]): typeof globalThis.fetch {
   const app = createApp({ repo, port, allowedHosts: [], allowOrigins: [], binding, runner });
   return async (input, init) => {
     const url = input instanceof Request ? input.url : input.toString();
@@ -75,6 +104,20 @@ function serverFetch(repo: string): typeof globalThis.fetch {
       headers: { "content-type": "application/json" },
     });
   };
+}
+
+/**
+ * Reads the page again, as when it comes back to the foreground, until `check` passes: live
+ * updates do not reach these tests, so a run's later state is read this way.
+ */
+export async function refreshUntil(check: () => void) {
+  await waitFor(async () => {
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    check();
+  });
 }
 
 /** A valid record of a finished feature. */

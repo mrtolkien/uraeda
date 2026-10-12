@@ -230,3 +230,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a tool call that ends two pages after it started shows running until the page is
   read again.
 - **Where**: tasks 5 and 7.
+
+## R19: `startRun` returns the page's message and the run
+
+- **Decision**: `startRun` returns `{ ok: true, run, message }`, with "The agent is working on the
+  <step>.", or `{ ok: false, message }` with the refusal, in place of the refusal alone.
+- **Rationale**: every page says which step the agent took, which only the started run knows, and
+  the agent panel shows the run it started before a live update brings the feature's runs.
+- **Alternatives considered**: the refusal alone, as the plan said, which leaves each page to read
+  the run again for its step.
+- **If wrong**: one type in `runs.ts`.
+- **Where**: tasks 6 and 7.
+
+## R20: Starting a feature reads "Start and continue" and "Start only"
+
+- **Decision**: the draft editor's "Start the feature" becomes "Start and continue" and "Start
+  only". A proposal's or a report's "Commit" becomes "Commit and continue" and "Commit only".
+- **Rationale**: the draft editor keeps its draft's own "Commit" button, so "Commit only" next to it
+  would not say that it starts the feature, as
+  [R6](#r6-the-review-page-names-its-verdict-in-both-buttons) found for the review page.
+- **Alternatives considered**: "Commit and continue" and "Commit only", as the plan's test said,
+  next to "Commit".
+- **If wrong**: two labels in `EditorPage.tsx`.
+- **Where**: task 6.

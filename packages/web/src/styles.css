@@ -531,3 +531,8 @@ li.block[aria-selected="true"] {
   touch-action: none;
   cursor: grab;
 }
+
+/* "Commit and continue" and "Commit only": a long label takes its own line rather than being cut. */
+.commit-actions > * {
+  flex: 1 1 auto;
+}
