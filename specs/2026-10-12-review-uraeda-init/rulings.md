@@ -110,3 +110,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: joining the last two lines with `&&`, which `set -e` makes redundant.
 - **If wrong**: join the lines with `&&` in `INSTALL` and `BREW`, and their tests.
 - **Where**: task 5.
+
+## R11: The link's target through a linked `.claude` folder
+
+- **Decision**: ura links `.claude/skills/uraeda` with a target relative to the link's real folder,
+  `../../.agents/skills/uraeda` unless `.claude` or `.claude/skills` is itself a link, like
+  `~/.claude` linked to `~/dotfiles/claude`, which gives `../../../.agents/skills/uraeda`; the
+  `linked` line prints the target written. A link that does not then reach the `.agents` copy is
+  removed, and the run fails with `could not write`. An existing link is ura's own, a plain `kept`,
+  only when it resolves to the `.agents` copy of the same base, whatever its target's text.
+- **Rationale**: the system resolves a relative target from the link's real folder, so the spec's
+  fixed target dangles there, and a later run, comparing the target's text, would keep it forever as
+  ura's own.
+- **Alternatives considered**: an absolute target, which breaks when the home folder or the
+  repository moves, and is committed in a repository; the fixed target, which dangles.
+- **If wrong**: `make_link` and `reaches_agents` in `install.rs`, and two tests.
+- **Where**: review fix after task 6.
