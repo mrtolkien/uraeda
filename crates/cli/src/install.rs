@@ -7,6 +7,7 @@ use std::process::ExitCode;
 use uraeda_core::actions::install::{self, Folders, InstallLine};
 use uraeda_core::git::Git;
 
+use crate::picker::{self, Answer, Item, Picker};
 use crate::terminal;
 
 #[derive(clap::Args)]
@@ -94,6 +95,74 @@ pub fn home() -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
+fn item(label: &str, detail: &str) -> Item {
+    Item {
+        label: label.to_string(),
+        detail: detail.to_string(),
+    }
+}
+
+/// The scope picker, the user first; `folder` is the name of the repository's top level.
+pub fn scope_picker(folder: &str) -> Picker {
+    let items = vec![
+        item("Your user, in ~/", ": every repository on this machine"),
+        item(&format!("This repository, in {folder}/"), ""),
+    ];
+    Picker::select("Install the Uraeda skill for:", items, 0)
+}
+
+/// The folder picker, both checked.
+pub fn folders_picker() -> Picker {
+    let items = vec![
+        item(
+            ".agents/skills",
+            "Codex, Gemini CLI, Copilot, Cursor, OpenCode, Amp",
+        ),
+        item(".claude/skills", "Claude Code"),
+    ];
+    Picker::multi(
+        "Into the folders your agents read:",
+        items,
+        vec![true, true],
+    )
+}
+
+/// The line a scope leaves, chosen or implied.
+pub fn answer_line(scope: Scope) -> String {
+    let scope = match scope {
+        Scope::User => "your user",
+        Scope::Repo => "this repository",
+    };
+    format!("Install the Uraeda skill for: {scope}")
+}
+
+/// The line the folder picker leaves.
+pub fn folders_line(folders: Folders) -> String {
+    let mut names = Vec::new();
+    if folders.agents {
+        names.push(".agents/skills");
+    }
+    if folders.claude {
+        names.push(".claude/skills");
+    }
+    format!("Into: {}", names.join(", "))
+}
+
+/// Asks for the folders, and prints the answer line; `None` on a cancel.
+pub fn ask_folders() -> Result<Option<Folders>, String> {
+    let Some(Answer::Many(checked)) =
+        picker::run(folders_picker()).map_err(|error| error.to_string())?
+    else {
+        return Ok(None);
+    };
+    let folders = Folders {
+        agents: checked[0],
+        claude: checked[1],
+    };
+    println!("{}", folders_line(folders));
+    Ok(Some(folders))
+}
+
 /// Prints an install's lines, each a verb padded to 8 columns and a path.
 pub fn print(lines: &[InstallLine]) {
     for line in lines {
@@ -112,6 +181,8 @@ fn files(count: usize) -> String {
     format!("{count} file{plural}")
 }
 
+const CANCELLED: &str = "cancelled: nothing installed";
+
 pub fn run(flags: Flags) -> Result<ExitCode, String> {
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
     let git = Git::discover(&cwd);
@@ -119,10 +190,22 @@ pub fn run(flags: Flags) -> Result<ExitCode, String> {
     let scope = match scope {
         Choice::Given(scope) => scope,
         Choice::Implied(scope) => {
-            println!("Install the Uraeda skill for: your user");
+            println!("{}", answer_line(scope));
             scope
         }
-        Choice::Ask => unimplemented!("pickers: task 4"),
+        Choice::Ask => {
+            // Asked only in a repository.
+            let top = git.as_ref().map_err(|error| error.to_string())?.root();
+            let folder = top.file_name().unwrap_or_default().to_string_lossy();
+            let scope =
+                match picker::run(scope_picker(&folder)).map_err(|error| error.to_string())? {
+                    Some(Answer::One(0)) => Scope::User,
+                    Some(Answer::One(_)) => Scope::Repo,
+                    _ => return Err(CANCELLED.to_string()),
+                };
+            println!("{}", answer_line(scope));
+            scope
+        }
     };
     let home = home();
     let top = git.as_ref().ok().map(|git| git.root().to_path_buf());
@@ -140,7 +223,10 @@ pub fn run(flags: Flags) -> Result<ExitCode, String> {
         Some(Choice::Given(folders) | Choice::Implied(folders)) => {
             install::install(&base, shown, folders)
         }
-        Some(Choice::Ask) => unimplemented!("pickers: task 4"),
+        Some(Choice::Ask) => {
+            let folders = ask_folders()?.ok_or(CANCELLED)?;
+            install::install(&base, shown, folders)
+        }
         None => install::update(&base, shown),
     }
     .map_err(|error| error.to_string())?;
@@ -253,5 +339,21 @@ mod tests {
                 "{names:?}, interactive {interactive}, in a repository {in_repo}"
             );
         }
+    }
+
+    #[test]
+    fn answer_lines() {
+        assert_eq!(
+            answer_line(Scope::User),
+            "Install the Uraeda skill for: your user"
+        );
+        assert_eq!(
+            answer_line(Scope::Repo),
+            "Install the Uraeda skill for: this repository"
+        );
+        let folders = |agents, claude| folders_line(Folders { agents, claude });
+        assert_eq!(folders(true, false), "Into: .agents/skills");
+        assert_eq!(folders(false, true), "Into: .claude/skills");
+        assert_eq!(folders(true, true), "Into: .agents/skills, .claude/skills");
     }
 }

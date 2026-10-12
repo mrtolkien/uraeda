@@ -9,6 +9,7 @@ mod init;
 mod install;
 mod next;
 mod output;
+mod picker;
 mod review;
 mod start;
 mod status;
