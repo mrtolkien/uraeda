@@ -115,18 +115,19 @@ function reducedMotion() {
 
 /**
  * Brings a selected block into the space between the top bar and the comment sheet, once the sheet
- * has stopped moving: its bottom just above the sheet, or its top under the bar when it is taller
- * than that space.
+ * has stopped moving, or after 5 seconds on a device too slow to tell: its bottom just above the
+ * sheet, or its top under the bar when it is taller than that space.
  */
 function placeAboveSheet(element: HTMLElement, sheet: RefObject<HTMLElement | null>) {
   const start = performance.now();
   let last = Number.NaN;
   const tick = () => {
     const top = sheet.current?.getBoundingClientRect().top ?? Number.NaN;
-    if (performance.now() - start > 1500) {
+    const late = performance.now() - start > 5000;
+    if (Number.isNaN(top) && late) {
       return;
     }
-    if (Number.isNaN(top) || top !== last) {
+    if (!late && (Number.isNaN(top) || top !== last)) {
       last = top;
       requestAnimationFrame(tick);
       return;
