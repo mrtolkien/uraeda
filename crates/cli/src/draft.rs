@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use uraeda_core::actions::{draft, place};
 
-use crate::{editor, output};
+use crate::{editor, output, terminal};
 
 pub fn run(text: Option<String>, no_edit: bool) -> Result<ExitCode, String> {
     let (git, workspace) = output::workspace()?;
@@ -30,7 +30,7 @@ pub fn run(text: Option<String>, no_edit: bool) -> Result<ExitCode, String> {
     output::say_place(&git, &place);
     println!("created {}", drafted.path);
     println!("linked  \"{}\" in specs/PRIORITIES.md", drafted.text);
-    if !no_edit && editor::available() && !editor::open(&place.root.join(&drafted.path)) {
+    if !no_edit && terminal::interactive(false) && !editor::open(&place.root.join(&drafted.path)) {
         println!("open it in your editor: {}", drafted.path);
     }
     Ok(ExitCode::SUCCESS)

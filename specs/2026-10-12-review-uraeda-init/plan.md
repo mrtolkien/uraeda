@@ -215,7 +215,7 @@ The decisions this plan relies on, and where it follows them:
   until the run ends, unless `env` names `HOME`. `skill_files() -> usize`, the number of files under
   `repository()/skills/uraeda`.
 
-- [ ] **Step 1: Write the failing tests, and the helpers they use**
+- [x] **Step 1: Write the failing tests, and the helpers they use**
 
 In `crates/cli/tests/install.rs`, each test Arrange, Act, Assert on `TestRepo` and its home:
 
@@ -257,9 +257,10 @@ In `crates/cli/tests/install.rs`, each test Arrange, Act, Assert on `TestRepo` a
   `--user --agents` → last line
   `note    another copy in .agents/skills/uraeda: Claude Code reads the user's copy, other agents the repository's`;
   and `--repo --agents` with a home copy → `note another copy in ~/.agents/skills/uraeda: ...`.
-- `outside_a_repository`: `--user --agents` in a temporary non-repository folder → first line
+- `outside_a_repository`: `--agents` in a temporary non-repository folder → first line
   `Install the Uraeda skill for: your user`, installed; `--repo --agents` there → exit 1,
-  `ura: not in a git repository: run git init first`.
+  `ura: not in a git repository: run git init first`
+  ([R6](rulings.md#r6-outside-a-repository-the-scope-is-left-out)).
 - `conflicting_flags`, table-driven: `--user --repo`, `--update --agents` → exit 1, stderr starts
   with `ura: the argument`.
 - `home_not_set` (review focus 2), table-driven over `HOME` removed and `HOME=""` → exit 1,
@@ -275,12 +276,12 @@ In `crates/cli/tests/install.rs`, each test Arrange, Act, Assert on `TestRepo` a
 In `crates/cli/src/install.rs`, `#[cfg(test)]`: `resolves_answers`, one row per line of the spec's
 resolution table: (flags, interactive, in_repo) → expected `Choice`s or error text.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-cli --test install`
 - Expected: FAIL to compile, or `error: unrecognized subcommand 'install'` in every test.
 
-- [ ] **Step 3: Implement `actions::install`**
+- [x] **Step 3: Implement `actions::install`**
 
 `install` handles each chosen path by what `symlink_metadata` finds, as the spec's
 [Data](spec.md#data) table says, `.agents` first. A first copy writes every file and the manifest
@@ -289,7 +290,7 @@ removes the temporary folder. An update is today's `install_skill` loop, without
 branch. Every I/O error becomes `ActionError::Io(format!("could not write {shown_path}: {error}"))`,
 with the shown path of the file or folder written.
 
-- [ ] **Step 4: Implement `terminal.rs` and `ura install` with flags**
+- [x] **Step 4: Implement `terminal.rs` and `ura install` with flags**
 
 `Flags { user, repo, agents, claude, update, no_input }`, clap `conflicts_with` for `user`/`repo`
 and `update`/`agents`/`claude`. `run` resolves; a `Choice::Ask` stops with
@@ -299,13 +300,15 @@ in one). Add a row to `SKILL.md`'s command table, after `ura init`: the command 
 `--user`, `--repo`, `--agents`, `--claude`, and `--update`, which "Installs the skill", linked to
 **Setting up a project**.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS, the existing `tests/init.rs` included, since `ura init` still installs through the
-  moved code.
+  moved code; `an_existing_claude_skill_folder_is_kept` now expects the spec's
+  `kept    .claude/skills/uraeda: not installed by ura`
+  ([R5](rulings.md#r5-ura-inits-line-for-a-claude-folder-ura-did-not-install)).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates skills/uraeda/SKILL.md

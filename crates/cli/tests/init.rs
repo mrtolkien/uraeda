@@ -139,7 +139,9 @@ fn an_existing_claude_skill_folder_is_kept() {
 
     assert_eq!(repo.read(".claude/skills/uraeda/SKILL.md"), "ours\n");
     assert!(
-        output.stdout.contains("kept    .claude/skills/uraeda\n"),
+        output
+            .stdout
+            .contains("kept    .claude/skills/uraeda: not installed by ura\n"),
         "{}",
         output.stdout
     );
