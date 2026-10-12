@@ -278,3 +278,122 @@ fn invalid_files_have_no_step() {
     assert_eq!(feature.step.name, StepName::None);
     assert_eq!(feature.problems[0].rule, "frontmatter.status");
 }
+
+fn finished_record(kind: Kind) -> Feature {
+    let text = match kind {
+        Kind::Feature => record("feature", "X"),
+        Kind::Bug => record("bug", "X"),
+    };
+    Feature::from_record(kind, "2026-10-10-x", text)
+}
+
+fn fixed() -> Files {
+    vec![
+        ("report.md", "# Report\n\nIt breaks.\n".to_string()),
+        ("assessment.md", assessment("approved", 2, 2)),
+    ]
+}
+
+/// US1.3 to US1.6, US4.1, US4.2, US6.1, review focus 5
+#[test]
+fn finishing_rows() {
+    let rows = [
+        (
+            "record, no pull request",
+            finished_record(Kind::Feature),
+            PullRequest::NoPullRequest,
+            StepName::Finish,
+            WaitsOn::Agent,
+        ),
+        (
+            "record, draft",
+            finished_record(Kind::Feature),
+            PullRequest::Draft,
+            StepName::Finish,
+            WaitsOn::Agent,
+        ),
+        (
+            "record, changes requested",
+            finished_record(Kind::Feature),
+            PullRequest::ChangesRequested,
+            StepName::PullRequestChanges,
+            WaitsOn::Agent,
+        ),
+        (
+            "record, ready",
+            finished_record(Kind::Feature),
+            PullRequest::Open,
+            StepName::PullRequest,
+            WaitsOn::Human,
+        ),
+        (
+            "record, unknown",
+            finished_record(Kind::Feature),
+            PullRequest::Unknown,
+            StepName::PullRequest,
+            WaitsOn::Agent,
+        ),
+        (
+            "checked, draft",
+            feature(Kind::Feature, &finished()),
+            PullRequest::Draft,
+            StepName::Finish,
+            WaitsOn::Agent,
+        ),
+        (
+            "checked, no pull request",
+            feature(Kind::Feature, &finished()),
+            PullRequest::NoPullRequest,
+            StepName::FinalReview,
+            WaitsOn::Agent,
+        ),
+        (
+            "bug record, draft",
+            finished_record(Kind::Bug),
+            PullRequest::Draft,
+            StepName::Finish,
+            WaitsOn::Agent,
+        ),
+        (
+            "bug fixed, draft",
+            feature(Kind::Bug, &fixed()),
+            PullRequest::Draft,
+            StepName::Finish,
+            WaitsOn::Agent,
+        ),
+    ];
+    for (name, mut feature, pull_request, expected, waits_on) in rows {
+        feature.with_pull_request(pull_request);
+
+        assert_eq!(feature.step.name, expected, "{name}");
+        assert_eq!(feature.step.waits_on, waits_on, "{name}");
+    }
+}
+
+/// US4.3
+#[test]
+fn a_new_round_after_a_revert_waits_on_the_human() {
+    let mut files = finished();
+    files.push((
+        "clarifications-02.md",
+        clarifications("awaiting-human", "1 question, about 3 minutes.", &[""]),
+    ));
+    let mut feature = feature(Kind::Feature, &files);
+
+    feature.with_pull_request(PullRequest::Draft);
+
+    assert_eq!(feature.step.name, StepName::HumanGate);
+    assert_eq!(feature.step.file.as_deref(), Some("clarifications-02.md"));
+}
+
+#[test]
+fn finish_follows_its_reference() {
+    let mut feature = finished_record(Kind::Feature);
+
+    feature.with_pull_request(PullRequest::Draft);
+
+    assert_eq!(
+        feature.step.reference.as_deref(),
+        Some("skills/uraeda/references/finish.md")
+    );
+}

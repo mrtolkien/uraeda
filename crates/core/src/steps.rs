@@ -19,6 +19,8 @@ pub enum StepName {
     FinalReview,
     PullRequestChanges,
     PullRequest,
+    /// Write the record, or open the pull request or mark it ready, after the final review.
+    Finish,
     Assess,
     AssessRevision,
     Fix,
@@ -41,6 +43,7 @@ impl StepName {
             StepName::FinalReview => "final-review",
             StepName::PullRequestChanges => "pull-request-changes",
             StepName::PullRequest => "pull-request",
+            StepName::Finish => "finish",
             StepName::Assess => "assess",
             StepName::AssessRevision => "assess-revision",
             StepName::Fix => "fix",
@@ -63,7 +66,10 @@ pub enum WaitsOn {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PullRequest {
+    /// Open and ready for review.
     Open,
+    /// Open as a draft: the final review is done, and the feature is being finished.
+    Draft,
     ChangesRequested,
     #[serde(rename = "none")]
     NoPullRequest,
@@ -131,9 +137,29 @@ pub fn step(feature: &Feature, pull_request: PullRequest) -> Step {
     if !feature.problems.is_empty() {
         return Step::none();
     }
+    if feature.is_finished() {
+        return finished_step(pull_request);
+    }
     match feature.kind {
         Kind::Feature => feature_step(feature, pull_request),
         Kind::Bug => bug_step(feature, pull_request),
+    }
+}
+
+/// A feature or bug whose folder was replaced by its record: what is left of finishing, then the
+/// pull request.
+fn finished_step(pull_request: PullRequest) -> Step {
+    let step = match pull_request {
+        PullRequest::NoPullRequest | PullRequest::Draft => Step::agent(StepName::Finish, "finish"),
+        PullRequest::ChangesRequested => {
+            Step::agent(StepName::PullRequestChanges, "implementation")
+        }
+        PullRequest::Open => Step::new(StepName::PullRequest, WaitsOn::Human),
+        PullRequest::Unknown => Step::agent(StepName::PullRequest, "finish"),
+    };
+    Step {
+        pull_request: Some(pull_request),
+        ..step
     }
 }
 
@@ -207,6 +233,7 @@ fn feature_step(feature: &Feature, pull_request: PullRequest) -> Step {
 fn after_the_last_step(pull_request: PullRequest, without: StepName, reference: &str) -> Step {
     let step = match pull_request {
         PullRequest::NoPullRequest => Step::agent(without, reference),
+        PullRequest::Draft => Step::agent(StepName::Finish, "finish"),
         PullRequest::ChangesRequested => Step::agent(StepName::PullRequestChanges, reference),
         PullRequest::Open => Step::new(StepName::PullRequest, WaitsOn::Human),
         PullRequest::Unknown => Step::agent(StepName::PullRequest, reference),
@@ -248,7 +275,7 @@ pub fn pull_request(branch: &str) -> PullRequest {
             "--state",
             "open",
             "--json",
-            "reviewDecision",
+            "reviewDecision,isDraft",
         ])
         .output()
     else {
@@ -262,6 +289,7 @@ pub fn pull_request(branch: &str) -> PullRequest {
     };
     match list.first() {
         None => PullRequest::NoPullRequest,
+        Some(pr) if pr["isDraft"] == true => PullRequest::Draft,
         Some(pr) if pr["reviewDecision"] == "CHANGES_REQUESTED" => PullRequest::ChangesRequested,
         Some(_) => PullRequest::Open,
     }
