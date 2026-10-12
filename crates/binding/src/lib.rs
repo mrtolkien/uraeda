@@ -13,7 +13,9 @@ use napi::{Env, Status, Task};
 use napi_derive::napi;
 use uraeda_core::api::{self, ApiError};
 use uraeda_core::files::priorities::Priorities;
-use uraeda_core::view::{CommitView, DraftView, FeatureView, FileView, StartedView, WorkspaceView};
+use uraeda_core::view::{
+    CommitView, DraftView, FeatureView, FileView, NextView, StartedView, WorkspaceView,
+};
 use uraeda_core::watch::{self, Changes};
 
 /// A core operation, run off the main thread.
@@ -93,6 +95,18 @@ pub fn read_text(repo: String, path: String) -> AsyncTask<Job<DraftView>> {
 #[napi(ts_return_type = "Promise<string>")]
 pub fn read_raw(repo: String, path: String) -> AsyncTask<Job<String>> {
     job(move || api::read_raw(Path::new(&repo), &path))
+}
+
+/// A feature's next step, with its branch and the main checkout's path, for an agent's run.
+#[napi(ts_return_type = "Promise<NextView>")]
+pub fn next_step(repo: String, folder: String) -> AsyncTask<Job<NextView>> {
+    job(move || api::next_step(Path::new(&repo), &folder))
+}
+
+/// The directory an agent works on a feature in, its worktree created when none has its branch.
+#[napi(ts_return_type = "Promise<string>")]
+pub fn work_dir(repo: String, folder: String) -> AsyncTask<Job<String>> {
+    job(move || api::work_dir(Path::new(&repo), &folder))
 }
 
 /// Saves an answer from the letters picked and a comment, over the answer last read.

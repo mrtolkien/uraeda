@@ -323,7 +323,7 @@ From [spec-review.md](spec-review.md), approved with comments:
   - `NextStepView { name, waitsOn, reference?, file?, task?, pullRequest? }`, all strings, with
     `pullRequest` one of `open`, `draft`, `changes-requested`, `none`, `unknown`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/runs.rs
@@ -371,12 +371,12 @@ test("nextStep and workDir give where and what an agent runs", async () => {
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test runs`
 - Expected: FAIL, ``cannot find function `next_step` in module `api` ``.
 
-- [ ] **Step 3: Implement `next_step` and `work_dir` in `crates/core/src/api.rs`, and the views in
+- [x] **Step 3: Implement `next_step` and `work_dir` in `crates/core/src/api.rs`, and the views in
       `view.rs`**
 
 - `next_step` opens the workspace, finds the feature, and calls
@@ -386,18 +386,18 @@ test("nextStep and workDir give where and what an agent runs", async () => {
   A feature without a branch is refused with `"<folder> has no branch"`.
 - `NextStepView::from(&Step)` uses the kebab names `steps.rs` serializes.
 
-- [ ] **Step 4: Expose them in `crates/binding/src/lib.rs`, and build the binding**
+- [x] **Step 4: Expose them in `crates/binding/src/lib.rs`, and build the binding**
 
 - `#[napi(ts_return_type = "Promise<NextView>")] pub fn next_step(repo: String, folder: String)`.
 - `#[napi(ts_return_type = "Promise<string>")] pub fn work_dir(repo: String, folder: String)`.
 - Run: `vp run --filter uraeda-binding build`.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run: `cargo test --workspace --exclude uraeda-binding && vp test packages/binding`
 - Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/core/src/view.rs crates/core/src/api.rs crates/binding/src/lib.rs crates/core/tests/runs.rs packages/binding/index.d.ts packages/binding/index.js packages/binding/index.test.ts
