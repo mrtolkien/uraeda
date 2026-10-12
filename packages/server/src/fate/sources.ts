@@ -9,6 +9,7 @@ import {
   prioritiesDataView,
   PROPOSAL_HINTS_ID,
   proposalHintsDataView,
+  type FeatureRecord,
   type FileRecord,
   RUNNER_ID,
   runDataView,
@@ -55,6 +56,30 @@ function missingFile(id: string, folder: string, name: string): FileRecord {
   };
 }
 
+/** The record of a folder that is not a feature's: marked missing, its other fields empty. */
+function missingFeature(folder: string): FeatureRecord {
+  return {
+    id: folder,
+    kind: "",
+    folder,
+    slug: "",
+    title: "",
+    source: "",
+    uncommitted: false,
+    files: [],
+    mockups: [],
+    step: { name: "none", waitsOn: "nobody" },
+    problems: [],
+    runs: [],
+    missing: true,
+  };
+}
+
+/** Whether the core refused a read for a file or a folder that is not there. */
+function isMissing(error: unknown) {
+  return error instanceof Error && /( has no |\bno feature )/.test(error.message);
+}
+
 export const sources = createSources<Context>([
   fileSource(workspaceDataView, {
     byIds: async (ctx, ids) => (ids.includes(WORKSPACE_ID) ? [await workspace(ctx)] : []),
@@ -62,7 +87,17 @@ export const sources = createSources<Context>([
   }),
   fileSource(featureDataView, {
     byIds: (ctx, ids) =>
-      each(ids, async (id) => featureRecord(ctx, await ctx.binding.readFeature(ctx.repo, id))),
+      each(ids, async (id) => {
+        try {
+          return await featureRecord(ctx, await ctx.binding.readFeature(ctx.repo, id));
+        } catch (error) {
+          // A folder that is no feature's is answered, so the page says so instead of waiting.
+          if (isMissing(error)) {
+            return missingFeature(id);
+          }
+          throw error;
+        }
+      }),
     list: async (ctx) =>
       Promise.all(
         (await ctx.binding.readWorkspace(ctx.repo)).features.map((feature) =>
@@ -77,8 +112,9 @@ export const sources = createSources<Context>([
         try {
           return await binding.readFile(repo, folder, name);
         } catch (error) {
-          // A file its feature has no longer is answered, so the page says so instead of waiting.
-          if (error instanceof Error && error.message.includes(" has no ")) {
+          // A file its feature has no longer, or of a folder that is no feature's, is answered, so
+          // the page says so instead of waiting.
+          if (isMissing(error)) {
             return missingFile(id, folder, name);
           }
           throw error;

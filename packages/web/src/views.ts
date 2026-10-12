@@ -72,6 +72,7 @@ export const FeatureView = view<Feature>()({
   leftWorktree: true,
   leftBranch: true,
   runs: true,
+  missing: true,
 });
 
 export const FileView = view<WorkflowFile>()({
