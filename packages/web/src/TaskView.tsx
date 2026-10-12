@@ -115,14 +115,16 @@ export function TaskView({ entryKey }: { entryKey: string }) {
   if (!found) {
     return (
       <Page>
-        <VStack gap={2}>
-          <Paragraph>This line is no longer in PRIORITIES.md.</Paragraph>
-          <Paragraph>
+        <Banner
+          status="error"
+          title="This line is no longer in PRIORITIES.md."
+          collapsible={false}
+          description={
             <Link href="/priorities" hasUnderline>
               Open the priorities
             </Link>
-          </Paragraph>
-        </VStack>
+          }
+        />
       </Page>
     );
   }
