@@ -40,10 +40,7 @@ type File = NonNullable<ReturnType<typeof useFile>>;
 type Range = { start: number; end: number; heading: string };
 
 /** The comment being written: on the selected lines, on the whole file, or an edit of one. */
-type Draft =
-  | { kind: "lines" }
-  | { kind: "general" }
-  | { kind: "edit"; number: number; text: string };
+type Draft = { kind: "lines" } | { kind: "general" } | { kind: "edit"; number: number };
 
 const styles = stylex.create({
   // A pending comment under its block: a bar down its side.
@@ -160,6 +157,8 @@ export function ReviewPage({ file }: { file: File }) {
   const comments = useMemo(() => (review?.verdict === "pending" ? review.comments : []), [review]);
   const [selection, setSelection] = useState<Range>();
   const [draft, setDraft] = useState<Draft>();
+  // The comment's text, kept here: the field moves under each tapped block on wide screens.
+  const [text, setText] = useState("");
   const [last, setLast] = useState<number>();
   const lastElement = useRef<HTMLElement>(null);
   const sheet = useRef<HTMLDivElement>(null);
@@ -233,12 +232,13 @@ export function ReviewPage({ file }: { file: File }) {
 
   const close = () => {
     setDraft(undefined);
+    setText("");
     setSelection(undefined);
     setLast(undefined);
     lastElement.current = null;
   };
 
-  const send = async (text: string) => {
+  const send = async (written: string) => {
     if (!draft) {
       return undefined;
     }
@@ -246,13 +246,13 @@ export function ReviewPage({ file }: { file: File }) {
     const result =
       draft.kind === "edit"
         ? await fate.mutations.review.edit({
-            input: { ...input, number: draft.number, text },
+            input: { ...input, number: draft.number, text: written },
             view: FileView,
           })
         : await fate.mutations.review.comment({
             input: {
               ...input,
-              text,
+              text: written,
               ...(draft.kind === "lines" && selection
                 ? { startLine: selection.start, endLine: selection.end }
                 : {}),
@@ -310,7 +310,8 @@ export function ReviewPage({ file }: { file: File }) {
             : "General"
       }
       quote={draft.kind === "lines" && first ? quoteOf(textOf(document, first)) : undefined}
-      initial={draft.kind === "edit" ? draft.text : ""}
+      text={text}
+      onTextChange={setText}
       submitLabel={draft.kind === "edit" ? "Save comment" : "Add comment"}
       onSubmit={send}
       onCancel={close}
@@ -343,11 +344,8 @@ export function ReviewPage({ file }: { file: File }) {
                 event.stopPropagation();
                 setSelection(undefined);
                 setLast(undefined);
-                setDraft({
-                  kind: "edit",
-                  number: comment.number,
-                  text: comment.text,
-                });
+                setDraft({ kind: "edit", number: comment.number });
+                setText(comment.text);
               }}
             />
             <Button
