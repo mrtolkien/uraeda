@@ -9,14 +9,19 @@ import { expect, test } from "vite-plus/test";
 const root = fileURLToPath(new URL("../../../..", import.meta.url));
 const src = fileURLToPath(new URL("..", import.meta.url));
 
-/** What `vp lint` reports on a file of `packages/web`, with the repository's config. */
-function lintOutput(file: string) {
-  const result = spawnSync(join(root, "node_modules/.bin/vp"), ["lint", `packages/web/${file}`], {
+/** `vp lint` on a file of `packages/web`, with the repository's config. */
+function lint(file: string) {
+  return spawnSync(join(root, "node_modules/.bin/vp"), ["lint", `packages/web/${file}`], {
     cwd: root,
     encoding: "utf8",
     // The fixtures are left out of the normal lint.
     env: { ...process.env, URAEDA_LINT_FIXTURES: "1" },
   });
+}
+
+/** What `vp lint` reports on a file of `packages/web`. */
+function lintOutput(file: string) {
+  const result = lint(file);
   return `${result.stdout}${result.stderr}`;
 }
 
@@ -30,7 +35,9 @@ test.each([
 });
 
 test("a suppression with its reason passes", () => {
-  expect(lintOutput("src/__lint__/suppressed.tsx")).not.toContain("error");
+  // Its summary reads "0 errors" on some runs: the exit status says it passed.
+  const result = lint("src/__lint__/suppressed.tsx");
+  expect(result.status, `${result.stdout}${result.stderr}`).toBe(0);
 });
 
 test("no stylesheet but Astryx's is imported (SC-001)", () => {
