@@ -1383,14 +1383,13 @@ git commit -m "feat(claude-code-runner-triggered-manually-https-code): the agent
 **Files:**
 
 - Modify: `README.md` (the runner: "Commit and continue", what it needs, the data folder, and the
-  validation script), `AGENTS.md` (`packages/server/plugin/` and `packages/server/scripts/` in the
-  repository layout)
+  validation script). `AGENTS.md` stays as it is: see ruling R23.
 
 **Interfaces:**
 
 - Consumes: everything above.
 
-- [ ] **Step 1: Update `README.md` and `AGENTS.md`**
+- [x] **Step 1: Update `README.md` and `AGENTS.md`**
 
 In the README's web UI section, add:
 
@@ -1400,12 +1399,12 @@ In the README's web UI section, add:
 
 Name no agent as an author.
 
-- [ ] **Step 2: Run the full check**
+- [x] **Step 2: Run the full check**
 
 - Run: `vp run ready`
 - Expected: PASS, with the working tree unchanged.
 
-- [ ] **Step 3: Run the validation script, and a real run on a fixture feature**
+- [x] **Step 3: Run the validation script, and a real run on a fixture feature**
 
 - Run: `vp run validate:claude`
 - Expected: five `ok` lines.
@@ -1417,7 +1416,7 @@ Name no agent as an author.
 
   Record the result in the pull request's description.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add README.md AGENTS.md
