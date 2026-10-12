@@ -5,9 +5,14 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Table, TableBody, TableCell, TableHeaderCell, TableRow } from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import {
+  colorVars,
+  focusVars,
+  fontWeightVars,
+  spacingVars,
+} from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useId, useMemo } from "react";
 import type { Block, Document } from "uraeda-binding";
 import { Spans } from "./Spans.tsx";
 
@@ -52,9 +57,8 @@ const styles = stylex.create({
     "--container-padding-inline-start": spacingVars["--spacing-4"],
   },
   heading: {
-    marginBlockStart: spacingVars["--spacing-6"],
+    marginBlockStart: { default: spacingVars["--spacing-6"], ":first-child": 0 },
     marginBlockEnd: spacingVars["--spacing-2"],
-    ":first-child": { marginBlockStart: 0 },
   },
   paragraph: {
     marginBlockStart: 0,
@@ -70,7 +74,7 @@ const styles = stylex.create({
     marginBlockEnd: spacingVars["--spacing-3"],
   },
   sign: {
-    fontWeight: 700,
+    fontWeight: fontWeightVars["--font-weight-bold"],
     minWidth: spacingVars["--spacing-4"],
   },
   pro: { color: colorVars["--color-success"] },
@@ -90,13 +94,14 @@ const styles = stylex.create({
   calloutTip: { borderInlineStartColor: colorVars["--color-success"] },
   calloutTitle: {
     display: "block",
-    fontWeight: 700,
+    fontWeight: fontWeightVars["--font-weight-bold"],
   },
   block: {
     marginBlockEnd: spacingVars["--spacing-3"],
   },
   // A block a review can select: tapped as a whole, tinted with a bar once selected.
   selectable: {
+    position: "relative",
     cursor: "pointer",
     paddingInlineStart: spacingVars["--spacing-1"],
     borderInlineStartWidth: spacingVars["--spacing-1"],
@@ -109,6 +114,30 @@ const styles = stylex.create({
   },
   selectedRow: {
     backgroundColor: "var(--color-selection)",
+  },
+  // The block's toggle, for the keyboard and screen readers: under the block's text, as large as
+  // the block (as its first cell, for a table row), its ring around it when focused by the keyboard.
+  toggle: {
+    position: "absolute",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    margin: 0,
+    padding: 0,
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    cursor: "pointer",
+    outlineColor: focusVars["--focus-outline-color"],
+    outlineStyle: { default: "none", ":focus-visible": focusVars["--focus-outline-style"] },
+    outlineWidth: focusVars["--focus-outline-width"],
+    outlineOffset: 0,
+  },
+  // The block's text, above its toggle, so its links stay links.
+  above: {
+    position: "relative",
+  },
+  cell: {
+    position: "relative",
   },
   // A header cell wraps its text, as a body cell does, instead of cutting it.
   headerCell: {
@@ -172,33 +201,46 @@ export function selectable(block: Block) {
     : block.kind === "item" || block.kind === "row";
 }
 
-/** The attributes that make a block tappable in a review, or nothing outside one. */
-function selectProps(block: Block, context: Context) {
+/**
+ * What makes a block tappable in a review, or nothing outside one. A tap anywhere on the block
+ * selects it, but on a link of its text; the keyboard and screen readers have its toggle, a button
+ * named by the block's text, beside the text rather than around it, so its links stay reachable.
+ */
+function useSelect(block: Block, context: Context) {
+  const textId = useId();
   const { selection } = context;
   if (!selection || !selectable(block)) {
     return undefined;
   }
+  const pressed = selection.isSelected(block);
   return {
-    role: "button",
-    tabIndex: 0,
-    "aria-pressed": selection.isSelected(block),
-    "data-lines": `${block.startLine}-${block.endLine}`,
-    onClick: (event: React.MouseEvent<HTMLElement>) => {
-      event.stopPropagation();
-      // A link in the block opens its page: the block is not selected on the way.
-      const control = (event.target as Element).closest("a, button");
-      if (control && event.currentTarget.contains(control)) {
-        return;
-      }
-      selection.onTap(block, event.currentTarget);
-    },
-    onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
+    pressed,
+    textId,
+    block: {
+      "data-lines": `${block.startLine}-${block.endLine}`,
+      onClick: (event: React.MouseEvent<HTMLElement>) => {
         event.stopPropagation();
+        // A link or a button in the block does its own job: the block is not selected on the way.
+        // The block's toggle, the one button with a pressed state, selects it.
+        const control = (event.target as Element).closest("a[href], button:not([aria-pressed])");
+        if (control && event.currentTarget.contains(control)) {
+          return;
+        }
         selection.onTap(block, event.currentTarget);
-      }
+      },
     },
+    toggle: (
+      // oxlint-disable-next-line react/forbid-elements -- the review's selectable block, a toggle as large as a block of document text, which no Astryx component draws (an Astryx gap, see the plan)
+      <button
+        type="button"
+        aria-pressed={pressed}
+        // A rule has no text: its lines name it.
+        {...(block.kind === "rule"
+          ? { "aria-label": `Line ${block.startLine}` }
+          : { "aria-labelledby": textId })}
+        {...stylex.props(styles.toggle)}
+      />
+    ),
   };
 }
 
@@ -212,17 +254,20 @@ function Selectable({
   context: Context;
   children: ReactNode;
 }) {
-  const props = selectProps(block, context);
-  if (!props) {
+  const select = useSelect(block, context);
+  if (!select) {
     return children;
   }
   return (
     <>
       <div
-        {...props}
-        {...stylex.props(styles.selectable, props["aria-pressed"] && styles.selected)}
+        {...select.block}
+        {...stylex.props(styles.selectable, select.pressed && styles.selected)}
       >
-        {children}
+        {select.toggle}
+        <div id={select.textId} {...stylex.props(styles.above)}>
+          {children}
+        </div>
       </div>
       {context.selection?.after?.(block)}
     </>
@@ -284,42 +329,53 @@ function ListNode({ block, context }: { block: Block; context: Context }) {
   );
 }
 
+/** A table row, tapped in place, its comments following it as a row of their own. */
+function RowNode({ row, context }: { row: Block; context: Context }) {
+  const cells = context.children.get(row.id) ?? [];
+  const select = useSelect(row, context);
+  const after = select && context.selection?.after?.(row);
+  const Cell = row.header ? TableHeaderCell : TableCell;
+  return (
+    <>
+      <TableRow
+        {...select?.block}
+        id={select?.textId}
+        xstyle={select ? [styles.selectable, select.pressed && styles.selectedRow] : []}
+      >
+        {cells.map((cell, index) => (
+          <Cell
+            key={cell.id}
+            xstyle={[
+              row.header && styles.headerCell,
+              ALIGN_STYLES[cell.align ?? ""],
+              select && index === 0 && styles.cell,
+            ]}
+          >
+            {index === 0 && select?.toggle}
+            <span {...stylex.props(select && styles.above)}>
+              <Spans spans={cell.spans} />
+            </span>
+          </Cell>
+        ))}
+      </TableRow>
+      {after && (
+        <TableRow>
+          <TableCell colSpan={cells.length}>{after}</TableCell>
+        </TableRow>
+      )}
+    </>
+  );
+}
+
 function TableNode({ block, context }: { block: Block; context: Context }) {
   const rows = context.children.get(block.id) ?? [];
   return (
     <div {...stylex.props(styles.block)}>
       <Table dividers="rows" textOverflow="wrap" verticalAlign="top">
         <TableBody>
-          {rows.map((row) => {
-            // A row is tapped in place, and its comments follow it as a row of their own.
-            const cells = context.children.get(row.id) ?? [];
-            const props = selectProps(row, context);
-            const after = props && context.selection?.after?.(row);
-            const Cell = row.header ? TableHeaderCell : TableCell;
-            return [
-              <TableRow
-                key={row.id}
-                {...props}
-                xstyle={
-                  props ? [styles.selectable, props["aria-pressed"] && styles.selectedRow] : []
-                }
-              >
-                {cells.map((cell) => (
-                  <Cell
-                    key={cell.id}
-                    xstyle={[row.header && styles.headerCell, ALIGN_STYLES[cell.align ?? ""]]}
-                  >
-                    <Spans spans={cell.spans} />
-                  </Cell>
-                ))}
-              </TableRow>,
-              after && (
-                <TableRow key={`${row.id}-after`}>
-                  <TableCell colSpan={cells.length}>{after}</TableCell>
-                </TableRow>
-              ),
-            ];
-          })}
+          {rows.map((row) => (
+            <RowNode key={row.id} row={row} context={context} />
+          ))}
         </TableBody>
       </Table>
     </div>

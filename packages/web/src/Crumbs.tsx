@@ -7,6 +7,10 @@ const styles = stylex.create({
   crumbs: {
     marginBlockEnd: spacingVars["--spacing-3"],
   },
+  // A crumb's link fills its item, which the theme makes a control's height under a touch pointer.
+  item: {
+    alignItems: "stretch",
+  },
 });
 
 /**
@@ -18,13 +22,21 @@ export function Crumbs({ folder, current }: { folder: string; current?: string }
   const title = workspace?.features.find((feature) => feature.folder === folder)?.title ?? folder;
   return (
     <Breadcrumbs label="Breadcrumbs" separator="›" xstyle={styles.crumbs}>
-      <BreadcrumbItem href="/">Home</BreadcrumbItem>
+      <BreadcrumbItem href="/" xstyle={styles.item}>
+        Home
+      </BreadcrumbItem>
       {current === undefined ? (
-        <BreadcrumbItem isCurrent>{title}</BreadcrumbItem>
+        <BreadcrumbItem isCurrent xstyle={styles.item}>
+          {title}
+        </BreadcrumbItem>
       ) : (
         <>
-          <BreadcrumbItem href={`/f/${folder}`}>{title}</BreadcrumbItem>
-          <BreadcrumbItem isCurrent>{current}</BreadcrumbItem>
+          <BreadcrumbItem href={`/f/${folder}`} xstyle={styles.item}>
+            {title}
+          </BreadcrumbItem>
+          <BreadcrumbItem isCurrent xstyle={styles.item}>
+            {current}
+          </BreadcrumbItem>
         </>
       )}
     </Breadcrumbs>

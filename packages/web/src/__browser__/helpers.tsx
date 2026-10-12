@@ -4,7 +4,6 @@
 import "@astryxdesign/core/reset.css";
 import "@astryxdesign/core/astryx.css";
 import "../theme/built/uraeda.css";
-import "../styles.css";
 import { createRoot, type Root } from "react-dom/client";
 import { createFateClient } from "react-fate/client";
 import { afterEach, expect } from "vite-plus/test";
@@ -89,12 +88,139 @@ export function checkPage() {
       expect(box.right, name).toBeLessThanOrEqual(window.innerWidth + 1);
     }
   }
-  for (const paragraph of main.querySelectorAll(".page p:not(.small):not(.muted), .summary")) {
+}
+
+/** The main region's paragraphs that show. */
+function paragraphs() {
+  const main = document.querySelector('[role="main"]') ?? document.body;
+  return [...main.querySelectorAll("p")].filter((p) => p.getBoundingClientRect().width > 4);
+}
+
+/**
+ * The UI layout decision's text sizes (SC-004, US6 1, 2): paragraphs are 17 px under 1024 px wide,
+ * 19 px from 1024 px.
+ */
+export function checkTextSizes() {
+  const size = window.innerWidth >= 1024 ? 19 : 17;
+  for (const paragraph of paragraphs()) {
     expect(
       parseFloat(getComputedStyle(paragraph).fontSize),
-      paragraph.outerHTML.slice(0, 160),
-    ).toBeGreaterThanOrEqual(16);
+      paragraph.textContent?.slice(0, 60),
+    ).toBe(size);
   }
+}
+
+/** The most characters on one line of an element's text. */
+function longestLine(element: Element) {
+  const lines = new Map<number, number>();
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  const range = document.createRange();
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const text = node.textContent ?? "";
+    for (let i = 0; i < text.length; i++) {
+      range.setStart(node, i);
+      range.setEnd(node, i + 1);
+      const rect = range.getClientRects()[0];
+      if (rect && rect.width > 0) {
+        const line = Math.round(rect.bottom);
+        lines.set(line, (lines.get(line) ?? 0) + 1);
+      }
+    }
+  }
+  return Math.max(0, ...lines.values());
+}
+
+/** No line of a paragraph holds more than about 75 characters (US6 3). */
+export function checkMeasure() {
+  for (const paragraph of paragraphs()) {
+    expect(longestLine(paragraph), paragraph.textContent?.slice(0, 60)).toBeLessThanOrEqual(75);
+  }
+}
+
+/** What a tap or a key acts on: buttons, fields, links set apart from text, and widgets. */
+const CONTROLS = [
+  "button",
+  "input",
+  "textarea",
+  "select",
+  "a[href]",
+  '[role="button"]',
+  '[role="radio"]',
+  '[role="checkbox"]',
+  '[role="switch"]',
+  '[role="tab"]',
+  '[role="menuitem"]',
+  '[role="option"]',
+].join(", ");
+
+/**
+ * Where a tap reaches a control: the control with its labels, which a tap also activates, or the
+ * largest box around them that shows a pointer, like a row tappable as a whole around its link.
+ */
+function tapArea(control: Element) {
+  let area = control;
+  for (const label of (control as HTMLInputElement).labels ?? []) {
+    while (!area.contains(label) && area.parentElement) {
+      area = area.parentElement;
+    }
+  }
+  for (
+    let node = area.parentElement;
+    node && getComputedStyle(node).cursor === "pointer";
+    node = node.parentElement
+  ) {
+    area = node;
+  }
+  return area;
+}
+
+/** The block an inline element's text runs in. */
+function lineOf(element: Element) {
+  let node = element.parentElement;
+  while (node?.parentElement && /^(inline|contents)/.test(getComputedStyle(node).display)) {
+    node = node.parentElement;
+  }
+  return node ?? element;
+}
+
+/**
+ * Under a coarse pointer, every control the page shows is at least 44 px tall where a tap reaches
+ * it (SC-004, US6 2). Text sets its own size: a link in a line of text, and a block of document
+ * text tappable as a whole, as a review's blocks are; a read-only box only shows a state.
+ */
+export function checkControlHeights() {
+  if (!window.matchMedia("(pointer: coarse)").matches) {
+    return;
+  }
+  const short: string[] = [];
+  for (const control of document.querySelectorAll(CONTROLS)) {
+    const box = control.getBoundingClientRect();
+    const style = getComputedStyle(control);
+    // Hidden, or visually hidden for screen readers.
+    if (box.width <= 4 || box.height <= 4 || style.visibility === "hidden") {
+      continue;
+    }
+    const own = control.textContent?.trim().length ?? 0;
+    const area = tapArea(control);
+    const inText =
+      control.matches("a[href]") &&
+      style.display.startsWith("inline") &&
+      (lineOf(control).textContent?.trim().length ?? 0) > own;
+    const textBlock =
+      own === 0 && area !== control && !(control as HTMLInputElement).labels?.length;
+    const readOnly = control.matches('[readonly], [aria-readonly="true"]');
+    if (inText || textBlock || readOnly) {
+      continue;
+    }
+    const height = area.getBoundingClientRect().height;
+    if (height < 44) {
+      const label = control.getAttribute("aria-label") ?? control.textContent?.slice(0, 40);
+      short.push(
+        `${control.tagName} ${control.getAttribute("type") ?? ""} "${label}": ${height} px`,
+      );
+    }
+  }
+  expect(short).toEqual([]);
 }
 
 /** On the phone, the text of the elements starts within 50 px of the screen's left edge. */

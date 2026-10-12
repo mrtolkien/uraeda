@@ -1,3 +1,99 @@
+/**
+ * The UI components decision's values (see `specs/decisions/ui-components.md`): colours, spacing,
+ * sizes, radii, borders, and type come from Astryx's tokens, imported from its `.stylex` files or
+ * written `var(--…)` for the theme's own; raw values only for `0`, percentages, `auto`, and
+ * keywords. `var(--*)` and `<percentage>` are read by `packages/web/lint/stylex.js`.
+ */
+const tokenLimit = {
+  limit: [
+    "var(--*)",
+    "<percentage>",
+    0,
+    "0",
+    "auto",
+    "none",
+    "normal",
+    "inherit",
+    "currentColor",
+    "transparent",
+    "fit-content",
+    "min-content",
+    "max-content",
+  ],
+  reason:
+    "Use an Astryx token, or the theme's `var(--…)`: raw values are allowed only for 0, percentages, auto, and keywords (see the UI components decision).",
+};
+const tokenProps = [
+  // Colour
+  "color",
+  "background",
+  "backgroundColor",
+  "borderColor",
+  "border*Color",
+  "outlineColor",
+  "textDecorationColor",
+  "caretColor",
+  "accentColor",
+  "fill",
+  "stroke",
+  // Spacing
+  "margin*",
+  "padding*",
+  "gap",
+  "rowGap",
+  "columnGap",
+  "inset*",
+  "top",
+  "right",
+  "bottom",
+  "left",
+  // Sizes
+  "width",
+  "height",
+  "minWidth",
+  "maxWidth",
+  "minHeight",
+  "maxHeight",
+  "*BlockSize",
+  "*InlineSize",
+  "blockSize",
+  "inlineSize",
+  "flexBasis",
+  // Radii and borders
+  "border*Radius",
+  "border",
+  "border*Width",
+  "borderBlock",
+  "borderInline",
+  "borderTop",
+  "borderRight",
+  "borderBottom",
+  "borderLeft",
+  "borderBlockStart",
+  "borderBlockEnd",
+  "borderInlineStart",
+  "borderInlineEnd",
+  "outline",
+  "outlineWidth",
+  "outlineOffset",
+  // Type
+  "font",
+  "fontFamily",
+  "fontSize",
+  "fontWeight",
+  "lineHeight",
+  "letterSpacing",
+];
+
+/** Raw elements, each with the Astryx component to use instead. */
+const forbiddenElements = [
+  ["button", "use Astryx Button"],
+  ["input", "use Astryx TextInput"],
+  ["textarea", "use Astryx TextArea"],
+  ["select", "use Astryx Selector"],
+  ["dialog", "use Astryx Dialog or BottomSheet"],
+].map(([element, message]) => ({ element, message }));
+
 export default {
   // `vp dev` at the root runs the web UI, with the server in its process.
   defaultPackage: "./packages/web",
@@ -12,9 +108,48 @@ export default {
       "packages/binding/index.d.ts",
       "packages/web/.fate/**",
       "packages/web/src/theme/built/**",
+      // One file per banned pattern, which `packages/web/src/__tests__/lint.test.ts` lints one by
+      // one, with this variable set.
+      ...((globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env
+        .URAEDA_LINT_FIXTURES
+        ? []
+        : ["packages/web/src/__lint__/**"]),
     ],
-    jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
+    jsPlugins: [
+      { name: "vite-plus", specifier: "vite-plus/oxlint-plugin" },
+      { name: "stylex", specifier: "./packages/web/lint/stylex.js" },
+    ],
     rules: { "vite-plus/prefer-vite-plus-imports": "error" },
+    overrides: [
+      {
+        // The UI decisions' rules, for the web UI.
+        files: ["packages/web/src/**"],
+        plugins: ["react"],
+        rules: {
+          // The React Compiler's rule, which the app does not use: its hooks keep the latest value
+          // in a ref during render on purpose, for effects and callbacks to read.
+          "react/refs": "off",
+          "react/forbid-elements": ["error", { forbid: forbiddenElements }],
+          "react/forbid-dom-props": [
+            "error",
+            { forbid: [{ propName: "style", message: "style with StyleX's stylex.props" }] },
+          ],
+          "react/forbid-component-props": [
+            "error",
+            {
+              forbid: [
+                { propName: "style", message: "style a component through its xstyle prop" },
+                { propName: "className", message: "style a component through its xstyle prop" },
+              ],
+            },
+          ],
+          "stylex/valid-styles": [
+            "error",
+            { propLimits: Object.fromEntries(tokenProps.map((prop) => [prop, tokenLimit])) },
+          ],
+        },
+      },
+    ],
     options: { typeAware: true, typeCheck: true },
   },
   test: {

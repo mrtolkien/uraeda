@@ -14,6 +14,7 @@ import { useFeature } from "./data.ts";
 import { waiting, workflowOrder } from "./labels.ts";
 import { Page } from "./layout/Page.tsx";
 import { navigate, useRestoreScroll } from "./routes.tsx";
+import { Paragraph } from "./layout/Paragraph.tsx";
 
 function statusVariant(status?: string) {
   switch (status) {
@@ -38,9 +39,7 @@ export function FeaturePage({ folder }: { folder: string }) {
   if (!feature) {
     return (
       <Page>
-        <Text as="p" display="block">
-          No feature {folder}.
-        </Text>
+        <Paragraph>No feature {folder}.</Paragraph>
       </Page>
     );
   }
@@ -79,7 +78,7 @@ export function FeaturePage({ folder }: { folder: string }) {
         <Suspense fallback={null}>
           <AgentPanel feature={feature} />
         </Suspense>
-        <Text as="p" type="supporting" display="block">
+        <Text type="supporting" display="block">
           {feature.branch ? (
             <>
               Branch <Code>{feature.branch}</Code>

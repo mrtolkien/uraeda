@@ -2,6 +2,7 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { LayerProvider } from "@astryxdesign/core/Layer";
 import { LinkProvider } from "@astryxdesign/core/Link";
+import { Text } from "@astryxdesign/core/Text";
 import { Theme } from "@astryxdesign/core/theme";
 import { uraedaTheme } from "./theme/built/uraeda.js";
 import { Component, type ReactNode, Suspense, useLayoutEffect, useState } from "react";
@@ -13,6 +14,7 @@ import { FilePage } from "./FilePage.tsx";
 import { Home } from "./Home.tsx";
 import { MockupPage } from "./MockupPage.tsx";
 import { PrioritiesPage } from "./PrioritiesPage.tsx";
+import { Page as PageLayout } from "./layout/Page.tsx";
 import { Panes } from "./layout/Panes.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import {
@@ -26,6 +28,7 @@ import {
 import { TaskView } from "./TaskView.tsx";
 import { Shell } from "./Shell.tsx";
 import { ThemeModeProvider } from "./theme.tsx";
+import { Paragraph } from "./layout/Paragraph.tsx";
 
 /** Shows that the server could not be reached, with a way to try again. */
 class ServerErrorBoundary extends Component<
@@ -43,7 +46,7 @@ class ServerErrorBoundary extends Component<
       return this.props.children;
     }
     return (
-      <div className="page">
+      <PageLayout>
         <Banner
           status="error"
           title="Could not reach the Uraeda server."
@@ -57,7 +60,7 @@ class ServerErrorBoundary extends Component<
             />
           }
         />
-      </div>
+      </PageLayout>
     );
   }
 }
@@ -112,9 +115,17 @@ function TaskRoute({ entryKey }: { entryKey: string }) {
 function Nothing() {
   useRestoreScroll(true);
   return (
-    <div className="page">
-      <p>Nothing here.</p>
-    </div>
+    <PageLayout>
+      <Paragraph>Nothing here.</Paragraph>
+    </PageLayout>
+  );
+}
+
+function Loading() {
+  return (
+    <PageLayout>
+      <Text color="secondary">Loading…</Text>
+    </PageLayout>
   );
 }
 
@@ -129,9 +140,9 @@ export function App({ client }: { client: ReturnType<typeof createFateClient> })
             <LinkProvider component={RouterAnchor}>
               <LayerProvider toast={{ position: "bottomEnd" }}>
                 <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
-                  <Suspense fallback={<div className="page muted">Loading…</div>}>
+                  <Suspense fallback={<Loading />}>
                     <Shell>
-                      <Suspense fallback={<div className="page muted">Loading…</div>}>
+                      <Suspense fallback={<Loading />}>
                         <Page key={pathname} route={route} />
                       </Suspense>
                     </Shell>

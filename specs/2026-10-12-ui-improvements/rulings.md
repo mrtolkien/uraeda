@@ -282,3 +282,134 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   to write a comment on the same page.
 - **If wrong**: `inPage` in `packages/web/src/ReviewPage.tsx`.
 - **Where**: task 13, `packages/web/src/ReviewPage.tsx`
+
+## R19: StyleX's lint runs through a small wrapper, and the fixtures through a variable
+
+- **Decision**: `@stylexjs/eslint-plugin` 0.19.1 runs under oxlint's JavaScript plugins through
+  `packages/web/lint/stylex.js`, which passes its rules on unchanged but lets a `propLimits` limit
+  in `vite.config.ts` name two kinds of values, `"var(--*)"` and `"<percentage>"`, mapped to the
+  plugin's own `isCSSVariable` and `isPercentage` checks. Values imported from a `.stylex` file,
+  Astryx's tokens, pass as the plugin already allows. The `react` plugin is enabled in the web UI's
+  override only, with `react/refs`, the React Compiler's rule, off. `react/forbid-component-props`
+  forbids `style` and `className` on every component. The `__lint__` fixtures are ignored unless
+  `URAEDA_LINT_FIXTURES` is set, which `lint.test.ts` sets to lint them one by one. Two values the
+  rule refused were fixed (`fontWeight: 700`, a top-level `:first-child`), and `WebkitTouchCallout`,
+  missing from StyleX's list, carries a suppression with its reason.
+- **Rationale**: `valid-styles` runs under oxlint 1.85 and catches a raw colour, but its
+  `propLimits` take only literal values, so it could not allow `var(--…)` and percentages while
+  refusing the rest. Enabling `react` for the whole repository surfaced warnings in code the
+  decision does not govern; `react/refs` flags the hooks' deliberate latest-value refs, and one real
+  `exhaustive-deps` warning was fixed (`ReviewPage`'s comments). oxlint has no `--no-ignore` for the
+  config's own ignore patterns, and the rule cannot tell where a component is imported from.
+- **Alternatives considered**: a test scanning `stylex.create` objects for raw values, a second copy
+  of the rule; listing every allowed percentage as a literal; a separate oxlint config for the
+  fixtures.
+- **If wrong**: `packages/web/lint/stylex.js` and the `lint` block of `vite.config.ts`.
+- **Where**: task 14, `vite.config.ts`, `packages/web/lint/stylex.js`,
+  `packages/web/src/__tests__/lint.test.ts`
+
+## R20: A review's block is selected through a toggle beside its text
+
+- **Decision**: a block a review can select is no longer a `role="button"` around its text. It holds
+  a raw toggle `button` (`aria-pressed`, named by the block's text through `aria-labelledby`, "Line
+  <n>" for a rule) laid under its text, as large as the block, its focus ring around it; the text
+  sits above it, so its links stay links. A tap anywhere on the block but a link or another button
+  selects it, as before. A table row's toggle covers its first cell. Tests find a block by its
+  toggle's name, and the browser tests tap the middle of the block with `force`, as its text lies
+  over the toggle.
+- **Rationale**: axe's `nested-interactive` reported every block holding a link: a button's content
+  is presentational, so screen readers lose the links. A block without text had no name
+  (`aria-command-name`).
+- **Alternatives considered**: links without `tabindex` inside the button, which axe still reports;
+  the toggle above the text with the links raised over it, which needs a style on every link and
+  hides other buttons, like a code block's copy.
+- **If wrong**: `useSelect` in `packages/web/src/Blocks.tsx`.
+- **Where**: task 14, `packages/web/src/Blocks.tsx`, `packages/web/src/__tests__/review.test.tsx`,
+  `packages/web/src/__browser__/review.test.tsx`
+
+## R21: The navigation's heading is the app's own, its controls beside the link home
+
+- **Decision**: the side navigation's header is `Heading` in `Shell.tsx`: an Astryx `Link` home
+  holding "Uraeda" and the repository's name, a control's height (`--size-element-md`), then the
+  page's controls beside it, not inside it. It hides while the navigation is folded, as
+  `SideNavHeading` does without an icon. `SlotControls`
+  ([R16](#r16-a-tap-on-the-top-bars-controls-stays-theirs)) is gone.
+- **Rationale**: `SideNavHeading` with `headingHref` alone draws one link around `headerEndContent`;
+  with a second link it draws "Uraeda" as a text link 20 px tall, under the 44 px a touch screen
+  needs, and its `heading` takes a string only.
+- **Alternatives considered**: `SideNavHeading` with `subheadingHref`, two small links home.
+- **If wrong**: `Heading` in `packages/web/src/Shell.tsx`.
+- **Where**: task 14, `packages/web/src/Shell.tsx`
+
+## R22: What the checks changed in the theme and the pages
+
+- **Decision**: dark secondary text is `#a8a8a8` instead of the neutral theme's `#9e9e9e`; the
+  reading measure is `62ch`; under a coarse pointer, the theme makes Astryx's `item` rows, its
+  `breadcrumb-item`s, and its `switch-field` rows a control's height, and segmented control items
+  full height; a crumb's link fills its item (`Crumbs.tsx`), and an `EditableLine`'s text button is
+  a control's height. A page's own paragraphs go through `Paragraph`
+  (`packages/web/src/layout/Paragraph.tsx`), Astryx `Text` at the reading size.
+- **Rationale**: `#9e9e9e` reads at 4.1:1 on a segmented control's track in dark, under AA's 4.5:1.
+  `70ch` held up to 78 characters a line at 1440 px, against US6 3's 75: `ch` is a "0", wider than
+  most letters. Rows, crumbs, switches, segments, and the Add rows measured 20 to 40 px under a
+  touch pointer. Paragraphs drawn with Astryx's body text were 14 px on the phone, under the layout
+  decision's 17 px body text.
+- **Alternatives considered**: raising the theme's whole type scale to a 17 px base, which grows
+  every label and row as well; the measure in `em`.
+- **If wrong**: `packages/web/src/theme/theme.ts`, rebuilt, and `Paragraph`.
+- **Where**: task 14, `packages/web/src/theme/theme.ts`, `packages/web/src/layout/Paragraph.tsx`
+
+## R23: The phone instance has a touch screen, and what counts as a control's height
+
+- **Decision**: the phone's browser instance is created with Playwright's `hasTouch`, under which
+  WebKit matches `(pointer: coarse)`; the layout test checks it does. A control's height is that of
+  its tap area: the control with its labels, grown to the largest box around it that shows a
+  pointer, like a row tappable as a whole. Links in a line of text, a block of document text
+  tappable as a whole (a control with no text of its own inside a larger tap area), and read-only
+  boxes are left out: text sets their size. Paragraphs, every `p` of the main region, are checked at
+  17 px under 1024 px and 19 px from it, and for 75 characters a line at most. The browser tests
+  pass `force` where a block's text lies over its toggle.
+- **Rationale**: the theme makes controls 44 px under a coarse pointer only, so the check needs one.
+  A row's link is shorter than the row a tap reaches; WCAG's target size leaves inline links out.
+- **Alternatives considered**: reading the coarse rule from the built theme's CSS in a unit test,
+  which checks the token but no page.
+- **If wrong**: `checkControlHeights` in `packages/web/src/__browser__/helpers.tsx`, and the phone
+  instance in `packages/web/vite.browser.config.ts`.
+- **Where**: task 14, `packages/web/src/__browser__/helpers.tsx`,
+  `packages/web/src/__browser__/layout.test.tsx`, `packages/web/vite.browser.config.ts`
+
+## R24: The branch rebased onto the Claude Code runner, its views ported to Astryx and StyleX
+
+- **Decision**: the branch is rebased onto main with the Claude Code runner. Every behaviour of both
+  is kept; the runner's views take this branch's style:
+  - `CommitActions` lays its buttons in a wrapping `HStack`. It is the round's submit control, in
+    the restyled submit area, and the review's and the editor's verdict and commit controls.
+  - A run's status, "The agent is working on …" or the refusal, shows in the page next to the
+    control, as a save's status does, never as a toast: the round's under its questions, as the
+    round turns read-only once committed; the review's and the editor's in green or red by its
+    outcome (main showed the review's in red either way).
+  - `AgentPanel` is a `VStack` section headed "Agent": its state a `StatusDot` and `Text`, its time
+    and cost supporting text, a failure's reason a `Paragraph` that keeps its line breaks and wraps
+    anywhere within the reading measure, blocked actions `Banner`s with `Code`, its errors inline
+    and persistent.
+  - `RunLog`'s `ChatMessageList` is named "Run log" instead of carrying a class; tests find it by
+    its `log` role and name, the earlier runs by their toggle's name, and home's row by its link.
+  - Home's "Working" badge and its step on the row's line go into the branch's `Row`.
+  - The happy-dom helpers' `renderPage` keeps main's options object; `serverFetch` is exported for a
+    test's own `fetch`, on a runner whose agent is not installed.
+- **Rationale**: the runner's views used `styles.css`, which task 14 deletes, and a `className` the
+  lint now refuses. Astryx's `ChatToolCalls` cuts a tool's name and target with an ellipsis, with no
+  prop to wrap them, and StyleX cannot reach its inner spans: main's stylesheet overrode them, so
+  the theme now does, through its `chat-tool-calls` component override, and the layout test fails
+  without it. The feature page's branch line was a supporting-size `p`, which the text size check
+  took for a paragraph once the feature page joined the checked pages.
+- **Alternatives considered**: drawing the tool calls with our own rows, which loses Astryx's
+  grouping and result detail; a `<style>` element, a stylesheet by another name; leaving the target
+  cut, against "no text cut".
+- **If wrong**: the `components` entry of `packages/web/src/theme/theme.ts`, rebuilt, once Astryx
+  wraps tool calls itself; the runner's views each stand alone.
+- **Where**: task 14, `packages/web/src/AgentPanel.tsx`, `packages/web/src/RunLog.tsx`,
+  `packages/web/src/CommitActions.tsx`, `packages/web/src/theme/theme.ts`,
+  `packages/web/src/__tests__/agent-panel.test.tsx`, `packages/web/src/__browser__/layout.test.tsx`;
+  and in the replayed tasks, `Home.tsx`, `FeaturePage.tsx`, `RoundPage.tsx`, `ReviewPage.tsx`,
+  `EditorPage.tsx`, `__tests__/helpers.tsx`

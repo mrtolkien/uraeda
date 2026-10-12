@@ -100,6 +100,7 @@ export function dropMove(before: Order, after: Order, key: string) {
 const styles = stylex.create({
   // A line lifts while it is dragged; the long press on a phone does not open the link's menu.
   line: {
+    // oxlint-disable-next-line stylex/valid-styles -- WebKit's own property, missing from StyleX's list: a long press that starts a drag must not open the link's menu
     WebkitTouchCallout: "none",
     userSelect: "none",
   },

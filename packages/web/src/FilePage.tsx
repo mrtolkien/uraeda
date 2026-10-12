@@ -1,5 +1,4 @@
 import { Link } from "@astryxdesign/core/Link";
-import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Crumbs } from "./Crumbs.tsx";
 import { DocumentPage } from "./DocumentPage.tsx";
@@ -8,6 +7,7 @@ import { Page } from "./layout/Page.tsx";
 import { ReviewPage } from "./ReviewPage.tsx";
 import { RoundPage } from "./RoundPage.tsx";
 import { useRestoreScroll } from "./routes.tsx";
+import { Paragraph } from "./layout/Paragraph.tsx";
 
 /** A workflow file, on the page its kind needs: a round to answer, or a document to read. */
 export function FilePage({ folder, name }: { folder: string; name: string }) {
@@ -19,12 +19,12 @@ export function FilePage({ folder, name }: { folder: string; name: string }) {
       <Page>
         <Crumbs folder={folder} current={name} />
         <VStack gap={2}>
-          <Text as="p" display="block">
+          <Paragraph>
             No file {name} in {folder}.
-          </Text>
-          <Text as="p" display="block">
+          </Paragraph>
+          <Paragraph>
             <Link href={`/f/${folder}`}>Open the feature</Link>
-          </Text>
+          </Paragraph>
         </VStack>
       </Page>
     );

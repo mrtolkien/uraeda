@@ -50,12 +50,12 @@ function read(repo: string, path: string) {
   return readFileSync(join(repo, WORKTREE, path), "utf8");
 }
 
-/** The first tappable block whose text holds a phrase. */
+/** The toggle of the first tappable block whose text holds a phrase: its name is the block's text. */
 async function scenario(phrase: string) {
   return waitFor(() => {
     const block = screen
-      .getAllByRole("button")
-      .find((b) => b.hasAttribute("aria-pressed") && b.textContent?.includes(phrase));
+      .getAllByRole("button", { name: (name) => name.includes(phrase) })
+      .find((b) => b.hasAttribute("aria-pressed"));
     expect(block).toBeTruthy();
     return block as HTMLElement;
   });
@@ -249,13 +249,7 @@ test("a general comment is edited, then removed", async () => {
 test("a table row takes a comment on its line", async () => {
   const r = repo();
   await renderPage(PAGE, r);
-  const row = await waitFor(() => {
-    const found = [...document.querySelectorAll<HTMLElement>("tr")].find((tr) =>
-      tr.textContent?.includes("Upgrade of version 1 data"),
-    );
-    expect(found?.getAttribute("role")).toBe("button");
-    return found as HTMLElement;
-  });
+  const row = await scenario("Upgrade of version 1 data");
 
   await click(row);
   await comment("Which version?");

@@ -74,8 +74,9 @@ test("US2.1 and C3: an agent's text renders as markdown", async () => {
 
   const strong = await screen.findByText("the answers");
   expect(strong.tagName).toBe("STRONG");
-  expect(strong.closest(".run-log")).toBeTruthy();
-  expect(strong.closest(".run-log")?.textContent).toContain("Reading the answers");
+  const log = screen.getByRole("log", { name: "Run log" });
+  expect(log.contains(strong)).toBe(true);
+  expect(log.textContent).toContain("Reading the answers");
 });
 
 /** US2.2 */
@@ -101,8 +102,10 @@ test("US2.2: a tool call shows its target and duration", async () => {
   await renderPage(`/f/${CLI}`, repo, { agent: fake });
 
   const target = await screen.findByText("vp run ready");
-  expect(target.closest(".run-log")?.textContent).toContain("Bash");
-  expect(target.closest(".run-log")?.textContent).toContain("Running");
+  const log = screen.getByRole("log", { name: "Run log" });
+  expect(log.contains(target)).toBe(true);
+  expect(log.textContent).toContain("Bash");
+  expect(log.textContent).toContain("Running");
   expect(screen.queryByText("2.5 s")).toBeNull();
 
   const end = vi.spyOn(Date, "now").mockReturnValue(start + 2500);
@@ -156,8 +159,8 @@ test("US2.6: earlier runs are listed", async () => {
 
   await renderPage(`/f/${CLI}`, repo, { agent: fake });
 
-  const earlier = await screen.findByText("Earlier runs");
-  expect(within(earlier.closest(".agent-earlier") as HTMLElement).getByText("1")).toBeTruthy();
+  // The count of earlier runs is in the toggle's name.
+  expect(await screen.findByRole("button", { name: "Earlier runs 1" })).toBeTruthy();
   expect(screen.getByText("The second run")).toBeTruthy();
   expect(screen.queryByText("The first run")).toBeNull();
 });
@@ -177,7 +180,11 @@ test("US2.7: Home shows a working agent", async () => {
   await renderPage("/", repo, { agent: fake });
 
   const main = within(await screen.findByRole("main"));
-  const row = (await main.findByText("Git listener process")).closest(".row") as HTMLElement;
+  // The row is the list item whose link leads to the feature.
+  await main.findByRole("link", { name: /Git listener process/ });
+  const row = main
+    .getAllByRole("listitem")
+    .find((item) => within(item).queryByRole("link", { name: /Git listener process/ }))!;
   expect(within(row).getByText("Working")).toBeTruthy();
   expect(within(row).getByText("Discovery")).toBeTruthy();
 });
@@ -253,7 +260,8 @@ test("US6.1 and US6.2: a blocked action can be allowed", async () => {
 
 /** The sentence that names the rule "Allow and continue" passes. */
 const allows = (rule: string) => (_: string, element: Element | null) =>
-  element?.tagName === "P" && element.textContent === `Allows ${rule} for one run.`;
+  element?.textContent === `Allows ${rule} for one run.` &&
+  ![...element.children].some((child) => child.textContent === element.textContent);
 
 /** US6.3 */
 test("US6.3: a blocked write outside the project shows its absolute rule", async () => {

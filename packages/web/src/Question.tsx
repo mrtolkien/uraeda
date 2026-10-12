@@ -22,6 +22,7 @@ import { Spans } from "./Spans.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { type SaveState, useSave } from "./useSave.ts";
 import { FileView } from "./views.ts";
+import { Paragraph } from "./layout/Paragraph.tsx";
 
 const styles = stylex.create({
   // A jump puts the question at the top, below the phone's top bar, which stays in view.
@@ -395,11 +396,7 @@ export function Question({
         </HStack>
       )}
       {readOnly ? (
-        comment && (
-          <Text as="p" display="block" xstyle={styles.spaced}>
-            {comment}
-          </Text>
-        )
+        comment && <Paragraph xstyle={styles.spaced}>{comment}</Paragraph>
       ) : (
         <div {...stylex.props(styles.spaced)}>
           <GrowingTextArea label="Comment" value={comment} onChange={type} />
