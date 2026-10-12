@@ -339,3 +339,23 @@ fn a_finished_checkout_is_read_from_its_record() {
     assert!(feature.is_finished());
     assert_eq!(feature.worktree.as_deref(), Some("."));
 }
+
+/// Final review: a record whose frontmatter is broken shows as a problem.
+#[test]
+fn a_broken_record_is_a_problem() {
+    let repo = repo();
+    repo.switch(FOLDER);
+    repo.git(&["rm", "-r", "--quiet", "specs/2026-10-11-web-ui"]);
+    repo.write(
+        "specs/done/2026-10-11-web-ui.md",
+        &record("feature", "Web UI").replace("kind: feature", "kind: [feature"),
+    );
+    repo.commit("finish: web UI");
+    repo.switch("main");
+    merge(&repo, FOLDER);
+
+    let feature = feature(&repo, FOLDER);
+
+    assert_eq!(feature.problems[0].rule, "frontmatter.parse");
+    assert_eq!(feature.problems[0].file, "specs/done/2026-10-11-web-ui.md");
+}

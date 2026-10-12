@@ -27,7 +27,9 @@ Find the state of the branch in this table, and start at its step:
 | The record, and the pull request is a draft            | [Mark the pull request ready](#mark-the-pull-request-ready)               |
 | The record, and no pull request                        | [Open the pull request](#open-the-draft-pull-request), then mark it ready |
 
-With `ura`, `ura next` names the step, `finish` for every row but the first.
+With `ura`, `ura next` names the step, `finish` for every row but the first. Without `gh`, it cannot
+see the pull request, and names `pull-request` once the record is there: check the pull request
+yourself.
 
 ## Open the draft pull request
 
@@ -49,7 +51,8 @@ the plan, the rulings, and the review files.
 
 - **Frontmatter**: `kind`, `feature` or `bug`; `finished`, today's date; `pull-request`, its URL.
 - **The `> [!NOTE]` block**: it says the file is a record, not instructions, with the start date,
-  the folder's date, the finish date, the pull request, and `git log -- specs/<folder>/`.
+  the date of the folder's name, the finish date, the pull request, and
+  `git log -- specs/<folder>/`.
 - **What and why**: the proposal's or the report's intent, in the human's terms.
 - **Behaviour**: one line per user story, with the rules a later feature must keep, as the code does
   them, not as the spec first said. For a bug, the behaviour fixed.
@@ -107,11 +110,13 @@ stays true to the code, and add a line under **Changes after approval**.
 
 A change that needs a new round of questions brings the folder back:
 
-1. `git revert` the finishing commit.
-2. In the next commit, carry into the spec and the plan the changes the record lists since
-   finishing.
-3. Turn the pull request back into a draft, with `gh pr ready --undo`.
-4. Start the round, following
+1. Note the record's **Changes after approval** made since finishing: the revert deletes them with
+   it.
+2. `git revert` the finishing commit. When later commits changed the record, git stops on a conflict
+   over it: delete the record, and continue the revert.
+3. In the next commit, carry the changes you noted into the spec and the plan.
+4. Turn the pull request back into a draft, with `gh pr ready --undo`.
+5. Start the round, following
    [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
 
 Once the feature is built again, it is finished again, from this file's first step.
@@ -128,10 +133,11 @@ never forced:
 1. `git worktree remove .worktrees/<branch>`: git refuses a worktree with uncommitted or untracked
    files, and they stay until the human deals with them. `git worktree prune` drops the record of a
    worktree folder already deleted.
-2. `git branch -D <branch>`, only when
-   `git log --cherry-pick --right-only --no-merges --format=%H <default>...<branch>` prints nothing,
-   and the same with `origin/<default>` when the merge is only there yet. `-D`, because `-d` refuses
-   a rebased branch.
+2. `git branch -D <branch>`, only when every commit of the branch is on the default branch:
+   `git log --cherry-pick --right-only --no-merges --format=%H <default>...<branch>` lists the
+   commits it lacks. When the merge is only on the forge yet, run it with `origin/<default>` too: a
+   commit counts as merged when either list leaves it out. `-D`, because `-d` refuses a rebased
+   branch.
 
 Remote branches are the forge's: GitHub's "Automatically delete head branches" setting removes them.
 
@@ -143,5 +149,6 @@ date is the day of that commit.
 
 ## Commit
 
-One commit, `finish(<slug>): <feature name>`, then the pull request marked ready. The pull request's
-first line is the commit's body, as the implementation step describes.
+One commit, `finish(<slug>): <feature name>`, then the pull request marked ready. The commit's body
+is the pull request's first line, "Pull request to review, about 20 minutes.", as the implementation
+step describes.

@@ -135,6 +135,16 @@ $ ura clean web-ui
   left the branch 2026-10-11-web-ui: its worktree is still there
 ```
 
+Run from inside the worktree it would remove, exit 1:
+
+```text
+$ ura clean web-ui
+2026-10-11-web-ui
+  left the worktree .worktrees/2026-10-11-web-ui: you are in it. Run ura clean from the main
+  checkout
+  left the branch 2026-10-11-web-ui: its worktree is still there
+```
+
 A worktree folder already deleted by hand:
 
 ```text
