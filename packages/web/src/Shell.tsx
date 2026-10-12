@@ -9,6 +9,7 @@ import {
 } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
 import {
+  colorVars,
   fontWeightVars,
   sizeVars,
   spacingVars,
@@ -22,6 +23,11 @@ import { navigate, usePathname } from "./routes.tsx";
 import { type ThemeMode, useThemeMode } from "./theme.tsx";
 
 const styles = stylex.create({
+  // The page's surface behind a short page too: Astryx paints it on the content only, which on the
+  // phone ends with the page's text, leaving the shell's wash below it.
+  shell: {
+    backgroundColor: colorVars["--color-background-surface"],
+  },
   // The navigation's heading: the link home, then the page's controls at its end.
   heading: {
     display: "flex",
@@ -154,7 +160,7 @@ function Nav({ slot }: { slot: ReactNode }) {
 export function Shell({ children }: { children: ReactNode }) {
   const [slot, setSlot] = useState<ReactNode>(null);
   return (
-    <AppShell sideNav={<Nav slot={slot} />} height="auto" contentPadding={0}>
+    <AppShell sideNav={<Nav slot={slot} />} height="auto" contentPadding={0} xstyle={styles.shell}>
       <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
     </AppShell>
   );
