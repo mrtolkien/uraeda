@@ -2,7 +2,8 @@
 
 ## Now
 
-- [UI improvements](/specs/2026-10-12-ui-improvements/proposal.md)
+- Review uraeda init and skill install flow: I don't like the skill living in all repos, it's
+  inelegant. `uraeda init` should offer to install the skill for the active user, not in the repo.
 
 ## Next
 
