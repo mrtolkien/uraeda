@@ -34,6 +34,10 @@ test("the index is a column beside the questions, and n and p jump (US1 6, 7)", 
   expect(index.getBoundingClientRect().left).toBeGreaterThanOrEqual(question.right);
   await expect.poll(() => offset("Q1")).toBeLessThan(3);
 
+  // The keys reach the page once it has the focus, as after the human's first click in it.
+  await userEvent.click(
+    screen.getByRole("heading", { name: "Which human steps does the UI perform?" }),
+  );
   await userEvent.keyboard("n");
   await expect.poll(() => offset("Q2")).toBeLessThan(3);
   // It stays in view while the page scrolls.
