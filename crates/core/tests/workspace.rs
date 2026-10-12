@@ -201,6 +201,8 @@ fn a_record_only_on_origin_is_merged() {
     std::process::Command::new("git")
         .args([
             "clone",
+            "--branch",
+            "main",
             "--quiet",
             origin.to_str().unwrap(),
             clone.to_str().unwrap(),
