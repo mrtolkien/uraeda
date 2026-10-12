@@ -58,7 +58,7 @@ async function cachedRun(
     step: end.step,
     allowed: null,
     startedAt: "2026-10-12T09:00:00.000Z",
-  });
+  })!;
   fake.runner.cache.appendEvent(id, { kind: "text", text: end.text });
   fake.runner.cache.endRun(id, { state: end.state });
   return id;

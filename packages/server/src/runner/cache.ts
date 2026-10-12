@@ -205,26 +205,43 @@ export class RunCache {
       .run(repo, folder, sessionId, now());
   }
 
-  /** Writes a new running run, and returns its ID. */
-  startRun(row: Omit<RunRow, "id" | "state" | "reason" | "costUsd" | "endedAt">): number {
-    const { lastInsertRowid } = this.#db
-      .prepare(
-        `INSERT INTO runs (repo, folder, session_id, new_session, trigger, step, allowed, state,
-           started_at, pid)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'running', ?, ?)`,
-      )
-      .run(
-        row.repo,
-        row.folder,
-        row.sessionId,
-        row.newSession ? 1 : 0,
-        row.trigger,
-        row.step,
-        row.allowed,
-        row.startedAt,
-        this.#pid,
-      );
-    return Number(lastInsertRowid);
+  /**
+   * Claims the feature for a new running run, and returns its ID, with the session of a run that
+   * starts one. Returns undefined when a live process, this one or another server, has a run going
+   * on the feature: the check and the write are one transaction, so two servers cannot both claim it.
+   */
+  startRun(
+    row: Omit<RunRow, "id" | "state" | "reason" | "costUsd" | "endedAt">,
+  ): number | undefined {
+    return transaction(this.#db, () => {
+      const running = this.#db
+        .prepare("SELECT pid FROM runs WHERE repo = ? AND folder = ? AND state = 'running'")
+        .all(row.repo, row.folder) as Array<{ pid: number | null }>;
+      if (running.some(({ pid }) => pid !== null && (pid === this.#pid || alive(pid)))) {
+        return undefined;
+      }
+      if (row.newSession) {
+        this.saveSession(row.repo, row.folder, row.sessionId);
+      }
+      const { lastInsertRowid } = this.#db
+        .prepare(
+          `INSERT INTO runs (repo, folder, session_id, new_session, trigger, step, allowed, state,
+             started_at, pid)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'running', ?, ?)`,
+        )
+        .run(
+          row.repo,
+          row.folder,
+          row.sessionId,
+          row.newSession ? 1 : 0,
+          row.trigger,
+          row.step,
+          row.allowed,
+          row.startedAt,
+          this.#pid,
+        );
+      return Number(lastInsertRowid);
+    });
   }
 
   /** Adds an event at the end of the run's log, and returns its `seq`. */

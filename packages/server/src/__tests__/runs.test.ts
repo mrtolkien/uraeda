@@ -294,6 +294,36 @@ test("US6.1: run.allow starts a run with the denial's rule", async () => {
   await settle(server, result.data.id);
 });
 
+test("another repository's runs are not read, allowed, or stopped", async () => {
+  const server = await testServer();
+  // The data folder is shared: another repository's server wrote this run, with the same folder.
+  const { cache } = server.runner;
+  const id = String(
+    cache.startRun({
+      repo: "/elsewhere/repo",
+      folder: FOLDER,
+      sessionId: "3f2c",
+      newSession: true,
+      trigger: "manual",
+      step: "plan",
+      allowed: null,
+      startedAt: new Date().toISOString(),
+    }),
+  );
+  cache.appendEvent(Number(id), { kind: "denial", tool: "Bash", target: "ls", rule: "Bash(ls)" });
+
+  expect(await byId(server.app, "Run", [id], ["id"])).toEqual([]);
+  expect(await byId(server.app, "RunLog", [`${id}:0`], ["id"])).toEqual([]);
+  const allow = await mutate(server.app, "run.allow", { run: id, seq: 0 }, ["id"]);
+  expect(allow.error).toEqual({
+    code: "BAD_REQUEST",
+    message: `refused: no blocked action 0 in run ${id}`,
+  });
+  const stop = await mutate(server.app, "run.stop", { run: id }, ["id"]);
+  expect(stop.error).toEqual({ code: "BAD_REQUEST", message: `refused: no run ${id}` });
+  expect(server.adapter.starts).toHaveLength(0);
+});
+
 test("the workspace lists running folders, and the feature its runs", async () => {
   const server = await testServer();
   server.adapter.script([]);

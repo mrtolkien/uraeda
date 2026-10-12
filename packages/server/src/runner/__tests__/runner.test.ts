@@ -111,6 +111,29 @@ test("US3.4 and review focus 2: a second run on the same feature is refused", as
   expect(runner.running(repo)).toEqual([FOLDER]);
 });
 
+test("a feature another server works on is refused", async () => {
+  const { runner, adapter, cache, repo } = await testRunner();
+  // Another server's run: its row is in the shared cache, not in this runner.
+  cache.startRun({
+    repo,
+    folder: FOLDER,
+    sessionId: "3f2c",
+    newSession: true,
+    trigger: "manual",
+    step: "plan",
+    allowed: null,
+    startedAt: new Date().toISOString(),
+  });
+
+  await expect(runner.start(repo, FOLDER, { trigger: "manual" })).rejects.toThrow(
+    "refused: An agent is already working on this feature.",
+  );
+  expect(adapter.starts).toHaveLength(0);
+  expect(cache.session(repo, FOLDER)).toBe("3f2c");
+  // The refusal frees the feature in this runner.
+  expect(runner.running(repo)).toEqual([]);
+});
+
 test("two features run at once", async () => {
   const { runner, adapter, repo } = await testRunner(withSecondFeature());
 

@@ -24,8 +24,11 @@ async function each<T>(ids: Array<string>, read: (id: string) => Promise<T>): Pr
 }
 
 /** Every record of the ids that can be read, synchronously. */
-function found<T>(ids: Array<string>, read: (id: string) => T | undefined): Array<T> {
-  return ids.flatMap((id) => read(id) ?? []);
+async function found<T>(
+  ids: Array<string>,
+  read: (id: string) => Promise<T | undefined>,
+): Promise<Array<T>> {
+  return (await Promise.all(ids.map(read))).flatMap((record) => record ?? []);
 }
 
 async function workspace(ctx: Context): Promise<WorkspaceRecord> {
