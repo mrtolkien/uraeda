@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: UI improvements
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, with its mockups and four new decisions, about 50 minutes.
+> Approved on 2026-10-12.
 >
 > - Four new decisions set how this app's UI is built, from your answers to the first four
 >   questions:
