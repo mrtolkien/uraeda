@@ -1,8 +1,8 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { fixtureRepo, git, renderPage } from "./helpers.tsx";
+import { fixtureRepo, git, record, renderPage } from "./helpers.tsx";
 
 /** US1.5 */
 test("lists a feature's files in workflow order, then what is not there yet", async () => {
@@ -42,4 +42,34 @@ test("names a feature's branch and worktree", async () => {
   await renderPage("/f/2026-10-12-cli-tuis");
 
   expect(await screen.findByText("2026-10-12-cli-tuis", { selector: ".mono" })).toBeTruthy();
+});
+
+/** US2.6 */
+test("a merged feature shows its record and what is left", async () => {
+  const repo = fixtureRepo();
+  git(repo, "switch", "--quiet", "--create", "2026-10-09-dark-mode", "main");
+  mkdirSync(join(repo, "specs/done"), { recursive: true });
+  writeFileSync(join(repo, "specs/done/2026-10-09-dark-mode.md"), record("Dark mode"));
+  git(repo, "add", "--all");
+  git(repo, "commit", "--quiet", "--no-verify", "--message", "finish(dark-mode): dark mode");
+  git(repo, "switch", "--quiet", "main");
+  git(repo, "merge", "--quiet", "--no-ff", "--no-edit", "2026-10-09-dark-mode");
+  git(
+    repo,
+    "worktree",
+    "add",
+    "--quiet",
+    ".worktrees/2026-10-09-dark-mode",
+    "2026-10-09-dark-mode",
+  );
+
+  await renderPage("/f/2026-10-09-dark-mode", repo);
+
+  expect(await screen.findByText("Dark mode", { selector: "h1" })).toBeTruthy();
+  expect(screen.getByText("Merged into the default branch")).toBeTruthy();
+  expect(screen.getByText("Worktree and branch left")).toBeTruthy();
+  expect(screen.getByText(".worktrees/2026-10-09-dark-mode")).toBeTruthy();
+  expect(screen.getByText("2026-10-09-dark-mode.md")).toBeTruthy();
+  expect(screen.getByText("record")).toBeTruthy();
+  expect(screen.queryByText("not yet")).toBeNull();
 });
