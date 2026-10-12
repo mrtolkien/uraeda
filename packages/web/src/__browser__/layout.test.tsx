@@ -96,6 +96,20 @@ function checkInsets(selector: string) {
   }
 }
 
+// The agents decision: the tests `vp run ready` runs use the fake adapter, never Claude Code.
+test("the test server runs the fake agent", async () => {
+  const response = await fetch("/fate", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      version: 1,
+      operations: [{ id: "1", kind: "byId", type: "Runner", ids: ["runner"], select: ["version"] }],
+    }),
+  });
+  const { results } = (await response.json()) as { results: Array<{ data: Array<unknown> }> };
+  expect(results[0].data).toEqual([{ id: "runner", version: "0.0.0 (fake agent)" }]);
+});
+
 test("home", async () => {
   await show("/", "Waiting on you");
   checkPage();

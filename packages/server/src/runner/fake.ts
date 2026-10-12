@@ -86,7 +86,7 @@ export class FakeAdapter implements Adapter {
   #current: FakeRun | undefined;
 
   async version() {
-    return this.installed ? "2.1.296 (Claude Code)" : undefined;
+    return this.installed ? "0.0.0 (fake agent)" : undefined;
   }
 
   hasSession(sessionId: string) {
