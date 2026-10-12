@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { expect, test } from "vite-plus/test";
-import { dataDir, RunCache } from "../cache.ts";
+import { dataDir, migrations, RunCache } from "../cache.ts";
 
 const REPO = "/repo/a";
 const FOLDER = "2026-10-12-cli-tuis";
@@ -189,11 +189,101 @@ test("runs left running are marked stopped on startup", () => {
   expect(cache.run(done)?.state).toBe("done");
 });
 
-test("the schema is at version 1", () => {
+test("the schema is at version 2", () => {
   const path = join(mkdtempSync(join(tmpdir(), "uraeda-cache-")), "runner.sqlite");
   RunCache.open(path);
 
   const version = new DatabaseSync(path).prepare("PRAGMA user_version").get();
 
-  expect(version).toEqual({ user_version: 1 });
+  expect(version).toEqual({ user_version: 2 });
+});
+
+/** A pid no process has: above Linux's and macOS's highest. */
+const DEAD_PID = 2 ** 31 - 1;
+
+const tempPath = () => join(mkdtempSync(join(tmpdir(), "uraeda-cache-")), "runner.sqlite");
+
+test("a cache another process holds locked is kept, never replaced", () => {
+  const path = tempPath();
+  // A file an earlier version wrote, in the default journal mode: a lock blocks its readers.
+  const other = new DatabaseSync(path);
+  other.exec(migrations[0]);
+  other.exec("PRAGMA user_version = 1");
+  other
+    .prepare(
+      `INSERT INTO runs (repo, folder, session_id, new_session, trigger, step, state, started_at)
+       VALUES (?, ?, '3f2c', 1, 'manual', 'plan', 'done', ?)`,
+    )
+    .run(REPO, FOLDER, run.startedAt);
+  other.exec("BEGIN EXCLUSIVE");
+  other.exec("UPDATE runs SET step = 'spec'");
+
+  // The lock outlasts the wait: this server keeps its runs in memory.
+  const cache = RunCache.open(path, { timeout: 50 });
+  expect(cache.runs(REPO, FOLDER)).toEqual([]);
+  expect(cache.run(cache.startRun(run))).toMatchObject({ state: "running" });
+
+  other.exec("COMMIT");
+  other.close();
+  expect(RunCache.open(path).runs(REPO, FOLDER)).toMatchObject([{ step: "spec", state: "done" }]);
+});
+
+test("a cache in WAL mode reads while another connection writes", () => {
+  const path = tempPath();
+  const id = RunCache.open(path).startRun(run);
+  const other = new DatabaseSync(path);
+  other.exec("BEGIN EXCLUSIVE");
+  other.exec("UPDATE runs SET step = 'spec'");
+
+  const cache = RunCache.open(path, { timeout: 50 });
+
+  expect(cache.run(id)).toMatchObject({ step: "plan" });
+  other.exec("COMMIT");
+  expect(cache.run(id)).toMatchObject({ step: "spec" });
+});
+
+test("a running run of another live process stays running", () => {
+  const path = tempPath();
+  // Another server: the process that started this test's runner is alive.
+  const first = RunCache.open(path, { pid: process.ppid });
+  const theirs = first.startRun(run);
+  const second = RunCache.open(path);
+  const ours = second.startRun(run);
+
+  const stopped = second.interrupted("Stopped: the server stopped while it ran.");
+
+  expect(stopped.map((row) => row.id)).toEqual([ours]);
+  expect(first.run(theirs)?.state).toBe("running");
+});
+
+test("a running run of a process that is gone is marked stopped", () => {
+  const path = tempPath();
+  const id = RunCache.open(path, { pid: DEAD_PID }).startRun(run);
+
+  const stopped = RunCache.open(path).interrupted("Stopped: the server stopped while it ran.");
+
+  expect(stopped.map((row) => row.id)).toEqual([id]);
+});
+
+test("migrating from version 1 keeps the runs, and stops those left running", () => {
+  const path = tempPath();
+  const old = new DatabaseSync(path);
+  old.exec(migrations[0]);
+  old.exec("PRAGMA user_version = 1");
+  const insert = old.prepare(
+    `INSERT INTO runs (repo, folder, session_id, new_session, trigger, step, state, started_at)
+     VALUES (?, ?, '3f2c', 1, 'manual', 'plan', ?, ?)`,
+  );
+  insert.run(REPO, FOLDER, "done", run.startedAt);
+  insert.run(REPO, FOLDER, "running", run.startedAt);
+  old.close();
+
+  const cache = RunCache.open(path);
+  const stopped = cache.interrupted("Stopped: the server stopped while it ran.");
+
+  expect(stopped.map((row) => row.id)).toEqual([2]);
+  expect(cache.runs(REPO, FOLDER).map((row) => [row.id, row.state])).toEqual([
+    [2, "stopped"],
+    [1, "done"],
+  ]);
 });

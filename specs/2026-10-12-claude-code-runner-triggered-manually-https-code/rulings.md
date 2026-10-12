@@ -317,3 +317,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   could pick up by mistake.
 - **If wrong**: a test that needs the fake to read like Claude Code sets its own version.
 - **Where**: the final review, after task 8.
+
+## R26: The cache is shared by every server's process, and stops only the runs of a gone one
+
+- **Decision**: the cache opens in WAL mode, with statements that wait 5 seconds for another
+  process's lock. It replaces the file only when SQLite says it is not a database or is damaged
+  (`SQLITE_NOTADB`, `SQLITE_CORRUPT`). On any other error, like a lock held longer, it keeps the
+  file and lives in memory for that server. Migration 2 records each run's process ID, and startup
+  marks stopped only the `running` runs whose process is gone, is this one, or is unknown (runs from
+  version 1).
+- **Rationale**: the servers of every repository, and `vp dev` next to `pnpm start`, share
+  `runner.sqlite`. A server that opened it during another's write read "database is locked", took it
+  for a damaged file, and deleted it; and each server's startup marked every other server's runs
+  stopped. The spec's "cannot be opened: it is created again empty" now means a damaged file, or an
+  empty cache in memory, never deleting a live one.
+- **Alternatives considered**: refusing to start the server on a lock, which leaves the UI without
+  its pages for a cache; a lock file per repository, which still shares the runs table.
+- **If wrong**: a process ID reused after a crash, by another process, keeps that crashed server's
+  run `running` until the process ends. Storing the process's start time with its ID would tell them
+  apart.
+- **Where**: the final review, after task 8.
