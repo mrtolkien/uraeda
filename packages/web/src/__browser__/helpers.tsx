@@ -82,6 +82,17 @@ export function checkPage() {
     if (clips && element.clientWidth > 4) {
       expect(element.scrollWidth, name).toBeLessThanOrEqual(element.clientWidth + 1);
     }
+    // An ellipsis shows for any overflow, a fraction of a pixel too, which the rounded widths
+    // above miss: the text's own width must fit inside the box.
+    if (style.textOverflow === "ellipsis" && element.clientWidth > 4) {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      const inner =
+        element.getBoundingClientRect().width -
+        parseFloat(style.paddingLeft) -
+        parseFloat(style.paddingRight);
+      expect(range.getBoundingClientRect().width, name).toBeLessThanOrEqual(inner);
+    }
     // Nothing reaches past the screen's edge.
     const box = element.getBoundingClientRect();
     if (box.width > 4) {
