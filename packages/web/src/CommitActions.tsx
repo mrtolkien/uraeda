@@ -1,4 +1,5 @@
 import { Button } from "@astryxdesign/core/Button";
+import { HStack } from "@astryxdesign/core/HStack";
 import type { ReactNode } from "react";
 import { useRunner } from "./data.ts";
 
@@ -31,7 +32,7 @@ export function CommitActions({
   const runner = useRunner();
   if (!runner?.available) {
     return (
-      <div className="actions">
+      <HStack gap={2} wrap="wrap">
         {children}
         <Button
           variant={variant}
@@ -40,11 +41,12 @@ export function CommitActions({
           tooltip={tooltip}
           clickAction={() => onCommit(false)}
         />
-      </div>
+      </HStack>
     );
   }
   return (
-    <div className="actions commit-actions">
+    // A long label takes its own line rather than being cut.
+    <HStack gap={2} wrap="wrap">
       {children}
       <Button
         variant={variant === "destructive" ? "destructive" : "primary"}
@@ -60,6 +62,6 @@ export function CommitActions({
         tooltip={tooltip}
         clickAction={() => onCommit(false)}
       />
-    </div>
+    </HStack>
   );
 }

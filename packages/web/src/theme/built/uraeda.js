@@ -111,7 +111,7 @@ export const uraedaTheme = {
     "--color-overlay-hover": "light-dark(#0000000D, #ffffff0D)",
     "--color-overlay-pressed": "light-dark(#0000001A, #ffffff1A)",
     "--color-text-primary": "light-dark(#000000, #ffffff)",
-    "--color-text-secondary": "light-dark(#474747, #9e9e9e)",
+    "--color-text-secondary": "light-dark(#474747, #a8a8a8)",
     "--color-text-disabled": "light-dark(#919191, #525252)",
     "--color-text-accent": "light-dark(#1b1b1b, #f1f1f1)",
     "--color-on-dark": "#ffffff",
@@ -203,7 +203,7 @@ export const uraedaTheme = {
     "--astryx-theme-neutral-color-destructive-overlay-pressed": "light-dark(#ff7f771A, #ee736c1A)",
     "--text-reading-size": "17px",
     "--text-reading-line": "1.5",
-    "--size-reading-measure": "70ch",
+    "--size-reading-measure": "62ch",
     "--size-page-max": "720px",
     "--size-pane-min": "400px",
     "--size-viewport-height": "100dvh",
@@ -513,6 +513,19 @@ export const uraedaTheme = {
       "base": {
         "padding": "var(--spacing-3)"
       }
+    },
+    "chat-tool-calls": {
+      "base": {
+        "minWidth": "0",
+        "maxWidth": "100%",
+        ":is(*) span": {
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        ":is(*) span:nth-child(2)": {
+          "flex": "none"
+        }
+      }
     }
   },
   __onDark: {
@@ -586,6 +599,35 @@ export const uraedaTheme = {
             "--size-element-sm": "44px",
             "--size-element-md": "44px",
             "--size-element-lg": "44px"
+          },
+          "components": {
+            "item": {
+              "base": {
+                "minHeight": "var(--size-element-md)"
+              }
+            },
+            "switch-field": {
+              "base": {
+                "display": "grid",
+                "minHeight": "var(--size-element-md)"
+              }
+            },
+            "breadcrumb-item": {
+              "base": {
+                "minHeight": "var(--size-element-md)"
+              }
+            },
+            "segmented-control-item": {
+              "size:sm": {
+                "height": "var(--size-element-sm)"
+              },
+              "size:md": {
+                "height": "var(--size-element-md)"
+              },
+              "size:lg": {
+                "height": "var(--size-element-lg)"
+              }
+            }
           }
         }
       }

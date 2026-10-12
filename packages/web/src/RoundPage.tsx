@@ -3,7 +3,6 @@ import { Button } from "@astryxdesign/core/Button";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Link } from "@astryxdesign/core/Link";
-import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import {
   colorVars,
@@ -28,6 +27,7 @@ import { useRoundPosition } from "./useRoundPosition.ts";
 import { useSave } from "./useSave.ts";
 import { FileView } from "./views.ts";
 import type { useFile } from "./data.ts";
+import { Paragraph } from "./layout/Paragraph.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -237,9 +237,9 @@ export function RoundPage({ file }: { file: File }) {
       )}
       {readOnly ? (
         notes && (
-          <Text as="p" display="block">
+          <Paragraph>
             <strong>Notes:</strong> {notes}
-          </Text>
+          </Paragraph>
         )
       ) : (
         <VStack gap={3} ref={end}>

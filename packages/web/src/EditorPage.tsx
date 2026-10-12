@@ -20,6 +20,7 @@ import { navigate, useRestoreScroll } from "./routes.tsx";
 import { startRun } from "./runs.ts";
 import { useSave } from "./useSave.ts";
 import { DraftView, FeatureView } from "./views.ts";
+import { Paragraph } from "./layout/Paragraph.tsx";
 
 const LEVEL_LABELS: Record<Level, string> = { low: "Low", medium: "Medium", high: "High" };
 
@@ -116,9 +117,7 @@ export function EditorPage({ path }: { path: string }) {
   if (!draft) {
     return (
       <Page>
-        <Text as="p" display="block">
-          No draft {path}.
-        </Text>
+        <Paragraph>No draft {path}.</Paragraph>
       </Page>
     );
   }
@@ -281,13 +280,13 @@ export function EditorPage({ path }: { path: string }) {
                   To write in the empty sections:
                 </Text>
                 {shownHints.map((hint) => (
-                  <Text key={hint.heading} as="p" display="block" color="secondary">
+                  <Paragraph key={hint.heading} color="secondary">
                     <Text weight="semibold" color="secondary">
                       {hint.heading}
                     </Text>
                     {" · "}
                     <Text color="secondary">{hint.hint}</Text>
-                  </Text>
+                  </Paragraph>
                 ))}
               </VStack>
             )}

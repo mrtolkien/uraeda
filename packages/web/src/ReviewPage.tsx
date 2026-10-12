@@ -32,6 +32,7 @@ import { HookRefusal } from "./RoundPage.tsx";
 import { startRun } from "./runs.ts";
 import { plain } from "./Spans.tsx";
 import { FileView } from "./views.ts";
+import { Paragraph } from "./layout/Paragraph.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -156,7 +157,7 @@ export function ReviewPage({ file }: { file: File }) {
   const spec = version.items.spec;
   const tasks = version.items.plan?.tasks ?? [];
   const review = file.review?.review;
-  const comments = review?.verdict === "pending" ? review.comments : [];
+  const comments = useMemo(() => (review?.verdict === "pending" ? review.comments : []), [review]);
   const [selection, setSelection] = useState<Range>();
   const [draft, setDraft] = useState<Draft>();
   const [last, setLast] = useState<number>();
@@ -365,9 +366,7 @@ export function ReviewPage({ file }: { file: File }) {
             />
           </HStack>
         </HStack>
-        <Text as="p" display="block">
-          {comment.text}
-        </Text>
+        <Paragraph>{comment.text}</Paragraph>
       </div>
     );
 
@@ -465,9 +464,7 @@ export function ReviewPage({ file }: { file: File }) {
               <Text type="supporting" color="secondary">
                 {where(comment)}
               </Text>
-              <Text as="p" display="block">
-                {comment.text}
-              </Text>
+              <Paragraph>{comment.text}</Paragraph>
             </VStack>
           ),
         )}
