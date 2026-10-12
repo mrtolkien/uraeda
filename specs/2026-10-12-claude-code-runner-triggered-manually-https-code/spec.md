@@ -17,9 +17,8 @@ plan-review: false
 >   - `auto` mode;
 >   - the server's copy of the skill as a plugin;
 >   - one session per feature;
->   - a local SQLite cache. A
->     [proposed change](../decisions/stack.md#proposed-change-2026-10-12-claude-code-runner-triggered-manually-https-code)
->     to the stack decision drops its line about the SDKs. Its rules are unchanged.
+>   - a local SQLite cache. A [proposed change](../decisions/stack.md) to the stack decision drops
+>     its line about the SDKs. Its rules are unchanged.
 > - **Your request to accept a blocked action, read one way.** A blocked action shows after the run,
 >   with "Allow and continue": it starts a new run of the same session, with an allow rule for that
 >   one action. A live prompt during the run would need a channel that Claude Code does not
@@ -568,8 +567,7 @@ New, applied when this spec is approved:
 Changed, applied when this spec is approved:
 
 - [Stack](../decisions/stack.md): the consequence that named the SDKs now names the installed
-  command-line tools. The rules are unchanged
-  ([proposed change](../decisions/stack.md#proposed-change-2026-10-12-claude-code-runner-triggered-manually-https-code)).
+  command-line tools. The rules are unchanged ([proposed change](../decisions/stack.md)).
 
 Relied on:
 
