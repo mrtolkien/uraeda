@@ -150,7 +150,12 @@ pub struct Feature {
     pub files: Vec<WorkflowFile>,
     pub step: Step,
     pub problems: Vec<Problem>,
-    /// The folder, from the top level: `specs/2026-10-10-cli-core`.
+    /// For a merged feature, its worktree still there, from the main checkout.
+    pub left_worktree: Option<String>,
+    /// For a merged feature, its local branch still there.
+    pub left_branch: Option<String>,
+    /// The folder, from the top level: `specs/2026-10-10-cli-core`; `specs/done` for a finished
+    /// feature, whose only file is its record.
     #[serde(skip)]
     pub path: String,
     #[serde(skip)]
@@ -169,6 +174,20 @@ impl Feature {
 
     pub fn file(&self, kind: FileKind) -> Option<&WorkflowFile> {
         self.files.iter().find(|file| file.kind == kind)
+    }
+
+    /// Whether its folder was replaced by its record.
+    pub fn is_finished(&self) -> bool {
+        self.file(FileKind::Record).is_some()
+    }
+
+    /// The file name, when `path`, from the top level, is one of its files: `<path>/<name>` for a
+    /// folder, only its record for a finished feature.
+    pub fn owns<'p>(&self, path: &'p str) -> Option<&'p str> {
+        if self.is_finished() {
+            return (path == record_path(&self.folder)).then(|| &path["specs/done/".len()..]);
+        }
+        path.strip_prefix(self.path.as_str())?.strip_prefix('/')
     }
 
     /// Recomputes the step with the pull request's state, for the steps that depend on it.
@@ -228,6 +247,22 @@ pub fn folder_branch(kind: Kind, folder: &str) -> String {
     match kind {
         Kind::Feature => folder.to_string(),
         Kind::Bug => format!("fix/{folder}"),
+    }
+}
+
+/// Where a finished feature's or bug's record lives.
+pub fn record_path(folder: &str) -> String {
+    format!("specs/done/{folder}.md")
+}
+
+/// A record's kind, from its frontmatter: a feature unless it says `bug`.
+fn record_kind(text: &str) -> Kind {
+    match frontmatter::parse(text)
+        .ok()
+        .and_then(|f| f.text("kind").map(String::from))
+    {
+        Some(kind) if kind == "bug" => Kind::Bug,
+        _ => Kind::Feature,
     }
 }
 
@@ -320,6 +355,23 @@ impl Reader<'_> {
         drafts.into_iter().collect()
     }
 
+    /// The records of `specs/done/`, by kind and folder, with their texts.
+    fn records(&self, from: From) -> BTreeMap<(Kind, String), String> {
+        let mut records = BTreeMap::new();
+        for name in self.files(from, "specs/done") {
+            let Some(folder) = name.strip_suffix(".md") else {
+                continue;
+            };
+            if folder_slug(folder).is_none() {
+                continue;
+            }
+            if let Some(text) = self.read(from, &record_path(folder)) {
+                records.insert((record_kind(&text), folder.to_string()), text);
+            }
+        }
+        records
+    }
+
     /// The feature and bug folders under `specs/`.
     fn folders(&self, from: From) -> BTreeSet<(Kind, String)> {
         let mut folders = BTreeSet::new();
@@ -397,9 +449,30 @@ impl Workspace {
         let priorities_text = default_reader
             .read(priorities_from, "specs/PRIORITIES.md")
             .unwrap_or_default();
-        let merged = default_tip
-            .map(|tip| reader.folders(From::Commit(tip)))
-            .unwrap_or_default();
+        // Merged: a folder or a record on the default branch, local or on `origin`, so a merge
+        // made on the forge shows before the next pull.
+        let remote_default_tip = default_branch.as_deref().and_then(|b| git.remote_tip(b));
+        let tips: Vec<ObjectId> = [default_tip, remote_default_tip]
+            .into_iter()
+            .flatten()
+            .collect();
+        let merged_records: Vec<BTreeMap<(Kind, String), String>> = tips
+            .iter()
+            .map(|tip| reader.records(From::Commit(*tip)))
+            .collect();
+        let merged_folders: Vec<(ObjectId, BTreeSet<(Kind, String)>)> = tips
+            .iter()
+            .map(|tip| (*tip, reader.folders(From::Commit(*tip))))
+            .collect();
+        let merged: BTreeSet<(Kind, String)> = merged_records
+            .iter()
+            .flat_map(|records| records.keys().cloned())
+            .chain(
+                merged_folders
+                    .iter()
+                    .flat_map(|(_, folders)| folders.iter().cloned()),
+            )
+            .collect();
 
         let mut features: BTreeMap<(Kind, String), Feature> = BTreeMap::new();
         let main_root = git.main_root();
@@ -488,16 +561,38 @@ impl Workspace {
         for feature in &mut features {
             feature.step = steps::step(feature, PullRequest::Unknown);
         }
-        // Folders merged into the default branch, read from it.
-        if let Some(tip) = default_tip {
-            for (kind, folder) in &merged {
-                let mut feature =
-                    read_feature(&reader, *kind, folder, None, From::Commit(tip), Some(tip));
-                feature.source = Source::DefaultBranch;
-                feature.branch = None;
-                feature.step = Step::done();
-                features.push(feature);
-            }
+        // Features merged into the default branch, read from it: the record first, local first.
+        let local_branches: BTreeSet<String> = git
+            .branches()?
+            .into_iter()
+            .filter(|branch| branch.local.is_some())
+            .map(|branch| branch.name)
+            .collect();
+        let worktrees = git.worktrees().unwrap_or_default();
+        for (kind, folder) in &merged {
+            let key = (*kind, folder.clone());
+            let mut feature = match merged_records.iter().find_map(|records| records.get(&key)) {
+                Some(text) => Feature::from_record(*kind, folder, text.clone()),
+                None => {
+                    let Some((tip, _)) = merged_folders
+                        .iter()
+                        .find(|(_, folders)| folders.contains(&key))
+                    else {
+                        continue;
+                    };
+                    read_feature(&reader, *kind, folder, None, From::Commit(*tip), Some(*tip))
+                }
+            };
+            let branch = folder_branch(*kind, folder);
+            feature.source = Source::DefaultBranch;
+            feature.branch = None;
+            feature.step = Step::done();
+            feature.left_worktree = worktrees
+                .iter()
+                .find(|w| w.path != main_root && w.branch.as_deref() == Some(branch.as_str()))
+                .map(|w| shown(&w.path));
+            feature.left_branch = local_branches.contains(&branch).then_some(branch);
+            features.push(feature);
         }
 
         let priorities = priorities::parse(&priorities_text)
@@ -585,6 +680,22 @@ fn read_feature(
             }
             None => unreadable.push(name),
         }
+    }
+    if texts.is_empty()
+        && unreadable.is_empty()
+        && let Some(text) = reader.read(from, &record_path(folder))
+    {
+        let committed_text =
+            committed.and_then(|commit| reader.read(From::Commit(commit), &record_path(folder)));
+        let mut feature = Feature::from_record(kind, folder, text);
+        feature.uncommitted = matches!(from, From::Disk)
+            && committed_text.as_deref() != feature.text(&format!("{folder}.md"));
+        feature.branch = branch;
+        feature.source = match from {
+            From::Disk => Source::WorkingTree,
+            From::Commit(_) => Source::Local,
+        };
+        return feature;
     }
     let mut feature = Feature::from_texts(kind, folder, texts);
     for name in unreadable {
@@ -700,10 +811,46 @@ impl Feature {
             files,
             step: Step::none(),
             problems,
+            left_worktree: None,
+            left_branch: None,
             path,
             proposal_committed: texts.contains_key(first_file),
             decisions_pending: false,
             texts,
+        };
+        feature.step = steps::step(&feature, PullRequest::Unknown);
+        feature
+    }
+}
+
+impl Feature {
+    /// A finished feature or bug, from its record's text: its only file.
+    pub fn from_record(kind: Kind, folder: &str, text: String) -> Feature {
+        let name = format!("{folder}.md");
+        let mut feature = Feature {
+            kind,
+            folder: folder.to_string(),
+            slug: folder_slug(folder).unwrap_or(folder).to_string(),
+            branch: Some(folder_branch(kind, folder)),
+            source: Source::Local,
+            worktree: None,
+            uncommitted: false,
+            behind: None,
+            files: vec![WorkflowFile {
+                name: name.clone(),
+                kind: FileKind::Record,
+                round: None,
+                status: None,
+                waiting_line: None,
+            }],
+            step: Step::none(),
+            problems: Vec::new(),
+            left_worktree: None,
+            left_branch: None,
+            path: "specs/done".to_string(),
+            proposal_committed: true,
+            decisions_pending: false,
+            texts: BTreeMap::from([(name, text)]),
         };
         feature.step = steps::step(&feature, PullRequest::Unknown);
         feature

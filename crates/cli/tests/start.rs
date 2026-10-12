@@ -300,3 +300,22 @@ fn a_draft_two_lines_link() {
     );
     assert_eq!(output.code, 1);
 }
+
+/// Edge case: a record holds the name.
+#[test]
+fn refuses_a_name_a_record_holds() {
+    let repo = repo_with_a_draft();
+    repo.write(
+        "specs/done/2026-10-11-git-listener-process.md",
+        &record("feature", "Git listener process"),
+    );
+    repo.commit("finish: an earlier git listener");
+
+    let output = ura(&repo, &["start", DRAFT]);
+
+    assert_eq!(output.code, 1);
+    assert_eq!(
+        output.stderr,
+        "ura: specs/done/2026-10-11-git-listener-process.md exists: choose another slug with --slug\n"
+    );
+}
