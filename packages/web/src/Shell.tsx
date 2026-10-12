@@ -22,6 +22,7 @@ import { type ReactNode, useState } from "react";
 import { useWorkspace } from "./data.ts";
 import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
 import { useUndoErrors } from "./layout/useUndoToast.ts";
+import { useWidthClass } from "./layout/useWidthClass.ts";
 import { currentEntry, navigate, usePathname } from "./routes.tsx";
 import { type ThemeMode, useThemeMode } from "./theme.tsx";
 
@@ -39,6 +40,11 @@ const styles = stylex.create({
     marginInline: "auto",
     paddingBlockStart: spacingVars["--spacing-4"],
     paddingInline: spacingVars["--spacing-4"],
+  },
+  // The page's own inset on wide screens, so the banner lines up with its column.
+  errorsWide: {
+    paddingBlockStart: spacingVars["--spacing-6"],
+    paddingInline: spacingVars["--spacing-8"],
   },
   // The navigation's heading: the link home, then the page's controls at its end.
   heading: {
@@ -201,11 +207,12 @@ function Nav({ slot }: { slot: ReactNode }) {
 /** The errors of refused Undos, each until dismissed. */
 function UndoErrors() {
   const [errors, dismiss] = useUndoErrors();
+  const wide = useWidthClass() === "wide";
   if (errors.length === 0) {
     return null;
   }
   return (
-    <VStack gap={2} xstyle={styles.errors}>
+    <VStack gap={2} xstyle={[styles.errors, wide && styles.errorsWide]}>
       {errors.map((error, index) => (
         <Banner
           key={`${index}-${error}`}

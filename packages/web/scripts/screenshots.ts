@@ -11,7 +11,7 @@
  *
  * Pass a feature's folder to save elsewhere: `vp run --filter uraeda-web screenshots <folder>`.
  */
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -309,6 +309,23 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string) {
     await wait(300);
   };
   await each("agent-running", ({ page }) => agent(page, "Stop"));
+  // The run's view: a page on the phone, a pane beside the feature page on desktop.
+  const run = await first
+    .getByRole("list", { name: "Runs" })
+    .getByRole("link")
+    .first()
+    .getAttribute("href");
+  const view = async (page: Page, text: string) => {
+    await show(page, AGENT, text);
+    await page
+      .getByRole("link", { name: /^Plan · / })
+      .first()
+      .click();
+    await page.waitForURL(`**${run}`);
+    await page.getByRole("log", { name: "Run log" }).waitFor();
+    await settle(page);
+  };
+  await each("run-running", ({ page }) => view(page, "Stop"));
   adapter.emit({
     type: "result",
     ok: false,
@@ -319,6 +336,24 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string) {
   adapter.finish(1, `could not read ${LONG}`);
   await wait(500);
   await each("agent-failed", ({ page }) => agent(page, "Try again"));
+  await each("run-failed", ({ page }) => view(page, "Try again"));
+
+  // A refused Undo: the file changes before the Undo's insert reaches the server.
+  await each("undo-refused", async ({ page }) => {
+    await page.route("**/fate**", async (route) => {
+      if (route.request().postData()?.includes("priorities.insert")) {
+        writeFileSync(join(repo, "specs/PRIORITIES.md"), `${priorities()}\n- Added elsewhere\n`);
+      }
+      await route.continue();
+    });
+    await show(page, "/priorities/nix-docker-based-execution-environments", "Nix + Docker");
+    await page.getByRole("button", { name: "Delete" }).click();
+    await page.getByRole("button", { name: "Undo" }).click();
+    await page.getByText(/Could not restore/).waitFor();
+    await settle(page);
+    await page.unroute("**/fate**");
+    writeFileSync(join(repo, "specs/PRIORITIES.md"), original);
+  });
 }
 
 await main();
