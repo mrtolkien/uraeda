@@ -1,14 +1,158 @@
-// SC-007: in WebKit, the pages cut no text, never scroll sideways, and keep body text at 16 px or
-// more; on a 402 × 874 screen, they start the text of questions, options, stories, and scenarios
-// within 50 px of the screen's left edge.
-import { Theme } from "@astryxdesign/core/theme";
+// The UI checks decision, at a phone's size and a desktop's, in light and dark: on every page a UI
+// decision governs, no text is cut and nothing scrolls sideways (SC-003), paragraphs are 17 px on
+// the phone and 19 px from 1024 px (SC-004), every control is 44 px tall under a touch pointer
+// (SC-004), no line of a paragraph runs past about 75 characters (US6 3), and axe-core finds no
+// WCAG 2.1 A or AA violation (SC-003). On the phone, questions, options, stories, and scenarios
+// start within 50 px of the screen's left edge. A change of width keeps what is being typed (US7 2)
+// and the task view's address (the edge case on crossing 768 px).
+import { AppShell } from "@astryxdesign/core/AppShell";
 import { ChatMessageList } from "@astryxdesign/core/Chat";
+import { Theme } from "@astryxdesign/core/theme";
+import { VStack } from "@astryxdesign/core/VStack";
+import { act, fireEvent, screen } from "@testing-library/react";
+import axe from "axe-core";
 import { createRoot } from "react-dom/client";
-import { expect, test } from "vite-plus/test";
-import { Denials, RunStatus } from "../AgentPanel.tsx";
+import { afterEach, expect, test } from "vite-plus/test";
+import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
+import type { RepoCommands } from "../../vite.browser.config.ts";
+import { Denials, RunReason, RunStatus } from "../AgentPanel.tsx";
+import { Page } from "../layout/Page.tsx";
 import { type RunEvent, RunEvents } from "../RunLog.tsx";
 import { uraedaTheme } from "../theme/built/uraeda.js";
-import { checkInsets, checkPage, show } from "./helpers.tsx";
+import {
+  checkControlHeights,
+  checkInsets,
+  checkMeasure,
+  checkPage,
+  checkTextSizes,
+  show,
+} from "./helpers.tsx";
+
+const commands = browserCommands as unknown as RepoCommands;
+
+const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";
+const SPEC = "/f/2026-10-06-recurring-tasks/spec.md";
+const TASK = "/priorities/claude-code-runner-triggered-manually";
+
+const PAGES: Array<[name: string, path: string, text: string, insets: string | null]> = [
+  ["home", "/", "Waiting on you", null],
+  [
+    "a round of questions",
+    ROUND,
+    "How does your iPhone reach the server?",
+    // Question titles, and the options' text.
+    '[role="main"] section h2, [role="main"] section [aria-pressed]',
+  ],
+  [
+    "a spec under review",
+    SPEC,
+    "Complete a repeating task",
+    // Story titles, paragraphs, and the items of numbered lists, like scenarios.
+    '[role="main"] h3, [role="main"] p, [role="main"] ol:not(nav ol) > li',
+  ],
+  ["a plan under review", "/f/2026-10-13-plan-review/plan.md", "Task 5", null],
+  ["a task view", TASK, "Claude Code runner", null],
+  ["the priorities", "/priorities", "Git listener process", null],
+  // Its agent panel offers "Start the agent": the test server's agent is the fake one.
+  ["a feature waiting on an agent", "/f/2026-10-12-cli-tuis", "Start the agent", null],
+];
+
+afterEach(() => {
+  window.localStorage.removeItem("uraeda.theme");
+});
+
+/** axe-core's WCAG 2.1 A and AA rules, on the whole document. */
+async function checkAccessibility() {
+  const results = await axe.run(document, {
+    runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] },
+  });
+  const violations = results.violations.map(
+    (violation) =>
+      `${violation.id}: ${violation.nodes
+        .slice(0, 3)
+        .map((node) => node.html.slice(0, 120))
+        .join(" | ")}`,
+  );
+  expect(violations).toEqual([]);
+}
+
+const CASES = PAGES.flatMap(([name, path, text, insets]) =>
+  (["light", "dark"] as const).map((mode) => ({ name, path, text, insets, mode })),
+);
+
+test.each(CASES)("$name, in $mode", async ({ path, text, insets, mode }) => {
+  window.localStorage.setItem("uraeda.theme", mode);
+  await show(path, text);
+  expect(document.documentElement.getAttribute("data-theme")).toBe(mode);
+  if (window.innerWidth < 768) {
+    // The phone instance has a touch screen.
+    expect(window.matchMedia("(pointer: coarse)").matches).toBe(true);
+  }
+  checkPage();
+  checkTextSizes();
+  checkControlHeights();
+  checkMeasure();
+  if (insets) {
+    checkInsets(insets);
+  }
+  await checkAccessibility();
+});
+
+test("a comment being typed keeps its text and focus when the window narrows (US7 2)", async () => {
+  if (window.innerWidth < 768) {
+    return;
+  }
+  await commands.takeRepo();
+  await page.viewport(800, 900);
+  try {
+    await show(ROUND, "How does your iPhone reach the server?");
+    const field = screen.getAllByRole("textbox", { name: "Comment" })[2] as HTMLTextAreaElement;
+    await userEvent.click(field);
+    await userEvent.keyboard("Only from home");
+    await page.viewport(700, 900);
+    await expect.poll(() => window.innerWidth).toBe(700);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(field.isConnected).toBe(true);
+    expect(field.value).toBe("Only from home");
+    expect(document.activeElement).toBe(field);
+  } finally {
+    await page.viewport(1440, 900);
+    await commands.releaseRepo();
+  }
+});
+
+test("a task view keeps its address as the window crosses 768 px", async () => {
+  if (window.innerWidth < 768) {
+    return;
+  }
+  try {
+    await show("/", "Claude Code runner");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
+    });
+    await screen.findByRole("radio", { name: "Next", checked: true });
+    // A pane beside home.
+    expect(screen.getByRole("link", { name: /Git listener process/ })).toBeTruthy();
+
+    await page.viewport(700, 900);
+    await expect.poll(() => window.innerWidth).toBe(700);
+    // A page of its own, at the same address.
+    await expect
+      .poll(() => screen.queryByRole("link", { name: /Git listener process/ }))
+      .toBeNull();
+    expect(screen.getByRole("radio", { name: "Next", checked: true })).toBeTruthy();
+    expect(window.location.pathname).toBe(TASK);
+
+    await page.viewport(1440, 900);
+    await expect.poll(() => window.innerWidth).toBe(1440);
+    // A pane again.
+    expect(await screen.findByRole("link", { name: /Git listener process/ })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Next", checked: true })).toBeTruthy();
+    expect(window.location.pathname).toBe(TASK);
+  } finally {
+    await page.viewport(1440, 900);
+  }
+});
 
 // The agents decision: the tests `vp run ready` runs use the fake adapter, never Claude Code.
 test("the test server runs the fake agent", async () => {
@@ -24,47 +168,11 @@ test("the test server runs the fake agent", async () => {
   expect(results[0].data).toEqual([{ id: "runner", version: "0.0.0 (fake agent)" }]);
 });
 
-test("home", async () => {
-  await show("/", "Waiting on you");
-  checkPage();
-});
-
-test("a round of questions", async () => {
-  await show("/f/2026-10-11-web-ui/clarifications-01.md", "How does your iPhone reach the server?");
-  checkPage();
-  // Question titles, and the options' text.
-  checkInsets('[role="main"] section h2, [role="main"] section [aria-pressed]');
-});
-
-test("a spec under review", async () => {
-  await show("/f/2026-10-06-recurring-tasks/spec.md", "Complete a repeating task");
-  checkPage();
-  // Story titles, paragraphs, and the items of numbered lists, like scenarios.
-  checkInsets(
-    '[role="main"] h3, [role="main"] [aria-pressed] > p, [role="main"] ol > li [aria-pressed]',
-  );
-});
-
-test("a plan under review", async () => {
-  await show("/f/2026-10-13-plan-review/plan.md", "Task 5");
-  checkPage();
-});
-
-test("the priorities", async () => {
-  await show("/priorities", "Git listener process");
-  checkPage();
-});
-
-test("a feature waiting on an agent", async () => {
-  await show("/f/2026-10-12-cli-tuis", "CLI TUIs");
-  checkPage();
-});
-
 const LONG =
   "specs/2026-10-12-claude-code-runner-triggered-manually-https-code/clarifications-01.md";
 
 /** A run's panel, drawn from its records: the browser tests' server runs no agent. */
-function Panel({ state }: { state: "running" | "failed" }) {
+function Panel({ state, mode }: { state: "running" | "failed"; mode: "light" | "dark" }) {
   const run = {
     id: "1",
     folder: "2026-10-12-claude-code-runner-triggered-manually-https-code",
@@ -115,33 +223,47 @@ function Panel({ state }: { state: "running" | "failed" }) {
     { seq: 5, kind: "denial", tool: "Bash", target: "gh pr create --draft", rule: "" },
   ];
   return (
-    <Theme theme={uraedaTheme} mode="light">
-      <div className="page" role="main">
-        <section className="agent-panel">
-          <RunStatus run={run as never} waitsOnHuman={false} />
-          {run.reason && <p className="agent-reason">{run.reason}</p>}
-          <Denials denials={run.denials} onAllow={async () => {}} />
-          <ChatMessageList align="top" density="compact" className="run-log">
-            <RunEvents events={events} />
-          </ChatMessageList>
-        </section>
-      </div>
+    <Theme theme={uraedaTheme} mode={mode}>
+      {/* The shell paints the theme's background, as in the app. */}
+      <AppShell height="auto" contentPadding={0}>
+        <Page>
+          <VStack as="section" gap={3} aria-label="Agent">
+            <RunStatus run={run as never} waitsOnHuman={false} />
+            {run.reason && <RunReason reason={run.reason} />}
+            <Denials denials={run.denials} onAllow={async () => {}} />
+            <ChatMessageList align="top" density="compact" aria-label="Run log">
+              <RunEvents events={events} />
+            </ChatMessageList>
+          </VStack>
+        </Page>
+      </AppShell>
     </Theme>
   );
 }
 
-test("the agent panel", async () => {
-  for (const state of ["running", "failed"] as const) {
-    const container = document.createElement("div");
-    document.body.append(container);
-    const root = createRoot(container);
-    root.render(<Panel state={state} />);
+// The agent panel's states with long paths and commands, which a feature's page shows only once an
+// agent has run: the same checks as the pages', in both themes.
+test.each(
+  (["running", "failed"] as const).flatMap((state) =>
+    (["light", "dark"] as const).map((mode) => ({ state, mode })),
+  ),
+)("the agent panel, $state, in $mode", async ({ state, mode }) => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  try {
+    root.render(<Panel state={state} mode={mode} />);
     await expect
       .poll(() => document.body.textContent?.includes("Rate limited"), { timeout: 15_000 })
       .toBe(true);
     await new Promise((resolve) => setTimeout(resolve, 300));
     checkPage();
+    checkControlHeights();
+    checkTextSizes();
+    checkMeasure();
+    await checkAccessibility();
+  } finally {
     root.unmount();
-    document.body.innerHTML = "";
+    container.remove();
   }
 });

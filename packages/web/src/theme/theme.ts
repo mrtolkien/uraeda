@@ -43,11 +43,18 @@ const grown = {
 export const uraedaTheme = defineTheme({
   name: "uraeda",
   extends: neutralTheme,
+  tokens: {
+    // Secondary text, lighter in dark than the neutral theme's #9e9e9e, which reads at 4.1:1 on a
+    // segmented control's track: #a8a8a8 reaches WCAG AA's 4.5:1 there. Light is the neutral theme's.
+    "--color-text-secondary": ["#474747", "#a8a8a8"],
+  },
   localTokens: {
     // Reading text: paragraphs of documents, questions, and stories.
     "--text-reading-size": "17px",
     "--text-reading-line": "1.5",
-    "--size-reading-measure": "70ch",
+    // About 70 characters of text a line: `ch` is the width of a "0", wider than most letters, so
+    // 70ch held up to 78 of them.
+    "--size-reading-measure": "62ch",
     // A page's column on wide screens, which holds the reading measure and the rows beside it.
     "--size-page-max": "720px",
     // The detail pane beside a list on wide screens: at least this wide, and at most the window's
@@ -59,6 +66,21 @@ export const uraedaTheme = defineTheme({
     // The selected block of a review: an amber tint and bar, apart from the muted background.
     "--color-selection": "var(--color-background-yellow)",
     "--color-selection-edge": "var(--color-border-yellow)",
+  },
+  components: {
+    // Astryx gap: a tool call's name and target are cut with an ellipsis at the row's edge, with no
+    // prop to wrap them, and StyleX cannot reach them. The theme, which owns component overrides,
+    // wraps them, so a run's log shows a long path or command whole on the phone (the UI checks
+    // decision's "no text cut"). The `:is(*)` key is how the theme appends a descendant selector.
+    "chat-tool-calls": {
+      base: {
+        minWidth: "0",
+        maxWidth: "100%",
+        ":is(*) span": { whiteSpace: "normal", overflowWrap: "anywhere" },
+        // The tool's name, after its status icon, keeps its width.
+        ":is(*) span:nth-child(2)": { flex: "none" },
+      },
+    },
   },
   adaptations: {
     rules: [
@@ -78,6 +100,20 @@ export const uraedaTheme = defineTheme({
             "--size-element-sm": "44px",
             "--size-element-md": "44px",
             "--size-element-lg": "44px",
+          },
+          components: {
+            // A row a finger taps is a control's height at least.
+            item: { base: { minHeight: "var(--size-element-md)" } },
+            // A switch's row, which a tap anywhere toggles, as tall as a control.
+            "switch-field": { base: { display: "grid", minHeight: "var(--size-element-md)" } },
+            // A crumb as tall as a control; its link fills it (`Crumbs.tsx`).
+            "breadcrumb-item": { base: { minHeight: "var(--size-element-md)" } },
+            // The neutral theme draws a segment 8 px shorter than a control, inside its track.
+            "segmented-control-item": {
+              "size:sm": { height: "var(--size-element-sm)" },
+              "size:md": { height: "var(--size-element-md)" },
+              "size:lg": { height: "var(--size-element-lg)" },
+            },
           },
         },
       },

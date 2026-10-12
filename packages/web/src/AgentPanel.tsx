@@ -1,18 +1,38 @@
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
+import { Code } from "@astryxdesign/core/Code";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
+import { Heading } from "@astryxdesign/core/Heading";
+import { HStack } from "@astryxdesign/core/HStack";
 import { StatusDot } from "@astryxdesign/core/StatusDot";
+import { Text } from "@astryxdesign/core/Text";
 import { Timer } from "@astryxdesign/core/Timer";
+import { VStack } from "@astryxdesign/core/VStack";
+import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import { useRun, useRunner } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { stepLabel } from "./labels.ts";
+import { Paragraph } from "./layout/Paragraph.tsx";
+import { statusStyles } from "./Question.tsx";
 import { RunLog } from "./RunLog.tsx";
 import { startRun } from "./runs.ts";
 import { RunView } from "./views.ts";
 
 type Run = NonNullable<ReturnType<typeof useRun>>;
+
+const styles = stylex.create({
+  // A failure's reason keeps its line breaks, and a long path wraps instead of running off screen,
+  // within the reading measure.
+  reason: {
+    whiteSpace: "pre-wrap",
+    overflowWrap: "anywhere",
+    maxWidth: "var(--size-reading-measure)",
+  },
+  // A blocked command or its rule, whole, wrapped anywhere.
+  wrap: { overflowWrap: "anywhere" },
+});
 
 /** What the panel needs of the feature: its step, and its runs, newest first. */
 type Feature = {
@@ -62,25 +82,30 @@ export function RunStatus({ run, waitsOnHuman }: { run: Run; waitsOnHuman: boole
   const state = run.state as keyof typeof DOTS;
   const text = stateText(run, waitsOnHuman);
   return (
-    <>
-      <div className="agent-state">
+    <VStack gap={1}>
+      <HStack gap={2} align="center">
         <StatusDot
           variant={DOTS[state] ?? "neutral"}
           label={text}
           isPulsing={state === "running"}
         />
-        <span>{text}</span>
-      </div>
-      <p className="small muted">
+        <Text weight="semibold">{text}</Text>
+      </HStack>
+      <Text type="supporting" color="secondary">
         {run.endedAt ? (
           elapsed(run.startedAt, run.endedAt)
         ) : (
           <Timer startTime={Date.parse(run.startedAt)} />
         )}
         {run.costUsd != null && ` · ${costText(run.costUsd)}`}
-      </p>
-    </>
+      </Text>
+    </VStack>
   );
+}
+
+/** Why a run failed or stopped, as the runner wrote it. */
+export function RunReason({ reason }: { reason: string }) {
+  return <Paragraph xstyle={styles.reason}>{reason}</Paragraph>;
 }
 
 /** The actions `auto` mode blocked in a run, each with the button that allows it. */
@@ -92,26 +117,28 @@ export function Denials({
   onAllow?: (seq: number) => Promise<void>;
 }) {
   return denials.map((denial) => (
-    <div key={denial.seq} className="agent-denial">
-      <Banner
-        status="warning"
-        title="Blocked by auto mode"
-        collapsible={false}
-        endContent={
-          onAllow && <Button label="Allow and continue" clickAction={() => onAllow(denial.seq)} />
-        }
-      >
-        <span className="mono">
-          {denial.target ? `${denial.tool}: ${denial.target}` : denial.tool}
-        </span>
-        {onAllow && (
-          // The exact rule the button passes: a bare tool name allows its every call.
-          <p className="agent-rule">
-            Allows <span className="mono">{denial.rule}</span> for one run.
-          </p>
-        )}
-      </Banner>
-    </div>
+    <Banner
+      key={denial.seq}
+      status="warning"
+      title="Blocked by auto mode"
+      collapsible={false}
+      endContent={
+        onAllow && <Button label="Allow and continue" clickAction={() => onAllow(denial.seq)} />
+      }
+      description={
+        <VStack gap={1}>
+          <Code xstyle={styles.wrap}>
+            {denial.target ? `${denial.tool}: ${denial.target}` : denial.tool}
+          </Code>
+          {onAllow && (
+            // The exact rule the button passes: a bare tool name allows its every call.
+            <Text>
+              Allows <Code xstyle={styles.wrap}>{denial.rule}</Code> for one run.
+            </Text>
+          )}
+        </VStack>
+      }
+    />
   ));
 }
 
@@ -142,7 +169,7 @@ function LatestRun({
   return (
     <>
       <RunStatus run={run} waitsOnHuman={waitsOnHuman} />
-      {run.reason && run.state !== "running" && <p className="agent-reason">{run.reason}</p>}
+      {run.reason && run.state !== "running" && <RunReason reason={run.reason} />}
       {!running && (
         <Denials
           denials={run.denials}
@@ -150,12 +177,12 @@ function LatestRun({
         />
       )}
       {running ? (
-        <div className="actions">
+        <HStack gap={2}>
           <Button variant="destructive" label="Stop" clickAction={stop} />
-        </div>
+        </HStack>
       ) : (
         canStart && (
-          <div className="actions">
+          <HStack gap={2}>
             <Button
               variant="primary"
               label={
@@ -163,7 +190,7 @@ function LatestRun({
               }
               clickAction={onStart}
             />
-          </div>
+          </HStack>
         )
       )}
       <RunLog run={run} />
@@ -236,8 +263,8 @@ export function AgentPanel({ feature }: { feature: Feature }) {
   };
 
   return (
-    <section className="agent-panel" aria-label="Agent">
-      <div className="group label">Agent</div>
+    <VStack as="section" gap={3} aria-label="Agent">
+      <Heading level={2}>Agent</Heading>
       {latest ? (
         <LatestRun
           key={latest}
@@ -248,17 +275,17 @@ export function AgentPanel({ feature }: { feature: Feature }) {
           onAllow={allow}
         />
       ) : (
-        <div className="actions">
+        <HStack gap={2}>
           <Button variant="primary" label="Start the agent" clickAction={start} />
-        </div>
+        </HStack>
       )}
-      {message && <p className="not-saved">{message}</p>}
+      {message && <span {...stylex.props(statusStyles.error)}>{message}</span>}
       {earlier.length > 0 && (
         <Collapsible
           defaultIsOpen={false}
           trigger={
-            <span className="agent-earlier">
-              <span>Earlier runs</span> <span className="muted">{earlier.length}</span>
+            <span>
+              Earlier runs <Text color="secondary">{earlier.length}</Text>
             </span>
           }
         >
@@ -267,6 +294,6 @@ export function AgentPanel({ feature }: { feature: Feature }) {
           ))}
         </Collapsible>
       )}
-    </section>
+    </VStack>
   );
 }

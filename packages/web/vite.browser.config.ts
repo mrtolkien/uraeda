@@ -100,7 +100,13 @@ export default defineConfig({
       provider: playwright(),
       commands,
       instances: [
-        { browser: "webkit", name: "phone", viewport: { width: 402, height: 874 } },
+        // A touch screen, as a phone has.
+        {
+          browser: "webkit",
+          name: "phone",
+          viewport: { width: 402, height: 874 },
+          provider: playwright({ contextOptions: { hasTouch: true } }),
+        },
         { browser: "webkit", name: "desktop", viewport: { width: 1440, height: 900 } },
       ],
     },

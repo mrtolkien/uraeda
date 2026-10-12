@@ -89,7 +89,7 @@ function LogPage({ id }: { id: string }) {
 /** Every page of a run's log, in order, each kept up to date while the run goes on. */
 export function RunLog({ run }: { run: { id: string; pages: number } }) {
   return (
-    <ChatMessageList align="top" density="compact" className="run-log">
+    <ChatMessageList align="top" density="compact" aria-label="Run log">
       {Array.from({ length: run.pages }, (_, page) => (
         <LogPage key={page} id={`${run.id}:${page}`} />
       ))}

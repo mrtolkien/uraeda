@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@astryxdesign/cli": "0.6.8",
+    "@stylexjs/eslint-plugin": "0.19.1",
     "@stylexjs/unplugin": "0.19.1",
     "@testing-library/react": "16.3.3",
     "@types/node": "^24.19.1",

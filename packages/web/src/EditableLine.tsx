@@ -2,15 +2,17 @@ import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
+import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useRef, useState } from "react";
 
 const EMPTY = "A priority cannot be empty.";
 
 const styles = stylex.create({
-  // The text reads as text, from the start of its line.
+  // The text reads as text, from the start of its line, as tall as a control for a finger.
   text: {
     textAlign: "start",
+    minHeight: sizeVars["--size-element-md"],
   },
 });
 

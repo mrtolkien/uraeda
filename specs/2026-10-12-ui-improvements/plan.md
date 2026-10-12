@@ -139,6 +139,14 @@ From the [spec](spec.md) and its [review](spec-review.md), exact texts:
   boundaries with "Loading…".
 - [`styles.css`](/packages/web/src/styles.css): 533 lines, imported by
   [`main.tsx`](/packages/web/src/main.tsx) and the browser test; no StyleX anywhere.
+- The Claude Code runner, merged into main after this plan was written ([R24](rulings.md)): its
+  views are [`AgentPanel.tsx`](/packages/web/src/AgentPanel.tsx) on the feature page,
+  [`RunLog.tsx`](/packages/web/src/RunLog.tsx) on Astryx's `Chat`, and
+  [`CommitActions.tsx`](/packages/web/src/CommitActions.tsx), "Commit and continue" and "Commit
+  only", on the round, the review, and the editor, with home's "Working" badge; they used
+  `styles.css` classes (`.actions`, `.agent-*`, `.run-log`, `.mono`, `.small`, `.muted`) and a
+  `className` on `ChatMessageList`, tested by class in
+  [`agent-panel.test.tsx`](/packages/web/src/__tests__/agent-panel.test.tsx).
 - [`PrioritiesPage.tsx`](/packages/web/src/PrioritiesPage.tsx): `dropIndex(from, target)` gives the
   core's index for a drop, tested in [`drop.test.ts`](/packages/web/src/__tests__/drop.test.ts).
 - Tests: happy-dom integration tests in
@@ -208,19 +216,21 @@ From the [spec](spec.md) and its [review](spec-review.md), exact texts:
 
 ## Complexity tracking
 
-| Abstraction or exception                                              | Why it is needed                                                               | Simpler alternative rejected because                                                 |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| `useWidthClass()` hook                                                | the layout decision requires one shared source of the width class              | `matchMedia` in each component: forbidden by the layout decision                     |
-| `Panes` component                                                     | home and the priorities page both show a list with a detail beside it          | each page laying out its own panes: two copies of the same rule                      |
-| `Overlay` component                                                   | every short form switches between a dialog and a sheet by width                | choosing per call site: repeated logic, and the close button and Back rule each time |
-| `TopBarSlot` context                                                  | the round and home put their own controls in the shell's bar                   | rendering the bar in each page: AppShell owns the bar                                |
-| `useRestoreScroll(ready)` and `navigate` saving state                 | every page restores its position on Back once drawn                            | `scrollRestoration = "auto"`: it restores before data arrives, today's bug           |
-| `EditableLine` component                                              | the task view edits a line in place, with the same keys everywhere it appears  | an input inlined in the task view: kept small, but shared with the Add rows          |
-| `Page` component                                                      | every page rebuilt on Astryx needs the same inset and wide column              | each page styling its own container: copies of one rule, as `.page` was in CSS       |
-| `ToastUndo` helper (`useUndoToast`)                                   | ＋ and Delete both show a 5 s toast with one Undo                              | two hand-written toasts with the same timing                                         |
-| Astryx gap: the question's option is a raw `button`                   | a full-width toggle holding paragraphs and lists; no Astryx component draws it | `SelectableCard`: a card, which the reading layout forbids                           |
-| Astryx gap: the review's selectable block, `role="button"` on a `div` | a tappable block of document text, not a control                               | wrapping blocks in `Button`: breaks the document's text flow                         |
-| Browser commands taking the repository in turn                        | drag tests write `PRIORITIES.md`, and both sizes run at once on one server     | one shared repository: two drags at once refuse each other's moves on the hash       |
+| Abstraction or exception                                                           | Why it is needed                                                                                      | Simpler alternative rejected because                                                        |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `useWidthClass()` hook                                                             | the layout decision requires one shared source of the width class                                     | `matchMedia` in each component: forbidden by the layout decision                            |
+| `Panes` component                                                                  | home and the priorities page both show a list with a detail beside it                                 | each page laying out its own panes: two copies of the same rule                             |
+| `Overlay` component                                                                | every short form switches between a dialog and a sheet by width                                       | choosing per call site: repeated logic, and the close button and Back rule each time        |
+| `TopBarSlot` context                                                               | the round and home put their own controls in the shell's bar                                          | rendering the bar in each page: AppShell owns the bar                                       |
+| `useRestoreScroll(ready)` and `navigate` saving state                              | every page restores its position on Back once drawn                                                   | `scrollRestoration = "auto"`: it restores before data arrives, today's bug                  |
+| `EditableLine` component                                                           | the task view edits a line in place, with the same keys everywhere it appears                         | an input inlined in the task view: kept small, but shared with the Add rows                 |
+| `Page` component                                                                   | every page rebuilt on Astryx needs the same inset and wide column                                     | each page styling its own container: copies of one rule, as `.page` was in CSS              |
+| `ToastUndo` helper (`useUndoToast`)                                                | ＋ and Delete both show a 5 s toast with one Undo                                                     | two hand-written toasts with the same timing                                                |
+| Astryx gap: the question's option is a raw `button`                                | a full-width toggle holding paragraphs and lists; no Astryx component draws it                        | `SelectableCard`: a card, which the reading layout forbids                                  |
+| Astryx gap: the review's selectable block, a raw toggle `button` under its text    | a tappable block of document text, not a control; a toggle around the text would hide its links (R20) | wrapping blocks in `Button`: breaks the document's text flow                                |
+| `Paragraph` component                                                              | a page's own paragraphs take the reading size, 17 and 19 px, apart from Astryx's smaller UI text      | a reading style in each page: the components decision keeps a style in its component's file |
+| Astryx gap: a run's tool calls wrap through the theme's `chat-tool-calls` override | `ChatToolCalls` cuts a tool's name and target with an ellipsis, with no prop to wrap them (R24)       | StyleX: it cannot reach the component's inner spans; a stylesheet: the components decision  |
+| Browser commands taking the repository in turn                                     | drag tests write `PRIORITIES.md`, and both sizes run at once on one server                            | one shared repository: two drags at once refuse each other's moves on the hash              |
 
 ## Review comments
 
@@ -1436,7 +1446,17 @@ git commit -m "feat(ui-improvements): comment with the block in view, and on moc
   `@stylexjs/eslint-plugin`), `packages/web/package.json` (`@stylexjs/eslint-plugin` 0.19.1, dev)
 - Modify: `packages/web/src/__browser__/layout.test.tsx` (both sizes, axe, both themes)
 - Create: `packages/web/src/__lint__/` fixtures, one file per banned pattern, excluded from the
-  normal lint and linted by a test
+  normal lint and linted by a test (`URAEDA_LINT_FIXTURES` set, [R19](rulings.md))
+- Create: `packages/web/lint/stylex.js`, StyleX's plugin with `var(--*)` and `<percentage>` limits
+  ([R19](rulings.md)); `packages/web/src/layout/Paragraph.tsx` ([R22](rulings.md))
+- Modify: what the checks found: `Shell.tsx` ([R21](rulings.md)), `Blocks.tsx` ([R20](rulings.md)),
+  `theme/theme.ts` ([R22](rulings.md)), `vite.browser.config.ts` (the phone has a touch screen,
+  [R23](rulings.md))
+- Modify: the runner's views on Astryx and StyleX ([R24](rulings.md)): `AgentPanel.tsx`,
+  `RunLog.tsx`, `CommitActions.tsx`, `FeaturePage.tsx` (its branch line, not a paragraph),
+  `theme/theme.ts` (the tool calls' wrapping, an Astryx gap), `__tests__/agent-panel.test.tsx` (by
+  role and text), and `layout.test.tsx` (the feature page waiting on an agent, and the agent panel
+  with long paths, in both themes)
 - Test: `packages/web/src/__tests__/lint.test.ts`
 
 **Interfaces:**
@@ -1444,11 +1464,12 @@ git commit -m "feat(ui-improvements): comment with the block in view, and on moc
 - Lint rules, scoped to `packages/web/src/**`: `react/forbid-elements` for `button` ("use Astryx
   Button"), `input` ("use Astryx TextInput"), `textarea` ("use Astryx TextArea"), `select` ("use
   Astryx Selector"), `dialog` ("use Astryx Dialog or BottomSheet"); `react/forbid-dom-props` for
-  `style`; `react/forbid-component-props` for `style` and `className` on components imported from
-  `@astryxdesign/core`; `@stylexjs/valid-styles` with `propLimits` allowing only `var(--…)`, `0`,
-  percentages, `auto`, and keywords for colour, spacing, size, radius, border, and font properties.
+  `style`; `react/forbid-component-props` for `style` and `className` on every component, as the
+  rule cannot tell where a component is imported from; `stylex/valid-styles` with `propLimits`
+  allowing only `var(--…)`, Astryx's `.stylex` tokens, `0`, percentages, `auto`, and keywords for
+  colour, spacing, size, radius, border, and font properties ([R19](rulings.md)).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/web/src/__tests__/lint.test.ts
@@ -1485,15 +1506,15 @@ test("no stylesheet but Astryx's is imported (SC-001)", () => {
 - Run: `vp test lint.test layout.test`
 - Expected: FAIL, `expected "" to contain "react(forbid-elements)"`.
 
-- [ ] **Step 3: Implement** the lint configuration, delete `styles.css`, and fix what the lint and
+- [x] **Step 3: Implement** the lint configuration, delete `styles.css`, and fix what the lint and
       the checks report.
 
-- [ ] **Step 4: Run all checks**
+- [x] **Step 4: Run all checks**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add vite.config.ts packages/web

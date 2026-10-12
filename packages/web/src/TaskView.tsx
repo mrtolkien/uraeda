@@ -21,6 +21,7 @@ import { useUndoToast } from "./layout/useUndoToast.ts";
 import { currentEntry, navigate, pathLink, redirect, useRestoreScroll } from "./routes.tsx";
 import { plain } from "./Spans.tsx";
 import { DraftView, FeatureView, PrioritiesView } from "./views.ts";
+import { Paragraph } from "./layout/Paragraph.tsx";
 
 const SECTIONS: Record<string, string> = {
   now: "Now",
@@ -59,11 +60,7 @@ function DraftPart({ path }: { path: string }) {
   const draft = useDraft(path);
   const [message, setMessage] = useState<string>();
   if (!draft) {
-    return (
-      <Text as="p" display="block">
-        No draft {path}.
-      </Text>
-    );
+    return <Paragraph>No draft {path}.</Paragraph>;
   }
   // The draft's title is the line, shown above it already.
   const ids = draft.document.blocks
@@ -119,12 +116,10 @@ export function TaskView({ entryKey }: { entryKey: string }) {
     return (
       <Page>
         <VStack gap={2}>
-          <Text as="p" display="block">
-            This line is no longer in PRIORITIES.md.
-          </Text>
-          <Text as="p" display="block">
+          <Paragraph>This line is no longer in PRIORITIES.md.</Paragraph>
+          <Paragraph>
             <Link href="/priorities">Open the priorities</Link>
-          </Text>
+          </Paragraph>
         </VStack>
       </Page>
     );
@@ -244,14 +239,12 @@ export function TaskView({ entryKey }: { entryKey: string }) {
             <DraftPart path={link} />
           </Suspense>
         ) : link ? (
-          <Text as="p" display="block">
+          <Paragraph>
             <Link href={pathLink(link).href}>Open {link.replace(/^specs\//, "")}</Link>
-          </Text>
+          </Paragraph>
         ) : (
           <VStack gap={2}>
-            <Text as="p" color="secondary" display="block">
-              No draft yet.
-            </Text>
+            <Paragraph color="secondary">No draft yet.</Paragraph>
             <HStack gap={2}>
               <Button variant="primary" label="Draft" clickAction={draft} />
             </HStack>
