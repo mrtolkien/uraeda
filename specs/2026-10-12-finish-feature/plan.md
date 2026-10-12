@@ -842,7 +842,7 @@ pub fn clean(git: &Git, workspace: &Workspace, feature: &Feature, dry_run: bool)
 `clean` refuses a feature whose step is not `done` with
 `ActionError::Refused("<folder> is not merged: only merged features are cleaned")`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `crates/core/tests/clean.rs`, with a helper `fn merged(kind: Kind) -> (TestRepo, Feature)` that
 finishes a branch, rebase-merges it into `main` with `git rebase` then `git merge --ff-only`, keeps
@@ -914,12 +914,12 @@ fn a_dry_run_changes_nothing() {
 }
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test clean`
 - Expected: FAIL to compile: `could not find clean in actions`.
 
-- [ ] **Step 3: Implement `git.rs`'s additions, then `clean`**
+- [x] **Step 3: Implement `git.rs`'s additions, then `clean`**
 
 `clean`, in this order, deciding everything before any write, and writing nothing on a dry run:
 
@@ -933,12 +933,12 @@ fn a_dry_run_changes_nothing() {
    with `bases` the local default branch and `origin/<default>` when it exists, above 0: left,
    `Unmerged`. Otherwise `delete_branch`, did `DeletedBranch`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo test --workspace --exclude uraeda-binding`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core
