@@ -374,7 +374,7 @@ git commit -m "feat(finish-feature): check records of finished features"
 - Modify: `crates/core/src/target.rs` (`by_path` through `Feature::owns`)
 - Modify: `crates/core/src/api.rs` (`feature_of` through `Feature::owns`)
 - Modify: `crates/core/src/actions/start.rs` (`taken`)
-- Test: `crates/core/tests/workspace.rs`, `crates/core/tests/actions.rs`
+- Test: `crates/core/tests/workspace.rs`, `crates/cli/tests/start.rs`
 
 **Interfaces:**
 
@@ -393,7 +393,7 @@ git commit -m "feat(finish-feature): check records of finished features"
   - Merged features: a record or a folder on the local default branch's tip or on
     `origin/<default>`'s, read from the local tip first; a record wins over a folder.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `crates/core/tests/workspace.rs`, with a helper
 `fn finish(repo: &TestRepo, branch: &str, folder: &str, kind: &str)` that, on `branch`, deletes the
@@ -477,22 +477,22 @@ fn a_finished_branch_is_read_from_its_record() {
 }
 ```
 
-In `crates/core/tests/actions.rs`:
+In `crates/cli/tests/start.rs`, where `ura start`'s tests live:
 
 ```rust
 #[test]
-fn start_refuses_a_name_a_record_holds() {
-    // main has specs/done/2026-10-11-note.md; start the draft `note` on 2026-10-11
-    assert_eq!(error.to_string(), "specs/done/2026-10-11-note.md exists: choose another slug with --slug");
+fn refuses_a_name_a_record_holds() {
+    // main has specs/done/2026-10-11-git-listener-process.md; start the draft on 2026-10-11
+    assert_eq!(output.stderr, "ura: specs/done/2026-10-11-git-listener-process.md exists: choose another slug with --slug\n");
 }
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
-- Run: `cargo test -p uraeda-core --test workspace --test actions`
+- Run: `cargo test -p uraeda-core --test workspace`
 - Expected: FAIL to compile: `no method named is_finished found for struct Feature`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 - `Git::remote_tip`: as in **Produces**, with gix.
 - `Reader::records(from) -> BTreeSet<(Kind, String)>`: each `specs/done/<folder>.md` whose stem is a
@@ -512,12 +512,12 @@ fn start_refuses_a_name_a_record_holds() {
   workspace's records, with the message "specs/done/<folder>.md exists: choose another slug with
   --slug".
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo test --workspace --exclude uraeda-binding`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core

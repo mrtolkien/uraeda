@@ -257,6 +257,13 @@ impl Git {
         })
     }
 
+    /// The commit `origin`'s branch points to, without looking at the local branch.
+    pub fn remote_tip(&self, branch: &str) -> Option<ObjectId> {
+        let name = format!("refs/remotes/origin/{branch}");
+        let mut reference = self.repo.try_find_reference(name.as_str()).ok()??;
+        reference.peel_to_id().ok().map(|id| id.detach())
+    }
+
     /// The commit `HEAD` points to, if any.
     pub fn head(&self) -> Option<ObjectId> {
         self.repo.head_id().ok().map(|id| id.detach())
