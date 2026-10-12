@@ -3,10 +3,10 @@
 ## Now
 
 - [UI improvements](/specs/2026-10-12-ui-improvements/proposal.md)
+- [Claude Code runner (triggered manually): https://code.claude.com/docs/en/headless](/specs/2026-10-12-claude-code-runner-triggered-manually-https-code/proposal.md)
 
 ## Next
 
-- [Claude Code runner (triggered manually): https://code.claude.com/docs/en/headless](drafts/claude-code-runner-triggered-manually-https-code.md)
 - Chat in the web UI: ask about a step without committing, ...
 - Look and feel pass
 - Nvim plugin
