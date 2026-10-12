@@ -90,7 +90,7 @@ export function MockupPage({ folder, name }: { folder: string; name: string }) {
       <div {...stylex.props(styles.header)}>
         <Crumbs folder={folder} current={name} />
         <HStack gap={2} wrap="wrap" align="center">
-          <Link href={source} target="_blank">
+          <Link href={source} target="_blank" hasUnderline>
             Open in a new tab
           </Link>
           {reviewing && <Button label="Comment" onClick={() => setOpen(true)} />}

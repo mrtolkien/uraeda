@@ -23,7 +23,9 @@ export function FilePage({ folder, name }: { folder: string; name: string }) {
             No file {name} in {folder}.
           </Paragraph>
           <Paragraph>
-            <Link href={`/f/${folder}`}>Open the feature</Link>
+            <Link href={`/f/${folder}`} hasUnderline>
+              Open the feature
+            </Link>
           </Paragraph>
         </VStack>
       </Page>
