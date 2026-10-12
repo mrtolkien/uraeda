@@ -60,6 +60,20 @@ export function usePriorities() {
   return useLiveView(PrioritiesView, priorities);
 }
 
+/**
+ * The hash of the priorities as they are now on disk, read outside a component: for a change made
+ * after others, like an Undo.
+ */
+export async function readPrioritiesHash(fate: ReturnType<typeof useFateClient>): Promise<string> {
+  const { priorities } = await fate.request(
+    { priorities: { id: PRIORITIES_ID, view: PrioritiesView } },
+    { mode: "network-only" },
+  );
+  const { data } = await fate.readView(PrioritiesView, priorities);
+  // fate types the request's root as any entity: the view gives the priorities' fields.
+  return (data as unknown as { hash: string }).hash;
+}
+
 export function useDraft(path: string) {
   const request = { draft: { id: path, view: DraftView } };
   const { draft } = useRequest(request);

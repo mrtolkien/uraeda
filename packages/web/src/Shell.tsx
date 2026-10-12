@@ -1,10 +1,10 @@
 import { AppShell } from "@astryxdesign/core/AppShell";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { SideNav, SideNavHeading, SideNavItem, SideNavSection } from "@astryxdesign/core/SideNav";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { useWorkspace } from "./data.ts";
-import { QuickAdd } from "./QuickAdd.tsx";
-import { navigate, usePathname } from "./routes.tsx";
+import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
+import { navigate, RouterAnchor, usePathname } from "./routes.tsx";
 import { type ThemeMode, useThemeMode } from "./theme.tsx";
 
 function ThemeSwitch() {
@@ -36,8 +36,12 @@ function Item({ label, to, pathname }: { label: string; to: string; pathname: st
   );
 }
 
-/** The navigation: home, priorities, and every feature by what it waits for, then the theme. */
-function Nav() {
+/**
+ * The navigation: home, priorities, and every feature by what it waits for, then the theme. Its
+ * heading goes home and ends with the page's own controls; on wide screens it folds away and
+ * resizes, its width and state kept in the browser.
+ */
+function Nav({ slot }: { slot: ReactNode }) {
   const workspace = useWorkspace();
   const pathname = usePathname();
   const features = workspace?.features ?? [];
@@ -53,9 +57,17 @@ function Nav() {
   return (
     <SideNav
       header={
-        <SideNavHeading heading="Uraeda" subheading={repository} headerEndContent={<QuickAdd />} />
+        <SideNavHeading
+          heading="Uraeda"
+          headingHref="/"
+          as={RouterAnchor}
+          subheading={repository}
+          headerEndContent={slot}
+        />
       }
       footer={<ThemeSwitch />}
+      collapsible
+      resizable={{ defaultWidth: 240, minWidth: 200, maxWidth: 360, autoSaveId: "uraeda.nav" }}
     >
       <Item label="Home" to="/" pathname={pathname} />
       <Item label="Priorities" to="/priorities" pathname={pathname} />
@@ -79,9 +91,10 @@ function Nav() {
 }
 
 export function Shell({ children }: { children: ReactNode }) {
+  const [slot, setSlot] = useState<ReactNode>(null);
   return (
-    <AppShell sideNav={<Nav />} height="auto" contentPadding={0}>
-      {children}
+    <AppShell sideNav={<Nav slot={slot} />} height="auto" contentPadding={0}>
+      <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
     </AppShell>
   );
 }

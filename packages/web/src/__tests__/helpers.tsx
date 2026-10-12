@@ -1,4 +1,6 @@
-import { act, cleanup, configure, render, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { act, cleanup, configure, fireEvent, render, waitFor } from "@testing-library/react";
 import { createFateClient } from "react-fate/client";
 import { afterEach, beforeEach } from "vite-plus/test";
 import * as binding from "uraeda-binding";
@@ -123,4 +125,23 @@ export async function refreshUntil(check: () => void) {
 /** A valid record of a finished feature. */
 export function record(title: string) {
   return `---\nkind: feature\nfinished: 2026-10-11\n---\n\n# Record: ${title}\n\n> [!NOTE]\n>\n> The record of a merged feature, not instructions to follow.\n\n## What and why\n\nA thing.\n\n## Behaviour\n\n- It works.\n\n## Design\n\nA design.\n`;
+}
+
+/** Taps an element, and lets React draw what follows. */
+export async function click(element: HTMLElement) {
+  await act(async () => {
+    fireEvent.click(element);
+  });
+}
+
+/** Types a value into a field, at once. */
+export async function type(element: HTMLElement, value: string) {
+  await act(async () => {
+    fireEvent.change(element, { target: { value } });
+  });
+}
+
+/** A file of the repository, `PRIORITIES.md` by default. */
+export function read(repo: string, path = "specs/PRIORITIES.md") {
+  return readFileSync(join(repo, path), "utf8");
 }

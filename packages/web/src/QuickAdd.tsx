@@ -1,11 +1,16 @@
-import { BottomSheet } from "@astryxdesign/core/BottomSheet";
+import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
+import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
+import { Spinner } from "@astryxdesign/core/Spinner";
 import { TextArea } from "@astryxdesign/core/TextArea";
+import { VStack } from "@astryxdesign/core/VStack";
 import { Suspense, useState } from "react";
 import { useFateClient } from "react-fate";
-import { usePriorities } from "./data.ts";
+import { readPrioritiesHash, usePriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
+import { Overlay } from "./layout/Overlay.tsx";
+import { useUndoToast } from "./layout/useUndoToast.ts";
 import { PrioritiesView } from "./views.ts";
 
 const TITLES: Record<string, string> = {
@@ -15,8 +20,8 @@ const TITLES: Record<string, string> = {
   blocked: "Blocked",
 };
 
-/** The sheet's form: it reads the priorities when it opens, for the version it adds to. */
-function AddForm({ onAdded }: { onAdded: (section: string) => void }) {
+/** The form: it reads the priorities when it opens, for the version it adds to. */
+function AddForm({ onAdded }: { onAdded: (section: string, entry: string | undefined) => void }) {
   const fate = useFateClient();
   const priorities = usePriorities();
   const [text, setText] = useState("");
@@ -33,13 +38,14 @@ function AddForm({ onAdded }: { onAdded: (section: string) => void }) {
       setMessage(refusal(result.error).message);
       return;
     }
+    // The line just added ends its section.
+    const added = result.result?.sections.find((s) => s.section === section)?.entries.at(-1);
     setText("");
-    onAdded(section);
+    onAdded(section, added?.id);
   };
 
   return (
-    <div>
-      <h2 className="title-l">New priority</h2>
+    <VStack gap={4}>
       <TextArea
         label="Priority"
         isLabelHidden
@@ -48,29 +54,47 @@ function AddForm({ onAdded }: { onAdded: (section: string) => void }) {
         rows={3}
         onChange={(value: string) => setText(value)}
       />
-      <div style={{ marginTop: 12 }}>
-        <SegmentedControl
-          label="Section"
-          value={section}
-          onChange={(value: string) => setSection(value)}
-        >
-          {Object.entries(TITLES).map(([id, title]) => (
-            <SegmentedControlItem key={id} value={id} label={title} />
-          ))}
-        </SegmentedControl>
-      </div>
-      <div className="actions">
+      <SegmentedControl
+        label="Section"
+        value={section}
+        onChange={(value: string) => setSection(value)}
+      >
+        {Object.entries(TITLES).map(([id, title]) => (
+          <SegmentedControlItem key={id} value={id} label={title} />
+        ))}
+      </SegmentedControl>
+      {message && <Banner status="error" title={message} />}
+      <HStack justify="end">
         <Button variant="primary" label="Add" isDisabled={!text.trim()} clickAction={add} />
-      </div>
-      {message && <p className="not-saved">{message}</p>}
-    </div>
+      </HStack>
+    </VStack>
   );
 }
 
-/** ＋: jots a line down at the end of a section of `PRIORITIES.md`, Next by default, at once. */
+/**
+ * ＋: jots a line down at the end of a section of `PRIORITIES.md`, Next by default, at once. A toast
+ * says where it went, with Undo.
+ */
 export function QuickAdd() {
+  const fate = useFateClient();
   const [open, setOpen] = useState(false);
-  const [message, setMessage] = useState<string>();
+  const toast = useUndoToast();
+
+  const added = (section: string, entry: string | undefined) => {
+    setOpen(false);
+    toast(`Added to ${TITLES[section]}, not committed`, async () => {
+      if (!entry) {
+        return "The line was not found.";
+      }
+      // Removed by its place, over the file as it is now: an edit since is removed with it.
+      const hash = await readPrioritiesHash(fate);
+      const result = await fate.mutations.priorities.remove({
+        input: { entry, hash },
+        view: PrioritiesView,
+      });
+      return result.error ? refusal(result.error).message : undefined;
+    });
+  };
 
   return (
     <>
@@ -79,28 +103,13 @@ export function QuickAdd() {
         label="Add a priority"
         isIconOnly
         icon={<span aria-hidden="true">＋</span>}
-        onClick={() => {
-          setMessage(undefined);
-          setOpen(true);
-        }}
+        onClick={() => setOpen(true)}
       />
-      {message && (
-        <span role="status" className="small saved" style={{ marginLeft: 8 }}>
-          {message}
-        </span>
-      )}
-      <BottomSheet label="New priority" isOpen={open} onOpenChange={setOpen}>
-        {open && (
-          <Suspense fallback={<p className="muted">Loading…</p>}>
-            <AddForm
-              onAdded={(section) => {
-                setOpen(false);
-                setMessage(`Added to ${TITLES[section]}, not committed`);
-              }}
-            />
-          </Suspense>
-        )}
-      </BottomSheet>
+      <Overlay label="New priority" isOpen={open} onClose={() => setOpen(false)}>
+        <Suspense fallback={<Spinner label="Loading the priorities" />}>
+          <AddForm onAdded={added} />
+        </Suspense>
+      </Overlay>
     </>
   );
 }

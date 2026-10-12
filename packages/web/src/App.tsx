@@ -1,5 +1,6 @@
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
+import { LayerProvider } from "@astryxdesign/core/Layer";
 import { Theme } from "@astryxdesign/core/theme";
 import { uraedaTheme } from "./theme/built/uraeda.js";
 import { Component, type ReactNode, Suspense, useState } from "react";
@@ -83,15 +84,17 @@ export function App({ client }: { client: ReturnType<typeof createFateClient> })
       <ThemeModeProvider>
         {(mode) => (
           <Theme theme={uraedaTheme} mode={mode}>
-            <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
-              <Suspense fallback={<div className="page muted">Loading…</div>}>
-                <Shell>
-                  <Suspense fallback={<div className="page muted">Loading…</div>}>
-                    <Page key={pathname} route={route} />
-                  </Suspense>
-                </Shell>
-              </Suspense>
-            </ServerErrorBoundary>
+            <LayerProvider toast={{ position: "bottomEnd" }}>
+              <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
+                <Suspense fallback={<div className="page muted">Loading…</div>}>
+                  <Shell>
+                    <Suspense fallback={<div className="page muted">Loading…</div>}>
+                      <Page key={pathname} route={route} />
+                    </Suspense>
+                  </Shell>
+                </Suspense>
+              </ServerErrorBoundary>
+            </LayerProvider>
           </Theme>
         )}
       </ThemeModeProvider>

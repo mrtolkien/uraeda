@@ -750,7 +750,8 @@ git commit -m "fix(ui-improvements): Back returns to the same place"
 
 **Files:**
 
-- Modify: `packages/web/src/Shell.tsx`, `QuickAdd.tsx`
+- Modify: `packages/web/src/Shell.tsx`, `QuickAdd.tsx`, `App.tsx` (Astryx's `LayerProvider`, for the
+  toasts), `routes.tsx` (`RouterAnchor`), `data.ts` (`readPrioritiesHash`)
 - Create: `packages/web/src/layout/TopBarSlot.tsx`, `packages/web/src/layout/useUndoToast.ts`
 - Test: `packages/web/src/__tests__/shell.test.tsx`; update `priorities.test.tsx` (＋ tests)
 
@@ -761,14 +762,17 @@ git commit -m "fix(ui-improvements): Back returns to the same place"
   default.
 - Produces: `<QuickAdd />`, rendered by home and the priorities page in their `TopBarSlot`; its form
   opens in `Overlay`.
-- Produces: `useUndoToast(): (message: string, undo: () => Promise<boolean>) => void`: an Astryx
-  toast, `autoHideDuration` 5000, with one "Undo" action; when `undo` resolves false, the toast is
-  replaced by the error text it is given by the caller.
+- Produces: `useUndoToast(): (message: string, undo: () => Promise<string | undefined>) => void`: an
+  Astryx toast, `autoHideDuration` 5000, with one "Undo" action; `undo` resolves with nothing once
+  reverted, or with the error text, which replaces the toast and stays until dismissed (R9).
+- Produces: `<TopBarSlotProvider onChange>`, which the shell wraps the page in, and
+  `readPrioritiesHash(fate)`, the hash on disk now, for a change made after others, like an Undo.
+- Produces: `RouterAnchor`, the anchor Astryx components take as `as` for a link of the UI.
 - Shell: `SideNavHeading` with `headingHref="/"`, clicks routed through `navigate`; `SideNav` with
   `resizable={{ defaultWidth: 240, minWidth: 200, maxWidth: 360, autoSaveId: "uraeda.nav" }}` and
   `collapsible`; the theme switch stays its footer.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // packages/web/src/__tests__/shell.test.tsx
@@ -801,20 +805,20 @@ test("no ＋ on a round or a review (US6 6)", async () => {
 
 Move `read`, `type`, and `click` from the existing tests into `helpers.tsx`, shared.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test shell.test`
 - Expected: FAIL, `Unable to find an accessible element with the role "link" and name /Uraeda/`.
 
-- [ ] **Step 3: Implement** the interfaces. The toast's Undo of ＋ removes the line just added: the
+- [x] **Step 3: Implement** the interfaces. The toast's Undo of ＋ removes the line just added: the
       last entry of the section in the priorities the add returned, by its id.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src

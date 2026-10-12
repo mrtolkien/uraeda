@@ -9,6 +9,8 @@ import { GrowingTextArea } from "./Question.tsx";
 import { plain, Spans } from "./Spans.tsx";
 import { PrioritiesView } from "./views.ts";
 import { useRestoreScroll } from "./routes.tsx";
+import { TopBarSlot } from "./layout/TopBarSlot.tsx";
+import { QuickAdd } from "./QuickAdd.tsx";
 
 const TITLES: Record<string, string> = {
   now: "Now",
@@ -97,6 +99,9 @@ export function PrioritiesPage() {
   return (
     <div className="page">
       <h1 className="title-l">Priorities</h1>
+      <TopBarSlot>
+        <QuickAdd />
+      </TopBarSlot>
       {priorities.sections.map((section) => (
         <div key={section.section}>
           <div className="group label">{section.title}</div>
