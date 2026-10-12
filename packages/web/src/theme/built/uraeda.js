@@ -204,6 +204,7 @@ export const uraedaTheme = {
     "--text-reading-size": "17px",
     "--text-reading-line": "1.5",
     "--size-reading-measure": "70ch",
+    "--size-page-max": "720px",
     "--size-pane-min": "400px",
     "--size-viewport-height": "100dvh",
     "--color-selection": "var(--color-background-yellow)",
@@ -223,6 +224,7 @@ export const uraedaTheme = {
     "--text-reading-size": "uraeda",
     "--text-reading-line": "uraeda",
     "--size-reading-measure": "uraeda",
+    "--size-page-max": "uraeda",
     "--size-pane-min": "uraeda",
     "--size-viewport-height": "uraeda",
     "--color-selection": "uraeda",
@@ -568,7 +570,8 @@ export const uraedaTheme = {
             "--size-element-lg": "43.2px"
           },
           "localTokens": {
-            "--text-reading-size": "19px"
+            "--text-reading-size": "19px",
+            "--size-page-max": "864px"
           }
         }
       },

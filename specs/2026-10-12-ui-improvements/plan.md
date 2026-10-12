@@ -216,6 +216,7 @@ From the [spec](spec.md) and its [review](spec-review.md), exact texts:
 | `TopBarSlot` context                                                  | the round and home put their own controls in the shell's bar                   | rendering the bar in each page: AppShell owns the bar                                |
 | `useRestoreScroll(ready)` and `navigate` saving state                 | every page restores its position on Back once drawn                            | `scrollRestoration = "auto"`: it restores before data arrives, today's bug           |
 | `EditableLine` component                                              | the task view edits a line in place, with the same keys everywhere it appears  | an input inlined in the task view: kept small, but shared with the Add rows          |
+| `Page` component                                                      | every page rebuilt on Astryx needs the same inset and wide column              | each page styling its own container: copies of one rule, as `.page` was in CSS       |
 | `ToastUndo` helper (`useUndoToast`)                                   | ＋ and Delete both show a 5 s toast with one Undo                              | two hand-written toasts with the same timing                                         |
 | Astryx gap: the question's option is a raw `button`                   | a full-width toggle holding paragraphs and lists; no Astryx component draws it | `SelectableCard`: a card, which the reading layout forbids                           |
 | Astryx gap: the review's selectable block, `role="button"` on a `div` | a tappable block of document text, not a control                               | wrapping blocks in `Button`: breaks the document's text flow                         |
@@ -836,14 +837,26 @@ git commit -m "feat(ui-improvements): a home link, a collapsible navigation, and
 
 **Interfaces:**
 
-- Produces: `Blocks` drawn with Astryx `Heading`, `Text`, `List`, `CodeBlock`, `Table`, and StyleX
-  for callouts and typed bullets, reading text at `--text-reading-size`, measure
-  `--size-reading-measure`, `text-wrap: pretty`, left-aligned. Its `Selection` API is unchanged.
-- Produces: `FeaturePage` and `FilePage` open with Astryx `Breadcrumbs`: Home, the feature, the
-  file. `FeaturePage` lists the feature's files as `List` rows, then a "Mockups" group listing
-  `feature.mockups`, each a row linking `/f/<folder>/mockups/<name>`.
+- Produces: `Blocks` drawn with Astryx `Heading`, `Text`, `List`, `CodeBlock`, `Table`,
+  `Blockquote`, `Divider`, and StyleX for callouts and typed bullets, reading text at
+  `--text-reading-size`, measure `--size-reading-measure`, `text-wrap: pretty`, left-aligned. Its
+  `Selection` API is unchanged; a selectable block is `role="button"` with `aria-pressed`, tinted
+  with `--color-selection` and `--color-selection-edge` in StyleX ([R10](rulings.md)).
+- Produces: `Spans` draws inline code with Astryx `Code` and links with Astryx `Link`
+  (`type="inherit"`). `App` wraps the UI in Astryx's `LinkProvider` with `RouterAnchor`, which opens
+  a path of the UI through `navigate` and leaves new tabs, anchors, `/raw/`, and `/mockups/` to the
+  browser: every Astryx link, like a `ListItem`'s `href`, routes without reloading.
+- Produces: `<Page>{children}</Page>` (`layout/Page.tsx`): a page's inset, and its column on wide
+  screens, `--size-page-max` (720 px, 864 px from `lg`), a theme token. Pages rebuilt on Astryx use
+  it in place of `.page`.
+- Produces: `<Crumbs folder current? />` (`Crumbs.tsx`): Astryx `Breadcrumbs` labelled
+  "Breadcrumbs": Home, the feature by its title (from `useWorkspace()`), then `current` when given.
+- Produces: `FeaturePage` and `FilePage` open with `Crumbs`: Home, the feature, the file.
+  `FeaturePage` lists the feature's files as `List` rows (the list labelled "Files"), then a
+  "Mockups" group listing `feature.mockups`, each a row linking `/f/<folder>/mockups/<name>`, then
+  "Problems".
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // feature.test.tsx
@@ -861,19 +874,19 @@ test("a file page shows breadcrumbs", async () => {
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test feature.test document.test`
 - Expected: FAIL, no link named /repeat\.html/.
 
-- [ ] **Step 3: Implement** the interfaces.
+- [x] **Step 3: Implement** the interfaces.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src
@@ -1249,7 +1262,8 @@ git commit -m "feat(ui-improvements): navigate a round from its bar or its index
 
 **Files:**
 
-- Modify: `packages/web/src/ReviewPage.tsx`, `Blocks.tsx` (selection tint from `--color-selection`)
+- Modify: `packages/web/src/ReviewPage.tsx`, `Blocks.tsx` (the selection tint from
+  `--color-selection` is drawn since task 8, [R10](rulings.md))
 - Create: `packages/web/src/MockupPage.tsx`, `packages/web/src/CommentForm.tsx`
 - Modify: `packages/web/src/App.tsx` (route `mockup`)
 - Test: `packages/web/src/__tests__/review.test.tsx`,

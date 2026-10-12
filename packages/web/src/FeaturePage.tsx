@@ -1,10 +1,19 @@
 import { Badge } from "@astryxdesign/core/Badge";
+import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
+import { Code } from "@astryxdesign/core/Code";
+import { Heading } from "@astryxdesign/core/Heading";
+import { HStack } from "@astryxdesign/core/HStack";
+import { List, ListItem } from "@astryxdesign/core/List";
+import { Text } from "@astryxdesign/core/Text";
+import { VStack } from "@astryxdesign/core/VStack";
 import { Suspense } from "react";
 import { AgentPanel } from "./AgentPanel.tsx";
+import { Crumbs } from "./Crumbs.tsx";
 import { useFeature } from "./data.ts";
 import { waiting, workflowOrder } from "./labels.ts";
-import { Link, navigate, useRestoreScroll } from "./routes.tsx";
+import { Page } from "./layout/Page.tsx";
+import { navigate, useRestoreScroll } from "./routes.tsx";
 
 function statusVariant(status?: string) {
   switch (status) {
@@ -28,9 +37,11 @@ export function FeaturePage({ folder }: { folder: string }) {
   useRestoreScroll(true);
   if (!feature) {
     return (
-      <div className="page">
-        <p>No feature {folder}.</p>
-      </div>
+      <Page>
+        <Text as="p" display="block">
+          No feature {folder}.
+        </Text>
+      </Page>
     );
   }
   const gate = feature.step.waitsOn === "human" ? waiting(feature) : undefined;
@@ -50,81 +61,117 @@ export function FeaturePage({ folder }: { folder: string }) {
       : [];
   const problemFiles = new Set(feature.problems.map((p) => p.file));
   return (
-    <div className="page">
-      <h1 className="title-l">{feature.title}</h1>
-      {gate && (
-        <div className="callout important" style={{ marginBottom: 14 }}>
-          <span className="callout-title">{gate.title}</span>
-          {gate.line && <p>{gate.line}</p>}
-          <div className="actions">
-            <Button variant="primary" label={gate.verb} onClick={() => navigate(gate.href)} />
-          </div>
-        </div>
-      )}
-      <Suspense fallback={null}>
-        <AgentPanel feature={feature} />
-      </Suspense>
-      <p className="small muted">
-        {feature.branch ? (
-          <>
-            Branch <span className="mono">{feature.branch}</span>
-            {feature.worktree && feature.worktree !== "." && (
-              <>
-                {" "}
-                in <span className="mono">{feature.worktree}</span>
-              </>
-            )}
-          </>
-        ) : (
-          "Merged into the default branch"
-        )}
-        {feature.uncommitted && " · uncommitted changes"}
-      </p>
-      {left && (
-        <div className="callout" style={{ marginBottom: 14 }}>
-          <span className="callout-title">{left}</span>
-          <p className="small">
-            {feature.leftWorktree && <span className="mono">{feature.leftWorktree}</span>}
-            {feature.leftWorktree && feature.leftBranch && " and the branch "}
-            {!feature.leftWorktree && "The branch "}
-            {feature.leftBranch && <span className="mono">{feature.leftBranch}</span>}
-            {feature.leftWorktree && feature.leftBranch ? " are" : " is"} still there. Run{" "}
-            <span className="mono">ura clean</span> to remove{" "}
-            {feature.leftWorktree && feature.leftBranch ? "them" : "it"}.
-          </p>
-        </div>
-      )}
-      {files.map((file) => (
-        <Link key={file.name} to={`/f/${folder}/${file.name}`} className="row">
-          <span className="grow mono">{file.name}</span>
-          {problemFiles.has(`specs/${folder}/${file.name}`) && (
-            <Badge variant="error" label="problem" />
-          )}
-          <Badge
-            variant={statusVariant(file.status)}
-            label={file.kind === "record" ? "record" : (file.status ?? "committed")}
+    <Page>
+      <Crumbs folder={folder} />
+      <VStack gap={4}>
+        <Heading level={1}>{feature.title}</Heading>
+        {gate && (
+          <Banner
+            status="warning"
+            title={gate.title}
+            description={gate.line}
+            collapsible={false}
+            endContent={
+              <Button variant="primary" label={gate.verb} onClick={() => navigate(gate.href)} />
+            }
           />
-          <span className="chevron">›</span>
-        </Link>
-      ))}
-      {missing.map((name) => (
-        <div key={name} className="row muted">
-          <span className="grow mono">{name}</span>
-          <Badge variant="neutral" label="not yet" />
-        </div>
-      ))}
-      {feature.problems.length > 0 && <div className="group label">Problems</div>}
-      {feature.problems.map((problem, index) => (
-        <div key={index} className="row">
-          <span className="grow">
-            <span className="mono">
-              {problem.file.split("/").pop()}
-              {problem.line ? `:${problem.line}` : ""}
-            </span>
-            <div>{problem.message}</div>
-          </span>
-        </div>
-      ))}
-    </div>
+        )}
+        <Suspense fallback={null}>
+          <AgentPanel feature={feature} />
+        </Suspense>
+        <Text as="p" type="supporting" display="block">
+          {feature.branch ? (
+            <>
+              Branch <Code>{feature.branch}</Code>
+              {feature.worktree && feature.worktree !== "." && (
+                <>
+                  {" "}
+                  in <Code>{feature.worktree}</Code>
+                </>
+              )}
+            </>
+          ) : (
+            "Merged into the default branch"
+          )}
+          {feature.uncommitted && " · uncommitted changes"}
+        </Text>
+        {left && (
+          <Banner
+            status="info"
+            title={left}
+            collapsible={false}
+            description={
+              <>
+                {feature.leftWorktree && <Code>{feature.leftWorktree}</Code>}
+                {feature.leftWorktree && feature.leftBranch && " and the branch "}
+                {!feature.leftWorktree && "The branch "}
+                {feature.leftBranch && <Code>{feature.leftBranch}</Code>}
+                {feature.leftWorktree && feature.leftBranch ? " are" : " is"} still there. Run{" "}
+                <Code>ura clean</Code> to remove{" "}
+                {feature.leftWorktree && feature.leftBranch ? "them" : "it"}.
+              </>
+            }
+          />
+        )}
+        <List aria-label="Files" hasDividers>
+          {files.map((file) => (
+            <ListItem
+              key={file.name}
+              href={`/f/${folder}/${file.name}`}
+              label={<Text type="code">{file.name}</Text>}
+              endContent={
+                <HStack gap={2}>
+                  {problemFiles.has(`specs/${folder}/${file.name}`) && (
+                    <Badge variant="error" label="problem" />
+                  )}
+                  <Badge
+                    variant={statusVariant(file.status)}
+                    label={file.kind === "record" ? "record" : (file.status ?? "committed")}
+                  />
+                </HStack>
+              }
+            />
+          ))}
+          {missing.map((name) => (
+            <ListItem
+              key={name}
+              label={
+                <Text type="code" color="secondary">
+                  {name}
+                </Text>
+              }
+              endContent={<Badge variant="neutral" label="not yet" />}
+            />
+          ))}
+        </List>
+        {feature.mockups.length > 0 && (
+          <List header={<Heading level={2}>Mockups</Heading>} hasDividers>
+            {feature.mockups.map((name) => (
+              <ListItem
+                key={name}
+                href={`/f/${folder}/mockups/${name}`}
+                label={<Text type="code">{name}</Text>}
+              />
+            ))}
+          </List>
+        )}
+        {feature.problems.length > 0 && (
+          <List header={<Heading level={2}>Problems</Heading>} hasDividers>
+            {feature.problems.map((problem, index) => (
+              <ListItem
+                key={index}
+                label={
+                  <Text type="code">
+                    {problem.file.split("/").pop()}
+                    {problem.line ? `:${problem.line}` : ""}
+                  </Text>
+                }
+                description={<Text>{problem.message}</Text>}
+              />
+            ))}
+          </List>
+        )}
+      </VStack>
+    </Page>
   );
 }
