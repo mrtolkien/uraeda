@@ -1,3 +1,4 @@
+import { Banner } from "@astryxdesign/core/Banner";
 import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Crumbs } from "./Crumbs.tsx";
@@ -7,7 +8,6 @@ import { Page } from "./layout/Page.tsx";
 import { ReviewPage } from "./ReviewPage.tsx";
 import { RoundPage } from "./RoundPage.tsx";
 import { useRestoreScroll } from "./routes.tsx";
-import { Paragraph } from "./layout/Paragraph.tsx";
 
 /** A workflow file, on the page its kind needs: a round to answer, or a document to read. */
 export function FilePage({ folder, name }: { folder: string; name: string }) {
@@ -17,16 +17,18 @@ export function FilePage({ folder, name }: { folder: string; name: string }) {
   if (!file || file.missing) {
     return (
       <Page>
-        <Crumbs folder={folder} current={name} />
-        <VStack gap={2}>
-          <Paragraph>
-            No file {name} in {folder}.
-          </Paragraph>
-          <Paragraph>
-            <Link href={`/f/${folder}`} hasUnderline>
-              Open the feature
-            </Link>
-          </Paragraph>
+        <VStack gap={3}>
+          <Crumbs folder={folder} current={name} />
+          <Banner
+            status="error"
+            title={`No file ${name} in ${folder}.`}
+            collapsible={false}
+            description={
+              <Link href={`/f/${folder}`} hasUnderline>
+                Open the feature
+              </Link>
+            }
+          />
         </VStack>
       </Page>
     );
