@@ -1,6 +1,6 @@
 ---
-status: proposed
-approved-by:
+status: active
+approved-by: mrtolkien
 ---
 
 # Agents
@@ -18,8 +18,9 @@ in a local SQLite cache that is never committed.
   depend on the Claude Agent SDK, or bundle a Claude Code binary.
 - Every agent MUST be reached through one adapter interface, in
   [`packages/server/src/runner/`](/packages/server/src/runner/): start or resume a session in a
-  directory with one message, stream its events, stop it. Tests MUST use a fake adapter, and MUST
-  NOT run a real agent.
+  directory with one message, stream its events, stop it. The tests that `vp run ready` runs MUST
+  use a fake adapter, and MUST NOT run a real agent. Validation scripts, run by hand when an agent's
+  integration breaks, MAY run the real agent, and MUST be kept in the repository.
 - Tools MUST NOT read, store, or pass the agent's credentials: the binary uses the user's own login
   or API key.
 - Every run MUST pass `--permission-mode auto` explicitly. Tools MUST NOT pass `bypassPermissions`
@@ -33,14 +34,17 @@ in a local SQLite cache that is never committed.
   another one is going on the same feature.
 - Runs MUST carry the step, its reference, and the trigger in their message, since a resumed session
   keeps its first system prompt.
-- Session IDs, runs, and their parsed events MUST be stored in a SQLite database at
-  `<git common dir>/uraeda/runner.sqlite`, through Node's built-in `node:sqlite`. It is a cache:
-  workflow state MUST NOT be stored in it, and losing it MUST cost only a new session and the old
-  logs.
+- Session IDs, runs, and their parsed events MUST be stored in a SQLite database, `runner.sqlite`,
+  through Node's built-in `node:sqlite`, in Uraeda's data folder for the user: `URAEDA_DATA_DIR`
+  when it is set, or else the operating system's default, `$XDG_DATA_HOME/uraeda/` on Linux
+  (`~/.local/share/uraeda/` when `XDG_DATA_HOME` is unset), `~/Library/Application Support/uraeda/`
+  on macOS, and `%APPDATA%\uraeda\` on Windows. Its rows MUST be keyed by the repository's main
+  checkout path and the feature's folder. It MUST NOT live in a repository. It is a cache: workflow
+  state MUST NOT be stored in it, and losing it MUST cost only a new session and the old logs.
 - Stopping a run MUST send SIGINT first, and SIGTERM only when the process is still running 10
   seconds later.
-- Tools MUST NOT change the agent's commit attribution, model, or settings, except the model and
-  effort the human picked for the session, and the permission mode above.
+- Tools MUST NOT change the agent's commit attribution, model, effort, or settings, except the
+  permission mode above: the user's active Claude Code settings apply.
 
 ## Why
 
@@ -62,8 +66,11 @@ user's machine, outside a container, and can be started from a phone
 The human picked the server's own copy of the skill: one version, whatever the project has
 ([Q4](../2026-10-12-claude-code-runner-triggered-manually-https-code/clarifications-01.md#q4-which-copy-of-the-skill-does-the-session-use)).
 They asked for the session IDs and parsed transcripts to be kept in a small local database
-([Q5](../2026-10-12-claude-code-runner-triggered-manually-https-code/clarifications-01.md#q5-what-does-the-ui-show-of-a-run)).
-Principle III makes the repository the only durable state, so the database can only be a cache.
+([Q5](../2026-10-12-claude-code-runner-triggered-manually-https-code/clarifications-01.md#q5-what-does-the-ui-show-of-a-run)),
+in an app data folder from the operating system's defaults rather than the repository's git folder,
+and for the model and effort to come from the active settings, since the command-line tool cannot
+list its models (spec review, C1 and C2). Principle III makes the repository the only durable state,
+so the database can only be a cache.
 
 ## Alternatives considered
 
@@ -83,8 +90,15 @@ Principle III makes the repository the only durable state, so the database can o
 - A branch that changes the skill is not run with its own version: the server's checkout decides.
 - Remote Control, interactive approvals, and follow-up messages need a channel these rules do not
   give yet.
+- Claude Code is the first agent, not the recommended one: it is hard to interoperate with, so later
+  features should prefer agents built to be driven by another program (spec review, C1).
 
 ## Applies to
 
 - [`packages/server/src/runner/`](/packages/server/src/runner/), and every feature that starts,
   follows, or stops an agent: the git listener, benchmarks, the chat in the web UI
+
+## Revisit when
+
+An agent that is easier to drive than Claude Code, such as one with a documented protocol for
+prompts, approvals, and models, joins the runner.

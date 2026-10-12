@@ -27,7 +27,8 @@ hand.
 - The web UI MUST use React and Astryx components, live in [`packages/web`](/packages/web/), and get
   its data only from the server, through fate.
 - The web UI MUST draw workflow files from the document tree the core sends, and MUST NOT parse
-  markdown, with a library or by hand.
+  their markdown, with a library or by hand. It MAY render an agent's messages, which are not
+  workflow files, with Astryx's `Markdown` component.
 - The server MUST listen on 127.0.0.1 only. It MUST reject requests whose `Host` is not `127.0.0.1`
   or `localhost` on its port, or a host name listed in `URAEDA_ALLOWED_HOSTS`, and requests whose
   `Origin`, when present, is not the server's own, `https://` and a listed host name, or an allowed
@@ -59,7 +60,10 @@ machine's `*.ts.net` name
 ([Q2](../done/2026-10-11-web-ui.md#q2-how-does-your-iphone-reach-the-server)). The web UI draws the
 core's document tree, since a second markdown parser in TypeScript would disagree with the core on
 callouts, typed bullets, and source lines
-([Q4](../done/2026-10-11-web-ui.md#q4-where-does-the-structure-the-ui-draws-come-from)).
+([Q4](../done/2026-10-11-web-ui.md#q4-where-does-the-structure-the-ui-draws-come-from)). An agent's
+messages are not workflow files, and look much better rendered: the human allowed Astryx's
+`Markdown` component for them when approving the
+[Claude Code runner](../2026-10-12-claude-code-runner-triggered-manually-https-code/spec.md).
 
 ## Alternatives considered
 
@@ -77,8 +81,8 @@ callouts, typed bullets, and source lines
 ## Consequences
 
 - One parser and one validator, in Rust, for the CLI, the server, and the UI.
-- The CLI stays small, and the server uses the official Claude Code and Codex SDKs, fate, and
-  pi-durable in process.
+- The CLI stays small. The server runs agents through their installed command-line tools, as the
+  [agents](agents.md) decision says, and uses fate and pi-durable in process.
 - Two toolchains: every contributor and CI need Rust and Node, and the binding must be built before
   the TypeScript tests run.
 - Shipping the server means shipping a native addon per platform, or a container image.
@@ -93,39 +97,3 @@ callouts, typed bullets, and source lines
 
 - [`crates/`](/crates/) and [`packages/`](/packages/), and every feature that adds logic, a command,
   an endpoint, or a page
-
-## Proposed change (2026-10-12-claude-code-runner-triggered-manually-https-code)
-
-Proposed by the [spec](../2026-10-12-claude-code-runner-triggered-manually-https-code/spec.md). The
-server runs agents through their installed command-line tools, as the [agents](agents.md) decision
-says, not through their SDKs. The rules do not change: only the consequence that named the SDKs.
-
-The rules become:
-
-- Workflow logic, parsing, validation, and workflow states MUST live in the Rust core,
-  [`crates/core`](/crates/core/).
-- The CLI MUST be written in Rust, in [`crates/cli`](/crates/cli/), build the binary `ura`, and MUST
-  NOT need Node or any other runtime to run.
-- The server MUST be written in TypeScript, run on Node, and live in
-  [`packages/server`](/packages/server/).
-- TypeScript code MUST reach the core only through the binding,
-  [`packages/binding`](/packages/binding/), and MUST NOT reimplement its parsing, validation, or
-  states.
-- The TypeScript types of core data MUST come from the declarations napi-rs generates for the
-  binding. They MUST NOT be redeclared by hand in TypeScript.
-- The web UI MUST use React and Astryx components, live in [`packages/web`](/packages/web/), and get
-  its data only from the server, through fate.
-- The web UI MUST draw workflow files from the document tree the core sends, and MUST NOT parse
-  markdown, with a library or by hand.
-- The server MUST listen on 127.0.0.1 only. It MUST reject requests whose `Host` is not `127.0.0.1`
-  or `localhost` on its port, or a host name listed in `URAEDA_ALLOWED_HOSTS`, and requests whose
-  `Origin`, when present, is not the server's own, `https://` and a listed host name, or an allowed
-  origin.
-
-Why: the human chose the installed `claude` over the Agent SDK
-([Q1](../2026-10-12-claude-code-runner-triggered-manually-https-code/clarifications-01.md#q1-how-does-the-server-run-claude-code)).
-
-The consequence "The CLI stays small, and the server uses the official Claude Code and Codex SDKs,
-fate, and pi-durable in process" becomes: "The CLI stays small. The server runs agents through their
-installed command-line tools, as the [agents](agents.md) decision says, and uses fate and pi-durable
-in process."
