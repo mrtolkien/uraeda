@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Review uraeda init and skill install flow
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 25 minutes.
+> Approved on 2026-10-12.
 >
 > - New decision, [TUI](../decisions/tui.md): ratatui is `ura`'s only TUI library, its prompts draw
 >   inline, and every TUI uses the terminal's 16 colours and reads without colour.
