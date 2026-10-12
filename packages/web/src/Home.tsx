@@ -1,34 +1,79 @@
 import { Badge } from "@astryxdesign/core/Badge";
 import { Banner } from "@astryxdesign/core/Banner";
-import { Button } from "@astryxdesign/core/Button";
-import { useState } from "react";
-import { useFateClient } from "react-fate";
+import { Heading } from "@astryxdesign/core/Heading";
+import { List, ListItem } from "@astryxdesign/core/List";
+import { Text } from "@astryxdesign/core/Text";
+import { VStack } from "@astryxdesign/core/VStack";
+import type { ReactNode } from "react";
 import { useWorkspace } from "./data.ts";
-import { refusal } from "./errors.ts";
-import { DraftView } from "./views.ts";
 import { stepLabel, waiting } from "./labels.ts";
-import { Link, navigate, useRestoreScroll } from "./routes.tsx";
+import { Page } from "./layout/Page.tsx";
 import { TopBarSlot } from "./layout/TopBarSlot.tsx";
 import { QuickAdd } from "./QuickAdd.tsx";
+import { usePathname, useRestoreScroll } from "./routes.tsx";
+
+/** A row that leads somewhere, tapped as a whole. */
+function Row({
+  href,
+  badge,
+  title,
+  line,
+  isSelected,
+}: {
+  href: string;
+  badge?: ReactNode;
+  title: string;
+  line?: ReactNode;
+  isSelected?: boolean;
+}) {
+  return (
+    <ListItem
+      href={href}
+      isSelected={isSelected}
+      startContent={badge}
+      // Nodes, not strings, so long titles and lines wrap instead of being cut.
+      label={<>{title}</>}
+      description={line === undefined || line === null ? undefined : <>{line}</>}
+      endContent={
+        <Text color="secondary" aria-hidden="true">
+          ›
+        </Text>
+      }
+    />
+  );
+}
+
+/** A group of rows under its heading. */
+function Group({ title, children }: { title?: string; children: ReactNode }) {
+  return (
+    <List
+      header={title ? <Heading level={2}>{title}</Heading> : undefined}
+      aria-label={title ? undefined : "More"}
+      hasDividers
+    >
+      {children}
+    </List>
+  );
+}
 
 /** The home screen: what waits on the human, what agents do, the next priorities, what is done. */
 export function Home() {
   const workspace = useWorkspace();
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
-  const fate = useFateClient();
-  const [error, setError] = useState<string>();
+  // The task view open beside home, on wide screens.
+  const pathname = usePathname();
   if (!workspace) {
     return null;
   }
   if (workspace.noSpecs) {
     return (
-      <div className="page">
+      <Page>
         <Banner
           status="warning"
           title={`No specs/ folder in ${workspace.noSpecs}. Set Uraeda up with ura init.`}
         />
-      </div>
+      </Page>
     );
   }
   const features = workspace.features;
@@ -42,103 +87,90 @@ export function Home() {
     (entry) => (entry.section === "now" || entry.section === "next") && !entry.feature,
   );
 
-  const draft = async (id: string) => {
-    setError(undefined);
-    const result = await fate.mutations.draft.create({
-      input: { line: id, hash: workspace.prioritiesHash },
-      view: DraftView,
-    });
-    if (result.error) {
-      setError(refusal(result.error).message);
-    } else if (typeof result.result?.path === "string") {
-      navigate(`/edit/${result.result.path}`);
-    }
-  };
-
   return (
-    <div className="page">
+    <Page>
       <TopBarSlot>
         <QuickAdd />
       </TopBarSlot>
-      {!human.length && (
-        <div style={{ marginBottom: 14 }}>
-          <Banner status="info" title="Nothing waits on you." />
-        </div>
-      )}
-      {human.length > 0 && <div className="group label">Waiting on you</div>}
-      {human.map((feature) => {
-        const { verb, line, href } = waiting(feature);
-        return (
-          <Link key={feature.folder} to={href} className="row">
-            <Badge variant="warning" label={verb} />
-            <span className="grow">
-              {feature.title}
-              {line && <div className="sub">{line}</div>}
-            </span>
-            <span className="chevron">›</span>
-          </Link>
-        );
-      })}
-      {invalid.length > 0 && <div className="group label">Files to fix</div>}
-      {invalid.map((feature) => (
-        <Link key={feature.folder} to={`/f/${feature.folder}`} className="row">
-          <Badge variant="error" label="Problems" />
-          <span className="grow">
-            {feature.title}
-            <div className="sub">{feature.problems[0].message}</div>
-          </span>
-          <span className="chevron">›</span>
-        </Link>
-      ))}
-      {agents.length > 0 && <div className="group label">Agents at work</div>}
-      {agents.map((feature) => {
-        const working = workspace.running.includes(feature.folder);
-        const step = stepLabel(feature.step.name);
-        const sub = working
-          ? [step, feature.step.task].filter(Boolean).join(" · ")
-          : feature.step.task;
-        return (
-          <Link key={feature.folder} to={`/f/${feature.folder}`} className="row">
-            {/* A running agent says so; its step moves to the subtitle. */}
-            <Badge variant={working ? "success" : "info"} label={working ? "Working" : step} />
-            <span className="grow">
-              {feature.title}
-              {sub && <div className="sub">{sub}</div>}
-            </span>
-            <span className="chevron">›</span>
-          </Link>
-        );
-      })}
-      {priorities.length > 0 && <div className="group label">Priorities</div>}
-      {priorities.map((entry) => (
-        <div key={entry.id} className="row">
-          <span className="grow">
-            {entry.text}
-            <div className="sub">
-              {entry.section === "now" ? "Now" : "Next"}
-              {entry.draft && <span className="mono"> · {entry.draft.replace("specs/", "")}</span>}
-            </div>
-          </span>
-          {entry.draft ? (
-            <Button label="Start" onClick={() => navigate(`/edit/${entry.draft}`)} />
-          ) : !entry.link ? (
-            <Button label="Draft" clickAction={() => draft(entry.id)} />
-          ) : null}
-        </div>
-      ))}
-      {error && <p className="not-saved">{error}</p>}
-      <Link to="/priorities" className="row">
-        <span className="grow">All priorities</span>
-        <span className="chevron">›</span>
-      </Link>
-      {done.length > 0 && <div className="group label">Done</div>}
-      {done.map((feature) => (
-        <Link key={feature.folder} to={`/f/${feature.folder}`} className="row">
-          <Badge variant="success" label="Merged" />
-          <span className="grow">{feature.title}</span>
-          <span className="chevron">›</span>
-        </Link>
-      ))}
-    </div>
+      <VStack gap={6}>
+        {!human.length && <Banner status="info" title="Nothing waits on you." />}
+        {human.length > 0 && (
+          <Group title="Waiting on you">
+            {human.map((feature) => {
+              const { verb, line, href } = waiting(feature);
+              return (
+                <Row
+                  key={feature.folder}
+                  href={href}
+                  badge={<Badge variant="warning" label={verb} />}
+                  title={feature.title}
+                  line={line}
+                />
+              );
+            })}
+          </Group>
+        )}
+        {invalid.length > 0 && (
+          <Group title="Files to fix">
+            {invalid.map((feature) => (
+              <Row
+                key={feature.folder}
+                href={`/f/${feature.folder}`}
+                badge={<Badge variant="error" label="Problems" />}
+                title={feature.title}
+                line={feature.problems[0].message}
+              />
+            ))}
+          </Group>
+        )}
+        {agents.length > 0 && (
+          <Group title="Agents at work">
+            {agents.map((feature) => {
+              const working = workspace.running.includes(feature.folder);
+              const step = stepLabel(feature.step.name);
+              const line = working
+                ? [step, feature.step.task].filter(Boolean).join(" · ")
+                : feature.step.task;
+              return (
+                <Row
+                  key={feature.folder}
+                  href={`/f/${feature.folder}`}
+                  // A running agent says so; its step moves to the line under the title.
+                  badge={
+                    <Badge variant={working ? "success" : "info"} label={working ? "Working" : step} />
+                  }
+                  title={feature.title}
+                  line={line || undefined}
+                />
+              );
+            })}
+          </Group>
+        )}
+        <Group title={priorities.length > 0 ? "Priorities" : undefined}>
+          {priorities.map((entry) => (
+            <Row
+              key={entry.id}
+              href={`/priorities/${entry.key}`}
+              isSelected={pathname === `/priorities/${entry.key}`}
+              title={entry.text}
+              line={entry.section === "now" ? "Now" : "Next"}
+            />
+          ))}
+          <Row href="/priorities" title="All priorities" />
+        </Group>
+        {done.length > 0 && (
+          <Group title="Done">
+            {done.map((feature) => (
+              <Row
+                key={feature.folder}
+                href={`/f/${feature.folder}`}
+                badge={<Badge variant="success" label="Merged" />}
+                title={feature.title}
+              />
+            ))}
+          </Group>
+        )}
+      </VStack>
+    </Page>
   );
 }

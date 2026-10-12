@@ -104,3 +104,24 @@ export function useRunLog(id: string) {
   useRefreshOnShow(request);
   return useLiveView(RunLogView, runLog);
 }
+
+/**
+ * A line of `PRIORITIES.md` by its key, with its section and its place in it: the priorities as
+ * read, and `found` once the line is there. `id`, when given, finds the line by its place when its
+ * key is gone, as right after its own rename.
+ */
+export function usePriority(key: string, id?: string) {
+  const priorities = usePriorities();
+  const sections = priorities?.sections ?? [];
+  const find = (match: (entry: (typeof sections)[number]["entries"][number]) => boolean) => {
+    for (const section of sections) {
+      const index = section.entries.findIndex(match);
+      if (index >= 0) {
+        return { entry: section.entries[index], section, index };
+      }
+    }
+    return undefined;
+  };
+  const found = find((entry) => entry.key === key) ?? (id ? find((e) => e.id === id) : undefined);
+  return { priorities, found };
+}
