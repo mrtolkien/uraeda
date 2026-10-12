@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Review uraeda init and skill install flow
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 6 questions on installing the skill, about 20 minutes.
+> Answered on 2026-10-12.
 >
 > - Two choices last beyond this feature: the picker library, which the planned TUIs would share,
 >   and the binary's size limit, which ratatui alone almost fills: 210 KB of the 212 KB left.
@@ -54,7 +54,7 @@ Why it matters: a single choice leaves either Claude Code or Codex without the s
   - [pro] one question fewer.
   - [con] a `.claude` folder for people who do not use Claude Code, and the reverse.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: Which library draws the pickers?
 
@@ -79,7 +79,7 @@ once those come.
   - [pro] the look of Vercel's `skills` installer, with cliclack.
   - [con] as heavy as ratatui, and still a second library later.
 
-**Answer:**
+**Answer:** A
 
 ### Q2.A: What is the binary's size limit?
 
@@ -97,7 +97,9 @@ would be about 4,998,000 with ratatui: the next change would fail. You raised th
   - [pro] a tighter budget keeps dependencies in check.
   - [con] the question comes back with the next TUI.
 
-**Answer:**
+**Answer:** Remove the hard cap: we are trying to keep the binary _as small as possible_ while
+bringing in necessary features. We'll do some binary optimization later too, right now it's pretty
+basic.
 
 ## Q3: What does `ura init` say about the skill?
 
@@ -119,7 +121,7 @@ Why it matters: it decides whether a new user leaves `ura init` with a working s
   - [pro] `ura init` stays one non-interactive command.
   - [con] a second command to run before the agent knows the workflow.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: How does a user-level skill stay in step with `ura`?
 
@@ -146,7 +148,7 @@ B can come on top of A.
   - [pro] no code.
   - [con] a skill falls behind silently.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: What else is in scope?
 
@@ -170,7 +172,7 @@ B and C can be combined.
   - [pro] updates through Claude Code's plugin manager.
   - [con] Claude Code only, and a second way to install to document.
 
-**Answer:**
+**Answer:** A: We'll review distribution later
 
 ## Settled without the human
 
