@@ -327,9 +327,10 @@ git commit -m "feat(review-uraeda-init): ura install with flags"
 - Consumes: task 1's `install` module and `resolve`.
 - Produces: `pub fn update(base: &Path, shown: &str) -> Result<Vec<InstallLine>, ActionError>`:
   every path of `AGENTS_DIR`, `CLAUDE_DIR` that is a real folder with `MANIFEST`, updated; an empty
-  list when there is none.
+  list when there is none. It runs the same refresh as `install` on a folder with a manifest, the
+  private `refresh` (task 1's `update`, renamed).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `update_keeps_edited_files`: install `--user --agents`, then set `references/plan.md` to an
   unedited old text and `SKILL.md` to an edited one, as task 1's test does → `--user --update`
@@ -345,19 +346,20 @@ git commit -m "feat(review-uraeda-init): ura install with flags"
 - `update_without_a_scope`: `--update` with stdin closed →
   `ura: no terminal to ask: pass --user or --repo`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-cli --test install update`
-- Expected: FAIL, `update_keeps_edited_files` on its stdout.
+- Expected: FAIL, the four tests that pass a scope with `--update` on task 1's `unimplemented!`;
+  `update_without_a_scope` passes already, through task 1's `resolve`.
 
-- [ ] **Step 3: Implement `update`, and `--update` in `ura install`**
+- [x] **Step 3: Implement `update`, and `--update` in `ura install`**
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates

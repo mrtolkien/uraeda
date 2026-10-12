@@ -181,15 +181,11 @@ fn without_a_terminal_names_the_missing_flags() {
     }
 }
 
-#[test]
-fn updates_the_files_nobody_edited() {
-    let repo = TestRepo::new();
-    let skill = repo.home().join(AGENTS);
-    ura(&repo, &["install", "--user", "--agents"]);
-    // An older install: two files differ from this binary's, one of them edited by the human.
+/// Makes an installed skill look installed by an older `ura`: `references/plan.md` unedited and
+/// different from this binary's, and `SKILL.md` edited by the human.
+fn make_older(skill: &Path) {
     let manifest = fs::read_to_string(skill.join(".ura-manifest")).unwrap();
-    let old = "old text\n";
-    let old_hash = sha256(old);
+    let old_hash = sha256(OLD);
     let manifest = manifest
         .lines()
         .map(|line| match line.split_once("  ") {
@@ -201,24 +197,148 @@ fn updates_the_files_nobody_edited() {
         .collect::<Vec<_>>()
         .join("\n");
     write(&skill.join(".ura-manifest"), &(manifest + "\n"));
-    write(&skill.join("references/plan.md"), old);
+    write(&skill.join("references/plan.md"), OLD);
     write(&skill.join("SKILL.md"), "edited by the human\n");
+}
 
-    let output = ura(&repo, &["install", "--user", "--agents"]);
+const OLD: &str = "old text\n";
 
+fn assert_updated(skill: &Path, output: &Output) {
     assert_ne!(
         fs::read_to_string(skill.join("references/plan.md")).unwrap(),
-        old
+        OLD
     );
     assert_eq!(
         fs::read_to_string(skill.join("SKILL.md")).unwrap(),
         "edited by the human\n"
     );
+    let dir = skill
+        .strip_prefix(skill.ancestors().nth(3).unwrap())
+        .unwrap();
+    assert_eq!(
+        output.stdout,
+        format!(
+            "kept    ~/{dir}/SKILL.md: edited since installed\n\
+             updated ~/{dir}/ (1 file)\n",
+            dir = dir.display()
+        ),
+        "{}",
+        output.stderr
+    );
+    assert_eq!(output.code, 0);
+}
+
+#[test]
+fn updates_the_files_nobody_edited() {
+    let repo = TestRepo::new();
+    let skill = repo.home().join(AGENTS);
+    ura(&repo, &["install", "--user", "--agents"]);
+    make_older(&skill);
+
+    let output = ura(&repo, &["install", "--user", "--agents"]);
+
+    assert_updated(&skill, &output);
+}
+
+#[test]
+fn update_keeps_edited_files() {
+    let repo = TestRepo::new();
+    let skill = repo.home().join(AGENTS);
+    ura(&repo, &["install", "--user", "--agents"]);
+    make_older(&skill);
+
+    let output = ura(&repo, &["install", "--user", "--update"]);
+
     assert_eq!(
         output.stdout,
         "kept    ~/.agents/skills/uraeda/SKILL.md: edited since installed\n\
-         updated ~/.agents/skills/uraeda/ (1 file)\n"
+         updated ~/.agents/skills/uraeda/ (1 file)\n",
+        "{}",
+        output.stderr
     );
+    assert_updated(&skill, &output);
+}
+
+#[test]
+fn update_follows_what_was_installed() {
+    let repo = TestRepo::new();
+    let home = repo.home();
+    ura(&repo, &["install", "--user", "--claude"]);
+    make_older(&home.join(CLAUDE));
+
+    let output = ura(&repo, &["install", "--user", "--update"]);
+
+    assert_updated(&home.join(CLAUDE), &output);
+    assert!(!home.join(".agents").exists());
+}
+
+#[test]
+fn update_with_nothing_installed() {
+    let repo = TestRepo::new();
+
+    let output = ura(&repo, &["install", "--user", "--update"]);
+
+    assert_eq!(
+        output.stdout, "nothing to update: ura installed no skill in ~/\n",
+        "{}",
+        output.stderr
+    );
+    assert_eq!(output.code, 0);
+    assert_eq!(entries(&repo.home()), 0);
+
+    let output = ura(&repo, &["install", "--repo", "--update"]);
+
+    assert_eq!(
+        output.stdout, "nothing to update: ura installed no skill in this repository\n",
+        "{}",
+        output.stderr
+    );
+    assert_eq!(output.code, 0);
+    assert_eq!(repo.porcelain(), "");
+}
+
+#[cfg(unix)]
+#[test]
+fn update_skips_links_and_foreign_folders() {
+    let repo = TestRepo::new();
+    let home = repo.home();
+    let checkout = home.join("dev/skill");
+    write(&checkout.join("SKILL.md"), "ours\n");
+    symlink(&checkout, &home.join(CLAUDE));
+    write(&home.join(AGENTS).join("SKILL.md"), "npx\n");
+
+    let output = ura(&repo, &["install", "--user", "--update"]);
+
+    assert_eq!(
+        output.stdout, "nothing to update: ura installed no skill in ~/\n",
+        "{}",
+        output.stderr
+    );
+    assert_eq!(output.code, 0);
+    assert_eq!(entries(&checkout), 1);
+    assert_eq!(
+        fs::read_to_string(checkout.join("SKILL.md")).unwrap(),
+        "ours\n"
+    );
+    assert_eq!(entries(&home.join(AGENTS)), 1);
+    assert_eq!(
+        fs::read_to_string(home.join(AGENTS).join("SKILL.md")).unwrap(),
+        "npx\n"
+    );
+}
+
+#[test]
+fn update_without_a_scope() {
+    let repo = TestRepo::new();
+
+    let output = ura(&repo, &["install", "--update"]);
+
+    assert_eq!(
+        output.stderr,
+        "ura: no terminal to ask: pass --user or --repo\n"
+    );
+    assert_eq!(output.code, 1);
+    assert_eq!(entries(&repo.home()), 0);
 }
 
 #[test]
