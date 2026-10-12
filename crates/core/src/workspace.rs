@@ -176,6 +176,15 @@ impl Feature {
         self.files.iter().find(|file| file.kind == kind)
     }
 
+    /// What `ura check` checks for it: its folder, or its record once finished.
+    pub fn checked_path(&self) -> String {
+        if self.is_finished() {
+            record_path(&self.folder)
+        } else {
+            self.path.clone()
+        }
+    }
+
     /// Whether its folder was replaced by its record.
     pub fn is_finished(&self) -> bool {
         self.file(FileKind::Record).is_some()
@@ -687,7 +696,24 @@ fn read_feature(
     {
         let committed_text =
             committed.and_then(|commit| reader.read(From::Commit(commit), &record_path(folder)));
+        let recorded = record_kind(&text);
         let mut feature = Feature::from_record(kind, folder, text);
+        if recorded != kind && feature.problems.is_empty() {
+            let (said, branch) = match kind {
+                Kind::Feature => ("bug", "feature's"),
+                Kind::Bug => ("feature", "bug's"),
+            };
+            feature.problems.push(Problem {
+                file: record_path(folder),
+                line: None,
+                rule: "frontmatter.kind".into(),
+                message: format!(
+                    "kind is {said}, but {} is a {branch} branch",
+                    folder_branch(kind, folder)
+                ),
+            });
+            feature.step = Step::none();
+        }
         feature.uncommitted = matches!(from, From::Disk)
             && committed_text.as_deref() != feature.text(&format!("{folder}.md"));
         feature.branch = branch;

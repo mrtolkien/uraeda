@@ -128,6 +128,11 @@ decisions for what is not, and a living spec would drift.
 - The final review moved the bug table's record rows first, made a broken record a problem, and
   printed worktrees outside `.worktrees/` with relative paths.
 
+- The pull request's automated review led to six more changes: changes requested win over a draft; a
+  merge commit the default branch lacks keeps a branch from `ura clean`; `ura check <feature>`
+  checks a finished feature's record only; a record needs a dated name, its `> [!NOTE]` block, and a
+  `kind` matching its branch.
+
 ## Follow-ups
 
 - The web UI's problem badge does not show on a record's row (R4).

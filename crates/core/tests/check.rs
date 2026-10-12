@@ -225,6 +225,16 @@ fn each_rule() {
             format!("{RECORD}:{}: the title starts with \"Record: \"", record_line("# Record: ")),
         ),
         (
+            "record name",
+            |e| e.write("specs/done/web-ui.md", &e.read(RECORD)),
+            "specs/done/web-ui.md: \"web-ui.md\" is not a record's name: YYYY-MM-DD-<slug>.md".into(),
+        ),
+        (
+            "record without its note",
+            |e| e.edit(RECORD, "> [!NOTE]", "> [!TIP]"),
+            format!("{RECORD}: a record opens with a \"> [!NOTE]\" block"),
+        ),
+        (
             "priorities without a section",
             |e| e.edit("specs/PRIORITIES.md", "## Blocked", "## Elsewhere"),
             "specs/PRIORITIES.md: missing section \"## Blocked\"".into(),
