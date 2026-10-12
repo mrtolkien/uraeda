@@ -1,4 +1,5 @@
 import {
+  type ComponentProps,
   type MouseEvent,
   type ReactNode,
   useDeferredValue,
@@ -170,6 +171,43 @@ export function Link({
     <a href={to} className={className} onClick={onClick}>
       {children}
     </a>
+  );
+}
+
+/**
+ * The anchor Astryx components draw for a link of the UI, like the side navigation's heading: it
+ * opens the page through `navigate`, without reloading.
+ */
+export function RouterAnchor({
+  href,
+  to: _to,
+  onClick,
+  ...props
+}: {
+  href?: string;
+  to?: string;
+  onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
+} & Omit<ComponentProps<"a">, "href" | "onClick">) {
+  return (
+    <a
+      {...props}
+      href={href}
+      onClick={(event) => {
+        onClick?.(event);
+        if (
+          event.defaultPrevented ||
+          !href ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.button !== 0
+        ) {
+          return;
+        }
+        event.preventDefault();
+        navigate(href);
+      }}
+    />
   );
 }
 

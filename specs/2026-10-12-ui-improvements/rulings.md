@@ -111,3 +111,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   each one's position.
 - **If wrong**: one style in `packages/web/src/layout/Panes.tsx`.
 - **Where**: task 5, `packages/web/src/layout/Panes.tsx`, `packages/web/src/theme/theme.ts`
+
+## R9: An Undo gives its own error
+
+- **Decision**: `useUndoToast`'s `undo` resolves with nothing once the change is reverted, or with
+  the error text to show, instead of a boolean. ＋'s Undo removes the line by its id over the hash
+  read from disk at that moment, so a line edited since is removed as edited.
+- **Rationale**: the plan's `Promise<boolean>` gave the toast no text for its error. Each caller
+  knows its own: the core's refusal for ＋, "Could not restore …" for a deletion.
+- **Alternatives considered**: a third argument with a fixed error text, which hides the core's
+  refusal from ＋'s Undo.
+- **If wrong**: one signature, in `packages/web/src/layout/useUndoToast.ts`, and its two callers.
+- **Where**: task 7, `packages/web/src/layout/useUndoToast.ts`, `packages/web/src/QuickAdd.tsx`
