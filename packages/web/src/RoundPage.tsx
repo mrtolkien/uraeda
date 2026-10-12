@@ -264,6 +264,7 @@ export function RoundPage({ file }: { file: File }) {
                     <span key={q.id}>
                       {index > 0 && ", "}
                       <Link
+                        hasUnderline
                         href={`#${q.id}`}
                         onClick={(event: React.MouseEvent) => {
                           event.preventDefault();

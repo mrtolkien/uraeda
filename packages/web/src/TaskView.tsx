@@ -118,7 +118,9 @@ export function TaskView({ entryKey }: { entryKey: string }) {
         <VStack gap={2}>
           <Paragraph>This line is no longer in PRIORITIES.md.</Paragraph>
           <Paragraph>
-            <Link href="/priorities">Open the priorities</Link>
+            <Link href="/priorities" hasUnderline>
+              Open the priorities
+            </Link>
           </Paragraph>
         </VStack>
       </Page>
@@ -240,7 +242,9 @@ export function TaskView({ entryKey }: { entryKey: string }) {
           </Suspense>
         ) : link ? (
           <Paragraph>
-            <Link href={pathLink(link).href}>Open {link.replace(/^specs\//, "")}</Link>
+            <Link href={pathLink(link).href} hasUnderline>
+              Open {link.replace(/^specs\//, "")}
+            </Link>
           </Paragraph>
         ) : (
           <VStack gap={2}>
