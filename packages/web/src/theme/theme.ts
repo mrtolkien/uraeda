@@ -48,6 +48,10 @@ export const uraedaTheme = defineTheme({
     "--text-reading-size": "17px",
     "--text-reading-line": "1.5",
     "--size-reading-measure": "70ch",
+    // The detail pane beside a list on wide screens: at least this wide, and at most the window's
+    // height, scrolling on its own.
+    "--size-pane-min": "400px",
+    "--size-viewport-height": "100dvh",
     // The selected block of a review: an amber tint and bar, apart from the muted background.
     "--color-selection": "var(--color-background-yellow)",
     "--color-selection-edge": "var(--color-border-yellow)",

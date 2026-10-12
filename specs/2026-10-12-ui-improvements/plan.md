@@ -605,6 +605,8 @@ git commit -m "feat(ui-improvements): StyleX and the app's own theme, sized by w
 **Files:**
 
 - Create: `packages/web/src/layout/useWidthClass.ts`, `Panes.tsx`, `Overlay.tsx`
+- Modify: `packages/web/src/theme/theme.ts` (`--size-pane-min`, `--size-viewport-height`), and its
+  build
 - Test: `packages/web/src/__browser__/overlay.test.tsx`,
   `packages/web/src/__tests__/overlay.test.tsx`
 
@@ -613,13 +615,14 @@ git commit -m "feat(ui-improvements): StyleX and the app's own theme, sized by w
 - Produces: `useWidthClass(): "narrow" | "wide"`, from the theme's `md` breakpoint through Astryx's
   media hook, updated live.
 - Produces: `<Panes list={ReactNode} detail={ReactNode | undefined} onCloseDetail={() => void} />`:
-  wide, the list and the detail side by side, the detail 40% wide and at least 400 px, each
-  scrolling on its own; narrow, the detail alone when given, else the list.
+  wide, the list and the detail side by side, the detail 40% wide and at least 400 px, with a Close
+  calling `onCloseDetail`; the list scrolls with the page, the detail, sticky, on its own (R8);
+  narrow, the detail alone when given, else the list.
 - Produces: `<Overlay label={string} isOpen={boolean} onClose={() => void}>{children}</Overlay>`:
   wide, an Astryx `Dialog`; narrow, a `BottomSheet` of `height="tall"`; a visible "Close" button in
   both; opening pushes a history entry `{ overlay: label }`, and Back closes it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // packages/web/src/__tests__/overlay.test.tsx
@@ -650,19 +653,19 @@ test("a sheet on the phone, a dialog on the desktop", async () => {
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test overlay.test`
 - Expected: FAIL, `Failed to resolve import "../layout/Overlay.tsx"`.
 
-- [ ] **Step 3: Implement** the three units, styled with StyleX and theme tokens only.
+- [x] **Step 3: Implement** the three units, styled with StyleX and theme tokens only.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src/layout packages/web/src/__tests__/overlay.test.tsx packages/web/src/__browser__/overlay.test.tsx
