@@ -434,7 +434,6 @@ impl Git {
                     "log",
                     "--cherry-pick",
                     "--right-only",
-                    "--no-merges",
                     "--format=%H",
                     &range,
                 ],
