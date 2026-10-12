@@ -1324,38 +1324,51 @@ git commit -m "feat(ui-improvements): navigate a round from its bar or its index
 **Interfaces:**
 
 - Consumes: `FeatureView.mockups` (task 3), `Overlay` (task 5), `review.comment` (exists).
-- Produces: `<CommentForm anchor={string} quote={string} onSubmit onCancel />`, shared by the review
-  and the mockup page.
+- Produces: `<CommentForm anchor quote? initial? submitLabel? onSubmit onCancel />`, a form labelled
+  "Comment", shared by the review and the mockup page: the anchor, the quote with the selection's
+  bar, the "Comment text" field, Cancel, and "Add comment" (or "Save comment"). `onSubmit(text)`
+  resolves with nothing once written, or with the error to show, the text kept. `quoteOf(text)`
+  gives the start of the commented text, about 120 characters cut at a word.
+- Produces: `Selection.onTap(block, element)`: a tap gives the element that draws the block; a tap
+  on a link inside a block follows the link, and selects nothing (the sheet's history entry would
+  otherwise land on the linked page).
+- Produces: `Overlay` takes `isModal` (default true), `sheetHeight` (`tall` by default, or
+  `capped`), and `sheetRef`, the sheet's panel, for narrow screens.
 - Review, narrow: a tap selects the block (tinted with `--color-selection` and a bar of
-  `--color-selection-edge`), opens a `BottomSheet` of `height="tall"` with `CommentForm`, quoting
-  the selection's first line under its anchor, and scrolls the last selected block's bottom just
-  above the sheet, its top at least under the bar when it is too tall. Wide: `CommentForm` drawn in
-  the page, under the last selected block, no overlay. Cancel clears the selection.
-- `MockupPage`: Breadcrumbs (Home, feature, the mockup's name); the mockup in an `iframe` with
-  `sandbox="allow-scripts"`, its source `/mockups/specs/<folder>/mockups/<name>`, the page's full
-  width and the screen's height below the header; "Open in a new tab"; while the spec waits for
-  review, "Comment" opens `CommentForm` in an `Overlay`. The comment goes on the lines of the spec's
-  block that links `mockups/<name>`, the first one in document order; with no such block, it is a
-  general comment whose text starts "Mockup <name>: ".
+  `--color-selection-edge`), opens the `Overlay` "Comment" as a non-modal sheet of height `capped`
+  ([R17](rulings.md)) with `CommentForm`, quoting the selection's first block under its anchor, and,
+  once the sheet stops moving, scrolls the last selected block's bottom just above the sheet, its
+  top under the bar when it is too tall; room the height of the screen ends the page while the sheet
+  is open. Wide: `CommentForm` drawn in the page, under the last tapped block, no overlay; an edit
+  in place of its comment, a general comment under "Add a general comment" ([R18](rulings.md)).
+  Cancel clears the selection. A pending comment is a group labelled by where it is ("C1 · lines
+  92–93"); a plan's task heading ends with its count ("Task 5: … 2/5").
+- `MockupPage`: Breadcrumbs (Home, feature, the mockup's name); the mockup in an `iframe` titled
+  with its name, `sandbox="allow-scripts"`, its source `/mockups/specs/<folder>/mockups/<name>`, the
+  page's full width and the screen's height under the header; "Open in a new tab"; while the spec
+  waits for review, "Comment" opens `CommentForm` in an `Overlay`. The comment goes on the lines of
+  the spec's block that links `mockups/<name>`, the first one in document order; with no such block,
+  it is a general comment whose text starts "Mockup <name>: ".
+- The happy-dom tests do not load frames (`disableIframePageLoading`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
-// review.test.tsx (happy-dom has no layout: the wide branch is forced with a test width provider)
+// review.test.tsx (happy-dom's window is 1024 px wide: the wide branch)
 test("on a wide screen, the comment field opens under the block (US2 3, 4)", async () => {
-  await renderWide(PAGE, repo()); // new helper: renders with useWidthClass() returning "wide"
+  await renderPage(PAGE, repo());
   await click(await blockOf("Given a weekly task"));
   const form = screen.getByRole("form", { name: "Comment" });
   expect(screen.queryByRole("dialog")).toBeNull();
   await click(within(form).getByRole("button", { name: "Cancel" }));
-  expect((await blockOf("Given a weekly task")).getAttribute("aria-selected")).toBe("false");
+  expect((await blockOf("Given a weekly task")).getAttribute("aria-pressed")).toBe("false"); // R10
 });
 ```
 
 ```tsx
 // mockup.test.tsx
 test("a mockup shows in the UI, and a comment lands on the line that links it (C1)", async () => {
-  const repo = specWithMockup(); // recurring-tasks spec with "- [Repeat](mockups/repeat.html): the menu" under ### Mockups, and the file, committed
+  const repo = specWithMockup(); // the recurring-tasks spec links mockups/repeat.html under ### Mockups; the file, committed
   await renderPage("/f/2026-10-06-recurring-tasks/mockups/repeat.html", repo);
   expect((await screen.findByTitle("repeat.html")).getAttribute("src")).toBe(
     "/mockups/specs/2026-10-06-recurring-tasks/mockups/repeat.html",
@@ -1368,7 +1381,7 @@ test("a mockup shows in the UI, and a comment lands on the line that links it (C
   await click(screen.getByRole("button", { name: "Add comment" }));
   await waitFor(() =>
     expect(review(repo)).toMatch(
-      /## C1: Line \d+, under "Mockups"\n\n> - \[Repeat\]\(mockups\/repeat\.html\)/,
+      /## C1: Lines? [\d–]+, under "Mockups"\n\n> - \[Repeat\]\(mockups\/repeat\.html\)/,
     ),
   );
 });
@@ -1388,25 +1401,26 @@ test("the selected block stays visible above the sheet, quoted (US2 1, 2)", asyn
   const block = blockOf("Given a weekly task");
   block.scrollIntoView({ block: "end" });
   await click(block);
-  const sheet = screen.getByRole("dialog", { name: "Comment" }).getBoundingClientRect();
-  expect(block.getBoundingClientRect().bottom).toBeLessThanOrEqual(sheet.top);
+  // The sheet's dialog covers the screen: its heading is where the sheet starts.
+  await settled(); // the sheet stops rising, the page scrolling
+  expect(block.getBoundingClientRect().bottom).toBeLessThanOrEqual(sheetTop());
   expect(within(screen.getByRole("dialog")).getByText(/^Lines \d+–\d+, under "US2/)).toBeTruthy();
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test review.test mockup.test`
 - Expected: FAIL, `Unable to find role="form" and name "Comment"`.
 
-- [ ] **Step 3: Implement** the interfaces.
+- [x] **Step 3: Implement** the interfaces.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src fixtures

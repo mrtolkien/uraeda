@@ -249,3 +249,36 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `SlotControls` in `packages/web/src/Shell.tsx`. The controls stay inside a link,
   which axe's `nested-interactive` rule may report in task 14.
 - **Where**: task 12, `packages/web/src/Shell.tsx`
+
+## R17: The comment sheet is capped and leaves the page usable
+
+- **Decision**: on the phone, the review's comment sheet is Astryx's `capped` height, about 62% of
+  the screen, and non-modal: the page above it stays tappable, so a second block extends the
+  selection. It opens through `Overlay`, with its Close and Back. Once the sheet stops moving, the
+  page scrolls the last tapped block's bottom just above it, or its top under the bar when it is
+  taller than that space, and while it is open the page ends with room the height of the screen, so
+  the last blocks can rise above it.
+- **Rationale**: Astryx's `tall` sheet is 92% of the screen: above it, under the 48 px top bar,
+  there is no room for the block US2 scenario 1 asks to show above the sheet. `capped` is the
+  mockup's height. A non-modal sheet also keeps the page scrollable, which a modal sheet's scroll
+  lock prevents.
+- **Alternatives considered**: `tall`, as the plan and the spec's design said, which only Astryx
+  makes keyboard-aware: the block would always be hidden, and only the quote would show it; a `tall`
+  sheet with a lower snap point, which Astryx opens at its full height.
+- **If wrong**: under iOS's keyboard, the browser's own reveal scrolls the page to the field, as
+  Astryx documents for every height but `tall`; the quote in the sheet keeps the context. One prop
+  in `packages/web/src/ReviewPage.tsx`.
+- **Where**: task 13, `packages/web/src/ReviewPage.tsx`, `packages/web/src/layout/Overlay.tsx`
+
+## R18: On wide screens, every comment field of the review is in the page
+
+- **Decision**: on wide screens, editing a pending comment opens the field in place of the comment,
+  and a general comment opens it under "Add a general comment", as a comment on lines opens it under
+  its block. On the phone, all three open in the sheet.
+- **Rationale**: the spec puts the comment field in the page on wide screens, with no overlay, and
+  the behaviour decision keeps modals for confirmations and short forms; one place per width for
+  every comment keeps one rule.
+- **Alternatives considered**: a dialog for edits and general comments on wide screens, a second way
+  to write a comment on the same page.
+- **If wrong**: `inPage` in `packages/web/src/ReviewPage.tsx`.
+- **Where**: task 13, `packages/web/src/ReviewPage.tsx`

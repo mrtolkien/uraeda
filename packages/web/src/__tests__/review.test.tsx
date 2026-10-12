@@ -114,11 +114,7 @@ test("a pending comment is edited, then removed with its review file", async () 
   await renderPage(PAGE, r);
   await click(await scenario(FIRST));
   await comment("Say what the row shows");
-  const pending = await waitFor(() => {
-    const note = document.querySelector(".pending") as HTMLElement;
-    expect(note).toBeTruthy();
-    return note;
-  });
+  const pending = await screen.findByRole("group", { name: "C1 · lines 92–93" });
 
   await click(within(pending).getByRole("button", { name: "Edit" }));
   await comment("Say what the row shows, and for how long");
@@ -126,11 +122,13 @@ test("a pending comment is edited, then removed with its review file", async () 
     expect(read(r, REVIEW)).toContain("\nSay what the row shows, and for how long\n"),
   );
   await waitFor(() =>
-    expect(document.querySelector(".pending")?.textContent).toContain("and for how long"),
+    expect(screen.getByRole("group", { name: "C1 · lines 92–93" }).textContent).toContain(
+      "and for how long",
+    ),
   );
 
   await click(
-    within(document.querySelector(".pending") as HTMLElement).getByRole("button", {
+    within(screen.getByRole("group", { name: "C1 · lines 92–93" })).getByRole("button", {
       name: "Remove",
     }),
   );
@@ -171,8 +169,9 @@ test("Request changes waits for a comment", async () => {
 test("a plan shows each task's steps checked out of its total", async () => {
   await renderPage("/f/2026-10-13-plan-review/plan.md");
 
-  const task = await screen.findByText("Task 5: Repeats typed in the title");
-  expect(within(task.closest(".row") as HTMLElement).getByText("2/5")).toBeTruthy();
+  expect(
+    await screen.findByRole("heading", { name: "Task 5: Repeats typed in the title 2/5" }),
+  ).toBeTruthy();
   expect(screen.queryByRole("radio", { name: "high" })).toBeNull();
 });
 
@@ -233,19 +232,13 @@ test("a general comment is edited, then removed", async () => {
   await click(await screen.findByRole("button", { name: "Add a general comment" }));
   await comment("Too long");
   await waitFor(() => expect(existsSync(join(r, WORKTREE, REVIEW))).toBe(true));
-  const general = await waitFor(() => {
-    const note = [...document.querySelectorAll<HTMLElement>(".pending")].find((n) =>
-      n.textContent?.includes("general"),
-    );
-    expect(note).toBeTruthy();
-    return note as HTMLElement;
-  });
+  const general = await screen.findByRole("group", { name: "C1 · general" });
 
   await click(within(general).getByRole("button", { name: "Edit" }));
   await comment("Too long by half");
   await waitFor(() => expect(read(r, REVIEW)).toContain("\nToo long by half\n"));
   await click(
-    within(document.querySelector(".pending") as HTMLElement).getByRole("button", {
+    within(screen.getByRole("group", { name: "C1 · general" })).getByRole("button", {
       name: "Remove",
     }),
   );
@@ -269,10 +262,27 @@ test("a table row takes a comment on its line", async () => {
 
   await waitFor(() => expect(read(r, REVIEW)).toContain("| Upgrade of version 1 data"));
   await waitFor(() =>
-    expect(
-      [...document.querySelectorAll(".pending")].some((n) =>
-        n.textContent?.includes("Which version?"),
-      ),
-    ).toBe(true),
+    expect(screen.getByRole("group", { name: /^C1 · line/ }).textContent).toContain(
+      "Which version?",
+    ),
   );
+});
+
+/** US2 3, 4: on a wide screen, the comment field opens under the block, with no overlay. */
+test("on a wide screen, the comment field opens under the block (US2 3, 4)", async () => {
+  await renderPage(PAGE, repo());
+  const block = await scenario(FIRST);
+  await click(block);
+
+  const form = screen.getByRole("form", { name: "Comment" });
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(within(form).getByRole("button", { name: "Add comment" })).toBeTruthy();
+  // Right under the block.
+  expect(block.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  const second = await scenario(SECOND);
+  expect(form.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+  await click(within(form).getByRole("button", { name: "Cancel" }));
+  expect(screen.queryByRole("form", { name: "Comment" })).toBeNull();
+  expect((await scenario(FIRST)).getAttribute("aria-pressed")).toBe("false");
 });
