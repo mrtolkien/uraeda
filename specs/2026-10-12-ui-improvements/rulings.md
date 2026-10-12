@@ -115,10 +115,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R9: An Undo gives its own error
 
 - **Decision**: `useUndoToast`'s `undo` resolves with nothing once the change is reverted, or with
-  the error text to show, instead of a boolean. ＋'s Undo removes the line by its id over the hash
-  read from disk at that moment, so a line edited since is removed as edited.
+  the error text to show, instead of a boolean. ＋'s Undo reads the priorities from disk at that
+  moment, finds the line it added by its text (and its key, among lines of the same text), and
+  removes it over that hash; once the line is edited or gone, it removes nothing and says
+  `Could not undo: "<line>" is no longer in PRIORITIES.md.`
 - **Rationale**: the plan's `Promise<boolean>` gave the toast no text for its error. Each caller
-  knows its own: the core's refusal for ＋, "Could not restore …" for a deletion.
+  knows its own: the core's refusal for ＋, "Could not restore …" for a deletion. A line's id is its
+  place, which another line added above it takes: removing by id could delete that other line.
 - **Alternatives considered**: a third argument with a fixed error text, which hides the core's
   refusal from ＋'s Undo.
 - **If wrong**: one signature, in `packages/web/src/layout/useUndoToast.ts`, and its two callers.
