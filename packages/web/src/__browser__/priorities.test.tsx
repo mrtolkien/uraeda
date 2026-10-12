@@ -167,6 +167,20 @@ test("committing closes the page's toasts", async () => {
   await expect.poll(() => screen.queryByRole("button", { name: "Undo" })).toBeNull();
 });
 
+test("discarding closes the page's toasts", async () => {
+  const original = await commands.readRepo();
+  await show("/priorities/nix-docker-based-execution-environments", "Delete");
+  await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+  expect(await screen.findByRole("button", { name: "Undo" })).toBeTruthy();
+
+  await userEvent.click(await screen.findByRole("button", { name: "Discard" }));
+  await userEvent.click(await screen.findByRole("button", { name: "Discard them" }));
+
+  // Discarded: the line is back, and no Undo is left to insert it a second time.
+  await expect.poll(() => commands.readRepo()).toBe(original);
+  await expect.poll(() => screen.queryByRole("button", { name: "Undo" })).toBeNull();
+});
+
 test("a live update during a drag waits for its end (review focus 4)", async () => {
   if (window.innerWidth < 768) {
     return;
