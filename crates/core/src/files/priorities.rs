@@ -263,6 +263,9 @@ pub struct EntryItem {
     pub spans: Vec<super::document::Span>,
     pub start_line: u32,
     pub end_line: u32,
+    /// Its lines as written, its marker, wrapped text, and nested lines included: what an Undo of
+    /// its removal writes back.
+    pub lines: Vec<String>,
     /// Its nested lines, as written.
     pub nested: Vec<String>,
     /// The text of each nested item, without its marker.
@@ -376,6 +379,10 @@ pub fn read(text: &str, committed: Option<&str>) -> Priorities {
                     text: markdown,
                     start_line: entry.line as u32,
                     end_line: entry.end as u32,
+                    lines: lines[entry.line - 1..entry.end]
+                        .iter()
+                        .map(|l| l.to_string())
+                        .collect(),
                     nested: lines[entry.text_end..entry.end]
                         .iter()
                         .map(|l| l.to_string())
