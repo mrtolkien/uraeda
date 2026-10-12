@@ -101,8 +101,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R8: The list pane scrolls with the page, the detail pane on its own
 
 - **Decision**: on wide screens, `Panes` lets the list scroll with the window, and makes the detail
-  sticky, as tall as the window at most, scrolling on its own. Its two sizes are theme tokens,
-  `--size-pane-min` (400 px) and `--size-viewport-height` (`100dvh`).
+  sticky, exactly as tall as the window, so its edge runs the whole height beside the list, and
+  scrolling on its own. Its two sizes are theme tokens, `--size-pane-min` (400 px) and
+  `--size-viewport-height` (`100dvh`).
 - **Rationale**: the plan asked for each pane to scroll on its own. Two inner scrollers would take
   the list's position out of the window, where `navigate` and `useRestoreScroll` (task 6) save and
   restore it; a sticky detail scrolls apart from the list all the same. The components decision puts
