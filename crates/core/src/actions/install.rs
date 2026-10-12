@@ -113,6 +113,22 @@ pub fn install(
     Ok(lines)
 }
 
+/// Updates every skill ura installed in `base`, each a real folder with a manifest at `AGENTS_DIR`
+/// or `CLAUDE_DIR`, the others skipped; an empty list when there is none. `shown` prefixes the
+/// printed paths.
+pub fn update(base: &Path, shown: &str) -> Result<Vec<InstallLine>, ActionError> {
+    let mut lines = Vec::new();
+    for dir in [AGENTS_DIR, CLAUDE_DIR] {
+        let path = base.join(dir);
+        let installed = fs::symlink_metadata(&path).is_ok_and(|meta| meta.is_dir())
+            && path.join(MANIFEST).is_file();
+        if installed {
+            refresh(&path, &format!("{shown}{dir}"), &mut lines)?;
+        }
+    }
+    Ok(lines)
+}
+
 /// Installs at one skill path; when there is nothing, links it to `link` if given.
 fn place(
     base: &Path,
@@ -136,7 +152,7 @@ fn place(
             Ok(())
         }
         Ok(meta) if meta.is_dir() && path.join(MANIFEST).is_file() => {
-            update(&path, &shown_dir, lines)
+            refresh(&path, &shown_dir, lines)
         }
         Ok(_) => {
             lines.push(InstallLine::Kept(
@@ -191,7 +207,7 @@ fn copy(path: &Path, shown_dir: &str, lines: &mut Vec<InstallLine>) -> Result<()
 
 /// Updates an installed skill from its manifest: writes the files nobody edited since they were
 /// installed, keeps the edited ones, and removes the files the skill no longer has, unless edited.
-fn update(dir: &Path, shown_dir: &str, lines: &mut Vec<InstallLine>) -> Result<(), ActionError> {
+fn refresh(dir: &Path, shown_dir: &str, lines: &mut Vec<InstallLine>) -> Result<(), ActionError> {
     let recorded = fs::read_to_string(dir.join(MANIFEST)).unwrap_or_default();
     let installed: BTreeMap<String, String> = recorded
         .lines()

@@ -124,11 +124,6 @@ pub fn run(flags: Flags) -> Result<ExitCode, String> {
         }
         Choice::Ask => unimplemented!("pickers: task 4"),
     };
-    let folders = match folders {
-        Some(Choice::Given(folders) | Choice::Implied(folders)) => folders,
-        Some(Choice::Ask) => unimplemented!("pickers: task 4"),
-        None => unimplemented!("--update: task 2"),
-    };
     let home = home();
     let top = git.as_ref().ok().map(|git| git.root().to_path_buf());
     let (base, shown, other) = match scope {
@@ -141,7 +136,23 @@ pub fn run(flags: Flags) -> Result<ExitCode, String> {
             (top, "", home.map(|home| (home, "~/")))
         }
     };
-    let lines = install::install(&base, shown, folders).map_err(|error| error.to_string())?;
+    let lines = match folders {
+        Some(Choice::Given(folders) | Choice::Implied(folders)) => {
+            install::install(&base, shown, folders)
+        }
+        Some(Choice::Ask) => unimplemented!("pickers: task 4"),
+        None => install::update(&base, shown),
+    }
+    .map_err(|error| error.to_string())?;
+    if lines.is_empty() {
+        let place = if shown.is_empty() {
+            "this repository"
+        } else {
+            shown
+        };
+        println!("nothing to update: ura installed no skill in {place}");
+        return Ok(ExitCode::SUCCESS);
+    }
     print(&lines);
     // A home folder that is the repository's top level has no other scope.
     let same = |other: &PathBuf| other.canonicalize().ok() == base.canonicalize().ok();
