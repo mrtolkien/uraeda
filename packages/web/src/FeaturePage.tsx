@@ -1,5 +1,7 @@
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
+import { Suspense } from "react";
+import { AgentPanel } from "./AgentPanel.tsx";
 import { useFeature } from "./data.ts";
 import { waiting, workflowOrder } from "./labels.ts";
 import { Link, navigate } from "./routes.tsx";
@@ -57,6 +59,9 @@ export function FeaturePage({ folder }: { folder: string }) {
           </div>
         </div>
       )}
+      <Suspense fallback={null}>
+        <AgentPanel feature={feature} />
+      </Suspense>
       <p className="small muted">
         {feature.branch ? (
           <>

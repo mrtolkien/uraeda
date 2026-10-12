@@ -1265,20 +1265,29 @@ git commit -m "feat(claude-code-runner-triggered-manually-https-code): commit an
 
 - Create: `packages/web/src/AgentPanel.tsx`, `packages/web/src/RunLog.tsx`
 - Modify: `packages/web/src/FeaturePage.tsx` (the panel under the gate callout),
-  `packages/web/src/Home.tsx` ("Working" badge)
-- Test: `packages/web/src/__tests__/agent-panel.test.tsx`
+  `packages/web/src/Home.tsx` ("Working" badge), `packages/web/src/styles.css` (the panel, and tool
+  calls that wrap rather than cut their target)
+- Modify: `packages/server/src/__tests__/stack.test.ts` (`RunLog.tsx` may import Astryx `Markdown`,
+  [R21](rulings.md#r21-the-run-log-alone-may-import-astryx-markdown))
+- Test: `packages/web/src/__tests__/agent-panel.test.tsx`, SC-001 in
+  `packages/web/src/__tests__/commit-actions.test.tsx`, and the panel at an iPhone's size in
+  `packages/web/src/__browser__/layout.test.tsx`
 
 **Interfaces:**
 
 - Consumes: `useRun`, `useRunLog`, `startRun` (task 6), and `run.stop` and `run.allow` (task 5).
 - Produces:
-  - `AgentPanel({ feature })`: the latest run, its buttons, and "Earlier runs";
-  - `RunLog({ run })`: every page of the run's log, in order.
+  - `AgentPanel({ feature })`: the latest run, its buttons, and "Earlier runs". `RunStatus` and
+    `Denials` draw a run's state and blocked actions from its record;
+  - `RunLog({ run })`: every page of the run's log, in order, each page a live view of its own.
+    `RunEvents({ events })` draws a list of events.
 
-- [ ] **Step 1: Write the failing tests, and the helpers they use**
+- [x] **Step 1: Write the failing tests, and the helpers they use**
 
-`renderPage(..., { agent: true })` exposes the fake. A helper `seedRun(agent, events)` scripts a run
-and starts it through `run.start` before rendering.
+`renderPage(..., { agent: true })` exposes the fake. A helper `seedRun(fake, repo, folder, steps)`
+scripts a run, starts it as `run.start` does, and waits for its end, before rendering. `liveRun`
+starts one that goes on, and `cachedRun` writes an ended run in the cache, for features no run can
+start on. Live updates do not reach UI tests: `refreshUntil` reads the page again.
 
 ```ts
 test("US2.1 and C3: an agent's text renders as markdown", async () => {
@@ -1297,7 +1306,8 @@ test("US2.6: earlier runs are listed", async () => {
   /* two runs: "Earlier runs", 1 */
 });
 test("US2.7: Home shows a working agent", async () => {
-  /* "Working" badge on the cli-tuis row */
+  /* "Working" badge, and "Discovery" below the title, on a feature started from its draft: the
+     fixture's cli-tuis fails the core's checks once a run gives it a worktree */
 });
 test("US4.1: Start the agent starts a run", async () => {
   /* cli-tuis feature page: agent.starts[0].message contains "The human asked you to continue." */
@@ -1320,12 +1330,12 @@ test("a run done at a gate says so", async () => {
 test("a merged feature shows its runs and no button", async () => {});
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/agent-panel.test.tsx`
 - Expected: FAIL, `Unable to find an element with the text: Start the agent`.
 
-- [ ] **Step 3: Implement `AgentPanel`, `RunLog`, and the two page changes**
+- [x] **Step 3: Implement `AgentPanel`, `RunLog`, and the two page changes**
 
 **`RunLog`:**
 
@@ -1333,7 +1343,9 @@ test("a merged feature shows its runs and no button", async () => {});
   `<Markdown density="compact" headingLevelStart={4}>`.
 - Consecutive tool events are one `ChatToolCalls`. Each call's `duration` is formatted as `2.5 s`,
   or `340 ms` below a second, and its `resultDetail` is a `CodeBlock` of `output`.
-- System events and denials are `ChatSystemMessage`s.
+- System events and denials are `ChatSystemMessage`s. A denial reads "Auto mode blocked <tool>:
+  <target>".
+- A tool call's name and target wrap rather than being cut, as the layout test asks of every text.
 
 **`AgentPanel`:**
 
@@ -1345,19 +1357,21 @@ test("a merged feature shows its runs and no button", async () => {});
   - Stop while running;
   - "Start the agent" when the feature waits on an agent with no run going;
   - "Try again" after a failed or stopped run when the feature still waits on an agent.
-- **Denials:** each in a `Banner`, with "Allow and continue".
-- **Earlier runs:** a `Collapsible` with the count, listing each run's step, state, and date, and
-  its `RunLog` when opened.
+- **Denials:** each in a `Banner`, with "Allow and continue" when the feature waits on an agent
+  ([R22](rulings.md#r22-allow-and-continue-shows-when-a-run-can-start)).
+- **Earlier runs:** a `Collapsible` with the count, closed, listing each run's step, state, and
+  date, and its `RunLog` when opened.
+- **Without `claude`:** a feature with no run shows no panel, as today.
 
 **Home:** a row shows `Badge label="Working"` when `workspace.running` has its folder, in place of
 the step badge. Its subtitle keeps the step's label.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp test packages/web && vp check`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src

@@ -5,10 +5,15 @@ import "@astryxdesign/core/reset.css";
 import "@astryxdesign/core/astryx.css";
 import "@astryxdesign/theme-neutral/theme.css";
 import "../styles.css";
+import { Theme } from "@astryxdesign/core/theme";
+import { neutralTheme } from "@astryxdesign/theme-neutral/built";
+import { ChatMessageList } from "@astryxdesign/core/Chat";
 import { createRoot, type Root } from "react-dom/client";
 import { createFateClient } from "react-fate/client";
 import { afterEach, expect, test } from "vite-plus/test";
+import { Denials, RunStatus } from "../AgentPanel.tsx";
 import { App } from "../App.tsx";
+import { type RunEvent, RunEvents } from "../RunLog.tsx";
 
 let root: Root | undefined;
 
@@ -116,4 +121,88 @@ test("a plan under review", async () => {
 test("the priorities", async () => {
   await show("/priorities", "Git listener process");
   checkPage();
+});
+
+test("a feature waiting on an agent", async () => {
+  await show("/f/2026-10-12-cli-tuis", "CLI TUIs");
+  checkPage();
+});
+
+const LONG =
+  "specs/2026-10-12-claude-code-runner-triggered-manually-https-code/clarifications-01.md";
+
+/** A run's panel, drawn from its records: the browser tests' server runs no agent. */
+function Panel({ state }: { state: "running" | "failed" }) {
+  const run = {
+    id: "1",
+    folder: "2026-10-12-claude-code-runner-triggered-manually-https-code",
+    trigger: "answers",
+    step: "implementation",
+    state,
+    reason: state === "failed" ? `Claude Code exited with code 1: could not read ${LONG}` : null,
+    costUsd: 12.5,
+    startedAt: "2026-10-12T09:00:00.000Z",
+    endedAt: state === "failed" ? "2026-10-12T10:05:00.000Z" : null,
+    newSession: false,
+    allowed: null,
+    pages: 1,
+    denials: [{ seq: 5, tool: "Bash", target: `gh pr create --draft --title "${LONG}"`, rule: "" }],
+  };
+  const events: Array<RunEvent> = [
+    { seq: 0, kind: "system", text: "Started a new session: the previous one is gone." },
+    {
+      seq: 1,
+      kind: "text",
+      text: `Reading **the answers** of round 01 in \`${LONG}\`, then the spec.`,
+    },
+    {
+      seq: 2,
+      kind: "tool",
+      id: "a",
+      name: "Read",
+      target: LONG,
+      status: "complete",
+      durationMs: 200,
+    },
+    {
+      seq: 3,
+      kind: "tool",
+      id: "b",
+      name: "Bash",
+      target: `ura check ${LONG} && vp run ready`,
+      status: "running",
+    },
+    { seq: 4, kind: "system", text: "Rate limited, retrying in 30 s." },
+    { seq: 5, kind: "denial", tool: "Bash", target: "gh pr create --draft", rule: "" },
+  ];
+  return (
+    <Theme theme={neutralTheme} mode="light">
+      <div className="page" role="main">
+        <section className="agent-panel">
+          <RunStatus run={run as never} waitsOnHuman={false} />
+          {run.reason && <p className="agent-reason">{run.reason}</p>}
+          <Denials denials={run.denials} onAllow={async () => {}} />
+          <ChatMessageList align="top" density="compact" className="run-log">
+            <RunEvents events={events} />
+          </ChatMessageList>
+        </section>
+      </div>
+    </Theme>
+  );
+}
+
+test("the agent panel", async () => {
+  for (const state of ["running", "failed"] as const) {
+    const container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+    root.render(<Panel state={state} />);
+    await expect
+      .poll(() => document.body.textContent?.includes("Rate limited"), { timeout: 15_000 })
+      .toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    checkPage();
+    root.unmount();
+    document.body.innerHTML = "";
+  }
 });

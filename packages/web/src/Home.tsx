@@ -84,16 +84,24 @@ export function Home() {
         </Link>
       ))}
       {agents.length > 0 && <div className="group label">Agents at work</div>}
-      {agents.map((feature) => (
-        <Link key={feature.folder} to={`/f/${feature.folder}`} className="row">
-          <Badge variant="info" label={stepLabel(feature.step.name)} />
-          <span className="grow">
-            {feature.title}
-            {feature.step.task && <div className="sub">{feature.step.task}</div>}
-          </span>
-          <span className="chevron">›</span>
-        </Link>
-      ))}
+      {agents.map((feature) => {
+        const working = workspace.running.includes(feature.folder);
+        const step = stepLabel(feature.step.name);
+        const sub = working
+          ? [step, feature.step.task].filter(Boolean).join(" · ")
+          : feature.step.task;
+        return (
+          <Link key={feature.folder} to={`/f/${feature.folder}`} className="row">
+            {/* A running agent says so; its step moves to the subtitle. */}
+            <Badge variant={working ? "success" : "info"} label={working ? "Working" : step} />
+            <span className="grow">
+              {feature.title}
+              {sub && <div className="sub">{sub}</div>}
+            </span>
+            <span className="chevron">›</span>
+          </Link>
+        );
+      })}
       {priorities.length > 0 && <div className="group label">Priorities</div>}
       {priorities.map((entry) => (
         <div key={entry.id} className="row">

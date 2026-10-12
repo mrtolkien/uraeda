@@ -536,3 +536,48 @@ li.block[aria-selected="true"] {
 .commit-actions > * {
   flex: 1 1 auto;
 }
+
+/* The agent panel on a feature's page: the run's state, its buttons, and its log. */
+.agent-panel {
+  margin-bottom: 14px;
+}
+
+.agent-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.agent-reason {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.agent-denial {
+  margin: 10px 0;
+}
+
+.agent-denial .mono {
+  overflow-wrap: anywhere;
+}
+
+.run-log {
+  margin-top: 12px;
+}
+
+/* A tool call's whole name and target show, wrapped, rather than cut at the screen's edge. */
+.run-log .astryx-chat-tool-calls {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.run-log .astryx-chat-tool-calls span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* A tool's name, after its status icon, keeps its width. */
+.run-log .astryx-chat-tool-calls span:nth-child(2) {
+  flex: none;
+}
