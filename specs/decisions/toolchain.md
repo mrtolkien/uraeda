@@ -26,17 +26,16 @@ Every tool is pinned, so a contributor, an agent, and CI get the same results.
 ## Why
 
 The human asked for a single root command running every test and check
-([proposal](../2026-10-10-stack-decision/proposal.md)), with a `package.json` script so `vp` stays
-the only entry point
-([Q9](../2026-10-10-stack-decision/clarifications-01.md#q9-which-single-command-runs-every-check)),
-a Nix dev shell that CI uses
-([Q10](../2026-10-10-stack-decision/clarifications-01.md#q10-how-do-contributors-and-agents-get-the-toolchain)),
+([proposal](../done/2026-10-10-stack-decision.md)), with a `package.json` script so `vp` stays the
+only entry point
+([Q9](../done/2026-10-10-stack-decision.md#q9-which-single-command-runs-every-check)), a Nix dev
+shell that CI uses
+([Q10](../done/2026-10-10-stack-decision.md#q10-how-do-contributors-and-agents-get-the-toolchain)),
 and Linux and macOS first
-([Q5](../2026-10-10-stack-decision/clarifications-01.md#q5-which-platforms-are-supported)),
-validated on Linux x64 only, as the human asked when reviewing the
-[spec](../2026-10-10-stack-decision/spec.md). Agents check their own work: one command they cannot
-forget a part of keeps them honest
-([monorepo tooling](../2026-10-10-stack-decision/discovery-01.md#monorepo-tooling)).
+([Q5](../done/2026-10-10-stack-decision.md#q5-which-platforms-are-supported)), validated on Linux
+x64 only, as the human asked when reviewing the [spec](../done/2026-10-10-stack-decision.md). Agents
+check their own work: one command they cannot forget a part of keeps them honest
+([monorepo tooling](../done/2026-10-10-stack-decision.md)).
 
 ## Alternatives considered
 

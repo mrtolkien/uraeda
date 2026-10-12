@@ -39,27 +39,27 @@ The CLI must install without a package manager, as a small native binary, and th
 Rust's enums and cargo workspaces for workflow states. The server drives agents whose official SDKs,
 and pi-durable, are TypeScript, and fate assumes a TypeScript server. A napi-rs binding lets both
 share one core without a second parser
-([Q1](../2026-10-10-stack-decision/clarifications-01.md#q1-which-language-for-each-component),
-[Q2](../2026-10-10-stack-decision/clarifications-01.md#q2-how-do-the-backend-and-the-ui-reach-users),
-[Q3](../2026-10-10-stack-decision/clarifications-01.md#q3-where-are-workflow-files-parsed-and-validated),
-[language split](../2026-10-10-stack-decision/discovery-01.md#language-split)). The server will
-commit to git and start agents, so a web page the user visits must not reach it
-([local server security](../2026-10-10-stack-decision/discovery-01.md#local-server-security)).
+([Q1](../done/2026-10-10-stack-decision.md#q1-which-language-for-each-component),
+[Q2](../done/2026-10-10-stack-decision.md#q2-how-do-the-backend-and-the-ui-reach-users),
+[Q3](../done/2026-10-10-stack-decision.md#q3-where-are-workflow-files-parsed-and-validated),
+[language split](../done/2026-10-10-stack-decision.md#q1-which-language-for-each-component)). The
+server will commit to git and start agents, so a web page the user visits must not reach it
+([local server security](../done/2026-10-10-stack-decision.md)).
 
 fate is preferred over a plain JSON client because the web UI will hold live, graph-like data:
 sub-agents and their runs, streamed responses, and drafts of answers edited in the browser. fate's
 normalized cache, live views, and optimistic updates are built for that; with TanStack Query, each
 of them is written by hand. fate reads data that is not in a database through sources built with the
 types it exports, so it stays the data layer
-([Q5](../2026-10-11-web-ui/clarifications-01.md#q5-does-fate-stay-the-data-layer)).
+([Q5](../done/2026-10-11-web-ui.md#q5-does-fate-stay-the-data-layer)).
 
 The server listens on 127.0.0.1 only, but accepts the host names listed in `URAEDA_ALLOWED_HOSTS`,
 so a phone reaches it through `tailscale serve`, which keeps it on 127.0.0.1 and passes the
 machine's `*.ts.net` name
-([Q2](../2026-10-11-web-ui/clarifications-01.md#q2-how-does-your-iphone-reach-the-server)). The web
-UI draws the core's document tree, since a second markdown parser in TypeScript would disagree with
-the core on callouts, typed bullets, and source lines
-([Q4](../2026-10-11-web-ui/clarifications-01.md#q4-where-does-the-structure-the-ui-draws-come-from)).
+([Q2](../done/2026-10-11-web-ui.md#q2-how-does-your-iphone-reach-the-server)). The web UI draws the
+core's document tree, since a second markdown parser in TypeScript would disagree with the core on
+callouts, typed bullets, and source lines
+([Q4](../done/2026-10-11-web-ui.md#q4-where-does-the-structure-the-ui-draws-come-from)).
 
 ## Alternatives considered
 
@@ -70,7 +70,7 @@ the core on callouts, typed bullets, and source lines
   only through the CLI's output, one process per call.
 - JSON routes read by Hono's typed client and TanStack Query, the fallback if fate could not read
   data outside a database: dropped once fate's sources did
-  ([data layer](../2026-10-11-web-ui/discovery-01.md#data-layer)).
+  ([data layer](../done/2026-10-11-web-ui.md#q5-does-fate-stay-the-data-layer)).
 - Astryx's `Markdown` component, or a TypeScript parser, for the UI's rendering: dropped for the
   core's document tree, the only parser that knows the skill's markdown and its source lines.
 
