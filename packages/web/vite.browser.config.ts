@@ -105,6 +105,9 @@ export type RepoCommands = {
 export default defineConfig({
   ...base,
   plugins: [...plugins, uraedaServer({ adapter: agent })],
+  // StyleX's runtime injection is imported by the compiled styles, which Vite finds only once the
+  // tests run: bundled late, on a cold cache, it reloads the browser and fails the test files.
+  optimizeDeps: { include: ["@stylexjs/stylex/lib/stylex-inject"] },
   test: {
     name: "uraeda-web-browser",
     include: ["src/__browser__/**/*.test.tsx"],
