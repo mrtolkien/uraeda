@@ -277,3 +277,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   a run done at a gate, then the refusal under it.
 - **If wrong**: one condition in `AgentPanel.tsx`.
 - **Where**: task 7.
+
+## R23: `AGENTS.md` is left as it is
+
+- **Decision**: task 8 updates `README.md` only. `AGENTS.md` does not gain the plugin and script
+  folders.
+- **Rationale**: `AGENTS.md` is not formatted on the default branch, which makes `vp check` and
+  `vp run ready` fail before this feature. Editing it would have the pre-commit hook reformat the
+  whole file: a fix in passing, which the implementation step forbids. The folders are named in the
+  [agents](../decisions/agents.md) decision and the README.
+- **Alternatives considered**: editing it, and letting the hook reformat it.
+- **If wrong**: two lines in `AGENTS.md` once it is formatted.
+- **Where**: task 8.
+
+## R24: The real run used a new feature's discovery, stopped after 40 seconds
+
+- **Decision**: task 8's real run went through the server's fate API on a temporary fixture
+  repository, not through a browser. It started the `git-listener` draft as a feature, ran its
+  discovery, stopped it after 40 seconds, ran it again with "Try again", and stopped it again.
+- **Rationale**: `2026-10-12-cli-tuis` fails the core's checks once its worktree exists (task 7's
+  report), so it has no step for the agent. Two short runs cover the checks the plan asks for, at
+  about $0.67.
+- **Alternatives considered**: a full step, at several dollars, for no more coverage.
+- **If wrong**: run it in the browser with `vp dev` on a fixture repository.
+- **Where**: task 8.

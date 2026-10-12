@@ -46,9 +46,11 @@ the next step from the files alone, does it, commits, and stops when it needs yo
 approve by editing the file, by telling the agent, or with `ura answer` and `ura review`, and run it
 again later.
 
-A runner that starts the agent when you push an answer is planned: see
-[the project status](#project-status). The skill follows the
-[Agent Skills format](https://agentskills.io/specification).
+Or let the web UI run it: "Commit and continue" commits your answers or your approval, then starts
+Claude Code on the feature's next step, and it works until it needs you again. The feature page
+shows the run live, with its log, its estimated cost, and a Stop button. A runner that starts the
+agent when you push an answer is planned: see [the project status](#project-status). The skill
+follows the [Agent Skills format](https://agentskills.io/specification).
 
 **A good fit** for features worth a spec: where getting the design wrong is costly, and where you
 would rather answer ten precise questions than review a guess. **Not a fit** for a one-line fix:
@@ -225,10 +227,18 @@ accepts besides 127.0.0.1, like your machine's full name on your tailnet, `mac.t
 server listens on 127.0.0.1 only: `tailscale serve --bg 4310` reaches it from your phone, at
 `https://mac.tail1234.ts.net/`.
 
+"Commit and continue" needs `claude` installed and signed in on the machine. The server starts it in
+the feature's worktree, in `auto` permission mode, with your own Claude Code settings, and with the
+server's copy of the skill as a plugin: see the [agents](specs/decisions/agents.md) decision.
+Without `claude`, the pages only commit. Sessions and run logs are kept in `runner.sqlite`, in
+`URAEDA_DATA_DIR` or your system's data folder, `~/.local/share/uraeda/` on Linux. When Claude Code
+changes and runs break, `vp run validate:claude` checks the integration against the installed
+`claude`, with a few small runs.
+
 The code is under the MIT or Apache-2.0 licenses, at your option.
 
 ## Project status
 
 What is being built now, and next, is in [specs/PRIORITIES.md](specs/PRIORITIES.md): the skill
-first, then a CLI, a web UI to view and edit the workflow files, and a runner that starts an agent
-when you commit an answer.
+first, then a CLI, a web UI to view and edit the workflow files, a runner that starts Claude Code
+from the web UI, and a git listener that starts it when you commit an answer.
