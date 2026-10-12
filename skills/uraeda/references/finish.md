@@ -98,10 +98,13 @@ Write the pull request's description, as the
 [implementation step's pull request](implementation.md#pull-request) describes, with its links to
 `spec.md` and `plan.md` at the commit before finishing, since the branch no longer has them. Its
 last line, for a feature or a bug: "Once merged, run `ura clean` to remove the worktree and the
-branch." Then mark it ready, with `gh pr ready`. It is the feature's last human gate.
+branch." If the default branch moved since the
+[catch-up](implementation.md#catch-up-with-the-default-branch), catch up again first. Then mark it
+ready, with `gh pr ready`. It is the feature's last human gate.
 
-Advise merging with a merge commit or a rebase: a squash merge leaves the folder's files only in the
-pull request, out of `git log -- specs/<folder>/`.
+Advise a rebase merge, which keeps the default branch's history linear, or else a merge commit: a
+squash merge leaves the folder's files only in the pull request, out of
+`git log -- specs/<folder>/`.
 
 ## Changes asked on the pull request
 

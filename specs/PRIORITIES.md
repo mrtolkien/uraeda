@@ -7,8 +7,9 @@
 
 ## Next
 
-- Chat in the web UI: ask about a step without committing, ...
-- Look and feel pass
+- Chat in the web UI: ask about a step without committing, see actual message that goes with the
+  commit and push, ...
+- Look and feel pass for the web UI
 - Nvim plugin
 - Clean server code that can open any folder on the host + be run easily with node
 - Small onboarding explanation (what to read and in which order)
