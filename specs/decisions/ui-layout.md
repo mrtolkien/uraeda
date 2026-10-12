@@ -34,18 +34,17 @@ controls grown to match, in a reading column near 70 characters, left-aligned.
 ## Why
 
 The desktop showed the phone's column with phone sheets: the human zoomed it to 120% to read it, and
-called the priorities modal "mobile-only" ([proposal](../2026-10-12-ui-improvements/proposal.md)).
+called the priorities modal "mobile-only" ([proposal](../done/2026-10-12-ui-improvements.md)).
 Established products open an item in a side panel on desktop and a page on a phone, like Todoist and
 Jira, and Astryx's shell already switches at 768 px
-([Q2](../2026-10-12-ui-improvements/clarifications-01.md#q2-how-should-the-ui-adapt-between-the-phone-and-the-desktop),
-[adapting](../2026-10-12-ui-improvements/discovery-01.md#adapting-to-the-phone-and-the-desktop)).
+([Q2](../done/2026-10-12-ui-improvements.md#q2-how-should-the-ui-adapt-between-the-phone-and-the-desktop),
+[adapting](../done/2026-10-12-ui-improvements.md#q2-how-should-the-ui-adapt-between-the-phone-and-the-desktop)).
 The human's 120% zoom turns 16 px into 19 px, close to GOV.UK's 19 px body text, and scales the
-controls too
-([Q5](../2026-10-12-ui-improvements/clarifications-01.md#q5-how-large-should-text-be-on-desktop),
-[text size](../2026-10-12-ui-improvements/discovery-01.md#text-size-on-desktop)). Justified text was
-considered and set aside: it is at its worst on a phone's narrow lines
-([Q6](../2026-10-12-ui-improvements/clarifications-01.md#q6-should-paragraphs-be-justified),
-[justified text](../2026-10-12-ui-improvements/discovery-01.md#justified-text)).
+controls too ([Q5](../done/2026-10-12-ui-improvements.md#q5-how-large-should-text-be-on-desktop),
+[text size](../done/2026-10-12-ui-improvements.md)). Justified text was considered and set aside: it
+is at its worst on a phone's narrow lines
+([Q6](../done/2026-10-12-ui-improvements.md#q6-should-paragraphs-be-justified),
+[justified text](../done/2026-10-12-ui-improvements.md)).
 
 ## Alternatives considered
 
