@@ -28,8 +28,8 @@ const draft = (ctx: Context, record: Omit<DraftRecord, "id">, select: Array<stri
   sources.masked(draftDataView, ctx, { id: record.path, ...record }, select);
 
 /** A run, masked to the fields the client selected. */
-const run = (ctx: Context, id: number | string, select: Array<string>) => {
-  const record = readRun(ctx, String(id));
+const run = async (ctx: Context, id: number | string, select: Array<string>) => {
+  const record = await readRun(ctx, String(id));
   if (!record) {
     throw callSiteError(`refused: no run ${id}`);
   }
@@ -342,7 +342,7 @@ export const mutations = {
   "run.stop": {
     type: "Run",
     resolve: async ({ ctx, input, select }: Resolver<{ run: string }>) => {
-      const record = run(ctx, input.run, select);
+      const record = await run(ctx, input.run, select);
       ctx.runner.stop(Number(input.run));
       return record;
     },

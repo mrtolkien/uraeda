@@ -97,6 +97,9 @@ cache. fate serves runs with live updates, and the web UI draws them with Astryx
   - It runs in WAL mode, with a 5-second wait for locks.
   - Each run records the pid of its server, so a starting server stops only the runs of servers that
     are gone.
+  - A run claims its feature in one transaction: a feature with a run of a live server, any server
+    sharing the file, is refused.
+  - Every server reads only its repository's runs: a run ID of another repository is not found.
 - **The runner,** [`runner.ts`](/packages/server/src/runner/runner.ts), with the message, trigger
   sentences, and allow rules in [`message.ts`](/packages/server/src/runner/message.ts). It covers
   the one-run rule, sessions, the run's lifecycle, stopping, and the watchdog.
@@ -194,14 +197,21 @@ Rulings that change behaviour:
 - **The cache:** a locked cache falls back to memory for that server, and only a corrupt file is
   replaced (R26).
 
+From the pull request's review:
+
+- **One run per feature across servers:** two servers of the same repository, such as one in a
+  worktree, could both start a run on a feature. The cache now claims the feature atomically.
+- **Runs scoped to their repository:** a server returned, allowed, or stopped any run in the shared
+  cache by its ID, another repository's included. It now refuses them.
+
 ## Follow-ups
 
 - **Remote Control**, interactive approvals during a run, and follow-up messages need a channel
   Claude Code does not document for headless runs.
 - **A run can stay "running" until the server restarts** when the adapter's start throws, or its
   event stream rejects. The Claude Code adapter does neither today.
-- **The write refusal** checks the running runs, not runs still reading their step: a commit can
-  land while a run is being prepared.
+- **The write refusal** checks this server's running runs, not runs still reading their step, nor
+  another server's runs: a commit can land while a run is being prepared, or from a second server.
 - **An agent's process survives a server crash.** After the restart, a second run can start on the
   same session.
 - **Stopping the server can wait forever** for a child that ignores SIGTERM.
