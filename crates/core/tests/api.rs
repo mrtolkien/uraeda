@@ -140,6 +140,24 @@ fn nested_priority_lines_come_as_spans() {
     assert!(nested[0].iter().any(|s| s.link.is_some()));
 }
 
+/// Final review: an entry's lines come as written, for an Undo to write them back unchanged.
+#[test]
+fn priority_lines_come_as_written() {
+    let read = priorities::read(
+        "# Priorities\n\n## Later\n\n* Nix + Docker based\n  execution environments\n  - with a cache\n",
+        None,
+    );
+
+    assert_eq!(
+        read.sections[2].entries[0].lines,
+        [
+            "* Nix + Docker based",
+            "  execution environments",
+            "  - with a cache"
+        ]
+    );
+}
+
 const BUG: &str = "2026-10-11-crash";
 const REPORT: &str = "specs/bugs/2026-10-11-crash/report.md";
 
