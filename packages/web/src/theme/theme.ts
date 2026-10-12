@@ -1,0 +1,78 @@
+// The app's theme: Astryx's neutral theme, sized by the UI layout decision. Built into `built/` by
+// `vp run --filter uraeda-web theme`: edit this file, then rebuild, and commit both.
+import { defineTheme } from "@astryxdesign/core/theme";
+import { neutralTheme } from "@astryxdesign/theme-neutral";
+
+/** From 1024 px wide, text, controls, and spacing grow as at the browser's 120% zoom. */
+const WIDE = 1.2;
+
+// The neutral theme's sizes, Astryx's defaults (`@astryxdesign/core/theme/tokens.stylex`): its base
+// font size, its spacing steps, and its element heights, in px. The theme build only accepts the
+// neutral theme as the base to extend, so they are listed here; recheck them on an Astryx upgrade.
+const BASE = 14;
+const SPACING = {
+  "0-5": 2,
+  1: 4,
+  "1-5": 6,
+  2: 8,
+  3: 12,
+  4: 16,
+  5: 20,
+  6: 24,
+  7: 28,
+  8: 32,
+  9: 36,
+  10: 40,
+  11: 44,
+  12: 48,
+};
+const ELEMENTS = { sm: 28, md: 32, lg: 36 };
+
+const px = (value: number) => `${Math.round(value * WIDE * 100) / 100}px`;
+
+/** Every spacing and element-size token multiplied by `WIDE`. */
+const grown = {
+  ...Object.fromEntries(
+    Object.entries(SPACING).map(([step, value]) => [`--spacing-${step}`, px(value)]),
+  ),
+  ...Object.fromEntries(
+    Object.entries(ELEMENTS).map(([size, value]) => [`--size-element-${size}`, px(value)]),
+  ),
+};
+
+export const uraedaTheme = defineTheme({
+  name: "uraeda",
+  extends: neutralTheme,
+  localTokens: {
+    // Reading text: paragraphs of documents, questions, and stories.
+    "--text-reading-size": "17px",
+    "--text-reading-line": "1.5",
+    "--size-reading-measure": "70ch",
+    // The selected block of a review: an amber tint and bar, apart from the muted background.
+    "--color-selection": "var(--color-background-yellow)",
+    "--color-selection-edge": "var(--color-border-yellow)",
+  },
+  adaptations: {
+    rules: [
+      {
+        when: { width: { from: "lg" } },
+        value: {
+          typography: { scale: { base: BASE * WIDE } },
+          tokens: grown,
+          localTokens: { "--text-reading-size": "19px" },
+        },
+      },
+      // Last, so a wide touch screen keeps 44 px controls.
+      {
+        when: { pointer: "coarse" },
+        value: {
+          tokens: {
+            "--size-element-sm": "44px",
+            "--size-element-md": "44px",
+            "--size-element-lg": "44px",
+          },
+        },
+      },
+    ],
+  },
+});

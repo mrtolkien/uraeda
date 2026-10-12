@@ -13,5 +13,6 @@ peerDependencyRules:
   allowedVersions:
     vite: "*"
 allowBuilds:
-  # Its postinstall only prints a nudge to run Astryx's setup CLI.
+  # Their postinstalls only print a nudge to run Astryx's setup CLI.
+  "@astryxdesign/cli": false
   "@astryxdesign/core": false
