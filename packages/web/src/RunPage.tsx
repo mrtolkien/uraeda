@@ -76,12 +76,17 @@ function useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolean) {
 /** The groups of tool calls opened in the log, kept in the history entry for Back and reloads. */
 function useOpenGroups(): OpenGroups {
   const [open, setOpen] = useState<ReadonlyArray<number>>(() => currentEntry().open ?? []);
+  // The entry this view was opened on: still shown while the next page loads, it must not write
+  // into the next one's entry.
+  const [id] = useState(() => currentEntry().id);
   return {
     open,
     onOpenChange: (seq, isOpen) => {
       const next = isOpen ? [...open.filter((s) => s !== seq), seq] : open.filter((s) => s !== seq);
       setOpen(next);
-      updateEntry({ open: next });
+      if (currentEntry().id === id) {
+        updateEntry({ open: next });
+      }
     },
   };
 }
@@ -91,8 +96,23 @@ export function RunPage({ folder, id }: { folder: string; id: string }) {
   const feature = useFeature(folder);
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
-  const known = feature && !feature.missing && feature.runs.includes(id);
-  if (!known) {
+  if (!feature || feature.missing) {
+    return (
+      <Page>
+        <Banner
+          status="error"
+          title={`No feature ${folder}.`}
+          collapsible={false}
+          description={
+            <Link href="/" hasUnderline>
+              Open home
+            </Link>
+          }
+        />
+      </Page>
+    );
+  }
+  if (!feature.runs.includes(id)) {
     return (
       <Page>
         <Banner

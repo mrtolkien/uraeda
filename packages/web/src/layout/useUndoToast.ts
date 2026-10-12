@@ -17,18 +17,20 @@ export function closeUndoToasts() {
 }
 
 /** The errors of refused Undos, shown in the page until dismissed, and who listens to them. */
-let errors: ReadonlyArray<string> = [];
+type UndoError = { id: number; text: string };
+let errors: ReadonlyArray<UndoError> = [];
+let nextId = 0;
 const listeners = new Set<() => void>();
 
-function setErrors(next: ReadonlyArray<string>) {
+function setErrors(next: ReadonlyArray<UndoError>) {
   errors = next;
   for (const listener of listeners) {
     listener();
   }
 }
 
-/** The errors of refused Undos, and how to dismiss one. */
-export function useUndoErrors(): [ReadonlyArray<string>, (index: number) => void] {
+/** The errors of refused Undos, and how to dismiss one, by its id. */
+export function useUndoErrors(): [ReadonlyArray<UndoError>, (id: number) => void] {
   const shown = useSyncExternalStore(
     (listener) => {
       listeners.add(listener);
@@ -36,7 +38,7 @@ export function useUndoErrors(): [ReadonlyArray<string>, (index: number) => void
     },
     () => errors,
   );
-  return [shown, (index) => setErrors(errors.filter((_, at) => at !== index))];
+  return [shown, (id) => setErrors(errors.filter((error) => error.id !== id))];
 }
 
 /**
@@ -58,7 +60,8 @@ export function useUndoToast(): (message: string, undo: () => Promise<string | u
             close();
             const error = await undo();
             if (error) {
-              setErrors([...errors, error]);
+              nextId += 1;
+              setErrors([...errors, { id: nextId, text: error }]);
             }
           },
         }),

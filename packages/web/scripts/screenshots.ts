@@ -4,12 +4,12 @@
  * (1440 × 900), in light and dark, saved as `<view>-<phone|desktop>-<light|dark>.png` in the
  * feature's `screenshots/` folder.
  *
- * Run it with `vp run --filter uraeda-web screenshots`, inside `nix develop` for WebKit. It serves
+ * Run it with `vp run --filter uraeda-web screenshots <folder>`, inside `nix develop` for WebKit. It serves
  * the UI with Vite over a fresh copy of `fixtures/repo`, its server in process on the fake agent,
  * as the browser tests do, and drives WebKit with Playwright. Its output is for people to look
  * at: no test compares it.
  *
- * Pass a feature's folder to save elsewhere: `vp run --filter uraeda-web screenshots <folder>`.
+ * It saves into the feature's folder it is given: `vp run --filter uraeda-web screenshots <folder>`.
  */
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -23,7 +23,10 @@ import base, { uraedaServer } from "../vite.config.ts";
 
 const web = fileURLToPath(new URL("..", import.meta.url));
 const root = fileURLToPath(new URL("../../..", import.meta.url));
-const folder = process.argv[2] ?? "2026-10-12-ui-improvements";
+const folder = process.argv[2];
+if (!folder) {
+  throw new Error("Name the feature's folder: vp run --filter uraeda-web screenshots <folder>");
+}
 const out = join(root, "specs", folder, "screenshots");
 
 const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";

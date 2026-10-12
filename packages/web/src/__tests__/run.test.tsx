@@ -138,3 +138,10 @@ test("a run's address that names no run of the feature says so", async () => {
   expect(screen.getByRole("link", { name: "Open the feature" })).toBeTruthy();
   expect(screen.queryByText("Asked.")).toBeNull();
 });
+
+test("a run's address in a feature that does not exist says the feature is missing", async () => {
+  await renderPage("/f/2026-01-01-nothing/runs/1", fixtureRepo(), { agent: true });
+
+  expect(await screen.findAllByText("No feature 2026-01-01-nothing.")).not.toHaveLength(0);
+  expect(screen.queryByText("No run 1 in 2026-01-01-nothing.")).toBeNull();
+});

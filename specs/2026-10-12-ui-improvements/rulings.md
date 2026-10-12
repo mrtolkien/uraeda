@@ -468,3 +468,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   what Astryx draws.
 - **If wrong**: `RunEvents` in `packages/web/src/RunLog.tsx`, once Astryx controls a row's output.
 - **Where**: Task 16
+
+## R27: Minor findings of the review of the agent's runs, left for the pull request
+
+- **Decision**: the review of tasks 16 to 18 found no critical finding. Its important one, a running
+  log blanking when it gains a page of 100 events, did not happen: React keeps the log on screen
+  while the next page loads, and the browser test now crosses that page with the view scrolled to
+  its middle, which holds. Fixed: a missing feature's run address says the feature is missing, a
+  group toggled while the next page loads writes into its own history entry, and a dismissed Undo
+  banner keeps the others mounted. Left:
+  - A run's row tapped before the feature's live update lists the run can show "No run" until that
+    update arrives.
+  - Opening a run's row remounts the feature page beside it, so a refusal shown in its Agent section
+    goes, as with the task view beside its list.
+  - Untested: US8 4's "opens a file and comes Back" half, US8 2's scroll position on Back, a run
+    started while its view is open, and crossing 768 px with a run view open.
+  - Focus goes to the page's body when an Undo banner is dismissed.
+- **Rationale**: none of these loses work or blocks a flow the spec names.
+- **Alternatives considered**: fixing them on this branch, past what the review saw.
+- **If wrong**: `packages/web/src/App.tsx` (a route keyed on the folder), the tests named, and
+  `packages/web/src/Shell.tsx`.
+- **Where**: the review of tasks 16 to 18
