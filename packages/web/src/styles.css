@@ -562,6 +562,10 @@ li.block[aria-selected="true"] {
   overflow-wrap: anywhere;
 }
 
+.agent-rule {
+  margin: 4px 0 0;
+}
+
 .run-log {
   margin-top: 12px;
 }

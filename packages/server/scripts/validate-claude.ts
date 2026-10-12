@@ -1,7 +1,8 @@
 /**
  * Checks the Claude Code integration against this machine's `claude`, signed in: its version, a
- * first run with the Uraeda skill loaded as a plugin, its session's transcript, a resumed run, and
- * an interrupted run followed by a resumed one.
+ * first run with the Uraeda skill loaded as a plugin, its session's transcript, a resumed run, an
+ * interrupted run followed by a resumed one, and the allow rule of a blocked write outside the
+ * project.
  *
  * Run it by hand, with `vp run validate:claude`, after a Claude Code upgrade, or when runs break.
  * It is not part of `vp test` or `vp run ready`: it runs the real `claude`, which costs a few
@@ -10,13 +11,22 @@
  * It prints one line per check, `ok` or `FAIL` with what it got, and exits 1 on any failure.
  */
 import { randomUUID } from "node:crypto";
-import { readdirSync, readFileSync, rmSync } from "node:fs";
-import { homedir } from "node:os";
+import {
+  chmodSync,
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { fixtureRepo } from "uraeda-binding/test-utils";
 import type { AgentRun } from "../src/runner/adapter.ts";
 import { ClaudeAdapter, PLUGIN_DIR } from "../src/runner/claude.ts";
 import type { AgentEvent } from "../src/runner/events.ts";
+import { allowRule } from "../src/runner/message.ts";
 
 /** A run that has not exited after this long is stopped, and its check fails. */
 const RUN_TIMEOUT_MS = 180_000;
@@ -26,6 +36,8 @@ const INTERRUPT_MS = 10_000;
 const configDir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude");
 const adapter = new ClaudeAdapter({ configDir });
 const cwd = fixtureRepo();
+/** A folder outside the project, for the sixth check. */
+const outside = mkdtempSync(join(tmpdir(), "uraeda-outside-"));
 let failed = false;
 
 function report(name: string, ok: boolean, got: unknown) {
@@ -43,8 +55,9 @@ async function run(
   sessionId: string,
   resume: boolean,
   onEvent?: (event: AgentEvent, agent: AgentRun) => void,
+  agentAdapter: ClaudeAdapter = adapter,
 ): Promise<Array<AgentEvent>> {
-  const agent = adapter.start({ cwd, message, sessionId, resume, pluginDir: PLUGIN_DIR });
+  const agent = agentAdapter.start({ cwd, message, sessionId, resume, pluginDir: PLUGIN_DIR });
   const timeout = setTimeout(() => agent.terminate(), RUN_TIMEOUT_MS);
   const events: Array<AgentEvent> = [];
   try {
@@ -141,8 +154,36 @@ try {
       find(after, "result")?.ok === true,
     { stoppedIn, interrupted: summary(interrupted), after: summary(after) },
   );
+
+  // 6. The allow rule of a write outside the project matches it. `auto` mode lets that write
+  // through, and an ask rule wins over an allow rule, so no run can show "Allow and continue"
+  // lifting a block: the rule is given as an ask rule instead, which Claude Code matches the same
+  // way, and must block the write. A single leading slash would match nothing. The ask rule is
+  // passed with `--settings` to this run only, through a wrapper around `claude`.
+  const target = join(outside, "allowed.txt");
+  const rule = allowRule({ tool: "Write", input: { file_path: target } });
+  const settings = join(outside, "settings.json");
+  writeFileSync(settings, JSON.stringify({ permissions: { ask: [rule] } }));
+  const wrapper = join(outside, "claude-with-settings");
+  writeFileSync(wrapper, `#!/bin/sh\nexec claude --settings '${settings}' "$@"\n`);
+  chmodSync(wrapper, 0o755);
+  const blocked = await run(
+    `Use the Write tool to create the file ${target} containing the word hi. Do nothing else, and do not use Bash.`,
+    randomUUID(),
+    false,
+    undefined,
+    new ClaudeAdapter({ configDir, command: wrapper }),
+  );
+  const denials = find(blocked, "result")?.denials ?? [];
+  report(
+    `the rule ${rule} matches a write outside the project`,
+    denials.some((denial) => denial.tool === "Write" && allowRule(denial) === rule) &&
+      !existsSync(target),
+    { rule, denials, written: existsSync(target) },
+  );
 } finally {
   rmSync(cwd, { recursive: true, force: true });
+  rmSync(outside, { recursive: true, force: true });
 }
 
 process.exit(failed ? 1 : 0);

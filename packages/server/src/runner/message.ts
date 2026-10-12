@@ -70,14 +70,22 @@ export function toolTarget(_name: string, input: Record<string, unknown>): strin
   return undefined;
 }
 
-/** The narrowest allow rule for a blocked action, for `--allowedTools`. */
+/**
+ * The narrowest allow rule for a blocked action, for `--allowedTools`. Claude Code checks files
+ * against `Edit` and `Read` rules only, so a blocked `Write` gets an `Edit` rule. In a file rule,
+ * `/path` is relative to the settings' folder, so an absolute path takes two slashes:
+ * `Edit(//home/me/a)`. A tool with no target gets its bare name, which allows its every call for
+ * the run.
+ */
 export function allowRule({ tool, input }: Denial): string {
   const value = (key: string) => (typeof input[key] === "string" ? input[key] : undefined);
   if (tool === "Bash" && value("command")) {
     return `Bash(${value("command")})`;
   }
-  if (["Edit", "Write", "Read"].includes(tool) && value("file_path")) {
-    return `${tool}(${value("file_path")})`;
+  const file = value("file_path");
+  if (["Edit", "Write", "MultiEdit", "Read"].includes(tool) && file) {
+    const path = file.startsWith("/") && !file.startsWith("//") ? `/${file}` : file;
+    return `${tool === "Read" ? "Read" : "Edit"}(${path})`;
   }
   const url = value("url");
   if (tool === "WebFetch" && url && URL.canParse(url)) {
