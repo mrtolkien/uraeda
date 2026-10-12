@@ -284,13 +284,19 @@ pub fn pull_request(branch: &str) -> PullRequest {
     if !output.status.success() {
         return PullRequest::Unknown;
     }
-    let Ok(list) = serde_json::from_slice::<Vec<serde_json::Value>>(&output.stdout) else {
+    pull_request_state(&output.stdout)
+}
+
+/// A pull request's state from `gh pr list --json reviewDecision,isDraft`: changes requested
+/// first, even on a draft, since the human's feedback comes before finishing.
+pub fn pull_request_state(json: &[u8]) -> PullRequest {
+    let Ok(list) = serde_json::from_slice::<Vec<serde_json::Value>>(json) else {
         return PullRequest::Unknown;
     };
     match list.first() {
         None => PullRequest::NoPullRequest,
-        Some(pr) if pr["isDraft"] == true => PullRequest::Draft,
         Some(pr) if pr["reviewDecision"] == "CHANGES_REQUESTED" => PullRequest::ChangesRequested,
+        Some(pr) if pr["isDraft"] == true => PullRequest::Draft,
         Some(_) => PullRequest::Open,
     }
 }
