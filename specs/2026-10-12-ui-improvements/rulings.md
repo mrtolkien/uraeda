@@ -173,3 +173,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   behaviour decision (a row that leads somewhere is a link) rule out.
 - **If wrong**: `RouterAnchor` and `TaskRoute`, in `routes.tsx` and `App.tsx`.
 - **Where**: task 9, `packages/web/src/routes.tsx`, `packages/web/src/App.tsx`
+
+## R13: The editor lists the hints of empty sections under the text area
+
+- **Decision**: the editor shows the hint of each empty `##` section dimmed, under the text area,
+  after "To write in the empty sections:", one line per heading ("Why · The problem it solves, and
+  for whom."), instead of an overlay drawn on the section's line inside the text area. A proposal
+  opens drawn when it holds text outside its title and What, like a freeform proposal without
+  sections; the editor's Preview and Edit button switches between the two.
+- **Rationale**: an overlay has to copy Astryx's `TextArea` padding, border, font, its iOS 16 px
+  floor, and its scroll, none of which its API exposes: a slip puts the hint on the wrong line. The
+  plan allowed this fallback. The hints still show while the text area is in view, and are never in
+  the file.
+- **Alternatives considered**: a mirror layer over the text area, with the text transparent and the
+  hints on the empty sections' blank lines; the text area's placeholder, which shows only when the
+  whole text is empty.
+- **If wrong**: one block of `packages/web/src/EditorPage.tsx` to replace by an overlay.
+- **Where**: task 10, `packages/web/src/EditorPage.tsx`

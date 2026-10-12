@@ -1,23 +1,17 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import { beforeAll, expect, test } from "vite-plus/test";
-import { fixtureRepo, git, renderPage } from "./helpers.tsx";
+import { click, fixtureRepo, git, read, renderPage, type } from "./helpers.tsx";
 
 beforeAll(() => {
   process.env.URA_TODAY = "2026-10-12";
 });
 
-async function click(element: HTMLElement) {
-  await act(async () => {
-    fireEvent.click(element);
-  });
-}
-
-async function type(element: HTMLElement, value: string) {
-  await act(async () => {
-    fireEvent.change(element, { target: { value } });
-  });
+/** Taps Edit on a written proposal, drawn, and returns its text field (US5 5). */
+async function edit() {
+  await click(await screen.findByRole("button", { name: "Edit" }));
+  return screen.getByRole("textbox", { name: "Text" });
 }
 
 /** US4.1 */
@@ -55,10 +49,29 @@ test("Draft is refused once the priorities changed elsewhere", async () => {
   expect(window.location.pathname).toBe("/priorities/claude-code-runner-triggered-manually");
 });
 
+/** US5 3 */
+test("a new draft shows its hints, which are not in the file (US5 3)", async () => {
+  const { repo } = await renderPage("/");
+  await click(await screen.findByRole("link", { name: /Claude Code runner/ }));
+  await click(await screen.findByRole("button", { name: "Draft" }));
+  expect(await screen.findByText("The problem it solves, and for whom.")).toBeTruthy();
+  expect(read(repo, "specs/drafts/claude-code-runner-triggered-manually.md")).not.toContain(
+    "The problem it solves",
+  );
+});
+
+/** US5 5 */
+test("a written proposal opens drawn, with Edit (US5 5)", async () => {
+  await renderPage("/edit/specs/drafts/git-listener.md");
+  expect(await screen.findByRole("heading", { name: "What" })).toBeTruthy();
+  await click(screen.getByRole("button", { name: "Edit" }));
+  expect(screen.getByRole("textbox", { name: "Text" })).toBeTruthy();
+});
+
 /** US4.2 */
 test("a draft is saved as typed, byte for byte", async () => {
   const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
-  const field = await screen.findByRole("textbox", { name: "Text" });
+  const field = await edit();
 
   const typed = "# Git listener process\n\n## What\n\nRun  the next step,\twith tabs.\n";
   await type(field, typed);
@@ -72,7 +85,7 @@ test("the discovery effort is set in the proposal's frontmatter", async () => {
   const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
   const file = join(repo, "specs/drafts/git-listener.md");
   const before = readFileSync(file, "utf8");
-  await screen.findByRole("textbox", { name: "Text" });
+  await edit();
 
   await click(await screen.findByRole("radio", { name: "Medium" }));
 
@@ -114,7 +127,7 @@ test("a draft is committed with the priorities it changed", async () => {
 /** Codex review: Commit stops when the text shown could not be saved. */
 test("Commit stops when the text could not be saved", async () => {
   const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
-  const field = await screen.findByRole("textbox", { name: "Text" });
+  const field = await edit();
   const file = join(repo, "specs/drafts/git-listener.md");
   writeFileSync(file, "# Theirs\n");
   const before = git(repo, "rev-parse", "HEAD");
@@ -129,7 +142,7 @@ test("Commit stops when the text could not be saved", async () => {
 /** Codex review: a draft changed elsewhere shows when the page comes back. */
 test("a draft changed elsewhere shows when the page reads again", async () => {
   const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
-  const field = (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
+  const field = (await edit()) as HTMLTextAreaElement;
   const file = join(repo, "specs/drafts/git-listener.md");
   writeFileSync(file, "# Theirs\n");
 
@@ -172,10 +185,7 @@ test("a feature's proposal not committed is edited and committed", async () => {
   await renderPage("/f/2026-10-14-runner", repo);
 
   await click(await screen.findByRole("button", { name: "Write" }));
-  await type(
-    await screen.findByRole("textbox", { name: "Text" }),
-    "# Runner\n\n## What\n\nRun agents.\n\n## Why\n\nSpeed.\n",
-  );
+  await type(await edit(), "# Runner\n\n## What\n\nRun agents.\n\n## Why\n\nSpeed.\n");
   await click(screen.getByRole("button", { name: "Commit" }));
 
   await waitFor(() =>
@@ -203,7 +213,7 @@ test("a draft with the template's placeholders starts", async () => {
 
 test("a save over a change made elsewhere keeps the text, and offers the new version", async () => {
   const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
-  const field = await screen.findByRole("textbox", { name: "Text" });
+  const field = await edit();
   writeFileSync(join(repo, "specs/drafts/git-listener.md"), "# Changed elsewhere\n");
 
   await type(field, "# Mine\n");
@@ -223,7 +233,7 @@ test("a save over a change made elsewhere keeps the text, and offers the new ver
 /** Review C1: the new version replaces the text, and a later save does not undo it. */
 test("Load the new version loads it", async () => {
   const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
-  const field = await screen.findByRole("textbox", { name: "Text" });
+  const field = await edit();
   writeFileSync(join(repo, "specs/drafts/git-listener.md"), "# Changed elsewhere\n");
   await type(field, "# Mine\n");
   await screen.findByRole("button", { name: "Load the new version" });

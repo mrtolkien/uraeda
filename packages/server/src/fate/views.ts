@@ -1,7 +1,14 @@
 // The data views of every type the UI reads. Records are the binding's views with an `id`: the
 // mapped type turns napi-rs's interfaces into type literals, which fate's record constraint accepts.
 import { dataView, list } from "@nkzw/fate/server";
-import type { DraftView, FeatureView, FileView, Priorities, WorkspaceView } from "uraeda-binding";
+import type {
+  DraftView,
+  FeatureView,
+  FileView,
+  Priorities,
+  ProposalHint,
+  WorkspaceView,
+} from "uraeda-binding";
 import type { RunEvent } from "../runner/events.ts";
 
 type Record_<T> = { [Key in keyof T]: T[Key] };
@@ -20,6 +27,8 @@ export type FeatureRecord = Record_<FeatureView> & {
 export type FileRecord = Record_<FileView> & { missing?: boolean };
 export type PrioritiesRecord = Record_<Priorities> & { id: string };
 export type DraftRecord = Record_<DraftView> & { id: string };
+/** The proposal template's guidance, by heading, which the editor shows in empty sections. */
+export type ProposalHintsRecord = { id: string; hints: Array<Record_<ProposalHint>> };
 
 /** Whether the agent works on this machine: one record, `runner`. */
 export type RunnerRecord = { id: string; available: boolean; version: string | null };
@@ -147,10 +156,16 @@ export const runLogDataView = dataView<RunLogRecord>("RunLog")({
   events: true,
 });
 
+export const proposalHintsDataView = dataView<ProposalHintsRecord>("ProposalHints")({
+  id: true,
+  hints: true,
+});
+
 /** The ids of the records there is one of. */
 export const WORKSPACE_ID = "workspace";
 export const PRIORITIES_ID = "priorities";
 export const RUNNER_ID = "runner";
+export const PROPOSAL_HINTS_ID = "proposal";
 
 /** The roots: one list per type, so every type is read by id. */
 export const Root = {
@@ -162,4 +177,5 @@ export const Root = {
   runners: list(runnerDataView),
   runs: list(runDataView),
   runLogs: list(runLogDataView),
+  proposalHintsList: list(proposalHintsDataView),
 };
