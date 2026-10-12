@@ -18,10 +18,12 @@ export type WorkspaceRecord = Record_<WorkspaceView> & {
   /** The folders with a run going on. */
   running: Array<string>;
 };
+/** A feature, or `missing` alone when no feature has its folder. */
 export type FeatureRecord = Record_<FeatureView> & {
   id: string;
   /** The IDs of its runs, newest first. */
   runs: Array<string>;
+  missing?: boolean;
 };
 /** A workflow file, or `missing` alone when its feature has no such file. */
 export type FileRecord = Record_<FileView> & { missing?: boolean };
@@ -91,6 +93,7 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
   leftWorktree: true,
   leftBranch: true,
   runs: true,
+  missing: true,
 });
 
 export const fileDataView = dataView<FileRecord>("WorkflowFile")({

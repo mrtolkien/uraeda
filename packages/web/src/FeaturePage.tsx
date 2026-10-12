@@ -36,7 +36,7 @@ export function FeaturePage({ folder }: { folder: string }) {
   const feature = useFeature(folder);
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
-  if (!feature) {
+  if (!feature || feature.missing) {
     return (
       <Page>
         <Paragraph>No feature {folder}.</Paragraph>
