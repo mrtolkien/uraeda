@@ -98,8 +98,10 @@ const styles = stylex.create({
     fontWeight: fontWeightVars["--font-weight-semibold"],
     color: colorVars["--color-warning"],
   },
+  // An option's text keeps the reading measure, its row as wide as the question.
   summary: {
     display: "block",
+    maxWidth: "var(--size-reading-measure)",
     fontWeight: fontWeightVars["--font-weight-semibold"],
   },
   letter: {
@@ -126,6 +128,7 @@ const styles = stylex.create({
   },
   points: {
     clear: "left",
+    maxWidth: "var(--size-reading-measure)",
     marginBlock: spacingVars["--spacing-1-5"],
     marginInline: 0,
     padding: 0,
