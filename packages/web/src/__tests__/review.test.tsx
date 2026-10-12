@@ -280,3 +280,37 @@ test("on a wide screen, the comment field opens under the block (US2 3, 4)", asy
   expect(screen.queryByRole("form", { name: "Comment" })).toBeNull();
   expect((await scenario(FIRST)).getAttribute("aria-pressed")).toBe("false");
 });
+
+/** Types in the comment field, without sending it. */
+async function typeComment(text: string) {
+  const field = await screen.findByLabelText("Comment text");
+  await act(async () => {
+    fireEvent.change(field, { target: { value: text } });
+  });
+}
+
+/** Final review: the field moves under each tapped block on wide screens, its text with it. */
+test("on a wide screen, the text typed follows the field to the next block (US2 2, 3)", async () => {
+  await renderPage(PAGE, repo());
+  await click(await scenario(FIRST));
+  await typeComment("Say what the row shows");
+
+  await click(await scenario(SECOND));
+
+  expect(screen.getByText('Lines 92–95, under "US2: Complete a repeating task (P1)"')).toBeTruthy();
+  expect((screen.getByLabelText("Comment text") as HTMLTextAreaElement).value).toBe(
+    "Say what the row shows",
+  );
+});
+
+/** Final review: a general comment being typed is kept when a block is tapped. */
+test("a general comment being typed is kept when a block is tapped", async () => {
+  await renderPage(PAGE, repo());
+  await click(await screen.findByRole("button", { name: "Add a general comment" }));
+  await typeComment("Too long");
+
+  await click(await scenario(FIRST));
+
+  expect(screen.getByText('Lines 92–93, under "US2: Complete a repeating task (P1)"')).toBeTruthy();
+  expect((screen.getByLabelText("Comment text") as HTMLTextAreaElement).value).toBe("Too long");
+});

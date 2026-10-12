@@ -25,12 +25,15 @@ const styles = stylex.create({
 /**
  * A comment being written: where it goes, the start of what it comments on, its text, Cancel, and
  * the button that sends it. `onSubmit` resolves with nothing once the comment is written, or with
- * the error to show, the text kept. Shared by the review and the mockup page.
+ * the error to show, the text kept. `text` and `onTextChange` hold the text outside the form, so
+ * it survives the form moving. Shared by the review and the mockup page.
  */
 export function CommentForm({
   anchor,
   quote,
   initial = "",
+  text: held,
+  onTextChange,
   submitLabel = "Add comment",
   onSubmit,
   onCancel,
@@ -38,11 +41,15 @@ export function CommentForm({
   anchor: string;
   quote?: string;
   initial?: string;
+  text?: string;
+  onTextChange?: (text: string) => void;
   submitLabel?: string;
   onSubmit: (text: string) => Promise<string | undefined>;
   onCancel: () => void;
 }) {
-  const [text, setText] = useState(initial);
+  const [own, setOwn] = useState(initial);
+  const text = held ?? own;
+  const setText = onTextChange ?? setOwn;
   const [error, setError] = useState<string>();
   return (
     <form

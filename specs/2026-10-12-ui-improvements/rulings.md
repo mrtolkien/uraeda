@@ -277,7 +277,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: on wide screens, editing a pending comment opens the field in place of the comment,
   and a general comment opens it under "Add a general comment", as a comment on lines opens it under
-  its block. On the phone, all three open in the sheet.
+  its block. On the phone, all three open in the sheet. The text being typed is the page's, not the
+  field's: it follows the field under the next tapped block, and a tap on a block while a general
+  comment or an edit is open turns it into a comment on that block, its text kept.
 - **Rationale**: the spec puts the comment field in the page on wide screens, with no overlay, and
   the behaviour decision keeps modals for confirmations and short forms; one place per width for
   every comment keeps one rule.
