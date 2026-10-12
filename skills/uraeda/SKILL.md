@@ -308,12 +308,14 @@ without them: the spec step reads the notes like answers.
 Do these only when a human asks.
 
 - **Draft**: a line of `PRIORITIES.md` becomes a draft in `specs/drafts/<slug>.md`, from the
-  proposal template with the line as its title, and the line links to it. With `ura`,
-  `ura draft <text>` does it, on the default branch, without committing, and opens the editor.
+  proposal template with the line as its title and as the first paragraph of What, and no
+  placeholder text, and the line links to it. With `ura`, `ura draft <text>` does it, on the default
+  branch, without committing, and opens the editor.
 - **Start**: name the folder with today's date and a short slug of the feature's name,
   `YYYY-MM-DD-feature-slug`, like `2026-10-06-recurring-tasks`. The date never changes, even if the
   feature is renamed. If a folder or branch with that name exists, choose another slug. With `ura`,
-  `ura start <draft>` runs these steps for a written draft file or postponed folder.
+  `ura start <draft>` runs these steps for a draft file or postponed folder, whatever it holds: the
+  proposal is freeform.
   1. On the default branch, move the feature's `PRIORITIES.md` entry to the end of **Now**, unless
      the human says otherwise, as a link to the future `proposal.md` from the repository root,
      `[Name](/specs/YYYY-MM-DD-feature-slug/proposal.md)`, and commit with
@@ -436,7 +438,5 @@ its worktree (see [Branches](#branches)); `ura start --switch` switches the chec
   comment with a line starting with `#`: they would read as a new heading or answer.
 - A commit while other files are staged, since it would carry them; with `--switch`, a branch switch
   over uncommitted changes; a worktree whose folder is taken by something else.
-- A draft that still holds the proposal template's placeholders, or an empty `## What` or `## Why`
-  section: a committed proposal is work for an agent, so it must be the human's.
 - A review file that does not parse: it may hold the human's comments, and is never overwritten.
 - `ura start` on a bug: the bug flow starts by hand, until it has its spec.

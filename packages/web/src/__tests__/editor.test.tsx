@@ -187,8 +187,8 @@ test("a feature's proposal not committed is edited and committed", async () => {
   expect(readFileSync(proposal, "utf8")).toContain("Run agents.");
 });
 
-/** US4.6 */
-test("starting a draft with the template's placeholders is refused", async () => {
+/** Review C2: the proposal is freeform, so Start starts any draft. */
+test("a draft with the template's placeholders starts", async () => {
   const repo = fixtureRepo();
   writeFileSync(
     join(repo, "specs/drafts/git-listener.md"),
@@ -198,12 +198,8 @@ test("starting a draft with the template's placeholders is refused", async () =>
 
   await click(await screen.findByRole("button", { name: "Start the feature" }));
 
-  expect(
-    await screen.findByText(
-      "specs/drafts/git-listener.md still holds the template's placeholders: write it first",
-    ),
-  ).toBeTruthy();
-  expect(git(repo, "branch", "--list", "2026-10-12-git-listener").trim()).toBe("");
+  await waitFor(() => expect(window.location.pathname).toBe("/f/2026-10-12-git-listener"));
+  expect(git(repo, "branch", "--list", "2026-10-12-git-listener").trim()).not.toBe("");
 });
 
 test("a save over a change made elsewhere keeps the text, and offers the new version", async () => {

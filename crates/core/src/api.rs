@@ -11,8 +11,8 @@ use crate::files::items::items;
 use crate::files::priorities::{self, Priorities, Section};
 use crate::git::{Git, GitError};
 use crate::view::{
-    CommitView, DraftView, FeatureView, FileView, NextView, PriorityView, StartedView, VersionView,
-    WorkspaceView, title,
+    CommitView, DraftView, FeatureView, FileView, NextView, PriorityView, ProposalHint,
+    StartedView, VersionView, WorkspaceView, title,
 };
 use crate::workspace::{Feature, FileKind, Problem, Source, Workspace, WorkspaceError};
 use crate::{steps, today};
@@ -619,6 +619,14 @@ pub fn commit_text(repo: &Path, path: &str) -> Result<CommitView> {
         subject: committed.change.subject,
         commit: committed.commit,
     })
+}
+
+/// Each section of the proposal template, with its guidance, in order.
+pub fn proposal_hints() -> Result<Vec<ProposalHint>> {
+    Ok(crate::embedded::proposal_hints()
+        .into_iter()
+        .map(|(heading, hint)| ProposalHint { heading, hint })
+        .collect())
 }
 
 /// Starts a drafted feature in its own worktree.

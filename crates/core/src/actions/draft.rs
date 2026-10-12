@@ -87,9 +87,10 @@ fn draft_entry(place: &Place, text: &str, entry: &Entry) -> Result<Drafted, Acti
     if draft.exists() {
         return Err(ActionError::Refused(format!("{path} exists")));
     }
-    let template = embedded::template("YYYY-MM-DD-feature-slug/proposal.md")
-        .ok_or_else(|| ActionError::Refused("no proposal template".into()))?;
-    let content = template.replacen("# [Feature name]", &format!("# {}", entry.text), 1);
+    let content = proposal(&entry.text);
+    if content.is_empty() {
+        return Err(ActionError::Refused("no proposal template".into()));
+    }
     let target = path.trim_start_matches("specs/");
     let linked = priorities::link(text, entry.line, target)
         .ok_or_else(|| ActionError::Refused("cannot link the line".into()))?;
@@ -100,4 +101,23 @@ fn draft_entry(place: &Place, text: &str, entry: &Entry) -> Result<Drafted, Acti
         path,
         text: entry.text.clone(),
     })
+}
+
+/// The proposal template with `line` as its title and as the paragraph of What, and no other
+/// placeholder: each section keeps its heading, empty.
+fn proposal(line: &str) -> String {
+    let mut paragraphs: Vec<String> = Vec::new();
+    for paragraph in embedded::proposal_paragraphs() {
+        if paragraph.starts_with("# ") {
+            paragraphs.push(format!("# {line}"));
+        } else if !embedded::is_placeholder(paragraph) {
+            paragraphs.push(paragraph.to_string());
+        } else if paragraphs.last().is_some_and(|last| last == "## What") {
+            paragraphs.push(line.to_string());
+        }
+    }
+    if paragraphs.is_empty() {
+        return String::new();
+    }
+    paragraphs.join("\n\n") + "\n"
 }

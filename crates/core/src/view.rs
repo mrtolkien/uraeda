@@ -234,6 +234,15 @@ pub struct NextView {
     pub step: NextStepView,
 }
 
+/// A section of the proposal template, with the guidance the editor shows while it is empty.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProposalHint {
+    pub heading: String,
+    pub hint: String,
+}
+
 /// A span list for a priority line's markdown.
 pub fn spans(markdown: &str) -> Vec<Span> {
     crate::files::document::parse(markdown, "specs")

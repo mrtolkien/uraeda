@@ -190,7 +190,7 @@ ura status                                 # every feature and bug, and who it w
 ura next                                   # the next step for an agent, from the skill's table
 ura check                                  # every workflow file against the skill's rules
 ura draft "listener"                       # a line of PRIORITIES.md becomes a draft
-ura start git-listener-process             # a written draft becomes a started feature
+ura start git-listener-process             # a draft becomes a started feature
 ura answer cli-core Q3 "B, simpler"        # one answer; --submit sends the round
 ura review cli-core --comment 50-52 "Why?" # a comment; --approve or --request-changes
 ```

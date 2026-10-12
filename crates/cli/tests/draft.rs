@@ -4,6 +4,8 @@ use std::path::Path;
 use std::process::Command;
 
 use common::*;
+use uraeda_core::actions::{draft, place};
+use uraeda_core::git::Git;
 
 const PRIORITIES: &str = "# Priorities\n\n## Now\n\n- Basic web UI for viewing\n\n## Next\n\n- Git listener process\n- Web UI for editing\n- [Runner](drafts/runner.md)\n\n## Later\n\n## Blocked\n";
 
@@ -140,4 +142,27 @@ fn without_text_it_lists_the_lines() {
         "ura: name the line: ura draft <text>\n  Now   Basic web UI for viewing\n  Next  Git listener process\n  Next  Web UI for editing\n"
     );
     assert_eq!(output.code, 1);
+}
+
+/// A repository with the priorities of the shared fixture.
+fn fixture_repo() -> TestRepo {
+    let repo = TestRepo::new();
+    specs(
+        &repo,
+        &std::fs::read_to_string(fixture("repo/main/specs/PRIORITIES.md")).unwrap(),
+    );
+    repo
+}
+
+/// US5.2: `ura draft` writes the same file as the UI's Draft, byte for byte.
+#[test]
+fn ura_draft_writes_what_the_ui_writes() {
+    let (cli, ui) = (fixture_repo(), fixture_repo());
+
+    let output = ura(&cli, &["draft", "claude code runner"]);
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    let main = place::reach(&Git::discover(ui.path()).unwrap(), "main").unwrap();
+    let path = draft::create(&main, "next-1").unwrap().path;
+
+    assert_eq!(cli.read(&path), ui.read(&path));
 }
