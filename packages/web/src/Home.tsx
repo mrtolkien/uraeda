@@ -7,11 +7,13 @@ import { useWorkspace } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { DraftView } from "./views.ts";
 import { stepLabel, waiting } from "./labels.ts";
-import { Link, navigate } from "./routes.tsx";
+import { Link, navigate, useRestoreScroll } from "./routes.tsx";
 
 /** The home screen: what waits on the human, what agents do, the next priorities, what is done. */
 export function Home() {
   const workspace = useWorkspace();
+  // Its data is read before it draws: the position comes back at once.
+  useRestoreScroll(true);
   const fate = useFateClient();
   const [error, setError] = useState<string>();
   if (!workspace) {

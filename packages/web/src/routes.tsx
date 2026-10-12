@@ -1,4 +1,12 @@
-import { type MouseEvent, type ReactNode, useSyncExternalStore } from "react";
+import {
+  type MouseEvent,
+  type ReactNode,
+  useDeferredValue,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 
 /** The UI's pages, from the location's path. */
 export type Route =
@@ -6,7 +14,9 @@ export type Route =
   | { page: "feature"; folder: string }
   | { page: "file"; folder: string; name: string }
   | { page: "priorities" }
+  | { page: "task"; key: string }
   | { page: "edit"; path: string }
+  | { page: "mockup"; folder: string; name: string }
   | { page: "missing"; path: string };
 
 const CHANGE = "uraeda:navigate";
@@ -22,8 +32,14 @@ export function parseRoute(pathname: string): Route {
   if (parts[0] === "f" && parts.length === 3) {
     return { page: "file", folder: parts[1], name: parts[2] };
   }
+  if (parts[0] === "f" && parts.length === 4 && parts[2] === "mockups") {
+    return { page: "mockup", folder: parts[1], name: parts[3] };
+  }
   if (parts[0] === "priorities" && parts.length === 1) {
     return { page: "priorities" };
+  }
+  if (parts[0] === "priorities" && parts.length === 2) {
+    return { page: "task", key: parts[1] };
   }
   if (parts[0] === "edit" && parts.length > 1) {
     return { page: "edit", path: parts.slice(1).join("/") };
@@ -31,10 +47,84 @@ export function parseRoute(pathname: string): Route {
   return { page: "missing", path: pathname };
 }
 
-export function navigate(path: string) {
-  window.history.pushState(null, "", path);
+/**
+ * What a history entry holds: its own id, the page's scroll position once left, where it was
+ * opened from, and an open overlay's label (see `layout/Overlay.tsx`).
+ */
+export type Entry = { id?: string; scroll?: number; from?: string; overlay?: string };
+
+function entry(): Entry {
+  return (window.history.state as Entry | null) ?? {};
+}
+
+let ids = 0;
+function newId() {
+  ids += 1;
+  return `${Date.now().toString(36)}-${ids}`;
+}
+
+// The pages restore their own position once drawn: the browser's would come before their data.
+if ("scrollRestoration" in window.history) {
+  window.history.scrollRestoration = "manual";
+}
+// The entry the UI opened on gets an id, kept across a reload.
+if (!entry().id) {
+  window.history.replaceState({ ...entry(), id: newId() }, "");
+}
+
+/** Saves the page's scroll position in the current history entry. */
+function saveScroll() {
+  window.history.replaceState({ ...entry(), scroll: window.scrollY }, "");
+}
+
+/** Opens a page of the UI: the position on the current one is saved first, for Back. */
+export function navigate(path: string, state?: { from?: string }) {
+  saveScroll();
+  window.history.pushState({ ...state, id: newId() }, "", path);
   window.scrollTo?.(0, 0);
   window.dispatchEvent(new Event(CHANGE));
+}
+
+/**
+ * Restores the scroll position saved in the page's history entry once `ready`, when its content is
+ * drawn, and keeps it saved: on `pagehide`, and at most every 500 ms while scrolling.
+ */
+export function useRestoreScroll(ready: boolean) {
+  // The entry this page was opened on: an old page still shown while the next one loads must not
+  // write its position into the next one's entry.
+  const id = useRef(entry().id);
+  const restored = useRef(false);
+
+  useLayoutEffect(() => {
+    if (!ready || restored.current) {
+      return;
+    }
+    restored.current = true;
+    const { scroll } = entry();
+    if (entry().id === id.current && typeof scroll === "number") {
+      window.scrollTo(0, scroll);
+    }
+  }, [ready]);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const save = () => {
+      timer = undefined;
+      if (restored.current && entry().id === id.current) {
+        saveScroll();
+      }
+    };
+    const onScroll = () => {
+      timer ??= setTimeout(save, 500);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("pagehide", save);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("pagehide", save);
+    };
+  }, []);
 }
 
 function subscribe(onChange: () => void) {
@@ -50,8 +140,13 @@ export function usePathname(): string {
   return useSyncExternalStore(subscribe, () => window.location.pathname);
 }
 
-export function useRoute(): Route {
-  return parseRoute(usePathname());
+/**
+ * The route to draw: it follows the location a step behind, so a page that loads keeps the one
+ * before it on screen until it is drawn, instead of "Loading…".
+ */
+export function useRoute(): { route: Route; pathname: string } {
+  const pathname = useDeferredValue(usePathname());
+  return { route: parseRoute(pathname), pathname };
 }
 
 /** A link inside the UI: it navigates without reloading the page. */

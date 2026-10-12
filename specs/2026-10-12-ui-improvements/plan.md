@@ -683,16 +683,21 @@ git commit -m "feat(ui-improvements): width classes, panes, and an adaptive over
 **Interfaces:**
 
 - Produces: `navigate(path: string, state?: { from?: string })`: saves `{ scroll: window.scrollY }`
-  into the current entry with `replaceState` first, then pushes `{ ...state }`; scrolls to the top.
+  into the current entry with `replaceState` first, then pushes `{ ...state, id }`, a new entry id;
+  scrolls to the top. The entry the UI opens on gets an id too.
 - Produces: `useRestoreScroll(ready: boolean)`: when the current entry holds `scroll` and `ready`
   turns true, scrolls there once; also saves the position on `pagehide` and at most every 500 ms
-  while scrolling. `history.scrollRestoration = "manual"` at start.
+  while scrolling, only into the entry it was opened on. `history.scrollRestoration = "manual"` at
+  start.
 - Produces: routes `{ page: "task"; key: string }` at `/priorities/<key>`, and
   `{ page: "mockup"; folder: string; name: string }` at `/f/<folder>/mockups/<name>`.
-- Produces: pages keep their content while their data reloads: the route change is wrapped in
-  `startTransition`, so the `Suspense` fallback shows only on a first load.
+- Produces: pages keep their content while their data reloads: `useRoute()` returns
+  `{ route, pathname }` from `useDeferredValue` on the location, as the spec's design says, and
+  `App` keys the page by that pathname, so the `Suspense` fallback shows only on a first load.
+- Produces: the browser helper `reload(text)`, which renders the app again on the current history
+  entry.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/web/src/__tests__/routes.test.ts
@@ -721,20 +726,20 @@ test("the position survives a reload, then Back (review focus 3)", async () => {
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test routes.test scroll.test`
 - Expected: FAIL, `expected { page: "missing", ... } to deeply equal { page: "task", ... }`.
 
-- [ ] **Step 3: Implement** the interfaces; every page calls `useRestoreScroll(true)` once its data
+- [x] **Step 3: Implement** the interfaces; every page calls `useRestoreScroll(true)` once its data
       is drawn (pages without async data pass `true` at once).
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src

@@ -10,7 +10,7 @@ import { EditorPage } from "./EditorPage.tsx";
 import { FilePage } from "./FilePage.tsx";
 import { Home } from "./Home.tsx";
 import { PrioritiesPage } from "./PrioritiesPage.tsx";
-import { type Route, useRoute } from "./routes.tsx";
+import { type Route, useRestoreScroll, useRoute } from "./routes.tsx";
 import { Shell } from "./Shell.tsx";
 import { ThemeModeProvider } from "./theme.tsx";
 
@@ -62,16 +62,21 @@ function Page({ route }: { route: Route }) {
     case "edit":
       return <EditorPage key={route.path} path={route.path} />;
     default:
-      return (
-        <div className="page">
-          <p>Nothing here.</p>
-        </div>
-      );
+      return <Nothing />;
   }
 }
 
+function Nothing() {
+  useRestoreScroll(true);
+  return (
+    <div className="page">
+      <p>Nothing here.</p>
+    </div>
+  );
+}
+
 export function App({ client }: { client: ReturnType<typeof createFateClient> }) {
-  const route = useRoute();
+  const { route, pathname } = useRoute();
   const [attempt, setAttempt] = useState(0);
   return (
     <FateClient client={client}>
@@ -82,7 +87,7 @@ export function App({ client }: { client: ReturnType<typeof createFateClient> })
               <Suspense fallback={<div className="page muted">Loading…</div>}>
                 <Shell>
                   <Suspense fallback={<div className="page muted">Loading…</div>}>
-                    <Page route={route} />
+                    <Page key={pathname} route={route} />
                   </Suspense>
                 </Shell>
               </Suspense>

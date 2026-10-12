@@ -8,6 +8,7 @@ import { refusal } from "./errors.ts";
 import { GrowingTextArea } from "./Question.tsx";
 import { plain, Spans } from "./Spans.tsx";
 import { PrioritiesView } from "./views.ts";
+import { useRestoreScroll } from "./routes.tsx";
 
 const TITLES: Record<string, string> = {
   now: "Now",
@@ -35,6 +36,8 @@ export function dropIndex(from: Spot, target: Spot) {
 export function PrioritiesPage() {
   const fate = useFateClient();
   const priorities = usePriorities();
+  // Its data is read before it draws: the position comes back at once.
+  useRestoreScroll(true);
   const [menu, setMenu] = useState<{ entry: EntryItem; section: string; index: number }>();
   const [editing, setEditing] = useState<string>();
   const [message, setMessage] = useState<string>();
