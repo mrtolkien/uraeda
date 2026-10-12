@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Claude Code runner: mockups</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        font:
+          15px/1.45 system-ui,
+          sans-serif;
+        color: #1f2328;
+        background: #f6f7f9;
+      }
+      h2 {
+        margin: 0 0 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #59636e;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .screens {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 32px;
+        align-items: flex-start;
+      }
+      .card {
+        width: 340px;
+        padding: 16px;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+      }
+      .title {
+        font-size: 20px;
+        font-weight: 650;
+        margin: 0 0 12px;
+      }
+      .muted {
+        color: #59636e;
+        font-size: 13px;
+      }
+      .mono {
+        font-family: ui-monospace, monospace;
+        font-size: 13px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 12px 0 4px;
+      }
+      .btn {
+        padding: 7px 12px;
+        border-radius: 8px;
+        border: 1px solid #d0d7de;
+        background: #fff;
+        font: inherit;
+        font-size: 14px;
+      }
+      .primary {
+        background: #1f2328;
+        border-color: #1f2328;
+        color: #fff;
+      }
+      .danger {
+        color: #b42318;
+      }
+      .callout {
+        border-left: 3px solid #8250df;
+        background: #f6f3fd;
+        padding: 10px 12px;
+        border-radius: 6px;
+        margin-bottom: 12px;
+      }
+      .callout b {
+        display: block;
+      }
+      .agent {
+        border: 1px solid #e4e7eb;
+        border-radius: 10px;
+        padding: 12px;
+        margin: 12px 0;
+      }
+      .head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+      }
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #1a7f37;
+      }
+      .dot.run {
+        background: #0969da;
+        box-shadow: 0 0 0 3px #ddf4ff;
+      }
+      .dot.fail {
+        background: #b42318;
+      }
+      .dot.idle {
+        background: #8c959f;
+      }
+      .log {
+        margin-top: 10px;
+        border-top: 1px solid #eef0f2;
+        padding-top: 8px;
+        display: grid;
+        gap: 8px;
+      }
+      .bubble {
+        background: #f6f7f9;
+        border-radius: 10px;
+        padding: 8px 10px;
+        white-space: pre-wrap;
+        font-size: 14px;
+      }
+      .tool {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 13px;
+      }
+      .tool .name {
+        font-weight: 600;
+      }
+      .tool .grow {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .system {
+        text-align: center;
+        color: #59636e;
+        font-size: 12px;
+      }
+      .select {
+        display: flex;
+        justify-content: space-between;
+        border: 1px solid #d0d7de;
+        border-radius: 8px;
+        padding: 7px 10px;
+        margin: 4px 0 10px;
+        font-size: 14px;
+      }
+      .seg {
+        display: flex;
+        border: 1px solid #d0d7de;
+        border-radius: 8px;
+        overflow: hidden;
+        margin: 4px 0 10px;
+        font-size: 13px;
+      }
+      .seg span {
+        flex: 1;
+        text-align: center;
+        padding: 6px 0;
+      }
+      .seg .on {
+        background: #1f2328;
+        color: #fff;
+      }
+      .label {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .denial {
+        background: #fff8c5;
+        border-radius: 8px;
+        padding: 8px 10px;
+        margin-top: 10px;
+        font-size: 13px;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #eef0f2;
+      }
+      .badge {
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 99px;
+        background: #ddf4ff;
+        color: #0969da;
+      }
+      .badge.gray {
+        background: #eef0f2;
+        color: #59636e;
+      }
+      .runs {
+        margin-top: 10px;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="screens">
+      <div>
+        <h2>1. Submitting answers</h2>
+        <div class="card">
+          <p class="muted">Every question is answered.</p>
+          <div class="actions">
+            <button class="btn primary">Commit and continue</button>
+            <button class="btn">Commit only</button>
+          </div>
+          <p class="muted">
+            "Commit and continue" starts the agent on the spec, in this feature's session. Without a
+            working <span class="mono">claude</span>, only "Submit answers" shows, as today.
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <h2>2. Committing a proposal</h2>
+        <div class="card">
+          <div class="label">Discovery effort</div>
+          <div class="seg"><span>Low</span><span class="on">Medium</span><span>High</span></div>
+          <div class="label">Model</div>
+          <div class="select"><span>Your default</span><span>▾</span></div>
+          <div class="label">Effort</div>
+          <div class="select"><span>Your default</span><span>▾</span></div>
+          <p class="muted">
+            Model choices: Your default, Best, Fable, Opus, Sonnet, Haiku. Effort choices: Your
+            default, Low, Medium, High, Extra high, Max. They apply to this feature's session.
+          </p>
+          <div class="actions">
+            <button class="btn">Preview</button>
+            <button class="btn primary">Commit and continue</button>
+            <button class="btn">Commit only</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h2>3. Feature page: the agent works</h2>
+        <div class="card">
+          <p class="title">Claude Code runner</p>
+          <div class="agent">
+            <div class="head"><span class="dot run"></span>Working on the spec</div>
+            <p class="muted">4 min 12 s · $0.84 this session · Opus, high effort</p>
+            <div class="actions"><button class="btn danger">Stop</button></div>
+            <div class="log">
+              <div class="system">Resumed the session · after "The human answered round 01"</div>
+              <div class="bubble">Reading the answers of round 01, then the spec reference.</div>
+              <div class="tool">
+                <span>✓</span><span class="name">Read</span
+                ><span class="grow mono">clarifications-01.md</span><span class="muted">0.2 s</span>
+              </div>
+              <div class="tool">
+                <span>✓</span><span class="name">Write</span
+                ><span class="grow mono">specs/decisions/agents.md</span
+                ><span class="muted">+92</span>
+              </div>
+              <div class="tool">
+                <span>◌</span><span class="name">Bash</span
+                ><span class="grow mono">ura check specs/2026-10-12-claude-code-runner…</span>
+              </div>
+            </div>
+          </div>
+          <p class="muted">
+            Answering, approving, and other commits on this feature wait for the run.
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <h2>4. Done at a gate, one action blocked</h2>
+        <div class="card">
+          <p class="title">Claude Code runner</p>
+          <div class="callout">
+            <b>Spec to review</b>Spec to review, about 25 minutes.
+            <div class="actions"><button class="btn primary">Review the spec</button></div>
+          </div>
+          <div class="agent">
+            <div class="head"><span class="dot"></span>Done: waiting for you</div>
+            <p class="muted">18 min · $3.10 this session · Opus, high effort</p>
+            <div class="denial">
+              <b>Blocked by auto mode</b>
+              <div class="mono">Bash: gh pr create --draft --title "…"</div>
+              <div class="actions"><button class="btn">Allow and continue</button></div>
+            </div>
+            <div class="runs">
+              <div class="row">
+                <span class="grow">▸ Log of this run</span><span class="muted">142 events</span>
+              </div>
+              <div class="row">
+                <span class="grow">▸ Earlier runs</span><span class="muted">2</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h2>5. A failed run</h2>
+        <div class="card">
+          <div class="agent">
+            <div class="head"><span class="dot fail"></span>Failed on the plan</div>
+            <p class="muted">2 min · $0.40 this session</p>
+            <div class="bubble">Rate limit reached. Try again later.</div>
+            <div class="actions"><button class="btn primary">Try again</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h2>6. Waiting on an agent, no run</h2>
+        <div class="card">
+          <div class="agent">
+            <div class="head"><span class="dot idle"></span>Waiting on an agent: discovery</div>
+            <div class="label" style="margin-top: 10px">Model</div>
+            <div class="select"><span>Your default</span><span>▾</span></div>
+            <div class="label">Effort</div>
+            <div class="select"><span>Your default</span><span>▾</span></div>
+            <div class="actions"><button class="btn primary">Start the agent</button></div>
+            <p class="muted">Model and effort show only before the feature's first session.</p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h2>7. Home</h2>
+        <div class="card">
+          <div class="label">Agents at work</div>
+          <div class="row">
+            <span class="badge">Working</span
+            ><span class="grow">Claude Code runner<br /><span class="muted">Spec</span></span
+            >›
+          </div>
+          <div class="row">
+            <span class="badge gray">Waiting</span
+            ><span class="grow">Benchmarks<br /><span class="muted">Discovery</span></span
+            >›
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
