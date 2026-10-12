@@ -1,0 +1,180 @@
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
+import { expect, test } from "vite-plus/test";
+import { dataDir, RunCache } from "../cache.ts";
+
+const REPO = "/repo/a";
+const FOLDER = "2026-10-12-cli-tuis";
+
+const run = {
+  repo: REPO,
+  folder: FOLDER,
+  sessionId: "3f2c",
+  newSession: true,
+  trigger: "manual" as const,
+  step: "plan",
+  allowed: null,
+  startedAt: "2026-10-12T10:00:00.000Z",
+};
+
+test.each([
+  [{ URAEDA_DATA_DIR: "/data" }, "linux", "/data"],
+  [{ XDG_DATA_HOME: "/xdg" }, "linux", "/xdg/uraeda"],
+  [{}, "linux", "/home/me/.local/share/uraeda"],
+  [{}, "darwin", "/home/me/Library/Application Support/uraeda"],
+  [
+    { APPDATA: "C:\\Users\\me\\AppData\\Roaming" },
+    "win32",
+    "C:\\Users\\me\\AppData\\Roaming\\uraeda",
+  ],
+])("the data folder for %o on %s is %s", (env, platform, expected) => {
+  expect(dataDir(env, platform as NodeJS.Platform, "/home/me")).toBe(expected);
+});
+
+test("sessions are kept per repository and folder", () => {
+  const cache = RunCache.open(":memory:");
+
+  cache.saveSession(REPO, FOLDER, "3f2c");
+
+  expect(cache.session(REPO, FOLDER)).toBe("3f2c");
+  expect(cache.session("/repo/b", FOLDER)).toBeUndefined();
+});
+
+test("a saved session replaces the feature's previous one", () => {
+  const cache = RunCache.open(":memory:");
+
+  cache.saveSession(REPO, FOLDER, "3f2c");
+  cache.saveSession(REPO, FOLDER, "9a9a");
+
+  expect(cache.session(REPO, FOLDER)).toBe("9a9a");
+});
+
+test("a run's events come back in order, a tool event updated in place", () => {
+  const cache = RunCache.open(":memory:");
+  const id = cache.startRun(run);
+
+  expect(cache.appendEvent(id, { kind: "text", text: "Reading the answers" })).toBe(0);
+  const seq = cache.appendEvent(id, {
+    kind: "tool",
+    id: "toolu_1",
+    name: "Bash",
+    target: "vp run ready",
+    status: "running",
+  });
+  expect(seq).toBe(1);
+  cache.updateEvent(id, seq, {
+    kind: "tool",
+    id: "toolu_1",
+    name: "Bash",
+    target: "vp run ready",
+    status: "complete",
+    durationMs: 2500,
+    output: "ok",
+  });
+
+  expect(cache.events(id, 0, 100)).toEqual([
+    { seq: 0, kind: "text", text: "Reading the answers" },
+    {
+      seq: 1,
+      kind: "tool",
+      id: "toolu_1",
+      name: "Bash",
+      target: "vp run ready",
+      status: "complete",
+      durationMs: 2500,
+      output: "ok",
+    },
+  ]);
+  expect(cache.events(id, 1, 100).map((event) => event.seq)).toEqual([1]);
+  expect(cache.eventCount(id)).toBe(2);
+});
+
+test("runs come back newest first, with their end", () => {
+  const cache = RunCache.open(":memory:");
+  const first = cache.startRun(run);
+  cache.endRun(first, { state: "done", costUsd: 3.1 });
+  const second = cache.startRun({ ...run, newSession: false, trigger: "allow", allowed: "Bash" });
+  cache.startRun({ ...run, repo: "/repo/b" });
+
+  const runs = cache.runs(REPO, FOLDER);
+
+  expect(runs.map((row) => row.id)).toEqual([second, first]);
+  expect(runs[1]).toMatchObject({
+    id: first,
+    repo: REPO,
+    folder: FOLDER,
+    sessionId: "3f2c",
+    newSession: true,
+    trigger: "manual",
+    step: "plan",
+    allowed: null,
+    state: "done",
+    reason: null,
+    costUsd: 3.1,
+    startedAt: "2026-10-12T10:00:00.000Z",
+  });
+  expect(runs[1].endedAt).toEqual(expect.any(String));
+  expect(runs[0]).toMatchObject({
+    newSession: false,
+    trigger: "allow",
+    allowed: "Bash",
+    state: "running",
+    costUsd: null,
+    endedAt: null,
+  });
+});
+
+test("a failed run keeps its reason", () => {
+  const cache = RunCache.open(":memory:");
+  const id = cache.startRun(run);
+
+  cache.endRun(id, { state: "failed", reason: "Rate limit reached" });
+
+  expect(cache.run(id)).toMatchObject({ state: "failed", reason: "Rate limit reached" });
+  expect(cache.run(id + 1)).toBeUndefined();
+});
+
+test("reopening the file keeps the runs", () => {
+  const path = join(mkdtempSync(join(tmpdir(), "uraeda-cache-")), "new", "runner.sqlite");
+  const id = RunCache.open(path).startRun(run);
+
+  expect(RunCache.open(path).run(id)).toMatchObject({ folder: FOLDER, state: "running" });
+});
+
+test("a cache that cannot be opened is created again empty", () => {
+  const path = join(mkdtempSync(join(tmpdir(), "uraeda-cache-")), "runner.sqlite");
+  writeFileSync(path, "not a database, but long enough to be read as one's header".repeat(4));
+
+  const cache = RunCache.open(path);
+
+  expect(cache.runs(REPO, FOLDER)).toEqual([]);
+  expect(cache.run(cache.startRun(run))).toMatchObject({ state: "running" });
+});
+
+test("runs left running are marked stopped on startup", () => {
+  const cache = RunCache.open(":memory:");
+  const running = cache.startRun(run);
+  const done = cache.startRun(run);
+  cache.endRun(done, { state: "done" });
+
+  const stopped = cache.interrupted("Stopped: the server stopped while it ran.");
+
+  expect(stopped.map((row) => row.id)).toEqual([running]);
+  expect(stopped[0]).toMatchObject({
+    state: "stopped",
+    reason: "Stopped: the server stopped while it ran.",
+  });
+  expect(cache.run(running)?.endedAt).toEqual(expect.any(String));
+  expect(cache.run(done)?.state).toBe("done");
+});
+
+test("the schema is at version 1", () => {
+  const path = join(mkdtempSync(join(tmpdir(), "uraeda-cache-")), "runner.sqlite");
+  RunCache.open(path);
+
+  const version = new DatabaseSync(path).prepare("PRAGMA user_version").get();
+
+  expect(version).toEqual({ user_version: 1 });
+});
