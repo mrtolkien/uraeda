@@ -57,6 +57,8 @@ export const FeatureView = view<Feature>()({
   files: true,
   step: { name: true, waitsOn: true, file: true, task: true },
   problems: true,
+  leftWorktree: true,
+  leftBranch: true,
 });
 
 export const FileView = view<WorkflowFile>()({

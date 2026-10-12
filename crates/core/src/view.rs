@@ -77,6 +77,10 @@ pub struct FeatureView {
     pub files: Vec<FileSummary>,
     pub step: StepView,
     pub problems: Vec<ProblemView>,
+    /// For a merged feature, its worktree still there, from the main checkout.
+    pub left_worktree: Option<String>,
+    /// For a merged feature, its local branch still there.
+    pub left_branch: Option<String>,
 }
 
 #[cfg_attr(feature = "napi", napi(object))]
@@ -220,10 +224,14 @@ impl FeatureView {
             kind: kebab(&feature.kind),
             folder: feature.folder.clone(),
             slug: feature.slug.clone(),
-            title: feature
-                .text(first)
-                .and_then(title)
-                .unwrap_or_else(|| feature.slug.clone()),
+            title: match feature.file(crate::workspace::FileKind::Record) {
+                Some(record) => feature
+                    .text(&record.name)
+                    .and_then(title)
+                    .map(|title| title.strip_prefix("Record: ").unwrap_or(&title).to_string()),
+                None => feature.text(first).and_then(title),
+            }
+            .unwrap_or_else(|| feature.slug.clone()),
             branch: feature.branch.clone(),
             source: kebab(&feature.source),
             worktree: feature.worktree.clone(),
@@ -252,6 +260,8 @@ impl FeatureView {
                 .chain(extra)
                 .map(ProblemView::from)
                 .collect(),
+            left_worktree: feature.left_worktree.clone(),
+            left_branch: feature.left_branch.clone(),
         }
     }
 }

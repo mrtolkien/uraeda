@@ -249,6 +249,10 @@ export interface FeatureView {
   files: Array<FileSummary>
   step: StepView
   problems: Array<ProblemView>
+  /** For a merged feature, its worktree still there, from the main checkout. */
+  leftWorktree?: string
+  /** For a merged feature, its local branch still there. */
+  leftBranch?: string
 }
 
 export interface FileSummary {
