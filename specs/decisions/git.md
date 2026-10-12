@@ -13,8 +13,8 @@ commits go through the same hooks, signing, and configuration as the user's own.
 
 - Rust tools MUST read git through gix: references and branches, files at a ref, worktrees, the
   working tree's status, and ancestry.
-- Tools MUST run the system `git` binary for every write: commits, worktrees, branch switches, and
-  pushes, and for any read gix does not support.
+- Tools MUST run the system `git` binary for every write: commits, worktrees, branch switches,
+  branch deletions, and pushes, and for any read gix does not support.
 - Tools MUST NOT bypass the user's hooks: no `--no-verify`, and no commit written by gix or with
   plumbing to skip them.
 - Tools MUST NOT switch the user's checkout to another branch, unless the human asks for it with a
@@ -22,6 +22,17 @@ commits go through the same hooks, signing, and configuration as the user's own.
   worktree for it at `.worktrees/<branch>/`, at the root of the main checkout.
 - `ura start` MUST create the new feature's branch in a worktree at `.worktrees/<folder>/` by
   default.
+- Tools MUST remove a worktree or delete a local branch only when a human asks for it, for a feature
+  merged into the default branch.
+- Tools MUST remove only worktrees under `.worktrees/`, with `git worktree remove`, never with
+  `--force`.
+- Tools MUST delete a local branch only once no worktree has it checked out, with `git branch -D`,
+  and only when each of its commits is on the local default branch or its remote-tracking branch, or
+  has a patch-equivalent commit on one of them, as `git cherry` reports it.
+- Tools MAY run `git worktree prune`, which only drops the records of worktree folders already gone.
+- Tools MUST read whether a worktree has uncommitted or untracked files, or is locked, before
+  removing it, and MUST NOT infer it from `git`'s messages.
+- Tools MUST NOT delete remote branches.
 - When `core.hooksPath` is a relative path, commits made by tools in a linked worktree MUST resolve
   it against the main checkout, so the same hooks run.
 - Tools MUST keep `.worktrees/` out of the user's `git status`, through the repository's
@@ -50,6 +61,18 @@ switch the running server's own code in this repository. `ura start` creates a w
 human asked
 ([Q3](../2026-10-11-web-ui/clarifications-01.md#q3-where-does-the-ui-write-when-a-features-branch-is-not-checked-out),
 [writing to feature branches](../2026-10-11-web-ui/discovery-01.md#writing-to-feature-branches)).
+
+Tools remove a merged feature's worktree and local branch only when the human asks: worktrees are
+full checkouts that pile up once their features are merged, and the human asked for `ura clean`, run
+when they ask, never automatically
+([Q5](../2026-10-12-finish-feature/clarifications-01.md#q5-who-removes-a-merged-features-branch-and-worktree),
+[cleanup](../2026-10-12-finish-feature/discovery-01.md#branch-and-worktree-cleanup)).
+`git worktree remove` refuses a worktree with uncommitted or untracked files, so never forcing it
+keeps that work; after a rebase merge, `git branch -d` refuses a merged branch, so `git branch -D`
+runs only after the patch-equivalence check, against the remote-tracking branch too, since a merge
+on GitHub reaches the local default branch only at the next pull
+([git branch](../2026-10-12-finish-feature/discovery-01.md#git-branch)). Remote branches are the
+forge's: GitHub's automatic deletion setting covers them.
 
 ## Alternatives considered
 
@@ -84,66 +107,11 @@ human asked
   worktree, `.worktrees/<folder>/`.
 - Each worktree is a full checkout of the project: it needs the project's own setup, like
   `vp install`, before its code runs, though hooks run without it.
-- Worktrees stay until removed by hand, with `git worktree remove`, until a feature-finishing step
-  removes them.
+- Worktrees and local branches stay until the human runs `ura clean`, or the git commands the skill
+  gives; a worktree with uncommitted work, or a branch with commits the default branch lacks, stays
+  until the human deals with it.
 
 ## Applies to
 
 - [`crates/`](/crates/), and every Rust feature that reads or writes git: the CLI, the git listener,
   the runner
-
-## Proposed change (2026-10-12-finish-feature)
-
-Proposed by the [spec](../2026-10-12-finish-feature/spec.md). Tools may now remove a merged
-feature's worktree and local branch, only when a human asks, with guards that never lose work.
-
-The rules become:
-
-- Rust tools MUST read git through gix: references and branches, files at a ref, worktrees, the
-  working tree's status, and ancestry.
-- Tools MUST run the system `git` binary for every write: commits, worktrees, branch switches,
-  branch deletions, and pushes, and for any read gix does not support.
-- Tools MUST NOT bypass the user's hooks: no `--no-verify`, and no commit written by gix or with
-  plumbing to skip them.
-- Tools MUST NOT switch the user's checkout to another branch, unless the human asks for it with a
-  flag. To write on a branch, they MUST use the checkout or worktree that has it, or else create a
-  worktree for it at `.worktrees/<branch>/`, at the root of the main checkout.
-- `ura start` MUST create the new feature's branch in a worktree at `.worktrees/<folder>/` by
-  default.
-- Tools MUST remove a worktree or delete a local branch only when a human asks for it, for a feature
-  merged into the default branch.
-- Tools MUST remove only worktrees under `.worktrees/`, with `git worktree remove`, never with
-  `--force`.
-- Tools MUST delete a local branch only once no worktree has it checked out, with `git branch -D`,
-  and only when each of its commits is on the local default branch or its remote-tracking branch, or
-  has a patch-equivalent commit on one of them, as `git cherry` reports it.
-- Tools MAY run `git worktree prune`, which only drops the records of worktree folders already gone.
-- Tools MUST read whether a worktree has uncommitted or untracked files, or is locked, before
-  removing it, and MUST NOT infer it from `git`'s messages.
-- Tools MUST NOT delete remote branches.
-- When `core.hooksPath` is a relative path, commits made by tools in a linked worktree MUST resolve
-  it against the main checkout, so the same hooks run.
-- Tools MUST keep `.worktrees/` out of the user's `git status`, through the repository's
-  `.git/info/exclude`, without editing a tracked file.
-- Tools MUST NOT link another git library, such as git2 (libgit2) or jj-lib.
-- Output of the `git` binary MUST be parsed only in its plumbing, `--porcelain`, or `--format`
-  forms, never as text meant for humans.
-- In Rust, every git access MUST go through one module of the core, so no other code uses gix or
-  builds `git` command lines.
-- gix MUST be built without its default features, with only those the reads need.
-
-Why: worktrees are full checkouts that pile up once their features are merged, and you asked for
-`ura clean`, run when you ask, never automatically
-([Q5](../2026-10-12-finish-feature/clarifications-01.md#q5-who-removes-a-merged-features-branch-and-worktree),
-[cleanup](../2026-10-12-finish-feature/discovery-01.md#branch-and-worktree-cleanup)).
-`git worktree remove` refuses a worktree with uncommitted or untracked files, so never forcing it
-keeps that work; after a rebase merge, `git branch -d` refuses a merged branch, so `git branch -D`
-runs only after the patch-equivalence check, against the remote-tracking branch too, since a merge
-on GitHub reaches the local default branch only at the next pull
-([git branch](../2026-10-12-finish-feature/discovery-01.md#git-branch)). Remote branches are the
-forge's: GitHub's automatic deletion setting covers them.
-
-The consequence "Worktrees stay until removed by hand, with `git worktree remove`, until a
-feature-finishing step removes them" becomes: "Worktrees and local branches stay until the human
-runs `ura clean`, or the git commands the skill gives; a worktree with uncommitted work, or a branch
-with commits the default branch lacks, stays until the human deals with it."
