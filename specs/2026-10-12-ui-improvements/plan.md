@@ -1642,16 +1642,18 @@ git commit -m "fix(ui-improvements): a refused Undo shows in a banner that stays
 - Modify: `packages/web/scripts/screenshots.ts` (the feature page with a failed run, the run view on
   the phone, the run view in its pane on desktop, the Undo banner)
 - Modify: `specs/2026-10-12-ui-improvements/screenshots/`
+- Modify: what the review found: `packages/web/src/Shell.tsx` (the Undo banner in the page's column
+  on wide screens)
 
-- [ ] **Step 1: Take the screenshots, and review each** against the four UI decisions and
+- [x] **Step 1: Take the screenshots, and review each** against the four UI decisions and
       [the mockups](mockups/ui-improvements.html).
-- [ ] **Step 2: Fix what the review found**, in the task its view belongs to.
-- [ ] **Step 3: Run all checks**
+- [x] **Step 2: Fix what the review found**, in the task its view belongs to.
+- [x] **Step 3: Run all checks**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add specs/2026-10-12-ui-improvements/screenshots packages/web/scripts
