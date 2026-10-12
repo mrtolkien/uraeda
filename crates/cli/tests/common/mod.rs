@@ -51,27 +51,59 @@ impl Output {
     }
 }
 
-/// Runs the built `ura` in a repository, on 2026-10-11, without a terminal or colours.
+/// Runs the built `ura` in a repository, on 2026-10-11, without a terminal or colours, with the
+/// repository's home folder as `HOME`.
 pub fn ura(repo: &TestRepo, args: &[&str]) -> Output {
-    ura_in(repo.path(), args, &[])
+    let home = repo.home();
+    ura_in(repo.path(), args, &[("HOME", home.to_str().unwrap())])
 }
 
-/// Runs the built `ura` in a folder, with extra environment variables.
+/// Runs the built `ura` in a folder, with extra environment variables. `HOME` is a new temporary
+/// folder unless `env` names it, so no test reads or writes the real home folder.
 pub fn ura_in(dir: &Path, args: &[&str], env: &[(&str, &str)]) -> Output {
-    let output = Command::new(env!("CARGO_BIN_EXE_ura"))
+    let home = tempfile::TempDir::new().expect("a temporary folder");
+    let mut command = command(dir, args);
+    if !env.iter().any(|(name, _)| *name == "HOME") {
+        command.env("HOME", home.path());
+    }
+    run(command.envs(env.iter().copied()))
+}
+
+/// Runs the built `ura` in a folder, without `HOME`.
+pub fn ura_without_home(dir: &Path, args: &[&str]) -> Output {
+    run(command(dir, args).env_remove("HOME"))
+}
+
+fn command(dir: &Path, args: &[&str]) -> Command {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ura"));
+    command
         .args(args)
         .current_dir(dir)
         .env("URA_TODAY", "2026-10-11")
         .env("NO_COLOR", "1")
-        .envs(env.iter().copied())
-        .stdin(Stdio::null())
-        .output()
-        .expect("ura runs");
+        .stdin(Stdio::null());
+    command
+}
+
+fn run(command: &mut Command) -> Output {
+    let output = command.output().expect("ura runs");
     Output {
         stdout: String::from_utf8(output.stdout).unwrap(),
         stderr: String::from_utf8(output.stderr).unwrap(),
         code: output.status.code().unwrap_or(-1),
     }
+}
+
+/// The number of files of the skill `ura` embeds, `skills/uraeda/`.
+pub fn skill_files() -> usize {
+    fn count(dir: &Path) -> usize {
+        std::fs::read_dir(dir)
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .map(|path| if path.is_dir() { count(&path) } else { 1 })
+            .sum()
+    }
+    count(&repository().join("skills/uraeda"))
 }
 
 /// The repository's `specs/` folder, with a constitution and priorities.

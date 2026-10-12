@@ -6,11 +6,13 @@ mod clean;
 mod draft;
 mod editor;
 mod init;
+mod install;
 mod next;
 mod output;
 mod review;
 mod start;
 mod status;
+mod terminal;
 mod upgrade;
 
 use std::process::ExitCode;
@@ -32,6 +34,8 @@ enum Command {
         #[arg(long)]
         no_skill: bool,
     },
+    /// Install or update the skill, for your user or this repository
+    Install(install::Flags),
     /// Turn a line of PRIORITIES.md into a draft, and open it in your editor
     Draft {
         /// Text of the line, matched without case
@@ -141,6 +145,7 @@ fn main() -> ExitCode {
     };
     let result = match cli.command {
         Command::Init { no_skill } => init::run(no_skill),
+        Command::Install(flags) => install::run(flags),
         Command::Draft { text, no_edit } => draft::run(text, no_edit),
         Command::Start {
             target,

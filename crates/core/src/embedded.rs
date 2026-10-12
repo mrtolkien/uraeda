@@ -1,5 +1,5 @@
 //! The Uraeda skill, embedded in the binary at build time: its templates, for `check` and `init`,
-//! and the whole skill, for `init` (see `specs/decisions/cli.md`).
+//! and the whole skill, for `init` and `install` (see `specs/decisions/cli.md`).
 
 use include_dir::{Dir, include_dir};
 
