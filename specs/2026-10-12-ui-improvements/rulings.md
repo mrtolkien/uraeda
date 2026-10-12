@@ -420,3 +420,39 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `packages/web/src/__tests__/agent-panel.test.tsx`, `packages/web/src/__browser__/layout.test.tsx`;
   and in the replayed tasks, `Home.tsx`, `FeaturePage.tsx`, `RoundPage.tsx`, `ReviewPage.tsx`,
   `EditorPage.tsx`, `__tests__/helpers.tsx`
+
+## R25: Minor findings of the final review, left for the pull request
+
+- **Decision**: the final review's minor findings are not fixed on this branch, but listed here and
+  in the pull request, for the human to decide:
+  - Overlay history entries are left behind when an overlay unmounts, on navigation, on a resize
+    across 768 px, or on a reload.
+  - The pane's Close puts the list back at its top, not where it was.
+  - After a rename, the task view can fall back to the line now at the old line's id.
+  - A rename refused on the hash does not reload the list.
+  - A mockup's line is matched on its link as written, not on its resolved path.
+  - Untested edge cases: reduced motion; crossing 1024 px; n and p with nothing in that direction; a
+    full round opening at its top against the saved position; a drop where the drag started; a drag
+    refused on the hash; a task-view edit refused on a conflict; Undo of ＋ after an edit; a renamed
+    line matched by its draft.
+  - Weak assertions: US2's second tap above the sheet; US1 8 masked by the round's saved position;
+    US1 2 and 3 checking focus only; the toasts' 5 seconds.
+  - Fixed sleeps in the browser tests.
+  - `closest("section")` in `__browser__/round.test.tsx`, a markup query.
+  - Pages missing from the two-size checks: the editor, the mockup page, a plain document, a missing
+    file, the open index sheet, and the ＋ dialog. Screenshots missing: the task view without a
+    draft, the Deleted toast, the feature page with mockups and breadcrumbs, and the round's phone
+    top bar.
+  - The lint fixtures cover one pattern per rule, and `valid-styles` accepts any `var()`.
+  - The theme's `!important` for `ChatToolCalls` is not itself listed as an Astryx gap.
+  - The question option's raw button holding links could nest interactive content.
+  - A failed Undo shows only in a toast, against the behaviour decision's "a toast MUST NOT be the
+    only place an error shows": the human decides where it goes instead.
+  - Dead code: `useRestoreScroll`'s always-true argument, exports used only in their file, and the
+    duplicated `reducedMotion()` and band styles.
+- **Rationale**: the implementation step fixes critical and important findings, and lists minor ones
+  for the human. None of these loses work or blocks a flow the spec names.
+- **Alternatives considered**: fixing them on this branch, which grows a reviewed diff past what the
+  review saw.
+- **If wrong**: each is a small change of its own, in a later branch.
+- **Where**: the final review; the files each bullet names
