@@ -431,7 +431,7 @@ one waiting for that action.
 | `ura answer [feature] <Q2> <answer>`, `--submit`                      | Answers a round of questions, then submits it                     |
 | `ura review [feature] --comment`, `--approve`, `--request-changes`    | [Reviews](#review-files) a spec, plan, or assessment              |
 | `ura clean [feature]`, `--all`, `--dry-run`                           | [Cleans](references/finish.md#after-the-merge) a merged feature   |
-| `ura upgrade`                                                         | Installs `ura`'s latest release                                   |
+| `ura upgrade`                                                         | Installs `ura`'s latest release, then updates the user's skill    |
 
 `ura answer --submit` and `ura review` set the human's status, record the block, and commit: a human
 runs them, or an agent the human asked, with `--no-commit`. Every command writes on a branch through
