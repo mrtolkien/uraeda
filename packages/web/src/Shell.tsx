@@ -1,4 +1,5 @@
 import { AppShell } from "@astryxdesign/core/AppShell";
+import { Banner } from "@astryxdesign/core/Banner";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Link } from "@astryxdesign/core/Link";
 import {
@@ -8,6 +9,7 @@ import {
   useSideNavCollapse,
 } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
+import { VStack } from "@astryxdesign/core/VStack";
 import {
   colorVars,
   fontWeightVars,
@@ -19,6 +21,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
 import { useWorkspace } from "./data.ts";
 import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
+import { useUndoErrors } from "./layout/useUndoToast.ts";
 import { currentEntry, navigate, usePathname } from "./routes.tsx";
 import { type ThemeMode, useThemeMode } from "./theme.tsx";
 
@@ -27,6 +30,15 @@ const styles = stylex.create({
   // phone ends with the page's text, leaving the shell's wash below it.
   shell: {
     backgroundColor: colorVars["--color-background-surface"],
+  },
+  // The errors of refused Undos, in the page's column, above it.
+  errors: {
+    boxSizing: "border-box",
+    width: "100%",
+    maxWidth: "var(--size-page-max)",
+    marginInline: "auto",
+    paddingBlockStart: spacingVars["--spacing-4"],
+    paddingInline: spacingVars["--spacing-4"],
   },
   // The navigation's heading: the link home, then the page's controls at its end.
   heading: {
@@ -186,10 +198,34 @@ function Nav({ slot }: { slot: ReactNode }) {
   );
 }
 
+/** The errors of refused Undos, each until dismissed. */
+function UndoErrors() {
+  const [errors, dismiss] = useUndoErrors();
+  if (errors.length === 0) {
+    return null;
+  }
+  return (
+    <VStack gap={2} xstyle={styles.errors}>
+      {errors.map((error, index) => (
+        <Banner
+          key={`${index}-${error}`}
+          status="error"
+          title={error}
+          collapsible={false}
+          isDismissable
+          dismissLabel="Dismiss"
+          onDismiss={() => dismiss(index)}
+        />
+      ))}
+    </VStack>
+  );
+}
+
 export function Shell({ children }: { children: ReactNode }) {
   const [slot, setSlot] = useState<ReactNode>(null);
   return (
     <AppShell sideNav={<Nav slot={slot} />} height="auto" contentPadding={0} xstyle={styles.shell}>
+      <UndoErrors />
       <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
     </AppShell>
   );
