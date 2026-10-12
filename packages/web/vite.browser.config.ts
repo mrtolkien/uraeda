@@ -15,9 +15,8 @@ const plugins = (base.plugins ?? []).filter(
 );
 
 /**
- * The tests that change the repository take it in turn, both sizes included, each on a fresh copy
- * of the fixture: the server reads `URAEDA_REPO` at each request. The others read whichever copy is
- * current, which holds the same lines once the change is over.
+ * The tests take the repository in turn, both sizes included, each on a fresh copy of the fixture
+ * (see `src/__browser__/helpers.tsx`): the server reads `URAEDA_REPO` at each request.
  */
 const shared = globalThis as { uraedaRepoTurn?: Promise<void>; uraedaRepoRelease?: () => void };
 
@@ -116,6 +115,8 @@ export default defineConfig({
     // Test files run in frames of one page, whose history they share: one file's Back would move
     // another's. One file at a time, in each browser.
     fileParallelism: false,
+    // CI's WebKit draws without a GPU, and its scrolling and animations take longer than a desktop's.
+    expect: { poll: { timeout: 5_000 } },
     browser: {
       enabled: true,
       headless: true,

@@ -73,8 +73,8 @@ brought under the same rules.
 - **US6, a desktop that reads right.**
   - From 1024 px wide, body text is 19 px, and controls and spacing grow by 1.2. The phone keeps 17
     px text, and controls are 44 px under a coarse pointer.
-  - The reading column is capped at `62ch`, about 75 characters, and text is left-aligned with
-    `text-wrap: pretty`, never justified.
+  - The reading column is capped at `60ch`, about 70 characters of its font, and text is
+    left-aligned with `text-wrap: pretty`, never justified.
   - "Uraeda" in the side navigation links home, a ⌂ icon while the navigation is folded. The feature
     and file pages show breadcrumbs: home, feature, file.
   - ＋ shows on home and the priorities page only. It confirms with "Added to <section>, not
@@ -291,7 +291,7 @@ Rulings that change behaviour:
 - **On wide screens,** an edited or general comment is also written in the page (R18).
 - **A review's block** is selected through a toggle under its text, so its links stay links (R20).
 - **The navigation's heading** is the app's own link home, with a ⌂ icon while folded (R21).
-- **The checks:** dark secondary text is `#a8a8a8`, the reading measure is `62ch`, and rows, crumbs,
+- **The checks:** dark secondary text is `#a8a8a8`, the reading measure is `60ch`, and rows, crumbs,
   switches, and segments are a control's height under touch (R22).
 - **The runner's views:** they moved to Astryx and StyleX, and a run's status shows next to its
   control, never as a toast (R24).
@@ -339,6 +339,12 @@ The review of the agent's runs, deferred (R27):
 - **Untested:** US8 4's Back half, US8 2's scroll position on Back, a run started while its view is
   open, and crossing 768 px with a run view open.
 - **Focus** goes to the page's body when an Undo banner is dismissed.
+
+Raised on the pull request:
+
+- **Repeated lines' keys** follow their order: once one of two lines with the same text is moved
+  above the other or deleted, `-2` names the other line, and an open or bookmarked task view shows
+  it. Lines told apart by nothing but their place need an id written in the file to keep theirs.
 
 Work left:
 
