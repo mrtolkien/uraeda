@@ -201,21 +201,6 @@ fn not_a_draft() {
 }
 
 #[test]
-fn a_draft_with_the_template_placeholders() {
-    let repo = repo_with_a_draft();
-    repo.write(DRAFT, "# Git listener process\n\n## What\n\n[What the feature does, from the user's point of view.]\n\n## Why\n\n[The problem it solves, and for whom.]\n");
-    repo.commit("template");
-
-    let output = ura(&repo, &["start", DRAFT]);
-
-    assert_eq!(
-        output.stderr,
-        format!("ura: {DRAFT} still holds the template's placeholders: write it first\n")
-    );
-    assert_eq!(output.code, 1);
-}
-
-#[test]
 fn an_uncommitted_draft_is_committed_as_the_proposal() {
     let repo = TestRepo::new();
     specs(

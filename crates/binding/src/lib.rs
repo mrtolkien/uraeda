@@ -14,7 +14,8 @@ use napi_derive::napi;
 use uraeda_core::api::{self, ApiError};
 use uraeda_core::files::priorities::Priorities;
 use uraeda_core::view::{
-    CommitView, DraftView, FeatureView, FileView, NextView, StartedView, WorkspaceView,
+    CommitView, DraftView, FeatureView, FileView, NextView, ProposalHint, StartedView,
+    WorkspaceView,
 };
 use uraeda_core::watch::{self, Changes};
 
@@ -252,6 +253,12 @@ pub fn save_text(
 #[napi(ts_return_type = "Promise<CommitView>")]
 pub fn commit_text(repo: String, path: String) -> AsyncTask<Job<CommitView>> {
     job(move || api::commit_text(Path::new(&repo), &path))
+}
+
+/// Each section of the proposal template, with the guidance the editor shows while it is empty.
+#[napi(ts_return_type = "Promise<Array<ProposalHint>>")]
+pub fn proposal_hints() -> AsyncTask<Job<Vec<ProposalHint>>> {
+    job(api::proposal_hints)
 }
 
 /// Starts a drafted feature in its own worktree.

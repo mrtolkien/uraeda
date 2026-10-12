@@ -58,30 +58,6 @@ impl From<std::io::Error> for StartError {
     }
 }
 
-/// The placeholders of the proposal template a written draft no longer holds.
-const PLACEHOLDERS: [&str; 2] = [
-    "[What the feature does, from the user's point of view.]",
-    "[The problem it solves, and for whom.]",
-];
-
-/// Whether a draft still holds the template's text: a placeholder, or an empty `## What` or
-/// `## Why` section.
-fn unwritten(text: &str) -> bool {
-    if text.lines().any(|line| PLACEHOLDERS.contains(&line.trim())) {
-        return true;
-    }
-    let lines: Vec<&str> = text.lines().collect();
-    ["## What", "## Why"].iter().any(|heading| {
-        let Some(start) = lines.iter().position(|line| line.trim_end() == *heading) else {
-            return false;
-        };
-        lines[start + 1..]
-            .iter()
-            .take_while(|line| !line.starts_with('#'))
-            .all(|line| line.trim().is_empty())
-    })
-}
-
 /// A slug as `ura draft` makes them: lowercase letters, digits, and hyphens.
 fn valid_slug(slug: &str) -> bool {
     !slug.is_empty()
@@ -168,11 +144,6 @@ fn start(
     let files = draft_files(root, draft)?;
     let text = fs::read_to_string(root.join(&proposal_source))
         .map_err(|_| StartError::Refused(format!("{proposal_source}: no such draft")))?;
-    if unwritten(&text) {
-        return Err(StartError::Refused(format!(
-            "{proposal_source} still holds the template's placeholders: write it first"
-        )));
-    }
     let slug = slug.unwrap_or_else(|| draft_name(draft)).to_string();
     if !valid_slug(&slug) {
         return Err(StartError::Refused(format!(
