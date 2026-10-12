@@ -387,6 +387,23 @@ fn drops_files_an_older_skill_had() {
     assert_eq!(output.code, 0, "{}", output.stderr);
 }
 
+#[test]
+fn a_manifest_path_outside_the_skill_is_ignored() {
+    let repo = TestRepo::new();
+    let skill = repo.home().join(AGENTS);
+    ura(&repo, &["install", "--user", "--agents"]);
+    let outside = skill.parent().unwrap().join("outside.txt");
+    write(&outside, "x\n");
+    let mut manifest = fs::read_to_string(skill.join(".ura-manifest")).unwrap();
+    manifest.push_str(&format!("{}  ../outside.txt\n", sha256("x\n")));
+    write(&skill.join(".ura-manifest"), &manifest);
+
+    let output = ura(&repo, &["install", "--user", "--update"]);
+
+    assert!(outside.is_file(), "{}", output.stdout);
+    assert_eq!(output.code, 0, "{}", output.stderr);
+}
+
 #[cfg(unix)]
 #[test]
 fn a_link_is_never_written_through() {

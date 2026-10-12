@@ -199,15 +199,25 @@ fn copy(path: &Path, shown_dir: &str, lines: &mut Vec<InstallLine>) -> Result<()
     }
 }
 
+/// Whether a manifest's path stays inside the skill: relative, with only normal components.
+fn inside(path: &str) -> bool {
+    let path = Path::new(path);
+    path.components().next().is_some()
+        && path
+            .components()
+            .all(|component| matches!(component, Component::Normal(_)))
+}
+
 /// Updates an installed skill from its manifest: writes the files nobody edited since they were
 /// installed, keeps the edited ones, and removes the files the skill no longer has, unless edited.
+/// A manifest's path outside the skill, absolute or with `..`, is ignored.
 fn refresh(dir: &Path, shown_dir: &str, lines: &mut Vec<InstallLine>) -> Result<(), ActionError> {
     let recorded = fs::read_to_string(dir.join(MANIFEST)).unwrap_or_default();
     let installed: BTreeMap<String, String> = recorded
         .lines()
         .filter_map(|line| {
             let (hash, path) = line.split_once("  ")?;
-            Some((path.to_string(), hash.to_string()))
+            inside(path).then(|| (path.to_string(), hash.to_string()))
         })
         .collect();
     let embedded = embedded();
