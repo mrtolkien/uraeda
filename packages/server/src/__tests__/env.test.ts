@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
-import { loadEnv } from "../env.ts";
+import { loadDataDir, loadEnv } from "../env.ts";
 import { parseOptions } from "../options.ts";
 
 function root(env?: string) {
@@ -37,4 +37,13 @@ test("the environment wins over .env, and the command line over both", () => {
   const env = loadEnv(dir, { URAEDA_PORT: "5000" });
   expect(env.port).toBe(5000);
   expect(parseOptions(["--port", "5001"], env).port).toBe(5001);
+});
+
+test("the data folder comes from .env, then the environment, then the system's default", () => {
+  const dir = root("URAEDA_DATA_DIR=/data/from-env-file\n");
+
+  expect(loadDataDir(dir, {}, "linux", "/home/me")).toBe("/data/from-env-file");
+  expect(loadDataDir(dir, { URAEDA_DATA_DIR: "/data/env" }, "linux", "/home/me")).toBe("/data/env");
+  expect(loadDataDir(root(), {}, "linux", "/home/me")).toBe("/home/me/.local/share/uraeda");
+  expect(loadDataDir(root(), { XDG_DATA_HOME: "/xdg" }, "linux", "/home/me")).toBe("/xdg/uraeda");
 });

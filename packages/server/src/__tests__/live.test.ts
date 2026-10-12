@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import * as binding from "uraeda-binding";
 import { startLive } from "../live.ts";
-import { fixtureRepo, git, port, testApp } from "./helpers.ts";
+import { fixtureRepo, git, mutate, port, testApp, testServer } from "./helpers.ts";
 
 /** US6.5: a commit on a feature's branch reaches a subscribed page. */
 test("a commit on a branch is sent to a live subscription", async () => {
@@ -71,4 +71,56 @@ test("a repository's watch is kept, and started once", () => {
 
   expect(startLive(binding, repo)).toBe(handle);
   handle.close();
+});
+
+test("SC-002: a run's events reach a subscribed Run within a second", async () => {
+  const { app, adapter, runner } = await testServer();
+  const started = await mutate(
+    app,
+    "run.start",
+    { folder: "2026-10-12-cli-tuis", trigger: "manual" },
+    ["id", "pages"],
+  );
+  const id = started.data.id as string;
+  expect(started.data.pages).toBe(0);
+  const connectionId = "c2";
+  const response = await app.request(
+    `http://127.0.0.1:${port}/fate/live?connectionId=${connectionId}`,
+    { headers: { accept: "text/event-stream" } },
+  );
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let received = "";
+  const read = async () => {
+    const { value } = await reader.read();
+    received += decoder.decode(value);
+  };
+  await read();
+  const subscribed = await app.request(`http://127.0.0.1:${port}/fate/live`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      version: 1,
+      connectionId,
+      operations: [
+        { id: "s1", kind: "subscribe", type: "Run", entityId: id, select: ["id", "pages"] },
+      ],
+    }),
+  });
+  expect(((await subscribed.json()) as { results: Array<{ ok: boolean }> }).results[0].ok).toBe(
+    true,
+  );
+
+  const start = Date.now();
+  adapter.emit({ type: "text", text: "Reading the answers" });
+  while (!received.includes('"pages":1') && Date.now() - start < 1000) {
+    await Promise.race([read(), new Promise((resolve) => setTimeout(resolve, 50))]);
+  }
+  const elapsed = Date.now() - start;
+  await reader.cancel();
+  runner.stop(Number(id));
+  await runner.settled(Number(id));
+
+  expect(received).toContain('"pages":1');
+  expect(elapsed).toBeLessThan(1000);
 });

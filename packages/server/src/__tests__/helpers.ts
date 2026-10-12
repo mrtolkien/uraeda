@@ -1,20 +1,37 @@
 import * as binding from "uraeda-binding";
 import { fixture, fixtureRepo, git } from "uraeda-binding/test-utils";
 import { createApp } from "../app.ts";
+import { fakeRunner } from "../testing.ts";
 
 export { fixture, fixtureRepo, git };
 
 export const port = 4310;
 
-/** The server's app, called in process, on a repository. */
+/** The server's app, called in process, on a repository, with a runner that has no agent. */
 export function testApp(repo = fixtureRepo(), allowedHosts: Array<string> = []) {
+  return app(repo, allowedHosts, fakeRunner({ installed: false }).runner);
+}
+
+function app(
+  repo: string,
+  allowedHosts: Array<string>,
+  runner: ReturnType<typeof fakeRunner>["runner"],
+) {
   return createApp({
     repo,
     port,
     allowedHosts,
     allowOrigins: ["http://localhost:5173"],
     binding,
+    runner,
   });
+}
+
+/** The server's app with a runner on the fake adapter, checked once. */
+export async function testServer(repo = fixtureRepo(), { installed = true } = {}) {
+  const { runner, adapter } = fakeRunner({ installed });
+  await runner.check();
+  return { app: app(repo, [], runner), adapter, runner, repo };
 }
 
 type App = ReturnType<typeof testApp>;

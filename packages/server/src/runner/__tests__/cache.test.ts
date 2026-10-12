@@ -91,6 +91,25 @@ test("a run's events come back in order, a tool event updated in place", () => {
   expect(cache.eventCount(id)).toBe(2);
 });
 
+test("a run's events of one kind come back alone, with their seq", () => {
+  const cache = RunCache.open(":memory:");
+  const id = cache.startRun(run);
+  cache.appendEvent(id, { kind: "text", text: "Opening the pull request" });
+  cache.appendEvent(id, {
+    kind: "denial",
+    tool: "Bash",
+    target: "gh pr create",
+    rule: "Bash(gh pr create)",
+  });
+  cache.appendEvent(id, { kind: "denial", tool: "WebFetch", rule: "WebFetch" });
+
+  expect(cache.eventsOf(id, "denial")).toEqual([
+    { seq: 1, kind: "denial", tool: "Bash", target: "gh pr create", rule: "Bash(gh pr create)" },
+    { seq: 2, kind: "denial", tool: "WebFetch", rule: "WebFetch" },
+  ]);
+  expect(cache.eventsOf(id, "tool")).toEqual([]);
+});
+
 test("runs come back newest first, with their end", () => {
   const cache = RunCache.open(":memory:");
   const first = cache.startRun(run);

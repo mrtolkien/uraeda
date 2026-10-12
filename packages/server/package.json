@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/app.ts",
     "./fate": "./src/fate.ts",
-    "./dev": "./src/dev.ts"
+    "./dev": "./src/dev.ts",
+    "./testing": "./src/testing.ts"
   },
   "scripts": {
     "start": "node src/main.ts"
