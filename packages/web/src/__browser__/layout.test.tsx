@@ -12,8 +12,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { act, fireEvent, screen, within } from "@testing-library/react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, test } from "vite-plus/test";
-import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
-import type { RepoCommands } from "../../vite.browser.config.ts";
+import { page, userEvent } from "vite-plus/test/browser";
 import { Denials, RunReason, RunStatus } from "../AgentPanel.tsx";
 import { Page } from "../layout/Page.tsx";
 import { type RunEvent, RunEvents } from "../RunLog.tsx";
@@ -28,8 +27,6 @@ import {
   checkTextSizes,
   show,
 } from "./helpers.tsx";
-
-const commands = browserCommands as unknown as RepoCommands;
 
 const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";
 const SPEC = "/f/2026-10-06-recurring-tasks/spec.md";
@@ -67,18 +64,7 @@ const CASES = PAGES.flatMap(([name, path, text, insets]) =>
 );
 
 test.each(CASES)("$name, in $mode", async ({ path, text, insets, mode }) => {
-  // The run tests start the agent on the feature waiting on it: its page waits for its turn.
-  const agent = text === "Start the agent";
-  if (agent) {
-    await commands.takeRepo();
-  }
-  try {
-    await checkCase(path, text, insets, mode);
-  } finally {
-    if (agent) {
-      await commands.releaseRepo();
-    }
-  }
+  await checkCase(path, text, insets, mode);
 });
 
 async function checkCase(
@@ -109,7 +95,6 @@ test("a comment being typed keeps its text and focus when the window narrows (US
   if (window.innerWidth < 768) {
     return;
   }
-  await commands.takeRepo();
   await page.viewport(800, 900);
   try {
     await show(ROUND, "How does your iPhone reach the server?");
@@ -124,7 +109,6 @@ test("a comment being typed keeps its text and focus when the window narrows (US
     expect(document.activeElement).toBe(field);
   } finally {
     await page.viewport(1440, 900);
-    await commands.releaseRepo();
   }
 });
 

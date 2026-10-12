@@ -7,14 +7,29 @@ import "../theme/built/uraeda.css";
 import axe from "axe-core";
 import { createRoot, type Root } from "react-dom/client";
 import { createFateClient } from "react-fate/client";
-import { afterEach, expect } from "vite-plus/test";
+import { configure } from "@testing-library/react";
+import { afterEach, beforeEach, expect } from "vite-plus/test";
+import { commands as browserCommands } from "vite-plus/test/browser";
+import type { RepoCommands } from "../../vite.browser.config.ts";
 import { App } from "../App.tsx";
+
+// CI's WebKit draws without a GPU: what it shows takes longer to appear than on a desktop.
+configure({ asyncUtilTimeout: 5_000 });
+
+const commands = browserCommands as unknown as RepoCommands;
 
 let root: Root | undefined;
 
-afterEach(() => {
+// Every test has the repository to itself, a fresh copy of the fixture: the phone's and the
+// desktop's tests run at the same time, and one that changes it would change what another shows.
+beforeEach(async () => {
+  await commands.takeRepo();
+});
+
+afterEach(async () => {
   root?.unmount();
   document.body.innerHTML = "";
+  await commands.releaseRepo();
 });
 
 /** Renders the UI at a path, against the test server's own `/fate`, and waits for a text. */

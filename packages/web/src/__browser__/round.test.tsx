@@ -3,11 +3,8 @@
 // question, and at a 1200 px window with the navigation open, the questions keep 600 px.
 import { act, screen } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
-import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
-import type { RepoCommands } from "../../vite.browser.config.ts";
+import { page, userEvent } from "vite-plus/test/browser";
 import { show } from "./helpers.tsx";
-
-const commands = browserCommands as unknown as RepoCommands;
 
 const FOLDER = "2026-10-11-web-ui";
 const PAGE = `/f/${FOLDER}/clarifications-01.md`;
@@ -29,37 +26,32 @@ test("the index is a column beside the questions, and n and p jump (US1 6, 7)", 
   if (window.innerWidth < 768) {
     return;
   }
-  await commands.takeRepo();
-  try {
-    await show(PAGE, "How does your iPhone reach the server?");
-    const index = screen.getByRole("navigation", { name: "Questions" });
-    expect(index.textContent).toContain("0 of 3 answered");
-    expect(screen.getByRole("button", { name: "Next" })).toBeTruthy();
-    const question = document.getElementById("Q1")!.getBoundingClientRect();
-    expect(index.getBoundingClientRect().left).toBeGreaterThanOrEqual(question.right);
-    await expect.poll(() => offset("Q1")).toBeLessThan(3);
+  await show(PAGE, "How does your iPhone reach the server?");
+  const index = screen.getByRole("navigation", { name: "Questions" });
+  expect(index.textContent).toContain("0 of 3 answered");
+  expect(screen.getByRole("button", { name: "Next" })).toBeTruthy();
+  const question = document.getElementById("Q1")!.getBoundingClientRect();
+  expect(index.getBoundingClientRect().left).toBeGreaterThanOrEqual(question.right);
+  await expect.poll(() => offset("Q1")).toBeLessThan(3);
 
-    await userEvent.keyboard("n");
-    await expect.poll(() => offset("Q2")).toBeLessThan(3);
-    // It stays in view while the page scrolls.
-    const box = index.getBoundingClientRect();
-    expect(box.top).toBeGreaterThanOrEqual(0);
-    expect(box.top).toBeLessThan(window.innerHeight / 2);
+  await userEvent.keyboard("n");
+  await expect.poll(() => offset("Q2")).toBeLessThan(3);
+  // It stays in view while the page scrolls.
+  const box = index.getBoundingClientRect();
+  expect(box.top).toBeGreaterThanOrEqual(0);
+  expect(box.top).toBeLessThan(window.innerHeight / 2);
 
-    await userEvent.keyboard("p");
-    await expect.poll(() => offset("Q1")).toBeLessThan(3);
+  await userEvent.keyboard("p");
+  await expect.poll(() => offset("Q1")).toBeLessThan(3);
 
-    // Neither key acts while a text field has the focus.
-    const comment = screen.getAllByRole("textbox", { name: "Comment" })[0] as HTMLTextAreaElement;
-    await userEvent.click(comment);
-    const before = window.scrollY;
-    await userEvent.keyboard("n");
-    expect(comment.value).toBe("n");
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    expect(window.scrollY).toBe(before);
-  } finally {
-    await commands.releaseRepo();
-  }
+  // Neither key acts while a text field has the focus.
+  const comment = screen.getAllByRole("textbox", { name: "Comment" })[0] as HTMLTextAreaElement;
+  await userEvent.click(comment);
+  const before = window.scrollY;
+  await userEvent.keyboard("n");
+  expect(comment.value).toBe("n");
+  await new Promise((resolve) => setTimeout(resolve, 600));
+  expect(window.scrollY).toBe(before);
 });
 
 test("Back returns to the question at the top (US1 8)", async () => {
