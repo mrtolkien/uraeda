@@ -426,7 +426,7 @@ folder it did not install or through a link; `--update` updates every copy it in
 always pass the flags and `--no-input`, since an agent's terminal can pass the check yet not press
 keys.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS
