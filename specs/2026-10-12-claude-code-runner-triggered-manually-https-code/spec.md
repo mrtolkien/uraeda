@@ -1,16 +1,16 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: high
-plan-review: true
+plan-review: false
 ---
 
 # Spec: Claude Code runner (triggered manually)
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 30 minutes.
+> Approved on 2026-10-12.
 >
 > - **New decision, [agents](../decisions/agents.md).** How Uraeda runs agents:
 >   - the installed `claude`, behind an adapter, never the SDK;
