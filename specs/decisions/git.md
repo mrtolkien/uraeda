@@ -64,14 +64,14 @@ human asked
 Tools remove a merged feature's worktree and local branch only when the human asks: worktrees are
 full checkouts that pile up once their features are merged, and the human asked for `ura clean`, run
 when they ask, never automatically
-([Q5](../2026-10-12-finish-feature/clarifications-01.md#q5-who-removes-a-merged-features-branch-and-worktree),
-[cleanup](../2026-10-12-finish-feature/discovery-01.md#branch-and-worktree-cleanup)).
+([Q5](../done/2026-10-12-finish-feature.md#q5-who-removes-a-merged-features-branch-and-worktree),
+[cleanup](../done/2026-10-12-finish-feature.md#q5-who-removes-a-merged-features-branch-and-worktree)).
 `git worktree remove` refuses a worktree with uncommitted or untracked files, so never forcing it
 keeps that work; after a rebase merge, `git branch -d` refuses a merged branch, so `git branch -D`
 runs only after the patch-equivalence check, against the remote-tracking branch too, since a merge
 on GitHub reaches the local default branch only at the next pull
-([git branch](../2026-10-12-finish-feature/discovery-01.md#git-branch)). Remote branches are the
-forge's: GitHub's automatic deletion setting covers them.
+([git branch](../done/2026-10-12-finish-feature.md)). Remote branches are the forge's: GitHub's
+automatic deletion setting covers them.
 
 ## Alternatives considered
 

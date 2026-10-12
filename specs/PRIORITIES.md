@@ -2,8 +2,6 @@
 
 ## Now
 
-- ["Finish feature"](/specs/2026-10-12-finish-feature/proposal.md)
-
 ## Next
 
 - Claude Code runner (triggered manually): https://code.claude.com/docs/en/headless
