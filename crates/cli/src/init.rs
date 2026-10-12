@@ -1,14 +1,18 @@
-//! `ura init`: the `specs/` folder and the skill, in the repository's top level.
+//! `ura init`: the `specs/` folder in the repository's top level, and an offer of the skill for
+//! the user when no Uraeda skill is found.
 
 use std::process::ExitCode;
 
 use uraeda_core::actions::init::{self, InitLine};
+use uraeda_core::actions::install;
 use uraeda_core::git::Git;
 
-pub fn run(no_skill: bool) -> Result<ExitCode, String> {
+use crate::terminal;
+
+pub fn run(no_input: bool) -> Result<ExitCode, String> {
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
     let git = Git::discover(&cwd).map_err(|error| error.to_string())?;
-    let lines = init::run(git.root(), !no_skill).map_err(|error| error.to_string())?;
+    let lines = init::run(git.root()).map_err(|error| error.to_string())?;
     let mut constitution = false;
     for line in &lines {
         match line {
@@ -16,12 +20,15 @@ pub fn run(no_skill: bool) -> Result<ExitCode, String> {
                 constitution |= path == "specs/CONSTITUTION.md";
                 println!("created {path}");
             }
-            InitLine::Kept(path, None) => println!("kept    {path}"),
-            InitLine::Kept(path, Some(why)) => println!("kept    {path}: {why}"),
-            InitLine::Installed(path, count) => println!("created {path} ({})", files(*count)),
-            InitLine::Updated(path, count) => println!("updated {path} ({})", files(*count)),
-            InitLine::Linked(link, target) => println!("linked  {link} -> {target}"),
+            InitLine::Kept(path) => println!("kept    {path}"),
         }
+    }
+    let home = crate::install::home();
+    let in_home = home
+        .as_deref()
+        .is_some_and(|home| !install::existing(home).is_empty());
+    if !in_home && install::existing(git.root()).is_empty() {
+        offer(terminal::interactive(no_input))?;
     }
     if constitution {
         println!("Next: ask your agent to write specs/CONSTITUTION.md with you, then commit.");
@@ -29,7 +36,12 @@ pub fn run(no_skill: bool) -> Result<ExitCode, String> {
     Ok(ExitCode::SUCCESS)
 }
 
-fn files(count: usize) -> String {
-    let plural = if count == 1 { "" } else { "s" };
-    format!("{count} file{plural}")
+/// Offers the skill for the user, with no Uraeda skill found: asks in a terminal, and names
+/// `ura install` without one, or without a home folder to install in.
+pub fn offer(interactive: bool) -> Result<(), String> {
+    if interactive && crate::install::home().is_some() {
+        unimplemented!("pickers: task 4")
+    }
+    println!("No Uraeda skill found: install it with ura install --user --agents --claude.");
+    Ok(())
 }
