@@ -142,7 +142,7 @@ test("a feature waiting on the human is refused", async () => {
 
 test("an unavailable claude is refused", async () => {
   const { runner, adapter, repo, changes } = await testRunner();
-  expect(runner.status()).toEqual({ available: true, version: "2.1.296 (Claude Code)" });
+  expect(runner.status()).toEqual({ available: true, version: "0.0.0 (fake agent)" });
   adapter.installed = false;
 
   await runner.check();

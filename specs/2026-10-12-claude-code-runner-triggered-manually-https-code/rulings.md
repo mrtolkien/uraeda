@@ -301,3 +301,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a full step, at several dollars, for no more coverage.
 - **If wrong**: run it in the browser with `vp dev` on a fixture repository.
 - **Where**: task 8.
+
+## R25: The browser tests run the fake agent, and it reports its own version
+
+- **Decision**: the WebKit project replaces the web config's server plugin with one on the
+  `FakeAdapter`, and its global setup points `URAEDA_DATA_DIR` at a temporary folder, removed after
+  the run. The fake's `version()` reads "0.0.0 (fake agent)" in place of a real Claude Code version,
+  and a browser test reads it through `/fate`.
+- **Rationale**: the browser config spread the web config, whose plugin started the runner on Claude
+  Code and the user's own cache: `claude --version` ran, and `interrupted()` wrote to
+  `~/.local/share/uraeda/runner.sqlite`, which the [agents](../decisions/agents.md) decision forbids
+  for the tests `vp run ready` runs. A fake that reported the installed version could not be told
+  apart from the real binary.
+- **Alternatives considered**: an option on the web config read from the environment, which `vp dev`
+  could pick up by mistake.
+- **If wrong**: a test that needs the fake to read like Claude Code sets its own version.
+- **Where**: the final review, after task 8.

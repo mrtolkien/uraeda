@@ -8,12 +8,18 @@ import { loadEnv } from "../env.ts";
 import { FakeAdapter } from "../runner/fake.ts";
 import { fixtureRepo } from "./helpers.ts";
 
-const saved = process.env.URAEDA_REPO;
+// The browser project's setup sets both for the whole test run.
+const saved = {
+  URAEDA_REPO: process.env.URAEDA_REPO,
+  URAEDA_DATA_DIR: process.env.URAEDA_DATA_DIR,
+};
 afterEach(() => {
-  if (saved === undefined) {
-    delete process.env.URAEDA_REPO;
-  } else {
-    process.env.URAEDA_REPO = saved;
+  for (const [name, value] of Object.entries(saved)) {
+    if (value === undefined) {
+      delete process.env[name];
+    } else {
+      process.env[name] = value;
+    }
   }
 });
 
@@ -43,6 +49,7 @@ test("the server in vp dev reads URAEDA_REPO", async () => {
   const data = mkdtempSync(join(tmpdir(), "uraeda-data-"));
   writeFileSync(join(root, ".env"), `URAEDA_REPO=${repo}\nURAEDA_DATA_DIR=${data}\n`);
   delete process.env.URAEDA_REPO;
+  delete process.env.URAEDA_DATA_DIR;
   const handler = devHandler(root, { adapter: new FakeAdapter() });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
