@@ -336,8 +336,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: the side navigation's header is `Heading` in `Shell.tsx`: an Astryx `Link` home
   holding "Uraeda" and the repository's name, a control's height (`--size-element-md`), then the
-  page's controls beside it, not inside it. It hides while the navigation is folded, as
-  `SideNavHeading` does without an icon. `SlotControls`
+  page's controls beside it, not inside it. While the navigation is folded, it is an icon-only
+  `SideNavItem` home ("⌂", named "Uraeda"), the page's controls under it, and the theme switch, too
+  wide for the folded rail, hides. `SlotControls`
   ([R16](#r16-a-tap-on-the-top-bars-controls-stays-theirs)) is gone.
 - **Rationale**: `SideNavHeading` with `headingHref` alone draws one link around `headerEndContent`;
   with a second link it draws "Uraeda" as a text link 20 px tall, under the 44 px a touch screen

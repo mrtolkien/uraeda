@@ -9,7 +9,7 @@ import { AppShell } from "@astryxdesign/core/AppShell";
 import { ChatMessageList } from "@astryxdesign/core/Chat";
 import { Theme } from "@astryxdesign/core/theme";
 import { VStack } from "@astryxdesign/core/VStack";
-import { act, fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, test } from "vite-plus/test";
@@ -153,6 +153,37 @@ test("a task view keeps its address as the window crosses 768 px", async () => {
     expect(window.location.pathname).toBe(TASK);
   } finally {
     await page.viewport(1440, 900);
+  }
+});
+
+test("the folded navigation keeps ＋ and a link home (US6 4, 5)", async () => {
+  if (window.innerWidth < 768) {
+    return;
+  }
+  try {
+    await show("/priorities", "Claude Code runner");
+    // Folding draws the navigation anew: it is found again each time.
+    const nav = () => screen.getByRole("navigation", { name: "Side navigation" });
+    await userEvent.click(within(nav()).getByRole("button", { name: "Collapse sidebar" }));
+    await expect
+      .poll(() => within(nav()).queryByRole("button", { name: "Expand sidebar" }))
+      .toBeTruthy();
+
+    expect(within(nav()).getByRole("button", { name: "Add a priority" })).toBeTruthy();
+    await userEvent.click(within(nav()).getByRole("link", { name: "Uraeda" }));
+    await expect.poll(() => window.location.pathname).toBe("/");
+
+    await userEvent.click(within(nav()).getByRole("button", { name: "Expand sidebar" }));
+    // Unfolded: the heading again, "Uraeda" with the repository's name, and ＋ beside it.
+    await expect.poll(() => within(nav()).queryByRole("link", { name: /^Uraeda \S/ })).toBeTruthy();
+    expect(within(nav()).getByRole("button", { name: "Add a priority" })).toBeTruthy();
+  } finally {
+    // The navigation's state is kept in the browser: the next tests start unfolded.
+    for (const key of Object.keys(window.localStorage)) {
+      if (key.includes("uraeda.nav")) {
+        window.localStorage.removeItem(key);
+      }
+    }
   }
 });
 
