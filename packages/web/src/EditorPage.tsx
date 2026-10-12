@@ -219,8 +219,8 @@ export function EditorPage({ path }: { path: string }) {
         <Heading level={1}>{draft.title}</Heading>
         {draft.entry && (
           <Text type="supporting" color="secondary">
-            {draft.committed ? "Committed" : "Not committed"} · Priorities,{" "}
-            {SECTIONS[draft.entry.section] ?? draft.entry.section}
+            {/* Committed or not shows beside the file's name already. */}
+            In Priorities, {SECTIONS[draft.entry.section] ?? draft.entry.section}
           </Text>
         )}
         {conflict && (
