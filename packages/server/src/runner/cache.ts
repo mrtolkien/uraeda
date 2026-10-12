@@ -44,7 +44,7 @@ export type RunRow = {
 };
 
 /** The schema, one migration per version: `PRAGMA user_version` is the number applied. */
-const migrations = [
+export const migrations = [
   `CREATE TABLE sessions (
     repo       TEXT NOT NULL,
     folder     TEXT NOT NULL,
@@ -76,7 +76,33 @@ const migrations = [
     data   TEXT NOT NULL,
     PRIMARY KEY (run_id, seq)
   );`,
+  // The process that runs it: servers of other repositories share the file.
+  "ALTER TABLE runs ADD COLUMN pid INTEGER;",
 ];
+
+/** How long a statement waits for another process's lock, by default. */
+const TIMEOUT_MS = 5000;
+
+/** SQLite's primary result codes for a file that is not a database, or a damaged one. */
+const SQLITE_CORRUPT = 11;
+const SQLITE_NOTADB = 26;
+
+/** Whether an error says the file is damaged, not busy or locked by another process. */
+function corrupt(error: unknown): boolean {
+  const code = (error as { errcode?: unknown }).errcode;
+  return typeof code === "number" && [SQLITE_CORRUPT, SQLITE_NOTADB].includes(code & 0xff);
+}
+
+/** Whether a process runs with the pid: `kill` with signal 0 sends nothing, and checks. */
+function alive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    // EPERM: it runs, as another user.
+    return (error as NodeJS.ErrnoException).code !== "ESRCH";
+  }
+}
 
 type Row = Record<string, string | number | null>;
 
@@ -106,33 +132,57 @@ function stored(event: RunEvent): [string, string] {
 
 /**
  * The runner's cache of sessions, runs, and their events, in SQLite. It holds no workflow state:
- * losing it costs new sessions and the old logs. Nothing else opens the database.
+ * losing it costs new sessions and the old logs. The servers of every repository share the file,
+ * each from its own process: it is in WAL mode, and waits for another's lock.
  */
 export class RunCache {
   #db: DatabaseSync;
+  #pid: number;
 
-  private constructor(db: DatabaseSync) {
+  private constructor(db: DatabaseSync, pid: number) {
     this.#db = db;
+    this.#pid = pid;
   }
 
   /**
-   * Opens the database, creating its folder, and migrates it. A file that cannot be opened is
-   * replaced with an empty database. `":memory:"` opens one that lives as long as the process.
+   * Opens the database, creating its folder, and migrates it. A file that is not a database, or a
+   * damaged one, is replaced with an empty database. On any other error, like a lock held longer
+   * than `timeout`, the file is kept, and the cache lives in memory as long as the process.
+   * `":memory:"` opens one that lives as long as the process. Its runs are
+   * recorded as `pid`'s, this process by default.
    */
-  static open(path: string): RunCache {
+  static open(
+    path: string,
+    { pid = process.pid, timeout = TIMEOUT_MS }: { pid?: number; timeout?: number } = {},
+  ): RunCache {
     if (path === ":memory:") {
-      return new RunCache(migrate(new DatabaseSync(path)));
+      return new RunCache(migrate(new DatabaseSync(path)), pid);
     }
     mkdirSync(dirname(path), { recursive: true });
-    let db: DatabaseSync | undefined;
+    const connect = () => {
+      const db = new DatabaseSync(path, { timeout });
+      try {
+        db.exec("PRAGMA journal_mode = WAL");
+        return migrate(db);
+      } catch (error) {
+        db.close();
+        throw error;
+      }
+    };
     try {
-      db = new DatabaseSync(path);
-      return new RunCache(migrate(db));
+      return new RunCache(connect(), pid);
     } catch (error) {
-      console.error(`The runner's cache could not be opened, so it starts empty: ${String(error)}`);
-      db?.close();
-      rmSync(path, { force: true });
-      return new RunCache(migrate(new DatabaseSync(path)));
+      if (!corrupt(error)) {
+        console.error(
+          `The runner's cache could not be opened, so this server keeps its runs in memory: ${String(error)}`,
+        );
+        return new RunCache(migrate(new DatabaseSync(":memory:")), pid);
+      }
+      console.error(`The runner's cache could not be read, so it starts empty: ${String(error)}`);
+      for (const suffix of ["", "-wal", "-shm"]) {
+        rmSync(path + suffix, { force: true });
+      }
+      return new RunCache(connect(), pid);
     }
   }
 
@@ -160,8 +210,8 @@ export class RunCache {
     const { lastInsertRowid } = this.#db
       .prepare(
         `INSERT INTO runs (repo, folder, session_id, new_session, trigger, step, allowed, state,
-           started_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'running', ?)`,
+           started_at, pid)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'running', ?, ?)`,
       )
       .run(
         row.repo,
@@ -172,6 +222,7 @@ export class RunCache {
         row.step,
         row.allowed,
         row.startedAt,
+        this.#pid,
       );
     return Number(lastInsertRowid);
   }
@@ -248,37 +299,56 @@ export class RunCache {
     return count;
   }
 
-  /** Marks every run still `running` as stopped with the reason, and returns them. */
+  /**
+   * Marks the runs still `running` whose process is gone, or is this one, as stopped with the
+   * reason, and returns them. Another live server's runs, of any repository, keep running.
+   */
   interrupted(reason: string): Array<RunRow> {
-    const rows = this.#db
-      .prepare(
-        `UPDATE runs SET state = 'stopped', reason = ?, ended_at = ? WHERE state = 'running'
-         RETURNING *`,
-      )
-      .all(reason, now()) as Array<Row>;
-    return rows.map(toRun).sort((a, b) => a.id - b.id);
+    return transaction(this.#db, () => {
+      const running = this.#db
+        .prepare("SELECT id, pid FROM runs WHERE state = 'running'")
+        .all() as Array<{ id: number; pid: number | null }>;
+      const ended = now();
+      const stop = this.#db.prepare(
+        "UPDATE runs SET state = 'stopped', reason = ?, ended_at = ? WHERE id = ? RETURNING *",
+      );
+      return running
+        .filter(({ pid }) => pid === null || pid === this.#pid || !alive(pid))
+        .map(({ id }) => toRun(stop.get(reason, ended, id) as Row))
+        .sort((a, b) => a.id - b.id);
+    });
+  }
+}
+
+/**
+ * Runs `body` in a write transaction, taken before it reads: another process cannot write between
+ * its reads and its writes.
+ */
+function transaction<T>(db: DatabaseSync, body: () => T): T {
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const result = body();
+    db.exec("COMMIT");
+    return result;
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
   }
 }
 
 /** Applies the migrations the database has not run yet, in one transaction. */
 function migrate(db: DatabaseSync): DatabaseSync {
-  const { user_version: version } = db.prepare("PRAGMA user_version").get() as {
-    user_version: number;
-  };
-  if (version < migrations.length) {
-    db.exec("BEGIN");
-    try {
-      for (const [index, sql] of migrations.entries()) {
-        if (index >= version) {
-          db.exec(sql);
-        }
+  const version = () =>
+    (db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version;
+  if (version() < migrations.length) {
+    // Another process may have migrated it since.
+    transaction(db, () => {
+      const applied = version();
+      for (const sql of migrations.slice(applied)) {
+        db.exec(sql);
       }
       db.exec(`PRAGMA user_version = ${migrations.length}`);
-      db.exec("COMMIT");
-    } catch (error) {
-      db.exec("ROLLBACK");
-      throw error;
-    }
+    });
   }
   return db;
 }
