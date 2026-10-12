@@ -1,7 +1,7 @@
 // US3: a task view for every priority line; US4 scenario 9: Delete, with Undo, in the task view.
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { click, fixtureRepo, read, renderPage, serverFetch, type } from "./helpers.tsx";
 
@@ -110,12 +110,17 @@ test("a refused Undo says so", async () => {
   await click(await screen.findByRole("button", { name: "Delete" }));
   await screen.findByText('Deleted "Nix + Docker based execution environments"');
   await click(await screen.findByRole("button", { name: "Undo" }));
-  expect(
-    await screen.findByText(
-      'Could not restore "Nix + Docker based execution environments": PRIORITIES.md changed on disk.',
-    ),
-  ).toBeTruthy();
+  const message =
+    'Could not restore "Nix + Docker based execution environments": PRIORITIES.md changed on disk.';
+  // In the page, not a toast: the UI behaviour decision keeps errors out of toasts alone.
+  const main = within(screen.getByRole("main"));
+  await main.findByText(message);
+  const banner = main.getAllByRole("alert").find((alert) => alert.textContent?.includes(message))!;
+  expect(banner).toBeTruthy();
   expect(read(repo)).not.toContain("Nix + Docker");
+
+  await click(within(banner).getByRole("button", { name: "Dismiss" }));
+  expect(screen.queryByText(message)).toBeNull();
 });
 
 test("Undo puts the line back at its place in the file as it is now (edge case)", async () => {

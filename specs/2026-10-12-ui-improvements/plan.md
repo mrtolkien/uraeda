@@ -1613,23 +1613,22 @@ Spec revision 2, error handling.
 
 - Modify: `packages/web/src/layout/useUndoToast.ts` (a refusal goes to a shared store, not a toast),
   `packages/web/src/Shell.tsx` (the banner under the top bar, with Dismiss)
-- Test: `packages/web/src/__tests__/priorities.test.tsx` or `task.test.tsx`, where Undo is refused
-  today
+- Test: `packages/web/src/__tests__/task.test.tsx`, where Undo is refused today
 
-- [ ] **Step 1: Write the failing test**: a refused Undo shows "Could not restore …" in a banner
+- [x] **Step 1: Write the failing test**: a refused Undo shows "Could not restore …" in a banner
       that stays after 5 seconds and goes on Dismiss.
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test task.test`
 - Expected: FAIL, no banner.
 
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run all checks**
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run all checks**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web

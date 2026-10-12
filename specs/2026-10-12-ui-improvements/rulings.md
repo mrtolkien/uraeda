@@ -127,6 +127,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   refusal from ＋'s Undo.
 - **If wrong**: one signature, in `packages/web/src/layout/useUndoToast.ts`, and its two callers.
 - **Where**: task 7, `packages/web/src/layout/useUndoToast.ts`, `packages/web/src/QuickAdd.tsx`
+- **Since**: spec revision 2 shows the error in a banner under the top bar, until dismissed, not in
+  a toast (Task 17).
 
 ## R10: Blocks draw their review selection in StyleX from task 8
 
