@@ -592,43 +592,52 @@ git commit -m "feat(claude-code-runner-triggered-manually-https-code): the agent
     - `clarifications-01.md` gives "round 01";
     - `spec.md`, `plan.md`, and `assessment.md` give "spec", "plan", and "assessment";
     - `proposal.md` gives "proposal", and `report.md` gives "bug report".
-  - `runMessage(input: { folder: string; branch: string; step: string; reference: string; detail: TriggerDetail }): string`.
+  - `runMessage(input: { folder: string; branch: string; bug?: boolean; step: string; reference: string; detail: TriggerDetail }): string`.
+    A bug's message reads "Continue the bug specs/bugs/<folder>/" (ruling R10).
   - `toolTarget(name: string, input: Record<string, unknown>): string | undefined`. It returns
     `command`, `file_path`, `url`, `pattern`, or `path`, the first present.
   - `allowRule(denial: Denial): string`, with the spec's rule table.
 - Produces, in `runner.ts`:
 
 ```ts
+export type RunnerChange =
+  { runner: true } | { repo: string; folder: string; run: number; state: RunState };
 export type RunnerOptions = {
   adapter: Adapter;
   cache: RunCache;
   binding: Binding;
   pluginDir: string;
-  onChange: (change: { run?: number; folder?: string; repo: string; runner?: true }) => void;
+  onChange: (change: RunnerChange) => void;
 };
+export const REFUSALS: { busy: string; human: string; unavailable: string }; // the spec's texts
 export class Runner {
   constructor(options: RunnerOptions);
-  status(): { available: boolean; version: string | null }; // last check
+  status(): { available: boolean; version: string | null }; // last check; unavailable before one
   check(): Promise<void>; // claude --version; onChange({ runner: true }) when it changes
   running(repo: string): Array<string>; // folders with a running run
   start(repo: string, folder: string, detail: TriggerDetail): Promise<number>; // the run id
-  allow(runId: number, seq: number): Promise<number>;
+  allow(repo: string, runId: number, seq: number): Promise<number>; // refused unless seq is a denial
+  settled(runId: number): Promise<void>; // resolves once the run has ended
   stop(runId: number): void;
   stopAll(): Promise<void>; // "Stopped: the server stopped."
   close(): void; // clears its timers
 }
 ```
 
-`start` rejects with `Error("refused: <text>")`, which fate's `refusable` passes on.
+`start` rejects with `Error("refused: <text>")`, which fate's `refusable` passes on. `repo` is the
+server's repository as given, and `running`, `onChange`'s `repo`, and the one-run rule use it as
+given. The cache's rows are keyed by `nextStep`'s `mainRoot` instead, so a fate source reads a
+feature's runs with `cache.runs(mainRoot, folder)` (ruling R9). A run with trigger `allow` passes
+`detail.rule` as its `allowed`.
 
-- [ ] **Step 1: Write the failing tests, and the helpers they use**
+- [x] **Step 1: Write the failing tests, and the helpers they use**
 
 `__tests__/helpers.ts` provides:
 
-- `testRunner(repo?)`, which returns `{ runner, adapter, cache, repo, changes }` with a
+- `testRunner(repo?)`, which resolves to `{ runner, adapter, cache, repo, changes }` with a
   `FakeAdapter`, `RunCache.open(":memory:")`, the real binding, `pluginDir: "/plugin"`, and the
-  recorded `onChange` calls;
-- `settle(runner, id)`, which awaits the end of a run.
+  recorded `onChange` calls, after one `runner.check()`;
+- `settle(runner, id)`, which awaits `runner.settled(id)`, and `flush()`, one `setImmediate`.
 
 ```ts
 // message.test.ts
@@ -744,7 +753,7 @@ test("an API retry is a system line", async () => {
 test("US6.1 and US6.4: denials are logged, and allow runs once with their rule", async () => {
   // result denials [{ tool: "Bash", input: { command: "gh pr create --draft" } }]
   // event { kind: "denial", tool: "Bash", target: "gh pr create --draft", rule: "Bash(gh pr create --draft)" }
-  // allow(id, seq): start.allowed === "Bash(gh pr create --draft)", message has the allow sentence
+  // allow(repo, id, seq): start.allowed === "Bash(gh pr create --draft)", message has the allow sentence
   // the run after it: start.allowed undefined
 });
 test("US1.4: a run that commits up to a gate ends done", async () => {
@@ -760,23 +769,23 @@ test("every run passes auto mode and the plugin, for every trigger", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/runner`
 - Expected: FAIL, `Failed to resolve import "../message.ts"`.
 
-- [ ] **Step 3: Implement `message.ts`**
+- [x] **Step 3: Implement `message.ts`**
 
 The message is the spec's template, with the `/uraeda:uraeda` skill name from the plugin, and the
 same line breaks as the test's.
 
-- [ ] **Step 4: Implement `runner.ts`**
+- [x] **Step 4: Implement `runner.ts`**
 
 `start(repo, folder, detail)`:
 
 1. Refuse when the folder has a running run, or when the last check found no `claude`.
 2. Call `nextStep`: refuse unless `step.waitsOn === "agent"` and `step.reference` is set.
-3. Call `workDir`.
+3. Call `workDir`, and `readFeature` for the feature's kind, a bug or not.
 4. Pick the session:
    - the cached ID, with `resume: true`, when `adapter.hasSession(id)`;
    - otherwise a new `crypto.randomUUID()`, saved, with the "Started a new session" line when an old
@@ -792,12 +801,12 @@ same line breaks as the test's.
 `stop` interrupts, and then terminates after 10,000 ms when the run is still going. `onChange` is
 called for every event, and the server throttles it.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run: `vp test packages/server`
 - Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server/src/runner
