@@ -328,6 +328,8 @@
     --text-reading-size: 17px;
     --text-reading-line: 1.5;
     --size-reading-measure: 70ch;
+    --size-pane-min: 400px;
+    --size-viewport-height: 100dvh;
     --color-selection: var(--color-background-yellow);
     --color-selection-edge: var(--color-border-yellow);
   }
