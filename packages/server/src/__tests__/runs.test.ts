@@ -319,7 +319,7 @@ test("Runner reads available with claude, and its version", async () => {
 
   const [runner] = await byId(server.app, "Runner", ["runner"], ["id", "available", "version"]);
 
-  expect(runner).toEqual({ id: "runner", available: true, version: "2.1.296 (Claude Code)" });
+  expect(runner).toEqual({ id: "runner", available: true, version: "0.0.0 (fake agent)" });
 });
 
 test("Runner reads unavailable without claude", async () => {
