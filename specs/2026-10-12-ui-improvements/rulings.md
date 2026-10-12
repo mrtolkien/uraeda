@@ -41,3 +41,59 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   raw stem, which could hold characters an address must escape.
 - **If wrong**: one function, `keys`, in `crates/core/src/files/priorities.rs`.
 - **Where**: task 3, `crates/core/src/files/priorities.rs`, `crates/core/src/workspace.rs`
+
+## R4: The coarse pointer's adaptation comes after the wide one
+
+- **Decision**: the theme's adaptations are, in order, from `lg` (sizes × 1.2), then under a coarse
+  pointer (element heights 44 px). The plan listed them the other way round.
+- **Rationale**: Astryx applies matching rules in order, the later one winning. With the coarse rule
+  first, a wide touch screen, like a tablet in landscape, would get 38.4 px controls, against the
+  layout decision's 44 px under a coarse pointer. Every grown height (33.6, 38.4, 43.2 px) is below
+  44 px, so the coarse rule last only ever raises them.
+- **Alternatives considered**: the plan's order, which breaks the 44 px rule on wide touch screens.
+- **If wrong**: two rules to swap in `packages/web/src/theme/theme.ts`, and a rebuild.
+- **Where**: task 4, `packages/web/src/theme/theme.ts`, guarded by
+  `packages/server/src/__tests__/stack.test.ts`
+
+## R5: How the theme source states its values
+
+- **Decision**: the app's own tokens (`--text-reading-*`, `--size-reading-measure`,
+  `--color-selection*`) are Astryx `localTokens`, the field for names outside Astryx's set. The
+  selection colours point at Astryx's `--color-background-yellow` and `--color-border-yellow`, which
+  already hold a light and a dark value. The neutral theme's sizes that the wide rule multiplies
+  (base font 14 px, the spacing steps, the element heights) are listed in the source. The wide type
+  scale's base, 16.8 px, comes out as Astryx's rounded `1.0625rem` (17 px).
+- **Rationale**: `astryx theme build` refuses a source that passes the neutral theme to anything but
+  `extends`, so the values cannot be read from it at build time. Astryx's yellow tokens give the
+  amber tint and bar in both modes without new colour values to maintain.
+- **Alternatives considered**: reading the sizes with `resolveThemeTokens(neutralTheme)`, which the
+  build rejects; hand-written `[light, dark]` amber values.
+- **If wrong**: the listed sizes drift from Astryx's after an upgrade; the source says to recheck
+  them, and one file changes.
+- **Where**: task 4, `packages/web/src/theme/theme.ts`
+
+## R6: StyleX in tests, its CSS targets, and the theme's check
+
+- **Decision**: StyleX's plugin injects each module's CSS at run time under Vitest
+  (`runtimeInjection` when `VITEST` is set), as neither the happy-dom tests nor the WebKit tests
+  load `index.html`, where `vp dev` gets its CSS; the build appends it to the app's stylesheet. Its
+  CSS targets browsers with `light-dark()`, which Astryx's tokens use, so it is not lowered.
+  `vp run ready` runs `astryx theme build --check`, so the committed theme cannot drift from its
+  source.
+- **Rationale**: checked with a throwaway component: its StyleX rules applied in WebKit at both
+  sizes (16 px and 19.2 px for `--spacing-4`), in `vp dev`'s `/virtual:stylex.css`, and in the built
+  stylesheet. The toolchain decision requires a new tool's checks in `vp run ready`.
+- **Alternatives considered**: importing `virtual:stylex:runtime` from the test helpers, which
+  fetches the CSS once and relies on HMR events for the rest.
+- **If wrong**: one option in `packages/web/vite.config.ts`.
+- **Where**: task 4, `packages/web/vite.config.ts`, `package.json`
+
+## R7: The left-inset check runs on the phone only
+
+- **Decision**: `checkInsets`, the browser helper that checks text starts within 50 px of the
+  screen's left edge, applies under 768 px wide only: on wide screens it checks nothing.
+- **Rationale**: it guards SC-007 of the web UI, a phone criterion. At 1440 px the reading column is
+  centred, and its text starts far from the edge by design.
+- **Alternatives considered**: a desktop threshold, which no spec or decision gives.
+- **If wrong**: one condition in `packages/web/src/__browser__/helpers.tsx`.
+- **Where**: task 4, `packages/web/src/__browser__/helpers.tsx`

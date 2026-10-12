@@ -1,6 +1,6 @@
-// The layout's checks, in WebKit at an iPhone 17's size, against the server mounted in the test
-// server (see `vite.config.ts`), on the fake agent: the tests `vp run ready` runs never start Claude
-// Code. The root's config lists this project next to the others.
+// The layout's checks, in WebKit at an iPhone 17's size and at a desktop's, against the server
+// mounted in the test server (see `vite.config.ts`), on the fake agent: the tests `vp run ready`
+// runs never start Claude Code. The root's config lists this project next to the others.
 import { FakeAdapter } from "uraeda-server/testing";
 import { playwright } from "vite-plus/test/browser-playwright";
 import { defineConfig, type PluginOption } from "vite-plus";
@@ -22,8 +22,10 @@ export default defineConfig({
       enabled: true,
       headless: true,
       provider: playwright(),
-      instances: [{ browser: "webkit" }],
-      viewport: { width: 402, height: 874 },
+      instances: [
+        { browser: "webkit", name: "phone", viewport: { width: 402, height: 874 } },
+        { browser: "webkit", name: "desktop", viewport: { width: 1440, height: 900 } },
+      ],
     },
   },
 });

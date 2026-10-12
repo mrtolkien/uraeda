@@ -4,7 +4,7 @@
   "license": "MIT OR Apache-2.0",
   "scripts": {
     "prepare": "vp config",
-    "ready": "cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace --exclude uraeda-binding && cargo run -q -p uraeda-cli -- check specs && cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs && (! cargo tree -p uraeda-cli -e features --prefix none | grep -qE '^napi(-derive)? v') && vp run --filter uraeda-binding build && vp check && vp test && vp run --filter uraeda-web build",
+    "ready": "cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace --exclude uraeda-binding && cargo run -q -p uraeda-cli -- check specs && cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs && (! cargo tree -p uraeda-cli -e features --prefix none | grep -qE '^napi(-derive)? v') && vp run --filter uraeda-binding build && vp run --filter uraeda-web theme --check && vp check && vp test && vp run --filter uraeda-web build",
     "start": "vp run --filter uraeda-web build && node packages/server/src/main.ts --web-root packages/web/dist",
     "validate:claude": "node packages/server/scripts/validate-claude.ts"
   },
