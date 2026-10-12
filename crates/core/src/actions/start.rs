@@ -180,6 +180,17 @@ fn start(
         )));
     }
     let folder = format!("{today}-{slug}");
+    let record = crate::workspace::record_path(&folder);
+    let recorded = root.join(&record).exists()
+        || workspace
+            .features
+            .iter()
+            .any(|feature| feature.folder == folder && feature.is_finished());
+    if recorded {
+        return Err(StartError::Refused(format!(
+            "{record} exists: choose another slug with --slug"
+        )));
+    }
     let taken = at.branches()?.iter().any(|branch| branch.name == folder)
         || root.join("specs").join(&folder).exists()
         || workspace

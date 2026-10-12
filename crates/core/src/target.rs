@@ -108,13 +108,10 @@ fn by_path(
             .ok_or_else(|| TargetError::NoPath(target.to_string()));
     }
     for (index, feature) in workspace.features.iter().enumerate() {
-        if relative == feature.path {
+        if relative == feature.path && !feature.is_finished() {
             return Ok(Target::Feature(index));
         }
-        if let Some(file) = relative
-            .strip_prefix(feature.path.as_str())
-            .and_then(|rest| rest.strip_prefix('/'))
-        {
+        if let Some(file) = feature.owns(&relative) {
             return Ok(Target::File(index, file.to_string()));
         }
     }

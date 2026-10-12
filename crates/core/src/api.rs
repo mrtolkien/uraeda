@@ -186,17 +186,17 @@ fn draft_path(path: &str) -> Result<()> {
 
 /// The feature or bug whose folder holds `path`.
 fn feature_of<'a>(workspace: &'a Workspace, path: &str) -> Option<&'a Feature> {
-    workspace.features.iter().find(|feature| {
-        path.strip_prefix(&feature.path)
-            .is_some_and(|rest| rest.starts_with('/'))
-    })
+    workspace
+        .features
+        .iter()
+        .find(|feature| feature.owns(path).is_some())
 }
 
 /// The feature or bug of a workflow file, `specs/<folder>/<name>` or `specs/bugs/<folder>/<name>`,
 /// and the file's name.
 fn feature_file<'a, 'p>(workspace: &'a Workspace, path: &'p str) -> Result<(&'a Feature, &'p str)> {
     feature_of(workspace, path)
-        .map(|feature| (feature, &path[feature.path.len() + 1..]))
+        .and_then(|feature| Some((feature, feature.owns(path)?)))
         .filter(|(_, name)| plain(path) && !name.contains('/'))
         .ok_or_else(|| refused(format!("{path} is not a file of a feature")))
 }
