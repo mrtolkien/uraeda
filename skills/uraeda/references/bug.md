@@ -31,15 +31,15 @@ Commit with `chore(<slug>): start <bug title>`.
 
 On the bug's branch, go down this table and run the first row that matches.
 
-| State of `specs/bugs/YYYY-MM-DD-<slug>/`                     | Step                             |
+| State of the bug's branch                                    | Step                             |
 | ------------------------------------------------------------ | -------------------------------- |
+| The record is in `specs/done/`, and no pull request is ready | [Finish](finish.md)              |
+| The record, and the pull request has changes requested       | [Fix](#fix), changes             |
+| The record, and the pull request is ready for review         | **Human gate**: the pull request |
 | `assessment.md` has `status: awaiting-human`                 | **Human gate**: stop             |
 | No `assessment.md`                                           | [Assess](#assess)                |
 | `assessment.md` is `changes-requested`                       | [Assess](#assess), revision      |
 | `assessment.md` is `approved`, with unchecked steps          | [Fix](#fix)                      |
-| The record is in `specs/done/`, and no pull request is ready | [Finish](finish.md)              |
-| The record, and the pull request has changes requested       | [Fix](#fix), changes             |
-| The record, and the pull request is ready for review         | **Human gate**: the pull request |
 | Every step is checked, and the pull request is a draft       | [Finish](finish.md)              |
 | Every step is checked, and the branch has no pull request    | [Fix](#fix), pull request        |
 | The branch's pull request has changes requested              | [Fix](#fix), changes             |

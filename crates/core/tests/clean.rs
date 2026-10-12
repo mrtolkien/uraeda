@@ -362,3 +362,24 @@ fn a_dry_run_changes_nothing() {
     assert!(repo.exists(WORKTREE));
     assert!(has_branch(&repo, FOLDER));
 }
+
+/// Final review: run from inside the worktree it would remove.
+#[test]
+fn leaves_the_worktree_it_runs_in() {
+    let repo = merged();
+    let inside = Git::open(&repo.path().join(WORKTREE)).unwrap();
+    let workspace = Workspace::read(&inside).unwrap();
+    let feature = workspace.feature(FOLDER).cloned().unwrap();
+
+    let cleaned = clean(&inside, &workspace, &feature, false).unwrap();
+
+    assert_eq!(
+        cleaned.left,
+        [
+            left(Leftover::Worktree(WORKTREE.into()), WhyLeft::YouAreInIt),
+            left(Leftover::Branch(FOLDER.into()), WhyLeft::WorktreeLeft)
+        ]
+    );
+    assert!(repo.exists(WORKTREE));
+    assert!(has_branch(&repo, FOLDER));
+}

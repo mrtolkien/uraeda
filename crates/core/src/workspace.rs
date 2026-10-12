@@ -827,6 +827,26 @@ impl Feature {
     /// A finished feature or bug, from its record's text: its only file.
     pub fn from_record(kind: Kind, folder: &str, text: String) -> Feature {
         let name = format!("{folder}.md");
+        let path = record_path(folder);
+        let mut problems = Vec::new();
+        match frontmatter::parse(&text) {
+            Ok(front) => {
+                if !matches!(front.text("kind"), Some("feature" | "bug")) {
+                    problems.push(Problem {
+                        file: path.clone(),
+                        line: front.line("kind"),
+                        rule: "frontmatter.kind".into(),
+                        message: "kind is not one of feature, bug".into(),
+                    });
+                }
+            }
+            Err(error) => problems.push(Problem {
+                file: path.clone(),
+                line: Some(1),
+                rule: "frontmatter.parse".into(),
+                message: error.to_string(),
+            }),
+        }
         let mut feature = Feature {
             kind,
             folder: folder.to_string(),
@@ -844,7 +864,7 @@ impl Feature {
                 waiting_line: None,
             }],
             step: Step::none(),
-            problems: Vec::new(),
+            problems,
             left_worktree: None,
             left_branch: None,
             path: "specs/done".to_string(),

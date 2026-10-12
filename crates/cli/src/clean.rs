@@ -109,6 +109,9 @@ fn left_line(left: &Left, default: &str) -> String {
         (Leftover::Worktree(path), WhyLeft::Locked) => format!(
             "left the worktree {path}: the worktree is locked. Unlock it with git worktree unlock, then run ura clean again"
         ),
+        (Leftover::Worktree(path), WhyLeft::YouAreInIt) => {
+            format!("left the worktree {path}: you are in it. Run ura clean from the main checkout")
+        }
         (Leftover::Worktree(path), WhyLeft::Outside(at)) => {
             format!("left the worktree {path}: checked out in {at}, remove that worktree yourself")
         }
