@@ -1,4 +1,5 @@
 import { fileURLToPath } from "node:url";
+import { unplugin as stylex } from "@stylexjs/unplugin";
 import react from "@vitejs/plugin-react";
 import { fate } from "react-fate/vite";
 import { devHandler, devServer, loadEnv, stopDevRuns } from "uraeda-server/dev";
@@ -23,6 +24,16 @@ export function uraedaServer(options: Parameters<typeof devHandler>[1] = {}): Pl
 
 export default defineConfig({
   plugins: [
+    // Compiles the app's `stylex.create` calls. `vp dev` gets the CSS through the tags it adds to
+    // `index.html`, the build appends it to the app's stylesheet, and tests, which have neither,
+    // get each module's CSS injected when it loads.
+    stylex.vite({
+      runtimeInjection: Boolean(process.env.VITEST),
+      // Browsers with `light-dark()`, which Astryx's tokens use: lowering it breaks dark mode.
+      lightningcssOptions: {
+        targets: { chrome: 123 << 16, firefox: 120 << 16, safari: (17 << 16) | (5 << 8) },
+      },
+    }) as Plugin,
     react(),
     fate({
       module: "uraeda-server/fate",

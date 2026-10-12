@@ -514,29 +514,44 @@ git commit -m "feat(ui-improvements): priority keys, putting a line back, and mo
 
 **Files:**
 
-- Modify: `packages/web/package.json`, `pnpm-workspace.yaml` (release-age exclusions if needed),
-  `pnpm-lock.yaml`
-- Modify: `packages/web/vite.config.ts` (`stylex.vite()` before `react()`)
+- Modify: `packages/web/package.json` (and its `theme` script), `pnpm-workspace.yaml` (the CLI's
+  postinstall nudge denied, like core's), `pnpm-lock.yaml`
+- Modify: `packages/web/vite.config.ts` (`stylex.vite()` before `react()`), the root's
+  `vite.config.ts` (the built theme left out of lint and format) and `package.json` (`ready` runs
+  `astryx theme build --check`)
 - Create: `packages/web/src/theme/theme.ts` (the `defineTheme` source),
-  `packages/web/src/theme/built/` (output of `astryx theme build`, committed)
-- Modify: `packages/web/src/main.tsx`, `App.tsx`, `__browser__/layout.test.tsx` (import the built
-  theme instead of `@astryxdesign/theme-neutral/theme.css`)
-- Modify: `packages/web/src/styles.css` (remove the coarse-pointer override, now in the theme)
+  `packages/web/src/theme/built/` (output of `astryx theme build`, committed: `uraeda.css`,
+  `uraeda.js`, and their declarations)
+- Modify: `packages/web/src/main.tsx`, `App.tsx` (import the built theme instead of
+  `@astryxdesign/theme-neutral/theme.css` and `/built`)
+- Create: `packages/web/src/__browser__/helpers.tsx` (`show`, `checkPage`, `checkInsets`, moved from
+  `layout.test.tsx`, importing the built theme)
+- Modify: `packages/web/src/styles.css` (remove the coarse-pointer override, now in the theme),
+  `packages/server/src/__tests__/stack.test.ts` (SC-005 read from the built theme)
 - Test: `packages/web/src/__browser__/sizes.test.tsx` (new)
 
 **Interfaces:**
 
-- Produces: `uraedaTheme`, the built theme object, and its stylesheet; tokens added by the theme:
-  `--text-reading-size` (17 px, 19 px from `lg`), `--text-reading-line` (1.5),
-  `--size-reading-measure` (70ch), `--color-selection` and `--color-selection-edge` (an amber tint
-  and bar, light and dark, distinct from `--color-background-muted`). Adaptations, in order: under
-  `pointer: coarse`, `--size-element-sm`, `md`, and `lg` at 44 px; from `width: { from: "lg" }`,
-  `typography.scale.base` and every spacing and element-size token multiplied by 1.2.
+- Produces: `uraedaTheme`, the built theme object, from `packages/web/src/theme/built/uraeda.js`,
+  and its stylesheet `packages/web/src/theme/built/uraeda.css`; tokens added by the theme, as Astryx
+  `localTokens`: `--text-reading-size` (17 px, 19 px from `lg`), `--text-reading-line` (1.5),
+  `--size-reading-measure` (70ch), `--color-selection` and `--color-selection-edge` (Astryx's
+  `--color-background-yellow` and `--color-border-yellow`: an amber tint and bar, light and dark,
+  distinct from `--color-background-muted`). Adaptations, in order ([R4](rulings.md)): from
+  `width: { from: "lg" }`, `typography.scale.base` and every spacing and element-size token
+  multiplied by 1.2; under `pointer: coarse`, `--size-element-sm`, `md`, and `lg` at 44 px.
+- Produces: StyleX compiled in dev, the build, and both test projects ([R6](rulings.md)). Components
+  take Astryx's tokens from `@astryxdesign/core/theme/tokens.stylex` (`spacingVars`, `colorVars`,
+  `sizeVars`, `typeScaleVars`, ...), and the theme's own as `var(--text-reading-size)` strings.
+- Produces: every browser test runs at two instances of the WebKit project, `phone` (402 × 874) and
+  `desktop` (1440 × 900), and reads `window.innerWidth` for what differs; `__browser__/helpers.tsx`
+  exports `show(path, text)`, `checkPage()`, and `checkInsets(selector)`, phone only
+  ([R7](rulings.md)).
 - Produces: exact versions `@astryxdesign/core` and `theme-neutral` 0.6.8, `@astryxdesign/cli` 0.6.8
   (dev), `@stylexjs/unplugin` 0.19.1 (dev), `@stylexjs/stylex` 0.19.1, `@dnd-kit/react` and
   `@dnd-kit/helpers` 0.5.0, `axe-core` 4.14.0 (dev).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // packages/web/src/__browser__/sizes.test.tsx, run at both sizes by the browser config
@@ -560,24 +575,25 @@ shared by every browser test. Add a second instance to `vite.browser.config.ts`:
 runs each browser test at `{ width: 402, height: 874 }` and `{ width: 1440, height: 900 }`, named
 `phone` and `desktop`.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test sizes.test`
-- Expected: FAIL at desktop size, `expected NaN to be 19`: the token does not exist.
+- Expected: FAIL, `expected NaN to be 19` at desktop size (and `17` on the phone): the token does
+  not exist.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Add the dependencies, the StyleX plugin, the theme source extending `@astryxdesign/theme-neutral`,
 and `pnpm exec astryx theme build` into `src/theme/built/`; add a `theme` script to
-`packages/web/package.json` running that build, so the theme's source and output stay together.
-`App.tsx` passes `uraedaTheme` to `Theme`.
+`packages/web/package.json` running that build (`vp run --filter uraeda-web theme`), so the theme's
+source and output stay together. `App.tsx` passes `uraedaTheme` to `Theme`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp test`
 - Expected: PASS, both sizes.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web pnpm-workspace.yaml pnpm-lock.yaml

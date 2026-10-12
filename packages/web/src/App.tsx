@@ -1,7 +1,7 @@
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Theme } from "@astryxdesign/core/theme";
-import { neutralTheme } from "@astryxdesign/theme-neutral/built";
+import { uraedaTheme } from "./theme/built/uraeda.js";
 import { Component, type ReactNode, Suspense, useState } from "react";
 import { FateClient } from "react-fate";
 import type { createFateClient } from "react-fate/client";
@@ -77,7 +77,7 @@ export function App({ client }: { client: ReturnType<typeof createFateClient> })
     <FateClient client={client}>
       <ThemeModeProvider>
         {(mode) => (
-          <Theme theme={neutralTheme} mode={mode}>
+          <Theme theme={uraedaTheme} mode={mode}>
             <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
               <Suspense fallback={<div className="page muted">Loading…</div>}>
                 <Shell>

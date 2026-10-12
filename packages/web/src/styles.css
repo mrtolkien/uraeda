@@ -16,16 +16,6 @@
   --reading-why: var(--color-warning);
 }
 
-/* Touch screens: every control at least 44 px tall (SC-005). */
-@media (pointer: coarse) {
-  :root,
-  [data-theme] {
-    --size-element-sm: 44px;
-    --size-element-md: 44px;
-    --size-element-lg: 44px;
-  }
-}
-
 body {
   margin: 0;
   background: var(--color-background-body);

@@ -50,10 +50,14 @@ test("no package depends on a markdown parser, and no source imports one", () =>
   }
 });
 
-/** SC-005 */
+/** SC-005, on wide touch screens too: the coarse pointer's rule comes after the wide one's. */
 test("under a coarse pointer, Astryx's elements are 44 px tall", () => {
-  const css = readFileSync(join(packages, "web/src/styles.css"), "utf8");
-  const rule = /@media \(pointer: coarse\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? "";
+  const css = readFileSync(join(packages, "web/src/theme/built/uraeda.css"), "utf8");
+  const match = /@media \(pointer: coarse\) \{([\s\S]*?)\n\}/.exec(css);
+  const rule = match?.[1] ?? "";
+  const wide = css.lastIndexOf("@media (width >= 1024px)");
+  expect(wide).toBeGreaterThan(0);
+  expect(match?.index).toBeGreaterThan(wide);
 
   for (const size of ["sm", "md", "lg"]) {
     expect(rule).toContain(`--size-element-${size}: 44px;`);
