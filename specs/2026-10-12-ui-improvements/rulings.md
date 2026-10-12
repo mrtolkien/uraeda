@@ -141,3 +141,35 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the selection's look is two styles in `packages/web/src/Blocks.tsx`, which task 13
   refines with the review's layout.
 - **Where**: task 8, `packages/web/src/Blocks.tsx`, `packages/web/src/__tests__/review.test.tsx`
+
+## R11: A deletion's Undo writes over the file as it is now
+
+- **Decision**: the Undo of a deletion reads the priorities' hash when it is tapped, as ＋'s Undo
+  does ([R9](#r9-an-undo-gives-its-own-error)), and inserts the line at its index over it. It shows
+  "Could not restore …" when the core refuses the insert, or the request fails. The test of a
+  refused Undo changes the file after that read, before the insert reaches the server, through a
+  fetch wrapper; the plan said to change it between Delete and Undo, which the spec's edge case
+  answers with a restored line, now tested too.
+- **Rationale**: the spec's edge case says the line goes back "at its position in the file as it is
+  now"; inserting over the hash seen at the deletion would refuse every Undo after any other change.
+- **Alternatives considered**: the hash returned by the deletion, which refuses the Undo the edge
+  case asks to succeed.
+- **If wrong**: one call in `packages/web/src/TaskView.tsx` `remove`.
+- **Where**: task 9, `packages/web/src/TaskView.tsx`, `packages/web/src/__tests__/task.test.tsx`
+
+## R12: Every link of the UI says where it was followed from
+
+- **Decision**: `RouterAnchor`, the anchor of every Astryx link, navigates with `from`, the path it
+  was followed from, and `navigate` records `opener`, the scroll position it leaves. The task route
+  shows home beside the task view when `from` is `/`, the priorities page otherwise, and puts the
+  list back at `opener` on wide screens. Renaming a line or deleting it replaces the history entry
+  (`redirect`) instead of adding one. The tests that find the line's button by name anchor it,
+  `/^Claude Code runner/`, as the priorities page beside it still holds "Actions for Claude Code
+  runner …" until task 11.
+- **Rationale**: home's rows are Astryx `ListItem` links, whose anchor only the link provider draws:
+  there is no per-row `navigate` call to pass `from` to. `navigate` scrolls to the top for a new
+  page, which on wide screens would move the list away from the tapped row.
+- **Alternatives considered**: rows as buttons calling `navigate`, which the plan's tests and the
+  behaviour decision (a row that leads somewhere is a link) rule out.
+- **If wrong**: `RouterAnchor` and `TaskRoute`, in `routes.tsx` and `App.tsx`.
+- **Where**: task 9, `packages/web/src/routes.tsx`, `packages/web/src/App.tsx`
