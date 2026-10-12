@@ -337,3 +337,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   run `running` until the process ends. Storing the process's start time with its ID would tell them
   apart.
 - **Where**: the final review, after task 8.
+
+## R27: A blocked file action's rule is `Edit(//path)` or `Read(//path)`, shown before it runs
+
+- **Decision**: `allowRule` gives a blocked `Write`, `Edit`, or `MultiEdit` the rule `Edit(<path>)`,
+  and a blocked `Read` the rule `Read(<path>)`, with two leading slashes for an absolute path:
+  `Edit(//home/me/.ssh/config)`. A relative path is kept as it is. The blocked action's banner says
+  the rule "Allow and continue" passes: "Allows `Edit(//home/me/.ssh/config)` for one run.", so a
+  bare tool name, which allows the tool's every call, shows as one. This corrects the spec's US6.3
+  example, `Write(/home/me/.ssh/config)`, which Claude Code would not match.
+- **Rationale**: Claude Code's [permissions](https://code.claude.com/docs/en/permissions) say that a
+  single leading slash anchors at the settings' folder ("Use `//Users/alice/file` for absolute
+  paths"), and that it checks files against `Edit` and `Read` rules only: a `Write(path)` rule is
+  accepted, and never consulted. Runs of Claude Code 2.1.296 agreed: an ask rule `Edit(//<path>)`
+  blocked a write to that path, while `Edit(/<path>)` and `Write(//<path>)` did not.
+- **Alternatives considered**: a sixth validation check where "Allow and continue" lifts a block. No
+  block it could lift was found: `auto` mode lets a write outside the project through, an ask rule
+  wins over `--allowedTools` (deny, then ask, then allow), and a write through a symlink out of the
+  project stayed blocked under any allow rule. The sixth check of `validate:claude` passes
+  `allowRule`'s rule as an ask rule, with `--settings` on that run only as
+  [R13](#r13-the-fixtures-come-from-runs-shaped-to-give-each-line) did, and expects it to block the
+  write: ask and allow rules are matched the same way.
+- **If wrong**: Claude Code matches `--allowedTools` differently from settings rules, and a run
+  allowed this way is blocked again. The check would not see it.
+- **Where**: the final review, after task 8.
