@@ -1501,7 +1501,7 @@ test("no stylesheet but Astryx's is imported (SC-001)", () => {
 // a task view open at 1440 px stays at its address and becomes a page at 700 px (edge case).
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test lint.test layout.test`
 - Expected: FAIL, `expected "" to contain "react(forbid-elements)"`.
