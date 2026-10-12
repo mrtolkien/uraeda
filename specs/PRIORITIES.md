@@ -3,7 +3,6 @@
 ## Now
 
 - "Finish feature"
-- Add line in priorities from webui
 
 ## Next
 
