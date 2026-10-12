@@ -6,12 +6,13 @@ import { withWholeFields } from "./fate/select.ts";
 import { files } from "./files.ts";
 import { guard } from "./guard.ts";
 import type { Options } from "./options.ts";
+import type { Runner } from "./runner/runner.ts";
 
-export function createApp(options: Options & { binding: Binding }) {
+export function createApp(options: Options & { binding: Binding; runner: Runner }) {
   const app = new Hono<{ Variables: FateVariables }>();
   app.use(guard(options));
   app.use(async (context, next) => {
-    context.set("fate", { binding: options.binding, repo: options.repo });
+    context.set("fate", { binding: options.binding, repo: options.repo, runner: options.runner });
     await next();
   });
   // Selections reach fate as whole fields (see `fate/select.ts`).

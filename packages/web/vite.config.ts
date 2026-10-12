@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { fate } from "react-fate/vite";
-import { devHandler, devServer, loadEnv } from "uraeda-server/dev";
+import { devHandler, devServer, loadEnv, stopDevRuns } from "uraeda-server/dev";
 import { defineConfig } from "vite-plus";
 
 /** The repository's root, where `.env` lives and `vp dev` runs. */
@@ -18,6 +18,8 @@ export default defineConfig({
       name: "uraeda-server",
       configureServer(server) {
         server.middlewares.use(devHandler(root));
+        // The agents' runs end with Vite's server.
+        server.httpServer?.once("close", () => void stopDevRuns());
       },
     },
   ],

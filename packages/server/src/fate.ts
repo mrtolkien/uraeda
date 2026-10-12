@@ -10,11 +10,23 @@ import {
   fileDataView,
   prioritiesDataView,
   Root as Views,
+  runDataView,
+  runLogDataView,
+  runnerDataView,
   workspaceDataView,
 } from "./fate/views.ts";
 
-export { draftDataView, featureDataView, fileDataView, prioritiesDataView, workspaceDataView };
-export { PRIORITIES_ID, WORKSPACE_ID } from "./fate/views.ts";
+export {
+  draftDataView,
+  featureDataView,
+  fileDataView,
+  prioritiesDataView,
+  runDataView,
+  runLogDataView,
+  runnerDataView,
+  workspaceDataView,
+};
+export { PRIORITIES_ID, RUNNER_ID, WORKSPACE_ID } from "./fate/views.ts";
 
 /** The types fate's generated client and the UI's views use, named after each view's type. */
 export type Workspace = Entity<typeof workspaceDataView, "Workspace">;
@@ -22,6 +34,11 @@ export type Feature = Entity<typeof featureDataView, "Feature">;
 export type WorkflowFile = Entity<typeof fileDataView, "WorkflowFile">;
 export type Priorities = Entity<typeof prioritiesDataView, "Priorities">;
 export type Draft = Entity<typeof draftDataView, "Draft">;
+export type Runner = Entity<typeof runnerDataView, "Runner">;
+export type Run = Entity<typeof runDataView, "Run">;
+export type RunLog = Entity<typeof runLogDataView, "RunLog">;
+/** What started a run, for `run.start`. */
+export type { Trigger } from "./runner/events.ts";
 
 export type FateVariables = { fate: Context };
 

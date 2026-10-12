@@ -176,3 +176,57 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a later version refuses the node wait too, and the check fails without an interrupt:
   its output shows `stoppedIn` undefined.
 - **Where**: task 4.
+
+## R15: A feature's runs are read with the main checkout from its first step
+
+- **Decision**: the server reads a feature's `runs` from the cache with the `mainRoot` of the first
+  `nextStep` it asks for in that repository, kept for as long as the server runs. A feature whose
+  step cannot be read has no runs.
+- **Rationale**: the cache's rows are keyed by the main checkout
+  ([R9](#r9-the-runner-keys-its-one-run-rule-by-the-servers-repository-and-the-cache-by-the-main-checkout)),
+  and only the core knows it: `readWorkspace` gives the checkout the server opened, which may be a
+  worktree. The main checkout of a repository does not change while the server runs.
+- **Alternatives considered**: a `mainRoot` on `WorkspaceView`, which changes the core and the
+  binding for one path; `nextStep` on every feature read, which asks `gh` each time.
+- **If wrong**: a repository whose main checkout moves while the server runs shows no runs until the
+  server restarts.
+- **Where**: task 5.
+
+## R16: The test runner is a server export, and the UI's tests already pass one
+
+- **Decision**: `uraeda-server/testing` exports `fakeRunner`, a runner on the fake adapter and an
+  in-memory cache. The server's `testApp` and `testServer`, and the UI's `renderPage`, build their
+  runner with it. `renderPage` passes an unavailable one now, before task 6 adds its `agent` option.
+- **Rationale**: `createApp` takes a runner, as the plan says, so the UI's test helper no longer
+  type-checks without one, and the web package's checks run on every commit. One helper keeps the
+  server's and the UI's fakes alike.
+- **Alternatives considered**: an optional `runner` in `createApp`, which would put a test default
+  in the server's code.
+- **If wrong**: task 6 changes `renderPage` to take the fake from `fakeRunner`, as it would anyway.
+- **Where**: tasks 5 and 6.
+
+## R17: `URAEDA_DATA_DIR` is read from `.env` too
+
+- **Decision**: `loadDataDir(root)` reads `URAEDA_DATA_DIR` from the environment, then from
+  `<root>/.env`, as the server's other settings, and falls back to `dataDir`'s defaults. `Env` is
+  unchanged.
+- **Rationale**: `.env.example` gains `URAEDA_DATA_DIR`, so a value written in `.env` must apply.
+  The plan's `dataDir(process.env, ...)` reads only the environment.
+- **Alternatives considered**: a `dataDir` field on `Env`, which every `createApp` call and the
+  settings' tests would then carry, for a path only the runner needs.
+- **If wrong**: one function in `env.ts`.
+- **Where**: task 5.
+
+## R18: Stop returns the run still running, and the last two log pages are updated
+
+- **Decision**: `run.stop` returns the run as it is when SIGINT is sent, still `running`: the live
+  update brings `stopped` once the process exits. A live update of a run sends its last two log
+  pages, not only the last one.
+- **Rationale**: a run stops when its process exits, up to 10 seconds after SIGINT, longer than a
+  mutation should wait. A tool call that starts on one page and ends after the next page begins
+  updates the page before the last.
+- **Alternatives considered**: waiting for the run to end in `run.stop`; the page of every updated
+  event in the runner's changes, which changes the runner's `onChange` for one case.
+- **If wrong**: a tool call that ends two pages after it started shows running until the page is
+  read again.
+- **Where**: tasks 5 and 7.

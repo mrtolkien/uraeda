@@ -989,6 +989,8 @@ git commit -m "feat(claude-code-runner-triggered-manually-https-code): run Claud
 
 **Files:**
 
+- Create: `packages/server/src/fate/runs.ts` (the records, `writable`), and
+  `packages/server/src/testing.ts` (`fakeRunner`, exported as `uraeda-server/testing`)
 - Modify:
   - `packages/server/src/fate/context.ts` (`runner` in `Context`);
   - `packages/server/src/fate/views.ts` (`RunnerRecord`, `RunRecord`, `RunLogRecord`, and `running`
@@ -997,21 +999,27 @@ git commit -m "feat(claude-code-runner-triggered-manually-https-code): run Claud
     `run.allow`, `run.stop`, and the write refusal);
   - `packages/server/src/fate.ts` (entity types);
   - `packages/server/src/app.ts` (`runner` option);
-  - `packages/server/src/live.ts` (`publishRun`);
+  - `packages/server/src/live.ts` (`runPublisher`, `createRunner`, `startRunner`);
   - `packages/server/src/main.ts` and `packages/server/src/dev.ts` (build the runner, stop it on
-    exit);
-  - `packages/server/src/env.ts` (`dataDir`);
+    exit), and `packages/web/vite.config.ts` (`stopDevRuns` when Vite's server closes);
+  - `packages/server/src/env.ts` (`loadDataDir`);
+  - `packages/server/src/runner/runner.ts` (`Runner.cache`, `REFUSALS.working`) and
+    `packages/server/src/runner/cache.ts` (`eventsOf`);
+  - `packages/server/package.json` (the `./testing` export);
   - `.env.example` (`URAEDA_DATA_DIR`).
 - Modify: `packages/server/src/__tests__/helpers.ts` (`testApp` with an unavailable runner, and a
-  new `testServer`)
-- Test: `packages/server/src/__tests__/runs.test.ts`, and a case in `live.test.ts`
+  new `testServer`), and `packages/web/src/__tests__/helpers.tsx` (an unavailable runner, so that
+  `createApp` type-checks; task 6 adds the `agent` option)
+- Test: `packages/server/src/__tests__/runs.test.ts`, a case in `live.test.ts`, `env.test.ts`, and
+  `dev.test.ts`, and `eventsOf` in `runner/__tests__/cache.test.ts`
 
 **Interfaces:**
 
 - Consumes: `Runner` (task 3), `ClaudeAdapter` and `PLUGIN_DIR` (task 4), `RunCache` and `dataDir`
   (task 2).
 - Produces, the fate records:
-  - `Runner { id: "runner", available: boolean, version: string | null }`;
+  - `Runner { id: "runner", available: boolean, version: string | null }`, read by id with
+    `RUNNER_ID` (`"runner"`, exported by `uraeda-server/fate`);
   - `Run`, with:
     - `id: string`, `folder: string`, `trigger: string`, `step: string`, `state: string`,
       `reason: string | null`, `costUsd: number | null`;
@@ -1021,21 +1029,28 @@ git commit -m "feat(claude-code-runner-triggered-manually-https-code): run Claud
     - `denials: Array<{ seq: number; tool: string; target: string | null; rule: string }>`;
   - `RunLog { id: "<run>:<page>", run: string, page: number, events: Array<RunEvent & { seq: number }> }`;
   - `Workspace.running: Array<string>`, the folders with a running run;
-  - `Feature.runs: Array<string>`, the run IDs, newest first.
+  - `Feature.runs: Array<string>`, the run IDs, newest first;
+  - the roots `runner`, `run`, and `runLog` (by id), and the entity types `Runner`, `Run`, `RunLog`,
+    and `Trigger`, exported by `uraeda-server/fate`.
 - Produces, the mutations:
-  - `run.start({ folder: string; trigger: Trigger; file?: string }) → Run`;
-  - `run.allow({ run: string; seq: number }) → Run`;
-  - `run.stop({ run: string }) → Run`.
+  - `run.start({ folder: string; trigger: Trigger; file?: string }) → Run`, the new run. It refuses
+    the `allow` trigger, which goes through `run.allow`;
+  - `run.allow({ run: string; seq: number }) → Run`, the new run;
+  - `run.stop({ run: string }) → Run`, the run as it was when SIGINT was sent, still `running`: its
+    live update brings `stopped`. An unknown run is refused with `refused: no run <id>`.
 - Produces, in `createApp`: `createApp(options & { binding; runner: Runner })`.
+- Produces, for tests: `fakeRunner({ installed = true }) → { runner, adapter }` from
+  `uraeda-server/testing`, a runner on the `FakeAdapter` and an in-memory cache, publishing live
+  updates, not checked yet.
 
-- [ ] **Step 1: Write the failing tests, and the helpers they use**
+- [x] **Step 1: Write the failing tests, and the helpers they use**
 
 `testApp(repo, allowedHosts)` keeps its signature and return. Inside, it builds a `Runner` on a
 `FakeAdapter` with `installed = false`, so existing tests see no runner.
 
 A new `testServer(repo = fixtureRepo(), { installed = true } = {})` returns
 `{ app, adapter, runner, repo }`. It builds a `FakeAdapter`, `RunCache.open(":memory:")`, and
-`pluginDir: "/plugin"`, and awaits `runner.check()` before returning.
+`pluginDir: "/plugin"`, through `fakeRunner`, and awaits `runner.check()` before returning.
 
 ```ts
 // runs.test.ts, FOLDER = "2026-10-12-cli-tuis"
@@ -1085,44 +1100,52 @@ test("SC-002: a run's events reach a subscribed Run within a second", async () =
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/__tests__/runs.test.ts`
 - Expected: FAIL, `No mutation run.start`, or the helper's missing `adapter`.
 
-- [ ] **Step 3: Implement the views, sources, and mutations**
+- [x] **Step 3: Implement the views, sources, and mutations**
 
 - **Records:** `RunRecord` and `RunLogRecord` are built from `RunCache` rows in
-  `packages/server/src/fate/runs.ts`, a new file.
+  `packages/server/src/fate/runs.ts`, a new file, through `ctx.runner.cache`. A feature's `runs` are
+  read with the main checkout that `nextStep` gives, once per repository
+  ([R15](rulings.md#r15-a-features-runs-are-read-with-the-main-checkout-from-its-first-step)).
 - **The write refusal:** a helper `writable(ctx, folder)` throws
   `callSiteError("refused: An agent is working on this feature. Stop it first, or wait for it.")`.
   It runs at the top of every mutation that takes a feature's `folder`, or a `path` under
   `specs/<folder>/` or `specs/bugs/<folder>/`.
 - **`run.start`** maps a refusal through `refusable`.
-- **Live updates:** `onChange` publishes:
-  - `Run` and the last `RunLog` page, throttled to 250 ms per run, and right away on a state change;
+- **Live updates:** `runPublisher(cache)` is the runner's `onChange`, and `createRunner` wires it.
+  It publishes:
+  - `Run` and the last two `RunLog` pages, where a tool call may end, throttled to 250 ms per run,
+    and right away on a state change;
   - `Feature` and `Workspace` on start and end;
   - `Runner` when availability changes.
 
-- [ ] **Step 4: Wire the server**
+- [x] **Step 4: Wire the server**
 
-- **`main.ts`:**
-  - It opens
-    `RunCache.open(join(dataDir(process.env, process.platform, homedir()), "runner.sqlite"))`.
-  - It calls `cache.interrupted("Stopped: the server stopped while it ran.")` before serving.
-  - It builds `new Runner({ adapter: new ClaudeAdapter(), pluginDir: PLUGIN_DIR, ... })`, runs
-    `check()` now and every 60,000 ms, and passes the runner to `createApp`.
-  - On `SIGINT` and `SIGTERM`, it awaits `runner.stopAll()`, then exits.
-- **`dev.ts`:** does the same once per process, shared by its apps. Vite's `close` hook stops the
-  runs.
+- **`startRunner({ adapter, binding, dataDir, pluginDir })`**, in `live.ts`, returns
+  `{ runner, stop }`:
+  - It opens `RunCache.open(join(dataDir, "runner.sqlite"))`.
+  - It calls `cache.interrupted("Stopped: the server stopped while it ran.")`.
+  - It builds the runner with `createRunner`, awaits `check()`, and checks every 60,000 ms.
+  - `stop()` clears the check, awaits `runner.stopAll()`, and calls `runner.close()`.
+- **`main.ts`:** calls `startRunner` with `new ClaudeAdapter()`, `PLUGIN_DIR`, and
+  `loadDataDir(process.cwd())`, which reads `URAEDA_DATA_DIR` from the environment or `.env`
+  ([R17](rulings.md#r17-uraeda_data_dir-is-read-from-env-too)), before serving, and passes the
+  runner to `createApp`. On `SIGINT` and `SIGTERM`, it awaits `stop()`, then exits.
+- **`dev.ts`:** `devHandler(root, { adapter? })` does the same once per process, with the first
+  request, shared by its apps. `stopDevRuns()` stops the runs, called when Vite's HTTP server
+  closes, and the next request starts a new runner.
 - **`.env.example`:** gains `URAEDA_DATA_DIR=`, with a comment naming the default folders.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run: `vp test packages/server && vp check`
 - Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server .env.example
