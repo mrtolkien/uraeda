@@ -49,7 +49,8 @@ Write `specs/done/YYYY-MM-DD-<slug>.md`, named after the folder, from
 feature. Read the whole folder first: the proposal, every round of questions and answers, the spec,
 the plan, the rulings, and the review files.
 
-- **Frontmatter**: `kind`, `feature` or `bug`; `finished`, today's date; `pull-request`, its URL.
+- **Frontmatter**: `kind`, `feature` or `bug`, as its branch is; `finished`, today's date;
+  `pull-request`, its URL.
 - **The `> [!NOTE]` block**: it says the file is a record, not instructions, with the start date,
   the date of the folder's name, the finish date, the pull request, and
   `git log -- specs/<folder>/`.
@@ -134,10 +135,9 @@ never forced:
    files, and they stay until the human deals with them. `git worktree prune` drops the record of a
    worktree folder already deleted.
 2. `git branch -D <branch>`, only when every commit of the branch is on the default branch:
-   `git log --cherry-pick --right-only --no-merges --format=%H <default>...<branch>` lists the
-   commits it lacks. When the merge is only on the forge yet, run it with `origin/<default>` too: a
-   commit counts as merged when either list leaves it out. `-D`, because `-d` refuses a rebased
-   branch.
+   `git log --cherry-pick --right-only --format=%H <default>...<branch>` lists the commits it lacks.
+   When the merge is only on the forge yet, run it with `origin/<default>` too: a commit counts as
+   merged when either list leaves it out. `-D`, because `-d` refuses a rebased branch.
 
 Remote branches are the forge's: GitHub's "Automatically delete head branches" setting removes them.
 
