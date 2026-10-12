@@ -97,3 +97,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a desktop threshold, which no spec or decision gives.
 - **If wrong**: one condition in `packages/web/src/__browser__/helpers.tsx`.
 - **Where**: task 4, `packages/web/src/__browser__/helpers.tsx`
+
+## R8: The list pane scrolls with the page, the detail pane on its own
+
+- **Decision**: on wide screens, `Panes` lets the list scroll with the window, and makes the detail
+  sticky, as tall as the window at most, scrolling on its own. Its two sizes are theme tokens,
+  `--size-pane-min` (400 px) and `--size-viewport-height` (`100dvh`).
+- **Rationale**: the plan asked for each pane to scroll on its own. Two inner scrollers would take
+  the list's position out of the window, where `navigate` and `useRestoreScroll` (task 6) save and
+  restore it; a sticky detail scrolls apart from the list all the same. The components decision puts
+  sizes the theme lacks in the theme.
+- **Alternatives considered**: two scroll containers of the window's height, with the router saving
+  each one's position.
+- **If wrong**: one style in `packages/web/src/layout/Panes.tsx`.
+- **Where**: task 5, `packages/web/src/layout/Panes.tsx`, `packages/web/src/theme/theme.ts`
