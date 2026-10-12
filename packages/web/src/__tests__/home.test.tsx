@@ -12,8 +12,11 @@ async function main() {
 
 /** The home screen's row holding a text. */
 async function row(text: string) {
-  const found = await (await main()).findByText(text);
-  return found.closest(".row") as HTMLElement;
+  const page = await main();
+  await page.findByText(text);
+  return page
+    .getAllByRole("listitem")
+    .find((item) => within(item).queryByText(text) !== null) as HTMLElement;
 }
 
 /** US1.1 */
@@ -44,14 +47,18 @@ test("lists merged features as done", async () => {
   expect(within(await row("Stack decision")).getByText("Merged")).toBeTruthy();
 });
 
-/** US1.4 */
-test("lists Now and Next lines not started, with Draft or Start", async () => {
+/** US1.4, and US3: each Now and Next line not started opens its task view. */
+test("lists Now and Next lines not started, each opening its task view", async () => {
   await renderPage();
 
-  const runner = await row("Claude Code runner (triggered manually)");
-  expect(within(runner).getByRole("button", { name: "Draft" })).toBeTruthy();
-  const listener = await row("Git listener process");
-  expect(within(listener).getByRole("button", { name: "Start" })).toBeTruthy();
+  const page = await main();
+  const runner = await page.findByRole("link", {
+    name: /Claude Code runner \(triggered manually\)/,
+  });
+  expect(runner.getAttribute("href")).toBe("/priorities/claude-code-runner-triggered-manually");
+  const listener = page.getByRole("link", { name: /Git listener process/ });
+  expect(listener.getAttribute("href")).toBe("/priorities/git-listener");
+  expect(page.queryByRole("button", { name: "Draft" })).toBeNull();
   expect(screen.queryByText("Nix + Docker based execution environments")).toBeNull();
 });
 

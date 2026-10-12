@@ -49,14 +49,23 @@ export function parseRoute(pathname: string): Route {
 }
 
 /**
- * What a history entry holds: its own id, the page's scroll position once left, where it was
- * opened from, and an open overlay's label (see `layout/Overlay.tsx`).
+ * What a history entry holds: its own id, the page's scroll position once left, the path of the
+ * page it was opened from and that page's scroll position then, and an open overlay's label (see
+ * `layout/Overlay.tsx`).
  */
-export type Entry = { id?: string; scroll?: number; from?: string; overlay?: string };
+export type Entry = {
+  id?: string;
+  scroll?: number;
+  from?: string;
+  opener?: number;
+  overlay?: string;
+};
 
-function entry(): Entry {
+/** The current history entry's state. */
+export function currentEntry(): Entry {
   return (window.history.state as Entry | null) ?? {};
 }
+const entry = currentEntry;
 
 let ids = 0;
 function newId() {
@@ -80,9 +89,19 @@ function saveScroll() {
 
 /** Opens a page of the UI: the position on the current one is saved first, for Back. */
 export function navigate(path: string, state?: { from?: string }) {
+  const opener = window.scrollY;
   saveScroll();
-  window.history.pushState({ ...state, id: newId() }, "", path);
+  window.history.pushState({ ...state, opener, id: newId() }, "", path);
   window.scrollTo?.(0, 0);
+  window.dispatchEvent(new Event(CHANGE));
+}
+
+/**
+ * Shows another page in place of the current one, in the same history entry, like a task view
+ * whose line was renamed: Back does not return to the address that no longer exists.
+ */
+export function redirect(path: string) {
+  window.history.replaceState(entry(), "", path);
   window.dispatchEvent(new Event(CHANGE));
 }
 
@@ -217,7 +236,8 @@ export function RouterAnchor({
           return;
         }
         event.preventDefault();
-        navigate(href);
+        // The page a link was followed from, which a task view shows beside it on wide screens.
+        navigate(href, { from: window.location.pathname });
       }}
     />
   );

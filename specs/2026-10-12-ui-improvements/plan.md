@@ -900,7 +900,8 @@ git commit -m "feat(ui-improvements): documents and feature pages on Astryx, wit
 - Create: `packages/web/src/TaskView.tsx`, `packages/web/src/EditableLine.tsx`
 - Modify: `packages/web/src/Home.tsx`, `App.tsx` (route `task`), `data.ts` (`usePriority(key)`)
 - Test: `packages/web/src/__tests__/task.test.tsx`, `packages/web/src/__browser__/task.test.tsx`,
-  `home.test.tsx` (selectors by role)
+  `home.test.tsx` (selectors by role, rows without Draft or Start), `editor.test.tsx` (Draft from
+  the task view), `helpers.tsx` (`serverFetch` exported)
 
 **Interfaces:**
 
@@ -913,19 +914,33 @@ git commit -m "feat(ui-improvements): documents and feature pages on Astryx, wit
   Delete; "‹ Previous" and "Next ›" through its section, disabled at the ends. No Move up or Move
   down (C3).
 - Produces:
-  `<EditableLine value={string} label={string} onSave={(text) => Promise<string | undefined>} />`:
-  the text, a button by role; tapped, a `TextInput`; Enter or blur saves, Escape cancels; an empty
-  text is refused with "A priority cannot be empty."; `onSave` returns an error message to show
-  under the field, or nothing.
-- Produces: home's rows: features and priorities as `List` items, each a link; a priority opens
-  `navigate("/priorities/<key>", { from: "/" })`. The `task` route renders, wide, the page named by
-  `history.state.from` (home or the priorities page, the priorities page when absent) in `Panes`
-  with the task view as detail; narrow, the task view alone.
+  `<EditableLine value={string} label={string} onSave={(text) => Promise<string | undefined>} display?={ReactNode} />`:
+  the text (`display`, the value by default), a button by role (an Astryx `Link` without `href`);
+  tapped, a `TextInput` named `label`; Enter or blur saves, Escape cancels; an empty text is refused
+  with "A priority cannot be empty."; `onSave` returns an error message to show under the field, or
+  nothing; "Saving…" then "Saved" show beside it.
+- Produces: `usePriority(key, id?)` in `data.ts`: `{ priorities, found }`, `found` being
+  `{ entry, section, index }` (`section` the `SectionItems`), by key, or by `id` when the key is
+  gone, as right after the view renames its own line.
+- Produces: `redirect(path)` and `currentEntry()` in `routes.tsx`: another page in the same history
+  entry (a renamed line's new address, the list after a deletion), and the entry's state. `navigate`
+  records `opener`, the scroll position of the page it leaves. `RouterAnchor`, so every Astryx link,
+  navigates with `{ from: <the current path> }`.
+- Produces: home's rows: features and priorities as `List` items, each a link; a priority links
+  `/priorities/<key>`, which `RouterAnchor` opens with `{ from: "/" }`; the open line's row is
+  selected. Draft and Start leave home for the task view. The `task` route (`TaskRoute` in
+  `App.tsx`) renders, wide, the page named by `history.state.from` (home for `/`, the priorities
+  page otherwise) in `Panes` with the task view as detail, at the list's `opener` position, Close
+  going to that page; narrow, the task view alone.
 - Deleting shows `Deleted "<text>"` with Undo, which calls `priorities.insert` with the entry's
-  section, index, and lines (`- <text>` then its `nested`), then leaves the task view for the page
-  it came from. A refused Undo shows `Could not restore "<text>": PRIORITIES.md changed on disk.`
+  section, index, and lines (`- <text>` then its `nested`) over the hash read at that moment, so a
+  file changed since gets the line back at its place as it is now (the spec's edge case), then
+  leaves the task view for the page it came from (`redirect`). An Undo refused or failing shows
+  `Could not restore "<text>": PRIORITIES.md changed on disk.` ([R11](rulings.md))
+- A line whose key is in no section shows "This line is no longer in PRIORITIES.md." with a link,
+  "Open the priorities".
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // packages/web/src/__tests__/task.test.tsx
@@ -949,8 +964,8 @@ test("a line with a draft shows it drawn (US3 2)", async () => {
 
 test("editing the line in place moves the address (US3 3)", async () => {
   const { repo } = await renderPage("/priorities/claude-code-runner-triggered-manually");
-  await click(await screen.findByRole("button", { name: /Claude Code runner/ }));
-  await type(screen.getByRole("textbox", { name: "Line" }), "Claude Code runner{Enter}");
+  await click(await screen.findByRole("button", { name: /^Claude Code runner/ }));
+  await edit("Claude Code runner", "Enter"); // types, then presses the key
   await waitFor(() => expect(read(repo)).toContain("- Claude Code runner\n"));
   expect(window.location.pathname).toBe("/priorities/claude-code-runner");
 });
@@ -971,7 +986,12 @@ test("a removed line says so", async () => {
   /* render /priorities/nope → "This line is no longer in PRIORITIES.md." */
 });
 test("a refused Undo says so", async () => {
-  /* change the file between Delete and Undo so insert is refused → 'Could not restore "…": PRIORITIES.md changed on disk.' */
+  /* the file changes after the Undo read its hash, before the insert arrives (a fetch wrapper over
+     the new shared helper `serverFetch(repo)`) → 'Could not restore "…": PRIORITIES.md changed on disk.' */
+});
+test("Undo puts the line back at its place in the file as it is now (edge case)", async () => {
+  /* a line added at the top of Later between Delete and Undo → the line and its nested line
+     before it */
 });
 test("Delete, then Undo, puts the line and its nested line back (US4 9)", async () => {
   const { repo } = await renderPage("/priorities/nix-docker-based-execution-environments");
@@ -997,21 +1017,21 @@ test("on a wide screen, the task view opens beside home (US3 5)", async () => {
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test task.test`
 - Expected: FAIL,
   `Unable to find an accessible element with the role "link" and name /Claude Code runner/`.
 
-- [ ] **Step 3: Implement** the interfaces; `usePriority(key)` reads `usePriorities()` and finds the
+- [x] **Step 3: Implement** the interfaces; `usePriority(key)` reads `usePriorities()` and finds the
       entry, its section, and its index.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src

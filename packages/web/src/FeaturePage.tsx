@@ -166,7 +166,7 @@ export function FeaturePage({ folder }: { folder: string }) {
                     {problem.line ? `:${problem.line}` : ""}
                   </Text>
                 }
-                description={<Text>{problem.message}</Text>}
+                description={<>{problem.message}</>}
               />
             ))}
           </List>

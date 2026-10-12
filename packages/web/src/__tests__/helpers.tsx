@@ -91,7 +91,12 @@ export async function renderPage(
   return { ...rendered, repo, agent: fake.adapter, runner: fake.runner };
 }
 
-function serverFetch(repo: string, runner: Fake["runner"]): typeof globalThis.fetch {
+/** The server's app in process, as a `fetch`, on a runner whose agent is not installed by default. */
+export function serverFetch(repo: string, runner?: Fake["runner"]): typeof globalThis.fetch {
+  if (!runner) {
+    runner = fakeRunner({ installed: false }).runner;
+    runners.push(runner);
+  }
   const app = createApp({ repo, port, allowedHosts: [], allowOrigins: [], binding, runner });
   return async (input, init) => {
     const url = input instanceof Request ? input.url : input.toString();

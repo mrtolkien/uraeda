@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeAll, expect, test } from "vite-plus/test";
 import { fixtureRepo, git, renderPage } from "./helpers.tsx";
 
@@ -23,10 +23,9 @@ async function type(element: HTMLElement, value: string) {
 /** US4.1 */
 test("Draft turns a line into a draft, linked, and opens its editor", async () => {
   const { repo } = await renderPage("/");
-  const main = within(await screen.findByRole("main"));
-  const row = (await main.findByText("Claude Code runner (triggered manually)")).closest(".row");
+  await click(await screen.findByRole("link", { name: /Claude Code runner/ }));
 
-  await click(within(row as HTMLElement).getByRole("button", { name: "Draft" }));
+  await click(await screen.findByRole("button", { name: "Draft" }));
 
   const path = "specs/drafts/claude-code-runner-triggered-manually.md";
   await waitFor(() => expect(window.location.pathname).toBe(`/edit/${path}`));
@@ -43,17 +42,17 @@ test("Draft turns a line into a draft, linked, and opens its editor", async () =
 /** Codex review: Draft drafts the line the human saw, or nothing. */
 test("Draft is refused once the priorities changed elsewhere", async () => {
   const { repo } = await renderPage("/");
-  const main = within(await screen.findByRole("main"));
-  const row = (await main.findByText("Claude Code runner (triggered manually)")).closest(".row");
+  await click(await screen.findByRole("link", { name: /Claude Code runner/ }));
+  const draft = await screen.findByRole("button", { name: "Draft" });
   const file = join(repo, "specs/PRIORITIES.md");
   // Another line takes `next-1` before the click.
   writeFileSync(file, readFileSync(file, "utf8").replace("## Next\n\n", "## Next\n\n- Other\n"));
 
-  await click(within(row as HTMLElement).getByRole("button", { name: "Draft" }));
+  await click(draft);
 
-  expect(await main.findByText(/PRIORITIES.md changed/)).toBeTruthy();
+  expect(await screen.findByText(/PRIORITIES.md changed/)).toBeTruthy();
   expect(existsSync(join(repo, "specs/drafts/other.md"))).toBe(false);
-  expect(window.location.pathname).toBe("/");
+  expect(window.location.pathname).toBe("/priorities/claude-code-runner-triggered-manually");
 });
 
 /** US4.2 */
