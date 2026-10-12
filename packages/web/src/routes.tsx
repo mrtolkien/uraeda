@@ -17,6 +17,7 @@ export type Route =
   | { page: "task"; key: string }
   | { page: "edit"; path: string }
   | { page: "mockup"; folder: string; name: string }
+  | { page: "run"; folder: string; id: string }
   | { page: "missing"; path: string };
 
 const CHANGE = "uraeda:navigate";
@@ -35,6 +36,9 @@ export function parseRoute(pathname: string): Route {
   if (parts[0] === "f" && parts.length === 4 && parts[2] === "mockups") {
     return { page: "mockup", folder: parts[1], name: parts[3] };
   }
+  if (parts[0] === "f" && parts.length === 4 && parts[2] === "runs") {
+    return { page: "run", folder: parts[1], id: parts[3] };
+  }
   if (parts[0] === "priorities" && parts.length === 1) {
     return { page: "priorities" };
   }
@@ -49,8 +53,8 @@ export function parseRoute(pathname: string): Route {
 
 /**
  * What a history entry holds: its own id, the page's scroll position once left, the path of the
- * page it was opened from and that page's scroll position then, and an open overlay's label (see
- * `layout/Overlay.tsx`).
+ * page it was opened from and that page's scroll position then, an open overlay's label (see
+ * `layout/Overlay.tsx`), and the groups of tool calls opened in a run's log, by their first call.
  */
 export type Entry = {
   id?: string;
@@ -58,6 +62,7 @@ export type Entry = {
   from?: string;
   opener?: number;
   overlay?: string;
+  open?: Array<number>;
 };
 
 /** The current history entry's state. */
@@ -79,6 +84,11 @@ if ("scrollRestoration" in window.history) {
 // The entry the UI opened on gets an id, kept across a reload.
 if (!entry().id) {
   window.history.replaceState({ ...entry(), id: newId() }, "");
+}
+
+/** Merges values into the current history entry's state. */
+export function updateEntry(values: Entry) {
+  window.history.replaceState({ ...entry(), ...values }, "");
 }
 
 /** Saves the page's scroll position in the current history entry. */

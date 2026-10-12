@@ -4,6 +4,7 @@
 import "@astryxdesign/core/reset.css";
 import "@astryxdesign/core/astryx.css";
 import "../theme/built/uraeda.css";
+import axe from "axe-core";
 import { createRoot, type Root } from "react-dom/client";
 import { createFateClient } from "react-fate/client";
 import { afterEach, expect } from "vite-plus/test";
@@ -272,4 +273,19 @@ export function checkInsets(selector: string) {
   for (const element of elements) {
     expect(textLeft(element), element.textContent?.slice(0, 60)).toBeLessThanOrEqual(50);
   }
+}
+
+/** axe-core's WCAG 2.1 A and AA rules, on the whole document. */
+export async function checkAccessibility() {
+  const results = await axe.run(document, {
+    runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] },
+  });
+  const violations = results.violations.map(
+    (violation) =>
+      `${violation.id}: ${violation.nodes
+        .slice(0, 3)
+        .map((node) => node.html.slice(0, 120))
+        .join(" | ")}`,
+  );
+  expect(violations).toEqual([]);
 }

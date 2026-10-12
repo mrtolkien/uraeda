@@ -1,9 +1,9 @@
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Code } from "@astryxdesign/core/Code";
-import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
+import { List, ListItem } from "@astryxdesign/core/List";
 import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { Text } from "@astryxdesign/core/Text";
 import { Timer } from "@astryxdesign/core/Timer";
@@ -16,7 +16,7 @@ import { refusal } from "./errors.ts";
 import { stepLabel } from "./labels.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { statusStyles } from "./Question.tsx";
-import { RunLog } from "./RunLog.tsx";
+import { usePathname } from "./routes.tsx";
 import { startRun } from "./runs.ts";
 import { RunView } from "./views.ts";
 
@@ -108,7 +108,10 @@ export function RunReason({ reason }: { reason: string }) {
   return <Paragraph xstyle={styles.reason}>{reason}</Paragraph>;
 }
 
-/** The actions `auto` mode blocked in a run, each with the button that allows it. */
+/**
+ * The actions `auto` mode blocked in a run, each with the button that allows it under the command,
+ * where a phone has the width for both.
+ */
 export function Denials({
   denials,
   onAllow,
@@ -122,9 +125,6 @@ export function Denials({
       status="warning"
       title="Blocked by auto mode"
       collapsible={false}
-      endContent={
-        onAllow && <Button label="Allow and continue" clickAction={() => onAllow(denial.seq)} />
-      }
       description={
         <VStack gap={1}>
           <Code xstyle={styles.wrap}>
@@ -136,13 +136,18 @@ export function Denials({
               Allows <Code xstyle={styles.wrap}>{denial.rule}</Code> for one run.
             </Text>
           )}
+          {onAllow && (
+            <HStack gap={2}>
+              <Button label="Allow and continue" clickAction={() => onAllow(denial.seq)} />
+            </HStack>
+          )}
         </VStack>
       }
     />
   ));
 }
 
-/** The latest run: its state, its buttons, what it was blocked from, and its log. */
+/** The latest run: its state, its buttons, and what it was blocked from. Its log is its view's. */
 function LatestRun({
   id,
   waitsOnHuman,
@@ -193,37 +198,54 @@ function LatestRun({
           </HStack>
         )
       )}
-      <RunLog run={run} />
     </>
   );
 }
 
-/** An earlier run: its step, state, and date, and its log once opened. */
-function EarlierRun({ id, waitsOnHuman }: { id: string; waitsOnHuman: boolean }) {
+/** A run's row: its step and state, and when it started, leading to its view. */
+function RunRow({
+  folder,
+  id,
+  waitsOnHuman,
+}: {
+  folder: string;
+  id: string;
+  waitsOnHuman: boolean;
+}) {
   const run = useRun(id);
-  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   if (!run) {
     return null;
   }
+  const href = `/f/${folder}/runs/${id}`;
   return (
-    <Collapsible
-      isOpen={open}
-      onOpenChange={setOpen}
-      trigger={
-        <span>
-          {stepLabel(run.step)} · {stateText(run, waitsOnHuman)} ·{" "}
-          {new Date(run.startedAt).toLocaleString()}
-        </span>
+    <ListItem
+      href={href}
+      isSelected={pathname === href}
+      // Nodes, not strings, so long lines wrap instead of being cut.
+      label={
+        <>
+          {stepLabel(run.step)} · {stateText(run, waitsOnHuman)}
+        </>
       }
-    >
-      {open && <RunLog run={run} />}
-    </Collapsible>
+      description={
+        <>
+          {new Date(run.startedAt).toLocaleString()}
+          {run.endedAt && ` · ${elapsed(run.startedAt, run.endedAt)}`}
+        </>
+      }
+      endContent={
+        <Text color="secondary" aria-hidden="true">
+          ›
+        </Text>
+      }
+    />
   );
 }
 
 /**
  * A feature's agent: the latest run live, Stop while it goes on, "Start the agent" or "Try again"
- * when the feature waits on an agent, and the earlier runs.
+ * when the feature waits on an agent, and every run, newest first, each leading to its log.
  */
 export function AgentPanel({ feature }: { feature: Feature }) {
   const fate = useFateClient();
@@ -233,7 +255,7 @@ export function AgentPanel({ feature }: { feature: Feature }) {
   const [message, setMessage] = useState<string>();
   const runs =
     started && !feature.runs.includes(started) ? [started, ...feature.runs] : feature.runs;
-  const [latest, ...earlier] = runs;
+  const [latest] = runs;
   const waitsOnAgent =
     feature.step.waitsOn === "agent" && !["none", "done"].includes(feature.step.name);
   const waitsOnHuman = feature.step.waitsOn === "human";
@@ -280,19 +302,18 @@ export function AgentPanel({ feature }: { feature: Feature }) {
         </HStack>
       )}
       {message && <span {...stylex.props(statusStyles.error)}>{message}</span>}
-      {earlier.length > 0 && (
-        <Collapsible
-          defaultIsOpen={false}
-          trigger={
-            <span>
-              Earlier runs <Text color="secondary">{earlier.length}</Text>
-            </span>
-          }
-        >
-          {earlier.map((id) => (
-            <EarlierRun key={id} id={id} waitsOnHuman={waitsOnHuman} />
+      {runs.length > 0 && (
+        <List header={<Heading level={3}>Runs</Heading>} aria-label="Runs" hasDividers>
+          {runs.map((id) => (
+            // Only the latest run can be the one a gate waits on.
+            <RunRow
+              key={id}
+              folder={feature.folder}
+              id={id}
+              waitsOnHuman={id === latest && waitsOnHuman}
+            />
           ))}
-        </Collapsible>
+        </List>
       )}
     </VStack>
   );

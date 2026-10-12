@@ -1570,32 +1570,35 @@ Spec revision 2, US8.
   calls of an ended run shown as `error`)
 - Test: `packages/web/src/__tests__/agent-panel.test.tsx`,
   `packages/web/src/__tests__/run.test.tsx`, `packages/web/src/__browser__/run.test.tsx`;
-  `packages/web/src/__browser__/layout.test.tsx` (the run view at both sizes)
+  `packages/web/src/__browser__/layout.test.tsx` (the feature waiting on an agent waits for the
+  repository's turn, as the run tests start its agent); `vite.browser.config.ts` (commands that
+  drive the test server's fake agent). The run view's layout checks, at both sizes and in both
+  themes, are in the browser `run.test.tsx`, which needs a run.
 
 **Interfaces:**
 
 - `parseRoute("/f/<folder>/runs/<id>")` → `{ page: "run", folder, id }`.
 - `RunPage({ folder, id })`: "No run <id> in <folder>." when the run is missing or another
   feature's.
-- `RunLog({ run, ended })`: `ended` makes `running` and `pending` calls `error`, with "Not finished:
-  the run ended.".
+- `RunLog({ run, groups })`: once `run.state` is not `running`, its `running` calls show as `error`,
+  with "Not finished: the run ended."; `groups` holds the opened groups ([R26](rulings.md)).
 - `Entry.open?: Array<number>`: the opened groups, by their first call's `seq`.
 
-- [ ] **Step 1: Write the failing tests**: US8 scenarios 1, 2, 4, 6 and the missing run in
+- [x] **Step 1: Write the failing tests**: US8 scenarios 1, 2, 4, 6 and the missing run in
       happy-dom; scenarios 3 and 5 in WebKit; the run view in `layout.test.tsx`'s checks. The
       runner's tests that read the log on the feature page open the run view instead.
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test agent-panel run.test`
 - Expected: FAIL, no row "Runs" on the feature page.
 
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run all checks**
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run all checks**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web

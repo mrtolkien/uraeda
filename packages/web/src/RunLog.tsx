@@ -30,32 +30,62 @@ export function duration(ms: number) {
   return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
 }
 
-function toolCalls(tools: Array<ToolEvent>) {
-  return tools.map((tool) => ({
-    key: tool.id,
-    name: tool.name,
-    status: tool.status,
-    target: tool.target,
-    duration: tool.durationMs === undefined ? undefined : duration(tool.durationMs),
-    errorMessage: tool.status === "error" ? tool.output : undefined,
-    resultDetail: tool.output ? (
-      <CodeBlock code={tool.output} size="sm" isWrapped width="100%" />
-    ) : undefined,
-  }));
+/** What a tool call left going by a run that ended shows. */
+export const UNFINISHED = "Not finished: the run ended.";
+
+function toolCalls(tools: Array<ToolEvent>, ended: boolean) {
+  return tools.map((tool) => {
+    // The run ended before the call did: it will never end, and must not spin.
+    const unfinished = ended && tool.status === "running";
+    const output = unfinished ? UNFINISHED : tool.output;
+    return {
+      key: tool.id,
+      name: tool.name,
+      status: unfinished ? ("error" as const) : tool.status,
+      target: tool.target,
+      duration: tool.durationMs === undefined ? undefined : duration(tool.durationMs),
+      errorMessage: unfinished || tool.status === "error" ? output : undefined,
+      resultDetail: output ? (
+        <CodeBlock code={output} size="sm" isWrapped width="100%" />
+      ) : undefined,
+    };
+  });
 }
+
+/** The groups of tool calls opened, by their first call's `seq`, and how to open or close one. */
+export type OpenGroups = {
+  open: ReadonlyArray<number>;
+  onOpenChange: (seq: number, isOpen: boolean) => void;
+};
 
 /**
  * Events in order: the agent's texts as markdown, each run of tool calls in one group, and the
- * system lines and blocked actions as notices.
+ * system lines and blocked actions as notices. `ended` shows the calls the run left going as
+ * failed; `groups`, when given, holds which groups are open.
  */
-export function RunEvents({ events }: { events: ReadonlyArray<RunEvent> }) {
+export function RunEvents({
+  events,
+  ended = false,
+  groups,
+}: {
+  events: ReadonlyArray<RunEvent>;
+  ended?: boolean;
+  groups?: OpenGroups;
+}) {
   const shown: Array<ReactNode> = [];
   let tools: Array<ToolEvent> = [];
   const flush = () => {
     if (tools.length > 0) {
+      const seq = tools[0].seq;
       shown.push(
-        <ChatMessage key={`tools-${tools[0].seq}`} sender="assistant">
-          <ChatToolCalls calls={toolCalls(tools)} />
+        <ChatMessage key={`tools-${seq}`} sender="assistant">
+          <ChatToolCalls
+            calls={toolCalls(tools, ended)}
+            isExpanded={groups ? groups.open.includes(seq) : undefined}
+            onExpandedChange={
+              groups ? (open: boolean) => groups.onOpenChange(seq, open) : undefined
+            }
+          />
         </ChatMessage>,
       );
       tools = [];
@@ -95,17 +125,24 @@ export function RunEvents({ events }: { events: ReadonlyArray<RunEvent> }) {
   return <>{shown}</>;
 }
 
-function LogPage({ id }: { id: string }) {
+function LogPage({ id, ended, groups }: { id: string; ended: boolean; groups?: OpenGroups }) {
   const page = useRunLog(id);
-  return page ? <RunEvents events={page.events} /> : null;
+  return page ? <RunEvents events={page.events} ended={ended} groups={groups} /> : null;
 }
 
 /** Every page of a run's log, in order, each kept up to date while the run goes on. */
-export function RunLog({ run }: { run: { id: string; pages: number } }) {
+export function RunLog({
+  run,
+  groups,
+}: {
+  run: { id: string; pages: number; state: string };
+  groups?: OpenGroups;
+}) {
+  const ended = run.state !== "running";
   return (
     <ChatMessageList align="top" density="compact" aria-label="Run log">
       {Array.from({ length: run.pages }, (_, page) => (
-        <LogPage key={page} id={`${run.id}:${page}`} />
+        <LogPage key={page} id={`${run.id}:${page}`} ended={ended} groups={groups} />
       ))}
     </ChatMessageList>
   );
