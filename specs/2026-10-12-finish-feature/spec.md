@@ -1,16 +1,16 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: high
-plan-review: true
+plan-review: false
 ---
 
 # Spec: Finish feature
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 35 minutes.
+> Approved on 2026-10-12.
 >
 > - A new last step for every feature and bug: once the final review is done, a draft pull request
 >   is opened, one record in `specs/done/` replaces the folder in a last commit, links into the
