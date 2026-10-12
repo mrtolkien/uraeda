@@ -58,16 +58,36 @@ const styles = stylex.create({
     alignItems: "center",
     marginInlineStart: "auto",
   },
+  // Folded: the link home, then the page's controls, one under the other.
+  folded: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: spacingVars["--spacing-1"],
+  },
 });
 
 /**
  * The navigation's heading: "Uraeda" and the repository's name, one link home, and beside it, not
- * inside it, the page's own controls. Folded away with the navigation.
+ * inside it, the page's own controls. Folded, the link home is an icon, the controls under it.
  */
 function Heading({ repository, slot }: { repository: string; slot: ReactNode }) {
   const { isCollapsed } = useSideNavCollapse();
   if (isCollapsed) {
-    return null;
+    return (
+      <div {...stylex.props(styles.folded)}>
+        <SideNavItem
+          label="Uraeda"
+          icon={<span aria-hidden="true">⌂</span>}
+          href="/"
+          onClick={(event: React.MouseEvent) => {
+            event.preventDefault();
+            navigate("/");
+          }}
+        />
+        {slot}
+      </div>
+    );
   }
   return (
     <div {...stylex.props(styles.heading)}>
@@ -85,6 +105,11 @@ function Heading({ repository, slot }: { repository: string; slot: ReactNode }) 
 /** The theme's three choices, small enough to fit the navigation's default width. */
 function ThemeSwitch() {
   const [mode, setMode] = useThemeMode();
+  // The folded navigation is too narrow for it.
+  const { isCollapsed } = useSideNavCollapse();
+  if (isCollapsed) {
+    return null;
+  }
   return (
     <SegmentedControl
       label="Theme"
