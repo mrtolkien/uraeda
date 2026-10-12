@@ -7,6 +7,8 @@ import {
   fileDataView,
   PRIORITIES_ID,
   prioritiesDataView,
+  PROPOSAL_HINTS_ID,
+  proposalHintsDataView,
   type FileRecord,
   RUNNER_ID,
   runDataView,
@@ -102,5 +104,11 @@ export const sources = createSources<Context>([
   }),
   fileSource(runLogDataView, {
     byIds: async (ctx, ids) => found(ids, (id) => readRunLog(ctx, id)),
+  }),
+  fileSource(proposalHintsDataView, {
+    byIds: async ({ binding }, ids) =>
+      ids.includes(PROPOSAL_HINTS_ID)
+        ? [{ id: PROPOSAL_HINTS_ID, hints: await binding.proposalHints() }]
+        : [],
   }),
 ]);

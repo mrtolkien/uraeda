@@ -1,15 +1,21 @@
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
+import { Divider } from "@astryxdesign/core/Divider";
+import { Heading } from "@astryxdesign/core/Heading";
+import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { TextArea } from "@astryxdesign/core/TextArea";
+import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
+import { VStack } from "@astryxdesign/core/VStack";
 import { useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { Blocks } from "./Blocks.tsx";
 import { CommitActions } from "./CommitActions.tsx";
-import { useDraft } from "./data.ts";
+import { useDraft, useProposalHints } from "./data.ts";
 import { discoveryOf, LEVELS, withDiscovery, type Level } from "./discovery.ts";
 import { refusal } from "./errors.ts";
+import { Page } from "./layout/Page.tsx";
 import { navigate, useRestoreScroll } from "./routes.tsx";
 import { startRun } from "./runs.ts";
 import { useSave } from "./useSave.ts";
@@ -35,9 +41,37 @@ function folderOf(path: string) {
   return /^specs\/(?:bugs\/)?(\d{4}-\d{2}-\d{2}-[^/]+)\//.exec(path)?.[1];
 }
 
+/** A proposal's `##` sections, by heading, with their text. */
+function sections(text: string) {
+  const body = text.replace(/^---\n[\s\S]*?\n---\n/, "");
+  const found: Array<{ heading?: string; text: string }> = [{ text: "" }];
+  for (const line of body.split("\n")) {
+    const heading = /^##\s+(.+?)\s*$/.exec(line);
+    if (heading) {
+      found.push({ heading: heading[1], text: "" });
+    } else if (!/^#\s/.test(line)) {
+      found[found.length - 1].text += `${line}\n`;
+    }
+  }
+  return found;
+}
+
+/** Whether a proposal holds more than its title and What: text in any other part of it. */
+export function isWritten(text: string) {
+  return sections(text).some((section) => section.heading !== "What" && section.text.trim());
+}
+
+/** The headings of the sections that hold no text yet. */
+function emptySections(text: string) {
+  return sections(text)
+    .filter((section) => section.heading !== undefined && !section.text.trim())
+    .map((section) => section.heading);
+}
+
 /**
- * A draft or a proposal, edited as text: saved as typed over the version it was read at, shown
- * rendered on demand, committed, and, for a draft, started as a feature.
+ * A draft or a proposal: drawn once written, with Edit, or edited as text, with the template's
+ * guidance for each empty section; saved as typed over the version it was read at, committed, and,
+ * for a draft, started as a feature.
  */
 export function EditorPage({ path }: { path: string }) {
   const fate = useFateClient();
@@ -45,7 +79,9 @@ export function EditorPage({ path }: { path: string }) {
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   const [text, setText] = useState(draft?.text ?? "");
-  const [preview, setPreview] = useState(false);
+  const hints = useProposalHints();
+  // A written proposal opens drawn; one that holds only its title and What opens to be written.
+  const [drawn, setDrawn] = useState(() => isWritten(draft?.text ?? ""));
   const [conflict, setConflict] = useState<string>();
   const [message, setMessage] = useState<{ text: string; ok: boolean }>();
   const [slug, setSlug] = useState(slugOf(path));
@@ -79,9 +115,11 @@ export function EditorPage({ path }: { path: string }) {
 
   if (!draft) {
     return (
-      <div className="page">
-        <p>No draft {path}.</p>
-      </div>
+      <Page>
+        <Text as="p" display="block">
+          No draft {path}.
+        </Text>
+      </Page>
     );
   }
   const isDraft = path.startsWith("specs/drafts/") || path.startsWith("specs/backlog/");
@@ -153,103 +191,149 @@ export function EditorPage({ path }: { path: string }) {
     }
   };
 
+  const status =
+    save.state.kind === "saving"
+      ? "saving…"
+      : save.state.kind === "saved"
+        ? "saved ✓"
+        : draft.committed
+          ? "committed"
+          : "not committed";
+  // The title is the page's heading already.
+  const drawnIds = draft.document.blocks
+    .filter(
+      (block) => block.parent === undefined && !(block.kind === "heading" && block.level === 1),
+    )
+    .map((block) => block.id);
+  const empty = emptySections(text);
+  const shownHints = hints.filter((hint) => empty.includes(hint.heading));
+
   return (
-    <div className="page">
-      <div className="bar" style={{ margin: "-16px -16px 16px" }}>
-        <span className="title mono">{path.replace(/^specs\//, "")}</span>
-        <span className="small muted" style={{ paddingRight: 12 }}>
-          {save.state.kind === "saving"
-            ? "saving…"
-            : save.state.kind === "saved"
-              ? "saved ✓"
-              : draft.committed
-                ? "committed"
-                : "not committed"}
-        </span>
-      </div>
-      <h1 className="title-l">{draft.title}</h1>
-      {draft.entry && (
-        <p className="small muted">
-          {draft.committed ? "Committed" : "Not committed"} · Priorities,{" "}
-          {SECTIONS[draft.entry.section] ?? draft.entry.section}
-        </p>
-      )}
-      {conflict && (
-        <div style={{ marginBottom: 14 }}>
-          <Banner status="error" title={conflict} collapsible={false}>
-            <div className="actions" style={{ flexDirection: "column" }}>
-              <Button
-                label="Copy my text"
-                onClick={() => void navigator.clipboard?.writeText(text)}
-              />
-              <Button label="Load the new version" clickAction={reload} />
-            </div>
-          </Banner>
-        </div>
-      )}
-      {isProposal && (
-        <div style={{ marginBottom: 12 }}>
-          <SegmentedControl
-            label="Discovery effort"
-            value={discoveryOf(text)}
-            onChange={(value: string) => {
-              const next = withDiscovery(text, value as Level);
-              setText(next);
-              save.schedule(next);
-            }}
-          >
-            {LEVELS.map((level) => (
-              <SegmentedControlItem key={level} value={level} label={LEVEL_LABELS[level]} />
-            ))}
-          </SegmentedControl>
-          <p className="small muted">
-            How far the agent researches before asking: low reads the code and its docs, medium also
-            compares a few alternatives online, high looks far and wide.
-          </p>
-        </div>
-      )}
-      {preview ? (
-        <Blocks document={draft.document} />
-      ) : (
-        <TextArea
-          label="Text"
-          isLabelHidden
-          value={text}
-          rows={Math.max(16, text.split("\n").length + 2)}
-          onChange={(value: string) => {
-            setText(value);
-            save.schedule(value);
-          }}
-        />
-      )}
-      {save.state.kind === "error" && !conflict && (
-        <p className="not-saved">Not saved: {save.state.message}</p>
-      )}
-      {takesPriorities && <p className="small muted">{takesPriorities}</p>}
-      {isDraft ? (
-        <div className="actions">
-          <Button label={preview ? "Edit" : "Preview"} onClick={() => setPreview(!preview)} />
-          <Button variant="secondary" label="Commit" clickAction={() => commit(false)} />
-        </div>
-      ) : (
-        <CommitActions label="Commit" onCommit={commit}>
-          <Button label={preview ? "Edit" : "Preview"} onClick={() => setPreview(!preview)} />
-        </CommitActions>
-      )}
-      {isDraft && (
-        <>
-          <div className="band" />
-          <TextInput label="Slug" value={slug} onChange={(value: string) => setSlug(value)} />
-          <CommitActions
-            label="Start the feature"
-            continueLabel="Start and continue"
-            onlyLabel="Start only"
-            onCommit={start}
+    <Page>
+      <VStack gap={4}>
+        <HStack justify="between" gap={2} wrap="wrap">
+          <Text type="code">{path.replace(/^specs\//, "")}</Text>
+          <Text type="supporting" color="secondary">
+            {status}
+          </Text>
+        </HStack>
+        <Heading level={1}>{draft.title}</Heading>
+        {draft.entry && (
+          <Text type="supporting" color="secondary">
+            {draft.committed ? "Committed" : "Not committed"} · Priorities,{" "}
+            {SECTIONS[draft.entry.section] ?? draft.entry.section}
+          </Text>
+        )}
+        {conflict && (
+          <Banner
+            status="error"
+            title={conflict}
+            collapsible={false}
+            description={
+              <VStack gap={2}>
+                <Button
+                  label="Copy my text"
+                  onClick={() => void navigator.clipboard?.writeText(text)}
+                />
+                <Button label="Load the new version" clickAction={reload} />
+              </VStack>
+            }
           />
-          <p className="small muted">Creates its branch and worktree, and moves the line to Now.</p>
-        </>
-      )}
-      {message && <p className={message.ok ? "saved" : "not-saved"}>{message.text}</p>}
-    </div>
+        )}
+        {isProposal && (
+          <VStack gap={1}>
+            <SegmentedControl
+              label="Discovery effort"
+              value={discoveryOf(text)}
+              onChange={(value: string) => {
+                const next = withDiscovery(text, value as Level);
+                setText(next);
+                save.schedule(next);
+              }}
+            >
+              {LEVELS.map((level) => (
+                <SegmentedControlItem key={level} value={level} label={LEVEL_LABELS[level]} />
+              ))}
+            </SegmentedControl>
+            <Text type="supporting" color="secondary">
+              How far the agent researches before asking: low reads the code and its docs, medium
+              also compares a few alternatives online, high looks far and wide.
+            </Text>
+          </VStack>
+        )}
+        {drawn ? (
+          <Blocks document={draft.document} ids={drawnIds} />
+        ) : (
+          <VStack gap={2}>
+            <TextArea
+              label="Text"
+              isLabelHidden
+              value={text}
+              rows={Math.max(16, text.split("\n").length + 2)}
+              onChange={(value: string) => {
+                setText(value);
+                save.schedule(value);
+              }}
+            />
+            {shownHints.length > 0 && (
+              <VStack gap={1}>
+                <Text type="supporting" color="secondary">
+                  To write in the empty sections:
+                </Text>
+                {shownHints.map((hint) => (
+                  <Text key={hint.heading} as="p" display="block" color="secondary">
+                    <Text weight="semibold" color="secondary">
+                      {hint.heading}
+                    </Text>
+                    {" · "}
+                    <Text color="secondary">{hint.hint}</Text>
+                  </Text>
+                ))}
+              </VStack>
+            )}
+          </VStack>
+        )}
+        {save.state.kind === "error" && !conflict && (
+          <Banner status="error" title={`Not saved: ${save.state.message}`} collapsible={false} />
+        )}
+        {takesPriorities && (
+          <Text type="supporting" color="secondary">
+            {takesPriorities}
+          </Text>
+        )}
+        {isDraft ? (
+          <HStack gap={2}>
+            <Button label={drawn ? "Edit" : "Preview"} onClick={() => setDrawn(!drawn)} />
+            <Button variant="secondary" label="Commit" clickAction={() => commit(false)} />
+          </HStack>
+        ) : (
+          <CommitActions label="Commit" onCommit={commit}>
+            <Button label={drawn ? "Edit" : "Preview"} onClick={() => setDrawn(!drawn)} />
+          </CommitActions>
+        )}
+        {isDraft && (
+          <>
+            <Divider />
+            <TextInput label="Slug" value={slug} onChange={(value: string) => setSlug(value)} />
+            <CommitActions
+              label="Start the feature"
+              continueLabel="Start and continue"
+              onlyLabel="Start only"
+              onCommit={start}
+            />
+            <Text type="supporting" color="secondary">
+              Creates its branch and worktree, and moves the line to Now.
+            </Text>
+          </>
+        )}
+        {message && (
+          <Banner
+            status={message.ok ? "success" : "error"}
+            title={message.text}
+            collapsible={false}
+          />
+        )}
+      </VStack>
+    </Page>
   );
 }
