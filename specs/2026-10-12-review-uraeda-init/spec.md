@@ -14,10 +14,9 @@ plan-review: false
 >
 > - New decision, [TUI](../decisions/tui.md): ratatui is `ura`'s only TUI library, its prompts draw
 >   inline, and every TUI uses the terminal's 16 colours and reads without colour.
-> - Changed decision, [CLI](../decisions/cli.md#proposed-change-2026-10-12-review-uraeda-init): I
->   read "remove the hard cap" as CI printing the binary's size without ever failing on it, and each
->   new dependency's size being measured in its feature. Say so if you wanted the size step gone
->   entirely.
+> - Changed decision, [CLI](../decisions/cli.md#rules): I read "remove the hard cap" as CI printing
+>   the binary's size without ever failing on it, and each new dependency's size being measured in
+>   its feature. Say so if you wanted the size step gone entirely.
 > - `ura install` never writes into a skill folder ura did not install, nor through a link: your
 >   `~/.claude/skills/uraeda`, a link to your checkout, stays as it is, and so does a copy from
 >   `npx skills add`.
@@ -418,8 +417,7 @@ New, applied when this spec is approved:
 Changed, applied when this spec is approved:
 
 - [CLI](../decisions/cli.md): CI prints the binary's size and never fails on it, and a feature that
-  adds a CLI dependency measures its size; see its
-  [proposed change](../decisions/cli.md#proposed-change-2026-10-12-review-uraeda-init).
+  adds a CLI dependency measures its size; see its [rules](../decisions/cli.md#rules).
 
 Relied on:
 
