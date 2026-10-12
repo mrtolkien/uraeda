@@ -666,6 +666,27 @@ pub fn add_priority(
     Ok(edits::read(&place))
 }
 
+/// Inserts a line with its nested lines, as written, before the line at `index` of a section, or
+/// at its end: Undo of a removal.
+pub fn insert_priority(
+    repo: &Path,
+    section_id: &str,
+    index: u32,
+    lines: &[String],
+    previous: &str,
+) -> Result<Priorities> {
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    edits::insert(
+        &place,
+        section(section_id)?,
+        index as usize,
+        lines,
+        previous,
+    )?;
+    Ok(edits::read(&place))
+}
+
 /// Moves a line before the line at `index` of a section, or to its end.
 pub fn move_priority(
     repo: &Path,

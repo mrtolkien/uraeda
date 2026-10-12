@@ -76,6 +76,9 @@ pub struct FeatureView {
     pub uncommitted: bool,
     pub behind: Option<u32>,
     pub files: Vec<FileSummary>,
+    /// The `.html` files of its `mockups/` folder, sorted: from its working tree when its branch
+    /// is checked out, otherwise from its branch's tip.
+    pub mockups: Vec<String>,
     pub step: StepView,
     pub problems: Vec<ProblemView>,
     /// For a merged feature, its worktree still there, from the main checkout.
@@ -90,6 +93,8 @@ pub struct FeatureView {
 pub struct PriorityView {
     /// `next-2`.
     pub id: String,
+    /// Its address, `/priorities/<key>`: the linked draft's name, or the slug of its text.
+    pub key: String,
     /// `now`, `next`, `later`, or `blocked`.
     pub section: String,
     pub position: u32,
@@ -302,6 +307,7 @@ impl FeatureView {
                     waiting_line: file.waiting_line.clone(),
                 })
                 .collect(),
+            mockups: feature.mockups.clone(),
             step: StepView {
                 name: feature.step.name.as_str().to_string(),
                 waits_on: kebab(&feature.step.waits_on),
@@ -339,6 +345,7 @@ impl WorkspaceView {
                 .iter()
                 .map(|entry| PriorityView {
                     id: format!("{}-{}", entry.section.id(), entry.position),
+                    key: entry.key.clone(),
                     section: entry.section.id().to_string(),
                     position: entry.position as u32,
                     text: entry.text.clone(),

@@ -76,6 +76,7 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
   uncommitted: true,
   behind: true,
   files: true,
+  mockups: true,
   step: true,
   problems: true,
   leftWorktree: true,
