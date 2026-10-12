@@ -620,8 +620,8 @@ Medians from js-framework-benchmark, release `chrome154`, 2026-10-04
 - [`specs/PRIORITIES.md`](/specs/PRIORITIES.md): next come a CLI for setup and upkeep, a web UI to
   view workflow files ("React + Astryx + Fate"), a Claude Code runner, a git listener, user pings,
   then Nix and Docker environments and a pi-durable runtime.
-- [`specs/drafts/web-ui.md`](/specs/drafts/web-ui.md): the web UI renders the skill's Markdown
-  flavour with structured items, and later sets `status` fields and commits.
+- [`specs/drafts/web-ui.md`](/specs/2026-10-11-web-ui/proposal.md): the web UI renders the skill's
+  Markdown flavour with structured items, and later sets `status` fields and commits.
 - The git remote is `github.com/mrtolkien/uraeda`, and recent commits are all workflow and skill
   changes (`git log`): no code has existed yet.
 

@@ -52,6 +52,7 @@ pub fn describe(feature: &Feature) -> String {
             format!("{file}: {what}")
         }
         (StepName::None, _) => "nothing to do".to_string(),
+        (StepName::Done, _) => "merged".to_string(),
         (name, _) => match &step.task {
             Some(task) => format!("{}, {task}", name.as_str()),
             None => name.as_str().to_string(),
@@ -78,6 +79,7 @@ fn feature_row(feature: &Feature) -> Row {
         (false, _, _) | (_, StepName::None, _) => "-",
         (_, _, WaitsOn::Human) => "you",
         (_, _, WaitsOn::Agent) => "agent",
+        (_, _, WaitsOn::Nobody) => "-",
     };
     Row {
         name: name(feature),
@@ -152,14 +154,24 @@ fn render(workspace: &Workspace) -> String {
         .iter()
         .filter_map(|entry| entry.feature.as_deref())
         .collect();
+    let done = |feature: &&Feature| feature.step.name == StepName::Done;
     let others: Vec<Row> = workspace
         .features
         .iter()
-        .filter(|feature| !listed.contains(&feature.folder.as_str()))
+        .filter(|feature| !listed.contains(&feature.folder.as_str()) && !done(feature))
         .map(feature_row)
         .collect();
     if !others.is_empty() {
         groups.push(("Not in priorities".to_string(), others));
+    }
+    let merged: Vec<Row> = workspace
+        .features
+        .iter()
+        .filter(|feature| !listed.contains(&feature.folder.as_str()) && done(feature))
+        .map(feature_row)
+        .collect();
+    if !merged.is_empty() {
+        groups.push(("Done".to_string(), merged));
     }
 
     let width = groups

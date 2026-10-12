@@ -5,11 +5,11 @@
   "type": "module",
   "exports": {
     ".": "./src/app.ts",
-    "./fate": "./src/fate.ts"
+    "./fate": "./src/fate.ts",
+    "./dev": "./src/dev.ts"
   },
   "scripts": {
-    "start": "node src/main.ts",
-    "dev": "node --watch src/main.ts --specs ../../specs --allow-origin http://localhost:5173"
+    "start": "node src/main.ts"
   },
   "dependencies": {
     "@hono/node-server": "2.1.4",

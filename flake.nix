@@ -38,6 +38,13 @@
             pnpm
             (rust-bin.fromRustupToolchainFile ./rust-toolchain.toml)
           ];
+          # The browsers of the web UI's layout tests: the playwright package pins the same version
+          # as nixpkgs' driver, so its browsers run here without a download.
+          PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
+          PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "true";
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
+          # WebKit needs an EGL driver, which machines without a GPU stack, like CI's, lack.
+          __EGL_VENDOR_LIBRARY_DIRS = "${pkgs.mesa}/share/glvnd/egl_vendor.d";
         };
       });
 

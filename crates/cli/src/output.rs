@@ -4,9 +4,9 @@ use std::io::IsTerminal;
 use std::process::ExitCode;
 
 use serde::Serialize;
-use uraeda_core::actions::Change;
+use uraeda_core::actions::ActionError;
 use uraeda_core::actions::place::Place;
-use uraeda_core::git::{Git, GitError};
+use uraeda_core::git::Git;
 use uraeda_core::target::{self, Purpose, Target};
 use uraeda_core::workspace::Workspace;
 
@@ -80,22 +80,25 @@ pub fn target(
     target::resolve(workspace, &cwd, target, purpose).map_err(|error| error.to_string())
 }
 
-/// Says which branch a working tree was switched to, if it was.
-pub fn say_switched(place: &Place) {
+/// Says where an action wrote, when it is not this working tree: the worktree created or found
+/// for its branch, from the main checkout, or the branch this one was switched to.
+pub fn say_place(git: &Git, place: &Place) {
     if let Some(branch) = &place.switched {
         println!("switched to {branch}");
+    } else if place.root != git.root() {
+        let main = git.main_root();
+        let shown = place.root.strip_prefix(&main).unwrap_or(&place.root);
+        println!("wrote in {}", shown.display());
     }
 }
 
-/// Commits an action's files in the working tree it wrote in. A failing hook leaves them written.
-pub fn commit(place: &Place, change: &Change) -> Result<(), String> {
-    let git = Git::open(&place.root).map_err(|error| error.to_string())?;
-    match git.commit(&change.paths, &change.subject, change.body.as_deref()) {
-        Ok(()) => Ok(()),
-        Err(error @ GitError::Command { .. }) if error.to_string().starts_with("git commit") => {
+/// The message of a committing action's error: a hook's refusal is printed, then explained.
+pub fn action_error(error: ActionError) -> String {
+    match error {
+        error @ ActionError::Hook { .. } => {
             eprintln!("ura: {error}");
-            Err("commit failed: fix the hook's error, then commit".to_string())
+            "commit failed: fix the hook's error, then commit".to_string()
         }
-        Err(error) => Err(error.to_string()),
+        error => error.to_string(),
     }
 }

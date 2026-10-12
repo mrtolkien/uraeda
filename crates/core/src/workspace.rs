@@ -138,6 +138,9 @@ pub struct Feature {
     pub slug: String,
     pub branch: Option<String>,
     pub source: Source,
+    /// The working tree its files were read from, from the main checkout (`.` for it), when its
+    /// branch is checked out.
+    pub worktree: Option<String>,
     pub uncommitted: bool,
     /// Commits behind its remote branch, when it has both.
     pub behind: Option<usize>,
@@ -180,6 +183,8 @@ pub struct PriorityEntry {
     pub text: String,
     pub link: Option<String>,
     pub feature: Option<String>,
+    /// The draft it links, from the top level, when it links a file of `specs/drafts/`.
+    pub draft: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -364,11 +369,29 @@ impl Workspace {
             return Err(WorkspaceError::NoSpecs(root));
         }
 
+        // The branches checked out in other working trees, read from their disk.
+        let checked_out: BTreeMap<String, PathBuf> = git
+            .worktrees()
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|worktree| worktree.path != root && worktree.path.exists())
+            .filter_map(|worktree| Some((worktree.branch?, worktree.path)))
+            .collect();
+        // The priorities and drafts: from this checkout on the default branch, else from the
+        // worktree that has it, uncommitted edits included, else from its tip.
+        let default_worktree = default_branch
+            .as_ref()
+            .filter(|_| !on_default)
+            .and_then(|branch| checked_out.get(branch))
+            .and_then(|path| Git::open(path).ok());
+        let default_reader = default_worktree
+            .as_ref()
+            .map_or(Reader { git }, |git| Reader { git });
         let priorities_from = match default_tip {
-            Some(tip) if !on_default => From::Commit(tip),
+            Some(tip) if !on_default && default_worktree.is_none() => From::Commit(tip),
             _ => From::Disk,
         };
-        let priorities_text = reader
+        let priorities_text = default_reader
             .read(priorities_from, "specs/PRIORITIES.md")
             .unwrap_or_default();
         let merged = default_tip
@@ -376,6 +399,14 @@ impl Workspace {
             .unwrap_or_default();
 
         let mut features: BTreeMap<(Kind, String), Feature> = BTreeMap::new();
+        let main_root = git.main_root();
+        let shown = |path: &Path| -> String {
+            match path.strip_prefix(&main_root) {
+                Ok(relative) if relative.as_os_str().is_empty() => ".".to_string(),
+                Ok(relative) => relative.to_string_lossy().into_owned(),
+                Err(_) => path.to_string_lossy().into_owned(),
+            }
+        };
         // The working tree: the current branch's feature, and folders not yet committed.
         let current_folder = current_branch.as_deref().and_then(branch_folder);
         let mut on_disk = reader.folders(From::Disk);
@@ -389,7 +420,11 @@ impl Workspace {
             let branch = current_folder
                 .filter(|(k, f)| *k == kind && *f == folder)
                 .map(|_| folder_branch(kind, &folder));
-            let feature = read_feature(&reader, kind, &folder, branch, From::Disk, head);
+            let on_branch = branch.is_some();
+            let mut feature = read_feature(&reader, kind, &folder, branch, From::Disk, head);
+            if on_branch {
+                feature.worktree = Some(shown(&root));
+            }
             features.insert((kind, folder), feature);
         }
         // Every other feature branch, from its tip.
@@ -410,15 +445,36 @@ impl Workspace {
             }) else {
                 continue;
             };
-            let mut feature = read_feature(
-                &reader,
-                kind,
-                folder,
-                Some(branch.name.clone()),
-                From::Commit(tip),
-                Some(tip),
-            );
-            feature.source = source;
+            let opened = checked_out
+                .get(&branch.name)
+                .and_then(|path| Git::open(path).ok().map(|git| (path, git)));
+            let mut feature = match &opened {
+                Some((path, worktree_git)) => {
+                    let worktree_reader = Reader { git: worktree_git };
+                    let mut feature = read_feature(
+                        &worktree_reader,
+                        kind,
+                        folder,
+                        Some(branch.name.clone()),
+                        From::Disk,
+                        worktree_git.head(),
+                    );
+                    feature.worktree = Some(shown(path));
+                    feature
+                }
+                None => {
+                    let mut feature = read_feature(
+                        &reader,
+                        kind,
+                        folder,
+                        Some(branch.name.clone()),
+                        From::Commit(tip),
+                        Some(tip),
+                    );
+                    feature.source = source;
+                    feature
+                }
+            };
             feature.behind = match (branch.local, branch.remote) {
                 (Some(local), Some(remote)) => Some(git.behind(local, remote)),
                 _ => None,
@@ -429,6 +485,17 @@ impl Workspace {
         for feature in &mut features {
             feature.step = steps::step(feature, PullRequest::Unknown);
         }
+        // Folders merged into the default branch, read from it.
+        if let Some(tip) = default_tip {
+            for (kind, folder) in &merged {
+                let mut feature =
+                    read_feature(&reader, *kind, folder, None, From::Commit(tip), Some(tip));
+                feature.source = Source::DefaultBranch;
+                feature.branch = None;
+                feature.step = Step::done();
+                features.push(feature);
+            }
+        }
 
         let priorities = priorities::parse(&priorities_text)
             .into_iter()
@@ -437,16 +504,22 @@ impl Workspace {
                     .link
                     .as_deref()
                     .and_then(|link| match_feature(link, &features));
+                let draft = entry
+                    .link
+                    .as_deref()
+                    .and_then(|link| resolve("specs", link))
+                    .filter(|path| path.starts_with("specs/drafts/"));
                 PriorityEntry {
                     section: entry.section,
                     position: entry.position,
                     text: entry.text,
                     link: entry.link,
                     feature,
+                    draft,
                 }
             })
             .collect();
-        let drafts = reader.drafts(priorities_from);
+        let drafts = default_reader.drafts(priorities_from);
         let fetched = git.fetched_at();
         Ok(Workspace {
             root,
@@ -618,6 +691,7 @@ impl Feature {
             slug: folder_slug(folder).unwrap_or(folder).to_string(),
             branch: Some(folder_branch(kind, folder)),
             source: Source::Local,
+            worktree: None,
             uncommitted: false,
             behind: None,
             files,

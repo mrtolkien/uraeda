@@ -2,3 +2,5 @@ node_modules/
 target/
 *.node
 dist/
+.env
+.vitest/

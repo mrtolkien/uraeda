@@ -27,7 +27,11 @@ fn is_bug(cwd: &std::path::Path, root: &std::path::Path, target: &str) -> bool {
         .is_ok_and(|relative| relative.starts_with("specs/bugs"))
 }
 
-pub fn run(target_name: Option<String>, slug: Option<String>) -> Result<ExitCode, String> {
+pub fn run(
+    target_name: Option<String>,
+    slug: Option<String>,
+    switch: bool,
+) -> Result<ExitCode, String> {
     let (git, workspace) = output::workspace()?;
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
     if let Some(name) = &target_name
@@ -45,13 +49,23 @@ pub fn run(target_name: Option<String>, slug: Option<String>) -> Result<ExitCode
         }
         Err(error) => return Err(error.to_string()),
     };
-    match start::run(&git, &workspace, &draft, slug.as_deref(), today::today()) {
+    match start::run(
+        &git,
+        &workspace,
+        &draft,
+        slug.as_deref(),
+        today::today(),
+        switch,
+    ) {
         Ok(started) => {
             println!(
                 "on {}: committed \"{}\"",
                 started.default_branch, started.start_subject
             );
-            println!("created branch {}", started.branch);
+            match &started.worktree {
+                Some(worktree) => println!("created branch {} in {worktree}", started.branch),
+                None => println!("created branch {}", started.branch),
+            }
             for (from, to) in &started.moves {
                 println!("moved   {from} -> {to}");
             }
