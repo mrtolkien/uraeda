@@ -80,13 +80,22 @@ test("a running run's view: beside the feature page or a page, following its end
     const newest = await within(log).findByText("The newest line.");
     await expect.poll(() => inView(newest)).toBe(true);
 
-    // Scrolled up, the view stays where it is.
-    box.scrollTo(0, 0);
+    // Scrolled up, the view stays where it is, even as the log grows past a page of 100 events.
+    const middle = Math.round((box.scrollHeight - box.clientHeight) / 2);
+    box.scrollTo(0, middle);
     await settle();
-    await commands.agentEmit([{ type: "text", text: "One more line." }]);
-    await within(log).findByText("One more line.");
+    const position = box.scrollTop;
+    expect(position).toBeGreaterThan(0);
+    await commands.agentEmit(
+      Array.from({ length: 70 }, (_, index) => ({
+        type: "text" as const,
+        text: `Later line ${index + 1}.`,
+      })),
+    );
+    await within(log).findByText("Later line 70.", undefined, { timeout: 10_000 });
     await settle();
-    expect(box.scrollTop).toBe(0);
+    expect(log.isConnected).toBe(true);
+    expect(box.scrollTop).toBe(position);
 
     if (wide) {
       await act(async () => {
@@ -131,6 +140,7 @@ test("a run's view, in dark (SC-003)", async () => {
     checkPage();
     checkTextSizes();
     checkControlHeights();
+    checkMeasure();
     checkAlignment();
     await checkAccessibility();
   } finally {
