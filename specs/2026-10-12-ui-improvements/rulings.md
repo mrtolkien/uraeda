@@ -218,3 +218,34 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `packages/web/vite.browser.config.ts`.
 - **Where**: task 11, `packages/web/src/PrioritiesPage.tsx`, `packages/web/vite.browser.config.ts`,
   `packages/web/src/__browser__/priorities.test.tsx`
+
+## R15: The round's index is an Astryx List, its titles wrapping
+
+- **Decision**: the round's index, in the sheet and in the wide column alike, is an Astryx `List` of
+  rows, each a button labelled "✓ Q1 <title>" or "○ Q2 <title>", its text wrapping, follow-ups
+  indented, the question at the top selected. The wide column is labelled "Questions", 240 px wide
+  through the theme's `--size-round-index`.
+- **Rationale**: Astryx's `Outline` cuts each label to one line with an ellipsis, and its labels are
+  strings: the questions' titles run to 60 characters and more, and the UI checks decision forbids
+  cut text, which `checkPage` checks at 1440 px. The index's job, a jump to any question with its
+  state, is the same.
+- **Alternatives considered**: `Outline` with the ids alone ("✓ Q1"), which hides what each question
+  is about; a theme override reaching the label inside `Outline`'s link, which Astryx's component
+  overrides do not target.
+- **If wrong**: `Index` in `packages/web/src/RoundNav.tsx` becomes an `Outline`.
+- **Where**: task 12, `packages/web/src/RoundNav.tsx`, `packages/web/src/theme/theme.ts`
+
+## R16: A tap on the top bar's controls stays theirs
+
+- **Decision**: the shell wraps what a page puts in the top bar in `SlotControls`, which stops a
+  click from reaching the heading's link home, and keeps the browser from following that link when
+  the tap lands between the controls.
+- **Rationale**: Astryx draws `SideNavHeading` with `headingHref` as one link around its
+  `headerEndContent`: a tap on the round's Next, or on ＋ on the priorities page, or on a button of
+  the sheet ＋ opened (React passes a portal's events up its tree), also went home. Task 7 could not
+  see it from home, where going home changes nothing.
+- **Alternatives considered**: the controls outside the heading, which no slot of Astryx's top bar
+  offers; each control stopping its own clicks, a rule every page would have to remember.
+- **If wrong**: `SlotControls` in `packages/web/src/Shell.tsx`. The controls stay inside a link,
+  which axe's `nested-interactive` rule may report in task 14.
+- **Where**: task 12, `packages/web/src/Shell.tsx`

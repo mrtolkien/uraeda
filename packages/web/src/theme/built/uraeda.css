@@ -331,6 +331,7 @@
     --size-page-max: 720px;
     --size-pane-min: 400px;
     --size-viewport-height: 100dvh;
+    --size-round-index: 240px;
     --color-selection: var(--color-background-yellow);
     --color-selection-edge: var(--color-border-yellow);
   }
