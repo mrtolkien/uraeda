@@ -1,4 +1,4 @@
-import { createElement, useCallback } from "react";
+import { createElement, useCallback, useSyncExternalStore } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { useToast } from "@astryxdesign/core/Toast";
 
@@ -16,10 +16,33 @@ export function closeUndoToasts() {
   open.clear();
 }
 
+/** The errors of refused Undos, shown in the page until dismissed, and who listens to them. */
+let errors: ReadonlyArray<string> = [];
+const listeners = new Set<() => void>();
+
+function setErrors(next: ReadonlyArray<string>) {
+  errors = next;
+  for (const listener of listeners) {
+    listener();
+  }
+}
+
+/** The errors of refused Undos, and how to dismiss one. */
+export function useUndoErrors(): [ReadonlyArray<string>, (index: number) => void] {
+  const shown = useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    () => errors,
+  );
+  return [shown, (index) => setErrors(errors.filter((_, at) => at !== index))];
+}
+
 /**
  * Confirms a change the human cannot see on screen, for 5 seconds, with one Undo that reverts it.
- * `undo` resolves with nothing once reverted, or with the error to show instead, which stays until
- * dismissed.
+ * `undo` resolves with nothing once reverted, or with the error to show instead: in the page,
+ * under the top bar, until dismissed, as a toast must not be the only place an error shows.
  */
 export function useUndoToast(): (message: string, undo: () => Promise<string | undefined>) => void {
   const showToast = useToast();
@@ -35,7 +58,7 @@ export function useUndoToast(): (message: string, undo: () => Promise<string | u
             close();
             const error = await undo();
             if (error) {
-              showToast({ body: error, type: "error" });
+              setErrors([...errors, error]);
             }
           },
         }),
