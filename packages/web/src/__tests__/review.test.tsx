@@ -237,8 +237,9 @@ test("a general comment is edited, then removed", async () => {
   await click(within(general).getByRole("button", { name: "Edit" }));
   await comment("Too long by half");
   await waitFor(() => expect(read(r, REVIEW)).toContain("\nToo long by half\n"));
+  // Shown again once its save is done, after the file is written.
   await click(
-    within(screen.getByRole("group", { name: "C1 · general" })).getByRole("button", {
+    within(await screen.findByRole("group", { name: "C1 · general" })).getByRole("button", {
       name: "Remove",
     }),
   );
