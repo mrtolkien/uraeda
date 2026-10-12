@@ -1,10 +1,12 @@
+import { Code } from "@astryxdesign/core/Code";
+import { Link } from "@astryxdesign/core/Link";
 import type { Span } from "uraeda-binding";
-import { Link, pathLink } from "./routes.tsx";
+import { pathLink } from "./routes.tsx";
 
 function Marked({ span }: { span: Span }) {
   let node: React.ReactNode = span.text;
   if (span.code) {
-    node = <code>{node}</code>;
+    node = <Code size="inherit">{node}</Code>;
   }
   if (span.strike) {
     node = <s>{node}</s>;
@@ -25,23 +27,29 @@ function SpanLink({ span }: { span: Span }) {
   if (link.path) {
     const { href, inApp } = pathLink(link.path);
     return inApp ? (
-      <Link to={href}>{text}</Link>
-    ) : (
-      <a href={href} target="_blank" rel="noreferrer">
+      <Link type="inherit" href={href}>
         {text}
-      </a>
+      </Link>
+    ) : (
+      <Link type="inherit" href={href} target="_blank" rel="noreferrer">
+        {text}
+      </Link>
     );
   }
   if (link.target.startsWith("#")) {
-    return <a href={link.target}>{text}</a>;
+    return (
+      <Link type="inherit" href={link.target}>
+        {text}
+      </Link>
+    );
   }
   if (link.wiki) {
     return text;
   }
   return (
-    <a href={link.target} target="_blank" rel="noreferrer">
+    <Link type="inherit" href={link.target} target="_blank" rel="noreferrer">
       {text}
-    </a>
+    </Link>
   );
 }
 

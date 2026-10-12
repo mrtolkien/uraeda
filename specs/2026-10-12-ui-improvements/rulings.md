@@ -123,3 +123,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   refusal from ＋'s Undo.
 - **If wrong**: one signature, in `packages/web/src/layout/useUndoToast.ts`, and its two callers.
 - **Where**: task 7, `packages/web/src/layout/useUndoToast.ts`, `packages/web/src/QuickAdd.tsx`
+
+## R10: Blocks draw their review selection in StyleX from task 8
+
+- **Decision**: rebuilding `Blocks` on Astryx, a block a review can select is a `role="button"` with
+  `aria-pressed`, no longer `aria-selected` and the `.block` class, and its tint and bar come from
+  `--color-selection` and `--color-selection-edge` in StyleX. A list item's selectable part is its
+  text inside the Astryx `ListItem`; a table row is the Astryx `TableRow` itself. Document lists
+  take back the page's inset through `List`'s `edgeCompensation`, so their text starts where
+  paragraphs do. `review.test.tsx` finds selectable blocks by role.
+- **Rationale**: the `.block` rules of `styles.css` targeted `li` and `tr` elements that Astryx now
+  draws; `aria-selected` is not allowed on a button (axe), and `aria-pressed` is the state of a
+  toggle. Task 13 planned the tint; drawing it now avoids a page with no selection style between the
+  two tasks.
+- **Alternatives considered**: keeping raw `ul`, `li`, and `tr` elements for the review only, two
+  ways to draw one document.
+- **If wrong**: the selection's look is two styles in `packages/web/src/Blocks.tsx`, which task 13
+  refines with the review's layout.
+- **Where**: task 8, `packages/web/src/Blocks.tsx`, `packages/web/src/__tests__/review.test.tsx`

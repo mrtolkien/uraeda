@@ -53,9 +53,9 @@ function read(repo: string, path: string) {
 /** The first tappable block whose text holds a phrase. */
 async function scenario(phrase: string) {
   return waitFor(() => {
-    const block = [...document.querySelectorAll<HTMLElement>(".block")].find((b) =>
-      b.textContent?.includes(phrase),
-    );
+    const block = screen
+      .getAllByRole("button")
+      .find((b) => b.hasAttribute("aria-pressed") && b.textContent?.includes(phrase));
     expect(block).toBeTruthy();
     return block as HTMLElement;
   });
