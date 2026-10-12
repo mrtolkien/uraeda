@@ -314,3 +314,25 @@ test("a general comment being typed is kept when a block is tapped", async () =>
   expect(screen.getByText('Lines 92–93, under "US2: Complete a repeating task (P1)"')).toBeTruthy();
   expect((screen.getByLabelText("Comment text") as HTMLTextAreaElement).value).toBe("Too long");
 });
+
+/** Final review: a tap inside a nested item's comment field leaves its parent item alone. */
+test("a nested item's comment field takes taps without selecting its parent", async () => {
+  const r = repo();
+  commitSpec(r, (text) =>
+    text.replace("## User stories\n", "- Parent item\n  - Nested item\n\n## User stories\n"),
+  );
+  await renderPage(PAGE, r);
+  // The parent's toggle is named by its text, its nested item's included.
+  const nested = () => screen.findByRole("button", { name: "Nested item" });
+  await click(await nested());
+  const field = await screen.findByLabelText("Comment text");
+
+  await click(field);
+  await typeComment("Only the nested one");
+
+  expect((await scenario("Parent item")).getAttribute("aria-pressed")).toBe("false");
+  expect((await nested()).getAttribute("aria-pressed")).toBe("true");
+  expect((screen.getByLabelText("Comment text") as HTMLTextAreaElement).value).toBe(
+    "Only the nested one",
+  );
+});
