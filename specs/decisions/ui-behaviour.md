@@ -31,11 +31,11 @@ keeps the human's place.
 
 The proposal's problems are behaviour as much as looks: a one-word edit behind a modal, a
 confirmation taking the top bar's place, a reading position lost on Back
-([proposal](../2026-10-12-ui-improvements/proposal.md)). Design systems answer each with a rule:
-modals only when needed (NN/g, Atlassian), status inline and short toasts (Pajamas), a visible close
-and Back on sheets (NN/g), state that survives navigation (Vercel)
-([Q3](../2026-10-12-ui-improvements/clarifications-01.md#q3-which-rules-should-govern-how-the-ui-behaves),
-[how the UI behaves](../2026-10-12-ui-improvements/discovery-01.md#how-the-ui-behaves)).
+([proposal](../done/2026-10-12-ui-improvements.md)). Design systems answer each with a rule: modals
+only when needed (NN/g, Atlassian), status inline and short toasts (Pajamas), a visible close and
+Back on sheets (NN/g), state that survives navigation (Vercel)
+([Q3](../done/2026-10-12-ui-improvements.md#q3-which-rules-should-govern-how-the-ui-behaves),
+[how the UI behaves](../done/2026-10-12-ui-improvements.md#q3-which-rules-should-govern-how-the-ui-behaves)).
 
 ## Alternatives considered
 
