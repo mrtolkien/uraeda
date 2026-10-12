@@ -38,7 +38,10 @@ test("a round of questions", async () => {
 test("a spec under review", async () => {
   await show("/f/2026-10-06-recurring-tasks/spec.md", "Complete a repeating task");
   checkPage();
-  checkInsets(".title-l, .doc > .block p, .doc > .block > ol > li, .doc > ol > li");
+  // Story titles, paragraphs, and the items of numbered lists, like scenarios.
+  checkInsets(
+    '[role="main"] h3, [role="main"] [aria-pressed] > p, [role="main"] ol > li [aria-pressed]',
+  );
 });
 
 test("a plan under review", async () => {

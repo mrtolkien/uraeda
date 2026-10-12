@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, cleanup, configure, fireEvent, render, waitFor } from "@testing-library/react";
 import { createFateClient } from "react-fate/client";
@@ -144,4 +144,19 @@ export async function type(element: HTMLElement, value: string) {
 /** A file of the repository, `PRIORITIES.md` by default. */
 export function read(repo: string, path = "specs/PRIORITIES.md") {
   return readFileSync(join(repo, path), "utf8");
+}
+
+/** Commits a mockup in a feature's `mockups/` folder, on the feature's branch. */
+export function addMockup(
+  repo: string,
+  folder: string,
+  name: string,
+  html = "<!doctype html>\n<title>Mockup</title>\n<p>A mockup.</p>\n",
+) {
+  git(repo, "switch", "--quiet", folder);
+  mkdirSync(join(repo, "specs", folder, "mockups"), { recursive: true });
+  writeFileSync(join(repo, "specs", folder, "mockups", name), html);
+  git(repo, "add", "--all");
+  git(repo, "commit", "--quiet", "--no-verify", "--message", `docs: mockup ${name}`);
+  git(repo, "switch", "--quiet", "main");
 }

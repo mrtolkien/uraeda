@@ -1,15 +1,17 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { fixtureRepo, git, record, renderPage } from "./helpers.tsx";
+import { addMockup, fixtureRepo, git, record, renderPage } from "./helpers.tsx";
 
 /** US1.5 */
 test("lists a feature's files in workflow order, then what is not there yet", async () => {
   await renderPage("/f/2026-10-11-web-ui");
 
-  await screen.findByText("proposal.md");
-  const rows = [...document.querySelectorAll(".page .row .mono")].map((e) => e.textContent);
+  const files = await screen.findByRole("list", { name: "Files" });
+  const rows = within(files)
+    .getAllByRole("listitem")
+    .map((item) => /^[\w.-]+\.md/.exec(item.textContent ?? "")?.[0]);
   expect(rows).toEqual([
     "proposal.md",
     "discovery-01.md",
@@ -34,14 +36,17 @@ test("shows the problems ura check finds", async () => {
   await renderPage("/f/2026-10-11-web-ui", repo);
 
   expect(await screen.findByText("Problems")).toBeTruthy();
-  const location = screen.getAllByText(/^clarifications-01\.md:\d+$/)[0];
-  expect(location.parentElement?.textContent).toMatch(/Answer/);
+  const problems = screen.getByRole("list", { name: "Problems" });
+  const problem = within(problems)
+    .getAllByRole("listitem")
+    .find((item) => /^clarifications-01\.md:\d+/.test(item.textContent ?? ""));
+  expect(problem?.textContent).toMatch(/Answer/);
 });
 
 test("names a feature's branch and worktree", async () => {
   await renderPage("/f/2026-10-12-cli-tuis");
 
-  expect(await screen.findByText("2026-10-12-cli-tuis", { selector: ".mono" })).toBeTruthy();
+  expect(await screen.findByText("2026-10-12-cli-tuis")).toBeTruthy();
 });
 
 /** US2.6 */
@@ -65,11 +70,31 @@ test("a merged feature shows its record and what is left", async () => {
 
   await renderPage("/f/2026-10-09-dark-mode", repo);
 
-  expect(await screen.findByText("Dark mode", { selector: "h1" })).toBeTruthy();
+  expect(await screen.findByRole("heading", { name: "Dark mode", level: 1 })).toBeTruthy();
   expect(screen.getByText("Merged into the default branch")).toBeTruthy();
   expect(screen.getByText("Worktree and branch left")).toBeTruthy();
   expect(screen.getByText(".worktrees/2026-10-09-dark-mode")).toBeTruthy();
   expect(screen.getByText("2026-10-09-dark-mode.md")).toBeTruthy();
   expect(screen.getByText("record")).toBeTruthy();
   expect(screen.queryByText("not yet")).toBeNull();
+});
+
+/** Review comment C1 */
+test("the feature page lists its mockups (C1)", async () => {
+  const repo = fixtureRepo();
+  addMockup(repo, "2026-10-06-recurring-tasks", "repeat.html");
+
+  await renderPage("/f/2026-10-06-recurring-tasks", repo);
+
+  const link = await screen.findByRole("link", { name: /repeat\.html/ });
+  expect(link.getAttribute("href")).toBe("/f/2026-10-06-recurring-tasks/mockups/repeat.html");
+});
+
+test("a file page shows breadcrumbs", async () => {
+  await renderPage("/f/2026-10-06-recurring-tasks/proposal.md");
+
+  const crumbs = await screen.findByRole("navigation", { name: "Breadcrumbs" });
+  expect(within(crumbs).getByRole("link", { name: "Home" })).toBeTruthy();
+  expect(within(crumbs).getByRole("link", { name: "Recurring tasks" })).toBeTruthy();
+  expect(within(crumbs).getByText("proposal.md")).toBeTruthy();
 });

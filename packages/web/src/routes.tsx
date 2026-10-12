@@ -174,9 +174,21 @@ export function Link({
   );
 }
 
+/** Whether a link opens a page of the UI: a path of this origin, in this tab. */
+function inApp(href: string | undefined, target: string | undefined): href is string {
+  return (
+    !!href &&
+    href.startsWith("/") &&
+    !href.startsWith("//") &&
+    !/^\/(raw|mockups)\//.test(href) &&
+    (!target || target === "_self")
+  );
+}
+
 /**
- * The anchor Astryx components draw for a link of the UI, like the side navigation's heading: it
- * opens the page through `navigate`, without reloading.
+ * The anchor Astryx components draw for a link, given to them all by `LinkProvider` in `App`: a page
+ * of the UI opens through `navigate`, without reloading; any other link, like a file in a new tab
+ * or an anchor in the page, is left to the browser.
  */
 export function RouterAnchor({
   href,
@@ -196,7 +208,7 @@ export function RouterAnchor({
         onClick?.(event);
         if (
           event.defaultPrevented ||
-          !href ||
+          !inApp(href, props.target) ||
           event.metaKey ||
           event.ctrlKey ||
           event.shiftKey ||

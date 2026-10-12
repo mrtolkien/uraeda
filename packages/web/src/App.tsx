@@ -1,6 +1,7 @@
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { LayerProvider } from "@astryxdesign/core/Layer";
+import { LinkProvider } from "@astryxdesign/core/Link";
 import { Theme } from "@astryxdesign/core/theme";
 import { uraedaTheme } from "./theme/built/uraeda.js";
 import { Component, type ReactNode, Suspense, useState } from "react";
@@ -11,7 +12,7 @@ import { EditorPage } from "./EditorPage.tsx";
 import { FilePage } from "./FilePage.tsx";
 import { Home } from "./Home.tsx";
 import { PrioritiesPage } from "./PrioritiesPage.tsx";
-import { type Route, useRestoreScroll, useRoute } from "./routes.tsx";
+import { type Route, RouterAnchor, useRestoreScroll, useRoute } from "./routes.tsx";
 import { Shell } from "./Shell.tsx";
 import { ThemeModeProvider } from "./theme.tsx";
 
@@ -84,17 +85,19 @@ export function App({ client }: { client: ReturnType<typeof createFateClient> })
       <ThemeModeProvider>
         {(mode) => (
           <Theme theme={uraedaTheme} mode={mode}>
-            <LayerProvider toast={{ position: "bottomEnd" }}>
-              <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
-                <Suspense fallback={<div className="page muted">Loading…</div>}>
-                  <Shell>
-                    <Suspense fallback={<div className="page muted">Loading…</div>}>
-                      <Page key={pathname} route={route} />
-                    </Suspense>
-                  </Shell>
-                </Suspense>
-              </ServerErrorBoundary>
-            </LayerProvider>
+            <LinkProvider component={RouterAnchor}>
+              <LayerProvider toast={{ position: "bottomEnd" }}>
+                <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
+                  <Suspense fallback={<div className="page muted">Loading…</div>}>
+                    <Shell>
+                      <Suspense fallback={<div className="page muted">Loading…</div>}>
+                        <Page key={pathname} route={route} />
+                      </Suspense>
+                    </Shell>
+                  </Suspense>
+                </ServerErrorBoundary>
+              </LayerProvider>
+            </LinkProvider>
           </Theme>
         )}
       </ThemeModeProvider>

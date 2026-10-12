@@ -73,8 +73,7 @@ body {
   font-size: 15px;
 }
 
-.mono,
-.page code {
+.mono {
   font-family: var(--font-family-code);
   font-size: 0.88em;
 }
@@ -271,42 +270,6 @@ body {
   background: var(--reading-accent);
 }
 
-/* Reviewable blocks: selection tints a block to the edges, with an accent bar. */
-.block {
-  display: block;
-  margin: 0 calc(-1 * var(--reading-inset));
-  padding: 6px var(--reading-inset) 6px calc(var(--reading-inset) - 4px);
-  border-left: 4px solid transparent;
-  cursor: pointer;
-}
-
-.block[aria-selected="true"] {
-  border-left-color: var(--reading-accent);
-  background: var(--reading-tint);
-}
-
-/* A list item keeps its place under its number: its tint runs to the screen's edges through a
-   shadow clipped to its height, without moving its text. */
-li.block {
-  display: list-item;
-  margin: 0;
-  padding: 0;
-  border-left: 0;
-}
-
-/* A table row keeps its cells in place: only its tint shows. */
-tr.block {
-  display: table-row;
-  margin: 0;
-  padding: 0;
-  border-left: 0;
-}
-
-li.block[aria-selected="true"] {
-  box-shadow: 0 0 0 100vmax var(--reading-tint);
-  clip-path: inset(0 -100vmax);
-}
-
 .scenarios {
   margin: 0;
   padding: 0;
@@ -338,127 +301,6 @@ li.block[aria-selected="true"] {
   gap: 8px;
   font-size: 13px;
   color: var(--reading-muted);
-}
-
-/* The document: markdown blocks, without boxes. */
-.doc h1 {
-  font-size: 24px;
-  line-height: 1.25;
-  margin: 0 0 12px;
-}
-
-.doc h2 {
-  font-size: 20px;
-  margin: 28px 0 8px;
-}
-
-.doc h3 {
-  font-size: 18px;
-  margin: 20px 0 6px;
-}
-
-.doc h4,
-.doc h5,
-.doc h6 {
-  font-size: 16px;
-  margin: 16px 0 4px;
-}
-
-.doc ul,
-.doc ol {
-  margin: 0 0 10px;
-  padding-left: 22px;
-}
-
-/* Astryx's reset removes list markers: scenarios and steps keep their numbers. */
-.doc ul {
-  list-style: disc;
-}
-
-.doc ol {
-  list-style: decimal;
-}
-
-.callout ul,
-.callout ol {
-  padding-left: 18px;
-}
-
-.doc li {
-  margin: 4px 0;
-}
-
-.doc li.typed {
-  list-style: none;
-  margin-left: -18px;
-  padding-left: 18px;
-  position: relative;
-}
-
-.doc li.typed > .sign {
-  position: absolute;
-  left: 0;
-  font-weight: 700;
-}
-
-.doc blockquote {
-  margin: 0 0 10px;
-  padding-left: 12px;
-  border-left: 3px solid var(--reading-rule);
-  color: var(--reading-muted);
-}
-
-.callout {
-  margin: 0 0 14px;
-  padding: 2px 0 2px 12px;
-  border-left: 4px solid var(--reading-accent);
-}
-
-.callout.important {
-  border-left-color: #8250df;
-}
-
-.callout.warning,
-.callout.caution {
-  border-left-color: var(--color-warning);
-}
-
-.callout > .callout-title {
-  display: block;
-  font-weight: 700;
-}
-
-.table-scroll {
-  overflow-x: auto;
-  margin: 0 0 12px;
-}
-
-.table-scroll table {
-  border-collapse: collapse;
-  font-size: 15px;
-}
-
-.table-scroll th,
-.table-scroll td {
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--reading-rule);
-  vertical-align: top;
-}
-
-.doc pre {
-  overflow-x: auto;
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: var(--reading-band);
-  font-size: 14px;
-  white-space: pre;
-}
-
-.doc hr {
-  border: 0;
-  border-top: 1px solid var(--reading-rule);
-  margin: 20px 0;
 }
 
 .actions {

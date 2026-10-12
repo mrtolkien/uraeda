@@ -48,6 +48,8 @@ export const uraedaTheme = defineTheme({
     "--text-reading-size": "17px",
     "--text-reading-line": "1.5",
     "--size-reading-measure": "70ch",
+    // A page's column on wide screens, which holds the reading measure and the rows beside it.
+    "--size-page-max": "720px",
     // The detail pane beside a list on wide screens: at least this wide, and at most the window's
     // height, scrolling on its own.
     "--size-pane-min": "400px",
@@ -63,7 +65,7 @@ export const uraedaTheme = defineTheme({
         value: {
           typography: { scale: { base: BASE * WIDE } },
           tokens: grown,
-          localTokens: { "--text-reading-size": "19px" },
+          localTokens: { "--text-reading-size": "19px", "--size-page-max": "864px" },
         },
       },
       // Last, so a wide touch screen keeps 44 px controls.
