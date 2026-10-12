@@ -4,7 +4,7 @@ Finds the root cause of a reported bug, proposes a fix for the human to approve,
 without going through the feature flow.
 
 - **Runs when**: a bug branch, `fix/YYYY-MM-DD-<slug>`, is in one of the states of the table below
-- **Writes**: `assessment.md`, then the fix, its test, and the pull request
+- **Writes**: `assessment.md`, then the fix, its test, and the draft pull request
 - **Ends at**: a human gate: `assessment.md` with `status: awaiting-human`, or the pull request
 
 > [!WARNING]
@@ -31,15 +31,19 @@ Commit with `chore(<slug>): start <bug title>`.
 
 On the bug's branch, go down this table and run the first row that matches.
 
-| State of `specs/bugs/YYYY-MM-DD-<slug>/`                  | Step                             |
-| --------------------------------------------------------- | -------------------------------- |
-| `assessment.md` has `status: awaiting-human`              | **Human gate**: stop             |
-| No `assessment.md`                                        | [Assess](#assess)                |
-| `assessment.md` is `changes-requested`                    | [Assess](#assess), revision      |
-| `assessment.md` is `approved`, with unchecked steps       | [Fix](#fix)                      |
-| Every step is checked, and the branch has no pull request | [Fix](#fix), pull request        |
-| The branch's pull request has changes requested           | [Fix](#fix), changes             |
-| The branch has an open pull request                       | **Human gate**: the pull request |
+| State of `specs/bugs/YYYY-MM-DD-<slug>/`                     | Step                             |
+| ------------------------------------------------------------ | -------------------------------- |
+| `assessment.md` has `status: awaiting-human`                 | **Human gate**: stop             |
+| No `assessment.md`                                           | [Assess](#assess)                |
+| `assessment.md` is `changes-requested`                       | [Assess](#assess), revision      |
+| `assessment.md` is `approved`, with unchecked steps          | [Fix](#fix)                      |
+| The record is in `specs/done/`, and no pull request is ready | [Finish](finish.md)              |
+| The record, and the pull request has changes requested       | [Fix](#fix), changes             |
+| The record, and the pull request is ready for review         | **Human gate**: the pull request |
+| Every step is checked, and the pull request is a draft       | [Finish](finish.md)              |
+| Every step is checked, and the branch has no pull request    | [Fix](#fix), pull request        |
+| The branch's pull request has changes requested              | [Fix](#fix), changes             |
+| The branch has an open pull request                          | **Human gate**: the pull request |
 
 ## Assess
 
@@ -95,9 +99,10 @@ If the fix does not make the test pass, go back to the investigation with what y
 three fixes that failed, the approach is wrong, not the details: revise the assessment with what you
 found, and set it back to `awaiting-human`.
 
-Then review the branch, and open the pull request, as in
-[implementation](implementation.md#final-review), and handle the changes requested on it the same
-way. In the last commit before the pull request, remove the bug's entry from `PRIORITIES.md`.
+Then review the branch, open the pull request as a draft, as in
+[implementation](implementation.md#final-review), and run the [finish](finish.md) step: the bug's
+folder becomes its record, `kind: bug`, without questions, and the finishing commit removes its
+entry from `PRIORITIES.md`. Handle the changes requested on the pull request the same way.
 
 ## Commit
 

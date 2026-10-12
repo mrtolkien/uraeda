@@ -5,9 +5,10 @@ for the human to review.
 
 - **Runs when**: `plan.md` is `approved` or `auto-approved`, with unchecked steps; or every step is
   checked and the branch has no pull request; or its pull request has changes requested
-- **Writes**: code and tests, the step checkboxes of `plan.md`, `rulings.md`, and the pull request
-- **Ends at**: a human gate, the pull request; or a new [discovery](discovery.md) round, when
-  blocked
+- **Writes**: code and tests, the step checkboxes of `plan.md`, `rulings.md`, and the draft pull
+  request
+- **Ends at**: the [finish](finish.md) step; a human gate, the pull request, after changes requested
+  on it; or a new [discovery](discovery.md) round, when blocked
 
 The plan already did the thinking: execute it exactly, prove each task with tests you watched fail
 then pass, and leave the record in git. Nobody waits in a chat: do not stop to check in between
@@ -111,25 +112,27 @@ that triggers it:
 
 A finding you decide not to fix is a ruling, written in `rulings.md` with the others.
 
+Then push the branch, open its pull request as a draft, and run the [finish](finish.md) step: it
+replaces the folder with its record, and marks the pull request ready.
+
 ## Pull request
 
-In the last commit before the pull request, remove the feature's entry from `PRIORITIES.md`: the
-entry disappears when the branch is merged. Leave other entries unchanged.
-
-Push the branch and open the pull request, or mark it ready for review. It is the feature's last
-human gate: it merges the spec, the decisions, the plan, and the code at once. Its description reads
-like a file waiting for the human, following
+The pull request is opened as a draft after the final review, and marked ready by the
+[finish](finish.md) step, whose last commit also removes the feature's entry from `PRIORITIES.md`.
+It is the feature's last human gate: it merges the record, the decisions, and the code at once. Its
+description, written when it is marked ready, reads like a file waiting for the human, following
 [Coming back to the human](../SKILL.md#coming-back-to-the-human):
 
 - **First line**: what is asked, and an honest time: "Pull request to review, about 20 minutes."
 - **What most needs attention**, one line each: the rulings that change behaviour, the plan's text
   edited during the work, a new dependency, a failure that was already there, a final review done
   without a fresh reviewer.
-- **Links** to `spec.md` and `plan.md`.
+- **Links** to the record, and to `spec.md` and `plan.md` at the commit before finishing.
 - **Tests**: each acceptance scenario and review-focus item, with the test that covers it.
 - **Rulings**: a link to `rulings.md`, and the ones that change behaviour, one line each.
 - **Review comments**: when the plan was approved with comments, how each was carried out.
 - **Deferred minors**: the minor findings of the final review.
+- **Last line**: "Once merged, run `ura clean` to remove the worktree and the branch."
 
 If you cannot open a pull request, push the branch, and put the description in the body of the last
 commit. In a chat session, say the same in one or two sentences, with the pull request's link.
@@ -137,12 +140,17 @@ commit. In a chat session, say the same in one or two sentences, with the pull r
 ## Changes requested on the pull request
 
 Read every comment. Apply each requested change in a new commit, a change of behaviour with a test
-that fails first, and answer the comment with the commit that addresses it. When a change goes
-against the spec, amend the spec in place in the same commit, increase its `revision`, and update
-the plan and its `spec-revision`: the merged spec describes the merged code. The spec stays
-`approved`: the human asked for the change. When a change needs a new decision, or the comment
-leaves a choice open, start a new round of questions instead. Then the pull request waits for the
+that fails first, and answer the comment with the commit that addresses it. The folder is already
+replaced by its record: when a change goes against what it says, update its **Behaviour** or
+**Design** in place in the same commit, and add a line under **Changes after approval**, so the
+merged record describes the merged code. When a change needs a new decision, or the comment leaves a
+choice open, bring the folder back and start a new round of questions instead, as
+[finish](finish.md#changes-asked-on-the-pull-request) describes. Then the pull request waits for the
 human again.
+
+A pull request opened before the finish step existed still has its folder: amend the spec in place
+in the same commit, increase its `revision`, and update the plan and its `spec-revision`. The spec
+stays `approved`: the human asked for the change.
 
 ## Commit
 

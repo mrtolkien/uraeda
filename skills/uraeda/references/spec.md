@@ -113,7 +113,8 @@ Write for a reviewer who has not read the discovery:
 - **Rules**: MUST, SHOULD, and MUST NOT rules that a spec, a plan, or code can be checked against.
   Plans copy them word for word, so write each rule to stand on its own.
 - **Why**: the problem and what the choice optimizes for, with links to the question and the
-  discovery topic.
+  discovery topic. Once the feature is [finished](finish.md#rewrite-the-links), these links point to
+  its record, where the question keeps its anchor.
 - **Consequences**: what becomes easier, what becomes harder, the costs accepted.
 - **Applies to**: links to the code, folders, or kinds of features it governs, so agents find the
   decisions relevant to what they touch.
