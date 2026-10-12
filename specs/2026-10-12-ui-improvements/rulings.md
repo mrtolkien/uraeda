@@ -190,3 +190,31 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   whole text is empty.
 - **If wrong**: one block of `packages/web/src/EditorPage.tsx` to replace by an overlay.
 - **Where**: task 10, `packages/web/src/EditorPage.tsx`
+
+## R14: How dnd-kit's drop reaches the core, and how the drags are tested
+
+- **Decision**: the page keeps each section's order of keys while a line is dragged, reordered by
+  `@dnd-kit/helpers`' `move` on each `dragover`; on the drop, `dropMove` finds the line now right
+  after the dropped one, takes its place in the order before the drag as the target of `dropIndex`,
+  and calls `priorities.move` over the hash the drag started from; dropped last in a section, the
+  line ends it. `@dnd-kit/dom` 0.5.0, the package `@dnd-kit/react` is built on, is added at an exact
+  version for `PointerActivationConstraints` and `Accessibility`, which `@dnd-kit/react` does not
+  re-export. The browser tests that write the repository take it in turn, each on a fresh copy of
+  the fixture, through commands in `vite.browser.config.ts`; the mouse drags use the browser's real
+  mouse; a touch drag dispatches touch pointer events with the primary pointer's id, as the WebKit
+  of the tests has no touch screen; "committing closes the page's toasts" runs in the browser, as
+  happy-dom never ends the toast's exit transition, and clicks with `userEvent`, as `act` in the
+  browser held the task view's Delete from leaving the page.
+- **Rationale**: the plan named `dropIndex` with dnd-kit's indices, and the docs' pattern for lists
+  across groups reorders on `dragover`; the core counts an index among the lines once the dragged
+  one is out, which the line dropped above gives through `dropIndex` unchanged. The phone and the
+  desktop run the browser tests at once on one server, which reads one repository: two drags at once
+  would refuse each other's moves.
+- **Alternatives considered**: dnd-kit's own final index, which is already the core's index, with
+  `dropIndex` left for its test alone; a repository per browser instance, which the server's one
+  `URAEDA_REPO` cannot tell apart; finding the Accessibility plugin among dnd-kit's defaults by its
+  class name.
+- **If wrong**: `dropMove` in `packages/web/src/PrioritiesPage.tsx`, and the commands in
+  `packages/web/vite.browser.config.ts`.
+- **Where**: task 11, `packages/web/src/PrioritiesPage.tsx`, `packages/web/vite.browser.config.ts`,
+  `packages/web/src/__browser__/priorities.test.tsx`

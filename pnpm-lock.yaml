@@ -218,6 +218,9 @@ importers:
       '@astryxdesign/theme-neutral':
         specifier: 0.6.8
         version: 0.6.8(@astryxdesign/core@0.6.8(@stylexjs/stylex@0.19.1)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@types/react@19.3.0)(react@19.3.0)
+      '@dnd-kit/dom':
+        specifier: 0.5.0
+        version: 0.5.0
       '@dnd-kit/helpers':
         specifier: 0.5.0
         version: 0.5.0
