@@ -295,7 +295,7 @@ the code does not
 
 `ura` reads a record as a finished feature, wherever it is, and keeps reading merged folders for the
 features finished before this change. `ura clean` performs the cleanup only on request, with the
-guards of the [changed git decision](../decisions/git.md#proposed-change-2026-10-12-finish-feature).
+guards of the [changed git decision](../decisions/git.md#rules).
 
 ### Data
 
@@ -532,10 +532,10 @@ Settled while writing this spec:
 
 Changed, applied when this spec is approved:
 
-- [Git](../decisions/git.md#proposed-change-2026-10-12-finish-feature): tools may remove a merged
-  feature's worktree under `.worktrees/` and delete its local branch, only when a human asks; a
-  worktree never with `--force`, and a branch with `git branch -D` only once every commit is on the
-  local or remote default branch, or patch-equivalent to one; remote branches are never deleted.
+- [Git](../decisions/git.md#rules): tools may remove a merged feature's worktree under `.worktrees/`
+  and delete its local branch, only when a human asks; a worktree never with `--force`, and a branch
+  with `git branch -D` only once every commit is on the local or remote default branch, or
+  patch-equivalent to one; remote branches are never deleted.
 
 Relied on:
 
