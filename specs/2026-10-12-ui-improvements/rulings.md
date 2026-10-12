@@ -26,3 +26,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: deleting the test, which would leave C2 unguarded in the UI.
 - **If wrong**: one test to remove.
 - **Where**: task 1, `packages/web/src/__tests__/editor.test.tsx`
+
+## R3: A priority key is counted over the whole file, and a draft's name is slugged
+
+- **Decision**: `priorities::keys` numbers repeated keys over every section of `PRIORITIES.md`, in
+  the file's order, so a "Slack" in Now and one in Later are `slack` and `slack-2`. A linked draft's
+  key is `slug::from_text` of its file name without `.md`, and falls back to the line's text when
+  that slug is empty. `FeatureView.mockups` is read with the feature's files, so it follows the same
+  source: the working tree when the branch is checked out, otherwise its tip.
+- **Rationale**: the spec says "a key already taken by an earlier entry of the file", and the task
+  view's address `/priorities/<key>` names no section. The spec also says "the slug of the linked
+  draft's file name", which a stem alone would not guarantee.
+- **Alternatives considered**: numbering per section, which gives two lines the same address; the
+  raw stem, which could hold characters an address must escape.
+- **If wrong**: one function, `keys`, in `crates/core/src/files/priorities.rs`.
+- **Where**: task 3, `crates/core/src/files/priorities.rs`, `crates/core/src/workspace.rs`

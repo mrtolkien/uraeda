@@ -74,6 +74,32 @@ test("adds a priority line", async () => {
   expect(next.entries.at(-1).text).toBe("Show the agent's last commit");
 });
 
+test("puts a removed priority line back", async () => {
+  const app = testApp();
+  const [read] = await byId(app, "Priorities", ["priorities"], ["id", "hash"]);
+  const removed = await mutate(app, "priorities.remove", { entry: "later-1", hash: read.hash }, [
+    "id",
+    "hash",
+  ]);
+
+  const result = await mutate(
+    app,
+    "priorities.insert",
+    {
+      section: "later",
+      index: 0,
+      lines: ["- Nix + Docker based execution environments", "  - with a cache"],
+      hash: removed.data.hash,
+    },
+    ["id", "sections", "changes"],
+  );
+
+  expect(result.data.changes).toBe(0);
+  const later = result.data.sections.find((s: { section: string }) => s.section === "later");
+  expect(later.entries[0].key).toBe("nix-docker-based-execution-environments");
+  expect(later.entries[0].nested).toEqual(["  - with a cache"]);
+});
+
 /** SC-001 */
 test("reads the workspace of 20 feature branches in under 500 ms", async () => {
   const app = testApp(repoWithBranches(16));

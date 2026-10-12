@@ -412,30 +412,34 @@ git commit -m "fix(ui-improvements): a missing file says so instead of loading f
 
 - Modify: `crates/core/src/files/priorities.rs` (`EntryItem.key`, `pub fn keys`,
   `pub fn insert_entry`)
-- Modify: `crates/core/src/workspace.rs` (`PriorityEntry.key`), `crates/core/src/view.rs`
-  (`PriorityView.key`, `FeatureView.mockups`)
+- Modify: `crates/core/src/workspace.rs` (`PriorityEntry.key`, `Feature.mockups`, read with the
+  feature's files), `crates/core/src/view.rs` (`PriorityView.key`, `FeatureView.mockups`)
 - Modify: `crates/core/src/actions/priorities.rs` (`insert`), `crates/core/src/api.rs`
   (`insert_priority`)
 - Modify: `crates/binding/src/lib.rs` (`insertPriority`), `packages/binding/index.d.ts`
 - Modify: `packages/server/src/fate/mutations.ts` (`priorities.insert`), `views.ts` on both sides
-- Test: `crates/core/tests/priorities.rs`, `crates/core/tests/api.rs`
+  (`FeatureView` selects `mockups`; the web's `DraftView` entry selects `key`)
+- Test: `crates/core/tests/priorities.rs`, `crates/core/tests/api.rs`,
+  `packages/server/src/__tests__/fate.test.ts` (the `priorities.insert` mutation)
 
 **Interfaces:**
 
 - Produces: `EntryItem.key: string` and `PriorityView.key: string`, computed by
-  `priorities::keys(entries: &[Entry]) -> Vec<String>`: the linked draft's file stem when the entry
-  links `drafts/<x>.md`; otherwise `slug::from_text` of the entry's plain text (its link text, not
-  its target); `line` when that slug is empty; a key already used earlier in the file gets `-2`,
-  `-3`, ...
+  `priorities::keys(entries: &[Entry]) -> Vec<String>`: the slug of the linked draft's file stem
+  when the entry links a file of `specs/drafts/` ([R3](rulings.md)); otherwise `slug::from_text` of
+  the entry's plain text (its link text, not its target); `line` when that slug is empty; a key
+  already used earlier in the file gets `-2`, `-3`, ...
 - Produces:
   `actions::priorities::insert(place, section: Section, index: usize, lines: &[String], previous: &str) -> Result<String, ActionError>`,
   using the existing private `insert`; binding
-  `insertPriority(repo, section, index, lines, previous): Promise<Priorities>`; mutation
+  `insertPriority(repo, section, index, lines, previous): Promise<Priorities>`, through
+  `api::insert_priority(repo, section_id: &str, index: u32, lines: &[String], previous: &str) -> Result<Priorities>`
+  and `files::priorities::insert_entry(text, section, index, lines) -> Option<String>`; mutation
   `priorities.insert` with input `{ section, index, lines, hash }`.
 - Produces: `FeatureView.mockups: Vec<String>`, the `.html` file names of `<folder>/mockups/`, from
   the worktree when there is one, else the branch's tip, sorted.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/priorities.rs
@@ -482,21 +486,24 @@ fn a_feature_lists_its_mockups() {
 }
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test priorities --test api`
 - Expected: FAIL to compile, `no field key on type EntryItem`.
 
-- [ ] **Step 3: Implement** the interfaces above; `add_on_branch` is a new helper of
-      `crates/core/tests/common` committing a file on a fixture branch. Rebuild the binding.
+- [x] **Step 3: Implement** the interfaces above; `add_on_branch` is a new `TestRepo` method of
+      `crates/core/tests/common/repo.rs` committing a file on another branch. The Rust tests have no
+      `fixture_repo()`: the priorities tests build a repository whose `PRIORITIES.md` is the
+      fixture's, and the mockup test uses `api.rs`'s `repo()` and its `2026-10-11-web-ui` branch.
+      Rebuild the binding.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run:
   `cargo test --workspace --exclude uraeda-binding && vp run --filter uraeda-binding build && vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages/binding packages/server packages/web/src/views.ts

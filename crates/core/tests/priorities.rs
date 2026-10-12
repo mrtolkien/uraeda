@@ -3,6 +3,7 @@ mod common;
 use common::repo::TestRepo;
 use uraeda_core::actions::priorities as actions;
 use uraeda_core::actions::{ActionError, draft, place};
+use uraeda_core::api;
 use uraeda_core::files::document::hash;
 use uraeda_core::files::priorities::{self, EntryChange, Section};
 use uraeda_core::git::Git;
@@ -325,4 +326,111 @@ fn a_line_is_drafted_by_its_id() {
             .contains("- [Git listener process](drafts/git-listener-process.md)\n")
     );
     assert_eq!(repo.subjects("main").len(), 2);
+}
+
+/// Review focus 1 and 2, and the edge case of two lines with the same text.
+#[test]
+fn keys() {
+    let cases = [
+        (
+            "- Claude Code runner (triggered manually)",
+            vec!["claude-code-runner-triggered-manually"],
+        ),
+        (
+            "- [Git listener process](drafts/git-listener.md)",
+            vec!["git-listener"],
+        ),
+        (
+            "- [Web UI for the workflow files](/specs/2026-10-11-web-ui/proposal.md)",
+            vec!["web-ui-for-the-workflow-files"],
+        ),
+        (
+            "- Nvim plugin\n- Nvim plugin",
+            vec!["nvim-plugin", "nvim-plugin-2"],
+        ),
+        ("- 🚀\n- …", vec!["line", "line-2"]),
+    ];
+    for (items, expected) in cases {
+        let text = format!("# Priorities\n\n## Now\n\n## Next\n\n{items}\n");
+        let read = priorities::read(&text, None);
+        let keys: Vec<&str> = read.sections[1]
+            .entries
+            .iter()
+            .map(|e| e.key.as_str())
+            .collect();
+        assert_eq!(keys, expected, "{items}");
+    }
+}
+
+/// A key already used in an earlier section counts too.
+#[test]
+fn keys_are_unique_across_sections() {
+    let text = "# Priorities\n\n## Now\n\n- Slack\n\n## Later\n\n- Slack\n";
+    let read = priorities::read(text, None);
+    assert_eq!(read.sections[0].entries[0].key, "slack");
+    assert_eq!(read.sections[2].entries[0].key, "slack-2");
+}
+
+/// A repository on `main` with the fixture's `PRIORITIES.md`.
+fn fixture_repo() -> TestRepo {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write(
+        "specs/PRIORITIES.md",
+        &std::fs::read_to_string(common::fixture("repo/main/specs/PRIORITIES.md")).unwrap(),
+    );
+    repo.commit("chore: specs");
+    repo
+}
+
+/// Undo of a deletion: the entry comes back, nested lines included, byte for byte.
+#[test]
+fn insert_puts_a_removed_line_back_with_its_nested_lines() {
+    let repo = fixture_repo();
+    let before = repo.read("specs/PRIORITIES.md");
+    let read = api::read_priorities(repo.path()).unwrap();
+    let removed = api::remove_priority(repo.path(), "later-1", &read.hash).unwrap();
+
+    api::insert_priority(
+        repo.path(),
+        "later",
+        0,
+        &[
+            "- Nix + Docker based execution environments".into(),
+            "  - with a cache".into(),
+        ],
+        &removed.hash,
+    )
+    .unwrap();
+
+    assert_eq!(repo.read("specs/PRIORITIES.md"), before);
+}
+
+/// The edge case of an Undo after the file changed: past the end, the entry lands last.
+#[test]
+fn insert_past_the_end_appends_and_a_stale_hash_is_refused() {
+    let repo = fixture_repo();
+    let read = api::read_priorities(repo.path()).unwrap();
+
+    let inserted =
+        api::insert_priority(repo.path(), "next", 99, &["- Slack".into()], &read.hash).unwrap();
+
+    let next: Vec<&str> = inserted.sections[1]
+        .entries
+        .iter()
+        .map(|e| e.text.as_str())
+        .collect();
+    assert_eq!(
+        next,
+        [
+            "Claude Code runner (triggered manually)",
+            "[Git listener process](drafts/git-listener.md)",
+            "Slack"
+        ]
+    );
+    let error = api::insert_priority(repo.path(), "next", 0, &["- Slack".into()], "x").unwrap_err();
+    assert_eq!(
+        error.to_string(),
+        "PRIORITIES.md changed on disk. Your change was not applied."
+    );
 }

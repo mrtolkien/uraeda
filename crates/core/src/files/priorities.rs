@@ -256,6 +256,8 @@ impl Section {
 pub struct EntryItem {
     /// `next-2`: its section and its position in it, from 1.
     pub id: String,
+    /// Its address, stable while its text or draft stays: see [`keys`].
+    pub key: String,
     /// The markdown of its text, after its marker, on one line.
     pub text: String,
     pub spans: Vec<super::document::Span>,
@@ -289,6 +291,43 @@ pub struct Priorities {
     pub changes: u32,
 }
 
+/// Each entry's key, in order: the slug of its linked draft's file name when it links a file of
+/// `specs/drafts/`, otherwise the slug of its text, links replaced by their text, or `line` when
+/// that slug is empty. A key already taken by an earlier entry gets `-2`, `-3`, ...
+pub fn keys(entries: &[Entry]) -> Vec<String> {
+    let mut taken = std::collections::HashSet::new();
+    entries
+        .iter()
+        .map(|entry| {
+            let draft = entry
+                .link
+                .as_deref()
+                .and_then(|link| crate::workspace::resolve("specs", link))
+                .and_then(|path| {
+                    let name = path.strip_prefix("specs/drafts/")?;
+                    Some(crate::slug::from_text(
+                        name.strip_suffix(".md").unwrap_or(name),
+                    ))
+                })
+                .filter(|slug| !slug.is_empty());
+            let base = draft.unwrap_or_else(|| crate::slug::from_text(&entry.text));
+            let base = if base.is_empty() {
+                "line".to_string()
+            } else {
+                base
+            };
+            let mut key = base.clone();
+            let mut count = 1;
+            while taken.contains(&key) {
+                count += 1;
+                key = format!("{base}-{count}");
+            }
+            taken.insert(key.clone());
+            key
+        })
+        .collect()
+}
+
 fn entry_id(entry: &Entry) -> String {
     format!("{}-{}", entry.section.id(), entry.position)
 }
@@ -308,6 +347,7 @@ pub fn read(text: &str, committed: Option<&str>) -> Priorities {
     let unix = text.replace("\r\n", "\n");
     let lines: Vec<&str> = unix.split('\n').collect();
     let entries = parse(&unix);
+    let keys = keys(&entries);
     let sections = [
         Section::Now,
         Section::Next,
@@ -320,12 +360,14 @@ pub fn read(text: &str, committed: Option<&str>) -> Priorities {
         title: section.title().to_string(),
         entries: entries
             .iter()
-            .filter(|entry| entry.section == section)
-            .map(|entry| {
+            .zip(&keys)
+            .filter(|(entry, _)| entry.section == section)
+            .map(|(entry, key)| {
                 let markdown = entry_markdown(&lines, entry);
                 let doc = super::document::parse(&markdown, "specs");
                 EntryItem {
                     id: entry_id(entry),
+                    key: key.clone(),
                     spans: doc
                         .blocks
                         .first()
@@ -541,6 +583,23 @@ fn insert(text: &str, section: Section, index: usize, item: &[String]) -> String
         lines.push(String::new());
     }
     lines.join("\n")
+}
+
+/// Inserts the lines of an entry, nested lines included, as written, before the entry at `index`
+/// of `section`, or at its end when `index` is past it. `None` when there is no line.
+pub fn insert_entry(
+    text: &str,
+    section: Section,
+    index: usize,
+    lines: &[String],
+) -> Option<String> {
+    if lines.is_empty() {
+        return None;
+    }
+    super::with_unix_newlines(text, |text| {
+        Ok::<_, ()>(insert(text, section, index, lines))
+    })
+    .ok()
 }
 
 /// Adds a line at the end of a section. `None` when the line is empty.

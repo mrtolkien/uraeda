@@ -282,6 +282,19 @@ pub fn add_priority(
     job(move || api::add_priority(Path::new(&repo), &section, &text, &previous))
 }
 
+/// Inserts a priority line with its nested lines, as written, before the line at `index` of a
+/// section, or at its end: Undo of a removal.
+#[napi(ts_return_type = "Promise<Priorities>")]
+pub fn insert_priority(
+    repo: String,
+    section: String,
+    index: u32,
+    lines: Vec<String>,
+    previous: String,
+) -> AsyncTask<Job<Priorities>> {
+    job(move || api::insert_priority(Path::new(&repo), &section, index, &lines, &previous))
+}
+
 /// Moves a priority line before the line at `index` of a section, or to its end.
 #[napi(ts_return_type = "Promise<Priorities>")]
 pub fn move_priority(

@@ -246,3 +246,28 @@ fn drafting_is_refused_once_the_priorities_changed() {
     assert_eq!(error.code, "conflict");
     api::create_draft(repo.path(), "now-1", &edited.hash).unwrap();
 }
+
+/// C1: a feature lists its mockups, from its branch's tip, or from its working tree when checked
+/// out.
+#[test]
+fn a_feature_lists_its_mockups() {
+    let repo = repo();
+    repo.add_on_branch(
+        FOLDER,
+        "specs/2026-10-11-web-ui/mockups/repeat.html",
+        "<p>x</p>",
+    );
+
+    assert_eq!(
+        api::read_feature(repo.path(), FOLDER).unwrap().mockups,
+        vec!["repeat.html"]
+    );
+
+    repo.switch(FOLDER);
+    repo.write("specs/2026-10-11-web-ui/mockups/a.html", "<p>a</p>");
+    repo.write("specs/2026-10-11-web-ui/mockups/notes.txt", "notes");
+    assert_eq!(
+        api::read_feature(repo.path(), FOLDER).unwrap().mockups,
+        vec!["a.html", "repeat.html"]
+    );
+}

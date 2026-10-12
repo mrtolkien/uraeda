@@ -264,6 +264,21 @@ export const mutations = {
         select,
       ),
   },
+  "priorities.insert": {
+    type: "Priorities",
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ section: string; index: number; lines: Array<string>; hash: string }>) =>
+      priorities(
+        ctx,
+        await refusable(() =>
+          ctx.binding.insertPriority(ctx.repo, input.section, input.index, input.lines, input.hash),
+        ),
+        select,
+      ),
+  },
   "priorities.move": {
     type: "Priorities",
     resolve: async ({
