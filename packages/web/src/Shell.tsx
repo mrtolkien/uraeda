@@ -82,11 +82,13 @@ function Heading({ repository, slot }: { repository: string; slot: ReactNode }) 
   );
 }
 
+/** The theme's three choices, small enough to fit the navigation's default width. */
 function ThemeSwitch() {
   const [mode, setMode] = useThemeMode();
   return (
     <SegmentedControl
       label="Theme"
+      size="sm"
       value={mode}
       onChange={(value: string) => setMode(value as ThemeMode)}
     >
