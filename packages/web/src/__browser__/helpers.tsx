@@ -19,7 +19,9 @@ afterEach(() => {
 
 /** Renders the UI at a path, against the test server's own `/fate`, and waits for a text. */
 export async function show(path: string, text: string) {
-  window.history.replaceState(null, "", path);
+  // A history entry of its own: the test files share the frame's history, and Back must not reach an
+  // entry another test left.
+  window.history.pushState(null, "", path);
   await mount(text);
 }
 
@@ -122,24 +124,57 @@ export function checkTextSizes() {
   }
 }
 
-/** The most characters on one line of an element's text. */
+/** Ordinary lowercase text, spaces included, whose width gives a font's average character. */
+const SAMPLE = "the reading measure holds about seventy characters of ordinary text on each line ";
+
+/**
+ * How many average characters of its own font the longest line of an element holds: its width over
+ * the width of an average character, so the count does not depend on the text, nor on the fonts a
+ * machine has.
+ */
 function longestLine(element: Element) {
-  const lines = new Map<number, number>();
+  // Lines by the block that holds them and their bottom: a toggle's letter or badge beside its text
+  // is not part of its text's lines.
+  const lines = new Map<string, { left: number; right: number; block: Element }>();
+  const blocks = new Map<Element, number>();
   const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
   const range = document.createRange();
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    const text = node.textContent ?? "";
-    for (let i = 0; i < text.length; i++) {
-      range.setStart(node, i);
-      range.setEnd(node, i + 1);
-      const rect = range.getClientRects()[0];
-      if (rect && rect.width > 0) {
-        const line = Math.round(rect.bottom);
-        lines.set(line, (lines.get(line) ?? 0) + 1);
+    let block = node.parentElement!;
+    while (block !== element && getComputedStyle(block).display.startsWith("inline")) {
+      block = block.parentElement!;
+    }
+    if (!blocks.has(block)) {
+      blocks.set(block, blocks.size);
+    }
+    range.selectNodeContents(node);
+    for (const rect of range.getClientRects()) {
+      if (rect.width === 0) {
+        continue;
       }
+      const key = `${blocks.get(block)}:${Math.round(rect.bottom)}`;
+      const seen = lines.get(key);
+      lines.set(key, {
+        left: Math.min(seen?.left ?? rect.left, rect.left),
+        right: Math.max(seen?.right ?? rect.right, rect.right),
+        block,
+      });
     }
   }
-  return Math.max(0, ...lines.values());
+  return Math.max(
+    0,
+    ...[...lines.values()].map(({ left, right, block }) =>
+      Math.round((right - left) / averageCharacter(block)),
+    ),
+  );
+}
+
+/** The width of an average character of an element's font. */
+function averageCharacter(element: Element) {
+  const style = getComputedStyle(element);
+  const context = document.createElement("canvas").getContext("2d")!;
+  context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  return context.measureText(SAMPLE).width / SAMPLE.length;
 }
 
 /**

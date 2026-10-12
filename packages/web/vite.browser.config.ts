@@ -113,6 +113,9 @@ export default defineConfig({
     include: ["src/__browser__/**/*.test.tsx"],
     globalSetup: ["src/__browser__/setup.ts"],
     testTimeout: 30_000,
+    // Test files run in frames of one page, whose history they share: one file's Back would move
+    // another's. One file at a time, in each browser.
+    fileParallelism: false,
     browser: {
       enabled: true,
       headless: true,

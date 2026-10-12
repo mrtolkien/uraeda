@@ -1,6 +1,6 @@
 // US3 scenario 5: on a wide screen, the task view opens in a pane beside home, which stays usable;
 // Back closes it.
-import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 import { show } from "./helpers.tsx";
@@ -10,10 +10,11 @@ test("on a wide screen, the task view opens beside home (US3 5)", async () => {
     return;
   }
   await show("/", "Claude Code runner");
-  await act(async () => {
-    fireEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
-  });
-  expect(window.location.pathname).toBe("/priorities/claude-code-runner-triggered-manually");
+  // A real click: WebKit skips, on Back, an entry that added another without a user's gesture.
+  await userEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
+  await expect
+    .poll(() => window.location.pathname)
+    .toBe("/priorities/claude-code-runner-triggered-manually");
   expect(await screen.findByRole("radio", { name: "Next", checked: true })).toBeTruthy();
   // Home stays beside it.
   expect(screen.getByRole("link", { name: /Git listener process/ })).toBeTruthy();

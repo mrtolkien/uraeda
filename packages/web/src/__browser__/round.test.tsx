@@ -1,7 +1,7 @@
 // US1 scenarios 6, 7, and 8, and the review's C3: on a wide screen, the round's index is a sticky
 // column beside the questions, `n` and `p` move between blank questions, Back returns to the same
 // question, and at a 1200 px window with the navigation open, the questions keep 600 px.
-import { act, fireEvent, screen } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
@@ -72,14 +72,14 @@ test("Back returns to the question at the top (US1 8)", async () => {
   // The position is saved once the scrolling stops.
   await new Promise((resolve) => setTimeout(resolve, 700));
 
-  await act(async () => {
-    fireEvent.click(screen.getByRole("link", { name: "discovery" }));
-  });
+  // A real click: WebKit skips, on Back, an entry that added another without a user's gesture.
+  await userEvent.click(screen.getByRole("link", { name: "discovery" }));
   await expect.poll(() => window.location.pathname).toBe(`/f/${FOLDER}/discovery-01.md`);
   await expect
     .poll(() => document.body.textContent?.includes("A web UI for a spec workflow has four parts."))
     .toBe(true);
   await act(async () => window.history.back());
+  await expect.poll(() => window.location.pathname).toBe(PAGE);
 
   expect(screen.queryByText("Loading…")).toBeNull();
   await expect.poll(() => offset("Q2")).toBeLessThan(3);
