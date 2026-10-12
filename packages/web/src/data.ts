@@ -2,6 +2,7 @@
 // read again when the page is shown again, as iOS may have dropped its connection.
 import { useEffect } from "react";
 import { useFateClient, useLiveView, useRequest, useView } from "react-fate";
+import type { Priorities } from "uraeda-server/fate";
 import {
   DraftView,
   FeatureView,
@@ -63,17 +64,24 @@ export function usePriorities() {
 }
 
 /**
- * The hash of the priorities as they are now on disk, read outside a component: for a change made
- * after others, like an Undo.
+ * The priorities as they are now on disk, read outside a component: for a change made after
+ * others, like an Undo.
  */
-export async function readPrioritiesHash(fate: ReturnType<typeof useFateClient>): Promise<string> {
+export async function readPriorities(
+  fate: ReturnType<typeof useFateClient>,
+): Promise<Pick<Priorities, "hash" | "sections">> {
   const { priorities } = await fate.request(
     { priorities: { id: PRIORITIES_ID, view: PrioritiesView } },
     { mode: "network-only" },
   );
   const { data } = await fate.readView(PrioritiesView, priorities);
   // fate types the request's root as any entity: the view gives the priorities' fields.
-  return (data as unknown as { hash: string }).hash;
+  return data as unknown as Pick<Priorities, "hash" | "sections">;
+}
+
+/** The hash of the priorities as they are now on disk: see `readPriorities`. */
+export async function readPrioritiesHash(fate: ReturnType<typeof useFateClient>): Promise<string> {
+  return (await readPriorities(fate)).hash;
 }
 
 export function useDraft(path: string) {

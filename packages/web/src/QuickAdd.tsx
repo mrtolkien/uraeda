@@ -7,7 +7,7 @@ import { TextArea } from "@astryxdesign/core/TextArea";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Suspense, useState } from "react";
 import { useFateClient } from "react-fate";
-import { readPrioritiesHash, usePriorities } from "./data.ts";
+import { readPriorities, usePriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { Overlay } from "./layout/Overlay.tsx";
 import { useUndoToast } from "./layout/useUndoToast.ts";
@@ -20,8 +20,11 @@ const TITLES: Record<string, string> = {
   blocked: "Blocked",
 };
 
+/** The line ＋ added, as the core wrote it: its key, and its text after its marker. */
+type Added = { key: string; text: string };
+
 /** The form: it reads the priorities when it opens, for the version it adds to. */
-function AddForm({ onAdded }: { onAdded: (section: string, entry: string | undefined) => void }) {
+function AddForm({ onAdded }: { onAdded: (section: string, added: Added | undefined) => void }) {
   const fate = useFateClient();
   const priorities = usePriorities();
   const [text, setText] = useState("");
@@ -41,7 +44,7 @@ function AddForm({ onAdded }: { onAdded: (section: string, entry: string | undef
     // The line just added ends its section.
     const added = result.result?.sections.find((s) => s.section === section)?.entries.at(-1);
     setText("");
-    onAdded(section, added?.id);
+    onAdded(section, added && { key: added.key, text: added.text });
   };
 
   return (
@@ -80,16 +83,18 @@ export function QuickAdd() {
   const [open, setOpen] = useState(false);
   const toast = useUndoToast();
 
-  const added = (section: string, entry: string | undefined) => {
+  const added = (section: string, line: Added | undefined) => {
     setOpen(false);
     toast(`Added to ${TITLES[section]}, not committed`, async () => {
-      if (!entry) {
-        return "The line was not found.";
+      // Found again in the file as it is now, by its text: the line it added, wherever it is.
+      const now = await readPriorities(fate);
+      const same = now.sections.flatMap((s) => s.entries).filter((e) => e.text === line?.text);
+      const entry = same.find((e) => e.key === line?.key) ?? (same.length === 1 ? same[0] : null);
+      if (!line || !entry) {
+        return `Could not undo: "${line?.text ?? ""}" is no longer in PRIORITIES.md.`;
       }
-      // Removed by its place, over the file as it is now: an edit since is removed with it.
-      const hash = await readPrioritiesHash(fate);
       const result = await fate.mutations.priorities.remove({
-        input: { entry, hash },
+        input: { entry: entry.id, hash: now.hash },
         view: PrioritiesView,
       });
       return result.error ? refusal(result.error).message : undefined;
