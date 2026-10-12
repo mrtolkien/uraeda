@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeAll, expect, test } from "vite-plus/test";
+import { navigate } from "../routes.tsx";
 import { fixtureRepo, git, renderPage } from "./helpers.tsx";
 
 const WEB_UI = "2026-10-11-web-ui";
@@ -193,4 +194,18 @@ test("a refused run says why, and the commit stays done", async () => {
     "discovery(web-ui): answer round 01",
   );
   expect(agent.starts).toHaveLength(0);
+});
+
+/** SC-001 */
+test("SC-001: the feature page shows the run within 2 seconds", async () => {
+  await renderPage(ROUND, answeredRepo(), { agent: true });
+  const button = await screen.findByRole("button", { name: "Commit and continue" });
+
+  const clicked = performance.now();
+  await tap(button);
+  await screen.findByText("The agent is working on the spec.");
+  await act(async () => navigate(`/f/${WEB_UI}`));
+
+  expect(await screen.findByText("Working on Spec")).toBeTruthy();
+  expect(performance.now() - clicked).toBeLessThan(2000);
 });

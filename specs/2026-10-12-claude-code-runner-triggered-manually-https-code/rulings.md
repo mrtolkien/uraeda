@@ -253,3 +253,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   next to "Commit".
 - **If wrong**: two labels in `EditorPage.tsx`.
 - **Where**: task 6.
+
+## R21: The run log alone may import Astryx `Markdown`
+
+- **Decision**: the stack test that forbids markdown parsers in the sources lets
+  `packages/web/src/RunLog.tsx` import `@astryxdesign/core/Markdown`. Every other file is checked as
+  before.
+- **Rationale**: the stack decision now lets the UI render an agent's messages, which are not
+  workflow files, with Astryx's `Markdown` (spec review, C3), and the test predates it.
+- **Alternatives considered**: dropping `Markdown` from the test's list, which would let any page
+  render workflow files with it.
+- **If wrong**: a second file that renders agent messages joins the exception.
+- **Where**: task 7.
+
+## R22: "Allow and continue" shows when a run can start
+
+- **Decision**: a blocked action always shows, in its banner. Its "Allow and continue" shows only
+  when the feature waits on an agent and Claude Code is available, as "Try again" does.
+- **Rationale**: "Allow and continue" starts a run, which the runner refuses on a feature waiting on
+  the human ("Nothing for the agent: the feature waits on you."). A button that can only be refused
+  would cost the human a tap.
+- **Alternatives considered**: the button on every blocked action, as the spec's mockup draws it on
+  a run done at a gate, then the refusal under it.
+- **If wrong**: one condition in `AgentPanel.tsx`.
+- **Where**: task 7.
