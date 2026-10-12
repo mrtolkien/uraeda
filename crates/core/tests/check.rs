@@ -4,8 +4,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use common::repository_file;
+use common::texts::record;
 use tempfile::TempDir;
 use uraeda_core::check;
+use uraeda_core::files::markdown::{Document, slug};
 use uraeda_core::workspace::Problem;
 
 /// A copy of the skill's example `specs/` folder, valid as written.
@@ -14,6 +16,7 @@ struct Example {
 }
 
 const FEATURE: &str = "specs/2026-10-06-recurring-tasks";
+const RECORD: &str = "specs/done/2026-10-06-recurring-tasks.md";
 
 impl Example {
     fn new() -> Example {
@@ -197,6 +200,31 @@ fn each_rule() {
             format!("{FEATURE}/spec-review.md:8: C1 quotes no line"),
         ),
         (
+            "record without kind",
+            |e| e.edit(RECORD, "kind: feature\n", ""),
+            format!("{RECORD}: no \"kind\" field"),
+        ),
+        (
+            "record kind",
+            |e| e.edit(RECORD, "kind: feature", "kind: chore"),
+            format!("{RECORD}:2: kind \"chore\" is not one of feature, bug"),
+        ),
+        (
+            "record finished date",
+            |e| e.edit(RECORD, "finished: 2026-10-13", "finished: 2026-13-01"),
+            format!("{RECORD}:3: finished \"2026-13-01\" is not a date: YYYY-MM-DD"),
+        ),
+        (
+            "record numbering",
+            |e| e.edit(RECORD, "#### Q2: When does", "#### Q3: When does"),
+            format!("{RECORD}:{}: Q3 should be Q2", record_line("#### Q2: When does")),
+        ),
+        (
+            "record title",
+            |e| e.edit(RECORD, "# Record: ", "# Done: "),
+            format!("{RECORD}:{}: the title starts with \"Record: \"", record_line("# Record: ")),
+        ),
+        (
             "priorities without a section",
             |e| e.edit("specs/PRIORITIES.md", "## Blocked", "## Elsewhere"),
             "specs/PRIORITIES.md: missing section \"## Blocked\"".into(),
@@ -247,6 +275,10 @@ fn answer_line(question: usize) -> usize {
             .position(|line| line.starts_with("**Answer:**"))
             .unwrap()
         + 1
+}
+
+fn record_line(needle: &str) -> usize {
+    line_of(RECORD, needle)
 }
 
 fn link_line(needle: &str) -> usize {
@@ -310,4 +342,44 @@ fn a_file_outside_specs() {
             summary(&problems)
         );
     }
+}
+
+/// US1.2
+#[test]
+fn a_record_keeps_the_anchors_of_its_questions() {
+    let example = Example::new();
+    let record = Document::parse(&example.read(RECORD)).anchors();
+    let questions: Vec<String> =
+        Document::parse(&example.read(&format!("{FEATURE}/clarifications-01.md")))
+            .headings
+            .iter()
+            .filter(|h| h.level == 2 && h.text.starts_with('Q'))
+            .map(|h| slug(&h.text))
+            .collect();
+
+    assert_eq!(questions.len(), 7);
+    for anchor in questions {
+        assert!(record.contains(&anchor), "{anchor}");
+    }
+}
+
+#[test]
+fn a_bug_record_needs_no_questions() {
+    let example = Example::new();
+    example.write(
+        "specs/done/2026-10-14-completed-tasks-reappear.md",
+        &record("bug", "Completed tasks reappear"),
+    );
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+}
+
+/// Review focus 1
+#[test]
+fn files_of_done_that_are_not_markdown_are_ignored() {
+    let example = Example::new();
+    example.write("specs/done/.gitkeep", "");
+    example.write("specs/done/notes.txt", "notes");
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
 }

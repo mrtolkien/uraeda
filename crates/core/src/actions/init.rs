@@ -73,7 +73,7 @@ pub fn run(root: &Path, skill: bool) -> Result<Vec<InitLine>, ActionError> {
         write(&path, template.as_bytes())?;
         lines.push(InitLine::Created(shown));
     }
-    for folder in ["drafts", "backlog", "decisions", "bugs"] {
+    for folder in ["drafts", "backlog", "decisions", "bugs", "done"] {
         let dir = root.join("specs").join(folder);
         if dir.exists() {
             continue;

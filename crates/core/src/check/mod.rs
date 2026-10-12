@@ -26,6 +26,8 @@ pub(crate) enum Checked {
     Workflow(FileKind),
     Decision,
     Priorities,
+    /// The record of a finished feature or bug, in `specs/done/`.
+    Record,
 }
 
 /// A file being checked, with the other files of its folder.
@@ -105,6 +107,13 @@ fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
     if parent.as_deref() == Some("decisions") && name.ends_with(".md") {
         return Some(Checked::Decision);
     }
+    let grandparent = dir.parent().and_then(Path::file_name);
+    if parent.as_deref() == Some("done")
+        && grandparent.is_some_and(|name| name == "specs")
+        && name.ends_with(".md")
+    {
+        return Some(Checked::Record);
+    }
     if name == "PRIORITIES.md" {
         return Some(Checked::Priorities);
     }
@@ -179,6 +188,9 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
         Checked::Priorities => sections::check_priorities(file, &document, &mut problems),
         Checked::Workflow(FileKind::Review) => check_review(file, &mut problems),
         _ => sections::check_sections(file, &document, &mut problems),
+    }
+    if file.kind == Checked::Record {
+        sections::check_record_numbering(file, &document, &mut problems);
     }
     if let Checked::Workflow(FileKind::Clarifications) = file.kind {
         answers::check_answers(file, front.as_ref(), &mut problems);

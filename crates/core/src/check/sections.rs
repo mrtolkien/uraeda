@@ -20,6 +20,7 @@ fn template_path(kind: Checked) -> Option<&'static str> {
         Checked::Workflow(FileKind::DataModel) => "YYYY-MM-DD-feature-slug/data-model.md",
         Checked::Workflow(FileKind::Assessment) => "bugs/YYYY-MM-DD-bug-slug/assessment.md",
         Checked::Decision => "decisions/decision-topic.md",
+        Checked::Record => "done/YYYY-MM-DD-feature-slug.md",
         _ => return None,
     };
     Some(path)
@@ -143,8 +144,29 @@ pub(super) fn check_sections(file: &File<'_>, document: &Document, problems: &mu
             Some(_) => {}
         }
     }
-    // Required sections and items.
-    for slot in slots.iter().filter(|s| !s.optional && s.level >= 2) {
+    // Required sections and items. A heading under an optional level-2 section is required only
+    // when that section is there.
+    let mut parent: Option<&TemplateHeading> = None;
+    let mut absent_parents = Vec::new();
+    for (index, slot) in slots.iter().enumerate() {
+        if slot.level == 2 {
+            parent = Some(slot);
+        } else if slot.level > 2
+            && let Some(parent) = parent
+            && parent.optional
+            && !document
+                .headings
+                .iter()
+                .any(|h| h.level == 2 && matches(&parent.slot, h))
+        {
+            absent_parents.push(index);
+        }
+    }
+    for (_, slot) in slots
+        .iter()
+        .enumerate()
+        .filter(|(index, s)| !s.optional && s.level >= 2 && !absent_parents.contains(index))
+    {
         let present = match &slot.slot {
             Slot::Fixed(_) | Slot::Item(_) => document
                 .headings
@@ -221,6 +243,47 @@ pub(super) fn check_priorities(file: &File<'_>, document: &Document, problems: &
                 "sections.missing",
                 format!("missing section \"## {section}\""),
             ));
+        }
+    }
+}
+
+/// A record's rounds, `### Round 01`, `### Round 02`, ..., and the questions of each round,
+/// `#### Q1:`, `#### Q2:`, ..., follow-ups like `Q2.B` aside, are numbered from 1 without gaps.
+pub(super) fn check_record_numbering(
+    file: &File<'_>,
+    document: &Document,
+    problems: &mut Vec<Problem>,
+) {
+    let mut round = 0;
+    let mut question = 0;
+    for heading in &document.headings {
+        if heading.level == 3
+            && let Some(number) = heading.text.strip_prefix("Round ")
+        {
+            round += 1;
+            question = 0;
+            if number.parse::<u32>().ok() != Some(round) || number.len() != 2 {
+                problems.push(file.problem(
+                    Some(heading.line),
+                    "sections.numbering",
+                    format!("Round {number} should be Round {round:02}"),
+                ));
+            }
+        } else if heading.level == 4
+            && let Some(rest) = heading.text.strip_prefix('Q')
+        {
+            let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
+            if digits.is_empty() || !rest[digits.len()..].starts_with(':') {
+                continue;
+            }
+            question += 1;
+            if digits.parse::<u32>().ok() != Some(question) {
+                problems.push(file.problem(
+                    Some(heading.line),
+                    "sections.numbering",
+                    format!("Q{digits} should be Q{question}"),
+                ));
+            }
         }
     }
 }

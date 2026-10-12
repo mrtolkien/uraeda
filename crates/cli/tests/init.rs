@@ -22,6 +22,7 @@ fn sets_up_specs_and_the_skill_from_a_subfolder() {
         "specs/backlog/.gitkeep",
         "specs/decisions/.gitkeep",
         "specs/bugs/.gitkeep",
+        "specs/done/.gitkeep",
         ".agents/skills/uraeda/SKILL.md",
         ".agents/skills/uraeda/references/spec.md",
         ".agents/skills/uraeda/.ura-manifest",

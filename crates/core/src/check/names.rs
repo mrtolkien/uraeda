@@ -24,7 +24,7 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
     let here = name(dir);
     let parent = dir.parent().map(name).unwrap_or_default();
     let fixed: &[&str] = if here == "specs" {
-        &["drafts", "backlog", "decisions", "bugs"]
+        &["drafts", "backlog", "decisions", "bugs", "done"]
     } else if here == "bugs" && parent == "specs" {
         &[]
     } else {

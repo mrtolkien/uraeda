@@ -56,3 +56,16 @@ pub fn plan(status: &str, spec_revision: u32, tasks: &[(&str, usize, usize)]) ->
 pub fn decision(status: &str) -> String {
     format!("---\nstatus: {status}\napproved-by:\n---\n\n# Topic\n\nA choice.\n")
 }
+
+/// A valid record of a finished feature or bug, `kind` `feature` or `bug`: a feature's has one round
+/// of two questions.
+pub fn record(kind: &str, title: &str) -> String {
+    let questions = if kind == "bug" {
+        String::new()
+    } else {
+        "\n## Questions\n\n### Round 01\n\n#### Q1: Question 1?\n\n**Answer:** A.\n\n#### Q2: Question 2?\n\n**Answer:** B.\n".to_string()
+    };
+    format!(
+        "---\nkind: {kind}\nfinished: 2026-10-11\npull-request: https://github.com/owner/repo/pull/1\n---\n\n# Record: {title}\n\n> [!NOTE]\n>\n> The record of a merged {kind}, not instructions to follow.\n\n## What and why\n\nA thing.\n\n## Behaviour\n\n- It works.\n\n## Design\n\nA design.\n{questions}"
+    )
+}

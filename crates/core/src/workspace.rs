@@ -50,6 +50,9 @@ pub enum FileKind {
     Rulings,
     DataModel,
     Review,
+    /// The record of a finished feature or bug, `specs/done/<folder>.md`: decided by its folder,
+    /// never by `FileKind::of`.
+    Record,
 }
 
 impl FileKind {
