@@ -31,6 +31,8 @@ pub enum WhyLeft {
     Locked,
     /// Checked out outside `.worktrees/`, at this path.
     Outside(String),
+    /// The command runs inside the worktree.
+    YouAreInIt,
     /// The branch's worktree is still there.
     WorktreeLeft,
     /// The main checkout is on the branch.
@@ -71,6 +73,11 @@ pub fn clean(
             feature.folder
         )));
     }
+    // Every read and write goes through the main checkout: the caller's working tree may be the
+    // worktree removed below.
+    let here = git.root().to_path_buf();
+    let main_root = git.main_root();
+    let git = &Git::open(&main_root)?;
     let branch = folder_branch(feature.kind, &feature.folder);
     let mut cleaned = Cleaned {
         name: match feature.kind {
@@ -81,12 +88,7 @@ pub fn clean(
         left: Vec::new(),
         dry_run,
     };
-    let main_root = git.main_root();
-    let shown = |path: &Path| {
-        path.strip_prefix(&main_root)
-            .map_or_else(|_| path.to_string_lossy(), |p| p.to_string_lossy())
-            .into_owned()
-    };
+    let shown = |path: &Path| relative(&main_root, path);
 
     // The worktree.
     let mut worktree_left = false;
@@ -96,12 +98,14 @@ pub fn clean(
         .find(|record| record.branch.as_deref() == Some(branch.as_str()));
     if let Some(record) = record {
         let path = shown(&record.path);
-        let why = if record.missing {
+        let why = if record.locked {
+            Some(WhyLeft::Locked)
+        } else if record.missing {
             None
         } else if !record.path.starts_with(main_root.join(".worktrees")) {
             Some(WhyLeft::Outside(path.clone()))
-        } else if record.locked {
-            Some(WhyLeft::Locked)
+        } else if here.starts_with(&record.path) {
+            Some(WhyLeft::YouAreInIt)
         } else if Git::open(&record.path)?.has_local_changes()? {
             Some(WhyLeft::Changes)
         } else {
@@ -149,11 +153,20 @@ pub fn clean(
             .clone()
             .unwrap_or_else(|| "main".into());
         let mut bases = Vec::new();
-        if git.tip(&default).is_some() {
+        if git
+            .branches()?
+            .iter()
+            .any(|b| b.name == default && b.local.is_some())
+        {
             bases.push(default.clone());
         }
         if git.remote_tip(&default).is_some() {
             bases.push(format!("origin/{default}"));
+        }
+        if bases.is_empty() {
+            return Err(ActionError::Refused(format!(
+                "cannot tell whether {branch} is merged: no {default} branch, local or on origin"
+            )));
         }
         let names: Vec<&str> = bases.iter().map(String::as_str).collect();
         let count = git.unmerged_commits(&branch, &names)?;
@@ -172,4 +185,18 @@ pub fn clean(
         }
     }
     Ok(cleaned)
+}
+
+/// A path from the main checkout, with `..` for a path outside it: `.worktrees/x`, `../elsewhere`.
+fn relative(base: &Path, path: &Path) -> String {
+    let base: Vec<_> = base.components().collect();
+    let target: Vec<_> = path.components().collect();
+    let common = base.iter().zip(&target).take_while(|(a, b)| a == b).count();
+    let mut parts: Vec<String> = vec!["..".to_string(); base.len() - common];
+    parts.extend(
+        target[common..]
+            .iter()
+            .map(|c| c.as_os_str().to_string_lossy().into_owned()),
+    );
+    parts.join("/")
 }

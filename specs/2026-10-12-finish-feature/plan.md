@@ -1128,6 +1128,8 @@ git commit -m "docs(finish-feature): the finishing step in the skill"
 - Delete: `specs/2026-10-10-stack-decision/`, `specs/2026-10-10-cli-core/`,
   `specs/2026-10-11-web-ui/`
 - Modify: `specs/decisions/cli.md`, `git.md`, `stack.md`, `toolchain.md`, `specs/drafts/cli-tuis.md`
+- Modify: `crates/core/tests/files.rs` (`reads_the_callout_after_the_title` read the CLI core's
+  questions file: it reads the example's instead)
 - Test: `ura check specs`, `crates/core/tests/check.rs` (`this_repository_has_no_problems`)
 
 **Interfaces:**
@@ -1147,8 +1149,8 @@ git commit -m "docs(finish-feature): the finishing step in the skill"
 
 - Run:
   `cargo run -q -p uraeda-cli -- check specs && grep -rn "2026-10-10-stack-decision/\|2026-10-10-cli-core/\|2026-10-11-web-ui/" --include=*.md specs skills README.md AGENTS.md; wc -l specs/done/*.md`
-- Expected: `specs/: no problems`, no grep match, and the line counts, which go in the commit's
-  body.
+- Expected: `specs/: no problems`, no link into the three folders, and the line counts, which go in
+  the commit's body. The records' `git log -- specs/<folder>/` lines name the folders on purpose.
 
 - [x] **Step 4: Run all tests**
 

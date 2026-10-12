@@ -41,3 +41,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: an optional section of another template with required children is checked less; no
   current template has one.
 - **Where**: task 1 of the plan.
+
+## R4: Two minor findings of the final review are left for the pull request
+
+- **Decision**: the web UI's problem badge does not show on a record's row, and
+  `ura clean <merged feature>` with nothing left prints only the feature's name, with exit 0.
+- **Rationale**: neither loses work nor misleads: the problems still show in the page's Problems
+  list, and the name alone means nothing was done. The implementation step leaves minor findings to
+  the human ([implementation](/skills/uraeda/references/implementation.md#final-review)).
+- **Alternatives considered**: fixing both now, in `FeaturePage.tsx` and `crates/cli/src/clean.rs`.
+- **If wrong**: a one-line change each.
+- **Where**: the final review.
+
+## R5: `ura clean` leaves a worktree it runs in, and reads git from the main checkout
+
+- **Decision**: `clean` opens the main checkout for every git read and write, and leaves a worktree
+  that holds the folder it runs from, "you are in it. Run ura clean from the main checkout".
+- **Rationale**: the final review found that, run from inside the worktree, the removal made the
+  branch invisible to the caller's git, so the branch was skipped with exit 0, and the shell was
+  left in a deleted folder. The [mockup](mockups/cli-output.md) gains this outcome.
+- **Alternatives considered**: removing the worktree anyway, which leaves the human's shell in a
+  deleted folder.
+- **If wrong**: the human runs `ura clean` once more from the main checkout.
+- **Where**: `crates/core/src/actions/clean.rs`, after task 7.
