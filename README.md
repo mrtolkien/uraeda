@@ -158,7 +158,8 @@ your answers raise new questions, a second round follows, `discovery-02.md` and
 failing test, finds the root cause, and proposes a fix for you to approve.
 
 To start in a project, run `ura init`, or ask the agent to "set up specs/": either creates the
-folder, and the agent drafts the constitution with you.
+folder, and the agent drafts the constitution with you. `ura init` also offers to install the skill
+for your user, when your agents have none.
 
 The workflow itself is in the [Uraeda skill](skills/uraeda/SKILL.md), with one
 [reference](skills/uraeda/references/) per step and
@@ -174,10 +175,12 @@ brew install mrtolkien/tap/ura                     # or with Homebrew
 nix run github:mrtolkien/uraeda -- --version       # or with Nix, built from source
 ```
 
-Then, in your repository, `ura init` sets up `specs/` and installs the skill for your agents. To
-install the skill alone, for any agent, run `npx skills add mrtolkien/uraeda`. `ura upgrade`
-installs the latest release, through the installer script or Homebrew; with Nix, update the flake
-input.
+Then `ura install` installs the skill for your user, so every repository on your machine has it, or
+for one repository, into the folders your agents read: `.agents/skills`, `.claude/skills`, or both.
+In a repository, `ura init` sets up `specs/` and offers to install the skill for your user. Without
+`ura`, install the skill for any agent with `npx skills add mrtolkien/uraeda`. `ura upgrade`
+installs the latest release, through the installer script or Homebrew, then updates your skill; with
+Nix, update the flake input.
 
 ## The `ura` CLI
 
@@ -185,7 +188,8 @@ input.
 skill says how to do each step by hand, and names the command that does it.
 
 ```sh
-ura init                                   # specs/, and the skill for your agents
+ura init                                   # specs/, and the skill offered for your user
+ura install --user                         # the skill, for your agents
 ura status                                 # every feature and bug, and who it waits on
 ura next                                   # the next step for an agent, from the skill's table
 ura check                                  # every workflow file against the skill's rules

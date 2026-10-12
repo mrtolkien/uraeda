@@ -583,11 +583,11 @@ git commit -m "feat(review-uraeda-init): ura upgrade updates the user's skill"
 - Modify: `.github/workflows/ci.yml` (size step), `README.md` (**Install**, **The `ura` CLI**, and
   the "To start in a project" paragraph)
 
-- [ ] **Step 1: Remove the size test from CI**
+- [x] **Step 1: Remove the size test from CI**
 
 The step keeps its build and `echo "ura: $size bytes"`, and drops `test "$size" -lt 5000000`.
 
-- [ ] **Step 2: Update the README**
+- [x] **Step 2: Update the README**
 
 **Install**: `ura install` installs the skill for your user or the repository, `ura init` sets up
 `specs/` and offers it; `npx skills add mrtolkien/uraeda` stays for those without `ura`;
@@ -595,7 +595,7 @@ The step keeps its build and `echo "ura: $size bytes"`, and drops `test "$size" 
 `ura init  # specs/, and the skill offered for your user` and a new
 `ura install --user  # the skill, for your agents` line.
 
-- [ ] **Step 3: Check the terminal paths by hand**
+- [x] **Step 3: Check the terminal paths by hand**
 
 In a terminal, with `HOME` set to a temporary folder and a new repository: `ura install` and two
 Enter (US1 scenario 5, SC-001), Down Enter Down Space Enter (scenario 6), Esc (scenario 10), and
@@ -603,12 +603,12 @@ Enter (US1 scenario 5, SC-001), Down Enter Down Space Enter (scenario 6), Esc (s
 [the mockup](mockups/install.txt), states 4, 10, 11, and the terminal usable after each. Record the
 result in the commit body.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .github/workflows/ci.yml README.md
