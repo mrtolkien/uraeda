@@ -280,7 +280,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   and a general comment opens it under "Add a general comment", as a comment on lines opens it under
   its block. On the phone, all three open in the sheet. The text being typed is the page's, not the
   field's: it follows the field under the next tapped block, and a tap on a block while a general
-  comment or an edit is open turns it into a comment on that block, its text kept.
+  comment or an edit is open turns it into a comment on that block, its text kept. The human
+  confirmed this behaviour in chat.
 - **Rationale**: the spec puts the comment field in the page on wide screens, with no overlay, and
   the behaviour decision keeps modals for confirmations and short forms; one place per width for
   every comment keeps one rule.
@@ -446,8 +447,6 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   - The lint fixtures cover one pattern per rule, and `valid-styles` accepts any `var()`.
   - The theme's `!important` for `ChatToolCalls` is not itself listed as an Astryx gap.
   - The question option's raw button holding links could nest interactive content.
-  - A failed Undo shows only in a toast, against the behaviour decision's "a toast MUST NOT be the
-    only place an error shows": the human decides where it goes instead.
   - Dead code: `useRestoreScroll`'s always-true argument, exports used only in their file, and the
     duplicated `reducedMotion()` and band styles.
 - **Rationale**: the implementation step fixes critical and important findings, and lists minor ones

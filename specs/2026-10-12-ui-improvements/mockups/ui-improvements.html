@@ -649,6 +649,82 @@
         background: var(--chip);
         border-radius: 4px;
       }
+      .warnbox {
+        margin: 12px 0;
+        padding: 12px 14px;
+        border-radius: 10px;
+        background: #fbe3a1;
+        color: #18181b;
+      }
+      .dark .warnbox {
+        background: #3b3110;
+        color: #ececee;
+      }
+      .warnbox code,
+      .bubble code {
+        overflow-wrap: anywhere;
+        font-size: 0.88em;
+        padding: 0 3px;
+        border-radius: 4px;
+        background: rgb(0 0 0 / 0.07);
+      }
+      .errbar {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin: 0 0 12px;
+        padding: 12px 14px;
+        border-left: 4px solid var(--con);
+        border-radius: 4px;
+        background: var(--chip);
+      }
+      .state {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+      }
+      .state i {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--con);
+      }
+      .state i.run {
+        background: var(--accent);
+      }
+      .bubble {
+        margin: 10px 0;
+        padding: 10px 14px;
+        border-radius: 14px;
+        background: var(--chip);
+      }
+      .tool {
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+        margin: 6px 0;
+        font-size: 0.82em;
+        color: var(--muted);
+      }
+      .tool b {
+        font-family: ui-monospace, monospace;
+        font-weight: 400;
+        color: var(--fg);
+      }
+      .tool pre {
+        margin: 4px 0 0;
+        padding: 8px 10px;
+        border-radius: 6px;
+        background: var(--band);
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .sysline {
+        margin: 8px 0;
+        font-size: 0.82em;
+        color: var(--muted);
+      }
     </style>
   </head>
   <body>
@@ -1397,6 +1473,203 @@
                 No file proposal.md in 2026-10-11-web-ui.<br /><a href="#" style="color: var(--fg)"
                   >Open the feature</a
                 >
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- US8 -->
+    <section>
+      <h2>US8 · The agent's runs at both widths</h2>
+      <p class="note">
+        The feature page keeps the Agent section short: the latest run's state, why it failed, what
+        auto mode blocked with its button under the command, the run's button, and one row per run.
+        A row opens the run view, at <code>/f/&lt;folder&gt;/runs/&lt;id&gt;</code>: its own page on
+        the phone, a pane beside the feature page on desktop. The tool calls opened in the log stay
+        open on Back and on a reload. A tool call a failed run left unfinished shows as failed.
+      </p>
+      <div class="screens">
+        <div>
+          <div class="frame-label">Feature page, phone: a failed run, an action blocked</div>
+          <div class="phone">
+            <div class="topbar">
+              <a class="brand grow" href="#"><b>Uraeda</b><span>uraeda</span></a>
+              <button class="ib icon">☰</button>
+            </div>
+            <div class="content">
+              <div class="crumbs"><a href="#">Home</a> › 2026-10-12-cli-tuis</div>
+              <div class="h" style="font-size: 1.3em">CLI TUIs</div>
+              <div class="h" style="margin-top: 16px">Agent</div>
+              <div class="state"><i></i>Failed on Plan</div>
+              <div class="small muted">8 s · $0.42 this session</div>
+              <p>The tests failed.</p>
+              <div class="warnbox">
+                <b>Blocked by auto mode</b>
+                <div><code>Bash: gh pr create --draft</code></div>
+                <div class="small">Allows <code>Bash(gh pr create --draft)</code> for one run.</div>
+                <div class="btns"><button class="btn grow">Allow and continue</button></div>
+              </div>
+              <div class="btns"><button class="btn primary">Try again</button></div>
+              <div class="label group">Runs</div>
+              <div class="row">
+                <span class="grow"
+                  >Plan · Failed on Plan
+                  <div class="sub">12/10/2026, 09:14 · 8 s</div></span
+                ><span class="chev">›</span>
+              </div>
+              <div class="row">
+                <span class="grow"
+                  >Spec · Done
+                  <div class="sub">12/10/2026, 08:02 · 18 min</div></span
+                ><span class="chev">›</span>
+              </div>
+              <div class="label group">Files</div>
+              <div class="row">
+                <span class="grow">proposal.md</span><span class="badge">committed</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="frame-label">Run view, phone: its own page (dark)</div>
+          <div class="phone dark">
+            <div class="topbar">
+              <a class="brand grow" href="#"><b>Uraeda</b><span>uraeda</span></a>
+              <button class="ib icon">☰</button>
+            </div>
+            <div class="content">
+              <div class="crumbs">
+                <a href="#">Home</a> › <a href="#">2026-10-12-cli-tuis</a> › Run
+              </div>
+              <div class="h" style="font-size: 1.3em">Plan</div>
+              <div class="state"><i></i>Failed on Plan</div>
+              <div class="small muted">12/10/2026, 09:14 · 8 s · $0.42 this session</div>
+              <p>The tests failed.</p>
+              <div class="band"></div>
+              <div class="bubble">
+                Reading <b>the answers</b> of round 01 in
+                <code>specs/2026-10-12-cli-tuis/clarifications-01.md</code>.
+              </div>
+              <div class="tool">
+                <span>✕</span>
+                <span class="grow"
+                  ><b>Bash</b> ura check specs/2026-10-12-cli-tuis &amp;&amp; vp run ready
+                  <pre>Not finished: the run ended.</pre>
+                </span>
+                <span>⌄</span>
+              </div>
+              <div class="sysline">Auto mode blocked Bash: gh pr create --draft</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="screens" style="margin-top: 28px">
+        <div>
+          <div class="frame-label">Desktop: the feature page with a running run in its pane</div>
+          <div class="desktop">
+            <div class="sidenav">
+              <div class="head">
+                <a class="brand grow" href="#"><b>Uraeda</b><span>uraeda</span></a>
+              </div>
+              <div class="navitem">Home</div>
+              <div class="navitem">Priorities</div>
+              <div class="navlabel">Agents at work</div>
+              <div class="navitem on">CLI TUIs</div>
+            </div>
+            <div class="main">
+              <div class="split">
+                <div class="list">
+                  <div class="crumbs"><a href="#">Home</a> › 2026-10-12-cli-tuis</div>
+                  <div class="h" style="font-size: 1.4em">CLI TUIs</div>
+                  <div class="h" style="margin-top: 18px">Agent</div>
+                  <div class="state"><i class="run"></i>Working on Plan</div>
+                  <div class="small muted">1 min 5 s</div>
+                  <div class="btns"><button class="btn danger">Stop</button></div>
+                  <div class="label group">Runs</div>
+                  <div class="row current">
+                    <span class="grow"
+                      ><b>Plan · Working on Plan</b>
+                      <div class="sub">12/10/2026, 09:14</div></span
+                    ><span class="chev">›</span>
+                  </div>
+                  <div class="row">
+                    <span class="grow"
+                      >Spec · Done
+                      <div class="sub">12/10/2026, 08:02 · 18 min</div></span
+                    ><span class="chev">›</span>
+                  </div>
+                  <div class="label group">Files</div>
+                  <div class="row">
+                    <span class="grow">proposal.md</span><span class="badge">committed</span>
+                  </div>
+                  <div class="row">
+                    <span class="grow">spec.md</span><span class="badge">approved</span>
+                  </div>
+                </div>
+                <div class="pane">
+                  <div style="display: flex; align-items: center">
+                    <span class="grow label">Run · Plan</span>
+                    <button class="ib icon">✕</button>
+                  </div>
+                  <div class="state" style="margin-top: 10px">
+                    <i class="run"></i>Working on Plan
+                  </div>
+                  <div class="small muted">12/10/2026, 09:14 · 1 min 5 s</div>
+                  <div class="btns"><button class="btn danger">Stop</button></div>
+                  <div class="band" style="margin: 18px -32px"></div>
+                  <div class="bubble">Reading <b>the answers</b> of round 01.</div>
+                  <div class="tool">
+                    <span>✓</span>
+                    <span class="grow"><b>Read</b> specs/2026-10-12-cli-tuis/spec.md · 40 ms</span
+                    ><span>⌄</span>
+                  </div>
+                  <div class="tool">
+                    <span>◌</span>
+                    <span class="grow"
+                      ><b>Bash</b> vp run ready
+                      <pre>
+✓ 407 tests passed
+building…</pre></span
+                    ><span>⌃</span>
+                  </div>
+                  <div class="small muted">The log follows the run while you are at its end.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Undo refused -->
+    <section>
+      <h2>US4 · An Undo refused</h2>
+      <p class="note">
+        The toast is gone once Undo is tapped; a refusal shows in a banner under the top bar, which
+        stays until dismissed.
+      </p>
+      <div class="screens">
+        <div>
+          <div class="phone" style="height: 360px">
+            <div class="topbar">
+              <a class="brand grow" href="#"><b>Uraeda</b><span>uraeda</span></a>
+              <button class="ib icon" aria-label="Add a priority">＋</button>
+              <button class="ib icon">☰</button>
+            </div>
+            <div class="content">
+              <div class="errbar">
+                <span class="grow"
+                  >Could not restore "Nvim plugin": PRIORITIES.md changed on disk.</span
+                ><button class="ib icon" aria-label="Dismiss">✕</button>
+              </div>
+              <div class="label group" style="margin-top: 0">Priorities</div>
+              <div class="row">
+                <span class="grow"
+                  >Git listener process
+                  <div class="sub">Next</div></span
+                ><span class="chev">›</span>
               </div>
             </div>
           </div>
