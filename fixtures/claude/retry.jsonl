@@ -1,0 +1,1 @@
+{"type":"system","subtype":"api_retry","attempt":1,"max_retries":10,"retry_delay_ms":30000,"error_status":429,"error":"rate_limit","uuid":"0b6e1f6a-5a43-4f0e-9a51-3d8c2f7e9b10","session_id":"06e0f968-6806-4810-b91e-df3ca38e0f25"}

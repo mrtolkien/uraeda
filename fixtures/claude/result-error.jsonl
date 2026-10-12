@@ -1,0 +1,1 @@
+{"type":"result","subtype":"error_max_turns","is_error":true,"duration_ms":3009,"duration_api_ms":2275,"num_turns":2,"errors":["Reached maximum number of turns (1)"],"stop_reason":"tool_use","session_id":"f78a5c35-b683-490a-bf57-9a42dd79e437","total_cost_usd":0.0907116,"permission_denials":[],"terminal_reason":"max_turns","uuid":"6d7588cc-f642-4a32-a8ab-22227ae1c838"}
