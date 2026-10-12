@@ -7,9 +7,19 @@ import {
 } from "@astryxdesign/core/Chat";
 import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Markdown } from "@astryxdesign/core/Markdown";
+import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { RunLog as RunLogRecord } from "uraeda-server/fate";
 import { useRunLog } from "./data.ts";
+
+const styles = stylex.create({
+  // Astryx centres a system line, as a chat's date separators are; the UI layout decision keeps
+  // text left-aligned.
+  notice: {
+    justifyContent: "flex-start",
+    textAlign: "start",
+  },
+});
 
 /** A line of a run's log, as the server keeps it. */
 export type RunEvent = RunLogRecord["events"][number];
@@ -68,10 +78,14 @@ export function RunEvents({ events }: { events: ReadonlyArray<RunEvent> }) {
         </ChatMessage>,
       );
     } else if (event.kind === "system") {
-      shown.push(<ChatSystemMessage key={event.seq}>{event.text}</ChatSystemMessage>);
+      shown.push(
+        <ChatSystemMessage key={event.seq} xstyle={styles.notice}>
+          {event.text}
+        </ChatSystemMessage>,
+      );
     } else {
       shown.push(
-        <ChatSystemMessage key={event.seq}>
+        <ChatSystemMessage key={event.seq} xstyle={styles.notice}>
           Auto mode blocked {event.target ? `${event.tool}: ${event.target}` : event.tool}
         </ChatSystemMessage>,
       );
