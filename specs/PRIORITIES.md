@@ -2,7 +2,7 @@
 
 ## Now
 
-- ["Finish feature"](drafts/finish-feature.md)
+- ["Finish feature"](/specs/2026-10-12-finish-feature/proposal.md)
 
 ## Next
 
