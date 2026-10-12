@@ -1,3 +1,7 @@
+---
+discovery: high
+---
+
 # Recurring tasks
 
 ## What

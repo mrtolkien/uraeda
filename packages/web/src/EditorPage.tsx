@@ -1,15 +1,19 @@
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
+import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { TextArea } from "@astryxdesign/core/TextArea";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { Blocks } from "./Blocks.tsx";
 import { useDraft } from "./data.ts";
+import { discoveryOf, LEVELS, withDiscovery, type Level } from "./discovery.ts";
 import { refusal } from "./errors.ts";
 import { navigate } from "./routes.tsx";
 import { useSave } from "./useSave.ts";
 import { DraftView, FeatureView } from "./views.ts";
+
+const LEVEL_LABELS: Record<Level, string> = { low: "Low", medium: "Medium", high: "High" };
 
 const SECTIONS: Record<string, string> = {
   now: "Now",
@@ -72,6 +76,7 @@ export function EditorPage({ path }: { path: string }) {
     );
   }
   const isDraft = path.startsWith("specs/drafts/") || path.startsWith("specs/backlog/");
+  const isProposal = !path.endsWith("/report.md");
   const changes = draft.priorityChanges;
   const takesPriorities =
     isDraft && changes > 0
@@ -152,6 +157,27 @@ export function EditorPage({ path }: { path: string }) {
               <Button label="Load the new version" clickAction={reload} />
             </div>
           </Banner>
+        </div>
+      )}
+      {isProposal && (
+        <div style={{ marginBottom: 12 }}>
+          <SegmentedControl
+            label="Discovery effort"
+            value={discoveryOf(text)}
+            onChange={(value: string) => {
+              const next = withDiscovery(text, value as Level);
+              setText(next);
+              save.schedule(next);
+            }}
+          >
+            {LEVELS.map((level) => (
+              <SegmentedControlItem key={level} value={level} label={LEVEL_LABELS[level]} />
+            ))}
+          </SegmentedControl>
+          <p className="small muted">
+            How far the agent researches before asking: low reads the code and its docs, medium also
+            compares a few alternatives online, high looks far and wide.
+          </p>
         </div>
       )}
       {preview ? (

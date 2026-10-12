@@ -161,6 +161,16 @@ fn each_rule() {
             format!("{spec}:6: unknown field \"owner\""),
         ),
         (
+            "unknown discovery effort",
+            |e| e.edit(&format!("{FEATURE}/proposal.md"), "discovery: high", "discovery: deep"),
+            format!("{FEATURE}/proposal.md:2: discovery \"deep\" is not one of low, medium, high"),
+        ),
+        (
+            "unknown proposal field",
+            |e| e.edit(&format!("{FEATURE}/proposal.md"), "discovery: high", "effort: high"),
+            format!("{FEATURE}/proposal.md:2: unknown field \"effort\""),
+        ),
+        (
             "plan review not a boolean",
             |e| e.edit(&format!("{FEATURE}/spec.md"), "plan-review: true", "plan-review: often"),
             format!("{spec}:6: plan-review \"often\" is not true or false"),
@@ -260,6 +270,18 @@ fn plan_review_on_any_tier() {
         &format!("{FEATURE}/spec.md"),
         "risk-tier: high",
         "risk-tier: low",
+    );
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+}
+
+#[test]
+fn a_proposal_needs_no_frontmatter() {
+    let example = Example::new();
+    example.edit(
+        &format!("{FEATURE}/proposal.md"),
+        "---\ndiscovery: high\n---\n\n",
+        "",
     );
 
     assert_eq!(summary(&example.problems()), Vec::<String>::new());

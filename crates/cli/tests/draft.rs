@@ -53,7 +53,7 @@ fn drafts_a_line_and_opens_the_editor() {
 
     assert!(
         repo.read("specs/drafts/git-listener-process.md")
-            .starts_with("# Git listener process\n")
+            .contains("---\n\n# Git listener process\n")
     );
     assert!(
         repo.read("specs/PRIORITIES.md")
