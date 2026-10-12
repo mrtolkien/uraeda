@@ -63,11 +63,12 @@ every round of the feature. Without the field, or with another value, the effort
   libraries, community sentiment and known pitfalls, and benchmarks where performance is a
   criterion.
 
-The level scales the research, never the rules: every fact still has its source, every gap in the
-proposal is still a question, and every question still has a recommendation. When what you find is
-bigger than the level suggests, like a topic that could become a decision, research that topic at
-the depth it needs, and say so in the `> [!IMPORTANT]` block, so the human can raise the level of
-the next features like it.
+The level is the human's expectation of how much new work the feature holds, not a cap. It scales
+the research, never the rules: every fact still has its source, every gap in the proposal is still a
+question, and every question still has a recommendation. When the feature turns out bigger than the
+level suggests, like a topic that could become a decision, raise the effort for that topic or the
+whole feature, and say so in the `> [!IMPORTANT]` block. Leave the proposal's field as the human
+wrote it.
 
 ## Read first
 
