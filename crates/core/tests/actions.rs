@@ -338,6 +338,38 @@ fn drafts_and_proposals_are_committed_with_the_skills_messages() {
         ]
     );
 
+    text::save(
+        &main,
+        draft,
+        "# Git listener process\n\n## What\n\nRun it.\n",
+        &hash(&read(&main, draft)),
+    )
+    .unwrap();
+    let committed = text::commit(&main, draft).unwrap();
+    assert_eq!(
+        committed.change.subject,
+        "chore: edit the draft Git listener process"
+    );
+    let backlog = "specs/backlog/benchmarks.md";
+    text::save(&main, backlog, "# Benchmarks\n", &hash("")).unwrap();
+    let committed = text::commit(&main, backlog).unwrap();
+    assert_eq!(
+        committed.change.subject,
+        "chore: add Benchmarks to the backlog"
+    );
+    text::save(
+        &main,
+        backlog,
+        "# Benchmarks\n\nLater.\n",
+        &hash("# Benchmarks\n"),
+    )
+    .unwrap();
+    let committed = text::commit(&main, backlog).unwrap();
+    assert_eq!(
+        committed.change.subject,
+        "chore: edit Benchmarks in the backlog"
+    );
+
     let (_, place) = reach(&repo);
     let proposal_path = "specs/2026-10-11-web-ui/proposal.md";
     let read_at = hash(&read(&place, proposal_path));

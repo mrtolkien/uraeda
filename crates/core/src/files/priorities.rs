@@ -351,37 +351,145 @@ pub fn read(text: &str, committed: Option<&str>) -> Priorities {
     }
 }
 
-/// Each entry as its section and its whole markdown, nested lines included.
-fn signature(text: &str) -> Vec<(Section, String)> {
+/// An entry compared across two texts: its section, its whole markdown, nested lines included,
+/// and its text without markdown.
+struct Signed {
+    section: Section,
+    markdown: String,
+    text: String,
+}
+
+fn signature(text: &str) -> Vec<Signed> {
     let unix = text.replace("\r\n", "\n");
     let lines: Vec<&str> = unix.split('\n').collect();
     parse(&unix)
-        .iter()
+        .into_iter()
         .map(|entry| {
             let (_, first) =
                 item_marker(lines[entry.line - 1]).unwrap_or((Marker::Bullet('-'), ""));
             let rest = lines[entry.line..entry.end].join("\n");
-            (entry.section, format!("{first}\n{rest}"))
+            Signed {
+                section: entry.section,
+                markdown: format!("{first}\n{rest}"),
+                text: entry.text,
+            }
         })
         .collect()
 }
 
-/// How many entries were added, moved, edited, or removed between two texts: the entries outside
-/// their longest common sequence, so a swap of two entries is one change.
-pub fn changes(before: &str, after: &str) -> u32 {
+/// A change to one entry between two texts, each entry named by its text without markdown.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum EntryChange {
+    Added {
+        section: Section,
+        text: String,
+    },
+    Removed {
+        section: Section,
+        text: String,
+    },
+    /// To another section, or to another place in the same one.
+    Moved {
+        from: Section,
+        to: Section,
+        text: String,
+    },
+    Edited {
+        section: Section,
+        before: String,
+        after: String,
+    },
+}
+
+use EntryChange::{Added, Edited, Moved, Removed};
+
+/// The changes between two texts, in the order of `after`. The entries outside their longest
+/// common sequence are moves when their markdown is the same, edits when one replaces another in
+/// the same section and place, and otherwise additions and removals, so a swap of two entries is
+/// one move.
+pub fn diff(before: &str, after: &str) -> Vec<EntryChange> {
     let old = signature(before);
     let new = signature(after);
+    let same =
+        |i: usize, j: usize| old[i].section == new[j].section && old[i].markdown == new[j].markdown;
     let mut table = vec![vec![0u32; new.len() + 1]; old.len() + 1];
     for i in (0..old.len()).rev() {
         for j in (0..new.len()).rev() {
-            table[i][j] = if old[i] == new[j] {
+            table[i][j] = if same(i, j) {
                 table[i + 1][j + 1] + 1
             } else {
                 table[i + 1][j].max(table[i][j + 1])
             };
         }
     }
-    old.len().max(new.len()) as u32 - table[0][0]
+    // Each entry left out, with its gap, counted by the entries kept before it, and its place
+    // in `after`.
+    let (mut removed, mut added) = (Vec::new(), Vec::new());
+    let (mut i, mut j, mut gap) = (0, 0, 0);
+    while i < old.len() || j < new.len() {
+        if i < old.len() && j < new.len() && same(i, j) {
+            i += 1;
+            j += 1;
+            gap += 1;
+        } else if j < new.len() && (i == old.len() || table[i][j + 1] >= table[i + 1][j]) {
+            added.push((gap, j));
+            j += 1;
+        } else {
+            removed.push((gap, j, i));
+            i += 1;
+        }
+    }
+    let mut changes = Vec::new();
+    // The same markdown elsewhere: a move.
+    removed.retain(|&(_, _, i)| {
+        let Some(at) = added
+            .iter()
+            .position(|&(_, j)| old[i].markdown == new[j].markdown)
+        else {
+            return true;
+        };
+        let (_, j) = added.remove(at);
+        let (from, to, text) = (old[i].section, new[j].section, new[j].text.clone());
+        changes.push((j, Moved { from, to, text }));
+        false
+    });
+    // Another entry in the same gap and section: an edit.
+    removed.retain(|&(gap, _, i)| {
+        let Some(at) = added
+            .iter()
+            .position(|&(other, j)| other == gap && new[j].section == old[i].section)
+        else {
+            return true;
+        };
+        let (_, j) = added.remove(at);
+        let (before, after) = (old[i].text.clone(), new[j].text.clone());
+        let section = new[j].section;
+        changes.push((
+            j,
+            Edited {
+                section,
+                before,
+                after,
+            },
+        ));
+        false
+    });
+    changes.extend(added.into_iter().map(|(_, j)| {
+        let (section, text) = (new[j].section, new[j].text.clone());
+        (j, Added { section, text })
+    }));
+    changes.extend(removed.into_iter().map(|(_, at, i)| {
+        let (section, text) = (old[i].section, old[i].text.clone());
+        (at, Removed { section, text })
+    }));
+    changes.sort_by_key(|(at, _)| *at);
+    changes.into_iter().map(|(_, change)| change).collect()
+}
+
+/// How many entries were added, moved, edited, or removed between two texts, as [`diff`] finds
+/// them.
+pub fn changes(before: &str, after: &str) -> u32 {
+    diff(before, after).len() as u32
 }
 
 fn find(text: &str, id: &str) -> Option<Entry> {

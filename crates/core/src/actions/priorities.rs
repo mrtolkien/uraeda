@@ -4,7 +4,7 @@
 use std::fs;
 
 use crate::files::document::hash;
-use crate::files::priorities::{self, Priorities, Section};
+use crate::files::priorities::{self, EntryChange, Priorities, Section};
 use crate::git::Git;
 
 use super::place::{self, Place};
@@ -97,17 +97,88 @@ pub fn remove(place: &Place, id: &str, previous: &str) -> Result<String, ActionE
     )
 }
 
-/// Commits `PRIORITIES.md` alone.
+/// An entry's text cut at a word, to keep a subject short.
+fn short(text: &str) -> String {
+    const MAX: usize = 40;
+    if text.chars().count() <= MAX {
+        return text.to_string();
+    }
+    let cut: String = text.chars().take(MAX).collect();
+    let words = cut
+        .rsplit_once(' ')
+        .map_or(cut.as_str(), |(words, _)| words);
+    format!(
+        "{}…",
+        words.trim_end_matches(|c: char| !c.is_alphanumeric() && !")]".contains(c))
+    )
+}
+
+/// A change as a subject's description, its entry's text shortened.
+fn describe(change: &EntryChange) -> String {
+    match change {
+        EntryChange::Added { section, text } => {
+            format!("add \"{}\" to {}", short(text), section.title())
+        }
+        EntryChange::Removed { text, .. } => format!("remove \"{}\"", short(text)),
+        EntryChange::Moved { from, to, text } if from == to => {
+            format!("move \"{}\" within {}", short(text), to.title())
+        }
+        EntryChange::Moved { to, text, .. } => {
+            format!("move \"{}\" to {}", short(text), to.title())
+        }
+        EntryChange::Edited { after, .. } => format!("edit \"{}\"", short(after)),
+    }
+}
+
+/// A change as a line of the body, with its entry's whole text.
+fn line(change: &EntryChange) -> String {
+    match change {
+        EntryChange::Added { section, text } => format!("- Add to {}: {text}", section.title()),
+        EntryChange::Removed { section, text } => {
+            format!("- Remove from {}: {text}", section.title())
+        }
+        EntryChange::Moved { from, to, text } if from == to => {
+            format!("- Move within {}: {text}", to.title())
+        }
+        EntryChange::Moved { from, to, text } => {
+            format!("- Move from {} to {}: {text}", from.title(), to.title())
+        }
+        EntryChange::Edited {
+            section,
+            before,
+            after,
+        } => format!("- Edit in {}: {before} -> {after}", section.title()),
+    }
+}
+
+/// The commit message of the changes from `before` to `after`: the first change, and with more,
+/// their count, and every change in the body.
+pub fn message(before: &str, after: &str) -> (String, Option<String>) {
+    let changes = priorities::diff(before, after);
+    match changes.as_slice() {
+        [] => ("chore: update the priorities".to_string(), None),
+        [change] => (format!("chore: {}", describe(change)), None),
+        [first, rest @ ..] => (
+            format!("chore: {}, and {} more", describe(first), rest.len()),
+            Some(changes.iter().map(line).collect::<Vec<_>>().join("\n")),
+        ),
+    }
+}
+
+/// Commits `PRIORITIES.md` alone, with a message naming its changes.
 pub fn commit(place: &Place) -> Result<Committed, ActionError> {
-    if committed(place).as_deref() == Some(text(place).as_str()) {
+    let before = committed(place);
+    let after = text(place);
+    if before.as_deref() == Some(after.as_str()) {
         return Err(ActionError::Refused(
             "PRIORITIES.md has no change to commit".to_string(),
         ));
     }
+    let (subject, body) = message(before.as_deref().unwrap_or_default(), &after);
     let change = Change {
         paths: vec![PATH.to_string()],
-        subject: "chore: update the priorities".to_string(),
-        body: None,
+        subject,
+        body,
     };
     place::ensure_only_staged(place, &change.paths)?;
     commit::commit(place, &change)
