@@ -45,6 +45,9 @@ export declare function editPriority(repo: string, id: string, text: string, pre
 /** Moves a priority line before the line at `index` of a section, or to its end. */
 export declare function movePriority(repo: string, id: string, section: string, index: number, previous: string): Promise<Priorities>
 
+/** A feature's next step, with its branch and the main checkout's path, for an agent's run. */
+export declare function nextStep(repo: string, folder: string): Promise<NextView>
+
 /** A draft, by its path from the top level. */
 export declare function readDraft(repo: string, path: string): Promise<DraftView>
 
@@ -104,6 +107,9 @@ export declare function submitAnswers(repo: string, folder: string): Promise<Fil
  * file events. The watch does not keep Node running.
  */
 export declare function watch(repo: string, onChange: (changes: Changes) => void): WatchHandle
+
+/** The directory an agent works on a feature in, its worktree created when none has its branch. */
+export declare function workDir(repo: string, folder: string): Promise<string>
 
 /** A block, its place in the tree, its lines, and the fields of its kind. */
 export interface Block {
@@ -308,6 +314,31 @@ export interface Items {
 export interface LineRange {
   start: number
   end: number
+}
+
+/** A feature's next step, as `ura next` gives it, for an agent's run. */
+export interface NextStepView {
+  /** `human-gate`, `plan`, `implementation`, `done`, ... */
+  name: string
+  /** `human`, `agent`, or `nobody`. */
+  waitsOn: string
+  /** The skill file to follow, like `skills/uraeda/references/spec.md`. */
+  reference?: string
+  /** The file waiting for the human, at a gate. */
+  file?: string
+  /** The first unchecked task, for implementation. */
+  task?: string
+  /** `open`, `draft`, `changes-requested`, `none`, or `unknown`, when the step depends on it. */
+  pullRequest?: string
+}
+
+/** A feature, its branch, and its next step, with the main checkout's path. */
+export interface NextView {
+  folder: string
+  branch?: string
+  /** The main checkout's path, whichever worktree the repository was opened from. */
+  mainRoot: string
+  step: NextStepView
 }
 
 export interface PlanItems {

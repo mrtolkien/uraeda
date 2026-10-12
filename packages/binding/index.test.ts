@@ -1,7 +1,15 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
-import { readFile, readWorkspace, saveAnswer, watch, type Changes } from "./index.js";
+import {
+  nextStep,
+  readFile,
+  readWorkspace,
+  saveAnswer,
+  watch,
+  workDir,
+  type Changes,
+} from "./index.js";
 import { fixtureRepo } from "./test-utils.ts";
 
 const ROUND = "specs/2026-10-11-web-ui/clarifications-01.md";
@@ -63,4 +71,20 @@ test("watches the repository until closed", async () => {
   handle.close();
 
   expect(seen[0].files).toEqual(["2026-10-11-web-ui/clarifications-01.md"]);
+});
+
+test("nextStep and workDir give where and what an agent runs", async () => {
+  const repo = fixtureRepo();
+
+  const next = await nextStep(repo, "2026-10-12-cli-tuis");
+
+  expect(next).toMatchObject({ folder: "2026-10-12-cli-tuis", mainRoot: repo });
+  expect(next.step).toMatchObject({
+    name: "plan",
+    waitsOn: "agent",
+    reference: "skills/uraeda/references/plan.md",
+  });
+  expect(await workDir(repo, "2026-10-12-cli-tuis")).toBe(
+    join(repo, ".worktrees", "2026-10-12-cli-tuis"),
+  );
 });
