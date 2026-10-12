@@ -77,8 +77,10 @@ export const uraedaTheme = defineTheme({
         minWidth: "0",
         maxWidth: "100%",
         ":is(*) span": { whiteSpace: "normal", overflowWrap: "anywhere" },
-        // The tool's name, after its status icon, keeps its width.
-        ":is(*) span:nth-child(2)": { flex: "none" },
+        // The tool's name, after its status icon, keeps its width. Important, as the app's own
+        // StyleX may emit Astryx's atomic `flex-shrink: 1` class outside any layer, where it wins
+        // over the theme's layer: then an ellipsis cuts the name by a fraction of a pixel.
+        ":is(*) span:nth-child(2)": { flexShrink: "0 !important" },
       },
     },
   },

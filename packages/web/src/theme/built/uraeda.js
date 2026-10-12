@@ -523,7 +523,7 @@ export const uraedaTheme = {
           "overflowWrap": "anywhere"
         },
         ":is(*) span:nth-child(2)": {
-          "flex": "none"
+          "flexShrink": "0 !important"
         }
       }
     }

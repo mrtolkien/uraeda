@@ -665,7 +665,7 @@
   }
 
   .astryx-chat-tool-calls:is(*) span:nth-child(2) {
-    flex: none;
+    flex-shrink: 0 !important;
   }
 
   .astryx-text[data-color="primary"] { color: var(--color-text-primary); }
