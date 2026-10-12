@@ -2,6 +2,7 @@
 
 mod answer;
 mod check;
+mod clean;
 mod draft;
 mod editor;
 mod init;
@@ -112,6 +113,17 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Remove the worktree and the branch merged features left behind
+    Clean {
+        /// A merged feature or bug: a path under specs/, a folder name, or a slug
+        target: Option<String>,
+        /// Clean every merged feature with a worktree or a branch left
+        #[arg(long)]
+        all: bool,
+        /// Print what would be removed, and remove nothing
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Upgrade ura to the latest release, with the installer script or Homebrew it came from
     Upgrade,
 }
@@ -138,6 +150,11 @@ fn main() -> ExitCode {
         Command::Status { json } => status::run(json),
         Command::Next { target, json } => next::run(target, json),
         Command::Check { target, json } => check::run(target, json),
+        Command::Clean {
+            target,
+            all,
+            dry_run,
+        } => clean::run(target, all, dry_run),
         Command::Upgrade => upgrade::run(),
         Command::Review {
             target,

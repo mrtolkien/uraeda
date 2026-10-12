@@ -951,19 +951,18 @@ git commit -m "feat(finish-feature): clean a merged feature's worktree and branc
 
 - Create: `crates/cli/src/clean.rs`
 - Modify: `crates/cli/src/main.rs` (`Command::Clean`)
-- Modify: `crates/core/src/target.rs` (`Purpose::Clean`)
 - Test: `crates/cli/tests/clean.rs`
 
 **Interfaces:**
 
 - Consumes: `actions::clean::clean` and its types (Task 6), `status::name` (Task 4).
 - Produces: `ura clean [TARGET] [--all] [--dry-run]`, described as "Remove the worktree and the
-  branch merged features left behind". `Purpose::Clean`: candidates are `done` features with
-  `left_worktree` or `left_branch`; without a target, the current branch's feature when it is a
-  candidate, else the only candidate; a named feature that is not `done` reaches `clean`, which
-  refuses it.
+  branch merged features left behind". Candidates are `done` features with `left_worktree` or
+  `left_branch`, chosen in `crates/cli/src/clean.rs`; without a target, the current branch's feature
+  when it is a candidate, else the only candidate (ruling R1); a named target resolves with
+  `Purpose::Inspect`, and one that is not `done` reaches `clean`, which refuses it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `crates/cli/tests/clean.rs`, each asserting stdout, stderr, and the exit code against the
 [mockup](mockups/cli-output.md), word for word:
@@ -1012,12 +1011,12 @@ fn nothing_to_clean() {
 }
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-cli --test clean`
 - Expected: FAIL: `ura: unrecognized subcommand 'clean'` in every test's stderr.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `clean::run(target, all, dry_run)`: no candidate and no target prints "Nothing to clean: ..." and
 exits 0; `--all` cleans every candidate in folder order; otherwise the target rule. Each `Cleaned`
@@ -1025,13 +1024,13 @@ prints its name, then one line per `Did`, `would remove`, `would delete`, and `w
 run, then one per `Left`, with the mockup's texts, wrapped at 100 columns with a two-space indent as
 in the mockup. Exit 1 when any `Left` was printed. The commit-free command makes no commit.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo test --workspace --exclude uraeda-binding`
 - Expected: PASS, except `every_command_is_named_in_the_skill`, which fails on `clean` until Task 8.
   Mark that test `#[ignore = "until the skill names ura clean, task 8"]` in this commit.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates
