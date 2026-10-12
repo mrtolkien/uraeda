@@ -46,6 +46,16 @@ pub struct Worktree {
     pub branch: Option<String>,
 }
 
+/// A linked worktree as git records it, its folder there or not.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WorktreeRecord {
+    pub path: PathBuf,
+    pub branch: Option<String>,
+    pub locked: bool,
+    /// Its folder is gone: `git worktree prune` drops the record.
+    pub missing: bool,
+}
+
 /// A repository, opened at one of its working trees.
 pub struct Git {
     repo: gix::Repository,
@@ -355,6 +365,91 @@ impl Git {
         Ok(worktrees)
     }
 
+    /// Every linked worktree git records, with its branch, whether it is locked, and whether its
+    /// folder is missing.
+    pub fn worktree_records(&self) -> Result<Vec<WorktreeRecord>, GitError> {
+        let mut records = Vec::new();
+        for proxy in self.repo.worktrees().map_err(read_error("worktrees"))? {
+            let Ok(path) = proxy.base() else {
+                continue;
+            };
+            let missing = !path.exists();
+            let path = std::fs::canonicalize(&path).unwrap_or(path);
+            let locked = proxy.is_locked();
+            let branch = proxy
+                .into_repo_with_possibly_inaccessible_worktree()
+                .ok()
+                .and_then(|repo| repo.head_name().ok().flatten())
+                .map(|name| name.shorten().to_string());
+            records.push(WorktreeRecord {
+                path,
+                branch,
+                locked,
+                missing,
+            });
+        }
+        Ok(records)
+    }
+
+    /// Whether this working tree has changes to tracked files, staged or not, or untracked files.
+    /// Ignored files do not count.
+    pub fn has_local_changes(&self) -> Result<bool, GitError> {
+        let status = self
+            .repo
+            .status(gix::progress::Discard)
+            .map_err(read_error("the working tree"))?
+            .untracked_files(gix::status::UntrackedFiles::Files)
+            .index_worktree_rewrites(None);
+        let mut items = status
+            .into_iter(None)
+            .map_err(read_error("the working tree"))?;
+        Ok(items.next().is_some())
+    }
+
+    /// Drops the records of worktrees whose folder is gone.
+    pub fn prune_worktrees(&self) -> Result<(), GitError> {
+        self.run("worktree", &["worktree", "prune"])
+    }
+
+    /// Removes a clean worktree, never forced: git refuses one with changes.
+    pub fn remove_worktree(&self, path: &Path) -> Result<(), GitError> {
+        let path = path.to_string_lossy();
+        self.run("worktree", &["worktree", "remove", &path])
+    }
+
+    /// Deletes a local branch, once the caller checked its commits are merged.
+    pub fn delete_branch(&self, branch: &str) -> Result<(), GitError> {
+        self.run("branch", &["branch", "--quiet", "-D", branch])
+    }
+
+    /// How many commits of `branch` are on none of `bases`, a commit counting as there when a base
+    /// has it or a patch-equivalent one.
+    pub fn unmerged_commits(&self, branch: &str, bases: &[&str]) -> Result<usize, GitError> {
+        let mut lists: Vec<std::collections::BTreeSet<String>> = Vec::new();
+        for base in bases {
+            let range = format!("{base}...{branch}");
+            let output = self.output(
+                "log",
+                &[
+                    "log",
+                    "--cherry-pick",
+                    "--right-only",
+                    "--no-merges",
+                    "--format=%H",
+                    &range,
+                ],
+            )?;
+            lists.push(output.lines().map(String::from).collect());
+        }
+        let Some(first) = lists.first() else {
+            return Ok(0);
+        };
+        Ok(first
+            .iter()
+            .filter(|commit| lists.iter().all(|list| list.contains(*commit)))
+            .count())
+    }
+
     /// The tracked files that differ from `HEAD` here, staged or not, sorted. Untracked files are
     /// not listed.
     pub fn changed_files(&self) -> Result<Vec<String>, GitError> {
@@ -479,6 +574,11 @@ impl Git {
     }
 
     fn run(&self, subcommand: &str, args: &[&str]) -> Result<(), GitError> {
+        self.output(subcommand, args).map(|_| ())
+    }
+
+    /// Runs `git`, and returns its stdout.
+    fn output(&self, subcommand: &str, args: &[&str]) -> Result<String, GitError> {
         let output = Command::new("git")
             .args(args)
             .current_dir(&self.root)
@@ -492,7 +592,7 @@ impl Git {
                 },
             })?;
         if output.status.success() {
-            return Ok(());
+            return Ok(String::from_utf8_lossy(&output.stdout).into_owned());
         }
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
