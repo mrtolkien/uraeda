@@ -32,6 +32,16 @@ pub fn name(feature: &Feature) -> String {
     }
 }
 
+/// What a merged feature left behind, in words: `worktree and branch`, `worktree`, or `branch`.
+pub fn leftovers(feature: &Feature) -> Option<&'static str> {
+    match (&feature.left_worktree, &feature.left_branch) {
+        (Some(_), Some(_)) => Some("worktree and branch"),
+        (Some(_), None) => Some("worktree"),
+        (None, Some(_)) => Some("branch"),
+        (None, None) => None,
+    }
+}
+
 /// What a feature waits for, in words.
 pub fn describe(feature: &Feature) -> String {
     if !feature.problems.is_empty() {
@@ -52,7 +62,16 @@ pub fn describe(feature: &Feature) -> String {
             format!("{file}: {what}")
         }
         (StepName::None, _) => "nothing to do".to_string(),
-        (StepName::Done, _) => "merged".to_string(),
+        (StepName::Finish, _) => match (feature.is_finished(), step.pull_request) {
+            (true, Some(PullRequest::Draft)) => "finish: mark the pull request ready",
+            (true, _) => "finish: open the pull request",
+            (false, _) => "finish: write the record",
+        }
+        .to_string(),
+        (StepName::Done, _) => match leftovers(feature) {
+            Some(left) => format!("merged: {left} left, run ura clean"),
+            None => "merged".to_string(),
+        },
         (name, _) => match &step.task {
             Some(task) => format!("{}, {task}", name.as_str()),
             None => name.as_str().to_string(),
@@ -208,4 +227,29 @@ fn render(workspace: &Workspace) -> String {
         text.push_str("Nothing in PRIORITIES.md, and no feature started.\n");
     }
     text
+}
+
+#[cfg(test)]
+mod tests {
+    use uraeda_core::steps::PullRequest;
+    use uraeda_core::workspace::{Feature, Kind};
+
+    use super::describe;
+
+    const RECORD: &str = "---\nkind: feature\nfinished: 2026-10-11\n---\n\n# Record: X\n";
+
+    #[test]
+    fn what_finishing_has_left() {
+        let rows = [
+            (PullRequest::NoPullRequest, "finish: open the pull request"),
+            (PullRequest::Draft, "finish: mark the pull request ready"),
+        ];
+        for (pull_request, expected) in rows {
+            let mut feature = Feature::from_record(Kind::Feature, "2026-10-10-x", RECORD.into());
+
+            feature.with_pull_request(pull_request);
+
+            assert_eq!(describe(&feature), expected);
+        }
+    }
 }

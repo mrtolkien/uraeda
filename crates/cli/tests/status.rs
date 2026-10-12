@@ -132,9 +132,10 @@ fn merged_features_are_done() {
         .collect();
     assert_eq!(rows.len(), 2, "{}", output.stdout);
     assert!(
-        rows.iter().all(|row| row.ends_with("-      merged")),
+        rows[0].ends_with("-      merged: branch left, run ura clean"),
         "{rows:?}"
     );
+    assert!(rows[1].ends_with("-      merged"), "{rows:?}");
 
     let json = ura(&repo, &["status", "--json"]);
     let json: serde_json::Value = serde_json::from_str(&json.stdout).unwrap();
@@ -300,4 +301,83 @@ fn long_entries_are_cut() {
         output.row("Use a small"),
         ["Use a small model for one-shot…", "-", "not started"]
     );
+}
+
+const WEB_UI: &str = "2026-10-11-web-ui";
+
+fn merged_web_ui() -> TestRepo {
+    let repo = repo_with_priorities();
+    feature(&repo, WEB_UI, &[("proposal.md", proposal())]);
+    finish_and_merge(&repo, WEB_UI);
+    repo
+}
+
+/// US2.1
+#[test]
+fn a_merged_record_is_done() {
+    let repo = merged_web_ui();
+    repo.delete_branch(WEB_UI);
+
+    let output = ura(&repo, &["status"]);
+
+    assert_eq!(output.row(WEB_UI), [WEB_UI, "-", "merged"]);
+}
+
+/// US2.2
+#[test]
+fn a_merged_feature_with_leftovers_says_so() {
+    let repo = merged_web_ui();
+    repo.git(&[
+        "worktree",
+        "add",
+        "--quiet",
+        ".worktrees/2026-10-11-web-ui",
+        WEB_UI,
+    ]);
+
+    let output = ura(&repo, &["status"]);
+
+    assert_eq!(
+        output.row(WEB_UI),
+        [
+            WEB_UI,
+            "-",
+            "merged: worktree and branch left, run ura clean"
+        ]
+    );
+    let json: serde_json::Value =
+        serde_json::from_str(&ura(&repo, &["status", "--json"]).stdout).unwrap();
+    let feature = json["features"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|f| f["folder"] == WEB_UI)
+        .unwrap();
+    assert_eq!(json["version"], 1);
+    assert_eq!(feature["left-worktree"], ".worktrees/2026-10-11-web-ui");
+    assert_eq!(feature["left-branch"], WEB_UI);
+}
+
+#[test]
+fn a_merged_feature_with_only_its_branch_left() {
+    let repo = merged_web_ui();
+
+    let output = ura(&repo, &["status"]);
+
+    assert_eq!(
+        output.row(WEB_UI),
+        [WEB_UI, "-", "merged: branch left, run ura clean"]
+    );
+}
+
+/// US1.6, review focus 5
+#[test]
+fn a_finished_branch_waits_for_its_pull_request() {
+    let repo = repo_with_priorities();
+    feature(&repo, WEB_UI, &[("proposal.md", proposal())]);
+    finish(&repo, WEB_UI);
+
+    let output = ura(&repo, &["status"]);
+
+    assert_eq!(output.row(WEB_UI)[1], "agent");
 }
