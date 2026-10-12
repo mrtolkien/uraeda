@@ -38,12 +38,12 @@ agents alike, with flags for every interactive action and versioned JSON for eve
 The proposal asks for agents to go through the CLI, which is less error-prone than prose, while
 principle V requires the workflow to work without it, and tools to enforce only rules that humans
 and agents can follow unaided
-([Q2](../2026-10-10-cli-core/clarifications-01.md#q2-how-does-the-skill-send-agents-through-the-cli),
-[the skill and the CLI](../2026-10-10-cli-core/discovery-01.md#the-skill-and-the-cli)). Agents and
-runners need the same actions as humans, without a terminal, and a stable output to read
-([command-line conventions](../2026-10-10-cli-core/discovery-01.md#command-line-conventions)). A
-skill that names commands must match the binary that runs them
-([Q15](../2026-10-10-cli-core/clarifications-01.md#q15-does-ura-init-install-the-skill)).
+([Q2](../done/2026-10-10-cli-core.md#q2-how-does-the-skill-send-agents-through-the-cli),
+[the skill and the CLI](../done/2026-10-10-cli-core.md#q2-how-does-the-skill-send-agents-through-the-cli)).
+Agents and runners need the same actions as humans, without a terminal, and a stable output to read
+([command-line conventions](../done/2026-10-10-cli-core.md)). A skill that names commands must match
+the binary that runs them
+([Q15](../done/2026-10-10-cli-core.md#q15-does-ura-init-install-the-skill)).
 
 ## Alternatives considered
 

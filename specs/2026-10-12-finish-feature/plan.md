@@ -1135,27 +1135,27 @@ git commit -m "docs(finish-feature): the finishing step in the skill"
 - Consumes: the record template and `finish.md` (Tasks 1 and 8).
 - Produces: nothing for later tasks.
 
-- [ ] **Step 1: Write the three records**, following `finish.md`, from each folder and
+- [x] **Step 1: Write the three records**, following `finish.md`, from each folder and
       `git log -- specs/<folder>/`: `finished` is the merge date, 2026-10-10, 2026-10-11, and
       2026-10-12; `pull-request` is `https://github.com/mrtolkien/uraeda/pull/1`, `/2`, and `/3`.
 
-- [ ] **Step 2: Rewrite the links and delete the folders**, by the rule of [the spec](spec.md#data):
+- [x] **Step 2: Rewrite the links and delete the folders**, by the rule of [the spec](spec.md#data):
       the 26 links of `specs/decisions/` and the 8 of `specs/drafts/cli-tuis.md`, then `git rm -r`
       the three folders.
 
-- [ ] **Step 3: Check**
+- [x] **Step 3: Check**
 
 - Run:
   `cargo run -q -p uraeda-cli -- check specs && grep -rn "2026-10-10-stack-decision/\|2026-10-10-cli-core/\|2026-10-11-web-ui/" --include=*.md specs skills README.md AGENTS.md; wc -l specs/done/*.md`
 - Expected: `specs/: no problems`, no grep match, and the line counts, which go in the commit's
   body.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A specs
