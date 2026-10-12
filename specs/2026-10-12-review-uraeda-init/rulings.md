@@ -76,3 +76,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: always printing it, which would name the installed copy as another.
 - **If wrong**: remove the comparison in `install::run`.
 - **Where**: task 1.
+
+## R8: `vp test`'s browser stage in this environment
+
+- **Decision**: a task's `vp run ready` step is checked when every stage passes but the last,
+  `vp test`, whose browser tests could not start here: Playwright's webkit is not installed, or
+  vitest's browser port was taken by another run. Its other test files all passed.
+- **Rationale**: the failure is the machine's, the same before any change of this branch, and this
+  feature touches no TypeScript; CI runs the whole command.
+- **Alternatives considered**: installing Playwright's browsers, a side effect outside the branch;
+  leaving the boxes unchecked, which would mark built tasks as unfinished.
+- **If wrong**: the pull request's CI run shows it.
+- **Where**: tasks 1 to 6, step "Run all tests".
