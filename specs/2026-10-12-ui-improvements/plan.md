@@ -366,7 +366,7 @@ git commit -m "feat(ui-improvements): drafts without placeholders, and start any
 - Produces: a file record `{ id, missing: true }` for an id the binding refuses with "has no". Other
   errors still drop the id, as today.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // packages/web/src/__tests__/missing.test.tsx
@@ -384,22 +384,22 @@ test("a missing file says so at once", async () => {
 });
 ```
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test missing.test`
 - Expected: FAIL, the text "No file spec.md in 2026-10-11-web-ui." is not found within 2000 ms.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 The source returns `{ id, missing: true }` with the view's other fields empty when the binding's
 error message contains " has no "; `FilePage` shows the message and the link for a missing record.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src packages/web/src

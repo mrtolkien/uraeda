@@ -7,11 +7,14 @@ import { Link } from "./routes.tsx";
 /** A workflow file, on the page its kind needs: a round to answer, or a document to read. */
 export function FilePage({ folder, name }: { folder: string; name: string }) {
   const file = useFile(folder, name);
-  if (!file) {
+  if (!file || file.missing) {
     return (
       <div className="page">
         <p>
-          No file {name} in <Link to={`/f/${folder}`}>{folder}</Link>.
+          No file {name} in {folder}.
+        </p>
+        <p>
+          <Link to={`/f/${folder}`}>Open the feature</Link>
         </p>
       </div>
     );

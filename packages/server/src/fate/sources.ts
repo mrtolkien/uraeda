@@ -39,6 +39,20 @@ async function workspace(ctx: Context): Promise<WorkspaceRecord> {
   };
 }
 
+/** The record of a file its feature does not have: marked missing, its other fields empty. */
+function missingFile(id: string, folder: string, name: string): FileRecord {
+  return {
+    id,
+    folder,
+    name,
+    path: "",
+    kind: "",
+    current: { text: "", document: { blocks: [], hash: "" }, items: {} },
+    reviewStale: false,
+    missing: true,
+  };
+}
+
 export const sources = createSources<Context>([
   fileSource(workspaceDataView, {
     byIds: async (ctx, ids) => (ids.includes(WORKSPACE_ID) ? [await workspace(ctx)] : []),
@@ -58,7 +72,15 @@ export const sources = createSources<Context>([
     byIds: ({ binding, repo }, ids) =>
       each(ids, async (id): Promise<FileRecord> => {
         const [folder, name] = id.split("/");
-        return binding.readFile(repo, folder, name);
+        try {
+          return await binding.readFile(repo, folder, name);
+        } catch (error) {
+          // A file its feature has no longer is answered, so the page says so instead of waiting.
+          if (error instanceof Error && error.message.includes(" has no ")) {
+            return missingFile(id, folder, name);
+          }
+          throw error;
+        }
       }),
   }),
   fileSource(prioritiesDataView, {
