@@ -17,10 +17,13 @@ Without it, the file names and their `status` fields still tell where each featu
   rounds and questions it had, kept for when it starts again
 - `decisions/`: the decision ledger, one file per topic, named after the question it answers:
   high-impact choices made by humans, binding for all work once `active`
+- `done/YYYY-MM-DD-<slug>.md`: the record of a merged feature or bug, written in place of its folder
+  in the last commit of its branch: what it does and why, each question with its answer, and the
+  changes made after approval. The folder's files stay in git: `git log -- specs/<folder>/`
 - `bugs/YYYY-MM-DD-<slug>/`: a bug `report.md` from a human, and its `assessment.md` from an agent,
-  on the branch `fix/YYYY-MM-DD-<slug>`
+  on the branch `fix/YYYY-MM-DD-<slug>`, until it is finished into its record
 - `YYYY-MM-DD-feature-slug/`: one folder per feature, dated the day it started, on the branch of the
-  same name until its pull request is merged, with these files, in workflow order:
+  same name until it is finished into its record, with these files, in workflow order:
   - `proposal.md`: what and why, written by a human
   - `discovery-NN.md`: the agent's investigation of the code and outside sources, with the options
     found, never decisions
@@ -64,7 +67,8 @@ end with **Notes:**, for the human's notes on the points settled without them.
 
 The optional `ura` command-line tool reads and writes these files: `ura status` shows where each
 feature stands, `ura check` validates the files, `ura answer` and `ura review` record answers and
-reviews, and `ura draft` and `ura start` begin features. Everything it does can be done by hand.
+reviews, `ura draft` and `ura start` begin features, and `ura clean` removes what merged features
+leave behind. Everything it does can be done by hand.
 
 ## Links
 

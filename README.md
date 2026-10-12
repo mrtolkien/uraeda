@@ -100,6 +100,10 @@ feature went through the whole workflow:
    tests written out. The spec's risk tier is high, since every saved due date is upgraded, so it
    proposed that you review the plan too, and you kept that when approving it.
 6. **It implements the plan, task by task, and opens a pull request**, where you review the code.
+7. **It finishes the feature** in the pull request's last commit: one
+   [record](skills/uraeda/assets/example/specs/done/2026-10-06-recurring-tasks.md) replaces the
+   folder, with what the feature does, each question and its answer, and what changed after you
+   approved. Once you merge, `ura clean` removes its worktree and branch.
 
 Every file waiting for you opens with a summary of what is asked, how long it takes, and what to
 look at first. Its spec opened like this when it was submitted:
@@ -134,6 +138,7 @@ specs/
   backlog/                     # nice-to-have features, not scheduled
                                # a postponed feature keeps its folder here, without its date
   decisions/                   # decision ledger, one file per topic
+  done/                        # one record per merged feature or bug, in place of its folder
   bugs/YYYY-MM-DD-<slug>/      # a bug report, and the agent's assessment with its fix
   2026-10-06-recurring-tasks/  # one folder per feature, dated the day it starts
     proposal.md                # you: what and why
@@ -144,10 +149,11 @@ specs/
 ```
 
 Each feature lives on a branch named after its folder. You answer and approve on that branch, and a
-single pull request merges everything at once: spec, decisions, plan, and code. When your answers
-raise new questions, a second round follows, `discovery-02.md` and `clarifications-02.md`, and so
-on. Bugs get a lighter flow: the agent reproduces the bug with a failing test, finds the root cause,
-and proposes a fix for you to approve.
+single pull request merges everything at once: the decisions, the code, and the feature's record,
+which replaces its folder in the branch's last commit, while git keeps the folder's history. When
+your answers raise new questions, a second round follows, `discovery-02.md` and
+`clarifications-02.md`, and so on. Bugs get a lighter flow: the agent reproduces the bug with a
+failing test, finds the root cause, and proposes a fix for you to approve.
 
 To start in a project, run `ura init`, or ask the agent to "set up specs/": either creates the
 folder, and the agent drafts the constitution with you.
