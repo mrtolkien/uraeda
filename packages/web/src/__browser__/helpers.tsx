@@ -155,6 +155,27 @@ export function checkMeasure() {
   }
 }
 
+/**
+ * Text is left-aligned, never centred or justified (the UI layout decision): every run of text of
+ * three words or more outside a control, whose own label a control may centre.
+ */
+export function checkAlignment() {
+  const main = document.querySelector('[role="main"]') ?? document.body;
+  for (const element of main.querySelectorAll("*")) {
+    const own = [...element.childNodes]
+      .filter((node) => node.nodeType === Node.TEXT_NODE)
+      .map((node) => node.textContent)
+      .join("")
+      .trim();
+    if (own.split(/\s+/).length < 3 || element.closest(CONTROLS)) {
+      continue;
+    }
+    expect(getComputedStyle(element).textAlign, own.slice(0, 60)).toMatch(
+      /^(start|left|-webkit-auto)$/,
+    );
+  }
+}
+
 /** What a tap or a key acts on: buttons, fields, links set apart from text, and widgets. */
 const CONTROLS = [
   "button",
