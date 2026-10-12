@@ -43,9 +43,11 @@ pub fn save(place: &Place, path: &str, text: &str, previous: &str) -> Result<Str
     Ok(hash(text))
 }
 
-/// The commit of a draft, `chore: draft <title>`, with `PRIORITIES.md` when it changed; of a
-/// proposal, `chore(<slug>): proposal`, or `chore(<slug>): edit the proposal` once committed; and
-/// the same for a bug's report.
+/// The commit of a draft, `chore: draft <title>`, or `chore: edit the draft <title>` once
+/// committed, and of a backlog file, `chore: add <title> to the backlog`, or
+/// `chore: edit <title> in the backlog`, both with `PRIORITIES.md` when it changed; of a proposal,
+/// `chore(<slug>): proposal`, or `chore(<slug>): edit the proposal` once committed; and the same
+/// for a bug's report.
 pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
     checked(path)?;
     let git = Git::open(&place.root)?;
@@ -66,7 +68,15 @@ pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
         if committed(PRIORITIES).is_some_and(|bytes| bytes != priorities.as_bytes()) {
             paths.push(PRIORITIES.to_string());
         }
-        format!("chore: draft {title}")
+        match (
+            committed(path).is_some(),
+            path.starts_with("specs/backlog/"),
+        ) {
+            (false, false) => format!("chore: draft {title}"),
+            (false, true) => format!("chore: add {title} to the backlog"),
+            (true, false) => format!("chore: edit the draft {title}"),
+            (true, true) => format!("chore: edit {title} in the backlog"),
+        }
     } else if let Some((slug, file)) = path
         .strip_prefix("specs/bugs/")
         .and_then(|rest| rest.strip_suffix("/report.md"))
