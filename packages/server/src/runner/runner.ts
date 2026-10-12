@@ -140,9 +140,7 @@ export class Runner {
     const previous = cache.session(next.mainRoot, folder);
     const resume = previous !== undefined && adapter.hasSession(previous);
     const sessionId = resume ? previous : randomUUID();
-    if (!resume) {
-      cache.saveSession(next.mainRoot, folder, sessionId);
-    }
+    // Another server may share the cache: the claim refuses a feature it works on.
     const id = cache.startRun({
       repo: next.mainRoot,
       folder,
@@ -153,6 +151,9 @@ export class Runner {
       allowed: allowed ?? null,
       startedAt: new Date().toISOString(),
     });
+    if (id === undefined) {
+      throw refused(REFUSALS.busy);
+    }
     if (previous !== undefined && !resume) {
       cache.appendEvent(id, {
         kind: "system",
@@ -196,10 +197,18 @@ export class Runner {
     const { cache } = this.#options;
     const row = cache.run(runId);
     const [event] = row ? cache.events(runId, seq, 1) : [];
-    if (!row || event?.seq !== seq || event.kind !== "denial") {
+    if (!row || event?.seq !== seq || event.kind !== "denial" || !(await this.#ours(repo, row))) {
       throw refused(`no blocked action ${seq} in run ${runId}`);
     }
     return this.start(repo, row.folder, { trigger: "allow", rule: event.rule });
+  }
+
+  /** Whether the run is one of the repository's: the cache holds every repository's runs. */
+  async #ours(repo: string, row: { repo: string; folder: string }): Promise<boolean> {
+    return this.#options.binding.nextStep(repo, row.folder).then(
+      (next) => next.mainRoot === row.repo,
+      () => false,
+    );
   }
 
   /** Stops a run going on: SIGINT, then SIGTERM 10 seconds later. A run that ended is left. */

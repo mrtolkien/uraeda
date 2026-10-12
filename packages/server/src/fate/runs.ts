@@ -44,16 +44,19 @@ export function runRecord(cache: RunCache, row: RunRow): RunRecord {
   };
 }
 
-/** The run of this ID, or undefined when the cache has none. */
-export function readRun({ runner }: Context, id: string): RunRecord | undefined {
-  const row = /^\d+$/.test(id) ? runner.cache.run(Number(id)) : undefined;
-  return row ? runRecord(runner.cache, row) : undefined;
+/**
+ * The run of this ID, or undefined when the cache has none for the server's repository: the cache
+ * holds the runs of every repository.
+ */
+export async function readRun(ctx: Context, id: string): Promise<RunRecord | undefined> {
+  const row = await ownRun(ctx, id);
+  return row ? runRecord(ctx.runner.cache, row) : undefined;
 }
 
-/** A page of a run's log, by its ID, `<run>:<page>`. */
-export function readRunLog({ runner }: Context, id: string): RunLogRecord | undefined {
+/** A page of a run's log, by its ID, `<run>:<page>`, for a run of the server's repository. */
+export async function readRunLog(ctx: Context, id: string): Promise<RunLogRecord | undefined> {
   const match = /^(\d+):(\d+)$/.exec(id);
-  if (!match || !runner.cache.run(Number(match[1]))) {
+  if (!match || !(await ownRun(ctx, match[1]))) {
     return undefined;
   }
   const [run, page] = [Number(match[1]), Number(match[2])];
@@ -61,8 +64,19 @@ export function readRunLog({ runner }: Context, id: string): RunLogRecord | unde
     id,
     run: String(run),
     page,
-    events: runner.cache.events(run, page * LOG_PAGE, LOG_PAGE),
+    events: ctx.runner.cache.events(run, page * LOG_PAGE, LOG_PAGE),
   };
+}
+
+/** The run of this ID, when it is one of the server's repository. */
+async function ownRun(ctx: Context, id: string): Promise<RunRow | undefined> {
+  const row = /^\d+$/.test(id) ? ctx.runner.cache.run(Number(id)) : undefined;
+  if (!row) {
+    return undefined;
+  }
+  // A folder the repository does not have gives no main checkout: the run is another's.
+  const root = await mainRoot(ctx, row.folder).catch(() => undefined);
+  return root === row.repo ? row : undefined;
 }
 
 /**

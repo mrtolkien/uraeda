@@ -53,7 +53,7 @@ test("a saved session replaces the feature's previous one", () => {
 
 test("a run's events come back in order, a tool event updated in place", () => {
   const cache = RunCache.open(":memory:");
-  const id = cache.startRun(run);
+  const id = cache.startRun(run)!;
 
   expect(cache.appendEvent(id, { kind: "text", text: "Reading the answers" })).toBe(0);
   const seq = cache.appendEvent(id, {
@@ -93,7 +93,7 @@ test("a run's events come back in order, a tool event updated in place", () => {
 
 test("a run's events of one kind come back alone, with their seq", () => {
   const cache = RunCache.open(":memory:");
-  const id = cache.startRun(run);
+  const id = cache.startRun(run)!;
   cache.appendEvent(id, { kind: "text", text: "Opening the pull request" });
   cache.appendEvent(id, {
     kind: "denial",
@@ -112,9 +112,9 @@ test("a run's events of one kind come back alone, with their seq", () => {
 
 test("runs come back newest first, with their end", () => {
   const cache = RunCache.open(":memory:");
-  const first = cache.startRun(run);
+  const first = cache.startRun(run)!;
   cache.endRun(first, { state: "done", costUsd: 3.1 });
-  const second = cache.startRun({ ...run, newSession: false, trigger: "allow", allowed: "Bash" });
+  const second = cache.startRun({ ...run, newSession: false, trigger: "allow", allowed: "Bash" })!;
   cache.startRun({ ...run, repo: "/repo/b" });
 
   const runs = cache.runs(REPO, FOLDER);
@@ -147,7 +147,7 @@ test("runs come back newest first, with their end", () => {
 
 test("a failed run keeps its reason", () => {
   const cache = RunCache.open(":memory:");
-  const id = cache.startRun(run);
+  const id = cache.startRun(run)!;
 
   cache.endRun(id, { state: "failed", reason: "Rate limit reached" });
 
@@ -157,7 +157,7 @@ test("a failed run keeps its reason", () => {
 
 test("reopening the file keeps the runs", () => {
   const path = join(mkdtempSync(join(tmpdir(), "uraeda-cache-")), "new", "runner.sqlite");
-  const id = RunCache.open(path).startRun(run);
+  const id = RunCache.open(path).startRun(run)!;
 
   expect(RunCache.open(path).run(id)).toMatchObject({ folder: FOLDER, state: "running" });
 });
@@ -169,14 +169,14 @@ test("a cache that cannot be opened is created again empty", () => {
   const cache = RunCache.open(path);
 
   expect(cache.runs(REPO, FOLDER)).toEqual([]);
-  expect(cache.run(cache.startRun(run))).toMatchObject({ state: "running" });
+  expect(cache.run(cache.startRun(run)!)).toMatchObject({ state: "running" });
 });
 
 test("runs left running are marked stopped on startup", () => {
   const cache = RunCache.open(":memory:");
-  const running = cache.startRun(run);
-  const done = cache.startRun(run);
+  const done = cache.startRun(run)!;
   cache.endRun(done, { state: "done" });
+  const running = cache.startRun(run)!;
 
   const stopped = cache.interrupted("Stopped: the server stopped while it ran.");
 
@@ -221,7 +221,7 @@ test("a cache another process holds locked is kept, never replaced", () => {
   // The lock outlasts the wait: this server keeps its runs in memory.
   const cache = RunCache.open(path, { timeout: 50 });
   expect(cache.runs(REPO, FOLDER)).toEqual([]);
-  expect(cache.run(cache.startRun(run))).toMatchObject({ state: "running" });
+  expect(cache.run(cache.startRun(run)!)).toMatchObject({ state: "running" });
 
   other.exec("COMMIT");
   other.close();
@@ -230,7 +230,7 @@ test("a cache another process holds locked is kept, never replaced", () => {
 
 test("a cache in WAL mode reads while another connection writes", () => {
   const path = tempPath();
-  const id = RunCache.open(path).startRun(run);
+  const id = RunCache.open(path).startRun(run)!;
   const other = new DatabaseSync(path);
   other.exec("BEGIN EXCLUSIVE");
   other.exec("UPDATE runs SET step = 'spec'");
@@ -246,9 +246,9 @@ test("a running run of another live process stays running", () => {
   const path = tempPath();
   // Another server: the process that started this test's runner is alive.
   const first = RunCache.open(path, { pid: process.ppid });
-  const theirs = first.startRun(run);
+  const theirs = first.startRun(run)!;
   const second = RunCache.open(path);
-  const ours = second.startRun(run);
+  const ours = second.startRun({ ...run, folder: "2026-10-14-other" })!;
 
   const stopped = second.interrupted("Stopped: the server stopped while it ran.");
 
@@ -258,7 +258,7 @@ test("a running run of another live process stays running", () => {
 
 test("a running run of a process that is gone is marked stopped", () => {
   const path = tempPath();
-  const id = RunCache.open(path, { pid: DEAD_PID }).startRun(run);
+  const id = RunCache.open(path, { pid: DEAD_PID }).startRun(run)!;
 
   const stopped = RunCache.open(path).interrupted("Stopped: the server stopped while it ran.");
 
@@ -286,4 +286,33 @@ test("migrating from version 1 keeps the runs, and stops those left running", ()
     [2, "stopped"],
     [1, "done"],
   ]);
+});
+
+test("a run that starts a session records it", () => {
+  const cache = RunCache.open(":memory:");
+
+  cache.startRun(run);
+
+  expect(cache.session(REPO, FOLDER)).toBe("3f2c");
+});
+
+test("a feature with a run going on in a live process is not claimed again", () => {
+  const path = tempPath();
+  // Another server: the process that started this test's runner is alive.
+  const theirs = RunCache.open(path, { pid: process.ppid });
+  theirs.startRun(run);
+  const ours = RunCache.open(path);
+
+  expect(ours.startRun({ ...run, sessionId: "9a9a" })).toBeUndefined();
+  expect(ours.session(REPO, FOLDER)).toBe("3f2c");
+  expect(ours.runs(REPO, FOLDER)).toHaveLength(1);
+  expect(ours.startRun({ ...run, folder: "2026-10-14-other" })).toEqual(expect.any(Number));
+  expect(ours.startRun({ ...run, repo: "/repo/b" })).toEqual(expect.any(Number));
+});
+
+test("a run left running by a process that is gone does not hold its feature", () => {
+  const path = tempPath();
+  RunCache.open(path, { pid: DEAD_PID }).startRun(run);
+
+  expect(RunCache.open(path).startRun(run)).toEqual(expect.any(Number));
 });
