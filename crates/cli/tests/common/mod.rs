@@ -106,3 +106,21 @@ pub fn feature_path(folder: &str) -> String {
         None => format!("specs/{folder}"),
     }
 }
+
+/// On a feature's branch, replaces its folder with its record, and commits; then back on `main`.
+pub fn finish(repo: &TestRepo, folder: &str) {
+    repo.switch(folder);
+    repo.git(&["rm", "-r", "--quiet", &feature_path(folder)]);
+    repo.write(
+        &format!("specs/done/{folder}.md"),
+        &record("feature", "Web UI"),
+    );
+    repo.commit(&format!("finish: {folder}"));
+    repo.switch("main");
+}
+
+/// Finishes a feature's branch, and merges it into `main` with a merge commit.
+pub fn finish_and_merge(repo: &TestRepo, folder: &str) {
+    finish(repo, folder);
+    repo.git(&["merge", "--quiet", "--no-ff", "--no-edit", folder]);
+}

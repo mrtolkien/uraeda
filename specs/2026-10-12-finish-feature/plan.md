@@ -644,13 +644,14 @@ git commit -m "feat(finish-feature): the finishing rows of the step table"
 **Interfaces:**
 
 - Consumes: `left_worktree`, `left_branch` (Task 2), `StepName::Finish` (Task 3).
-- Produces: `status::describe` texts: `finish` for the step `finish`; for `done`, `merged`, then
-  `: worktree and branch left, run ura clean`, `: worktree left, run ura clean`, or
-  `: branch left, run ura clean` when something is left.
+- Produces: `status::describe` texts: for the step `finish`, `finish: write the record`,
+  `finish: open the pull request`, or `finish: mark the pull request ready`, from the files and the
+  pull request; for `done`, `merged`, then `: worktree and branch left, run ura clean`,
+  `: worktree left, run ura clean`, or `: branch left, run ura clean` when something is left.
   `status::leftovers(feature: &Feature) -> Option<&'static str>`, `worktree and branch`, `worktree`,
   or `branch`, shared with `next.rs`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `crates/cli/tests/status.rs`, with a helper in `common/mod.rs`,
 `pub fn finish_and_merge(repo: &TestRepo, folder: &str)`, which finishes the feature's branch with a
@@ -695,24 +696,24 @@ fn leftovers_are_reminded_on_stderr() {
 }
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-cli --test status --test next`
 - Expected: FAIL, `a_merged_feature_with_leftovers_says_so`: the row reads `merged`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `describe` and `leftovers` as in **Produces**. `next::run`, after printing its target, prints on
 stderr, for each `done` feature with leftovers, in folder order:
 `ura: <name> is merged, with its <leftovers> left: run ura clean`, `<name>` from `status::name`. The
 JSON output needs no change: the fields come from `Feature`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo test --workspace --exclude uraeda-binding`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/cli

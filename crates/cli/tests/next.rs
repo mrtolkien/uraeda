@@ -188,3 +188,27 @@ fn a_gate_says_who_it_waits_on() {
         "2026-10-10-waiting: clarifications-01.md: 1 question, about 3 minutes.\n  branch     2026-10-10-waiting\n  waits on   you\n"
     );
 }
+
+/// US2.3
+#[test]
+fn leftovers_are_reminded_on_stderr() {
+    let repo = TestRepo::new();
+    specs(&repo, PRIORITIES);
+    feature(&repo, "2026-10-11-web-ui", &[("proposal.md", proposal())]);
+    finish_and_merge(&repo, "2026-10-11-web-ui");
+    repo.git(&[
+        "worktree",
+        "add",
+        "--quiet",
+        ".worktrees/2026-10-11-web-ui",
+        "2026-10-11-web-ui",
+    ]);
+
+    let output = ura(&repo, &["next"]);
+
+    assert_eq!(
+        output.stderr,
+        "ura: 2026-10-11-web-ui is merged, with its worktree and branch left: run ura clean\n"
+    );
+    assert_eq!(output.code, 0);
+}

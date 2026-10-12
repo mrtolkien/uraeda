@@ -41,6 +41,14 @@ pub fn run(target: Option<String>, json: bool) -> Result<ExitCode, String> {
     } else {
         print!("{}", render(feature));
     }
+    for feature in &workspace.features {
+        if let Some(left) = status::leftovers(feature) {
+            eprintln!(
+                "ura: {} is merged, with its {left} left: run ura clean",
+                status::name(feature)
+            );
+        }
+    }
     Ok(ExitCode::SUCCESS)
 }
 
