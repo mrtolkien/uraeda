@@ -5,6 +5,7 @@ import type {
   Draft,
   Feature,
   Priorities,
+  ProposalHints,
   Run,
   RunLog,
   Runner,
@@ -143,4 +144,9 @@ export const RunLogView = view<RunLog>()({
   run: true,
   page: true,
   events: true,
+});
+
+export const ProposalHintsView = view<ProposalHints>()({
+  id: true,
+  hints: true,
 });

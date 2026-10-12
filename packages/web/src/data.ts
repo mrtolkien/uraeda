@@ -1,7 +1,7 @@
 // The records each page reads: requested by id, kept up to date by the server's live updates, and
 // read again when the page is shown again, as iOS may have dropped its connection.
 import { useEffect } from "react";
-import { useFateClient, useLiveView, useRequest } from "react-fate";
+import { useFateClient, useLiveView, useRequest, useView } from "react-fate";
 import {
   DraftView,
   FeatureView,
@@ -10,6 +10,7 @@ import {
   RunLogView,
   RunnerView,
   RunView,
+  ProposalHintsView,
   WorkspaceView,
 } from "./views.ts";
 
@@ -17,6 +18,7 @@ import {
 const WORKSPACE_ID = "workspace";
 const PRIORITIES_ID = "priorities";
 const RUNNER_ID = "runner";
+const PROPOSAL_HINTS_ID = "proposal";
 
 /** Reads a request again from the server when the page comes back to the foreground. */
 function useRefreshOnShow(request: Parameters<typeof useRequest>[0]) {
@@ -103,6 +105,17 @@ export function useRunLog(id: string) {
   const { runLog } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(RunLogView, runLog);
+}
+
+/**
+ * The proposal template's guidance for each section, by heading, which the editor shows in an empty
+ * section. It ships with the tool, so it is read once.
+ */
+export function useProposalHints() {
+  const { proposalHints } = useRequest({
+    proposalHints: { id: PROPOSAL_HINTS_ID, view: ProposalHintsView },
+  });
+  return useView(ProposalHintsView, proposalHints)?.hints ?? [];
 }
 
 /**

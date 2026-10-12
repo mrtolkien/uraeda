@@ -1049,12 +1049,15 @@ git commit -m "feat(ui-improvements): a task view for every priority"
 **Interfaces:**
 
 - Consumes: binding `proposalHints()` (task 1).
-- Produces: a written draft or proposal (any section with text besides the title) opens drawn, with
+- Produces: a written draft or proposal (any text outside its title and What) opens drawn, with
   "Edit"; a draft with only its title and What opens in the text editor. In the editor, each empty
   `## What`, `## Why`, or `## Notes` section shows its hint dimmed, from `proposalHints()`, never
-  written to the file. The discovery level control stays.
+  written to the file: listed under the text area by heading ([R13](rulings.md)). The discovery
+  level control stays. The page is drawn with Astryx and `Page`, without `styles.css`.
+- Produces: the server's `ProposalHints` record (`proposalHintsDataView`, id `proposal`, field
+  `hints`), and `useProposalHints()` in `data.ts`, the hints as `Array<{ heading, hint }>`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 test("a new draft shows its hints, which are not in the file (US5 3)", async () => {
@@ -1075,21 +1078,21 @@ test("a written proposal opens drawn, with Edit (US5 5)", async () => {
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test editor.test`
 - Expected: FAIL, the text "The problem it solves, and for whom." is not found.
 
-- [ ] **Step 3: Implement** the interfaces; the hints are drawn as a StyleX overlay aligned to the
+- [x] **Step 3: Implement** the interfaces; the hints are drawn as a StyleX overlay aligned to the
       empty section's line in the text area, or, if that proves fragile, listed under the text area
       by heading (record the choice as a ruling).
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src packages/server/src

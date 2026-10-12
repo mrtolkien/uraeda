@@ -137,7 +137,10 @@ export function Home() {
                   href={`/f/${feature.folder}`}
                   // A running agent says so; its step moves to the line under the title.
                   badge={
-                    <Badge variant={working ? "success" : "info"} label={working ? "Working" : step} />
+                    <Badge
+                      variant={working ? "success" : "info"}
+                      label={working ? "Working" : step}
+                    />
                   }
                   title={feature.title}
                   line={line || undefined}
