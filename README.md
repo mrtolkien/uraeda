@@ -189,7 +189,7 @@ skill says how to do each step by hand, and names the command that does it.
 
 ```sh
 ura init                                   # specs/, and the skill offered for your user
-ura install --user                         # the skill, for your agents
+ura install --user --agents --claude       # the skill, for your agents and Claude Code
 ura status                                 # every feature and bug, and who it waits on
 ura next                                   # the next step for an agent, from the skill's table
 ura check                                  # every workflow file against the skill's rules
