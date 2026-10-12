@@ -2,19 +2,9 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { git, renderPage } from "./helpers.tsx";
+import { click, git, read, renderPage, type } from "./helpers.tsx";
 
 const PATH = "specs/PRIORITIES.md";
-
-async function click(element: HTMLElement) {
-  await act(async () => {
-    fireEvent.click(element);
-  });
-}
-
-function read(repo: string) {
-  return readFileSync(join(repo, PATH), "utf8");
-}
 
 /** The actions of a line, from its menu. */
 async function menu(text: string) {
@@ -26,13 +16,11 @@ async function menu(text: string) {
 test("＋ jots a line down at the end of Next", async () => {
   const { repo } = await renderPage("/");
 
-  await click((await screen.findAllByRole("button", { name: "Add a priority" }))[0]);
-  const field = await screen.findByLabelText("Priority", {}, { timeout: 5000 });
-  await act(async () => {
-    fireEvent.change(field, {
-      target: { value: "Show the agent's last commit on the feature page" },
-    });
-  });
+  await click(await screen.findByRole("button", { name: "Add a priority" }));
+  await type(
+    await screen.findByLabelText("Priority"),
+    "Show the agent's last commit on the feature page",
+  );
   await click(screen.getByRole("button", { name: "Add" }));
 
   await waitFor(() =>
@@ -40,7 +28,7 @@ test("＋ jots a line down at the end of Next", async () => {
       "- [Git listener process](drafts/git-listener.md)\n- Show the agent's last commit on the feature page\n",
     ),
   );
-  expect((await screen.findAllByText("Added to Next, not committed")).length).toBeGreaterThan(0);
+  expect(await screen.findByText("Added to Next, not committed")).toBeTruthy();
   expect(git(repo, "status", "--porcelain")).toContain("PRIORITIES.md");
 });
 
@@ -48,13 +36,8 @@ test("＋ jots a line down at the end of Next", async () => {
 test("a line can go to Later instead", async () => {
   const { repo } = await renderPage("/");
 
-  await click((await screen.findAllByRole("button", { name: "Add a priority" }))[0]);
-  const field = await screen.findByLabelText("Priority", {}, { timeout: 5000 });
-  await act(async () => {
-    fireEvent.change(field, {
-      target: { value: "An idea" },
-    });
-  });
+  await click(await screen.findByRole("button", { name: "Add a priority" }));
+  await type(await screen.findByLabelText("Priority"), "An idea");
   await click(screen.getByRole("radio", { name: "Later" }));
   await click(screen.getByRole("button", { name: "Add" }));
 

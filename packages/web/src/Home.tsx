@@ -8,6 +8,8 @@ import { refusal } from "./errors.ts";
 import { DraftView } from "./views.ts";
 import { stepLabel, waiting } from "./labels.ts";
 import { Link, navigate, useRestoreScroll } from "./routes.tsx";
+import { TopBarSlot } from "./layout/TopBarSlot.tsx";
+import { QuickAdd } from "./QuickAdd.tsx";
 
 /** The home screen: what waits on the human, what agents do, the next priorities, what is done. */
 export function Home() {
@@ -55,6 +57,9 @@ export function Home() {
 
   return (
     <div className="page">
+      <TopBarSlot>
+        <QuickAdd />
+      </TopBarSlot>
       {!human.length && (
         <div style={{ marginBottom: 14 }}>
           <Banner status="info" title="Nothing waits on you." />
