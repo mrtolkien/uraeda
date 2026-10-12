@@ -1535,18 +1535,18 @@ git commit -m "feat(ui-improvements): lint the UI decisions, check both sizes, d
   drag in progress, ＋ open, a round with its index open, a round on desktop, a review with the
   comment open, a mockup page, the editor with hints, a missing file.
 
-- [ ] **Step 1: Write the screenshot script**, at 402 × 874 and 1440 × 900, light and dark, on the
+- [x] **Step 1: Write the screenshot script**, at 402 × 874 and 1440 × 900, light and dark, on the
       fixture repository served by the server in process.
-- [ ] **Step 2: Take the screenshots, and review each** against the four UI decisions and
+- [x] **Step 2: Take the screenshots, and review each** against the four UI decisions and
       [the mockups](mockups/ui-improvements.html); list what differs.
-- [ ] **Step 3: Fix what the review found**, each fix in the task its view belongs to, with its test
+- [x] **Step 3: Fix what the review found**, each fix in the task its view belongs to, with its test
       when a rule names it.
-- [ ] **Step 4: Run all checks**
+- [x] **Step 4: Run all checks**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add specs/2026-10-12-ui-improvements/screenshots packages/web/scripts packages/web/package.json

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vp dev",
     "build": "vp build",
+    "screenshots": "node scripts/screenshots.ts",
     "theme": "astryx theme build src/theme/theme.ts --out src/theme/built/uraeda.css"
   },
   "dependencies": {
