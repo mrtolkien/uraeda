@@ -207,6 +207,7 @@ export const uraedaTheme = {
     "--size-page-max": "720px",
     "--size-pane-min": "400px",
     "--size-viewport-height": "100dvh",
+    "--size-round-index": "240px",
     "--color-selection": "var(--color-background-yellow)",
     "--color-selection-edge": "var(--color-border-yellow)"
   },
@@ -227,6 +228,7 @@ export const uraedaTheme = {
     "--size-page-max": "uraeda",
     "--size-pane-min": "uraeda",
     "--size-viewport-height": "uraeda",
+    "--size-round-index": "uraeda",
     "--color-selection": "uraeda",
     "--color-selection-edge": "uraeda"
   },

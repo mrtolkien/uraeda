@@ -1,19 +1,68 @@
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
+import { Heading } from "@astryxdesign/core/Heading";
+import { Link } from "@astryxdesign/core/Link";
+import { Text } from "@astryxdesign/core/Text";
+import { VStack } from "@astryxdesign/core/VStack";
+import {
+  colorVars,
+  spacingVars,
+  typeScaleVars,
+  typographyVars,
+} from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
 import { useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { Blocks } from "./Blocks.tsx";
 import { CommitActions } from "./CommitActions.tsx";
+import { Crumbs } from "./Crumbs.tsx";
 import { type Refusal, refusal } from "./errors.ts";
-import { GrowingTextArea, PendingSaves, Question } from "./Question.tsx";
+import { Page } from "./layout/Page.tsx";
+import { useWidthClass } from "./layout/useWidthClass.ts";
+import { GrowingTextArea, PendingSaves, Question, statusStyles } from "./Question.tsx";
+import { jumpTo, type NavQuestion, RoundNav } from "./RoundNav.tsx";
 import { startRun, type Started } from "./runs.ts";
 import { plain } from "./Spans.tsx";
+import { useRoundPosition } from "./useRoundPosition.ts";
 import { useSave } from "./useSave.ts";
 import { FileView } from "./views.ts";
 import type { useFile } from "./data.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
+
+const styles = stylex.create({
+  output: {
+    margin: 0,
+    whiteSpace: "pre-wrap",
+    fontFamily: typographyVars["--font-family-code"],
+    fontSize: typeScaleVars["--text-code-size"],
+  },
+  // On wide screens, the questions and the index beside them, side by side in the middle.
+  columns: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "flex-start",
+  },
+  questions: {
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    maxWidth: "var(--size-page-max)",
+  },
+  title: {
+    marginBlockEnd: spacingVars["--spacing-3"],
+  },
+  // A band between sibling questions; on the phone, to the screen's edges.
+  band: {
+    height: spacingVars["--spacing-2"],
+    marginBlock: spacingVars["--spacing-5"],
+    backgroundColor: colorVars["--color-background-muted"],
+  },
+  bandBleed: {
+    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+  },
+});
 
 /** A hook's refusal: the answers are saved, the commit is not, and it can be tried again. */
 export function HookRefusal({
@@ -33,9 +82,7 @@ export function HookRefusal({
       collapsible={false}
     >
       <Collapsible trigger="Hook output">
-        <pre className="mono" style={{ whiteSpace: "pre-wrap" }}>
-          {error.output ?? error.message}
-        </pre>
+        <pre {...stylex.props(styles.output)}>{error.output ?? error.message}</pre>
       </Collapsible>
     </Banner>
   );
@@ -77,10 +124,9 @@ export function RoundPage({ file }: { file: File }) {
     }
     settle(read);
   }, [round?.notes, idle, settle]);
-  if (!round) {
-    return null;
-  }
-  const questions = round.questions;
+  const wide = useWidthClass() === "wide";
+  const end = useRef<HTMLDivElement>(null);
+  const questions = round?.questions ?? [];
   // A follow-up shows once its parent's answer makes it apply: with its letter, or with no
   // letter at all, when it needs an answer, `-` if it does not apply.
   const answers = new Map(questions.map((q) => [q.id, q.answer.trim()]));
@@ -91,6 +137,31 @@ export function RoundPage({ file }: { file: File }) {
   const applicable = questions.filter(shown);
   const blank = applicable.filter((q) => !q.answer.trim());
   const title = document.blocks.find((b) => b.kind === "heading" && b.level === 1);
+  // The applicable questions in the page's order, each follow-up after its parent.
+  const nav: Array<NavQuestion> = questions
+    .filter((q) => !q.parent)
+    .flatMap((q) => [q, ...questions.filter((f) => f.parent === q.id && shown(f))])
+    .map((q) => ({
+      id: q.id,
+      title: q.title,
+      level: q.parent ? 2 : 1,
+      answered: q.answer.trim() !== "",
+    }));
+  useRoundPosition(file.folder, file.name, nav);
+  if (!round) {
+    return null;
+  }
+
+  /** Submit, at the page's end, in view and focused. */
+  const toEnd = () => {
+    const behavior = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+      ? "auto"
+      : "smooth";
+    end.current?.scrollIntoView?.({ block: "end", behavior });
+    end.current
+      ?.querySelector<HTMLButtonElement>("button:not([disabled])")
+      ?.focus({ preventScroll: true });
+  };
 
   /** Starts the agent on the next step, once the round is committed. */
   const proceed = async () => {
@@ -131,101 +202,115 @@ export function RoundPage({ file }: { file: File }) {
     }
   };
 
-  return (
-    <PendingSaves value={pending}>
-      <div className="page">
-        {!readOnly && applicable.length > 0 && (
-          <div
-            className="progress"
-            role="progressbar"
-            aria-valuenow={applicable.length - blank.length}
-            aria-valuemax={applicable.length}
-          >
-            <div
-              style={{
-                width: `${((applicable.length - blank.length) / applicable.length) * 100}%`,
-              }}
+  const content = (
+    <>
+      <Crumbs folder={file.folder} current={file.name} />
+      {title && (
+        <Heading level={1} xstyle={styles.title}>
+          {plain(title.spans)}
+        </Heading>
+      )}
+      {round.block !== undefined && <Blocks document={document} ids={[round.block]} />}
+      <Blocks document={document} ids={round.context} />
+      {questions
+        .filter((q) => !q.parent)
+        .map((question) => (
+          <div key={question.id}>
+            <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />
+            <Question
+              folder={file.folder}
+              question={question}
+              followUps={questions.filter((q) => q.parent === question.id && shown(q))}
+              document={document}
+              readOnly={readOnly}
             />
           </div>
-        )}
-        <p className="small muted">
-          {applicable.length - blank.length} of {applicable.length} answered
-        </p>
-        {title && <h1 className="title-l">{plain(title.spans)}</h1>}
-        {round.block !== undefined && <Blocks document={document} ids={[round.block]} />}
-        <Blocks document={document} ids={round.context} />
-        {questions
-          .filter((q) => !q.parent)
-          .map((question) => (
-            <div key={question.id}>
-              <div className="band" />
-              <Question
-                folder={file.folder}
-                question={question}
-                followUps={questions.filter((q) => q.parent === question.id && shown(q))}
-                document={document}
-                readOnly={readOnly}
-              />
-            </div>
-          ))}
-        <div className="band" />
-        {round.settled.length > 0 && (
-          <>
-            <div className="label">Settled without you</div>
-            <Blocks document={document} ids={round.settled} />
-          </>
-        )}
-        {readOnly ? (
-          notes && (
-            <p>
-              <strong>Notes:</strong> {notes}
-            </p>
-          )
-        ) : (
-          <>
-            <GrowingTextArea
-              label="Notes"
-              value={notes}
-              onChange={(value) => {
-                setNotes(value);
-                notesSave.schedule(value);
-              }}
+        ))}
+      <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />
+      {round.settled.length > 0 && (
+        <>
+          <Heading level={2} xstyle={styles.title}>
+            Settled without you
+          </Heading>
+          <Blocks document={document} ids={round.settled} />
+        </>
+      )}
+      {readOnly ? (
+        notes && (
+          <Text as="p" display="block">
+            <strong>Notes:</strong> {notes}
+          </Text>
+        )
+      ) : (
+        <VStack gap={3} ref={end}>
+          <GrowingTextArea
+            label="Notes"
+            value={notes}
+            onChange={(value) => {
+              setNotes(value);
+              notesSave.schedule(value);
+            }}
+          />
+          {notesSave.state.kind === "error" && (
+            <span {...stylex.props(statusStyles.error)}>Not saved: {notesSave.state.message}</span>
+          )}
+          {blank.length > 0 && (
+            <Banner
+              status="error"
+              title={
+                <>
+                  {blank.length} {blank.length === 1 ? "question" : "questions"} left:{" "}
+                  {blank.map((q, index) => (
+                    <span key={q.id}>
+                      {index > 0 && ", "}
+                      <Link
+                        href={`#${q.id}`}
+                        onClick={(event: React.MouseEvent) => {
+                          event.preventDefault();
+                          jumpTo(q.id);
+                        }}
+                      >
+                        {q.id}
+                      </Link>
+                    </span>
+                  ))}
+                </>
+              }
             />
-            {notesSave.state.kind === "error" && (
-              <p className="not-saved">Not saved: {notesSave.state.message}</p>
-            )}
-            {blank.length > 0 && (
-              <div style={{ margin: "14px 0" }}>
-                <Banner
-                  status="error"
-                  title={
-                    <>
-                      {blank.length} {blank.length === 1 ? "question" : "questions"} left:{" "}
-                      {blank.map((q, index) => (
-                        <span key={q.id}>
-                          {index > 0 && ", "}
-                          <a href={`#${q.id}`}>{q.id}</a>
-                        </span>
-                      ))}
-                    </>
-                  }
-                />
-              </div>
-            )}
-            {error?.kind === "hook" ? (
-              <HookRefusal
-                error={error}
-                what="Your answers are saved, not committed."
-                onRetry={retry}
-              />
-            ) : (
-              error && <p className="not-saved">{error.message}</p>
-            )}
-            <CommitActions label="Submit answers" isDisabled={blank.length > 0} onCommit={submit} />
-          </>
-        )}
-        {started && <p className={started.ok ? "saved" : "not-saved"}>{started.message}</p>}
-      </div>
+          )}
+          {error?.kind === "hook" ? (
+            <HookRefusal
+              error={error}
+              what="Your answers are saved, not committed."
+              onRetry={retry}
+            />
+          ) : (
+            error && <span {...stylex.props(statusStyles.error)}>{error.message}</span>
+          )}
+          <CommitActions label="Submit answers" isDisabled={blank.length > 0} onCommit={submit} />
+        </VStack>
+      )}
+      {/* After the commit, the round is read-only: the run's status stays in view under it. */}
+      {started && (
+        <span {...stylex.props(started.ok ? statusStyles.saved : statusStyles.error)}>
+          {started.message}
+        </span>
+      )}
+    </>
+  );
+
+  return (
+    <PendingSaves value={pending}>
+      {readOnly || nav.length === 0 ? (
+        <Page>{content}</Page>
+      ) : (
+        <div {...stylex.props(wide && styles.columns)}>
+          <div {...stylex.props(styles.questions)}>
+            <Page>{content}</Page>
+          </div>
+          <RoundNav questions={nav} onSubmit={toEnd} />
+        </div>
+      )}
     </PendingSaves>
   );
 }
