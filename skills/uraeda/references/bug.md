@@ -99,8 +99,8 @@ If the fix does not make the test pass, go back to the investigation with what y
 three fixes that failed, the approach is wrong, not the details: revise the assessment with what you
 found, and set it back to `awaiting-human`.
 
-Then review the branch, open the pull request as a draft, as in
-[implementation](implementation.md#final-review), and run the [finish](finish.md) step: the bug's
+Then catch up with the default branch, review the branch, and open the pull request as a draft, as
+in [implementation](implementation.md#final-review), and run the [finish](finish.md) step: the bug's
 folder becomes its record, `kind: bug`, without questions, and the finishing commit removes its
 entry from `PRIORITIES.md`. Handle the changes requested on the pull request the same way.
 

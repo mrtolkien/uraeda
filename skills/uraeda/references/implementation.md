@@ -96,11 +96,44 @@ amended and approved, and the plan revised: the unchecked tasks follow the new p
 
 ## Final review
 
-Once every step is checked, review the whole branch, even when each task was reviewed. Give a fresh
-reviewer agent, on the most capable model available, the diff since the branch started, the spec,
-the plan, its **Review focus** to check one item at a time, and `rulings.md`. Without a reviewer
-agent, review the branch yourself as a separate pass, and say so in the pull request: a review by
-the author is weaker.
+### Catch up with the default branch
+
+Once every step is checked, and before the review, bring in what the default branch gained since the
+branch started: features merged meanwhile, their code, and their decisions. The review and the pull
+request then judge the code as it will be merged. When the branch already contains the default
+branch, there is nothing to do.
+
+1. **Fetch**, with `git fetch`, and note where the branch started:
+   `git merge-base HEAD origin/<default>`. Without a remote, use the local default branch.
+2. **Read the new rules**:
+   `git diff <merge-base> origin/<default> -- specs/decisions/ specs/CONSTITUTION.md`. For each
+   decision added or changed, and each amendment:
+   - **It conflicts** with the spec, the plan, or the code built: stop, and start a new round of
+     questions, as [when you must stop](#when-you-must-stop) says. Principle I leaves that conflict
+     to the human.
+   - **It applies** to the code the branch touches, as its **Applies to** says, without conflict:
+     follow it. Write a ruling saying how the branch meets it, with the fix commits it needs.
+   - **It does not apply**: nothing to do.
+3. **Rebase the branch** on the default branch, so its history stays linear. When the branch is on
+   the remote, someone may have pushed to it: first `git pull --rebase origin <branch>`, so no
+   commit is lost. Then `git rebase origin/<default>`. The next push replaces the remote branch:
+   `git push --force-with-lease`, never `--force`, so a push made meanwhile is refused, not
+   overwritten. Resolve conflicts:
+   - **In code**: keep what both sides need, within the spec and the default branch's decisions. A
+     resolution that needs a choice the spec does not settle is a reason to stop.
+   - **In `PRIORITIES.md`**: take the default branch's version, with this feature's entry kept in
+     it.
+   - **In a decision or the constitution**: stop, and start a new round of questions.
+4. **Run the project's validation.** A failure the default branch brings in is fixed like a final
+   review finding, with a test that fails first, in a commit with the feature's scope.
+
+### Review the branch
+
+Once the branch is caught up, review the whole branch, even when each task was reviewed. Give a
+fresh reviewer agent, on the most capable model available, the diff since the branch started, the
+spec, the plan, its **Review focus** to check one item at a time, and `rulings.md`. Without a
+reviewer agent, review the branch yourself as a separate pass, and say so in the pull request: a
+review by the author is weaker.
 
 Grade each finding by what a user gets if the branch ships, not by whether the spec names the input
 that triggers it:
