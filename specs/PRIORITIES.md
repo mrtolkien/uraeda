@@ -2,6 +2,8 @@
 
 ## Now
 
+- Make it SURE multiple agents can be running on features at the same time (worktrees) -> tell agent
+  to move into the worktree if not the case already?
 - Discovery effort level in proposal -> the human can select low/medium/high. Low = mostly read
   local files and doc Medium = also look for alternatives online High = look far and wide for
   alternatives, look up community sentiment, weigh pros and cons based on actual benchmarks, ...
