@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Finish feature
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 8 questions on finishing a feature, about 30 minutes.
+> Answered on 2026-10-12.
 >
 > - Two choices shape every future feature and decision: what a merged feature leaves on the default
 >   branch, and where the decisions' links to their reasons point once its folder is condensed.
@@ -77,7 +77,7 @@ the `specs/` folder grows with each one.
   - [pro] the least noise.
   - [con] the reasons behind decisions are only in git history, which agents rarely search.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: When does finishing happen?
 
@@ -111,7 +111,7 @@ feature, and whether agents ever write on the default branch.
   - [pro] the review sees the full spec, and the record lands with the merge.
   - [con] you message an agent instead of merging, and agents merge into the default branch.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Where do links to a finished feature point?
 
@@ -139,7 +139,7 @@ Why it matters: a decision is read for its reasons, by agents and by you, long a
   - [pro] the links keep working, to the full question.
   - [con] the questions files are the largest part of what stays, and the clutter comes back.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: How does a reader find the full files of a finished feature?
 
@@ -163,7 +163,7 @@ Why it matters: it decides whether the details the record leaves out can always 
   - [pro] the record can name the exact commit holding the full folder.
   - [con] the workflow dictates a repository setting.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: Who removes a merged feature's branch and worktree?
 
@@ -190,7 +190,10 @@ Why it matters: worktrees are full checkouts, with their own dependencies, and t
   - [pro] nothing to build.
   - [con] worktrees pile up, as they do today.
 
-**Answer:**
+**Answer:** A: Document ura clean in the skill too.
+
+If the workflow is applied via the skill it should tell the human to run ura clean. We’ll make our
+own harness later and we’ll automate it at that point.
 
 ## Q6: What do `ura` and the web UI do in this feature?
 
@@ -214,7 +217,7 @@ Why it matters: it decides whether the tools stay right the day the first featur
   - [pro] the smallest scope.
   - [con] finished features disappear from `ura status` and the web UI until then.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: Are the three merged features finished too?
 
@@ -233,7 +236,7 @@ Why it matters: it removes today's noise at once, and tests the record format on
   - [pro] a smaller feature.
   - [con] two layouts side by side, and the noise stays.
 
-**Answer:**
+**Answer:** A
 
 ## Q8: Should Uraeda also keep a living description of the system?
 
@@ -256,7 +259,12 @@ them all, or the code.
   - [con] a new artifact, its template, and its rules, and an update at every feature that drifts
     when skipped.
 
-**Answer:**
+**Answer:** Don’t add it: the current state of the system is defined in the code.
+
+We already have the constitution and decisions for human-decided points that are not in code.
+
+Maybe I’m misunderstanding but to me having a “living spec file” describing the system as it is now
+is asking for drift and coherence issues.
 
 ## Settled without the human
 
