@@ -444,6 +444,66 @@ fn a_link_is_never_written_through() {
 
 #[cfg(unix)]
 #[test]
+fn links_through_a_linked_claude_folder() {
+    // ~/.claude, a link to a dotfiles folder: the link's target starts from the real folder.
+    let repo = TestRepo::new();
+    let home = repo.home();
+    fs::create_dir_all(home.join("dotfiles/claude")).unwrap();
+    symlink(&home.join("dotfiles/claude"), &home.join(".claude"));
+
+    let output = ura(&repo, &["install", "--user", "--agents", "--claude"]);
+
+    assert_eq!(
+        output.stdout,
+        format!(
+            "created ~/.agents/skills/uraeda/ ({} files)\n\
+             linked  ~/.claude/skills/uraeda -> ../../../.agents/skills/uraeda\n",
+            skill_files()
+        ),
+        "{}",
+        output.stderr
+    );
+    assert!(home.join(CLAUDE).join("SKILL.md").is_file());
+    assert_eq!(output.code, 0);
+
+    let output = ura(&repo, &["install", "--user", "--agents", "--claude"]);
+
+    assert_eq!(
+        output.stdout,
+        "kept    ~/.agents/skills/uraeda/: up to date\nkept    ~/.claude/skills/uraeda\n",
+        "{}",
+        output.stderr
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn a_link_with_ura_s_target_elsewhere_is_named() {
+    // ura's target, from a linked ~/.claude, reaches another folder than ~/.agents's copy.
+    let repo = TestRepo::new();
+    let home = repo.home();
+    fs::create_dir_all(home.join("dotfiles/claude/skills")).unwrap();
+    symlink(&home.join("dotfiles/claude"), &home.join(".claude"));
+    symlink(
+        Path::new("../../.agents/skills/uraeda"),
+        &home.join("dotfiles/claude/skills/uraeda"),
+    );
+
+    let output = ura(&repo, &["install", "--user", "--agents", "--claude"]);
+
+    assert!(
+        output
+            .stdout
+            .ends_with("kept    ~/.claude/skills/uraeda: a link to ../../.agents/skills/uraeda\n"),
+        "{}{}",
+        output.stdout,
+        output.stderr
+    );
+    assert_eq!(output.code, 0);
+}
+
+#[cfg(unix)]
+#[test]
 fn a_dangling_link_is_kept() {
     let repo = TestRepo::new();
     let home = repo.home();

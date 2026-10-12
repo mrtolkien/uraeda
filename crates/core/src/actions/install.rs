@@ -4,7 +4,7 @@
 
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Component, Path, PathBuf};
 
 use include_dir::Dir;
 use sha2::{Digest, Sha256};
@@ -19,9 +19,6 @@ pub const AGENTS_DIR: &str = ".agents/skills/uraeda";
 pub const CLAUDE_DIR: &str = ".claude/skills/uraeda";
 /// The manifest of an installed skill, in `sha256sum` format.
 pub const MANIFEST: &str = ".ura-manifest";
-
-/// The link ura makes from `CLAUDE_DIR` to `AGENTS_DIR`.
-const CLAUDE_TARGET: &str = "../../.agents/skills/uraeda";
 
 /// The folders to install the skill in.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -104,11 +101,10 @@ pub fn install(
 ) -> Result<Vec<InstallLine>, ActionError> {
     let mut lines = Vec::new();
     if folders.agents {
-        place(base, shown, AGENTS_DIR, None, &mut lines)?;
+        place(base, shown, AGENTS_DIR, false, &mut lines)?;
     }
     if folders.claude {
-        let link = folders.agents.then_some(CLAUDE_TARGET);
-        place(base, shown, CLAUDE_DIR, link, &mut lines)?;
+        place(base, shown, CLAUDE_DIR, folders.agents, &mut lines)?;
     }
     Ok(lines)
 }
@@ -129,24 +125,22 @@ pub fn update(base: &Path, shown: &str) -> Result<Vec<InstallLine>, ActionError>
     Ok(lines)
 }
 
-/// Installs at one skill path; when there is nothing, links it to `link` if given.
+/// Installs at one skill path; when there is nothing, links it to `AGENTS_DIR` if `link`.
 fn place(
     base: &Path,
     shown: &str,
     dir: &str,
-    link: Option<&str>,
+    link: bool,
     lines: &mut Vec<InstallLine>,
 ) -> Result<(), ActionError> {
     let path = base.join(dir);
     let shown_dir = format!("{shown}{dir}");
     match fs::symlink_metadata(&path) {
-        Err(_) => match link {
-            Some(target) => make_link(&path, target, &shown_dir, lines),
-            None => copy(&path, &shown_dir, lines),
-        },
+        Err(_) if link => make_link(base, shown, lines),
+        Err(_) => copy(&path, &shown_dir, lines),
         Ok(meta) if meta.file_type().is_symlink() => {
             let target = fs::read_link(&path).map_err(failed(&shown_dir))?;
-            let why = (target != Path::new(CLAUDE_TARGET))
+            let why = (dir != CLAUDE_DIR || !reaches_agents(base, &path))
                 .then(|| format!("a link to {}", target.display()));
             lines.push(InstallLine::Kept(shown_dir, why));
             Ok(())
@@ -286,20 +280,50 @@ fn refresh(dir: &Path, shown_dir: &str, lines: &mut Vec<InstallLine>) -> Result<
     Ok(())
 }
 
-fn make_link(
-    path: &Path,
-    target: &str,
-    shown_dir: &str,
-    lines: &mut Vec<InstallLine>,
-) -> Result<(), ActionError> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(failed(shown_dir))?;
+/// Whether `path` resolves to the `AGENTS_DIR` of `base`, through any link.
+fn reaches_agents(base: &Path, path: &Path) -> bool {
+    match (
+        fs::canonicalize(path),
+        fs::canonicalize(base.join(AGENTS_DIR)),
+    ) {
+        (Ok(path), Ok(agents)) => path == agents,
+        _ => false,
     }
+}
+
+/// The relative path from the folder `from` to `to`, both absolute and without `..`.
+fn relative(from: &Path, to: &Path) -> PathBuf {
+    let from: Vec<_> = from.components().collect();
+    let to: Vec<_> = to.components().collect();
+    let common = from.iter().zip(&to).take_while(|(a, b)| a == b).count();
+    from[common..]
+        .iter()
+        .map(|_| Component::ParentDir)
+        .chain(to[common..].iter().copied())
+        .collect()
+}
+
+/// Links `CLAUDE_DIR` to `AGENTS_DIR`, with a target relative to the link's real folder, which
+/// the system resolves it from when `.claude` or `.claude/skills` is itself a link.
+fn make_link(base: &Path, shown: &str, lines: &mut Vec<InstallLine>) -> Result<(), ActionError> {
+    let path = base.join(CLAUDE_DIR);
+    let shown_dir = format!("{shown}{CLAUDE_DIR}");
+    let parent = path.parent().unwrap_or(base);
+    fs::create_dir_all(parent).map_err(failed(&shown_dir))?;
+    let real_parent = fs::canonicalize(parent).map_err(failed(&shown_dir))?;
+    let real_base = fs::canonicalize(base).map_err(failed(&shown_dir))?;
+    let target = relative(&real_parent, &real_base.join(AGENTS_DIR));
     #[cfg(unix)]
-    std::os::unix::fs::symlink(target, path).map_err(failed(shown_dir))?;
+    std::os::unix::fs::symlink(&target, &path).map_err(failed(&shown_dir))?;
+    if !reaches_agents(base, &path) {
+        let _ = fs::remove_file(&path);
+        return Err(failed(&shown_dir)(std::io::Error::other(format!(
+            "the link would not reach {shown}{AGENTS_DIR}"
+        ))));
+    }
     lines.push(InstallLine::Linked(
-        shown_dir.to_string(),
-        target.to_string(),
+        shown_dir,
+        target.to_string_lossy().into_owned(),
     ));
     Ok(())
 }
