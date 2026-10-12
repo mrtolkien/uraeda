@@ -160,7 +160,14 @@ function Panel({ state }: { state: "running" | "failed" }) {
     newSession: false,
     allowed: null,
     pages: 1,
-    denials: [{ seq: 5, tool: "Bash", target: `gh pr create --draft --title "${LONG}"`, rule: "" }],
+    denials: [
+      {
+        seq: 5,
+        tool: "Bash",
+        target: `gh pr create --draft --title "${LONG}"`,
+        rule: `Bash(gh pr create --draft --title "${LONG}")`,
+      },
+    ],
   };
   const events: Array<RunEvent> = [
     { seq: 0, kind: "system", text: "Started a new session: the previous one is gone." },

@@ -240,6 +240,7 @@ test("US6.1 and US6.2: a blocked action can be allowed", async () => {
   const { agent } = await renderPage(`/f/${CLI}`, repo, { agent: fake });
   expect(await screen.findByText("Blocked by auto mode")).toBeTruthy();
   expect(screen.getByText("Bash: gh pr create --draft")).toBeTruthy();
+  expect(screen.getByText(allows("Bash(gh pr create --draft)"))).toBeTruthy();
 
   await tap(screen.getByRole("button", { name: "Allow and continue" }));
 
@@ -248,6 +249,43 @@ test("US6.1 and US6.2: a blocked action can be allowed", async () => {
   expect(agent.starts[1].message).toContain(
     "The human allowed `Bash(gh pr create --draft)`: run it again, then continue.",
   );
+});
+
+/** The sentence that names the rule "Allow and continue" passes. */
+const allows = (rule: string) => (_: string, element: Element | null) =>
+  element?.tagName === "P" && element.textContent === `Allows ${rule} for one run.`;
+
+/** US6.3 */
+test("US6.3: a blocked write outside the project shows its absolute rule", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await seedRun(fake, repo, CLI, [
+    {
+      type: "result",
+      ok: true,
+      errors: [],
+      denials: [{ tool: "Write", input: { file_path: "/home/me/.ssh/config" } }],
+    },
+  ]);
+  const { agent } = await renderPage(`/f/${CLI}`, repo, { agent: fake });
+  expect(await screen.findByText("Write: /home/me/.ssh/config")).toBeTruthy();
+  expect(screen.getByText(allows("Edit(//home/me/.ssh/config)"))).toBeTruthy();
+
+  await tap(screen.getByRole("button", { name: "Allow and continue" }));
+
+  await waitFor(() => expect(agent.starts).toHaveLength(2));
+  expect(agent.starts[1].allowed).toBe("Edit(//home/me/.ssh/config)");
+});
+
+test("a blocked action without a target shows that its rule allows every call", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await seedRun(fake, repo, CLI, [
+    { type: "result", ok: true, errors: [], denials: [{ tool: "mcp__x__y", input: {} }] },
+  ]);
+  await renderPage(`/f/${CLI}`, repo, { agent: fake });
+
+  expect(await screen.findByText(allows("mcp__x__y"))).toBeTruthy();
 });
 
 /** Review focus 3 */

@@ -28,9 +28,13 @@ test.each<[TriggerDetail, string]>([
 
 test.each<[Denial, string]>([
   [{ tool: "Bash", input: { command: "gh pr create --draft" } }, "Bash(gh pr create --draft)"],
-  [{ tool: "Write", input: { file_path: "/home/me/.ssh/config" } }, "Write(/home/me/.ssh/config)"],
-  [{ tool: "Edit", input: { file_path: "/w/a.ts" } }, "Edit(/w/a.ts)"],
-  [{ tool: "Read", input: { file_path: "/w/b.ts" } }, "Read(/w/b.ts)"],
+  // An absolute path takes two slashes: one is relative to the settings' folder. Claude Code checks
+  // a write against `Edit` rules only.
+  [{ tool: "Write", input: { file_path: "/home/me/.ssh/config" } }, "Edit(//home/me/.ssh/config)"],
+  [{ tool: "MultiEdit", input: { file_path: "/w/a.ts" } }, "Edit(//w/a.ts)"],
+  [{ tool: "Edit", input: { file_path: "/w/a.ts" } }, "Edit(//w/a.ts)"],
+  [{ tool: "Read", input: { file_path: "/w/b.ts" } }, "Read(//w/b.ts)"],
+  [{ tool: "Edit", input: { file_path: "src/a.ts" } }, "Edit(src/a.ts)"],
   [{ tool: "WebFetch", input: { url: "https://example.com/a?b" } }, "WebFetch(domain:example.com)"],
   [{ tool: "mcp__x__y", input: {} }, "mcp__x__y"],
 ])("the allow rule of %o", (denial, rule) => expect(allowRule(denial)).toBe(rule));

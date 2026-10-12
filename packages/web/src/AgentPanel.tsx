@@ -104,6 +104,12 @@ export function Denials({
         <span className="mono">
           {denial.target ? `${denial.tool}: ${denial.target}` : denial.tool}
         </span>
+        {onAllow && (
+          // The exact rule the button passes: a bare tool name allows its every call.
+          <p className="agent-rule">
+            Allows <span className="mono">{denial.rule}</span> for one run.
+          </p>
+        )}
       </Banner>
     </div>
   ));
