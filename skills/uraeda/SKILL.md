@@ -402,9 +402,15 @@ empty folder. Never overwrite a file that exists. The constitution is the human'
 it by asking about the project's goals and constraints, and propose principles with recommended
 wording. Do not copy the feature, decision, or bug templates: they stay in this skill.
 
-With `ura`, `ura init` does it, and installs this skill in `.agents/skills/uraeda/`, linked from
-`.claude/skills/uraeda`, with a `.ura-manifest` of its files' hashes: running it again updates the
-skill's files nobody edited. `ura init --no-skill` leaves the skill out.
+With `ura`, `ura init` does it, and writes nothing outside `specs/`. When it finds no Uraeda skill,
+for the user or in the repository, it offers to install this skill for the user. `ura install`
+installs or updates this skill, for the user in the home folder (`--user`) or in the repository's
+top level (`--repo`), in `.agents/skills/uraeda/` (`--agents`), `.claude/skills/uraeda`
+(`--claude`), or both, the second then a link to the first. It writes a `.ura-manifest` of the
+files' hashes, so running it again updates the files nobody edited, and it never writes into a
+folder it did not install, nor through a link. `ura install --update` updates every copy it
+installed. Agents always pass these flags and `--no-input`: an agent's terminal can pass the
+terminal check, yet no one presses its keys.
 
 ## The `ura` CLI
 

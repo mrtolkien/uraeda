@@ -371,18 +371,20 @@ git commit -m "feat(review-uraeda-init): ura install --update"
 **Files:**
 
 - Modify: `crates/core/src/actions/init.rs` (`run(root: &Path)`, `InitLine` keeps `Created` and
-  `Kept`), `crates/cli/src/init.rs`, `crates/cli/src/main.rs` (`Init { no_input }`),
-  `skills/uraeda/SKILL.md` (**Setting up a project**)
+  `Kept(String)`, its reason gone with the skill), `crates/cli/src/init.rs`,
+  `crates/cli/src/main.rs` (`Init { no_input }`), `skills/uraeda/SKILL.md` (**Setting up a
+  project**)
 - Test: `crates/cli/tests/init.rs`, rewritten
 
 **Interfaces:**
 
 - Consumes: `install::existing`, `install::home`, `terminal::interactive`.
 - Produces: `uraeda_core::actions::init::run(root: &Path) -> Result<Vec<InitLine>, ActionError>`; in
-  the CLI, `init::offer(root: &Path, interactive: bool) -> Result<(), String>`, whose interactive
-  branch is `unimplemented!("pickers: task 4")` until task 4.
+  the CLI, `init::offer(interactive: bool) -> Result<(), String>`, without the top level it does not
+  use, asking only with a home folder; its interactive branch is `unimplemented!("pickers: task 4")`
+  until task 4.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `crates/cli/tests/init.rs`, on `TestRepo` and its home:
 
@@ -406,12 +408,12 @@ In `crates/cli/tests/init.rs`, on `TestRepo` and its home:
 
 Remove the skill tests moved in task 1.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-cli --test init`
 - Expected: FAIL, `sets_up_specs_only_from_a_subfolder` finding `.agents` in the repository.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `init::run` loses `skill` and the install. The CLI prints the `specs/` lines, calls `offer` when
 `existing` is empty at both the home folder (if any) and the top level, then the `Next:` line.
@@ -429,10 +431,10 @@ keys.
 - Run: `vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add crates skills/uraeda/SKILL.md
+git add crates skills/uraeda/SKILL.md specs/2026-10-12-review-uraeda-init/plan.md
 git commit -m "feat(review-uraeda-init): ura init sets up specs/ only"
 ```
 
