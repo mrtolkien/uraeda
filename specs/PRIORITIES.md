@@ -2,7 +2,7 @@
 
 ## Now
 
-- "Finish feature"
+- ["Finish feature"](drafts/finish-feature.md)
 
 ## Next
 
