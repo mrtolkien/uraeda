@@ -3,7 +3,6 @@
 ## Now
 
 - [UI improvements](/specs/2026-10-12-ui-improvements/proposal.md)
-- [Claude Code runner (triggered manually): https://code.claude.com/docs/en/headless](/specs/2026-10-12-claude-code-runner-triggered-manually-https-code/proposal.md)
 
 ## Next
 

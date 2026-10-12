@@ -52,21 +52,21 @@ The human picked the installed command-line tool over the Agent SDK. It adds no 
 user's own binary, settings, and login, and is the case Anthropic's terms allow explicitly: "an end
 user signing in to the unmodified Claude Code binary with their own Claude subscription". The terms
 ask products built on the SDK to use API keys
-([Q1](../2026-10-12-claude-code-runner-triggered-manually-https-code/clarifications-01.md#q1-how-does-the-server-run-claude-code),
-[launching](../2026-10-12-claude-code-runner-triggered-manually-https-code/discovery-01.md#launching-claude-code),
-[credentials](../2026-10-12-claude-code-runner-triggered-manually-https-code/discovery-01.md#credentials-and-anthropics-terms)).
+([Q1](../done/2026-10-12-claude-code-runner-triggered-manually-https-code.md#q1-how-does-the-server-run-claude-code),
+[launching](../done/2026-10-12-claude-code-runner-triggered-manually-https-code.md#q1-how-does-the-server-run-claude-code),
+[credentials](../done/2026-10-12-claude-code-runner-triggered-manually-https-code.md#q1-how-does-the-server-run-claude-code)).
 An adapter keeps Codex or pi one more adapter, and lets CI run without Claude Code.
 
 `-p` denies anything that would prompt, so the mode decides whether a step finishes. `auto` is the
 safest mode that runs unattended, and has worked well while developing Uraeda. The agent runs on the
 user's machine, outside a container, and can be started from a phone
-([Q2](../2026-10-12-claude-code-runner-triggered-manually-https-code/clarifications-01.md#q2-what-may-the-agent-do-without-asking),
-[permission mode](../2026-10-12-claude-code-runner-triggered-manually-https-code/discovery-01.md#permission-mode)).
+([Q2](../done/2026-10-12-claude-code-runner-triggered-manually-https-code.md#q2-what-may-the-agent-do-without-asking),
+[permission mode](../done/2026-10-12-claude-code-runner-triggered-manually-https-code.md#q2-what-may-the-agent-do-without-asking)).
 
 The human picked the server's own copy of the skill: one version, whatever the project has
-([Q4](../2026-10-12-claude-code-runner-triggered-manually-https-code/clarifications-01.md#q4-which-copy-of-the-skill-does-the-session-use)).
+([Q4](../done/2026-10-12-claude-code-runner-triggered-manually-https-code.md#q4-which-copy-of-the-skill-does-the-session-use)).
 They asked for the session IDs and parsed transcripts to be kept in a small local database
-([Q5](../2026-10-12-claude-code-runner-triggered-manually-https-code/clarifications-01.md#q5-what-does-the-ui-show-of-a-run)),
+([Q5](../done/2026-10-12-claude-code-runner-triggered-manually-https-code.md#q5-what-does-the-ui-show-of-a-run)),
 in an app data folder from the operating system's defaults rather than the repository's git folder,
 and for the model and effort to come from the active settings, since the command-line tool cannot
 list its models (spec review, C1 and C2). Principle III makes the repository the only durable state,

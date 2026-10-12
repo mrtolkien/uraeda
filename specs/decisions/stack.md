@@ -63,7 +63,7 @@ callouts, typed bullets, and source lines
 ([Q4](../done/2026-10-11-web-ui.md#q4-where-does-the-structure-the-ui-draws-come-from)). An agent's
 messages are not workflow files, and look much better rendered: the human allowed Astryx's
 `Markdown` component for them when approving the
-[Claude Code runner](../2026-10-12-claude-code-runner-triggered-manually-https-code/spec.md).
+[Claude Code runner](../done/2026-10-12-claude-code-runner-triggered-manually-https-code.md).
 
 ## Alternatives considered
 
