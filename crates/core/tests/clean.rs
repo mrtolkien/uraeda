@@ -390,3 +390,37 @@ fn leaves_the_worktree_it_runs_in() {
     assert!(repo.exists(WORKTREE));
     assert!(has_branch(&repo, FOLDER));
 }
+
+/// Pull request review: a merge commit main lacks keeps the branch, even when its parents are
+/// patch-equivalent to main's commits.
+#[test]
+fn leaves_a_branch_with_a_merge_main_lacks() {
+    let repo = merged();
+    let worktree = repo.path().join(WORKTREE);
+    run_in(&worktree, &["switch", "--quiet", "--create", "side"]);
+    fs::write(worktree.join("side.txt"), "side").unwrap();
+    run_in(&worktree, &["add", "--all"]);
+    run_in(
+        &worktree,
+        &["commit", "--quiet", "--no-verify", "-m", "side"],
+    );
+    run_in(&worktree, &["switch", "--quiet", FOLDER]);
+    run_in(
+        &worktree,
+        &["merge", "--quiet", "--no-ff", "--no-edit", "side"],
+    );
+    repo.git(&["cherry-pick", "--quiet", "side"]);
+
+    let cleaned = run(&repo, FOLDER, false).unwrap();
+
+    assert_eq!(
+        cleaned.left,
+        [left(
+            Leftover::Branch(FOLDER.into()),
+            WhyLeft::Unmerged {
+                count: 1,
+                bases: vec!["main".into()]
+            }
+        )]
+    );
+}
