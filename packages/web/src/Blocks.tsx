@@ -11,10 +11,13 @@ import { type ReactNode, useMemo } from "react";
 import type { Block, Document } from "uraeda-binding";
 import { Spans } from "./Spans.tsx";
 
-/** How a review selects blocks: which are selected, what a tap does, and what follows a block. */
+/**
+ * How a review selects blocks: which are selected, what a tap does, given the block and the element
+ * that draws it, and what follows a block.
+ */
 export type Selection = {
   isSelected: (block: Block) => boolean;
-  onTap: (block: Block) => void;
+  onTap: (block: Block, element: HTMLElement) => void;
   after?: (block: Block) => ReactNode;
 };
 
@@ -180,15 +183,20 @@ function selectProps(block: Block, context: Context) {
     tabIndex: 0,
     "aria-pressed": selection.isSelected(block),
     "data-lines": `${block.startLine}-${block.endLine}`,
-    onClick: (event: React.MouseEvent) => {
+    onClick: (event: React.MouseEvent<HTMLElement>) => {
       event.stopPropagation();
-      selection.onTap(block);
+      // A link in the block opens its page: the block is not selected on the way.
+      const control = (event.target as Element).closest("a, button");
+      if (control && event.currentTarget.contains(control)) {
+        return;
+      }
+      selection.onTap(block, event.currentTarget);
     },
-    onKeyDown: (event: React.KeyboardEvent) => {
+    onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
         event.stopPropagation();
-        selection.onTap(block);
+        selection.onTap(block, event.currentTarget);
       }
     },
   };

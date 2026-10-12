@@ -11,6 +11,7 @@ import { FeaturePage } from "./FeaturePage.tsx";
 import { EditorPage } from "./EditorPage.tsx";
 import { FilePage } from "./FilePage.tsx";
 import { Home } from "./Home.tsx";
+import { MockupPage } from "./MockupPage.tsx";
 import { PrioritiesPage } from "./PrioritiesPage.tsx";
 import { Panes } from "./layout/Panes.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
@@ -75,6 +76,8 @@ function Page({ route }: { route: Route }) {
       return <TaskRoute entryKey={route.key} />;
     case "edit":
       return <EditorPage key={route.path} path={route.path} />;
+    case "mockup":
+      return <MockupPage folder={route.folder} name={route.name} />;
     default:
       return <Nothing />;
   }

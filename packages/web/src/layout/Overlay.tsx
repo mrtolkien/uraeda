@@ -4,7 +4,7 @@ import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, type RefObject, useEffect, useRef } from "react";
 import { useWidthClass } from "./useWidthClass.ts";
 
 function overlayOf(state: unknown): string | undefined {
@@ -12,18 +12,27 @@ function overlayOf(state: unknown): string | undefined {
 }
 
 /**
- * A short form over the page: a dialog on wide screens, a tall bottom sheet on narrow ones, each
- * with a visible Close. Opening it adds a history entry, so Back closes it.
+ * A short form over the page: a dialog on wide screens, a bottom sheet on narrow ones, tall unless
+ * told otherwise, each with a visible Close. Opening it adds a history entry, so Back closes it.
  */
 export function Overlay({
   label,
   isOpen,
   onClose,
+  isModal = true,
+  sheetHeight = "tall",
+  sheetRef,
   children,
 }: {
   label: string;
   isOpen: boolean;
   onClose: () => void;
+  /** On narrow screens, whether the page behind the sheet is blocked, and dimmed. */
+  isModal?: boolean;
+  /** On narrow screens, the sheet's height: Astryx's `tall` (92%) or `capped` (62%). */
+  sheetHeight?: "tall" | "capped";
+  /** On narrow screens, the sheet's panel, as drawn on screen. */
+  sheetRef?: RefObject<HTMLDivElement | null>;
   children: ReactNode;
 }) {
   const wide = useWidthClass() === "wide";
@@ -86,7 +95,9 @@ export function Overlay({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       purpose="form"
-      height="tall"
+      height={sheetHeight}
+      hasScrim={isModal}
+      ref={sheetRef}
       padding={4}
     >
       <HStack justify="between" align="center" gap={2}>
