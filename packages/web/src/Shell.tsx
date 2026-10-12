@@ -19,7 +19,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
 import { useWorkspace } from "./data.ts";
 import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
-import { navigate, usePathname } from "./routes.tsx";
+import { currentEntry, navigate, usePathname } from "./routes.tsx";
 import { type ThemeMode, useThemeMode } from "./theme.tsx";
 
 const styles = stylex.create({
@@ -120,7 +120,9 @@ function Item({ label, to, pathname }: { label: string; to: string; pathname: st
  */
 function Nav({ slot }: { slot: ReactNode }) {
   const workspace = useWorkspace();
-  const pathname = usePathname();
+  const path = usePathname();
+  // A task view opened from home shows beside home on wide screens: home stays the page selected.
+  const pathname = path.startsWith("/priorities/") && currentEntry().from === "/" ? "/" : path;
   const features = workspace?.features ?? [];
   const groups: Array<[string, typeof features]> = [
     ["Waiting on you", features.filter((f) => f.step.waitsOn === "human")],
