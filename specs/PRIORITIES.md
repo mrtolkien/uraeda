@@ -8,7 +8,6 @@
   local files and doc Medium = also look for alternatives online High = look far and wide for
   alternatives, look up community sentiment, weigh pros and cons based on actual benchmarks, ...
 - [UI improvements](/specs/2026-10-12-ui-improvements/proposal.md)
-- Better commit messages for UI changes -> take the start of the new task for priorities, ...
 
 ## Next
 
