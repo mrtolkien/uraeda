@@ -1,7 +1,6 @@
 import {
   type ComponentProps,
   type MouseEvent,
-  type ReactNode,
   useDeferredValue,
   useEffect,
   useLayoutEffect,
@@ -169,30 +168,6 @@ export function useRoute(): { route: Route; pathname: string } {
   return { route: parseRoute(pathname), pathname };
 }
 
-/** A link inside the UI: it navigates without reloading the page. */
-export function Link({
-  to,
-  className,
-  children,
-}: {
-  to: string;
-  className?: string;
-  children: ReactNode;
-}) {
-  const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) {
-      return;
-    }
-    event.preventDefault();
-    navigate(to);
-  };
-  return (
-    <a href={to} className={className} onClick={onClick}>
-      {children}
-    </a>
-  );
-}
-
 /** Whether a link opens a page of the UI: a path of this origin, in this tab. */
 function inApp(href: string | undefined, target: string | undefined): href is string {
   return (
@@ -236,8 +211,10 @@ export function RouterAnchor({
           return;
         }
         event.preventDefault();
-        // The page a link was followed from, which a task view shows beside it on wide screens.
-        navigate(href, { from: window.location.pathname });
+        // The page a link was followed from, which a task view shows beside it on wide screens. A
+        // task view's link is followed from the list beside it, which it carries on.
+        const here = window.location.pathname;
+        navigate(href, { from: parseRoute(here).page === "task" ? currentEntry().from : here });
       }}
     />
   );
