@@ -554,7 +554,7 @@ git commit -m "feat(finish-feature): read finished and merged features from thei
 | every step checked (or fixed) | none              | `final-review` (or `fix`), agent |
 | every step checked (or fixed) | the others        | as today                         |
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `crates/core/tests/steps.rs`, a table-driven test over a finished feature, a finished bug, and a
 feature with every step checked:
@@ -609,24 +609,24 @@ fn finish_follows_its_reference() {
 `fixed()` is a report and an approved assessment with every step checked, from the existing
 `assessment` helper. The existing `pull_request_rows` test keeps its rows.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test steps`
 - Expected: FAIL to compile: `no variant named Draft found for enum PullRequest`.
 
-- [ ] **Step 3: Implement the rows**
+- [x] **Step 3: Implement the rows**
 
 In `step`, once the feature has no problem: a finished feature goes to a new
 `finished_step(pull_request)`, the record rows above. In `after_the_last_step`, `Draft` gives
 `Finish`. `refresh_pull_request` already recomputes steps whose `pull_request` is set: the record
 rows set it.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo test --workspace --exclude uraeda-binding`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core
