@@ -820,11 +820,12 @@ git commit -m "feat(claude-code-runner-triggered-manually-https-code): the runne
 - Create: `packages/server/src/runner/claude.ts`
 - Create: `packages/server/plugin/.claude-plugin/plugin.json`, with `{ "name": "uraeda" }`
 - Create: `packages/server/plugin/skills/uraeda`, a symbolic link to `../../../../skills/uraeda`
-- Create: `fixtures/claude/` with recorded stream-json lines: `init.jsonl`, `text.jsonl`,
-  `tool.jsonl`, `result-success.jsonl`, `result-denied.jsonl`, `result-error.jsonl`, `retry.jsonl`,
-  `unknown.jsonl`
+- Create: `fixtures/claude/` with recorded stream-json lines: `init.jsonl`,
+  `init-plugin-error.jsonl`, `text.jsonl`, `tool.jsonl`, `result-success.jsonl`,
+  `result-denied.jsonl`, `result-error.jsonl`, `retry.jsonl`, `ignored.jsonl`, `unknown.jsonl`
 - Create: `packages/server/scripts/validate-claude.ts`, and a root `package.json` script
   `"validate:claude": "node packages/server/scripts/validate-claude.ts"`
+- Modify: `packages/server/tsconfig.json`, which includes `scripts` so the script is type checked
 - Test: `packages/server/src/runner/__tests__/claude.test.ts`
 
 **Interfaces:**
@@ -838,7 +839,7 @@ git commit -m "feat(claude-code-runner-triggered-manually-https-code): the runne
     `new ClaudeAdapter({ command = "claude", configDir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude") })`;
   - `PLUGIN_DIR`, the absolute path of `packages/server/plugin`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // claude.test.ts
@@ -913,16 +914,25 @@ test("review focus 5: a missing command exits as missing", async () => {
 test("version() is undefined without the command", async () => {});
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/runner/__tests__/claude.test.ts`
 - Expected: FAIL, `Failed to resolve import "../claude.ts"`.
 
-- [ ] **Step 3: Record the fixtures, and implement `claude.ts`**
+- [x] **Step 3: Record the fixtures, and implement `claude.ts`**
 
 **The fixtures:** take their lines from a real run of
 `claude -p --output-format stream-json --verbose` here, shortened to what the tests read. Each line
-keeps the fields of the [Code read](#code-read).
+keeps the fields of the [Code read](#code-read). The tests expect the recorded values: the session
+IDs, tool IDs, and costs of those runs. `retry.jsonl` follows the documented fields, since a retry
+cannot be caused on purpose, and `unknown.jsonl` has a made-up type
+([R13](rulings.md#r13-the-fixtures-come-from-runs-shaped-to-give-each-line)).
+
+**`parseLine`:** a line of a type Claude Code documents that the runner has no use for, like hooks,
+rate limit status, or thinking tokens, gives no event, which `ignored.jsonl` tests. Only a line that
+is not JSON, or of an undocumented type, is `skipped`
+([R12](rulings.md#r12-documented-lines-the-runner-has-no-use-for-give-no-event)). `plugin_errors` is
+`null` when every plugin loaded, and each error's `message` is kept.
 
 **`start`:**
 
@@ -930,7 +940,8 @@ keeps the fields of the [Code read](#code-read).
 - Write `JSON.stringify({ type: "user", message: { role: "user", content: options.message } })` and
   a newline on stdin, then end stdin.
 - `events` yields each `parseLine` of `lines(stdout)`, then one `exit` with the last 20 lines of
-  stderr. A spawn `error` with code `ENOENT` gives `missing: true`.
+  stderr, once stdout and stderr have closed. A spawn `error` with code `ENOENT` gives
+  `missing: true`.
 - `interrupt()` and `terminate()` send `SIGINT` and `SIGTERM`.
 
 **The rest:**
@@ -940,7 +951,7 @@ keeps the fields of the [Code read](#code-read).
   reading any file.
 - `lines` decodes with one `TextDecoder` in streaming mode, and splits on `\n`.
 
-- [ ] **Step 4: Write `packages/server/scripts/validate-claude.ts`**
+- [x] **Step 4: Write `packages/server/scripts/validate-claude.ts`**
 
 The script runs the real `claude` through `ClaudeAdapter` on a temporary `fixtureRepo()`. It prints
 one line per check, `ok` or `FAIL` with what it got, and exits 1 on any failure. The checks:
@@ -948,15 +959,18 @@ one line per check, `ok` or `FAIL` with what it got, and exits 1 on any failure.
 1. `version()` returns a version.
 2. A first run, with the message
    `/uraeda:uraeda Reply with the single word ready, and do nothing else.`, gives an `init` with
-   `uraeda` in its plugins and no plugin error, then an `ok` result.
+   `uraeda` in its plugins and no plugin error, then an `ok` result. Its transcript shows the skill
+   loaded from the plugin's copy, so `/uraeda:uraeda` is the skill's name.
 3. `hasSession` is true for that session ID afterwards.
 4. A resumed run, with "Reply with the word again", gives `init.sessionId` equal to the first.
-5. A run asked to run `sleep 30` and interrupted after its `toolStart` exits within 10 s. A resumed
-   run after it gives an `ok` result.
+5. A run asked to run `node -e "setTimeout(() => {}, 30000)"` and interrupted after its `toolStart`
+   exits within 10 s. A resumed run after it gives an `ok` result. Claude Code refuses a bare
+   `sleep 30` itself, so the command waits in node
+   ([R14](rulings.md#r14-the-interrupt-check-waits-in-node-not-with-sleep)).
 
 Its header comment says when to run it: after a Claude Code upgrade, or when runs break.
 
-- [ ] **Step 5: Run all tests, then the validation script against this machine's `claude`**
+- [x] **Step 5: Run all tests, then the validation script against this machine's `claude`**
 
 - Run: `vp test packages/server`
 - Expected: PASS.
@@ -964,7 +978,7 @@ Its header comment says when to run it: after a Claude Code upgrade, or when run
 - Expected: five `ok` lines. If a check fails, fix the adapter or the fixtures, and record what
   changed in `rulings.md`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server/src/runner/claude.ts packages/server/src/runner/__tests__/claude.test.ts packages/server/plugin fixtures/claude packages/server/scripts package.json

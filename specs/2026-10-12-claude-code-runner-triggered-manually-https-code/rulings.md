@@ -133,3 +133,46 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   machine without `claude` for the first request.
 - **If wrong**: the first requests after startup show one button.
 - **Where**: tasks 3 and 5.
+
+## R12: Documented lines the runner has no use for give no event
+
+- **Decision**: `parseLine` returns no event for the line types Claude Code documents but the runner
+  does not show, like `hook_started`, `rate_limit_event`, and `system/thinking_tokens`. Only a line
+  that is not JSON, or of a type the documentation does not list, is `skipped` and counted.
+- **Rationale**: a real run here printed hook, rate limit, and thinking lines in every run. Counted
+  as skipped, every log would read "Skipped 6 lines Claude Code printed that the runner does not
+  read.", which would hide the lines the spec means: those the runner cannot read.
+- **Alternatives considered**: skipping every line that gives no event, which follows the plan's
+  text, and puts a system line in every run's log.
+- **If wrong**: a documented type that should show, like a `permission_denied` notice, gets a case
+  in `parseLine`.
+- **Where**: task 4.
+
+## R13: The fixtures come from runs shaped to give each line
+
+- **Decision**: the denied result comes from a run given an `ask` rule for `gh pr create`, with
+  `--settings` on that recording run only. The error result comes from a run with `--max-turns 1`.
+  The retry line follows the documented fields, and the unknown line has a made-up type. The tests
+  expect the recorded values, not the plan's examples.
+- **Rationale**: `auto` mode ran a force push and a draft pull request that the message asked for
+  explicitly, so no message alone gave a denial. An `ask` rule is denied in print mode, and the rule
+  lived in that run's arguments only, never in a settings file. A rate limit cannot be caused on
+  purpose.
+- **Alternatives considered**: lines written by hand from the documentation, which would miss the
+  differences from it, like `plugin_errors` printed as `null` rather than left out.
+- **If wrong**: a field Claude Code prints differently in a real denial or retry. The validation
+  script does not cover them, and their fixtures are recorded again when one is seen.
+- **Where**: task 4.
+
+## R14: The interrupt check waits in node, not with `sleep`
+
+- **Decision**: the validation script's fifth check asks for
+  `node -e "setTimeout(() => {}, 30000)"`, instead of `sleep 30`.
+- **Rationale**: Claude Code 2.1.296 refuses a standalone `sleep 30`, and `sleep 30 && echo`, as a
+  tool error telling the model to use a background command, so no tool was running when the run was
+  interrupted.
+- **Alternatives considered**: interrupting on the refused `sleep`, which checks an interrupt while
+  the model writes, not while a command runs.
+- **If wrong**: a later version refuses the node wait too, and the check fails without an interrupt:
+  its output shows `stoppedIn` undefined.
+- **Where**: task 4.
