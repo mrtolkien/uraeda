@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: UI improvements
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 13 questions on the UI improvements, about 45 minutes.
+> Answered on 2026-10-12.
 >
 > - The first four questions shape the UI decisions you asked for, outlast this feature, and work
 >   together: how the UI is built, how it adapts to the phone and the desktop, how it behaves, and
@@ -87,7 +87,7 @@ is rewritten now.
   - [pro] nothing to set up.
   - [con] the situation that produced today's pages.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How should the UI adapt between the phone and the desktop?
 
@@ -119,7 +119,7 @@ every future view has to provide at each size.
   - [pro] nothing to build.
   - [con] the desktop problems the proposal lists stay.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Which rules should govern how the UI behaves?
 
@@ -162,7 +162,7 @@ went wrong.
   - [pro] nothing to maintain.
   - [con] the next view decides again, as this one did.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: What checks an agent's UI work?
 
@@ -197,7 +197,9 @@ Why it matters: it decides what "done" means for UI work, and what you look at b
   - [pro] nothing new to run.
   - [con] the desktop stays unchecked.
 
-**Answer:**
+**Answer:** A: This is less about looks of static pages and more about behaviour. I'm down for tests
+but they should be useful: each test is added maintenance, because tests also drift away from
+expected behaviour.
 
 ## Q5: How large should text be on desktop?
 
@@ -227,7 +229,7 @@ written from now on.
   - [pro] exactly your zoom, in one line.
   - [con] breaks the dragging library's position math, and nested zooms compound.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: Should paragraphs be justified?
 
@@ -260,7 +262,7 @@ UI shows.
   - [pro] what every source advises.
   - [con] not what you asked for.
 
-**Answer:**
+**Answer:** C
 
 ## Q7: What does tapping a task on home open?
 
@@ -292,7 +294,7 @@ page.
   - [pro] the smallest change.
   - [con] moving, editing, and deleting stay elsewhere.
 
-**Answer:**
+**Answer:** A
 
 ## Q8: How are lines edited and added on the priorities page?
 
@@ -323,7 +325,7 @@ Why it matters: the priorities page is where you groom the backlog, and each ext
   - [pro] small.
   - [con] editing still takes two taps and a field in an overlay.
 
-**Answer:**
+**Answer:** A
 
 ## Q9: How should dragging a line work?
 
@@ -355,7 +357,7 @@ with.
   - [pro] no dependency, simple, accessible.
   - [con] reordering far takes many taps.
 
-**Answer:**
+**Answer:** A
 
 ## Q10: What should a new draft hold?
 
@@ -382,7 +384,10 @@ Why it matters: every feature starts from a draft, written from the UI and the C
   - [pro] no change to the CLI or the skill.
   - [con] the placeholders are still there to delete.
 
-**Answer:**
+**Answer:** B: Good. My issue was that on a phone deleting the placeholder text was annoying. I'm ok
+with keeping headings.
+
+Proposals are also pretty freeform so it's not like we're enforcing much.
 
 ## Q11: How do you move through a round of questions?
 
@@ -410,7 +415,11 @@ Why it matters: a round is the page you use most, and it runs to dozens of quest
   - [pro] nothing covers the text.
   - [con] you scroll back up to use it.
 
-**Answer:**
+**Answer:** A: Well there's already a bar at the top atm, which reads "Uraeda/Uraeda, +, (empty
+space), a burger menu.
+
+We should put our outline/index in that bar. We don't lose any space compared to the current layout,
+normally.
 
 ## Q12: Where does a round open when you come back to it?
 
@@ -433,7 +442,7 @@ Why it matters: rounds are answered in several sittings, often from different de
   - [pro] predictable.
   - [con] the problem the proposal names.
 
-**Answer:**
+**Answer:** A
 
 ## Q13: Should three problems found outside your list be fixed in this feature?
 
@@ -463,7 +472,7 @@ Why it matters: it sets this feature's edges.
   - [pro] the scope stays as written.
   - [con] three more items to start later.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -495,4 +504,5 @@ Why it matters: it sets this feature's edges.
 - **The coming-back sentence** of the proposal is read as "put me back at the top". See
   [discovery](discovery-01.md#the-sentence-cut-short).
 
-**Notes:**
+**Notes:** - We don't need the "+" to add priorities when answering questions. We'll add priorities
+either from home (for quick saving of ideas) or the priorities page (which is getting reworked)
