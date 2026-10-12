@@ -454,11 +454,14 @@ export function PrioritiesPage() {
                       label="Discard them"
                       clickAction={async () => {
                         setConfirm(false);
-                        setMessage(
-                          await run(() =>
-                            fate.mutations.priorities.discard({ input: {}, view: PrioritiesView }),
-                          ),
+                        const failed = await run(() =>
+                          fate.mutations.priorities.discard({ input: {}, view: PrioritiesView }),
                         );
+                        setMessage(failed);
+                        if (!failed) {
+                          // Discarded: an Undo would write a change back over the committed file.
+                          closeUndoToasts();
+                        }
                       }}
                     />
                   </>
