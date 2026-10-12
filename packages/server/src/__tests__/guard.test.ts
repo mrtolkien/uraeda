@@ -1,6 +1,8 @@
 import { expect, test } from "vite-plus/test";
 import { port, testApp } from "./helpers.ts";
 
+const tailnet = "mac.tail1234.ts.net";
+
 // The host is the URL's: @hono/node-server builds it from the request's `Host` header.
 const cases: Array<[string, string, Record<string, string>, number, string?]> = [
   ["the server's address", `127.0.0.1:${port}`, {}, 200],
@@ -10,10 +12,15 @@ const cases: Array<[string, string, Record<string, string>, number, string?]> = 
   ["the server's origin", `localhost:${port}`, { origin: `http://localhost:${port}` }, 200],
   ["an allowed origin", `127.0.0.1:${port}`, { origin: "http://localhost:5173" }, 200],
   ["another origin", `127.0.0.1:${port}`, { origin: "https://evil.com" }, 403, "Forbidden origin"],
+  // US6.1 and US6.2
+  ["an allowed host, from its own origin", tailnet, { origin: `https://${tailnet}` }, 200],
+  ["an allowed host, with the port", `${tailnet}:${port}`, {}, 200],
+  ["a host not listed", "evil.example", {}, 403, "Forbidden host"],
+  ["an origin not listed", tailnet, { origin: "https://evil.example" }, 403, "Forbidden origin"],
 ];
 
 test.each(cases)("a request to %s", async (_, host, headers, status, body) => {
-  const response = await testApp().request(`http://${host}/fate`, {
+  const response = await testApp(undefined, [tailnet]).request(`http://${host}/fate`, {
     method: "POST",
     headers: { "content-type": "application/json", ...headers },
     body: JSON.stringify({ operations: [], version: 1 }),

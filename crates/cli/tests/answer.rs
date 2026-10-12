@@ -89,12 +89,12 @@ fn submit_refuses_blank_answers() {
 }
 
 #[test]
-fn switches_to_the_branch_from_a_clean_main() {
+fn writes_in_a_new_worktree_from_main() {
     let repo = waiting(&["A", "B", "A"]);
 
     let output = ura(&repo, &["answer", "cli-core", "--submit"]);
 
-    assert_eq!(repo.current_branch(), "2026-10-10-cli-core");
+    assert_eq!(repo.current_branch(), "main");
     assert_eq!(
         repo.subjects("2026-10-10-cli-core")[0],
         "discovery(cli-core): answer round 01"
@@ -102,25 +102,30 @@ fn switches_to_the_branch_from_a_clean_main() {
     assert!(
         output
             .stdout
-            .starts_with("switched to 2026-10-10-cli-core\n"),
+            .starts_with("wrote in .worktrees/2026-10-10-cli-core\n"),
         "{}",
         output.stdout
     );
+    assert_eq!(repo.hook_runs(), 1);
 }
 
 #[test]
-fn refuses_to_switch_over_uncommitted_changes() {
-    let repo = waiting(&["A", "B", "A"]);
+fn writes_in_a_worktree_over_uncommitted_changes() {
+    let repo = waiting(&["", "", ""]);
     repo.write("README.md", "# Changed\n");
 
-    let output = ura(&repo, &["answer", "cli-core", "--submit"]);
+    let output = ura(&repo, &["answer", "cli-core", "Q1", "A"]);
 
-    assert_eq!(
-        output.stderr,
-        "ura: cannot switch to 2026-10-10-cli-core: uncommitted changes in README.md\n"
-    );
+    let written = std::fs::read_to_string(
+        repo.path()
+            .join(".worktrees/2026-10-10-cli-core")
+            .join(FILE),
+    )
+    .unwrap();
+    assert!(written.contains("**Answer:** A\n"), "{}", output.stderr);
+    assert_eq!(repo.read("README.md"), "# Changed\n");
     assert_eq!(repo.current_branch(), "main");
-    assert_eq!(output.code, 1);
+    assert_eq!(output.code, 0);
 }
 
 #[test]

@@ -42,6 +42,7 @@ fn waiting(text: &str, name: &str) -> Result<(), ActionError> {
 }
 
 /// An answer written: in which file, and how many applicable questions are answered.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Written {
     pub file: String,
     pub answered: usize,
@@ -104,4 +105,64 @@ pub fn submit(place: &Place, feature: &Feature, today: Date) -> Result<Change, A
         subject: format!("discovery({}): answer round {round:02}", feature.slug),
         body: None,
     })
+}
+
+/// Writes the answer composed from the letters picked and a comment, as the web UI sends them,
+/// over the answer the UI last read, `previous`: a different answer in the file means it changed
+/// elsewhere, and nothing is written. Commits nothing.
+pub fn save(
+    place: &Place,
+    feature: &Feature,
+    id: &str,
+    letters: &[String],
+    comment: &str,
+    previous: &str,
+) -> Result<Written, ActionError> {
+    let file = round_path(feature)?;
+    let text = fs::read_to_string(place.root.join(&file))?;
+    let current = clarifications::parse(&text)
+        .into_iter()
+        .find(|question| question.id == id)
+        .map(|question| question.answer)
+        .ok_or_else(|| clarifications::AnswerError::UnknownQuestion(id.to_string()))?;
+    if current.trim() != previous.trim() {
+        return Err(ActionError::changed(&file));
+    }
+    write(
+        place,
+        feature,
+        id,
+        &clarifications::compose_answer(letters, comment),
+    )
+}
+
+/// Writes the notes over the ones the UI last read. Commits nothing.
+pub fn save_notes(
+    place: &Place,
+    feature: &Feature,
+    notes: &str,
+    previous: &str,
+) -> Result<Written, ActionError> {
+    let file = round_path(feature)?;
+    let text = fs::read_to_string(place.root.join(&file))?;
+    let current = clarifications::notes(&text)
+        .map(|(_, notes)| notes)
+        .unwrap_or_default();
+    if current.trim() != previous.trim() {
+        return Err(ActionError::changed(&file));
+    }
+    write(place, feature, "notes", notes)
+}
+
+/// Submits the latest round and commits it, refused before anything is written when other files
+/// are staged.
+pub fn submit_and_commit(
+    place: &Place,
+    feature: &Feature,
+    today: Date,
+) -> Result<super::Committed, ActionError> {
+    let path = round_path(feature)?;
+    super::place::ensure_only_staged(place, &[path])?;
+    let change = submit(place, feature, today)?;
+    super::commit::commit(place, &change)
 }

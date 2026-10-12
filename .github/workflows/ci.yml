@@ -1,7 +1,9 @@
 name: CI
 
 on:
+  # Pull requests run it on their branch; pushes run it once merged.
   push:
+    branches: [main]
   pull_request:
 
 jobs:
@@ -25,6 +27,12 @@ jobs:
         run: |
           git status --porcelain
           test -z "$(git status --porcelain)"
+
+      - name: Check the release plan
+        # The release workflow runs on tags only, so its plan is checked here.
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.33.0/cargo-dist-installer.sh | sh
+          dist plan
 
       - name: Check the size of ura
         run: |

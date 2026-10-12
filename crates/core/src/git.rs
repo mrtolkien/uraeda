@@ -15,12 +15,19 @@ pub enum GitError {
     NotARepository(PathBuf),
     #[error("cannot read {what}: {message}")]
     Read { what: String, message: String },
+    /// `message` is the output's first line; `output`, all of it, like a hook's report.
     #[error("git {subcommand} failed: {message}")]
-    Command { subcommand: String, message: String },
+    Command {
+        subcommand: String,
+        message: String,
+        output: String,
+    },
     #[error("git not found: install git to commit")]
     GitNotFound,
     #[error("other files are staged: {}: commit or unstage them first", .0.join(", "))]
     OtherStagedFiles(Vec<String>),
+    #[error("cannot create the worktree: {0} exists")]
+    WorktreeExists(String),
 }
 
 /// A branch, local, on `origin`, or both.
@@ -77,6 +84,88 @@ impl Git {
     /// The top level of this working tree.
     pub fn root(&self) -> &Path {
         &self.root
+    }
+
+    /// The folder git shares between working trees: `.git` of the main one.
+    pub fn common_dir(&self) -> PathBuf {
+        let common = self.repo.common_dir();
+        std::fs::canonicalize(common).unwrap_or_else(|_| common.to_path_buf())
+    }
+
+    /// The top level of the main working tree, where `.worktrees/` lives.
+    pub fn main_root(&self) -> PathBuf {
+        let common = self.repo.common_dir();
+        let common = std::fs::canonicalize(common).unwrap_or_else(|_| common.to_path_buf());
+        common
+            .parent()
+            .map_or_else(|| self.root.clone(), Path::to_path_buf)
+    }
+
+    /// Checks out an existing branch, local or only on `origin`, in a new worktree at `path`,
+    /// after pruning the worktrees whose folder is gone.
+    pub fn add_worktree(&self, path: &Path, branch: &str) -> Result<(), GitError> {
+        self.run("worktree", &["worktree", "prune"])?;
+        let path = path.to_string_lossy();
+        let local = self
+            .repo
+            .try_find_reference(format!("refs/heads/{branch}").as_str())
+            .ok()
+            .flatten()
+            .is_some();
+        if local {
+            self.run("worktree", &["worktree", "add", "--quiet", &path, branch])
+        } else {
+            let remote = format!("origin/{branch}");
+            self.run(
+                "worktree",
+                &[
+                    "worktree", "add", "--quiet", "--track", "-b", branch, &path, &remote,
+                ],
+            )
+        }
+    }
+
+    /// Creates `branch` from `from`, checked out in a new worktree at `path`.
+    pub fn add_worktree_new(&self, path: &Path, branch: &str, from: &str) -> Result<(), GitError> {
+        self.run("worktree", &["worktree", "prune"])?;
+        let path = path.to_string_lossy();
+        self.run(
+            "worktree",
+            &["worktree", "add", "--quiet", "-b", branch, &path, from],
+        )
+    }
+
+    /// Keeps `.worktrees/` out of `git status`, through `.git/info/exclude`, once.
+    pub fn exclude_worktrees(&self) -> Result<(), GitError> {
+        let info = self.repo.common_dir().join("info");
+        let exclude = info.join("exclude");
+        let text = std::fs::read_to_string(&exclude).unwrap_or_default();
+        if text.lines().any(|line| line.trim() == "/.worktrees/") {
+            return Ok(());
+        }
+        let write = || -> std::io::Result<()> {
+            std::fs::create_dir_all(&info)?;
+            let mut text = text.clone();
+            if !text.is_empty() && !text.ends_with('\n') {
+                text.push('\n');
+            }
+            text.push_str("/.worktrees/\n");
+            std::fs::write(&exclude, text)
+        };
+        write().map_err(read_error(".git/info/exclude"))
+    }
+
+    /// The configured `core.hooksPath`, made absolute from the main working tree when it is
+    /// relative and this is a linked worktree, where git would resolve it from here instead.
+    fn hooks_override(&self) -> Option<String> {
+        let configured = self
+            .repo
+            .config_snapshot()
+            .string("core.hooksPath")
+            .map(|value| value.to_string())?;
+        let main = self.main_root();
+        (Path::new(&configured).is_relative() && main != self.root)
+            .then(|| main.join(configured).to_string_lossy().into_owned())
     }
 
     /// The branch checked out here, or `None` on a detached `HEAD`.
@@ -313,6 +402,12 @@ impl Git {
         self.run("switch", &["switch", branch])
     }
 
+    /// Restores a file to its version at `HEAD` in this working tree and its index, dropping staged
+    /// changes too.
+    pub fn restore(&self, path: &str) -> Result<(), GitError> {
+        self.run("checkout", &["checkout", "--quiet", "HEAD", "--", path])
+    }
+
     /// Creates `branch` from `from`, and switches this working tree to it.
     pub fn switch_new(&self, branch: &str, from: &str) -> Result<(), GitError> {
         self.run("switch", &["switch", "--create", branch, from])
@@ -346,14 +441,30 @@ impl Git {
         subject: &str,
         body: Option<&str>,
     ) -> Result<(), GitError> {
-        let others = others_staged(&self.staged_files()?, paths);
+        let staged = self.staged_files()?;
+        let others = others_staged(&staged, paths);
         if !others.is_empty() {
             return Err(GitError::OtherStagedFiles(others));
         }
-        let mut add = vec!["add", "--all", "--"];
-        add.extend(paths.iter().map(String::as_str));
-        self.run("add", &add)?;
-        let mut commit = vec!["commit", "--quiet", "--message", subject];
+        // A deletion already staged, after a refused commit, is not a path git can add again.
+        let addable: Vec<&str> = paths
+            .iter()
+            .filter(|path| self.root.join(path).exists() || !staged.contains(path))
+            .map(String::as_str)
+            .collect();
+        if !addable.is_empty() {
+            let mut add = vec!["add", "--all", "--"];
+            add.extend(addable);
+            self.run("add", &add)?;
+        }
+        let hooks = self
+            .hooks_override()
+            .map(|path| format!("core.hooksPath={path}"));
+        let mut commit = Vec::new();
+        if let Some(hooks) = &hooks {
+            commit.extend(["-c", hooks.as_str()]);
+        }
+        commit.extend(["commit", "--quiet", "--message", subject]);
         if let Some(body) = body {
             commit.extend(["--message", body]);
         }
@@ -370,6 +481,7 @@ impl Git {
                 _ => GitError::Command {
                     subcommand: subcommand.to_string(),
                     message: error.to_string(),
+                    output: error.to_string(),
                 },
             })?;
         if output.status.success() {
@@ -384,9 +496,11 @@ impl Git {
             .find(|line| !line.is_empty())
             .unwrap_or("no output")
             .to_string();
+        let output = format!("{stdout}{stderr}").trim_end().to_string();
         Err(GitError::Command {
             subcommand: subcommand.to_string(),
             message,
+            output,
         })
     }
 }
