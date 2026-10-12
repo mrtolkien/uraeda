@@ -4,8 +4,10 @@ import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { Blocks } from "./Blocks.tsx";
+import { CommitActions } from "./CommitActions.tsx";
 import { type Refusal, refusal } from "./errors.ts";
 import { GrowingTextArea, PendingSaves, Question } from "./Question.tsx";
+import { startRun, type Started } from "./runs.ts";
 import { plain } from "./Spans.tsx";
 import { useSave } from "./useSave.ts";
 import { FileView } from "./views.ts";
@@ -50,6 +52,9 @@ export function RoundPage({ file }: { file: File }) {
   const readOnly = file.status !== "awaiting-human";
   const [notes, setNotes] = useState(round?.notes ?? "");
   const [error, setError] = useState<Refusal>();
+  // Whether the last commit asked to continue, for its Try again.
+  const continues = useRef(false);
+  const [started, setStarted] = useState<Started>();
   const pending = useRef(new Set<() => Promise<boolean>>()).current;
   const notesSave = useSave<string>(async (value, previous) => {
     const result = await fate.mutations.notes.save({
@@ -87,8 +92,14 @@ export function RoundPage({ file }: { file: File }) {
   const blank = applicable.filter((q) => !q.answer.trim());
   const title = document.blocks.find((b) => b.kind === "heading" && b.level === 1);
 
-  const submit = async () => {
+  /** Starts the agent on the next step, once the round is committed. */
+  const proceed = async () => {
+    setStarted(await startRun(fate, { folder: file.folder, trigger: "answers", file: file.name }));
+  };
+  const submit = async (next: boolean) => {
     setError(undefined);
+    setStarted(undefined);
+    continues.current = next;
     // What is still being typed is saved first, and nothing is submitted unless it all is.
     const saved = await Promise.all([...[...pending].map((flush) => flush()), notesSave.flush()]);
     if (!saved.every(Boolean)) {
@@ -105,6 +116,8 @@ export function RoundPage({ file }: { file: File }) {
     });
     if (result.error) {
       setError(refusal(result.error));
+    } else if (next) {
+      await proceed();
     }
   };
   const retry = async () => {
@@ -113,6 +126,9 @@ export function RoundPage({ file }: { file: File }) {
       view: FileView,
     });
     setError(result.error ? refusal(result.error) : undefined);
+    if (!result.error && continues.current) {
+      await proceed();
+    }
   };
 
   return (
@@ -205,16 +221,10 @@ export function RoundPage({ file }: { file: File }) {
             ) : (
               error && <p className="not-saved">{error.message}</p>
             )}
-            <div className="actions">
-              <Button
-                variant="primary"
-                label="Submit answers"
-                isDisabled={blank.length > 0}
-                clickAction={submit}
-              />
-            </div>
+            <CommitActions label="Submit answers" isDisabled={blank.length > 0} onCommit={submit} />
           </>
         )}
+        {started && <p className={started.ok ? "saved" : "not-saved"}>{started.message}</p>}
       </div>
     </PendingSaves>
   );
