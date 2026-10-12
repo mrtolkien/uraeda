@@ -139,6 +139,10 @@ const styles = stylex.create({
   cell: {
     position: "relative",
   },
+  // What follows a block, like its comments: no box of its own.
+  after: {
+    display: "contents",
+  },
   // A header cell wraps its text, as a body cell does, instead of cutting it.
   headerCell: {
     maxWidth: "none",
@@ -220,6 +224,12 @@ function useSelect(block: Block, context: Context) {
       "data-lines": `${block.startLine}-${block.endLine}`,
       onClick: (event: React.MouseEvent<HTMLElement>) => {
         event.stopPropagation();
+        // What follows a nested block, like its comment field, belongs to that block, not this one.
+        if (
+          (event.target as Element).closest("[data-lines], [data-after]") !== event.currentTarget
+        ) {
+          return;
+        }
         // A link or a button in the block does its own job: the block is not selected on the way.
         // The block's toggle, the one button with a pressed state, selects it.
         const control = (event.target as Element).closest("a[href], button:not([aria-pressed])");
@@ -242,6 +252,15 @@ function useSelect(block: Block, context: Context) {
       />
     ),
   };
+}
+
+/** What follows a block, marked so a tap on it does not select the block it sits in. */
+function After({ children }: { children: ReactNode }) {
+  return (
+    <div data-after="" {...stylex.props(styles.after)}>
+      {children}
+    </div>
+  );
 }
 
 /** A block a review can tap, around its drawing, with what follows it. */
@@ -269,7 +288,7 @@ function Selectable({
           {children}
         </div>
       </div>
-      {context.selection?.after?.(block)}
+      <After>{context.selection?.after?.(block)}</After>
     </>
   );
 }
@@ -360,7 +379,9 @@ function RowNode({ row, context }: { row: Block; context: Context }) {
       </TableRow>
       {after && (
         <TableRow>
-          <TableCell colSpan={cells.length}>{after}</TableCell>
+          <TableCell colSpan={cells.length}>
+            <After>{after}</After>
+          </TableCell>
         </TableRow>
       )}
     </>
