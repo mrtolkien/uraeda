@@ -170,11 +170,11 @@ Workflow files track their state in frontmatter fields.
 The bug flow is an agent-authored draft that needs human review: see [Bug](references/bug.md).
 
 Only set a human status when the human expressly asks you to in the session, for example "the spec
-is approved". Say so in the commit message: `spec(recurring-tasks): approved by the human in chat`.
-When the human changes a spec's `risk-tier` on approval without naming `plan-review`, set
-`plan-review` to the new tier's default. With `ura`, pass `--no-commit` to `ura answer` or
-`ura review`, and commit with that message. With `changes-requested`, the human's feedback is in the
-file's [review file](#review-files).
+is approved". Commit with the message `ura` would write, `spec(recurring-tasks): approve`, and say
+so in its body: "Approved by the human in chat." When the human changes a spec's `risk-tier` on
+approval without naming `plan-review`, set `plan-review` to the new tier's default. With `ura`, pass
+`--no-commit` to `ura answer` or `ura review`, and commit with that message and body. With
+`changes-requested`, the human's feedback is in the file's [review file](#review-files).
 
 ### Review files
 
@@ -337,8 +337,8 @@ Do these only when a human asks.
   rounds, and the questions, answered or not, stay as they are. Delete the feature's `proposed`
   decisions, and the `## Proposed change` sections it added. In the same commit, move the
   `PRIORITIES.md` entry to the right section, with the reason when it is blocked, and link it to the
-  folder's `proposal.md`. Commit with `chore: postpone <feature name>`, merge the branch into the
-  default branch, and delete it.
+  folder's `proposal.md`. Commit with `chore(<slug>): postpone <feature name>`, merge the branch
+  into the default branch, and delete it.
 - **Drop**: delete the branch, and the `PRIORITIES.md` entry, after the human confirms.
 
 ## Finishing a feature
@@ -370,6 +370,26 @@ description is the feature name for a first version, and what changed for later 
 
 Code commits use the plan's messages, with the standard types and the same scope:
 `feat(recurring-tasks): repeat menu`, `fix(completed-tasks-reappear): save new tasks as they are`.
+
+The human's commits, and the agent's when the human asks, use the step's type for what they answer
+and `chore:` for the rest. `ura` and the web UI write the same messages.
+
+| Commit                         | Example                                                                                             |
+| ------------------------------ | --------------------------------------------------------------------------------------------------- |
+| Answer a round of questions    | `discovery(recurring-tasks): answer round 01`                                                       |
+| Approve, or request changes    | `spec(recurring-tasks): approve`, `plan(recurring-tasks): request changes`                          |
+| A draft, then its edits        | `chore: draft Recurring tasks`, `chore: edit the draft Recurring tasks`                             |
+| A backlog file, then its edits | `chore: add Benchmarks to the backlog`, `chore: edit Benchmarks in the backlog`                     |
+| A proposal, then its edits     | `chore(recurring-tasks): proposal`, `chore(recurring-tasks): edit the proposal`                     |
+| Start, postpone                | `chore(recurring-tasks): start Recurring tasks`, `chore(recurring-tasks): postpone Recurring tasks` |
+| `PRIORITIES.md` alone          | `chore: move "Recurring tasks" to Next`                                                             |
+
+A commit of `PRIORITIES.md` alone names its one change: `add "<entry>" to <section>`,
+`remove "<entry>"`, `edit "<entry>"`, `move "<entry>" to <section>`, or
+`move "<entry>" within <section>`, with the start of the entry's text. With more changes, the
+subject names the first one and ends with `, and <count> more`, and the body lists every change, one
+per line: `- Add to Now: <entry>`.
+
 The commit type is only a label: the `status` fields and the checkboxes are the source of truth.
 
 ## Setting up a project
