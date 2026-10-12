@@ -2,14 +2,19 @@
 
 ## Now
 
+- Discovery effort level in proposal -> the human can select low/medium/high. Low = mostly read
+  local files and doc Medium = also look for alternatives online High = look far and wide for
+  alternatives, look up community sentiment, weigh pros and cons based on actual benchmarks, ...
+- UI improvements
+
 ## Next
 
 - Claude Code runner (triggered manually): https://code.claude.com/docs/en/headless
-- Git listener process
-- Ping user when input is needed
-- WebUI for _editing_ files related to the workflow
-- Small onboarding explanation (what to read and in which order)
+- Git listener process + claude code automatic triggering
+- Look and feel pass
 - Nvim plugin
+- Small onboarding explanation (what to read and in which order)
+- Ping user when input is needed
 
 ## Later
 
