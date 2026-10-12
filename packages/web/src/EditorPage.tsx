@@ -10,7 +10,7 @@ import { CommitActions } from "./CommitActions.tsx";
 import { useDraft } from "./data.ts";
 import { discoveryOf, LEVELS, withDiscovery, type Level } from "./discovery.ts";
 import { refusal } from "./errors.ts";
-import { navigate } from "./routes.tsx";
+import { navigate, useRestoreScroll } from "./routes.tsx";
 import { startRun } from "./runs.ts";
 import { useSave } from "./useSave.ts";
 import { DraftView, FeatureView } from "./views.ts";
@@ -42,6 +42,8 @@ function folderOf(path: string) {
 export function EditorPage({ path }: { path: string }) {
   const fate = useFateClient();
   const draft = useDraft(path);
+  // Its data is read before it draws: the position comes back at once.
+  useRestoreScroll(true);
   const [text, setText] = useState(draft?.text ?? "");
   const [preview, setPreview] = useState(false);
   const [conflict, setConflict] = useState<string>();

@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { AgentPanel } from "./AgentPanel.tsx";
 import { useFeature } from "./data.ts";
 import { waiting, workflowOrder } from "./labels.ts";
-import { Link, navigate } from "./routes.tsx";
+import { Link, navigate, useRestoreScroll } from "./routes.tsx";
 
 function statusVariant(status?: string) {
   switch (status) {
@@ -24,6 +24,8 @@ function statusVariant(status?: string) {
 /** A feature: what waits on the human, its branch, its files in workflow order, its problems. */
 export function FeaturePage({ folder }: { folder: string }) {
   const feature = useFeature(folder);
+  // Its data is read before it draws: the position comes back at once.
+  useRestoreScroll(true);
   if (!feature) {
     return (
       <div className="page">
