@@ -4,15 +4,17 @@ import { BottomSheet } from "@astryxdesign/core/BottomSheet";
 import { Button } from "@astryxdesign/core/Button";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Switch } from "@astryxdesign/core/Switch";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { Block, CommentItem } from "uraeda-binding";
 import { Blocks, selectable } from "./Blocks.tsx";
+import { CommitActions } from "./CommitActions.tsx";
 import type { useFile } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
 import { GrowingTextArea } from "./Question.tsx";
 import { HookRefusal } from "./RoundPage.tsx";
 import { Link } from "./routes.tsx";
+import { startRun } from "./runs.ts";
 import { FileView } from "./views.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
@@ -62,6 +64,8 @@ export function ReviewPage({ file }: { file: File }) {
   const [planReview, setPlanReview] = useState<boolean>();
   const [error, setError] = useState<Refusal>();
   const [message, setMessage] = useState<string>();
+  // The verdict last committed with "and continue", for its Try again.
+  const continues = useRef<"approval" | "changes">(undefined);
 
   // Each comment shows under the smallest tappable block holding its last line.
   const placed = useMemo(() => {
@@ -147,9 +151,17 @@ export function ReviewPage({ file }: { file: File }) {
     }
   };
 
-  const verdict = async (approve: boolean) => {
+  /** Starts the agent on the next step, once the verdict is committed. */
+  const proceed = async (trigger: "approval" | "changes") => {
+    const started = await startRun(fate, { folder: file.folder, trigger, file: file.name });
+    setMessage(started.message);
+  };
+
+  const verdict = async (approve: boolean, next: boolean) => {
     const input = { folder: file.folder, file: file.name, summary: summary || undefined };
-    await run(() =>
+    const trigger = approve ? "approval" : "changes";
+    continues.current = next ? trigger : undefined;
+    const done = await run(() =>
       approve
         ? fate.mutations.review.approve({
             input: {
@@ -161,6 +173,9 @@ export function ReviewPage({ file }: { file: File }) {
           })
         : fate.mutations.review.requestChanges({ input, view: FileView }),
     );
+    if (done && next) {
+      await proceed(trigger);
+    }
   };
 
   const pendingNote = (comment: CommentItem) => (
@@ -331,12 +346,15 @@ export function ReviewPage({ file }: { file: File }) {
           error={error}
           what="Your review is saved, not committed."
           onRetry={async () => {
-            await run(() =>
+            const done = await run(() =>
               fate.mutations.commit.retry({
                 input: { folder: file.folder, file: file.name },
                 view: FileView,
               }),
             );
+            if (done && continues.current) {
+              await proceed(continues.current);
+            }
           }}
         />
       )}
@@ -347,21 +365,22 @@ export function ReviewPage({ file }: { file: File }) {
           discard them first.
         </p>
       )}
-      <div className="actions">
-        <Button
-          variant="destructive"
-          label="Request changes"
-          isDisabled={comments.length === 0 || file.committed != null}
-          tooltip={comments.length === 0 ? "Add a comment first" : undefined}
-          clickAction={() => verdict(false)}
-        />
-        <Button
-          variant="primary"
-          label="Approve"
-          isDisabled={file.committed != null}
-          clickAction={() => verdict(true)}
-        />
-      </div>
+      <CommitActions
+        label="Request changes"
+        variant="destructive"
+        continueLabel="Request changes and continue"
+        onlyLabel="Request changes only"
+        isDisabled={comments.length === 0 || file.committed != null}
+        tooltip={comments.length === 0 ? "Add a comment first" : undefined}
+        onCommit={(next) => verdict(false, next)}
+      />
+      <CommitActions
+        label="Approve"
+        continueLabel="Approve and continue"
+        onlyLabel="Approve only"
+        isDisabled={file.committed != null}
+        onCommit={(next) => verdict(true, next)}
+      />
       {comments.length === 0 && <p className="small muted">Request changes: Add a comment first</p>}
       <BottomSheet
         label="Comment"

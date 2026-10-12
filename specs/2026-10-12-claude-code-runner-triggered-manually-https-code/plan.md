@@ -1163,23 +1163,30 @@ git commit -m "feat(claude-code-runner-triggered-manually-https-code): runs in f
   - `packages/web/src/data.ts` (`useRunner`, `useRun`, `useRunLog`);
   - `packages/web/src/RoundPage.tsx`, `packages/web/src/ReviewPage.tsx`,
     `packages/web/src/EditorPage.tsx`.
-- Modify: `packages/web/src/__tests__/helpers.tsx` (`renderPage(path, repo, { agent })`: an
-  unavailable fake by default, so existing tests keep their single buttons)
+- Modify: `packages/web/src/__tests__/helpers.tsx` (`renderPage(path, repo, { agent, fetch })`: an
+  unavailable fake by default, so existing tests keep their single buttons; `fakeAgent()` builds a
+  checked fake first, and `refreshUntil(check)` reads the page again, as live updates do not reach
+  UI tests)
 - Test: `packages/web/src/__tests__/commit-actions.test.tsx`
 
 **Interfaces:**
 
 - Consumes: the fate records and mutations (task 5).
 - Produces:
-  - `CommitActions({ label, variant?, isDisabled?, continueLabel = "Commit and continue", onlyLabel = "Commit only", onCommit: (continues: boolean) => Promise<boolean> })`:
-    - with an available runner, `continueLabel` (primary) and `onlyLabel` (secondary);
+  - `CommitActions({ label, variant?, isDisabled?, tooltip?, continueLabel = "Commit and continue", onlyLabel = "Commit only", onCommit: (continues: boolean) => Promise<void>, children? })`:
+    - with an available runner, `continueLabel` (primary, or destructive) and `onlyLabel`
+      (secondary);
     - otherwise one button with `label` and `variant`;
-    - `onCommit` returns whether the commit succeeded.
-  - `startRun(fate, input: { folder: string; trigger: Trigger; file?: string }): Promise<string | undefined>`,
-    which returns the refusal message, if any.
-  - `useRunner()`, `useRun(id)`, `useRunLog(ids)`.
+    - `onCommit` commits, then starts the run when `continues`. `children`, like the editor's
+      Preview, lead the row.
+  - `startRun(fate, input: { folder: string; trigger: Trigger; file?: string }): Promise<Started>`,
+    with `Started = { ok: true; run; message } | { ok: false; message }`: the page's message, "The
+    agent is working on the <step>." or the refusal, and the run's ID for the agent panel
+    ([R19](rulings.md#r19-startrun-returns-the-pages-message-and-the-run)).
+  - `useRunner()`, `useRun(id)`, `useRunLog(id)`: one log page per call, so each page of the log is
+    a live view of its own.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // commit-actions.test.tsx
@@ -1209,20 +1216,20 @@ test("committing a proposal and starting a feature offer both buttons", async ()
 test("US1.5: Try again after a refused hook keeps Commit and continue", async () => {
   // a pre-commit hook that fails once (helpers set core.hooksPath in the repo), then Try again: one start
 });
-test("SC-001: the feature page shows the run within 2 seconds", async () => {
-  // after Commit and continue, navigate to /f/<folder>: "Working on Spec" in under 2,000 ms
-});
 ```
+
+SC-001, "Working on Spec" on the feature page within 2 seconds of "Commit and continue", needs the
+agent panel: its test joins this file in task 7.
 
 The page message after a started run reads "The agent is working on the <step label, lowercase>."
 When `run.start` is refused, the page shows the refusal message, and the commit stays done.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/commit-actions.test.tsx`
 - Expected: FAIL, `Unable to find role="button" and name "Commit and continue"`.
 
-- [ ] **Step 3: Implement `CommitActions`, `startRun`, the views, and the hooks, and use them on the
+- [x] **Step 3: Implement `CommitActions`, `startRun`, the views, and the hooks, and use them on the
       three pages**
 
 **Where it is used:**
@@ -1231,18 +1238,21 @@ When `run.start` is refused, the page shows the refusal message, and the commit 
 - `ReviewPage` uses it for "Approve", and a second `CommitActions` with `label="Request changes"`,
   variant destructive. Its two continue buttons read "Approve and continue" and "Request changes and
   continue". Its "Commit only" buttons read "Approve only" and "Request changes only".
-- `EditorPage` uses it for a proposal's or a report's "Commit", and for "Start the feature". A
-  draft's "Commit" keeps its single button.
+- `EditorPage` uses it for a proposal's or a report's "Commit", and for "Start the feature", whose
+  buttons read "Start and continue" and "Start only"
+  ([R20](rulings.md#r20-starting-a-feature-reads-start-and-continue-and-start-only)). A draft's
+  "Commit" keeps its single button.
 
-**The choice:** each page keeps the last `continues` in state, so that its hook retry calls
-`startRun` after a successful retry.
+**The choice:** each page keeps the last `continues` in a ref, so that its hook retry calls
+`startRun` after a successful retry. State would not do: the buttons' `clickAction` runs in a
+transition, and the retry's closure can predate its update.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp test packages/web && vp check`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src

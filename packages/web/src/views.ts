@@ -1,7 +1,16 @@
 // The fields each page reads, by type. Arrays come whole; objects are selected field by field, as
 // fate asks.
 import { view } from "react-fate";
-import type { Draft, Feature, Priorities, WorkflowFile, Workspace } from "uraeda-server/fate";
+import type {
+  Draft,
+  Feature,
+  Priorities,
+  Run,
+  RunLog,
+  Runner,
+  WorkflowFile,
+  Workspace,
+} from "uraeda-server/fate";
 
 const DocumentSelection = {
   blocks: true,
@@ -41,6 +50,7 @@ export const WorkspaceView = view<Workspace>()({
   prioritiesHash: true,
   drafts: true,
   noSpecs: true,
+  running: true,
 });
 
 export const FeatureView = view<Feature>()({
@@ -59,6 +69,7 @@ export const FeatureView = view<Feature>()({
   problems: true,
   leftWorktree: true,
   leftBranch: true,
+  runs: true,
 });
 
 export const FileView = view<WorkflowFile>()({
@@ -100,4 +111,33 @@ export const DraftView = view<Draft>()({
     draft: true,
   },
   priorityChanges: true,
+});
+
+export const RunnerView = view<Runner>()({
+  id: true,
+  available: true,
+  version: true,
+});
+
+export const RunView = view<Run>()({
+  id: true,
+  folder: true,
+  trigger: true,
+  step: true,
+  state: true,
+  reason: true,
+  costUsd: true,
+  startedAt: true,
+  endedAt: true,
+  newSession: true,
+  allowed: true,
+  pages: true,
+  denials: true,
+});
+
+export const RunLogView = view<RunLog>()({
+  id: true,
+  run: true,
+  page: true,
+  events: true,
 });
