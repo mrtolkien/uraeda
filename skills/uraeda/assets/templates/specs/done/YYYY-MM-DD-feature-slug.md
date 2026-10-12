@@ -1,0 +1,56 @@
+---
+kind: [feature | bug]
+finished: [YYYY-MM-DD: the day of the finishing commit]
+pull-request: [Optional: the pull request's URL]
+---
+
+# Record: [Feature name]
+
+> [!NOTE]
+>
+> The record of a merged [feature | bug], not instructions to follow. Started on [YYYY-MM-DD],
+> finished on [YYYY-MM-DD], in [its pull request](https://...). Its full files are in git:
+> `git log -- specs/YYYY-MM-DD-feature-slug/`.
+
+## What and why
+
+[Two to four sentences from the proposal or the report: what it does, for whom, and why.]
+
+## Behaviour
+
+- [One line per user story: what users get, with the rules a later feature must keep. For a bug, the
+  behaviour fixed. Kept true to the merged code.]
+
+## Design
+
+[The approach in a few sentences, then the main components, each with a link to its code. For a bug,
+the root cause and the fix.]
+
+## Questions
+
+[Optional, absent for a bug: every round, every question with its heading as it was, so links keep
+their anchors.]
+
+### Round [NN]
+
+#### Q1: [The question, exactly as its heading was in the questions file]
+
+**Answer:** [The answer in a sentence: the letters and what they chose, or the human's words,
+shortened.]
+
+#### Notes
+
+[Optional: the human's notes on the settled points, a sentence each.]
+
+## Decisions
+
+[Optional: each decision the feature made or changed, linked, in a line.]
+
+## Changes after approval
+
+[Optional: the rulings that change behaviour, the spec's revisions after its approval, and the
+changes asked on the pull request, one line each.]
+
+## Follow-ups
+
+[Optional: the deferred minor findings and the work left, one line each.]

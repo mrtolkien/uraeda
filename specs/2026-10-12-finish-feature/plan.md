@@ -208,7 +208,7 @@ From [`spec-review.md`](spec-review.md), the spec approved with two comments:
     questions, `#### Q1: Question 1?` and `#### Q2: Question 2?`, `finished: 2026-10-11`, and
     `pull-request: https://github.com/owner/repo/pull/1`; for `kind` `bug`, no `## Questions`.
 
-- [ ] **Step 1: Write the template and the example record**
+- [x] **Step 1: Write the template and the example record**
 
 The template, exactly these headings, in this order, each placeholder saying the section's purpose
 and how dense to write it, with no line count (C2):
@@ -270,7 +270,7 @@ The example record: the recurring tasks feature, from its folder in
 questions of round 01 under their exact headings, its two decisions linked, its rulings that change
 behaviour under **Changes after approval**, and the follow-ups its plan left.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 In `crates/core/tests/check.rs`, rows of `each_rule` on the example's record, with
 `const RECORD: &str = "specs/done/2026-10-06-recurring-tasks.md";`:
@@ -326,13 +326,13 @@ fn files_of_done_that_are_not_markdown_are_ignored() {
 In `crates/cli/tests/init.rs`, the existing test of the created folders also expects
 `specs/done/.gitkeep`.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test check`
-- Expected: FAIL, `each_rule` first: `record without kind` finds no problem, since `specs/done/` is
-  not checked yet.
+- Expected: FAIL, `the_example_has_no_problems` first: `specs/done: "done" is not a feature folder`,
+  since `specs/done/` is not known yet.
 
-- [ ] **Step 4: Implement the record's checks**
+- [x] **Step 4: Implement the record's checks**
 
 - `kind_of(dir, name, any_folder)`: `Checked::Record` when `name` ends with `.md`, `dir` is named
   `done`, and its parent is named `specs`, checked before the workflow folder test.
@@ -351,13 +351,13 @@ In `crates/cli/tests/init.rs`, the existing test of the created folders also exp
 - `init.rs`: `done` joins the folders created with a `.gitkeep`.
 - `texts.rs`: `record(kind, title)`, as in **Produces**.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run:
   `cargo test --workspace --exclude uraeda-binding && cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs`
 - Expected: PASS, and `skills/uraeda/assets/example/specs/: no problems`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add skills/uraeda/assets crates/core crates/cli/tests/init.rs

@@ -20,6 +20,7 @@ fn fields(kind: Checked) -> Option<(&'static [&'static str], &'static [&'static 
         Checked::Workflow(FileKind::Plan) => Some((&["status", "spec-revision"], &[])),
         Checked::Workflow(FileKind::Review) => Some((&["verdict", "commit"], &[])),
         Checked::Decision => Some((&["status", "approved-by"], &[])),
+        Checked::Record => Some((&["kind", "finished"], &["pull-request"])),
         _ => None,
     }
 }
@@ -28,6 +29,7 @@ fn allowed(kind: Checked, key: &str) -> Option<&'static [&'static str]> {
     match (kind, key) {
         (Checked::Workflow(kind), "status") => Some(kind.statuses()),
         (Checked::Decision, "status") => Some(&["proposed", "active"]),
+        (Checked::Record, "kind") => Some(&["feature", "bug"]),
         (_, "risk-tier") => Some(&["low", "medium", "high"]),
         (_, "verdict") => Some(&["pending", "approved", "changes-requested"]),
         _ => None,
@@ -88,6 +90,9 @@ pub(super) fn check_frontmatter(
     }
     if file.kind == Checked::Workflow(FileKind::Plan) {
         check_plan_revision(file, &front, problems);
+    }
+    if file.kind == Checked::Record {
+        check_finished(file, &front, problems);
     }
     Some(front)
 }
@@ -159,6 +164,21 @@ fn check_plan_revision(file: &File<'_>, front: &Frontmatter, problems: &mut Vec<
             front.line("spec-revision"),
             "frontmatter.spec-revision",
             format!("spec-revision is {planned}, but the spec's revision is {revision}"),
+        ));
+    }
+}
+
+/// A record's `finished` is a real `YYYY-MM-DD` date.
+fn check_finished(file: &File<'_>, front: &Frontmatter, problems: &mut Vec<Problem>) {
+    let Some(value) = front.get("finished") else {
+        return;
+    };
+    let valid = matches!(value, Value::Text(text) if crate::today::Date::parse(text).is_some());
+    if !valid {
+        problems.push(file.problem(
+            front.line("finished"),
+            "frontmatter.finished",
+            format!("finished {} is not a date: YYYY-MM-DD", shown(value)),
         ));
     }
 }
