@@ -31,8 +31,8 @@ what it changed and commits them for the human's review.
 ## Why
 
 Nothing checked the desktop, and the web UI's components drifted from its spec unseen
-([Q4](../2026-10-12-ui-improvements/clarifications-01.md#q4-what-checks-an-agents-ui-work),
-[how the rules are checked](../2026-10-12-ui-improvements/discovery-01.md#how-the-rules-are-checked)).
+([Q4](../done/2026-10-12-ui-improvements.md#q4-what-checks-an-agents-ui-work),
+[how the rules are checked](../done/2026-10-12-ui-improvements.md#q4-what-checks-an-agents-ui-work)).
 The human wants tests, but useful ones: "each test is added maintenance, because tests also drift
 away from expected behaviour" (Q4's answer). Checks that guard behaviour and the decisions' measures
 stay true as the markup changes, while pixel comparisons break across systems and fonts and would

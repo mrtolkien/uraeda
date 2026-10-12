@@ -36,14 +36,14 @@ of a taste to guess.
 The web UI's spec named the right Astryx components, like `Outline`, `Toast`, and `List`. The pages
 drifted to 533 lines of global CSS in px anyway, and grew text smaller on desktop than on the phone.
 No rule or check caught it, and the human found the views "mostly good but also very scuffed"
-([proposal](../2026-10-12-ui-improvements/proposal.md),
-[Q1](../2026-10-12-ui-improvements/clarifications-01.md#q1-how-should-this-apps-ui-be-built),
-[how the UI is built](../2026-10-12-ui-improvements/discovery-01.md#how-the-ui-is-built)). Design
-systems hold the line with lint: one vocabulary, whose sizes and colours follow the theme in light
-and dark. Dragging that animates well on touch is a lot of code to write by hand, and dnd-kit is the
-maintained choice for React 19
-([Q9](../2026-10-12-ui-improvements/clarifications-01.md#q9-how-should-dragging-a-line-work),
-[reordering](../2026-10-12-ui-improvements/discovery-01.md#reordering-by-dragging)).
+([proposal](../done/2026-10-12-ui-improvements.md),
+[Q1](../done/2026-10-12-ui-improvements.md#q1-how-should-this-apps-ui-be-built),
+[how the UI is built](../done/2026-10-12-ui-improvements.md#q1-how-should-this-apps-ui-be-built)).
+Design systems hold the line with lint: one vocabulary, whose sizes and colours follow the theme in
+light and dark. Dragging that animates well on touch is a lot of code to write by hand, and dnd-kit
+is the maintained choice for React 19
+([Q9](../done/2026-10-12-ui-improvements.md#q9-how-should-dragging-a-line-work),
+[reordering](../done/2026-10-12-ui-improvements.md)).
 
 ## Alternatives considered
 
