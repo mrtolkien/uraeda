@@ -88,3 +88,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   leaving the boxes unchecked, which would mark built tasks as unfinished.
 - **If wrong**: the pull request's CI run shows it.
 - **Where**: tasks 1 to 6, step "Run all tests".
+
+## R9: Leaving raw mode without `ratatui::restore`
+
+- **Decision**: `picker::run` leaves raw mode with crossterm's `disable_raw_mode`, from a drop
+  guard, on every return; `ratatui::restore` runs only in ratatui's panic hook.
+- **Rationale**: `restore` also leaves the alternate screen, which an inline viewport never entered,
+  and in xterm-like terminals that sequence restores a saved cursor position, which could move the
+  answer line.
+- **Alternatives considered**: `ratatui::restore` on every return, as the plan said.
+- **If wrong**: call `ratatui::restore()` in the guard's `drop`.
+- **Where**: task 4.

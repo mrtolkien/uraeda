@@ -38,7 +38,8 @@ pub enum Style {
     Dim,
 }
 
-fn colours() -> bool {
+/// Whether stdout is a terminal that wants colours: not `NO_COLOR`, not a `dumb` terminal.
+pub fn colours() -> bool {
     std::io::stdout().is_terminal()
         && std::env::var_os("NO_COLOR").is_none_or(|value| value.is_empty())
         && std::env::var("TERM").map_or(true, |term| term != "dumb")

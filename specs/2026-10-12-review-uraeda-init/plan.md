@@ -463,9 +463,16 @@ git commit -m "feat(review-uraeda-init): ura init sets up specs/ only"
     `Picker::height(&self) -> u16` (title, items, help)
   - `pub fn run(picker: Picker) -> std::io::Result<Option<Answer>>`: `try_init_with_options` with
     `Viewport::Inline(height)`, draws, reads `crossterm::event::read()` until `Done` or `Cancel`,
-    clears the viewport, `restore()`s on every return, `None` on cancel
+    clears the viewport and puts the cursor back at its first line, for the caller's answer line,
+    and leaves raw mode on every return through a drop guard, `None` on cancel; ratatui's panic hook
+    restores on a panic ([R9](rulings.md#r9-leaving-raw-mode-without-ratatuirestore))
+- Produces, in `install`: `scope_picker(folder: &str) -> Picker`, `folders_picker() -> Picker`,
+  `answer_line(Scope) -> String`, `folders_line(Folders) -> String`, and
+  `ask_folders() -> Result<Option<Folders>, String>`, the folder picker and its answer line, shared
+  with `ura init`; in `init`: `question() -> Picker`. The pickers' tests draw these, so they check
+  the commands' own strings.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `picker.rs`, `#[cfg(test)]`:
 
@@ -481,22 +488,23 @@ In `picker.rs`, `#[cfg(test)]`:
   lines, trimmed at the end, to mockup states 1, 2, and 3 of [the mockup](mockups/install.txt).
 - `the_cursor_reads_without_colour`: with colours off, the cursor row starts with `> ` and its cells
   carry no foreground colour.
+- `draws_the_init_question` against mockup state 9, and `nothing_checked_warns_until_space`.
 
 In `install.rs`, `#[cfg(test)]`: `answer_lines`: `answer_line(Scope::User)` is
 `Install the Uraeda skill for: your user`, `folders_line(Folders { agents: true, claude: false })`
 is `Into: .agents/skills`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-cli picker`
 - Expected: FAIL to compile: no `picker` module.
 
-- [ ] **Step 3: Implement `picker.rs`**
+- [x] **Step 3: Implement `picker.rs`**
 
 The cursor row is bold cyan (`Color::Cyan`) when `output::colours()`, the help line dim; the warning
 is set by Enter with nothing checked, cleared by Space. Ctrl-C arrives as a key in raw mode.
 
-- [ ] **Step 4: Wire the pickers**
+- [x] **Step 4: Wire the pickers**
 
 `ura install`: `Ask` scope → select of `Your user, in ~/` and
 `This repository, in <top-level folder name>/`, cursor 0; `Ask` folders → multi of `.agents/skills`
@@ -508,13 +516,13 @@ folder picker and the install's lines; No, or a cancel at either picker, prints 
 when at the question, then `Skill not installed: install it later with ura install.`, and `ura init`
 exits 0.
 
-- [ ] **Step 5: Run all tests, and the size**
+- [x] **Step 5: Run all tests, and the size**
 
 - Run: `vp run ready`, then `cargo build --release -p uraeda-cli && stat -c %s target/release/ura`
 - Expected: PASS; the size near 4,998,000 bytes, as the discovery measured: record it in the commit
   body.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Cargo.toml Cargo.lock crates

@@ -7,6 +7,7 @@ use uraeda_core::actions::init::{self, InitLine};
 use uraeda_core::actions::install;
 use uraeda_core::git::Git;
 
+use crate::picker::{self, Answer, Item, Picker};
 use crate::terminal;
 
 pub fn run(no_input: bool) -> Result<ExitCode, String> {
@@ -39,9 +40,42 @@ pub fn run(no_input: bool) -> Result<ExitCode, String> {
 /// Offers the skill for the user, with no Uraeda skill found: asks in a terminal, and names
 /// `ura install` without one, or without a home folder to install in.
 pub fn offer(interactive: bool) -> Result<(), String> {
-    if interactive && crate::install::home().is_some() {
-        unimplemented!("pickers: task 4")
-    }
-    println!("No Uraeda skill found: install it with ura install --user --agents --claude.");
+    let home = crate::install::home().filter(|_| interactive);
+    let Some(home) = home else {
+        println!("No Uraeda skill found: install it with ura install --user --agents --claude.");
+        return Ok(());
+    };
+    // A cancel, at the question or in the folder picker, counts as No.
+    let yes = picker::run(question()).map_err(|error| error.to_string())? == Some(Answer::One(0));
+    println!(
+        "Install the Uraeda skill for your user? {}",
+        if yes { "yes" } else { "no" }
+    );
+    let folders = if yes {
+        crate::install::ask_folders()?
+    } else {
+        None
+    };
+    let Some(folders) = folders else {
+        println!("Skill not installed: install it later with ura install.");
+        return Ok(());
+    };
+    let lines = install::install(&home, "~/", folders).map_err(|error| error.to_string())?;
+    crate::install::print(&lines);
     Ok(())
+}
+
+/// `ura init`'s question, Yes first.
+pub fn question() -> Picker {
+    let items = vec![
+        Item {
+            label: "Yes, in ~/".to_string(),
+            detail: ": every repository on this machine".to_string(),
+        },
+        Item {
+            label: "No".to_string(),
+            detail: String::new(),
+        },
+    ];
+    Picker::select("Install the Uraeda skill for your user?", items, 0)
 }
