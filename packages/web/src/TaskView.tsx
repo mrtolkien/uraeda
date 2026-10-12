@@ -189,8 +189,8 @@ export function TaskView({ entryKey }: { entryKey: string }) {
   };
 
   const remove = async () => {
-    // What Undo writes back: the line, then its nested lines, as they were.
-    const lines = [`- ${entry.text}`, ...entry.nested];
+    // What Undo writes back: the line's lines, nested ones included, exactly as they were.
+    const lines = entry.lines;
     const at = { section: section.section, index };
     const result = await run(() =>
       fate.mutations.priorities.remove({ input: { entry: entry.id, hash }, view: PrioritiesView }),

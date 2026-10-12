@@ -244,6 +244,11 @@ export interface EntryItem {
   spans: Array<Span>
   startLine: number
   endLine: number
+  /**
+   * Its lines as written, its marker, wrapped text, and nested lines included: what an Undo of
+   * its removal writes back.
+   */
+  lines: Array<string>
   /** Its nested lines, as written. */
   nested: Array<string>
   /** The text of each nested item, without its marker. */

@@ -147,3 +147,21 @@ test("Delete, then Undo, puts the line and its nested line back (US4 9)", async 
   await click(await screen.findByRole("button", { name: "Undo" }));
   await waitFor(() => expect(read(repo)).toBe(before));
 });
+
+test("Delete, then Undo, puts the line back exactly as written, marker and wrapping kept", async () => {
+  const repo = fixtureRepo();
+  writeFileSync(
+    join(repo, "specs/PRIORITIES.md"),
+    read(repo).replace(
+      "- Nix + Docker based execution environments\n",
+      "* Nix + Docker based\n  execution environments\n",
+    ),
+  );
+  const before = read(repo);
+  await renderPage("/priorities/nix-docker-based-execution-environments", repo);
+  await click(await screen.findByRole("button", { name: "Delete" }));
+  await waitFor(() => expect(read(repo)).not.toContain("with a cache"));
+  await click(await screen.findByRole("button", { name: "Undo" }));
+  await waitFor(() => expect(read(repo)).toContain("with a cache"));
+  expect(read(repo)).toBe(before);
+});
