@@ -1,4 +1,5 @@
 import type { Context } from "./context.ts";
+import { featureRecord, readRun, readRunLog, runnerRecord } from "./runs.ts";
 import { createSources, fileSource } from "./source.ts";
 import {
   draftDataView,
@@ -7,6 +8,11 @@ import {
   PRIORITIES_ID,
   prioritiesDataView,
   type FileRecord,
+  RUNNER_ID,
+  runDataView,
+  runLogDataView,
+  runnerDataView,
+  type WorkspaceRecord,
   WORKSPACE_ID,
   workspaceDataView,
 } from "./views.ts";
@@ -17,24 +23,33 @@ async function each<T>(ids: Array<string>, read: (id: string) => Promise<T>): Pr
   return results.flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));
 }
 
+/** Every record of the ids that can be read, synchronously. */
+function found<T>(ids: Array<string>, read: (id: string) => T | undefined): Array<T> {
+  return ids.flatMap((id) => read(id) ?? []);
+}
+
+async function workspace(ctx: Context): Promise<WorkspaceRecord> {
+  return {
+    id: WORKSPACE_ID,
+    ...(await ctx.binding.readWorkspace(ctx.repo)),
+    running: ctx.runner.running(ctx.repo),
+  };
+}
+
 export const sources = createSources<Context>([
   fileSource(workspaceDataView, {
-    byIds: async ({ binding, repo }, ids) =>
-      ids.includes(WORKSPACE_ID)
-        ? [{ id: WORKSPACE_ID, ...(await binding.readWorkspace(repo)) }]
-        : [],
-    list: async ({ binding, repo }) => [
-      { id: WORKSPACE_ID, ...(await binding.readWorkspace(repo)) },
-    ],
+    byIds: async (ctx, ids) => (ids.includes(WORKSPACE_ID) ? [await workspace(ctx)] : []),
+    list: async (ctx) => [await workspace(ctx)],
   }),
   fileSource(featureDataView, {
-    byIds: ({ binding, repo }, ids) =>
-      each(ids, async (id) => ({ id, ...(await binding.readFeature(repo, id)) })),
-    list: async ({ binding, repo }) =>
-      (await binding.readWorkspace(repo)).features.map((feature) => ({
-        id: feature.folder,
-        ...feature,
-      })),
+    byIds: (ctx, ids) =>
+      each(ids, async (id) => featureRecord(ctx, await ctx.binding.readFeature(ctx.repo, id))),
+    list: async (ctx) =>
+      Promise.all(
+        (await ctx.binding.readWorkspace(ctx.repo)).features.map((feature) =>
+          featureRecord(ctx, feature),
+        ),
+      ),
   }),
   fileSource(fileDataView, {
     byIds: ({ binding, repo }, ids) =>
@@ -52,5 +67,15 @@ export const sources = createSources<Context>([
   fileSource(draftDataView, {
     byIds: ({ binding, repo }, ids) =>
       each(ids, async (id) => ({ id, ...(await binding.readText(repo, id)) })),
+  }),
+  fileSource(runnerDataView, {
+    byIds: async (ctx, ids) => (ids.includes(RUNNER_ID) ? [runnerRecord(ctx)] : []),
+    list: async (ctx) => [runnerRecord(ctx)],
+  }),
+  fileSource(runDataView, {
+    byIds: async (ctx, ids) => found(ids, (id) => readRun(ctx, id)),
+  }),
+  fileSource(runLogDataView, {
+    byIds: async (ctx, ids) => found(ids, (id) => readRunLog(ctx, id)),
   }),
 ]);

@@ -4,6 +4,7 @@ import { afterEach, beforeEach } from "vite-plus/test";
 import * as binding from "uraeda-binding";
 import { fixture, fixtureRepo, git } from "uraeda-binding/test-utils";
 import { createApp } from "uraeda-server";
+import { fakeRunner } from "uraeda-server/testing";
 import { App } from "../App.tsx";
 
 export { fixture, fixtureRepo, git };
@@ -58,7 +59,9 @@ export async function renderPage(
 }
 
 function serverFetch(repo: string): typeof globalThis.fetch {
-  const app = createApp({ repo, port, allowedHosts: [], allowOrigins: [], binding });
+  // No agent on this machine: the pages keep their single buttons.
+  const { runner } = fakeRunner({ installed: false });
+  const app = createApp({ repo, port, allowedHosts: [], allowOrigins: [], binding, runner });
   return async (input, init) => {
     const url = input instanceof Request ? input.url : input.toString();
     sent.push(typeof init?.body === "string" ? init.body : url);

@@ -18,6 +18,8 @@ export const REFUSALS = {
   busy: "An agent is already working on this feature.",
   human: "Nothing for the agent: the feature waits on you.",
   unavailable: "Claude Code is not available on this machine.",
+  /** A commit on a feature while its run goes on. */
+  working: "An agent is working on this feature. Stop it first, or wait for it.",
 };
 
 /** What changed: the runner's availability, or a run, with its state. */
@@ -68,6 +70,11 @@ export class Runner {
 
   constructor(options: RunnerOptions) {
     this.#options = options;
+  }
+
+  /** The cache the runner writes its runs to, which the server reads them from. */
+  get cache(): RunCache {
+    return this.#options.cache;
   }
 
   /** Whether the agent worked at the last check, and its version. */

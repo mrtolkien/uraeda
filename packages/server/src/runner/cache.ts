@@ -227,6 +227,20 @@ export class RunCache {
     );
   }
 
+  /** The run's events of one kind, in order, like its denials. */
+  eventsOf<Kind extends RunEvent["kind"]>(
+    runId: number,
+    kind: Kind,
+  ): Array<Extract<RunEvent, { kind: Kind }> & { seq: number }> {
+    const rows = this.#db
+      .prepare("SELECT seq, kind, data FROM events WHERE run_id = ? AND kind = ? ORDER BY seq")
+      .all(runId, kind) as Array<{ seq: number; kind: string; data: string }>;
+    return rows.map(
+      ({ seq, data }) =>
+        ({ seq, kind, ...JSON.parse(data) }) as Extract<RunEvent, { kind: Kind }> & { seq: number },
+    );
+  }
+
   eventCount(runId: number): number {
     const { count } = this.#db
       .prepare("SELECT COUNT(*) AS count FROM events WHERE run_id = ?")

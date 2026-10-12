@@ -5,8 +5,11 @@ import { resolve } from "node:path";
 import { getRequestListener } from "@hono/node-server";
 import { createApp } from "./app.ts";
 import { loadBinding } from "./binding.ts";
-import { type Env, loadEnv } from "./env.ts";
-import { startLive } from "./live.ts";
+import { type Env, loadDataDir, loadEnv } from "./env.ts";
+import { startLive, startRunner } from "./live.ts";
+import type { Adapter } from "./runner/adapter.ts";
+import { ClaudeAdapter, PLUGIN_DIR } from "./runner/claude.ts";
+import type { Runner } from "./runner/runner.ts";
 
 export { loadEnv };
 
@@ -23,13 +26,26 @@ export function devServer(env: Env) {
 /** The paths the server answers; Vite serves everything else. */
 const SERVER_PATHS = /^\/(fate|raw|mockups)(\/|\?|$)/;
 
+/** The process's one runner, shared by the dev server's apps, started with the first request. */
+let shared: Promise<{ runner: Runner; stop: () => Promise<void> }> | undefined;
+
+/**
+ * Stops the runs of the dev server's runner, as Vite's server closes. A server Vite starts again
+ * starts a new runner.
+ */
+export async function stopDevRuns(): Promise<void> {
+  const stopping = shared;
+  shared = undefined;
+  await (await stopping)?.stop();
+}
+
 /**
  * A Connect middleware serving the server's routes for the repository of the settings, or of
  * `URAEDA_REPO` when it is set in the environment later, as tests do. The guard takes the port the
  * request came in on, Vite's own. The core's watcher starts with the first request to each
- * repository.
+ * repository, and the runner with the first request, on Claude Code unless `adapter` says otherwise.
  */
-export function devHandler(root: string) {
+export function devHandler(root: string, { adapter }: { adapter?: Adapter } = {}) {
   const env = loadEnv(root);
   const apps = new Map<string, (req: IncomingMessage, res: ServerResponse) => Promise<void>>();
   const listener = async (repo: string, port: number) => {
@@ -37,12 +53,21 @@ export function devHandler(root: string) {
     let app = apps.get(key);
     if (!app) {
       const binding = await loadBinding();
+      shared ??= startRunner({
+        adapter: adapter ?? new ClaudeAdapter(),
+        binding,
+        dataDir: loadDataDir(root),
+        pluginDir: PLUGIN_DIR,
+      });
+      const { runner } = await shared;
       try {
         startLive(binding, repo);
       } catch (error) {
         console.error(`uraeda: ${(error as Error).message}; pages refresh when shown again`);
       }
-      app = getRequestListener(createApp({ ...env, port, repo, allowOrigins: [], binding }).fetch);
+      app = getRequestListener(
+        createApp({ ...env, port, repo, allowOrigins: [], binding, runner }).fetch,
+      );
       apps.set(key, app);
     }
     return app;
