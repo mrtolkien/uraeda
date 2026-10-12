@@ -28,11 +28,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Set the project up: the specs/ folder, and the skill for your agents
+    /// Set the project up: the specs/ folder, and an offer of the skill for your user
     Init {
-        /// Leave the skill out, to install it another way
+        /// Never ask: without a skill found, name the command that installs it
         #[arg(long)]
-        no_skill: bool,
+        no_input: bool,
     },
     /// Install or update the skill, for your user or this repository
     Install(install::Flags),
@@ -144,7 +144,7 @@ fn main() -> ExitCode {
         }
     };
     let result = match cli.command {
-        Command::Init { no_skill } => init::run(no_skill),
+        Command::Init { no_input } => init::run(no_input),
         Command::Install(flags) => install::run(flags),
         Command::Draft { text, no_edit } => draft::run(text, no_edit),
         Command::Start {
