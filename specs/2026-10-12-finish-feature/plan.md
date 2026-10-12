@@ -1054,7 +1054,7 @@ git commit -m "feat(finish-feature): ura clean"
 - Consumes: the record template and example (Task 1), the step rows (Task 3), `ura clean` (Task 7).
 - Produces: `references/finish.md`, the reference of the step `finish`.
 
-- [ ] **Step 1: Write `finish.md`**, in the style of the other references (runs when, writes, ends
+- [x] **Step 1: Write `finish.md`**, in the style of the other references (runs when, writes, ends
       at; then the sections), covering, in order:
   - When it runs: the rows of [the spec's table](spec.md#data), and what to do from each: write the
     record after a draft pull request and the folder; mark it ready after the record and a draft;
@@ -1086,7 +1086,7 @@ git commit -m "feat(finish-feature): ura clean"
   - Finishing a feature merged before this step: on a branch, the same record, through a pull
     request, when a human asks.
 
-- [ ] **Step 2: Update the rest of the skill and the READMEs**
+- [x] **Step 2: Update the rest of the skill and the READMEs**
   - `SKILL.md`: `done/` in the folder tree, after `backlog/`; the rows of the step table and the bug
     table, as in [the spec](spec.md#data), "Final review, then Finish" in place of the last row's
     text; in **Finding the next step**, step 4: when a merged feature still has a worktree or a
@@ -1101,18 +1101,18 @@ git commit -m "feat(finish-feature): ura clean"
   - Both `specs/README.md`: `done/` in the layout, a record's purpose in a line.
   - `README.md`: the walkthrough's last step names finishing and links the example record.
 
-- [ ] **Step 3: Run the checks**
+- [x] **Step 3: Run the checks**
 
 - Run:
   `cargo test -p uraeda-cli --test skill && cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs && cargo run -q -p uraeda-cli -- check specs`
 - Expected: PASS, and `no problems` twice.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add skills README.md specs/README.md crates/cli/tests/skill.rs

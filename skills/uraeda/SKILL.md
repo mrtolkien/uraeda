@@ -62,6 +62,7 @@ specs/
   backlog/                  # nice-to-have features, not scheduled
                             # in both, a folder is a postponed feature: <slug>/proposal.md, ...
   decisions/                # decision ledger, one file per topic: due-dates.md
+  done/YYYY-MM-DD-<slug>.md # the record of a merged feature or bug, in place of its folder
   bugs/YYYY-MM-DD-<slug>/   # report.md (human), assessment.md (agent)
   YYYY-MM-DD-feature-slug/  # one folder per feature, dated the day it starts
     proposal.md             # human: what and why, in their own words
@@ -134,11 +135,11 @@ anchors included; and the [review files](#review-files) rules.
 ### Branches
 
 Each feature lives on its own branch, named after its folder (`2026-10-06-recurring-tasks`), from
-the proposal to the code: discovery, questions, spec, decisions, plan, and implementation. Its pull
-request merges all of it at once. Decisions become active on the branch when its spec is approved,
-and bind the rest of the project once the branch is merged. A bug lives on `fix/YYYY-MM-DD-<slug>`,
-named after its folder. Run every step on the target's branch: the human answers and approves on it
-too.
+the proposal to the code: discovery, questions, spec, decisions, plan, and implementation, until its
+folder is [finished](#finishing-a-feature) into a record. Its pull request merges all of it at once.
+Decisions become active on the branch when its spec is approved, and bind the rest of the project
+once the branch is merged. A bug lives on `fix/YYYY-MM-DD-<slug>`, named after its folder. Run every
+step on the target's branch: the human answers and approves on it too.
 
 Never switch the human's checkout to reach a branch. Write where the branch is checked out, the
 checkout itself or a worktree, or else in a worktree at `.worktrees/<branch>/`, at the root of the
@@ -217,7 +218,10 @@ step. By hand:
 
 | State of the spec folder                                                                        | Step                                                         |
 | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `proposal.md` is not committed                                                                  | **Human gate**: the human writes it, then commits it         |
+| `proposal.md` is not committed, and the branch has no record in `specs/done/`                   | **Human gate**: the human writes it, then commits it         |
+| The record is in `specs/done/`, and no pull request is ready                                    | [Finish](references/finish.md)                               |
+| The record, and the pull request has changes requested                                          | [Implementation](references/implementation.md), changes      |
+| The record, and the pull request is ready for review                                            | **Human gate**: the review happens on the pull request       |
 | A file has `status: awaiting-human`                                                             | **Human gate**: stop                                         |
 | No `clarifications-01.md`                                                                       | [Discovery](references/discovery.md), round 01               |
 | `clarifications-NN.md` is `answered`, and there is no `spec.md`, or its `clarifications` < NN   | [Spec and decisions](references/spec.md)                     |
@@ -227,6 +231,7 @@ step. By hand:
 | `spec.md` is `approved`, and the plan's `spec-revision` < the spec's `revision`                 | [Plan](references/plan.md), revision                         |
 | `plan.md` is `changes-requested`                                                                | [Plan](references/plan.md), revision                         |
 | `plan.md` is `approved` or `auto-approved`, with unchecked steps                                | [Implementation](references/implementation.md), next task    |
+| Every step of `plan.md` is checked, and the pull request is a draft                             | [Finish](references/finish.md)                               |
 | Every step of `plan.md` is checked, and the branch has no pull request                          | [Implementation](references/implementation.md), final review |
 | The branch's pull request has changes requested                                                 | [Implementation](references/implementation.md), changes      |
 | The branch has an open pull request                                                             | **Human gate**: the review happens on the pull request       |
@@ -236,6 +241,11 @@ For a bug branch, see [Bug](references/bug.md).
 3. **Run the step**, following its reference file, and commit.
 4. **Continue or stop.** If the step did not end at a human gate, run the next step in the same
    session when you can. Otherwise stop: the next run finds it with this same table.
+
+The last two rows of the table are for pull requests opened before the
+[Finish](references/finish.md) step existed. When a merged feature still has a worktree or a local
+branch, tell the human to run `ura clean`, or give them the commands of
+[Finish](references/finish.md#after-the-merge).
 
 ### Going back to the human with new questions
 
@@ -330,6 +340,17 @@ Do these only when a human asks.
   default branch, and delete it.
 - **Drop**: delete the branch, and the `PRIORITIES.md` entry, after the human confirms.
 
+## Finishing a feature
+
+Once a feature's final review or a bug's fix is done, its folder is replaced by one record,
+`specs/done/YYYY-MM-DD-<slug>.md`, in the last commit of its branch, before its pull request is
+ready: the default branch keeps what the feature does and why, and git keeps the rest. Links into
+the folder are rewritten to the record, whose questions keep their anchors. Records are frozen once
+merged. See [Finish](references/finish.md).
+
+After the merge, the branch and its worktree stay until the human runs `ura clean`, which removes
+them unless that would lose work.
+
 ## Commits
 
 One commit per step, and one per task during the implementation, containing only its files. Messages
@@ -344,6 +365,7 @@ description is the feature name for a first version, and what changed for later 
 | `spec:`       | Write or revise a spec and its decisions | `spec(recurring-tasks): recurring tasks`                 |
 | `plan:`       | Write or revise a plan                   | `plan(recurring-tasks): split the store migration`       |
 | `assessment:` | Assess a bug                             | `assessment(completed-tasks-reappear): stale copy saved` |
+| `finish:`     | Replace the folder with its record       | `finish(recurring-tasks): recurring tasks`               |
 
 Code commits use the plan's messages, with the standard types and the same scope:
 `feat(recurring-tasks): repeat menu`, `fix(completed-tasks-reappear): save new tasks as they are`.
@@ -379,6 +401,7 @@ one waiting for that action.
 | `ura start <draft>`, `--switch`                                    | [Starts](#starting-postponing-and-dropping-a-feature) a feature   |
 | `ura answer [feature] <Q2> <answer>`, `--submit`                   | Answers a round of questions, then submits it                     |
 | `ura review [feature] --comment`, `--approve`, `--request-changes` | [Reviews](#review-files) a spec, plan, or assessment              |
+| `ura clean [feature]`, `--all`, `--dry-run`                        | [Cleans](references/finish.md#after-the-merge) a merged feature   |
 | `ura upgrade`                                                      | Installs `ura`'s latest release                                   |
 
 `ura answer --submit` and `ura review` set the human's status, record the block, and commit: a human
