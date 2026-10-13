@@ -9,12 +9,15 @@ use crate::check;
 use crate::files::document::{self, hash};
 use crate::files::items::items;
 use crate::files::priorities::{self, Priorities, Section};
+use crate::files::review::Verdict;
 use crate::git::{Git, GitError};
 use crate::view::{
-    CommitView, DraftView, FeatureView, FileView, NextView, PriorityView, ProposalHint,
-    StartedView, VersionView, WorkspaceView, title,
+    CommitView, DraftView, FeatureView, FileView, NextView, PriorityLink, PriorityView,
+    ProposalHint, StartedView, StepView, VersionView, WaitingFile, WorkspaceView, title,
 };
-use crate::workspace::{Feature, FileKind, Problem, Source, Workspace, WorkspaceError};
+use crate::workspace::{
+    Feature, FileKind, Problem, Source, Workspace, WorkspaceError, linked_draft,
+};
 use crate::{steps, today};
 
 /// An operation refused or failed: `code` is `refused`, `conflict` for a change made elsewhere,
@@ -154,6 +157,63 @@ pub fn read_feature(repo: &Path, folder: &str) -> Result<FeatureView> {
     let (git, workspace) = open(repo)?;
     let feature = find(&workspace, folder)?;
     Ok(FeatureView::new(feature, &checked(&git, feature)))
+}
+
+/// Every file waiting for the human, `status: awaiting-human`, of every feature and bug read from a
+/// checkout, with its path in that checkout. A branch checked out nowhere has no file to open.
+pub fn waiting(repo: &Path) -> Result<Vec<WaitingFile>> {
+    let (git, workspace) = open(repo)?;
+    let mut waiting = Vec::new();
+    for feature in &workspace.features {
+        let Some(dir) = feature_dir(&git, feature) else {
+            continue;
+        };
+        for file in &feature.files {
+            if file.status.as_deref() != Some("awaiting-human") {
+                continue;
+            }
+            let callout = feature
+                .text(&file.name)
+                .and_then(|text| crate::files::markdown::Document::parse(text).callout)
+                .filter(|callout| callout.kind == crate::files::markdown::CalloutKind::Important);
+            waiting.push(WaitingFile {
+                feature: feature.slug.clone(),
+                folder: feature.folder.clone(),
+                file: file.name.clone(),
+                path: dir
+                    .join(&feature.path)
+                    .join(&file.name)
+                    .to_string_lossy()
+                    .into_owned(),
+                line: callout.as_ref().map_or(1, |callout| callout.start as u32),
+                text: callout
+                    .map(|callout| callout.first_line)
+                    .unwrap_or_default(),
+            });
+        }
+    }
+    Ok(waiting)
+}
+
+/// What each entry of a priorities text links to, by its first line: a feature or a bug with its
+/// step, or a draft. Entries that link neither are left out. `text` is read as given, so an
+/// editor's unsaved lines are linked too.
+pub fn priority_links(repo: &Path, text: &str) -> Result<Vec<PriorityLink>> {
+    let (_, workspace) = open(repo)?;
+    Ok(priorities::parse(text)
+        .into_iter()
+        .filter_map(|entry| {
+            let link = entry.link.as_deref()?;
+            let feature = workspace.linked_feature(link);
+            let draft = linked_draft(link);
+            (feature.is_some() || draft.is_some()).then(|| PriorityLink {
+                line: entry.line as u32,
+                feature: feature.map(|feature| feature.folder.clone()),
+                step: feature.map(|feature| StepView::from(&feature.step)),
+                draft,
+            })
+        })
+        .collect())
 }
 
 fn find<'a>(workspace: &'a Workspace, folder: &str) -> Result<&'a Feature> {
@@ -375,19 +435,17 @@ pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView>
     let status = crate::files::frontmatter::parse(&text)
         .ok()
         .and_then(|front| front.text("status").map(String::from));
-    let kind = name.strip_suffix(".md").unwrap_or(name);
     let (subject, mut paths) = match (FileKind::of(name), status.as_deref()) {
-        (Some((FileKind::Clarifications, Some(round))), Some("answered")) => (
-            format!("discovery({}): answer round {round:02}", feature.slug),
-            vec![path],
-        ),
+        (Some((FileKind::Clarifications, Some(round))), Some("answered")) => {
+            (answer::subject(&feature.slug, round), vec![path])
+        }
         (Some((FileKind::Spec | FileKind::Plan | FileKind::Assessment, _)), Some(verdict))
             if verdict == "approved" || verdict == "changes-requested" =>
         {
-            let action = if verdict == "approved" {
-                "approve"
+            let verdict = if verdict == "approved" {
+                Verdict::Approved
             } else {
-                "request changes"
+                Verdict::ChangesRequested
             };
             let review_path = format!("{}/{}", feature.path, review::review_name(name));
             let mut paths = vec![path];
@@ -399,7 +457,7 @@ pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView>
             if place.root.join(&review_path).exists() || tracked {
                 paths.push(review_path);
             }
-            (format!("{kind}({}): {action}", feature.slug), paths)
+            (review::subject(&feature.slug, name, verdict), paths)
         }
         _ => return Err(refused(format!("{name} has nothing to commit again"))),
     };

@@ -214,6 +214,17 @@ pub struct NextStepView {
     pub pull_request: Option<String>,
 }
 
+impl From<&Step> for StepView {
+    fn from(step: &Step) -> StepView {
+        StepView {
+            name: step.name.as_str().to_string(),
+            waits_on: kebab(&step.waits_on),
+            file: step.file.clone(),
+            task: step.task.clone(),
+        }
+    }
+}
+
 impl From<&Step> for NextStepView {
     fn from(step: &Step) -> NextStepView {
         NextStepView {
@@ -246,6 +257,39 @@ pub struct NextView {
 pub struct ProposalHint {
     pub heading: String,
     pub hint: String,
+}
+
+/// A workflow file waiting for the human, in the checkout that has it. Not exposed to the binding:
+/// the language server reads it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WaitingFile {
+    /// The feature's or the bug's slug: `codex-runtime`.
+    pub feature: String,
+    pub folder: String,
+    /// `clarifications-01.md`.
+    pub file: String,
+    /// Absolute, in the checkout that has the feature's branch.
+    pub path: String,
+    /// The 1-based line of its `> [!IMPORTANT]` block, or 1 without one.
+    pub line: u32,
+    /// The block's first line: "7 questions, about 25 minutes.", or empty without a block.
+    pub text: String,
+}
+
+/// What a priorities entry links to: a feature or a bug and its step, or a draft. Not exposed to
+/// the binding: the language server reads it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PriorityLink {
+    /// The entry's first line, 1-based.
+    pub line: u32,
+    /// The folder of the feature it links.
+    pub feature: Option<String>,
+    /// That feature's step.
+    pub step: Option<StepView>,
+    /// The draft it links, from the top level.
+    pub draft: Option<String>,
 }
 
 /// A span list for a priority line's markdown.
@@ -308,12 +352,7 @@ impl FeatureView {
                 })
                 .collect(),
             mockups: feature.mockups.clone(),
-            step: StepView {
-                name: feature.step.name.as_str().to_string(),
-                waits_on: kebab(&feature.step.waits_on),
-                file: feature.step.file.clone(),
-                task: feature.step.task.clone(),
-            },
+            step: StepView::from(&feature.step),
             problems: feature
                 .problems
                 .iter()

@@ -10,7 +10,7 @@ use lsp_types::notification::{
     Notification as _, PublishDiagnostics,
 };
 use lsp_types::request::{
-    CodeActionRequest, Completion, DocumentSymbolRequest, Request as _, Shutdown,
+    CodeActionRequest, Completion, DocumentSymbolRequest, InlayHintRequest, Request as _, Shutdown,
 };
 use lsp_types::{
     CodeActionKind, CodeActionOptions, CodeActionProviderCapability, CompletionOptions,
@@ -23,7 +23,7 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use crate::documents::{self, Documents};
-use crate::{Error, actions, completion, diagnostics, requests, symbols};
+use crate::{Error, actions, completion, diagnostics, hints, requests, symbols};
 
 pub(crate) fn run(connection: Connection) -> Result<(), Error> {
     let (id, params) = connection.initialize_start()?;
@@ -63,6 +63,7 @@ fn initialize_result() -> InitializeResult {
                 ..CompletionOptions::default()
             }),
             document_symbol_provider: Some(OneOf::Left(true)),
+            inlay_hint_provider: Some(OneOf::Left(true)),
             code_action_provider: Some(CodeActionProviderCapability::Options(CodeActionOptions {
                 code_action_kinds: Some(vec![CodeActionKind::REFACTOR_REWRITE]),
                 ..CodeActionOptions::default()
@@ -126,6 +127,21 @@ impl Server {
                 }
                 requests::FIELDS => answer(requests::FIELDS, request.params, |params| {
                     Ok(requests::fields(&self.documents, params))
+                }),
+                InlayHintRequest::METHOD => handle::<InlayHintRequest>(request.params, |params| {
+                    Ok(Some(hints::hints(&self.documents, params)))
+                }),
+                requests::ITEMS => answer(requests::ITEMS, request.params, |params| {
+                    Ok(requests::items_of(&self.documents, params))
+                }),
+                requests::COMMENTS => answer(requests::COMMENTS, request.params, |params| {
+                    Ok(requests::comments(&self.documents, params))
+                }),
+                requests::VERDICT => answer(requests::VERDICT, request.params, |params| {
+                    requests::verdict(&self.documents, params)
+                }),
+                requests::WAITING => answer(requests::WAITING, request.params, |_: Value| {
+                    requests::waiting(&self.documents)
                 }),
                 method => Err(error(
                     ErrorCode::MethodNotFound,

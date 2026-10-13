@@ -78,3 +78,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the user cannot jump to by typing it alone.
 - **If wrong**: a naming and a `match` in [`crates/lsp/src/symbols.rs`](/crates/lsp/src/symbols.rs).
 - **Where**: task 3, `crates/lsp/src/symbols.rs`.
+
+## R6: The waiting files and the priorities' links come from the core
+
+- **Decision**: two new core functions, `api::waiting` and `api::priority_links`, give the files
+  waiting for the human with their absolute paths, and what each entry of a priorities text links to
+  with its step. The server reads a round's questions and a review's comments with `files::items`,
+  from the open text or the disk, and the commit subjects from `actions::review::subject` and
+  `actions::answer::subject`; `actions::answer::blank` lists the questions without an answer, shared
+  with the submission. The plan's task 4 named `api::read_file` and `api::read_workspace`.
+- **Rationale**: `read_workspace` gives a feature's worktree relative to the main checkout, which a
+  server rooted in a worktree cannot resolve, and links an entry to its feature only in the
+  priorities on disk, not in the open text the hints follow; the path and the link matching are the
+  core's, private to it. `read_file` reads the file on its branch, not the open text, and runs the
+  checks of the whole feature. Both new functions skip `ura check`, so the hints stay cheap.
+- **Alternatives considered**: resolving worktree paths and matching links in the server: a second
+  copy of the core's rules; `read_workspace` for the hints: they would lag unsaved edits.
+- **If wrong**: two functions in [`api.rs`](/crates/core/src/api.rs) and their callers in
+  [`crates/lsp/src/requests.rs`](/crates/lsp/src/requests.rs) and
+  [`crates/lsp/src/hints.rs`](/crates/lsp/src/hints.rs).
+- **Where**: task 4, `crates/core/src/api.rs`, `crates/lsp/src/`.
