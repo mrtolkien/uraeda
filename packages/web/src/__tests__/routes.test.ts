@@ -3,6 +3,7 @@
 import { renderHook } from "@testing-library/react";
 import { expect, test, vi } from "vite-plus/test";
 import { navigate, parseRoute, useRestoreScroll } from "../routes.tsx";
+import { sessionPath } from "../sessions.ts";
 
 test.each([
   ["/priorities/git-listener", { page: "task", key: "git-listener" }],
@@ -12,6 +13,10 @@ test.each([
   ],
   ["/f/2026-10-12-cli-tuis/runs/7", { page: "run", folder: "2026-10-12-cli-tuis", id: "7" }],
 ])("parseRoute(%s)", (path, route) => expect(parseRoute(path)).toEqual(route));
+
+test("a feature's session address encodes its folder, as every link to it does", () => {
+  expect(sessionPath("2026-10-12-a#b?c")).toBe("/f/2026-10-12-a%23b%3Fc/session");
+});
 
 // The edge case "Back from a session view": Back before the next page draws finds the page left
 // still shown, scrolled to the top for the next one, and it takes its position back.

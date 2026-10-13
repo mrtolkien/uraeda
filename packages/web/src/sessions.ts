@@ -52,6 +52,11 @@ export async function sendMessage(
     : { ok: true, session: id };
 }
 
+/** The address of a feature's session. */
+export function sessionPath(folder: string): string {
+  return `/f/${encodeURIComponent(folder)}/session`;
+}
+
 /**
  * Hands the feature over to the agent: opens its session with the workflow's message in the
  * composer, unsent, for the human to read, edit, and send. `file` is the file the commit wrote,
@@ -59,7 +64,7 @@ export async function sendMessage(
  */
 export function handOver(folder: string, trigger: Trigger, file?: string): void {
   const query = new URLSearchParams({ continue: trigger, ...(file === undefined ? {} : { file }) });
-  navigate(`/f/${encodeURIComponent(folder)}/session?${query.toString()}`);
+  navigate(`${sessionPath(folder)}?${query.toString()}`);
 }
 
 /**
@@ -68,7 +73,7 @@ export function handOver(folder: string, trigger: Trigger, file?: string): void 
  */
 export function askAbout(folder: string, quote: string): void {
   const query = new URLSearchParams({ ask: quote });
-  navigate(`/f/${encodeURIComponent(folder)}/session?${query.toString()}`);
+  navigate(`${sessionPath(folder)}?${query.toString()}`);
 }
 
 /** A quote of lines: a header, then each line after `> `. */

@@ -11,7 +11,7 @@ import { refusal } from "./errors.ts";
 import { stepLabel } from "./labels.ts";
 import { statusStyles } from "./Question.tsx";
 import { costText, SessionStatus } from "./SessionPage.tsx";
-import { handOver } from "./sessions.ts";
+import { handOver, sessionPath } from "./sessions.ts";
 import { SessionView } from "./views.ts";
 
 /** What the panel needs of the feature: its step, its branch, and its session. */
@@ -144,7 +144,7 @@ export function AgentPanel({ feature }: { feature: Feature }) {
       <Button
         variant={canStart ? "secondary" : "primary"}
         label="Open the session"
-        href={`/f/${feature.folder}/session`}
+        href={sessionPath(feature.folder)}
       />
       {canStart && (
         <Button

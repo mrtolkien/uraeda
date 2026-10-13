@@ -8,6 +8,7 @@ import { startTransition, useEffect, useState } from "react";
 import type { SessionStatus } from "uraeda-server/fate";
 import { type useNavigation, useSessionSearch } from "./data.ts";
 import { navigate } from "./routes.tsx";
+import { sessionPath } from "./sessions.ts";
 import { StatusMark } from "./StatusMark.tsx";
 
 /** How long typing must stop before a search is read (R2). */
@@ -295,7 +296,7 @@ function FeatureRow({
   return (
     <>
       <Item label={feature.title} to={`/f/${feature.folder}`} pathname={pathname} status={status} />
-      <Subagents row={row} to={`/f/${feature.folder}/session`} />
+      <Subagents row={row} to={sessionPath(feature.folder)} />
     </>
   );
 }
