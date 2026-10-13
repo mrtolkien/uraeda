@@ -72,3 +72,5 @@
 - Better URLs for the navigation, right now it's a bit messy
   (/f/2026-10-13-chat-in-the-web-ui/clarifications-01.md)
 - Add an "open priorities" shortcut to the nvim plugin
+- In a "done" feature, we should have a nice view of all its info, not just a dirty link to the
+  report
