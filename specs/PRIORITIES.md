@@ -17,6 +17,9 @@
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Setup with agent (checks project and creates relevant files)
 
+- Benchmarks (harness, model, ...): blocked until the harness and the Claude Code integration are
+  ready, see [backlog](backlog/benchmarks/proposal.md), with a discovery round and partial answers.
+
 - CLI auto-expand in fish and ?zsh?
 - Ping user when input is needed
 - Git listener process
@@ -47,11 +50,9 @@
 
 ## Blocked
 
-- Benchmarks (harness, model, ...): blocked until the harness and the Claude Code integration are
-  ready, see [backlog](backlog/benchmarks/proposal.md), with a discovery round and partial answers.
-
 ## Scratchpad
 
 - Tools path in the agent run view should be stripped and only show path from the repo root
 - Rename "Start and continue": all buttons starting an agent should be EXTREMELY CLEAR
 - Need icons for different harnesses (claude code, codex, pi, ...)
+- Text column is too slim on desktop
