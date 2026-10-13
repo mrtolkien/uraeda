@@ -6,17 +6,15 @@
 >
 > Features for v1.0.0
 
-- Chats, proposals, and reviews should accept images (drag and drop in the page, still show a
-  dedicated button)
+- [Chats, proposals, and reviews should accept images (drag and drop in the page, still show a dedicated button)](drafts/chats-proposals-and-reviews-should-accept-images.md)
+
+- [Clean server code that can open any folder on the host + be run easily with node -> make the tool multi-repos](drafts/clean-server-code-that-can-open-any-folder-on-the.md)
 
 - [Code quality and maintainability through the skill](drafts/code-quality-in-the-skill.md)
 
 - Look and feel pass: components style, logo, favicon, ...
   - Generally, the happy path should look good: parsed frontmatter should not appear in the edit
     box, we should have color and hierarchy for specs and plans, ...
-
-- Clean server code that can open any folder on the host + be run easily with node -> make the tool
-  multi-repos
 
 - Add a bugfixing/low impact change flow
 - Add a "scratchpad" concept: quick notes about the system, small issues, ...
@@ -48,6 +46,10 @@
   - Web tools in pi-durable
 
 ## Later
+
+> [!NOTE]
+>
+> Might get dropped, low prio features
 
 - Use Jev-like model (Clef) for one-shot classification of decisions: "Is this decision relevant to
   this proposal?", "Is this a valuable decision?", "Is this code change in line with the
