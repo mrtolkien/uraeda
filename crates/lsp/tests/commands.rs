@@ -666,11 +666,11 @@ fn drafts_proposals_and_priorities_are_committed() {
     );
 }
 
-/// Final review: the priorities, a draft, and a backlog file of a feature's worktree are its
-/// branch's copies; drafting, starting, and committing them is refused, pointing at `main`'s
-/// checkout, and nothing is written there.
+/// Drafts and the priorities are written on `main`, from its checkout: in a feature's worktree,
+/// their copies stand for `main`'s only while they hold the same text. Edited copies are refused,
+/// pointing at `main`'s checkout, and an unchanged one starts its feature.
 #[test]
-fn a_worktree_refuses_drafts_and_priorities() {
+fn a_worktree_acts_on_mains_drafts_and_priorities() {
     let repo = with_draft(true);
     repo.write("specs/backlog/benchmarks.md", "# Benchmarks\n");
     repo.commit("chore: backlog");
@@ -689,6 +689,7 @@ fn a_worktree_refuses_drafts_and_priorities() {
         .replace("## Now\n", "## Now\n\n- A new line\n");
     std::fs::write(&priorities, &edited).unwrap();
     let draft = worktree.join("specs/drafts/codex-runtime.md");
+    std::fs::write(&draft, "# Codex runtime\n\n## What\n\nEdited here.\n").unwrap();
     let backlog = worktree.join("specs/backlog/benchmarks.md");
     let mut session = start(&worktree);
     session.open(&priorities, &edited);
@@ -702,29 +703,49 @@ fn a_worktree_refuses_drafts_and_priorities() {
         ("uraeda.commit", json!({ "uri": uri(&priorities) })),
         ("uraeda.commit", json!({ "uri": uri(&draft) })),
         ("uraeda.start", json!({ "uri": uri(&draft) })),
-        ("uraeda.start", json!({ "uri": uri(&backlog) })),
     ];
     for (command, args) in refusals {
         let error = session.command(command, args.clone()).unwrap_err();
         let name = if args["uri"] == uri(&priorities) {
             "PRIORITIES.md"
-        } else if args["uri"] == uri(&draft) {
-            "codex-runtime.md"
         } else {
-            "benchmarks.md"
+            "codex-runtime.md"
         };
         assert_eq!(
             error.message,
-            format!("{name} here is not main's: open it from main's checkout, {main}."),
+            format!("{name} here differs from main's: open it from main's checkout, {main}."),
             "{command} {args}"
         );
         assert_eq!(error.data, Some(json!({ "code": "refused" })));
     }
     assert_eq!(repo.subjects("main")[0], "chore: backlog");
-    assert_eq!(repo.subjects("feat")[0], "chore: backlog");
     assert_eq!(repo.git(&["status", "--porcelain", "--", "specs"]), "");
     assert!(!repo.exists("specs/drafts/a-new-line.md"));
-    assert!(!repo.exists(".worktrees/main"));
+
+    let result = session
+        .command("uraeda.start", json!({ "uri": uri(&backlog) }))
+        .unwrap();
+
+    let folder = "2026-10-14-benchmarks";
+    assert_eq!(
+        result["opened"],
+        json!(abs(&repo.path().join(format!(
+            ".worktrees/{folder}/specs/{folder}/proposal.md"
+        ))))
+    );
+    assert_eq!(
+        result["written"],
+        json!([
+            abs(&repo.path().join(PRIORITIES)),
+            abs(&repo.path().join("specs/backlog/benchmarks.md")),
+        ])
+    );
+    assert!(
+        repo.subjects("main")[0].starts_with("chore(benchmarks): start"),
+        "{:?}",
+        repo.subjects("main")
+    );
+    assert_eq!(repo.subjects("feat")[0], "chore: backlog");
 }
 
 /// US7.3

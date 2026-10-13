@@ -679,10 +679,12 @@ fn text_view(
     }
 }
 
-/// Refuses a draft, a backlog file, or the priorities, `name`, read from the checkout at `repo`
-/// when it does not have the default branch, where they are written: the file there is another
-/// branch's copy. Names the default branch's checkout when one has it, without creating one.
-pub fn on_default_branch(repo: &Path, name: &str) -> Result<()> {
+/// Lets a tool act on a draft, a backlog file, or the priorities, at `path` from the root, open
+/// with `text` in the checkout at `repo`. They are written on the default branch, from its checkout:
+/// another branch's copy stands for it only while it holds the default branch's text, read from the
+/// checkout that has it, or else from the branch. Names that checkout when they differ, without
+/// creating one.
+pub fn on_default_branch(repo: &Path, path: &str, text: &str) -> Result<()> {
     let git = Git::discover(repo)?;
     // Without a default branch, writing refuses on its own.
     let Some(default) = git.default_branch() else {
@@ -697,12 +699,25 @@ pub fn on_default_branch(repo: &Path, name: &str) -> Result<()> {
             .find(|worktree| worktree.branch.as_deref() == Some(default.as_str()))
             .map(|worktree| worktree.path)
     });
+    let theirs = match &checkout {
+        Some(checkout) => std::fs::read_to_string(checkout.join(path)).ok(),
+        None => git
+            .tip(&default)
+            .and_then(|tip| git.read_file(tip, path).ok().flatten())
+            .and_then(|bytes| String::from_utf8(bytes).ok()),
+    };
+    if theirs.as_deref() == Some(text) {
+        return Ok(());
+    }
+    let name = path.rsplit('/').next().unwrap_or(path);
     Err(refused(match checkout {
         Some(checkout) => format!(
-            "{name} here is not {default}'s: open it from {default}'s checkout, {}.",
+            "{name} here differs from {default}'s: open it from {default}'s checkout, {}.",
             checkout.display()
         ),
-        None => format!("{name} here is not {default}'s: open it from a checkout of {default}."),
+        None => {
+            format!("{name} here differs from {default}'s: open it from a checkout of {default}.")
+        }
     }))
 }
 

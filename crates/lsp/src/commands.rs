@@ -218,10 +218,10 @@ fn draft(documents: &Documents, args: DraftArgs) -> Result<Outcome, ResponseErro
     if relative(documents, &args.uri).as_deref() != Some(priorities_path()) {
         return Err(refused(NOT_AN_ENTRY));
     }
-    core(api::on_default_branch(root, "PRIORITIES.md"))?;
     let text = documents
         .read(&root.join(priorities_path()))
         .ok_or_else(|| refused(NOT_AN_ENTRY))?;
+    core(api::on_default_branch(root, priorities_path(), &text))?;
     let entry = priorities::read(&text, None)
         .sections
         .into_iter()
@@ -236,14 +236,14 @@ fn draft(documents: &Documents, args: DraftArgs) -> Result<Outcome, ResponseErro
         .into_iter()
         .find(|link| link.line == entry.start_line)
         .and_then(|link| link.draft);
+    let default = core(api::default_root(root))?;
     if let Some(linked) = linked {
         return Ok(Outcome {
-            opened: Some(absolute(root.join(linked))),
+            opened: Some(absolute(default.join(linked))),
             written: Vec::new(),
         });
     }
     let drafted = core(api::create_draft(root, &entry.id, &hash(&text)))?;
-    let default = core(api::default_root(root))?;
     let opened = absolute(default.join(&drafted.path));
     Ok(Outcome {
         opened: Some(opened.clone()),
@@ -255,9 +255,13 @@ fn priorities_path() -> &'static str {
     "specs/PRIORITIES.md"
 }
 
-/// The file name of `path`, from the root.
-fn file_name(path: &str) -> &str {
-    path.rsplit('/').next().unwrap_or(path)
+/// Refuses acting on the file at `path` from the root, a draft, a backlog file, or the
+/// priorities, when its text here is not the default branch's, where it is written.
+fn on_default_branch(documents: &Documents, path: &str) -> Result<(), ResponseError> {
+    let text = documents
+        .read(&documents.root.join(path))
+        .unwrap_or_default();
+    core(api::on_default_branch(&documents.root, path, &text))
 }
 
 /// `uraeda.start { uri }`: starts a draft or a backlog file as a feature, in its own worktree.
@@ -267,7 +271,7 @@ fn start(documents: &Documents, args: FileArgs) -> Result<Done, ResponseError> {
     let path = relative(documents, &args.uri).ok_or_else(|| refused(ONLY_DRAFTS))?;
     // A file of a postponed feature's folder starts the folder.
     let draft = target::draft_to_start(&path).ok_or_else(|| refused(ONLY_DRAFTS))?;
-    core(api::on_default_branch(root, file_name(&path)))?;
+    on_default_branch(documents, &path)?;
     let default = core(api::default_root(root))?;
     let written = vec![
         absolute(default.join(priorities_path())),
@@ -519,10 +523,10 @@ fn commit(documents: &Documents, args: FileArgs) -> Result<Outcome, ResponseErro
     let root = &documents.root;
     let path = relative(documents, &args.uri).ok_or_else(|| refused(ONLY))?;
     if path == priorities_path() {
-        core(api::on_default_branch(root, file_name(&path)))?;
+        on_default_branch(documents, &path)?;
         core(api::commit_priorities(root))?;
     } else if target::is_draft(&path) {
-        core(api::on_default_branch(root, file_name(&path)))?;
+        on_default_branch(documents, &path)?;
         core(api::commit_text(root, &path))?;
     } else if workflow_file(documents, &args.uri)
         .is_some_and(|file| file.kind == FileKind::Proposal)
