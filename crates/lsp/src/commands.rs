@@ -33,6 +33,7 @@ pub(crate) const COMMANDS: [&str; 8] = [
 ];
 
 const NOT_WORKFLOW: &str = "This file is not a Uraeda workflow file.";
+const REVIEW_AGAIN: &str = "review it again";
 const NOT_AN_ENTRY: &str = "This line is not a priorities entry.";
 
 /// What a command did: the file to open, and the files it wrote, to reload.
@@ -317,6 +318,23 @@ fn waiting(text: &str, name: &str) -> Result<(), ResponseError> {
     }
 }
 
+/// Refuses a file whose open text is not the one on disk, which the core reads and commits: another
+/// process wrote it behind the buffer, and the human has not seen what the verdict would commit.
+/// `again` ends the refusal: `review it again`.
+fn as_opened(documents: &Documents, file: &WorkflowFile, again: &str) -> Result<(), ResponseError> {
+    let Some(opened) = documents.opened(&file.path) else {
+        return Ok(());
+    };
+    if std::fs::read_to_string(&file.path).is_ok_and(|disk| disk == opened) {
+        Ok(())
+    } else {
+        Err(refused(format!(
+            "{} changed since it was opened: reload it and {again}.",
+            file.name
+        )))
+    }
+}
+
 /// The absolute paths of files of a feature, in the checkout that has its branch, from the file
 /// a write returned.
 fn in_checkout(
@@ -407,6 +425,7 @@ fn edit_comment(documents: &Documents, args: EditCommentArgs) -> Result<Outcome,
 fn approve(documents: &Documents, args: ApproveArgs) -> Result<Outcome, ResponseError> {
     let (folder, file) = feature_file(documents, &args.uri)?;
     waiting(&text(documents, &file)?, &file.name)?;
+    as_opened(documents, &file, REVIEW_AGAIN)?;
     let view = core(api::approve(
         &documents.root,
         &folder,
@@ -430,6 +449,7 @@ fn request_changes(
 ) -> Result<Outcome, ResponseError> {
     let (folder, file) = feature_file(documents, &args.uri)?;
     waiting(&text(documents, &file)?, &file.name)?;
+    as_opened(documents, &file, REVIEW_AGAIN)?;
     if file.pending_comments(documents).is_empty() {
         return Err(refused("Requesting changes needs at least one comment."));
     }
@@ -460,6 +480,7 @@ fn submit(documents: &Documents, args: FileArgs) -> Result<Outcome, ResponseErro
             file.name
         )));
     }
+    as_opened(documents, &file, "check its answers again")?;
     if let Some(latest) = latest_round(&file).filter(|latest| *latest != file.name) {
         return Err(refused(format!(
             "{} is not the latest round: {latest} is.",
