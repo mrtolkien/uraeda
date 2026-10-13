@@ -28,7 +28,7 @@ const shared = globalThis as {
 
 type Context = { page: Page; frame: () => Promise<Frame> };
 
-/** The test server's agent, which the tests that follow a run drive. */
+/** The test server's agent, which the tests that follow a session drive. */
 const agent = new FakeAdapter();
 type AgentEvent = Parameters<FakeAdapter["emit"]>[0];
 
@@ -42,6 +42,7 @@ const commands = {
     const token = (shared.uraedaRepoTokens = (shared.uraedaRepoTokens ?? 0) + 1);
     shared.uraedaRepoHolder = { token, release };
     process.env.URAEDA_REPO = fixtureRepo();
+    agent.sent = [];
     // A turn whose test gave up waiting for it is never released by that test: it ends once longer
     // than any test and its hooks, so one stuck test does not hold up every one after it.
     setTimeout(() => void commands.releaseRepo(undefined, token), 120_000).unref();
@@ -53,6 +54,8 @@ const commands = {
     if (holder?.token !== token) {
       return;
     }
+    // The agent's process ends with the test: the next test's session opens one of its own.
+    agent.exit(1, "ended by the test");
     forgetRepo(process.env.URAEDA_REPO!);
     shared.uraedaRepoHolder = undefined;
     holder.release();
@@ -64,13 +67,24 @@ const commands = {
   writeRepo(_context: unknown, text: string, path = "specs/PRIORITIES.md") {
     writeFileSync(join(process.env.URAEDA_REPO!, path), text);
   },
-  /** Sends events on the agent's current run, as Claude Code would print them. */
+  /** The messages sent to the agent during the test, in order. */
+  agentSent() {
+    return agent.sent.map(({ id, text, when }) => ({ id, text, when }));
+  },
+  /** The agent reads the latest message sent to it, or the one at `index`. */
+  agentAccept(_context: unknown, index = -1) {
+    const message = agent.sent.at(index);
+    if (message) {
+      agent.emit({ type: "accepted", id: message.id });
+    }
+  },
+  /** Sends events on the agent's current process, as Claude Code would print them. */
   agentEmit(_context: unknown, events: Array<AgentEvent>) {
     for (const event of events) {
       agent.emit(event);
     }
   },
-  /** Ends the agent's current run. */
+  /** Ends the agent's current process. */
   agentFinish(_context: unknown, code = 0, stderr = "") {
     agent.exit(code, stderr);
   },
@@ -109,6 +123,8 @@ export type RepoCommands = {
   releaseRepo: (token: number) => Promise<void>;
   readRepo: (path?: string) => Promise<string>;
   writeRepo: (text: string, path?: string) => Promise<void>;
+  agentSent: () => Promise<Array<{ id: string; text: string; when: string }>>;
+  agentAccept: (index?: number) => Promise<void>;
   agentEmit: (events: Array<AgentEvent>) => Promise<void>;
   agentFinish: (code?: number, stderr?: string) => Promise<void>;
   mouse: (
