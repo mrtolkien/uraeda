@@ -385,3 +385,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `exited` and `no_client` in [`client.lua`](/editors/nvim/lua/uraeda/client.lua), and
   `on_exit` in [`lsp/uraeda.lua`](/editors/nvim/lsp/uraeda.lua).
 - **Where**: final review, `editors/nvim/`.
+
+## R21: The verdict window refuses a file not waiting before it opens
+
+- **Decision**: `verdict.open` reads `waiting` from `uraeda/verdict`, and on `false` opens no picker
+  and no window, and notifies the server's texts: `spec.md is not waiting for a review.` for a spec,
+  a plan, or an assessment, `clarifications-01.md is not waiting for answers.` for a round (R18).
+  This takes the alternative R14 set aside. The test failed with no error and the verdict picker
+  shown on the example's approved spec.
+- **Rationale**: the final review found the window opening on an approved spec, the human typing a
+  summary the server then refuses; the server already sends `waiting`, so the plugin tells nothing
+  from the file itself ([stack](../decisions/stack.md)).
+- **Alternatives considered**: refusing only on `Ctrl-s`, as R14 chose: the summary typed is lost.
+- **If wrong**: `pick` in [`verdict.lua`](/editors/nvim/lua/uraeda/verdict.lua), and its test in
+  [`test_verdict.lua`](/editors/nvim/tests/test_verdict.lua).
+- **Where**: final review, `editors/nvim/lua/uraeda/verdict.lua`.

@@ -241,6 +241,26 @@ T["changes without comments refuse"] = function() -- US6.2
   eq(child.lua_get("#vim.api.nvim_list_wins()"), 1)
 end
 
+T["a file not waiting gets no window"] = function()
+  local spec = helpers.example()[example .. "spec.md"]
+  local answered = round({ "A", "B" }):gsub("status: awaiting%-human", "status: answered", 1)
+  local _, worktree = with_feature({ ["spec.md"] = spec, ["clarifications-01.md"] = answered })
+  open(worktree .. "/" .. feature .. "spec.md")
+  child.lua("_G.picks = { 'Approve' }")
+
+  child.cmd("Uraeda verdict")
+
+  eq(errors(), { { "spec.md is not waiting for a review.", ERROR } })
+  eq(child.lua_get("_G.selects"), {})
+  eq(child.lua_get("#vim.api.nvim_list_wins()"), 1)
+
+  child.lua("_G.notes = {}")
+  open(worktree .. "/" .. feature .. "clarifications-01.md")
+  child.cmd("Uraeda verdict")
+  eq(errors(), { { "clarifications-01.md is not waiting for answers.", ERROR } })
+  eq(child.lua_get("#vim.api.nvim_list_wins()"), 1)
+end
+
 T["a round is submitted"] = function() -- US6.3
   local repo, worktree = with_feature({ ["clarifications-01.md"] = round({ "A", "B" }) })
   local path = worktree .. "/" .. feature .. "clarifications-01.md"
