@@ -369,3 +369,17 @@ fn a_record_kind_must_match_its_branch() {
         "kind is bug, but 2026-10-11-web-ui is a feature's branch"
     );
 }
+
+/// A fix made outside the workflow, its branch left after the merge, is no bug.
+#[test]
+fn a_branch_without_its_folder_or_record_is_not_a_feature() {
+    let repo = repo();
+    repo.switch_new(BUG_BRANCH);
+    repo.write("src/lib.rs", "// fixed\n");
+    repo.commit("fix: completed tasks reappear");
+    repo.switch("main");
+
+    let workspace = workspace(&repo);
+
+    assert!(workspace.feature(BUG).is_none());
+}

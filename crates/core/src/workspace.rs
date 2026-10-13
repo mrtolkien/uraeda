@@ -553,6 +553,14 @@ impl Workspace {
                     feature
                 }
                 None => {
+                    // Neither its folder nor its record, like a fix made outside the workflow:
+                    // not a feature.
+                    let from = From::Commit(tip);
+                    if reader.files(from, &folder_path(kind, folder)).is_empty()
+                        && reader.read(from, &record_path(folder)).is_none()
+                    {
+                        continue;
+                    }
                     let mut feature = read_feature(
                         &reader,
                         kind,
