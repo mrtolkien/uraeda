@@ -9,20 +9,22 @@ import type {
   ProposalHint,
   WorkspaceView,
 } from "uraeda-binding";
-import type { RunEvent } from "../runner/events.ts";
+import type { Capabilities } from "../runner/adapter.ts";
+import type { Item, Trigger, TurnKind, TurnState } from "../runner/events.ts";
+import type { SessionStatus } from "../runner/status.ts";
 
 type Record_<T> = { [Key in keyof T]: T[Key] };
 
 export type WorkspaceRecord = Record_<WorkspaceView> & {
   id: string;
-  /** The folders with a run going on. */
+  /** The folders whose session has a turn running or queued. */
   running: Array<string>;
 };
 /** A feature, or `missing` alone when no feature has its folder. */
 export type FeatureRecord = Record_<FeatureView> & {
   id: string;
-  /** The IDs of its runs, newest first. */
-  runs: Array<string>;
+  /** Its session's ID, null before its first message. */
+  session: string | null;
   missing?: boolean;
 };
 /** A workflow file, or `missing` alone when its feature has no such file. */
@@ -41,34 +43,106 @@ export type DraftRecord = Record_<DraftView> & { id: string };
 /** The proposal template's guidance, by heading, which the editor shows in empty sections. */
 export type ProposalHintsRecord = { id: string; hints: Array<Record_<ProposalHint>> };
 
-/** Whether the agent works on this machine: one record, `runner`. */
-export type RunnerRecord = { id: string; available: boolean; version: string | null };
-
-/** A run, from the runner's cache, without its log. */
-export type RunRecord = {
+/** The agent sessions run on, and what it can do: one record, `agent`. */
+export type AgentRecord = {
   id: string;
-  folder: string;
-  trigger: string;
-  step: string;
-  state: string;
-  reason: string | null;
-  costUsd: number | null;
-  startedAt: string;
-  endedAt: string | null;
-  newSession: boolean;
-  allowed: string | null;
-  /** The count of its log pages, of 100 events each. */
-  pages: number;
-  /** The actions `auto` mode blocked, with the rule "Allow and continue" passes. */
-  denials: Array<{ seq: number; tool: string; target: string | null; rule: string }>;
+  /** Its kind, stored with its sessions: `claude`. */
+  kind: string;
+  /** Its name, for people: "Claude Code". */
+  name: string;
+  available: boolean;
+  version: string | null;
+  /** What the UI may offer, and nothing more. */
+  capabilities: Capabilities;
 };
 
-/** A page of 100 events of a run's log, `<run>:<page>`, from page 0. */
-export type RunLogRecord = {
+/** A sub-agent working in a session's running turn. */
+export type SubagentRecord = { id: string; description: string };
+
+/** A session, without its turns' items. */
+export type SessionRecord = {
   id: string;
-  run: string;
+  /** The feature's folder, null for a chat. */
+  folder: string | null;
+  /** The agent's kind. */
+  agent: string;
+  /** A chat's title, "New chat" before its first message, or its feature's title. */
+  title: string;
+  status: SessionStatus;
+  /** "Working", "Needs you", "Failed", "New reply", "Idle", or "Stopped". */
+  statusLabel: string;
+  /** Why it needs you: a blocked action, or the feature's step. */
+  statusReason: "blocked" | "step" | null;
+  /** Where it works: "branch <branch>", or "main checkout, branch <branch>" for a chat. */
+  place: string;
+  /** The agent's running total for the session, at its last turn's end. */
+  costUsd: number | null;
+  /** Its turns' IDs, oldest first. */
+  turns: Array<string>;
+  archived: boolean;
+  /** The sub-agents of its running turn that have not ended. */
+  subagents: Array<SubagentRecord>;
+};
+
+/** A turn of a session, without its items. */
+export type TurnRecord = {
+  id: string;
+  session: string;
+  kind: TurnKind;
+  trigger: Trigger | null;
+  /** A workflow turn's step when it started. */
+  step: string | null;
+  /** An allow turn's rule. */
+  allowed: string | null;
+  state: TurnState;
+  /** Why it failed or stopped. */
+  reason: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  /** The count of its item pages, of 100 items each. */
+  pages: number;
+};
+
+/**
+ * A page of 100 items of a turn, `<turn>:<page>`, from page 0, by their `seq`. Messages taken
+ * back are left out: they leave the transcript.
+ */
+export type TurnLogRecord = {
+  id: string;
+  turn: string;
   page: number;
-  events: Array<RunEvent & { seq: number }>;
+  items: Array<Item & { seq: number }>;
+};
+
+/** A session's row in the sidebar. */
+export type SessionRowRecord = {
+  id: string;
+  folder: string | null;
+  title: string;
+  status: SessionStatus;
+  statusLabel: string;
+  archived: boolean;
+  /** The last turn's start or end. */
+  updatedAt: string;
+  subagents: Array<SubagentRecord>;
+};
+
+/** The sidebar's sessions, what needs the human first: one record, `all`, kept live. */
+export type SessionListRecord = { id: string; rows: Array<SessionRowRecord> };
+
+/** The sessions whose title or messages hold the query, which is its ID: not live. */
+export type SessionSearchRecord = { id: string; rows: Array<SessionRowRecord> };
+
+/**
+ * The workflow's message for a feature and a trigger, `<folder>:<trigger>[:<file>]`, which the
+ * composer is filled with. Empty, with the refusal, when the feature does not wait on the agent.
+ */
+export type WorkflowMessageRecord = {
+  id: string;
+  text: string;
+  /** The step the message starts. */
+  step: string;
+  refusal: string | null;
 };
 
 export const workspaceDataView = dataView<WorkspaceRecord>("Workspace")({
@@ -101,7 +175,7 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
   problems: true,
   leftWorktree: true,
   leftBranch: true,
-  runs: true,
+  session: true,
   missing: true,
 });
 
@@ -139,33 +213,66 @@ export const draftDataView = dataView<DraftRecord>("Draft")({
   priorityChanges: true,
 });
 
-export const runnerDataView = dataView<RunnerRecord>("Runner")({
+export const agentDataView = dataView<AgentRecord>("Agent")({
   id: true,
+  kind: true,
+  name: true,
   available: true,
   version: true,
+  capabilities: true,
 });
 
-export const runDataView = dataView<RunRecord>("Run")({
+export const sessionDataView = dataView<SessionRecord>("Session")({
   id: true,
   folder: true,
-  trigger: true,
-  step: true,
-  state: true,
-  reason: true,
+  agent: true,
+  title: true,
+  status: true,
+  statusLabel: true,
+  statusReason: true,
+  place: true,
   costUsd: true,
-  startedAt: true,
-  endedAt: true,
-  newSession: true,
-  allowed: true,
-  pages: true,
-  denials: true,
+  turns: true,
+  archived: true,
+  subagents: true,
 });
 
-export const runLogDataView = dataView<RunLogRecord>("RunLog")({
+export const turnDataView = dataView<TurnRecord>("Turn")({
   id: true,
-  run: true,
+  session: true,
+  kind: true,
+  trigger: true,
+  step: true,
+  allowed: true,
+  state: true,
+  reason: true,
+  startedAt: true,
+  endedAt: true,
+  pages: true,
+});
+
+export const turnLogDataView = dataView<TurnLogRecord>("TurnLog")({
+  id: true,
+  turn: true,
   page: true,
-  events: true,
+  items: true,
+});
+
+export const sessionListDataView = dataView<SessionListRecord>("SessionList")({
+  id: true,
+  rows: true,
+});
+
+export const sessionSearchDataView = dataView<SessionSearchRecord>("SessionSearch")({
+  id: true,
+  rows: true,
+});
+
+export const workflowMessageDataView = dataView<WorkflowMessageRecord>("WorkflowMessage")({
+  id: true,
+  text: true,
+  step: true,
+  refusal: true,
 });
 
 export const proposalHintsDataView = dataView<ProposalHintsRecord>("ProposalHints")({
@@ -176,7 +283,8 @@ export const proposalHintsDataView = dataView<ProposalHintsRecord>("ProposalHint
 /** The ids of the records there is one of. */
 export const WORKSPACE_ID = "workspace";
 export const PRIORITIES_ID = "priorities";
-export const RUNNER_ID = "runner";
+export const AGENT_ID = "agent";
+export const SESSION_LIST_ID = "all";
 export const PROPOSAL_HINTS_ID = "proposal";
 
 /** The roots: one list per type, so every type is read by id. */
@@ -186,8 +294,12 @@ export const Root = {
   workflowFiles: list(fileDataView),
   prioritiesList: list(prioritiesDataView),
   drafts: list(draftDataView),
-  runners: list(runnerDataView),
-  runs: list(runDataView),
-  runLogs: list(runLogDataView),
+  agents: list(agentDataView),
+  sessions: list(sessionDataView),
+  turns: list(turnDataView),
+  turnLogs: list(turnLogDataView),
+  sessionLists: list(sessionListDataView),
+  sessionSearches: list(sessionSearchDataView),
+  workflowMessages: list(workflowMessageDataView),
   proposalHintsList: list(proposalHintsDataView),
 };

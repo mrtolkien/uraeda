@@ -1,7 +1,19 @@
 import type { Context } from "./context.ts";
-import { featureRecord, readRun, readRunLog, runnerRecord } from "./runs.ts";
+import {
+  agentRecord,
+  featureRecord,
+  readSession,
+  readTurn,
+  readTurnLog,
+  readWorkflowMessage,
+  sessionList,
+  sessionSearch,
+  working,
+} from "./sessions.ts";
 import { createSources, fileSource } from "./source.ts";
 import {
+  AGENT_ID,
+  agentDataView,
   draftDataView,
   featureDataView,
   fileDataView,
@@ -11,11 +23,14 @@ import {
   proposalHintsDataView,
   type FeatureRecord,
   type FileRecord,
-  RUNNER_ID,
   sentFile,
-  runDataView,
-  runLogDataView,
-  runnerDataView,
+  SESSION_LIST_ID,
+  sessionDataView,
+  sessionListDataView,
+  sessionSearchDataView,
+  turnDataView,
+  turnLogDataView,
+  workflowMessageDataView,
   type WorkspaceRecord,
   WORKSPACE_ID,
   workspaceDataView,
@@ -39,7 +54,7 @@ async function workspace(ctx: Context): Promise<WorkspaceRecord> {
   return {
     id: WORKSPACE_ID,
     ...(await ctx.binding.readWorkspace(ctx.repo)),
-    running: ctx.runner.running(ctx.repo),
+    running: await working(ctx),
   };
 }
 
@@ -71,7 +86,7 @@ function missingFeature(folder: string): FeatureRecord {
     mockups: [],
     step: { name: "none", waitsOn: "nobody" },
     problems: [],
-    runs: [],
+    session: null,
     missing: true,
   };
 }
@@ -132,15 +147,27 @@ export const sources = createSources<Context>([
     byIds: ({ binding, repo }, ids) =>
       each(ids, async (id) => ({ id, ...(await binding.readText(repo, id)) })),
   }),
-  fileSource(runnerDataView, {
-    byIds: async (ctx, ids) => (ids.includes(RUNNER_ID) ? [runnerRecord(ctx)] : []),
-    list: async (ctx) => [runnerRecord(ctx)],
+  fileSource(agentDataView, {
+    byIds: async (ctx, ids) => (ids.includes(AGENT_ID) ? [agentRecord(ctx)] : []),
+    list: async (ctx) => [agentRecord(ctx)],
   }),
-  fileSource(runDataView, {
-    byIds: async (ctx, ids) => found(ids, (id) => readRun(ctx, id)),
+  fileSource(sessionDataView, {
+    byIds: async (ctx, ids) => found(ids, (id) => readSession(ctx, id)),
   }),
-  fileSource(runLogDataView, {
-    byIds: async (ctx, ids) => found(ids, (id) => readRunLog(ctx, id)),
+  fileSource(turnDataView, {
+    byIds: async (ctx, ids) => found(ids, (id) => readTurn(ctx, id)),
+  }),
+  fileSource(turnLogDataView, {
+    byIds: async (ctx, ids) => found(ids, (id) => readTurnLog(ctx, id)),
+  }),
+  fileSource(sessionListDataView, {
+    byIds: async (ctx, ids) => (ids.includes(SESSION_LIST_ID) ? [await sessionList(ctx)] : []),
+  }),
+  fileSource(sessionSearchDataView, {
+    byIds: async (ctx, ids) => Promise.all(ids.map((query) => sessionSearch(ctx, query))),
+  }),
+  fileSource(workflowMessageDataView, {
+    byIds: async (ctx, ids) => found(ids, (id) => readWorkflowMessage(ctx, id)),
   }),
   fileSource(proposalHintsDataView, {
     byIds: async ({ binding }, ids) =>

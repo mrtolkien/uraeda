@@ -6,7 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach } from "vite-plus/test";
 import * as binding from "uraeda-binding";
 import { fixture, fixtureRepo, git } from "uraeda-binding/test-utils";
 import { createApp } from "uraeda-server";
-import { fakeRunner } from "uraeda-server/testing";
+import { fakeSessions } from "uraeda-server/testing";
 import { App } from "../App.tsx";
 import { forgetUndoToasts } from "../layout/useUndoToast.ts";
 
@@ -84,7 +84,7 @@ export function answersSoFar() {
 }
 
 /**
- * Waits until the server answered a read of a type, `Runner` for one, after the `from` first
+ * Waits until the server answered a read of a type, `Agent` for one, after the `from` first
  * answers, and the page drew it: a part of a page that waits on its own read shows nothing until
  * then, so a test that checks something does not show waits for it first.
  */
@@ -98,24 +98,24 @@ export async function answered(type: string, from = 0) {
   await act(() => new Promise((resolve) => setTimeout(resolve)));
 }
 
-/** A runner on the fake agent, as `fakeRunner` gives it: `adapter` is the agent. */
-export type Fake = ReturnType<typeof fakeRunner>;
+/** Sessions on the fake agent, as `fakeSessions` gives them: `adapter` is the agent. */
+export type Fake = ReturnType<typeof fakeSessions>;
 
-const runners: Array<Fake["runner"]> = [];
+const managers: Array<Fake["sessions"]> = [];
 
 afterEach(() => {
-  // Runs left going keep their watchdog's timer.
-  for (const runner of runners.splice(0)) {
-    runner.close();
+  // Turns left going keep their watchdog's timer.
+  for (const sessions of managers.splice(0)) {
+    sessions.close();
   }
 });
 
-/** A runner on the fake agent, checked, so the pages offer "Commit and continue". */
+/** Sessions on the fake agent, checked, so the pages offer "Commit and continue". */
 export async function fakeAgent({ installed = true } = {}): Promise<Fake> {
-  const fake = fakeRunner({ installed });
-  runners.push(fake.runner);
+  const fake = fakeSessions({ installed });
+  managers.push(fake.sessions);
   if (installed) {
-    await fake.runner.check();
+    await fake.sessions.check();
   }
   return fake;
 }
@@ -134,7 +134,7 @@ export async function renderPage(
     typeof options.agent === "object"
       ? options.agent
       : await fakeAgent({ installed: options.agent === true });
-  const fetch = options.fetch ?? serverFetch(repo, fake.runner);
+  const fetch = options.fetch ?? serverFetch(repo, fake.sessions);
   if (options.reload) {
     // A reload: the page goes, and its history entry, with its state, stays.
     cleanup();
@@ -144,16 +144,16 @@ export async function renderPage(
   const client = createFateClient({ url: `${origin}/fate`, fetch });
   // The page suspends while fate loads: an awaited act lets React render the data.
   const rendered = await act(async () => render(<App client={client} />));
-  return { ...rendered, repo, agent: fake.adapter, runner: fake.runner };
+  return { ...rendered, repo, agent: fake.adapter, sessions: fake.sessions };
 }
 
-/** The server's app in process, as a `fetch`, on a runner whose agent is not installed by default. */
-export function serverFetch(repo: string, runner?: Fake["runner"]): typeof globalThis.fetch {
-  if (!runner) {
-    runner = fakeRunner({ installed: false }).runner;
-    runners.push(runner);
+/** The server's app in process, as a `fetch`, on sessions whose agent is not installed by default. */
+export function serverFetch(repo: string, sessions?: Fake["sessions"]): typeof globalThis.fetch {
+  if (!sessions) {
+    sessions = fakeSessions({ installed: false }).sessions;
+    managers.push(sessions);
   }
-  const app = createApp({ repo, port, allowedHosts: [], allowOrigins: [], binding, runner });
+  const app = createApp({ repo, port, allowedHosts: [], allowOrigins: [], binding, sessions });
   return async (input, init) => {
     const url = input instanceof Request ? input.url : input.toString();
     sent.push(typeof init?.body === "string" ? init.body : url);

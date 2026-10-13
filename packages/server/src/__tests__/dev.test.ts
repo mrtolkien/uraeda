@@ -62,7 +62,7 @@ test("the server in vp dev reads URAEDA_REPO", async () => {
       version: 1,
       operations: [
         { id: "1", kind: "byId", type: "Workspace", ids: ["workspace"], select: ["root"] },
-        { id: "2", kind: "byId", type: "Runner", ids: ["runner"], select: ["available"] },
+        { id: "2", kind: "byId", type: "Agent", ids: ["agent"], select: ["available"] },
       ],
     }),
   });
@@ -74,7 +74,7 @@ test("the server in vp dev reads URAEDA_REPO", async () => {
     results: Array<{ data: Array<{ root?: string; available?: boolean }> }>;
   };
   expect(body.results[0].data[0].root).toBe(repo);
-  // The runner, shared by the dev server's apps, keeps its cache in the data folder.
+  // The session manager, shared by the dev server's apps, keeps its cache in the data folder.
   expect(body.results[1].data[0].available).toBe(true);
   expect(existsSync(join(data, "runner.sqlite"))).toBe(true);
   expect(await other.text()).toBe("vite");

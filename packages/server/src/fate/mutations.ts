@@ -1,7 +1,8 @@
 import type { Trigger } from "../runner/events.ts";
+import { REFUSALS } from "../runner/sessions.ts";
 import type { Context } from "./context.ts";
 import { callSiteError, refusable } from "./errors.ts";
-import { featureRecord, readRun, writable } from "./runs.ts";
+import { featureRecord, readSession, TRIGGERS, writable } from "./sessions.ts";
 import { sources } from "./sources.ts";
 import {
   draftDataView,
@@ -9,8 +10,8 @@ import {
   fileDataView,
   PRIORITIES_ID,
   prioritiesDataView,
-  runDataView,
   sentFile,
+  sessionDataView,
   type DraftRecord,
   type FileRecord,
   type PrioritiesRecord,
@@ -28,17 +29,35 @@ const priorities = (ctx: Context, record: Omit<PrioritiesRecord, "id">, select: 
 const draft = (ctx: Context, record: Omit<DraftRecord, "id">, select: Array<string>) =>
   sources.masked(draftDataView, ctx, { id: record.path, ...record }, select);
 
-/** A run, masked to the fields the client selected. */
-const run = async (ctx: Context, id: number | string, select: Array<string>) => {
-  const record = await readRun(ctx, String(id));
+/** A session, masked to the fields the client selected. */
+const session = async (ctx: Context, id: string, select: Array<string>) => {
+  const record = await readSession(ctx, id);
   if (!record) {
-    throw callSiteError(`refused: no run ${id}`);
+    throw callSiteError(`refused: no session ${id}`);
   }
-  return sources.masked(runDataView, ctx, record, select);
+  return sources.masked(sessionDataView, ctx, record, select);
 };
 
-/** The triggers `run.start` takes: "Allow and continue" goes through `run.allow`. */
-const TRIGGERS: Array<Trigger> = ["answers", "approval", "changes", "proposal", "start", "manual"];
+/** Runs a session manager's call, its errors as refusals the client shows where it called. */
+async function refusedOn<T>(call: () => T | Promise<T>): Promise<T> {
+  try {
+    return await call();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw callSiteError(/^(refused|conflict|hook): /.test(message) ? error : `refused: ${message}`);
+  }
+}
+
+/**
+ * Runs a call of the session manager that answers at once, after reading the repository's main
+ * checkout, which it matches the session's repository with.
+ */
+async function onSession<T>(ctx: Context, call: () => T | Promise<T>): Promise<T> {
+  return refusedOn(async () => {
+    await ctx.sessions.mainRoot(ctx.repo);
+    return call();
+  });
+}
 
 type FileInput = { folder: string; file: string };
 
@@ -56,7 +75,7 @@ export const mutations = {
       comment: string;
       previous: string;
     }>) => {
-      writable(ctx, input);
+      await writable(ctx, input);
       return file(
         ctx,
         await refusable(() =>
@@ -80,7 +99,7 @@ export const mutations = {
       input,
       select,
     }: Resolver<{ folder: string; notes: string; previous: string }>) => {
-      writable(ctx, input);
+      await writable(ctx, input);
       return file(
         ctx,
         await refusable(() =>
@@ -93,7 +112,7 @@ export const mutations = {
   "answers.submit": {
     type: "WorkflowFile",
     resolve: async ({ ctx, input, select }: Resolver<{ folder: string }>) => {
-      writable(ctx, input);
+      await writable(ctx, input);
       return file(
         ctx,
         await refusable(() => ctx.binding.submitAnswers(ctx.repo, input.folder)),
@@ -104,7 +123,7 @@ export const mutations = {
   "commit.retry": {
     type: "WorkflowFile",
     resolve: async ({ ctx, input, select }: Resolver<FileInput>) => {
-      writable(ctx, input);
+      await writable(ctx, input);
       await refusable(() => ctx.binding.retryCommit(ctx.repo, input.folder, input.file));
       return file(ctx, await ctx.binding.readFile(ctx.repo, input.folder, input.file), select);
     },
@@ -116,7 +135,7 @@ export const mutations = {
       input,
       select,
     }: Resolver<FileInput & { startLine?: number; endLine?: number; text: string }>) => {
-      writable(ctx, input);
+      await writable(ctx, input);
       return file(
         ctx,
         await refusable(() =>
@@ -140,7 +159,7 @@ export const mutations = {
       input,
       select,
     }: Resolver<FileInput & { number: number; text: string }>) => {
-      writable(ctx, input);
+      await writable(ctx, input);
       return file(
         ctx,
         await refusable(() =>
@@ -153,7 +172,7 @@ export const mutations = {
   "review.remove": {
     type: "WorkflowFile",
     resolve: async ({ ctx, input, select }: Resolver<FileInput & { number: number }>) => {
-      writable(ctx, input);
+      await writable(ctx, input);
       return file(
         ctx,
         await refusable(() =>
@@ -166,7 +185,7 @@ export const mutations = {
   "review.startOver": {
     type: "WorkflowFile",
     resolve: async ({ ctx, input, select }: Resolver<FileInput>) => {
-      writable(ctx, input);
+      await writable(ctx, input);
       return file(
         ctx,
         await refusable(() => ctx.binding.startOver(ctx.repo, input.folder, input.file)),
@@ -181,7 +200,7 @@ export const mutations = {
       input,
       select,
     }: Resolver<FileInput & { summary?: string; tier?: string; planReview?: boolean }>) => {
-      writable(ctx, input);
+      await writable(ctx, input);
       return file(
         ctx,
         await refusable(() =>
@@ -201,7 +220,7 @@ export const mutations = {
   "review.requestChanges": {
     type: "WorkflowFile",
     resolve: async ({ ctx, input, select }: Resolver<FileInput & { summary?: string }>) => {
-      writable(ctx, input);
+      await writable(ctx, input);
       return file(
         ctx,
         await refusable(() =>
@@ -227,7 +246,7 @@ export const mutations = {
       input,
       select,
     }: Resolver<{ path: string; text: string; hash: string }>) => {
-      writable(ctx, input);
+      await writable(ctx, input);
       await refusable(() => ctx.binding.saveText(ctx.repo, input.path, input.text, input.hash));
       return draft(ctx, await ctx.binding.readText(ctx.repo, input.path), select);
     },
@@ -235,7 +254,7 @@ export const mutations = {
   "text.commit": {
     type: "Draft",
     resolve: async ({ ctx, input, select }: Resolver<{ path: string }>) => {
-      writable(ctx, input);
+      await writable(ctx, input);
       await refusable(() => ctx.binding.commitText(ctx.repo, input.path));
       return draft(ctx, await ctx.binding.readText(ctx.repo, input.path), select);
     },
@@ -329,38 +348,106 @@ export const mutations = {
     resolve: async ({ ctx, select }: Resolver<Record<string, never>>) =>
       priorities(ctx, await refusable(() => ctx.binding.discardPriorities(ctx.repo)), select),
   },
-  "run.start": {
-    type: "Run",
+  "session.send": {
+    type: "Session",
     resolve: async ({
       ctx,
       input,
       select,
-    }: Resolver<{ folder: string; trigger: Trigger; file?: string }>) => {
-      if (!TRIGGERS.includes(input.trigger)) {
-        throw callSiteError(`refused: no trigger ${input.trigger}`);
+    }: Resolver<{
+      /** The session to send to. */
+      session?: string;
+      /** Or the feature, whose session is created with its first message. */
+      folder?: string;
+      text: string;
+      /** The workflow's message, which starts the feature's step. */
+      workflow?: { trigger: Trigger; file?: string };
+    }>) => {
+      const { workflow } = input;
+      if (workflow && !TRIGGERS.includes(workflow.trigger)) {
+        throw callSiteError(`refused: no trigger ${workflow.trigger}`);
       }
-      const id = await refusable(() =>
-        ctx.runner.start(ctx.repo, input.folder, {
-          trigger: input.trigger,
-          ...(input.file === undefined ? {} : { file: input.file }),
+      const id = await onSession(ctx, async () => {
+        if (input.session !== undefined) {
+          return input.session;
+        }
+        if (input.folder === undefined) {
+          throw new Error("a message goes to a session or a feature");
+        }
+        if (!ctx.sessions.status().available) {
+          throw new Error(`refused: ${REFUSALS.unavailable(ctx.sessions.adapter.name)}`);
+        }
+        // A folder that is no feature's gets no session.
+        await ctx.binding.readFeature(ctx.repo, input.folder);
+        return (await ctx.sessions.featureSession(ctx.repo, input.folder)).id;
+      });
+      await refusedOn(() =>
+        ctx.sessions.send(ctx.repo, id, {
+          text: input.text,
+          ...(workflow === undefined
+            ? {}
+            : {
+                workflow: {
+                  trigger: workflow.trigger,
+                  ...(workflow.file === undefined ? {} : { file: workflow.file }),
+                },
+              }),
         }),
       );
-      return run(ctx, id, select);
+      return session(ctx, id, select);
     },
   },
-  "run.allow": {
-    type: "Run",
-    resolve: async ({ ctx, input, select }: Resolver<{ run: string; seq: number }>) => {
-      const id = await refusable(() => ctx.runner.allow(ctx.repo, Number(input.run), input.seq));
-      return run(ctx, id, select);
+  "session.newChat": {
+    type: "Session",
+    resolve: async ({ ctx, select }: Resolver<Record<string, never>>) =>
+      session(ctx, (await refusedOn(() => ctx.sessions.newChat(ctx.repo))).id, select),
+  },
+  "session.takeBack": {
+    type: "Session",
+    resolve: async ({ ctx, input, select }: Resolver<{ session: string; message: string }>) => {
+      await onSession(ctx, () => ctx.sessions.takeBack(ctx.repo, input.session, input.message));
+      return session(ctx, input.session, select);
     },
   },
-  "run.stop": {
-    type: "Run",
-    resolve: async ({ ctx, input, select }: Resolver<{ run: string }>) => {
-      const record = await run(ctx, input.run, select);
-      ctx.runner.stop(Number(input.run));
-      return record;
+  "session.stop": {
+    type: "Session",
+    resolve: async ({ ctx, input, select }: Resolver<{ session: string }>) => {
+      await onSession(ctx, () => ctx.sessions.stop(ctx.repo, input.session));
+      return session(ctx, input.session, select);
+    },
+  },
+  "session.allow": {
+    type: "Session",
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ session: string; turn: string; seq: number }>) => {
+      await refusedOn(() =>
+        ctx.sessions.allow(ctx.repo, input.session, Number(input.turn), input.seq),
+      );
+      return session(ctx, input.session, select);
+    },
+  },
+  "session.rename": {
+    type: "Session",
+    resolve: async ({ ctx, input, select }: Resolver<{ session: string; title: string }>) => {
+      await onSession(ctx, () => ctx.sessions.rename(ctx.repo, input.session, input.title));
+      return session(ctx, input.session, select);
+    },
+  },
+  "session.archive": {
+    type: "Session",
+    resolve: async ({ ctx, input, select }: Resolver<{ session: string; archived: boolean }>) => {
+      await onSession(ctx, () => ctx.sessions.archive(ctx.repo, input.session, input.archived));
+      return session(ctx, input.session, select);
+    },
+  },
+  "session.seen": {
+    type: "Session",
+    resolve: async ({ ctx, input, select }: Resolver<{ session: string }>) => {
+      await onSession(ctx, () => ctx.sessions.seen(ctx.repo, input.session));
+      return session(ctx, input.session, select);
     },
   },
 };

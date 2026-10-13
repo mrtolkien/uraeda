@@ -111,7 +111,3 @@ export function toolTarget(
   }
   return undefined;
 }
-
-// TEMPORARY: runner.ts's import, loaded with the web's Vite config, until the session manager
-// replaces runner.ts. The rule is Claude Code's, and lives in its adapter.
-export { allowRule } from "./claude.ts";

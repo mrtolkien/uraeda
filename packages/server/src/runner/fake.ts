@@ -1,5 +1,5 @@
 import type { Adapter, AgentProcess, Capabilities, OpenOptions, Outgoing } from "./adapter.ts";
-import { allowRule } from "./claude.ts";
+import { allowRule } from "./claude-events.ts";
 import type { AgentEvent, Denial } from "./events.ts";
 
 /** A scripted step of a fake turn: an event, or a function run in the process's `cwd`. */
