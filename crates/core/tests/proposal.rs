@@ -1,4 +1,49 @@
-use uraeda_core::files::{frontmatter, proposal};
+use uraeda_core::files::items::{TierChoice, items};
+use uraeda_core::files::{document, frontmatter, proposal, spec};
+
+/// US3.4: the plan waits for a review by default at a high tier, and the spec's own value holds
+/// while the tier stays the one it proposes.
+#[test]
+fn the_plan_review_follows_the_tier_unless_the_spec_says_otherwise() {
+    assert_eq!(spec::risk_tiers(), ["low", "medium", "high"]);
+    for (proposed, current, chosen, expected) in [
+        (Some("low"), None, Some("low"), false),
+        (Some("low"), None, Some("high"), true),
+        (Some("high"), None, Some("high"), true),
+        (Some("low"), Some(true), Some("low"), true),
+        (Some("low"), Some(true), Some("medium"), false),
+        (Some("high"), Some(false), Some("high"), false),
+        (None, None, Some("high"), true),
+    ] {
+        assert_eq!(
+            spec::plan_review_default(proposed, current, chosen),
+            expected,
+            "{proposed:?} {current:?} {chosen:?}"
+        );
+    }
+}
+
+#[test]
+fn a_spec_lists_its_tiers_with_their_plan_review() {
+    let text = "---\nstatus: awaiting-human\nrisk-tier: low\nplan-review: true\n---\n\n# Spec: X\n";
+    let tiers = items("spec.md", text, &document::parse(text, "specs/x"))
+        .spec
+        .unwrap()
+        .tiers;
+
+    let choice = |value: &str, plan_review| TierChoice {
+        value: value.to_string(),
+        plan_review,
+    };
+    assert_eq!(
+        tiers,
+        [
+            choice("low", true),
+            choice("medium", false),
+            choice("high", true)
+        ]
+    );
+}
 
 #[test]
 fn setting_a_field_without_frontmatter_adds_one_then_a_blank_line() {

@@ -511,6 +511,8 @@ export interface SpecItems {
   /** The frontmatter's `risk-tier` and `plan-review`, which an approval may change. */
   riskTier?: string
   planReview?: boolean
+  /** The risk tiers an approval may pick, from the least risk to the most. */
+  tiers: Array<TierChoice>
 }
 
 /** A feature started. */
@@ -557,6 +559,15 @@ export interface TaskItem {
   steps: Array<StepItem>
   done: number
   total: number
+}
+
+/**
+ * A risk tier an approval may pick, and whether the plan then waits for the human's review,
+ * unless the human says otherwise.
+ */
+export interface TierChoice {
+  value: string
+  planReview: boolean
 }
 
 /** A file's document and items, at one version. */
