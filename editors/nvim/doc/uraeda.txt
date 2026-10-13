@@ -268,7 +268,9 @@ When a `uraeda` client attaches, the plugin sets the keys of |uraeda-keys|,
 enables inlay hints in the buffer, and draws the inline comments.
 
 An `ura` that does not know a command of the plugin says "ura is older than
-the plugin: run ura upgrade."
+the plugin: run ura upgrade." So does an `ura` without `ura lsp`, once when its
+server fails to start, and then on each action instead of "This file is not
+a Uraeda workflow file."
 
 ==============================================================================
 11. Health                                                     *uraeda-health*
