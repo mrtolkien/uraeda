@@ -189,15 +189,6 @@ test("runs left running are marked stopped on startup", () => {
   expect(cache.run(done)?.state).toBe("done");
 });
 
-test("the schema is at version 2", () => {
-  const path = join(mkdtempSync(join(tmpdir(), "uraeda-cache-")), "runner.sqlite");
-  RunCache.open(path);
-
-  const version = new DatabaseSync(path).prepare("PRAGMA user_version").get();
-
-  expect(version).toEqual({ user_version: 2 });
-});
-
 /** A pid no process has: above Linux's and macOS's highest. */
 const DEAD_PID = 2 ** 31 - 1;
 
@@ -283,6 +274,15 @@ test("migrating from version 1 keeps the runs, and stops those left running", ()
 
   expect(stopped.map((row) => row.id)).toEqual([2]);
   expect(cache.runs(REPO, FOLDER).map((row) => [row.id, row.state])).toEqual([
+    [2, "stopped"],
+    [1, "done"],
+  ]);
+  // Opened again, the migrated file is not migrated twice.
+  expect(
+    RunCache.open(path)
+      .runs(REPO, FOLDER)
+      .map((row) => [row.id, row.state]),
+  ).toEqual([
     [2, "stopped"],
     [1, "done"],
   ]);

@@ -5,6 +5,7 @@ import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, expect, test } from "vite-plus/test";
 import { commands as browserCommands } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
+import { UNFINISHED } from "../RunLog.tsx";
 import {
   checkAccessibility,
   checkAlignment,
@@ -12,6 +13,7 @@ import {
   checkMeasure,
   checkPage,
   checkTextSizes,
+  drawn,
   show,
 } from "./helpers.tsx";
 
@@ -25,8 +27,6 @@ afterEach(() => {
 
 /** How long a run's live updates may take to arrive, throttled by the server, on a busy machine. */
 const LIVE = { timeout: 10_000 };
-
-const settle = () => new Promise((resolve) => setTimeout(resolve, 500));
 
 /** What scrolls the log: the pane beside the feature page, or the window. */
 function scroller() {
@@ -55,10 +55,6 @@ test("a running run's view: beside the feature page or a page, following its end
         text: `Line ${index + 1} of what the agent read.`,
       })),
     );
-    // The events reach the server's cache before the view reads the log: a live update sent
-    // between its read and its subscription would be missed until the next event.
-    await settle();
-    await settle();
 
     await act(async () => {
       fireEvent.click(await screen.findByRole("link", { name: /Plan · Working on Plan/ }, LIVE));
@@ -66,7 +62,7 @@ test("a running run's view: beside the feature page or a page, following its end
 
     const log = await screen.findByRole("log", { name: "Run log" }, LIVE);
     await within(log).findByText("Line 40 of what the agent read.", undefined, LIVE);
-    await settle();
+    await drawn();
     const wide = window.innerWidth >= 768;
     // On a wide screen, the feature page stays beside the view, usable; on a narrow one, the view
     // is the page.
@@ -81,7 +77,7 @@ test("a running run's view: beside the feature page or a page, following its end
     // At the end, a new line comes into view.
     const box = scroller();
     box.scrollTo(0, box.scrollHeight);
-    await settle();
+    await drawn();
     await commands.agentEmit([{ type: "text", text: "The newest line." }]);
     const newest = await within(log).findByText("The newest line.", undefined, LIVE);
     await expect.poll(() => inView(newest), LIVE).toBe(true);
@@ -89,7 +85,7 @@ test("a running run's view: beside the feature page or a page, following its end
     // Scrolled up, the view stays where it is, even as the log grows past a page of 100 events.
     const middle = Math.round((box.scrollHeight - box.clientHeight) / 2);
     box.scrollTo(0, middle);
-    await settle();
+    await drawn();
     const position = box.scrollTop;
     expect(position).toBeGreaterThan(0);
     await commands.agentEmit(
@@ -99,7 +95,7 @@ test("a running run's view: beside the feature page or a page, following its end
       })),
     );
     await within(log).findByText("Later line 70.", undefined, LIVE);
-    await settle();
+    await drawn();
     expect(log.isConnected).toBe(true);
     expect(box.scrollTop).toBe(position);
 
@@ -116,7 +112,6 @@ test("a running run's view: beside the feature page or a page, following its end
     }
   } finally {
     await commands.agentFinish(1, "ended by the test");
-    await settle();
   }
 });
 
@@ -137,8 +132,10 @@ test("a run's view, in dark (SC-003)", async () => {
   await act(async () => {
     fireEvent.click(await screen.findByRole("link", { name: /^Plan · / }, LIVE));
   });
-  await screen.findByRole("log", { name: "Run log" }, LIVE);
-  await settle();
+  const log = await screen.findByRole("log", { name: "Run log" }, LIVE);
+  // The whole log is drawn, to its last event, the call left unfinished.
+  await within(log).findAllByText((text) => text.includes(UNFINISHED), undefined, LIVE);
+  await drawn();
   expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
   checkPage();
   checkTextSizes();

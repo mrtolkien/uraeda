@@ -52,7 +52,7 @@ impl Output {
 }
 
 /// Runs the built `ura` in a repository, on 2026-10-11, without a terminal or colours, with the
-/// repository's home folder as `HOME`.
+/// repository's home folder as `HOME`, and git without the machine's configuration.
 pub fn ura(repo: &TestRepo, args: &[&str]) -> Output {
     let home = repo.home();
     ura_in(repo.path(), args, &[("HOME", home.to_str().unwrap())])
@@ -76,7 +76,7 @@ pub fn ura_without_home(dir: &Path, args: &[&str]) -> Output {
 
 fn command(dir: &Path, args: &[&str]) -> Command {
     let mut command = Command::new(env!("CARGO_BIN_EXE_ura"));
-    command
+    repo::without_user_git(&mut command)
         .args(args)
         .current_dir(dir)
         .env("URA_TODAY", "2026-10-11")

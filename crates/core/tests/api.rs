@@ -115,9 +115,15 @@ fn try_again_commits_a_deleted_review_file() {
 #[test]
 fn raw_files_are_tracked_files_only() {
     let repo = repo();
+    repo.write("notes.txt", "untracked\n");
 
-    assert!(api::read_raw(repo.path(), ".env").is_err());
-    assert!(api::read_raw(repo.path(), ".git/config").is_err());
+    for path in [".env", ".git/config", "notes.txt", "missing.md"] {
+        let refused = api::read_raw(repo.path(), path).unwrap_err();
+        assert_eq!(
+            (refused.code, refused.message),
+            ("refused", format!("{path}: no such file"))
+        );
+    }
     assert_eq!(
         api::read_raw(repo.path(), "specs/README.md").unwrap(),
         "# Specs\n"

@@ -127,6 +127,55 @@ fn pull_request_state_unknown_without_gh() {
     );
 }
 
+/// `gh` finds the repository from its current folder, so it runs at the repository's top level,
+/// whatever folder `ura` runs from: a fake `gh` answers only there.
+#[test]
+fn gh_runs_in_the_repository() {
+    let repo = TestRepo::new();
+    specs(&repo, PRIORITIES);
+    feature(
+        &repo,
+        "2026-10-10-cli-core",
+        &[
+            ("proposal.md", proposal()),
+            ("clarifications-01.md", answered()),
+            ("spec.md", spec("approved", 1, 1)),
+            ("plan.md", plan("approved", 1, &[("One", 2, 2)])),
+        ],
+    );
+    let bin = repo.parent().join("bin");
+    std::fs::create_dir(&bin).unwrap();
+    let gh = bin.join("gh");
+    std::fs::write(
+        &gh,
+        format!(
+            "#!/bin/sh\n[ \"$(pwd -P)\" = \"{}\" ] || exit 1\necho '[{{\"reviewDecision\":\"\",\"isDraft\":true}}]'\n",
+            std::fs::canonicalize(repo.path()).unwrap().display()
+        ),
+    )
+    .unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&gh, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let path = format!(
+        "{}:{}",
+        bin.display(),
+        std::env::var("PATH").unwrap_or_default()
+    );
+
+    let output = ura_in(
+        &repo.path().join("specs"),
+        &["next", "cli-core", "--json"],
+        &[("PATH", &path)],
+    );
+
+    let json: serde_json::Value = serde_json::from_str(&output.stdout).unwrap();
+    assert_eq!(json["step"]["name"], "finish", "{}", output.stdout);
+    assert_eq!(json["step"]["pull-request"], "draft", "{}", output.stdout);
+}
+
 #[test]
 fn nothing_for_an_agent() {
     let repo = TestRepo::new();

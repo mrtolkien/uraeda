@@ -1,6 +1,6 @@
 mod common;
 
-use common::repo::TestRepo;
+use common::repo::{TestRepo, run_git};
 use common::texts::{clarifications, proposal, record};
 use uraeda_core::actions::place;
 use uraeda_core::git::Git;
@@ -190,25 +190,18 @@ fn a_record_only_on_origin_is_merged() {
     repo.push(FOLDER);
     let clone = repo.parent().join("clone");
     let origin = repo.parent().join("origin.git");
-    let git = |args: &[&str]| {
-        let status = std::process::Command::new("git")
-            .args(args)
-            .current_dir(&clone)
-            .status()
-            .unwrap();
-        assert!(status.success(), "git {args:?}");
-    };
-    std::process::Command::new("git")
-        .args([
+    let git = |args: &[&str]| run_git(&clone, args);
+    run_git(
+        repo.parent(),
+        &[
             "clone",
             "--branch",
             "main",
             "--quiet",
             origin.to_str().unwrap(),
             clone.to_str().unwrap(),
-        ])
-        .status()
-        .unwrap();
+        ],
+    );
     git(&[
         "-c",
         "user.name=T",

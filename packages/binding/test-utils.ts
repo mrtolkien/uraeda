@@ -6,6 +6,22 @@ import { fileURLToPath } from "node:url";
 
 const fixtures = join(dirname(fileURLToPath(import.meta.url)), "../../fixtures");
 
+/**
+ * Keeps git away from the machine's: every test that builds a repository imports this module, and
+ * the core's own git commands, run by the binding in the same process, inherit its environment. A
+ * global or system `core.hooksPath` or `init.templateDir` would run the developer's hooks on the
+ * tests' commits, and the variables a git hook exports would point git at another repository. Each
+ * repository's own configuration still applies.
+ */
+function isolateGit() {
+  process.env.GIT_CONFIG_GLOBAL = "/dev/null";
+  process.env.GIT_CONFIG_NOSYSTEM = "1";
+  for (const name of ["GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR"]) {
+    delete process.env[name];
+  }
+}
+isolateGit();
+
 /** A path inside the repository's shared `fixtures/` folder. */
 export function fixture(path: string): string {
   // Not `new URL(path, import.meta.url)`: Vite rewrites that pattern in the UI's tests.

@@ -98,26 +98,36 @@ fn a_line_is_edited_as_typed() {
     assert_eq!(priorities::changes(TEXT, &removed), 1);
 }
 
-/// Every edit keeps the rest of this repository's `PRIORITIES.md` byte for byte.
+/// Every move keeps the rest of the file byte for byte, on a file written by hand, with blank lines
+/// between groups of lines and nested lines: the file without the moved line's lines is the same.
 #[test]
-fn edits_keep_every_other_line() {
-    let text = common::repository_file("specs/PRIORITIES.md");
+fn moves_keep_every_other_line() {
+    let text = common::repository_file("fixtures/PRIORITIES-grouped.md");
+    let without = |text: &str, lines: &[String]| {
+        let mut rest: Vec<&str> = text.split('\n').collect();
+        let at = rest
+            .windows(lines.len())
+            .position(|window| window == lines)
+            .unwrap();
+        rest.drain(at..at + lines.len());
+        rest.join("\n")
+    };
     let read = priorities::read(&text, None);
-    let first_next = read.sections[1].entries[0].id.clone();
+    let entries: Vec<_> = read.sections.iter().flat_map(|s| &s.entries).collect();
+    assert!(entries.len() > 20);
 
-    let moved = priorities::move_entry(&text, &first_next, Section::Later, usize::MAX).unwrap();
-    let back = priorities::move_entry(
-        &moved,
-        &format!(
-            "later-{}",
-            priorities::read(&moved, None).sections[2].entries.len()
-        ),
-        Section::Next,
-        0,
-    )
-    .unwrap();
+    for entry in entries {
+        for (section, index) in [(Section::Now, 0), (Section::Later, usize::MAX)] {
+            let moved = priorities::move_entry(&text, &entry.id, section, index).unwrap();
 
-    assert_eq!(back, text);
+            assert_eq!(
+                without(&moved, &entry.lines),
+                without(&text, &entry.lines),
+                "{} moved to {section:?}",
+                entry.id
+            );
+        }
+    }
 }
 
 #[test]
@@ -248,7 +258,7 @@ fn changes_are_committed_alone_or_discarded() {
     repo.write("README.md", "# Changed\n");
     let read = actions::read(&place);
     let next = actions::add(&place, Section::Next, "An idea", &read.hash).unwrap();
-    actions::move_entry(&place, "next-2", Section::Next, 0, &next).unwrap();
+    actions::move_entry(&place, "next-2", Section::Next, 0, &next.hash).unwrap();
 
     assert_eq!(actions::read(&place).changes, 2);
     let committed = actions::commit(&place).unwrap();

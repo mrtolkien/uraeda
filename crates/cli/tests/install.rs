@@ -730,13 +730,11 @@ fn the_manifest_checks_with_sha256sum() {
     let repo = TestRepo::new();
     ura(&repo, &["install", "--user", "--agents"]);
 
-    let Ok(output) = Command::new("sha256sum")
+    let output = Command::new("sha256sum")
         .args(["--check", "--quiet", ".ura-manifest"])
         .current_dir(repo.home().join(AGENTS))
         .output()
-    else {
-        return;
-    };
+        .expect("sha256sum runs");
 
     assert!(
         output.status.success(),

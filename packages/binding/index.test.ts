@@ -59,6 +59,10 @@ test("rejects a stale answer with its code", async () => {
   );
 });
 
+/**
+ * How many reports a write makes is the core's debounce, tested there: a machine that stalls the
+ * watcher's thread may split one write's events in two, so this waits for the file's report.
+ */
 test("watches the repository until closed", async () => {
   const repo = fixtureRepo();
   await saveAnswer(repo, "2026-10-11-web-ui", "Q3", ["A"], "", "");
@@ -67,11 +71,15 @@ test("watches the repository until closed", async () => {
 
   const path = join(repo, ".worktrees/2026-10-11-web-ui", ROUND);
   writeFileSync(path, readFileSync(path, "utf8").replace("**Answer:** A", "**Answer:** B"));
-  await expect.poll(() => seen.length, { timeout: 5000 }).toBe(1);
+  await expect
+    .poll(() => seen.flatMap((changes) => changes.files), { timeout: 10_000 })
+    .toContain("2026-10-11-web-ui/clarifications-01.md");
   handle.close();
 
-  expect(seen[0].files).toEqual(["2026-10-11-web-ui/clarifications-01.md"]);
-});
+  expect(new Set(seen.flatMap((changes) => changes.files))).toEqual(
+    new Set(["2026-10-11-web-ui/clarifications-01.md"]),
+  );
+}, 20_000);
 
 test("nextStep and workDir give where and what an agent runs", async () => {
   const repo = fixtureRepo();

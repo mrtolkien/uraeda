@@ -1,16 +1,22 @@
 // US8: the agent's runs at both widths. The feature page lists the runs, and a run's view shows its
 // log; the pane beside the feature page and the log following its end are in the browser tests.
-import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import * as binding from "uraeda-binding";
-import { beforeAll, expect, test } from "vite-plus/test";
-import { atWidth, click, type Fake, fakeAgent, fixtureRepo, renderPage } from "./helpers.tsx";
+import { expect, test } from "vite-plus/test";
+import {
+  atWidth,
+  click,
+  type Fake,
+  fakeAgent,
+  fixtureRepo,
+  renderPage,
+  today,
+} from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
 const WEB_UI = "2026-10-11-web-ui";
 
-beforeAll(() => {
-  process.env.URA_TODAY = "2026-10-12";
-});
+today("2026-10-12");
 
 type Steps = Parameters<Fake["adapter"]["script"]>[0];
 
@@ -74,11 +80,15 @@ test("US8 2: a run's row opens its view as a page, and Back returns", async () =
   // A page of its own: the feature's files are not beside it.
   expect(screen.queryByRole("list", { name: "Files" })).toBeNull();
 
+  // Back is answered later, by a popstate event: the page draws what follows within the act.
   await act(async () => {
+    const back = new Promise((resolve) =>
+      window.addEventListener("popstate", resolve, { once: true }),
+    );
     window.history.back();
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await back;
   });
-  await waitFor(() => expect(window.location.pathname).toBe(`/f/${CLI}`));
+  expect(window.location.pathname).toBe(`/f/${CLI}`);
   expect(await screen.findByRole("list", { name: "Runs" })).toBeTruthy();
 });
 
