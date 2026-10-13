@@ -178,3 +178,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   outside any turn.
 - **If wrong**: a message the agent never reads keeps the turn going until the watchdog, 30 minutes.
 - **Where**: task 6.
+
+## R13: The list holds every session, and search also matches features' titles
+
+- **Decision**: `SessionList` reads up to 10,000 sessions, archived chats included and marked;
+  `SessionSearch` adds to the cache's 50 matches the sessions of features whose title holds the
+  query. A feature without a session has no row: the sidebar takes its "Needs you" from its step.
+- **Rationale**: a feature's status dot must never drop out of the sidebar because of a limit, and
+  people search features by the name they see.
+- **Alternatives considered**: the cache's limit of 50 for the list, which hides older features'
+  statuses.
+- **If wrong**: a repository with thousands of chats sends a long list on each status change.
+- **Where**: task 7, `fate/sessions.ts`.
+
+## R14: Taken-back messages leave the log, and Stop is in the composer only
+
+- **Decision**: `TurnLog` leaves out taken-back messages, which stay in the cache. Stop replaces
+  Send in the composer during a turn, and Send shows beside it once text is typed; the header has no
+  Stop. The composer is controlled by the session page, so a taken-back message's text returns to
+  it.
+- **Rationale**: the spec says a taken-back message leaves the transcript; two Stop buttons on one
+  page would be ambiguous, and the mockup has none in the header.
+- **Alternatives considered**: filtering taken-back messages in the browser; Stop in the header too.
+- **If wrong**: a Stop can be added to the header; the log's filter is one line in the server.
+- **Where**: task 7, `fate/sessions.ts`; task 8, `Composer.tsx`, `SessionPage.tsx`.
