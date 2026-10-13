@@ -131,6 +131,41 @@ fn raw_files_are_tracked_files_only() {
     assert!(api::read_raw(Path::new(repo.path()), "specs/2026-10-11-web-ui/spec.md").is_ok());
 }
 
+/// A committed symlink is never followed: it would serve any file the server can read.
+#[cfg(unix)]
+#[test]
+fn raw_files_never_follow_a_symlink() {
+    let repo = repo();
+    // An absolute path, as a link to a file outside the repository would be.
+    let outside = repo.path().join(".env");
+    std::os::unix::fs::symlink(&outside, repo.path().join("specs/link.md")).unwrap();
+    std::os::unix::fs::symlink("../.env", repo.path().join("specs/env.md")).unwrap();
+    std::os::unix::fs::symlink(".", repo.path().join("specs/here")).unwrap();
+    repo.git(&["add", "specs"]);
+    repo.git(&["commit", "--quiet", "--no-verify", "-m", "links"]);
+    repo.add_on_branch(FOLDER, "specs/2026-10-11-web-ui/mockups/a.html", "<p>a</p>");
+    repo.switch(FOLDER);
+    std::fs::remove_file(repo.path().join("specs/2026-10-11-web-ui/mockups/a.html")).unwrap();
+    std::os::unix::fs::symlink(
+        &outside,
+        repo.path().join("specs/2026-10-11-web-ui/mockups/a.html"),
+    )
+    .unwrap();
+
+    for path in [
+        "specs/link.md",
+        "specs/env.md",
+        "specs/here/README.md",
+        "specs/2026-10-11-web-ui/mockups/a.html",
+    ] {
+        let refused = api::read_raw(repo.path(), path).unwrap_err();
+        assert_eq!(
+            (refused.code, refused.message),
+            ("refused", format!("{path}: no such file"))
+        );
+    }
+}
+
 /// C3: nested lines come as spans, without their markers.
 #[test]
 fn nested_priority_lines_come_as_spans() {
