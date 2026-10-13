@@ -120,6 +120,13 @@ export const DraftView = view<Draft>()({
     draft: true,
   },
   priorityChanges: true,
+  kind: true,
+  folder: true,
+  slug: true,
+  discovery: true,
+  discoveryLevels: true,
+  written: true,
+  emptySections: true,
 });
 
 export const AgentView = view<Agent>()({

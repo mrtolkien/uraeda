@@ -39,6 +39,13 @@ fn allowed(kind: Checked, key: &str) -> Option<&'static [&'static str]> {
     }
 }
 
+/// The values a field of a workflow file may hold, the one list `check` checks against: the
+/// discovery efforts of a proposal, the risk tiers of a spec, a file's statuses. Empty for a field
+/// that is not a choice.
+pub fn allowed_values(kind: FileKind, key: &str) -> &'static [&'static str] {
+    allowed(Checked::Workflow(kind), key).unwrap_or_default()
+}
+
 /// A frontmatter field of a file, with what can be written in it.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]

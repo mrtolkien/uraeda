@@ -83,5 +83,8 @@ export function useSave<T>(
     }
   }, []);
 
-  return { state, schedule, flush, settle, idle };
+  /** What the last save wrote, or the file's text last settled on. */
+  const last = useCallback(() => previous.current, []);
+
+  return { state, schedule, flush, settle, idle, last };
 }

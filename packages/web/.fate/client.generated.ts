@@ -146,6 +146,11 @@ const mutations = {
     FateAPI['mutations']['text.commit']['input'],
     FateAPI['mutations']['text.commit']['output']
   >('Draft'),
+  'text.discovery': mutation<
+    Draft,
+    FateAPI['mutations']['text.discovery']['input'],
+    FateAPI['mutations']['text.discovery']['output']
+  >('Draft'),
   'text.save': mutation<
     Draft,
     FateAPI['mutations']['text.save']['input'],

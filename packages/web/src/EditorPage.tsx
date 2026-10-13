@@ -13,7 +13,6 @@ import { useFateClient } from "react-fate";
 import { Blocks } from "./Blocks.tsx";
 import { CommitActions } from "./CommitActions.tsx";
 import { useDraft, useProposalHints } from "./data.ts";
-import { discoveryOf, LEVELS, withDiscovery, type Level } from "./discovery.ts";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
 import { navigate, useRestoreScroll } from "./routes.tsx";
@@ -22,8 +21,6 @@ import { useSave } from "./useSave.ts";
 import { DraftView, FeatureView } from "./views.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
 
-const LEVEL_LABELS: Record<Level, string> = { low: "Low", medium: "Medium", high: "High" };
-
 const SECTIONS: Record<string, string> = {
   now: "Now",
   next: "Next",
@@ -31,42 +28,9 @@ const SECTIONS: Record<string, string> = {
   blocked: "Blocked",
 };
 
-/** The slug a draft's file name gives: `specs/drafts/git-listener.md` is `git-listener`. */
-function slugOf(path: string) {
-  const name = path.split("/").filter(Boolean).at(-1) ?? "";
-  return name === "proposal.md" ? (path.split("/").at(-2) ?? "") : name.replace(/\.md$/, "");
-}
-
-/** The feature or bug folder of a proposal's or a report's path, `specs/[bugs/]<folder>/...`. */
-function folderOf(path: string) {
-  return /^specs\/(?:bugs\/)?(\d{4}-\d{2}-\d{2}-[^/]+)\//.exec(path)?.[1];
-}
-
-/** A proposal's `##` sections, by heading, with their text. */
-function sections(text: string) {
-  const body = text.replace(/^---\n[\s\S]*?\n---\n/, "");
-  const found: Array<{ heading?: string; text: string }> = [{ text: "" }];
-  for (const line of body.split("\n")) {
-    const heading = /^##\s+(.+?)\s*$/.exec(line);
-    if (heading) {
-      found.push({ heading: heading[1], text: "" });
-    } else if (!/^#\s/.test(line)) {
-      found[found.length - 1].text += `${line}\n`;
-    }
-  }
-  return found;
-}
-
-/** Whether a proposal holds more than its title and What: text in any other part of it. */
-export function isWritten(text: string) {
-  return sections(text).some((section) => section.heading !== "What" && section.text.trim());
-}
-
-/** The headings of the sections that hold no text yet. */
-function emptySections(text: string) {
-  return sections(text)
-    .filter((section) => section.heading !== undefined && !section.text.trim())
-    .map((section) => section.heading);
+/** A discovery effort as the control shows it: `medium` is Medium. */
+function levelLabel(level: string) {
+  return level.charAt(0).toUpperCase() + level.slice(1);
 }
 
 /**
@@ -82,10 +46,10 @@ export function EditorPage({ path }: { path: string }) {
   const [text, setText] = useState(draft?.text ?? "");
   const hints = useProposalHints();
   // A written proposal opens drawn; one that holds only its title and What opens to be written.
-  const [drawn, setDrawn] = useState(() => isWritten(draft?.text ?? ""));
+  const [drawn, setDrawn] = useState(() => draft?.written ?? false);
   const [conflict, setConflict] = useState<string>();
   const [message, setMessage] = useState<{ text: string; ok: boolean }>();
-  const [slug, setSlug] = useState(slugOf(path));
+  const [slug, setSlug] = useState(draft?.slug ?? "");
   const save = useSave<string>(async (value, previous) => {
     const result = await fate.mutations.text.save({
       input: { path, text: value, hash: previous },
@@ -100,7 +64,7 @@ export function EditorPage({ path }: { path: string }) {
     }
     return { ok: true, saved: result.result?.hash ?? previous };
   }, draft?.hash ?? "");
-  const { settle, idle } = save;
+  const { settle, idle, last } = save;
   const shown = useRef(text);
   shown.current = text;
   // A text changed elsewhere replaces this one when nothing of it waits to be saved.
@@ -121,8 +85,7 @@ export function EditorPage({ path }: { path: string }) {
       </Page>
     );
   }
-  const isDraft = path.startsWith("specs/drafts/") || path.startsWith("specs/backlog/");
-  const isProposal = !path.endsWith("/report.md");
+  const isDraft = draft.kind === "draft";
   const changes = draft.priorityChanges;
   const takesPriorities =
     isDraft && changes > 0
@@ -140,7 +103,7 @@ export function EditorPage({ path }: { path: string }) {
       setMessage({ text: refusal(result.error).message, ok: false });
       return;
     }
-    const folder = folderOf(path);
+    const folder = draft.folder;
     if (continues && folder) {
       handOver(folder, "proposal", path.split("/").at(-1));
     } else {
@@ -166,6 +129,31 @@ export function EditorPage({ path }: { path: string }) {
       } else {
         navigate(`/f/${folder}`);
       }
+    }
+  };
+  /** Sets the discovery effort in the frontmatter, once the text shown is saved. */
+  const setDiscovery = async (level: string) => {
+    setMessage(undefined);
+    if (!(await save.flush())) {
+      setMessage({ text: "Your text is not saved: the discovery effort was not set.", ok: false });
+      return;
+    }
+    const result = await fate.mutations.text.discovery({
+      input: { path, level, hash: last() },
+      view: DraftView,
+    });
+    if (result.error) {
+      const failed = refusal(result.error);
+      if (failed.kind === "conflict") {
+        setConflict(failed.message);
+      } else {
+        setMessage({ text: failed.message, ok: false });
+      }
+      return;
+    }
+    if (result.result) {
+      setText(result.result.text);
+      settle(result.result.hash);
     }
   };
   /** Reads the file again, and puts its text in place of the one that was not saved. */
@@ -199,8 +187,7 @@ export function EditorPage({ path }: { path: string }) {
       (block) => block.parent === undefined && !(block.kind === "heading" && block.level === 1),
     )
     .map((block) => block.id);
-  const empty = emptySections(text);
-  const shownHints = hints.filter((hint) => empty.includes(hint.heading));
+  const shownHints = hints.filter((hint) => draft.emptySections.includes(hint.heading));
 
   return (
     <Page>
@@ -234,19 +221,15 @@ export function EditorPage({ path }: { path: string }) {
             }
           />
         )}
-        {isProposal && (
+        {draft.discovery != null && (
           <VStack gap={1}>
             <SegmentedControl
               label="Discovery effort"
-              value={discoveryOf(text)}
-              onChange={(value: string) => {
-                const next = withDiscovery(text, value as Level);
-                setText(next);
-                save.schedule(next);
-              }}
+              value={draft.discovery}
+              onChange={(value: string) => void setDiscovery(value)}
             >
-              {LEVELS.map((level) => (
-                <SegmentedControlItem key={level} value={level} label={LEVEL_LABELS[level]} />
+              {draft.discoveryLevels.map((level) => (
+                <SegmentedControlItem key={level} value={level} label={levelLabel(level)} />
               ))}
             </SegmentedControl>
             <Text type="supporting" color="secondary">
