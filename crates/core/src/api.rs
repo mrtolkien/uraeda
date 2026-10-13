@@ -862,7 +862,7 @@ pub fn read_raw(repo: &Path, path: &str) -> Result<String> {
     let feature = feature_of(&workspace, path);
     let bytes = match feature {
         Some(feature) => match feature_dir(&git, feature) {
-            Some(dir) => std::fs::read(dir.join(path)).ok(),
+            Some(dir) => read_plain(&dir, path),
             None => feature
                 .branch
                 .as_deref()
@@ -879,9 +879,26 @@ pub fn read_raw(repo: &Path, path: &str) -> Result<String> {
         None => git
             .head()
             .and_then(|head| git.read_file(head, path).ok().flatten())
-            .and_then(|_| std::fs::read(git.root().join(path)).ok()),
+            .and_then(|_| read_plain(git.root(), path)),
     };
     bytes
         .and_then(|bytes| String::from_utf8(bytes).ok())
         .ok_or_else(|| refused(format!("{path}: no such file")))
+}
+
+/// A file under `root`, when neither it nor a folder on its way is a symlink: a committed link
+/// could point at any file the process can read.
+fn read_plain(root: &Path, path: &str) -> Option<Vec<u8>> {
+    let mut at = root.to_path_buf();
+    for part in path.split('/') {
+        at.push(part);
+        if std::fs::symlink_metadata(&at)
+            .ok()?
+            .file_type()
+            .is_symlink()
+        {
+            return None;
+        }
+    }
+    std::fs::read(at).ok()
 }
