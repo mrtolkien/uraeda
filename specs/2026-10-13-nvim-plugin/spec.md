@@ -1,16 +1,16 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: high
-plan-review: true
+plan-review: false
 ---
 
 # Spec: Nvim plugin
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 40 minutes.
+> Approved on 2026-10-13.
 >
 > - One changed decision: the [stack](../decisions/stack.md#proposed-change-2026-10-13-nvim-plugin)
 >   gains a language server, `ura lsp` on `lsp-server`, and a rule that editor plugins never parse
