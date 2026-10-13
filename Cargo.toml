@@ -1,5 +1,10 @@
 [workspace]
 members = ["crates/*"]
+# The binding turns on uraeda-core's `napi` feature, and a build selecting it unifies that feature
+# for every crate: their test binaries then fail to link napi's symbols, which only Node provides.
+# A bare `cargo build` or `cargo test` leaves it out; `vp run --filter uraeda-binding build` builds
+# it, and its tests run from TypeScript.
+default-members = ["crates/cli", "crates/core", "crates/lsp"]
 resolver = "3"
 
 [workspace.package]
