@@ -289,3 +289,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   [`pickers.lua`](/editors/nvim/lua/uraeda/pickers.lua), and `lhs` in
   [`keys.lua`](/editors/nvim/lua/uraeda/keys.lua).
 - **Where**: task 11, `editors/nvim/lua/uraeda/`, `editors/nvim/lsp/uraeda.lua`.
+
+## R16: Inline comments redraw by folder, and start from the option
+
+- **Decision**: `marks.refresh(paths?)` redraws every loaded buffer with a `uraeda` client, or only
+  those in the folders of `paths`: `User UraedaComment` redraws them all, a `BufWritePost` of a file
+  with a client redraws its folder, and `client.command` redraws the folders of its `written` files,
+  so a comment, an edit, or a verdict redraws the spec, plan, or assessment next to its review.
+  `inline_comments = false` hides them until `<leader>at`, which flips a buffer-local
+  `vim.b.uraeda_inline`; `UraedaComment` is set where it is drawn, as `UraedaVerdictBorder` is.
+  `uraeda/comments` is sent without a buffer, so Neovim sends every buffer's pending changes first
+  (a review reloaded after a command), and a redraw shows no error. The priorities test puts the
+  example's bug on its own branch, where its step is `human-gate · waits on you`; on `main` the core
+  counts it `done`. Task 9's screenshot runs with `inline_comments = false`: the window alone, as
+  its reference was taken. Step 2 failed with no virtual line and no inlay hint, not
+  `attempt to call field 'show'`, since the tests reach `marks` through the autocommands and keys.
+- **Rationale**: telling a review file from its spec by name is the workflow's structure, which the
+  plugin must not parse ([stack](../decisions/stack.md)); a folder holds one feature, and redrawing
+  its few buffers costs a request each. A verdict writes the review without a `BufWritePost`.
+- **Alternatives considered**: a `*-review.md` pattern: a naming rule in the plugin; `show` drawing
+  nothing at all when the option is false: the toggle would do nothing.
+- **If wrong**: `refresh` in [`marks.lua`](/editors/nvim/lua/uraeda/marks.lua), its three callers,
+  and one line of [`test_comment.lua`](/editors/nvim/tests/test_comment.lua).
+- **Where**: task 12, `editors/nvim/`.
