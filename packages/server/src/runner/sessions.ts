@@ -57,6 +57,8 @@ type Proc = {
   closing: boolean;
   /** Resolves once its events are read to its exit. */
   done: Promise<void>;
+  /** SIGTERM, then SIGKILL, for a closed process that does not exit. */
+  terminate: Array<Timer>;
 };
 
 /** The turn running on a session's process. */
@@ -93,6 +95,8 @@ type Live = {
   idle?: Timer;
   /** Sends and turn starts, one after another. */
   lock: Promise<unknown>;
+  /** The sends and turn starts waiting or running, which keep it in memory. */
+  calls: number;
 };
 
 const refused = (text: string) => new Error(`refused: ${text}`);
@@ -401,7 +405,7 @@ export class Sessions {
         resume,
         ...(allowed === undefined ? {} : { allowed }),
       });
-      const proc: Proc = { agent, cwd, closing: false, done: Promise.resolve() };
+      const proc: Proc = { agent, cwd, closing: false, done: Promise.resolve(), terminate: [] };
       live.proc = proc;
       proc.done = this.#consume(live, proc);
       return { proc, replaced };
@@ -411,11 +415,19 @@ export class Sessions {
     }
   }
 
-  /** Closes the process once its turn is over: it exits, and is reopened by the next message. */
+  /**
+   * Closes the process once its turn is over: it exits, and is reopened by the next message. One
+   * that is still running 10 seconds later gets SIGTERM, and SIGKILL 10 seconds after that, so that
+   * no send, nor the server's stop, waits on it forever.
+   */
   #close(proc: Proc) {
     if (!proc.closing) {
       proc.closing = true;
       proc.agent.close();
+      proc.terminate.push(
+        setTimeout(() => proc.agent.kill("SIGTERM"), TERMINATE_AFTER_MS),
+        setTimeout(() => proc.agent.kill("SIGKILL"), 2 * TERMINATE_AFTER_MS),
+      );
     }
   }
 
@@ -425,6 +437,14 @@ export class Sessions {
    */
   takeBack(repo: string, session: string, message: string): void {
     const live = this.#liveOf(this.#ownNow(repo, session));
+    try {
+      this.#takeBack(live, message);
+    } finally {
+      this.#prune(live);
+    }
+  }
+
+  #takeBack(live: Live, message: string) {
     const sent = live.messages.get(message);
     // A message no longer kept belongs to a turn that ended with nothing left to read.
     if (!sent) {
@@ -458,6 +478,7 @@ export class Sessions {
     if (live.turn) {
       this.#halt(live, live.turn, { state: "stopped" });
     }
+    this.#prune(live);
   }
 
   /**
@@ -539,6 +560,11 @@ export class Sessions {
     return this.#live.get(session)?.messages.size ?? 0;
   }
 
+  /** Whether this server keeps the session in memory: while it has a process, a turn, or a call. */
+  held(session: string): boolean {
+    return this.#live.has(session);
+  }
+
   /** Resolves once the turn has ended, at once when this server does not run it. */
   async settled(turn: number): Promise<void> {
     await this.#pending.get(turn)?.ended;
@@ -566,6 +592,7 @@ export class Sessions {
   close(): void {
     for (const live of this.#live.values()) {
       clearTimeout(live.idle);
+      live.proc?.terminate.forEach(clearTimeout);
       if (live.turn) {
         clearTimeout(live.turn.watchdog);
         live.turn.terminate.forEach(clearTimeout);
@@ -603,6 +630,7 @@ export class Sessions {
         queue: [],
         messages: new Map(),
         lock: Promise.resolve(),
+        calls: 0,
       };
       this.#live.set(row.id, live);
     }
@@ -625,9 +653,31 @@ export class Sessions {
 
   /** Runs `body` after the session's earlier sends and turn starts. */
   #serial<T>(live: Live, body: () => Promise<T>): Promise<T> {
-    const run = live.lock.then(body, body);
+    live.calls++;
+    const run = live.lock.then(body, body).finally(() => {
+      live.calls--;
+      this.#prune(live);
+    });
     live.lock = run.catch(() => {});
     return run;
+  }
+
+  /**
+   * Forgets the session once nothing of it is left in memory: no process, no turn running or
+   * queued, no message the agent may read, and no call on its way.
+   */
+  #prune(live: Live) {
+    if (
+      this.#live.get(live.id) === live &&
+      live.calls === 0 &&
+      live.proc === undefined &&
+      live.turn === undefined &&
+      live.queue.length === 0 &&
+      live.messages.size === 0
+    ) {
+      clearTimeout(live.idle);
+      this.#live.delete(live.id);
+    }
   }
 
   #track(turn: number) {
@@ -970,6 +1020,7 @@ export class Sessions {
 
   /** The process exited: its turn ends, and the queued turns start on a new one. */
   #exited(live: Live, proc: Proc, exit: Exit) {
+    proc.terminate.forEach(clearTimeout);
     if (live.proc !== proc) {
       return;
     }
@@ -994,6 +1045,7 @@ export class Sessions {
     }
     this.#changed(live);
     this.#next(live);
+    this.#prune(live);
   }
 
   /** Marks a message read or taken back. */

@@ -5,7 +5,10 @@ import type { AgentEvent, Denial } from "./events.ts";
 /** A scripted step of a fake turn: an event, or a function run in the process's `cwd`. */
 export type FakeStep = AgentEvent | ((cwd: string) => void);
 
-type Signal = "SIGINT" | "SIGTERM";
+type Signal = Parameters<AgentProcess["kill"]>[0];
+
+/** The exit code of a shell process ended by each signal. */
+const EXIT_CODES: Record<Signal, number> = { SIGINT: 130, SIGTERM: 143, SIGKILL: 137 };
 
 /** One fake process: its events are pushed, and read in order until its `exit`. */
 class FakeProcess implements AgentProcess {
@@ -91,18 +94,25 @@ class FakeProcess implements AgentProcess {
     this.push({ type: "result", ok: false, errors: [], denials: [], interrupted: true });
   }
 
+  /** Ends it, unless it ignores its stdin's end. */
   close() {
     this.#adapter.closes++;
+    if (this.#adapter.ignoreClose) {
+      return;
+    }
     this.push({ type: "exit", code: 0, stderr: "" });
   }
 
-  /** SIGTERM ends it; SIGINT too, unless it is stuck. */
+  /** SIGKILL ends it; SIGTERM too, unless it ignores it; SIGINT too, unless it is stuck. */
   kill(signal: Signal) {
     this.#adapter.kills.push(signal);
     if (signal === "SIGINT" && this.#adapter.ignoreInterrupt) {
       return;
     }
-    this.push({ type: "exit", code: signal === "SIGINT" ? 130 : 143, stderr: "" });
+    if (signal === "SIGTERM" && this.#adapter.ignoreTerm) {
+      return;
+    }
+    this.push({ type: "exit", code: EXIT_CODES[signal], stderr: "" });
   }
 }
 
@@ -136,6 +146,10 @@ export class FakeAdapter implements Adapter {
   sessions = new Set<string>();
   /** Keeps a turn going after the interrupt and SIGINT, as a stuck process would. */
   ignoreInterrupt = false;
+  /** Keeps a process running after its close, as one that ignores its stdin's end would. */
+  ignoreClose = false;
+  /** Keeps a process running after SIGTERM: only SIGKILL ends it. */
+  ignoreTerm = false;
   /** Whether a process says `init` as it opens, with its own session ID; else a test emits it. */
   autoInit = true;
   #scripts: Array<Array<FakeStep>> = [];
