@@ -1059,25 +1059,25 @@ git commit -m "feat(chat-in-the-web-ui): ask the agent about a block"
   `packages/web/scripts/screenshots.ts`
 - Create: `specs/2026-10-13-chat-in-the-web-ui/screenshots/`
 
-- [ ] **Step 1: Write the failing tests** (SC-004): the session page, a chat, `/chats/new`, and the
+- [x] **Step 1: Write the failing tests** (SC-004): the session page, a chat, `/chats/new`, and the
       sidebar searched, at both sizes and both themes: no text cut, no sideways scroll, axe clean;
       "the log follows its end while at the end" and "Back keeps the position" on a session page.
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp run --filter uraeda-web test:browser` (or the project's browser test command in
   `packages/web/package.json`)
 - Expected: FAIL, no route `/chats/new` in the layout list until added
 
-- [ ] **Step 3: Fix what they find**, then take the screenshots of every changed view, both sizes
+- [x] **Step 3: Fix what they find**, then take the screenshots of every changed view, both sizes
       and themes, into `specs/2026-10-13-chat-in-the-web-ui/screenshots/`, and review them against
       the [mockups](mockups/chat.html).
-- [ ] **Step 4: Run the whole validation**
+- [x] **Step 4: Run the whole validation**
 
 - Run: `vp run ready`
 - Expected: PASS but for `edits_keep_every_other_line`, already failing; then
   `vp check && vp test && vp run --filter uraeda-web build` PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-13-chat-in-the-web-ui/screenshots

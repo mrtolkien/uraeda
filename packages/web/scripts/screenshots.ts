@@ -9,7 +9,8 @@
  * as the browser tests do, and drives WebKit with Playwright. Its output is for people to look
  * at: no test compares it.
  *
- * It saves into the feature's folder it is given: `vp run --filter uraeda-web screenshots <folder>`.
+ * It saves into the feature's folder it is given: `vp run --filter uraeda-web screenshots <folder>`;
+ * the views named after it, like `session-working sidebar`, are the only ones taken.
  */
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -28,6 +29,8 @@ if (!folder) {
   throw new Error("Name the feature's folder: vp run --filter uraeda-web screenshots <folder>");
 }
 const out = join(root, "specs", folder, "screenshots");
+/** The views to take, by name, after the folder: every view when none is named. */
+const views = process.argv.slice(3);
 
 const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";
 const SPEC = "/f/2026-10-06-recurring-tasks/spec.md";
@@ -132,6 +135,9 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string) {
     act: (shot: Shot) => Promise<void>,
     only?: Size,
   ): Promise<void> => {
+    if (views.length > 0 && !views.includes(view)) {
+      return;
+    }
     for (const shot of shots) {
       if (only && shot.size !== only) {
         continue;
@@ -283,11 +289,79 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string) {
   const editor = new URL(first.url()).pathname;
   await each("editor-hints", ({ page }) => show(page, editor, "To write in the empty sections:"));
 
-  // The agent panel, a run going on, then failed, on the fake agent.
-  await show(first, AGENT, "Start the agent");
-  await first.getByRole("button", { name: "Start the agent" }).click();
-  await first.getByRole("button", { name: "Stop" }).waitFor();
-  adapter.emit({ type: "init", sessionId: "fake", plugins: ["uraeda"], pluginErrors: [] });
+  // The workflow's message in the composer of a feature waiting on the agent, unsent.
+  await each("session-handover", async ({ page }) => {
+    await show(page, AGENT, "Start the agent");
+    await page.getByRole("button", { name: "Start the agent" }).first().click();
+    await page.waitForURL(/\/session\?continue=/);
+    await page
+      .getByText(/Continue the feature/)
+      .first()
+      .waitFor();
+    await settle(page);
+  });
+
+  // The commit buttons of a review, which start the agent.
+  await each("review-commit", async ({ page }) => {
+    await show(page, SPEC, "Complete a repeating task");
+    await page
+      .getByRole("button", { name: "Approve and start the agent" })
+      .evaluate((element) => element.scrollIntoView({ block: "center" }));
+    await settle(page);
+  });
+
+  /** Sends a message from the composer, as the human does, and gives the message's ID. */
+  const send = async (page: Page, text: string) => {
+    const sent = adapter.sent.length;
+    await page.getByRole("textbox", { name: "Message Claude Code" }).fill(text);
+    await page.getByRole("button", { name: "Send" }).first().click();
+    while (adapter.sent.length === sent) {
+      await wait(50);
+    }
+    return adapter.sent.at(-1)!.id;
+  };
+  const result = { type: "result" as const, ok: true, errors: [], denials: [], interrupted: false };
+
+  // Two chats: one replied to, one whose action auto mode blocked.
+  await show(first, "/chats/new", "New chat");
+  let id = await send(first, "Why is CI slow on WebKit?");
+  adapter.emit({ type: "accepted", id });
+  adapter.emit({
+    type: "text",
+    text: "WebKit draws without a GPU on CI: its animations take longer.",
+  });
+  adapter.emit({ ...result, costUsd: 0.12 });
+  await first.waitForURL(/\/chats\/(?!new)/);
+  await show(first, "/chats/new", "New chat");
+  id = await send(first, "Tag v0.3.0 and push the tag.");
+  adapter.emit({ type: "accepted", id });
+  adapter.emit({
+    type: "toolStart",
+    id: "tag",
+    name: "Bash",
+    kind: "execute",
+    input: { command: "git tag v0.3.0" },
+    target: "git tag v0.3.0",
+  });
+  adapter.emit({ type: "toolEnd", id: "tag", isError: false, output: "" });
+  adapter.emit({
+    type: "text",
+    text: "I created the tag `v0.3.0`, but pushing it was blocked. Allow the push and I'll retry.",
+  });
+  adapter.emit({
+    ...result,
+    costUsd: 0.31,
+    denials: [{ tool: "Bash", input: { command: "git push origin v0.3.0" } }],
+  });
+  await first.waitForURL(/\/chats\/(?!new)/);
+  const chat = new URL(first.url()).pathname;
+  await each("chat-blocked", ({ page }) => show(page, chat, "Allow and retry"));
+  await each("chat-new", ({ page }) => show(page, "/chats/new", "New chat"));
+
+  // A feature's session at work: a sub-agent's tools, a reply streaming, and a steered message.
+  await show(first, `${AGENT}/session`, "CLI TUIs");
+  id = await send(first, "Plan the CLI.");
+  adapter.emit({ type: "accepted", id });
   adapter.emit({ type: "text", text: `Reading **the answers** of round 01 in \`${LONG}\`.` });
   adapter.emit({
     type: "toolStart",
@@ -300,16 +374,34 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string) {
   adapter.emit({ type: "toolEnd", id: "a", isError: false, output: "…" });
   adapter.emit({
     type: "toolStart",
-    id: "b",
-    name: "Bash",
-    kind: "execute",
-    input: { command: `ura check ${LONG} && vp run ready` },
-    target: `ura check ${LONG} && vp run ready`,
+    id: "task",
+    name: "Task",
+    kind: "other",
+    input: {},
+    subagent: { description: "Map the runner code" },
   });
+  adapter.emit({
+    type: "toolStart",
+    id: "b",
+    name: "Grep",
+    kind: "search",
+    input: {},
+    target: '"sessions" packages/server/src/runner/',
+    parent: "task",
+  });
+  adapter.emit({
+    type: "textDelta",
+    text: "The runner already keeps one cache per repository. I'll key sessions by their own ID",
+  });
+  await first.getByRole("button", { name: "Stop" }).first().waitFor();
+  await send(first, "Use the existing helper for the cache's paths.");
   await wait(500);
-  const agent = async (page: Page, text: string) => {
-    await show(page, AGENT, text);
-    // The panel at the top, below the phone's top bar.
+  await each("session-working", async ({ page }) => {
+    await show(page, `${AGENT}/session`, "Not read yet");
+  });
+  await each("agent-section", async ({ page }) => {
+    await show(page, AGENT, "Open the session");
+    // The section at the top, below the phone's top bar.
     await page
       .getByRole("region", { name: "Agent" })
       .evaluate((element) =>
@@ -319,37 +411,24 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string) {
         ),
       );
     await wait(300);
-  };
-  await each("agent-running", ({ page }) => agent(page, "Stop"));
-  // The run's view: a page on the phone, a pane beside the feature page on desktop.
-  const run = await first
-    .getByRole("list", { name: "Runs" })
-    .getByRole("link")
-    .first()
-    .getAttribute("href");
-  const view = async (page: Page, text: string) => {
-    await show(page, AGENT, text);
-    await page
-      .getByRole("link", { name: /^Plan · / })
-      .first()
-      .click();
-    await page.waitForURL(`**${run}`);
-    await page.getByRole("log", { name: "Run log" }).waitFor();
+  });
+
+  /** Home, with the navigation open on the phone. */
+  const sidebar = async (page: Page, size: Size) => {
+    await show(page, "/", "Waiting on you");
+    if (size === "phone") {
+      await page.getByRole("button", { name: "Open navigation" }).click();
+    }
+    await page.getByText("Map the runner code").first().waitFor();
     await settle(page);
   };
-  await each("run-running", ({ page }) => view(page, "Stop"));
-  adapter.emit({
-    type: "result",
-    ok: false,
-    costUsd: 0.42,
-    errors: ["The tests failed."],
-    denials: [{ tool: "Bash", input: { command: "gh pr create --draft" } }],
-    interrupted: false,
+  await each("sidebar", ({ page, size }) => sidebar(page, size));
+  await each("sidebar-no-match", async ({ page, size }) => {
+    await sidebar(page, size);
+    await page.getByRole("searchbox", { name: "Search sessions" }).fill("zzz");
+    await page.getByText("No session matches “zzz”.").waitFor();
+    await settle(page);
   });
-  adapter.exit(1, `could not read ${LONG}`);
-  await wait(500);
-  await each("agent-failed", ({ page }) => agent(page, "Try again"));
-  await each("run-failed", ({ page }) => view(page, "Try again"));
 
   // A refused Undo: the file changes before the Undo's insert reaches the server.
   await each("undo-refused", async ({ page }) => {
