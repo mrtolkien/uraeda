@@ -1,111 +1,44 @@
 import { randomUUID } from "node:crypto";
 import type { Binding } from "../fate/context.ts";
-import type { Adapter, AgentProcess, Outgoing } from "./adapter.ts";
+import type { Adapter, Outgoing } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
-import type { AgentEvent, Item, Trigger, TurnKind, TurnState } from "./events.ts";
-import { chatOpening, chatTitle, retryMessage, toolTarget } from "./message.ts";
+import type { Trigger, TurnKind } from "./events.ts";
+import { LiveSessions } from "./live-sessions.ts";
+import { chatOpening, chatTitle, retryMessage } from "./message.ts";
+import { Processes } from "./processes.ts";
+import {
+  type Live,
+  type Message,
+  REFUSALS,
+  refused,
+  rowOf,
+  type SessionChange,
+  type SessionContext,
+} from "./session-state.ts";
+import { Transcript } from "./transcript.ts";
+import { Turns } from "./turns.ts";
 
-/** A session's process is closed after this long without a turn, and resumed by its next message. */
-export const IDLE_CLOSE_MS = 15 * 60_000;
-/** A turn without any output for this long is stopped, and fails. */
-export const WATCHDOG_MS = 30 * 60_000;
-/** SIGINT follows an unanswered interrupt after this long, and SIGTERM as long after SIGINT. */
-export const TERMINATE_AFTER_MS = 10_000;
-/** A tool's output is cut to this many characters. */
-export const OUTPUT_LIMIT = 4_000;
-/** A turn failed by its process's exit keeps this many lines of its stderr. */
-const STDERR_LINES = 20;
+export {
+  IDLE_CLOSE_MS,
+  OUTPUT_LIMIT,
+  REFUSALS,
+  type SessionChange,
+  TERMINATE_AFTER_MS,
+  WATCHDOG_MS,
+} from "./session-state.ts";
 
-export const REFUSALS = {
-  /** A write on a feature, or a session another server holds, while its agent works. */
-  working: "An agent is working on this feature. Stop it first, or wait for it.",
-  /** A workflow message on a feature whose step waits on the human. */
-  human: "The feature waits on you now: there is nothing to continue.",
-  noBranch: "This feature has no branch yet: commit its proposal first.",
-  /** A take-back of a message the agent read. */
-  read: "The agent already read it.",
-  blank: "The message is empty.",
-  /** An allow of a blocked action no rule matches alone, as a command with a `*`. */
-  noRule: "No allow rule can match only this action.",
-  unavailable: (name: string) => `${name} is not available on this machine.`,
-};
-
-/** The plugin the skill loads as, which every process must report loaded. */
-const PLUGIN = "uraeda";
-
-/** The line a turn shows when its session's transcript was gone, and a new one started. */
-const REPLACED = "Started a new session: the previous one is gone.";
 /** Why a turn stopped as the server stopped. */
 const SERVER_STOPPED = "Stopped: the server stopped while it ran.";
 
-/** What changed: the agent's availability, or a session, with the turn and its new state. */
-export type SessionChange =
-  | { agent: true }
-  | { repo: string; session: string; folder: string | null; turn?: number; state?: TurnState };
-
-type Timer = ReturnType<typeof setTimeout>;
-type Exit = Extract<AgentEvent, { type: "exit" }>;
-type Result = Extract<AgentEvent, { type: "result" }>;
-type Message = Extract<Item, { kind: "message" }>;
-type Tool = Extract<Item, { kind: "tool" }>;
-
-/** A session's open process. */
-type Proc = {
-  agent: AgentProcess;
-  cwd: string;
-  /** Closed by the idle timer, a plugin error, or "Allow and retry": no message goes to it. */
-  closing: boolean;
-  /** Resolves once its events are read to its exit. */
-  done: Promise<void>;
-  /** SIGTERM, then SIGKILL, for a closed process that does not exit. */
-  terminate: Array<Timer>;
-};
-
-/** The turn running on a session's process. */
-type Running = {
-  id: number;
-  /** How the turn ends once it was halted: by Stop, the watchdog, its plugin, or the server. */
-  stop?: { state: TurnState; reason?: string };
-  /** The ID of the message that started it. */
-  first: string;
-  tools: Map<string, { seq: number; item: Tool; at: number }>;
-  /** The text block being streamed. */
-  text?: { seq: number; text: string };
-  skipped?: { seq: number; count: number };
-  cost?: number;
-  watchdog?: Timer;
-  terminate: Array<Timer>;
-};
-
-/** A turn waiting for the running one to end: its message is written when it starts. */
-type Queued = { id: number; message: Outgoing };
-
-/** A message this server sent, or will send, and where its item is. */
-type Sent = { turn: number; seq: number; item: Message; written: boolean };
-
-/** What this server keeps of a session while it is used. */
-type Live = {
-  id: string;
-  repo: string;
-  folder: string | null;
-  proc?: Proc;
-  turn?: Running;
-  queue: Array<Queued>;
-  messages: Map<string, Sent>;
-  idle?: Timer;
-  /** Sends and turn starts, one after another. */
-  lock: Promise<unknown>;
-  /** The sends and turn starts waiting or running, which keep it in memory. */
-  calls: number;
-};
-
-const refused = (text: string) => new Error(`refused: ${text}`);
 const now = () => new Date().toISOString();
 
 /**
  * Sessions of turns with agents: at most one process and one turn per session, a feature's session
  * in its worktree, a chat in the main checkout. Turns and their items go to the cache, and every
  * change to `onChange`.
+ *
+ * It answers the server's calls, and leaves the rest to its parts: the sessions kept in memory,
+ * their processes, their turns, and the transcript their events are recorded in.
  */
 export class Sessions {
   #options: {
@@ -115,11 +48,9 @@ export class Sessions {
     onChange: (change: SessionChange) => void;
   };
   #status: { available: boolean; version: string | null } = { available: false, version: null };
-  #live = new Map<string, Live>();
   /** Each repository's main checkout, by the path it was given as. */
   #roots = new Map<string, string>();
-  /** The turns not ended yet, which `settled` waits for. */
-  #pending = new Map<number, { ended: Promise<void>; resolve: () => void }>();
+  #context: SessionContext;
 
   constructor(options: {
     adapter: Adapter;
@@ -128,6 +59,25 @@ export class Sessions {
     onChange: (change: SessionChange) => void;
   }) {
     this.#options = options;
+    // Each part reaches the others through the context, filled once they are all made.
+    const context = {
+      adapter: options.adapter,
+      cache: options.cache,
+      binding: options.binding,
+      changed: (live, turn, state) =>
+        options.onChange({
+          repo: live.repo,
+          session: live.id,
+          folder: live.folder,
+          ...(turn === undefined ? {} : { turn }),
+          ...(state === undefined ? {} : { state }),
+        }),
+      live: new LiveSessions(),
+    } as SessionContext;
+    context.processes = new Processes(context);
+    context.turns = new Turns(context);
+    context.transcript = new Transcript(context);
+    this.#context = context;
   }
 
   /** The cache the sessions are written to, which the server reads them from. */
@@ -169,7 +119,7 @@ export class Sessions {
   /** The folders of the repository whose session has a turn running, or queued. */
   working(repo: string): Array<string> {
     const root = this.#roots.get(repo) ?? repo;
-    return [...this.#live.values()]
+    return [...this.#context.live.values()]
       .filter((live) => live.repo === root && live.folder !== null)
       .filter((live) => live.turn !== undefined || live.queue.length > 0)
       .map((live) => live.folder as string);
@@ -227,19 +177,19 @@ export class Sessions {
       throw refused(REFUSALS.blank);
     }
     this.#available();
-    const live = this.#liveOf(await this.#own(repo, session));
-    return this.#serial(live, () => this.#send(live, input));
+    const live = this.#context.live.of(await this.#own(repo, session));
+    return this.#context.live.serial(live, () => this.#send(live, input));
   }
 
   async #send(
     live: Live,
     { text, workflow }: { text: string; workflow?: { trigger: Trigger; file?: string } },
   ): Promise<{ turn: number }> {
-    const { cache, adapter } = this;
+    const { cache, adapter, binding, turns, processes, changed } = this.#context;
     let step: string | null = null;
     let branch: string | undefined;
     if (live.folder !== null) {
-      const next = await this.#options.binding.nextStep(live.repo, live.folder);
+      const next = await binding.nextStep(live.repo, live.folder);
       if (next.branch === undefined) {
         throw refused(REFUSALS.noBranch);
       }
@@ -254,7 +204,7 @@ export class Sessions {
       throw new Error("a chat has no workflow to continue");
     }
     this.#available();
-    const row = this.#row(live);
+    const row = rowOf(cache, live);
     if (row.folder === null && row.title === null) {
       cache.updateSession(row.id, { title: chatTitle(text) });
     }
@@ -269,7 +219,7 @@ export class Sessions {
       const item: Message = { kind: "message", id, text, origin, state: "pending" };
       const seq = cache.appendItem(live.turn.id, item);
       live.messages.set(id, { turn: live.turn.id, seq, item, written: true });
-      this.#changed(live, live.turn.id);
+      changed(live, live.turn.id);
       live.proc?.agent.send({ id, text, when: "steer" });
       return { turn: live.turn.id };
     }
@@ -280,7 +230,7 @@ export class Sessions {
         ? chatOpening({
             folder: live.folder,
             branch,
-            bug: (await this.#options.binding.readFeature(live.repo, live.folder)).kind === "bug",
+            bug: (await binding.readFeature(live.repo, live.folder)).kind === "bug",
           })
         : undefined;
     const item: Message = {
@@ -306,16 +256,16 @@ export class Sessions {
     // A busy session queues the turn: Uraeda writes its message once the running turn ends.
     if (live.turn || live.queue.length > 0) {
       const queued = cache.addTurn({ sessionId: live.id, ...turn, state: "queued" });
-      this.#track(queued);
+      turns.track(queued);
       const seq = cache.appendItem(queued, item);
       live.messages.set(id, { turn: queued, seq, item, written: false });
       live.queue.push({ id: queued, message });
-      this.#changed(live, queued, "queued");
+      changed(live, queued, "queued");
       return { turn: queued };
     }
 
-    const { replaced } = await this.#process(live);
-    return { turn: this.#begin(live, { ...turn, item, message, replaced }) };
+    const { replaced } = await processes.open(live);
+    return { turn: turns.begin(live, { ...turn, item, message, replaced }) };
   }
 
   /** Whether a chat message starts with the opening line: first, or after a workflow run. */
@@ -327,124 +277,21 @@ export class Sessions {
     return last === undefined || last.kind === "workflow";
   }
 
-  /** Starts a turn on the open process, and writes its message. */
-  #begin(
-    live: Live,
-    turn: {
-      kind: TurnKind;
-      trigger: Trigger | null;
-      step: string | null;
-      allowed: string | null;
-      item: Message;
-      message: Outgoing;
-      replaced: boolean;
-    },
-  ): number {
-    const { cache } = this;
-    const id = cache.addTurn({
-      sessionId: live.id,
-      kind: turn.kind,
-      trigger: turn.trigger,
-      step: turn.step,
-      allowed: turn.allowed,
-      state: "running",
-    });
-    this.#track(id);
-    if (turn.replaced) {
-      cache.appendItem(id, { kind: "system", text: REPLACED });
-    }
-    const seq = cache.appendItem(id, turn.item);
-    live.messages.set(turn.message.id, { turn: id, seq, item: turn.item, written: true });
-    this.#run(live, id, turn.message);
-    return id;
-  }
-
-  /** Makes the turn the running one, and writes its message. */
-  #run(live: Live, id: number, message: Outgoing) {
-    clearTimeout(live.idle);
-    live.turn = { id, first: message.id, tools: new Map(), terminate: [] };
-    this.#watch(live, live.turn);
-    this.#changed(live, id, "running");
-    live.proc?.agent.send(message);
-  }
-
-  /**
-   * The session's open process, opened when it has none, or when it is closing: then once it
-   * exited. A transcript that is gone starts a new agent session. `allowed` reopens the process
-   * with the rule.
-   */
-  async #process(live: Live, allowed?: string): Promise<{ proc: Proc; replaced: boolean }> {
-    const { cache, adapter } = this;
-    if (live.proc && !live.proc.closing && allowed === undefined) {
-      return { proc: live.proc, replaced: false };
-    }
-    if (live.proc) {
-      this.#close(live.proc);
-      await live.proc.done;
-    }
-    // Another server may share the cache: one process per session, across servers.
-    if (!cache.claimSession(live.id)) {
-      throw refused(REFUSALS.working);
-    }
-    try {
-      const cwd =
-        live.folder === null
-          ? live.repo
-          : await this.#options.binding.workDir(live.repo, live.folder);
-      const row = this.#row(live);
-      const resume = adapter.hasSession(row.nativeId);
-      // A session that ran before has lost its transcript: Claude Code deletes old ones.
-      const replaced = !resume && cache.turns(live.id).some((turn) => turn.startedAt !== null);
-      const nativeId = replaced ? randomUUID() : row.nativeId;
-      if (replaced) {
-        cache.updateSession(live.id, { nativeId });
-      }
-      const agent = adapter.open({
-        cwd,
-        nativeId,
-        resume,
-        ...(allowed === undefined ? {} : { allowed }),
-      });
-      const proc: Proc = { agent, cwd, closing: false, done: Promise.resolve(), terminate: [] };
-      live.proc = proc;
-      proc.done = this.#consume(live, proc);
-      return { proc, replaced };
-    } catch (error) {
-      cache.releaseSession(live.id);
-      throw error;
-    }
-  }
-
-  /**
-   * Closes the process once its turn is over: it exits, and is reopened by the next message. One
-   * that is still running 10 seconds later gets SIGTERM, and SIGKILL 10 seconds after that, so that
-   * no send, nor the server's stop, waits on it forever.
-   */
-  #close(proc: Proc) {
-    if (!proc.closing) {
-      proc.closing = true;
-      proc.agent.close();
-      proc.terminate.push(
-        setTimeout(() => proc.agent.kill("SIGTERM"), TERMINATE_AFTER_MS),
-        setTimeout(() => proc.agent.kill("SIGKILL"), 2 * TERMINATE_AFTER_MS),
-      );
-    }
-  }
-
   /**
    * Takes back a message the agent has not read: the agent's own take-back for a message written
    * to it, which ends with its `cancelled` event, or at once for a queued turn's.
    */
   takeBack(repo: string, session: string, message: string): void {
-    const live = this.#liveOf(this.#ownNow(repo, session));
+    const live = this.#context.live.of(this.#ownNow(repo, session));
     try {
       this.#takeBack(live, message);
     } finally {
-      this.#prune(live);
+      this.#context.live.prune(live);
     }
   }
 
   #takeBack(live: Live, message: string) {
+    const { turns } = this.#context;
     const sent = live.messages.get(message);
     // A message no longer kept belongs to a turn that ended with nothing left to read.
     if (!sent) {
@@ -459,8 +306,8 @@ export class Sessions {
     const queued = live.queue.findIndex((turn) => turn.message.id === message);
     if (queued >= 0) {
       live.queue.splice(queued, 1);
-      this.#mark(live, sent, "taken-back");
-      this.#endTurn(live, sent.turn, { state: "stopped", reason: "Taken back." });
+      turns.mark(live, sent, "taken-back");
+      turns.end(live, sent.turn, { state: "stopped", reason: "Taken back." });
       return;
     }
     if (!this.adapter.capabilities.takeBack) {
@@ -471,14 +318,15 @@ export class Sessions {
 
   /** Stops the running turn, which keeps the session, and the turns queued after it. */
   stop(repo: string, session: string): void {
-    const live = this.#liveOf(this.#ownNow(repo, session));
+    const { turns } = this.#context;
+    const live = this.#context.live.of(this.#ownNow(repo, session));
     for (const queued of live.queue.splice(0)) {
-      this.#endTurn(live, queued.id, { state: "stopped" });
+      turns.end(live, queued.id, { state: "stopped" });
     }
     if (live.turn) {
-      this.#halt(live, live.turn, { state: "stopped" });
+      turns.halt(live, live.turn, { state: "stopped" });
     }
-    this.#prune(live);
+    this.#context.live.prune(live);
   }
 
   /**
@@ -487,9 +335,9 @@ export class Sessions {
    */
   async allow(repo: string, session: string, turn: number, seq: number): Promise<{ turn: number }> {
     this.#available();
-    const live = this.#liveOf(await this.#own(repo, session));
-    return this.#serial(live, async () => {
-      const { cache } = this;
+    const live = this.#context.live.of(await this.#own(repo, session));
+    return this.#context.live.serial(live, async () => {
+      const { cache, processes, turns, changed } = this.#context;
       const denial = cache.itemsOf(turn, "denial").find((item) => item.seq === seq);
       if (cache.turn(turn)?.sessionId !== live.id || !denial) {
         throw new Error(`no blocked action ${seq} in turn ${turn}`);
@@ -501,10 +349,10 @@ export class Sessions {
       if (live.turn || live.queue.length > 0) {
         throw refused(REFUSALS.working);
       }
-      const { replaced } = await this.#process(live, rule);
+      const { replaced } = await processes.open(live, rule);
       const id = randomUUID();
       const text = retryMessage(denial);
-      const started = this.#begin(live, {
+      const started = turns.begin(live, {
         kind: "allow",
         trigger: null,
         step: null,
@@ -520,7 +368,7 @@ export class Sessions {
         rule,
         allowed: true,
       });
-      this.#changed(live, turn);
+      changed(live, turn);
       return { turn: started };
     });
   }
@@ -557,31 +405,32 @@ export class Sessions {
 
   /** How many of the session's messages this server keeps: those of its turns not ended, or unread. */
   tracked(session: string): number {
-    return this.#live.get(session)?.messages.size ?? 0;
+    return this.#context.live.get(session)?.messages.size ?? 0;
   }
 
   /** Whether this server keeps the session in memory: while it has a process, a turn, or a call. */
   held(session: string): boolean {
-    return this.#live.has(session);
+    return this.#context.live.has(session);
   }
 
   /** Resolves once the turn has ended, at once when this server does not run it. */
   async settled(turn: number): Promise<void> {
-    await this.#pending.get(turn)?.ended;
+    await this.#context.turns.settled(turn);
   }
 
   /** Stops every turn and closes every process, as the server stops, and waits for them. */
   async closeAll(): Promise<void> {
+    const { turns, processes } = this.#context;
     const procs: Array<Promise<void>> = [];
-    for (const live of this.#live.values()) {
+    for (const live of this.#context.live.values()) {
       for (const queued of live.queue.splice(0)) {
-        this.#endTurn(live, queued.id, { state: "stopped", reason: SERVER_STOPPED });
+        turns.end(live, queued.id, { state: "stopped", reason: SERVER_STOPPED });
       }
       if (live.turn) {
-        this.#halt(live, live.turn, { state: "stopped", reason: SERVER_STOPPED });
+        turns.halt(live, live.turn, { state: "stopped", reason: SERVER_STOPPED });
       }
       if (live.proc) {
-        this.#close(live.proc);
+        processes.close(live.proc);
         procs.push(live.proc.done);
       }
     }
@@ -590,13 +439,10 @@ export class Sessions {
 
   /** Clears every timer. */
   close(): void {
-    for (const live of this.#live.values()) {
+    for (const live of this.#context.live.values()) {
       clearTimeout(live.idle);
       live.proc?.terminate.forEach(clearTimeout);
-      if (live.turn) {
-        clearTimeout(live.turn.watchdog);
-        live.turn.terminate.forEach(clearTimeout);
-      }
+      this.#context.turns.clearTimers(live);
     }
   }
 
@@ -620,446 +466,9 @@ export class Sessions {
     return row;
   }
 
-  #liveOf(row: SessionRow): Live {
-    let live = this.#live.get(row.id);
-    if (!live) {
-      live = {
-        id: row.id,
-        repo: row.repo,
-        folder: row.folder,
-        queue: [],
-        messages: new Map(),
-        lock: Promise.resolve(),
-        calls: 0,
-      };
-      this.#live.set(row.id, live);
-    }
-    return live;
-  }
-
-  #row(live: Live): SessionRow {
-    const row = this.cache.session(live.id);
-    if (!row) {
-      throw new Error(`no session ${live.id}`);
-    }
-    return row;
-  }
-
   #available() {
     if (!this.#status.available) {
       throw refused(REFUSALS.unavailable(this.adapter.name));
     }
   }
-
-  /** Runs `body` after the session's earlier sends and turn starts. */
-  #serial<T>(live: Live, body: () => Promise<T>): Promise<T> {
-    live.calls++;
-    const run = live.lock.then(body, body).finally(() => {
-      live.calls--;
-      this.#prune(live);
-    });
-    live.lock = run.catch(() => {});
-    return run;
-  }
-
-  /**
-   * Forgets the session once nothing of it is left in memory: no process, no turn running or
-   * queued, no message the agent may read, and no call on its way.
-   */
-  #prune(live: Live) {
-    if (
-      this.#live.get(live.id) === live &&
-      live.calls === 0 &&
-      live.proc === undefined &&
-      live.turn === undefined &&
-      live.queue.length === 0 &&
-      live.messages.size === 0
-    ) {
-      clearTimeout(live.idle);
-      this.#live.delete(live.id);
-    }
-  }
-
-  #track(turn: number) {
-    let resolve = () => {};
-    const ended = new Promise<void>((done) => (resolve = done));
-    this.#pending.set(turn, { ended, resolve });
-  }
-
-  #changed(live: Live, turn?: number, state?: TurnState) {
-    this.#options.onChange({
-      repo: live.repo,
-      session: live.id,
-      folder: live.folder,
-      ...(turn === undefined ? {} : { turn }),
-      ...(state === undefined ? {} : { state }),
-    });
-  }
-
-  // Turns.
-
-  /** Restarts the turn's watchdog. */
-  #watch(live: Live, turn: Running) {
-    clearTimeout(turn.watchdog);
-    turn.watchdog = setTimeout(
-      () => this.#halt(live, turn, { state: "failed", reason: "No output for 30 minutes." }),
-      WATCHDOG_MS,
-    );
-  }
-
-  /**
-   * Interrupts the turn, which then ends as `end` says: SIGINT when it has not ended 10 seconds
-   * later, and SIGTERM 10 seconds after that. Its messages not read yet are taken back, and marked
-   * so by the agent's `cancelled`.
-   */
-  #halt(live: Live, turn: Running, end: { state: TurnState; reason?: string }) {
-    if (turn.stop) {
-      return;
-    }
-    turn.stop = end;
-    clearTimeout(turn.watchdog);
-    const proc = live.proc;
-    if (!proc) {
-      return;
-    }
-    for (const [id] of this.#unread(live, turn)) {
-      proc.agent.takeBack(id);
-    }
-    proc.agent.interrupt();
-    turn.terminate.push(
-      setTimeout(() => proc.agent.kill("SIGINT"), TERMINATE_AFTER_MS),
-      setTimeout(() => proc.agent.kill("SIGTERM"), 2 * TERMINATE_AFTER_MS),
-    );
-  }
-
-  /**
-   * The messages steered into the turn that the agent has not read, which it can take back: none
-   * when it cannot.
-   */
-  #unread(live: Live, turn: Running): Array<[string, Sent]> {
-    if (!this.adapter.capabilities.takeBack) {
-      return [];
-    }
-    return [...live.messages].filter(
-      ([id, sent]) =>
-        sent.turn === turn.id && sent.written && sent.item.state === "pending" && id !== turn.first,
-    );
-  }
-
-  /** Records the end of a turn, running or queued. */
-  #endTurn(live: Live, id: number, end: { state: TurnState; reason?: string; costUsd?: number }) {
-    if (live.turn?.id === id) {
-      clearTimeout(live.turn.watchdog);
-      live.turn.terminate.forEach(clearTimeout);
-      live.turn = undefined;
-    }
-    try {
-      this.cache.endTurn(id, end);
-    } catch (error) {
-      console.error(`The session manager could not record the end of turn ${id}: ${String(error)}`);
-    }
-    this.#pending.get(id)?.resolve();
-    this.#pending.delete(id);
-    this.#forget(live, id);
-    this.#changed(live, id, end.state);
-  }
-
-  /** Forgets the messages of the turn once it ended, but those the agent may still read. */
-  #forget(live: Live, turn: number) {
-    if (live.turn?.id === turn || live.queue.some((queued) => queued.id === turn)) {
-      return;
-    }
-    for (const [id, sent] of live.messages) {
-      if (sent.turn === turn && sent.item.state !== "pending") {
-        live.messages.delete(id);
-      }
-    }
-  }
-
-  /** After a turn: the next queued turn starts, or the idle timer does. */
-  #next(live: Live) {
-    if (live.turn) {
-      return;
-    }
-    if (live.queue.length > 0) {
-      void this.#serial(live, () => this.#startQueued(live));
-      return;
-    }
-    clearTimeout(live.idle);
-    const proc = live.proc;
-    if (proc && !proc.closing) {
-      live.idle = setTimeout(() => this.#close(proc), IDLE_CLOSE_MS);
-    }
-  }
-
-  /** Starts the first queued turn, reopening the process when it is gone. */
-  async #startQueued(live: Live): Promise<void> {
-    if (live.turn) {
-      return;
-    }
-    const queued = live.queue[0];
-    if (!queued) {
-      return;
-    }
-    let replaced: boolean;
-    try {
-      ({ replaced } = await this.#process(live));
-    } catch (error) {
-      // The turns cannot run: each fails with why.
-      const reason = String((error as Error).message ?? error).replace(/^refused: /, "");
-      for (const turn of live.queue.splice(0)) {
-        this.#endTurn(live, turn.id, { state: "failed", reason });
-      }
-      return;
-    }
-    // Stop, or a take-back, may have ended it while the process opened: the next one starts, or
-    // the idle timer does.
-    if (live.queue[0] !== queued) {
-      this.#next(live);
-      return;
-    }
-    live.queue.shift();
-    this.cache.startTurn(queued.id);
-    if (replaced) {
-      this.cache.appendItem(queued.id, { kind: "system", text: REPLACED });
-    }
-    this.#run(live, queued.id, queued.message);
-  }
-
-  // Events.
-
-  /** Reads the process's events into the cache, until it exits. */
-  async #consume(live: Live, proc: Proc): Promise<void> {
-    for await (const event of proc.agent.events) {
-      try {
-        if (event.type === "exit") {
-          this.#exited(live, proc, event);
-          return;
-        }
-        this.#record(live, proc, event);
-      } catch (error) {
-        // A cache write that fails does not stop the session.
-        console.error(
-          `The session manager could not record an event of ${live.id}: ${String(error)}`,
-        );
-      }
-    }
-    this.#exited(live, proc, { type: "exit", code: null, stderr: "" });
-  }
-
-  #record(live: Live, proc: Proc, event: Exclude<AgentEvent, { type: "exit" }>) {
-    const { cache, adapter } = this;
-    const turn = live.turn;
-    if (turn && !turn.stop) {
-      this.#watch(live, turn);
-    }
-    switch (event.type) {
-      case "init": {
-        // `/clear` starts a new agent session in the same process.
-        if (event.sessionId !== "" && event.sessionId !== this.#row(live).nativeId) {
-          cache.updateSession(live.id, { nativeId: event.sessionId });
-          this.#changed(live);
-        }
-        // The skill loads as the `uraeda` plugin: a process without it must not run.
-        if (event.pluginErrors.length > 0 || !event.plugins.includes(PLUGIN)) {
-          const why =
-            event.pluginErrors.length > 0
-              ? event.pluginErrors.join("; ")
-              : `the plugins loaded were ${event.plugins.join(", ") || "none"}`;
-          if (turn) {
-            this.#halt(live, turn, {
-              state: "failed",
-              reason: `The Uraeda skill did not load: ${why}`,
-            });
-          }
-          this.#close(proc);
-        }
-        return;
-      }
-      case "accepted":
-      case "cancelled": {
-        const sent = live.messages.get(event.id);
-        if (sent && sent.item.state === "pending") {
-          this.#mark(live, sent, event.type === "accepted" ? "read" : "taken-back");
-        }
-        return;
-      }
-    }
-    if (!turn) {
-      return;
-    }
-    const append = (item: Item) => {
-      const seq = cache.appendItem(turn.id, item);
-      this.#changed(live, turn.id);
-      return seq;
-    };
-    const update = (seq: number, item: Item) => {
-      cache.updateItem(turn.id, seq, item);
-      this.#changed(live, turn.id);
-    };
-    switch (event.type) {
-      case "textDelta":
-        if (turn.text) {
-          turn.text.text += event.text;
-          update(turn.text.seq, { kind: "text", text: turn.text.text, streaming: true });
-        } else {
-          const item = { kind: "text" as const, text: event.text, streaming: true };
-          turn.text = { seq: append(item), text: event.text };
-        }
-        return;
-      case "text":
-        if (turn.text) {
-          update(turn.text.seq, { kind: "text", text: event.text, streaming: false });
-          turn.text = undefined;
-        } else {
-          append({ kind: "text", text: event.text, streaming: false });
-        }
-        return;
-      case "toolStart": {
-        const item: Tool = {
-          kind: "tool",
-          id: event.id,
-          name: event.name,
-          toolKind: event.kind,
-          ...(event.target === undefined ? {} : { target: event.target }),
-          status: "in_progress",
-          ...(event.parent === undefined ? {} : { parent: event.parent }),
-          ...(event.subagent === undefined ? {} : { subagent: event.subagent }),
-        };
-        turn.tools.set(event.id, { seq: append(item), item, at: Date.now() });
-        return;
-      }
-      case "toolEnd": {
-        const tool = turn.tools.get(event.id);
-        if (!tool) {
-          return;
-        }
-        turn.tools.delete(event.id);
-        update(tool.seq, {
-          ...tool.item,
-          status: event.isError ? "failed" : "completed",
-          durationMs: Date.now() - tool.at,
-          output: event.output.slice(0, OUTPUT_LIMIT),
-        });
-        return;
-      }
-      case "retry":
-        append({ kind: "system", text: retryText(event) });
-        return;
-      case "skipped": {
-        const count = (turn.skipped?.count ?? 0) + 1;
-        const text = `Skipped ${count} ${count === 1 ? "line" : "lines"} ${adapter.name} printed that Uraeda does not read.`;
-        if (turn.skipped) {
-          update(turn.skipped.seq, { kind: "system", text });
-          turn.skipped.count = count;
-        } else {
-          turn.skipped = { seq: append({ kind: "system", text }), count };
-        }
-        return;
-      }
-      case "result":
-        this.#result(live, proc, turn, event, append);
-        return;
-    }
-  }
-
-  /**
-   * Ends the turn with its result, unless a message steered into it waits to be read: the agent
-   * answers it before the turn settles.
-   */
-  #result(live: Live, proc: Proc, turn: Running, result: Result, append: (item: Item) => number) {
-    for (const denial of result.denials) {
-      const target = toolTarget(denial.tool, denial.input, proc.cwd);
-      const rule = this.adapter.allowRule(denial);
-      append({
-        kind: "denial",
-        tool: denial.tool,
-        ...(target === undefined ? {} : { target }),
-        ...(rule === undefined ? {} : { rule }),
-        allowed: false,
-      });
-    }
-    if (result.costUsd !== undefined) {
-      turn.cost = result.costUsd;
-    }
-    const first = live.messages.get(turn.first);
-    if (first?.item.state === "pending") {
-      this.#mark(live, first, "read");
-    }
-    const unread = [...live.messages.values()].some(
-      (sent) => sent.turn === turn.id && sent.written && sent.item.state === "pending",
-    );
-    if (result.ok && !turn.stop && unread) {
-      return;
-    }
-    // A turn that ends on its own, as one that failed, takes back what the agent did not read:
-    // it would otherwise run after it, in no turn.
-    if (!turn.stop) {
-      for (const [id, sent] of this.#unread(live, turn)) {
-        proc.agent.takeBack(id);
-        this.#mark(live, sent, "taken-back");
-      }
-    }
-    const end =
-      turn.stop ??
-      (result.interrupted
-        ? { state: "stopped" as const }
-        : result.ok
-          ? { state: "done" as const }
-          : {
-              state: "failed" as const,
-              reason:
-                result.errors.join("\n") || `${this.adapter.name} ended the turn with an error.`,
-            });
-    this.#endTurn(live, turn.id, {
-      ...end,
-      ...(turn.cost === undefined ? {} : { costUsd: turn.cost }),
-    });
-    this.#next(live);
-  }
-
-  /** The process exited: its turn ends, and the queued turns start on a new one. */
-  #exited(live: Live, proc: Proc, exit: Exit) {
-    proc.terminate.forEach(clearTimeout);
-    if (live.proc !== proc) {
-      return;
-    }
-    live.proc = undefined;
-    clearTimeout(live.idle);
-    this.cache.releaseSession(live.id);
-    const turn = live.turn;
-    if (turn) {
-      const stderr = exit.stderr.trimEnd().split("\n").slice(-STDERR_LINES).join("\n");
-      const end =
-        turn.stop ??
-        (exit.missing
-          ? { state: "failed" as const, reason: REFUSALS.unavailable(this.adapter.name) }
-          : {
-              state: "failed" as const,
-              reason: stderr || `${this.adapter.name} exited with code ${exit.code}.`,
-            });
-      this.#endTurn(live, turn.id, {
-        ...end,
-        ...(turn.cost === undefined ? {} : { costUsd: turn.cost }),
-      });
-    }
-    this.#changed(live);
-    this.#next(live);
-    this.#prune(live);
-  }
-
-  /** Marks a message read or taken back. */
-  #mark(live: Live, sent: Sent, state: Message["state"]) {
-    sent.item = { ...sent.item, state };
-    this.cache.updateItem(sent.turn, sent.seq, sent.item);
-    this.#changed(live, sent.turn);
-    this.#forget(live, sent.turn);
-  }
-}
-
-function retryText({ delayMs, error }: Extract<AgentEvent, { type: "retry" }>): string {
-  const seconds = Math.round(delayMs / 1000);
-  return error === "rate_limit"
-    ? `Rate limited, retrying in ${seconds} s.`
-    : `The API failed (${error}), retrying in ${seconds} s.`;
 }
