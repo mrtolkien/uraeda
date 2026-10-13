@@ -78,14 +78,19 @@ export const sent: Array<string> = [];
 /** The requests the server answered, by their body. */
 const answers: Array<string> = [];
 
+/** How many answers the server sent so far: `answered` can wait for one after them. */
+export function answersSoFar() {
+  return answers.length;
+}
+
 /**
- * Waits until the server answered a read of a type, `Runner` for one, and the page drew it: a part
- * of a page that waits on its own read shows nothing until then, so a test that checks something
- * does not show waits for it first.
+ * Waits until the server answered a read of a type, `Runner` for one, after the `from` first
+ * answers, and the page drew it: a part of a page that waits on its own read shows nothing until
+ * then, so a test that checks something does not show waits for it first.
  */
-export async function answered(type: string) {
+export async function answered(type: string, from = 0) {
   await waitFor(() => {
-    if (!answers.some((body) => body.includes(`"type":"${type}"`))) {
+    if (!answers.slice(from).some((body) => body.includes(`"type":"${type}"`))) {
       throw new Error(`No read of ${type} answered yet`);
     }
   });
