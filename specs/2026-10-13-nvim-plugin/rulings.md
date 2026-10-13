@@ -44,3 +44,37 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: test fixtures only, in
   [`crates/lsp/tests/common/mod.rs`](/crates/lsp/tests/common/mod.rs).
 - **Where**: task 2, `crates/lsp/tests/`.
+
+## R4: The outline and the fields on disk come from the core
+
+- **Decision**: a new core module, `files::outline`, gives every heading of a file with the item it
+  holds (question, story, task, or comment), its id, and the line its section ends on; the server
+  only nests the entries by level. `check::fields_on_disk` reads a closed file's fields for
+  `uraeda/fields`. The plan's task 3 listed `crates/lsp` alone, and its commit adds `crates/core`
+  too.
+- **Rationale**: telling a question, a story, a task, or a comment from a heading is the workflow's
+  structure, which the [stack decision](../decisions/stack.md) keeps in the core, and the core
+  already parsed each of them (`question_heading`, `story_heading`, the plan's tasks, the review's
+  comments); the outline reuses those parsers, now shared within the core. Reading a closed file
+  from disk is the same rule for the spec's "else from disk".
+- **Alternatives considered**: matching `Q`, `US`, `Task`, and `C` headings in the server: a second
+  copy of the core's parsers to drift; `api::read_file`: it takes a feature folder and file name,
+  and returns far more than the fields.
+- **If wrong**: one module of the core and its test, in
+  [`crates/core/src/files/outline.rs`](/crates/core/src/files/outline.rs) and
+  [`crates/core/tests/files.rs`](/crates/core/tests/files.rs).
+- **Where**: task 3, `crates/core/src/files/outline.rs`, `crates/core/src/check/mod.rs`.
+
+## R5: An item's symbol is named by its id
+
+- **Decision**: a question's, story's, task's, or comment's symbol is named by its id, `Q1.A`,
+  `US1`, `Task 3`, or `C1`, with the rest of its heading as the symbol's detail; other headings keep
+  their text. Questions and comments are `STRING`, as the plan says, stories `EVENT`, tasks
+  `FUNCTION`, and other headings `NAMESPACE`.
+- **Rationale**: the plan's test names the symbols `Q1`, `Q1.A`, and `Q2`, and pickers show the
+  detail next to the name. Distinct kinds let an outline tell the items apart; LazyVim filters no
+  symbol kind in markdown buffers, so every kind shows.
+- **Alternatives considered**: the whole heading as the name: longer entries in a picker, and an id
+  the user cannot jump to by typing it alone.
+- **If wrong**: a naming and a `match` in [`crates/lsp/src/symbols.rs`](/crates/lsp/src/symbols.rs).
+- **Where**: task 3, `crates/lsp/src/symbols.rs`.

@@ -4,7 +4,7 @@ use super::document::{BlockKind, Document};
 use super::items::{Criterion, Scenario, SpecItems, Story, headings, section};
 
 /// `US2: Complete a repeating task (P1)` as its id, title, and priority.
-fn story_heading(text: &str) -> Option<(String, String, String)> {
+pub(crate) fn story_heading(text: &str) -> Option<(String, String, String)> {
     let (id, rest) = text.split_once(':')?;
     let number = id.strip_prefix("US")?;
     if number.is_empty() || !number.bytes().all(|b| b.is_ascii_digit()) {
