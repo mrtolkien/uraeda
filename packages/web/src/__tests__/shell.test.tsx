@@ -1,10 +1,19 @@
 // US6: "Uraeda" goes home, and ＋ shows on home and the priorities page only, its result confirmed
-// by a toast with Undo.
+// by a toast with Undo. Below them, the chat's US3 and US4: the sessions in the sidebar.
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { click, read, renderPage, type } from "./helpers.tsx";
+import {
+  click,
+  type Fake,
+  fakeAgent,
+  fixtureRepo,
+  read,
+  refreshUntil,
+  renderPage,
+  type,
+} from "./helpers.tsx";
 
 test("Uraeda goes home (US6 4)", async () => {
   await renderPage("/priorities");
@@ -83,4 +92,221 @@ test("no ＋ on a review (US6 6)", async () => {
   await renderPage("/f/2026-10-06-recurring-tasks/spec.md");
   await screen.findAllByText(/Complete a repeating task/);
   expect(screen.queryByRole("button", { name: "Add a priority" })).toBeNull();
+});
+
+const CLI = "2026-10-12-cli-tuis";
+
+/** The side navigation, as drawn on a wide screen. */
+function nav() {
+  return within(screen.getByRole("navigation", { name: "Side navigation" }));
+}
+
+/** The navigation's link to a feature or a chat, by its title. */
+function row(title: string) {
+  return nav().getByRole("link", { name: new RegExp(`^${title}, `) });
+}
+
+/** The status a navigation row shows. */
+function statusOf(link: HTMLElement) {
+  return within(link).getByRole("img").getAttribute("aria-label");
+}
+
+/** A chat started with its first message, its reply written, and its turn ended. */
+async function seedChat(fake: Fake, repo: string, text: string, reply = "Done.") {
+  const chat = await fake.sessions.newChat(repo);
+  fake.adapter.script([{ type: "text", text: reply }]);
+  const { turn } = await fake.sessions.send(repo, chat.id, { text });
+  await fake.sessions.settled(turn);
+  return chat.id;
+}
+
+/** Writes an ended turn of a feature's session in the cache, blocked by `auto` mode or not. */
+async function endedTurn(
+  fake: Fake,
+  repo: string,
+  folder: string,
+  state: "done" | "failed",
+  blocked = false,
+) {
+  const session = await fake.sessions.featureSession(repo, folder);
+  const { cache } = fake.sessions;
+  const id = cache.addTurn({
+    sessionId: session.id,
+    kind: "workflow",
+    trigger: "manual",
+    step: "plan",
+    allowed: null,
+    state: "running",
+  });
+  if (blocked) {
+    cache.appendItem(id, {
+      kind: "denial",
+      tool: "Bash",
+      target: "git push origin HEAD",
+      rule: "Bash(git push origin HEAD)",
+      allowed: false,
+    });
+  }
+  cache.endTurn(id, { state });
+}
+
+test("US3.1: a feature waiting on you shows Needs you", async () => {
+  await renderPage("/");
+
+  await screen.findByRole("searchbox", { name: "Search sessions" });
+  expect(statusOf(row("Web UI for the workflow files"))).toBe("Needs you");
+});
+
+test("US3.2: a working turn shows Working, then New reply", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const session = await fake.sessions.featureSession(repo, CLI);
+  await fake.sessions.send(repo, session.id, { text: "Plan it." });
+  await renderPage("/", repo, { agent: fake });
+
+  await waitFor(() => expect(statusOf(row("CLI TUIs"))).toBe("Working"));
+  fake.adapter.emit({ type: "accepted", id: fake.adapter.sent[0].id });
+  fake.adapter.emit({ type: "text", text: "Planned." });
+  fake.adapter.emit({ type: "result", ok: true, errors: [], denials: [], interrupted: false });
+
+  await refreshUntil(() => expect(statusOf(row("CLI TUIs"))).toBe("New reply"));
+});
+
+test("US3.4: a running sub-agent shows under its session, then leaves", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const session = await fake.sessions.featureSession(repo, CLI);
+  await fake.sessions.send(repo, session.id, { text: "Plan it." });
+  fake.adapter.emit({ type: "accepted", id: fake.adapter.sent[0].id });
+  fake.adapter.emit({
+    type: "toolStart",
+    id: "task-1",
+    name: "Task",
+    kind: "other",
+    input: {},
+    subagent: { description: "Map the runner code" },
+  });
+  await renderPage("/", repo, { agent: fake });
+
+  const sub = await waitFor(() => row("Map the runner code"));
+  expect(statusOf(sub)).toBe("Working");
+  fake.adapter.emit({ type: "toolEnd", id: "task-1", isError: false, output: "Mapped." });
+
+  await refreshUntil(() =>
+    expect(nav().queryByRole("link", { name: /Map the runner code/ })).toBeNull(),
+  );
+  expect(row("CLI TUIs")).toBeTruthy();
+});
+
+test("US3.5: search filters features and chats by message text, 200 ms after typing", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await seedChat(fake, repo, "How does the cache work?", "The cache uses WAL mode.");
+  await seedChat(fake, repo, "Why is CI slow?");
+  await renderPage("/", repo, { agent: fake });
+  const search = await screen.findByRole("searchbox", { name: "Search sessions" });
+
+  await type(search, "wal");
+
+  // Not at once: the search waits for typing to stop.
+  expect(row("CLI TUIs")).toBeTruthy();
+  await waitFor(() => expect(nav().queryByRole("link", { name: /^CLI TUIs/ })).toBeNull());
+  expect(row("How does the cache work\\?")).toBeTruthy();
+  expect(nav().queryByRole("link", { name: /Why is CI slow/ })).toBeNull();
+  expect(nav().queryByRole("link", { name: /Web UI for the workflow files/ })).toBeNull();
+
+  await type(search, "zzz");
+
+  expect(await nav().findByText("No session matches “zzz”.")).toBeTruthy();
+  expect(nav().queryByRole("link", { name: /How does the cache work/ })).toBeNull();
+});
+
+test("US3.6: needs you sorts first in its group", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  // Both are done: the first failed, the second was blocked.
+  await endedTurn(fake, repo, "2026-10-10-cli-core", "failed");
+  await endedTurn(fake, repo, "2026-10-10-stack-decision", "done", true);
+  await renderPage("/", repo, { agent: fake });
+  await screen.findByRole("navigation", { name: "Side navigation" });
+
+  const done = within(await nav().findByRole("group", { name: "Done" }));
+  await waitFor(() =>
+    expect(done.getAllByRole("link").map((link) => statusOf(link))).toEqual([
+      "Needs you",
+      "Failed",
+    ]),
+  );
+  expect(done.getAllByRole("link")[0].textContent).toContain("Stack decision");
+});
+
+test("US4.1: New chat opens an empty chat, and its first message lists it in Chats", async () => {
+  const fake = await fakeAgent();
+  await renderPage("/", fixtureRepo(), { agent: fake });
+  await screen.findByRole("navigation", { name: "Side navigation" });
+
+  await click(await nav().findByRole("link", { name: "New chat" }));
+
+  expect(window.location.pathname).toBe("/chats/new");
+  const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
+  await type(box, "List the open draft files");
+  await click(screen.getByRole("button", { name: "Send" }));
+
+  await waitFor(() => expect(window.location.pathname).toMatch(/^\/chats\/(?!new)/));
+  expect(fake.adapter.sent[0].text).toBe("List the open draft files");
+  await refreshUntil(() => {
+    const chats = within(nav().getByRole("group", { name: "Chats" }));
+    const link = chats.getByRole("link", { name: /^List the open draft files, / });
+    expect(statusOf(link)).toBe("Working");
+  });
+});
+
+test("US4.2: renaming a chat in its header renames it in the sidebar", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const id = await seedChat(fake, repo, "List the open draft files");
+  await renderPage(`/chats/${id}`, repo, { agent: fake });
+  const main = within(await screen.findByRole("main"));
+
+  await click(await main.findByRole("button", { name: "List the open draft files" }));
+  const field = main.getByRole("textbox", { name: "Title" });
+  await type(field, "Drafts");
+  await act(async () => {
+    fireEvent.keyDown(field, { key: "Enter" });
+  });
+
+  expect(await main.findByRole("button", { name: "Drafts" })).toBeTruthy();
+  await refreshUntil(() => expect(row("Drafts")).toBeTruthy());
+});
+
+test("US4.3: an archived chat moves under Archived, and a message brings it back", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const id = await seedChat(fake, repo, "List the open draft files");
+  await renderPage(`/chats/${id}`, repo, { agent: fake });
+  const chats = () => within(nav().getByRole("group", { name: "Chats" }));
+  await waitFor(() => expect(row("List the open draft files")).toBeTruthy());
+
+  await click(await screen.findByRole("button", { name: "Archive" }));
+
+  expect(await screen.findByRole("button", { name: "Unarchive" })).toBeTruthy();
+  await refreshUntil(() =>
+    expect(chats().queryByRole("link", { name: /List the open draft files/ })).toBeNull(),
+  );
+  await click(chats().getByRole("button", { name: "Archived" }));
+  const archived = within(nav().getByRole("group", { name: "Archived" }));
+  expect(archived.getByRole("link", { name: /List the open draft files/ })).toBeTruthy();
+
+  fake.adapter.script([{ type: "text", text: "Two drafts." }]);
+  await type(
+    await screen.findByRole("textbox", { name: "Message Claude Code" }),
+    "And the closed ones?",
+  );
+  await click(screen.getByRole("button", { name: "Send" }));
+
+  await refreshUntil(() =>
+    expect(chats().getByRole("link", { name: /^List the open draft files, / })).toBeTruthy(),
+  );
+  expect(nav().queryByRole("button", { name: "Archived" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Archive" })).toBeTruthy();
 });

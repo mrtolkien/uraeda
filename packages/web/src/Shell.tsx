@@ -2,12 +2,7 @@ import { AppShell } from "@astryxdesign/core/AppShell";
 import { Banner } from "@astryxdesign/core/Banner";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Link } from "@astryxdesign/core/Link";
-import {
-  SideNav,
-  SideNavItem,
-  SideNavSection,
-  useSideNavCollapse,
-} from "@astryxdesign/core/SideNav";
+import { SideNav, SideNavItem, useSideNavCollapse } from "@astryxdesign/core/SideNav";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import {
@@ -19,11 +14,12 @@ import {
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
-import { useWorkspace } from "./data.ts";
+import { useNavigation } from "./data.ts";
 import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
 import { useUndoErrors } from "./layout/useUndoToast.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { currentEntry, navigate, usePathname } from "./routes.tsx";
+import { SearchField, SessionNav, useSessionQuery } from "./SessionNav.tsx";
 import { type ThemeMode, useThemeMode } from "./theme.tsx";
 
 const styles = stylex.create({
@@ -142,64 +138,33 @@ function ThemeSwitch() {
   );
 }
 
-function Item({ label, to, pathname }: { label: string; to: string; pathname: string }) {
-  return (
-    <SideNavItem
-      label={label}
-      href={to}
-      isSelected={pathname === to || (to !== "/" && pathname.startsWith(`${to}/`))}
-      onClick={(event: React.MouseEvent) => {
-        event.preventDefault();
-        navigate(to);
-      }}
-    />
-  );
-}
-
 /**
- * The navigation: home, priorities, and every feature by what it waits for, then the theme. Its
- * heading goes home and ends with the page's own controls; on wide screens it folds away and
- * resizes, its width and state kept in the browser.
+ * The navigation: a search over the sessions, home, priorities, every feature by what it waits for
+ * with its session's status, the chats, then the theme. Its heading goes home and ends with the
+ * page's own controls; on wide screens it folds away and resizes, its width and state kept in the
+ * browser.
  */
 function Nav({ slot }: { slot: ReactNode }) {
-  const workspace = useWorkspace();
+  const { workspace, sessionList } = useNavigation();
   const path = usePathname();
+  const { text, setText, query } = useSessionQuery();
   // A task view opened from home shows beside home on wide screens: home stays the page selected.
   const pathname = path.startsWith("/priorities/") && currentEntry().from === "/" ? "/" : path;
-  const features = workspace?.features ?? [];
-  const groups: Array<[string, typeof features]> = [
-    ["Waiting on you", features.filter((f) => f.step.waitsOn === "human")],
-    [
-      "Agents at work",
-      features.filter((f) => f.step.waitsOn === "agent" && f.step.name !== "none"),
-    ],
-    ["Done", features.filter((f) => f.step.name === "done")],
-  ];
   const repository = workspace?.root.split("/").pop() ?? "uraeda";
   return (
     <SideNav
       header={<Heading repository={repository} slot={slot} />}
+      topContent={<SearchField text={text} onChange={setText} />}
       footer={<ThemeSwitch />}
       collapsible
       resizable={{ defaultWidth: 240, minWidth: 200, maxWidth: 360, autoSaveId: "uraeda.nav" }}
     >
-      <Item label="Home" to="/" pathname={pathname} />
-      <Item label="Priorities" to="/priorities" pathname={pathname} />
-      {groups.map(
-        ([title, list]) =>
-          list.length > 0 && (
-            <SideNavSection key={title} title={title}>
-              {list.map((feature) => (
-                <Item
-                  key={feature.folder}
-                  label={feature.title}
-                  to={`/f/${feature.folder}`}
-                  pathname={pathname}
-                />
-              ))}
-            </SideNavSection>
-          ),
-      )}
+      <SessionNav
+        workspace={workspace}
+        sessionList={sessionList}
+        pathname={pathname}
+        query={query}
+      />
     </SideNav>
   );
 }

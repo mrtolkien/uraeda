@@ -940,7 +940,7 @@ git commit -m "feat(chat-in-the-web-ui): the session view and its composer"
   table: `working` accent pulsing, `needs-you` warning with "!", `failed` error with "×", `unread`
   success with "✓", `idle` neutral; used by the sidebar, the session header, and the feature page.
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
   - US3.1 "a feature waiting on you shows Needs you": the nav row "Web UI" has a status "Needs you".
   - US3.2 "a working turn shows Working, then New reply": after the fake's turn ends, `refreshUntil`
     the row shows "New reply".
@@ -950,17 +950,17 @@ git commit -m "feat(chat-in-the-web-ui): the session view and its composer"
   - US3.6 "needs you sorts first in its group".
   - US4.1 "New chat opens an empty chat, and its first message lists it in Chats".
   - US4.3 "an archived chat moves under Archived".
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/shell.test.tsx`
 - Expected: FAIL, no searchbox "Search sessions"
 
-- [ ] **Step 3: Implement them**: `SessionNav` draws the search field (Astryx `TextInput` with role
+- [x] **Step 3: Implement them**: `SessionNav` draws the search field (Astryx `TextInput` with role
       `searchbox`, label "Search sessions"), the feature groups of `Shell.tsx` with each row's
       `StatusMark` as its `icon`, sub-agent rows as `SideNavItem`s indented under their session, and
       the "Chats" section with "New chat" and "Archived".
-- [ ] **Step 4: Run all tests**: `vp check && vp test`, PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 4: Run all tests**: `vp check && vp test`, PASS.
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src
