@@ -17,7 +17,7 @@ import { discoveryOf, LEVELS, withDiscovery, type Level } from "./discovery.ts";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
 import { navigate, useRestoreScroll } from "./routes.tsx";
-import { startRun } from "./runs.ts";
+import { startRun } from "./sessions.ts";
 import { useSave } from "./useSave.ts";
 import { DraftView, FeatureView } from "./views.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";

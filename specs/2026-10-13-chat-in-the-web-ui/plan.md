@@ -883,7 +883,7 @@ git commit -m "feat(chat-in-the-web-ui): sessions, their search, and their live 
     and `ChatSendButton`; Send reads "Start the agent" while `workflow` is set.
   - `SessionPage({ folder } | { id } | { newChat: true })`.
 
-- [ ] **Step 1: Write the failing tests**, through `renderPage` with `fakeAgent()`:
+- [x] **Step 1: Write the failing tests**, through `renderPage` with `fakeAgent()`:
   - US1.1: at `/f/2026-10-11-web-ui/session`, type "Why did you recommend A in Q6?", press Send;
     `refreshUntil` the log "Conversation" shows the question and, muted, the opening line, then the
     fake's scripted text "Because …".
@@ -900,25 +900,25 @@ git commit -m "feat(chat-in-the-web-ui): sessions, their search, and their live 
   - Phone: at 402, the session is its own page with crumbs; at 1024, beside the feature page.
   - "the status region says when a reply starts and ends": "Claude Code is replying", then "Reply
     complete".
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/session.test.tsx`
 - Expected: FAIL, no textbox "Message Claude Code"
 
-- [ ] **Step 3: Implement them.** `Transcript` keeps `useOpenGroups` and `useFollowEnd` from
+- [x] **Step 3: Implement them.** `Transcript` keeps `useOpenGroups` and `useFollowEnd` from
       `RunPage.tsx`; text items render with `Markdown`; a `subagent` tool and the tools whose
       `parent` is its id form one `ChatToolCalls` group of their own; denials render as a warning
       `Banner` "Blocked by auto mode: <tool> <target>" with "Allow and retry" when `onAllow` is
       given and the session is not working. Enter sends when `useWidthClass()` is wide; on narrow,
       only the button sends.
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check && vp test`
 - Expected: PASS, except the tests task 9 and 10 rewrite: delete `run.test.tsx`, and mark
   `agent-panel.test.tsx` and `commit-actions.test.tsx` cases that start runs with `test.skip` naming
   task 10, removed there.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src

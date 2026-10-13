@@ -72,7 +72,7 @@ const commands = {
   },
   /** Ends the agent's current run. */
   agentFinish(_context: unknown, code = 0, stderr = "") {
-    agent.finish(code, stderr);
+    agent.exit(code, stderr);
   },
   /**
    * Real mouse moves, presses, and releases, at points of the test's page, which the browser

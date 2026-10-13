@@ -29,7 +29,7 @@ import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { GrowingTextArea, statusStyles } from "./Question.tsx";
 import { HookRefusal } from "./RoundPage.tsx";
-import { startRun } from "./runs.ts";
+import { startRun } from "./sessions.ts";
 import { plain } from "./Spans.tsx";
 import { FileView } from "./views.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";

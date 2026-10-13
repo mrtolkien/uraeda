@@ -2,14 +2,18 @@
 // fate asks.
 import { view } from "react-fate";
 import type {
+  Agent,
   Draft,
   Feature,
   Priorities,
   ProposalHints,
-  Run,
-  RunLog,
-  Runner,
+  Session,
+  SessionList,
+  SessionSearch,
+  Turn,
+  TurnLog,
   WorkflowFile,
+  WorkflowMessage,
   Workspace,
 } from "uraeda-server/fate";
 
@@ -71,7 +75,7 @@ export const FeatureView = view<Feature>()({
   problems: true,
   leftWorktree: true,
   leftBranch: true,
-  runs: true,
+  session: true,
   missing: true,
 });
 
@@ -118,33 +122,66 @@ export const DraftView = view<Draft>()({
   priorityChanges: true,
 });
 
-export const RunnerView = view<Runner>()({
+export const AgentView = view<Agent>()({
   id: true,
+  kind: true,
+  name: true,
   available: true,
   version: true,
+  capabilities: { steer: true, queue: true, takeBack: true, approvals: true, subagents: true },
 });
 
-export const RunView = view<Run>()({
+export const SessionView = view<Session>()({
   id: true,
   folder: true,
-  trigger: true,
-  step: true,
-  state: true,
-  reason: true,
+  agent: true,
+  title: true,
+  status: true,
+  statusLabel: true,
+  statusReason: true,
+  place: true,
   costUsd: true,
-  startedAt: true,
-  endedAt: true,
-  newSession: true,
-  allowed: true,
-  pages: true,
-  denials: true,
+  turns: true,
+  archived: true,
+  subagents: true,
 });
 
-export const RunLogView = view<RunLog>()({
+export const TurnView = view<Turn>()({
   id: true,
-  run: true,
+  session: true,
+  kind: true,
+  trigger: true,
+  step: true,
+  allowed: true,
+  state: true,
+  reason: true,
+  startedAt: true,
+  endedAt: true,
+  pages: true,
+});
+
+export const TurnLogView = view<TurnLog>()({
+  id: true,
+  turn: true,
   page: true,
-  events: true,
+  items: true,
+});
+
+export const SessionListView = view<SessionList>()({
+  id: true,
+  rows: true,
+});
+
+export const SessionSearchView = view<SessionSearch>()({
+  id: true,
+  rows: true,
+});
+
+export const WorkflowMessageView = view<WorkflowMessage>()({
+  id: true,
+  text: true,
+  step: true,
+  refusal: true,
 });
 
 export const ProposalHintsView = view<ProposalHints>()({
