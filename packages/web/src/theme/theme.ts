@@ -105,7 +105,7 @@ export const uraedaTheme = defineTheme({
           components: {
             // A row a finger taps is a control's height at least.
             item: { base: { minHeight: "var(--size-element-md)" } },
-            // A run's tool calls, and their group's header, open with a tap on their row.
+            // A session's tool calls, and their group's header, open with a tap on their row.
             "chat-tool-calls": {
               base: { ':is(*) [role="button"]': { minHeight: "var(--size-element-md)" } },
             },
