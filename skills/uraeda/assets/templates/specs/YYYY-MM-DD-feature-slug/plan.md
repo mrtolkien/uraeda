@@ -14,27 +14,31 @@ spec-revision: [the spec's revision]
 
 **Goal:** [one sentence on what the feature builds]
 
-**Architecture:** [two or three sentences on the approach. See the [spec's design](spec.md#design).]
+**Architecture:** [the approach, ownership of changed rules, state, and resources, and the
+boundaries tasks rely on. Scale the detail to the change. See the [spec's design](spec.md#design).]
 
 **Spec:** [spec.md](spec.md): the plan argues from the spec, so the implementer reads both.
 
 ## Review focus
 
-Inputs the spec does not mention, most likely to bite a user first. Each gets a test in the task
-that owns the code.
+The most consequential conditions or sequences the spec implies but does not name, including
+interactions with existing behaviour. Each gets a test in the task that owns the code.
 
 1. **[An input or failure mode the spec does not mention]** [the behaviour a reasonable person would
    expect]. Task [N].
 
 ## Global constraints
 
-From the decisions and the spec, every task's requirements include these:
+The approved rules and existing guarantees the change must preserve, with their sources. Every
+task's requirements include these:
 
-- [A rule, format, limit, or exact text, copied word for word, with its source]
+- [An approved rule, copied word for word with its source; or an existing guarantee, described with
+  links to its code and tests. Use an approval comment where it explicitly replaces a spec clause.]
 
 ## Code read
 
-- [`path`](/path): [what it showed: the test setup and layout, the places that read changed data]
+- [`path`](/path): [what it showed: the test setup and layout, the readers, writers, and entry
+  points affected by the change]
 
 ## Constitution check
 
@@ -52,7 +56,8 @@ The decisions this plan relies on, and where it follows them:
 
 [Every new abstraction: a type, module, layer, wrapper, or helper shared by several parts, tests
 included, even when the spec's design introduced it. Every constitution exception the human
-accepted. "None." otherwise.]
+accepted. Name the callers, shared rule, or approved variation that needs each abstraction, and the
+simpler alternative rejected. "None." otherwise.]
 
 | Abstraction or exception | Why it is needed | Simpler alternative rejected because |
 | ------------------------ | ---------------- | ------------------------------------ |
@@ -60,7 +65,7 @@ accepted. "None." otherwise.]
 ## Review comments
 
 [Optional: only when the spec was approved with comments, each comment of `spec-review.md`, and the
-task that carries it out.]
+task that carries it out. State which spec clause it supersedes when it explicitly changes one.]
 
 ---
 
@@ -75,7 +80,8 @@ task that carries it out.]
 **Interfaces:**
 
 - Consumes: [what this task uses from earlier tasks, with exact signatures]
-- Produces: [what later tasks rely on: exact names, parameters, and return types]
+- Produces: [what callers or later tasks rely on: exact names, parameters, return types, and
+  behaviour. Private helpers and internal decomposition remain implementation choices.]
 
 - [ ] **Step 1: Write the failing tests, and the helpers they use**
 
@@ -84,7 +90,7 @@ task that carries it out.]
 test("[the scenario, in words]", async () => {
   // Arrange, with the shared helpers
   // Act
-  // Assert, with the spec's exact values
+  // Assert, with values derived from the approved behaviour, independently of implementation
 });
 ```
 
@@ -95,8 +101,9 @@ test("[the scenario, in words]", async () => {
 
 - [ ] **Step 3: Implement**
 
-[Exact signatures and files, the values the spec pins, and one line on the approach when the
-signature and tests leave a choice.]
+[Responsibilities, files, the values the spec pins, and exact signatures for public and cross-task
+contracts. Explain an algorithm when correctness depends on it; leave private implementation choices
+to the implementer.]
 
 - [ ] **Step 4: Run all tests[, and the benchmark]**
 

@@ -2,21 +2,33 @@
 
 ## Now
 
+> [!NOTE]
+>
+> Features for v1.0.0
+
 - Chats, proposals, and reviews should accept images (drag and drop in the page, still show a
   dedicated button)
+
+- [Code quality and maintainability through the skill](drafts/code-quality-in-the-skill.md)
+
 - Look and feel pass: components style, logo, favicon, ...
   - Generally, the happy path should look good: parsed frontmatter should not appear in the edit
     box, we should have color and hierarchy for specs and plans, ...
+
 - Clean server code that can open any folder on the host + be run easily with node -> make the tool
   multi-repos
-- [Code quality and maintainability through the skill](drafts/code-quality-in-the-skill.md)
+
 - Add a bugfixing/low impact change flow
 - Add a "scratchpad" concept: quick notes about the system, small issues, ...
 
-## Next
-
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Setup with agent (checks project and creates relevant files)
+
+## Next
+
+> [!NOTE]
+>
+> Nice to have post-release
 
 - Benchmarks (harness, model, ...): blocked until the harness and the Claude Code integration are
   ready, see [backlog](backlog/benchmarks/proposal.md), with a discovery round and partial answers.

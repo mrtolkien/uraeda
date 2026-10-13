@@ -10,16 +10,20 @@ for the human to review.
 - **Ends at**: the [finish](finish.md) step; a human gate, the pull request, after changes requested
   on it; or a new [discovery](discovery.md) round, when blocked
 
-The plan already did the thinking: execute it exactly, prove each task with tests you watched fail
-then pass, and leave the record in git. Nobody waits in a chat: do not stop to check in between
-tasks. Git is the only memory: the checked boxes of `plan.md` and the commits say how far the work
-went, so any agent can resume it.
+Build the plan's tasks within the approved behaviour and required contracts, prove the change and
+preserved guarantees, and leave the record in git. Private implementation choices can improve as the
+code reveals a simpler design: amend the plan and record the reason in `rulings.md`. Nobody waits in
+a chat: do not stop to check in between tasks. Git is the only memory: the checked boxes of
+`plan.md` and the commits say how far the work went, so any agent can resume it.
 
 ## Before the first task
 
 1. Read `plan.md` in full. Its **Global constraints** apply to every task, and its **Review focus**
    lists the behaviours the plan adds to the spec.
-2. Read `spec.md`: the plan argues from it. When they disagree, the spec wins.
+2. Read `spec.md` and, when present, `spec-review.md`: a human's approval comment supersedes the
+   clause it explicitly changes. Check the plan's **Review comments** against them. This approved
+   behaviour wins when the plan disagrees; conflicts with the constitution or active decisions still
+   need the human's explicit resolution.
 3. Read the constitution, and the active decisions that apply to the code you will touch, as they
    are now. A human may have changed one since the plan was written: if it now conflicts with the
    spec or the plan, stop and start a new round of questions, following
@@ -44,10 +48,12 @@ text, the global constraints, the path of the spec, and what earlier tasks produ
 session's history. Otherwise, implement it yourself.
 
 1. **Read the task**, all of it, even one you remember: its text has the exact values. Check its
-   **Consumes** against what the earlier tasks actually produced in the code.
-2. **Work its steps in order.** Write the tests first, run them, and watch them fail. A test that
-   passes before the implementation exists proves nothing: fix the test. Then implement, and run
-   every command the plan gives. Compare each output with the step's **Expected** line:
+   **Consumes** against what the earlier tasks actually produced in the code, and trace the affected
+   callers and owners of changed rules and state.
+2. **Work its steps in order.** Write the tests first. Tests of new behaviour must fail for the
+   intended reason before implementation; checks of preserved behaviour may already pass and must
+   keep passing. Then implement, and run every command the plan gives. Compare each output with the
+   step's **Expected** line:
    - **It matches**: go to the next step.
    - **The code is wrong**: find the root cause before changing anything: reproduce the failure,
      trace the wrong value back to where it first goes wrong, and test one hypothesis at a time, as
@@ -57,21 +63,30 @@ session's history. Otherwise, implement it yourself.
      failure that cannot happen. Make the smallest change that satisfies the spec, edit the plan's
      text to describe what was built, so later tasks read the right names, and write a ruling in
      `rulings.md`.
+   - **A private design can be simpler**: improve it within the approved behaviour, required
+     contracts, and active decisions. Update the plan, its affected task interfaces, and a ruling in
+     the same commit, so later tasks follow what was built. Remove paths made obsolete by the
+     change; keep unrelated refactoring out. Do not weaken tests or change user-visible behaviour to
+     accommodate the new design.
 3. **Run the project's validation**: formatter, linter, type checker, and every test.
 4. **Check the task's boxes** in `plan.md`, and commit them with the code and tests, using the
    plan's commit message. Check a box only for a step that ran, with the output the plan expects:
    the next agent trusts it without running it again.
 5. **Review the task**, when your harness can run a fresh reviewer agent. Give it the task's text,
-   the spec, the global constraints, and the diff of the task's commits. It checks that the code
-   does what the task and the spec say, nothing missing and nothing extra, then the code's quality.
-   Fix what matters in new commits, each fix with a test that fails first. After five rounds, rule
-   on what remains, in `rulings.md`, and go on.
+   the spec and its approval comments, the global constraints, and the diff of the task's commits.
+   It derives expected behaviour from the approved requirements before checking the implementation
+   and tests, then reviews the changed responsibilities and their callers. Use the criteria of
+   [Review the branch](#review-the-branch), scaled to the task. Fix what matters in new commits,
+   each behaviour fix with a test that fails first; structural changes must keep behavioural tests
+   passing and satisfy explicit architectural constraints. After five rounds, rule on what remains,
+   in `rulings.md`, and go on.
 
 ### Rulings
 
-Settle implementation details yourself: the spec is the authority, the plan argues from it, and your
-judgement settles what neither answers. Every deviation from the plan, and every choice a later
-reader would want explained, is a ruling: write it in the feature's `rulings.md`, from
+Settle implementation details yourself: the spec with the human's approval comments is the
+authority, the plan argues from it, and your judgement settles what neither answers. Every deviation
+from the plan, and every choice a later reader would want explained, is a ruling: write it in the
+feature's `rulings.md`, from
 [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md), in the same commit as
 the code it concerns. It is the feature's small ledger of low-impact decisions, in a fixed format:
 what was decided, why, the alternatives considered, and what it costs if it is wrong.
@@ -131,17 +146,42 @@ branch, there is nothing to do.
 
 Once the branch is caught up, review the whole branch, even when each task was reviewed. Give a
 fresh reviewer agent, on the most capable model available, the diff since the branch started, the
-spec, the plan, its **Review focus** to check one item at a time, and `rulings.md`. Without a
-reviewer agent, review the branch yourself as a separate pass, and say so in the pull request: a
-review by the author is weaker.
+spec and its approval comments, the plan, its **Review focus** to check one item at a time, and
+`rulings.md`. Without a reviewer agent, review the branch yourself as a separate pass, and say so in
+the pull request: a review by the author is weaker.
+
+Review the changed subsystem and affected callers, including relevant code outside the diff:
+
+- **Behaviour**: establish expectations from the approved requirements before reading the proposed
+  solution. Check what changed and what must remain true, including validation, error handling, and
+  compatibility. Trace shared guarantees across every relevant entry point.
+- **Ownership**: check that state transitions and business rules have a clear owner, and callers
+  reach the same enforcement. Where work is asynchronous or shared between processes, verify that
+  local views cannot override authoritative state. Check resource release on failure and
+  cancellation, in tests as well as production code.
+- **Evidence**: ask which plausible incorrect implementation each important test would reject. For
+  risky guarantees, verify this in isolated tests with a focused fault injection or temporary
+  removal of the protection, then restore it. Exercise relevant sequences, failures, retries, and
+  changes made elsewhere; use property-based tests when they provide useful coverage. Check explicit
+  architectural constraints separately from functional outcomes, through existing checks where
+  practical. Report what was actually exercised and any unverified assumptions.
+- **Change cost**: identify duplicated decisions, unnecessary indirection, and obsolete paths. Trace
+  where a likely follow-up change would belong without implementing that feature. Would it need the
+  same rule edited in several places, or unrelated internals understood together? Judge the
+  boundaries by that cost, rather than file length or a preferred style.
 
 Grade each finding by what a user gets if the branch ships, not by whether the spec names the input
 that triggers it:
 
-- **Critical and important**: fix them in one pass, each with a test that fails first, then run the
-  full validation. Commit with the feature's scope:
-  `fix(recurring-tasks): keep the undo after a reload`.
+- **Critical and important**: fix them in one pass, behaviour fixes with tests that fail first,
+  structural fixes with behavioural regression checks and any explicit architectural checks. Do not
+  manufacture a failing test that only pins a private implementation shape. Run the full validation.
+  Commit with the feature's scope: `fix(recurring-tasks): keep the undo after a reload`.
 - **Minor**: do not fix them. List them in the pull request, for the human to decide.
+
+A maintenance defect can be important before it causes a user-visible failure. Name the likely
+change or failure it makes harder, and the duplicated edits, coupling, or missing ownership behind
+that cost. A preference for different names, formatting, or file sizes alone is minor.
 
 A finding you decide not to fix is a ruling, written in `rulings.md` with the others.
 
