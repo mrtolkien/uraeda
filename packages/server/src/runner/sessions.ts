@@ -524,6 +524,11 @@ export class Sessions {
     this.#options.onChange({ repo: row.repo, session: row.id, folder: row.folder });
   }
 
+  /** How many of the session's messages this server keeps: those of its turns not ended, or unread. */
+  tracked(session: string): number {
+    return this.#live.get(session)?.messages.size ?? 0;
+  }
+
   /** Resolves once the turn has ended, at once when this server does not run it. */
   async settled(turn: number): Promise<void> {
     await this.#pending.get(turn)?.ended;
@@ -695,7 +700,20 @@ export class Sessions {
     }
     this.#pending.get(id)?.resolve();
     this.#pending.delete(id);
+    this.#forget(live, id);
     this.#changed(live, id, end.state);
+  }
+
+  /** Forgets the messages of the turn once it ended, but those the agent may still read. */
+  #forget(live: Live, turn: number) {
+    if (live.turn?.id === turn || live.queue.some((queued) => queued.id === turn)) {
+      return;
+    }
+    for (const [id, sent] of live.messages) {
+      if (sent.turn === turn && sent.item.state !== "pending") {
+        live.messages.delete(id);
+      }
+    }
   }
 
   /** After a turn: the next queued turn starts, or the idle timer does. */
@@ -967,6 +985,7 @@ export class Sessions {
     sent.item = { ...sent.item, state };
     this.cache.updateItem(sent.turn, sent.seq, sent.item);
     this.#changed(live, sent.turn);
+    this.#forget(live, sent.turn);
   }
 }
 
