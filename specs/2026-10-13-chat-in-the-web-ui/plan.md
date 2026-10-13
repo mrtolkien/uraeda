@@ -461,7 +461,7 @@ export function toolTarget(
 ): string | undefined;
 ```
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
   - `status.test.ts`, one table-driven test "sessionStatus", one row per rule: a running latest turn
     → `working`/"Working"; queued only → `working`; running with `waitsOnHuman` → `working`; ended
     with `blocked` → `needs-you`/"Needs you", reason `blocked`; `waitsOnHuman` → `needs-you`, reason
@@ -477,15 +477,15 @@ export function toolTarget(
     blocked action again, now allowed: Bash git push origin HEAD"; `chatTitle` cuts "x".repeat(90)
     to 80, keeps "List the open draft files", and gives "New chat" for " \n " (review focus 5);
     `toolTarget("Read", {file_path: "/repo/specs/a.md"}, "/repo")` is "specs/a.md".
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `vp test packages/server/src/runner/__tests__/status.test.ts packages/server/src/runner/__tests__/message.test.ts`
 - Expected: FAIL, `Cannot find module '../status.ts'`
 
-- [ ] **Step 3: Implement them**, `sessionStatus` in the order of the spec's status table.
-- [ ] **Step 4: Run them**: same command, PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 3: Implement them**, `sessionStatus` in the order of the spec's status table.
+- [x] **Step 4: Run them**: same command, PASS.
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/runner/status.ts packages/server/src/runner/message.ts packages/server/src/runner/__tests__/status.test.ts packages/server/src/runner/__tests__/message.test.ts

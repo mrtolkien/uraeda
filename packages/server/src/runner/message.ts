@@ -1,7 +1,5 @@
+import { isAbsolute, relative, sep } from "node:path";
 import type { Denial, Trigger } from "./events.ts";
-
-/** What started a run: its trigger, the file it committed, or the rule it allows. */
-export type TriggerDetail = { trigger: Trigger; file?: string; rule?: string };
 
 /** What a committed file is, in a sentence: "round 01", "spec", "bug report". */
 function fileName(file = ""): string {
@@ -16,10 +14,10 @@ function fileName(file = ""): string {
 }
 
 /** The sentence that tells the agent why it runs. */
-export function triggerSentence({ trigger, file, rule }: TriggerDetail): string {
+export function triggerSentence({ trigger, file }: { trigger: Trigger; file?: string }): string {
   switch (trigger) {
     case "answers":
-      return `The human answered ${fileName(file)} of the questions.`;
+      return `The human answered ${file} of the questions.`;
     case "approval":
       return `The human approved the ${fileName(file)}.`;
     case "changes":
@@ -30,14 +28,18 @@ export function triggerSentence({ trigger, file, rule }: TriggerDetail): string 
       return "The human started the feature.";
     case "manual":
       return "The human asked you to continue.";
-    case "allow":
-      return `The human allowed \`${rule}\`: run it again, then continue.`;
   }
 }
 
+/** A feature's or a bug's folder, and the word that names it. */
+function subject(folder: string, bug?: boolean): string {
+  return bug ? `bug specs/bugs/${folder}/` : `feature specs/${folder}/`;
+}
+
 /**
- * A run's single message. A resumed session keeps its first system prompt, so every message names
- * the skill, the step, its reference, and the trigger.
+ * The workflow's message, which the human reads and may change before sending. A resumed session
+ * keeps its first system prompt, so every message names the skill, the step, its reference, and
+ * the trigger.
  */
 export function runMessage(input: {
   folder: string;
@@ -46,26 +48,66 @@ export function runMessage(input: {
   bug?: boolean;
   step: string;
   reference: string;
-  detail: TriggerDetail;
+  trigger: Trigger;
+  /** The file the human committed, for the trigger's sentence. */
+  file?: string;
 }): string {
-  const path = input.bug ? `specs/bugs/${input.folder}/` : `specs/${input.folder}/`;
   return (
-    `/uraeda:uraeda Continue the ${input.bug ? "bug" : "feature"} ${path}, on branch ${input.branch}.\n` +
-    `${triggerSentence(input.detail)}\n` +
-    `Its next step is ${input.step}: follow ${input.reference}.\n` +
-    "No chat session is attached: work until the next human gate, and commit every step. The commit is\n" +
-    "the message.\n"
+    `/uraeda:uraeda Continue the ${subject(input.folder, input.bug)}, on branch ${input.branch}.\n` +
+    `${triggerSentence(input)}\n` +
+    `Its next step is ${input.step}: follow ${input.reference}.\n`
   );
 }
 
-const TARGETS = ["command", "file_path", "url", "pattern", "path"];
+/** The first message of a chat, which tells the agent to wait for the human's requests. */
+export function chatOpening(input: { folder: string; branch: string; bug?: boolean }): string {
+  return (
+    `A human is chatting with you about the ${subject(input.folder, input.bug)}, on branch ` +
+    `${input.branch}: answer, and change files, commit, or move the workflow only when they ask.`
+  );
+}
 
-/** What a tool call acts on, for its log line: its command, file, URL, or pattern. */
-export function toolTarget(_name: string, input: Record<string, unknown>): string | undefined {
+/** The message that asks the agent to retry an action the human allowed. */
+export function retryMessage(denial: { tool: string; target?: string }): string {
+  const action = denial.target ? `${denial.tool} ${denial.target}` : denial.tool;
+  return `Try the blocked action again, now allowed: ${action}`;
+}
+
+const TITLE_LENGTH = 80;
+
+/** A chat's title: its first message's first non-blank line, cut at 80 characters. */
+export function chatTitle(text: string): string {
+  const line = text
+    .split("\n")
+    .map((part) => part.trim())
+    .find((part) => part !== "");
+  return line ? line.slice(0, TITLE_LENGTH) : "New chat";
+}
+
+const TARGETS = ["command", "file_path", "url", "pattern", "path"];
+const PATHS = ["file_path", "path"];
+
+/**
+ * What a tool call acts on, for its log line: its command, file, URL, or pattern. A file under
+ * `cwd`, the session's directory, is relative to it.
+ */
+export function toolTarget(
+  _name: string,
+  input: Record<string, unknown>,
+  cwd?: string,
+): string | undefined {
   for (const key of TARGETS) {
-    if (typeof input[key] === "string") {
-      return input[key];
+    const value = input[key];
+    if (typeof value !== "string") {
+      continue;
     }
+    if (cwd && PATHS.includes(key) && isAbsolute(value)) {
+      const path = relative(cwd, value);
+      if (path !== "" && path !== ".." && !path.startsWith(`..${sep}`) && !isAbsolute(path)) {
+        return path;
+      }
+    }
+    return value;
   }
   return undefined;
 }
