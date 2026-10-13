@@ -6,7 +6,7 @@ import { getRequestListener } from "@hono/node-server";
 import { createApp } from "./app.ts";
 import { checkBinding, loadBinding } from "./binding.ts";
 import { type Env, loadDataDir, loadEnv } from "./env.ts";
-import { startLive, startRunner } from "./live.ts";
+import { startLive, startRunner, stopLive } from "./live.ts";
 import type { Adapter } from "./runner/adapter.ts";
 import { ClaudeAdapter, PLUGIN_DIR } from "./runner/claude.ts";
 import type { Runner } from "./runner/runner.ts";
@@ -39,6 +39,22 @@ export async function stopDevRuns(): Promise<void> {
   await (await stopping)?.stop();
 }
 
+/** The dev server's apps, by port and repository. */
+const apps = new Map<string, (req: IncomingMessage, res: ServerResponse) => Promise<void>>();
+
+/**
+ * Forgets a repository the tests are done with: its apps, and the watch of its files, which would
+ * otherwise go on for as long as the server runs.
+ */
+export function forgetRepo(repo: string): void {
+  for (const key of apps.keys()) {
+    if (key.endsWith(` ${repo}`)) {
+      apps.delete(key);
+    }
+  }
+  stopLive(repo);
+}
+
 /**
  * A Connect middleware serving the server's routes for the repository of the settings, or of
  * `URAEDA_REPO` when it is set in the environment later, as tests do. The guard takes the port the
@@ -47,7 +63,6 @@ export async function stopDevRuns(): Promise<void> {
  */
 export function devHandler(root: string, { adapter }: { adapter?: Adapter } = {}) {
   const env = loadEnv(root);
-  const apps = new Map<string, (req: IncomingMessage, res: ServerResponse) => Promise<void>>();
   const listener = async (repo: string, port: number) => {
     const key = `${port} ${repo}`;
     let app = apps.get(key);

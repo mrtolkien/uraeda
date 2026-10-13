@@ -3,6 +3,7 @@ mod common;
 use std::path::Path;
 use std::process::Command;
 
+use common::repo::without_user_git;
 use common::*;
 use uraeda_core::actions::{draft, place};
 use uraeda_core::git::Git;
@@ -15,23 +16,22 @@ fn repo() -> TestRepo {
     repo
 }
 
-/// Runs `ura` with a terminal, through `script`, when it is installed.
-fn ura_with_a_terminal(dir: &Path, command: &str) -> Option<String> {
-    let script = Command::new("script").arg("--version").output().ok()?;
-    if !script.status.success() {
-        return None;
-    }
-    let output = Command::new("script")
+/// Runs `ura` with a terminal, through util-linux's `script`. The tests using it are ignored off
+/// Linux, where `script` takes other arguments, and fail on a Linux without it, rather than pass
+/// without running.
+fn ura_with_a_terminal(dir: &Path, command: &str) -> String {
+    let output = without_user_git(&mut Command::new("script"))
         .args(["--quiet", "--return", "--command", command, "/dev/null"])
         .current_dir(dir)
         .env("URA_TODAY", "2026-10-11")
         .env("NO_COLOR", "1")
         .output()
-        .ok()?;
-    Some(String::from_utf8_lossy(&output.stdout).replace('\r', ""))
+        .expect("util-linux's script runs: install it to run the terminal tests");
+    String::from_utf8_lossy(&output.stdout).replace('\r', "")
 }
 
 #[test]
+#[cfg_attr(not(target_os = "linux"), ignore = "needs util-linux's script")]
 fn drafts_a_line_and_opens_the_editor() {
     let repo = repo();
     let editor = repo.parent().join("editor.sh");
@@ -46,12 +46,10 @@ fn drafts_a_line_and_opens_the_editor() {
         .unwrap();
     let ura = env!("CARGO_BIN_EXE_ura");
 
-    let Some(output) = ura_with_a_terminal(
+    let output = ura_with_a_terminal(
         repo.path(),
         &format!("VISUAL= EDITOR={} {ura} draft listener", editor.display()),
-    ) else {
-        return;
-    };
+    );
 
     assert!(
         repo.read("specs/drafts/git-listener-process.md")
@@ -113,16 +111,15 @@ fn without_a_terminal_it_prints_the_path() {
 }
 
 #[test]
+#[cfg_attr(not(target_os = "linux"), ignore = "needs util-linux's script")]
 fn no_editor_found() {
     let repo = repo();
     let ura = env!("CARGO_BIN_EXE_ura");
 
-    let Some(output) = ura_with_a_terminal(
+    let output = ura_with_a_terminal(
         repo.path(),
         &format!("env -u VISUAL -u EDITOR PATH=/nonexistent {ura} draft listener"),
-    ) else {
-        return;
-    };
+    );
 
     assert!(
         output.contains("open it in your editor: specs/drafts/git-listener-process.md"),

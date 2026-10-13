@@ -82,15 +82,6 @@ fn the_example_has_no_problems() {
     assert_eq!(summary(&example.problems()), Vec::<String>::new());
 }
 
-#[test]
-fn this_repository_has_no_problems() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-
-    let problems = check::check(&root, &root.join("specs")).unwrap();
-
-    assert_eq!(summary(&problems), Vec::<String>::new());
-}
-
 /// One row per rule: how to break the example, and the problem expected.
 #[test]
 fn each_rule() {

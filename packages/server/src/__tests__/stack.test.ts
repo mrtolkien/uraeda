@@ -15,15 +15,16 @@ const PARSERS = [
 ];
 
 function files(dir: string): Array<string> {
-  return readdirSync(dir).flatMap((name) => {
-    const path = join(dir, name);
-    return statSync(path).isDirectory() ? files(path) : /\.(ts|tsx)$/.test(name) ? [path] : [];
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    return entry.isDirectory() ? files(path) : /\.(ts|tsx)$/.test(entry.name) ? [path] : [];
   });
 }
 
 /** SC-004 */
 test("no package depends on a markdown parser, and no source imports one", () => {
-  for (const name of readdirSync(packages)) {
+  // Hidden folders are not packages: building the binding stages its files in one for a moment.
+  for (const name of readdirSync(packages).filter((name) => !name.startsWith("."))) {
     const manifest = JSON.parse(
       readFileSync(join(packages, name, "package.json"), "utf8"),
     ) as Record<string, Record<string, string> | undefined>;

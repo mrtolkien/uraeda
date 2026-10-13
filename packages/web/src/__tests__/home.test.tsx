@@ -1,9 +1,9 @@
 import { mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { act, fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { git, renderPage, sent } from "./helpers.tsx";
+import { git, read, refreshUntil, renderPage } from "./helpers.tsx";
 
 /** The page's own content, without the navigation. */
 async function main() {
@@ -85,16 +85,19 @@ test("says when the server cannot be reached, with a way to try again", async ()
 
 /** US6.6 */
 test("reads the page again when it comes back to the foreground", async () => {
-  await renderPage();
-  await (await main()).findByText("Waiting on you");
-  const before = sent.length;
+  const { repo } = await renderPage();
+  const page = await main();
+  await page.findByRole("link", { name: /Git listener process/ });
+  writeFileSync(
+    join(repo, "specs/PRIORITIES.md"),
+    read(repo).replace("Git listener process", "Git watcher process"),
+  );
 
-  await act(async () => {
-    document.dispatchEvent(new Event("visibilitychange"));
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  });
-
-  expect(sent.length).toBeGreaterThan(before);
+  // No live update reaches these tests: the page shows the change only by reading it again.
+  await refreshUntil(() =>
+    expect(page.getByRole("link", { name: /Git watcher process/ })).toBeTruthy(),
+  );
+  expect(page.queryByRole("link", { name: /Git listener process/ })).toBeNull();
 });
 
 test("opens a feature from its row", async () => {

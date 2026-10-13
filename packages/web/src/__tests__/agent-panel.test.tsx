@@ -2,8 +2,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import * as binding from "uraeda-binding";
-import { beforeAll, expect, test, vi } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
 import {
+  answered,
   type Fake,
   fakeAgent,
   fixtureRepo,
@@ -11,14 +12,13 @@ import {
   record,
   refreshUntil,
   renderPage,
+  today,
 } from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
 const WEB_UI = "2026-10-11-web-ui";
 
-beforeAll(() => {
-  process.env.URA_TODAY = "2026-10-12";
-});
+today("2026-10-12");
 
 async function tap(element: HTMLElement) {
   await act(async () => {
@@ -224,6 +224,8 @@ test("US4.3: a feature waiting on you has no Start the agent", async () => {
   await renderPage(`/f/${WEB_UI}`, fixtureRepo(), { agent: true });
 
   expect(await screen.findByText("Answer questions")).toBeTruthy();
+  await answered("Runner");
+  expect(screen.queryByRole("region", { name: "Agent" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Start the agent" })).toBeNull();
 });
 
@@ -231,6 +233,8 @@ test("without claude, a feature waiting on an agent has no panel", async () => {
   await renderPage(`/f/${CLI}`, fixtureRepo());
 
   expect(await screen.findByText("CLI TUIs", { selector: "h1" })).toBeTruthy();
+  await answered("Runner");
+  expect(screen.queryByRole("region", { name: "Agent" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Start the agent" })).toBeNull();
 });
 

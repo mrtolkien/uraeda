@@ -2,12 +2,13 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, cleanup, configure, fireEvent, render, waitFor } from "@testing-library/react";
 import { createFateClient } from "react-fate/client";
-import { afterEach, beforeEach } from "vite-plus/test";
+import { afterAll, afterEach, beforeAll, beforeEach } from "vite-plus/test";
 import * as binding from "uraeda-binding";
 import { fixture, fixtureRepo, git } from "uraeda-binding/test-utils";
 import { createApp } from "uraeda-server";
 import { fakeRunner } from "uraeda-server/testing";
 import { App } from "../App.tsx";
+import { forgetUndoToasts } from "../layout/useUndoToast.ts";
 
 export { fixture, fixtureRepo, git };
 
@@ -35,6 +36,10 @@ class SilentEventSource {
 
 beforeEach(() => {
   (globalThis as { EventSource?: unknown }).EventSource = SilentEventSource;
+  // A test that failed leaves nothing for the next: its requests, or an Undo's error on screen.
+  sent.length = 0;
+  answers.length = 0;
+  forgetUndoToasts();
   try {
     window.localStorage.clear();
   } catch {
@@ -45,6 +50,21 @@ beforeEach(() => {
 afterEach(cleanup);
 afterEach(() => atWidth(1024));
 
+/** Sets the day the core takes as today for a file's tests, and puts the machine's back after. */
+export function today(date: string) {
+  const before = process.env.URA_TODAY;
+  beforeAll(() => {
+    process.env.URA_TODAY = date;
+  });
+  afterAll(() => {
+    if (before === undefined) {
+      delete process.env.URA_TODAY;
+    } else {
+      process.env.URA_TODAY = before;
+    }
+  });
+}
+
 /** Gives the window a width, as a phone's (402) or a desktop's: happy-dom starts at 1024, wide. */
 export function atWidth(width: number) {
   (
@@ -54,6 +74,24 @@ export function atWidth(width: number) {
 
 /** The requests the UI sent, for the tests that count them. */
 export const sent: Array<string> = [];
+
+/** The requests the server answered, by their body. */
+const answers: Array<string> = [];
+
+/**
+ * Waits until the server answered a read of a type, `Runner` for one, and the page drew it: a part
+ * of a page that waits on its own read shows nothing until then, so a test that checks something
+ * does not show waits for it first.
+ */
+export async function answered(type: string) {
+  await waitFor(() => {
+    if (!answers.some((body) => body.includes(`"type":"${type}"`))) {
+      throw new Error(`No read of ${type} answered yet`);
+    }
+  });
+  // React draws what the answer resumes in a task of its own: the act lasts until the next task.
+  await act(() => new Promise((resolve) => setTimeout(resolve)));
+}
 
 /** A runner on the fake agent, as `fakeRunner` gives it: `adapter` is the agent. */
 export type Fake = ReturnType<typeof fakeRunner>;
@@ -119,7 +157,9 @@ export function serverFetch(repo: string, runner?: Fake["runner"]): typeof globa
       body: init?.body as string,
       headers: { "content-type": "application/json" },
     });
-    return new Response(await response.text(), {
+    const text = await response.text();
+    answers.push(typeof init?.body === "string" ? init.body : url);
+    return new Response(text, {
       status: response.status,
       headers: { "content-type": "application/json" },
     });
@@ -128,7 +168,9 @@ export function serverFetch(repo: string, runner?: Fake["runner"]): typeof globa
 
 /**
  * Reads the page again, as when it comes back to the foreground, until `check` passes: live
- * updates do not reach these tests, so a run's later state is read this way.
+ * updates do not reach these tests, so a run's later state is read this way. Each try waits a
+ * moment inside its act, so the read's answer is most often drawn within it; a slower answer is
+ * seen by a later try.
  */
 export async function refreshUntil(check: () => void) {
   await waitFor(async () => {

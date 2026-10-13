@@ -2,7 +2,7 @@ mod common;
 
 use std::fs;
 
-use common::repo::TestRepo;
+use common::repo::{TestRepo, run_git};
 use common::texts::{proposal, record};
 use uraeda_core::actions::clean::{Cleaned, Did, Left, Leftover, WhyLeft, clean};
 use uraeda_core::actions::place;
@@ -112,8 +112,8 @@ fn leaves_a_branch_with_commits_main_lacks() {
     let worktree = repo.path().join(WORKTREE);
     for n in 1..=2 {
         fs::write(worktree.join(format!("more-{n}.txt")), "more").unwrap();
-        run_in(&worktree, &["add", "--all"]);
-        run_in(
+        run_git(&worktree, &["add", "--all"]);
+        run_git(
             &worktree,
             &["commit", "--quiet", "--no-verify", "-m", "more"],
         );
@@ -132,15 +132,6 @@ fn leaves_a_branch_with_commits_main_lacks() {
             }
         )]
     );
-}
-
-fn run_in(dir: &std::path::Path, args: &[&str]) {
-    let status = std::process::Command::new("git")
-        .args(args)
-        .current_dir(dir)
-        .status()
-        .unwrap();
-    assert!(status.success(), "git {args:?}");
 }
 
 /// US3.4
@@ -162,7 +153,7 @@ fn a_merge_only_on_origin_counts() {
     repo.push("main");
     repo.push(FOLDER);
     let clone = repo.parent().join("clone");
-    run_in(
+    run_git(
         repo.parent(),
         &[
             "clone",
@@ -173,7 +164,7 @@ fn a_merge_only_on_origin_counts() {
             clone.to_str().unwrap(),
         ],
     );
-    run_in(
+    run_git(
         &clone,
         &[
             "-c",
@@ -187,7 +178,7 @@ fn a_merge_only_on_origin_counts() {
             "origin/2026-10-11-web-ui",
         ],
     );
-    run_in(&clone, &["push", "--quiet", "origin", "main"]);
+    run_git(&clone, &["push", "--quiet", "origin", "main"]);
     repo.git(&["fetch", "--quiet", "origin"]);
 
     let cleaned = run(&repo, FOLDER, false).unwrap();
@@ -397,15 +388,15 @@ fn leaves_the_worktree_it_runs_in() {
 fn leaves_a_branch_with_a_merge_main_lacks() {
     let repo = merged();
     let worktree = repo.path().join(WORKTREE);
-    run_in(&worktree, &["switch", "--quiet", "--create", "side"]);
+    run_git(&worktree, &["switch", "--quiet", "--create", "side"]);
     fs::write(worktree.join("side.txt"), "side").unwrap();
-    run_in(&worktree, &["add", "--all"]);
-    run_in(
+    run_git(&worktree, &["add", "--all"]);
+    run_git(
         &worktree,
         &["commit", "--quiet", "--no-verify", "-m", "side"],
     );
-    run_in(&worktree, &["switch", "--quiet", FOLDER]);
-    run_in(
+    run_git(&worktree, &["switch", "--quiet", FOLDER]);
+    run_git(
         &worktree,
         &["merge", "--quiet", "--no-ff", "--no-edit", "side"],
     );

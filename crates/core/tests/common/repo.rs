@@ -168,10 +168,9 @@ impl TestRepo {
     }
 }
 
-fn run_git(dir: &Path, args: &[&str]) -> String {
-    let output = Command::new("git")
-        .args(args)
-        .current_dir(dir)
+/// Runs git in a folder, and returns its stdout. Panics when git fails.
+pub fn run_git(dir: &Path, args: &[&str]) -> String {
+    let output = without_user_git(Command::new("git").args(args).current_dir(dir))
         .output()
         .expect("git runs");
     assert!(
@@ -181,4 +180,18 @@ fn run_git(dir: &Path, args: &[&str]) -> String {
         String::from_utf8_lossy(&output.stderr)
     );
     String::from_utf8(output.stdout).unwrap()
+}
+
+/// Keeps a command's git away from the machine's: the global and system configuration, where a
+/// `core.hooksPath` or an `init.templateDir` would run the developer's hooks on the tests'
+/// commits, and the repository variables a git hook exports, which would point git at another
+/// repository. The repositories' own configuration still applies.
+pub fn without_user_git(command: &mut Command) -> &mut Command {
+    command
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
+        .env_remove("GIT_INDEX_FILE")
+        .env_remove("GIT_COMMON_DIR")
 }

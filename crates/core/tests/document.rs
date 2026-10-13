@@ -224,7 +224,8 @@ fn markdown_files(dir: &Path, files: &mut Vec<PathBuf>) {
 }
 
 /// SC-006: every file of the example and of `specs/` renders, each line in a block, the
-/// frontmatter, or blank.
+/// frontmatter, or blank. `specs/` is written by hand: a file the parser cannot place a line of is
+/// a parser bug, whatever the file says.
 #[test]
 fn every_example_and_specs_file_parses() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");

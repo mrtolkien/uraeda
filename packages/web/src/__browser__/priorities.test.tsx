@@ -2,7 +2,7 @@
 // dragging lines on the priorities page with a mouse, a finger, and the keyboard. Each test takes
 // the repository in turn, on a fresh copy of the fixture (see `vite.browser.config.ts`).
 import { screen } from "@testing-library/react";
-import { expect, test } from "vite-plus/test";
+import { afterEach, expect, test } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
 import { show } from "./helpers.tsx";
@@ -47,6 +47,11 @@ function touch(type: string, target: EventTarget, x: number, y: number) {
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// A test that fails with the mouse button down would leave it pressed for the next one.
+afterEach(async () => {
+  await commands.mouse([{ type: "up" }]);
+});
+
 test("dragging with a mouse makes room and moves the line (US4 5)", async () => {
   await show("/priorities", "Git listener process");
   const handle = middle(screen.getByRole("button", { name: "Move Git listener process" }));
@@ -68,7 +73,7 @@ test("dragging with a mouse makes room and moves the line (US4 5)", async () => 
   await expect.poll(() => commands.readRepo(), { timeout: 10_000 }).toContain(NEXT_SWAPPED);
 });
 
-test("a touch press of 500 ms lifts, a quick swipe scrolls (US4 6)", async () => {
+test("a touch press of 500 ms lifts, a quick swipe lifts nothing (US4 6)", async () => {
   if (window.innerWidth >= 768) {
     return;
   }
@@ -96,8 +101,7 @@ test("a touch press of 500 ms lifts, a quick swipe scrolls (US4 6)", async () =>
     touch("pointermove", document, start.x, y);
     await wait(60);
   }
-  await wait(400);
-  expect(top(/Claude Code runner/)).toBeGreaterThan(before + 10);
+  await expect.poll(() => top(/Claude Code runner/)).toBeGreaterThan(before + 10);
   touch("pointerup", document, start.x, above.top + 2);
 
   await expect.poll(() => commands.readRepo(), { timeout: 10_000 }).toContain(NEXT_SWAPPED);
@@ -111,17 +115,17 @@ test("Space, ↓, ↓, Space moves a line two places, announced (US4 7)", async 
   const handle = screen.getByRole("button", { name: "Move Web UI for the workflow files" });
   handle.focus();
 
+  // Each key is announced once the drag has taken it, with the line's place: the announcement
+  // shows the last message only.
+  const announced = (text: string) => expect.poll(() => document.body.textContent).toContain(text);
   await userEvent.keyboard("[Space]");
-  await wait(200);
+  await announced("Web UI for the workflow files, 1 of 4 in Now.");
   await userEvent.keyboard("[ArrowDown]");
-  await wait(300);
+  await announced("Web UI for the workflow files, 2 of 4 in Now.");
   await userEvent.keyboard("[ArrowDown]");
-  await wait(300);
+  await announced("Web UI for the workflow files, 3 of 4 in Now.");
   await userEvent.keyboard("[Space]");
-
-  await expect
-    .poll(() => document.body.textContent)
-    .toContain("Web UI for the workflow files, 3 of 4 in Now");
+  await announced("Dropped: Web UI for the workflow files, 3 of 4 in Now.");
   await expect
     .poll(() => commands.readRepo(), { timeout: 10_000 })
     .toContain(
@@ -140,11 +144,14 @@ test("Escape cancels a drag, and nothing is written", async () => {
     { type: "down" },
     { type: "move", x: handle.x, y: handle.y - 10 },
     { type: "move", x: handle.x, y: above.top + 2 },
-    { type: "wait", ms: 300 },
   ]);
+  // The drag has started: the line is announced where it is now.
+  await expect.poll(() => document.body.textContent).toMatch(/(Picked up|Moved:) Git listener/);
   await userEvent.keyboard("[Escape]");
+  await expect.poll(() => document.body.textContent).toContain("Move cancelled: Git listener");
   await commands.mouse([{ type: "up" }]);
 
+  // A move is written as soon as it is dropped: none comes.
   await wait(1000);
   expect(await commands.readRepo()).toBe(original);
 });
@@ -156,7 +163,12 @@ test("committing closes the page's toasts", async () => {
 
   await userEvent.click(await screen.findByRole("button", { name: "Commit" }));
 
-  await expect.poll(() => screen.queryByRole("button", { name: "Undo" })).toBeNull();
+  // Closed by the commit, well before the toast would close by itself, after 5 seconds.
+  await expect
+    .poll(() => screen.queryByRole("button", { name: "Undo" }), { timeout: 2000 })
+    .toBeNull();
+  // Committed: nothing is left to commit.
+  await expect.poll(() => screen.queryByRole("button", { name: "Commit" })).toBeNull();
 });
 
 test("discarding closes the page's toasts", async () => {
@@ -168,9 +180,12 @@ test("discarding closes the page's toasts", async () => {
   await userEvent.click(await screen.findByRole("button", { name: "Discard" }));
   await userEvent.click(await screen.findByRole("button", { name: "Discard them" }));
 
-  // Discarded: the line is back, and no Undo is left to insert it a second time.
+  // Discarded: the line is back, and no Undo is left to insert it a second time, well before the
+  // toast would close by itself, after 5 seconds.
   await expect.poll(() => commands.readRepo()).toBe(original);
-  await expect.poll(() => screen.queryByRole("button", { name: "Undo" })).toBeNull();
+  await expect
+    .poll(() => screen.queryByRole("button", { name: "Undo" }), { timeout: 2000 })
+    .toBeNull();
 });
 
 test("a live update during a drag waits for its end (review focus 4)", async () => {

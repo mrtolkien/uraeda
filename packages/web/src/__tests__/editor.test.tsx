@@ -1,12 +1,10 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, screen, waitFor } from "@testing-library/react";
-import { beforeAll, expect, test } from "vite-plus/test";
-import { click, fixtureRepo, git, read, renderPage, type } from "./helpers.tsx";
+import { expect, test } from "vite-plus/test";
+import { click, fixtureRepo, git, read, renderPage, today, type } from "./helpers.tsx";
 
-beforeAll(() => {
-  process.env.URA_TODAY = "2026-10-12";
-});
+today("2026-10-12");
 
 /** Taps Edit on a written proposal, drawn, and returns its text field (US5 5). */
 async function edit() {

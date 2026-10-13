@@ -3,16 +3,14 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor } from "@testing-library/react";
-import { beforeAll, expect, test } from "vite-plus/test";
-import { addMockup, click, fixtureRepo, git, renderPage, type } from "./helpers.tsx";
+import { expect, test } from "vite-plus/test";
+import { addMockup, click, fixtureRepo, git, renderPage, today, type } from "./helpers.tsx";
 
 const FOLDER = "2026-10-06-recurring-tasks";
 const SPEC = `specs/${FOLDER}/spec.md`;
 const WORKTREE = join(".worktrees", FOLDER);
 
-beforeAll(() => {
-  process.env.URA_TODAY = "2026-10-11";
-});
+today("2026-10-11");
 
 /** The spec's review, as written in the feature's worktree. */
 function review(repo: string) {

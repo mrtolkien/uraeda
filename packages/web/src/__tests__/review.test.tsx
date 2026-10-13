@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { beforeAll, expect, test } from "vite-plus/test";
-import { fixtureRepo, git, renderPage } from "./helpers.tsx";
+import { expect, test } from "vite-plus/test";
+import { fixtureRepo, git, renderPage, today } from "./helpers.tsx";
 
 const FOLDER = "2026-10-06-recurring-tasks";
 const PAGE = `/f/${FOLDER}/spec.md`;
@@ -10,9 +10,7 @@ const SPEC = `specs/${FOLDER}/spec.md`;
 const REVIEW = `specs/${FOLDER}/spec-review.md`;
 const WORKTREE = join(".worktrees", FOLDER);
 
-beforeAll(() => {
-  process.env.URA_TODAY = "2026-10-11";
-});
+today("2026-10-11");
 
 /** Commits a change to the spec on its branch, in the feature's worktree. */
 function commitSpec(repo: string, edit: (text: string) => string) {
@@ -50,12 +48,19 @@ function read(repo: string, path: string) {
   return readFileSync(join(repo, WORKTREE, path), "utf8");
 }
 
-/** The toggle of the first tappable block whose text holds a phrase: its name is the block's text. */
+/**
+ * The toggle of the first tappable block whose text holds a phrase: its name is the block's text,
+ * which labels it. Only the toggles are read, by their label: naming every button of the page on
+ * each try is slow on a busy machine.
+ */
 async function scenario(phrase: string) {
   return waitFor(() => {
-    const block = screen
-      .getAllByRole("button", { name: (name) => name.includes(phrase) })
-      .find((b) => b.hasAttribute("aria-pressed"));
+    const block = [...document.querySelectorAll<HTMLElement>("button[aria-pressed]")].find(
+      (toggle) => {
+        const label = document.getElementById(toggle.getAttribute("aria-labelledby") ?? "");
+        return label?.textContent?.replace(/\s+/g, " ").includes(phrase);
+      },
+    );
     expect(block).toBeTruthy();
     return block as HTMLElement;
   });
@@ -75,6 +80,19 @@ async function comment(text: string) {
   await click(screen.getByRole("button", { name: /^(Add|Save) comment$/ }));
 }
 
+/**
+ * The pending comment shown under a name once its save is done: its form closed, and its text
+ * shown. The file is written before the save's answer reaches the page, and the page shows the
+ * new text a moment after the form closes.
+ */
+async function saved(name: string | RegExp, text: string) {
+  await waitFor(() => {
+    expect(screen.queryByLabelText("Comment text")).toBeNull();
+    expect(screen.getByRole("group", { name }).textContent).toContain(text);
+  });
+  return screen.getByRole("group", { name });
+}
+
 const FIRST = "completes it on Monday the 5th, Then it stays in the list, not done";
 const SECOND = "completes it on Thursday the 8th, Then it is due Monday the 12th.";
 
@@ -87,7 +105,7 @@ test("a tapped block takes a comment on its lines", async () => {
   expect(screen.getByText('Lines 92–93, under "US2: Complete a repeating task (P1)"')).toBeTruthy();
   await comment("Say what the row shows");
 
-  await waitFor(() => expect(existsSync(join(r, WORKTREE, REVIEW))).toBe(true));
+  await saved("C1 · lines 92–93", "Say what the row shows");
   const review = read(r, REVIEW);
   const tip = git(r, "rev-parse", "--short=7", FOLDER).trim();
   expect(review).toContain(`verdict: pending\ncommit: ${tip}\n`);
@@ -114,25 +132,16 @@ test("a pending comment is edited, then removed with its review file", async () 
   await renderPage(PAGE, r);
   await click(await scenario(FIRST));
   await comment("Say what the row shows");
-  const pending = await screen.findByRole("group", { name: "C1 · lines 92–93" });
+  const pending = await saved("C1 · lines 92–93", "Say what the row shows");
 
   await click(within(pending).getByRole("button", { name: "Edit" }));
   await comment("Say what the row shows, and for how long");
-  await waitFor(() =>
-    expect(read(r, REVIEW)).toContain("\nSay what the row shows, and for how long\n"),
-  );
-  await waitFor(() =>
-    expect(screen.getByRole("group", { name: "C1 · lines 92–93" }).textContent).toContain(
-      "and for how long",
-    ),
-  );
+  const edited = await saved("C1 · lines 92–93", "Say what the row shows, and for how long");
+  expect(read(r, REVIEW)).toContain("\nSay what the row shows, and for how long\n");
 
-  await click(
-    within(screen.getByRole("group", { name: "C1 · lines 92–93" })).getByRole("button", {
-      name: "Remove",
-    }),
-  );
-  await waitFor(() => expect(existsSync(join(r, WORKTREE, REVIEW))).toBe(false));
+  await click(within(edited).getByRole("button", { name: "Remove" }));
+  await waitFor(() => expect(screen.queryByRole("group", { name: "C1 · lines 92–93" })).toBeNull());
+  expect(existsSync(join(r, WORKTREE, REVIEW))).toBe(false);
 });
 
 /** US3.4 */
@@ -193,7 +202,11 @@ test("a new version under pending comments is said", async () => {
     ),
   ).toBeTruthy();
   await click(screen.getByRole("button", { name: "Start over" }));
-  await waitFor(() => expect(existsSync(join(r, WORKTREE, REVIEW))).toBe(false));
+  await waitFor(() =>
+    expect(screen.queryByText(/The spec changed since your comments/)).toBeNull(),
+  );
+  expect(screen.queryByRole("group", { name: "C1 · general" })).toBeNull();
+  expect(existsSync(join(r, WORKTREE, REVIEW))).toBe(false);
 });
 
 /** Review focus 4: a spec without stories still renders, and its blocks take comments. */
@@ -231,19 +244,16 @@ test("a general comment is edited, then removed", async () => {
   await renderPage(PAGE, r);
   await click(await screen.findByRole("button", { name: "Add a general comment" }));
   await comment("Too long");
-  await waitFor(() => expect(existsSync(join(r, WORKTREE, REVIEW))).toBe(true));
-  const general = await screen.findByRole("group", { name: "C1 · general" });
+  const general = await saved("C1 · general", "Too long");
+  expect(read(r, REVIEW)).toContain("\nToo long\n");
 
   await click(within(general).getByRole("button", { name: "Edit" }));
   await comment("Too long by half");
-  await waitFor(() => expect(read(r, REVIEW)).toContain("\nToo long by half\n"));
-  // Shown again once its save is done, after the file is written.
-  await click(
-    within(await screen.findByRole("group", { name: "C1 · general" })).getByRole("button", {
-      name: "Remove",
-    }),
-  );
-  await waitFor(() => expect(existsSync(join(r, WORKTREE, REVIEW))).toBe(false));
+  const edited = await saved("C1 · general", "Too long by half");
+  expect(read(r, REVIEW)).toContain("\nToo long by half\n");
+  await click(within(edited).getByRole("button", { name: "Remove" }));
+  await waitFor(() => expect(screen.queryByRole("group", { name: "C1 · general" })).toBeNull());
+  expect(existsSync(join(r, WORKTREE, REVIEW))).toBe(false);
 });
 
 /** Codex review: a table's row takes a comment on its line. */
@@ -255,12 +265,10 @@ test("a table row takes a comment on its line", async () => {
   await click(row);
   await comment("Which version?");
 
-  await waitFor(() => expect(read(r, REVIEW)).toContain("| Upgrade of version 1 data"));
-  await waitFor(() =>
-    expect(screen.getByRole("group", { name: /^C1 · line/ }).textContent).toContain(
-      "Which version?",
-    ),
-  );
+  await saved(/^C1 · line \d+$/, "Which version?");
+  const review = read(r, REVIEW);
+  expect(review).toMatch(/## C1: Line \d+, under "[^"]+"\n\n> \| Upgrade of version 1 data/);
+  expect(review).toContain("\nWhich version?\n");
 });
 
 /** US2 3, 4: on a wide screen, the comment field opens under the block, with no overlay. */

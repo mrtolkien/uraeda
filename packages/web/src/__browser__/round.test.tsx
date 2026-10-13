@@ -4,7 +4,7 @@
 import { act, screen } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
-import { show } from "./helpers.tsx";
+import { scrollStopped, show, watchFor } from "./helpers.tsx";
 
 const FOLDER = "2026-10-11-web-ui";
 const PAGE = `/f/${FOLDER}/clarifications-01.md`;
@@ -47,10 +47,12 @@ test("the index is a column beside the questions, and n and p jump (US1 6, 7)", 
 
   await userEvent.keyboard("p");
   await expect.poll(() => offset("Q1")).toBeLessThan(3);
+  await scrollStopped();
 
   // Neither key acts while a text field has the focus.
   const comment = screen.getAllByRole("textbox", { name: "Comment" })[0] as HTMLTextAreaElement;
   await userEvent.click(comment);
+  await scrollStopped();
   const before = window.scrollY;
   await userEvent.keyboard("n");
   expect(comment.value).toBe("n");
@@ -63,10 +65,12 @@ test("Back returns to the question at the top (US1 8)", async () => {
     return;
   }
   await show(PAGE, "How does your iPhone reach the server?");
+  await userEvent.click(
+    screen.getByRole("heading", { name: "Which human steps does the UI perform?" }),
+  );
   await userEvent.keyboard("n");
   await expect.poll(() => offset("Q2")).toBeLessThan(3);
-  // The position is saved once the scrolling stops.
-  await new Promise((resolve) => setTimeout(resolve, 700));
+  await scrollStopped();
 
   // A real click: WebKit skips, on Back, an entry that added another without a user's gesture.
   await userEvent.click(screen.getByRole("link", { name: "discovery" }));
@@ -74,11 +78,12 @@ test("Back returns to the question at the top (US1 8)", async () => {
   await expect
     .poll(() => document.body.textContent?.includes("A web UI for a spec workflow has four parts."))
     .toBe(true);
+  // The round comes back at Q2, never through "Loading…".
+  const loading = watchFor("Loading…");
   await act(async () => window.history.back());
   await expect.poll(() => window.location.pathname).toBe(PAGE);
-
-  expect(screen.queryByText("Loading…")).toBeNull();
   await expect.poll(() => offset("Q2")).toBeLessThan(3);
+  expect(loading.stop()).toBe(false);
 });
 
 test("at 1200 px with the navigation open, the questions get at least 600 px (C3)", async () => {

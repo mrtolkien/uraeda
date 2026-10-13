@@ -20,6 +20,11 @@ async function add(section: string, text: string) {
   });
 }
 
+/** A toast's text, not its announcement to screen readers, which repeats it a moment later. */
+function toast(text: string) {
+  return screen.findByText(text, { ignore: "script, style, [aria-live]" });
+}
+
 test("sections show their counts, and end with an Add row (US4 1)", async () => {
   await renderPage("/priorities");
   expect(await screen.findByRole("heading", { name: "Now · 4" })).toBeTruthy();
@@ -39,7 +44,10 @@ test("an Add row adds and stays ready (US4 4)", async () => {
   const { repo } = await renderPage("/priorities");
   await add("Later", "Ship a TUI");
   await waitFor(() => expect(read(repo)).toContain("  - with a cache\n- Ship a TUI\n"));
-  expect(screen.getByRole("textbox", { name: "Add to Later" })).toHaveProperty("value", "");
+  // Emptied once the save's answer comes back, after the file is written.
+  await waitFor(() =>
+    expect(screen.getByRole("textbox", { name: "Add to Later" })).toHaveProperty("value", ""),
+  );
 });
 
 /** US7.1 */
@@ -53,12 +61,11 @@ test("＋ jots a line down at the end of Next", async () => {
   );
   await click(screen.getByRole("button", { name: "Add" }));
 
-  await waitFor(() =>
-    expect(read(repo)).toContain(
-      "- [Git listener process](drafts/git-listener.md)\n- Show the agent's last commit on the feature page\n",
-    ),
+  // Shown once the line is written.
+  expect(await toast("Added to Next, not committed")).toBeTruthy();
+  expect(read(repo)).toContain(
+    "- [Git listener process](drafts/git-listener.md)\n- Show the agent's last commit on the feature page\n",
   );
-  expect(await screen.findByText("Added to Next, not committed")).toBeTruthy();
   expect(git(repo, "status", "--porcelain")).toContain("PRIORITIES.md");
 });
 
@@ -71,7 +78,8 @@ test("a line can go to Later instead", async () => {
   await click(screen.getByRole("radio", { name: "Later" }));
   await click(screen.getByRole("button", { name: "Add" }));
 
-  await waitFor(() => expect(read(repo)).toContain("  - with a cache\n- An idea\n"));
+  expect(await toast("Added to Later, not committed")).toBeTruthy();
+  expect(read(repo)).toContain("  - with a cache\n- An idea\n");
 });
 
 /** US7.6 */
@@ -100,7 +108,9 @@ test("Discard brings the committed priorities back", async () => {
   await click(screen.getByRole("button", { name: "Discard" }));
   await click(screen.getByRole("button", { name: "Discard them" }));
 
-  await waitFor(() => expect(read(repo)).toBe(before));
+  await waitFor(() => expect(screen.queryByText("1 change to commit")).toBeNull());
+  expect(read(repo)).toBe(before);
+  expect(screen.queryByText("Ship a TUI")).toBeNull();
 });
 
 /** US7.8 */

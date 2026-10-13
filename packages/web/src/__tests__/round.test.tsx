@@ -1,16 +1,14 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, beforeAll, expect, test } from "vite-plus/test";
-import { atWidth, fixtureRepo, git, renderPage } from "./helpers.tsx";
+import { afterEach, expect, test } from "vite-plus/test";
+import { atWidth, fixtureRepo, git, renderPage, today } from "./helpers.tsx";
 
 const FOLDER = "2026-10-11-web-ui";
 const PAGE = `/f/${FOLDER}/clarifications-01.md`;
 const ROUND = `specs/${FOLDER}/clarifications-01.md`;
 
-beforeAll(() => {
-  process.env.URA_TODAY = "2026-10-11";
-});
+today("2026-10-11");
 
 /** The round's text: in the feature's worktree once written, else at the branch's tip. */
 function text(repo: string) {
@@ -225,8 +223,10 @@ test("quick saves of one answer follow each other", async () => {
   await type(comment("Q2"), "first");
   await tap(option("Q2", "B"));
 
-  await waitFor(() => expect(answerLine(repo, "Q2")).toBe("**Answer:** B: first"));
+  // Its state shows once the save's answer comes back, after the file is written.
+  expect(await within(question("Q2")).findByText("saved ✓")).toBeTruthy();
   expect(within(question("Q2")).queryByText(/Not saved/)).toBeNull();
+  expect(answerLine(repo, "Q2")).toBe("**Answer:** B: first");
 });
 
 test("a refused answer keeps its text, and says why", async () => {
@@ -417,8 +417,13 @@ test("the bar counts and offers Next, without ＋ (US1 1)", async () => {
 /** US1 2, 3; SC-005 */
 test("Next goes to the first blank question after the one at the top, and focuses it (US1 2, 3)", async () => {
   atWidth(402);
-  await renderPage(PAGE, answered({ Q1: "A" }));
-  await tap(await screen.findByRole("button", { name: "Next" }));
+  const repo = answered({ Q1: "A" });
+  // The round reopens at Q1, answered: without a position, it would open at Q2, the first blank.
+  window.localStorage.setItem(POSITION, "Q1");
+  await renderPage(PAGE, repo);
+  await screen.findByText("Which human steps does the UI perform?");
+  expect(focused()).toContain("Which human steps does the UI perform?");
+  await tap(screen.getByRole("button", { name: "Next" }));
   await waitFor(() => expect(focused()).toContain("How does your iPhone reach the server?"));
 });
 

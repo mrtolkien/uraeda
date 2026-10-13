@@ -22,14 +22,21 @@ let root: Root | undefined;
 
 // Every test has the repository to itself, a fresh copy of the fixture: the phone's and the
 // desktop's tests run at the same time, and one that changes it would change what another shows.
+let turn: number | undefined;
+
 beforeEach(async () => {
-  await commands.takeRepo();
+  // What a page remembers, like the question a round was left at, is another test's.
+  window.localStorage.clear();
+  turn = await commands.takeRepo();
 });
 
 afterEach(async () => {
   root?.unmount();
   document.body.innerHTML = "";
-  await commands.releaseRepo();
+  if (turn !== undefined) {
+    await commands.releaseRepo(turn);
+    turn = undefined;
+  }
 });
 
 /** Renders the UI at a path, against the test server's own `/fate`, and waits for a text. */
@@ -58,8 +65,58 @@ async function mount(text: string) {
   await expect
     .poll(() => document.body.textContent?.includes(text), { timeout: 15_000 })
     .toBe(true);
-  // Fonts and layout settle.
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await drawn();
+}
+
+/**
+ * Waits for the fonts to load, the layout they change to be drawn, and the transitions under way to
+ * end, as a button's colours fading in: the checks measure the page at rest.
+ */
+export async function drawn() {
+  await document.fonts.ready;
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  await Promise.all(
+    document
+      .getAnimations()
+      .filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
+      .map((animation) => animation.finished.catch(() => undefined)),
+  );
+}
+
+/**
+ * Watches the page for a text from now on, as "Loading…" that must never show: `stop` ends the
+ * watch and says whether the text showed.
+ */
+export function watchFor(text: string) {
+  let seen = document.body.textContent?.includes(text) ?? false;
+  const observer = new MutationObserver(() => {
+    seen ||= document.body.textContent?.includes(text) ?? false;
+  });
+  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  return {
+    stop() {
+      observer.disconnect();
+      return seen;
+    },
+  };
+}
+
+/**
+ * Waits for the page to stop scrolling: the same position over 200 ms. Call it once a scroll has
+ * started, as after a poll for where a jump goes.
+ */
+export async function scrollStopped() {
+  let last = Number.NaN;
+  await expect
+    .poll(
+      () => {
+        const same = window.scrollY === last;
+        last = window.scrollY;
+        return same;
+      },
+      { interval: 200 },
+    )
+    .toBe(true);
 }
 
 /** Whether an element sits inside one meant to scroll sideways: a table or code. */

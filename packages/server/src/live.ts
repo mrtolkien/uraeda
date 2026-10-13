@@ -38,6 +38,12 @@ export function publish(changes: Changes) {
  */
 const watches = new Map<string, WatchHandle>();
 
+/** Stops watching a repository, as the browser tests do once done with a copy of the fixture. */
+export function stopLive(repo: string): void {
+  watches.get(repo)?.close();
+  watches.delete(repo);
+}
+
 /** Watches the repository, once, and publishes its changes until the handle is closed. */
 export function startLive(binding: Binding, repo: string): WatchHandle {
   let handle = watches.get(repo);

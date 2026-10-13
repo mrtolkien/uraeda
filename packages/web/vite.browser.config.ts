@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Frame, Page } from "playwright";
 import { fixtureRepo } from "uraeda-binding/test-utils";
+import { forgetRepo } from "uraeda-server/dev";
 import { FakeAdapter } from "uraeda-server/testing";
 import { playwright } from "vite-plus/test/browser-playwright";
 import { defineConfig, type PluginOption } from "vite-plus";
@@ -16,9 +17,14 @@ const plugins = (base.plugins ?? []).filter(
 
 /**
  * The tests take the repository in turn, both sizes included, each on a fresh copy of the fixture
- * (see `src/__browser__/helpers.tsx`): the server reads `URAEDA_REPO` at each request.
+ * (see `src/__browser__/helpers.tsx`): the server reads `URAEDA_REPO` at each request. Each turn
+ * has its own token, so a test only ever ends its own turn.
  */
-const shared = globalThis as { uraedaRepoTurn?: Promise<void>; uraedaRepoRelease?: () => void };
+const shared = globalThis as {
+  uraedaRepoTurn?: Promise<void>;
+  uraedaRepoHolder?: { token: number; release: () => void };
+  uraedaRepoTokens?: number;
+};
 
 type Context = { page: Page; frame: () => Promise<Frame> };
 
@@ -27,20 +33,29 @@ const agent = new FakeAdapter();
 type AgentEvent = Parameters<FakeAdapter["emit"]>[0];
 
 const commands = {
-  /** Waits for the repository, then gives the test a fresh copy of the fixture. */
+  /** Waits for the repository, then gives the test a fresh copy of the fixture, and its token. */
   async takeRepo() {
     const previous = shared.uraedaRepoTurn ?? Promise.resolve();
     let release = () => {};
     shared.uraedaRepoTurn = previous.then(() => new Promise<void>((done) => (release = done)));
     await previous;
-    shared.uraedaRepoRelease = release;
+    const token = (shared.uraedaRepoTokens = (shared.uraedaRepoTokens ?? 0) + 1);
+    shared.uraedaRepoHolder = { token, release };
     process.env.URAEDA_REPO = fixtureRepo();
+    // A turn whose test gave up waiting for it is never released by that test: it ends once longer
+    // than any test and its hooks, so one stuck test does not hold up every one after it.
+    setTimeout(() => void commands.releaseRepo(undefined, token), 120_000).unref();
+    return token;
   },
-  /** Puts a fresh copy of the fixture back, and lets the next test take the repository. */
-  async releaseRepo() {
-    process.env.URAEDA_REPO = fixtureRepo();
-    shared.uraedaRepoRelease?.();
-    shared.uraedaRepoRelease = undefined;
+  /** Ends a test's turn: its copy is forgotten, and the next test takes the repository. */
+  async releaseRepo(_context: unknown, token: number) {
+    const holder = shared.uraedaRepoHolder;
+    if (holder?.token !== token) {
+      return;
+    }
+    forgetRepo(process.env.URAEDA_REPO!);
+    shared.uraedaRepoHolder = undefined;
+    holder.release();
   },
   /** A file of the repository, `PRIORITIES.md` by default. */
   readRepo(_context: unknown, path = "specs/PRIORITIES.md") {
@@ -90,8 +105,8 @@ const commands = {
 };
 
 export type RepoCommands = {
-  takeRepo: () => Promise<void>;
-  releaseRepo: () => Promise<void>;
+  takeRepo: () => Promise<number>;
+  releaseRepo: (token: number) => Promise<void>;
   readRepo: (path?: string) => Promise<string>;
   writeRepo: (text: string, path?: string) => Promise<void>;
   agentEmit: (events: Array<AgentEvent>) => Promise<void>;
@@ -104,6 +119,9 @@ export type RepoCommands = {
 export default defineConfig({
   ...base,
   plugins: [...plugins, uraedaServer({ adapter: agent })],
+  // The dev server's fixed port is for `vp dev`: the tests take the next free port when another
+  // checkout's tests hold theirs.
+  server: { ...base.server, strictPort: false },
   // StyleX's runtime injection is imported by the compiled styles, which Vite finds only once the
   // tests run: bundled late, on a cold cache, it reloads the browser and fails the test files.
   optimizeDeps: { include: ["@stylexjs/stylex/lib/stylex-inject"] },
@@ -112,6 +130,8 @@ export default defineConfig({
     include: ["src/__browser__/**/*.test.tsx"],
     globalSetup: ["src/__browser__/setup.ts"],
     testTimeout: 30_000,
+    // A test's turn at the repository waits for the other size's test, up to its own timeout.
+    hookTimeout: 60_000,
     // Test files run in frames of one page, whose history they share: one file's Back would move
     // another's. One file at a time, in each browser.
     fileParallelism: false,

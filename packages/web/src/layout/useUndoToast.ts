@@ -29,6 +29,15 @@ function setErrors(next: ReadonlyArray<UndoError>) {
   }
 }
 
+/**
+ * Forgets the toasts and errors of a page that is gone. The page keeps them for its whole life:
+ * tests, which mount a new page each time in the same module, start each one empty.
+ */
+export function forgetUndoToasts() {
+  open.clear();
+  setErrors([]);
+}
+
 /** The errors of refused Undos, and how to dismiss one, by its id. */
 export function useUndoErrors(): [ReadonlyArray<UndoError>, (id: number) => void] {
   const shown = useSyncExternalStore(
