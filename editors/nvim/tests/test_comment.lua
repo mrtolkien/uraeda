@@ -235,6 +235,8 @@ T["a refused text keeps the window"] = function() -- review focus 3
 end
 
 T["the window looks right"] = function()
+  -- The window alone: the inline comments of task 12 have their own screenshot.
+  child.setup({ inline_comments = false })
   local _, spec = waiting_spec()
   child.o.lines, child.o.columns = 16, 80
   child.o.laststatus = 0

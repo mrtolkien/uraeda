@@ -998,42 +998,50 @@ git commit -m "feat(nvim-plugin): files waiting on you, and jumps between items"
 
 **Files:**
 
-- Modify: `editors/nvim/lua/uraeda/marks.lua` (`show`, `toggle`),
-  `editors/nvim/lua/uraeda/actions.lua` (`comments`), `editors/nvim/plugin/uraeda.lua` (highlight
-  groups; on `LspAttach`, inlay hints enabled for the buffer, inline comments drawn; refreshed on
-  `User UraedaComment` and `BufWritePost` of a review file)
-- Test: `editors/nvim/tests/test_inline.lua`, screenshots
+- Modify: `editors/nvim/lua/uraeda/marks.lua` (`show`, `toggle`, `refresh`, the `UraedaComment`
+  highlight group), `editors/nvim/lua/uraeda/actions.lua` (`comments`),
+  `editors/nvim/plugin/uraeda.lua` (on `LspAttach`, inlay hints enabled for the buffer, inline
+  comments drawn; refreshed on `User UraedaComment` and `BufWritePost` of a file next to them),
+  `editors/nvim/lua/uraeda/client.lua` (a command's `written` files refresh the buffers next to
+  them) ([R16](rulings.md#r16-inline-comments-redraw-by-folder-and-start-from-the-option))
+- Test: `editors/nvim/tests/test_inline.lua`, screenshots; `tests/test_comment.lua`'s screenshot
+  runs with `inline_comments = false`
 
 **Interfaces:**
 
 - Consumes: `uraeda/comments` (task 4), `textDocument/inlayHint` (task 4).
 - Produces: `marks.show(bufnr)`: virtual lines in the `uraeda` namespace below each comment's
   `endLine`, `▎ C1  <first line>` then `▎     <next lines>`, in `UraedaComment`;
-  `marks.toggle(bufnr)`; nothing drawn when `config().inline_comments` is false.
+  `marks.toggle(bufnr)`; `marks.refresh(paths?)`; nothing drawn when `config().inline_comments` is
+  false, until toggled.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```lua
 T["comments show under their lines"] = function() end   -- US9.1
 T["the toggle hides and shows them"] = function() end   -- US9.2
+T["they are hidden when inline comments are off"] = function() end
 T["a new comment shows at once"] = function() end       -- US9.3
+T["a saved review redraws its spec"] = function() end
+T["a verdict clears them"] = function() end
 T["priorities show their hints"] = function() end       -- C1: vim.lsp.inlay_hint.get on PRIORITIES.md
 T["the inline comments look right"] = function() end    -- screenshot
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp run test:nvim`
-- Expected: FAIL, `attempt to call field 'show' (a nil value)`
+- Expected: FAIL, no virtual line drawn and no inlay hint, since the tests reach `marks` through the
+  autocommands and the keys
 
-- [ ] **Step 3: Implement inline comments and enable hints**
+- [x] **Step 3: Implement inline comments and enable hints**
 
-- [ ] **Step 4: Run all checks**
+- [x] **Step 4: Run all checks**
 
 - Run: `stylua --check editors/nvim && vp run test:nvim`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add editors/nvim
