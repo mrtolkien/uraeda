@@ -406,3 +406,77 @@ fn files_of_done_that_are_not_markdown_are_ignored() {
 
     assert_eq!(summary(&example.problems()), Vec::<String>::new());
 }
+
+#[test]
+fn a_text_is_checked_in_place_of_its_file() {
+    let example = Example::new();
+    let spec_path = example.root().join(FEATURE).join("spec.md");
+    let on_disk = example.read(&format!("{FEATURE}/spec.md"));
+    let edited = on_disk.replace("risk-tier: high", "risk-tier: extreme");
+
+    let problems = check::check_text(example.root(), &spec_path, &edited);
+
+    assert_eq!(
+        summary(&problems),
+        [format!(
+            "{FEATURE}/spec.md:5: risk-tier \"extreme\" is not one of low, medium, high"
+        )]
+    );
+    assert_eq!(problems[0].line, Some(5));
+    assert_eq!(example.read(&format!("{FEATURE}/spec.md")), on_disk);
+}
+
+#[test]
+fn a_checked_text_sees_the_rest_of_its_folder_on_disk() {
+    let example = Example::new();
+    let spec_path = example.root().join(FEATURE).join("spec.md");
+    let edited = example
+        .read(&format!("{FEATURE}/spec.md"))
+        .replace("clarifications: 1", "clarifications: 2");
+
+    let problems = check::check_text(example.root(), &spec_path, &edited);
+
+    assert_eq!(
+        summary(&problems),
+        [format!(
+            "{FEATURE}/spec.md:4: clarifications is 2, but the last round is 01"
+        )]
+    );
+}
+
+#[test]
+fn an_unchanged_text_has_the_problems_of_its_file() {
+    let example = Example::new();
+    let spec_path = example.root().join(FEATURE).join("spec.md");
+    example.edit(
+        &format!("{FEATURE}/spec.md"),
+        "risk-tier: high",
+        "risk-tier: x",
+    );
+    let text = example.read(&format!("{FEATURE}/spec.md"));
+
+    assert_eq!(
+        check::check_text(example.root(), &spec_path, &text),
+        check::check(example.root(), &spec_path).unwrap()
+    );
+}
+
+/// Review focus 5: a CRLF text's problems are on the lines a CRLF editor shows.
+#[test]
+fn a_crlf_text_reports_the_same_lines() {
+    let example = Example::new();
+    let spec_path = example.root().join(FEATURE).join("spec.md");
+    let edited = example
+        .read(&format!("{FEATURE}/spec.md"))
+        .replace("risk-tier: high", "risk-tier: extreme")
+        .replace('\n', "\r\n");
+
+    let problems = check::check_text(example.root(), &spec_path, &edited);
+
+    assert_eq!(
+        summary(&problems),
+        [format!(
+            "{FEATURE}/spec.md:5: risk-tier \"extreme\" is not one of low, medium, high"
+        )]
+    );
+}

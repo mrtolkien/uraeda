@@ -163,3 +163,19 @@ fn ura_draft_writes_what_the_ui_writes() {
 
     assert_eq!(cli.read(&path), ui.read(&path));
 }
+
+#[test]
+fn candidates_of_the_blocked_section_are_spaced() {
+    let repo = TestRepo::new();
+    specs(
+        &repo,
+        "# Priorities\n\n## Now\n\n- Basic web UI for viewing\n\n## Blocked\n\n- Benchmarks\n",
+    );
+
+    let output = ura(&repo, &["draft"]);
+
+    assert_eq!(
+        output.stderr,
+        "ura: name the line: ura draft <text>\n  Now      Basic web UI for viewing\n  Blocked  Benchmarks\n"
+    );
+}

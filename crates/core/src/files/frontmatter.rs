@@ -154,8 +154,8 @@ pub fn parse(text: &str) -> Result<Frontmatter, FrontmatterError> {
     })
 }
 
-/// Sets a field to a plain value: replaces its line, or adds it before the closing `---`. A text
-/// without frontmatter gets one.
+/// Sets a field to a plain value: replaces its line, keeping a ` # comment` after the value, or
+/// adds it before the closing `---`. A text without frontmatter gets one.
 pub fn set(text: &str, key: &str, value: &str) -> String {
     let result: Result<String, ()> = super::with_unix_newlines(text, |text| {
         let line = format!("{key}: {value}");
@@ -168,7 +168,11 @@ pub fn set(text: &str, key: &str, value: &str) -> String {
             .iter()
             .position(|existing| existing.starts_with(&prefix))
         {
-            Some(index) => lines[index + 1] = line,
+            Some(index) => {
+                let existing = &lines[index + 1][prefix.len()..];
+                let comment = existing.find(" #").map_or("", |start| &existing[start..]);
+                lines[index + 1] = format!("{line}{comment}");
+            }
             None => lines.insert(end_line - 1, line),
         }
         Ok(lines.join("\n"))

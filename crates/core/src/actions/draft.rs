@@ -21,11 +21,17 @@ pub fn candidates(place: &Place) -> Result<Vec<Entry>, ActionError> {
         .collect())
 }
 
-/// `  Now   Basic web UI`, one line per entry.
+/// `  Now   Basic web UI`, one line per entry, the sections padded to the longest one plus two
+/// spaces.
 pub fn listed(entries: &[&Entry]) -> String {
+    let width = entries
+        .iter()
+        .map(|entry| entry.section.title().len() + 2)
+        .max()
+        .unwrap_or_default();
     entries
         .iter()
-        .map(|entry| format!("\n  {:<6}{}", entry.section.title(), entry.text))
+        .map(|entry| format!("\n  {:<width$}{}", entry.section.title(), entry.text))
         .collect()
 }
 

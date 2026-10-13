@@ -1,6 +1,8 @@
 //! `frontmatter.*`: the fields each kind of file has, and their values, from the skill's status
 //! table.
 
+use serde::Serialize;
+
 use crate::files::frontmatter::{self, Frontmatter, Value};
 use crate::workspace::{FileKind, Problem};
 
@@ -35,6 +37,116 @@ fn allowed(kind: Checked, key: &str) -> Option<&'static [&'static str]> {
         (_, "verdict") => Some(&["pending", "approved", "changes-requested"]),
         _ => None,
     }
+}
+
+/// A frontmatter field of a file, with what can be written in it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Field {
+    pub name: String,
+    /// 1-based; `None` when the field is missing.
+    pub line: Option<u32>,
+    /// As written, without quotes or a trailing comment.
+    pub value: Option<String>,
+    pub kind: FieldKind,
+    /// The allowed values: empty unless `Choice` or `Boolean`.
+    pub values: Vec<Choice>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum FieldKind {
+    Choice,
+    Integer,
+    Boolean,
+    Date,
+    Text,
+}
+
+/// An allowed value of a field.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Choice {
+    pub value: String,
+    /// The human's action that sets this value, from the skill's status table.
+    pub action: Option<Action>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Action {
+    Approve,
+    RequestChanges,
+    Submit,
+}
+
+fn field_kind(kind: Checked, key: &str) -> FieldKind {
+    if allowed(kind, key).is_some() {
+        return FieldKind::Choice;
+    }
+    match key {
+        "revision" | "clarifications" | "spec-revision" => FieldKind::Integer,
+        "plan-review" => FieldKind::Boolean,
+        "finished" => FieldKind::Date,
+        _ => FieldKind::Text,
+    }
+}
+
+/// The human's action that sets a value, from the skill's status table.
+fn action(kind: Checked, key: &str, value: &str) -> Option<Action> {
+    let Checked::Workflow(kind) = kind else {
+        return None;
+    };
+    match (kind, key, value) {
+        (FileKind::Clarifications, "status", "answered") => Some(Action::Submit),
+        (FileKind::Spec | FileKind::Plan | FileKind::Assessment, "status", "approved") => {
+            Some(Action::Approve)
+        }
+        (FileKind::Spec | FileKind::Plan | FileKind::Assessment, "status", "changes-requested") => {
+            Some(Action::RequestChanges)
+        }
+        _ => None,
+    }
+}
+
+/// The fields of a kind of file, required then optional, as they stand in `text`: the one list
+/// `check` checks against.
+pub(super) fn field_list(kind: Checked, text: &str) -> Vec<Field> {
+    let Some((required, optional)) = fields(kind) else {
+        return Vec::new();
+    };
+    let front = frontmatter::parse(text).ok();
+    required
+        .iter()
+        .chain(optional)
+        .map(|&key| {
+            let field_kind = field_kind(kind, key);
+            let values: Vec<&str> = match field_kind {
+                FieldKind::Choice => allowed(kind, key).unwrap_or_default().to_vec(),
+                FieldKind::Boolean => vec!["true", "false"],
+                _ => Vec::new(),
+            };
+            Field {
+                name: key.to_string(),
+                line: front
+                    .as_ref()
+                    .and_then(|front| front.line(key))
+                    .and_then(|line| u32::try_from(line).ok()),
+                value: front
+                    .as_ref()
+                    .and_then(|front| front.raw(key))
+                    .map(str::to_string),
+                kind: field_kind,
+                values: values
+                    .into_iter()
+                    .map(|value| Choice {
+                        value: value.to_string(),
+                        action: action(kind, key, value),
+                    })
+                    .collect(),
+            }
+        })
+        .collect()
 }
 
 fn shown(value: &Value) -> String {
