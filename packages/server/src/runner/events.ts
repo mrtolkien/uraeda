@@ -14,35 +14,63 @@ export type AgentEvent =
   /** The process ended. `missing` when its command could not be found. */
   | { type: "exit"; code: number | null; stderr: string; missing?: boolean };
 
-/** A line of a run's log, as the runner keeps it: parsed, not the agent's raw output. */
-export type RunEvent =
-  /** An assistant text block, as written. */
-  | { kind: "text"; text: string }
+/** What a tool call does, in the Agent Client Protocol's words. */
+export type ToolKind =
+  | "read"
+  | "edit"
+  | "delete"
+  | "move"
+  | "search"
+  | "execute"
+  | "think"
+  | "fetch"
+  | "other";
+
+/** Where a tool call is, in the Agent Client Protocol's words. */
+export type ToolStatus = "pending" | "in_progress" | "completed" | "failed" | "cancelled";
+
+/** A line of a turn, as the cache keeps it and the UI draws it: agent-neutral, never raw output. */
+export type Item =
+  /** A message sent to the agent: the human's, or the workflow's. */
+  | {
+      kind: "message";
+      id: string;
+      text: string;
+      origin: "human" | "workflow";
+      /** The chat's opening line, shown muted above the human's text. */
+      opening?: string;
+      /** Pending until the agent reads it, or taken back before. */
+      state: "pending" | "read" | "taken-back";
+    }
+  /** An assistant text block, streaming until the block ends. */
+  | { kind: "text"; text: string; streaming: boolean }
   | {
       kind: "tool";
-      /** The tool use's ID. */
+      /** The tool call's ID. */
       id: string;
       /** `Bash`, `Read`, ... */
       name: string;
-      /** The command, the file path, the URL, or the pattern. */
+      toolKind: ToolKind;
+      /** The command, the path relative to the session's directory, the URL, or the pattern. */
       target?: string;
-      status: "running" | "complete" | "error";
+      status: ToolStatus;
       durationMs?: number;
       /** The result's text, cut to its first 4,000 characters. */
       output?: string;
+      /** The sub-agent that runs it. */
+      parent?: string;
+      /** Set when the tool is a sub-agent. */
+      subagent?: { description: string };
     }
   /** A resumed or replaced session, a retry, skipped lines, an error. */
   | { kind: "system"; text: string }
-  | { kind: "denial"; tool: string; target?: string; rule: string };
+  /** An action `auto` mode blocked, and whether the human allowed it since. */
+  | { kind: "denial"; tool: string; target?: string; rule: string; allowed: boolean };
 
-export type RunState = "running" | "done" | "failed" | "stopped";
+/** Why a turn runs: a workflow step, the human's message, or a blocked action allowed. */
+export type TurnKind = "workflow" | "chat" | "allow";
 
-/** What started a run, which its message tells the agent. */
-export type Trigger =
-  | "answers"
-  | "approval"
-  | "changes"
-  | "proposal"
-  | "start"
-  | "manual"
-  | "allow";
+export type TurnState = "queued" | "running" | "done" | "failed" | "stopped";
+
+/** What started a workflow turn, which its message tells the agent. */
+export type Trigger = "answers" | "approval" | "changes" | "proposal" | "start" | "manual";
