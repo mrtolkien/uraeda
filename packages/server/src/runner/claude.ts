@@ -18,6 +18,25 @@ const STDERR_KEPT = 64_000;
 /** `claude --version` gives up after this long. */
 const VERSION_TIMEOUT_MS = 5_000;
 
+/** What signals each open process's group, until its output closes. */
+const groups = new Set<(signal: NodeJS.Signals) => void>();
+let ending = false;
+
+/**
+ * Sends SIGTERM to every open process's group as the server exits, even on a crash: in groups of
+ * their own, they would outlive it.
+ */
+function endWithServer() {
+  if (!ending) {
+    ending = true;
+    process.once("exit", () => {
+      for (const signal of groups) {
+        signal("SIGTERM");
+      }
+    });
+  }
+}
+
 /** The arguments of a session's process: print mode, stream-json both ways, `auto` mode, and the skill. */
 export function claudeArgs(options: OpenOptions, pluginDir: string): Array<string> {
   return [
@@ -138,10 +157,39 @@ export class ClaudeAdapter implements Adapter {
   }
 
   open(options: OpenOptions): AgentProcess {
+    // In a process group of its own, which its signals reach whole: the tools it started end with
+    // it. The terminal's Ctrl-C no longer reaches it, so the server ends it as it exits. Windows
+    // has no process groups to signal: there, the process alone is.
+    const grouped = process.platform !== "win32";
     const child = spawn(this.#command, claudeArgs(options, this.#pluginDir), {
       cwd: options.cwd,
       stdio: ["pipe", "pipe", "pipe"],
+      detached: grouped,
     });
+    // Until its output closes, a process of the group holds it: the group's ID is not reused.
+    let running = child.pid !== undefined;
+    const signal = (name: NodeJS.Signals) => {
+      if (!running || child.pid === undefined) {
+        return;
+      }
+      try {
+        if (grouped) {
+          process.kill(-child.pid, name);
+        } else {
+          child.kill(name);
+        }
+      } catch {
+        // The group is gone.
+      }
+    };
+    groups.add(signal);
+    const forget = () => {
+      running = false;
+      groups.delete(signal);
+    };
+    child.once("close", forget);
+    child.once("error", forget);
+    endWithServer();
     // Only its end is kept: a failed process shows its last lines.
     let stderr = "";
     child.stderr.setEncoding("utf8");
@@ -215,9 +263,7 @@ export class ClaudeAdapter implements Adapter {
       close: () => {
         child.stdin.end();
       },
-      kill: (signal) => {
-        child.kill(signal);
-      },
+      kill: signal,
     };
   }
 }
