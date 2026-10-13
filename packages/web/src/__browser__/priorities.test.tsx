@@ -2,10 +2,10 @@
 // dragging lines on the priorities page with a mouse, a finger, and the keyboard. Each test takes
 // the repository in turn, on a fresh copy of the fixture (see `vite.browser.config.ts`).
 import { screen } from "@testing-library/react";
-import { afterEach, expect, test } from "vite-plus/test";
+import { afterEach, expect, test, vi } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
-import { show } from "./helpers.tsx";
+import { drawn, show } from "./helpers.tsx";
 
 const commands = browserCommands as unknown as RepoCommands;
 
@@ -45,10 +45,51 @@ function touch(type: string, target: EventTarget, x: number, y: number) {
   );
 }
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+/** Whether a line was picked up, as the page announces it once its drag starts. */
+function lifted(name: string) {
+  return new RegExp(`(Picked up|Moved:) ${name}`).test(document.body.textContent ?? "");
+}
+
+/**
+ * Watches the page's requests from now on: the function returned says whether it asked the server
+ * to move a line, which a drop does at once.
+ */
+function watchMoves() {
+  const fetch = vi.spyOn(window, "fetch");
+  return () =>
+    fetch.mock.calls.some(
+      ([, init]) => typeof init?.body === "string" && init.body.includes("priorities.move"),
+    );
+}
+
+/**
+ * Watches the live updates the page receives from now on: `received(text)` says whether one that
+ * holds the text has reached it. The page opens its stream once it shows.
+ */
+function watchLiveUpdates() {
+  const updates: Array<string> = [];
+  const Original = window.EventSource;
+  window.EventSource = class extends Original {
+    constructor(url: string | URL, init?: EventSourceInit) {
+      super(url, init);
+      // Before the page's own listeners: an update is recorded before the page draws it.
+      for (const type of ["message", "next"]) {
+        this.addEventListener(type, (event) => updates.push(String((event as MessageEvent).data)));
+      }
+    }
+  };
+  return {
+    received: (text: string) => updates.some((update) => update.includes(text)),
+    stop: () => {
+      window.EventSource = Original;
+    },
+  };
+}
 
 // A test that fails with the mouse button down would leave it pressed for the next one.
 afterEach(async () => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
   await commands.mouse([{ type: "up" }]);
 });
 
@@ -64,7 +105,6 @@ test("dragging with a mouse makes room and moves the line (US4 5)", async () => 
     { type: "down" },
     { type: "move", x: handle.x, y: handle.y - 10 },
     { type: "move", x: handle.x, y: above },
-    { type: "wait", ms: 500 },
   ]);
   // The line passed over slides down to make room.
   await expect.poll(() => top(/Claude Code runner/)).toBeGreaterThan(before + 10);
@@ -83,23 +123,28 @@ test("a touch press of 500 ms lifts, a quick swipe lifts nothing (US4 6)", async
   const start = middle(line);
   const before = top(/Claude Code runner/);
 
-  // A quick swipe: the finger moves at once, and no line lifts.
+  // A quick swipe: the finger moves at once, and no line lifts, even once the half second of a
+  // press has passed with the finger still down. The page's clock is the test's, for that half
+  // second only.
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   touch("pointerdown", line, start.x, start.y);
   touch("pointermove", document, start.x, start.y - 30);
   touch("pointermove", document, start.x, start.y - 80);
-  await wait(600);
+  vi.advanceTimersByTime(1000);
+  vi.useRealTimers();
+  await drawn();
+  expect(lifted("Git listener")).toBe(false);
   expect(top(/Claude Code runner/)).toBe(before);
   touch("pointerup", document, start.x, start.y - 80);
-  await wait(300);
   expect(await commands.readRepo()).toBe(original);
 
   // A press held for half a second lifts the line, which then follows the finger.
   const above = screen.getByRole("link", { name: /Claude Code runner/ }).getBoundingClientRect();
   touch("pointerdown", line, start.x, start.y);
-  await wait(650);
+  await expect.poll(() => lifted("Git listener")).toBe(true);
   for (const y of [start.y - 10, start.y - 30, above.top + 2]) {
     touch("pointermove", document, start.x, y);
-    await wait(60);
+    await drawn();
   }
   await expect.poll(() => top(/Claude Code runner/)).toBeGreaterThan(before + 10);
   touch("pointerup", document, start.x, above.top + 2);
@@ -134,6 +179,7 @@ test("Space, ↓, ↓, Space moves a line two places, announced (US4 7)", async 
 });
 
 test("Escape cancels a drag, and nothing is written", async () => {
+  const moveSent = watchMoves();
   await show("/priorities", "Git listener process");
   const original = await commands.readRepo();
   const handle = middle(screen.getByRole("button", { name: "Move Git listener process" }));
@@ -151,8 +197,9 @@ test("Escape cancels a drag, and nothing is written", async () => {
   await expect.poll(() => document.body.textContent).toContain("Move cancelled: Git listener");
   await commands.mouse([{ type: "up" }]);
 
-  // A move is written as soon as it is dropped: none comes.
-  await wait(1000);
+  // A move is asked for as soon as it is dropped, by then: none was.
+  await drawn();
+  expect(moveSent()).toBe(false);
   expect(await commands.readRepo()).toBe(original);
 });
 
@@ -192,6 +239,7 @@ test("a live update during a drag waits for its end (review focus 4)", async () 
   if (window.innerWidth < 768) {
     return;
   }
+  const live = watchLiveUpdates();
   await show("/priorities", "Git listener process");
   const original = await commands.readRepo();
   const handle = middle(screen.getByRole("button", { name: "Move Git listener process" }));
@@ -206,8 +254,11 @@ test("a live update during a drag waits for its end (review focus 4)", async () 
       .replace("## Next\n\n", "## Next\n\n- Live line\n")
       .replace("Claude Code runner (triggered manually)", "Claude Code runner, renamed"),
   );
-  // Long enough for the live update to arrive: the list does not change under the pointer.
-  await wait(2000);
+  // Once the live update has reached the page, and the page has drawn: the list does not change
+  // under the pointer.
+  await expect.poll(() => live.received("Live line"), { timeout: 10_000 }).toBe(true);
+  live.stop();
+  await drawn();
   expect(screen.queryByText("Live line")).toBeNull();
   expect(
     screen.getByRole("link", { name: /Claude Code runner \(triggered manually\)/ }),
