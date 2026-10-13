@@ -1,4 +1,4 @@
-import type { FeatureView, FileSummary } from "uraeda-binding";
+import type { FeatureView } from "uraeda-binding";
 
 const STEPS: Record<string, string> = {
   discovery: "Discovery",
@@ -43,29 +43,4 @@ export function waiting(feature: Pick<FeatureView, "folder" | "step" | "files">)
         ? `/f/${feature.folder}/${file}`
         : `/f/${feature.folder}`;
   return { ...action, line: summary?.waitingLine, href };
-}
-
-const RANK: Record<string, number> = {
-  record: 0,
-  proposal: 0,
-  report: 0,
-  discovery: 1,
-  clarifications: 1,
-  spec: 2,
-  plan: 3,
-  assessment: 3,
-  rulings: 4,
-  "data-model": 5,
-  review: 6,
-};
-
-/** A feature's files in workflow order: rounds of discovery and questions by round, then the rest. */
-export function workflowOrder(files: ReadonlyArray<FileSummary>) {
-  return [...files].sort(
-    (a, b) =>
-      (RANK[a.kind] ?? 9) - (RANK[b.kind] ?? 9) ||
-      (a.round ?? 0) - (b.round ?? 0) ||
-      (a.kind === "discovery" ? 0 : 1) - (b.kind === "discovery" ? 0 : 1) ||
-      a.name.localeCompare(b.name),
-  );
 }

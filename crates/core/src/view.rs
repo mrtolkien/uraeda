@@ -9,7 +9,7 @@ use crate::files::document::{Document, Span};
 use crate::files::items::Items;
 use crate::files::markdown;
 use crate::steps::Step;
-use crate::workspace::{Feature, Problem, Workspace};
+use crate::workspace::{Feature, FileKind, Problem, WorkflowFile, Workspace};
 
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -59,6 +59,17 @@ pub struct FileSummary {
     pub waiting_line: Option<String>,
 }
 
+/// A file's place in its feature's workflow: the proposal, the report, or the record first, then
+/// the rounds, each round's discovery before its questions, then the rest in `FileKind`'s order.
+fn workflow_key(file: &WorkflowFile) -> (u8, u32, FileKind, &str) {
+    let stage = match file.kind {
+        FileKind::Proposal | FileKind::Report | FileKind::Record => 0,
+        FileKind::Discovery | FileKind::Clarifications => 1,
+        _ => 2,
+    };
+    (stage, file.round.unwrap_or(0), file.kind, &file.name)
+}
+
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -75,6 +86,7 @@ pub struct FeatureView {
     pub worktree: Option<String>,
     pub uncommitted: bool,
     pub behind: Option<u32>,
+    /// Its files in workflow order.
     pub files: Vec<FileSummary>,
     /// The `.html` files of its `mockups/` folder, sorted: from its working tree when its branch
     /// is checked out, otherwise from its branch's tip.
@@ -337,6 +349,8 @@ impl FeatureView {
             crate::workspace::Kind::Feature => "proposal.md",
             crate::workspace::Kind::Bug => "report.md",
         };
+        let mut files: Vec<&WorkflowFile> = feature.files.iter().collect();
+        files.sort_by(|a, b| workflow_key(a).cmp(&workflow_key(b)));
         FeatureView {
             kind: kebab(&feature.kind),
             folder: feature.folder.clone(),
@@ -354,9 +368,8 @@ impl FeatureView {
             worktree: feature.worktree.clone(),
             uncommitted: feature.uncommitted,
             behind: feature.behind.map(|n| n as u32),
-            files: feature
-                .files
-                .iter()
+            files: files
+                .into_iter()
                 .map(|file| FileSummary {
                     name: file.name.clone(),
                     kind: kebab(&file.kind),
