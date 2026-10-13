@@ -179,7 +179,7 @@ The decisions this plan relies on, and where it follows them:
 - Modify: `crates/core/src/check/values.rs` (`fields`, `allowed`, new `field_list`)
 - Modify: `crates/core/src/check/mod.rs` (new `check_text` and `fields`)
 - Modify: `crates/core/src/files/frontmatter.rs` (`set`)
-- Modify: `crates/cli/src/draft.rs` (the candidates' padding)
+- Modify: `crates/core/src/actions/draft.rs` (the candidates' padding, in `listed`)
 - Test: `crates/core/tests/fields.rs`, `crates/core/tests/check.rs`, `crates/core/tests/files.rs`,
   `crates/cli/tests/draft.rs`
 
@@ -198,7 +198,7 @@ The decisions this plan relies on, and where it follows them:
     problems `check(root, path)` would report if the file held `text`.
   - `frontmatter::set` keeps a ` # comment` after the value it replaces.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/fields.rs, on a TestRepo with a feature folder
@@ -264,29 +264,31 @@ fn candidates_of_the_blocked_section_are_spaced() {
 }
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test fields --test check --test files`
 - Expected: FAIL, `cannot find function `fields`in module`check``
 
-- [ ] **Step 3: Implement `field_list`, `fields`, `check_text`, and the comment-keeping `set`**
+- [x] **Step 3: Implement `field_list`, `fields`, `check_text`, and the comment-keeping `set`**
 
 `fields` derives the kind as `check` does (`kind_of`, with `any_folder: true`), and builds each
 field from `values::fields(kind)` (required, then optional), `allowed(kind, key)` for `Choice`,
-`Integer` for `revision`, `clarifications`, `spec-revision`, `Boolean` for `plan-review`, `Date` for
-`finished`, `Text` otherwise. `action` comes from the skill's status table: `answered` on a round is
-`Submit`; `approved` and `changes-requested` on a spec, plan, or assessment are `Approve` and
-`RequestChanges`. `check_text` reads the folder's texts like `check_folder_files`, replaces the
-file's entry with `text`, and returns that file's problems. `set` keeps everything from the first
-` #` after the value on the replaced line. The CLI's padding becomes `{:<8}`.
+`Integer` for `revision`, `clarifications`, `spec-revision`, `Boolean` for `plan-review` (values
+`true` and `false`), `Date` for `finished`, `Text` otherwise. `action` comes from the skill's status
+table: `answered` on a round is `Submit`; `approved` and `changes-requested` on a spec, plan, or
+assessment are `Approve` and `RequestChanges`. `check_text` reads the folder's texts like
+`check_folder_files`, replaces the file's entry with `text`, and returns that file's problems. `set`
+keeps everything from the first ` #` after the value on the replaced line. `draft::listed` pads the
+sections to the longest one listed plus two spaces
+([R1](rulings.md#r1-candidates-are-padded-to-the-longest-section-listed)).
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run:
   `cargo test --workspace --exclude uraeda-binding && cargo clippy --workspace --all-targets -- -D warnings`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core crates/cli

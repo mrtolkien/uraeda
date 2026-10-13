@@ -7,6 +7,8 @@ mod names;
 mod sections;
 mod values;
 
+pub use values::{Action, Choice, Field, FieldKind};
+
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -78,6 +80,48 @@ pub fn check(root: &Path, target: &Path) -> Result<Vec<Problem>, CheckError> {
     Ok(problems)
 }
 
+/// The problems `check(root, path)` would report if the file at `path` held `text`: the rest of its
+/// folder is read from disk.
+pub fn check_text(root: &Path, path: &Path, text: &str) -> Vec<Problem> {
+    let root = fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+    let path = canonical_file(path);
+    let dir = path.parent().unwrap_or(&root);
+    let name = path.file_name().unwrap_or_default().to_string_lossy();
+    let mut problems = Vec::new();
+    let mut found = check_folder_files_with(&root, dir, true, Some((&name, text)), &mut problems);
+    problems.extend(found.remove(name.as_ref()).unwrap_or_default());
+    problems.retain(|p| p.file == relative(&root, &path));
+    problems.sort_by(|a, b| (&a.file, a.line).cmp(&(&b.file, b.line)));
+    problems
+}
+
+/// The frontmatter fields of the file at `path`, under `root`, if it held `text`: its kind's
+/// fields, required then optional, with their lines and values in `text`. Empty for a file without
+/// frontmatter fields.
+pub fn fields(root: &Path, path: &Path, text: &str) -> Vec<Field> {
+    let root = fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+    let path = canonical_file(path);
+    let dir = path.parent().unwrap_or(&root);
+    let name = path.file_name().unwrap_or_default().to_string_lossy();
+    match kind_of(dir, &name, true) {
+        Some(kind) => values::field_list(kind, text),
+        None => Vec::new(),
+    }
+}
+
+/// A file's path with its folder resolved, even when the file itself is not on disk yet.
+fn canonical_file(path: &Path) -> PathBuf {
+    if let Ok(path) = fs::canonicalize(path) {
+        return path;
+    }
+    match (path.parent(), path.file_name()) {
+        (Some(dir), Some(name)) => fs::canonicalize(dir)
+            .map(|dir| dir.join(name))
+            .unwrap_or_else(|_| path.to_path_buf()),
+        _ => path.to_path_buf(),
+    }
+}
+
 /// Checks every folder under `dir`.
 fn walk(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
     names::check_folder_names(root, dir, problems);
@@ -130,6 +174,17 @@ fn check_folder_files(
     any_folder: bool,
     problems: &mut Vec<Problem>,
 ) -> BTreeMap<String, Vec<Problem>> {
+    check_folder_files_with(root, dir, any_folder, None, problems)
+}
+
+/// Like `check_folder_files`, with one file's text, by name, in place of its file on disk.
+fn check_folder_files_with(
+    root: &Path,
+    dir: &Path,
+    any_folder: bool,
+    replaced: Option<(&str, &str)>,
+    problems: &mut Vec<Problem>,
+) -> BTreeMap<String, Vec<Problem>> {
     let mut names: Vec<String> = fs::read_dir(dir)
         .into_iter()
         .flatten()
@@ -137,6 +192,11 @@ fn check_folder_files(
         .filter(|entry| entry.file_type().is_ok_and(|t| t.is_file()))
         .filter_map(|entry| entry.file_name().into_string().ok())
         .collect();
+    if let Some((name, _)) = replaced
+        && !names.iter().any(|existing| existing == name)
+    {
+        names.push(name.to_string());
+    }
     names.sort();
     if any_folder || names::is_workflow_folder(dir) {
         names::check_rounds(root, dir, &names, problems);
@@ -145,6 +205,12 @@ fn check_folder_files(
     let mut found: BTreeMap<String, Vec<Problem>> = BTreeMap::new();
     for name in &names {
         if kind_of(dir, name, any_folder).is_none() {
+            continue;
+        }
+        if let Some((replaced, text)) = replaced
+            && replaced == name
+        {
+            texts.insert(name.clone(), text.to_string());
             continue;
         }
         match fs::read(dir.join(name)).map(String::from_utf8) {
