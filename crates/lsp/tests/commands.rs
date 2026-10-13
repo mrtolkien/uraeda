@@ -382,6 +382,37 @@ fn an_approved_spec_refuses_comments() {
     assert_eq!(error.data, Some(json!({ "code": "refused" })));
 }
 
+/// US4.4, US4.5: the editor asks before it opens its comment window, and writes nothing.
+#[test]
+fn can_comment_refuses_like_a_comment() {
+    let (repo, path) = feature("awaiting-human");
+    let text = std::fs::read_to_string(&path).unwrap();
+    let mut session = start(repo.path());
+    session.open(&path, &text);
+
+    let allowed = session.raw("uraeda/canComment", json!({ "uri": uri(&path) }));
+
+    assert_eq!(allowed.map_err(|error| error.message), Ok(Value::Null));
+    session.change(&path, &format!("{text}An unsaved line.\n"));
+    let error = session
+        .raw("uraeda/canComment", json!({ "uri": uri(&path) }))
+        .unwrap_err();
+    assert_eq!(
+        error.message,
+        "spec.md differs from its last commit: comments point at the committed version. \
+         Commit or undo the change first."
+    );
+    assert_eq!(error.data, Some(json!({ "code": "refused" })));
+    assert!(!repo.exists(&format!("{NVIM}/spec-review.md")));
+
+    let (repo, path) = feature("approved");
+    let mut session = start(repo.path());
+    let error = session
+        .raw("uraeda/canComment", json!({ "uri": uri(&path) }))
+        .unwrap_err();
+    assert_eq!(error.message, "spec.md is not waiting for a review.");
+}
+
 /// US6.1
 #[test]
 fn approving_records_the_block_and_commits() {

@@ -244,6 +244,9 @@ impl Server {
                 requests::COMMENTS => answer(requests::COMMENTS, request.params, |params| {
                     Ok(requests::comments(&self.documents, params))
                 }),
+                commands::CAN_COMMENT => answer(commands::CAN_COMMENT, request.params, |params| {
+                    commands::can_comment(&self.documents, params)
+                }),
                 requests::VERDICT => answer(requests::VERDICT, request.params, |params| {
                     requests::verdict(&self.documents, params)
                 }),
