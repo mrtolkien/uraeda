@@ -174,3 +174,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: test helpers and one test file in [`editors/nvim/tests/`](/editors/nvim/tests/), and
   a few lines of [`health.lua`](/editors/nvim/lua/uraeda/health.lua).
 - **Where**: task 6, `editors/nvim/`.
+
+## R11: An action's key lives in its registry entry
+
+- **Decision**: each entry of `actions.list` carries its key under the prefix, `key`, next to the
+  plan's `name`, `desc`, `fn`, `modes`, and `buffer_local`; `keys.attach(bufnr)` maps every entry
+  with a key, buffer-local or, for one without `buffer_local`, once globally on the first `uraeda`
+  attach, as the edge case of a missing `ura` sets no key under the prefix. `fn` receives
+  `:Uraeda`'s command opts, so a later action can read a range; keys and `<Plug>` mappings call it
+  without arguments. After a start, the draft's buffer is deleted without force, so an edit typed
+  while the start ran is kept in it. The tests type the default leader, `\`, since `nvim_input` does
+  not expand `<Leader>`. A fifth key test checks that a file without a client gets no key.
+- **Rationale**: the plan's entry shape had no key, so `keys.lua` would hold a second list of names
+  that each later task edits; one entry per action keeps the key, the subcommand, and the `<Plug>`
+  mapping together, which SC-002's test walks.
+- **Alternatives considered**: a table of keys by name in `keys.lua`: two places to edit per action;
+  the global keys at startup: they would be set with no `ura` on the path, against the edge case.
+- **If wrong**: one field per entry in [`actions.lua`](/editors/nvim/lua/uraeda/actions.lua) and a
+  loop in [`keys.lua`](/editors/nvim/lua/uraeda/keys.lua).
+- **Where**: task 7, `editors/nvim/lua/uraeda/`.

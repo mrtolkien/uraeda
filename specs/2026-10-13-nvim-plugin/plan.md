@@ -722,13 +722,18 @@ git commit -m "feat(nvim-plugin): the Neovim plugin's skeleton and its checks"
 
 - Consumes: `client.command` (task 6).
 - Produces:
-  - `actions.draft()`, `actions.start()`, `actions.commit()`, and the registry
-    `actions.list: { name, desc, fn, modes, buffer_local }[]` that later tasks append to: `comment`,
-    `field`, `verdict`, `waiting`, `comments`, `next`, `prev`.
-  - `:Uraeda <name>` with completion from `actions.list`; `<Plug>(uraeda-<name>)` for each; keys
-    from `keys.lua` on `LspAttach` of a `uraeda` client, `w` set once globally.
+  - `actions.draft()`, `actions.start()`, `actions.commit()`, `actions.get(name)`, and the registry
+    `actions.list: { name, desc, fn, modes, buffer_local, key? }[]` that later tasks append to in
+    `actions.lua`: `comment`, `field`, `verdict`, `waiting`, `comments`, `next`, `prev`. `key` is
+    the key under the prefix; `fn(opts?)` gets `:Uraeda`'s command opts (`range`, `line1`, `line2`),
+    and nothing from a key or a `<Plug>` mapping
+    ([R11](rulings.md#r11-an-actions-key-lives-in-its-registry-entry)).
+  - `:Uraeda <name>` (`command.lua`, with a range) with completion from `actions.list`;
+    `<Plug>(uraeda-<name>)` for each, in its `modes`; keys from `keys.attach(bufnr)` on `LspAttach`
+    of a `uraeda` client, the actions without `buffer_local`, like `w`, set once globally on the
+    first attach.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```lua
 T["a line becomes a draft"] = function() end         -- US2.1: draft opened, link written, buffer reloaded, no commit
@@ -742,21 +747,22 @@ T["every action has a key, a subcommand, and a Plug mapping"] = function() end -
 T["no key collides under <leader>a"] = function() end -- with LazyVim's AI keys a b c C d f r s mapped first
 T["prefix false sets no keys"] = function() end
 T["keys use the configured prefix"] = function() end  -- prefix "<leader>au"
+T["keys are set only in workflow files"] = function() end
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp run test:nvim`
 - Expected: FAIL, `module 'uraeda.actions' not found`
 
-- [ ] **Step 3: Implement the actions, the command, and the keys**
+- [x] **Step 3: Implement the actions, the command, and the keys**
 
-- [ ] **Step 4: Run all checks**
+- [x] **Step 4: Run all checks**
 
 - Run: `stylua --check editors/nvim && vp run test:nvim`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add editors/nvim
