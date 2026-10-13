@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import * as binding from "uraeda-binding";
 import { live } from "../fate.ts";
-import { SESSION_UPDATE_MS, sessionPublisher, startLive, stopLive } from "../live.ts";
+import { publish, SESSION_UPDATE_MS, sessionPublisher, startLive, stopLive } from "../live.ts";
 import { SessionCache } from "../runner/cache.ts";
 import { byId, fixtureRepo, git, mutate, port, testApp, testServer } from "./helpers.ts";
 
@@ -259,6 +259,19 @@ test("a session's status change is published at once, with the list, its feature
     "Feature 2026-10-12-cli-tuis",
     "Workspace workspace",
   ]);
+});
+
+test("two changes published in one millisecond have different event IDs", () => {
+  vi.spyOn(Date, "now").mockReturnValue(1_000);
+  const update = vi.spyOn(live, "update");
+  const changes = { features: [], files: [], priorities: false, workspace: true };
+
+  publish(changes);
+  publish(changes);
+
+  const ids = update.mock.calls.map(([, , options]) => options?.eventId);
+  expect(ids).toHaveLength(2);
+  expect(ids[0]).not.toBe(ids[1]);
 });
 
 test("a chat's change is published without a feature, and the agent's on its own", () => {
