@@ -139,6 +139,7 @@ export const SessionView = view<Session>()({
   status: true,
   statusLabel: true,
   statusReason: true,
+  unseen: true,
   place: true,
   costUsd: true,
   turns: true,
