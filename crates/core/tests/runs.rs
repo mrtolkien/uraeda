@@ -102,6 +102,19 @@ fn work_dir_reuses_the_checkout_that_has_the_branch() {
 }
 
 #[test]
+fn main_root_of_a_worktree_is_the_main_checkout() {
+    let repo = repo_with_answered_round();
+    let worktree = api::work_dir(repo.path(), FOLDER).unwrap();
+    let main = repo.path().canonicalize().unwrap();
+
+    assert_eq!(
+        Path::new(&api::main_root(Path::new(&worktree)).unwrap()),
+        main
+    );
+    assert_eq!(Path::new(&api::main_root(repo.path()).unwrap()), main);
+}
+
+#[test]
 fn work_dir_of_a_merged_feature_is_refused() {
     let repo = repo_with_answered_round();
     repo.switch(FOLDER);

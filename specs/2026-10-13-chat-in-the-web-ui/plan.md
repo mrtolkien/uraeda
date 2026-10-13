@@ -258,7 +258,7 @@ git commit -m "test(chat-in-the-web-ui): check Claude Code's stdin messages"
 - Produces: `api::main_root(repo: &Path) -> Result<String>`; binding
   `mainRoot(repo: string): Promise<string>`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 #[test]
@@ -278,21 +278,21 @@ test("mainRoot gives the main checkout from a worktree", async () => {
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test runs main_root`
 - Expected: FAIL to compile, `cannot find function main_root in module api`
 
-- [ ] **Step 3: Implement `pub fn main_root(repo: &Path) -> Result<String>`** with `open(repo)` and
+- [x] **Step 3: Implement `pub fn main_root(repo: &Path) -> Result<String>`** with `open(repo)` and
       `git.main_root()`, and its binding `main_root(repo: String) -> AsyncTask<Job<String>>`, then
       `vp run --filter uraeda-binding build`.
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run:
   `cargo test --workspace --exclude uraeda-binding -- --skip edits_keep_every_other_line && vp test`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core/src/api.rs crates/binding/src/lib.rs crates/core/tests/runs.rs packages/binding/index.d.ts packages/binding/index.js packages/binding/index.test.ts
