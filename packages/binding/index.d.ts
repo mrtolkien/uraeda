@@ -444,6 +444,8 @@ export interface QuestionItem {
   comment: string
   /** `yes`, `no`, or `unclear`: whether it needs an answer, from its parent's. */
   applies: string
+  /** Whether the round asks it now: it may apply, and a follow-up's parent has an answer. */
+  asked: boolean
   /** The line of its `**Answer:**` marker, or 0. */
   answerLine: number
 }
