@@ -553,6 +553,28 @@ test("a plugin that does not load fails the turn with 'The Uraeda skill did not 
   expect(adapter.closes).toBe(1);
 });
 
+test("a process whose plugins leave out uraeda, with no error, fails the turn too", async () => {
+  const { sessions, adapter, cache, repo } = await testSessions();
+  adapter.autoInit = false;
+  const session = await sessions.featureSession(repo, AGENT);
+  const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
+
+  adapter.emit({
+    type: "init",
+    sessionId: session.nativeId,
+    plugins: ["cc-plugin-telemetry"],
+    pluginErrors: [],
+  });
+  await sessions.settled(turn);
+  await flush();
+
+  expect(cache.turn(turn)).toMatchObject({
+    state: "failed",
+    reason: "The Uraeda skill did not load: the plugins loaded were cc-plugin-telemetry",
+  });
+  expect(adapter.closes).toBe(1);
+});
+
 test("review focus 1: a message sent before the process's init is sent once", async () => {
   const { sessions, adapter, cache, repo } = await testSessions();
   adapter.autoInit = false;
