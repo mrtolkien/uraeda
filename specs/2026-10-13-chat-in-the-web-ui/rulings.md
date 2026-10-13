@@ -131,3 +131,50 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: keeping "The human answered round 01 of the questions.".
 - **If wrong**: one line of `triggerSentence`, and its tests.
 - **Where**: task 4, `message.ts`.
+
+## R9: Messages are written once the process exists, not after its `init`
+
+- **Decision**: a message sent while the session's process opens waits on the session's send lock,
+  and is written once, as soon as the process exists. The plan's "only after `init`" is dropped.
+- **Rationale**: Claude Code prints `init` at the start of each turn, after it reads a message (R5),
+  and nothing before: waiting for it would never send the first message.
+- **Alternatives considered**: waiting for `init`, which deadlocks; writing without a lock, which
+  can open two processes for two quick sends.
+- **If wrong**: a plugin that fails to load is seen at the first turn's `init`, which then fails, as
+  the spec's error handling says.
+- **Where**: task 6, `sessions.ts`.
+
+## R10: The opening line goes on messages that start a chat turn
+
+- **Decision**: the opening line is added to a chat message that starts a turn, when the session has
+  no turn yet or its last turn other than an `allow` turn is a workflow turn. A message steered into
+  a running workflow turn goes without it. A bug's line says "bug specs/bugs/<folder>/".
+- **Rationale**: a steered message joins the agent's work on the step; the line would tell it to
+  stop moving the workflow mid-step.
+- **Alternatives considered**: the line on every message after a workflow turn, steered or not.
+- **If wrong**: a steered question during a run may lead the agent to treat it as part of the step.
+- **Where**: task 6.
+
+## R11: Taking back, stopping, and the texts the spec does not fix
+
+- **Decision**: a turn's own first message cannot be taken back ("The agent already read it."); a
+  queued turn's message is taken back by Uraeda, which ends the turn as stopped with "Taken back.";
+  Stop also ends the queued turns and takes back the pending steered messages. The texts: "The
+  message is empty." for a blank message, "<agent> ended the turn with an error." for a failed
+  result without errors, and "Skipped N lines <agent> printed that Uraeda does not read.".
+- **Rationale**: a turn's first message started the agent's work; a queued one never reached the
+  agent; Stop means the human wants nothing more to run.
+- **Alternatives considered**: keeping queued turns after Stop, which would start them right away.
+- **If wrong**: queued work has to be sent again after a Stop.
+- **Where**: task 6.
+
+## R12: A turn with a steered message stays running until the agent reads it
+
+- **Decision**: a result that comes while a steered message is still pending does not end the turn:
+  the agent answers the message in a further query, before the turn's last result.
+- **Rationale**: Claude Code answers a steered message within the same turn (R5), after the running
+  tools end.
+- **Alternatives considered**: ending the turn at the first result, leaving the message's answer
+  outside any turn.
+- **If wrong**: a message the agent never reads keeps the turn going until the watchdog, 30 minutes.
+- **Where**: task 6.
