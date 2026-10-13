@@ -199,10 +199,15 @@ export async function click(element: HTMLElement) {
   });
 }
 
-/** Types a value into a field, at once. */
+/** Types a value into a field, at once: a form field, or an editable text like the composer's. */
 export async function type(element: HTMLElement, value: string) {
   await act(async () => {
-    fireEvent.change(element, { target: { value } });
+    if (element.getAttribute("contenteditable") === "true") {
+      element.textContent = value;
+      fireEvent.input(element);
+    } else {
+      fireEvent.change(element, { target: { value } });
+    }
   });
 }
 

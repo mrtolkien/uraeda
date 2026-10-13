@@ -17,7 +17,10 @@ export type Route =
   | { page: "task"; key: string }
   | { page: "edit"; path: string }
   | { page: "mockup"; folder: string; name: string }
+  | { page: "session"; folder: string }
   | { page: "run"; folder: string; id: string }
+  | { page: "chat"; id: string }
+  | { page: "new-chat" }
   | { page: "missing"; path: string };
 
 const CHANGE = "uraeda:navigate";
@@ -30,6 +33,9 @@ export function parseRoute(pathname: string): Route {
   if (parts[0] === "f" && parts.length === 2) {
     return { page: "feature", folder: parts[1] };
   }
+  if (parts[0] === "f" && parts.length === 3 && parts[2] === "session") {
+    return { page: "session", folder: parts[1] };
+  }
   if (parts[0] === "f" && parts.length === 3) {
     return { page: "file", folder: parts[1], name: parts[2] };
   }
@@ -38,6 +44,9 @@ export function parseRoute(pathname: string): Route {
   }
   if (parts[0] === "f" && parts.length === 4 && parts[2] === "runs") {
     return { page: "run", folder: parts[1], id: parts[3] };
+  }
+  if (parts[0] === "chats" && parts.length === 2) {
+    return parts[1] === "new" ? { page: "new-chat" } : { page: "chat", id: parts[1] };
   }
   if (parts[0] === "priorities" && parts.length === 1) {
     return { page: "priorities" };
@@ -54,7 +63,8 @@ export function parseRoute(pathname: string): Route {
 /**
  * What a history entry holds: its own id, the page's scroll position once left, the path of the
  * page it was opened from and that page's scroll position then, an open overlay's label (see
- * `layout/Overlay.tsx`), and the groups of tool calls opened in a run's log, by their first call.
+ * `layout/Overlay.tsx`), and the groups of tool calls opened in a session's transcript, by
+ * their turn and first call.
  */
 export type Entry = {
   id?: string;
@@ -62,7 +72,7 @@ export type Entry = {
   from?: string;
   opener?: number;
   overlay?: string;
-  open?: Array<number>;
+  open?: Array<string>;
 };
 
 /** The current history entry's state. */

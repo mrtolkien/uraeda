@@ -2,23 +2,28 @@
 // read again when the page is shown again, as iOS may have dropped its connection.
 import { useEffect } from "react";
 import { useFateClient, useLiveView, useRequest, useView } from "react-fate";
-import type { Priorities } from "uraeda-server/fate";
+import type { Priorities, Trigger } from "uraeda-server/fate";
 import {
+  AgentView,
   DraftView,
   FeatureView,
   FileView,
   PrioritiesView,
-  RunLogView,
-  RunnerView,
-  RunView,
   ProposalHintsView,
+  SessionListView,
+  SessionSearchView,
+  SessionView,
+  TurnLogView,
+  TurnView,
+  WorkflowMessageView,
   WorkspaceView,
 } from "./views.ts";
 
 /** The ids of the records there is one of, as the server names them. */
 const WORKSPACE_ID = "workspace";
 const PRIORITIES_ID = "priorities";
-const RUNNER_ID = "runner";
+const AGENT_ID = "agent";
+const SESSION_LIST_ID = "all";
 const PROPOSAL_HINTS_ID = "proposal";
 
 /** Reads a request again from the server when the page comes back to the foreground. */
@@ -91,28 +96,61 @@ export function useDraft(path: string) {
   return useLiveView(DraftView, draft);
 }
 
-/** Whether the agent works on the server's machine. */
-export function useRunner() {
-  const request = { runner: { id: RUNNER_ID, view: RunnerView } };
-  const { runner } = useRequest(request);
+/** The agent sessions run on: whether it works on the server's machine, and what it can do. */
+export function useAgent() {
+  const request = { agent: { id: AGENT_ID, view: AgentView } };
+  const { agent } = useRequest(request);
   useRefreshOnShow(request);
-  return useLiveView(RunnerView, runner);
+  return useLiveView(AgentView, agent);
 }
 
-/** A run of an agent, without its log. */
-export function useRun(id: string) {
-  const request = { run: { id, view: RunView } };
-  const { run } = useRequest(request);
+/** A session, without its turns. */
+export function useSession(id: string) {
+  const request = { session: { id, view: SessionView } };
+  const { session } = useRequest(request);
   useRefreshOnShow(request);
-  return useLiveView(RunView, run);
+  return useLiveView(SessionView, session);
 }
 
-/** A page of a run's log, `<run>:<page>`, of 100 events. */
-export function useRunLog(id: string) {
-  const request = { runLog: { id, view: RunLogView } };
-  const { runLog } = useRequest(request);
+/** A turn of a session, without its items. */
+export function useTurn(id: string) {
+  const request = { turn: { id, view: TurnView } };
+  const { turn } = useRequest(request);
   useRefreshOnShow(request);
-  return useLiveView(RunLogView, runLog);
+  return useLiveView(TurnView, turn);
+}
+
+/** A page of a turn's items, `<turn>:<page>`, of 100 items. */
+export function useTurnLog(id: string) {
+  const request = { turnLog: { id, view: TurnLogView } };
+  const { turnLog } = useRequest(request);
+  useRefreshOnShow(request);
+  return useLiveView(TurnLogView, turnLog);
+}
+
+/** The sidebar's sessions, what needs the human first. */
+export function useSessionList() {
+  const request = { sessionList: { id: SESSION_LIST_ID, view: SessionListView } };
+  const { sessionList } = useRequest(request);
+  useRefreshOnShow(request);
+  return useLiveView(SessionListView, sessionList);
+}
+
+/** The sessions whose title or messages hold the query: read again as the query changes. */
+export function useSessionSearch(query: string) {
+  const request = { sessionSearch: { id: query, view: SessionSearchView } };
+  const { sessionSearch } = useRequest(request);
+  useRefreshOnShow(request);
+  return useView(SessionSearchView, sessionSearch);
+}
+
+/** The workflow's message for a feature and a trigger, or why there is none. */
+export function useWorkflowMessage(folder: string, trigger: Trigger, file?: string) {
+  const id = [folder, trigger, ...(file === undefined ? [] : [file])].join(":");
+  const request = { workflowMessage: { id, view: WorkflowMessageView } };
+  const { workflowMessage } = useRequest(request);
+  useRefreshOnShow(request);
+  return useView(WorkflowMessageView, workflowMessage);
 }
 
 /**

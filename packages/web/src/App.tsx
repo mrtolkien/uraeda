@@ -21,11 +21,12 @@ import {
   currentEntry,
   navigate,
   type Route,
+  redirect,
   RouterAnchor,
   useRestoreScroll,
   useRoute,
 } from "./routes.tsx";
-import { RunPage } from "./RunPage.tsx";
+import { SessionPage } from "./SessionPage.tsx";
 import { TaskView } from "./TaskView.tsx";
 import { Shell } from "./Shell.tsx";
 import { ThemeModeProvider } from "./theme.tsx";
@@ -82,8 +83,14 @@ function Page({ route }: { route: Route }) {
       return <EditorPage key={route.path} path={route.path} />;
     case "mockup":
       return <MockupPage folder={route.folder} name={route.name} />;
+    case "session":
+      return <SessionRoute folder={route.folder} />;
     case "run":
-      return <RunRoute folder={route.folder} id={route.id} />;
+      return <RunRedirect folder={route.folder} id={route.id} />;
+    case "chat":
+      return <SessionPage key={route.id} id={route.id} />;
+    case "new-chat":
+      return <SessionPage newChat />;
     default:
       return <Nothing />;
   }
@@ -124,18 +131,26 @@ function useListPosition() {
 }
 
 /**
- * A run's view: on wide screens, in a pane beside its feature's page; on narrow screens, a page of
- * its own.
+ * A feature's session: on wide screens, in a pane beside its feature's page; on narrow screens, a
+ * page of its own.
  */
-function RunRoute({ folder, id }: { folder: string; id: string }) {
+function SessionRoute({ folder }: { folder: string }) {
   useListPosition();
   return (
     <Panes
       list={<FeaturePage folder={folder} />}
-      detail={<RunPage folder={folder} id={id} />}
+      detail={<SessionPage folder={folder} />}
       onCloseDetail={() => navigate(`/f/${folder}`)}
     />
   );
+}
+
+/** An old run's address: its feature's session, at the turn the run became. */
+function RunRedirect({ folder, id }: { folder: string; id: string }) {
+  useLayoutEffect(() => {
+    redirect(`/f/${encodeURIComponent(folder)}/session#turn-${encodeURIComponent(id)}`);
+  }, [folder, id]);
+  return null;
 }
 
 function Nothing() {

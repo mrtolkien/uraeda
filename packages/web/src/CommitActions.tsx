@@ -1,7 +1,7 @@
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import type { ReactNode } from "react";
-import { useRunner } from "./data.ts";
+import { useAgent } from "./data.ts";
 
 type Variant = "primary" | "secondary" | "destructive";
 
@@ -29,8 +29,8 @@ export function CommitActions({
   onCommit: (continues: boolean) => Promise<void>;
   children?: ReactNode;
 }) {
-  const runner = useRunner();
-  if (!runner?.available) {
+  const agent = useAgent();
+  if (!agent?.available) {
     return (
       <HStack gap={2} wrap="wrap">
         {children}
