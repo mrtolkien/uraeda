@@ -20,7 +20,7 @@ import { Spans } from "./Spans.tsx";
  * How a review selects blocks: which are selected, what a tap does, given the block and the element
  * that draws it, and what follows a block.
  */
-export type Selection = {
+type Selection = {
   isSelected: (block: Block) => boolean;
   onTap: (block: Block, element: HTMLElement) => void;
   after?: (block: Block) => ReactNode;

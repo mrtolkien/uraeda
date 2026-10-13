@@ -5,7 +5,7 @@ export type ThemeMode = "system" | "light" | "dark";
 const KEY = "uraeda.theme";
 
 /** The theme picked on this browser, `system` when none or when storage is unavailable. */
-export function storedMode(): ThemeMode {
+function storedMode(): ThemeMode {
   try {
     const value = window.localStorage.getItem(KEY);
     return value === "light" || value === "dark" ? value : "system";
