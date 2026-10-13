@@ -27,6 +27,15 @@ export type FeatureRecord = Record_<FeatureView> & {
 };
 /** A workflow file, or `missing` alone when its feature has no such file. */
 export type FileRecord = Record_<FileView> & { missing?: boolean };
+
+/**
+ * A file as it is sent: its optional fields, when absent, sent as null. The client's cache keeps a
+ * field an answer leaves out, so a review removed or a version committed would stay on screen.
+ */
+export function sentFile(record: FileRecord): FileRecord {
+  const cleared = { status: null, tip: null, committed: null, review: null, missing: null };
+  return { ...cleared, ...record } as unknown as FileRecord;
+}
 export type PrioritiesRecord = Record_<Priorities> & { id: string };
 export type DraftRecord = Record_<DraftView> & { id: string };
 /** The proposal template's guidance, by heading, which the editor shows in empty sections. */

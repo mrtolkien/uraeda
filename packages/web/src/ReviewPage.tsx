@@ -113,31 +113,48 @@ function reducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 }
 
+const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+/**
+ * The top of the comment sheet once it has stopped moving, or after 5 seconds on a device too
+ * slow to tell: the sheet slides in with a transition, which a read of its style starts.
+ */
+async function restingTop(sheet: RefObject<HTMLElement | null>) {
+  const deadline = performance.now() + 5000;
+  while (!sheet.current && performance.now() < deadline) {
+    await frame();
+  }
+  const element = sheet.current;
+  if (!element) {
+    return undefined;
+  }
+  void getComputedStyle(element).transform;
+  const moving = (document.getAnimations?.() ?? [])
+    .filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
+    .map((animation) => animation.finished.catch(() => undefined));
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise(
+    (resolve) => (timer = setTimeout(resolve, deadline - performance.now())),
+  );
+  await Promise.race([Promise.all(moving), late]);
+  clearTimeout(timer);
+  return element.getBoundingClientRect().top;
+}
+
 /**
  * Brings a selected block into the space between the top bar and the comment sheet, once the sheet
- * has stopped moving, or after 5 seconds on a device too slow to tell: its bottom just above the
- * sheet, or its top under the bar when it is taller than that space.
+ * has stopped moving: its bottom just above the sheet, or its top under the bar when it is taller
+ * than that space.
  */
-function placeAboveSheet(element: HTMLElement, sheet: RefObject<HTMLElement | null>) {
-  const start = performance.now();
-  let last = Number.NaN;
-  const tick = () => {
-    const top = sheet.current?.getBoundingClientRect().top ?? Number.NaN;
-    const late = performance.now() - start > 5000;
-    if (Number.isNaN(top) && late) {
-      return;
-    }
-    if (!late && (Number.isNaN(top) || top !== last)) {
-      last = top;
-      requestAnimationFrame(tick);
-      return;
-    }
-    const bar = document.querySelector('[role="banner"]')?.getBoundingClientRect().bottom ?? 0;
-    const box = element.getBoundingClientRect();
-    const by = box.height > top - bar ? box.top - bar : box.bottom - top;
-    window.scrollBy({ top: by, behavior: reducedMotion() ? "auto" : "smooth" });
-  };
-  requestAnimationFrame(tick);
+async function placeAboveSheet(element: HTMLElement, sheet: RefObject<HTMLElement | null>) {
+  const top = await restingTop(sheet);
+  if (top === undefined || !element.isConnected) {
+    return;
+  }
+  const bar = document.querySelector('[role="banner"]')?.getBoundingClientRect().bottom ?? 0;
+  const box = element.getBoundingClientRect();
+  const by = box.height > top - bar ? box.top - bar : box.bottom - top;
+  window.scrollBy({ top: by, behavior: reducedMotion() ? "auto" : "smooth" });
 }
 
 /**
@@ -193,7 +210,7 @@ export function ReviewPage({ file }: { file: File }) {
     if (wide || draft?.kind !== "lines" || !element) {
       return;
     }
-    placeAboveSheet(element, sheet);
+    void placeAboveSheet(element, sheet);
   }, [wide, draft?.kind, selection]);
 
   const stories = new Map(spec?.stories.map((story) => [story.headingBlock, story]) ?? []);

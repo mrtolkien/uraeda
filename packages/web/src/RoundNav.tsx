@@ -45,6 +45,34 @@ function reducedMotion() {
 }
 
 /**
+ * The question a jump is bringing to the top, until the page stops scrolling: a key pressed while
+ * the page still scrolls goes on from it, not from the question passing by.
+ */
+let heading: string | undefined;
+let stopped: ReturnType<typeof setTimeout> | undefined;
+
+function arrived() {
+  clearTimeout(stopped);
+  heading = undefined;
+  window.removeEventListener("scroll", onJumpingScroll);
+  window.removeEventListener("scrollend", arrived);
+}
+
+/**
+ * The page has stopped scrolling at the end of the scroll, or 150 ms after its last move where the
+ * browser does not say, or after a second when a jump does not scroll at all: a busy machine may
+ * start the scroll late.
+ */
+function onJumpScroll(wait = 150) {
+  clearTimeout(stopped);
+  stopped = setTimeout(arrived, wait);
+}
+
+function onJumpingScroll() {
+  onJumpScroll();
+}
+
+/**
  * Brings a question to the top of the screen, below the bar (its `scroll-margin-top`), and gives
  * its title the focus. Instant under reduced motion, or when `instant`.
  */
@@ -53,11 +81,20 @@ export function jumpTo(id: string, instant = false) {
   if (!section) {
     return;
   }
+  heading = id;
+  window.addEventListener("scroll", onJumpingScroll, { passive: true });
+  window.addEventListener("scrollend", arrived);
+  onJumpScroll(1000);
   section.scrollIntoView?.({
     block: "start",
     behavior: instant || reducedMotion() ? "auto" : "smooth",
   });
   document.getElementById(`${id}-title`)?.focus({ preventScroll: true });
+}
+
+/** The question at the top, or the one a jump is bringing there. */
+function questionJumpedTo(ids: ReadonlyArray<string>) {
+  return heading && ids.includes(heading) ? heading : questionAtTop(ids);
 }
 
 /**
@@ -102,7 +139,7 @@ function useQuestionAtTop(ids: ReadonlyArray<string>, isActive: boolean) {
       if (frame !== undefined) {
         cancelAnimationFrame(frame);
       }
-      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("scroll", onJumpingScroll);
     };
   }, [key, isActive]);
   return at;
@@ -175,14 +212,14 @@ export function RoundNav({
 
   /** The first blank question after the one at the top, the first one when `wrap`. */
   const next = (wrap: boolean) => {
-    const from = ids.indexOf(questionAtTop(ids) ?? "");
+    const from = ids.indexOf(questionJumpedTo(ids) ?? "");
     const target = questions.find((q, index) => index > from && !q.answered) ?? (wrap && blank[0]);
     if (target) {
       jumpTo(target.id);
     }
   };
   const previous = () => {
-    const from = ids.indexOf(questionAtTop(ids) ?? "");
+    const from = ids.indexOf(questionJumpedTo(ids) ?? "");
     const target = questions
       .slice(0, Math.max(from, 0))
       .reverse()

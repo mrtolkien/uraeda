@@ -7,8 +7,21 @@ type Binding = typeof import("uraeda-binding");
 /** The repository's root, where the binding's package and the Rust it is built from live. */
 const ROOT = fileURLToPath(new URL("../../..", import.meta.url));
 
-/** What the binding is built from: the core, the binding's crate, and the skill the core embeds. */
-const SOURCES = ["crates/core", "crates/binding", "skills/uraeda", "Cargo.toml", "Cargo.lock"];
+/**
+ * What the binding is built from: the core, the binding's crate, and the skill the core embeds. Not
+ * the crates' tests, which a build does not read.
+ */
+const SOURCES = [
+  "crates/core/src",
+  "crates/core/build.rs",
+  "crates/core/Cargo.toml",
+  "crates/binding/src",
+  "crates/binding/build.rs",
+  "crates/binding/Cargo.toml",
+  "skills/uraeda",
+  "Cargo.toml",
+  "Cargo.lock",
+];
 
 /** The latest modification time of a file, or of the files under a folder. */
 function latest(path: string): number {
