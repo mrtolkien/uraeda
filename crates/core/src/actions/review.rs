@@ -39,6 +39,16 @@ fn kind(file: &str) -> &str {
     file.strip_suffix(".md").unwrap_or(file)
 }
 
+/// The subject of the commit a verdict on a file makes: `spec(recurring-tasks): approve`, or
+/// `plan(recurring-tasks): request changes`. `slug` is the feature's or the bug's.
+pub fn subject(slug: &str, file: &str, verdict: Verdict) -> String {
+    let action = match verdict {
+        Verdict::ChangesRequested => "request changes",
+        Verdict::Approved | Verdict::Pending => "approve",
+    };
+    format!("{}({slug}): {action}", kind(file))
+}
+
 /// `spec-review.md` for `spec.md`.
 pub fn review_name(file: &str) -> String {
     format!("{}-review.md", kind(file))
@@ -301,7 +311,7 @@ pub fn approve(
     paths.sort();
     Ok(Change {
         paths,
-        subject: format!("{}({}): approve", kind(file), feature.slug),
+        subject: subject(&feature.slug, file, Verdict::Approved),
         body: summary.map(String::from),
     })
 }
@@ -347,7 +357,7 @@ pub fn request_changes(
     paths.sort();
     Ok(Change {
         paths,
-        subject: format!("{}({}): request changes", kind(file), feature.slug),
+        subject: subject(&feature.slug, file, Verdict::ChangesRequested),
         body: summary.map(String::from),
     })
 }

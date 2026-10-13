@@ -78,6 +78,22 @@ pub fn write(
     })
 }
 
+/// The questions of a round that need an answer and have none, by id: `Q3`, `Q5`.
+pub fn blank(text: &str) -> Vec<String> {
+    let questions = clarifications::parse(text);
+    questions
+        .iter()
+        .filter(|q| q.answer.is_empty() && q.applies(&questions) != Applicability::No)
+        .map(|q| q.id.clone())
+        .collect()
+}
+
+/// The subject of the commit submitting round `round`: `discovery(recurring-tasks): answer round
+/// 01`. `slug` is the feature's.
+pub fn subject(slug: &str, round: u32) -> String {
+    format!("discovery({slug}): answer round {round:02}")
+}
+
 /// Submits the latest round: every applicable question answered, `status: answered`, and the
 /// block turned into its record.
 pub fn submit(place: &Place, feature: &Feature, today: Date) -> Result<Change, ActionError> {
@@ -86,12 +102,7 @@ pub fn submit(place: &Place, feature: &Feature, today: Date) -> Result<Change, A
     let path = place.root.join(&file);
     let text = fs::read_to_string(&path)?;
     waiting(&text, &name)?;
-    let questions = clarifications::parse(&text);
-    let blank: Vec<String> = questions
-        .iter()
-        .filter(|q| q.answer.is_empty() && q.applies(&questions) != Applicability::No)
-        .map(|q| q.id.clone())
-        .collect();
+    let blank = blank(&text);
     if !blank.is_empty() {
         let verb = if blank.len() == 1 { "has" } else { "have" };
         return Err(ActionError::Refused(format!(
@@ -105,7 +116,7 @@ pub fn submit(place: &Place, feature: &Feature, today: Date) -> Result<Change, A
     fs::write(&path, recorded)?;
     Ok(Change {
         paths: vec![file],
-        subject: format!("discovery({}): answer round {round:02}", feature.slug),
+        subject: subject(&feature.slug, round),
         body: None,
     })
 }
