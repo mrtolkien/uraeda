@@ -25,6 +25,8 @@ export const REFUSALS = {
   /** A take-back of a message the agent read. */
   read: "The agent already read it.",
   blank: "The message is empty.",
+  /** An allow of a blocked action no rule matches alone, as a command with a `*`. */
+  noRule: "No allow rule can match only this action.",
   unavailable: (name: string) => `${name} is not available on this machine.`,
 };
 
@@ -471,17 +473,21 @@ export class Sessions {
       if (cache.turn(turn)?.sessionId !== live.id || !denial) {
         throw new Error(`no blocked action ${seq} in turn ${turn}`);
       }
+      const { rule } = denial;
+      if (rule === undefined) {
+        throw refused(REFUSALS.noRule);
+      }
       if (live.turn || live.queue.length > 0) {
         throw refused(REFUSALS.working);
       }
-      const { replaced } = await this.#process(live, denial.rule);
+      const { replaced } = await this.#process(live, rule);
       const id = randomUUID();
       const text = retryMessage(denial);
       const started = this.#begin(live, {
         kind: "allow",
         trigger: null,
         step: null,
-        allowed: denial.rule,
+        allowed: rule,
         item: { kind: "message", id, text, origin: "human", state: "pending" },
         message: { id, text, when: "queue" },
         replaced,
@@ -490,7 +496,7 @@ export class Sessions {
         kind: "denial",
         tool: denial.tool,
         ...(denial.target === undefined ? {} : { target: denial.target }),
-        rule: denial.rule,
+        rule,
         allowed: true,
       });
       this.#changed(live, turn);
@@ -914,11 +920,12 @@ export class Sessions {
   #result(live: Live, proc: Proc, turn: Running, result: Result, append: (item: Item) => number) {
     for (const denial of result.denials) {
       const target = toolTarget(denial.tool, denial.input, proc.cwd);
+      const rule = this.adapter.allowRule(denial);
       append({
         kind: "denial",
         tool: denial.tool,
         ...(target === undefined ? {} : { target }),
-        rule: this.adapter.allowRule(denial),
+        ...(rule === undefined ? {} : { rule }),
         allowed: false,
       });
     }
