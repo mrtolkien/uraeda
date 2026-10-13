@@ -4,6 +4,7 @@ use std::fs;
 
 use crate::files::clarifications::{self, Applicability};
 use crate::files::{frontmatter, markdown};
+use crate::gates;
 use crate::today::Date;
 use crate::workspace::{Feature, FileKind};
 
@@ -27,12 +28,21 @@ pub fn round_path(feature: &Feature) -> Result<String, ActionError> {
     Ok(format!("{}/{name}", feature.path))
 }
 
+/// Refuses a round that is not the feature's latest: only the latest is answered and submitted.
+pub fn ensure_latest(feature: &Feature, name: &str) -> Result<(), ActionError> {
+    let (latest, _) = latest_round(feature)?;
+    if latest == name {
+        Ok(())
+    } else {
+        Err(ActionError::Refused(format!(
+            "{name} is not the latest round: {latest} is"
+        )))
+    }
+}
+
 /// Refuses a round that is not `awaiting-human`: an answered round is a record.
 fn waiting(text: &str, name: &str) -> Result<(), ActionError> {
-    let status = frontmatter::parse(text)
-        .ok()
-        .and_then(|front| front.text("status").map(String::from));
-    if status.as_deref() == Some("awaiting-human") {
+    if gates::awaits_human(text) {
         Ok(())
     } else {
         Err(ActionError::Refused(format!(

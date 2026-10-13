@@ -114,8 +114,11 @@ export declare function startFeature(repo: string, draft: string, slug?: string 
 /** Deletes the pending review of a file. */
 export declare function startOver(repo: string, folder: string, file: string): Promise<FileView>
 
-/** Submits the latest round of questions, and commits it. */
-export declare function submitAnswers(repo: string, folder: string): Promise<FileView>
+/**
+ * Submits the latest round of questions, and commits it; refused when `name`, the round
+ * answered, is another.
+ */
+export declare function submitAnswers(repo: string, folder: string, name?: string | undefined | null): Promise<FileView>
 
 /**
  * Watches the repository at `repo`, and calls `onChange` with what changed after each burst of

@@ -4,6 +4,7 @@ use std::fs;
 
 use crate::files::review::{self, Anchor, Comment, Review, Verdict};
 use crate::files::{frontmatter, markdown, spec};
+use crate::gates::{Gate, awaits_human, gate_of};
 use crate::git::{Git, ObjectId};
 use crate::today::Date;
 use crate::workspace::Feature;
@@ -19,7 +20,7 @@ pub fn reviewed_file(feature: &Feature, named: Option<&str>) -> Result<String, A
             .step
             .file
             .clone()
-            .filter(|file| ["spec.md", "plan.md", "assessment.md"].contains(&file.as_str()))
+            .filter(|file| gate_of(file) == Some(Gate::Review))
             .ok_or_else(|| {
                 ActionError::Refused(format!(
                     "{} has nothing waiting for a review",
@@ -27,7 +28,7 @@ pub fn reviewed_file(feature: &Feature, named: Option<&str>) -> Result<String, A
                 ))
             })?,
     };
-    if !["spec.md", "plan.md", "assessment.md"].contains(&name.as_str()) {
+    if gate_of(&name) != Some(Gate::Review) {
         return Err(ActionError::Refused(format!(
             "{name} is not a spec, a plan, or an assessment"
         )));
@@ -57,9 +58,7 @@ pub fn review_name(file: &str) -> String {
 /// The reviewed file's text on disk, refused unless it waits for a review.
 fn waiting_text(place: &Place, feature: &Feature, file: &str) -> Result<String, ActionError> {
     let text = fs::read_to_string(place.root.join(&feature.path).join(file))?;
-    let waiting =
-        frontmatter::parse(&text).is_ok_and(|front| front.text("status") == Some("awaiting-human"));
-    if !waiting {
+    if !awaits_human(&text) {
         return Err(ActionError::Refused(format!(
             "{file} is not waiting for a review"
         )));
