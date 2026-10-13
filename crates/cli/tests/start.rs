@@ -304,3 +304,34 @@ fn refuses_a_name_a_record_holds() {
         "ura: specs/done/2026-10-11-git-listener-process.md exists: choose another slug with --slug\n"
     );
 }
+
+#[test]
+fn a_refused_switch_returns_to_the_branch_it_left() {
+    let repo = repo_with_a_draft();
+    repo.switch_new("elsewhere");
+
+    let output = ura(&repo, &["start", DRAFT, "--switch", "--slug", "Not A Slug"]);
+
+    assert_eq!(output.code, 1);
+    assert_eq!(
+        output.stderr,
+        "ura: \"Not A Slug\" is not a slug: lowercase letters, digits, and hyphens; choose one with --slug\n"
+    );
+    assert_eq!(repo.current_branch(), "elsewhere");
+    assert_eq!(repo.subjects("main")[0], "draft");
+}
+
+#[test]
+fn refuses_a_folder_where_the_worktree_goes() {
+    let repo = repo_with_a_draft();
+    repo.write(&in_worktree("left-over.txt"), "x\n");
+
+    let output = ura(&repo, &["start", DRAFT]);
+
+    assert_eq!(output.code, 1);
+    assert_eq!(
+        output.stderr,
+        format!("ura: cannot create the worktree: {WORKTREE} exists\n")
+    );
+    assert_eq!(repo.subjects("main")[0], "draft");
+}
