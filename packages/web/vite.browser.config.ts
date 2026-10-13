@@ -1,7 +1,7 @@
 // The layout's checks, in WebKit at an iPhone 17's size and at a desktop's, against the server
 // mounted in the test server (see `vite.config.ts`), on the fake agent: the tests `vp run ready`
 // runs never start Claude Code. The root's config lists this project next to the others.
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Frame, Page } from "playwright";
 import { fixtureRepo } from "uraeda-binding/test-utils";
@@ -56,7 +56,9 @@ const commands = {
     }
     // The agent's process ends with the test: the next test's session opens one of its own.
     agent.exit(1, "ended by the test");
-    forgetRepo(process.env.URAEDA_REPO!);
+    const repo = process.env.URAEDA_REPO!;
+    forgetRepo(repo);
+    rmSync(repo, { recursive: true, force: true });
     shared.uraedaRepoHolder = undefined;
     holder.release();
   },
