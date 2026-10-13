@@ -6,8 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Clean server code that can open any folder on the host + be run easily with node -> make the tool multi-repos](drafts/clean-server-code-that-can-open-any-folder-on-the.md)
-
 - [Code quality and maintainability through the skill](drafts/code-quality-in-the-skill.md)
 
 - Look and feel pass: components style, logo, favicon, ...
@@ -20,6 +18,7 @@
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Setup with agent (checks project and creates relevant files)
 - [Chats, proposals, and reviews should accept images (drag and drop in the page, still show a dedicated button)](/specs/2026-10-13-image-attachments/proposal.md)
+- [Clean server code that can open any folder on the host + be run easily with node -> make the tool multi-repos](/specs/2026-10-13-multi-repo-server/proposal.md)
 
 ## Next
 
