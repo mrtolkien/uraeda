@@ -58,7 +58,7 @@ impl From<Outcome> for Done {
 }
 
 #[derive(Deserialize)]
-struct FileArgs {
+pub(crate) struct FileArgs {
     uri: Uri,
 }
 
@@ -299,10 +299,19 @@ fn in_checkout(
         .collect())
 }
 
-/// `uraeda.comment { uri, line?, endLine?, text }`: adds a comment to the pending review, on lines
-/// of the committed file, which the open text must be.
-fn comment(documents: &Documents, args: CommentArgs) -> Result<Outcome, ResponseError> {
-    let (folder, file) = feature_file(documents, &args.uri)?;
+/// `uraeda/canComment`.
+pub(crate) const CAN_COMMENT: &str = "uraeda/canComment";
+
+/// `uraeda/canComment { uri }`: `null` when `uraeda.comment` would take a comment on the file,
+/// else its refusal, so an editor asks before it opens a window for the text. Writes nothing.
+pub(crate) fn can_comment(documents: &Documents, params: FileArgs) -> Result<(), ResponseError> {
+    commentable(documents, &params.uri).map(|_| ())
+}
+
+/// The folder and the file of `uri`, when it waits for a review and its open text is the
+/// committed one, which a comment's lines point at; else the refusal.
+fn commentable(documents: &Documents, uri: &Uri) -> Result<(String, WorkflowFile), ResponseError> {
+    let (folder, file) = feature_file(documents, uri)?;
     let text = text(documents, &file)?;
     waiting(&text, &file.name)?;
     let view = core(api::read_file(&documents.root, &folder, &file.name))?;
@@ -314,6 +323,13 @@ fn comment(documents: &Documents, args: CommentArgs) -> Result<Outcome, Response
             file.name
         )));
     }
+    Ok((folder, file))
+}
+
+/// `uraeda.comment { uri, line?, endLine?, text }`: adds a comment to the pending review, on lines
+/// of the committed file, which the open text must be.
+fn comment(documents: &Documents, args: CommentArgs) -> Result<Outcome, ResponseError> {
+    let (folder, file) = commentable(documents, &args.uri)?;
     let lines = args.line.map(|line| (line, args.end_line.unwrap_or(line)));
     let view = core(api::add_comment(
         &documents.root,

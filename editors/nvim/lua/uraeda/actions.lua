@@ -39,6 +39,23 @@ function M.field()
   require("uraeda.pickers").field(0)
 end
 
+--- Opens the comment window (US4) over the lines of `:Uraeda`'s range, else of the visual
+--- selection when a key or a mapping runs it in visual mode, else of the cursor's line.
+--- @param opts table?
+function M.comment(opts)
+  local first, last
+  if opts and opts.range and opts.range > 0 then
+    first, last = opts.line1, opts.line2
+  elseif vim.fn.mode():find("^[vV\22]") then
+    first, last = vim.fn.line("v"), vim.fn.line(".")
+    vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "nx", false)
+  else
+    first = vim.api.nvim_win_get_cursor(0)[1]
+    last = first
+  end
+  require("uraeda.comment").open(0, first, last)
+end
+
 --- @class uraeda.Action
 --- @field name string the `:Uraeda` subcommand, and the `<Plug>(uraeda-<name>)` mapping
 --- @field desc string starts with `Uraeda`
@@ -73,6 +90,14 @@ M.list = {
     modes = { "n" },
     buffer_local = true,
     key = "g",
+  },
+  {
+    name = "comment",
+    desc = "Uraeda: comment on the lines",
+    fn = M.comment,
+    modes = { "n", "x" },
+    buffer_local = true,
+    key = "m",
   },
   {
     name = "field",

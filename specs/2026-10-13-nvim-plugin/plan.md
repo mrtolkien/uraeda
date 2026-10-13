@@ -831,44 +831,57 @@ git commit -m "feat(nvim-plugin): pick frontmatter values"
 **Files:**
 
 - Create: `editors/nvim/lua/uraeda/comment.lua`
-- Modify: `editors/nvim/lua/uraeda/actions.lua` (`comment`)
-- Test: `editors/nvim/tests/test_comment.lua`, screenshots in `editors/nvim/tests/screenshots/`
+- Modify: `editors/nvim/lua/uraeda/actions.lua` (`comment`), `crates/lsp/src/commands.rs` and
+  `crates/lsp/src/server.rs` (`uraeda/canComment`)
+  ([R13](rulings.md#r13-the-comment-window-asks-the-server-before-it-opens))
+- Test: `editors/nvim/tests/test_comment.lua`, screenshots in `editors/nvim/tests/screenshots/`,
+  `crates/lsp/tests/commands.rs`
 
 **Interfaces:**
 
-- Consumes: `uraeda/comments` (task 4), `uraeda.comment` and `uraeda.editComment` (task 5).
+- Consumes: `uraeda/comments` (task 4), `uraeda.comment` and `uraeda.editComment` (task 5), and
+  `uraeda/canComment { uri }`, answering `null` or `uraeda.comment`'s refusals, before the window
+  opens.
 - Produces: `comment.open(bufnr, first, last)`: a float under the last line, titled
   `Comment · lines 50–52` (or `line 50`), footer `:w save · q cancel`, a scratch `markdown` buffer
   prefilled with the comment on those lines if any; `:w` and `<C-s>` send it, `q` and `<Esc>` in
-  normal mode close it. After a save, `User UraedaComment` fires.
+  normal mode close it. After a save, `User UraedaComment` fires. The `comment` action, key `m` in
+  normal and visual modes, takes `:Uraeda`'s range, else the visual selection, else the cursor's
+  line; on lines with a comment, the window covers that comment's lines.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```lua
 T["a selection gets a comment"] = function() end         -- US4.1: V on 50–52, type, :w → review file content
 T["a commented line opens its comment"] = function() end -- US4.2
 T["an emptied comment is removed"] = function() end      -- US4.3
 T["an uncommitted spec refuses"] = function() end        -- US4.4: no window, notification text
+T["an approved spec refuses"] = function() end           -- US4.5
 T["a refused text keeps the window"] = function() end    -- review focus 3: "# heading" → error, window and text kept
 T["the window looks right"] = function() end             -- screenshot
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+```rust
+#[test] fn can_comment_refuses_like_a_comment() {}        // US4.4, US4.5: nothing written
+```
 
-- Run: `vp run test:nvim`
-- Expected: FAIL, `module 'uraeda.comment' not found`
+- [x] **Step 2: Run them to check they fail**
 
-- [ ] **Step 3: Implement the comment window**
+- Run: `cargo test -p uraeda-lsp --test commands && vp run test:nvim`
+- Expected: FAIL, `method not found: uraeda/canComment`, and in the plugin no window opens and
+  `unknown action "comment"` (the tests reach the window through the action)
 
-- [ ] **Step 4: Run all checks**
+- [x] **Step 3: Implement the comment window**
 
-- Run: `stylua --check editors/nvim && vp run test:nvim`
+- [x] **Step 4: Run all checks**
+
+- Run: `stylua --check editors/nvim && vp run test:nvim && cargo test -p uraeda-lsp`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add editors/nvim
+git add editors/nvim crates/lsp specs/2026-10-13-nvim-plugin
 git commit -m "feat(nvim-plugin): comment on lines of a spec"
 ```
 

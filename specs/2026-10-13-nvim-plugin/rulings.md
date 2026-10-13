@@ -218,3 +218,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   in [`crates/lsp/tests/editing.rs`](/crates/lsp/tests/editing.rs), and `set` in
   [`pickers.lua`](/editors/nvim/lua/uraeda/pickers.lua).
 - **Where**: task 8, `crates/lsp/src/actions.rs`, `editors/nvim/lua/uraeda/pickers.lua`.
+
+## R13: The comment window asks the server before it opens
+
+- **Decision**: a new request, `uraeda/canComment { uri }`, answers `null` when `uraeda.comment`
+  would take a comment on the file, else its refusal (`spec.md is not waiting for a review.`,
+  `spec.md differs from its last commit: …`), from the same check, and writes nothing. The comment
+  action asks it, then `uraeda/comments`, and opens the window only on an answer. On lines with a
+  comment, the window covers that comment's lines and edits it; an empty new comment closes the
+  window without a command. The plugin tests use a feature on its own branch, in its worktree, as
+  the server's tests do, and step 2 failed with `method not found: uraeda/canComment` and, in the
+  plugin, on the missing `comment` action, not `module 'uraeda.comment' not found`.
+- **Rationale**: US4.4 wants no window on an uncommitted spec, and the plugin must not tell a
+  waiting or committed file itself ([stack](../decisions/stack.md)). A request answers on the
+  server's loop, without the progress notification a dry run of the command would show.
+- **Alternatives considered**: a `dryRun` argument of `uraeda.comment`: it runs on the worker,
+  between progress notifications, for a check that writes nothing; opening the window and refusing
+  on save: the text typed would be for nothing.
+- **If wrong**: one request in [`commands.rs`](/crates/lsp/src/commands.rs), its test in
+  [`crates/lsp/tests/commands.rs`](/crates/lsp/tests/commands.rs), and the first request of `open`
+  in [`comment.lua`](/editors/nvim/lua/uraeda/comment.lua).
+- **Where**: task 9, `crates/lsp/src/`, `editors/nvim/lua/uraeda/comment.lua`.
