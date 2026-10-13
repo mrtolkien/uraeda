@@ -526,6 +526,17 @@ export const uraedaTheme = {
           "flexShrink": "0 !important"
         }
       }
+    },
+    "side-nav-item": {
+      "base": {
+        "height": "auto",
+        "minHeight": "var(--size-element-md)",
+        "paddingBlock": "var(--spacing-1)",
+        ":is(*) span": {
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      }
     }
   },
   __onDark: {
