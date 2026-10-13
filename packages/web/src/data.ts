@@ -162,14 +162,6 @@ export function useTurnLog(id: string, latest = false) {
   return live;
 }
 
-/** The sidebar's sessions, what needs the human first. */
-export function useSessionList() {
-  const request = { sessionList: { id: SESSION_LIST_ID, view: SessionListView } };
-  const { sessionList } = useRequest(request);
-  useRefreshOnShow(request);
-  return useLiveView(SessionListView, sessionList);
-}
-
 /**
  * What the navigation reads: the workspace's features and the sessions' list, in one request, so
  * the shell waits for them once.

@@ -67,7 +67,7 @@ export function parseRoute(pathname: string): Route {
  * from and that page's scroll position then, an open overlay's label (see `layout/Overlay.tsx`),
  * and the groups of tool calls opened in a session's transcript, by their turn and first call.
  */
-export type Entry = {
+type Entry = {
   id?: string;
   scroll?: number;
   pane?: number;

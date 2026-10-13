@@ -23,7 +23,7 @@ type Feature = {
 };
 
 /** How long a turn ran, or has run so far: `4 min`, or `40 s` under a minute. */
-export function turnTime(startedAt: string, endedAt: string | null, now = Date.now()) {
+function turnTime(startedAt: string, endedAt: string | null, now = Date.now()) {
   const ms = Math.max(0, (endedAt ? Date.parse(endedAt) : now) - Date.parse(startedAt));
   return ms < 60_000 ? `${Math.round(ms / 1000)} s` : `${Math.round(ms / 60_000)} min`;
 }

@@ -56,7 +56,7 @@ const styles = stylex.create({
 });
 
 /** A line of a turn, as the server keeps it. */
-export type TranscriptItem = Item & { seq: number };
+type TranscriptItem = Item & { seq: number };
 type ToolItem = Extract<TranscriptItem, { kind: "tool" }>;
 type MessageItem = Extract<TranscriptItem, { kind: "message" }>;
 type DenialItem = Extract<TranscriptItem, { kind: "denial" }>;
@@ -67,7 +67,7 @@ export function duration(ms: number) {
 }
 
 /** What a tool call left going by a turn that ended shows. */
-export const UNFINISHED = "Not finished: the turn ended.";
+const UNFINISHED = "Not finished: the turn ended.";
 
 const STATUS = {
   pending: "pending",
@@ -101,7 +101,7 @@ function toolCalls(tools: Array<ToolItem>, ended: boolean) {
 }
 
 /** The groups of tool calls opened, by their turn and first call, and how to open or close one. */
-export type OpenGroups = {
+type OpenGroups = {
   open: ReadonlyArray<string>;
   onOpenChange: (key: string, isOpen: boolean) => void;
 };
@@ -308,7 +308,7 @@ function Denial({ item, turn, actions }: { item: DenialItem; turn: string; actio
  * of tool calls in one group, a sub-agent and its tools in a group of their own, and the system
  * lines and blocked actions as notices.
  */
-export function TranscriptItems({
+function TranscriptItems({
   items,
   turn,
   ended,
