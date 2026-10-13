@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chat in the web UI: mockups</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        font:
+          14px/1.45 system-ui,
+          sans-serif;
+        color: #1f2328;
+        background: #d9dce0;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 20px;
+      }
+      .intro {
+        max-width: 860px;
+        margin: 0 0 24px;
+        color: #444c56;
+      }
+      section {
+        margin: 0 0 40px;
+      }
+      section > h2 {
+        margin: 0 0 4px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #444c56;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      section > p.note {
+        max-width: 860px;
+        margin: 0 0 12px;
+        font-size: 13px;
+        color: #444c56;
+      }
+      .screens {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 28px;
+        align-items: flex-start;
+      }
+
+      /* Neutral theme tokens. */
+      .phone,
+      .desktop {
+        --bg: #ffffff;
+        --bar: #f4f4f5;
+        --fg: #18181b;
+        --muted: #5f6368;
+        --rule: #e4e4e7;
+        --band: #f4f4f5;
+        --accent: #2563eb;
+        --btn: #18181b;
+        --on-btn: #ffffff;
+        --warn: #c69200;
+        --ok: #15803d;
+        --err: #b91c1c;
+        --idle: #8a8f98;
+        --bubble: #f0f0f2;
+        --mine: #e8eefc;
+        --scrim: rgb(0 0 0 / 0.35);
+        position: relative;
+        overflow: hidden;
+        color: var(--fg);
+        background: var(--bg);
+        box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+      }
+      .dark {
+        --bg: #18181b;
+        --bar: #222226;
+        --fg: #ececee;
+        --muted: #a1a1aa;
+        --rule: #303036;
+        --band: #111113;
+        --accent: #60a5fa;
+        --btn: #fafafa;
+        --on-btn: #18181b;
+        --warn: #e0b13a;
+        --ok: #4ade80;
+        --err: #f87171;
+        --idle: #71717a;
+        --bubble: #26262b;
+        --mine: #1e2a44;
+        --scrim: rgb(0 0 0 / 0.55);
+      }
+      .phone {
+        width: 402px;
+        height: 874px;
+        border-radius: 22px;
+        display: flex;
+        flex-direction: column;
+        font:
+          17px/1.5 system-ui,
+          sans-serif;
+      }
+      .desktop {
+        width: 1440px;
+        height: 900px;
+        border-radius: 10px;
+        display: flex;
+        font:
+          19px/1.5 system-ui,
+          sans-serif;
+      }
+      .frame-label {
+        margin: 0 0 6px;
+        font-size: 12px;
+        color: #444c56;
+      }
+
+      /* Sidebar. */
+      .nav {
+        width: 240px;
+        flex: none;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 14px 10px;
+        background: var(--bar);
+        border-right: 1px solid var(--rule);
+        font-size: 15px;
+      }
+      .brand {
+        font-weight: 700;
+        padding: 0 8px 10px;
+      }
+      .search {
+        margin: 0 4px 10px;
+        padding: 7px 10px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: var(--bg);
+        color: var(--muted);
+      }
+      .search.typed {
+        color: var(--fg);
+      }
+      .group {
+        margin: 12px 8px 4px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .group .add {
+        text-transform: none;
+        letter-spacing: 0;
+        font-weight: 500;
+        color: var(--fg);
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        padding: 1px 8px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .row.current {
+        background: var(--rule);
+        font-weight: 600;
+      }
+      .row.sub {
+        padding-left: 30px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .row.muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .empty {
+        padding: 6px 8px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      /* Status dots: colour and shape, never colour alone. */
+      .dot {
+        flex: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        display: inline-grid;
+        place-items: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: #fff;
+      }
+      .dot.working {
+        background: var(--accent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+      }
+      .dot.needs {
+        background: var(--warn);
+        color: #000;
+      }
+      .dot.needs::after {
+        content: "!";
+      }
+      .dot.failed {
+        background: var(--err);
+      }
+      .dot.failed::after {
+        content: "×";
+      }
+      .dot.unread {
+        background: var(--ok);
+      }
+      .dot.unread::after {
+        content: "✓";
+      }
+      .dot.idle {
+        background: transparent;
+        border: 2px solid var(--idle);
+        width: 12px;
+        height: 12px;
+      }
+      .dot.small {
+        width: 10px;
+        height: 10px;
+      }
+
+      /* Panes. */
+      .feature {
+        width: 520px;
+        flex: none;
+        padding: 22px 26px;
+        border-right: 1px solid var(--rule);
+        overflow: hidden;
+      }
+      .feature h2,
+      .session h2 {
+        margin: 0 0 6px;
+        font-size: 24px;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .card {
+        margin: 16px 0;
+        padding: 14px 16px;
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+      }
+      .card h3 {
+        margin: 0 0 8px;
+        font-size: 17px;
+      }
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .btns {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        padding: 6px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--rule);
+        font-size: 16px;
+      }
+      .btn.primary {
+        background: var(--btn);
+        color: var(--on-btn);
+        border-color: var(--btn);
+      }
+      .session {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .head {
+        padding: 16px 24px 12px;
+        border-bottom: 1px solid var(--rule);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .head .meta {
+        font-size: 15px;
+        color: var(--muted);
+      }
+      .head .meta .dot {
+        vertical-align: -1px;
+        margin-right: 6px;
+      }
+      .log {
+        flex: 1;
+        overflow: hidden;
+        padding: 18px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        font-size: 17px;
+      }
+      .divider {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .divider::before,
+      .divider::after {
+        content: "";
+        flex: 1;
+        border-top: 1px solid var(--rule);
+      }
+      .mine {
+        align-self: flex-end;
+        max-width: 78%;
+        background: var(--mine);
+        border-radius: 14px 14px 4px 14px;
+        padding: 10px 14px;
+      }
+      .mine .opening {
+        display: block;
+        font-size: 14px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .mine.workflow {
+        font-family: ui-monospace, monospace;
+        font-size: 14px;
+      }
+      .mine.pending {
+        opacity: 0.55;
+        position: relative;
+        padding-right: 36px;
+      }
+      .mine.pending .x {
+        position: absolute;
+        right: 10px;
+        top: 8px;
+        font-weight: 700;
+      }
+      .pending-note {
+        align-self: flex-end;
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: -8px;
+      }
+      .agent {
+        max-width: 86%;
+        background: var(--bubble);
+        border-radius: 14px 14px 14px 4px;
+        padding: 10px 14px;
+      }
+      .agent p {
+        margin: 0 0 6px;
+      }
+      .agent p:last-child {
+        margin: 0;
+      }
+      .caret {
+        display: inline-block;
+        width: 8px;
+        height: 1em;
+        vertical-align: text-bottom;
+        background: var(--fg);
+        opacity: 0.6;
+      }
+      .tools {
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        font-size: 15px;
+        max-width: 86%;
+      }
+      .tools .t {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 6px 12px;
+        border-top: 1px solid var(--rule);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .tools .t:first-child {
+        border-top: 0;
+      }
+      .tools .t .name {
+        font-weight: 600;
+      }
+      .tools .t .target {
+        font-family: ui-monospace, monospace;
+        font-size: 13px;
+        color: var(--muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .tools .sub {
+        padding-left: 30px;
+      }
+      .ok {
+        color: var(--ok);
+      }
+      .bad {
+        color: var(--err);
+      }
+      .spin {
+        color: var(--accent);
+      }
+      .system {
+        font-size: 15px;
+        color: var(--muted);
+      }
+      .blocked {
+        border: 1px solid var(--warn);
+        border-left-width: 4px;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 16px;
+      }
+      .blocked code {
+        font-size: 14px;
+      }
+      .composer {
+        margin: 0 24px 18px;
+        border: 1px solid var(--rule);
+        border-radius: 14px;
+        padding: 10px 12px;
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+        font-size: 17px;
+      }
+      .composer .text {
+        flex: 1;
+        min-height: 1.5em;
+      }
+      .composer .text.placeholder {
+        color: var(--muted);
+      }
+      .composer .text.prefilled {
+        font-family: ui-monospace, monospace;
+        font-size: 14px;
+      }
+      .send {
+        flex: none;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: var(--btn);
+        color: var(--on-btn);
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+      }
+      .send.stop::after {
+        content: "";
+        width: 12px;
+        height: 12px;
+        background: var(--on-btn);
+        border-radius: 2px;
+      }
+      .composer-hint {
+        margin: -12px 24px 14px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .sr {
+        margin: -10px 24px 10px;
+        font-size: 12px;
+        color: var(--muted);
+        font-style: italic;
+      }
+
+      /* Phone. */
+      .topbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--rule);
+        background: var(--bar);
+      }
+      .topbar .menu {
+        font-size: 22px;
+      }
+      .phone .log {
+        padding: 14px 16px;
+        font-size: 17px;
+      }
+      .phone .composer {
+        margin: 0 12px 16px;
+      }
+      .phone .mine,
+      .phone .agent,
+      .phone .tools {
+        max-width: 92%;
+      }
+      .sheet {
+        position: absolute;
+        inset: 0;
+        display: flex;
+      }
+      .sheet .scrim {
+        flex: 1;
+        background: var(--scrim);
+      }
+      .sheet .nav {
+        width: 300px;
+        border-right: 0;
+        font-size: 17px;
+      }
+      .close {
+        align-self: flex-end;
+        margin: -4px 4px 4px;
+        padding: 2px 10px;
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        font-size: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Chat in the web UI</h1>
+    <p class="intro">
+      Static mockups for the <a href="../spec.md">spec</a>. Status dots carry a shape as well as a
+      colour: pulsing for working, "!" for needs you, "×" for failed, "✓" for a new reply, a ring
+      for idle. Text in italics under a composer stands for what screen readers hear, not visible
+      text.
+    </p>
+
+    <section>
+      <h2>Desktop, light: a feature's session beside its page</h2>
+      <p class="note">
+        The sidebar keeps the feature groups, each row with its session's status, a running
+        sub-agent under its session, and the Chats section. The session pane shows a run, a chat
+        with its opening line, a steered message not yet read (greyed, with ✕), a reply streaming,
+        and Stop in place of Send.
+      </p>
+      <div class="screens">
+        <div>
+          <p class="frame-label">1440 × 900</p>
+          <div class="desktop">
+            <nav class="nav" aria-label="Navigation">
+              <div class="brand">Uraeda</div>
+              <div class="search">Search sessions</div>
+              <div class="row">Home</div>
+              <div class="row">Priorities</div>
+              <div class="group">Waiting on you</div>
+              <div class="row"><span class="dot needs"></span>Keyboard shortcuts</div>
+              <div class="row"><span class="dot failed"></span>CLI TUIs</div>
+              <div class="group">Agents at work</div>
+              <div class="row current"><span class="dot working"></span>Chat in the web UI</div>
+              <div class="row sub"><span class="dot working small"></span>Map the runner code</div>
+              <div class="row"><span class="dot unread"></span>Git listener</div>
+              <div class="group">Chats <span class="add">＋ New chat</span></div>
+              <div class="row"><span class="dot idle"></span>Why is CI slow on WebKit?</div>
+              <div class="row"><span class="dot unread"></span>List the open draft files</div>
+              <div class="row muted">Archived</div>
+              <div class="group">Done</div>
+              <div class="row"><span class="dot idle"></span>UI improvements</div>
+            </nav>
+            <div class="feature">
+              <p class="muted" style="margin: 0 0 4px; font-size: 15px">Agents at work</p>
+              <h2>Chat in the web UI</h2>
+              <p class="muted" style="margin: 0">2026-10-13-chat · spec</p>
+              <div class="card">
+                <h3>Agent</h3>
+                <div class="status">
+                  <span class="dot working"></span>Working on the spec · 4 min · $1.92 this session
+                </div>
+                <div class="btns">
+                  <span class="btn primary">Open the session</span><span class="btn">Stop</span>
+                </div>
+              </div>
+              <div class="card">
+                <h3>Files</h3>
+                <p style="margin: 0">proposal.md<br />discovery-01.md<br />clarifications-01.md</p>
+              </div>
+            </div>
+            <div class="session">
+              <div class="head">
+                <div>
+                  <h2>Chat in the web UI</h2>
+                  <div class="meta">
+                    <span class="dot working small"></span>Working · Claude Code · branch
+                    2026-10-13-chat · $1.92 this session
+                  </div>
+                </div>
+                <span class="btn">Close</span>
+              </div>
+              <div class="log" role="log" aria-label="Conversation">
+                <div class="divider">Run: Spec</div>
+                <div class="mine workflow">
+                  /uraeda:uraeda Continue the feature specs/2026-10-13-chat/, on branch
+                  2026-10-13-chat.<br />The human answered clarifications-01.md of the questions.<br />Its
+                  next step is spec: follow skills/uraeda/references/spec.md.<br />Keep the spec
+                  short.
+                </div>
+                <div class="tools">
+                  <div class="t">
+                    <span class="ok">✓</span><span class="name">Read</span
+                    ><span class="target">specs/2026-10-13-chat/clarifications-01.md</span>
+                  </div>
+                  <div class="t">
+                    <span class="spin">◐</span><span class="name">Agent</span
+                    ><span class="target">Map the runner code</span>
+                  </div>
+                  <div class="t sub">
+                    <span class="ok">✓</span><span class="name">Grep</span
+                    ><span class="target">"sessions" packages/server/src/runner/</span>
+                  </div>
+                  <div class="t sub">
+                    <span class="spin">◐</span><span class="name">Read</span
+                    ><span class="target">packages/server/src/runner/cache.ts</span>
+                  </div>
+                </div>
+                <div class="mine pending">
+                  Use the existing helper for the cache's paths.<span class="x" title="Take back"
+                    >✕</span
+                  >
+                </div>
+                <div class="pending-note">Not read yet</div>
+                <div class="agent">
+                  <p>
+                    The runner already keeps one cache per repository. I'll key sessions by their
+                    own ID and keep the feature's folder as an optional column<span
+                      class="caret"
+                    ></span>
+                  </p>
+                </div>
+              </div>
+              <div class="composer">
+                <span class="text placeholder">Message Claude Code</span
+                ><span class="send stop" title="Stop"></span>
+              </div>
+              <div class="sr">Status region: "Claude Code is replying"</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Desktop, dark: a chat, then handing over a feature</h2>
+      <p class="note">
+        Two states side by side in one frame. Left, a chat without a feature, in the main checkout:
+        no opening line, a blocked action with Allow and retry, and the sidebar showing it as Needs
+        you. Right, a feature's session right after "Commit and continue": the workflow's message
+        waits in the composer until Send. In the app, it opens beside the feature's page.
+      </p>
+      <div class="screens">
+        <div>
+          <p class="frame-label">1440 × 900, dark</p>
+          <div class="desktop dark">
+            <nav class="nav" aria-label="Navigation">
+              <div class="brand">Uraeda</div>
+              <div class="search">Search sessions</div>
+              <div class="row">Home</div>
+              <div class="row">Priorities</div>
+              <div class="group">Waiting on you</div>
+              <div class="row"><span class="dot needs"></span>Keyboard shortcuts</div>
+              <div class="group">Agents at work</div>
+              <div class="row"><span class="dot idle"></span>Chat in the web UI</div>
+              <div class="group">Chats <span class="add">＋ New chat</span></div>
+              <div class="row current"><span class="dot needs"></span>Publish the release</div>
+              <div class="row"><span class="dot idle"></span>Why is CI slow on WebKit?</div>
+              <div class="row muted">Archived</div>
+            </nav>
+            <div class="session" style="border-right: 1px solid var(--rule)">
+              <div class="head">
+                <div>
+                  <h2>Publish the release ✎</h2>
+                  <div class="meta">
+                    <span class="dot needs small"></span>Needs you: an action was blocked · Claude
+                    Code · main checkout, branch main · $0.31 this session
+                  </div>
+                </div>
+                <span class="btn">Archive</span>
+              </div>
+              <div class="log" role="log" aria-label="Conversation">
+                <div class="mine">Tag v0.3.0 and push the tag.</div>
+                <div class="tools">
+                  <div class="t">
+                    <span class="ok">✓</span><span class="name">Bash</span
+                    ><span class="target">git tag v0.3.0</span>
+                  </div>
+                  <div class="t">
+                    <span class="bad">×</span><span class="name">Bash</span
+                    ><span class="target">git push origin v0.3.0</span>
+                  </div>
+                </div>
+                <div class="blocked">
+                  Blocked by auto mode: Bash <code>git push origin v0.3.0</code>
+                  <div class="btns"><span class="btn primary">Allow and retry</span></div>
+                </div>
+                <div class="agent">
+                  <p>
+                    I created the tag <code>v0.3.0</code>, but pushing it was blocked. Allow the
+                    push and I'll retry.
+                  </p>
+                </div>
+              </div>
+              <div class="composer">
+                <span class="text placeholder">Message Claude Code</span><span class="send">↑</span>
+              </div>
+            </div>
+            <div class="session">
+              <div class="head">
+                <div>
+                  <h2>Keyboard shortcuts</h2>
+                  <div class="meta">
+                    <span class="dot idle small"></span>Idle · Claude Code · branch
+                    2026-10-14-keyboard-shortcuts
+                  </div>
+                </div>
+              </div>
+              <div class="log" role="log" aria-label="Conversation">
+                <div class="divider">Run: Discovery</div>
+                <div class="agent">
+                  <p>
+                    12 questions are waiting for you in
+                    specs/2026-10-14-keyboard-shortcuts/clarifications-01.md, about 35 minutes.
+                  </p>
+                </div>
+                <div class="system">Committed: discovery(keyboard-shortcuts): answer round 01</div>
+              </div>
+              <div class="composer">
+                <span class="text prefilled"
+                  >/uraeda:uraeda Continue the feature specs/2026-10-14-keyboard-shortcuts/, on
+                  branch 2026-10-14-keyboard-shortcuts.<br />The human answered clarifications-01.md
+                  of the questions.<br />Its next step is spec: follow
+                  skills/uraeda/references/spec.md.<br /><span class="caret"></span></span
+                ><span class="send">↑</span>
+              </div>
+              <div class="composer-hint">
+                Read it, add a note, then Send to hand the feature to the agent.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Phone: the sidebar searched, and a session</h2>
+      <p class="note">
+        Left, the sidebar opened from the menu, with a search that matches nothing. Right, a
+        feature's session as its own page, where Return adds a line and the button sends.
+      </p>
+      <div class="screens">
+        <div>
+          <p class="frame-label">402 × 874, light</p>
+          <div class="phone">
+            <div class="topbar"><span class="menu">☰</span><strong>Uraeda</strong></div>
+            <div class="sheet">
+              <nav class="nav" aria-label="Navigation">
+                <span class="close">Close</span>
+                <div class="search typed">zzz</div>
+                <div class="empty">No session matches “zzz”.</div>
+              </nav>
+              <div class="scrim"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="frame-label">402 × 874, dark</p>
+          <div class="phone dark">
+            <div class="topbar">
+              <span class="menu">←</span><strong>Chat in the web UI</strong
+              ><span class="dot unread small" style="margin-left: auto"></span>
+            </div>
+            <div class="log" role="log" aria-label="Conversation">
+              <div class="mine">
+                <span class="opening"
+                  >A human is chatting with you about the feature specs/2026-10-13-chat/, on branch
+                  2026-10-13-chat: answer, and change files, commit, or move the workflow only when
+                  they ask.</span
+                >Why did you recommend A in Q6?
+              </div>
+              <div class="agent">
+                <p>
+                  One process per session is the only way to reach the agent while it works, and it
+                  keeps the prompt cache between turns.
+                </p>
+                <p>Codex, pi, and pi-durable all keep a conversation open the same way.</p>
+              </div>
+              <div class="mine">About Q6.A: does Claude Code really steer?</div>
+              <div class="agent">
+                <p>
+                  Yes: a message with the priority <code>next</code> is read once the running tools
+                  finish, within the same turn.
+                </p>
+              </div>
+            </div>
+            <div class="composer">
+              <span class="text placeholder">Message Claude Code</span><span class="send">↑</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>
