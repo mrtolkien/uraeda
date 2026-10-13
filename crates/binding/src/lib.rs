@@ -149,10 +149,15 @@ pub fn save_notes(
     job(move || api::save_notes(Path::new(&repo), &folder, &notes, &previous))
 }
 
-/// Submits the latest round of questions, and commits it.
+/// Submits the latest round of questions, and commits it; refused when `name`, the round
+/// answered, is another.
 #[napi(ts_return_type = "Promise<FileView>")]
-pub fn submit_answers(repo: String, folder: String) -> AsyncTask<Job<FileView>> {
-    job(move || api::submit_answers(Path::new(&repo), &folder))
+pub fn submit_answers(
+    repo: String,
+    folder: String,
+    name: Option<String>,
+) -> AsyncTask<Job<FileView>> {
+    job(move || api::submit_answers(Path::new(&repo), &folder, name.as_deref()))
 }
 
 /// Commits again what a hook refused to commit: a submitted round, or a verdict.

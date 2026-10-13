@@ -5,6 +5,7 @@ pub mod api;
 pub mod check;
 pub mod embedded;
 pub mod files;
+pub mod gates;
 pub mod git;
 pub mod slug;
 pub mod steps;

@@ -11,6 +11,7 @@ use crate::files::items::items;
 use crate::files::priorities::{self, Priorities, Section};
 use crate::files::proposal;
 use crate::files::review::Verdict;
+use crate::gates::{AWAITING_HUMAN, Gate, gate_of};
 use crate::git::{Git, GitError};
 use crate::view::{
     CommitView, DraftView, FeatureView, FileView, NextView, PriorityLink, PriorityView,
@@ -170,7 +171,7 @@ pub fn waiting(repo: &Path) -> Result<Vec<WaitingFile>> {
             continue;
         };
         for file in &feature.files {
-            if file.status.as_deref() != Some("awaiting-human") {
+            if file.status.as_deref() != Some(AWAITING_HUMAN) {
                 continue;
             }
             let callout = feature
@@ -297,8 +298,7 @@ fn file_view(
         .and_then(|bytes| String::from_utf8(bytes).ok())
         .filter(|committed| *committed != text)
         .map(|committed| version(name, committed, &feature.path));
-    let review = ["spec.md", "plan.md", "assessment.md"]
-        .contains(&name)
+    let review = (gate_of(name) == Some(Gate::Review))
         .then(|| review::review_name(name))
         .and_then(|review_name| {
             let review_text = feature.text(&review_name)?;
@@ -419,10 +419,14 @@ pub fn save_notes(repo: &Path, folder: &str, notes: &str, previous: &str) -> Res
     file_view(&git, &feature, &round_name(&feature)?, Some(written.text))
 }
 
-/// Submits the latest round and commits it.
-pub fn submit_answers(repo: &Path, folder: &str) -> Result<FileView> {
+/// Submits the latest round and commits it; refused when `round`, the round the human answered,
+/// is another.
+pub fn submit_answers(repo: &Path, folder: &str, round: Option<&str>) -> Result<FileView> {
     let _lock = write_lock();
     let (_, feature, place) = reach(repo, folder)?;
+    if let Some(round) = round {
+        answer::ensure_latest(&feature, round)?;
+    }
     answer::submit_and_commit(&place, &feature, today::today())?;
     read_file(repo, folder, &round_name(&feature)?)
 }
@@ -673,6 +677,33 @@ fn text_view(
         empty_sections: proposal::empty_sections(&text),
         text,
     }
+}
+
+/// Refuses a draft, a backlog file, or the priorities, `name`, read from the checkout at `repo`
+/// when it does not have the default branch, where they are written: the file there is another
+/// branch's copy. Names the default branch's checkout when one has it, without creating one.
+pub fn on_default_branch(repo: &Path, name: &str) -> Result<()> {
+    let git = Git::discover(repo)?;
+    // Without a default branch, writing refuses on its own.
+    let Some(default) = git.default_branch() else {
+        return Ok(());
+    };
+    if git.current_branch().as_deref() == Some(default.as_str()) {
+        return Ok(());
+    }
+    let checkout = git.worktrees().ok().and_then(|worktrees| {
+        worktrees
+            .into_iter()
+            .find(|worktree| worktree.branch.as_deref() == Some(default.as_str()))
+            .map(|worktree| worktree.path)
+    });
+    Err(refused(match checkout {
+        Some(checkout) => format!(
+            "{name} here is not {default}'s: open it from {default}'s checkout, {}.",
+            checkout.display()
+        ),
+        None => format!("{name} here is not {default}'s: open it from a checkout of {default}."),
+    }))
 }
 
 fn reach_default(repo: &Path) -> Result<place::Place> {

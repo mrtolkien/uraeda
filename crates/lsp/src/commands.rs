@@ -12,8 +12,9 @@ use serde_json::Value;
 use uraeda_core::actions::review::review_name;
 use uraeda_core::api::{self, ApiError};
 use uraeda_core::files::document::hash;
-use uraeda_core::files::{frontmatter, priorities};
-use uraeda_core::git::Git;
+use uraeda_core::files::priorities;
+use uraeda_core::gates::{Gate, awaits_human, gate_of};
+use uraeda_core::target;
 use uraeda_core::view::FileView;
 use uraeda_core::workspace::FileKind;
 
@@ -217,7 +218,7 @@ fn draft(documents: &Documents, args: DraftArgs) -> Result<Outcome, ResponseErro
     if relative(documents, &args.uri).as_deref() != Some(priorities_path()) {
         return Err(refused(NOT_AN_ENTRY));
     }
-    on_default_branch(documents, "PRIORITIES.md")?;
+    core(api::on_default_branch(root, "PRIORITIES.md"))?;
     let text = documents
         .read(&root.join(priorities_path()))
         .ok_or_else(|| refused(NOT_AN_ENTRY))?;
@@ -254,33 +255,6 @@ fn priorities_path() -> &'static str {
     "specs/PRIORITIES.md"
 }
 
-/// Refuses a draft, a backlog file, or the priorities, `name`, open from a checkout that does not
-/// have the default branch, where they are written: the file is another branch's copy. Names the
-/// default branch's checkout when one has it, without creating one.
-fn on_default_branch(documents: &Documents, name: &str) -> Result<(), ResponseError> {
-    let git = Git::discover(&documents.root).map_err(|error| refused(error.to_string()))?;
-    // Without a default branch, the core refuses on its own.
-    let Some(default) = git.default_branch() else {
-        return Ok(());
-    };
-    if git.current_branch().as_deref() == Some(default.as_str()) {
-        return Ok(());
-    }
-    let checkout = git.worktrees().ok().and_then(|worktrees| {
-        worktrees
-            .into_iter()
-            .find(|worktree| worktree.branch.as_deref() == Some(default.as_str()))
-            .map(|worktree| worktree.path)
-    });
-    Err(refused(match checkout {
-        Some(checkout) => format!(
-            "{name} here is not {default}'s: open it from {default}'s checkout, {}.",
-            checkout.display()
-        ),
-        None => format!("{name} here is not {default}'s: open it from a checkout of {default}."),
-    }))
-}
-
 /// The file name of `path`, from the root.
 fn file_name(path: &str) -> &str {
     path.rsplit('/').next().unwrap_or(path)
@@ -291,16 +265,9 @@ fn start(documents: &Documents, args: FileArgs) -> Result<Done, ResponseError> {
     const ONLY_DRAFTS: &str = "Only a draft or a backlog file can be started.";
     let root = &documents.root;
     let path = relative(documents, &args.uri).ok_or_else(|| refused(ONLY_DRAFTS))?;
-    let rest = path
-        .strip_prefix("specs/drafts/")
-        .or_else(|| path.strip_prefix("specs/backlog/"))
-        .ok_or_else(|| refused(ONLY_DRAFTS))?;
-    on_default_branch(documents, file_name(&path))?;
     // A file of a postponed feature's folder starts the folder.
-    let draft = match rest.split_once('/') {
-        Some((folder, _)) => format!("{}{folder}", &path[..path.len() - rest.len()]),
-        None => path.clone(),
-    };
+    let draft = target::draft_to_start(&path).ok_or_else(|| refused(ONLY_DRAFTS))?;
+    core(api::on_default_branch(root, file_name(&path)))?;
     let default = core(api::default_root(root))?;
     let written = vec![
         absolute(default.join(priorities_path())),
@@ -344,9 +311,7 @@ fn text(documents: &Documents, file: &WorkflowFile) -> Result<String, ResponseEr
 
 /// Refuses a file that is not `awaiting-human`.
 fn waiting(text: &str, name: &str) -> Result<(), ResponseError> {
-    let waiting =
-        frontmatter::parse(text).is_ok_and(|front| front.text("status") == Some("awaiting-human"));
-    if waiting {
+    if awaits_human(text) {
         Ok(())
     } else {
         Err(refused(format!("{name} is not waiting for a review.")))
@@ -526,43 +491,24 @@ fn request_changes(
 /// it waits for answers and is the feature's latest round, the one the core submits.
 fn submit(documents: &Documents, args: FileArgs) -> Result<Outcome, ResponseError> {
     let (folder, file) = feature_file(documents, &args.uri)?;
-    if file.kind != FileKind::Clarifications {
+    if !matches!(gate_of(&file.name), Some(Gate::Round(_))) {
         return Err(refused("Only a round of questions is submitted."));
     }
-    let front = frontmatter::parse(&text(documents, &file)?);
-    if !front.is_ok_and(|front| front.text("status") == Some("awaiting-human")) {
+    if !awaits_human(&text(documents, &file)?) {
         return Err(refused(format!(
             "{} is not waiting for answers.",
             file.name
         )));
     }
     as_opened(documents, &file, "check its answers again")?;
-    if let Some(latest) = latest_round(&file).filter(|latest| *latest != file.name) {
-        return Err(refused(format!(
-            "{} is not the latest round: {latest} is.",
-            file.name
-        )));
-    }
     let before = next_to(documents, &folder, &file, std::slice::from_ref(&file.name))?;
-    let view =
-        api::submit_answers(&documents.root, &folder).map_err(|error| before.failed(error))?;
+    // The core submits the latest round only: the buffer's must be it.
+    let view = api::submit_answers(&documents.root, &folder, Some(&file.name))
+        .map_err(|error| before.failed(error))?;
     Ok(Outcome {
         opened: None,
         written: in_checkout(documents, &folder, &view, std::slice::from_ref(&view.name))?,
     })
-}
-
-/// The name of the last round of questions in the folder of `file`, on disk.
-fn latest_round(file: &WorkflowFile) -> Option<String> {
-    std::fs::read_dir(file.path.parent()?)
-        .ok()?
-        .filter_map(|entry| entry.ok()?.file_name().into_string().ok())
-        .filter_map(|name| match FileKind::of(&name) {
-            Some((FileKind::Clarifications, Some(round))) => Some((round, name)),
-            _ => None,
-        })
-        .max()
-        .map(|(_, name)| name)
 }
 
 /// `uraeda.commit { uri }`: commits a draft, a backlog file, or a proposal, with the priorities
@@ -573,10 +519,10 @@ fn commit(documents: &Documents, args: FileArgs) -> Result<Outcome, ResponseErro
     let root = &documents.root;
     let path = relative(documents, &args.uri).ok_or_else(|| refused(ONLY))?;
     if path == priorities_path() {
-        on_default_branch(documents, file_name(&path))?;
+        core(api::on_default_branch(root, file_name(&path)))?;
         core(api::commit_priorities(root))?;
-    } else if path.starts_with("specs/drafts/") || path.starts_with("specs/backlog/") {
-        on_default_branch(documents, file_name(&path))?;
+    } else if target::is_draft(&path) {
+        core(api::on_default_branch(root, file_name(&path)))?;
         core(api::commit_text(root, &path))?;
     } else if workflow_file(documents, &args.uri)
         .is_some_and(|file| file.kind == FileKind::Proposal)

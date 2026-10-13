@@ -10,9 +10,10 @@ use serde_json::json;
 use uraeda_core::actions::{answer, review};
 use uraeda_core::api::{self, ApiError};
 use uraeda_core::check::{self, Field};
+use uraeda_core::files::document;
 use uraeda_core::files::items::{CommentItem, Items, TierChoice, items};
 use uraeda_core::files::review::Verdict as Outcome;
-use uraeda_core::files::{document, frontmatter};
+use uraeda_core::gates::{Gate, awaits_human, gate_of};
 use uraeda_core::workspace::{FileKind, folder_slug};
 
 use crate::documents::Documents;
@@ -126,7 +127,6 @@ pub(crate) struct WorkflowFile {
     pub path: PathBuf,
     pub name: String,
     pub kind: FileKind,
-    pub round: Option<u32>,
     /// From the root: `specs/2026-10-13-nvim-plugin`.
     pub dir: String,
 }
@@ -136,7 +136,7 @@ pub(crate) fn workflow_file(documents: &Documents, uri: &Uri) -> Option<Workflow
         .path(uri)
         .filter(|path| documents.in_specs(path))?;
     let name = path.file_name()?.to_string_lossy().into_owned();
-    let (kind, round) = FileKind::of(&name)?;
+    let (kind, _) = FileKind::of(&name)?;
     let dir = path
         .parent()?
         .strip_prefix(&documents.root)
@@ -147,7 +147,6 @@ pub(crate) fn workflow_file(documents: &Documents, uri: &Uri) -> Option<Workflow
         path,
         name,
         kind,
-        round,
         dir,
     })
 }
@@ -160,17 +159,13 @@ impl WorkflowFile {
 
     /// The comments of its pending review, from the review's open text, else from disk.
     pub fn pending_comments(&self, documents: &Documents) -> Vec<CommentItem> {
-        if !matches!(
-            self.kind,
-            FileKind::Spec | FileKind::Plan | FileKind::Assessment
-        ) {
+        if gate_of(&self.name) != Some(Gate::Review) {
             return Vec::new();
         }
         let review = WorkflowFile {
             path: self.path.with_file_name(review::review_name(&self.name)),
             name: review::review_name(&self.name),
             kind: FileKind::Review,
-            round: None,
             dir: self.dir.clone(),
         };
         review
@@ -240,26 +235,22 @@ pub(crate) fn comments(documents: &Documents, params: FileParams) -> Vec<Comment
 pub(crate) fn verdict(documents: &Documents, params: FileParams) -> Result<Verdict, ResponseError> {
     let file = workflow_file(documents, &params.uri)
         .ok_or_else(|| refused("This file is not a Uraeda workflow file."))?;
-    let review_kind = matches!(
-        file.kind,
-        FileKind::Spec | FileKind::Plan | FileKind::Assessment
-    );
-    let round = match (file.kind, file.round) {
-        (FileKind::Clarifications, Some(round)) => Some(round),
-        _ if review_kind => None,
-        _ => {
+    let round = match gate_of(&file.name) {
+        Some(Gate::Round(round)) => Some(round),
+        Some(Gate::Review) => None,
+        None => {
             return Err(refused(
                 "Only a spec, a plan, an assessment, or a round of questions gets a verdict.",
             ));
         }
     };
+    let review_kind = round.is_none();
     let text = documents
         .read(&file.path)
         .ok_or_else(|| refused(format!("{}: no such file", file.name)))?;
     let folder = file.dir.rsplit('/').next().unwrap_or_default();
     let slug = folder_slug(folder).unwrap_or(folder);
-    let waiting =
-        frontmatter::parse(&text).is_ok_and(|front| front.text("status") == Some("awaiting-human"));
+    let waiting = awaits_human(&text);
     let spec = items(&file.name, &text, &document::parse(&text, &file.dir)).spec;
     Ok(Verdict {
         approve: match round {
