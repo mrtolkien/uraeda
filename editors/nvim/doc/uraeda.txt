@@ -144,8 +144,9 @@ validated when the plugin starts. The defaults: >lua
     lines, see |vim.g.uraeda.inline_comments|.
 
 :Uraeda waiting                                              *:Uraeda-waiting*
-    Lists the files waiting on you, in every checkout of the repository,
-    from any buffer. Opens the one you pick at its line.
+    Lists the files waiting on you, in every checkout of the current
+    repository: the current file's, else the current folder's. Works from
+    any buffer. Opens the one you pick at its line.
 
 :Uraeda next                                                    *:Uraeda-next*
     Jumps to the next question of a round, or comment of a review.
