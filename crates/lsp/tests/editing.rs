@@ -150,6 +150,53 @@ fn a_partly_typed_value_is_replaced() {
     );
 }
 
+/// Final review: completing inside a value replaces the whole value, up to a comment, so
+/// `risk-tier: hi|gh` becomes `medium`, not `mediumgh`.
+#[test]
+fn a_value_is_replaced_whole() {
+    let (repo, path, spec_text) = feature_with_spec();
+    for (line, end) in [
+        ("risk-tier: high", 15),
+        ("risk-tier: high  # set by the agent", 15),
+        ("risk-tier: high   ", 15),
+    ] {
+        let mut session = Session::start(repo.path());
+        session.open(&path, &spec_text.replace("risk-tier: high", line));
+
+        let response = session.request::<Completion>(CompletionParams {
+            text_document_position: TextDocumentPositionParams::new(
+                TextDocumentIdentifier::new(Session::uri(&path)),
+                Position::new(4, 13),
+            ),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        });
+        let Some(CompletionResponse::Array(items)) = response else {
+            panic!("expected items for {line:?}, got {response:?}");
+        };
+        let medium = items.iter().find(|item| item.label == "medium").unwrap();
+
+        assert_eq!(
+            medium.text_edit,
+            Some(lsp_types::CompletionTextEdit::Edit(TextEdit::new(
+                Range::new(Position::new(4, 11), Position::new(4, end)),
+                "medium".to_string()
+            ))),
+            "{line:?}"
+        );
+    }
+
+    let mut session = Session::start(repo.path());
+    let commented = "risk-tier: high  # set by the agent";
+    session.open(&path, &spec_text.replace("risk-tier: high", commented));
+    assert_eq!(
+        completion(&mut session, &path, 4, 25),
+        Vec::<String>::new(),
+        "a comment is not completed"
+    );
+}
+
 /// US1.3
 #[test]
 fn a_round_lists_its_questions_as_symbols() {
