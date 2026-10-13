@@ -829,6 +829,11 @@
     min-height: var(--size-element-md);
   }
 
+    .astryx-text-input:is(*) button {
+    min-height: var(--size-element-md);
+    min-width: var(--size-element-md);
+  }
+
     .astryx-segmented-control-item[data-size="sm"] {
     height: var(--size-element-sm);
   }

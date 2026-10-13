@@ -113,6 +113,15 @@ export const uraedaTheme = defineTheme({
             "switch-field": { base: { display: "grid", minHeight: "var(--size-element-md)" } },
             // A crumb as tall as a control; its link fills it (`Crumbs.tsx`).
             "breadcrumb-item": { base: { minHeight: "var(--size-element-md)" } },
+            // A field's clear button, 20 px in Astryx, as tall and wide as a control inside it.
+            "text-input": {
+              base: {
+                ":is(*) button": {
+                  minHeight: "var(--size-element-md)",
+                  minWidth: "var(--size-element-md)",
+                },
+              },
+            },
             // The neutral theme draws a segment 8 px shorter than a control, inside its track.
             "segmented-control-item": {
               "size:sm": { height: "var(--size-element-sm)" },
