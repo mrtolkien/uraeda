@@ -79,26 +79,32 @@ fn only_the_latest_round_is_submitted() {
     assert_eq!(submitted.status.as_deref(), Some("answered"));
 }
 
-/// nvim plugin R19: drafts and the priorities are the default branch's only in its checkout.
+/// Drafts and the priorities are the default branch's: another branch's copy stands for them only
+/// while it holds the default branch's text, read from its checkout when one has it.
 #[test]
-fn drafts_are_the_default_branchs_only_in_its_checkout() {
+fn drafts_are_acted_on_from_another_branch_only_with_the_default_branchs_text() {
     let repo = repo();
-    api::on_default_branch(repo.path(), "PRIORITIES.md").unwrap();
+    let path = "specs/PRIORITIES.md";
+    let text = "# Priorities\n\n## Now\n";
+    api::on_default_branch(repo.path(), path, "Anything.\n").unwrap();
 
     repo.switch(FOLDER);
-    let error = api::on_default_branch(repo.path(), "PRIORITIES.md").unwrap_err();
+    api::on_default_branch(repo.path(), path, text).unwrap();
+    let error = api::on_default_branch(repo.path(), path, "Edited.\n").unwrap_err();
     assert_eq!(
         error.message,
-        "PRIORITIES.md here is not main's: open it from a checkout of main."
+        "PRIORITIES.md here differs from main's: open it from a checkout of main."
     );
 
     repo.git(&["worktree", "add", "--quiet", ".worktrees/main", "main"]);
-    let error = api::on_default_branch(repo.path(), "idea.md").unwrap_err();
     let checkout = std::fs::canonicalize(repo.path().join(".worktrees/main")).unwrap();
+    std::fs::write(checkout.join("specs/drafts.md"), "Unsaved draft.\n").unwrap();
+    api::on_default_branch(repo.path(), "specs/drafts.md", "Unsaved draft.\n").unwrap();
+    let error = api::on_default_branch(repo.path(), path, "Edited.\n").unwrap_err();
     assert_eq!(
         error.message,
         format!(
-            "idea.md here is not main's: open it from main's checkout, {}.",
+            "PRIORITIES.md here differs from main's: open it from main's checkout, {}.",
             checkout.display()
         )
     );
