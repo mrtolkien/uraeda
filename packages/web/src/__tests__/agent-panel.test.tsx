@@ -167,6 +167,21 @@ test("Stop stops the turn, and Try again opens the session with the message", as
   expect(agent.sent).toHaveLength(1);
 });
 
+test("a Stop that fails says why in the panel", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await liveRun(fake, repo);
+  await renderPage(`/f/${CLI}`, repo, { agent: fake });
+  await waitFor(() => expect(panel().getByText("Working")).toBeTruthy());
+  vi.spyOn(fake.sessions, "stop").mockImplementation(() => {
+    throw new Error("refused: The agent did not take the interrupt.");
+  });
+
+  await click(panel().getByRole("button", { name: "Stop" }));
+
+  expect(await panel().findByText("The agent did not take the interrupt.")).toBeTruthy();
+});
+
 /** US2.7 */
 test("Home shows a working agent", async () => {
   const repo = fixtureRepo();
