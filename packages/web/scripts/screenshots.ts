@@ -289,13 +289,22 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string) {
   await first.getByRole("button", { name: "Stop" }).waitFor();
   adapter.emit({ type: "init", sessionId: "fake", plugins: ["uraeda"], pluginErrors: [] });
   adapter.emit({ type: "text", text: `Reading **the answers** of round 01 in \`${LONG}\`.` });
-  adapter.emit({ type: "toolStart", id: "a", name: "Read", input: { file_path: LONG } });
+  adapter.emit({
+    type: "toolStart",
+    id: "a",
+    name: "Read",
+    kind: "read",
+    input: { file_path: LONG },
+    target: LONG,
+  });
   adapter.emit({ type: "toolEnd", id: "a", isError: false, output: "…" });
   adapter.emit({
     type: "toolStart",
     id: "b",
     name: "Bash",
+    kind: "execute",
     input: { command: `ura check ${LONG} && vp run ready` },
+    target: `ura check ${LONG} && vp run ready`,
   });
   await wait(500);
   const agent = async (page: Page, text: string) => {
@@ -335,8 +344,9 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string) {
     costUsd: 0.42,
     errors: ["The tests failed."],
     denials: [{ tool: "Bash", input: { command: "gh pr create --draft" } }],
+    interrupted: false,
   });
-  adapter.finish(1, `could not read ${LONG}`);
+  adapter.exit(1, `could not read ${LONG}`);
   await wait(500);
   await each("agent-failed", ({ page }) => agent(page, "Try again"));
   await each("run-failed", ({ page }) => view(page, "Try again"));
