@@ -42,6 +42,7 @@ function useReplyStatus(agentName: string, working: boolean): string {
  * refused Stop does.
  * `notice` is the page's own reason under it, like the workflow's refusal to continue: with the
  * workflow's message, "Start the agent" stays, disabled, so the message never goes as a chat.
+ * `blocked` disables it, with why, as when the agent is not on this machine.
  */
 export function Composer({
   session,
@@ -51,6 +52,7 @@ export function Composer({
   onChange,
   workflow,
   notice,
+  blocked,
   onSent,
 }: {
   session?: string;
@@ -63,6 +65,8 @@ export function Composer({
   workflow?: { trigger: Trigger; file?: string };
   /** Why the page cannot do what it was opened for, shown under the composer. */
   notice?: string;
+  /** Why nothing can be sent here, like a feature with no branch yet: the composer is disabled. */
+  blocked?: string;
   onSent?: (session: string) => void;
 }) {
   const fate = useFateClient();
@@ -72,7 +76,8 @@ export function Composer({
   const [error, setError] = useState<string>();
   const name = agent?.name ?? "the agent";
   const status = useReplyStatus(name, working);
-  const unavailable = agent?.available ? undefined : `${name} is not available on this machine.`;
+  // Why nothing can be sent: the agent is not on this machine, or the page says why.
+  const disabled = agent?.available ? blocked : `${name} is not available on this machine.`;
   const refused = workflow !== undefined && notice !== undefined;
 
   const submit = (text: string) => {
@@ -112,7 +117,7 @@ export function Composer({
       input.current?.insertText("\n");
     }
   };
-  const canSend = value.trim() !== "" && !unavailable;
+  const canSend = value.trim() !== "" && !disabled;
   const placeholder = `Message ${name}`;
 
   return (
@@ -124,7 +129,7 @@ export function Composer({
         onStop={stop}
         isStopShown={working && !workflow}
         placeholder={placeholder}
-        isDisabled={Boolean(unavailable)}
+        isDisabled={Boolean(disabled)}
         input={<ChatComposerInput label={placeholder} handleRef={input} onKeyDown={onKeyDown} />}
         sendActions={
           // During a turn, Send steers the message into it, beside Stop.
@@ -145,8 +150,8 @@ export function Composer({
             ? { type: "error", message: error }
             : notice
               ? { type: "error", message: notice }
-              : unavailable
-                ? { type: "warning", message: unavailable }
+              : disabled
+                ? { type: "warning", message: disabled }
                 : undefined
         }
       />

@@ -121,11 +121,14 @@ function Session({
   crumbs,
   draft,
   handing = {},
+  blocked,
 }: {
   id: string;
   crumbs?: string;
   draft: Draft;
   handing?: Handing;
+  /** Why nothing can be sent to it, which disables the composer. */
+  blocked?: string;
 }) {
   const fate = useFateClient();
   const session = useSession(id);
@@ -216,7 +219,14 @@ function Session({
         {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
       </VStack>
       <div {...stylex.props(styles.composer)}>
-        <Composer session={id} working={working} value={text} onChange={setText} {...handing} />
+        <Composer
+          session={id}
+          working={working}
+          value={text}
+          onChange={setText}
+          {...handing}
+          {...(blocked === undefined ? {} : { blocked })}
+        />
       </div>
     </Page>
   );
@@ -232,6 +242,7 @@ function NoSession({
   crumbs,
   draft: [text, setText],
   handing = {},
+  blocked,
   onSent,
 }: {
   title: string;
@@ -239,6 +250,8 @@ function NoSession({
   crumbs?: string;
   draft: Draft;
   handing?: Handing;
+  /** Why nothing can be sent to it, which disables the composer. */
+  blocked?: string;
   onSent: (session: string) => void;
 }) {
   return (
@@ -254,6 +267,7 @@ function NoSession({
           value={text}
           onChange={setText}
           {...handing}
+          {...(blocked === undefined ? {} : { blocked })}
           onSent={(session) => {
             onSent(session);
             handing.onSent?.(session);
@@ -263,6 +277,9 @@ function NoSession({
     </Page>
   );
 }
+
+/** Why a feature's session takes no message before its proposal is committed. */
+const NO_BRANCH = "This feature has no branch yet: commit its proposal first.";
 
 /** The workflow's message an address asks for: `?continue=<trigger>&file=<file>`. */
 function useHandOver(search: string): { trigger: Trigger; file?: string } | undefined {
@@ -345,6 +362,9 @@ function FeatureSession({ folder }: { folder: string }) {
     );
   }
   const crumbs = wide ? undefined : folder;
+  // A feature whose proposal is not committed has no branch for the agent to work on: the server
+  // refuses every message with the same words.
+  const blocked = feature.branch ? undefined : NO_BRANCH;
   const id = feature.session ?? created;
   const read = (message: { text: string; refusal: string | null }) => {
     setRefusal(message.refusal === null ? undefined : { search, text: message.refusal });
@@ -375,10 +395,17 @@ function FeatureSession({ folder }: { folder: string }) {
           crumbs={crumbs}
           draft={draft}
           handing={handing}
+          {...(blocked === undefined ? {} : { blocked })}
           onSent={setCreated}
         />
       ) : (
-        <Session id={id} crumbs={crumbs} draft={draft} handing={handing} />
+        <Session
+          id={id}
+          crumbs={crumbs}
+          draft={draft}
+          handing={handing}
+          {...(blocked === undefined ? {} : { blocked })}
+        />
       )}
     </>
   );
