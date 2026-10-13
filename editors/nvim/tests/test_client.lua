@@ -104,6 +104,47 @@ T["an unknown command asks to upgrade ura"] = function()
   eq(errors(), { { "ura is older than the plugin: run ura upgrade.", ERROR, vim.NIL } })
 end
 
+T["an older ura without lsp says so once"] = function()
+  -- An `ura` from before `ura lsp`: clap's refusal, and exit code 2.
+  local script = vim.fn.tempname()
+  helpers.write(script, "#!/bin/sh\necho \"error: unrecognized subcommand 'lsp'\" >&2\nexit 2\n")
+  vim.uv.fs_chmod(script, tonumber("755", 8))
+  child.setup({ cmd = { script, "lsp" } })
+  child.lua([[
+    _G.notes = {}
+    vim.notify = function(message, level, opts)
+      table.insert(_G.notes, { message, level, opts and opts.title or vim.NIL })
+    end
+  ]])
+  local repo = helpers.repo({
+    ["specs/PRIORITIES.md"] = linked,
+    ["specs/drafts/codex-runtime.md"] = "# Codex runtime\n",
+  })
+  local older = { "ura is older than the plugin: run ura upgrade.", ERROR, "Uraeda" }
+
+  helpers.edit(child, repo .. "/specs/PRIORITIES.md")
+  child.lua(
+    "vim.wait(2000, function() return #vim.lsp.get_clients({ _uninitialized = true }) == 0 end, 20)"
+  )
+  helpers.edit(child, repo .. "/specs/drafts/codex-runtime.md")
+  child.lua(
+    "vim.wait(2000, function() return #vim.lsp.get_clients({ _uninitialized = true }) == 0 end, 20)"
+  )
+  child.lua("vim.wait(300)")
+
+  local function uraeda_notes()
+    return vim.tbl_filter(function(note)
+      return note[3] == "Uraeda"
+    end, child.lua_get("_G.notes"))
+  end
+  eq(uraeda_notes(), { older })
+
+  -- Actions say why there is no client.
+  child.lua("_G.notes = {}")
+  child.lua([[require("uraeda.client").command(0, "uraeda.commit")]])
+  eq(uraeda_notes(), { older })
+end
+
 T["a file without a client is not a workflow file"] = function()
   local repo = helpers.repo({ ["specs/PRIORITIES.md"] = later, ["README.md"] = "# R\n" })
   helpers.edit(child, repo .. "/README.md")

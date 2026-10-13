@@ -366,3 +366,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `on_default_branch` in [`commands.rs`](/crates/lsp/src/commands.rs), its three
   callers, and its test in [`crates/lsp/tests/commands.rs`](/crates/lsp/tests/commands.rs).
 - **Where**: final review, `crates/lsp/src/commands.rs`.
+
+## R20: A server failing before its initialization is an older `ura`, said once
+
+- **Decision**: the `uraeda` configuration's `on_exit` calls `client.exited`: a client that exits
+  with a non-zero code before it is initialized marks the session, and notifies
+  `ura is older than the plugin: run ura upgrade.` once, at the error level, titled `Uraeda`. From
+  then on, an action in a buffer without a client says that text instead of
+  `This file is not a Uraeda workflow file.`, and the waiting picker says it instead of
+  `ura lsp did not start.`; a buffer outside a checkout still says it is not a workflow file. The
+  test runs a script printing `error: unrecognized subcommand 'lsp'` and exiting 2 as the server,
+  opens two workflow files, and failed with no notification titled `Uraeda`.
+- **Rationale**: the spec's edge case wants the error shown once, and its error handling names the
+  text; clap's exit before any answer is the only sign the plugin gets, and the plugin must not run
+  `ura` itself to tell why. Neovim's own `Client uraeda quit with exit code 2` warning stays.
+- **Alternatives considered**: reading the server's stderr for `unrecognized subcommand`: Neovim
+  only logs it; one notification per failed client: one per file opened.
+- **If wrong**: `exited` and `no_client` in [`client.lua`](/editors/nvim/lua/uraeda/client.lua), and
+  `on_exit` in [`lsp/uraeda.lua`](/editors/nvim/lsp/uraeda.lua).
+- **Where**: final review, `editors/nvim/`.

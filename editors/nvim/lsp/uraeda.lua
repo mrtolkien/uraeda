@@ -15,4 +15,7 @@ return {
       on_dir(root)
     end
   end,
+  on_exit = function(code, _, client_id)
+    require("uraeda.client").exited(code, client_id)
+  end,
 }
