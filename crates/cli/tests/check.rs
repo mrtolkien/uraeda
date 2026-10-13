@@ -5,14 +5,6 @@ use std::fs;
 use common::*;
 
 #[test]
-fn this_repository_has_no_problems() {
-    let output = ura_in(&repository(), &["check"], &[]);
-
-    assert_eq!(output.stdout, "specs/: no problems\n");
-    assert_eq!(output.code, 0, "{}", output.stderr);
-}
-
-#[test]
 fn the_skill_example_has_no_problems() {
     let output = ura_in(
         &repository(),

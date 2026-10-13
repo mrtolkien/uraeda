@@ -21,12 +21,16 @@ function OpenOverlay({ label }: { label: string }) {
 test("a sheet on the phone, a dialog on the desktop", async () => {
   render(<OpenOverlay label="New priority" />);
   const dialog = screen.getByRole("dialog", { name: "New priority" });
-  // The sheet slides up: its position settles once its entrance ends.
-  await new Promise((resolve) => setTimeout(resolve, 800));
-  const box = dialog.getBoundingClientRect();
-  if (window.innerWidth < 768) {
-    expect(Math.round(box.bottom)).toBe(window.innerHeight);
-  } else {
-    expect(box.bottom).toBeLessThan(window.innerHeight - 40);
-  }
+  // Once its entrance ends: a sheet along the screen's bottom edge and its full width, or a dialog
+  // in the middle of the screen, narrower than it.
+  await expect
+    .poll(() => {
+      const box = dialog.getBoundingClientRect();
+      return window.innerWidth < 768
+        ? Math.round(box.bottom) === window.innerHeight &&
+            Math.round(box.width) === window.innerWidth
+        : Math.abs((box.top + box.bottom) / 2 - window.innerHeight / 2) < 2 &&
+            box.width < window.innerWidth / 2;
+    })
+    .toBe(true);
 });

@@ -14,6 +14,17 @@ async function edit(text: string, key: string) {
   });
 }
 
+/**
+ * The Undo of the toast a Delete shows once the line is gone from the file. The toast hides by
+ * itself after 5 seconds: a test takes its Undo at once, not after a wait.
+ */
+async function deleted() {
+  await screen.findByText('Deleted "Nix + Docker based execution environments"', {
+    ignore: "script, style, [aria-live]",
+  });
+  return screen.getByRole("button", { name: "Undo" });
+}
+
 test("a line without a draft opens its task view (US3 1)", async () => {
   await renderPage("/");
   await click(await screen.findByRole("link", { name: /Claude Code runner/ }));
@@ -84,10 +95,11 @@ test("a reload shows the same line (US3 7)", async () => {
   const repo = fixtureRepo();
   await renderPage("/priorities/claude-code-runner-triggered-manually", repo);
   expect(await screen.findByRole("button", { name: /^Claude Code runner/ })).toBeTruthy();
-  await renderPage(window.location.pathname, repo);
+  await renderPage(window.location.pathname, repo, { reload: true });
+  expect(window.location.pathname).toBe("/priorities/claude-code-runner-triggered-manually");
   expect(
-    (await screen.findAllByRole("button", { name: /^Claude Code runner/ })).length,
-  ).toBeGreaterThan(0);
+    await screen.findByRole("button", { name: "Claude Code runner (triggered manually)" }),
+  ).toBeTruthy();
 });
 
 test("a removed line says so", async () => {
@@ -108,8 +120,7 @@ test("a refused Undo says so", async () => {
   };
   await renderPage("/priorities/nix-docker-based-execution-environments", repo, { fetch: racing });
   await click(await screen.findByRole("button", { name: "Delete" }));
-  await screen.findByText('Deleted "Nix + Docker based execution environments"');
-  await click(await screen.findByRole("button", { name: "Undo" }));
+  await click(await deleted());
   const message =
     'Could not restore "Nix + Docker based execution environments": PRIORITIES.md changed on disk.';
   // In the page, not a toast: the UI behaviour decision keeps errors out of toasts alone.
@@ -126,13 +137,12 @@ test("a refused Undo says so", async () => {
 test("Undo puts the line back at its place in the file as it is now (edge case)", async () => {
   const { repo } = await renderPage("/priorities/nix-docker-based-execution-environments");
   await click(await screen.findByRole("button", { name: "Delete" }));
-  await screen.findByText('Deleted "Nix + Docker based execution environments"');
-  await waitFor(() => expect(read(repo)).not.toContain("with a cache"));
+  const undo = await deleted();
   writeFileSync(
     join(repo, "specs/PRIORITIES.md"),
     read(repo).replace("## Later\n\n", "## Later\n\n- Added elsewhere\n"),
   );
-  await click(await screen.findByRole("button", { name: "Undo" }));
+  await click(undo);
   await waitFor(() =>
     expect(read(repo)).toContain(
       "- Nix + Docker based execution environments\n  - with a cache\n- Added elsewhere\n",
@@ -144,12 +154,10 @@ test("Delete, then Undo, puts the line and its nested line back (US4 9)", async 
   const { repo } = await renderPage("/priorities/nix-docker-based-execution-environments");
   const before = read(repo);
   await click(await screen.findByRole("button", { name: "Delete" }));
-  expect(
-    await screen.findByText('Deleted "Nix + Docker based execution environments"'),
-  ).toBeTruthy();
-  await waitFor(() => expect(read(repo)).not.toContain("with a cache"));
+  const undo = await deleted();
+  expect(read(repo)).not.toContain("with a cache");
   expect(window.location.pathname).toBe("/priorities");
-  await click(await screen.findByRole("button", { name: "Undo" }));
+  await click(undo);
   await waitFor(() => expect(read(repo)).toBe(before));
 });
 
@@ -165,8 +173,8 @@ test("Delete, then Undo, puts the line back exactly as written, marker and wrapp
   const before = read(repo);
   await renderPage("/priorities/nix-docker-based-execution-environments", repo);
   await click(await screen.findByRole("button", { name: "Delete" }));
-  await waitFor(() => expect(read(repo)).not.toContain("with a cache"));
-  await click(await screen.findByRole("button", { name: "Undo" }));
-  await waitFor(() => expect(read(repo)).toContain("with a cache"));
-  expect(read(repo)).toBe(before);
+  const undo = await deleted();
+  expect(read(repo)).not.toContain("with a cache");
+  await click(undo);
+  await waitFor(() => expect(read(repo)).toBe(before));
 });

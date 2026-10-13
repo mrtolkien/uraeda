@@ -25,6 +25,7 @@ import {
   checkMeasure,
   checkPage,
   checkTextSizes,
+  drawn,
   show,
 } from "./helpers.tsx";
 
@@ -102,8 +103,8 @@ test("a comment being typed keeps its text and focus when the window narrows (US
     await userEvent.click(field);
     await userEvent.keyboard("Only from home");
     await page.viewport(700, 900);
-    await expect.poll(() => window.innerWidth).toBe(700);
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    // The narrow layout is drawn: the round's index leaves its column for the bar.
+    await expect.poll(() => screen.queryByRole("navigation", { name: "Questions" })).toBeNull();
     expect(field.isConnected).toBe(true);
     expect(field.value).toBe("Only from home");
     expect(document.activeElement).toBe(field);
@@ -278,7 +279,7 @@ test.each(
     await expect
       .poll(() => document.body.textContent?.includes("Rate limited"), { timeout: 15_000 })
       .toBe(true);
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await drawn();
     checkPage();
     checkControlHeights();
     checkTextSizes();

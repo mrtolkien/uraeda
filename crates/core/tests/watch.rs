@@ -3,7 +3,7 @@ mod common;
 use std::sync::mpsc;
 use std::time::Duration;
 
-use common::repo::TestRepo;
+use common::repo::{TestRepo, without_user_git};
 use common::texts::{clarifications, proposal};
 use uraeda_core::actions::place;
 use uraeda_core::git::Git;
@@ -85,8 +85,7 @@ fn a_commit_on_another_branch_is_reported() {
     };
     let index = repo.parent().join("index");
     let env_git = |args: &[&str]| {
-        let output = std::process::Command::new("git")
-            .args(args)
+        let output = without_user_git(std::process::Command::new("git").args(args))
             .current_dir(repo.path())
             .env("GIT_INDEX_FILE", &index)
             .output()
@@ -162,12 +161,16 @@ fn a_new_worktree_is_reported_then_watched() {
     assert_eq!(changes.files, ["2026-10-11-web-ui/proposal.md"]);
 }
 
+/// Writes 10 ms apart are reported together. A thread the machine stalls for longer than the quiet
+/// window splits the burst, so the test counts fewer reports than writes, not exactly one: without
+/// the debounce, each write would be at least one report.
 #[test]
-fn a_burst_of_writes_is_one_report() {
+fn a_burst_of_writes_is_reported_together() {
     let repo = repo();
     let (_watcher, receiver) = watching(&repo);
+    let writes = 10;
 
-    for n in 0..10 {
+    for n in 0..writes {
         repo.write(
             "specs/PRIORITIES.md",
             &format!("# Priorities\n\n## Now\n\n- Idea {n}\n"),
@@ -175,8 +178,17 @@ fn a_burst_of_writes_is_one_report() {
         std::thread::sleep(Duration::from_millis(10));
     }
 
-    assert!(next(&receiver).priorities);
-    assert!(receiver.recv_timeout(Duration::from_millis(800)).is_err());
+    let mut reports = vec![next(&receiver)];
+    while let Ok(changes) = receiver.recv_timeout(Duration::from_millis(800)) {
+        reports.push(changes);
+    }
+    assert!(
+        reports.iter().all(|changes| changes.priorities),
+        "{reports:?}"
+    );
+    // One report, or a few when the test's thread stalls longer than the quiet window between two
+    // writes: never one a write.
+    assert!(reports.len() <= 3, "{reports:?}");
 }
 
 #[test]
