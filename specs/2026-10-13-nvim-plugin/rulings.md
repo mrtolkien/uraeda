@@ -465,3 +465,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   [`crates/lsp/tests/commands.rs`](/crates/lsp/tests/commands.rs) and
   [`test_verdict.lua`](/editors/nvim/tests/test_verdict.lua).
 - **Where**: final review, `crates/lsp/src/commands.rs`, `editors/nvim/lua/uraeda/client.lua`.
+
+## R25: A completed value replaces the whole value, not a comment
+
+- **Decision**: a frontmatter value's completion edits from the value's start to its end: the first
+  `#` at the value's start or after a space or a tab begins a comment, and the value is what comes
+  before it, without its trailing spaces; the edit still reaches the cursor when it is in those
+  spaces. A cursor inside a comment gets no completion. The final review found `risk-tier: hi|gh`
+  completed as `mediumgh`; the test failed with the edit ending at the cursor.
+- **Rationale**: a value is one word of the field's list, so the text after the cursor is the rest
+  of the same value; a comment the core keeps on the line must stay.
+- **Alternatives considered**: replacing to the line's end: removes the comment; the edit ending at
+  the cursor, as before: leaves the value's suffix.
+- **If wrong**: `complete` in [`completion.rs`](/crates/lsp/src/completion.rs), and its test in
+  [`crates/lsp/tests/editing.rs`](/crates/lsp/tests/editing.rs).
+- **Where**: final review, `crates/lsp/src/completion.rs`.
