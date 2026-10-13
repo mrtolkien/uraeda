@@ -202,3 +202,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: filtering taken-back messages in the browser; Stop in the header too.
 - **If wrong**: a Stop can be added to the header; the log's filter is one line in the server.
 - **Where**: task 7, `fate/sessions.ts`; task 8, `Composer.tsx`, `SessionPage.tsx`.
+
+## R15: The feature page always leads to the session, and a filled composer keeps what was typed
+
+- **Decision**: the feature page's agent section shows "Open the session" for every feature with a
+  branch while the agent works on this machine, with or without a session, and whatever the step.
+  Its line gives the latest turn's kind and step, its outcome when it failed or stopped, its
+  duration, and the session's cost. When the session opens with the workflow's message or a quote,
+  and the composer already holds text, the message goes first, on its own line.
+- **Rationale**: US1 starts from the feature page, including at a gate, where the human most wants
+  to ask; the mockup's line shows a duration; dropping typed text loses the human's words.
+- **Alternatives considered**: no section until a session exists, as runs had; replacing typed text
+  with the message.
+- **If wrong**: a feature with no session shows one more button; the composer can be cleared by
+  hand.
+- **Where**: task 10, `AgentPanel.tsx`, `SessionPage.tsx`.
