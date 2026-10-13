@@ -80,6 +80,7 @@ export default defineConfig({
   ],
   server: devServer(loadEnv(root)),
   test: {
+    setupFiles: [fileURLToPath(new URL("../binding/test-setup.ts", import.meta.url))],
     environment: "happy-dom",
     // A mockup's frame is not loaded: the server in process answers only the UI's own requests.
     environmentOptions: {
