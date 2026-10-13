@@ -1,5 +1,11 @@
 import { StatusDot } from "@astryxdesign/core/StatusDot";
-import { fontWeightVars, spacingVars, typeScaleVars } from "@astryxdesign/core/theme/tokens.stylex";
+import {
+  borderVars,
+  colorVars,
+  fontWeightVars,
+  spacingVars,
+  typeScaleVars,
+} from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { SessionStatus } from "uraeda-server/fate";
 
@@ -13,6 +19,18 @@ const styles = stylex.create({
   small: {
     width: spacingVars["--spacing-3"],
     height: spacingVars["--spacing-3"],
+  },
+  // Blue while working, as the mockup draws it: the theme's accent is its ink, near the idle grey.
+  working: {
+    backgroundColor: colorVars["--color-icon-blue"],
+  },
+  // A ring when idle: apart from working by its shape, also when the pulse is off.
+  idle: {
+    boxSizing: "border-box",
+    backgroundColor: "transparent",
+    borderWidth: borderVars["--border-width"],
+    borderStyle: "solid",
+    borderColor: colorVars["--color-icon-secondary"],
   },
   mark: {
     fontSize: typeScaleVars["--text-heading-6-size"],
@@ -31,9 +49,9 @@ const DOTS = {
 } as const;
 
 /**
- * A session's status as a dot, named by its label for screen readers: a pulsing accent dot while
- * it works, a warning "!" when it needs the human, an error "×" when it failed, a success "✓" for
- * a reply not seen yet, and a neutral dot when idle.
+ * A session's status as a dot, named by its label for screen readers: a pulsing blue dot while it
+ * works, a warning "!" when it needs the human, an error "×" when it failed, a success "✓" for a
+ * reply not seen yet, and a grey ring when idle.
  */
 export function StatusMark({
   status,
@@ -51,7 +69,11 @@ export function StatusMark({
       label={label}
       isPulsing={status === "working"}
       icon={mark ? <span {...stylex.props(styles.mark)}>{mark}</span> : undefined}
-      xstyle={small ? styles.small : styles.dot}
+      xstyle={[
+        small ? styles.small : styles.dot,
+        status === "working" && styles.working,
+        status === "idle" && styles.idle,
+      ]}
     />
   );
 }
