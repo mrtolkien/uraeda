@@ -420,3 +420,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `as_opened` in [`commands.rs`](/crates/lsp/src/commands.rs), its three callers, and
   its tests in [`crates/lsp/tests/commands.rs`](/crates/lsp/tests/commands.rs).
 - **Where**: final review, `crates/lsp/src/commands.rs`.
+
+## R23: The waiting picker asks the current repository's server
+
+- **Decision**: R15's `client.request_any` becomes `client.request_checkout`: it finds the checkout
+  of the current buffer's file, else of the current folder, with `require("uraeda").checkout`, and
+  asks the `uraeda` client whose `root_dir` is that checkout, else starts one there attached to no
+  buffer, as before; outside a checkout it still says `This file is not a Uraeda workflow file.` A
+  worktree's checkout is its own root, and its server lists every checkout of its repository, so no
+  root is mapped to its main checkout. The help's `:Uraeda waiting` names the current repository.
+  The final review found the first client running asked, whatever its repository; the test, with two
+  repositories open, failed with `Nothing waits on you.` from the other repository's server.
+- **Rationale**: US8 lists what waits in the repository the human works in; with two open, the first
+  client started is an accident of order.
+- **Alternatives considered**: `vim.lsp.start` alone, relying on its reuse of a client with the same
+  name and root: the same, but the lookup says what it does.
+- **If wrong**: `checkout_client` and `request_checkout` in
+  [`client.lua`](/editors/nvim/lua/uraeda/client.lua), and its test in
+  [`test_waiting.lua`](/editors/nvim/tests/test_waiting.lua).
+- **Where**: final review, `editors/nvim/lua/uraeda/client.lua`.

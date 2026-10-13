@@ -104,17 +104,19 @@ local function current_checkout()
   return uraeda.checkout(vim.fs.joinpath(cwd, "specs", "PRIORITIES.md"))
 end
 
---- Calls `cb(client)` with a running `uraeda` client, else with one started on the current
---- checkout, attached to no buffer, once it is initialized. Notifies `not_workflow` outside a
---- checkout, and `older` when the server fails to start.
-local function any_client(cb)
-  local running = vim.lsp.get_clients({ name = "uraeda" })[1]
-  if running then
-    return cb(running)
-  end
+--- Calls `cb(client)` with the `uraeda` client of the current checkout, started attached to no
+--- buffer when none runs, once it is initialized. Notifies `not_workflow` outside a checkout, and
+--- `older` when the server fails to start.
+local function checkout_client(cb)
   local root = current_checkout()
   if root == nil then
     return notify_error(not_workflow)
+  end
+  local running = vim.iter(vim.lsp.get_clients({ name = "uraeda" })):find(function(client)
+    return client.root_dir and vim.fs.normalize(client.root_dir) == root
+  end)
+  if running then
+    return cb(running)
   end
   local config = vim.tbl_extend("force", vim.lsp.config.uraeda or {}, {
     name = "uraeda",
@@ -150,14 +152,15 @@ local function any_client(cb)
   )
 end
 
---- Sends `method` with `params` to any `uraeda` client, starting one on the current checkout when
---- none runs, and calls `cb(result)` on success; errors are notified, and `cb` is not called. For
---- the requests about every checkout, such as `uraeda/waiting`.
+--- Sends `method` with `params` to the `uraeda` client of the current checkout, the current
+--- buffer's or the current folder's, starting one when none runs, and calls `cb(result)` on
+--- success; errors are notified, and `cb` is not called. For the requests about every checkout of
+--- a repository, such as `uraeda/waiting`.
 --- @param method string
 --- @param params table
 --- @param cb fun(result: any)
-function M.request_any(method, params, cb)
-  any_client(function(client)
+function M.request_checkout(method, params, cb)
+  checkout_client(function(client)
     client:request(method, params, function(err, result)
       if err then
         return failed(err)
