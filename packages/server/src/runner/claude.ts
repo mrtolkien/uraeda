@@ -133,7 +133,7 @@ export class ClaudeAdapter implements Adapter {
     return folders.some((folder) => existsSync(join(projects, folder, `${nativeId}.jsonl`)));
   }
 
-  allowRule(denial: Denial): string {
+  allowRule(denial: Denial): string | undefined {
     return allowRule(denial);
   }
 

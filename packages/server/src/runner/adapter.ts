@@ -54,7 +54,10 @@ export interface Adapter {
   version(): Promise<string | undefined>;
   /** Whether the session's transcript exists, so it can be resumed. */
   hasSession(nativeId: string): boolean;
-  /** The narrowest rule that allows a blocked action, passed to `open` as `allowed`. */
-  allowRule(denial: Denial): string;
+  /**
+   * The narrowest rule that allows a blocked action, passed to `open` as `allowed`: undefined when
+   * no rule allows that action alone.
+   */
+  allowRule(denial: Denial): string | undefined;
   open(options: OpenOptions): AgentProcess;
 }

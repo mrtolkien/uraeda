@@ -403,6 +403,22 @@ test("US5.2: Allow and retry reopens the process with the rule and sends the ret
   });
 });
 
+test("a blocked command with a `*` is shown without a rule, and allowing it is refused", async () => {
+  const { sessions, adapter, cache, repo } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([done({ denials: [{ tool: "Bash", input: { command: "rm -rf build/*" } }] })]);
+  const { turn } = await sessions.send(repo, session.id, { text: "Clean" });
+  await sessions.settled(turn);
+  const [denial] = cache.itemsOf(turn, "denial");
+
+  expect(denial).toMatchObject({ tool: "Bash", target: "rm -rf build/*", allowed: false });
+  expect(denial).not.toHaveProperty("rule");
+  await expect(sessions.allow(repo, session.id, turn, denial!.seq)).rejects.toThrow(
+    "refused: No allow rule can match only this action.",
+  );
+  expect(adapter.opens).toHaveLength(1);
+});
+
 test("US5.3: the rule ends with its process", async () => {
   const { sessions, adapter, repo, session, turn, denial } = await blockedPush();
   adapter.script([]);

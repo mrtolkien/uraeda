@@ -149,7 +149,7 @@ export class FakeAdapter implements Adapter {
     return this.sessions.has(nativeId);
   }
 
-  allowRule(denial: Denial): string {
+  allowRule(denial: Denial): string | undefined {
     return allowRule(denial);
   }
 
