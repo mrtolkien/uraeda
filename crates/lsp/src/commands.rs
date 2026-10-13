@@ -409,17 +409,44 @@ fn request_changes(
     })
 }
 
-/// `uraeda.submit { uri }`: submits the answers of the feature's latest round, and commits them.
+/// `uraeda.submit { uri }`: submits the answers of the round in the buffer, and commits them, when
+/// it waits for answers and is the feature's latest round, the one the core submits.
 fn submit(documents: &Documents, args: FileArgs) -> Result<Outcome, ResponseError> {
     let (folder, file) = feature_file(documents, &args.uri)?;
     if file.kind != FileKind::Clarifications {
         return Err(refused("Only a round of questions is submitted."));
+    }
+    let front = frontmatter::parse(&text(documents, &file)?);
+    if !front.is_ok_and(|front| front.text("status") == Some("awaiting-human")) {
+        return Err(refused(format!(
+            "{} is not waiting for answers.",
+            file.name
+        )));
+    }
+    if let Some(latest) = latest_round(&file).filter(|latest| *latest != file.name) {
+        return Err(refused(format!(
+            "{} is not the latest round: {latest} is.",
+            file.name
+        )));
     }
     let view = core(api::submit_answers(&documents.root, &folder))?;
     Ok(Outcome {
         opened: None,
         written: in_checkout(documents, &folder, &view, std::slice::from_ref(&view.name))?,
     })
+}
+
+/// The name of the last round of questions in the folder of `file`, on disk.
+fn latest_round(file: &WorkflowFile) -> Option<String> {
+    std::fs::read_dir(file.path.parent()?)
+        .ok()?
+        .filter_map(|entry| entry.ok()?.file_name().into_string().ok())
+        .filter_map(|name| match FileKind::of(&name) {
+            Some((FileKind::Clarifications, Some(round))) => Some((round, name)),
+            _ => None,
+        })
+        .max()
+        .map(|(_, name)| name)
 }
 
 /// `uraeda.commit { uri }`: commits a draft, a backlog file, or a proposal, with the priorities

@@ -329,3 +329,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   without a section; committing `doc/tags`: generated, and stale after an edit.
 - **If wrong**: [`test_doc.lua`](/editors/nvim/tests/test_doc.lua) only.
 - **Where**: task 13, `editors/nvim/tests/test_doc.lua`, `editors/nvim/doc/uraeda.txt`.
+
+## R18: A round is submitted from its own buffer only, when it waits and is the latest
+
+- **Decision**: `uraeda.submit` refuses a round that is not `awaiting-human` with
+  `clarifications-01.md is not waiting for answers.`, and a round followed by another in its folder
+  with `clarifications-01.md is not the latest round: clarifications-02.md is.`, before the core
+  submits the feature's latest round. The final review found an answered round 01 submitting round
+  02; the test failed with the command's success on round 02.
+- **Rationale**: the core's `submit_answers` takes a feature, not a file, so the server must make
+  sure the file in the buffer is the one it submits. A round waits for answers, not for a review, so
+  the reviews' `is not waiting for a review.` would read wrong.
+- **Alternatives considered**: the reviews' text: wrong word for a round; a file argument to the
+  core's `submit_answers`: a change to the core and the CLI for a check the server can make.
+- **If wrong**: `submit` and `latest_round` in [`commands.rs`](/crates/lsp/src/commands.rs), and
+  their test in [`crates/lsp/tests/commands.rs`](/crates/lsp/tests/commands.rs).
+- **Where**: final review, `crates/lsp/src/commands.rs`.
