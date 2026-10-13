@@ -1,37 +1,48 @@
+import { afterEach } from "vite-plus/test";
 import * as binding from "uraeda-binding";
 import { fixture, fixtureRepo, git } from "uraeda-binding/test-utils";
 import { createApp } from "../app.ts";
-import { fakeRunner } from "../testing.ts";
+import { SessionCache } from "../runner/cache.ts";
+import type { Sessions } from "../runner/sessions.ts";
+import { fakeSessions } from "../testing.ts";
 
 export { fixture, fixtureRepo, git };
 
 export const port = 4310;
 
-/** The server's app, called in process, on a repository, with a runner that has no agent. */
+/** The session managers of a test, whose timers are cleared after it. */
+const managers: Array<Sessions> = [];
+
+afterEach(() => {
+  for (const sessions of managers.splice(0)) {
+    sessions.close();
+  }
+});
+
+/** The server's app, called in process, on a repository, with sessions that have no agent. */
 export function testApp(repo = fixtureRepo(), allowedHosts: Array<string> = []) {
-  return app(repo, allowedHosts, fakeRunner({ installed: false }).runner);
+  const { sessions } = fakeSessions({ installed: false });
+  managers.push(sessions);
+  return app(repo, allowedHosts, sessions);
 }
 
-function app(
-  repo: string,
-  allowedHosts: Array<string>,
-  runner: ReturnType<typeof fakeRunner>["runner"],
-) {
+function app(repo: string, allowedHosts: Array<string>, sessions: Sessions) {
   return createApp({
     repo,
     port,
     allowedHosts,
     allowOrigins: ["http://localhost:5173"],
     binding,
-    runner,
+    sessions,
   });
 }
 
-/** The server's app with a runner on the fake adapter, checked once. */
+/** The server's app with sessions on the fake adapter, checked once. */
 export async function testServer(repo = fixtureRepo(), { installed = true } = {}) {
-  const { runner, adapter } = fakeRunner({ installed });
-  await runner.check();
-  return { app: app(repo, [], runner), adapter, runner, repo };
+  const { sessions, adapter } = fakeSessions({ installed });
+  managers.push(sessions);
+  await sessions.check();
+  return { app: app(repo, [], sessions), adapter, sessions, repo };
 }
 
 type App = ReturnType<typeof testApp>;
@@ -79,4 +90,50 @@ export function repoWithBranches(count: number) {
     );
   }
   return repo;
+}
+
+/**
+ * A cache in memory holding `sessions` chats of `/repo` with `items` items in all, one turn each,
+ * for timing the search. Only the middle session's last item says "needle".
+ */
+export function searchCache(sessions = 500, items = 100_000) {
+  const cache = SessionCache.open(":memory:");
+  const perSession = items / sessions;
+  let needle = "";
+  for (let n = 0; n < sessions; n++) {
+    const session = cache.createSession({
+      repo: "/repo",
+      folder: null,
+      agent: "fake",
+      nativeId: `native-${n}`,
+      title: `Chat ${n}`,
+    });
+    const turn = cache.addTurn({
+      sessionId: session.id,
+      kind: "chat",
+      trigger: null,
+      step: null,
+      allowed: null,
+      state: "running",
+    });
+    cache.appendItem(turn, {
+      kind: "message",
+      id: `message-${n}`,
+      text: `Question ${n} about the cache`,
+      origin: "human",
+      state: "read",
+    });
+    for (let seq = 1; seq < perSession; seq++) {
+      const last = n === sessions / 2 && seq === perSession - 1;
+      if (last) {
+        needle = session.id;
+      }
+      cache.appendItem(turn, {
+        kind: last || seq % 2 === 0 ? "text" : "system",
+        text: last ? "Found the needle in the runner" : `Reply ${seq} of chat ${n}, about WAL mode`,
+        streaming: false,
+      } as Parameters<SessionCache["appendItem"]>[1]);
+    }
+  }
+  return { cache, needle };
 }

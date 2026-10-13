@@ -10,8 +10,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { fixture } from "uraeda-binding/test-utils";
-import { lines, parseLine } from "../claude-events.ts";
-import { allowRule, ClaudeAdapter, claudeArgs, PLUGIN_DIR } from "../claude.ts";
+import { allowRule, lines, parseLine } from "../claude-events.ts";
+import { ClaudeAdapter, claudeArgs, PLUGIN_DIR } from "../claude.ts";
 import type { AgentEvent, Denial } from "../events.ts";
 
 const SESSION = "06e0f968-6806-4810-b91e-df3ca38e0f25";

@@ -25,6 +25,30 @@ const KNOWN_TYPES = new Set([
 /** The tools that start a sub-agent: `Task` in Claude Code 2.1.296, `Agent` in others. */
 const SUBAGENT_TOOLS = new Set(["Task", "Agent"]);
 
+/**
+ * The narrowest allow rule for a blocked action, for `--allowedTools`. Claude Code checks files
+ * against `Edit` and `Read` rules only, so a blocked `Write` gets an `Edit` rule. In a file rule,
+ * `/path` is relative to the settings' folder, so an absolute path takes two slashes:
+ * `Edit(//home/me/a)`. A tool with no target gets its bare name, which allows its every call for
+ * the process.
+ */
+export function allowRule({ tool, input }: Denial): string {
+  const value = (key: string) => (typeof input[key] === "string" ? input[key] : undefined);
+  if (tool === "Bash" && value("command")) {
+    return `Bash(${value("command")})`;
+  }
+  const file = value("file_path");
+  if (["Edit", "Write", "MultiEdit", "Read"].includes(tool) && file) {
+    const path = file.startsWith("/") && !file.startsWith("//") ? `/${file}` : file;
+    return `${tool === "Read" ? "Read" : "Edit"}(${path})`;
+  }
+  const url = value("url");
+  if (tool === "WebFetch" && url && URL.canParse(url)) {
+    return `WebFetch(domain:${new URL(url).hostname})`;
+  }
+  return tool;
+}
+
 const KINDS: Record<string, ToolKind> = {
   Read: "read",
   Edit: "edit",

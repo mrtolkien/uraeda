@@ -1,15 +1,15 @@
 import { join } from "node:path";
 import type { Changes, WatchHandle } from "uraeda-binding";
 import type { Binding } from "./fate/context.ts";
-import { pages } from "./fate/runs.ts";
-import { PRIORITIES_ID, RUNNER_ID, WORKSPACE_ID } from "./fate/views.ts";
+import { pages } from "./fate/sessions.ts";
+import { AGENT_ID, PRIORITIES_ID, SESSION_LIST_ID, WORKSPACE_ID } from "./fate/views.ts";
 import { live } from "./fate.ts";
 import type { Adapter } from "./runner/adapter.ts";
-import { RunCache } from "./runner/cache.ts";
-import { Runner, type RunnerChange, type RunnerOptions } from "./runner/runner.ts";
+import { SessionCache } from "./runner/cache.ts";
+import { type SessionChange, Sessions } from "./runner/sessions.ts";
 
-/** A run's live updates are sent at most this often while its events arrive. */
-export const RUN_UPDATE_MS = 250;
+/** A session's live updates are sent at most this often while its items change. */
+export const SESSION_UPDATE_MS = 250;
 /** How often the server checks that the agent still works. */
 export const CHECK_EVERY_MS = 60_000;
 
@@ -54,83 +54,126 @@ export function startLive(binding: Binding, repo: string): WatchHandle {
   return handle;
 }
 
+type Timer = ReturnType<typeof setTimeout>;
+
 /**
- * Sends the live updates of the runner's changes. A run's record and its last two log pages, where
- * a tool call may finish, go out at most every 250 ms while events arrive, and right away when its
- * state changes, with its feature's runs and the workspace's running folders.
+ * Sends the live updates of the session manager's changes. A session's record, its changed turns,
+ * and their last two item pages, where a tool call may finish, go out at most every 250 ms while
+ * items change, with the sidebar's list when a sub-agent starts or ends. A turn's state change,
+ * and any other change of the session, go out at once, with the list, the session's feature, and
+ * the workspace's working folders.
  */
-export function runPublisher(cache: RunCache): (change: RunnerChange) => void {
-  /** The runs going on: when each was last sent, and its pending update. */
-  const runs = new Map<number, { last: number; timer?: ReturnType<typeof setTimeout> }>();
-  const send = (run: number) => {
-    live.update("Run", String(run), { eventId: eventId(`run:${run}`) });
-    const count = pages(cache, run);
+export function sessionPublisher(cache: SessionCache): (change: SessionChange) => void {
+  /** The sessions whose items change: when each was last sent, and its pending update. */
+  const sessions = new Map<
+    string,
+    { last: number; timer?: Timer; turns: Set<number>; subagents: string }
+  >();
+  const update = (type: string, id: string) =>
+    live.update(type, id, { eventId: eventId(`${type}:${id}`) });
+  const turn = (id: number) => {
+    update("Turn", String(id));
+    const count = pages(cache, id);
     for (const page of [count - 2, count - 1].filter((page) => page >= 0)) {
-      live.update("RunLog", `${run}:${page}`, { eventId: eventId(`log:${run}:${page}`) });
+      update("TurnLog", `${id}:${page}`);
+    }
+  };
+  /** The sub-agents running in the turns, which the sidebar lists. */
+  const subagents = (turns: Iterable<number>) =>
+    [...turns]
+      .flatMap((id) => cache.itemsOf(id, "tool"))
+      .filter((tool) => tool.subagent !== undefined && tool.status === "in_progress")
+      .map((tool) => tool.id)
+      .join(" ");
+  const send = (
+    session: string,
+    entry: { last: number; turns: Set<number>; subagents: string },
+  ) => {
+    entry.last = Date.now();
+    update("Session", session);
+    const turns = [...entry.turns];
+    entry.turns.clear();
+    turns.forEach(turn);
+    const running = subagents(turns);
+    if (running !== entry.subagents) {
+      entry.subagents = running;
+      update("SessionList", SESSION_LIST_ID);
     }
   };
   return (change) => {
-    if ("runner" in change) {
-      live.update("Runner", RUNNER_ID, { eventId: eventId("runner") });
+    if ("agent" in change) {
+      update("Agent", AGENT_ID);
       return;
     }
-    const entry = runs.get(change.run);
-    if (!entry || change.state !== "running") {
+    const { session } = change;
+    if (change.turn === undefined || change.state !== undefined) {
+      const entry = sessions.get(session);
       clearTimeout(entry?.timer);
-      if (change.state === "running") {
-        runs.set(change.run, { last: Date.now() });
-      } else {
-        runs.delete(change.run);
+      sessions.delete(session);
+      update("Session", session);
+      if (change.turn !== undefined) {
+        turn(change.turn);
       }
-      send(change.run);
-      live.update("Feature", change.folder, { eventId: eventId(`feature:${change.folder}`) });
-      live.update("Workspace", WORKSPACE_ID, { eventId: eventId("workspace") });
+      update("SessionList", SESSION_LIST_ID);
+      if (change.folder !== null) {
+        update("Feature", change.folder);
+      }
+      update("Workspace", WORKSPACE_ID);
       return;
     }
+    let entry = sessions.get(session);
+    if (!entry) {
+      entry = { last: -Infinity, turns: new Set(), subagents: "" };
+      sessions.set(session, entry);
+    }
+    entry.turns.add(change.turn);
     if (entry.timer) {
       return;
     }
-    const wait = entry.last + RUN_UPDATE_MS - Date.now();
+    const wait = entry.last + SESSION_UPDATE_MS - Date.now();
     if (wait <= 0) {
-      entry.last = Date.now();
-      send(change.run);
+      send(session, entry);
       return;
     }
-    entry.timer = setTimeout(() => {
-      entry.timer = undefined;
-      entry.last = Date.now();
-      send(change.run);
+    const pending = entry;
+    pending.timer = setTimeout(() => {
+      pending.timer = undefined;
+      send(session, pending);
     }, wait);
   };
 }
 
-/** A runner whose changes are sent as live updates. */
-export function createRunner(options: Omit<RunnerOptions, "onChange">): Runner {
-  return new Runner({ ...options, onChange: runPublisher(options.cache) });
+/** A session manager whose changes are sent as live updates. */
+export function createSessions(options: {
+  adapter: Adapter;
+  cache: SessionCache;
+  binding: Binding;
+}): Sessions {
+  return new Sessions({ ...options, onChange: sessionPublisher(options.cache) });
 }
 
 /**
- * The server's runner: its cache opened in the data folder, the runs a stopped server left marked
- * stopped, and the agent checked now and every 60 seconds. `stop` stops its runs.
+ * The server's session manager: its cache opened in the data folder, the turns a stopped server
+ * left marked stopped, and the agent checked now and every 60 seconds. `stop` stops its turns and
+ * closes its processes.
  */
-export async function startRunner(options: {
+export async function startSessions(options: {
   adapter: Adapter;
   binding: Binding;
   dataDir: string;
-  pluginDir: string;
-}): Promise<{ runner: Runner; stop: () => Promise<void> }> {
-  const cache = RunCache.open(join(options.dataDir, "runner.sqlite"));
+}): Promise<{ sessions: Sessions; stop: () => Promise<void> }> {
+  const cache = SessionCache.open(join(options.dataDir, "runner.sqlite"));
   cache.interrupted("Stopped: the server stopped while it ran.");
-  const runner = createRunner({ ...options, cache });
-  await runner.check();
-  const timer = setInterval(() => void runner.check(), CHECK_EVERY_MS);
+  const sessions = createSessions({ ...options, cache });
+  await sessions.check();
+  const timer = setInterval(() => void sessions.check(), CHECK_EVERY_MS);
   timer.unref();
   return {
-    runner,
+    sessions,
     stop: async () => {
       clearInterval(timer);
-      await runner.stopAll();
-      runner.close();
+      await sessions.closeAll();
+      sessions.close();
     },
   };
 }

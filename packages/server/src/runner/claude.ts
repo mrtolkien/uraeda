@@ -5,7 +5,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Adapter, AgentProcess, Capabilities, OpenOptions } from "./adapter.ts";
-import { lines, parseLine } from "./claude-events.ts";
+import { allowRule, lines, parseLine } from "./claude-events.ts";
 import type { AgentEvent, Denial } from "./events.ts";
 
 /** The plugin folder around the server's copy of the skill, passed to `--plugin-dir`. */
@@ -36,30 +36,6 @@ export function claudeArgs(options: OpenOptions, pluginDir: string): Array<strin
     options.nativeId,
     ...(options.allowed === undefined ? [] : ["--allowedTools", options.allowed]),
   ];
-}
-
-/**
- * The narrowest allow rule for a blocked action, for `--allowedTools`. Claude Code checks files
- * against `Edit` and `Read` rules only, so a blocked `Write` gets an `Edit` rule. In a file rule,
- * `/path` is relative to the settings' folder, so an absolute path takes two slashes:
- * `Edit(//home/me/a)`. A tool with no target gets its bare name, which allows its every call for
- * the process.
- */
-export function allowRule({ tool, input }: Denial): string {
-  const value = (key: string) => (typeof input[key] === "string" ? input[key] : undefined);
-  if (tool === "Bash" && value("command")) {
-    return `Bash(${value("command")})`;
-  }
-  const file = value("file_path");
-  if (["Edit", "Write", "MultiEdit", "Read"].includes(tool) && file) {
-    const path = file.startsWith("/") && !file.startsWith("//") ? `/${file}` : file;
-    return `${tool === "Read" ? "Read" : "Edit"}(${path})`;
-  }
-  const url = value("url");
-  if (tool === "WebFetch" && url && URL.canParse(url)) {
-    return `WebFetch(domain:${new URL(url).hostname})`;
-  }
-  return tool;
 }
 
 /** Events pushed by one reader and read in order by one consumer, until it ends. */

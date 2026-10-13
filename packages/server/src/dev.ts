@@ -6,10 +6,10 @@ import { getRequestListener } from "@hono/node-server";
 import { createApp } from "./app.ts";
 import { checkBinding, loadBinding } from "./binding.ts";
 import { type Env, loadDataDir, loadEnv } from "./env.ts";
-import { startLive, startRunner, stopLive } from "./live.ts";
+import { startLive, startSessions, stopLive } from "./live.ts";
 import type { Adapter } from "./runner/adapter.ts";
 import { ClaudeAdapter, PLUGIN_DIR } from "./runner/claude.ts";
-import type { Runner } from "./runner/runner.ts";
+import type { Sessions } from "./runner/sessions.ts";
 
 export { checkBinding, loadEnv };
 
@@ -26,12 +26,15 @@ export function devServer(env: Env) {
 /** The paths the server answers; Vite serves everything else. */
 const SERVER_PATHS = /^\/(fate|raw|mockups)(\/|\?|$)/;
 
-/** The process's one runner, shared by the dev server's apps, started with the first request. */
-let shared: Promise<{ runner: Runner; stop: () => Promise<void> }> | undefined;
+/**
+ * The process's one session manager, shared by the dev server's apps, started with the first
+ * request.
+ */
+let shared: Promise<{ sessions: Sessions; stop: () => Promise<void> }> | undefined;
 
 /**
- * Stops the runs of the dev server's runner, as Vite's server closes. A server Vite starts again
- * starts a new runner.
+ * Stops the turns of the dev server's sessions and closes their processes, as Vite's server
+ * closes. A server Vite starts again starts a new session manager.
  */
 export async function stopDevRuns(): Promise<void> {
   const stopping = shared;
@@ -59,7 +62,7 @@ export function forgetRepo(repo: string): void {
  * A Connect middleware serving the server's routes for the repository of the settings, or of
  * `URAEDA_REPO` when it is set in the environment later, as tests do. The guard takes the port the
  * request came in on, Vite's own. The core's watcher starts with the first request to each
- * repository, and the runner with the first request, on Claude Code unless `adapter` says otherwise.
+ * repository, and the session manager with the first request, on Claude Code unless `adapter` says otherwise.
  */
 export function devHandler(root: string, { adapter }: { adapter?: Adapter } = {}) {
   const env = loadEnv(root);
@@ -68,20 +71,19 @@ export function devHandler(root: string, { adapter }: { adapter?: Adapter } = {}
     let app = apps.get(key);
     if (!app) {
       const binding = await loadBinding();
-      shared ??= startRunner({
-        adapter: adapter ?? new ClaudeAdapter(),
+      shared ??= startSessions({
+        adapter: adapter ?? new ClaudeAdapter({ pluginDir: PLUGIN_DIR }),
         binding,
         dataDir: loadDataDir(root),
-        pluginDir: PLUGIN_DIR,
       });
-      const { runner } = await shared;
+      const { sessions } = await shared;
       try {
         startLive(binding, repo);
       } catch (error) {
         console.error(`uraeda: ${(error as Error).message}; pages refresh when shown again`);
       }
       app = getRequestListener(
-        createApp({ ...env, port, repo, allowOrigins: [], binding, runner }).fetch,
+        createApp({ ...env, port, repo, allowOrigins: [], binding, sessions }).fetch,
       );
       apps.set(key, app);
     }

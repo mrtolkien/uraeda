@@ -813,7 +813,7 @@ returning a `Session`:
 `session.archive   {session, archived}`, `session.seen {session}`. `run.start`, `run.allow`, and
 `run.stop` are removed. `writable` reads `sessions.working(repo)`.
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
   - "session.send on a feature creates its session and returns it with its first turn".
   - "a session of another repository is not read" (the cache is shared, as `6f6cebb` required).
   - "SessionList lists features' and chats' sessions with their status, needs you first" (US3.6):
@@ -830,24 +830,24 @@ returning a `Session`:
     and its turn's last `TurnLog` page are published.
   - `search.bench.ts` (SC-003): 500 sessions, 100,000 items, `sessions(repo, {query: "needle"})`
     under 200 ms, with `bench` from `vite-plus/test`.
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `vp test packages/server/src/__tests__/sessions.test.ts packages/server/src/__tests__/live.test.ts`
 - Expected: FAIL, `no mutation session.send`
 
-- [ ] **Step 3: Implement them**: `fate/sessions.ts` reads records through `Sessions` and the cache,
+- [x] **Step 3: Implement them**: `fate/sessions.ts` reads records through `Sessions` and the cache,
       scoped by `sessions.mainRoot(ctx.repo)`; `sessionPublisher` in `live.ts` replaces
       `runPublisher` with the same throttle; `startSessions` replaces `startRunner`; `Context` holds
       `sessions` in place of `runner`; `main.ts` builds
       `new ClaudeAdapter({ pluginDir:     PLUGIN_DIR })`; `testing.ts` exports `fakeSessions()` in
       place of `fakeRunner()`.
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check && vp test --project uraeda-server`
 - Expected: PASS (the web project fails until task 8)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server
