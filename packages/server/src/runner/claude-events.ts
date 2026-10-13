@@ -31,15 +31,21 @@ const SUBAGENT_TOOLS = new Set(["Task", "Agent"]);
  * `/path` is relative to the settings' folder, so an absolute path takes two slashes:
  * `Edit(//home/me/a)`. A tool with no target gets its bare name, which allows its every call for
  * the process.
+ *
+ * A Bash rule with a `*` is a wildcard, which Claude Code cannot be told to read literally: a
+ * command with one has no rule. A file rule is a gitignore pattern, so its special characters are
+ * escaped, as Claude Code escapes the paths it saves.
  */
-export function allowRule({ tool, input }: Denial): string {
+export function allowRule({ tool, input }: Denial): string | undefined {
   const value = (key: string) => (typeof input[key] === "string" ? input[key] : undefined);
-  if (tool === "Bash" && value("command")) {
-    return `Bash(${value("command")})`;
+  const command = value("command");
+  if (tool === "Bash" && command) {
+    return command.includes("*") ? undefined : `Bash(${command})`;
   }
   const file = value("file_path");
   if (["Edit", "Write", "MultiEdit", "Read"].includes(tool) && file) {
-    const path = file.startsWith("/") && !file.startsWith("//") ? `/${file}` : file;
+    const escaped = file.replace(/[\\*?[\]]/g, "\\$&").replace(/^[!#]/, "\\$&");
+    const path = escaped.startsWith("/") && !escaped.startsWith("//") ? `/${escaped}` : escaped;
     return `${tool === "Read" ? "Read" : "Edit"}(${path})`;
   }
   const url = value("url");

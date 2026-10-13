@@ -528,9 +528,22 @@ test.each<[Denial, string]>([
   [{ tool: "Edit", input: { file_path: "src/a.ts" } }, "Edit(src/a.ts)"],
   [{ tool: "WebFetch", input: { url: "https://example.com/a?b" } }, "WebFetch(domain:example.com)"],
   [{ tool: "mcp__x__y", input: {} }, "mcp__x__y"],
+  // A path rule is a gitignore pattern: its special characters are escaped, as Claude Code escapes
+  // the paths it saves, so the rule matches only the path.
+  [{ tool: "Edit", input: { file_path: "/w/*.ts" } }, "Edit(//w/\\*.ts)"],
+  [{ tool: "Write", input: { file_path: "/w/**/a?[0].md" } }, "Edit(//w/\\*\\*/a\\?\\[0\\].md)"],
+  [{ tool: "Read", input: { file_path: "a\\b" } }, "Read(a\\\\b)"],
+  [{ tool: "Edit", input: { file_path: "!a.ts" } }, "Edit(\\!a.ts)"],
+  [{ tool: "Edit", input: { file_path: "#a.ts" } }, "Edit(\\#a.ts)"],
 ])("the allow rule of %o", (denial, rule) => {
   expect(allowRule(denial)).toBe(rule);
   expect(new ClaudeAdapter({ pluginDir: "/plugin" }).allowRule(denial)).toBe(rule);
+});
+
+test("a command with a `*` has no allow rule: Claude Code would read it as a wildcard", () => {
+  for (const command of ["rm -rf build/*", "git log --format=*", "ls:*"]) {
+    expect(allowRule({ tool: "Bash", input: { command } })).toBeUndefined();
+  }
 });
 
 test("review focus 5: a missing command exits as missing", async () => {

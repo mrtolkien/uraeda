@@ -93,8 +93,11 @@ export type Item =
     }
   /** A resumed or replaced session, a retry, skipped lines, an error. */
   | { kind: "system"; text: string }
-  /** An action `auto` mode blocked, and whether the human allowed it since. */
-  | { kind: "denial"; tool: string; target?: string; rule: string; allowed: boolean };
+  /**
+   * An action `auto` mode blocked, and whether the human allowed it since. Without a rule, when
+   * none allows that action alone, it cannot be allowed.
+   */
+  | { kind: "denial"; tool: string; target?: string; rule?: string; allowed: boolean };
 
 /** Why a turn runs: a workflow step, the human's message, or a blocked action allowed. */
 export type TurnKind = "workflow" | "chat" | "allow";
