@@ -153,6 +153,30 @@ test("a turn that fails takes back the message steered into it, which no turn wo
   );
 });
 
+test("a turn's messages are forgotten once it ended and none waits to be read", async () => {
+  const { sessions, adapter, repo } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  const first = await sessions.send(repo, session.id, { text: "Plan it" });
+  await sessions.send(repo, session.id, { text: "Use the helper" });
+  adapter.emit({ type: "accepted", id: adapter.sent[0]!.id });
+  adapter.emit({ type: "accepted", id: adapter.sent[1]!.id });
+  adapter.emit(done());
+  await sessions.settled(first.turn);
+  expect(sessions.tracked(session.id)).toBe(0);
+
+  // A message steered into a stopped turn is kept until the agent says it is taken back.
+  const second = await sessions.send(repo, session.id, { text: "Go on" });
+  await sessions.send(repo, session.id, { text: "Never mind" });
+  adapter.ignoreInterrupt = true;
+  sessions.stop(repo, session.id);
+  adapter.emit(done({ ok: false, interrupted: true }));
+  await sessions.settled(second.turn);
+  expect(sessions.tracked(session.id)).toBe(1);
+  adapter.emit({ type: "cancelled", id: adapter.sent[3]!.id });
+  await flush();
+  expect(sessions.tracked(session.id)).toBe(0);
+});
+
 test("US1.5: Stop interrupts the turn and keeps the process", async () => {
   const { sessions, adapter, cache, repo } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
