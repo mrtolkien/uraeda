@@ -216,7 +216,8 @@ end
 --- Runs the server's command `name` with `args` (`uri` defaults to the buffer's): saves the buffer
 --- first when `opts.save`, shows the server's progress, reloads the buffers of `written`, redraws
 --- the inline comments next to them, edits `opened` in the current window, then calls
---- `cb(result)`. Errors are notified, and `cb` is not called.
+--- `cb(result)`. Errors are notified after reloading the files they list in `data.written`, and
+--- `cb` is not called.
 --- @param bufnr integer?
 --- @param name string
 --- @param args table?
@@ -242,15 +243,19 @@ function M.command(bufnr, name, args, opts, cb)
   local sent = client:request("workspace/executeCommand", params, function(err, result)
     -- The progress notifications come before the answer; any left are dropped once handled.
     vim.schedule(stop)
+    -- A command a hook refused leaves the files it wrote, listed in the error's `written`.
+    local written = (err and type(err.data) == "table" and err.data.written)
+      or (result or {}).written
+      or {}
+    reload(written)
+    -- A comment or a verdict changes the review: the files next to it redraw their comments.
+    if #written > 0 then
+      require("uraeda.marks").refresh(written)
+    end
     if err then
       return failed(err)
     end
     result = result or {}
-    reload(result.written or {})
-    -- A comment or a verdict changes the review: the files next to it redraw their comments.
-    if #(result.written or {}) > 0 then
-      require("uraeda.marks").refresh(result.written)
-    end
     if result.opened then
       local ok, message = pcall(vim.cmd.edit, vim.fn.fnameescape(result.opened))
       if not ok then

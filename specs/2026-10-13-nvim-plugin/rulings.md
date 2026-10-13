@@ -439,3 +439,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   [`client.lua`](/editors/nvim/lua/uraeda/client.lua), and its test in
   [`test_waiting.lua`](/editors/nvim/tests/test_waiting.lua).
 - **Where**: final review, `editors/nvim/lua/uraeda/client.lua`.
+
+## R24: A failed command lists the files it wrote, and the plugin reloads them
+
+- **Decision**: `uraeda.approve`, `uraeda.requestChanges`, `uraeda.submit`, and `uraeda.start` read
+  the files they may write before calling the core (the spec, plan, or assessment and its review
+  file; the round; the priorities and the draft), and when the core fails, add `written: string[]`
+  to the error's `data`, absolute, with the files whose text changed, when any did:
+  `data: { code, output?, written? }`. A refusal before any write lists nothing. A start whose first
+  commit a hook refuses lists only `PRIORITIES.md`, the draft not yet moved; the core reports that
+  partial start as `refused`, so the list does not depend on the code. `uraeda.commit` and
+  `uraeda.draft` write nothing before a commit, and are unchanged. `client.command` reloads
+  `err.data.written` and redraws the inline comments next to them, as for a success, before it
+  notifies the error. The final review found a buffer still showing `status: awaiting-human` after a
+  hook refused the approval the server had written; the Rust test failed with no `written` in the
+  error, and the Lua test, a failing pre-commit hook on an approval, with the buffer's old status.
+- **Rationale**: the core leaves a refused commit's files written, for `retry_commit`, so the buffer
+  must show the disk, or a save would overwrite the verdict with the earlier text. Comparing the
+  texts names what was written without knowing where each core action stops.
+- **Alternatives considered**: the files the command would write on success, on every hook error: a
+  start refused at its first commit would list a draft it never touched; reloading the open buffer
+  on any error: the review file next to it would stay stale.
+- **If wrong**: `Before` and `next_to` in [`commands.rs`](/crates/lsp/src/commands.rs), `command` in
+  [`client.lua`](/editors/nvim/lua/uraeda/client.lua), and their tests in
+  [`crates/lsp/tests/commands.rs`](/crates/lsp/tests/commands.rs) and
+  [`test_verdict.lua`](/editors/nvim/tests/test_verdict.lua).
+- **Where**: final review, `crates/lsp/src/commands.rs`, `editors/nvim/lua/uraeda/client.lua`.

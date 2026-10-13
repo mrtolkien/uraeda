@@ -774,6 +774,66 @@ fn a_failing_hook_reports_its_output() {
     assert_eq!(repo.subjects("main")[0], "chore: specs");
 }
 
+/// Final review: a hook refusing a verdict, a round, or a start leaves files written; the error
+/// lists them, so the editor reloads them.
+#[test]
+fn a_failing_hook_lists_the_files_written() {
+    const FAIL: &str = "echo 'lint: no' >&2\nexit 1";
+    let (repo, path) = feature("awaiting-human");
+    repo.set_hook(FAIL);
+    let mut session = start(repo.path());
+    comment(&mut session, &path, "Rename this field").unwrap();
+    let error = session
+        .command(
+            "uraeda.approve",
+            json!({ "uri": uri(&path), "riskTier": "medium" }),
+        )
+        .unwrap_err();
+    let review = repo.path().join(NVIM).join("spec-review.md");
+    let data = error.data.unwrap();
+    assert_eq!(data["code"], "hook");
+    assert_eq!(data["written"], json!([abs(&path), abs(&review)]));
+    assert!(
+        repo.read(&format!("{NVIM}/spec.md"))
+            .contains("status: approved\n")
+    );
+
+    let round = clarifications("awaiting-human", "2 questions.", &["A", "B"]);
+    let (repo, _) = feature_with("awaiting-human", &[("clarifications-01.md", &round)]);
+    repo.set_hook(FAIL);
+    let path = repo.path().join(NVIM).join("clarifications-01.md");
+    let mut session = start(repo.path());
+    let error = session
+        .command("uraeda.submit", json!({ "uri": uri(&path) }))
+        .unwrap_err();
+    assert_eq!(error.data.unwrap()["written"], json!([abs(&path)]));
+
+    let repo = with_draft(true);
+    repo.set_hook(FAIL);
+    let path = repo.path().join("specs/drafts/codex-runtime.md");
+    let mut session = start(repo.path());
+    let error = session
+        .command("uraeda.start", json!({ "uri": uri(&path) }))
+        .unwrap_err();
+    // The start commit failed: the priorities are written, the draft is where it was.
+    assert_eq!(
+        error.data.unwrap()["written"],
+        json!([abs(&repo.path().join(PRIORITIES))])
+    );
+    assert!(path.exists());
+}
+
+/// A refusal before any write lists nothing.
+#[test]
+fn a_refusal_lists_no_files() {
+    let (repo, path) = feature("approved");
+    let mut session = start(repo.path());
+    let error = session
+        .command("uraeda.approve", json!({ "uri": uri(&path) }))
+        .unwrap_err();
+    assert_eq!(error.data, Some(json!({ "code": "refused" })));
+}
+
 /// Edge case: the loop answers requests while a command runs.
 #[test]
 fn requests_are_answered_while_a_command_runs() {
