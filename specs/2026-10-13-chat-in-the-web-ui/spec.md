@@ -1,16 +1,16 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: high
-plan-review: true
+plan-review: false
 ---
 
 # Spec: Chat in the web UI
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 35 minutes.
+> Approved on 2026-10-13.
 >
 > - **The agents decision changes**, in its [proposed change](../decisions/agents.md):
 >   - one process per open session, taking messages as they come;
