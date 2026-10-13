@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
+import { refusable } from "../fate/errors.ts";
 import { byId, fixtureRepo, mutate, repoWithBranches, testApp } from "./helpers.ts";
 
 const ROUND = "2026-10-11-web-ui/clarifications-01.md";
@@ -56,6 +57,29 @@ test("refuses a stale answer at the call site, with its code", async () => {
     message:
       "conflict: clarifications-01.md changed on disk since you opened it. Your text was not saved.",
   });
+});
+
+test("a binding call's refusal is a bad request, and any other error an internal one, logged", async () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  const failed = (call: () => Promise<unknown>) =>
+    call().then(
+      () => undefined,
+      (error) => error,
+    );
+
+  for (const message of ["refused: no", "conflict: changed", "hook: failed\n\noutput"]) {
+    const refusal = await failed(() => refusable(() => Promise.reject(new Error(message))));
+    expect(refusal).toMatchObject({ code: "BAD_REQUEST", message });
+  }
+  expect(log).not.toHaveBeenCalled();
+
+  const crash = await failed(() =>
+    refusable(() => Promise.reject(new Error("the task ran twice"))),
+  );
+  expect(crash).toMatchObject({ code: "INTERNAL_ERROR" });
+  expect(log).toHaveBeenCalledOnce();
+  expect(String(log.mock.calls[0]?.[0])).toContain("the task ran twice");
+  log.mockRestore();
 });
 
 test("adds a priority line", async () => {
