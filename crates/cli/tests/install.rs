@@ -461,6 +461,82 @@ fn a_link_is_never_written_through() {
 
 #[cfg(unix)]
 #[test]
+fn an_update_never_writes_through_a_linked_folder_inside_the_skill() {
+    let repo = TestRepo::new();
+    let home = repo.home();
+    let skill = home.join(AGENTS);
+    ura(&repo, &["install", "--user", "--agents"]);
+    make_older(&skill);
+    let mut manifest = fs::read_to_string(skill.join(".ura-manifest")).unwrap();
+    manifest.push_str(&format!("{}  references/old.md\n", sha256("old\n")));
+    write(&skill.join(".ura-manifest"), &manifest);
+    // references/ moved to a folder of the human's, linked back: an unedited older plan.md, a
+    // file the skill no longer has, and a file it has, missing.
+    let theirs = home.join("dev/references");
+    fs::create_dir_all(theirs.parent().unwrap()).unwrap();
+    fs::rename(skill.join("references"), &theirs).unwrap();
+    symlink(&theirs, &skill.join("references"));
+    write(&theirs.join("old.md"), "old\n");
+    fs::remove_file(theirs.join("approval.md")).unwrap();
+
+    let output = ura(&repo, &["install", "--user", "--update"]);
+
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert_eq!(fs::read_to_string(theirs.join("plan.md")).unwrap(), OLD);
+    assert!(theirs.join("old.md").is_file());
+    assert!(!theirs.join("approval.md").exists());
+    assert!(
+        output.stdout.contains(&format!(
+            "kept    ~/.agents/skills/uraeda/references: a link to {}\n",
+            theirs.display()
+        )),
+        "{}",
+        output.stdout
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn an_update_never_writes_through_a_linked_file_inside_the_skill() {
+    let repo = TestRepo::new();
+    let home = repo.home();
+    let skill = home.join(AGENTS);
+    ura(&repo, &["install", "--user", "--agents"]);
+    make_older(&skill);
+    // The unedited older plan.md and the manifest, each a link to a file of the human's.
+    let theirs = home.join("dev");
+    for name in ["references/plan.md", ".ura-manifest"] {
+        let file = theirs.join(name.replace('/', "-"));
+        fs::create_dir_all(&theirs).unwrap();
+        fs::rename(skill.join(name), &file).unwrap();
+        symlink(&file, &skill.join(name));
+    }
+    let manifest = fs::read_to_string(theirs.join(".ura-manifest")).unwrap();
+
+    let output = ura(&repo, &["install", "--user", "--update"]);
+
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert_eq!(
+        fs::read_to_string(theirs.join("references-plan.md")).unwrap(),
+        OLD
+    );
+    assert_eq!(
+        fs::read_to_string(theirs.join(".ura-manifest")).unwrap(),
+        manifest
+    );
+    assert!(is_link(&skill.join("references/plan.md")));
+    assert!(
+        output.stdout.contains(&format!(
+            "kept    ~/.agents/skills/uraeda/references/plan.md: a link to {}\n",
+            theirs.join("references-plan.md").display()
+        )),
+        "{}",
+        output.stdout
+    );
+}
+
+#[cfg(unix)]
+#[test]
 fn links_through_a_linked_claude_folder() {
     // ~/.claude, a link to a dotfiles folder: the link's target starts from the real folder.
     let repo = TestRepo::new();
