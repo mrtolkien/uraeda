@@ -136,6 +136,23 @@ export function useSessionList() {
   return useLiveView(SessionListView, sessionList);
 }
 
+/**
+ * What the navigation reads: the workspace's features and the sessions' list, in one request, so
+ * the shell waits for them once.
+ */
+export function useNavigation() {
+  const request = {
+    workspace: { id: WORKSPACE_ID, view: WorkspaceView },
+    sessionList: { id: SESSION_LIST_ID, view: SessionListView },
+  };
+  const { workspace, sessionList } = useRequest(request);
+  useRefreshOnShow(request);
+  return {
+    workspace: useLiveView(WorkspaceView, workspace),
+    sessionList: useLiveView(SessionListView, sessionList),
+  };
+}
+
 /** The sessions whose title or messages hold the query: read again as the query changes. */
 export function useSessionSearch(query: string) {
   const request = { sessionSearch: { id: query, view: SessionSearchView } };

@@ -1,8 +1,8 @@
 import { Banner } from "@astryxdesign/core/Banner";
+import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Link } from "@astryxdesign/core/Link";
-import { StatusDot } from "@astryxdesign/core/StatusDot";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -13,11 +13,13 @@ import type { SessionStatus as Status } from "uraeda-server/fate";
 import { Composer } from "./Composer.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { useAgent, useFeature, useSession } from "./data.ts";
+import { EditableLine } from "./EditableLine.tsx";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { statusStyles } from "./Question.tsx";
 import { navigate, useRestoreScroll } from "./routes.tsx";
+import { StatusMark } from "./StatusMark.tsx";
 import { Transcript, useFollowEnd, useOpenGroups } from "./Transcript.tsx";
 import { SessionView } from "./views.ts";
 
@@ -31,14 +33,6 @@ const styles = stylex.create({
   },
 });
 
-const DOTS = {
-  working: "accent",
-  "needs-you": "warning",
-  failed: "error",
-  unread: "success",
-  idle: "neutral",
-} as const;
-
 /** The session's cost, as the agent's latest result gave it. */
 export function costText(costUsd: number) {
   return `$${costUsd.toFixed(2)} this session`;
@@ -48,23 +42,35 @@ export function costText(costUsd: number) {
 export function SessionStatus({ status, label }: { status: Status; label: string }) {
   return (
     <HStack gap={2} align="center">
-      <StatusDot variant={DOTS[status]} label={label} isPulsing={status === "working"} />
+      <StatusMark status={status} label={label} />
       <Text weight="semibold">{label}</Text>
     </HStack>
   );
 }
 
-/** A session's header: its title, then its status, agent, place, and cost on one line. */
+/** A chat's title, renamed in place, and Archive, which hides it under "Archived" in the sidebar. */
+type ChatControls = {
+  onRename: (title: string) => Promise<string | undefined>;
+  archived: boolean;
+  onArchive: () => Promise<void>;
+};
+
+/**
+ * A session's header: its title, then its status, agent, place, and cost on one line. A chat's
+ * title is renamed in place, and the chat archived or brought back.
+ */
 function Header({
   title,
   status,
   place,
   costUsd,
+  chat,
 }: {
   title: string;
   status?: { status: Status; label: string };
   place?: string;
   costUsd?: number | null;
+  chat?: ChatControls;
 }) {
   const agent = useAgent();
   const wide = useWidthClass() === "wide";
@@ -74,12 +80,22 @@ function Header({
   return (
     <VStack gap={1}>
       {/* Beside the feature page on wide screens, whose title is the page's heading. */}
-      <Heading level={wide ? 2 : 1}>{title}</Heading>
+      <Heading level={wide ? 2 : 1}>
+        {chat ? <EditableLine value={title} label="Title" onSave={chat.onRename} /> : title}
+      </Heading>
       <HStack gap={2} align="center" wrap="wrap">
         {status && <SessionStatus status={status.status} label={status.label} />}
         <Text type="supporting" color="secondary">
           {meta.join(" · ")}
         </Text>
+        {chat && (
+          <Button
+            variant="secondary"
+            size="sm"
+            label={chat.archived ? "Unarchive" : "Archive"}
+            clickAction={chat.onArchive}
+          />
+        )}
       </HStack>
     </VStack>
   );
@@ -121,6 +137,29 @@ function Session({ id, crumbs, draft }: { id: string; crumbs?: string; draft: Dr
       </Page>
     );
   }
+  const chat: ChatControls | undefined =
+    session.folder === null
+      ? {
+          archived: session.archived,
+          onRename: async (title) => {
+            const result = await fate.mutations.session.rename({
+              input: { session: id, title },
+              view: SessionView,
+            });
+            return result.error ? refusal(result.error).message : undefined;
+          },
+          onArchive: async () => {
+            setError(undefined);
+            const result = await fate.mutations.session.archive({
+              input: { session: id, archived: !session.archived },
+              view: SessionView,
+            });
+            if (result.error) {
+              setError(refusal(result.error).message);
+            }
+          },
+        }
+      : undefined;
   const allow = async (turn: string, seq: number) => {
     setError(undefined);
     const result = await fate.mutations.session.allow({
@@ -140,6 +179,7 @@ function Session({ id, crumbs, draft }: { id: string; crumbs?: string; draft: Dr
           status={{ status: session.status, label: session.statusLabel }}
           place={session.place}
           costUsd={session.costUsd}
+          {...(chat ? { chat } : {})}
         />
         <div ref={log}>
           <Transcript
