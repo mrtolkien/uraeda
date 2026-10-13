@@ -774,8 +774,10 @@ git commit -m "feat(nvim-plugin): draft, start, and commit from Neovim"
 **Files:**
 
 - Create: `editors/nvim/lua/uraeda/pickers.lua`
-- Modify: `editors/nvim/lua/uraeda/actions.lua` (`field`)
-- Test: `editors/nvim/tests/test_fields.lua`
+- Modify: `editors/nvim/lua/uraeda/actions.lua` (`field`), `crates/lsp/src/actions.rs` and
+  `crates/lsp/src/server.rs` (`uraeda/setField`)
+  ([R12](rulings.md#r12-a-picked-or-typed-value-is-the-servers-edit))
+- Test: `editors/nvim/tests/test_fields.lua`, `crates/lsp/tests/editing.rs`
 
 **Interfaces:**
 
@@ -783,34 +785,44 @@ git commit -m "feat(nvim-plugin): draft, start, and commit from Neovim"
   task 10, called through `require` at selection time, so this task only stubs it in its test.
 - Produces: `pickers.field(bufnr)`: `vim.ui.select` over fields (kind `uraeda_field`, items shown
   `name  value`), then over values (kind `uraeda_value`, the current one with `(current)`, an
-  action's value with `…` and `commits`); a plain value applies the code action's edit
-  (`vim.lsp.util.apply_workspace_edit`), a number or text opens `vim.ui.input` with the current
-  value, an action's value calls `require("uraeda.verdict").open(bufnr, action)`.
+  action's value with `…` and `commits`); a plain value and a number or text typed in `vim.ui.input`
+  (with the current value) apply the server's edit from `uraeda/setField`
+  (`vim.lsp.util.apply_workspace_edit`), an action's value calls
+  `require("uraeda.verdict").open(bufnr, action)`.
+  - `uraeda/setField { uri, name, value }` → `WorkspaceEdit` of the field's line in the open
+    document, from `frontmatter::set`, the same edit as its code action; refuses a closed file, a
+    missing field, a value of more than one line, and a value set by a verdict.
 
-- [ ] **Step 1: Write the failing tests, stubbing `vim.ui.select` and `vim.ui.input` in the child**
+- [x] **Step 1: Write the failing tests, stubbing `vim.ui.select` and `vim.ui.input` in the child**
 
 ```lua
 T["a value replaces its line and keeps the comment"] = function() end -- US5.1, then `u` restores high
 T["a number is typed"] = function() end                                -- US5.2: revision 2
 T["a status that commits opens the verdict"] = function() end          -- US5.3: items, then verdict.open called with "approve"
+T["a cancelled picker changes nothing"] = function() end
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+```rust
+#[test] fn a_typed_value_is_an_edit_of_the_open_document() {}  // US5.2, through the server
+```
 
-- Run: `vp run test:nvim`
-- Expected: FAIL, `module 'uraeda.pickers' not found`
+- [x] **Step 2: Run them to check they fail**
 
-- [ ] **Step 3: Implement the pickers**
+- Run: `cargo test -p uraeda-lsp --test editing && vp run test:nvim`
+- Expected: FAIL, `method not found: uraeda/setField`, and `attempt to index a nil value` (no
+  `field` action)
 
-- [ ] **Step 4: Run all checks**
+- [x] **Step 3: Implement the pickers**
 
-- Run: `stylua --check editors/nvim && vp run test:nvim`
+- [x] **Step 4: Run all checks**
+
+- Run: `stylua --check editors/nvim && vp run test:nvim && cargo test -p uraeda-lsp`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add editors/nvim
+git add editors/nvim crates/lsp specs/2026-10-13-nvim-plugin
 git commit -m "feat(nvim-plugin): pick frontmatter values"
 ```
 

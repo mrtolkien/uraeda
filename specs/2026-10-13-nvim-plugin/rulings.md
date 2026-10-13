@@ -193,3 +193,28 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: one field per entry in [`actions.lua`](/editors/nvim/lua/uraeda/actions.lua) and a
   loop in [`keys.lua`](/editors/nvim/lua/uraeda/keys.lua).
 - **Where**: task 7, `editors/nvim/lua/uraeda/`.
+
+## R12: A picked or typed value is the server's edit
+
+- **Decision**: a new request, `uraeda/setField { uri, name, value }`, answers the `WorkspaceEdit`
+  of the field's line in the open document, built by `frontmatter::set` like the code actions, which
+  now share its edit. The field picker applies it for every value, picked or typed; it never asks
+  for code actions. The request refuses a file that is not open (`spec.md is not open.`), a field
+  the file does not have (`spec.md has no field owner.`), a value of more than one line
+  (`A value is one line.`), and a value set by a verdict
+  (`status: approved is set by a verdict, not an edit.`); it never writes the disk. The picker lists
+  the fields the file has, not the missing ones, and says `<file> has no frontmatter field.` when
+  there is none. Step 2 failed with `method not found: uraeda/setField` and, in the plugin, on the
+  missing `field` action, not `module 'uraeda.pickers' not found`, since the tests reach the pickers
+  through the action. A fourth plugin test checks that a cancelled picker changes nothing.
+- **Rationale**: the code actions offer only the allowed values other than the current one, so a
+  typed revision has no edit to apply, and the plugin must not edit frontmatter text itself
+  ([stack](../decisions/stack.md)); one request for both paths keeps one way to an edit in the
+  plugin.
+- **Alternatives considered**: code actions for picked values and a request for typed ones: two
+  paths to the same edit; the plugin writing `name: value` on the line: it would parse the
+  frontmatter, against the stack decision.
+- **If wrong**: one request in [`crates/lsp/src/actions.rs`](/crates/lsp/src/actions.rs), its test
+  in [`crates/lsp/tests/editing.rs`](/crates/lsp/tests/editing.rs), and `set` in
+  [`pickers.lua`](/editors/nvim/lua/uraeda/pickers.lua).
+- **Where**: task 8, `crates/lsp/src/actions.rs`, `editors/nvim/lua/uraeda/pickers.lua`.
