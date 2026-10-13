@@ -149,3 +149,28 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: progress without `create`: clients drop tokens they did not create.
 - **If wrong**: the worker in [`crates/lsp/src/server.rs`](/crates/lsp/src/server.rs).
 - **Where**: task 5, `crates/lsp/src/server.rs`, `crates/lsp/tests/common/mod.rs`.
+
+## R10: The plugin's test harness and health
+
+- **Decision**: `helpers.new_child()` returns a mini.test child whose `child.setup(config?)`
+  restarts it with `vim.g.uraeda` set through `--cmd`, since `plugin/uraeda.lua` reads the options
+  at startup; `helpers` also gives `write`, `set_hook`, `hook_runs`, and `example`, for later tasks.
+  A third test file, `test_client.lua`, covers `client.command` and `client.request`: saving first,
+  reloading what was written, opening what was opened, the progress notification, a refusal, a
+  hook's output, an older `ura`, and a buffer without a client. `client.command` sends its own
+  `workDoneToken`, so it follows its command's progress only. Health also shows `ura --version` and
+  says `ura is older than the plugin: run ura upgrade.` when `<cmd> --help` fails. Step 2 failed
+  with no client attaching and `No healthcheck found for "uraeda" plugin.`, not
+  `module 'uraeda' not found`, since the plan's tests only require the plugin through the child.
+  `vp run ready` stops at the pre-existing failure of `uraeda-core --test priorities`
+  (`edits_keep_every_other_line`); its other parts, run one by one, pass.
+- **Rationale**: the plan's tests set options such as `lsp = false` that only apply at startup; the
+  spec's flow (save, progress, reload, open, errors) lives in `client.lua`, which no listed test of
+  task 6 reached, and later tasks build on it. The spec's health reports the version found; `ura`
+  has no version the plugin needs beyond having `lsp`.
+- **Alternatives considered**: setting options after startup in each test: the plugin would have
+  enabled the server already; leaving `client.lua` to task 7's tests: its errors would surface
+  through the actions, harder to trace.
+- **If wrong**: test helpers and one test file in [`editors/nvim/tests/`](/editors/nvim/tests/), and
+  a few lines of [`health.lua`](/editors/nvim/lua/uraeda/health.lua).
+- **Where**: task 6, `editors/nvim/`.
