@@ -21,12 +21,12 @@ import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { GrowingTextArea, PendingSaves, Question, statusStyles } from "./Question.tsx";
 import { jumpTo, type NavQuestion, RoundNav } from "./RoundNav.tsx";
-import { handOver } from "./sessions.ts";
+import { askAbout, handOver, quoted } from "./sessions.ts";
 import { plain } from "./Spans.tsx";
 import { useRoundPosition } from "./useRoundPosition.ts";
 import { useSave } from "./useSave.ts";
 import { FileView } from "./views.ts";
-import type { useFile } from "./data.ts";
+import { type useFile, useAgent } from "./data.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
@@ -94,6 +94,7 @@ export function HookRefusal({
  */
 export function RoundPage({ file }: { file: File }) {
   const fate = useFateClient();
+  const agent = useAgent();
   const round = file.current.items.clarifications;
   const document = file.current.document;
   const readOnly = file.status !== "awaiting-human";
@@ -162,6 +163,10 @@ export function RoundPage({ file }: { file: File }) {
       ?.focus({ preventScroll: true });
   };
 
+  /** Opens the feature's session with a question's title quoted. */
+  const ask = (question: { id: string; title: string }) =>
+    askAbout(file.folder, quoted(`About ${question.id} of ${file.path}:`, [question.title]));
+
   /** Hands the feature over to the agent, once the round is committed. */
   const proceed = () => handOver(file.folder, "answers", file.name);
   const submit = async (next: boolean) => {
@@ -219,6 +224,7 @@ export function RoundPage({ file }: { file: File }) {
               followUps={questions.filter((q) => q.parent === question.id && shown(q))}
               document={document}
               readOnly={readOnly}
+              {...(agent?.available ? { onAsk: ask } : {})}
             />
           </div>
         ))}

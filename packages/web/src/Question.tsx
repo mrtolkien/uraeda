@@ -272,7 +272,8 @@ function Option({
 /**
  * A question in full: its context, every option with its text, pros, cons, and why, and a comment.
  * A tap on an option toggles its letter and saves the answer, with the comment as typed; the comment
- * alone saves with its button, or with Submit.
+ * alone saves with its button, or with Submit. With `onAsk`, it and its follow-ups offer "Ask the
+ * agent".
  */
 export function Question({
   folder,
@@ -280,12 +281,14 @@ export function Question({
   followUps,
   document,
   readOnly,
+  onAsk,
 }: {
   folder: string;
   question: QuestionItem;
   followUps: ReadonlyArray<QuestionItem>;
   document: Document;
   readOnly: boolean;
+  onAsk?: (question: QuestionItem) => void;
 }) {
   const fate = useFateClient();
   const [letters, setLetters] = useState<ReadonlyArray<string>>(question.letters);
@@ -370,11 +373,16 @@ export function Question({
         parent !== undefined && styles.followUp,
       )}
     >
-      <Text type="supporting" color="secondary" weight="semibold">
-        {question.id}
-        {parent && question.applies === "yes" && ` · because you picked ${question.parentLetter}`}
-        {parent && unclear && ` · ${parent} names no option`}
-      </Text>
+      <HStack gap={2} align="center" justify="between" wrap="wrap">
+        <Text type="supporting" color="secondary" weight="semibold">
+          {question.id}
+          {parent && question.applies === "yes" && ` · because you picked ${question.parentLetter}`}
+          {parent && unclear && ` · ${parent} names no option`}
+        </Text>
+        {onAsk && (
+          <Button variant="ghost" size="sm" label="Ask the agent" onClick={() => onAsk(question)} />
+        )}
+      </HStack>
       <Heading level={2} id={`${question.id}-title`} tabIndex={-1} xstyle={styles.title}>
         {question.title}
       </Heading>
@@ -430,6 +438,7 @@ export function Question({
           followUps={[]}
           document={document}
           readOnly={readOnly}
+          {...(onAsk ? { onAsk } : {})}
         />
       ))}
     </section>

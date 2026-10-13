@@ -512,3 +512,32 @@ test("without storage, the round opens at the first blank question", async () =>
   await screen.findByText("How does your iPhone reach the server?");
   expect(focused()).toContain("How does your iPhone reach the server?");
 });
+
+/** The composer of the feature's session, once the page is drawn. */
+function composer() {
+  return screen.findByRole("textbox", { name: "Message Claude Code" });
+}
+
+/** US6.2 */
+test("US6.2: a question's Ask the agent quotes its title", async () => {
+  const repo = fixtureRepo();
+  await renderPage(PAGE, repo, { agent: true });
+  await screen.findByText("Which repositories does the UI open now?");
+
+  await tap(within(question("Q3")).getAllByRole("button", { name: "Ask the agent" })[0]);
+
+  expect(window.location.pathname).toBe(`/f/${FOLDER}/session`);
+  const box = await composer();
+  await waitFor(() =>
+    expect(box.textContent).toBe(
+      `About Q3 of ${ROUND}:\n> Which repositories does the UI open now?\n\n`,
+    ),
+  );
+});
+
+test("without the agent, a question offers no Ask the agent", async () => {
+  await renderPage(PAGE, fixtureRepo());
+  await screen.findByText("Which repositories does the UI open now?");
+
+  expect(screen.queryByRole("button", { name: "Ask the agent" })).toBeNull();
+});
