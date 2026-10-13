@@ -20,7 +20,7 @@ import { useWidthClass } from "./layout/useWidthClass.ts";
 import { statusStyles } from "./Question.tsx";
 import { navigate, redirect, useRestoreScroll, useSearch } from "./routes.tsx";
 import { StatusMark } from "./StatusMark.tsx";
-import { Transcript, useFollowEnd, useOpenGroups } from "./Transcript.tsx";
+import { Transcript, useFollowEnd, useOpenAtEnd, useOpenGroups } from "./Transcript.tsx";
 import { SessionView } from "./views.ts";
 
 const styles = stylex.create({
@@ -133,6 +133,7 @@ function Session({
   const [text, setText] = draft;
   const [error, setError] = useState<string>();
   const working = session?.status === "working";
+  useOpenAtEnd(log);
   useFollowEnd(log, working);
   const unread = session?.status === "unread";
   // Shown with its latest turn ended: the human saw the reply.
