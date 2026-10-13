@@ -23,19 +23,18 @@ const eventId = (topic: string) => `${topic}:${Date.now()}:${sent++}`;
  * the features' sessions go too.
  */
 export function publish(changes: Changes, owner?: { sessions: Sessions; repo: string }) {
-  const eventId = `${Date.now()}`;
-  live.update("Workspace", WORKSPACE_ID, { eventId: `workspace:${eventId}` });
+  live.update("Workspace", WORKSPACE_ID, { eventId: eventId("workspace") });
   for (const folder of changes.features) {
-    live.update("Feature", folder, { eventId: `feature:${folder}:${eventId}` });
+    live.update("Feature", folder, { eventId: eventId(`feature:${folder}`) });
   }
   for (const file of changes.files) {
-    live.update("WorkflowFile", file, { eventId: `file:${file}:${eventId}` });
+    live.update("WorkflowFile", file, { eventId: eventId(`file:${file}`) });
   }
   if (changes.priorities) {
-    live.update("Priorities", PRIORITIES_ID, { eventId: `priorities:${eventId}` });
+    live.update("Priorities", PRIORITIES_ID, { eventId: eventId("priorities") });
   }
   if (owner && (changes.features.length > 0 || changes.workspace)) {
-    live.update("SessionList", SESSION_LIST_ID, { eventId: `sessions:${eventId}` });
+    live.update("SessionList", SESSION_LIST_ID, { eventId: eventId("sessions") });
     void publishSessions(owner, changes.features);
   }
 }
