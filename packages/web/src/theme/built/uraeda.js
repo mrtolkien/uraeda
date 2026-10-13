@@ -203,7 +203,7 @@ export const uraedaTheme = {
     "--astryx-theme-neutral-color-destructive-overlay-pressed": "light-dark(#ff7f771A, #ee736c1A)",
     "--text-reading-size": "17px",
     "--text-reading-line": "1.5",
-    "--size-reading-measure": "105ch",
+    "--size-reading-measure": "90ch",
     "--size-page-max": "720px",
     "--size-pane-min": "400px",
     "--size-viewport-height": "100dvh",

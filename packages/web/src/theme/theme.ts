@@ -52,9 +52,8 @@ export const uraedaTheme = defineTheme({
     // Reading text: paragraphs of documents, questions, and stories.
     "--text-reading-size": "17px",
     "--text-reading-line": "1.5",
-    // About 120 characters of text a line: `ch` is the width of a "0", wider than most letters, so
-    // 60ch held about 68 of them.
-    "--size-reading-measure": "105ch",
+    // `ch` is the width of a "0", wider than most letters
+    "--size-reading-measure": "90ch",
     // A page's column on wide screens, which holds the reading measure and the rows beside it.
     "--size-page-max": "720px",
     // The detail pane beside a list on wide screens: at least this wide, and at most the window's
