@@ -19,6 +19,7 @@ import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { statusStyles } from "./Question.tsx";
 import { navigate, redirect, useRestoreScroll, useSearch } from "./routes.tsx";
+import { sessionPath } from "./sessions.ts";
 import { StatusMark } from "./StatusMark.tsx";
 import { Transcript, useFollowEnd, useOpenAtEnd, useOpenGroups } from "./Transcript.tsx";
 import { SessionView } from "./views.ts";
@@ -354,7 +355,7 @@ function FeatureSession({ folder }: { folder: string }) {
     }
   };
   // Sent: the address no longer asks for the message, or the quote.
-  const sent = () => redirect(`/f/${encodeURIComponent(folder)}/session`);
+  const sent = () => redirect(sessionPath(folder));
   const handing: Handing = workflow
     ? { workflow, ...(refused === undefined ? {} : { notice: refused }), onSent: sent }
     : ask !== undefined
