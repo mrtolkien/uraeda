@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import {
   chmodSync,
   existsSync,
@@ -708,6 +709,77 @@ test("kill sends its signal to the process", async () => {
     }
   }
   expect(events.at(-1)).toEqual({ type: "exit", code: 130, stderr: "interrupted" });
+});
+
+/** Whether the process is running. */
+function alive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Resolves once the process is gone, or rejects after 3 seconds. */
+async function gone(pid: number): Promise<void> {
+  for (let tries = 0; tries < 60; tries++) {
+    if (!alive(pid)) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  process.kill(pid, "SIGKILL");
+  throw new Error(`process ${pid} outlived its session's process`);
+}
+
+/** Waits for a stand-in command to write its child's pid. */
+async function childPid(file: string): Promise<number> {
+  for (let tries = 0; tries < 60; tries++) {
+    if (existsSync(file) && readFileSync(file, "utf8").trim() !== "") {
+      return Number(readFileSync(file, "utf8").trim());
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error("the stand-in command did not start");
+}
+
+test("kill signals the process's group: the processes it started end with it", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  const command = script(`sleep 30 &\necho $! > "${join(dir, "pid")}"\nwait`);
+  const agent = new ClaudeAdapter({ command, pluginDir: "/p" }).open({
+    ...open,
+    cwd: dir,
+    resume: false,
+  });
+  const pid = await childPid(join(dir, "pid"));
+
+  agent.kill("SIGTERM");
+  const events = await collect(agent.events);
+
+  expect(events.at(-1)).toMatchObject({ type: "exit" });
+  await gone(pid);
+});
+
+test("a session's process and the processes it started end with the server", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  // It does not read its stdin, so the end of its pipe does not end it.
+  const command = script(`sleep 30 &\necho $! > "${join(dir, "pid")}"\nwait`);
+  const server = [
+    `import { existsSync } from "node:fs";`,
+    `import { ClaudeAdapter } from ${JSON.stringify(join(import.meta.dirname, "../claude.ts"))};`,
+    `new ClaudeAdapter({ command: ${JSON.stringify(command)}, pluginDir: "/p" })`,
+    `  .open({ cwd: ${JSON.stringify(dir)}, nativeId: "id", resume: false });`,
+    `const wait = setInterval(() => {`,
+    `  if (existsSync(${JSON.stringify(join(dir, "pid"))})) { clearInterval(wait); process.exit(0); }`,
+    `}, 20);`,
+  ].join("\n");
+  writeFileSync(join(dir, "server.ts"), server);
+
+  const { status } = spawnSync(process.execPath, [join(dir, "server.ts")], { timeout: 10_000 });
+
+  expect(status).toBe(0);
+  await gone(await childPid(join(dir, "pid")));
 });
 
 test("the plugin folder holds the skill", () => {
