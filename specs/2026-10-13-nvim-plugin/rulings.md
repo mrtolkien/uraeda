@@ -400,3 +400,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `pick` in [`verdict.lua`](/editors/nvim/lua/uraeda/verdict.lua), and its test in
   [`test_verdict.lua`](/editors/nvim/tests/test_verdict.lua).
 - **Where**: final review, `editors/nvim/lua/uraeda/verdict.lua`.
+
+## R22: A verdict is refused when the open text is not the disk's
+
+- **Decision**: `uraeda.approve`, `uraeda.requestChanges`, and `uraeda.submit` refuse a file whose
+  open document's text differs from the file on disk, after the status check, with
+  `spec.md changed since it was opened: reload it and review it again.` for a review, and
+  `clarifications-01.md changed since it was opened: reload it and check its answers again.` for a
+  round, the file's name. A file the server has not open is not checked. The plugin saves the buffer
+  before each (`silent update`), so a buffer edited in Neovim matches the disk; only a file written
+  behind it differs. The final review found a spec revised and committed by another process approved
+  from a buffer still showing the earlier version; the test failed with the approval committed.
+- **Rationale**: the core reads and commits the disk's text, and its check that the disk is the last
+  commit passes once the revision is committed, so only the server knows what the human saw
+  (principle I).
+- **Alternatives considered**: comparing the buffer with the last commit, as comments do: a round's
+  answers are saved, not committed, before they are submitted; recording the text at `didOpen`: a
+  buffer reloaded after a command would still refuse.
+- **If wrong**: `as_opened` in [`commands.rs`](/crates/lsp/src/commands.rs), its three callers, and
+  its tests in [`crates/lsp/tests/commands.rs`](/crates/lsp/tests/commands.rs).
+- **Where**: final review, `crates/lsp/src/commands.rs`.
