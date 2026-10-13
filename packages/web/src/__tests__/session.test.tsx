@@ -1,5 +1,7 @@
 // US1: a feature's session, its transcript and its composer, at both widths. The log following its
 // end and Back's position are in the browser tests.
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
 import { expect, test, vi } from "vite-plus/test";
 import {
@@ -35,7 +37,8 @@ function log() {
 /** Types a message and presses Send. */
 async function send(text: string) {
   await type(await composer(), text);
-  await click(screen.getByRole("button", { name: "Send" }));
+  // During a turn, Send shows beside Stop once the session's state is read: it waits for it.
+  await click(await screen.findByRole("button", { name: "Send" }));
 }
 
 /** Sends a message to a feature's session that the agent reads, and leaves its turn going. */
@@ -162,6 +165,22 @@ test("US4.4: without the agent, the composer is disabled and says why", async ()
   const box = await composer();
   expect(box.getAttribute("aria-disabled")).toBe("true");
   expect(screen.getByText("Claude Code is not available on this machine.")).toBeTruthy();
+});
+
+test("a feature with no branch yet: the composer is disabled and says why", async () => {
+  const repo = fixtureRepo();
+  // A proposal not committed yet: the feature has no branch.
+  const folder = "2026-10-20-draft";
+  mkdirSync(join(repo, "specs", folder));
+  writeFileSync(join(repo, "specs", folder, "proposal.md"), "# Draft\n\n## What\n\nA draft.\n");
+  const fake = await fakeAgent();
+
+  await renderPage(`/f/${folder}/session`, repo, { agent: fake });
+
+  expect(
+    await screen.findByText("This feature has no branch yet: commit its proposal first."),
+  ).toBeTruthy();
+  expect((await composer()).getAttribute("aria-disabled")).toBe("true");
 });
 
 test("a blank message cannot be sent", async () => {
