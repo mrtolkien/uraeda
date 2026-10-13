@@ -264,9 +264,11 @@ fn bug_step(feature: &Feature, pull_request: PullRequest) -> Step {
     after_the_last_step(pull_request, StepName::Fix, "bug")
 }
 
-/// A branch's pull request, through `gh` when it is installed and logged in.
-pub fn pull_request(branch: &str) -> PullRequest {
+/// A branch's pull request in the repository at `repo`, through `gh` when it is installed and
+/// logged in. `gh` runs there, since it finds the repository from its current folder.
+pub fn pull_request(repo: &std::path::Path, branch: &str) -> PullRequest {
     let Ok(output) = std::process::Command::new("gh")
+        .current_dir(repo)
         .args([
             "pr",
             "list",

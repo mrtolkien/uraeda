@@ -47,8 +47,25 @@ export type FateVariables = { fate: Context };
 
 export const Root = Views;
 
-/** Live updates: the core's watcher marks what changed, and fate sends it to the views. */
-export const live = createLiveEventBus();
+const bus = createLiveEventBus();
+
+/**
+ * Live updates: the core's watcher marks what changed, and fate sends it to the views. A view reads
+ * its data, then subscribes: each subscription is sent the current data once, so a change made
+ * between the two is not missed until the next one.
+ */
+export const live: typeof bus = {
+  ...bus,
+  listen(type, id, handler, options) {
+    const stop = bus.listen!(type, id, handler, options);
+    setTimeout(() => {
+      if (!options?.signal?.aborted) {
+        handler({ id, type: "update" });
+      }
+    });
+    return stop;
+  },
+};
 
 /** One fate server for every app: each request brings its app's context, set by `createApp`. */
 export const fateServer = createFateServer({

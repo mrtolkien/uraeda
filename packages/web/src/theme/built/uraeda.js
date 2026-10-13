@@ -606,6 +606,13 @@ export const uraedaTheme = {
                 "minHeight": "var(--size-element-md)"
               }
             },
+            "chat-tool-calls": {
+              "base": {
+                ":is(*) [role=\"button\"]": {
+                  "minHeight": "var(--size-element-md)"
+                }
+              }
+            },
             "switch-field": {
               "base": {
                 "display": "grid",

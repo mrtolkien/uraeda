@@ -41,10 +41,12 @@ fn waiting(text: &str, name: &str) -> Result<(), ActionError> {
     }
 }
 
-/// An answer written: in which file, and how many applicable questions are answered.
+/// An answer written: in which file, its text as written, and how many applicable questions are
+/// answered.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Written {
     pub file: String,
+    pub text: String,
     pub answered: usize,
     pub total: usize,
 }
@@ -70,6 +72,7 @@ pub fn write(
         .collect();
     Ok(Written {
         file,
+        text: edited,
         answered: applicable.iter().filter(|q| !q.answer.is_empty()).count(),
         total: applicable.len(),
     })

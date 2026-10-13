@@ -215,14 +215,24 @@ fn version(name: &str, text: String, dir: &str) -> VersionView {
 /// its pending review.
 pub fn read_file(repo: &Path, folder: &str, name: &str) -> Result<FileView> {
     let (git, workspace) = open(repo)?;
-    file_view(&git, find(&workspace, folder)?, name)
+    file_view(&git, find(&workspace, folder)?, name, None)
 }
 
-fn file_view(git: &Git, feature: &Feature, name: &str) -> Result<FileView> {
-    let text = feature
-        .text(name)
-        .ok_or_else(|| refused(format!("{} has no {name}", feature.folder)))?
-        .to_string();
+/// A file's view, with `written` as its text when a save just wrote it: a change made elsewhere
+/// right after the save is not taken for it, and the next save over it is refused.
+fn file_view(
+    git: &Git,
+    feature: &Feature,
+    name: &str,
+    written: Option<String>,
+) -> Result<FileView> {
+    let text = match written {
+        Some(text) => text,
+        None => feature
+            .text(name)
+            .ok_or_else(|| refused(format!("{} has no {name}", feature.folder)))?
+            .to_string(),
+    };
     let path = format!("{}/{name}", feature.path);
     let tip = feature.branch.as_deref().and_then(|branch| git.tip(branch));
     let committed = tip
@@ -294,7 +304,9 @@ fn reach(repo: &Path, folder: &str) -> Result<(Git, Feature, place::Place)> {
 pub fn next_step(repo: &Path, folder: &str) -> Result<NextView> {
     let (git, workspace) = open(repo)?;
     let mut feature = find(&workspace, folder)?.clone();
-    steps::refresh_pull_request(&mut feature, steps::pull_request);
+    steps::refresh_pull_request(&mut feature, |branch| {
+        steps::pull_request(git.root(), branch)
+    });
     Ok(NextView {
         folder: feature.folder.clone(),
         branch: feature.branch.clone(),
@@ -330,17 +342,18 @@ pub fn save_answer(
     previous: &str,
 ) -> Result<FileView> {
     let _lock = write_lock();
-    let (_, feature, place) = reach(repo, folder)?;
-    answer::save(&place, &feature, question, letters, comment, previous)?;
-    read_file(repo, folder, &round_name(&feature)?)
+    let (git, feature, place) = reach(repo, folder)?;
+    let written = answer::save(&place, &feature, question, letters, comment, previous)?;
+    // A save writes an answer's text only: the round's status, read before it, stays right.
+    file_view(&git, &feature, &round_name(&feature)?, Some(written.text))
 }
 
 /// Saves the notes on the settled points, over the notes last read.
 pub fn save_notes(repo: &Path, folder: &str, notes: &str, previous: &str) -> Result<FileView> {
     let _lock = write_lock();
-    let (_, feature, place) = reach(repo, folder)?;
-    answer::save_notes(&place, &feature, notes, previous)?;
-    read_file(repo, folder, &round_name(&feature)?)
+    let (git, feature, place) = reach(repo, folder)?;
+    let written = answer::save_notes(&place, &feature, notes, previous)?;
+    file_view(&git, &feature, &round_name(&feature)?, Some(written.text))
 }
 
 /// Submits the latest round and commits it.
@@ -662,8 +675,7 @@ pub fn add_priority(
 ) -> Result<Priorities> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    edits::add(&place, section(section_id)?, line, previous)?;
-    Ok(edits::read(&place))
+    Ok(edits::add(&place, section(section_id)?, line, previous)?)
 }
 
 /// Inserts a line with its nested lines, as written, before the line at `index` of a section, or
@@ -677,14 +689,13 @@ pub fn insert_priority(
 ) -> Result<Priorities> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    edits::insert(
+    Ok(edits::insert(
         &place,
         section(section_id)?,
         index as usize,
         lines,
         previous,
-    )?;
-    Ok(edits::read(&place))
+    )?)
 }
 
 /// Moves a line before the line at `index` of a section, or to its end.
@@ -697,24 +708,27 @@ pub fn move_priority(
 ) -> Result<Priorities> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    edits::move_entry(&place, id, section(section_id)?, index as usize, previous)?;
-    Ok(edits::read(&place))
+    Ok(edits::move_entry(
+        &place,
+        id,
+        section(section_id)?,
+        index as usize,
+        previous,
+    )?)
 }
 
 /// Replaces a line's text.
 pub fn edit_priority(repo: &Path, id: &str, line: &str, previous: &str) -> Result<Priorities> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    edits::edit(&place, id, line, previous)?;
-    Ok(edits::read(&place))
+    Ok(edits::edit(&place, id, line, previous)?)
 }
 
 /// Removes a line and its nested lines.
 pub fn remove_priority(repo: &Path, id: &str, previous: &str) -> Result<Priorities> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    edits::remove(&place, id, previous)?;
-    Ok(edits::read(&place))
+    Ok(edits::remove(&place, id, previous)?)
 }
 
 /// Commits the priorities alone.
