@@ -355,6 +355,25 @@ test("Allow and retry is disabled while a turn works, since it reopens the proce
   expect(allow.hasAttribute("disabled")).toBe(true);
 });
 
+test("a blocked action no allow rule can match alone offers no Allow and retry, and says why", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await seedRun(fake, repo, CLI, [
+    {
+      type: "result",
+      ok: true,
+      errors: [],
+      denials: [{ tool: "Bash", input: { command: "rm build/*" } }],
+      interrupted: false,
+    },
+  ]);
+  await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
+
+  expect(await (await log()).findByText("Blocked by auto mode: Bash rm build/*")).toBeTruthy();
+  expect((await log()).getByText("No allow rule can match only this action.")).toBeTruthy();
+  expect((await log()).queryByRole("button", { name: "Allow and retry" })).toBeNull();
+});
+
 test("a tool call shows its target, then its duration", async () => {
   // The session's page alone, with its own transcript.
   atWidth(402);
