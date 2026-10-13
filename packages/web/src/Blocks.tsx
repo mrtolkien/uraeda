@@ -46,7 +46,7 @@ const CALLOUT_TITLES: Record<string, string> = {
 };
 
 const styles = stylex.create({
-  // Reading text: its own size, about 70 characters at most, left-aligned, its lines balanced.
+  // Reading text: its own size, about 120 characters at most, left-aligned, its lines balanced.
   doc: {
     maxWidth: "var(--size-reading-measure)",
     fontSize: "var(--text-reading-size)",
@@ -70,8 +70,14 @@ const styles = stylex.create({
     lineHeight: "var(--text-reading-line)",
     whiteSpace: "normal",
   },
+  // A list's margin, but last in its item or callout, which end with it.
   list: {
-    marginBlockEnd: spacingVars["--spacing-3"],
+    marginBlockEnd: { default: spacingVars["--spacing-3"], ":last-child": 0 },
+  },
+  // A list's row, as tall as its text: a touch screen's 44 px rows (`theme.ts`) are for controls,
+  // and would push a one-line item's text below its marker.
+  row: {
+    minHeight: 0,
   },
   sign: {
     fontWeight: fontWeightVars["--font-weight-bold"],
@@ -326,6 +332,7 @@ function ListNode({ block, context }: { block: Block; context: Context }) {
         return (
           <ListItem
             key={item.id}
+            xstyle={styles.row}
             startContent={
               sign && (
                 <span aria-hidden="true" {...stylex.props(styles.sign, SIGN_STYLES[marker])}>

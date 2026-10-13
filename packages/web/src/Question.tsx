@@ -10,10 +10,9 @@ import {
   radiusVars,
   spacingVars,
   typeScaleVars,
-  typographyVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { Choice, Document, QuestionItem } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
@@ -150,15 +149,8 @@ const styles = stylex.create({
   spaced: {
     marginBlockStart: spacingVars["--spacing-3"],
   },
-  answer: {
+  actions: {
     marginBlockStart: spacingVars["--spacing-2"],
-  },
-  answerValue: {
-    flexGrow: 1,
-    minWidth: 0,
-    fontFamily: typographyVars["--font-family-code"],
-    fontSize: typeScaleVars["--text-code-size"],
-    whiteSpace: "pre-wrap",
   },
 });
 
@@ -201,7 +193,7 @@ function Status({ state }: { state: SaveState }) {
   }
 }
 
-/** A text area as tall as its text. */
+/** A text area as tall as its text, about 50 characters a row, two rows at least. */
 export function GrowingTextArea({
   label,
   value,
@@ -215,7 +207,10 @@ export function GrowingTextArea({
   placeholder?: string;
   isReadOnly?: boolean;
 }) {
-  const rows = Math.max(2, value.split("\n").length + Math.floor(value.length / 40) + 1);
+  const rows = Math.max(
+    2,
+    value.split("\n").reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / 50)), 0),
+  );
   return (
     <TextArea
       label={label}
@@ -276,7 +271,8 @@ function Option({
 
 /**
  * A question in full: its context, every option with its text, pros, cons, and why, and a comment.
- * A tap on an option toggles its letter; the answer is saved as the human types.
+ * A tap on an option toggles its letter and saves the answer, with the comment as typed; the comment
+ * alone saves with its button, or with Submit.
  */
 export function Question({
   folder,
@@ -294,6 +290,8 @@ export function Question({
   const fate = useFateClient();
   const [letters, setLetters] = useState<ReadonlyArray<string>>(question.letters);
   const [comment, setComment] = useState(question.comment);
+  // The comment as last saved or read: a comment typed since is a draft, which its button saves.
+  const [savedComment, setSavedComment] = useState(question.comment);
   const save = useSave<{ letters: ReadonlyArray<string>; comment: string }>(
     async (value, previous) => {
       const result = await fate.mutations.answer.save({
@@ -312,43 +310,54 @@ export function Question({
       const saved = result.result?.current.items.clarifications?.questions.find(
         (q) => q.id === question.id,
       );
+      setSavedComment(value.comment);
       return { ok: true, saved: saved?.answer ?? composed(value.letters, value.comment) };
     },
     question.answer,
   );
-  const { settle, idle, flush } = save;
-  const local = useRef({ letters, comment });
-  local.current = { letters, comment };
-  // An answer changed elsewhere replaces this one when nothing of it waits to be saved.
+  const { settle, idle, flush, schedule } = save;
+  const dirty = comment !== savedComment;
+  const local = useRef({ letters, comment, dirty });
+  local.current = { letters, comment, dirty };
+  // An answer changed elsewhere replaces this one when nothing of it waits to be saved, and no
+  // comment is being written.
   useEffect(() => {
     const shown = composed(local.current.letters, local.current.comment);
-    if (idle() && question.answer.trim() !== shown) {
+    if (idle() && !local.current.dirty && question.answer.trim() !== shown) {
       setLetters(question.letters);
       setComment(question.comment);
+      setSavedComment(question.comment);
     }
     settle(question.answer);
   }, [question.answer, question.letters, question.comment, idle, settle]);
+  /** Saves the answer at once, with the comment as typed. */
+  const commit = useCallback(
+    (value: { letters: ReadonlyArray<string>; comment: string }) => schedule(value, true),
+    [schedule],
+  );
+  // Submit saves a comment still being written first.
   const pending = useContext(PendingSaves);
   useEffect(() => {
-    pending.add(flush);
-    return () => {
-      pending.delete(flush);
+    const before = () => {
+      if (local.current.dirty) {
+        commit({ letters: local.current.letters, comment: local.current.comment });
+      }
+      return flush();
     };
-  }, [pending, flush]);
+    pending.add(before);
+    return () => {
+      pending.delete(before);
+    };
+  }, [pending, flush, commit]);
 
   const toggle = (letter: string) => {
     const next = letters.includes(letter)
       ? letters.filter((l) => l !== letter)
       : [...letters, letter].sort();
     setLetters(next);
-    save.schedule({ letters: next, comment }, true);
-  };
-  const type = (text: string) => {
-    setComment(text);
-    save.schedule({ letters, comment: text });
+    commit({ letters: next, comment });
   };
   const unclear = question.applies === "unclear";
-  const answer = composed(letters, comment);
   const parent = question.parent;
   const wide = useWidthClass() === "wide";
 
@@ -393,7 +402,7 @@ export function Question({
             onClick={() => {
               setLetters([]);
               setComment("-");
-              save.schedule({ letters: [], comment: "-" }, true);
+              commit({ letters: [], comment: "-" });
             }}
           />
         </HStack>
@@ -402,16 +411,17 @@ export function Question({
         comment && <Paragraph xstyle={styles.spaced}>{comment}</Paragraph>
       ) : (
         <div {...stylex.props(styles.spaced)}>
-          <GrowingTextArea label="Comment" value={comment} onChange={type} />
+          <GrowingTextArea label="Comment" value={comment} onChange={setComment} />
+          <HStack gap={2} align="center" wrap="wrap" xstyle={styles.actions}>
+            <Button
+              label="Save comment"
+              isDisabled={!dirty}
+              onClick={() => commit({ letters, comment })}
+            />
+            {(!dirty || save.state.kind === "error") && <Status state={save.state} />}
+          </HStack>
         </div>
       )}
-      <HStack gap={2} align="start" xstyle={styles.answer}>
-        <Text type="supporting" color="secondary">
-          Answer:
-        </Text>
-        <span {...stylex.props(styles.answerValue)}>{answer}</span>
-        {!readOnly && <Status state={save.state} />}
-      </HStack>
       {followUps.map((followUp) => (
         <Question
           key={followUp.id}

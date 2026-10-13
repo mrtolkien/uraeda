@@ -52,9 +52,9 @@ export const uraedaTheme = defineTheme({
     // Reading text: paragraphs of documents, questions, and stories.
     "--text-reading-size": "17px",
     "--text-reading-line": "1.5",
-    // About 70 characters of text a line: `ch` is the width of a "0", wider than most letters, so
-    // 70ch held up to 78 of them.
-    "--size-reading-measure": "60ch",
+    // About 120 characters of text a line: `ch` is the width of a "0", wider than most letters, so
+    // 60ch held about 68 of them.
+    "--size-reading-measure": "105ch",
     // A page's column on wide screens, which holds the reading measure and the rows beside it.
     "--size-page-max": "720px",
     // The detail pane beside a list on wide screens: at least this wide, and at most the window's
@@ -91,7 +91,7 @@ export const uraedaTheme = defineTheme({
         value: {
           typography: { scale: { base: BASE * WIDE } },
           tokens: grown,
-          localTokens: { "--text-reading-size": "19px", "--size-page-max": "864px" },
+          localTokens: { "--text-reading-size": "19px", "--size-page-max": "1200px" },
         },
       },
       // Last, so a wide touch screen keeps 44 px controls.
