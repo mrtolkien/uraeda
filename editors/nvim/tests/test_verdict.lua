@@ -223,6 +223,30 @@ T["approving a spec with a new tier"] = function() -- US6.1
   )
 end
 
+T["a failing hook reloads what the verdict wrote"] = function()
+  local repo, worktree = with_feature({ ["spec.md"] = waiting_spec() })
+  helpers.set_hook(repo, "echo 'lint: spec too long' >&2\nexit 1")
+  local spec = worktree .. "/" .. feature .. "spec.md"
+  open(spec)
+
+  child.lua([[require("uraeda.client").command(0, "uraeda.approve", { riskTier = "medium" },
+    { save = true })]])
+
+  local found = errors()
+  eq(#found, 1)
+  eq(found[1][1]:find("lint: spec too long", 1, true) ~= nil, true)
+  eq(last_subject(repo), "chore: " .. branch)
+  -- The spec stays written, uncommitted, and the buffer shows it.
+  eq(read(spec):find("status: approved\n", 1, true) ~= nil, true)
+  eq(child.lua_get("vim.bo.modified"), false)
+  eq(
+    child
+      .lua_get("vim.iter(vim.api.nvim_buf_get_lines(0, 0, 6, false)):join('\\n')")
+      :find("status: approved", 1, true) ~= nil,
+    true
+  )
+end
+
 T["changes without comments refuse"] = function() -- US6.2
   local repo, worktree = with_feature({ ["spec.md"] = waiting_spec() })
   open(worktree .. "/" .. feature .. "spec.md")

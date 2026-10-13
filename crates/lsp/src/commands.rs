@@ -164,6 +164,39 @@ fn core<T>(result: Result<T, ApiError>) -> Result<T, ResponseError> {
     result.map_err(api_error)
 }
 
+/// The texts of the files a command may write, read before it runs, to tell which it wrote when
+/// it fails after writing, as when a hook refuses its commit.
+struct Before(Vec<(String, Option<String>)>);
+
+impl Before {
+    fn read(paths: Vec<String>) -> Before {
+        Before(
+            paths
+                .into_iter()
+                .map(|path| {
+                    let text = std::fs::read_to_string(&path).ok();
+                    (path, text)
+                })
+                .collect(),
+        )
+    }
+
+    /// The core's error, with `written` in its data: the files whose text changed, when any did.
+    fn failed(self, error: ApiError) -> ResponseError {
+        let mut error = api_error(error);
+        let written: Vec<String> = self
+            .0
+            .into_iter()
+            .filter(|(path, text)| std::fs::read_to_string(path).ok() != *text)
+            .map(|(path, _)| path)
+            .collect();
+        if let (false, Some(Value::Object(data))) = (written.is_empty(), error.data.as_mut()) {
+            data.insert("written".to_string(), written.into());
+        }
+        error
+    }
+}
+
 fn absolute(path: PathBuf) -> String {
     path.to_string_lossy().into_owned()
 }
@@ -268,9 +301,14 @@ fn start(documents: &Documents, args: FileArgs) -> Result<Done, ResponseError> {
         Some((folder, _)) => format!("{}{folder}", &path[..path.len() - rest.len()]),
         None => path.clone(),
     };
-    let started = core(api::start_feature(root, &draft, None))?;
-    let worktree = PathBuf::from(core(api::work_dir(root, &started.folder))?);
     let default = core(api::default_root(root))?;
+    let written = vec![
+        absolute(default.join(priorities_path())),
+        absolute(default.join(&path)),
+    ];
+    let before = Before::read(written.clone());
+    let started = api::start_feature(root, &draft, None).map_err(|error| before.failed(error))?;
+    let worktree = PathBuf::from(core(api::work_dir(root, &started.folder))?);
     let proposal = worktree
         .join("specs")
         .join(&started.folder)
@@ -278,10 +316,7 @@ fn start(documents: &Documents, args: FileArgs) -> Result<Done, ResponseError> {
     Ok(Done {
         outcome: Outcome {
             opened: Some(absolute(proposal)),
-            written: vec![
-                absolute(default.join(priorities_path())),
-                absolute(default.join(&path)),
-            ],
+            written,
         },
         message: Some(format!("Started {}", started.folder)),
     })
@@ -352,6 +387,23 @@ fn in_checkout(
         .iter()
         .map(|name| absolute(checkout.join(&dir).join(name)))
         .collect())
+}
+
+/// The absolute paths of the files `names` next to `file`, in the checkout that has its feature's
+/// branch, where the core writes them; read before a command runs.
+fn next_to(
+    documents: &Documents,
+    folder: &str,
+    file: &WorkflowFile,
+    names: &[String],
+) -> Result<Before, ResponseError> {
+    let checkout = PathBuf::from(core(api::work_dir(&documents.root, folder))?);
+    Ok(Before::read(
+        names
+            .iter()
+            .map(|name| absolute(checkout.join(&file.dir).join(name)))
+            .collect(),
+    ))
 }
 
 /// `uraeda/canComment`.
@@ -426,15 +478,17 @@ fn approve(documents: &Documents, args: ApproveArgs) -> Result<Outcome, Response
     let (folder, file) = feature_file(documents, &args.uri)?;
     waiting(&text(documents, &file)?, &file.name)?;
     as_opened(documents, &file, REVIEW_AGAIN)?;
-    let view = core(api::approve(
+    let names = [file.name.clone(), review_name(&file.name)];
+    let before = next_to(documents, &folder, &file, &names)?;
+    let view = api::approve(
         &documents.root,
         &folder,
         &file.name,
         args.summary.as_deref(),
         args.risk_tier,
         args.plan_review,
-    ))?;
-    let names = [file.name.clone(), review_name(&file.name)];
+    )
+    .map_err(|error| before.failed(error))?;
     Ok(Outcome {
         opened: None,
         written: in_checkout(documents, &folder, &view, &names)?,
@@ -453,13 +507,15 @@ fn request_changes(
     if file.pending_comments(documents).is_empty() {
         return Err(refused("Requesting changes needs at least one comment."));
     }
-    let view = core(api::request_changes(
+    let names = [file.name.clone(), review_name(&file.name)];
+    let before = next_to(documents, &folder, &file, &names)?;
+    let view = api::request_changes(
         &documents.root,
         &folder,
         &file.name,
         args.summary.as_deref(),
-    ))?;
-    let names = [file.name.clone(), review_name(&file.name)];
+    )
+    .map_err(|error| before.failed(error))?;
     Ok(Outcome {
         opened: None,
         written: in_checkout(documents, &folder, &view, &names)?,
@@ -487,7 +543,9 @@ fn submit(documents: &Documents, args: FileArgs) -> Result<Outcome, ResponseErro
             file.name
         )));
     }
-    let view = core(api::submit_answers(&documents.root, &folder))?;
+    let before = next_to(documents, &folder, &file, std::slice::from_ref(&file.name))?;
+    let view =
+        api::submit_answers(&documents.root, &folder).map_err(|error| before.failed(error))?;
     Ok(Outcome {
         opened: None,
         written: in_checkout(documents, &folder, &view, std::slice::from_ref(&view.name))?,
