@@ -1,9 +1,9 @@
-import { mkdtempSync, realpathSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fireEvent, screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { git, read, refreshUntil, renderPage } from "./helpers.tsx";
+import { temporaryFolder } from "uraeda-binding/test-utils";
 
 /** The page's own content, without the navigation. */
 async function main() {
@@ -63,7 +63,7 @@ test("lists Now and Next lines not started, each opening its task view", async (
 });
 
 test("says how to set Uraeda up in a repository without specs/", async () => {
-  const repo = realpathSync(mkdtempSync(join(tmpdir(), "uraeda-bare-")));
+  const repo = temporaryFolder("uraeda-bare");
   git(repo, "init", "--quiet", "--initial-branch", "main");
   writeFileSync(join(repo, "README.md"), "# Bare\n");
 

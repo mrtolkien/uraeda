@@ -1,11 +1,11 @@
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import { dataDir, migrations, SessionCache } from "../cache.ts";
+import { temporaryFolder } from "uraeda-binding/test-utils";
 
 const REPO = "/repo/a";
 const FOLDER = "2026-10-12-cli-tuis";
@@ -31,7 +31,7 @@ const workflowTurn = {
 /** A pid no process has: above Linux's and macOS's highest. */
 const DEAD_PID = 2 ** 31 - 1;
 
-const tempPath = () => join(mkdtempSync(join(tmpdir(), "uraeda-cache-")), "runner.sqlite");
+const tempPath = () => join(temporaryFolder("uraeda-cache"), "runner.sqlite");
 
 test.each([
   [{ URAEDA_DATA_DIR: "/data" }, "linux", "/data"],
@@ -389,7 +389,7 @@ test("interrupted stops the queued turns of gone servers too, which would read a
 });
 
 test("reopening the file keeps the sessions", () => {
-  const path = join(mkdtempSync(join(tmpdir(), "uraeda-cache-")), "new", "runner.sqlite");
+  const path = join(temporaryFolder("uraeda-cache"), "new", "runner.sqlite");
   const id = SessionCache.open(path).createSession(feature).id;
 
   expect(SessionCache.open(path).session(id)).toMatchObject({ folder: FOLDER });
