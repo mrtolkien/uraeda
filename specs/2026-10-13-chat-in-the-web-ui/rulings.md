@@ -243,3 +243,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   asked for during a turn that then failed; leaving them to the agent, which runs them unrecorded.
 - **If wrong**: a message sent just before a turn fails is lost, and has to be typed again.
 - **Where**: the final review's fixes, `sessions.ts` (`#result`).
+
+## R18: A refused hand-over keeps "Start the agent", disabled
+
+- **Decision**: while the session's address asks for the workflow's message and the feature refuses
+  it, as when it waits on you, the composer keeps "Start the agent", disabled, with the refusal
+  under it. It offers no chat's Send until the address no longer asks for the message, as when the
+  session is opened from the feature page or the sidebar.
+- **Rationale**: the composer may hold the workflow's message, read before the refusal came: a plain
+  Send would send it as a chat, with the opening line, and the agent might act on it.
+- **Alternatives considered**: Send back once refused, as before, which sends the workflow's message
+  as a chat; clearing the composer, which drops what the human typed.
+- **If wrong**: a human who wants to ask about the refusal opens the session again without the
+  hand-over, one more tap.
+- **Where**: the final review's fixes, `Composer.tsx`, `SessionPage.tsx`.
