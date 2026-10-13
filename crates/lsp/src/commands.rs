@@ -13,6 +13,7 @@ use uraeda_core::actions::review::review_name;
 use uraeda_core::api::{self, ApiError};
 use uraeda_core::files::document::hash;
 use uraeda_core::files::{frontmatter, priorities};
+use uraeda_core::git::Git;
 use uraeda_core::view::FileView;
 use uraeda_core::workspace::FileKind;
 
@@ -179,9 +180,12 @@ fn relative(documents: &Documents, uri: &Uri) -> Option<String> {
 /// text, or opens the draft it already links.
 fn draft(documents: &Documents, args: DraftArgs) -> Result<Outcome, ResponseError> {
     let root = &documents.root;
-    let text = (relative(documents, &args.uri).as_deref() == Some(priorities_path()))
-        .then(|| documents.read(&root.join(priorities_path())))
-        .flatten()
+    if relative(documents, &args.uri).as_deref() != Some(priorities_path()) {
+        return Err(refused(NOT_AN_ENTRY));
+    }
+    on_default_branch(documents, "PRIORITIES.md")?;
+    let text = documents
+        .read(&root.join(priorities_path()))
         .ok_or_else(|| refused(NOT_AN_ENTRY))?;
     let entry = priorities::read(&text, None)
         .sections
@@ -216,6 +220,38 @@ fn priorities_path() -> &'static str {
     "specs/PRIORITIES.md"
 }
 
+/// Refuses a draft, a backlog file, or the priorities, `name`, open from a checkout that does not
+/// have the default branch, where they are written: the file is another branch's copy. Names the
+/// default branch's checkout when one has it, without creating one.
+fn on_default_branch(documents: &Documents, name: &str) -> Result<(), ResponseError> {
+    let git = Git::discover(&documents.root).map_err(|error| refused(error.to_string()))?;
+    // Without a default branch, the core refuses on its own.
+    let Some(default) = git.default_branch() else {
+        return Ok(());
+    };
+    if git.current_branch().as_deref() == Some(default.as_str()) {
+        return Ok(());
+    }
+    let checkout = git.worktrees().ok().and_then(|worktrees| {
+        worktrees
+            .into_iter()
+            .find(|worktree| worktree.branch.as_deref() == Some(default.as_str()))
+            .map(|worktree| worktree.path)
+    });
+    Err(refused(match checkout {
+        Some(checkout) => format!(
+            "{name} here is not {default}'s: open it from {default}'s checkout, {}.",
+            checkout.display()
+        ),
+        None => format!("{name} here is not {default}'s: open it from a checkout of {default}."),
+    }))
+}
+
+/// The file name of `path`, from the root.
+fn file_name(path: &str) -> &str {
+    path.rsplit('/').next().unwrap_or(path)
+}
+
 /// `uraeda.start { uri }`: starts a draft or a backlog file as a feature, in its own worktree.
 fn start(documents: &Documents, args: FileArgs) -> Result<Done, ResponseError> {
     const ONLY_DRAFTS: &str = "Only a draft or a backlog file can be started.";
@@ -225,6 +261,7 @@ fn start(documents: &Documents, args: FileArgs) -> Result<Done, ResponseError> {
         .strip_prefix("specs/drafts/")
         .or_else(|| path.strip_prefix("specs/backlog/"))
         .ok_or_else(|| refused(ONLY_DRAFTS))?;
+    on_default_branch(documents, file_name(&path))?;
     // A file of a postponed feature's folder starts the folder.
     let draft = match rest.split_once('/') {
         Some((folder, _)) => format!("{}{folder}", &path[..path.len() - rest.len()]),
@@ -457,10 +494,13 @@ fn commit(documents: &Documents, args: FileArgs) -> Result<Outcome, ResponseErro
     let root = &documents.root;
     let path = relative(documents, &args.uri).ok_or_else(|| refused(ONLY))?;
     if path == priorities_path() {
+        on_default_branch(documents, file_name(&path))?;
         core(api::commit_priorities(root))?;
-    } else if path.starts_with("specs/drafts/")
-        || path.starts_with("specs/backlog/")
-        || workflow_file(documents, &args.uri).is_some_and(|file| file.kind == FileKind::Proposal)
+    } else if path.starts_with("specs/drafts/") || path.starts_with("specs/backlog/") {
+        on_default_branch(documents, file_name(&path))?;
+        core(api::commit_text(root, &path))?;
+    } else if workflow_file(documents, &args.uri)
+        .is_some_and(|file| file.kind == FileKind::Proposal)
     {
         core(api::commit_text(root, &path))?;
     } else {

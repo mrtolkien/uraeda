@@ -345,3 +345,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `submit` and `latest_round` in [`commands.rs`](/crates/lsp/src/commands.rs), and
   their test in [`crates/lsp/tests/commands.rs`](/crates/lsp/tests/commands.rs).
 - **Where**: final review, `crates/lsp/src/commands.rs`.
+
+## R19: Drafts and the priorities act only from the default branch's checkout
+
+- **Decision**: `uraeda.draft` on `PRIORITIES.md`, `uraeda.start` on a draft or a backlog file, and
+  `uraeda.commit` on any of them refuse when the server's checkout is not on the default branch,
+  with `PRIORITIES.md here is not main's: open it from main's checkout, /path/to/repo.`, the file's
+  name and the default branch's, and the path of the checkout that has it; when none has it, the end
+  reads `open it from a checkout of main.` The check reads the current and default branches and the
+  worktrees through the core's `Git`, rather than comparing with `api::default_root`, which creates
+  a worktree for the default branch when none has it. The final review found a worktree's edited
+  priorities committed as main's, or `has no change to commit`; the test failed with
+  `PRIORITIES.md changed on disk. Nothing was drafted.`
+- **Rationale**: these files are written on the default branch, so a feature worktree's copy is not
+  the text the core edits: a draft's line, or a commit, would act on another file than the one in
+  the buffer. A refusal must not leave a worktree behind.
+- **Alternatives considered**: `api::default_root` compared with the root: a refusal that creates a
+  worktree; acting on the default branch's copy as before: the human's edit in the buffer is
+  ignored, or another change is committed.
+- **If wrong**: `on_default_branch` in [`commands.rs`](/crates/lsp/src/commands.rs), its three
+  callers, and its test in [`crates/lsp/tests/commands.rs`](/crates/lsp/tests/commands.rs).
+- **Where**: final review, `crates/lsp/src/commands.rs`.
