@@ -19,6 +19,31 @@ local function notify_error(message)
   vim.notify(message, vim.log.levels.ERROR, { title = title })
 end
 
+--- Whether a `uraeda` server exited with an error before its initialization: an `ura` without
+--- `ura lsp`, older than the plugin. Set once per session.
+local too_old = false
+
+--- Says why a buffer has no client: `older` once a server failed to start, else `not_workflow`.
+local function no_client()
+  notify_error(too_old and older or not_workflow)
+end
+
+--- The `on_exit` of every `uraeda` client: a server exiting with an error before its
+--- initialization is an older `ura`, which fails with `unrecognized subcommand 'lsp'`; it is said
+--- once per session, and actions say it instead of `not_workflow`.
+--- @param code integer
+--- @param client_id integer
+function M.exited(code, client_id)
+  local client = vim.lsp.get_client_by_id(client_id)
+  if code == 0 or too_old or (client and client.initialized) then
+    return
+  end
+  too_old = true
+  vim.schedule(function()
+    notify_error(older)
+  end)
+end
+
 --- Shows a server's error: the core's message with a hook's output, or `older` for a method or a
 --- command the server does not know.
 local function failed(err)
@@ -53,7 +78,7 @@ function M.request(bufnr, method, params, cb)
   bufnr = resolve(bufnr)
   local client = M.get(bufnr)
   if client == nil then
-    return notify_error(not_workflow)
+    return no_client()
   end
   params = params or { uri = vim.uri_from_bufnr(bufnr) }
   client:request(method, params, function(err, result)
@@ -81,7 +106,7 @@ end
 
 --- Calls `cb(client)` with a running `uraeda` client, else with one started on the current
 --- checkout, attached to no buffer, once it is initialized. Notifies `not_workflow` outside a
---- checkout.
+--- checkout, and `older` when the server fails to start.
 local function any_client(cb)
   local running = vim.lsp.get_clients({ name = "uraeda" })[1]
   if running then
@@ -119,7 +144,7 @@ local function any_client(cb)
       elseif client == nil or client:is_stopped() or waited > 10000 then
         done = true
         timer:close()
-        notify_error("ura lsp did not start.")
+        notify_error(too_old and older or "ura lsp did not start.")
       end
     end)
   )
@@ -199,7 +224,7 @@ function M.command(bufnr, name, args, opts, cb)
   opts = opts or {}
   local client = M.get(bufnr)
   if client == nil then
-    return notify_error(not_workflow)
+    return no_client()
   end
   if opts.save then
     vim.api.nvim_buf_call(bufnr, function()
@@ -235,7 +260,7 @@ function M.command(bufnr, name, args, opts, cb)
   end, bufnr)
   if not sent then
     stop()
-    notify_error(not_workflow)
+    no_client()
   end
 end
 
