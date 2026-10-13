@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import {
+  mainRoot,
   nextStep,
   readFile,
   readWorkspace,
@@ -95,4 +96,11 @@ test("nextStep and workDir give where and what an agent runs", async () => {
   expect(await workDir(repo, "2026-10-12-cli-tuis")).toBe(
     join(repo, ".worktrees", "2026-10-12-cli-tuis"),
   );
+});
+
+test("mainRoot gives the main checkout from a worktree", async () => {
+  const repo = fixtureRepo();
+  const worktree = await workDir(repo, "2026-10-12-cli-tuis");
+
+  expect(await mainRoot(worktree)).toBe(repo);
 });
