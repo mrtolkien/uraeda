@@ -20,6 +20,10 @@ commits go through the same hooks, signing, and configuration as the user's own.
 - Tools MUST NOT switch the user's checkout to another branch, unless the human asks for it with a
   flag. To write on a branch, they MUST use the checkout or worktree that has it, or else create a
   worktree for it at `.worktrees/<branch>/`, at the root of the main checkout.
+- Drafts, backlog files, and `PRIORITIES.md` MUST be written on the default branch, from every tool
+  and from any checkout. A tool opened in another branch's checkout MAY act on its copy of one of
+  them only while that copy holds the default branch's text, and MUST otherwise refuse, naming the
+  default branch's checkout.
 - `ura start` MUST create the new feature's branch in a worktree at `.worktrees/<folder>/` by
   default.
 - Tools MUST remove a worktree or delete a local branch only when a human asks for it, for a feature
@@ -60,6 +64,12 @@ switch the running server's own code in this repository. `ura start` creates a w
 human asked
 ([Q3](../done/2026-10-11-web-ui.md#q3-where-does-the-ui-write-when-a-features-branch-is-not-checked-out),
 [writing to feature branches](../done/2026-10-11-web-ui.md#q3-where-does-the-ui-write-when-a-features-branch-is-not-checked-out)).
+
+Drafts and the priorities live on the default branch, whichever tool writes them: the web UI and
+`ura` already wrote them in the default branch's checkout from anywhere, and the human chose the
+same for the Neovim plugin over refusing outside that checkout, after the plugin's final review
+([R19](../done/2026-10-13-nvim-plugin.md)). Comparing texts keeps a branch's stale or edited copy
+from standing for the default branch's.
 
 Tools remove a merged feature's worktree and local branch only when the human asks: worktrees are
 full checkouts that pile up once their features are merged, and the human asked for `ura clean`, run
