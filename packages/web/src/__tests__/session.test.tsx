@@ -1,7 +1,7 @@
 // US1: a feature's session, its transcript and its composer, at both widths. The log following its
 // end and Back's position are in the browser tests.
 import { screen, waitFor, within } from "@testing-library/react";
-import { beforeAll, expect, test } from "vite-plus/test";
+import { expect, test } from "vite-plus/test";
 import {
   atWidth,
   click,
@@ -10,15 +10,14 @@ import {
   fixtureRepo,
   refreshUntil,
   renderPage,
+  today,
   type,
 } from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
 const WEB_UI = "2026-10-11-web-ui";
 
-beforeAll(() => {
-  process.env.URA_TODAY = "2026-10-12";
-});
+today("2026-10-12");
 
 const OPENING =
   "A human is chatting with you about the feature specs/2026-10-11-web-ui/, on branch 2026-10-11-web-ui: answer, and change files, commit, or move the workflow only when they ask.";

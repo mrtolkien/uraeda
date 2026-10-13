@@ -5,7 +5,7 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
-import { agent, checkLayout, LIVE, settle, show, startTurn } from "./helpers.tsx";
+import { agent, checkLayout, drawn, LIVE, show, startTurn } from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
 
@@ -41,7 +41,7 @@ async function openWorkingSession() {
   await startTurn("Plan the CLI.", lines(40, "Line"));
   const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
   await within(log).findByText("Line 40.", undefined, LIVE);
-  await settle();
+  await drawn();
   return log;
 }
 
@@ -56,7 +56,7 @@ test("a working session: beside the feature page or a page, following its end (U
   // At the end, a new line comes into view.
   const box = scroller();
   box.scrollTo(0, box.scrollHeight);
-  await settle();
+  await drawn();
   await agent.agentEmit([{ type: "text", text: "The newest line." }]);
   const newest = await within(log).findByText("The newest line.", undefined, LIVE);
   await expect.poll(() => inView(newest), LIVE).toBe(true);
@@ -64,12 +64,12 @@ test("a working session: beside the feature page or a page, following its end (U
   // Scrolled up, the view stays where it is, even as the turn grows past a page of 100 items.
   const middle = Math.round((box.scrollHeight - box.clientHeight) / 2);
   box.scrollTo(0, middle);
-  await settle();
+  await drawn();
   const position = box.scrollTop;
   expect(position).toBeGreaterThan(0);
   await agent.agentEmit(lines(70, "Later line"));
   await within(log).findByText("Later line 70.", undefined, LIVE);
-  await settle();
+  await drawn();
   expect(log.isConnected).toBe(true);
   expect(box.scrollTop).toBe(position);
 
@@ -127,7 +127,7 @@ test("a working session, with a sub-agent and a steered message, in dark (SC-004
   );
   await userEvent.click(screen.getByRole("button", { name: "Send" }));
   await within(log).findByText("Not read yet", undefined, LIVE);
-  await settle();
+  await drawn();
   expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
   await checkLayout();
 });
@@ -139,11 +139,11 @@ test("a working session, with a sub-agent and a steered message, in dark (SC-004
 async function followAndComeBack(link: HTMLElement, path: string) {
   await userEvent.click(link);
   await expect.poll(() => window.location.pathname).toBe(path);
-  await settle();
+  await drawn();
   await act(async () => window.history.back());
   await expect.poll(() => window.location.pathname).toBe(`/f/${CLI}/session`);
   await screen.findByRole("log", { name: "Conversation" }, LIVE);
-  await settle();
+  await drawn();
 }
 
 test("Back from a session view returns to its position, following the end only from the end", async () => {
@@ -155,7 +155,7 @@ test("Back from a session view returns to its position, following the end only f
   ]);
   const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
   await within(log).findByText("Next line 20.", undefined, LIVE);
-  await settle();
+  await drawn();
 
   // Scrolled up to a link in the reply: Back returns there, and nothing moves as the turn grows.
   let box = scroller();
@@ -165,7 +165,7 @@ test("Back from a session view returns to its position, following the end only f
     0,
     Math.round(box.scrollTop + proposal.getBoundingClientRect().top - top - box.clientHeight / 2),
   );
-  await settle();
+  await drawn();
   const position = Math.round(box.scrollTop);
   expect(position).toBeGreaterThan(0);
   await followAndComeBack(proposal, `/f/${CLI}/proposal.md`);
@@ -173,14 +173,14 @@ test("Back from a session view returns to its position, following the end only f
   await expect.poll(() => Math.round(box.scrollTop), LIVE).toBe(position);
   await agent.agentEmit([{ type: "text", text: "A line while scrolled up." }]);
   await screen.findByText("A line while scrolled up.", undefined, LIVE);
-  await settle();
+  await drawn();
   expect(Math.round(box.scrollTop)).toBe(position);
 
   // At the end: Back returns to the end, and the view follows it again.
   await agent.agentEmit([{ type: "text", text: `Then [the spec](/f/${CLI}/spec.md).` }]);
   const spec = await screen.findByRole("link", { name: "the spec" }, LIVE);
   box.scrollTo(0, box.scrollHeight);
-  await settle();
+  await drawn();
   await followAndComeBack(spec, `/f/${CLI}/spec.md`);
   await agent.agentEmit([{ type: "text", text: "A line after coming back." }]);
   const newest = await screen.findByText("A line after coming back.", undefined, LIVE);
