@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Chat in the web UI
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 10 questions on the chat, the session list, and how agents are driven, about 40 minutes.
+> Answered on 2026-10-13.
 >
 > - Two choices outlast this feature, because Codex, pi-durable, the git listener, and the
 >   notifications will build on them. One is how the server keeps a conversation going with an
@@ -74,7 +74,7 @@ is Q2.
   - [con] every question starts by re-reading the feature, and the agent cannot say why it chose
     what it wrote.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: What may the agent change during a chat?
 
@@ -106,7 +106,7 @@ agent keeps, and whether a session without a feature is a full coding agent.
   - [con] one more control on every message. Switching restarts the agent's process, or uses an
     undocumented call.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: What is "the final message before handoff"?
 
@@ -138,7 +138,10 @@ C can come on top of A or B.
   - [con] the skill's "the commit is the message: say nothing else" changes for runs started from
     the UI.
 
-**Answer:**
+**Answer:** A and C: Both are good: we should see the full context in the session view.
+
+Regarding C in particular, we can remove the caveat that it should "say nothing else". The coding
+agent doesn't even need to know it's running in headless mode.
 
 ## Q4: Where do sessions appear in the sidebar?
 
@@ -165,7 +168,7 @@ the phone.
   - [pro] each view stays short.
   - [con] a second mode to learn, and the status of the other view is hidden.
 
-**Answer:**
+**Answer:** A: We should also see if there are sub-agents, if that's possible
 
 ## Q5: Where does a session without a feature work?
 
@@ -193,7 +196,8 @@ running server.
   - [pro] both.
   - [con] one more choice every time you start a chat.
 
-**Answer:**
+**Answer:** A: The web UI running inside uraeda and editing itself is a very niche use-case, we
+don't need to take it into account in our decision.
 
 ## Q6: How does the server keep a conversation going with Claude Code?
 
@@ -224,7 +228,8 @@ Stop keeps the session alive.
   - [con] the agent never reads a message until it finishes, and Stop ends the process.
   - [con] the prompt cache is lost after every commit, which costs more of your plan's usage.
 
-**Answer:**
+**Answer:** A: Claude Code integration will always be flaky because Anthropic hates people using it
+in new ways. It's life.
 
 ### Q6.A: What happens to a message you send while the agent works?
 
@@ -246,7 +251,7 @@ message, which the SDK documents and the discovery did not test without it. More
   - [pro] the right one for each message.
   - [con] two send buttons, on a phone too.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: How far does the generic agent design go now?
 
@@ -276,7 +281,7 @@ will fit into.
   - [con] Codex's adapter bundles its own Codex.
   - [con] pi-durable has no adapter, and ACP has no steer.
 
-**Answer:**
+**Answer:** A
 
 ## Q8: What happens when `auto` mode blocks an action during a chat?
 
@@ -299,7 +304,7 @@ but it relies on an undocumented option and changes the agents decision.
   - [con] relies on an undocumented option, and a question left unanswered holds the session
     forever.
 
-**Answer:**
+**Answer:** A
 
 ## Q9: What else ships with the chat?
 
@@ -328,7 +333,7 @@ B and C can both come on top of A.
   - [pro] like the desktop app.
   - [con] changes the agents decision's rule that your Claude Code settings apply.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
