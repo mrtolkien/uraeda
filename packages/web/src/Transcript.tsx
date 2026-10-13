@@ -280,7 +280,8 @@ function Message({
 
 /**
  * An action `auto` mode blocked, with "Allow and retry", disabled while the session works: it
- * reopens the process.
+ * reopens the process. An action no allow rule can match alone, like a command with a `*`, says so
+ * instead.
  */
 function Denial({ item, turn, actions }: { item: DenialItem; turn: string; actions: Actions }) {
   const { onAllow, canAllow } = actions;
@@ -289,9 +290,15 @@ function Denial({ item, turn, actions }: { item: DenialItem; turn: string; actio
       status="warning"
       title={`Blocked by auto mode: ${item.target ? `${item.tool} ${item.target}` : item.tool}`}
       collapsible={false}
-      description={item.allowed ? "Allowed for the session's process." : undefined}
+      description={
+        item.allowed
+          ? "Allowed for the session's process."
+          : item.rule === undefined
+            ? "No allow rule can match only this action."
+            : undefined
+      }
       endContent={
-        !item.allowed && onAllow ? (
+        !item.allowed && item.rule !== undefined && onAllow ? (
           <Button
             label="Allow and retry"
             isDisabled={!canAllow}
