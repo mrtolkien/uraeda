@@ -1,16 +1,9 @@
 import { spawnSync } from "node:child_process";
-import {
-  chmodSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
-import { fixture } from "uraeda-binding/test-utils";
+import { fixture, temporaryFolder } from "uraeda-binding/test-utils";
 import { allowRule, lines, parseLine } from "../claude-events.ts";
 import { ClaudeAdapter, claudeArgs, PLUGIN_DIR } from "../claude.ts";
 import type { AgentEvent, Denial } from "../events.ts";
@@ -247,7 +240,7 @@ test("lines() keeps a last line without a newline, and drops empty lines", async
 });
 
 test("a session exists when its transcript is found", () => {
-  const configDir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  const configDir = temporaryFolder("uraeda-claude");
   mkdirSync(join(configDir, "projects", "-w"), { recursive: true });
   writeFileSync(join(configDir, "projects", "-w", "3f2c.jsonl"), "");
   const adapter = new ClaudeAdapter({ configDir, pluginDir: "/p" });
@@ -584,7 +577,7 @@ test("version() is undefined without the command", async () => {
 
 /** A command standing in for `claude`: a shell script, which runs no agent. */
 function script(body: string): string {
-  const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  const dir = temporaryFolder("uraeda-claude");
   const path = join(dir, "claude");
   writeFileSync(path, `#!/bin/sh\n${body}\n`);
   chmodSync(path, 0o755);
@@ -606,7 +599,7 @@ test("version() is the command's first line", async () => {
 });
 
 test("an open process streams its events, and exits with its stderr", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  const dir = temporaryFolder("uraeda-claude");
   const command = script(
     [
       `echo "$@" > "${join(dir, "args")}"`,
@@ -634,7 +627,7 @@ test("an open process streams its events, and exits with its stderr", async () =
 });
 
 test("send writes a user message with its uuid and priority", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  const dir = temporaryFolder("uraeda-claude");
   const command = script(`cat > "${join(dir, "stdin")}"`);
   const agent = new ClaudeAdapter({ command, pluginDir: "/p" }).open({
     ...open,
@@ -669,7 +662,7 @@ test("send writes a user message with its uuid and priority", async () => {
 });
 
 test("interrupt writes the interrupt control request, and close ends stdin", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  const dir = temporaryFolder("uraeda-claude");
   const command = script(`cat > "${join(dir, "stdin")}"\necho closed >&2`);
   const agent = new ClaudeAdapter({ command, pluginDir: "/p" }).open({
     ...open,
@@ -692,7 +685,7 @@ test("interrupt writes the interrupt control request, and close ends stdin", asy
 });
 
 test("kill sends its signal to the process", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  const dir = temporaryFolder("uraeda-claude");
   const command = script(
     `trap 'echo interrupted >&2; exit 130' INT\necho not json\nwhile true; do sleep 0.1; done`,
   );
@@ -745,7 +738,7 @@ async function childPid(file: string): Promise<number> {
 }
 
 test("kill signals the process's group: the processes it started end with it", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  const dir = temporaryFolder("uraeda-claude");
   const command = script(`sleep 30 &\necho $! > "${join(dir, "pid")}"\nwait`);
   const agent = new ClaudeAdapter({ command, pluginDir: "/p" }).open({
     ...open,
@@ -762,11 +755,12 @@ test("kill signals the process's group: the processes it started end with it", a
 });
 
 test("a session's process and the processes it started end with the server", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  const dir = temporaryFolder("uraeda-claude");
   // It does not read its stdin, so the end of its pipe does not end it.
   const command = script(`sleep 30 &\necho $! > "${join(dir, "pid")}"\nwait`);
   const server = [
-    `import { existsSync } from "node:fs";`,
+    `import { existsSync } from "node:fs";
+`,
     `import { ClaudeAdapter } from ${JSON.stringify(join(import.meta.dirname, "../claude.ts"))};`,
     `new ClaudeAdapter({ command: ${JSON.stringify(command)}, pluginDir: "/p" })`,
     `  .open({ cwd: ${JSON.stringify(dir)}, nativeId: "id", resume: false });`,
