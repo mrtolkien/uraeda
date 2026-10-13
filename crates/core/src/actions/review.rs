@@ -3,7 +3,7 @@
 use std::fs;
 
 use crate::files::review::{self, Anchor, Comment, Review, Verdict};
-use crate::files::{frontmatter, markdown};
+use crate::files::{frontmatter, markdown, spec};
 use crate::git::{Git, ObjectId};
 use crate::today::Date;
 use crate::workspace::Feature;
@@ -249,32 +249,32 @@ pub fn approve(
             "only a spec has a risk tier and a plan review".to_string(),
         ));
     }
+    let tiers = spec::risk_tiers();
     if let Some(tier) = &tier.risk_tier
-        && !["low", "medium", "high"].contains(&tier.as_str())
+        && !tiers.contains(&tier.as_str())
     {
         return Err(ActionError::Refused(format!(
-            "risk tier \"{tier}\" is not one of low, medium, high"
+            "risk tier \"{tier}\" is not one of {}",
+            tiers.join(", ")
         )));
     }
-    let proposed_tier = frontmatter::parse(&text)
-        .ok()
-        .and_then(|f| f.text("risk-tier").map(String::from));
-    let tier_changed = tier
-        .risk_tier
+    let front = frontmatter::parse(&text).ok();
+    let proposed_tier = front
         .as_ref()
-        .is_some_and(|tier| Some(tier) != proposed_tier.as_ref());
+        .and_then(|f| f.text("risk-tier").map(String::from));
     let mut edited = frontmatter::set(&text, "status", "approved");
     if let Some(risk_tier) = &tier.risk_tier {
         edited = frontmatter::set(&edited, "risk-tier", risk_tier);
     }
     if file == "spec.md" {
-        let front = frontmatter::parse(&edited).ok();
         let current = match front.as_ref().and_then(|f| f.get("plan-review")) {
-            Some(frontmatter::Value::Bool(value)) if !tier_changed => Some(*value),
+            Some(frontmatter::Value::Bool(value)) => Some(*value),
             _ => None,
         };
-        let high = front.is_some_and(|f| f.text("risk-tier") == Some("high"));
-        let value = tier.plan_review.or(current).unwrap_or(high);
+        let chosen = tier.risk_tier.as_deref().or(proposed_tier.as_deref());
+        let value = tier.plan_review.unwrap_or_else(|| {
+            spec::plan_review_default(proposed_tier.as_deref(), current, chosen)
+        });
         edited = frontmatter::set(&edited, "plan-review", &value.to_string());
     }
     let edited =

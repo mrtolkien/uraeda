@@ -140,6 +140,11 @@ fn a_spec_verdict_names_its_commits() {
             "comments": 1,
             "riskTier": "high",
             "planReview": true,
+            "tiers": [
+                { "value": "low", "planReview": false },
+                { "value": "medium", "planReview": false },
+                { "value": "high", "planReview": true },
+            ],
             "blank": [],
             "waiting": true,
         })

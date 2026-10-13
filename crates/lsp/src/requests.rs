@@ -10,7 +10,7 @@ use serde_json::json;
 use uraeda_core::actions::{answer, review};
 use uraeda_core::api::{self, ApiError};
 use uraeda_core::check::{self, Field};
-use uraeda_core::files::items::{CommentItem, Items, items};
+use uraeda_core::files::items::{CommentItem, Items, TierChoice, items};
 use uraeda_core::files::review::Verdict as Outcome;
 use uraeda_core::files::{document, frontmatter};
 use uraeda_core::workspace::{FileKind, folder_slug};
@@ -97,6 +97,10 @@ pub(crate) struct Verdict {
     pub risk_tier: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub plan_review: Option<bool>,
+    /// The risk tiers an approval may pick, each with the plan review it gives by default: a
+    /// spec's only.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub tiers: Vec<TierChoice>,
     /// The questions that need an answer and have none.
     pub blank: Vec<String>,
     /// Whether the file is `awaiting-human`.
@@ -266,7 +270,8 @@ pub(crate) fn verdict(documents: &Documents, params: FileParams) -> Result<Verdi
             .then(|| review::subject(slug, &file.name, Outcome::ChangesRequested)),
         comments: u32::try_from(file.pending_comments(documents).len()).unwrap_or(u32::MAX),
         risk_tier: spec.as_ref().and_then(|spec| spec.risk_tier.clone()),
-        plan_review: spec.and_then(|spec| spec.plan_review),
+        plan_review: spec.as_ref().and_then(|spec| spec.plan_review),
+        tiers: spec.map(|spec| spec.tiers).unwrap_or_default(),
         blank: if round.is_some() {
             answer::blank(&text)
         } else {

@@ -33,7 +33,7 @@ const ItemsSelection = {
     notes: true,
     notesLine: true,
   },
-  spec: { stories: true, criteria: true, riskTier: true, planReview: true },
+  spec: { stories: true, criteria: true, riskTier: true, planReview: true, tiers: true },
   plan: { tasks: true },
   review: { verdict: true, commit: true, summary: true, comments: true },
   rulings: true,

@@ -1,7 +1,44 @@
 //! The user stories and success criteria of a spec.
 
 use super::document::{BlockKind, Document};
-use super::items::{Criterion, Scenario, SpecItems, Story, headings, section};
+use super::items::{Criterion, Scenario, SpecItems, Story, TierChoice, headings, section};
+use crate::check::allowed_values;
+use crate::workspace::FileKind;
+
+/// The risk tier whose plan waits for the human's review unless the spec says otherwise.
+const REVIEWED_TIER: &str = "high";
+
+/// The risk tiers a spec may have, from the least risk to the most.
+pub fn risk_tiers() -> &'static [&'static str] {
+    allowed_values(FileKind::Spec, "risk-tier")
+}
+
+/// Whether the plan waits for the human's review once the spec is approved at the tier `chosen`:
+/// the spec's own `plan-review` while the tier stays the one it proposes, else the tier's default,
+/// true for `high` only.
+pub fn plan_review_default(
+    proposed: Option<&str>,
+    current: Option<bool>,
+    chosen: Option<&str>,
+) -> bool {
+    let tier_default = chosen == Some(REVIEWED_TIER);
+    if chosen == proposed {
+        current.unwrap_or(tier_default)
+    } else {
+        tier_default
+    }
+}
+
+/// Each risk tier an approval may pick, with the plan review it gives by default.
+pub fn tier_choices(proposed: Option<&str>, current: Option<bool>) -> Vec<TierChoice> {
+    risk_tiers()
+        .iter()
+        .map(|tier| TierChoice {
+            value: tier.to_string(),
+            plan_review: plan_review_default(proposed, current, Some(tier)),
+        })
+        .collect()
+}
 
 /// `US2: Complete a repeating task (P1)` as its id, title, and priority.
 pub(crate) fn story_heading(text: &str) -> Option<(String, String, String)> {
@@ -81,5 +118,6 @@ pub fn items(doc: &Document) -> SpecItems {
         criteria,
         risk_tier: None,
         plan_review: None,
+        tiers: Vec::new(),
     }
 }
