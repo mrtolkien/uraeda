@@ -76,6 +76,11 @@ function M.prev()
   require("uraeda.marks").jump(0, -1)
 end
 
+--- Hides or shows the comments drawn under their lines (US9).
+function M.comments()
+  require("uraeda.marks").toggle(0)
+end
+
 --- @class uraeda.Action
 --- @field name string the `:Uraeda` subcommand, and the `<Plug>(uraeda-<name>)` mapping
 --- @field desc string starts with `Uraeda`
@@ -135,6 +140,14 @@ M.list = {
     modes = { "n" },
     buffer_local = true,
     key = "v",
+  },
+  {
+    name = "comments",
+    desc = "Uraeda: inline comments",
+    fn = M.comments,
+    modes = { "n" },
+    buffer_local = true,
+    key = "t",
   },
   {
     name = "waiting",
