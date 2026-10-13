@@ -140,6 +140,26 @@ test("US2.4: a feature that waits on you again refuses the message, and keeps it
   expect(agent.sent).toHaveLength(0);
 });
 
+test("US2.4: a hand-over refused once read keeps Start the agent, disabled, never a chat's Send", async () => {
+  const repo = answeredRepo();
+  const { agent } = await renderPage(ROUND, repo, { agent: true });
+  await click(await screen.findByRole("button", { name: "Commit and start the agent" }));
+  await opensWith(WEB_UI, ANSWERED);
+  // Another tab takes the answers back, and the page reads the workflow's message again.
+  git(join(repo, ".worktrees", WEB_UI), "reset", "--quiet", "--hard", "HEAD~1");
+
+  await refreshUntil(() =>
+    expect(
+      screen.getByText("The feature waits on you now: there is nothing to continue."),
+    ).toBeTruthy(),
+  );
+
+  expect(startInComposer().hasAttribute("disabled")).toBe(true);
+  expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
+  expect((await composer()).textContent).toBe(ANSWERED);
+  expect(agent.sent).toHaveLength(0);
+});
+
 test("US2.4: a session opened to continue a feature that waits on you says why, and fills nothing", async () => {
   const { agent } = await renderPage(`/f/${WEB_UI}/session?continue=manual`, fixtureRepo(), {
     agent: true,
