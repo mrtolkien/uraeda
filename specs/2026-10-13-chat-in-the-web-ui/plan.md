@@ -591,9 +591,10 @@ git commit -m "feat(chat-in-the-web-ui): agents opened once per session, Claude 
 
 - Create: `packages/server/src/runner/sessions.ts`,
   `packages/server/src/runner/__tests__/sessions.test.ts`
-- Delete: `packages/server/src/runner/runner.ts`,
-  `packages/server/src/runner/__tests__/runner.test.ts`
 - Modify: `packages/server/src/runner/__tests__/helpers.ts`
+- Kept until task 7: `runner/runner.ts` and its test, which the web tests' config still loads
+  through `dev.ts`, `live.ts`, and fate. Task 7 deletes them with the `TEMPORARY` aliases of
+  `cache.ts` (`RunCache`) and `message.ts` (`allowRule`).
 
 **Interfaces:**
 
@@ -726,7 +727,6 @@ Every refusal throws `Error("refused: <text>")`, as the runner did.
 
 ```bash
 git add packages/server/src/runner/sessions.ts packages/server/src/runner/__tests__/sessions.test.ts packages/server/src/runner/__tests__/helpers.ts
-git rm packages/server/src/runner/runner.ts packages/server/src/runner/__tests__/runner.test.ts
 git commit -m "feat(chat-in-the-web-ui): sessions of turns, one process each"
 ```
 
@@ -735,6 +735,9 @@ git commit -m "feat(chat-in-the-web-ui): sessions of turns, one process each"
 **Files:**
 
 - Create: `packages/server/src/fate/sessions.ts` (replacing `fate/runs.ts`)
+- Delete: `packages/server/src/runner/runner.ts`,
+  `packages/server/src/runner/__tests__/runner.test.ts`, `fate/runs.ts`,
+  `src/__tests__/runs.test.ts`, and the `TEMPORARY` aliases of `cache.ts` and `message.ts`
 - Modify: `packages/server/src/fate/views.ts`, `fate/sources.ts`, `fate/mutations.ts`,
   `fate/context.ts`, `packages/server/src/live.ts`, `main.ts`, `testing.ts`, `app.ts`, `fate.ts`,
   `packages/server/scripts/validate-claude.ts` (imports)
