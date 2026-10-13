@@ -892,6 +892,7 @@ git commit -m "feat(nvim-plugin): comment on lines of a spec"
 - Create: `editors/nvim/lua/uraeda/verdict.lua`
 - Modify: `editors/nvim/lua/uraeda/actions.lua` (`verdict`)
 - Test: `editors/nvim/tests/test_verdict.lua`, screenshots
+  ([R14](rulings.md#r14-the-verdict-windows-hints-are-virtual-and-its-command-saves-first))
 
 **Interfaces:**
 
@@ -908,7 +909,7 @@ git commit -m "feat(nvim-plugin): comment on lines of a spec"
   command with the summary (the lines after the separator) and the values held in Lua; `q` closes.
   With `blank` not empty, the window shows `Q3 and Q5 have no answer.` and `<C-s>` does nothing.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```lua
 T["approving a spec with a new tier"] = function() end -- US6.1: Tab to medium, plan review false, C-s → commit and status
@@ -918,19 +919,19 @@ T["blank questions block the submit"] = function() end -- US6.4
 T["the window looks right"] = function() end           -- screenshots: approve, submit with blanks
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp run test:nvim`
 - Expected: FAIL, `module 'uraeda.verdict' not found`
 
-- [ ] **Step 3: Implement the verdict window**
+- [x] **Step 3: Implement the verdict window**
 
-- [ ] **Step 4: Run all checks**
+- [x] **Step 4: Run all checks**
 
 - Run: `stylua --check editors/nvim && vp run test:nvim`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add editors/nvim
