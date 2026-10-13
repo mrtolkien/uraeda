@@ -37,7 +37,12 @@
             # pnpm downloads the exact version pinned in package.json's devEngines.
             pnpm
             (rust-bin.fromRustupToolchainFile ./rust-toolchain.toml)
+            # The Neovim plugin's formatter, and the Neovim its tests run in.
+            neovim
+            stylua
           ];
+          # mini.test, which the Neovim plugin's tests run on, pinned by the flake's lock.
+          MINI_TEST = "${pkgs.vimPlugins.mini-test}";
           # The browsers of the web UI's layout tests: the playwright package pins the same version
           # as nixpkgs' driver, so its browsers run here without a download.
           PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
