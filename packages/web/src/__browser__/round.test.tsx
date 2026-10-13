@@ -4,7 +4,7 @@
 import { act, screen } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
-import { scrollStopped, show, watchFor } from "./helpers.tsx";
+import { drawn, scrollStopped, show, watchFor } from "./helpers.tsx";
 
 const FOLDER = "2026-10-11-web-ui";
 const PAGE = `/f/${FOLDER}/clarifications-01.md`;
@@ -56,7 +56,9 @@ test("the index is a column beside the questions, and n and p jump (US1 6, 7)", 
   const before = window.scrollY;
   await userEvent.keyboard("n");
   expect(comment.value).toBe("n");
-  await new Promise((resolve) => setTimeout(resolve, 600));
+  // A jump gives its question's title the focus at once, then scrolls from the next frame.
+  expect(document.activeElement).toBe(comment);
+  await drawn();
   expect(window.scrollY).toBe(before);
 });
 
