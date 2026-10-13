@@ -56,9 +56,3 @@
 - Tools path in the agent run view should be stripped and only show path from the repo root
 - Rename "Start and continue": all buttons starting an agent should be EXTREMELY CLEAR
 - Need icons for different harnesses (claude code, codex, pi, ...)
-- Text column is too slim on desktop
-- The text box with "answer" and "saved" below comments feels weird, it's just the same info as
-  above and weirdly presented
-  - And the text box is very big and always grows ahead of time, it feels iffy
-  - The text cursor jumps on save, sometimes text disappears... Add a "save comment" button, that
-    will be simpler

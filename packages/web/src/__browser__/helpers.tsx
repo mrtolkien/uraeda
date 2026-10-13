@@ -140,7 +140,8 @@ export function checkTextSizes() {
 }
 
 /** Ordinary lowercase text, spaces included, whose width gives a font's average character. */
-const SAMPLE = "the reading measure holds about seventy characters of ordinary text on each line ";
+const SAMPLE =
+  "the reading measure holds about a hundred characters of ordinary text on each line ";
 
 /**
  * How many average characters of its own font the longest line of an element holds: its width over
@@ -193,7 +194,7 @@ function averageCharacter(element: Element) {
 }
 
 /**
- * No line of reading text holds more than about 75 characters (US6 3): paragraphs, and the
+ * No line of reading text holds more than about 125 characters (the UI layout decision): paragraphs, and the
  * toggles that hold text of their own, like a question's options.
  */
 export function checkMeasure() {
@@ -202,7 +203,7 @@ export function checkMeasure() {
     (toggle) => toggle.textContent?.trim() && toggle.getBoundingClientRect().width > 4,
   );
   for (const paragraph of [...paragraphs(), ...toggles]) {
-    expect(longestLine(paragraph), paragraph.textContent?.slice(0, 60)).toBeLessThanOrEqual(75);
+    expect(longestLine(paragraph), paragraph.textContent?.slice(0, 60)).toBeLessThanOrEqual(125);
   }
 }
 

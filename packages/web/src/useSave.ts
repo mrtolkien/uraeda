@@ -23,6 +23,8 @@ export function useSave<T>(
   const previous = useRef(initial);
   const queue = useRef<Promise<void>>(Promise.resolve());
   const saved = useRef(true);
+  // Saves sent and not returned yet, during which the file's text is not taken as the last one.
+  const running = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const latest = useRef<T | undefined>(undefined);
   const runRef = useRef(run);
@@ -35,9 +37,12 @@ export function useSave<T>(
     const value = latest.current;
     latest.current = undefined;
     if (value !== undefined) {
+      running.current += 1;
       queue.current = queue.current.then(async () => {
         setState({ kind: "saving" });
-        const result = await runRef.current(value, previous.current);
+        const result = await runRef.current(value, previous.current).finally(() => {
+          running.current -= 1;
+        });
         saved.current = result.ok;
         if (result.ok) {
           previous.current = result.saved;
@@ -65,15 +70,18 @@ export function useSave<T>(
 
   useEffect(() => () => void flush(), [flush]);
 
+  /** Whether nothing waits to be saved, or is being saved. */
+  const idle = useCallback(
+    () => latest.current === undefined && timer.current === undefined && running.current === 0,
+    [],
+  );
+
   /** Takes the file's text as the last one written, when nothing waits to be saved. */
   const settle = useCallback((text: string) => {
     if (latest.current === undefined && timer.current === undefined) {
       previous.current = text;
     }
   }, []);
-
-  /** Whether nothing waits to be saved. */
-  const idle = useCallback(() => latest.current === undefined && timer.current === undefined, []);
 
   return { state, schedule, flush, settle, idle };
 }

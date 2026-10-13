@@ -8,7 +8,7 @@ approved-by: mrtolkien
 The web UI has two layouts, split at Astryx's 768 px: on the phone, details are pages and menus and
 short forms are sheets; on wide screens, a detail opens in a pane beside its list, menus are
 popovers, and short forms are dialogs. Text is 17 px on the phone and 19 px on a desktop, with
-controls grown to match, in a reading column near 70 characters, left-aligned.
+controls grown to match, in a reading column near 120 characters, left-aligned.
 
 ## Rules
 
@@ -27,7 +27,7 @@ controls grown to match, in a reading column near 70 characters, left-aligned.
   heights and spacing MUST grow by the same factor, 1.2, through the theme's adaptations.
 - Under a coarse pointer, every control MUST be at least 44 px tall, through the theme's
   adaptations.
-- Reading text MUST NOT be wider than about 70 characters.
+- Reading text MUST NOT be wider than about 120 characters.
 - Text MUST be left-aligned, never justified. Paragraphs SHOULD use `text-wrap: pretty`.
 - Every view's spec MUST say what it shows at both width classes, and its mockups MUST show both.
 
@@ -48,6 +48,8 @@ is at its worst on a phone's narrow lines
 
 ## Alternatives considered
 
+- A column near 70 characters, the usual print measure: the first choice, which left most of a
+  desktop empty and read too slim to the human, who set about 120 characters (2026-10-13).
 - One column everywhere, larger on desktop, with sheets turned into dialogs: small, but a task view
   covers the list it came from.
 - CSS `zoom: 1.2` on desktop: exactly the human's zoom, but it breaks the position math of dragging.

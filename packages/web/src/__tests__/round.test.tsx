@@ -62,6 +62,11 @@ function comment(id: string) {
   return within(question(id)).getAllByLabelText("Comment")[0];
 }
 
+/** The button saving a question's comment, not its follow-ups'. */
+function saveButton(id: string) {
+  return within(question(id)).getAllByRole("button", { name: "Save comment" })[0];
+}
+
 async function tap(element: HTMLElement) {
   await act(async () => {
     fireEvent.click(element);
@@ -105,6 +110,8 @@ test("a comment follows the letters", async () => {
   await screen.findByText("How does your iPhone reach the server?");
 
   await type(comment("Q2"), "but only for the dev server");
+  expect(answerLine(repo, "Q2")).toBe("**Answer:** A");
+  await tap(saveButton("Q2"));
 
   await waitFor(() =>
     expect(answerLine(repo, "Q2")).toBe("**Answer:** A: but only for the dev server"),
@@ -117,6 +124,7 @@ test("a comment alone is the answer", async () => {
   await screen.findByText("Which repositories does the UI open now?");
 
   await type(comment("Q3"), "Neither, keep it simple");
+  await tap(saveButton("Q3"));
 
   await waitFor(() => expect(answerLine(repo, "Q3")).toBe("**Answer:** Neither, keep it simple"));
 });
@@ -230,6 +238,7 @@ test("a refused answer keeps its text, and says why", async () => {
   writeFileSync(path, readFileSync(path, "utf8").replace("**Answer:** A", "**Answer:** C"));
 
   await type(comment("Q2"), "mine");
+  await tap(saveButton("Q2"));
 
   await waitFor(() =>
     expect(
@@ -290,6 +299,7 @@ test("an answer changed elsewhere shows when the page reads again", async () => 
 
   await waitFor(() => expect(option("Q2", "C").getAttribute("aria-pressed")).toBe("true"));
   await type(comment("Q2"), "mine");
+  await tap(saveButton("Q2"));
   await waitFor(() => expect(answerLine(repo, "Q2")).toBe("**Answer:** C: mine"));
 });
 
@@ -308,6 +318,43 @@ test("Submit waits for the notes being typed", async () => {
     ),
   );
   expect(git(repo, "show", `${FOLDER}:${ROUND}`)).toContain("**Notes:** LGTM");
+});
+
+test("a comment being written is not replaced by an answer changed elsewhere", async () => {
+  const repo = answered({});
+  await renderPage(PAGE, repo);
+  await screen.findByText("How does your iPhone reach the server?");
+  await type(comment("Q2"), "half a tho");
+  const path = join(repo, ".worktrees", FOLDER, ROUND);
+  const lines = readFileSync(path, "utf8").split("\n");
+  const heading = lines.findIndex((line) => line.startsWith("## Q2:"));
+  const at = lines.findIndex((line, index) => index > heading && line.startsWith("**Answer:**"));
+  lines[at] = "**Answer:** C";
+  writeFileSync(path, lines.join("\n"));
+
+  await act(async () => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  expect((comment("Q2") as HTMLTextAreaElement).value).toBe("half a tho");
+  expect(saveButton("Q2").hasAttribute("disabled")).toBe(false);
+});
+
+test("Submit saves a comment not saved yet", async () => {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  await renderPage(PAGE, repo);
+  await screen.findByText("How does your iPhone reach the server?");
+
+  await type(comment("Q2"), "unsaved");
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+
+  await waitFor(() =>
+    expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(
+      "discovery(web-ui): answer round 01",
+    ),
+  );
+  expect(git(repo, "show", `${FOLDER}:${ROUND}`)).toContain("**Answer:** A: unsaved");
 });
 
 /** Codex review: notes changed elsewhere show, and the next save builds on them. */

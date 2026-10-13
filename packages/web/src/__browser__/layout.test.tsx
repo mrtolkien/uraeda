@@ -1,7 +1,7 @@
 // The UI checks decision, at a phone's size and a desktop's, in light and dark: on every page a UI
 // decision governs, no text is cut and nothing scrolls sideways (SC-003), paragraphs are 17 px on
 // the phone and 19 px from 1024 px (SC-004), every control is 44 px tall under a touch pointer
-// (SC-004), no line of a paragraph runs past about 75 characters (US6 3), text is left-aligned,
+// (SC-004), no line of a paragraph runs past about 125 characters, text is left-aligned,
 // and axe-core finds no WCAG 2.1 A or AA violation (SC-003). On the phone, questions, options,
 // stories, and scenarios start within 50 px of the screen's left edge. A change of width keeps
 // what is being typed (US7 2) and the task view's address (the edge case on crossing 768 px).

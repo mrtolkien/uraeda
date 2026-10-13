@@ -203,7 +203,7 @@ export const uraedaTheme = {
     "--astryx-theme-neutral-color-destructive-overlay-pressed": "light-dark(#ff7f771A, #ee736c1A)",
     "--text-reading-size": "17px",
     "--text-reading-line": "1.5",
-    "--size-reading-measure": "60ch",
+    "--size-reading-measure": "105ch",
     "--size-page-max": "720px",
     "--size-pane-min": "400px",
     "--size-viewport-height": "100dvh",
@@ -586,7 +586,7 @@ export const uraedaTheme = {
           },
           "localTokens": {
             "--text-reading-size": "19px",
-            "--size-page-max": "864px"
+            "--size-page-max": "1200px"
           }
         }
       },
