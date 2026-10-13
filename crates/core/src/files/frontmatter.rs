@@ -155,12 +155,12 @@ pub fn parse(text: &str) -> Result<Frontmatter, FrontmatterError> {
 }
 
 /// Sets a field to a plain value: replaces its line, keeping a ` # comment` after the value, or
-/// adds it before the closing `---`. A text without frontmatter gets one.
+/// adds it before the closing `---`. A text without frontmatter gets one, then a blank line.
 pub fn set(text: &str, key: &str, value: &str) -> String {
     let result: Result<String, ()> = super::with_unix_newlines(text, |text| {
         let line = format!("{key}: {value}");
         let Ok((_, end_line)) = block(text) else {
-            return Ok(format!("---\n{line}\n---\n{text}"));
+            return Ok(format!("---\n{line}\n---\n\n{text}"));
         };
         let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
         let prefix = format!("{key}:");

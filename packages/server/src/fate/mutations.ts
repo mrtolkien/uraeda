@@ -251,6 +251,23 @@ export const mutations = {
       return draft(ctx, await ctx.binding.readText(ctx.repo, input.path), select);
     },
   },
+  "text.discovery": {
+    type: "Draft",
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ path: string; level: string; hash: string }>) => {
+      await writable(ctx, input);
+      return draft(
+        ctx,
+        await refusable(() =>
+          ctx.binding.setDiscovery(ctx.repo, input.path, input.level, input.hash),
+        ),
+        select,
+      );
+    },
+  },
   "text.commit": {
     type: "Draft",
     resolve: async ({ ctx, input, select }: Resolver<{ path: string }>) => {

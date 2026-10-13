@@ -237,6 +237,67 @@ fn draft_paths_stay_in_the_drafts() {
     );
 }
 
+/// The editor's facts about a text come from the core: its kind, its slug or folder, its discovery
+/// effort, and its sections still empty.
+#[test]
+fn a_text_comes_with_what_its_editor_shows() {
+    let repo = repo();
+    with_bug(&repo);
+    repo.write(
+        "specs/backlog/later/proposal.md",
+        "# Later\n\n## What\n\nSoon.\n\n## Why\n",
+    );
+
+    let postponed = api::read_text(repo.path(), "specs/backlog/later/proposal.md").unwrap();
+    assert_eq!(
+        (postponed.kind.as_str(), postponed.slug.as_deref()),
+        ("draft", Some("later"))
+    );
+    assert_eq!(postponed.discovery.as_deref(), Some("high"));
+    assert_eq!(postponed.discovery_levels, ["low", "medium", "high"]);
+    assert!(!postponed.written);
+    assert_eq!(postponed.empty_sections, ["Why"]);
+
+    let proposal = api::read_text(repo.path(), "specs/2026-10-11-web-ui/proposal.md").unwrap();
+    assert_eq!(
+        (proposal.kind.as_str(), proposal.folder.as_deref()),
+        ("proposal", Some(FOLDER))
+    );
+    assert_eq!(proposal.slug, None);
+
+    let report = api::read_text(repo.path(), REPORT).unwrap();
+    assert_eq!(
+        (report.kind.as_str(), report.folder.as_deref()),
+        ("report", Some(BUG))
+    );
+    assert_eq!(report.discovery, None);
+    assert!(report.discovery_levels.is_empty());
+}
+
+#[test]
+fn the_discovery_effort_is_set_over_the_version_read() {
+    let repo = repo();
+    let path = "specs/drafts/idea.md";
+    repo.write(path, "# Idea\n\n## What\n\nA thing.\n");
+    let read = api::read_text(repo.path(), path).unwrap();
+
+    let set = api::set_discovery(repo.path(), path, "medium", &read.hash).unwrap();
+
+    assert_eq!(
+        set.text,
+        "---\ndiscovery: medium\n---\n\n# Idea\n\n## What\n\nA thing.\n"
+    );
+    assert_eq!(set.discovery.as_deref(), Some("medium"));
+    let stale = api::set_discovery(repo.path(), path, "low", &read.hash).unwrap_err();
+    assert_eq!(stale.code, "conflict");
+    let wrong = api::set_discovery(repo.path(), path, "deep", &set.hash).unwrap_err();
+    assert_eq!(
+        wrong.message,
+        "discovery \"deep\" is not one of low, medium, high"
+    );
+    assert!(api::set_discovery(repo.path(), REPORT, "low", "").is_err());
+}
+
 /// Codex review: starting a feature takes a draft, never another file.
 #[test]
 fn a_feature_starts_from_a_draft_only() {

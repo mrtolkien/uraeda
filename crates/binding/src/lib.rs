@@ -255,6 +255,17 @@ pub fn save_text(
     job(move || api::save_text(Path::new(&repo), &path, &text, &previous))
 }
 
+/// Sets the discovery effort of a draft or a proposal, over the version read at `previous`.
+#[napi(ts_return_type = "Promise<DraftView>")]
+pub fn set_discovery(
+    repo: String,
+    path: String,
+    level: String,
+    previous: String,
+) -> AsyncTask<Job<DraftView>> {
+    job(move || api::set_discovery(Path::new(&repo), &path, &level, &previous))
+}
+
 /// Commits a draft, with the priorities when they changed, or a proposal.
 #[napi(ts_return_type = "Promise<CommitView>")]
 pub fn commit_text(repo: String, path: String) -> AsyncTask<Job<CommitView>> {

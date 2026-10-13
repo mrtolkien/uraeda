@@ -216,6 +216,13 @@ export const draftDataView = dataView<DraftRecord>("Draft")({
   committed: true,
   entry: true,
   priorityChanges: true,
+  kind: true,
+  folder: true,
+  slug: true,
+  discovery: true,
+  discoveryLevels: true,
+  written: true,
+  emptySections: true,
 });
 
 export const agentDataView = dataView<AgentRecord>("Agent")({
