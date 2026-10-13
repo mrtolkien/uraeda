@@ -625,6 +625,16 @@ test("review focus 5: a chat title is cut at 80 characters, from the first line 
   await expect(sessions.send(repo, chat.id, { text: "  \n " })).rejects.toThrow(/^refused: /);
 });
 
+test("a chat renamed keeps the first line that is not blank, cut at 80 characters", async () => {
+  const { sessions, cache, repo } = await testSessions();
+  const chat = await sessions.newChat(repo);
+
+  sessions.rename(repo, chat.id, `  \n ${"y".repeat(100)} \nmore`);
+
+  expect(cache.session(chat.id)?.title).toBe("y".repeat(80));
+  expect(() => sessions.rename(repo, chat.id, " \n  ")).toThrow("refused: The message is empty.");
+});
+
 test("a sub-agent's tools carry its parent", async () => {
   const { sessions, adapter, cache, repo } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);

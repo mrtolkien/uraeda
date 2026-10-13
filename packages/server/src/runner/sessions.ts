@@ -494,7 +494,7 @@ export class Sessions {
     });
   }
 
-  /** Renames a chat. */
+  /** Renames a chat, by the title's first line that is not blank, cut at 80 characters. */
   rename(repo: string, session: string, title: string): void {
     const row = this.#ownNow(repo, session);
     if (row.folder !== null) {
@@ -503,7 +503,7 @@ export class Sessions {
     if (title.trim() === "") {
       throw refused(REFUSALS.blank);
     }
-    this.cache.updateSession(row.id, { title: title.trim() });
+    this.cache.updateSession(row.id, { title: chatTitle(title) });
     this.#options.onChange({ repo: row.repo, session: row.id, folder: row.folder });
   }
 
