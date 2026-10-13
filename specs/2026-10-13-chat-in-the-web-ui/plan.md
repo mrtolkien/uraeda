@@ -1028,22 +1028,22 @@ git commit -m "feat(chat-in-the-web-ui): read the workflow's message before hand
 - Produces: `askAbout(folder: string, quote: string): void` in `sessions.ts`, navigating to
   `/f/<folder>/session?ask=<encoded quote>`; the composer starts with the quote and an empty line.
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
   - US6.1: on the spec's review page with lines 50–52 selected, "Ask the agent" opens the session
     with the composer starting "About specs/<folder>/spec.md, lines 50–52:", then the lines quoted
     with `> `, then an empty line.
   - US6.2: on a round's page, Q3's "Ask the agent" gives "About Q3 of
     specs/<folder>/clarifications-01.md:" and the question's title quoted.
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `vp test packages/web/src/__tests__/review.test.tsx packages/web/src/__tests__/round.test.tsx`
 - Expected: FAIL, no button "Ask the agent"
 
-- [ ] **Step 3: Implement them**, beside "Comment" on the review page, and in each question's
+- [x] **Step 3: Implement them**, beside "Comment" on the review page, and in each question's
       actions; shown only when the agent is available.
-- [ ] **Step 4: Run all tests**: `vp check && vp test`, PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 4: Run all tests**: `vp check && vp test`, PASS.
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src

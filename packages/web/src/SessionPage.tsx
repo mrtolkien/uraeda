@@ -295,6 +295,7 @@ function WorkflowMessage({
  * A feature's session: created with its first message, which this view sends. Opened to hand the
  * feature over (`?continue=<trigger>&file=<file>`), its composer starts with the workflow's
  * message, before what the human already typed, and Send reads "Start the agent" until it is sent.
+ * Opened to ask about a block (`?ask=<quote>`), it starts with the quote and an empty line.
  */
 function FeatureSession({ folder }: { folder: string }) {
   const feature = useFeature(folder);
@@ -305,17 +306,24 @@ function FeatureSession({ folder }: { folder: string }) {
   const [, setText] = draft;
   const search = useSearch();
   const workflow = useHandOver(search);
+  const ask = new URLSearchParams(search).get("ask") ?? undefined;
   // The refusal read for an address: shown only while the address asks for that message.
   const [refusal, setRefusal] = useState<{ search: string; text: string }>();
   const refused = refusal?.search === search ? refusal.text : undefined;
   // The address whose message the composer took: each is put in once.
   const filled = useRef<string>(undefined);
-  const handingOver = workflow !== undefined;
+  const handingOver = workflow !== undefined || ask !== undefined;
   useEffect(() => {
     if (!handingOver) {
       filled.current = undefined;
     }
   }, [handingOver]);
+  useEffect(() => {
+    if (workflow === undefined && ask !== undefined && filled.current !== search) {
+      filled.current = search;
+      setText((now) => `${ask}\n\n${now.trim() ? now : ""}`);
+    }
+  }, [workflow, ask, search, setText]);
   if (!feature || feature.missing) {
     return (
       <Page>
@@ -342,13 +350,13 @@ function FeatureSession({ folder }: { folder: string }) {
       setText((now) => (now.trim() ? `${text}\n${now}` : text));
     }
   };
+  // Sent: the address no longer asks for the message, or the quote.
+  const sent = () => redirect(`/f/${encodeURIComponent(folder)}/session`);
   const handing: Handing = workflow
-    ? {
-        ...(refused === undefined ? { workflow } : { notice: refused }),
-        // Sent: the address no longer asks for the message.
-        onSent: () => redirect(`/f/${encodeURIComponent(folder)}/session`),
-      }
-    : {};
+    ? { ...(refused === undefined ? { workflow } : { notice: refused }), onSent: sent }
+    : ask !== undefined
+      ? { onSent: sent }
+      : {};
   return (
     <>
       {workflow && (
