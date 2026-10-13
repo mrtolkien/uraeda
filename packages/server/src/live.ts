@@ -17,8 +17,12 @@ let sent = 0;
 /** A live update's event ID, unique in this process. */
 const eventId = (topic: string) => `${topic}:${Date.now()}:${sent++}`;
 
-/** Sends live updates for each change the core's watcher reports. */
-export function publish(changes: Changes) {
+/**
+ * Sends live updates for each change the core's watcher reports. A feature's change may change its
+ * step, which its session's status reads, and a feature that goes leaves the sidebar: the list and
+ * the features' sessions go too.
+ */
+export function publish(changes: Changes, owner?: { sessions: Sessions; repo: string }) {
   const eventId = `${Date.now()}`;
   live.update("Workspace", WORKSPACE_ID, { eventId: `workspace:${eventId}` });
   for (const folder of changes.features) {
@@ -29,6 +33,27 @@ export function publish(changes: Changes) {
   }
   if (changes.priorities) {
     live.update("Priorities", PRIORITIES_ID, { eventId: `priorities:${eventId}` });
+  }
+  if (owner && (changes.features.length > 0 || changes.workspace)) {
+    live.update("SessionList", SESSION_LIST_ID, { eventId: `sessions:${eventId}` });
+    void publishSessions(owner, changes.features);
+  }
+}
+
+/** Sends the sessions of the features: none in a repository without a main checkout. */
+async function publishSessions(
+  { sessions, repo }: { sessions: Sessions; repo: string },
+  folders: Array<string>,
+) {
+  const root = await sessions.mainRoot(repo).catch(() => undefined);
+  if (root === undefined) {
+    return;
+  }
+  for (const folder of folders) {
+    const session = sessions.cache.featureSession(root, folder);
+    if (session) {
+      live.update("Session", session.id, { eventId: eventId(`Session:${session.id}`) });
+    }
   }
 }
 
@@ -44,11 +69,16 @@ export function stopLive(repo: string): void {
   watches.delete(repo);
 }
 
-/** Watches the repository, once, and publishes its changes until the handle is closed. */
-export function startLive(binding: Binding, repo: string): WatchHandle {
+/**
+ * Watches the repository, once, and publishes its changes until the handle is closed, with its
+ * features' sessions from `sessions`.
+ */
+export function startLive(binding: Binding, repo: string, sessions?: Sessions): WatchHandle {
   let handle = watches.get(repo);
   if (!handle) {
-    handle = binding.watch(repo, publish);
+    handle = binding.watch(repo, (changes) =>
+      publish(changes, sessions === undefined ? undefined : { sessions, repo }),
+    );
     watches.set(repo, handle);
   }
   return handle;
