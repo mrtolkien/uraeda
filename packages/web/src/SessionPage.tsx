@@ -207,7 +207,8 @@ function Session({
           <Transcript
             session={session}
             groups={groups}
-            onAllow={working ? undefined : allow}
+            onAllow={allow}
+            canAllow={!working}
             onTakenBack={(back) => setText((now) => (now.trim() ? `${back}\n${now}` : back))}
           />
         </div>
