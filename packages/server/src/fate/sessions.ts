@@ -231,7 +231,11 @@ async function rows(ctx: Context, sessions: Array<SessionRow>): Promise<Array<Se
 }
 
 export async function sessionList(ctx: Context): Promise<SessionListRecord> {
-  const root = await ctx.sessions.mainRoot(ctx.repo);
+  // A repository the core gives no main checkout for, like one without a commit, has no sessions.
+  const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
+  if (root === undefined) {
+    return { id: SESSION_LIST_ID, rows: [] };
+  }
   return {
     id: SESSION_LIST_ID,
     rows: await rows(ctx, ctx.sessions.cache.sessions(root, { limit: LIST_LIMIT })),
@@ -243,8 +247,11 @@ export async function sessionList(ctx: Context): Promise<SessionListRecord> {
  * of the features whose title holds it.
  */
 export async function sessionSearch(ctx: Context, query: string): Promise<SessionSearchRecord> {
-  const root = await ctx.sessions.mainRoot(ctx.repo);
+  const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
   const { cache } = ctx.sessions;
+  if (root === undefined) {
+    return { id: query, rows: [] };
+  }
   if (query.trim() === "") {
     return { id: query, rows: (await sessionList(ctx)).rows };
   }
