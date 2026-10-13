@@ -33,6 +33,10 @@ const styles = stylex.create({
   followUp: {
     paddingInlineStart: spacingVars["--spacing-4"],
   },
+  // Next or Submit keeps its width beside the count: its label is never cut.
+  action: {
+    flexShrink: 0,
+  },
   // An index row's text wraps: no title is cut.
   label: {
     whiteSpace: "normal",
@@ -234,9 +238,9 @@ export function RoundNav({
   ]);
 
   const action = blank.length ? (
-    <Button variant="primary" label="Next" onClick={() => next(true)} />
+    <Button variant="primary" label="Next" onClick={() => next(true)} xstyle={styles.action} />
   ) : (
-    <Button variant="primary" label="Submit" onClick={onSubmit} />
+    <Button variant="primary" label="Submit" onClick={onSubmit} xstyle={styles.action} />
   );
   const count = `${answered} of ${questions.length} answered`;
 

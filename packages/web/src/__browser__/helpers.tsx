@@ -122,11 +122,14 @@ export async function scrollStopped() {
     .toBe(true);
 }
 
-/** Whether an element sits inside one meant to scroll sideways: a table or code. */
+/**
+ * Whether an element sits inside one that scrolls sideways, as a table or code may: one that only
+ * scrolls down, like a pane or the navigation, does not excuse the text it cuts.
+ */
 function scrolls(element: Element) {
   for (let node: Element | null = element; node; node = node.parentElement) {
     const overflow = getComputedStyle(node).overflowX;
-    if (overflow === "auto" || overflow === "scroll") {
+    if ((overflow === "auto" || overflow === "scroll") && node.scrollWidth > node.clientWidth + 1) {
       return true;
     }
   }
