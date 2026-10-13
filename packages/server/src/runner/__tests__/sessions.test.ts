@@ -177,6 +177,22 @@ test("a turn's messages are forgotten once it ended and none waits to be read", 
   expect(sessions.tracked(session.id)).toBe(0);
 });
 
+test("a message of a turn that ended is refused as read, from a tab that still shows it pending", async () => {
+  const { sessions, adapter, repo } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
+  await sessions.send(repo, session.id, { text: "Use the helper" });
+  const steered = adapter.sent[1]!.id;
+  adapter.emit({ type: "accepted", id: adapter.sent[0]!.id });
+  adapter.emit({ type: "accepted", id: steered });
+  adapter.emit(done());
+  await sessions.settled(turn);
+
+  expect(() => sessions.takeBack(repo, session.id, steered)).toThrow(
+    "refused: The agent already read it.",
+  );
+});
+
 test("US1.5: Stop interrupts the turn and keeps the process", async () => {
   const { sessions, adapter, cache, repo } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
