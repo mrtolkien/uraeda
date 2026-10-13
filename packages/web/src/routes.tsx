@@ -111,10 +111,18 @@ function saveScroll() {
 /** What saves a position of the page other than the window's, like the detail pane's. */
 const savers = new Set<() => void>();
 
+/**
+ * The entry `navigate` last left, until the next page draws: its page, scrolled to the top for the
+ * next one, is still shown, and takes its position back if Back returns to it (see
+ * `useRestoreScroll`).
+ */
+let left: string | undefined;
+
 /** Opens a page of the UI: the positions on the current one are saved first, for Back. */
 export function navigate(path: string, state?: { from?: string }) {
   const opener = window.scrollY;
   saveScroll();
+  left = entry().id;
   for (const save of savers) {
     save();
   }
@@ -134,7 +142,8 @@ export function redirect(path: string) {
 
 /**
  * Restores the scroll position saved in the page's history entry once `ready`, when its content is
- * drawn, and keeps it saved: on `pagehide`, and at most every 500 ms while scrolling.
+ * drawn, and keeps it saved: on `pagehide`, and at most every 500 ms while scrolling. Back to it
+ * before the next page draws, while it is still shown, takes its position back too.
  */
 export function useRestoreScroll(ready: boolean) {
   // The entry this page was opened on: an old page still shown while the next one loads must not
@@ -147,6 +156,8 @@ export function useRestoreScroll(ready: boolean) {
       return;
     }
     restored.current = true;
+    // The next page is drawn: the one left is gone.
+    left = undefined;
     const { scroll } = entry();
     if (entry().id === id.current && typeof scroll === "number") {
       window.scrollTo(0, scroll);
@@ -164,12 +175,25 @@ export function useRestoreScroll(ready: boolean) {
     const onScroll = () => {
       timer ??= setTimeout(save, 500);
     };
+    // Back to this page's entry while it is still shown: `navigate` scrolled it to the top, and
+    // the page is not drawn again, as its address did not change in between for React.
+    const onPop = () => {
+      const { id: current, scroll } = entry();
+      if (restored.current && current === id.current && left === current) {
+        left = undefined;
+        if (typeof scroll === "number") {
+          window.scrollTo(0, scroll);
+        }
+      }
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("pagehide", save);
+    window.addEventListener("popstate", onPop);
     return () => {
       clearTimeout(timer);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("pagehide", save);
+      window.removeEventListener("popstate", onPop);
     };
   }, []);
 }

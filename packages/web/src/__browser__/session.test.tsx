@@ -134,11 +134,13 @@ test("a working session, with a sub-agent and a steered message, in dark (SC-004
 
 /**
  * Follows a link of the agent's reply, a real click as the human's, while it shows, then comes
- * back with Back.
+ * back with Back once the page it opens is drawn in the session's place. Back before then is in
+ * `routes.test.ts`.
  */
 async function followAndComeBack(link: HTMLElement, path: string) {
   await userEvent.click(link);
   await expect.poll(() => window.location.pathname).toBe(path);
+  await expect.poll(() => link.isConnected, LIVE).toBe(false);
   await drawn();
   await act(async () => window.history.back());
   await expect.poll(() => window.location.pathname).toBe(`/f/${CLI}/session`);
