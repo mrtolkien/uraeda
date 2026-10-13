@@ -2,7 +2,7 @@
 //! top level: in `.agents/skills/` for every agent that reads it, in `.claude/skills/` for Claude
 //! Code, or both, the second linked to the first. Writes only into folders it installed.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
@@ -208,10 +208,53 @@ fn inside(path: &str) -> bool {
             .all(|component| matches!(component, Component::Normal(_)))
 }
 
+/// The first link on a path inside the skill folder `dir`, the file itself included, from `dir`.
+fn first_link(dir: &Path, path: &str) -> Option<PathBuf> {
+    let mut current = PathBuf::new();
+    for component in Path::new(path).components() {
+        current.push(component);
+        let meta = fs::symlink_metadata(dir.join(&current));
+        if meta.is_ok_and(|meta| meta.file_type().is_symlink()) {
+            return Some(current);
+        }
+    }
+    None
+}
+
+/// The links found inside an installed skill, each kept, and printed once.
+struct Links<'a> {
+    dir: &'a Path,
+    shown_dir: &'a str,
+    seen: BTreeSet<PathBuf>,
+}
+
+impl Links<'_> {
+    /// Whether a path of the skill goes through a link, which is then kept.
+    fn through(&mut self, path: &str, lines: &mut Vec<InstallLine>) -> bool {
+        let Some(link) = first_link(self.dir, path) else {
+            return false;
+        };
+        if self.seen.insert(link.clone()) {
+            let target = fs::read_link(self.dir.join(&link)).unwrap_or_default();
+            lines.push(InstallLine::Kept(
+                format!("{}/{}", self.shown_dir, link.display()),
+                Some(format!("a link to {}", target.display())),
+            ));
+        }
+        true
+    }
+}
+
 /// Updates an installed skill from its manifest: writes the files nobody edited since they were
 /// installed, keeps the edited ones, and removes the files the skill no longer has, unless edited.
-/// A manifest's path outside the skill, absolute or with `..`, is ignored.
+/// A manifest's path outside the skill, absolute or with `..`, is ignored, and a path through a
+/// link inside the skill, the manifest's included, is kept: nothing is written through a link.
 fn refresh(dir: &Path, shown_dir: &str, lines: &mut Vec<InstallLine>) -> Result<(), ActionError> {
+    let mut links = Links {
+        dir,
+        shown_dir,
+        seen: BTreeSet::new(),
+    };
     let recorded = fs::read_to_string(dir.join(MANIFEST)).unwrap_or_default();
     let installed: BTreeMap<String, String> = recorded
         .lines()
@@ -224,6 +267,12 @@ fn refresh(dir: &Path, shown_dir: &str, lines: &mut Vec<InstallLine>) -> Result<
     let mut manifest = BTreeMap::new();
     let mut written = 0;
     for (path, bytes) in &embedded {
+        if links.through(path, lines) {
+            if let Some(hash) = installed.get(path) {
+                manifest.insert(path.clone(), hash.clone());
+            }
+            continue;
+        }
         let target = dir.join(path);
         let shown = format!("{shown_dir}/{path}");
         let new_hash = sha256(bytes);
@@ -258,6 +307,10 @@ fn refresh(dir: &Path, shown_dir: &str, lines: &mut Vec<InstallLine>) -> Result<
         if embedded.contains_key(path) {
             continue;
         }
+        if links.through(path, lines) {
+            manifest.insert(path.clone(), hash.clone());
+            continue;
+        }
         let target = dir.join(path);
         match fs::read(&target) {
             Ok(current) if &sha256(&current) == hash => {
@@ -271,7 +324,7 @@ fn refresh(dir: &Path, shown_dir: &str, lines: &mut Vec<InstallLine>) -> Result<
         }
     }
     let text = manifest_text(&manifest);
-    if text != recorded {
+    if text != recorded && !links.through(MANIFEST, lines) {
         write(
             &dir.join(MANIFEST),
             text.as_bytes(),
