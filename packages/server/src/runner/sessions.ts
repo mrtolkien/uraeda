@@ -644,7 +644,8 @@ export class Sessions {
 
   /**
    * Interrupts the turn, which then ends as `end` says: SIGINT when it has not ended 10 seconds
-   * later, and SIGTERM 10 seconds after that. Its messages not read yet are taken back.
+   * later, and SIGTERM 10 seconds after that. Its messages not read yet are taken back, and marked
+   * so by the agent's `cancelled`.
    */
   #halt(live: Live, turn: Running, end: { state: TurnState; reason?: string }) {
     if (turn.stop) {
@@ -656,22 +657,27 @@ export class Sessions {
     if (!proc) {
       return;
     }
-    if (this.adapter.capabilities.takeBack) {
-      for (const [id, sent] of live.messages) {
-        if (
-          sent.turn === turn.id &&
-          sent.written &&
-          sent.item.state === "pending" &&
-          id !== turn.first
-        ) {
-          proc.agent.takeBack(id);
-        }
-      }
+    for (const [id] of this.#unread(live, turn)) {
+      proc.agent.takeBack(id);
     }
     proc.agent.interrupt();
     turn.terminate.push(
       setTimeout(() => proc.agent.kill("SIGINT"), TERMINATE_AFTER_MS),
       setTimeout(() => proc.agent.kill("SIGTERM"), 2 * TERMINATE_AFTER_MS),
+    );
+  }
+
+  /**
+   * The messages steered into the turn that the agent has not read, which it can take back: none
+   * when it cannot.
+   */
+  #unread(live: Live, turn: Running): Array<[string, Sent]> {
+    if (!this.adapter.capabilities.takeBack) {
+      return [];
+    }
+    return [...live.messages].filter(
+      ([id, sent]) =>
+        sent.turn === turn.id && sent.written && sent.item.state === "pending" && id !== turn.first,
     );
   }
 
@@ -895,6 +901,14 @@ export class Sessions {
     );
     if (result.ok && !turn.stop && unread) {
       return;
+    }
+    // A turn that ends on its own, as one that failed, takes back what the agent did not read:
+    // it would otherwise run after it, in no turn.
+    if (!turn.stop) {
+      for (const [id, sent] of this.#unread(live, turn)) {
+        proc.agent.takeBack(id);
+        this.#mark(live, sent, "taken-back");
+      }
     }
     const end =
       turn.stop ??

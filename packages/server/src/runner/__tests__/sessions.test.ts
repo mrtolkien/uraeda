@@ -136,6 +136,23 @@ test("US1.4: a pending message can be taken back", async () => {
   expect(adapter.takenBack).toEqual([message]);
 });
 
+test("a turn that fails takes back the message steered into it, which no turn would record", async () => {
+  const { sessions, adapter, cache, repo } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
+  await sessions.send(repo, session.id, { text: "Use the helper" });
+  const steered = adapter.sent[1]!.id;
+
+  adapter.emit(done({ ok: false, errors: ["API error"] }));
+  await sessions.settled(turn);
+
+  expect(cache.turn(turn)).toMatchObject({ state: "failed", reason: "API error" });
+  expect(adapter.takenBack).toEqual([steered]);
+  expect(cache.itemsOf(turn, "message").find((each) => each.id === steered)?.state).toBe(
+    "taken-back",
+  );
+});
+
 test("US1.5: Stop interrupts the turn and keeps the process", async () => {
   const { sessions, adapter, cache, repo } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
