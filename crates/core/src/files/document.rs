@@ -2,6 +2,8 @@
 //! spans of their text, sent flat so napi-rs can generate their types. The UI draws it without
 //! parsing markdown (see `specs/decisions/stack.md`).
 
+use std::ops::Range;
+
 #[cfg(feature = "napi")]
 use napi_derive::napi;
 use pulldown_cmark::{
@@ -234,6 +236,9 @@ struct Builder<'a> {
     item_paragraph: Vec<(u32, bool)>,
     /// Whether the text of a `> [!QUESTION]` marker is being skipped.
     question_marker: bool,
+    /// The frontmatter's lines, and whether the parser is inside it.
+    frontmatter_lines: Option<LineRange>,
+    in_metadata: bool,
 }
 
 impl Builder<'_> {
@@ -366,231 +371,24 @@ pub fn parse(text: &str, dir: &str) -> Document {
         column: 0,
         item_paragraph: Vec::new(),
         question_marker: false,
+        frontmatter_lines: None,
+        in_metadata: false,
     };
-    let mut frontmatter_lines = None;
-    let mut in_metadata = false;
     for (event, range) in Parser::new_ext(text, options()).into_offset_iter() {
-        match event {
-            Event::Start(Tag::MetadataBlock(_)) => {
-                in_metadata = true;
-                let (start, end) = builder.lines_of(&range);
-                frontmatter_lines = Some(LineRange { start, end });
-            }
-            Event::End(TagEnd::MetadataBlock(_)) => in_metadata = false,
-            _ if in_metadata => {}
-            Event::Start(Tag::Heading { level: l, .. }) => {
-                let id = builder.push(BlockKind::Heading, &range);
-                builder.blocks[id as usize].level = Some(level(l));
-                builder.target = Some(id);
-            }
-            Event::End(TagEnd::Heading(_)) => {
-                builder.target = None;
-                builder.close();
-            }
-            Event::Start(Tag::Paragraph) => {
-                // An item's first paragraph is the item's own text.
-                if let Some((item, false)) = builder.item_paragraph.last().copied()
-                    && builder.open.last() == Some(&item)
-                {
-                    builder.item_paragraph.last_mut().unwrap().1 = true;
-                    builder.target = Some(item);
-                    builder.open.push(u32::MAX);
-                    continue;
-                }
-                let quote_start = builder.open.last().and_then(|&id| {
-                    let block = builder.blocks.get(id as usize)?;
-                    (block.kind == BlockKind::Quote
-                        && builder.children_count(id) == 0
-                        && is_question_marker(text, &range))
-                    .then_some(id)
-                });
-                if let Some(quote) = quote_start {
-                    let block = &mut builder.blocks[quote as usize];
-                    block.kind = BlockKind::Callout;
-                    block.callout_kind = Some(CalloutKind::Question);
-                    builder.question_marker = true;
-                    builder.target = Some(quote);
-                    builder.open.push(u32::MAX);
-                    continue;
-                }
-                let id = builder.push(BlockKind::Paragraph, &range);
-                builder.target = Some(id);
-            }
-            Event::End(TagEnd::Paragraph) => {
-                if let Some(&id) = builder.open.last()
-                    && let Some(block) = builder.blocks.get_mut(id as usize)
-                    && block.kind == BlockKind::Paragraph
-                {
-                    let (_, end) = builder.lines_of(&range);
-                    builder.blocks[id as usize].end_line = end;
-                }
-                builder.target = None;
-                builder.question_marker = false;
-                builder.close();
-            }
-            Event::Start(Tag::List(first)) => {
-                let id = builder.push(BlockKind::List, &range);
-                let block = &mut builder.blocks[id as usize];
-                block.ordered = Some(first.is_some());
-                block.start = first.map(|n| n as u32);
-            }
-            Event::End(TagEnd::List(_)) => builder.close(),
-            Event::Start(Tag::Item) => {
-                let id = builder.push(BlockKind::Item, &range);
-                builder.item_paragraph.push((id, false));
-                builder.target = Some(id);
-            }
-            Event::End(TagEnd::Item) => {
-                if let Some((item, _)) = builder.item_paragraph.pop() {
-                    item_marker(&mut builder.blocks[item as usize]);
-                }
-                builder.target = None;
-                builder.close();
-            }
-            Event::TaskListMarker(checked) => {
-                if let Some((item, _)) = builder.item_paragraph.last().copied() {
-                    let block = &mut builder.blocks[item as usize];
-                    block.marker = Some(ItemMarker::Task);
-                    block.checked = Some(checked);
-                }
-            }
-            Event::Start(Tag::BlockQuote(kind)) => {
-                let id = builder.push(BlockKind::Quote, &range);
-                if let Some(kind) = kind {
-                    let block = &mut builder.blocks[id as usize];
-                    block.kind = BlockKind::Callout;
-                    block.callout_kind = Some(callout_kind(kind));
-                }
-                builder.target = None;
-            }
-            Event::End(TagEnd::BlockQuote(_)) => builder.close(),
-            Event::Start(Tag::CodeBlock(kind)) => {
-                let id = builder.push(BlockKind::Code, &range);
-                let block = &mut builder.blocks[id as usize];
-                block.language = match kind {
-                    CodeBlockKind::Fenced(info) => info
-                        .split_whitespace()
-                        .next()
-                        .map(String::from)
-                        .filter(|l| !l.is_empty()),
-                    CodeBlockKind::Indented => None,
-                };
-                block.text = Some(String::new());
-                builder.target = None;
-            }
-            Event::End(TagEnd::CodeBlock) => builder.close(),
-            Event::Start(Tag::HtmlBlock) => {
-                let id = builder.push(BlockKind::Html, &range);
-                builder.blocks[id as usize].text = Some(String::new());
-            }
-            Event::End(TagEnd::HtmlBlock) => builder.close(),
-            Event::Start(Tag::Table(alignments)) => {
-                builder.push(BlockKind::Table, &range);
-                builder.alignments = alignments;
-            }
-            Event::End(TagEnd::Table) => builder.close(),
-            Event::Start(Tag::TableHead) => {
-                let id = builder.push(BlockKind::Row, &range);
-                builder.blocks[id as usize].header = Some(true);
-                builder.column = 0;
-            }
-            Event::Start(Tag::TableRow) => {
-                let id = builder.push(BlockKind::Row, &range);
-                builder.blocks[id as usize].header = Some(false);
-                builder.column = 0;
-            }
-            Event::End(TagEnd::TableHead | TagEnd::TableRow) => builder.close(),
-            Event::Start(Tag::TableCell) => {
-                let id = builder.push(BlockKind::Cell, &range);
-                let align = match builder.alignments.get(builder.column) {
-                    Some(Alignment::Left) => Some("left"),
-                    Some(Alignment::Center) => Some("center"),
-                    Some(Alignment::Right) => Some("right"),
-                    _ => None,
-                };
-                builder.blocks[id as usize].align = align.map(String::from);
-                builder.column += 1;
-                builder.target = Some(id);
-            }
-            Event::End(TagEnd::TableCell) => {
-                builder.target = None;
-                builder.close();
-            }
-            Event::Rule => {
-                builder.push(BlockKind::Rule, &range);
-                builder.close();
-            }
-            Event::Start(Tag::Strong) => builder.marks.strong += 1,
-            Event::End(TagEnd::Strong) => builder.marks.strong -= 1,
-            Event::Start(Tag::Emphasis) => builder.marks.emphasis += 1,
-            Event::End(TagEnd::Emphasis) => builder.marks.emphasis -= 1,
-            Event::Start(Tag::Strikethrough) => builder.marks.strike += 1,
-            Event::End(TagEnd::Strikethrough) => builder.marks.strike -= 1,
-            Event::Start(Tag::Link {
-                link_type,
-                dest_url,
-                ..
-            }) => {
-                let wiki = matches!(link_type, LinkType::WikiLink { .. });
-                builder.marks.link = Some(builder.link(&dest_url, wiki));
-            }
-            Event::End(TagEnd::Link) => builder.marks.link = None,
-            Event::Text(part) => {
-                if let Some(&id) = builder.open.last()
-                    && let Some(block) = builder.blocks.get_mut(id as usize)
-                    && matches!(block.kind, BlockKind::Code | BlockKind::Html)
-                {
-                    block.text.get_or_insert_default().push_str(&part);
-                    continue;
-                }
-                if builder.question_marker {
-                    // The marker line's own text, then the callout's title on the same line.
-                    let rest = strip_question_marker(&part);
-                    if let Some(rest) = rest {
-                        if !rest.trim().is_empty() {
-                            builder.span(rest.trim_start(), false);
-                        }
-                        continue;
-                    }
-                }
-                builder.span(&part, false);
-            }
-            Event::Code(part) => builder.span(&part, true),
-            Event::Html(part) => {
-                if let Some(&id) = builder.open.last()
-                    && let Some(block) = builder.blocks.get_mut(id as usize)
-                    && block.kind == BlockKind::Html
-                {
-                    block.text.get_or_insert_default().push_str(&part);
-                }
-            }
-            Event::InlineHtml(part) => builder.span(&part, false),
-            Event::SoftBreak => {
-                if builder.question_marker {
-                    // The question callout's body starts on the line after its marker.
-                    builder.question_marker = false;
-                    builder.open.pop();
-                    let line = builder.lines.of(range.end) as u32;
-                    let id = builder.blocks.len() as u32;
-                    builder.blocks.push(block(
-                        id,
-                        builder.open.last().copied(),
-                        BlockKind::Paragraph,
-                        line,
-                        line,
-                    ));
-                    builder.open.push(id);
-                    builder.target = Some(id);
-                    continue;
-                }
-                builder.span(" ", false);
-            }
-            Event::HardBreak => builder.span("\n", false),
-            _ => {}
-        }
+        builder.event(event, &range);
     }
     let mut blocks = builder.blocks;
-    // Empty items keep their marker; trailing spaces of item text go.
+    name_sections(&mut blocks);
+    Document {
+        blocks,
+        frontmatter_lines: builder.frontmatter_lines,
+        hash: hash(text),
+    }
+}
+
+/// Gives each heading its anchor, and each block the text of its nearest heading, in line order;
+/// trailing spaces of a block's text go, and empty items keep their marker.
+fn name_sections(blocks: &mut [Block]) {
     let mut current: Option<String> = None;
     let mut taken: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
     let mut order: Vec<usize> = (0..blocks.len()).collect();
@@ -614,11 +412,6 @@ pub fn parse(text: &str, dir: &str) -> Document {
             last.text.truncate(trimmed);
         }
     }
-    Document {
-        blocks,
-        frontmatter_lines,
-        hash: hash(text),
-    }
 }
 
 impl Builder<'_> {
@@ -627,6 +420,247 @@ impl Builder<'_> {
             .iter()
             .filter(|block| block.parent == Some(id))
             .count()
+    }
+
+    /// Reads one event of the parser, at `range` of the text.
+    fn event(&mut self, event: Event<'_>, range: &Range<usize>) {
+        match event {
+            Event::Start(Tag::MetadataBlock(_)) => {
+                self.in_metadata = true;
+                let (start, end) = self.lines_of(range);
+                self.frontmatter_lines = Some(LineRange { start, end });
+            }
+            Event::End(TagEnd::MetadataBlock(_)) => self.in_metadata = false,
+            _ if self.in_metadata => {}
+            Event::Start(tag) => self.start(tag, range),
+            Event::End(tag) => self.end(tag, range),
+            Event::TaskListMarker(checked) => {
+                if let Some((item, _)) = self.item_paragraph.last().copied() {
+                    let block = &mut self.blocks[item as usize];
+                    block.marker = Some(ItemMarker::Task);
+                    block.checked = Some(checked);
+                }
+            }
+            Event::Rule => {
+                self.push(BlockKind::Rule, range);
+                self.close();
+            }
+            Event::Text(part) => self.text(&part),
+            Event::Code(part) => self.span(&part, true),
+            Event::Html(part) => {
+                if let Some(&id) = self.open.last()
+                    && let Some(block) = self.blocks.get_mut(id as usize)
+                    && block.kind == BlockKind::Html
+                {
+                    block.text.get_or_insert_default().push_str(&part);
+                }
+            }
+            Event::InlineHtml(part) => self.span(&part, false),
+            Event::SoftBreak => self.soft_break(range),
+            Event::HardBreak => self.span("\n", false),
+            _ => {}
+        }
+    }
+
+    /// Opens a block, or a mark of inline text.
+    fn start(&mut self, tag: Tag<'_>, range: &Range<usize>) {
+        match tag {
+            Tag::Heading { level: l, .. } => {
+                let id = self.push(BlockKind::Heading, range);
+                self.blocks[id as usize].level = Some(level(l));
+                self.target = Some(id);
+            }
+            Tag::Paragraph => self.start_paragraph(range),
+            Tag::List(first) => {
+                let id = self.push(BlockKind::List, range);
+                let block = &mut self.blocks[id as usize];
+                block.ordered = Some(first.is_some());
+                block.start = first.map(|n| n as u32);
+            }
+            Tag::Item => {
+                let id = self.push(BlockKind::Item, range);
+                self.item_paragraph.push((id, false));
+                self.target = Some(id);
+            }
+            Tag::BlockQuote(kind) => {
+                let id = self.push(BlockKind::Quote, range);
+                if let Some(kind) = kind {
+                    let block = &mut self.blocks[id as usize];
+                    block.kind = BlockKind::Callout;
+                    block.callout_kind = Some(callout_kind(kind));
+                }
+                self.target = None;
+            }
+            Tag::CodeBlock(kind) => {
+                let id = self.push(BlockKind::Code, range);
+                let block = &mut self.blocks[id as usize];
+                block.language = match kind {
+                    CodeBlockKind::Fenced(info) => info
+                        .split_whitespace()
+                        .next()
+                        .map(String::from)
+                        .filter(|l| !l.is_empty()),
+                    CodeBlockKind::Indented => None,
+                };
+                block.text = Some(String::new());
+                self.target = None;
+            }
+            Tag::HtmlBlock => {
+                let id = self.push(BlockKind::Html, range);
+                self.blocks[id as usize].text = Some(String::new());
+            }
+            Tag::Table(alignments) => {
+                self.push(BlockKind::Table, range);
+                self.alignments = alignments;
+            }
+            Tag::TableHead | Tag::TableRow => {
+                let id = self.push(BlockKind::Row, range);
+                self.blocks[id as usize].header = Some(matches!(tag, Tag::TableHead));
+                self.column = 0;
+            }
+            Tag::TableCell => self.start_cell(range),
+            Tag::Strong => self.marks.strong += 1,
+            Tag::Emphasis => self.marks.emphasis += 1,
+            Tag::Strikethrough => self.marks.strike += 1,
+            Tag::Link {
+                link_type,
+                dest_url,
+                ..
+            } => {
+                let wiki = matches!(link_type, LinkType::WikiLink { .. });
+                self.marks.link = Some(self.link(&dest_url, wiki));
+            }
+            _ => {}
+        }
+    }
+
+    /// Closes a block, or a mark of inline text.
+    fn end(&mut self, tag: TagEnd, range: &Range<usize>) {
+        match tag {
+            TagEnd::Heading(_) | TagEnd::TableCell => {
+                self.target = None;
+                self.close();
+            }
+            TagEnd::Paragraph => {
+                if let Some(&id) = self.open.last()
+                    && let Some(block) = self.blocks.get_mut(id as usize)
+                    && block.kind == BlockKind::Paragraph
+                {
+                    let (_, end) = self.lines_of(range);
+                    self.blocks[id as usize].end_line = end;
+                }
+                self.target = None;
+                self.question_marker = false;
+                self.close();
+            }
+            TagEnd::Item => {
+                if let Some((item, _)) = self.item_paragraph.pop() {
+                    item_marker(&mut self.blocks[item as usize]);
+                }
+                self.target = None;
+                self.close();
+            }
+            TagEnd::List(_)
+            | TagEnd::BlockQuote(_)
+            | TagEnd::CodeBlock
+            | TagEnd::HtmlBlock
+            | TagEnd::Table
+            | TagEnd::TableHead
+            | TagEnd::TableRow => self.close(),
+            TagEnd::Strong => self.marks.strong -= 1,
+            TagEnd::Emphasis => self.marks.emphasis -= 1,
+            TagEnd::Strikethrough => self.marks.strike -= 1,
+            TagEnd::Link => self.marks.link = None,
+            _ => {}
+        }
+    }
+
+    /// A paragraph: an item's first one is the item's own text, and a quote's first one holding
+    /// the `[!QUESTION]` marker makes the quote a question callout.
+    fn start_paragraph(&mut self, range: &Range<usize>) {
+        if let Some((item, false)) = self.item_paragraph.last().copied()
+            && self.open.last() == Some(&item)
+        {
+            self.item_paragraph.last_mut().unwrap().1 = true;
+            self.target = Some(item);
+            self.open.push(u32::MAX);
+            return;
+        }
+        let quote_start = self.open.last().and_then(|&id| {
+            let block = self.blocks.get(id as usize)?;
+            (block.kind == BlockKind::Quote
+                && self.children_count(id) == 0
+                && is_question_marker(self.text, range))
+            .then_some(id)
+        });
+        if let Some(quote) = quote_start {
+            let block = &mut self.blocks[quote as usize];
+            block.kind = BlockKind::Callout;
+            block.callout_kind = Some(CalloutKind::Question);
+            self.question_marker = true;
+            self.target = Some(quote);
+            self.open.push(u32::MAX);
+            return;
+        }
+        let id = self.push(BlockKind::Paragraph, range);
+        self.target = Some(id);
+    }
+
+    /// A table cell, aligned as its column.
+    fn start_cell(&mut self, range: &Range<usize>) {
+        let id = self.push(BlockKind::Cell, range);
+        let align = match self.alignments.get(self.column) {
+            Some(Alignment::Left) => Some("left"),
+            Some(Alignment::Center) => Some("center"),
+            Some(Alignment::Right) => Some("right"),
+            _ => None,
+        };
+        self.blocks[id as usize].align = align.map(String::from);
+        self.column += 1;
+        self.target = Some(id);
+    }
+
+    /// Text: a code or HTML block's, the `[!QUESTION]` marker's, or a span.
+    fn text(&mut self, part: &str) {
+        if let Some(&id) = self.open.last()
+            && let Some(block) = self.blocks.get_mut(id as usize)
+            && matches!(block.kind, BlockKind::Code | BlockKind::Html)
+        {
+            block.text.get_or_insert_default().push_str(part);
+            return;
+        }
+        if self.question_marker {
+            // The marker line's own text, then the callout's title on the same line.
+            if let Some(rest) = strip_question_marker(part) {
+                if !rest.trim().is_empty() {
+                    self.span(rest.trim_start(), false);
+                }
+                return;
+            }
+        }
+        self.span(part, false);
+    }
+
+    /// A soft break: a space, or, after a question callout's marker line, the start of its body.
+    fn soft_break(&mut self, range: &Range<usize>) {
+        if !self.question_marker {
+            self.span(" ", false);
+            return;
+        }
+        // The question callout's body starts on the line after its marker.
+        self.question_marker = false;
+        self.open.pop();
+        let line = self.lines.of(range.end) as u32;
+        let id = self.blocks.len() as u32;
+        self.blocks.push(block(
+            id,
+            self.open.last().copied(),
+            BlockKind::Paragraph,
+            line,
+            line,
+        ));
+        self.open.push(id);
+        self.target = Some(id);
     }
 }
 
