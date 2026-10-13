@@ -12,9 +12,9 @@ plan-review: false
 >
 > Approved on 2026-10-13.
 >
-> - One changed decision: the [stack](../decisions/stack.md#proposed-change-2026-10-13-nvim-plugin)
->   gains a language server, `ura lsp` on `lsp-server`, and a rule that editor plugins never parse
->   workflow files. Code actions only edit the open buffer: nothing that commits is a quick fix.
+> - One changed decision: the [stack](../decisions/stack.md) gains a language server, `ura lsp` on
+>   `lsp-server`, and a rule that editor plugins never parse workflow files. Code actions only edit
+>   the open buffer: nothing that commits is a quick fix.
 > - Approving, requesting changes, and submitting answers open their own verdict window, with a
 >   coloured border and the commit it will make, from `<leader>av` or from a human status in the
 >   field picker: my reading of "look and feel different".
@@ -516,8 +516,7 @@ Changed, applied when this spec is approved:
 
 - [Stack](../decisions/stack.md): editors reach the workflow through `ura lsp`, in `crates/lsp` on
   `lsp-server`; editor plugins live in `editors/` and never parse workflow files; code actions only
-  edit the open document. See its
-  [proposed change](../decisions/stack.md#proposed-change-2026-10-13-nvim-plugin).
+  edit the open document. See its [proposed change](../decisions/stack.md).
 
 Relied on:
 

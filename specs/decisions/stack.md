@@ -9,7 +9,8 @@ Uraeda's workflow logic is written once, in Rust, in a core crate. The `ura` CLI
 built on it. The server is a TypeScript program on Node that calls the same core through a napi-rs
 binding, and the web UI is React with Astryx and fate, fed by the server. TypeScript never
 reimplements what the core does, and the types that cross from Rust are generated, never written by
-hand.
+hand. Editors reach the same core through a language server, `ura lsp`, and their plugins never
+parse workflow files.
 
 ## Rules
 
@@ -33,6 +34,15 @@ hand.
   or `localhost` on its port, or a host name listed in `URAEDA_ALLOWED_HOSTS`, and requests whose
   `Origin`, when present, is not the server's own, `https://` and a listed host name, or an allowed
   origin.
+- The language server MUST live in `crates/lsp`, run as `ura lsp` over stdio, and reach workflow
+  files only through the core.
+- The language server MUST be built on the `lsp-server` and `lsp-types` crates, without an async
+  runtime.
+- Editor plugins MUST live in `editors/<editor>/`, and MUST reach workflow files only through
+  `ura lsp`. They MUST NOT parse workflow files, their frontmatter, or their structure, with a
+  library or by hand.
+- The language server's completions and code actions MUST only edit the open document. Actions that
+  write another file or commit MUST be commands the user runs explicitly, never code actions.
 
 ## Why
 
@@ -65,6 +75,19 @@ messages are not workflow files, and look much better rendered: the human allowe
 `Markdown` component for them when approving the
 [Claude Code runner](../done/2026-10-12-claude-code-runner-triggered-manually-https-code.md).
 
+Editors reach the workflow through a language server, which the human chose over a plugin calling
+the CLI, or parsing in Lua, so the editor gets diagnostics while typing and edits it can undo, and
+other editors can use the same server
+([Q1](../2026-10-13-nvim-plugin/clarifications-01.md#q1-how-does-the-plugin-reach-the-workflow-logic),
+[reaching the workflow logic](../2026-10-13-nvim-plugin/discovery-01.md#reaching-the-workflow-logic)).
+`lsp-server` is the smallest server crate, synchronous like the core, and the one rust-analyzer
+uses; `tower-lsp-server` costs about five times more in the binary, with tokio
+([Rust language server crates](../2026-10-13-nvim-plugin/discovery-01.md#rust-language-server-crates)).
+A plugin parsing workflow files would be a second parser, drifting from the core's rules, as a
+TypeScript one would. Commits stay out of code actions: a code action is a quick fix, picked from a
+list next to other servers' fixes, and approving or starting a feature must be a deliberate act
+([Q2](../2026-10-13-nvim-plugin/clarifications-01.md#q2-what-does-picking-a-human-status-do)).
+
 ## Alternatives considered
 
 - All TypeScript, the CLI shipped with Bun: one toolchain, but an 80 MB binary.
@@ -77,6 +100,9 @@ messages are not workflow files, and look much better rendered: the human allowe
   ([data layer](../done/2026-10-11-web-ui.md#q5-does-fate-stay-the-data-layer)).
 - Astryx's `Markdown` component, or a TypeScript parser, for the UI's rendering: dropped for the
   core's document tree, the only parser that knows the skill's markdown and its source lines.
+- An editor plugin calling `ura` with `--json` for every read and write: the smallest Rust work, but
+  every write on disk, outside the editor's undo, and no diagnostics while typing.
+- A plugin parsing workflow files in Lua: the most responsive, but a second parser.
 
 ## Consequences
 
@@ -92,75 +118,14 @@ messages are not workflow files, and look much better rendered: the human allowe
 - Anyone who can reach a listed host name reaches the server: the tailnet's access rules are its
   only protection there.
 - Every markdown feature the UI shows, like a new callout type, is added to the core first.
-
-## Applies to
-
-- [`crates/`](/crates/) and [`packages/`](/packages/), and every feature that adds logic, a command,
-  an endpoint, or a page
-
-## Proposed change (2026-10-13-nvim-plugin)
-
-Proposed by the [spec](../2026-10-13-nvim-plugin/spec.md). Editors reach the workflow through a
-language server in Rust, `ura lsp`, built on the core: editor plugins hold the editor's interface,
-and never parse workflow files.
-
-The rules become:
-
-- Workflow logic, parsing, validation, and workflow states MUST live in the Rust core,
-  [`crates/core`](/crates/core/).
-- The CLI MUST be written in Rust, in [`crates/cli`](/crates/cli/), build the binary `ura`, and MUST
-  NOT need Node or any other runtime to run.
-- The server MUST be written in TypeScript, run on Node, and live in
-  [`packages/server`](/packages/server/).
-- TypeScript code MUST reach the core only through the binding,
-  [`packages/binding`](/packages/binding/), and MUST NOT reimplement its parsing, validation, or
-  states.
-- The TypeScript types of core data MUST come from the declarations napi-rs generates for the
-  binding. They MUST NOT be redeclared by hand in TypeScript.
-- The web UI MUST use React and Astryx components, live in [`packages/web`](/packages/web/), and get
-  its data only from the server, through fate.
-- The web UI MUST draw workflow files from the document tree the core sends, and MUST NOT parse
-  their markdown, with a library or by hand. It MAY render an agent's messages, which are not
-  workflow files, with Astryx's `Markdown` component.
-- The server MUST listen on 127.0.0.1 only. It MUST reject requests whose `Host` is not `127.0.0.1`
-  or `localhost` on its port, or a host name listed in `URAEDA_ALLOWED_HOSTS`, and requests whose
-  `Origin`, when present, is not the server's own, `https://` and a listed host name, or an allowed
-  origin.
-- The language server MUST live in `crates/lsp`, run as `ura lsp` over stdio, and reach workflow
-  files only through the core.
-- The language server MUST be built on the `lsp-server` and `lsp-types` crates, without an async
-  runtime.
-- Editor plugins MUST live in `editors/<editor>/`, and MUST reach workflow files only through
-  `ura lsp`. They MUST NOT parse workflow files, their frontmatter, or their structure, with a
-  library or by hand.
-- The language server's completions and code actions MUST only edit the open document. Actions that
-  write another file or commit MUST be commands the user runs explicitly, never code actions.
-
-Why: the human chose a language server over a plugin calling the CLI, or parsing in Lua, so the
-editor gets diagnostics while typing and edits it can undo, and other editors can use the same
-server
-([Q1](../2026-10-13-nvim-plugin/clarifications-01.md#q1-how-does-the-plugin-reach-the-workflow-logic),
-[reaching the workflow logic](../2026-10-13-nvim-plugin/discovery-01.md#reaching-the-workflow-logic)).
-`lsp-server` is the smallest server crate, synchronous like the core, and the one rust-analyzer
-uses; `tower-lsp-server` costs about five times more in the binary, with tokio
-([Rust language server crates](../2026-10-13-nvim-plugin/discovery-01.md#rust-language-server-crates)).
-A plugin parsing workflow files would be a second parser, drifting from the core's rules, as a
-TypeScript one would. Commits stay out of code actions: a code action is a quick fix, picked from a
-list next to other servers' fixes, and approving or starting a feature must be a deliberate act
-([Q2](../2026-10-13-nvim-plugin/clarifications-01.md#q2-what-does-picking-a-human-status-do)).
-
-Alternatives considered, added to the list:
-
-- An editor plugin calling `ura` with `--json` for every read and write: the smallest Rust work, but
-  every write on disk, outside the editor's undo, and no diagnostics while typing.
-- A plugin parsing workflow files in Lua: the most responsive, but a second parser.
-
-Consequences, added to the list:
-
 - Neovim, Helix, VS Code, and Zed reach the same diagnostics, completions, and commands through one
   server; each editor still needs a thin plugin for pickers and input windows.
 - The `ura` binary grows by the server and its two crates, about 263 KB measured alone.
 - Every editor action is a core function first: an action the web UI lacks is added to the core, and
   both reach it.
 
-Applies to, added: [`editors/`](/editors/), and every feature that adds an editor integration.
+## Applies to
+
+- [`crates/`](/crates/) and [`packages/`](/packages/), and every feature that adds logic, a command,
+  an endpoint, or a page
+- [`editors/`](/editors/), and every feature that adds an editor integration
