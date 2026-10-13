@@ -212,8 +212,10 @@ export type Actions = {
   canTakeBack: boolean;
   /** Called with a message's text once it is taken back. */
   onTakenBack?: (text: string) => void;
-  /** Allows a blocked action; absent while the session works. */
+  /** Allows a blocked action. */
   onAllow?: (turn: string, seq: number) => Promise<void>;
+  /** Whether a blocked action can be allowed now: not while the session works. */
+  canAllow: boolean;
   groups?: OpenGroups;
 };
 
@@ -276,9 +278,12 @@ function Message({
   );
 }
 
-/** An action `auto` mode blocked, with "Allow and retry" while the session waits. */
+/**
+ * An action `auto` mode blocked, with "Allow and retry", disabled while the session works: it
+ * reopens the process.
+ */
 function Denial({ item, turn, actions }: { item: DenialItem; turn: string; actions: Actions }) {
-  const { onAllow } = actions;
+  const { onAllow, canAllow } = actions;
   return (
     <Banner
       status="warning"
@@ -287,7 +292,11 @@ function Denial({ item, turn, actions }: { item: DenialItem; turn: string; actio
       description={item.allowed ? "Allowed for the session's process." : undefined}
       endContent={
         !item.allowed && onAllow ? (
-          <Button label="Allow and retry" clickAction={() => onAllow(turn, item.seq)} />
+          <Button
+            label="Allow and retry"
+            isDisabled={!canAllow}
+            clickAction={() => onAllow(turn, item.seq)}
+          />
         ) : undefined
       }
     />
@@ -487,17 +496,19 @@ function Turn({ id, latest, actions }: { id: string; latest: boolean; actions: A
 
 /**
  * A session's turns in order, named "Conversation", each kept up to date while it goes on. The
- * address's `#turn-<id>` scrolls to its turn once drawn. `onAllow` allows a blocked action; it is
- * given only while the session does not work.
+ * address's `#turn-<id>` scrolls to its turn once drawn. `onAllow` allows a blocked action, while
+ * `canAllow`.
  */
 export function Transcript({
   session,
   onAllow,
+  canAllow = true,
   onTakenBack,
   groups,
 }: {
   session: { id: string; turns: ReadonlyArray<string> };
   onAllow?: (turn: string, seq: number) => Promise<void>;
+  canAllow?: boolean;
   onTakenBack?: (text: string) => void;
   groups?: OpenGroups;
 }) {
@@ -513,6 +524,7 @@ export function Transcript({
     canTakeBack: Boolean(agent?.capabilities.takeBack),
     onTakenBack,
     onAllow,
+    canAllow,
     groups,
   };
   return (

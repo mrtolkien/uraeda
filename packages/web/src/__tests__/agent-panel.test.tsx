@@ -288,6 +288,27 @@ test("US5.1: a blocked action shows Allow and retry, and Needs you", async () =>
   );
 });
 
+test("Allow and retry is disabled while a turn works, since it reopens the process", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await seedRun(fake, repo, CLI, [
+    {
+      type: "result",
+      ok: true,
+      errors: [],
+      denials: [{ tool: "Bash", input: { command: "git push origin HEAD" } }],
+      interrupted: false,
+    },
+  ]);
+  const session = await fake.sessions.featureSession(repo, CLI);
+  await fake.sessions.send(repo, session.id, { text: "Why was it blocked?" });
+  await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
+
+  const allow = await (await log()).findByRole("button", { name: "Allow and retry" });
+
+  expect(allow.hasAttribute("disabled")).toBe(true);
+});
+
 test("a tool call shows its target, then its duration", async () => {
   // The session's page alone, with its own transcript.
   atWidth(402);
