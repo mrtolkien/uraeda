@@ -2,7 +2,15 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
-import { atWidth, fixtureRepo, git, renderPage, today } from "./helpers.tsx";
+import {
+  answered as readAnswered,
+  answersSoFar,
+  atWidth,
+  fixtureRepo,
+  git,
+  renderPage,
+  today,
+} from "./helpers.tsx";
 
 const FOLDER = "2026-10-11-web-ui";
 const PAGE = `/f/${FOLDER}/clarifications-01.md`;
@@ -332,11 +340,13 @@ test("a comment being written is not replaced by an answer changed elsewhere", a
   lines[at] = "**Answer:** C";
   writeFileSync(path, lines.join("\n"));
 
+  const from = answersSoFar();
   await act(async () => {
     document.dispatchEvent(new Event("visibilitychange"));
   });
 
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  // The page read the file again, with the answer changed elsewhere, and drew it.
+  await readAnswered("WorkflowFile", from);
   expect((comment("Q2") as HTMLTextAreaElement).value).toBe("half a tho");
   expect(saveButton("Q2").hasAttribute("disabled")).toBe(false);
 });
