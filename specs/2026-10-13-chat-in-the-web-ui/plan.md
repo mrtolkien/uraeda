@@ -209,7 +209,7 @@ The spec was approved with comments, in [spec-review.md](spec-review.md):
 
 The script spawns the real `claude`, by hand only: it is not part of `vp run ready`.
 
-- [ ] **Step 1: Add the checks to the script**, each printing `PASS <name>` or `FAIL <name>: <why>`,
+- [x] **Step 1: Add the checks to the script**, each printing `PASS <name>` or `FAIL <name>: <why>`,
       in a temporary directory, with `--model haiku`, stdin kept open:
   1. `two turns`: two user messages a few seconds apart in one process each end with a `result`,
      with the same `session_id`.
@@ -230,15 +230,15 @@ The script spawns the real `claude`, by hand only: it is not part of `vp run rea
      equal to the `Agent` (or `Task`) tool call's id.
   9. `resume`: close stdin, then `-p --resume <id>` with a new message answers with the earlier
      context.
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 - Run: `node packages/server/scripts/validate-claude.ts`
 - Expected: a `PASS` or `FAIL` line for each of the nine checks.
 
-- [ ] **Step 3: Write R5 in `rulings.md`**: the version tested, each result, the take-back request
+- [x] **Step 3: Write R5 in `rulings.md`**: the version tested, each result, the take-back request
       that worked or "none", and the event names seen. When `take back` failed, R5 says Claude
       sessions declare `takeBack: false`.
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/server/scripts/validate-claude.ts specs/2026-10-13-chat-in-the-web-ui/rulings.md
