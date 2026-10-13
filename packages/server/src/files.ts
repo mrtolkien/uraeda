@@ -10,31 +10,48 @@ const types: Record<string, string> = {
 };
 
 /**
+ * The core's refusal of a file it did not find, or does not serve: a path outside the repository,
+ * hidden, or not tracked.
+ */
+const NOT_FOUND = /^refused: .*: no such file$/s;
+
+/**
  * Files of the repository, read through the binding: `/raw/<path>` as text, for links to code,
  * and `/mockups/<path>` with their own type, sandboxed so their scripts run outside the UI's
  * origin.
  */
 export function files() {
   const app = new Hono<{ Variables: FateVariables }>();
-  const read = async (context: { get: (key: "fate") => FateVariables["fate"] }, path: string) => {
+  /** The file's text, or the status of why it was not read: 404 when it is not found, else 500. */
+  const read = async (
+    context: { get: (key: "fate") => FateVariables["fate"] },
+    path: string,
+  ): Promise<string | 404 | 500> => {
     const { binding, repo } = context.get("fate");
     try {
       return await binding.readRaw(repo, decodeURIComponent(path));
-    } catch {
-      return undefined;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (NOT_FOUND.test(message)) {
+        return 404;
+      }
+      console.error(`The server could not read ${path}: ${message}`);
+      return 500;
     }
   };
+  const failed = (status: 404 | 500) =>
+    status === 404 ? "Not found" : "The file could not be read";
   app.get("/raw/*", async (context) => {
     const text = await read(context, context.req.path.slice("/raw/".length));
-    return text === undefined
-      ? context.text("Not found", 404)
+    return typeof text === "number"
+      ? context.text(failed(text), text)
       : context.text(text, 200, { "content-type": "text/plain; charset=utf-8" });
   });
   app.get("/mockups/*", async (context) => {
     const path = context.req.path.slice("/mockups/".length);
     const text = await read(context, path);
-    if (text === undefined) {
-      return context.text("Not found", 404);
+    if (typeof text === "number") {
+      return context.text(failed(text), text);
     }
     const extension = path.split(".").pop() ?? "";
     return context.body(text, 200, {
