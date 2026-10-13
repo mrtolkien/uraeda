@@ -34,6 +34,11 @@ function M.commit()
   client().command(0, "uraeda.commit", nil, { save = true })
 end
 
+--- Picks a frontmatter field of the current file, then its value (US5).
+function M.field()
+  require("uraeda.pickers").field(0)
+end
+
 --- @class uraeda.Action
 --- @field name string the `:Uraeda` subcommand, and the `<Plug>(uraeda-<name>)` mapping
 --- @field desc string starts with `Uraeda`
@@ -68,6 +73,14 @@ M.list = {
     modes = { "n" },
     buffer_local = true,
     key = "g",
+  },
+  {
+    name = "field",
+    desc = "Uraeda: set a frontmatter field",
+    fn = M.field,
+    modes = { "n" },
+    buffer_local = true,
+    key = "e",
   },
 }
 

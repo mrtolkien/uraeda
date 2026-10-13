@@ -232,6 +232,9 @@ impl Server {
                 requests::FIELDS => answer(requests::FIELDS, request.params, |params| {
                     Ok(requests::fields(&self.documents, params))
                 }),
+                actions::SET_FIELD => answer(actions::SET_FIELD, request.params, |params| {
+                    actions::set_field(&self.documents, params)
+                }),
                 InlayHintRequest::METHOD => handle::<InlayHintRequest>(request.params, |params| {
                     Ok(Some(hints::hints(&self.documents, params)))
                 }),

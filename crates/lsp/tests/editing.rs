@@ -430,3 +430,55 @@ fn an_edit_keeps_the_comment_and_crlf() {
         )]
     );
 }
+
+/// US5.2: a typed value is an edit of the field's line in the open document, never of the disk.
+#[test]
+fn a_typed_value_is_an_edit_of_the_open_document() {
+    let (repo, path, spec_text) = feature_with_spec();
+    let mut session = Session::start(repo.path());
+    let uri = Session::uri(&path);
+    session.open(&path, &spec_text);
+
+    let edit = session
+        .raw(
+            "uraeda/setField",
+            json!({ "uri": uri, "name": "revision", "value": "2" }),
+        )
+        .unwrap();
+
+    assert_eq!(
+        edit,
+        json!({ "changes": { uri.as_str(): [{
+            "range": { "start": { "line": 2, "character": 0 }, "end": { "line": 2, "character": 11 } },
+            "newText": "revision: 2",
+        }] } })
+    );
+    assert_eq!(repo.porcelain(), "", "the disk is untouched");
+
+    let refused = |session: &mut Session, name: &str, value: &str| {
+        session
+            .raw(
+                "uraeda/setField",
+                json!({ "uri": uri, "name": name, "value": value }),
+            )
+            .unwrap_err()
+            .message
+    };
+    assert_eq!(
+        refused(&mut session, "status", "approved"),
+        "status: approved is set by a verdict, not an edit."
+    );
+    assert_eq!(
+        refused(&mut session, "owner", "me"),
+        "spec.md has no field owner."
+    );
+    assert_eq!(
+        refused(&mut session, "revision", "2\nstatus: approved"),
+        "A value is one line."
+    );
+    session.close(&path);
+    assert_eq!(
+        refused(&mut session, "revision", "2"),
+        "spec.md is not open."
+    );
+}
