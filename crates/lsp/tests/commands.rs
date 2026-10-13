@@ -613,7 +613,7 @@ fn only_the_waiting_latest_round_is_submitted() {
         .unwrap_err();
     assert_eq!(
         error.message,
-        "clarifications-01.md is not the latest round: clarifications-02.md is."
+        "clarifications-01.md is not the latest round: clarifications-02.md is"
     );
     assert_eq!(repo.subjects(BRANCH)[0], "spec(nvim-plugin): spec");
 }

@@ -56,6 +56,54 @@ fn a_verdict_is_refused_while_the_file_differs_from_its_tip() {
     assert_eq!(error.code, "refused");
 }
 
+/// nvim plugin R18: a round is submitted only when it is the latest, whichever tool submits it.
+#[test]
+fn only_the_latest_round_is_submitted() {
+    let repo = repo();
+    repo.add_on_branch(
+        FOLDER,
+        "specs/2026-10-11-web-ui/clarifications-02.md",
+        &clarifications("awaiting-human", "One question.", &["A"]),
+    );
+
+    let error = api::submit_answers(repo.path(), FOLDER, Some("clarifications-01.md")).unwrap_err();
+
+    assert_eq!(
+        (error.code, error.message.as_str()),
+        (
+            "refused",
+            "clarifications-01.md is not the latest round: clarifications-02.md is"
+        )
+    );
+    let submitted = api::submit_answers(repo.path(), FOLDER, Some("clarifications-02.md")).unwrap();
+    assert_eq!(submitted.status.as_deref(), Some("answered"));
+}
+
+/// nvim plugin R19: drafts and the priorities are the default branch's only in its checkout.
+#[test]
+fn drafts_are_the_default_branchs_only_in_its_checkout() {
+    let repo = repo();
+    api::on_default_branch(repo.path(), "PRIORITIES.md").unwrap();
+
+    repo.switch(FOLDER);
+    let error = api::on_default_branch(repo.path(), "PRIORITIES.md").unwrap_err();
+    assert_eq!(
+        error.message,
+        "PRIORITIES.md here is not main's: open it from a checkout of main."
+    );
+
+    repo.git(&["worktree", "add", "--quiet", ".worktrees/main", "main"]);
+    let error = api::on_default_branch(repo.path(), "idea.md").unwrap_err();
+    let checkout = std::fs::canonicalize(repo.path().join(".worktrees/main")).unwrap();
+    assert_eq!(
+        error.message,
+        format!(
+            "idea.md here is not main's: open it from main's checkout, {}.",
+            checkout.display()
+        )
+    );
+}
+
 /// I3: writes from two threads at once both land.
 #[test]
 fn writes_at_once_are_serialized() {

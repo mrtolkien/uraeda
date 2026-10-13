@@ -177,7 +177,7 @@ export function RoundPage({ file }: { file: File }) {
       return;
     }
     const result = await fate.mutations.answers.submit({
-      input: { folder: file.folder },
+      input: { folder: file.folder, file: file.name },
       view: FileView,
     });
     if (result.error) {

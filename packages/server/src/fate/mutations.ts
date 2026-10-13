@@ -111,11 +111,11 @@ export const mutations = {
   },
   "answers.submit": {
     type: "WorkflowFile",
-    resolve: async ({ ctx, input, select }: Resolver<{ folder: string }>) => {
+    resolve: async ({ ctx, input, select }: Resolver<{ folder: string; file?: string }>) => {
       await writable(ctx, input);
       return file(
         ctx,
-        await refusable(() => ctx.binding.submitAnswers(ctx.repo, input.folder)),
+        await refusable(() => ctx.binding.submitAnswers(ctx.repo, input.folder, input.file)),
         select,
       );
     },
