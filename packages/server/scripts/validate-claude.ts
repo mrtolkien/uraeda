@@ -30,10 +30,10 @@ import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Readable, Writable } from "node:stream";
 import { fixtureRepo } from "uraeda-binding/test-utils";
-import type { AgentRun } from "../src/runner/adapter.ts";
-import { ClaudeAdapter, lines, PLUGIN_DIR } from "../src/runner/claude.ts";
+import type { AgentProcess } from "../src/runner/adapter.ts";
+import { allowRule, lines } from "../src/runner/claude-events.ts";
+import { ClaudeAdapter, PLUGIN_DIR } from "../src/runner/claude.ts";
 import type { AgentEvent } from "../src/runner/events.ts";
-import { allowRule } from "../src/runner/message.ts";
 
 /** A run that has not exited after this long is stopped, and its check fails. */
 const RUN_TIMEOUT_MS = 180_000;
@@ -41,7 +41,7 @@ const RUN_TIMEOUT_MS = 180_000;
 const INTERRUPT_MS = 10_000;
 
 const configDir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude");
-const adapter = new ClaudeAdapter({ configDir });
+const adapter = new ClaudeAdapter({ configDir, pluginDir: PLUGIN_DIR });
 const cwd = fixtureRepo();
 /** A folder outside the project, for the sixth check. */
 const outside = mkdtempSync(join(tmpdir(), "uraeda-outside-"));
@@ -60,21 +60,28 @@ function report(name: string, ok: boolean, got: unknown) {
   }
 }
 
-/** Runs to the end, calling `onEvent` on each event, and returns them all. */
+/**
+ * Opens a session's process, sends it one message, and reads its turn to its `result`, calling
+ * `onEvent` on each event; then closes it, reads it to its exit, and returns every event.
+ */
 async function run(
   message: string,
   sessionId: string,
   resume: boolean,
-  onEvent?: (event: AgentEvent, agent: AgentRun) => void,
+  onEvent?: (event: AgentEvent, agent: AgentProcess) => void,
   agentAdapter: ClaudeAdapter = adapter,
 ): Promise<Array<AgentEvent>> {
-  const agent = agentAdapter.start({ cwd, message, sessionId, resume, pluginDir: PLUGIN_DIR });
-  const timeout = setTimeout(() => agent.terminate(), RUN_TIMEOUT_MS);
+  const agent = agentAdapter.open({ cwd, nativeId: sessionId, resume });
+  const timeout = setTimeout(() => agent.kill("SIGTERM"), RUN_TIMEOUT_MS);
   const events: Array<AgentEvent> = [];
+  agent.send({ id: randomUUID(), text: message, when: "queue" });
   try {
     for await (const event of agent.events) {
       events.push(event);
       onEvent?.(event, agent);
+      if (event.type === "result") {
+        agent.close();
+      }
     }
   } finally {
     clearTimeout(timeout);
@@ -551,7 +558,7 @@ try {
       randomUUID(),
       false,
       undefined,
-      new ClaudeAdapter({ configDir, command: wrapper }),
+      new ClaudeAdapter({ configDir, command: wrapper, pluginDir: PLUGIN_DIR }),
     );
     const denials = find(blocked, "result")?.denials ?? [];
     report(

@@ -5,30 +5,44 @@ import type { Context } from "./fate/context.ts";
 import { mutations } from "./fate/mutations.ts";
 import { sources } from "./fate/sources.ts";
 import {
+  agentDataView,
   draftDataView,
   featureDataView,
   fileDataView,
   prioritiesDataView,
   proposalHintsDataView,
   Root as Views,
-  runDataView,
-  runLogDataView,
-  runnerDataView,
+  sessionDataView,
+  sessionListDataView,
+  sessionSearchDataView,
+  turnDataView,
+  turnLogDataView,
+  workflowMessageDataView,
   workspaceDataView,
 } from "./fate/views.ts";
 
 export {
+  agentDataView,
   draftDataView,
   featureDataView,
   fileDataView,
   prioritiesDataView,
-  runDataView,
-  runLogDataView,
-  runnerDataView,
   proposalHintsDataView,
+  sessionDataView,
+  sessionListDataView,
+  sessionSearchDataView,
+  turnDataView,
+  turnLogDataView,
+  workflowMessageDataView,
   workspaceDataView,
 };
-export { PRIORITIES_ID, PROPOSAL_HINTS_ID, RUNNER_ID, WORKSPACE_ID } from "./fate/views.ts";
+export {
+  AGENT_ID,
+  PRIORITIES_ID,
+  PROPOSAL_HINTS_ID,
+  SESSION_LIST_ID,
+  WORKSPACE_ID,
+} from "./fate/views.ts";
 
 /** The types fate's generated client and the UI's views use, named after each view's type. */
 export type Workspace = Entity<typeof workspaceDataView, "Workspace">;
@@ -37,11 +51,19 @@ export type WorkflowFile = Entity<typeof fileDataView, "WorkflowFile">;
 export type Priorities = Entity<typeof prioritiesDataView, "Priorities">;
 export type Draft = Entity<typeof draftDataView, "Draft">;
 export type ProposalHints = Entity<typeof proposalHintsDataView, "ProposalHints">;
-export type Runner = Entity<typeof runnerDataView, "Runner">;
-export type Run = Entity<typeof runDataView, "Run">;
-export type RunLog = Entity<typeof runLogDataView, "RunLog">;
-/** What started a run, for `run.start`. */
+export type Agent = Entity<typeof agentDataView, "Agent">;
+export type Session = Entity<typeof sessionDataView, "Session">;
+export type Turn = Entity<typeof turnDataView, "Turn">;
+export type TurnLog = Entity<typeof turnLogDataView, "TurnLog">;
+export type SessionList = Entity<typeof sessionListDataView, "SessionList">;
+export type SessionSearch = Entity<typeof sessionSearchDataView, "SessionSearch">;
+export type WorkflowMessage = Entity<typeof workflowMessageDataView, "WorkflowMessage">;
+/** What started a workflow turn, for `session.send`'s `workflow`. */
 export type { Trigger } from "./runner/events.ts";
+/** A turn's item, as a `TurnLog` page lists it. */
+export type { Item } from "./runner/events.ts";
+export type { Capabilities } from "./runner/adapter.ts";
+export type { SessionStatus } from "./runner/status.ts";
 
 export type FateVariables = { fate: Context };
 

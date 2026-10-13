@@ -1,9 +1,11 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test } from "vite-plus/test";
+import { afterEach, expect, test, vi } from "vite-plus/test";
 import * as binding from "uraeda-binding";
-import { startLive, stopLive } from "../live.ts";
-import { fixtureRepo, git, mutate, port, testApp, testServer } from "./helpers.ts";
+import { live } from "../fate.ts";
+import { SESSION_UPDATE_MS, sessionPublisher, startLive, stopLive } from "../live.ts";
+import { SessionCache } from "../runner/cache.ts";
+import { byId, fixtureRepo, git, mutate, port, testApp, testServer } from "./helpers.ts";
 
 type App = ReturnType<typeof testApp>;
 
@@ -168,30 +170,194 @@ test("a repository is watched once, until stopped", () => {
   stopLive(repo);
 });
 
-/**
- * SC-002: an event shows in an open page within a second. A run's updates go out at most every
- * 250 ms, which the second includes, with the rest as the margin for a loaded machine.
- */
-test("SC-002: a run's events reach a subscribed Run within a second", async () => {
-  const { app, adapter, runner } = await testServer();
-  const started = await mutate(
+/** A session with a running turn holding `items` text items, in a cache in memory. */
+function sessionWithItems(items: number) {
+  const cache = SessionCache.open(":memory:");
+  const session = cache.createSession({
+    repo: "/repo",
+    folder: "2026-10-12-cli-tuis",
+    agent: "fake",
+    nativeId: "n",
+    title: null,
+  });
+  const turn = cache.addTurn({
+    sessionId: session.id,
+    kind: "chat",
+    trigger: null,
+    step: null,
+    allowed: null,
+    state: "running",
+  });
+  for (let n = 0; n < items; n++) {
+    cache.appendItem(turn, { kind: "text", text: `Line ${n}`, streaming: false });
+  }
+  return { cache, session: session.id, turn };
+}
+
+/** The live updates sent, as `<type> <id>`. */
+function published() {
+  const update = vi.spyOn(live, "update");
+  return () => update.mock.calls.map(([type, id]) => `${type} ${String(id)}`);
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.useRealTimers();
+});
+
+test("a session's status change is published at once, with the list, its feature, and the workspace", () => {
+  const { cache, session, turn } = sessionWithItems(150);
+  const sent = published();
+  const publish = sessionPublisher(cache);
+
+  publish({ repo: "/repo", session, folder: "2026-10-12-cli-tuis", turn, state: "done" });
+
+  expect(sent()).toEqual([
+    `Session ${session}`,
+    `Turn ${turn}`,
+    `TurnLog ${turn}:0`,
+    `TurnLog ${turn}:1`,
+    "SessionList all",
+    "Feature 2026-10-12-cli-tuis",
+    "Workspace workspace",
+  ]);
+});
+
+test("a chat's change is published without a feature, and the agent's on its own", () => {
+  const { cache, session } = sessionWithItems(0);
+  const sent = published();
+  const publish = sessionPublisher(cache);
+
+  publish({ repo: "/repo", session, folder: null });
+  publish({ agent: true });
+
+  expect(sent()).toEqual([
+    `Session ${session}`,
+    "SessionList all",
+    "Workspace workspace",
+    "Agent agent",
+  ]);
+});
+
+test("SC-002: items are published at most every 250 ms", () => {
+  vi.useFakeTimers();
+  const { cache, session, turn } = sessionWithItems(10);
+  const sent = published();
+  const publish = sessionPublisher(cache);
+  const item = { repo: "/repo", session, folder: "2026-10-12-cli-tuis", turn };
+  const once = [`Session ${session}`, `Turn ${turn}`, `TurnLog ${turn}:0`];
+
+  publish(item);
+  expect(sent()).toEqual(once);
+  for (let n = 0; n < 20; n++) {
+    publish(item);
+  }
+  expect(sent()).toEqual(once);
+  vi.advanceTimersByTime(SESSION_UPDATE_MS - 1);
+  expect(sent()).toEqual(once);
+  vi.advanceTimersByTime(1);
+  expect(sent()).toEqual([...once, ...once]);
+  vi.advanceTimersByTime(10 * SESSION_UPDATE_MS);
+  expect(sent()).toEqual([...once, ...once]);
+
+  // A state change goes at once, and drops the update waiting.
+  publish(item);
+  publish(item);
+  publish({ ...item, state: "done" });
+  vi.advanceTimersByTime(10 * SESSION_UPDATE_MS);
+  expect(sent().slice(6)).toEqual([
+    ...once,
+    ...once,
+    "SessionList all",
+    "Feature 2026-10-12-cli-tuis",
+    "Workspace workspace",
+  ]);
+});
+
+test("US3.4: a sub-agent that starts or ends is published to the list", () => {
+  vi.useFakeTimers();
+  const { cache, session, turn } = sessionWithItems(0);
+  const sent = published();
+  const publish = sessionPublisher(cache);
+  const item = { repo: "/repo", session, folder: null, turn };
+
+  publish(item);
+  const seq = cache.appendItem(turn, {
+    kind: "tool",
+    id: "task-1",
+    name: "Task",
+    toolKind: "other",
+    status: "in_progress",
+    subagent: { description: "Map the runner code" },
+  });
+  vi.advanceTimersByTime(SESSION_UPDATE_MS);
+  publish(item);
+  expect(sent().filter((each) => each === "SessionList all")).toHaveLength(1);
+
+  cache.updateItem(turn, seq, {
+    kind: "tool",
+    id: "task-1",
+    name: "Task",
+    toolKind: "other",
+    status: "completed",
+    subagent: { description: "Map the runner code" },
+  });
+  vi.advanceTimersByTime(SESSION_UPDATE_MS);
+  publish(item);
+  expect(sent().filter((each) => each === "SessionList all")).toHaveLength(2);
+});
+
+/** Review focus 3: the same session open in two tabs. */
+test("a take-back is published to every reader", async () => {
+  const { app, adapter, sessions, repo } = await testServer();
+  const sent = await mutate(
     app,
-    "run.start",
-    { folder: "2026-10-12-cli-tuis", trigger: "manual" },
-    ["id", "pages"],
+    "session.send",
+    { folder: "2026-10-12-cli-tuis", text: "Plan it" },
+    ["id", "turns"],
   );
-  const id = started.data.id as string;
-  expect(started.data.pages).toBe(0);
+  const { id, turns } = sent.data as { id: string; turns: Array<string> };
+  await mutate(app, "session.send", { session: id, text: "Never mind" }, ["id"]);
+  const message = adapter.sent[1]!.id;
+  await new Promise((resolve) => setTimeout(resolve, SESSION_UPDATE_MS));
+  const updates = published();
+
+  const taken = await mutate(app, "session.takeBack", { session: id, message }, ["id"]);
+  adapter.emit({ type: "cancelled", id: message });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  expect(taken.ok).toBe(true);
+  expect(updates()).toEqual(expect.arrayContaining([`Session ${id}`, `TurnLog ${turns[0]}:0`]));
+  const [page] = await byId(app, "TurnLog", [`${turns[0]}:0`], ["id", "items"]);
+  expect(page.items.map((item: { text?: string }) => item.text)).toEqual(["Plan it"]);
+  await sessions.mainRoot(repo);
+  sessions.stop(repo, id);
+  await sessions.settled(Number(turns[0]));
+});
+
+/**
+ * SC-002: a status change shows in an open page within a second. It is published at once: the
+ * rest of the second is the margin for a loaded machine.
+ */
+test("SC-002: a session's status change reaches a subscribed SessionList within a second", async () => {
+  const { app, adapter, sessions } = await testServer();
   const stream = await connect(app, "c2");
   expect(await stream.arrival("connected", 5000)).toBeDefined();
-  await subscribe(app, "c2", { type: "Run", entityId: id, select: ["id", "pages"] });
+  await subscribe(app, "c2", { type: "SessionList", entityId: "all", select: ["id", "rows"] });
+  const sent = await mutate(
+    app,
+    "session.send",
+    { folder: "2026-10-12-cli-tuis", text: "Plan it" },
+    ["id", "turns"],
+  );
+  const { turns } = sent.data as { turns: Array<string> };
+  const before = stream.mark();
 
   const emitted = performance.now();
-  adapter.emit({ type: "text", text: "Reading the answers" });
-  const arrived = await stream.arrival('"pages":1', 10_000);
+  adapter.emit({ type: "result", ok: true, errors: [], denials: [], interrupted: false });
+  const arrived = await stream.arrival('"New reply"', 10_000, before);
   await stream.close();
-  runner.stop(Number(id));
-  await runner.settled(Number(id));
+  await sessions.settled(Number(turns[0]));
 
   expect(arrived, "no live update within 10 seconds").toBeDefined();
   expect(arrived! - emitted).toBeLessThan(1000);

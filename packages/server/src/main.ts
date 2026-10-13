@@ -2,7 +2,7 @@ import { serve } from "@hono/node-server";
 import { createApp } from "./app.ts";
 import { loadBinding } from "./binding.ts";
 import { loadDataDir, loadEnv } from "./env.ts";
-import { startLive, startRunner } from "./live.ts";
+import { startLive, startSessions } from "./live.ts";
 import { parseOptions } from "./options.ts";
 import { ClaudeAdapter, PLUGIN_DIR } from "./runner/claude.ts";
 
@@ -15,19 +15,19 @@ async function main(argv: Array<string>) {
       throw new Error(`${options.repo} is not a git repository`);
     }
   });
-  const { runner, stop } = await startRunner({
-    adapter: new ClaudeAdapter(),
+  const { sessions, stop } = await startSessions({
+    adapter: new ClaudeAdapter({ pluginDir: PLUGIN_DIR }),
     binding,
     dataDir: loadDataDir(process.cwd()),
-    pluginDir: PLUGIN_DIR,
   });
-  // The runs end with the server: their agents are interrupted, then the process exits.
+  // The sessions end with the server: their turns are interrupted, their processes closed, then
+  // the server exits.
   for (const signal of ["SIGINT", "SIGTERM"] as const) {
     process.once(signal, () => {
       void stop().finally(() => process.exit(0));
     });
   }
-  const app = createApp({ ...options, binding, runner });
+  const app = createApp({ ...options, binding, sessions });
   try {
     startLive(binding, options.repo);
   } catch (error) {

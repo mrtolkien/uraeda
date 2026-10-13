@@ -598,12 +598,6 @@ export class SessionCache {
 }
 
 /**
- * TEMPORARY: the name the server's routes import, which the web package's Vite config loads, until
- * the session runner (task 6) replaces them.
- */
-export { SessionCache as RunCache };
-
-/**
  * Runs `body` in a write transaction, taken before it reads: another process cannot write between
  * its reads and its writes.
  */
