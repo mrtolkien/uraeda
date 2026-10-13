@@ -38,6 +38,7 @@ function useReplyStatus(agentName: string, working: boolean): string {
  * on wide screens; on the phone, Return adds a line and only the button sends. It sends to
  * `session`, else to the feature of `folder`, else to a new chat, then calls `onSent` with the
  * session's ID. A refused send keeps the text, with the reason under it until the next send.
+ * `notice` is the page's own reason under it, like the workflow's refusal to continue.
  */
 export function Composer({
   session,
@@ -46,6 +47,7 @@ export function Composer({
   value,
   onChange,
   workflow,
+  notice,
   onSent,
 }: {
   session?: string;
@@ -56,6 +58,8 @@ export function Composer({
   onChange: (value: string) => void;
   /** The workflow's trigger, while the composer holds its message. */
   workflow?: { trigger: Trigger; file?: string };
+  /** Why the page cannot do what it was opened for, shown under the composer. */
+  notice?: string;
   onSent?: (session: string) => void;
 }) {
   const fate = useFateClient();
@@ -127,9 +131,11 @@ export function Composer({
         status={
           error
             ? { type: "error", message: error }
-            : unavailable
-              ? { type: "warning", message: unavailable }
-              : undefined
+            : notice
+              ? { type: "error", message: notice }
+              : unavailable
+                ? { type: "warning", message: unavailable }
+                : undefined
         }
       />
       <VisuallyHidden as="div" role="status">

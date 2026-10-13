@@ -6,16 +6,17 @@ import { useAgent } from "./data.ts";
 type Variant = "primary" | "secondary" | "destructive";
 
 /**
- * The buttons of an action that commits and leads to an agent step: "Commit and continue" and
- * "Commit only" when the agent works on this machine, else the page's single button, as before.
- * `onCommit` commits, then starts the agent when `continues`. `children` lead the row.
+ * The buttons of an action that commits and leads to an agent step: "Commit and start the agent"
+ * and "Commit only" when the agent works on this machine, else the page's single button, as
+ * before. `onCommit` commits, then hands the feature over to the agent when `continues`: its
+ * session opens with the workflow's message. `children` lead the row.
  */
 export function CommitActions({
   label,
   variant = "primary",
   isDisabled,
   tooltip,
-  continueLabel = "Commit and continue",
+  continueLabel = "Commit and start the agent",
   onlyLabel = "Commit only",
   onCommit,
   children,

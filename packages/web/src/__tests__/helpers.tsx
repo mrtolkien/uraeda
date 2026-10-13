@@ -110,7 +110,7 @@ afterEach(() => {
   }
 });
 
-/** Sessions on the fake agent, checked, so the pages offer "Commit and continue". */
+/** Sessions on the fake agent, checked, so the pages offer "Commit and start the agent". */
 export async function fakeAgent({ installed = true } = {}): Promise<Fake> {
   const fake = fakeSessions({ installed });
   managers.push(fake.sessions);

@@ -29,7 +29,7 @@ import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { GrowingTextArea, statusStyles } from "./Question.tsx";
 import { HookRefusal } from "./RoundPage.tsx";
-import { startRun } from "./sessions.ts";
+import { handOver } from "./sessions.ts";
 import { plain } from "./Spans.tsx";
 import { FileView } from "./views.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
@@ -185,7 +185,7 @@ export function ReviewPage({ file }: { file: File }) {
   const [planReview, setPlanReview] = useState<boolean>();
   const [error, setError] = useState<Refusal>();
   const [message, setMessage] = useState<{ text: string; ok: boolean }>();
-  // The verdict last committed with "and continue", for its Try again.
+  // The verdict last committed to start the agent, for its Try again.
   const continues = useRef<"approval" | "changes">(undefined);
 
   // Each comment shows under the smallest tappable block holding its last line.
@@ -284,11 +284,8 @@ export function ReviewPage({ file }: { file: File }) {
     return undefined;
   };
 
-  /** Starts the agent on the next step, once the verdict is committed. */
-  const proceed = async (trigger: "approval" | "changes") => {
-    const started = await startRun(fate, { folder: file.folder, trigger, file: file.name });
-    setMessage({ text: started.message, ok: started.ok });
-  };
+  /** Hands the feature over to the agent, once the verdict is committed. */
+  const proceed = (trigger: "approval" | "changes") => handOver(file.folder, trigger, file.name);
 
   const verdict = async (approve: boolean, next: boolean) => {
     const input = { folder: file.folder, file: file.name, summary: summary || undefined };
@@ -307,7 +304,7 @@ export function ReviewPage({ file }: { file: File }) {
         : fate.mutations.review.requestChanges({ input, view: FileView }),
     );
     if (done && next) {
-      await proceed(trigger);
+      proceed(trigger);
     }
   };
 
@@ -531,7 +528,7 @@ export function ReviewPage({ file }: { file: File }) {
                 }),
               );
               if (done && continues.current) {
-                await proceed(continues.current);
+                proceed(continues.current);
               }
             }}
           />
@@ -546,7 +543,7 @@ export function ReviewPage({ file }: { file: File }) {
         <CommitActions
           label="Request changes"
           variant="destructive"
-          continueLabel="Request changes and continue"
+          continueLabel="Request changes and start the agent"
           onlyLabel="Request changes only"
           isDisabled={comments.length === 0 || file.committed != null}
           tooltip={comments.length === 0 ? "Add a comment first" : undefined}
@@ -554,7 +551,7 @@ export function ReviewPage({ file }: { file: File }) {
         />
         <CommitActions
           label="Approve"
-          continueLabel="Approve and continue"
+          continueLabel="Approve and start the agent"
           onlyLabel="Approve only"
           isDisabled={file.committed != null}
           onCommit={(next) => verdict(true, next)}

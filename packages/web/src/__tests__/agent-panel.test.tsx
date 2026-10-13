@@ -1,10 +1,15 @@
+// The feature page's agent: its session's status, its latest turn, Stop, "Open the session", and
+// "Start the agent" or "Try again", which open the session with the workflow's message (US2). The
+// transcript's tool calls, its long turns, and a blocked action (US5) are checked on the session.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import * as binding from "uraeda-binding";
 import { expect, test, vi } from "vite-plus/test";
 import {
   answered,
+  atWidth,
+  click,
   type Fake,
   fakeAgent,
   fixtureRepo,
@@ -18,13 +23,14 @@ import {
 const CLI = "2026-10-12-cli-tuis";
 const WEB_UI = "2026-10-11-web-ui";
 
-today("2026-10-12");
+/** The workflow's message when the human asks the CLI's agent to continue. */
+const MANUAL = [
+  `/uraeda:uraeda Continue the feature specs/${CLI}/, on branch ${CLI}.`,
+  "The human asked you to continue.",
+  "Its next step is plan: follow skills/uraeda/references/plan.md.",
+].join("\n");
 
-async function tap(element: HTMLElement) {
-  await act(async () => {
-    fireEvent.click(element);
-  });
-}
+today("2026-10-12");
 
 type Steps = Parameters<Fake["adapter"]["script"]>[0];
 
@@ -48,10 +54,13 @@ async function seedRun(fake: Fake, repo: string, folder: string, steps: Steps) {
 
 /** Starts a turn that goes on until the test ends it, with its events sent by `agent.emit`. */
 async function liveRun(fake: Fake, repo: string, folder = CLI) {
-  return startTurn(fake, repo, folder);
+  const id = await startTurn(fake, repo, folder);
+  await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
+  fake.adapter.emit({ type: "accepted", id: fake.adapter.sent[0].id });
+  return id;
 }
 
-/** Writes an ended turn in the cache, as a turn of an earlier server would have left it. */
+/** Writes an ended workflow turn in the cache, a tool call then the agent's closing text. */
 async function cachedRun(
   fake: Fake,
   repo: string,
@@ -68,88 +77,68 @@ async function cachedRun(
     allowed: null,
     state: "running",
   });
+  cache.appendItem(id, {
+    kind: "tool",
+    id: "toolu_1",
+    name: "Bash",
+    toolKind: "execute",
+    target: "git commit",
+    status: "completed",
+  });
   cache.appendItem(id, { kind: "text", text: end.text, streaming: false });
   cache.endTurn(id, { state: end.state });
   return id;
 }
 
-/** US2.1, C3 */
-test.skip("US2.1 and C3: an agent's text renders as markdown — rewritten in task 10", async () => {
+/** The feature page's agent panel. */
+function panel() {
+  return within(screen.getByRole("region", { name: "Agent" }));
+}
+
+/** The session's transcript, once drawn. */
+async function log() {
+  return within(await screen.findByRole("log", { name: "Conversation" }));
+}
+
+/** The status a side navigation row shows, by its title. */
+function sidebarStatus(title: string) {
+  const nav = within(screen.getByRole("navigation", { name: "Side navigation" }));
+  const link = nav.getByRole("link", { name: new RegExp(`^${title}, `) });
+  return within(link).getByRole("img").getAttribute("aria-label");
+}
+
+/** Waits for the feature's session to open with the workflow's message in its composer. */
+async function opensWith(folder: string, text: string) {
+  await waitFor(() => expect(window.location.pathname).toBe(`/f/${folder}/session`));
+  const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
+  await waitFor(() => expect(box.textContent).toBe(text));
+}
+
+/** US1, US2 */
+test("the feature page shows the session's status and Open the session", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
-  const id = await seedRun(fake, repo, CLI, [{ type: "text", text: "Reading **the answers**" }]);
+  await seedRun(fake, repo, CLI, [{ type: "text", text: "Planned." }]);
 
-  await renderPage(`/f/${CLI}/runs/${id}`, repo, { agent: fake });
+  await renderPage(`/f/${CLI}`, repo, { agent: fake });
 
-  const strong = await screen.findByText("the answers");
-  expect(strong.tagName).toBe("STRONG");
-  const log = screen.getByRole("log", { name: "Run log" });
-  expect(log.contains(strong)).toBe(true);
-  expect(log.textContent).toContain("Reading the answers");
+  await waitFor(() => expect(panel().getByText("New reply")).toBeTruthy());
+  expect(panel().getByRole("img", { name: "New reply" })).toBeTruthy();
+  expect(panel().getByText(/Run: Plan/)).toBeTruthy();
+  expect(panel().getByRole("link", { name: "Open the session" }).getAttribute("href")).toBe(
+    `/f/${CLI}/session`,
+  );
+  expect(screen.queryByRole("list", { name: "Runs" })).toBeNull();
 });
 
-/** US2.2 */
-test.skip("US2.2: a tool call shows its target and duration — rewritten in task 10", async () => {
-  const repo = fixtureRepo();
-  const fake = await fakeAgent();
-  const id = await liveRun(fake, repo);
-  // The runner times a tool call with the clock: 2.5 seconds pass between its start and its end.
-  const start = Date.now();
-  const clock = vi.spyOn(Date, "now").mockReturnValue(start);
-  try {
-    fake.adapter.emit({
-      type: "toolStart",
-      id: "toolu_1",
-      name: "Bash",
-      kind: "execute",
-      input: { command: "vp run ready" },
-      target: "vp run ready",
-    });
-    await waitFor(() => expect(fake.sessions.cache.itemCount(id)).toBe(1));
-  } finally {
-    clock.mockRestore();
-  }
+test("a feature waiting on you, with no session yet, opens its session to chat", async () => {
+  await renderPage(`/f/${WEB_UI}`, fixtureRepo(), { agent: true });
 
-  await renderPage(`/f/${CLI}/runs/${id}`, repo, { agent: fake });
-
-  const target = await screen.findByText("vp run ready");
-  const log = screen.getByRole("log", { name: "Run log" });
-  expect(log.contains(target)).toBe(true);
-  expect(log.textContent).toContain("Bash");
-  expect(log.textContent).toContain("Running");
-  expect(screen.queryByText("2.5 s")).toBeNull();
-
-  const end = vi.spyOn(Date, "now").mockReturnValue(start + 2500);
-  try {
-    fake.adapter.emit({ type: "toolEnd", id: "toolu_1", isError: false, output: "ok" });
-    await waitFor(() =>
-      expect(fake.sessions.cache.items(id, 0, 1)[0]).toMatchObject({ status: "completed" }),
-    );
-  } finally {
-    end.mockRestore();
-  }
-
-  await refreshUntil(() => expect(screen.getByText("2.5 s")).toBeTruthy());
-  expect(screen.getByText("vp run ready")).toBeTruthy();
-});
-
-/** US2.3 */
-test.skip("US2.3: Stop stops the run — rewritten in task 10", async () => {
-  const repo = fixtureRepo();
-  const fake = await fakeAgent();
-  await liveRun(fake, repo);
-  const { agent } = await renderPage(`/f/${CLI}`, repo, { agent: fake });
-  expect(await screen.findByText("Working on Plan")).toBeTruthy();
-
-  await tap(screen.getByRole("button", { name: "Stop" }));
-
-  await waitFor(() => expect(agent.interrupts).toBe(1));
-  await refreshUntil(() => expect(screen.getByText("Stopped")).toBeTruthy());
-  expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+  expect(await screen.findByRole("link", { name: "Open the session" })).toBeTruthy();
 });
 
 /** US2.5 */
-test("US2.5: the panel shows the session's cost", async () => {
+test("the panel shows the session's cost", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   await seedRun(fake, repo, CLI, [
@@ -161,25 +150,25 @@ test("US2.5: the panel shows the session's cost", async () => {
   expect(await screen.findByText(/\$3\.10 this session/)).toBeTruthy();
 });
 
-/** US2.6 */
-test.skip("US2.6: earlier runs are listed — rewritten in task 10", async () => {
+test("Stop stops the turn, and Try again opens the session with the message", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
-  await seedRun(fake, repo, CLI, [{ type: "text", text: "The first run" }]);
-  await seedRun(fake, repo, CLI, [{ type: "text", text: "The second run" }]);
+  await liveRun(fake, repo);
+  const { agent } = await renderPage(`/f/${CLI}`, repo, { agent: fake });
+  await waitFor(() => expect(panel().getByText("Working")).toBeTruthy());
 
-  await renderPage(`/f/${CLI}`, repo, { agent: fake });
+  await click(panel().getByRole("button", { name: "Stop" }));
 
-  // US8: one row per run, newest first, each leading to its log.
-  const runs = within(await screen.findByRole("list", { name: "Runs" }));
-  const rows = runs.getAllByRole("link");
-  expect(rows).toHaveLength(2);
-  expect(rows[0].getAttribute("href")).toMatch(new RegExp(`^/f/${CLI}/runs/\\d+$`));
-  expect(screen.queryByText("The second run")).toBeNull();
+  await waitFor(() => expect(agent.interrupts).toBe(1));
+  await refreshUntil(() => expect(panel().getByText(/Run: Plan · Stopped/)).toBeTruthy());
+  await click(panel().getByRole("button", { name: "Try again" }));
+
+  await opensWith(CLI, MANUAL);
+  expect(agent.sent).toHaveLength(1);
 });
 
 /** US2.7 */
-test("US2.7: Home shows a working agent", async () => {
+test("Home shows a working agent", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   // A feature started from its draft, whose worktree passes the core's checks.
@@ -188,7 +177,7 @@ test("US2.7: Home shows a working agent", async () => {
     "specs/drafts/git-listener.md",
     "git-listener",
   );
-  await liveRun(fake, repo, folder);
+  await startTurn(fake, repo, folder);
 
   await renderPage("/", repo, { agent: fake });
 
@@ -202,40 +191,37 @@ test("US2.7: Home shows a working agent", async () => {
   expect(within(row).getByText("Discovery")).toBeTruthy();
 });
 
-/** US4.1 */
-test.skip("US4.1: Start the agent starts a run — rewritten in task 10", async () => {
+/** US2 */
+test("Start the agent opens the session with the message, unsent", async () => {
   const { agent } = await renderPage(`/f/${CLI}`, fixtureRepo(), { agent: true });
 
-  await tap(await screen.findByRole("button", { name: "Start the agent" }));
+  await click(await screen.findByRole("button", { name: "Start the agent" }));
 
-  await waitFor(() => expect(agent.sent).toHaveLength(1));
-  expect(agent.sent[0].text).toContain("The human asked you to continue.");
-  expect(await screen.findByText("Working on Plan")).toBeTruthy();
+  await opensWith(CLI, MANUAL);
+  expect(window.location.search).toBe("?continue=manual");
+  expect(agent.sent).toHaveLength(0);
 });
 
-/** US4.2 */
-test.skip("US4.2: Try again after a failure — rewritten in task 10", async () => {
+test("Try again after a failure opens the session with the message", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   await seedRun(fake, repo, CLI, [
     { type: "result", ok: false, errors: ["Rate limit reached"], denials: [], interrupted: false },
   ]);
   const { agent } = await renderPage(`/f/${CLI}`, repo, { agent: fake });
-  expect(await screen.findByText("Failed on Plan")).toBeTruthy();
-  expect(screen.getByText("Rate limit reached")).toBeTruthy();
+  await waitFor(() => expect(panel().getByText("Failed")).toBeTruthy());
 
-  await tap(screen.getByRole("button", { name: "Try again" }));
+  await click(panel().getByRole("button", { name: "Try again" }));
 
-  await waitFor(() => expect(agent.sent).toHaveLength(2));
-  expect(agent.opens).toHaveLength(1);
+  await opensWith(CLI, MANUAL);
+  expect(agent.sent).toHaveLength(1);
 });
 
-/** US4.3 */
-test("US4.3: a feature waiting on you has no Start the agent", async () => {
+test("a feature waiting on you has no Start the agent", async () => {
   await renderPage(`/f/${WEB_UI}`, fixtureRepo(), { agent: true });
 
   expect(await screen.findByText("Answer questions")).toBeTruthy();
-  await answered("Runner");
+  await answered("Agent");
   expect(screen.queryByRole("region", { name: "Agent" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Start the agent" })).toBeNull();
 });
@@ -244,13 +230,35 @@ test("without claude, a feature waiting on an agent has no panel", async () => {
   await renderPage(`/f/${CLI}`, fixtureRepo());
 
   expect(await screen.findByText("CLI TUIs", { selector: "h1" })).toBeTruthy();
-  await answered("Runner");
+  await answered("Agent");
   expect(screen.queryByRole("region", { name: "Agent" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Start the agent" })).toBeNull();
 });
 
-/** US6.1, US6.2 */
-test.skip("US6.1 and US6.2: a blocked action can be allowed — rewritten in task 10", async () => {
+/** US2.3 */
+test("US2.3: a run ending at a gate shows its closing text last, and Needs you", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await cachedRun(fake, repo, WEB_UI, {
+    state: "done",
+    step: "discovery",
+    text: "Asked you three questions in clarifications-01.md.",
+  });
+
+  await renderPage(`/f/${WEB_UI}/session`, repo, { agent: fake });
+
+  const closing = await (
+    await log()
+  ).findByText("Asked you three questions in clarifications-01.md.");
+  const text = screen.getByRole("log", { name: "Conversation" }).textContent ?? "";
+  expect(text.trimEnd().endsWith(closing.textContent ?? "")).toBe(true);
+  expect(sidebarStatus("Web UI for the workflow files")).toBe("Needs you");
+  expect(panel().getByText("Needs you")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Start the agent" })).toBeNull();
+});
+
+/** US5.1, US5.2 */
+test("US5.1: a blocked action shows Allow and retry, and Needs you", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   await seedRun(fake, repo, CLI, [
@@ -258,74 +266,78 @@ test.skip("US6.1 and US6.2: a blocked action can be allowed — rewritten in tas
       type: "result",
       ok: true,
       errors: [],
-      denials: [{ tool: "Bash", input: { command: "gh pr create --draft" } }],
+      denials: [{ tool: "Bash", input: { command: "git push origin HEAD" } }],
       interrupted: false,
     },
   ]);
-  const { agent } = await renderPage(`/f/${CLI}`, repo, { agent: fake });
-  expect(await screen.findByText("Blocked by auto mode")).toBeTruthy();
-  expect(screen.getByText("Bash: gh pr create --draft")).toBeTruthy();
-  expect(screen.getByText(allows("Bash(gh pr create --draft)"))).toBeTruthy();
+  const { agent } = await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
 
-  await tap(screen.getByRole("button", { name: "Allow and continue" }));
+  expect(
+    await (await log()).findByText("Blocked by auto mode: Bash git push origin HEAD"),
+  ).toBeTruthy();
+  expect(sidebarStatus("CLI TUIs")).toBe("Needs you");
+  expect(panel().getByText("Needs you")).toBeTruthy();
+
+  await click((await log()).getByRole("button", { name: "Allow and retry" }));
 
   await waitFor(() => expect(agent.sent).toHaveLength(2));
-  expect(agent.opens[1].allowed).toBe("Bash(gh pr create --draft)");
-  expect(agent.sent[1].text).toContain(
-    "The human allowed `Bash(gh pr create --draft)`: run it again, then continue.",
+  expect(agent.opens.at(-1)?.allowed).toBe("Bash(git push origin HEAD)");
+  expect(agent.sent[1].text).toBe(
+    "Try the blocked action again, now allowed: Bash git push origin HEAD",
   );
 });
 
-/** The sentence that names the rule "Allow and continue" passes. */
-const allows = (rule: string) => (_: string, element: Element | null) =>
-  element?.textContent === `Allows ${rule} for one run.` &&
-  ![...element.children].some((child) => child.textContent === element.textContent);
-
-/** US6.3 */
-test.skip("US6.3: a blocked write outside the project shows its absolute rule — rewritten in task 10", async () => {
+test("a tool call shows its target, then its duration", async () => {
+  // The session's page alone, with its own transcript.
+  atWidth(402);
   const repo = fixtureRepo();
   const fake = await fakeAgent();
-  await seedRun(fake, repo, CLI, [
-    {
-      type: "result",
-      ok: true,
-      errors: [],
-      denials: [{ tool: "Write", input: { file_path: "/home/me/.ssh/config" } }],
-      interrupted: false,
-    },
-  ]);
-  const { agent } = await renderPage(`/f/${CLI}`, repo, { agent: fake });
-  expect(await screen.findByText("Write: /home/me/.ssh/config")).toBeTruthy();
-  expect(screen.getByText(allows("Edit(//home/me/.ssh/config)"))).toBeTruthy();
+  const id = await liveRun(fake, repo);
+  // The session times a tool call with the clock: 2.5 seconds pass between its start and its end.
+  const start = Date.now();
+  const clock = vi.spyOn(Date, "now").mockReturnValue(start);
+  try {
+    fake.adapter.emit({
+      type: "toolStart",
+      id: "toolu_1",
+      name: "Bash",
+      kind: "execute",
+      input: { command: "vp run ready" },
+      target: "vp run ready",
+    });
+    await waitFor(() => expect(fake.sessions.cache.itemCount(id)).toBe(2));
+  } finally {
+    clock.mockRestore();
+  }
 
-  await tap(screen.getByRole("button", { name: "Allow and continue" }));
+  await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
 
-  await waitFor(() => expect(agent.sent).toHaveLength(2));
-  expect(agent.opens[1].allowed).toBe("Edit(//home/me/.ssh/config)");
+  expect(await (await log()).findByText("vp run ready")).toBeTruthy();
+  expect((await log()).queryByText("2.5 s")).toBeNull();
+
+  const end = vi.spyOn(Date, "now").mockReturnValue(start + 2500);
+  try {
+    fake.adapter.emit({ type: "toolEnd", id: "toolu_1", isError: false, output: "ok" });
+    await waitFor(() =>
+      expect(fake.sessions.cache.items(id, 1, 1)[0]).toMatchObject({ status: "completed" }),
+    );
+  } finally {
+    end.mockRestore();
+  }
+
+  await refreshUntil(() =>
+    expect(
+      within(screen.getByRole("log", { name: "Conversation" })).getByText("2.5 s"),
+    ).toBeTruthy(),
+  );
 });
 
-test.skip("a blocked action without a target shows that its rule allows every call — rewritten in task 10", async () => {
+/** Review focus 3: a turn's items come in pages of 100. */
+test("250 items of a turn show in order", async () => {
+  atWidth(402);
   const repo = fixtureRepo();
   const fake = await fakeAgent();
-  await seedRun(fake, repo, CLI, [
-    {
-      type: "result",
-      ok: true,
-      errors: [],
-      denials: [{ tool: "mcp__x__y", input: {} }],
-      interrupted: false,
-    },
-  ]);
-  await renderPage(`/f/${CLI}`, repo, { agent: fake });
-
-  expect(await screen.findByText(allows("mcp__x__y"))).toBeTruthy();
-});
-
-/** Review focus 3 */
-test.skip("review focus 3: 250 events show in order — rewritten in task 10", async () => {
-  const repo = fixtureRepo();
-  const fake = await fakeAgent();
-  const id = await seedRun(
+  await seedRun(
     fake,
     repo,
     CLI,
@@ -335,25 +347,14 @@ test.skip("review focus 3: 250 events show in order — rewritten in task 10", a
     })),
   );
 
-  await renderPage(`/f/${CLI}/runs/${id}`, repo, { agent: fake });
+  await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
 
-  await screen.findByText("Event 250.");
-  const texts = screen.getAllByText(/^Event \d+\.$/).map((element) => element.textContent);
+  await (await log()).findByText("Event 250.");
+  const texts = (await log()).getAllByText(/^Event \d+\.$/).map((element) => element.textContent);
   expect(texts).toEqual(Array.from({ length: 250 }, (_, index) => `Event ${index + 1}.`));
 });
 
-test.skip("a run done at a gate says so — rewritten in task 10", async () => {
-  const repo = fixtureRepo();
-  const fake = await fakeAgent();
-  await cachedRun(fake, repo, WEB_UI, { state: "done", step: "discovery", text: "Asked." });
-
-  await renderPage(`/f/${WEB_UI}`, repo, { agent: fake });
-
-  expect(await screen.findByText("Done: waiting for you")).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Start the agent" })).toBeNull();
-});
-
-test.skip("a merged feature shows its runs and no button — rewritten in task 10", async () => {
+test("a merged feature shows its session, and no button that starts the agent", async () => {
   const repo = fixtureRepo();
   git(repo, "switch", "--quiet", "--create", "2026-10-09-dark-mode", "main");
   mkdirSync(join(repo, "specs/done"), { recursive: true });
@@ -364,14 +365,29 @@ test.skip("a merged feature shows its runs and no button — rewritten in task 1
   git(repo, "merge", "--quiet", "--no-ff", "--no-edit", "2026-10-09-dark-mode");
   const fake = await fakeAgent();
   const folder = "2026-10-09-dark-mode";
-  await cachedRun(fake, repo, folder, { state: "done", step: "plan", text: "Planned." });
   await cachedRun(fake, repo, folder, { state: "done", step: "finish", text: "Finished." });
 
   await renderPage(`/f/${folder}`, repo, { agent: fake });
 
-  const runs = within(await screen.findByRole("list", { name: "Runs" }));
-  expect(await runs.findAllByRole("link")).toHaveLength(2);
+  expect(await screen.findByRole("link", { name: "Open the session" })).toBeTruthy();
+  expect(screen.queryByRole("list", { name: "Runs" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Start the agent" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Stop" })).toBeNull();
+});
+
+test("a merged feature without a session has no panel", async () => {
+  const repo = fixtureRepo();
+  git(repo, "switch", "--quiet", "--create", "2026-10-09-dark-mode", "main");
+  mkdirSync(join(repo, "specs/done"), { recursive: true });
+  writeFileSync(join(repo, "specs/done/2026-10-09-dark-mode.md"), record("Dark mode"));
+  git(repo, "add", "--all");
+  git(repo, "commit", "--quiet", "--no-verify", "--message", "finish(dark-mode): dark mode");
+  git(repo, "switch", "--quiet", "main");
+  git(repo, "merge", "--quiet", "--no-ff", "--no-edit", "2026-10-09-dark-mode");
+
+  await renderPage("/f/2026-10-09-dark-mode", repo, { agent: true });
+
+  expect(await screen.findByText("Merged into the default branch")).toBeTruthy();
+  expect(screen.queryByRole("region", { name: "Agent" })).toBeNull();
 });

@@ -2,8 +2,8 @@
 import type { useFateClient } from "react-fate";
 import type { Trigger } from "uraeda-server/fate";
 import { refusal } from "./errors.ts";
-import { stepLabel } from "./labels.ts";
-import { SessionView, WorkflowMessageView } from "./views.ts";
+import { navigate } from "./routes.tsx";
+import { SessionView } from "./views.ts";
 
 type Fate = ReturnType<typeof useFateClient>;
 
@@ -52,45 +52,12 @@ export async function sendMessage(
     : { ok: true, session: id };
 }
 
-/** A started step and what the page says of it, or the server's refusal. */
-export type Started =
-  | { ok: true; session: string; message: string }
-  | { ok: false; message: string };
-
 /**
- * TEMPORARY: replaced by `handOver` in task 10, which opens the session with the workflow's message
- * in the composer, unsent. Sends the workflow's message for the feature's next step at once, after
- * a commit. `file` is the file the commit wrote, which the message names.
+ * Hands the feature over to the agent: opens its session with the workflow's message in the
+ * composer, unsent, for the human to read, edit, and send. `file` is the file the commit wrote,
+ * which the message names.
  */
-export async function startRun(
-  fate: Fate,
-  input: { folder: string; trigger: Trigger; file?: string },
-): Promise<Started> {
-  const id = [input.folder, input.trigger, ...(input.file === undefined ? [] : [input.file])].join(
-    ":",
-  );
-  const { workflowMessage } = await fate.request(
-    { workflowMessage: { id, view: WorkflowMessageView } },
-    { mode: "network-only" },
-  );
-  const { data } = await fate.readView(WorkflowMessageView, workflowMessage);
-  const message = data as unknown as { text: string; step: string; refusal: string | null } | null;
-  if (!message) {
-    return { ok: false, message: "The agent did not start." };
-  }
-  if (message.refusal !== null) {
-    return { ok: false, message: message.refusal };
-  }
-  const sent = await sendMessage(fate, {
-    folder: input.folder,
-    text: message.text,
-    workflow: { trigger: input.trigger, ...(input.file === undefined ? {} : { file: input.file }) },
-  });
-  return sent.ok
-    ? {
-        ok: true,
-        session: sent.session,
-        message: `The agent is working on the ${stepLabel(message.step).toLowerCase()}.`,
-      }
-    : sent;
+export function handOver(folder: string, trigger: Trigger, file?: string): void {
+  const query = new URLSearchParams({ continue: trigger, ...(file === undefined ? {} : { file }) });
+  navigate(`/f/${encodeURIComponent(folder)}/session?${query.toString()}`);
 }

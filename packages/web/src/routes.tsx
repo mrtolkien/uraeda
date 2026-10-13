@@ -179,6 +179,11 @@ export function usePathname(): string {
   return useSyncExternalStore(subscribe, () => window.location.pathname);
 }
 
+/** The location's query, `?…`, or "": a page reads its options from it, like the session's message. */
+export function useSearch(): string {
+  return useSyncExternalStore(subscribe, () => window.location.search);
+}
+
 /**
  * The route to draw: it follows the location a step behind, so a page that loads keeps the one
  * before it on screen until it is drawn, instead of "Loading…".
