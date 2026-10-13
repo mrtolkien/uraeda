@@ -15,6 +15,7 @@ const SESSION_FIELDS = [
   "status",
   "statusLabel",
   "statusReason",
+  "unseen",
   "place",
   "costUsd",
   "turns",
@@ -90,6 +91,7 @@ test("session.send on a feature creates its session and returns it with its firs
     status: "working",
     statusLabel: "Working",
     statusReason: null,
+    unseen: false,
     place: `branch ${HUMAN}`,
     costUsd: null,
     archived: false,
@@ -322,6 +324,20 @@ test("US3.3: session.seen turns New reply into Idle", async () => {
   ]);
 
   expect(seen.data).toEqual({ id: session.id, status: "idle", statusLabel: "Idle" });
+});
+
+test("a session at a gate whose turn ended is unseen until session.seen, though it needs you", async () => {
+  const server = await testServer();
+  server.adapter.script([]);
+  const session = await send(server, { folder: HUMAN, text: "Why A?" });
+  await settle(server, session);
+  const fields = ["id", "status", "unseen"];
+  const [before] = await byId(server.app, "Session", [session.id], fields);
+  expect(before).toEqual({ id: session.id, status: "needs-you", unseen: true });
+
+  const seen = await mutate(server.app, "session.seen", { session: session.id }, fields);
+
+  expect(seen.data).toEqual({ id: session.id, status: "needs-you", unseen: false });
 });
 
 test("US1.6: a write on a feature is refused while its turn runs", async () => {

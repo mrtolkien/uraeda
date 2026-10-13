@@ -60,6 +60,26 @@ test("US1.1: a message shows under its opening line, and the reply below it", as
   expect(screen.getAllByText("Needs you").length).toBeGreaterThan(0);
 });
 
+test("a session shown at a gate is recorded as seen once its turn ends, though it needs you", async () => {
+  const fake = await fakeAgent();
+  fake.adapter.script([{ type: "text", text: "Because A keeps one process." }]);
+  const repo = fixtureRepo();
+  await renderPage(`/f/${WEB_UI}/session`, repo, { agent: fake });
+
+  await send("Why did you recommend A in Q6?");
+
+  // The feature waits on you: "Needs you" outranks a new reply, which the view shows all the same.
+  await refreshUntil(() => expect(log().getByText("Because A keeps one process.")).toBeTruthy());
+  const { cache } = fake.sessions;
+  const session = cache.featureSession(await fake.sessions.mainRoot(repo), WEB_UI)!;
+  await waitFor(() => {
+    const [turn] = cache.turns(session.id);
+    const { seenAt } = cache.session(session.id)!;
+    expect(turn.endedAt).not.toBeNull();
+    expect(seenAt !== null && seenAt >= turn.endedAt!).toBe(true);
+  });
+});
+
 test("US1.3: a message sent during a turn shows greyed, with Take back", async () => {
   const fake = await fakeAgent();
   await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: fake });

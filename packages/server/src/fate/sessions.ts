@@ -141,6 +141,17 @@ async function placeOf(ctx: Context, row: SessionRow, feature?: FeatureView): Pr
   return branch ? `main checkout, branch ${branch}` : "main checkout";
 }
 
+/** Whether the session's latest turn ended, with none waiting, after the human last saw it. */
+function unseen(row: SessionRow, read: ReturnType<typeof turnsOf>): boolean {
+  const ended = read.latest?.endedAt;
+  return (
+    !read.queued &&
+    ended !== undefined &&
+    ended !== null &&
+    (row.seenAt === null || Date.parse(ended) > Date.parse(row.seenAt))
+  );
+}
+
 export async function sessionRecord(ctx: Context, row: SessionRow): Promise<SessionRecord> {
   const read = turnsOf(ctx.sessions.cache, row.id);
   const feature = row.folder === null ? undefined : await featureOf(ctx, row.folder);
@@ -150,6 +161,7 @@ export async function sessionRecord(ctx: Context, row: SessionRow): Promise<Sess
     agent: row.agent,
     title: titleOf(row, feature),
     ...statusOf(row, read, feature),
+    unseen: unseen(row, read),
     place: await placeOf(ctx, row, feature),
     costUsd: read.costUsd,
     turns: read.turns.map((turn) => String(turn.id)),

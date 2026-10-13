@@ -135,13 +135,14 @@ function Session({
   const working = session?.status === "working";
   useOpenAtEnd(log);
   useFollowEnd(log, working);
-  const unread = session?.status === "unread";
-  // Shown with its latest turn ended: the human saw the reply.
+  // Shown with its latest turn ended: the human saw the reply, whatever the status shows, as "Needs
+  // you" at a gate.
+  const unseen = session?.unseen === true;
   useEffect(() => {
-    if (unread) {
+    if (unseen) {
       void fate.mutations.session.seen({ input: { session: id }, view: SessionView });
     }
-  }, [fate, id, unread]);
+  }, [fate, id, unseen]);
   if (!session) {
     return (
       <Page>
