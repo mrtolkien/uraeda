@@ -217,6 +217,37 @@ test("Start the agent opens the session with the message, unsent", async () => {
   expect(agent.sent).toHaveLength(0);
 });
 
+/** US2.5 */
+test("US2.5: during a chat turn, Start the agent queues the workflow's message after it", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const session = await fake.sessions.featureSession(repo, CLI);
+  await fake.sessions.send(repo, session.id, { text: "Why plan first?" });
+  await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
+  fake.adapter.emit({ type: "accepted", id: fake.adapter.sent[0].id });
+  await renderPage(`/f/${CLI}`, repo, { agent: fake });
+  await waitFor(() => expect(panel().getByText("Working")).toBeTruthy());
+
+  await click(panel().getByRole("button", { name: "Start the agent" }));
+  await opensWith(CLI, MANUAL);
+  const composer = screen
+    .getAllByRole("button", { name: "Start the agent" })
+    .find((button) => !screen.queryByRole("region", { name: "Agent" })?.contains(button))!;
+  await click(composer);
+
+  // Queued below the chat turn, unsent while it works.
+  await refreshUntil(() =>
+    expect(
+      within(screen.getByRole("log", { name: "Conversation" })).getByText("Run: Plan"),
+    ).toBeTruthy(),
+  );
+  expect(fake.adapter.sent).toHaveLength(1);
+  // It starts once that turn ends.
+  fake.adapter.emit({ type: "result", ok: true, errors: [], denials: [], interrupted: false });
+  await waitFor(() => expect(fake.adapter.sent).toHaveLength(2));
+  expect(fake.adapter.sent[1].text).toBe(MANUAL);
+});
+
 test("Try again after a failure opens the session with the message", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
