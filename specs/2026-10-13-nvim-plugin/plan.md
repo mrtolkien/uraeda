@@ -300,40 +300,48 @@ git commit -m "feat(nvim-plugin): fields of a file, and a check of a text"
 **Files:**
 
 - Create: `crates/lsp/Cargo.toml` (`uraeda-lsp`; `lsp-server = "0.10.0"`, `lsp-types = "0.97.0"`,
-  `serde`, `serde_json`, `uraeda-core`; dev: `tempfile`), `crates/lsp/src/lib.rs`,
-  `crates/lsp/src/server.rs` (the loop and dispatch), `crates/lsp/src/documents.rs`,
-  `crates/lsp/src/diagnostics.rs`
+  `crossbeam-channel` (the channel `lsp-server` already uses, for the server's sender), `serde`,
+  `serde_json`, `uraeda-core`; dev: `tempfile`), `crates/lsp/src/lib.rs`, `crates/lsp/src/server.rs`
+  (the loop and dispatch), `crates/lsp/src/documents.rs`, `crates/lsp/src/diagnostics.rs`
 - Modify: `Cargo.toml` (workspace dependencies), `crates/cli/Cargo.toml`, `crates/cli/src/main.rs`
   (`Lsp` subcommand), `skills/uraeda/SKILL.md` (the CLI table: a row `ura lsp` | "Serves workflow
   files to editors: diagnostics, completion, outline, actions")
-- Test: `crates/lsp/tests/common/mod.rs` (`Session`), `crates/lsp/tests/diagnostics.rs`
+- Test: `crates/lsp/tests/common/mod.rs` (`Session`), `crates/lsp/tests/diagnostics.rs`,
+  `crates/cli/tests/lsp.rs`
 
 **Interfaces:**
 
 - Consumes: `check::check_text` (task 1).
 - Produces:
   - `uraeda_lsp::run(connection: lsp_server::Connection) -> Result<(), Box<dyn std::error::Error + Send + Sync>>`
-    and `uraeda_lsp::stdio()`, called by `ura lsp`.
+    and `uraeda_lsp::stdio()`, called by `ura lsp`; `uraeda_lsp::file_uri(path: &Path) -> Uri`, the
+    `file:` URI of a path, for tests.
+  - `server.rs` routes each request by method to its capability's module through
+    `handle::<R>(params, |params| ...)`, and each notification through `notify::<N>`; an unknown
+    method answers `MethodNotFound`, `method not found: <method>`.
   - `Documents` in `documents.rs`: `open(uri, text)`, `change(uri, text)`, `close(uri)`,
     `text(uri) -> Option<&str>`, `path(uri) -> Option<PathBuf>`, and the server's `root: PathBuf`,
     from `initialize`'s first workspace folder, else `rootUri`.
   - Capabilities: full text sync with open, close, and save.
   - Test helper `Session` in `crates/lsp/tests/common/mod.rs`:
     `Session::start(root: &Path) -> Session` (in-memory connection, server thread, `initialize`
-    done), `open(path, text)`, `change(path, text)`,
+    done), `open(path, text)`, `change(path, text)`, `save(path)`, `close(path)`,
     `request<R: lsp_types::request::Request>(params) -> R::Result`,
     `raw(method, params) -> Result<Value, ResponseError>`,
     `command(name, args) -> Result<Value, ResponseError>`, `diagnostics(path) -> Vec<Diagnostic>`
-    (waits up to 2 s for the next publish), `notifications(method) -> Vec<Value>`; `TestRepo` and
-    `texts` through `#[path]`, as the CLI's tests do.
+    (waits up to 2 s for the next publish), `notifications(method) -> Vec<Value>`; the server's own
+    requests are answered with `null`. `TestRepo` and `texts` through `#[path]`, as the CLI's tests
+    do, and `feature_with_spec() -> (TestRepo, PathBuf, String)`, a repository holding the example
+    project's `specs/`, with `FEATURE`, `example()`, and `write_example(repo)`
+    ([R3](rulings.md#r3-the-servers-tests-use-the-example-project)).
 
-- [ ] **Step 1: Write the failing tests, and `Session`**
+- [x] **Step 1: Write the failing tests, and `Session`**
 
 ```rust
 // crates/lsp/tests/diagnostics.rs
 #[test]
 fn an_unsaved_change_shows_its_problem() {          // US1.1
-    let (repo, path) = feature_with_spec();          // spec("awaiting-human", 1, 1)
+    let (repo, path, spec_text) = feature_with_spec(); // the example's spec, risk-tier: high
     let mut session = Session::start(repo.path());
     session.open(&path, &spec_text);
     session.change(&path, &spec_text.replace("risk-tier: high", "risk-tier: extreme"));
@@ -366,27 +374,28 @@ fn diagnostics_arrive_within_300_ms() {              // SC-001
 fn ura_lsp_answers_initialize_over_stdio() { /* spawn `ura lsp`, write an initialize request, read capabilities */ }
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-lsp`
 - Expected: FAIL, `could not find `run`in`uraeda_lsp``
 
-- [ ] **Step 3: Implement the crate, the loop, documents, and diagnostics**
+- [x] **Step 3: Implement the crate, the loop, documents, and diagnostics**
 
 Publish diagnostics on open, change, and save, for files under `<root>/specs/`, with
 `check_text(root, path, text)`; on close, publish an empty list. Each `Problem` covers its whole
 line (0-based), line 1 when `None`. The loop answers `shutdown` and stops on `exit`.
 
-- [ ] **Step 4: Run all tests, and measure the release binary**
+- [x] **Step 4: Run all tests, and measure the release binary**
 
 - Run:
   `cargo test --workspace --exclude uraeda-binding && cargo clippy --workspace --all-targets -- -D warnings`
 - Expected: PASS
 - Run: `cargo build --release -p uraeda-cli && ls -l target/release/ura`, on this commit and on its
   parent
-- Expected: the growth, written in `rulings.md` as R1, for the pull request (SC-005)
+- Expected: the growth, written in `rulings.md` as
+  [R2](rulings.md#r2-ura-lsp-adds-420-kb-to-the-release-binary), for the pull request (SC-005)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Cargo.toml Cargo.lock crates skills/uraeda/SKILL.md specs/2026-10-13-nvim-plugin/rulings.md
