@@ -105,6 +105,9 @@ export declare function saveNotes(repo: string, folder: string, notes: string, p
  */
 export declare function saveText(repo: string, path: string, text: string, previous: string): Promise<string>
 
+/** Sets the discovery effort of a draft or a proposal, over the version read at `previous`. */
+export declare function setDiscovery(repo: string, path: string, level: string, previous: string): Promise<DraftView>
+
 /** Starts a drafted feature in its own worktree. */
 export declare function startFeature(repo: string, draft: string, slug?: string | undefined | null): Promise<StartedView>
 
@@ -234,6 +237,20 @@ export interface DraftView {
   entry?: PriorityView
   /** How many priority changes are not committed, which its commit takes along. */
   priorityChanges: number
+  /** `draft` for a file of `specs/drafts/` or `specs/backlog/`, `proposal`, or `report`. */
+  kind: string
+  /** The feature's or the bug's folder, for a proposal or a report. */
+  folder?: string
+  /** The slug Start gives a draft's feature unless another is typed. */
+  slug?: string
+  /** The effort its `discovery` field asks for, `high` by default; none for a report. */
+  discovery?: string
+  /** The discovery efforts it may ask for, from the least research to the most. */
+  discoveryLevels: Array<string>
+  /** Whether it holds more than its title and What: text in any other part of it. */
+  written: boolean
+  /** The headings of its `##` sections that hold no text yet. */
+  emptySections: Array<string>
 }
 
 /** An entry of `PRIORITIES.md`, for editing: its markdown, its spans, and its nested lines. */

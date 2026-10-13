@@ -118,6 +118,29 @@ fn by_path(
     Err(TargetError::NoPath(target.to_string()))
 }
 
+/// The folders drafts are written in, from the top level, on the default branch.
+const DRAFT_FOLDERS: [&str; 2] = ["specs/drafts/", "specs/backlog/"];
+
+/// Whether a path from the top level is under `specs/drafts/` or `specs/backlog/`: a draft, a
+/// postponed folder, or a file of one, all written on the default branch.
+pub fn is_draft(path: &str) -> bool {
+    DRAFT_FOLDERS.iter().any(|folder| path.starts_with(folder))
+}
+
+/// The draft a path under `specs/drafts/` or `specs/backlog/` starts, from the top level: the
+/// file itself, or the postponed folder that holds it. `None` for any other path.
+pub fn draft_to_start(path: &str) -> Option<String> {
+    let folder = DRAFT_FOLDERS
+        .iter()
+        .find(|folder| path.starts_with(*folder))?;
+    let rest = &path[folder.len()..];
+    match rest.split_once('/') {
+        Some((postponed, _)) => Some(format!("{folder}{postponed}")),
+        None if rest.is_empty() => None,
+        None => Some(path.to_string()),
+    }
+}
+
 /// A draft's name: its file's stem, or its postponed folder's name.
 pub fn draft_name(draft: &str) -> &str {
     let last = draft.rsplit('/').next().unwrap_or(draft);

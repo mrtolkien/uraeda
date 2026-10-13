@@ -9,6 +9,7 @@ pub mod markdown;
 pub mod outline;
 pub mod plan;
 pub mod priorities;
+pub mod proposal;
 pub mod review;
 pub mod rulings;
 pub mod spec;

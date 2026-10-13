@@ -9,6 +9,7 @@ use crate::check;
 use crate::files::document::{self, hash};
 use crate::files::items::items;
 use crate::files::priorities::{self, Priorities, Section};
+use crate::files::proposal;
 use crate::files::review::Verdict;
 use crate::git::{Git, GitError};
 use crate::view::{
@@ -18,7 +19,7 @@ use crate::view::{
 use crate::workspace::{
     Feature, FileKind, Problem, Source, Workspace, WorkspaceError, linked_draft,
 };
-use crate::{steps, today};
+use crate::{steps, target, today};
 
 /// An operation refused or failed: `code` is `refused`, `conflict` for a change made elsewhere,
 /// or `hook` for a commit a hook refused, with its whole `output`.
@@ -226,10 +227,6 @@ fn find<'a>(workspace: &'a Workspace, folder: &str) -> Result<&'a Feature> {
 fn plain(path: &str) -> bool {
     path.split('/')
         .all(|part| !part.is_empty() && !part.starts_with('.'))
-}
-
-fn is_draft(path: &str) -> bool {
-    path.starts_with("specs/drafts/") || path.starts_with("specs/backlog/")
 }
 
 /// Refuses any path but a draft's: a file or a postponed folder of `specs/drafts/` or
@@ -626,16 +623,56 @@ pub fn read_draft(repo: &Path, path: &str) -> Result<DraftView> {
         .into_iter()
         .find(|entry| entry.draft.as_deref() == Some(path));
     let priorities = read_priorities(repo)?;
+    let committed = committed.as_deref() == Some(text.as_str());
+    let dir = path.rsplit_once('/').map_or("specs", |(dir, _)| dir);
     Ok(DraftView {
+        entry,
+        priority_changes: priorities.changes,
+        ..text_view(path, text, dir, committed, None)
+    })
+}
+
+/// The view of a draft or a proposal's text, read from `dir`, outside the priorities.
+fn text_view(
+    path: &str,
+    text: String,
+    dir: &str,
+    committed: bool,
+    folder: Option<String>,
+) -> DraftView {
+    let name = path.rsplit('/').next().unwrap_or(path);
+    let report = FileKind::of(name).is_some_and(|(kind, _)| kind == FileKind::Report);
+    let kind = if target::is_draft(path) {
+        "draft"
+    } else if report {
+        "report"
+    } else {
+        "proposal"
+    };
+    DraftView {
         path: path.to_string(),
         title: title(&text).unwrap_or_else(|| path.to_string()),
         hash: hash(&text),
-        document: document::parse(&text, path.rsplit_once('/').map_or("specs", |(dir, _)| dir)),
-        committed: committed.as_deref() == Some(text.as_str()),
-        entry,
-        priority_changes: priorities.changes,
+        document: document::parse(&text, dir),
+        committed,
+        entry: None,
+        priority_changes: 0,
+        kind: kind.to_string(),
+        folder,
+        slug: target::draft_to_start(path).map(|draft| target::draft_name(&draft).to_string()),
+        discovery: (!report).then(|| proposal::discovery(&text).to_string()),
+        discovery_levels: if report {
+            Vec::new()
+        } else {
+            proposal::discovery_levels()
+                .iter()
+                .map(|level| level.to_string())
+                .collect()
+        },
+        written: proposal::is_written(&text),
+        empty_sections: proposal::empty_sections(&text),
         text,
-    })
+    }
 }
 
 fn reach_default(repo: &Path) -> Result<place::Place> {
@@ -671,7 +708,7 @@ pub fn create_draft(repo: &Path, id: &str, previous: &str) -> Result<DraftView> 
 
 /// The place a text file is written in: the default branch for drafts, else the feature's branch.
 fn text_place(repo: &Path, path: &str) -> Result<place::Place> {
-    if is_draft(path) {
+    if target::is_draft(path) {
         draft_path(path)?;
         return reach_default(repo);
     }
@@ -692,6 +729,26 @@ pub fn save_text(repo: &Path, path: &str, content: &str, previous: &str) -> Resu
     let _lock = write_lock();
     let place = text_place(repo, path)?;
     Ok(text::save(&place, path, content, previous)?)
+}
+
+/// Sets the discovery effort of a draft or a proposal, over the version read at `previous`.
+pub fn set_discovery(repo: &Path, path: &str, level: &str, previous: &str) -> Result<DraftView> {
+    {
+        let _lock = write_lock();
+        let place = text_place(repo, path)?;
+        if FileKind::of(path.rsplit('/').next().unwrap_or(path))
+            .is_some_and(|(kind, _)| kind == FileKind::Report)
+        {
+            return Err(refused(format!(
+                "{path} is a report: it has no discovery effort"
+            )));
+        }
+        let text = std::fs::read_to_string(place.root.join(path))
+            .map_err(|_| refused(format!("{path}: no such file")))?;
+        let edited = proposal::set_discovery(&text, level).map_err(refused)?;
+        text::save(&place, path, &edited, previous)?;
+    }
+    read_text(repo, path)
 }
 
 /// Commits a draft, with the priorities when they changed, or a proposal.
@@ -821,7 +878,7 @@ pub fn discard_priorities(repo: &Path) -> Result<Priorities> {
 /// A draft or a proposal, for its editor: a draft from the default branch, a proposal from its
 /// feature.
 pub fn read_text(repo: &Path, path: &str) -> Result<DraftView> {
-    if is_draft(path) {
+    if target::is_draft(path) {
         return read_draft(repo, path);
     }
     let (git, workspace) = open(repo)?;
@@ -836,16 +893,13 @@ pub fn read_text(repo: &Path, path: &str) -> Result<DraftView> {
         .and_then(|branch| git.tip(branch))
         .and_then(|tip| git.read_file(tip, path).ok().flatten())
         .is_some_and(|bytes| bytes == text.as_bytes());
-    Ok(DraftView {
-        path: path.to_string(),
-        title: title(&text).unwrap_or_else(|| path.to_string()),
-        hash: hash(&text),
-        document: document::parse(&text, &feature.path),
-        committed,
-        entry: None,
-        priority_changes: 0,
+    Ok(text_view(
+        path,
         text,
-    })
+        &feature.path,
+        committed,
+        Some(feature.folder.clone()),
+    ))
 }
 
 /// A file of the repository as text, for links to code and mockups: a feature's file from where

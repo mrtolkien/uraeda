@@ -7,7 +7,7 @@ mod names;
 mod sections;
 mod values;
 
-pub use values::{Action, Choice, Field, FieldKind};
+pub use values::{Action, Choice, Field, FieldKind, allowed_values};
 
 use std::collections::BTreeMap;
 use std::fs;

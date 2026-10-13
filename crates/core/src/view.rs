@@ -174,6 +174,20 @@ pub struct DraftView {
     pub entry: Option<PriorityView>,
     /// How many priority changes are not committed, which its commit takes along.
     pub priority_changes: u32,
+    /// `draft` for a file of `specs/drafts/` or `specs/backlog/`, `proposal`, or `report`.
+    pub kind: String,
+    /// The feature's or the bug's folder, for a proposal or a report.
+    pub folder: Option<String>,
+    /// The slug Start gives a draft's feature unless another is typed.
+    pub slug: Option<String>,
+    /// The effort its `discovery` field asks for, `high` by default; none for a report.
+    pub discovery: Option<String>,
+    /// The discovery efforts it may ask for, from the least research to the most.
+    pub discovery_levels: Vec<String>,
+    /// Whether it holds more than its title and What: text in any other part of it.
+    pub written: bool,
+    /// The headings of its `##` sections that hold no text yet.
+    pub empty_sections: Vec<String>,
 }
 
 /// A commit an action made.
