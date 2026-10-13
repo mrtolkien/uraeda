@@ -22,14 +22,14 @@ import { Blocks, selectable } from "./Blocks.tsx";
 import { CommitActions } from "./CommitActions.tsx";
 import { CommentForm, quoteOf } from "./CommentForm.tsx";
 import { Crumbs } from "./Crumbs.tsx";
-import type { useFile } from "./data.ts";
+import { type useFile, useAgent } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
 import { Overlay } from "./layout/Overlay.tsx";
 import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { GrowingTextArea, statusStyles } from "./Question.tsx";
 import { HookRefusal } from "./RoundPage.tsx";
-import { handOver } from "./sessions.ts";
+import { askAbout, handOver, quoted } from "./sessions.ts";
 import { plain } from "./Spans.tsx";
 import { FileView } from "./views.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
@@ -165,6 +165,7 @@ async function placeAboveSheet(element: HTMLElement, sheet: RefObject<HTMLElemen
  */
 export function ReviewPage({ file }: { file: File }) {
   const fate = useFateClient();
+  const agent = useAgent();
   const wide = useWidthClass() === "wide";
   const version = file.committed ?? file.current;
   const document = version.document;
@@ -308,6 +309,14 @@ export function ReviewPage({ file }: { file: File }) {
     }
   };
 
+  /** Opens the feature's session with the selected lines quoted, as they read in the file. */
+  const ask = (range: Range) => {
+    const lines = version.text.split("\n").slice(range.start - 1, range.end);
+    const where =
+      range.start === range.end ? `line ${range.start}` : `lines ${range.start}–${range.end}`;
+    askAbout(file.folder, quoted(`About ${file.path}, ${where}:`, lines));
+  };
+
   // The selected lines' first block, quoted in the comment field.
   const first =
     selection &&
@@ -330,6 +339,11 @@ export function ReviewPage({ file }: { file: File }) {
       submitLabel={draft.kind === "edit" ? "Save comment" : "Add comment"}
       onSubmit={send}
       onCancel={close}
+      action={
+        agent?.available &&
+        draft.kind === "lines" &&
+        selection && <Button label="Ask the agent" onClick={() => ask(selection)} />
+      }
     />
   );
   /** The comment field, in the page on wide screens: on the phone, it is in the sheet. */

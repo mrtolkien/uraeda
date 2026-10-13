@@ -61,3 +61,17 @@ export function handOver(folder: string, trigger: Trigger, file?: string): void 
   const query = new URLSearchParams({ continue: trigger, ...(file === undefined ? {} : { file }) });
   navigate(`/f/${encodeURIComponent(folder)}/session?${query.toString()}`);
 }
+
+/**
+ * Asks the agent about a block: opens the feature's session with the quote in the composer, before
+ * what the human already typed, and an empty line for the question.
+ */
+export function askAbout(folder: string, quote: string): void {
+  const query = new URLSearchParams({ ask: quote });
+  navigate(`/f/${encodeURIComponent(folder)}/session?${query.toString()}`);
+}
+
+/** A quote of lines: a header, then each line after `> `. */
+export function quoted(header: string, lines: ReadonlyArray<string>): string {
+  return [header, ...lines.map((line) => `> ${line}`)].join("\n");
+}

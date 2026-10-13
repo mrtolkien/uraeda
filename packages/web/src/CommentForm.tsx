@@ -4,7 +4,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { GrowingTextArea, statusStyles } from "./Question.tsx";
 
 const styles = stylex.create({
@@ -26,7 +26,8 @@ const styles = stylex.create({
  * A comment being written: where it goes, the start of what it comments on, its text, Cancel, and
  * the button that sends it. `onSubmit` resolves with nothing once the comment is written, or with
  * the error to show, the text kept. `text` and `onTextChange` hold the text outside the form, so
- * it survives the form moving. Shared by the review and the mockup page.
+ * it survives the form moving. `action` goes before Cancel. Shared by the review and the mockup
+ * page.
  */
 export function CommentForm({
   anchor,
@@ -37,6 +38,7 @@ export function CommentForm({
   submitLabel = "Add comment",
   onSubmit,
   onCancel,
+  action,
 }: {
   anchor: string;
   quote?: string;
@@ -46,6 +48,7 @@ export function CommentForm({
   submitLabel?: string;
   onSubmit: (text: string) => Promise<string | undefined>;
   onCancel: () => void;
+  action?: ReactNode;
 }) {
   const [own, setOwn] = useState(initial);
   const text = held ?? own;
@@ -69,6 +72,7 @@ export function CommentForm({
         <GrowingTextArea label="Comment text" value={text} onChange={setText} />
         {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
         <HStack gap={2} justify="end" wrap="wrap">
+          {action}
           <Button label="Cancel" onClick={onCancel} />
           <Button
             variant="primary"

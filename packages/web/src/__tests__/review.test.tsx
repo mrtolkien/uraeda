@@ -345,3 +345,51 @@ test("a nested item's comment field takes taps without selecting its parent", as
     "Only the nested one",
   );
 });
+
+/** The composer of the feature's session, once the page is drawn. */
+function composer() {
+  return screen.findByRole("textbox", { name: "Message Claude Code" });
+}
+
+/** US6.1 */
+test("US6.1: Ask the agent opens the session with the selected lines quoted", async () => {
+  const r = repo();
+  await renderPage(PAGE, r, { agent: true });
+  await click(await scenario(FIRST));
+  await click(await scenario(SECOND));
+
+  await click(await screen.findByRole("button", { name: "Ask the agent" }));
+
+  expect(window.location.pathname).toBe(`/f/${FOLDER}/session`);
+  const lines = git(r, "show", `${FOLDER}:${SPEC}`).split("\n").slice(91, 95);
+  const box = await composer();
+  await waitFor(() =>
+    expect(box.textContent).toBe(
+      `About ${SPEC}, lines 92–95:\n${lines.map((line) => `> ${line}`).join("\n")}\n\n`,
+    ),
+  );
+});
+
+/** US6.1, on one line */
+test("Ask the agent on one line names that line", async () => {
+  const r = repo();
+  await renderPage(PAGE, r, { agent: true });
+  await click(await scenario("Upgrade of version 1 data"));
+
+  await click(await screen.findByRole("button", { name: "Ask the agent" }));
+
+  const lines = git(r, "show", `${FOLDER}:${SPEC}`).split("\n");
+  const at = lines.findIndex((line) => line.includes("| Upgrade of version 1 data"));
+  const box = await composer();
+  await waitFor(() =>
+    expect(box.textContent).toBe(`About ${SPEC}, line ${at + 1}:\n> ${lines[at]}\n\n`),
+  );
+});
+
+test("without the agent, a selection offers no Ask the agent", async () => {
+  await renderPage(PAGE, repo());
+  await click(await scenario(FIRST));
+
+  await screen.findByLabelText("Comment text");
+  expect(screen.queryByRole("button", { name: "Ask the agent" })).toBeNull();
+});
