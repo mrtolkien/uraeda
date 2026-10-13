@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Nvim plugin
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 10 questions on the Neovim plugin, about 35 minutes.
+> Answered on 2026-10-13.
 >
 > - Two choices last beyond this feature: how the plugin reaches the workflow logic, which becomes a
 >   rule of the stack decision for every editor plugin, and where the plugin lives in the
@@ -64,7 +64,7 @@ rule of the stack decision for every editor plugin after this one.
   - [con] a second parser that drifts from the core's rules, which the stack decision's intent
     forbids: it needs your explicit exception.
 
-**Answer:**
+**Answer:** B
 
 ### Q1.A: How does a frontmatter change reach the file?
 
@@ -82,7 +82,7 @@ Only if you picked A in Q1. The core's own setter replaces the whole line, dropp
   - [pro] the same command serves the TUIs and scripts.
   - [con] undone only by editing again, and a buffer is saved without you asking.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: What does picking a human status do?
 
@@ -108,7 +108,8 @@ write.
   - [pro] no picker value commits.
   - [con] two ways to look at the same field.
 
-**Answer:**
+**Answer:** A: We should have an "approve spec" action that does it. It should look and feel
+different from other actions that simply edit a field.
 
 ## Q3: What does the first version include beyond the four actions?
 
@@ -131,7 +132,10 @@ Why it matters: it sets the size of the feature.
   - [pro] reviewing in Neovim looks like reviewing on GitHub.
   - [con] `ura` must expose each comment's lines, and the display must follow edits.
 
-**Answer:**
+**Answer:** A and C: I think with the decision to go in the direction of an LSP, it shouldn't be
+that bad to add all those?
+
+Tell me if it's too complex.
 
 ## Q4: Who commits the edits the plugin does not commit itself?
 
@@ -152,7 +156,7 @@ Why it matters: it decides whether your workflow commits read like the web UI's.
   - [pro] no new command.
   - [con] the skill's messages are written by hand, and drift.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: Where does the plugin live?
 
@@ -176,7 +180,7 @@ the same commit.
   - [pro] the cleanest install, with version tags.
   - [con] keeping it in step with `ura` by hand, in two pull requests.
 
-**Answer:**
+**Answer:** A: We might review that once there's more users but let's start with the simple path
 
 ## Q6: How do you type a review comment?
 
@@ -195,7 +199,7 @@ Why it matters: comments are often several lines, with a quote or a list.
   - [pro] the least code.
   - [con] one line per comment.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: What does Neovim do after a draft becomes a proposal?
 
@@ -216,7 +220,7 @@ Why it matters: your session either stays where it was, or moves to the new feat
   - [pro] no window changes.
   - [con] you open the proposal yourself.
 
-**Answer:**
+**Answer:** A
 
 ## Q8: Which leader prefix holds the actions?
 
@@ -238,7 +242,9 @@ Why it matters: it is the key you will press every day.
   - [pro] yours.
   - [con] none.
 
-**Answer:**
+**Answer:** Add the actions to `<leader>a` which is currently the ai menu in lazyvim.
+
+If there's too many collision do `<leader>au`. Make sure it's easy to change the prefix.
 
 ## Q9: How is the plugin's code checked?
 
@@ -263,7 +269,7 @@ C can come on top of A or B.
   - [pro] catches type errors before the tests.
   - [con] one more tool, and slower checks.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
