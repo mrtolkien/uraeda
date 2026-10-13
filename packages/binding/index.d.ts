@@ -288,6 +288,7 @@ export interface FeatureView {
   worktree?: string
   uncommitted: boolean
   behind?: number
+  /** Its files in workflow order. */
   files: Array<FileSummary>
   /**
    * The `.html` files of its `mockups/` folder, sorted: from its working tree when its branch

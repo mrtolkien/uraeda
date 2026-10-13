@@ -11,7 +11,7 @@ import { Suspense } from "react";
 import { AgentPanel } from "./AgentPanel.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { useFeature } from "./data.ts";
-import { waiting, workflowOrder } from "./labels.ts";
+import { waiting } from "./labels.ts";
 import { Page } from "./layout/Page.tsx";
 import { navigate, useRestoreScroll } from "./routes.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
@@ -44,7 +44,8 @@ export function FeaturePage({ folder }: { folder: string }) {
     );
   }
   const gate = feature.step.waitsOn === "human" ? waiting(feature) : undefined;
-  const files = workflowOrder(feature.files).filter((file) => file.kind !== "review");
+  // The core sends them in workflow order.
+  const files = feature.files.filter((file) => file.kind !== "review");
   const finished = feature.files.some((file) => file.kind === "record");
   const left =
     feature.leftWorktree && feature.leftBranch
