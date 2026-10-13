@@ -106,7 +106,7 @@ type Draft = [string, (update: string | ((now: string) => string)) => void];
 
 /**
  * What a feature's session was opened for: the workflow's message, while the composer holds it,
- * or why there is none; and what follows a sent message.
+ * and why it cannot go, when it cannot; and what follows a sent message.
  */
 type Handing = {
   workflow?: { trigger: Trigger; file?: string };
@@ -356,7 +356,7 @@ function FeatureSession({ folder }: { folder: string }) {
   // Sent: the address no longer asks for the message, or the quote.
   const sent = () => redirect(`/f/${encodeURIComponent(folder)}/session`);
   const handing: Handing = workflow
-    ? { ...(refused === undefined ? { workflow } : { notice: refused }), onSent: sent }
+    ? { workflow, ...(refused === undefined ? {} : { notice: refused }), onSent: sent }
     : ask !== undefined
       ? { onSent: sent }
       : {};

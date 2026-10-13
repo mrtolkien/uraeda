@@ -38,7 +38,8 @@ function useReplyStatus(agentName: string, working: boolean): string {
  * on wide screens; on the phone, Return adds a line and only the button sends. It sends to
  * `session`, else to the feature of `folder`, else to a new chat, then calls `onSent` with the
  * session's ID. A refused send keeps the text, with the reason under it until the next send.
- * `notice` is the page's own reason under it, like the workflow's refusal to continue.
+ * `notice` is the page's own reason under it, like the workflow's refusal to continue: with the
+ * workflow's message, "Start the agent" stays, disabled, so the message never goes as a chat.
  */
 export function Composer({
   session,
@@ -70,8 +71,12 @@ export function Composer({
   const name = agent?.name ?? "the agent";
   const status = useReplyStatus(name, working);
   const unavailable = agent?.available ? undefined : `${name} is not available on this machine.`;
+  const refused = workflow !== undefined && notice !== undefined;
 
   const submit = (text: string) => {
+    if (refused) {
+      return;
+    }
     setError(undefined);
     onChange("");
     void sendMessage(fate, {
@@ -123,7 +128,7 @@ export function Composer({
             <Button
               variant="primary"
               label="Start the agent"
-              isDisabled={!canSend}
+              isDisabled={!canSend || refused}
               clickAction={() => submit(value.trim())}
             />
           ) : undefined
