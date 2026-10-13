@@ -3,12 +3,41 @@ export type Denial = { tool: string; input: Record<string, unknown> };
 
 /** What an adapter reads from its agent's output, whatever the agent. */
 export type AgentEvent =
+  /** The agent's session, at the start of each turn. */
   | { type: "init"; sessionId: string; plugins: Array<string>; pluginErrors: Array<string> }
+  /** A piece of the text being written. */
+  | { type: "textDelta"; text: string }
+  /** A text block, whole. */
   | { type: "text"; text: string }
-  | { type: "toolStart"; id: string; name: string; input: Record<string, unknown> }
+  | {
+      type: "toolStart";
+      id: string;
+      name: string;
+      kind: ToolKind;
+      input: Record<string, unknown>;
+      /** The command, the path relative to the session's directory, the URL, or the pattern. */
+      target?: string;
+      /** The tool call of the sub-agent that runs it. */
+      parent?: string;
+      /** Set when the tool starts a sub-agent. */
+      subagent?: { description: string };
+    }
   | { type: "toolEnd"; id: string; isError: boolean; output: string }
+  /** The agent read a message sent to it. */
+  | { type: "accepted"; id: string }
+  /** A message was taken back before the agent read it. */
+  | { type: "cancelled"; id: string }
   | { type: "retry"; attempt: number; delayMs: number; error: string }
-  | { type: "result"; ok: boolean; costUsd?: number; errors: Array<string>; denials: Array<Denial> }
+  /** The turn ended. `costUsd` is the process's total so far. */
+  | {
+      type: "result";
+      ok: boolean;
+      costUsd?: number;
+      errors: Array<string>;
+      denials: Array<Denial>;
+      /** Ended by an interrupt: a stop, not an error. */
+      interrupted: boolean;
+    }
   /** A line the adapter does not read: not JSON, or of an unknown type. */
   | { type: "skipped" }
   /** The process ended. `missing` when its command could not be found. */
