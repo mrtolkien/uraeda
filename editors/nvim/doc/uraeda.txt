@@ -1,0 +1,292 @@
+*uraeda.txt*	Uraeda's workflow files in Neovim
+
+                                                        *uraeda* *uraeda.nvim*
+
+Uraeda keeps a feature's proposal, questions, spec, plan, and reviews as plain
+text in git. This plugin lets you answer, comment, approve, draft, start, and
+commit them without leaving Neovim.
+
+==============================================================================
+CONTENTS                                                     *uraeda-contents*
+
+  1. Introduction ............................................. |uraeda-intro|
+  2. Requirements ...................................... |uraeda-requirements|
+  3. Installation ...................................... |uraeda-installation|
+  4. Options ................................................ |uraeda-options|
+  5. Commands .............................................. |uraeda-commands|
+  6. Mappings .............................................. |uraeda-mappings|
+  7. Keys ...................................................... |uraeda-keys|
+  8. Windows ................................................ |uraeda-windows|
+  9. Highlight groups .................................... |uraeda-highlights|
+ 10. Language server ............................................ |uraeda-lsp|
+ 11. Health .................................................. |uraeda-health|
+ 12. Developing the plugin .................................. |uraeda-develop|
+
+==============================================================================
+1. Introduction                                                 *uraeda-intro*
+
+The plugin holds no workflow rules. Every fact about a file, and every action
+that writes one, comes from the `uraeda` language server, `ura lsp`, which
+calls the same core as the `ura` command-line tool and the web UI. The plugin
+adds what the protocol leaves to editors: the keys, the pickers, the comment
+and verdict windows, the comments drawn under their lines, and opening the
+files an action produced.
+
+In a workflow file, the server gives:
+- diagnostics, the same as `ura check`, as you type;
+- completion of frontmatter values, and code actions that set them;
+- document symbols: the questions of a round, the sections of a spec;
+- inlay hints on the lines of `PRIORITIES.md`: each feature's step.
+
+Actions that write another file or commit run only when you ask, with
+|:Uraeda|, a |<Plug>| mapping, or a key. Before an action that reads the
+buffer, the plugin saves it; after, it reloads the files written and opens the
+file produced. Errors are notifications titled "Uraeda", with the core's
+message as it is.
+
+==============================================================================
+2. Requirements                                          *uraeda-requirements*
+
+- Neovim 0.11 or later.
+- `ura` on your `PATH`, recent enough to have `ura lsp`. Install it as the
+  repository's README says, and keep it current with `ura upgrade`.
+- `git` on your `PATH`.
+- Optional: snacks.nvim, for the waiting picker with a file preview. Without
+  it, every picker goes through |vim.ui.select()|.
+
+Run |:checkhealth| `uraeda` to check them, see |uraeda-health|.
+
+==============================================================================
+3. Installation                                          *uraeda-installation*
+
+The plugin lives in the `editors/nvim/` folder of the Uraeda repository. With
+lazy.nvim, from a checkout of the repository: >lua
+
+    { dir = "~/Development/ai/uraeda/editors/nvim", name = "uraeda.nvim" }
+<
+No `setup()` call is needed: the plugin loads itself, and reads its options
+from |vim.g.uraeda| when it starts. lazy.nvim generates the help tags; with
+another plugin manager, run |:helptags| on the plugin's `doc/` folder.
+
+==============================================================================
+4. Options                                                    *uraeda-options*
+
+                                                     *vim.g.uraeda* *g:uraeda*
+Every option lives in the table `vim.g.uraeda`, set before the plugin loads,
+in lazy.nvim's `init` for example. Each one is optional, and they are
+validated when the plugin starts. The defaults: >lua
+
+    vim.g.uraeda = {
+      prefix = "<leader>a",
+      lsp = true,
+      cmd = { "ura", "lsp" },
+      inline_comments = true,
+    }
+<
+`prefix`                                                 *vim.g.uraeda.prefix*
+    String or `false`. The keys of |uraeda-keys| are set under it. `false`
+    sets no keys at all, `]u` and `[u` included: map the |uraeda-mappings|
+    yourself.
+
+`lsp`                                                       *vim.g.uraeda.lsp*
+    Boolean. `false`: the plugin does not enable the `uraeda` language
+    server. Enable it yourself, with |vim.lsp.enable()|, to keep the actions.
+
+`cmd`                                                       *vim.g.uraeda.cmd*
+    List of strings. The command that starts the language server, like
+    `{ "/path/to/ura", "lsp" }` for an `ura` that is not on your `PATH`.
+
+`inline_comments`                               *vim.g.uraeda.inline_comments*
+    Boolean. Whether the comments of a pending review are drawn under their
+    lines when a file opens. `false` hides them until |:Uraeda-comments|
+    shows them in that buffer.
+
+==============================================================================
+5. Commands                                                  *uraeda-commands*
+
+:[range]Uraeda {action}                                              *:Uraeda*
+    Runs {action}, one of the subcommands below, completed with <Tab>. Each
+    is also a |<Plug>| mapping, see |uraeda-mappings|, and a function of
+    `require("uraeda.actions")`, like `require("uraeda.actions").draft()`.
+
+:Uraeda draft                                                  *:Uraeda-draft*
+    In `PRIORITIES.md`: drafts the entry under the cursor as a file of
+    `specs/drafts/`, links the entry to it, and opens it, without committing.
+    On an entry that already links a draft, opens that draft.
+
+:Uraeda start                                                  *:Uraeda-start*
+    In a draft or a backlog file: starts it as a feature, in its own branch
+    and worktree, and opens its proposal in the current window. Only a draft
+    or a backlog file can be started.
+
+:Uraeda commit                                                *:Uraeda-commit*
+    Commits the current draft, backlog file, proposal, or `PRIORITIES.md`.
+    Your git hooks run: a failing hook shows its output.
+
+:[range]Uraeda comment                                       *:Uraeda-comment*
+    Opens the comment window over the lines of [range], else of the visual
+    selection, else of the cursor's line, see |uraeda-comment-window|. On
+    lines that already hold a comment, it edits that comment.
+
+:Uraeda field                                                  *:Uraeda-field*
+    Picks a frontmatter field of the current file, then one of its allowed
+    values, and sets it in the buffer. Values set by a verdict, like
+    `approved`, open the verdict window instead.
+
+:Uraeda verdict                                              *:Uraeda-verdict*
+    In a spec, a plan, or an assessment waiting for your review: asks
+    whether you approve or request changes, then opens the verdict window.
+    In a round of questions: opens it to submit your answers. See
+    |uraeda-verdict-window|.
+
+:Uraeda comments                                            *:Uraeda-comments*
+    Hides or shows, in the current buffer, the comments drawn under their
+    lines, see |vim.g.uraeda.inline_comments|.
+
+:Uraeda waiting                                              *:Uraeda-waiting*
+    Lists the files waiting on you, in every checkout of the repository,
+    from any buffer. Opens the one you pick at its line.
+
+:Uraeda next                                                    *:Uraeda-next*
+    Jumps to the next question of a round, or comment of a review.
+
+:Uraeda prev                                                    *:Uraeda-prev*
+    Jumps to the previous question of a round, or comment of a review.
+
+==============================================================================
+6. Mappings                                                  *uraeda-mappings*
+
+Each action has a |<Plug>| mapping, to map to keys of your own. They exist in
+normal mode, `<Plug>(uraeda-comment)` in visual mode too. For example: >lua
+
+    vim.keymap.set("n", "<leader>ua", "<Plug>(uraeda-verdict)")
+<
+<Plug>(uraeda-draft)                                    *<Plug>(uraeda-draft)*
+    |:Uraeda-draft|.
+
+<Plug>(uraeda-start)                                    *<Plug>(uraeda-start)*
+    |:Uraeda-start|.
+
+<Plug>(uraeda-commit)                                  *<Plug>(uraeda-commit)*
+    |:Uraeda-commit|.
+
+<Plug>(uraeda-comment)                                *<Plug>(uraeda-comment)*
+    |:Uraeda-comment|, over the visual selection in visual mode.
+
+<Plug>(uraeda-field)                                    *<Plug>(uraeda-field)*
+    |:Uraeda-field|.
+
+<Plug>(uraeda-verdict)                                *<Plug>(uraeda-verdict)*
+    |:Uraeda-verdict|.
+
+<Plug>(uraeda-comments)                              *<Plug>(uraeda-comments)*
+    |:Uraeda-comments|.
+
+<Plug>(uraeda-waiting)                                *<Plug>(uraeda-waiting)*
+    |:Uraeda-waiting|.
+
+<Plug>(uraeda-next)                                      *<Plug>(uraeda-next)*
+    |:Uraeda-next|.
+
+<Plug>(uraeda-prev)                                      *<Plug>(uraeda-prev)*
+    |:Uraeda-prev|.
+
+==============================================================================
+7. Keys                                                          *uraeda-keys*
+
+When the `uraeda` server attaches to a buffer, the plugin sets these keys in
+it, under |vim.g.uraeda.prefix|, `<leader>a` by default. `<leader>aw` is set
+once, globally, so it works from any buffer. Their descriptions start with
+"Uraeda", for which-key. None collides with LazyVim's AI keys under
+`<leader>a`.
+
+Key            Mode     Action ~
+`<leader>an`     n        |:Uraeda-draft|
+`<leader>ap`     n        |:Uraeda-start|
+`<leader>ag`     n        |:Uraeda-commit|
+`<leader>am`     n, x     |:Uraeda-comment|
+`<leader>ae`     n        |:Uraeda-field|
+`<leader>av`     n        |:Uraeda-verdict|
+`<leader>at`     n        |:Uraeda-comments|
+`<leader>aw`     n        |:Uraeda-waiting|, global
+`]u`             n        |:Uraeda-next|
+`[u`             n        |:Uraeda-prev|
+
+`]u` and `[u` are not under the prefix, but like every key, they are not set
+when the prefix is `false`.
+
+==============================================================================
+8. Windows                                                    *uraeda-windows*
+
+                                                       *uraeda-comment-window*
+The comment window opens under the commented lines, with a scratch markdown
+buffer. Type the comment, then:
+
+  `:w` or `<C-s>`   saves it into the review, without committing.
+  `q` or `<Esc>`    cancels it.
+
+Saving an empty comment over an existing one removes it.
+
+                                                       *uraeda-verdict-window*
+The verdict window shows what the verdict will do: the commit it makes, the
+comments kept with it, and for a spec, its risk tier and whether the plan
+waits for your review. Type an optional summary under the separator, then:
+
+  `<C-s>`           approves, requests changes, or submits, and commits.
+  `<Tab>`           changes the risk tier or plan review under the cursor.
+  `q`               closes the window.
+
+Requesting changes needs at least one comment. While a question of the round
+has no answer, the window names it, and `<C-s>` submits nothing.
+
+==============================================================================
+9. Highlight groups                                        *uraeda-highlights*
+
+Both are defined with `default`, so a color scheme or your config can change
+them.
+
+UraedaComment                                               *hl-UraedaComment*
+    The comments drawn under their lines. Linked to |hl-DiagnosticInfo|.
+
+UraedaVerdictBorder                                   *hl-UraedaVerdictBorder*
+    The verdict window's border, set apart since it commits. Linked to
+    |hl-DiagnosticWarn|.
+
+==============================================================================
+10. Language server                                               *uraeda-lsp*
+
+The plugin defines the `uraeda` configuration of |vim.lsp.config()|, in its
+`lsp/uraeda.lua`, and enables it unless |vim.g.uraeda.lsp| is `false`. Its
+command is |vim.g.uraeda.cmd|, `ura lsp` by default, over stdio.
+
+It attaches to markdown files under a `specs/` folder that holds
+`PRIORITIES.md`, with the folder above `specs/` as its root: one client per
+checkout, so each worktree of a feature has its own. Other files get no
+client, and an action there says "This file is not a Uraeda workflow file."
+
+When a `uraeda` client attaches, the plugin sets the keys of |uraeda-keys|,
+enables inlay hints in the buffer, and draws the inline comments.
+
+An `ura` that does not know a command of the plugin says "ura is older than
+the plugin: run ura upgrade."
+
+==============================================================================
+11. Health                                                     *uraeda-health*
+
+`:checkhealth uraeda` checks Neovim's version, the options, the `ura` of
+|vim.g.uraeda.cmd| on your `PATH` with its version, that it runs the language
+server, and `git` on your `PATH`.
+
+==============================================================================
+12. Developing the plugin                                     *uraeda-develop*
+
+In the Uraeda repository, the plugin's tests use mini.test, and run a child
+Neovim against the `ura` built by cargo: >sh
+
+    cargo build -p uraeda-cli
+    nix develop -c vp run test:nvim
+<
+Committing `.lua` files in this repository needs `stylua`, which the commit
+hook runs on them: it is in the dev shell, `nix develop`.
+
+ vim:tw=78:ts=8:noet:ft=help:norl:

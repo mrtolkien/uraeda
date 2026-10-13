@@ -201,6 +201,14 @@ ura review cli-core --comment 50-52 "Why?" # a comment; --approve or --request-c
 
 Every command works without a terminal, and the read commands print JSON with `--json`.
 
+## Editors
+
+`ura lsp` is a language server for workflow files: diagnostics as you type, completion of
+frontmatter values, and the human's actions, from commenting on a spec to approving it.
+
+- **Neovim**: [uraeda.nvim](editors/nvim/README.md), in `editors/nvim/`, with keys under `<leader>a`
+  to draft, start, comment, approve, answer, and commit.
+
 ## Inspirations
 
 - [superpowers](https://github.com/obra/superpowers): the flow from clarification to design to plan,
