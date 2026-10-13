@@ -100,3 +100,34 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `cancel_async_message` is not in Claude Code's public docs, and a later version may
   drop it: the script's `take back` check then fails, and Claude sessions declare `takeBack: false`.
 - **Where**: task 1, `validate-claude.ts`; task 5, `claude.ts`.
+
+## R6: Converted sessions count as seen
+
+- **Decision**: migration 3 sets each converted session's `seen_at` to its `updated_at`.
+- **Rationale**: every feature that had runs would otherwise show "New reply" in the sidebar on the
+  first start of the new version, though the human saw those runs already.
+- **Alternatives considered**: `seen_at` left empty, as for a new session: a sidebar full of replies
+  nobody needs to read.
+- **If wrong**: a run that ended unseen just before the upgrade shows as Idle instead of New reply.
+- **Where**: task 3, `cache.ts`.
+
+## R7: Converted runs keep their kind, and items are copied into a new table
+
+- **Decision**: old runs whose trigger was `allow` become turns of kind `allow` with no trigger; the
+  others become `workflow` turns. The old `events` are copied into a new `items` table that refers
+  to `turns`, instead of being renamed.
+- **Rationale**: the new `Trigger` type has no `allow`, which R3 made a kind of turn. A renamed
+  table would keep its foreign key to the dropped `runs` table.
+- **Alternatives considered**: `ALTER TABLE ... RENAME`, as the plan said; converting `allow` runs
+  to workflow turns, losing why they ran.
+- **If wrong**: the copy takes longer on a large cache, once.
+- **Where**: task 3, `cache.ts`.
+
+## R8: The workflow's message names the answered file
+
+- **Decision**: after answers, the message says "The human answered clarifications-01.md of the
+  questions.", as the spec's US2 scenario and the mockup give it, in place of today's "round 01".
+- **Rationale**: the spec is the authority when the plan's notes and it disagree.
+- **Alternatives considered**: keeping "The human answered round 01 of the questions.".
+- **If wrong**: one line of `triggerSentence`, and its tests.
+- **Where**: task 4, `message.ts`.
