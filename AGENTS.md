@@ -44,10 +44,13 @@ editing it.
     tool
   - `cli/` (`uraeda-cli`): the `ura` binary
   - `binding/` (`uraeda-binding`): the core's Node binding, built with napi-rs
+  - `lsp/` (`uraeda-lsp`): the `ura lsp` language server
 - `packages/`: TypeScript, in one pnpm workspace
   - `binding/`: the binding's npm package, with its generated `index.js` and `index.d.ts`
   - `server/`: the Hono server on Node, serving fate's protocol at `/fate` and the built UI
   - `web/`: the React web UI, with Astryx components and fate
+- `editors/`: editor plugins, reaching workflow files only through `ura lsp`
+  - `nvim/`: the Neovim plugin, Lua, tested with mini.test
 - `fixtures/`: workflow files shared by the Rust and TypeScript tests, some broken on purpose
 
 The [stack](specs/decisions/stack.md) and [toolchain](specs/decisions/toolchain.md) decisions say
