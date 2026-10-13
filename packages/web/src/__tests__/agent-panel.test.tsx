@@ -221,8 +221,9 @@ test("a feature waiting on you has no Start the agent", async () => {
   await renderPage(`/f/${WEB_UI}`, fixtureRepo(), { agent: true });
 
   expect(await screen.findByText("Answer questions")).toBeTruthy();
-  await answered("Agent");
-  expect(screen.queryByRole("region", { name: "Agent" })).toBeNull();
+  // The agent section is drawn, with its way into the session: it offers no start.
+  const section = await screen.findByRole("region", { name: "Agent" });
+  expect(within(section).getByRole("link", { name: "Open the session" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Start the agent" })).toBeNull();
 });
 
