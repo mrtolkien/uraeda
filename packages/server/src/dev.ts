@@ -78,7 +78,7 @@ export function devHandler(root: string, { adapter }: { adapter?: Adapter } = {}
       });
       const { sessions } = await shared;
       try {
-        startLive(binding, repo);
+        startLive(binding, repo, sessions);
       } catch (error) {
         console.error(`uraeda: ${(error as Error).message}; pages refresh when shown again`);
       }
