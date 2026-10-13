@@ -3,10 +3,13 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import type { ReactNode } from "react";
+import * as stylex from "@stylexjs/stylex";
+import { type ReactNode, useState } from "react";
 import { useFateClient } from "react-fate";
 import { useAgent, useSession, useTurn } from "./data.ts";
+import { refusal } from "./errors.ts";
 import { stepLabel } from "./labels.ts";
+import { statusStyles } from "./Question.tsx";
 import { costText, SessionStatus } from "./SessionPage.tsx";
 import { handOver } from "./sessions.ts";
 import { SessionView } from "./views.ts";
@@ -69,25 +72,36 @@ function LatestTurn({
   );
 }
 
-/** The session's status, its latest turn and cost, Stop while it works, and the panel's buttons. */
+/**
+ * The session's status, its latest turn and cost, Stop while it works, with why when it is refused,
+ * and the panel's buttons.
+ */
 function Summary({ id, actions }: { id: string; actions: (endedBadly: boolean) => ReactNode }) {
   const fate = useFateClient();
   const session = useSession(id);
+  const [error, setError] = useState<string>();
   if (!session) {
     return actions(false);
   }
   const stop = async () => {
+    setError(undefined);
     // The turn ends once the agent answers the interrupt: its live update brings the state.
-    await fate.mutations.session.stop({ input: { session: id }, view: SessionView });
+    const result = await fate.mutations.session.stop({ input: { session: id }, view: SessionView });
+    if (result.error) {
+      setError(refusal(result.error).message);
+    }
   };
   const latest = session.turns.at(-1);
   const cost = session.costUsd == null ? undefined : costText(session.costUsd);
   const rest = (endedBadly: boolean) => (
     <>
       {session.status === "working" && (
-        <HStack gap={2}>
-          <Button variant="destructive" label="Stop" clickAction={stop} />
-        </HStack>
+        <>
+          <HStack gap={2}>
+            <Button variant="destructive" label="Stop" clickAction={stop} />
+          </HStack>
+          {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
+        </>
       )}
       {actions(endedBadly || session.status === "failed")}
     </>
