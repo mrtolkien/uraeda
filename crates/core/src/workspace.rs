@@ -619,11 +619,7 @@ impl Workspace {
                     .link
                     .as_deref()
                     .and_then(|link| match_feature(link, &features));
-                let draft = entry
-                    .link
-                    .as_deref()
-                    .and_then(|link| resolve("specs", link))
-                    .filter(|path| path.starts_with("specs/drafts/"));
+                let draft = entry.link.as_deref().and_then(linked_draft);
                 PriorityEntry {
                     section: entry.section,
                     position: entry.position,
@@ -656,6 +652,17 @@ impl Workspace {
             .iter()
             .find(|feature| feature.folder == folder)
     }
+
+    /// The feature or bug a priorities entry's link points to.
+    pub fn linked_feature(&self, link: &str) -> Option<&Feature> {
+        match_feature(link, &self.features).and_then(|folder| self.feature(&folder))
+    }
+}
+
+/// The draft a priorities entry's link points to, from the top level, when it links a file of
+/// `specs/drafts/`.
+pub fn linked_draft(link: &str) -> Option<String> {
+    resolve("specs", link).filter(|path| path.starts_with("specs/drafts/"))
 }
 
 /// The feature an entry's link points to: a path component or file name equal to its folder or

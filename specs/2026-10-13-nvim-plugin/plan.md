@@ -477,11 +477,17 @@ git commit -m "feat(nvim-plugin): completion, outline, and field edits in ura ls
 - Create: `crates/lsp/src/hints.rs`
 - Modify: `crates/core/src/actions/review.rs` (a public `subject(feature, file, verdict) -> String`
   extracted from the approve and request-changes commits, so the message shown is the one committed)
+- Modify: `crates/core/src/actions/answer.rs` (public `subject(slug, round)` and `blank(text)`,
+  shared with the submission), `crates/core/src/api.rs` (`waiting`, `priority_links`),
+  `crates/core/src/workspace.rs` (`Workspace::linked_feature`, `linked_draft`),
+  `crates/core/src/view.rs` (`WaitingFile`, `PriorityLink`, not exposed to the binding)
+  ([R6](rulings.md#r6-the-waiting-files-and-the-priorities-links-come-from-the-core))
 - Test: `crates/lsp/tests/reads.rs`
 
 **Interfaces:**
 
-- Consumes: `api::read_file`, `api::read_workspace`, `files::items::items`, `Session`.
+- Consumes: `files::items::items`, `actions::review::subject`, `actions::answer::{subject, blank}`,
+  `api::waiting`, `api::priority_links`, `Session`.
 - Produces, with 1-based lines:
   - `uraeda/items { uri }` → `[{ kind: "question" | "comment", label, line, endLine }]`, in file
     order: questions of a round (`label` `Q1`, line of its heading), comments of the pending review
@@ -497,8 +503,11 @@ git commit -m "feat(nvim-plugin): completion, outline, and field edits in ura ls
     of its block.
   - `textDocument/inlayHint` on `PRIORITIES.md`: at the end of each entry's first line linked to a
     feature, `<step> · waits on <you|agent|nobody>`; linked to a draft, `draft`.
+  - `uraeda/verdict` on a file other than a spec, plan, assessment, or round refuses
+    `Only a spec, a plan, an assessment, or a round of questions gets a verdict.`, and outside
+    `specs/` `This file is not a Uraeda workflow file.`, both with `data: { code: "refused" }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 #[test] fn a_round_lists_its_questions_in_order() {}       // US8.2: Q1 line 12, Q1.A, Q2
@@ -510,20 +519,20 @@ git commit -m "feat(nvim-plugin): completion, outline, and field edits in ura ls
 #[test] fn priorities_entries_hint_their_step() {}         // C1: "discovery · waits on agent", "draft"
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-lsp --test reads`
 - Expected: FAIL, `method not found: uraeda/items`
 
-- [ ] **Step 3: Implement the reads and the hints**
+- [x] **Step 3: Implement the reads and the hints**
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run:
   `cargo test --workspace --exclude uraeda-binding && cargo clippy --workspace --all-targets -- -D warnings`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates

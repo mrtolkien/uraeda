@@ -39,6 +39,15 @@ impl Documents {
         self.texts.get(uri).map(String::as_str)
     }
 
+    /// The text of the file at `path`: its open document's, else the disk's.
+    pub fn read(&self, path: &Path) -> Option<String> {
+        self.texts
+            .iter()
+            .find(|(uri, _)| self.path(uri).as_deref() == Some(path))
+            .map(|(_, text)| text.clone())
+            .or_else(|| fs::read_to_string(path).ok())
+    }
+
     /// The file a `file:` URI names, with symbolic links resolved when it exists.
     pub fn path(&self, uri: &Uri) -> Option<PathBuf> {
         file_path(uri).map(|path| canonical(&path))

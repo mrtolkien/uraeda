@@ -3,13 +3,14 @@
 //! rules as `ura check`.
 //!
 //! [`server`] runs the loop and routes each request and notification to the module of its
-//! capability: [`diagnostics`], [`completion`], [`symbols`], [`actions`], and the custom
-//! [`requests`]; [`documents`] holds the open texts.
+//! capability: [`diagnostics`], [`completion`], [`symbols`], [`actions`], [`hints`], and the
+//! custom [`requests`]; [`documents`] holds the open texts.
 
 mod actions;
 mod completion;
 mod diagnostics;
 mod documents;
+mod hints;
 mod requests;
 mod server;
 mod symbols;
