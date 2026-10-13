@@ -375,7 +375,7 @@ itemCount(turnId: number): number
 interrupted(reason: string): Array<TurnRow>   // running turns of sessions whose pid is dead or this one
 ```
 
-- [ ] **Step 1: Write the failing tests**, replacing the tests of the removed methods:
+- [x] **Step 1: Write the failing tests**, replacing the tests of the removed methods:
   - "migration 3 turns each feature's runs into the turns of one session": open a file written with
     migrations 1 and 2 holding two runs of `(repo, f)` with two `session_id`s and one event each;
     after `open`, `featureSession(repo, "f")` has `agent: "claude"`, the latest `session_id` as
@@ -394,12 +394,12 @@ interrupted(reason: string): Array<TurnRow>   // running turns of sessions whose
   - "search stays in its repository": a session of another `repo` is never listed.
   - "sessions are newest first, at most 50".
   - "interrupted stops the running turns of gone servers".
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/runner/__tests__/cache.test.ts`
 - Expected: FAIL, `cache.featureSession is not a function`
 
-- [ ] **Step 3: Implement migration 3 and `SessionCache`**. Migration 3, in one transaction: create
+- [x] **Step 3: Implement migration 3 and `SessionCache`**. Migration 3, in one transaction: create
       `sessions` and `turns` as the spec's [Data](spec.md#data) gives them, with `pid INTEGER` on
       `sessions` (see R1); insert one session per distinct `(repo, folder)` of the old `runs`, with
       `randomblob`-based UUIDs computed in TypeScript before the SQL runs (the migration may be a
@@ -407,12 +407,12 @@ interrupted(reason: string): Array<TurnRow>   // running turns of sessions whose
       keeping `id`; `ALTER TABLE events RENAME TO items` and
       `ALTER TABLE items RENAME COLUMN run_id TO turn_id`; drop the old tables. Search uses
       `LIKE ? ESCAPE '\'` with `%`, `_`, and `\` escaped, on `lower()`.
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp test packages/server/src/runner/__tests__/cache.test.ts`
 - Expected: PASS (other server tests fail to compile until task 6: run only this file)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/runner/events.ts packages/server/src/runner/cache.ts packages/server/src/runner/__tests__/cache.test.ts

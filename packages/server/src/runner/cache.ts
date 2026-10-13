@@ -1,7 +1,8 @@
+import { randomUUID } from "node:crypto";
 import { mkdirSync, rmSync } from "node:fs";
 import { dirname, posix, win32 } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { RunEvent, RunState, Trigger } from "./events.ts";
+import type { Item, Trigger, TurnKind, TurnState } from "./events.ts";
 
 /**
  * Uraeda's data folder for the user: `URAEDA_DATA_DIR`, or else the operating system's default
@@ -20,31 +21,147 @@ export function dataDir(env: NodeJS.ProcessEnv, platform: NodeJS.Platform, home:
   return posix.join(env.XDG_DATA_HOME || posix.join(home, ".local", "share"), "uraeda");
 }
 
-/** A run, as the cache keeps it. */
-export type RunRow = {
-  id: number;
+/** A session, as the cache keeps it. */
+export type SessionRow = {
+  /** Uraeda's own ID, a UUID. */
+  id: string;
   /** The repository's main checkout. */
   repo: string;
-  folder: string;
+  /** The feature's folder, null for a chat. */
+  folder: string | null;
+  /** The agent's kind: `claude`. */
+  agent: string;
+  /** The agent's own session ID. */
+  nativeId: string;
+  /** Null for a feature's session: its feature's name shows. */
+  title: string | null;
+  createdAt: string;
+  /** The last turn's start or end. */
+  updatedAt: string;
+  /** When the human last saw it ended. */
+  seenAt: string | null;
+  archivedAt: string | null;
+  /** The server process that holds the session's agent process, null when closed. */
+  pid: number | null;
+};
+
+/** A turn, as the cache keeps it: one message until the agent settles. */
+export type TurnRow = {
+  id: number;
   sessionId: string;
-  /** Whether this run started the session. */
-  newSession: boolean;
-  trigger: Trigger;
-  /** The core's step when the run started. */
-  step: string;
-  /** The allow rule of "Allow and continue". */
+  kind: TurnKind;
+  /** Workflow turns: what started it. */
+  trigger: Trigger | null;
+  /** Workflow turns: the core's step when it started. */
+  step: string | null;
+  /** Allow turns: the allow rule. */
   allowed: string | null;
-  state: RunState;
+  state: TurnState;
   /** Why it failed or stopped, in the UI's words. */
   reason: string | null;
-  /** The latest result's cost: the session's total. */
+  /** The agent's running total for the session, at the turn's end. */
   costUsd: number | null;
-  startedAt: string;
+  startedAt: string | null;
   endedAt: string | null;
 };
 
+/** A step of the schema: its SQL, or a function for a step that computes in TypeScript. */
+type Migration = string | ((db: DatabaseSync) => void);
+
+/**
+ * Migration 3: sessions of turns and items, for every agent. Each feature's runs become the
+ * turns of one session, keeping their IDs, and their events its items. A feature's session takes
+ * its latest run's agent session, or else the one the old `sessions` table kept.
+ */
+function sessionsOfTurns(db: DatabaseSync): void {
+  const features = db
+    .prepare(
+      `SELECT f.repo, f.folder,
+         (SELECT session_id FROM runs r WHERE r.repo = f.repo AND r.folder = f.folder
+          ORDER BY id DESC LIMIT 1) AS run_session,
+         s.session_id AS saved_session,
+         (SELECT MIN(started_at) FROM runs r WHERE r.repo = f.repo AND r.folder = f.folder)
+           AS first_start,
+         s.created_at AS saved_at,
+         (SELECT MAX(COALESCE(ended_at, started_at)) FROM runs r
+          WHERE r.repo = f.repo AND r.folder = f.folder) AS last_change
+       FROM (SELECT repo, folder FROM runs UNION SELECT repo, folder FROM sessions) f
+       LEFT JOIN sessions s ON s.repo = f.repo AND s.folder = f.folder`,
+    )
+    .all() as Array<Row>;
+  db.exec(`DROP TABLE sessions;
+    CREATE TABLE sessions (
+      id          TEXT PRIMARY KEY,
+      repo        TEXT NOT NULL,
+      folder      TEXT,
+      agent       TEXT NOT NULL,
+      native_id   TEXT NOT NULL,
+      title       TEXT,
+      created_at  TEXT NOT NULL,
+      updated_at  TEXT NOT NULL,
+      seen_at     TEXT,
+      archived_at TEXT,
+      pid         INTEGER
+    );
+    CREATE UNIQUE INDEX one_session_per_feature ON sessions (repo, folder)
+      WHERE folder IS NOT NULL;
+    CREATE TABLE turns (
+      id         INTEGER PRIMARY KEY,
+      session_id TEXT NOT NULL REFERENCES sessions (id),
+      kind       TEXT NOT NULL,
+      trigger    TEXT,
+      step       TEXT,
+      allowed    TEXT,
+      state      TEXT NOT NULL,
+      reason     TEXT,
+      cost_usd   REAL,
+      started_at TEXT,
+      ended_at   TEXT
+    );
+    CREATE INDEX turns_by_session ON turns (session_id, id);`);
+  const insert = db.prepare(
+    `INSERT INTO sessions (id, repo, folder, agent, native_id, title, created_at, updated_at,
+       seen_at)
+     VALUES (?, ?, ?, 'claude', ?, NULL, ?, ?, ?)`,
+  );
+  for (const feature of features) {
+    const createdAt = feature.first_start ?? feature.saved_at;
+    const updatedAt = feature.last_change ?? createdAt;
+    // Seen when it last changed: the old runs do not all show as new replies.
+    insert.run(
+      randomUUID(),
+      feature.repo,
+      feature.folder,
+      feature.run_session ?? feature.saved_session,
+      createdAt,
+      updatedAt,
+      updatedAt,
+    );
+  }
+  // "Allow and continue" was a trigger, and is a kind of turn. Items are recreated rather than
+  // renamed, so that they reference turns, not the dropped runs.
+  db.exec(`INSERT INTO turns (id, session_id, kind, trigger, step, allowed, state, reason, cost_usd,
+      started_at, ended_at)
+    SELECT r.id, s.id, CASE r.trigger WHEN 'allow' THEN 'allow' ELSE 'workflow' END,
+      NULLIF(r.trigger, 'allow'), r.step, r.allowed, r.state, r.reason, r.cost_usd, r.started_at,
+      r.ended_at
+    FROM runs r JOIN sessions s ON s.repo = r.repo AND s.folder = r.folder;
+    CREATE TABLE items (
+      turn_id INTEGER NOT NULL REFERENCES turns (id),
+      seq     INTEGER NOT NULL,
+      at      TEXT NOT NULL,
+      kind    TEXT NOT NULL,
+      data    TEXT NOT NULL,
+      PRIMARY KEY (turn_id, seq)
+    );
+    INSERT INTO items (turn_id, seq, at, kind, data)
+      SELECT run_id, seq, at, kind, data FROM events;
+    DROP TABLE events;
+    DROP TABLE runs;`);
+}
+
 /** The schema, one migration per version: `PRAGMA user_version` is the number applied. */
-export const migrations = [
+export const migrations: Array<Migration> = [
   `CREATE TABLE sessions (
     repo       TEXT NOT NULL,
     folder     TEXT NOT NULL,
@@ -78,6 +195,7 @@ export const migrations = [
   );`,
   // The process that runs it: servers of other repositories share the file.
   "ALTER TABLE runs ADD COLUMN pid INTEGER;",
+  sessionsOfTurns,
 ];
 
 /** How long a statement waits for another process's lock, by default. */
@@ -106,36 +224,63 @@ function alive(pid: number): boolean {
 
 type Row = Record<string, string | number | null>;
 
-const toRun = (row: Row): RunRow => ({
-  id: Number(row.id),
+const toSession = (row: Row): SessionRow => ({
+  id: String(row.id),
   repo: String(row.repo),
-  folder: String(row.folder),
+  folder: row.folder as string | null,
+  agent: String(row.agent),
+  nativeId: String(row.native_id),
+  title: row.title as string | null,
+  createdAt: String(row.created_at),
+  updatedAt: String(row.updated_at),
+  seenAt: row.seen_at as string | null,
+  archivedAt: row.archived_at as string | null,
+  pid: row.pid as number | null,
+});
+
+const toTurn = (row: Row): TurnRow => ({
+  id: Number(row.id),
   sessionId: String(row.session_id),
-  newSession: row.new_session === 1,
-  trigger: row.trigger as Trigger,
-  step: String(row.step),
+  kind: row.kind as TurnKind,
+  trigger: row.trigger as Trigger | null,
+  step: row.step as string | null,
   allowed: row.allowed as string | null,
-  state: row.state as RunState,
+  state: row.state as TurnState,
   reason: row.reason as string | null,
   costUsd: row.cost_usd as number | null,
-  startedAt: String(row.started_at),
+  startedAt: row.started_at as string | null,
   endedAt: row.ended_at as string | null,
 });
 
 const now = () => new Date().toISOString();
 
-/** Splits an event into its kind and the JSON of its other fields. */
-function stored(event: RunEvent): [string, string] {
-  const { kind, ...data } = event;
+/** Splits an item into its kind and the JSON of its other fields. */
+function stored(item: Item): [string, string] {
+  const { kind, ...data } = item;
   return [kind, JSON.stringify(data)];
 }
 
+/** A `LIKE` pattern that matches the text anywhere, literally: `%`, `_`, and `\` escaped. */
+const contains = (text: string) => `%${text.replace(/[\\%_]/g, "\\$&")}%`;
+
+/** How many sessions a list gives, by default. */
+const SESSIONS_LIMIT = 50;
+
+/** The session columns a write may change, by their field. */
+const sessionColumns = {
+  nativeId: "native_id",
+  title: "title",
+  seenAt: "seen_at",
+  archivedAt: "archived_at",
+} as const;
+
 /**
- * The runner's cache of sessions, runs, and their events, in SQLite. It holds no workflow state:
- * losing it costs new sessions and the old logs. The servers of every repository share the file,
- * each from its own process: it is in WAL mode, and waits for another's lock.
+ * The runner's cache of sessions, their turns, and the turns' items, in SQLite. It holds no
+ * workflow state: losing it costs new sessions and the old transcripts. The servers of every
+ * repository share the file, each from its own process: it is in WAL mode, and waits for another's
+ * lock.
  */
-export class RunCache {
+export class SessionCache {
   #db: DatabaseSync;
   #pid: number;
 
@@ -148,15 +293,15 @@ export class RunCache {
    * Opens the database, creating its folder, and migrates it. A file that is not a database, or a
    * damaged one, is replaced with an empty database. On any other error, like a lock held longer
    * than `timeout`, the file is kept, and the cache lives in memory as long as the process.
-   * `":memory:"` opens one that lives as long as the process. Its runs are
-   * recorded as `pid`'s, this process by default.
+   * `":memory:"` opens one that lives as long as the process. Its sessions are claimed as `pid`'s,
+   * this process by default.
    */
   static open(
     path: string,
     { pid = process.pid, timeout = TIMEOUT_MS }: { pid?: number; timeout?: number } = {},
-  ): RunCache {
+  ): SessionCache {
     if (path === ":memory:") {
-      return new RunCache(migrate(new DatabaseSync(path)), pid);
+      return new SessionCache(migrate(new DatabaseSync(path)), pid);
     }
     mkdirSync(dirname(path), { recursive: true });
     const connect = () => {
@@ -170,172 +315,293 @@ export class RunCache {
       }
     };
     try {
-      return new RunCache(connect(), pid);
+      return new SessionCache(connect(), pid);
     } catch (error) {
       if (!corrupt(error)) {
         console.error(
-          `The runner's cache could not be opened, so this server keeps its runs in memory: ${String(error)}`,
+          `The runner's cache could not be opened, so this server keeps its sessions in memory: ${String(error)}`,
         );
-        return new RunCache(migrate(new DatabaseSync(":memory:")), pid);
+        return new SessionCache(migrate(new DatabaseSync(":memory:")), pid);
       }
       console.error(`The runner's cache could not be read, so it starts empty: ${String(error)}`);
       for (const suffix of ["", "-wal", "-shm"]) {
         rmSync(path + suffix, { force: true });
       }
-      return new RunCache(connect(), pid);
+      return new SessionCache(connect(), pid);
     }
   }
 
-  /** The feature's session ID. */
-  session(repo: string, folder: string): string | undefined {
-    const row = this.#db
-      .prepare("SELECT session_id FROM sessions WHERE repo = ? AND folder = ?")
-      .get(repo, folder) as Row | undefined;
-    return row ? String(row.session_id) : undefined;
+  /** Records a new session, with a new ID. Throws when the feature has one already. */
+  createSession(row: {
+    repo: string;
+    folder: string | null;
+    agent: string;
+    nativeId: string;
+    title: string | null;
+  }): SessionRow {
+    const created = now();
+    const inserted = this.#db
+      .prepare(
+        `INSERT INTO sessions (id, repo, folder, agent, native_id, title, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
+      )
+      .get(
+        randomUUID(),
+        row.repo,
+        row.folder,
+        row.agent,
+        row.nativeId,
+        row.title,
+        created,
+        created,
+      ) as Row;
+    return toSession(inserted);
   }
 
-  /** Records the feature's session, replacing the previous one. */
-  saveSession(repo: string, folder: string, sessionId: string): void {
+  session(id: string): SessionRow | undefined {
+    const row = this.#db.prepare("SELECT * FROM sessions WHERE id = ?").get(id) as Row | undefined;
+    return row ? toSession(row) : undefined;
+  }
+
+  /** The feature's one session. */
+  featureSession(repo: string, folder: string): SessionRow | undefined {
+    const row = this.#db
+      .prepare("SELECT * FROM sessions WHERE repo = ? AND folder = ?")
+      .get(repo, folder) as Row | undefined;
+    return row ? toSession(row) : undefined;
+  }
+
+  /** Changes the session's fields that are given. */
+  updateSession(
+    id: string,
+    fields: Partial<Pick<SessionRow, "nativeId" | "title" | "seenAt" | "archivedAt">>,
+  ): void {
+    const changed = (Object.keys(sessionColumns) as Array<keyof typeof sessionColumns>).filter(
+      (field) => fields[field] !== undefined,
+    );
+    if (changed.length === 0) {
+      return;
+    }
     this.#db
       .prepare(
-        `INSERT INTO sessions (repo, folder, session_id, created_at) VALUES (?, ?, ?, ?)
-         ON CONFLICT (repo, folder) DO UPDATE SET session_id = excluded.session_id,
-           created_at = excluded.created_at`,
+        `UPDATE sessions SET ${changed.map((field) => `${sessionColumns[field]} = ?`).join(", ")}
+         WHERE id = ?`,
       )
-      .run(repo, folder, sessionId, now());
+      .run(...changed.map((field) => fields[field] ?? null), id);
   }
 
   /**
-   * Claims the feature for a new running run, and returns its ID, with the session of a run that
-   * starts one. Returns undefined when a live process, this one or another server, has a run going
-   * on the feature: the check and the write are one transaction, so two servers cannot both claim it.
+   * Claims the session for this process, before it opens the agent's process. Returns false when
+   * another live process, a server of any repository, holds it: the check and the write are one
+   * transaction, so two servers cannot both claim it.
    */
-  startRun(
-    row: Omit<RunRow, "id" | "state" | "reason" | "costUsd" | "endedAt">,
-  ): number | undefined {
+  claimSession(id: string): boolean {
     return transaction(this.#db, () => {
-      const running = this.#db
-        .prepare("SELECT pid FROM runs WHERE repo = ? AND folder = ? AND state = 'running'")
-        .all(row.repo, row.folder) as Array<{ pid: number | null }>;
-      if (running.some(({ pid }) => pid !== null && (pid === this.#pid || alive(pid)))) {
-        return undefined;
+      const row = this.#db.prepare("SELECT pid FROM sessions WHERE id = ?").get(id) as
+        | { pid: number | null }
+        | undefined;
+      if (!row || (row.pid !== null && row.pid !== this.#pid && alive(row.pid))) {
+        return false;
       }
-      if (row.newSession) {
-        this.saveSession(row.repo, row.folder, row.sessionId);
-      }
+      this.#db.prepare("UPDATE sessions SET pid = ? WHERE id = ?").run(this.#pid, id);
+      return true;
+    });
+  }
+
+  /** Releases the session when this process holds it, once its agent's process closed. */
+  releaseSession(id: string): void {
+    this.#db.prepare("UPDATE sessions SET pid = NULL WHERE id = ? AND pid = ?").run(id, this.#pid);
+  }
+
+  /**
+   * The repository's sessions, the last updated first. A query keeps those whose title, folder,
+   * messages, or text hold it, ignoring case.
+   */
+  sessions(
+    repo: string,
+    { query, limit = SESSIONS_LIMIT }: { query?: string; limit?: number } = {},
+  ): Array<SessionRow> {
+    const rows = query
+      ? (this.#db
+          .prepare(
+            `SELECT * FROM sessions s WHERE repo = ?1 AND (
+               lower(s.title) LIKE lower(?2) ESCAPE '\\'
+               OR lower(s.folder) LIKE lower(?2) ESCAPE '\\'
+               OR EXISTS (
+                 SELECT 1 FROM turns t JOIN items i ON i.turn_id = t.id
+                 WHERE t.session_id = s.id AND i.kind IN ('message', 'text')
+                   AND lower(json_extract(i.data, '$.text')) LIKE lower(?2) ESCAPE '\\'))
+             ORDER BY updated_at DESC, rowid DESC LIMIT ?3`,
+          )
+          .all(repo, contains(query), limit) as Array<Row>)
+      : (this.#db
+          .prepare(
+            "SELECT * FROM sessions WHERE repo = ? ORDER BY updated_at DESC, rowid DESC LIMIT ?",
+          )
+          .all(repo, limit) as Array<Row>);
+    return rows.map(toSession);
+  }
+
+  /** Adds a turn to the session, and returns its ID. A running turn starts now. */
+  addTurn(row: {
+    sessionId: string;
+    kind: TurnKind;
+    trigger: Trigger | null;
+    step: string | null;
+    allowed: string | null;
+    state: "queued" | "running";
+  }): number {
+    return transaction(this.#db, () => {
+      const at = now();
       const { lastInsertRowid } = this.#db
         .prepare(
-          `INSERT INTO runs (repo, folder, session_id, new_session, trigger, step, allowed, state,
-             started_at, pid)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 'running', ?, ?)`,
+          `INSERT INTO turns (session_id, kind, trigger, step, allowed, state, started_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
-          row.repo,
-          row.folder,
           row.sessionId,
-          row.newSession ? 1 : 0,
+          row.kind,
           row.trigger,
           row.step,
           row.allowed,
-          row.startedAt,
-          this.#pid,
+          row.state,
+          row.state === "running" ? at : null,
         );
+      this.#touch(row.sessionId, at);
       return Number(lastInsertRowid);
     });
   }
 
-  /** Adds an event at the end of the run's log, and returns its `seq`. */
-  appendEvent(runId: number, event: RunEvent): number {
+  /** Starts a queued turn. */
+  startTurn(id: number): void {
+    transaction(this.#db, () => {
+      const at = now();
+      const row = this.#db
+        .prepare(
+          "UPDATE turns SET state = 'running', started_at = ? WHERE id = ? RETURNING session_id",
+        )
+        .get(at, id) as { session_id: string } | undefined;
+      if (row) {
+        this.#touch(row.session_id, at);
+      }
+    });
+  }
+
+  /** Ends a turn. The cost is kept when the end gives none. */
+  endTurn(id: number, end: { state: TurnState; reason?: string; costUsd?: number }): void {
+    transaction(this.#db, () => {
+      const at = now();
+      const row = this.#db
+        .prepare(
+          `UPDATE turns SET state = ?, reason = ?, cost_usd = COALESCE(?, cost_usd), ended_at = ?
+           WHERE id = ? RETURNING session_id`,
+        )
+        .get(end.state, end.reason ?? null, end.costUsd ?? null, at, id) as
+        | { session_id: string }
+        | undefined;
+      if (row) {
+        this.#touch(row.session_id, at);
+      }
+    });
+  }
+
+  turn(id: number): TurnRow | undefined {
+    const row = this.#db.prepare("SELECT * FROM turns WHERE id = ?").get(id) as Row | undefined;
+    return row ? toTurn(row) : undefined;
+  }
+
+  /** The session's turns, oldest first. */
+  turns(sessionId: string): Array<TurnRow> {
+    const rows = this.#db
+      .prepare("SELECT * FROM turns WHERE session_id = ? ORDER BY id")
+      .all(sessionId) as Array<Row>;
+    return rows.map(toTurn);
+  }
+
+  /** Adds an item at the end of the turn, and returns its `seq`. */
+  appendItem(turnId: number, item: Item): number {
     const { seq } = this.#db
-      .prepare("SELECT COALESCE(MAX(seq) + 1, 0) AS seq FROM events WHERE run_id = ?")
-      .get(runId) as { seq: number };
+      .prepare("SELECT COALESCE(MAX(seq) + 1, 0) AS seq FROM items WHERE turn_id = ?")
+      .get(turnId) as { seq: number };
     this.#db
-      .prepare("INSERT INTO events (run_id, seq, at, kind, data) VALUES (?, ?, ?, ?, ?)")
-      .run(runId, seq, now(), ...stored(event));
+      .prepare("INSERT INTO items (turn_id, seq, at, kind, data) VALUES (?, ?, ?, ?, ?)")
+      .run(turnId, seq, now(), ...stored(item));
     return seq;
   }
 
-  /** Replaces an event of the run's log, like a tool call once its result arrives. */
-  updateEvent(runId: number, seq: number, event: RunEvent): void {
+  /** Replaces an item of the turn, like a tool call once its result arrives. */
+  updateItem(turnId: number, seq: number, item: Item): void {
     this.#db
-      .prepare("UPDATE events SET kind = ?, data = ? WHERE run_id = ? AND seq = ?")
-      .run(...stored(event), runId, seq);
+      .prepare("UPDATE items SET kind = ?, data = ? WHERE turn_id = ? AND seq = ?")
+      .run(...stored(item), turnId, seq);
   }
 
-  /** Ends a run. The cost is kept when the end gives none. */
-  endRun(runId: number, end: { state: RunState; reason?: string; costUsd?: number }): void {
-    this.#db
-      .prepare(
-        `UPDATE runs SET state = ?, reason = ?, cost_usd = COALESCE(?, cost_usd), ended_at = ?
-         WHERE id = ?`,
-      )
-      .run(end.state, end.reason ?? null, end.costUsd ?? null, now(), runId);
-  }
-
-  run(id: number): RunRow | undefined {
-    const row = this.#db.prepare("SELECT * FROM runs WHERE id = ?").get(id) as Row | undefined;
-    return row ? toRun(row) : undefined;
-  }
-
-  /** The feature's runs, newest first. */
-  runs(repo: string, folder: string): Array<RunRow> {
+  /** A page of the turn's items, in order. */
+  items(turnId: number, offset: number, limit: number): Array<Item & { seq: number }> {
     const rows = this.#db
-      .prepare("SELECT * FROM runs WHERE repo = ? AND folder = ? ORDER BY id DESC")
-      .all(repo, folder) as Array<Row>;
-    return rows.map(toRun);
-  }
-
-  /** A page of the run's log, in order. */
-  events(runId: number, offset: number, limit: number): Array<RunEvent & { seq: number }> {
-    const rows = this.#db
-      .prepare("SELECT seq, kind, data FROM events WHERE run_id = ? ORDER BY seq LIMIT ? OFFSET ?")
-      .all(runId, limit, offset) as Array<{ seq: number; kind: string; data: string }>;
+      .prepare("SELECT seq, kind, data FROM items WHERE turn_id = ? ORDER BY seq LIMIT ? OFFSET ?")
+      .all(turnId, limit, offset) as Array<{ seq: number; kind: string; data: string }>;
     return rows.map(
-      ({ seq, kind, data }) => ({ seq, kind, ...JSON.parse(data) }) as RunEvent & { seq: number },
+      ({ seq, kind, data }) => ({ seq, kind, ...JSON.parse(data) }) as Item & { seq: number },
     );
   }
 
-  /** The run's events of one kind, in order, like its denials. */
-  eventsOf<Kind extends RunEvent["kind"]>(
-    runId: number,
-    kind: Kind,
-  ): Array<Extract<RunEvent, { kind: Kind }> & { seq: number }> {
+  /** The turn's items of one kind, in order, like its denials. */
+  itemsOf<K extends Item["kind"]>(
+    turnId: number,
+    kind: K,
+  ): Array<Extract<Item, { kind: K }> & { seq: number }> {
     const rows = this.#db
-      .prepare("SELECT seq, kind, data FROM events WHERE run_id = ? AND kind = ? ORDER BY seq")
-      .all(runId, kind) as Array<{ seq: number; kind: string; data: string }>;
+      .prepare("SELECT seq, data FROM items WHERE turn_id = ? AND kind = ? ORDER BY seq")
+      .all(turnId, kind) as Array<{ seq: number; data: string }>;
     return rows.map(
       ({ seq, data }) =>
-        ({ seq, kind, ...JSON.parse(data) }) as Extract<RunEvent, { kind: Kind }> & { seq: number },
+        ({ seq, kind, ...JSON.parse(data) }) as Extract<Item, { kind: K }> & { seq: number },
     );
   }
 
-  eventCount(runId: number): number {
+  itemCount(turnId: number): number {
     const { count } = this.#db
-      .prepare("SELECT COUNT(*) AS count FROM events WHERE run_id = ?")
-      .get(runId) as { count: number };
+      .prepare("SELECT COUNT(*) AS count FROM items WHERE turn_id = ?")
+      .get(turnId) as { count: number };
     return count;
   }
 
   /**
-   * Marks the runs still `running` whose process is gone, or is this one, as stopped with the
-   * reason, and returns them. Another live server's runs, of any repository, keep running.
+   * Marks the turns still `running` as stopped with the reason, and returns them, when their
+   * session is held by no process, by this one, or by one that is gone. Another live server's
+   * turns, of any repository, keep running.
    */
-  interrupted(reason: string): Array<RunRow> {
+  interrupted(reason: string): Array<TurnRow> {
     return transaction(this.#db, () => {
       const running = this.#db
-        .prepare("SELECT id, pid FROM runs WHERE state = 'running'")
+        .prepare(
+          `SELECT t.id, s.pid FROM turns t JOIN sessions s ON s.id = t.session_id
+           WHERE t.state = 'running'`,
+        )
         .all() as Array<{ id: number; pid: number | null }>;
       const ended = now();
       const stop = this.#db.prepare(
-        "UPDATE runs SET state = 'stopped', reason = ?, ended_at = ? WHERE id = ? RETURNING *",
+        "UPDATE turns SET state = 'stopped', reason = ?, ended_at = ? WHERE id = ? RETURNING *",
       );
       return running
         .filter(({ pid }) => pid === null || pid === this.#pid || !alive(pid))
-        .map(({ id }) => toRun(stop.get(reason, ended, id) as Row))
+        .map(({ id }) => toTurn(stop.get(reason, ended, id) as Row))
         .sort((a, b) => a.id - b.id);
     });
   }
+
+  /** Records a change of the session's turns. */
+  #touch(sessionId: string, at: string): void {
+    this.#db.prepare("UPDATE sessions SET updated_at = ? WHERE id = ?").run(at, sessionId);
+  }
 }
+
+/**
+ * TEMPORARY: the name the server's routes import, which the web package's Vite config loads, until
+ * the session runner (task 6) replaces them.
+ */
+export { SessionCache as RunCache };
 
 /**
  * Runs `body` in a write transaction, taken before it reads: another process cannot write between
@@ -361,8 +627,12 @@ function migrate(db: DatabaseSync): DatabaseSync {
     // Another process may have migrated it since.
     transaction(db, () => {
       const applied = version();
-      for (const sql of migrations.slice(applied)) {
-        db.exec(sql);
+      for (const migration of migrations.slice(applied)) {
+        if (typeof migration === "string") {
+          db.exec(migration);
+        } else {
+          migration(db);
+        }
       }
       db.exec(`PRAGMA user_version = ${migrations.length}`);
     });
