@@ -110,6 +110,12 @@ pub fn work_dir(repo: String, folder: String) -> AsyncTask<Job<String>> {
     job(move || api::work_dir(Path::new(&repo), &folder))
 }
 
+/// The main checkout's path, from any of the repository's working trees.
+#[napi(ts_return_type = "Promise<string>")]
+pub fn main_root(repo: String) -> AsyncTask<Job<String>> {
+    job(move || api::main_root(Path::new(&repo)))
+}
+
 /// Saves an answer from the letters picked and a comment, over the answer last read.
 #[napi(ts_return_type = "Promise<FileView>")]
 pub fn save_answer(

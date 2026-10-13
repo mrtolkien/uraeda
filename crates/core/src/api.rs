@@ -387,6 +387,12 @@ pub fn work_dir(repo: &Path, folder: &str) -> Result<String> {
     Ok(place.root.to_string_lossy().into_owned())
 }
 
+/// The main checkout's path, from any of the repository's working trees.
+pub fn main_root(repo: &Path) -> Result<String> {
+    let (git, _) = open(repo)?;
+    Ok(git.main_root().to_string_lossy().into_owned())
+}
+
 fn round_name(feature: &Feature) -> Result<String> {
     let path = answer::round_path(feature)?;
     Ok(path.rsplit('/').next().unwrap_or_default().to_string())

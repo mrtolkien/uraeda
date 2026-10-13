@@ -48,6 +48,9 @@ export declare function editPriority(repo: string, id: string, text: string, pre
  */
 export declare function insertPriority(repo: string, section: string, index: number, lines: Array<string>, previous: string): Promise<Priorities>
 
+/** The main checkout's path, from any of the repository's working trees. */
+export declare function mainRoot(repo: string): Promise<string>
+
 /** Moves a priority line before the line at `index` of a section, or to its end. */
 export declare function movePriority(repo: string, id: string, section: string, index: number, previous: string): Promise<Priorities>
 
