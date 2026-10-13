@@ -943,9 +943,13 @@ git commit -m "feat(nvim-plugin): approve, request changes, and submit answers"
 **Files:**
 
 - Modify: `editors/nvim/lua/uraeda/pickers.lua` (`waiting`), `editors/nvim/lua/uraeda/actions.lua`
-  (`waiting`, `next`, `prev`)
+  (`waiting`, `next`, `prev`), `editors/nvim/lua/uraeda/client.lua` (`request_any`),
+  `editors/nvim/lua/uraeda/init.lua` (`checkout`, from `lsp/uraeda.lua`),
+  `editors/nvim/lua/uraeda/keys.lua` (an entry's `lhs`)
+  ([R15](rulings.md#r15-the-waiting-picker-starts-its-own-server-and-u-is-an-entrys-own-key))
 - Create: `editors/nvim/lua/uraeda/marks.lua` (jumps now, inline comments in task 12)
-- Test: `editors/nvim/tests/test_waiting.lua`, `editors/nvim/tests/test_jumps.lua`
+- Test: `editors/nvim/tests/test_waiting.lua`, `editors/nvim/tests/test_jumps.lua`,
+  `editors/nvim/tests/test_keys.lua`
 
 **Interfaces:**
 
@@ -954,30 +958,36 @@ git commit -m "feat(nvim-plugin): approve, request changes, and submit answers"
   one on the current folder's root; with snacks,
   `Snacks.picker.pick({ title = "Uraeda · waiting on you", items, format, preview = "file", confirm = "jump" })`,
   items `<slug> · <file> · <text>`; without, `vim.ui.select` with the same text.
-  `marks.jump(bufnr, direction: 1 | -1)` to the next or previous item's line, no wrap.
+  `marks.jump(bufnr, direction: 1 | -1)` to the next or previous item's line, no wrap. An action
+  entry's `lhs` is a key outside the prefix: `next` `]u`, `prev` `[u`, buffer-local.
+  `client.request_any(method, params, cb)` finds or starts the client, on the checkout that
+  `require("uraeda").checkout(path)` finds.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```lua
 T["waiting lists a round of another worktree"] = function() end -- US8.1, with vim.ui.select stubbed
 T["waiting uses snacks when present"] = function() end           -- a stub Snacks.picker.pick records its items
 T["]u goes from question to question"] = function() end          -- US8.2
 T["]u goes from comment to comment"] = function() end            -- US8.3
+T["waiting outside a checkout says so"] = function() end
+T["nothing waiting says so"] = function() end
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp run test:nvim`
-- Expected: FAIL, `module 'uraeda.marks' not found`
+- Expected: FAIL, no picker, no cursor move, and `unknown action "waiting"` (the tests reach the
+  modules through the actions and keys)
 
-- [ ] **Step 3: Implement the waiting picker and the jumps**
+- [x] **Step 3: Implement the waiting picker and the jumps**
 
-- [ ] **Step 4: Run all checks**
+- [x] **Step 4: Run all checks**
 
 - Run: `stylua --check editors/nvim && vp run test:nvim`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add editors/nvim

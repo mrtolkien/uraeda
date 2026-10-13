@@ -1,6 +1,7 @@
--- The pickers, through `vim.ui.select`: the frontmatter fields of a file, then a field's values.
--- The fields, their values, and every edit come from the server; the plugin never edits
--- frontmatter text itself.
+-- The pickers, through `vim.ui.select`: the frontmatter fields of a file, then a field's values,
+-- and the files waiting on the human, in snacks' picker when it is installed. The fields, their
+-- values, the files, and every edit come from the server; the plugin never edits frontmatter text
+-- itself.
 local M = {}
 
 local function client()
@@ -92,6 +93,57 @@ function M.field(bufnr)
     }, function(field)
       if field then
         values(bufnr, field, file)
+      end
+    end)
+  end)
+end
+
+local waiting_title = "Uraeda · waiting on you"
+
+--- Edits `path` in the current window, the cursor on `line`.
+local function open_at(path, line)
+  local ok, message = pcall(vim.cmd.edit, vim.fn.fnameescape(path))
+  if not ok then
+    return vim.notify(message, vim.log.levels.ERROR, { title = "Uraeda" })
+  end
+  pcall(vim.api.nvim_win_set_cursor, 0, { line, 0 })
+end
+
+--- Lists the workflow files waiting for the human in every checkout, from any buffer, as
+--- `<feature> · <file> · <text>`; the one picked opens at its block's line (US8). In snacks' picker
+--- with a preview of the file when snacks is installed, else through `vim.ui.select`.
+function M.waiting()
+  client().request_any("uraeda/waiting", vim.empty_dict(), function(files)
+    files = files or {}
+    if #files == 0 then
+      return vim.notify("Nothing waits on you.", vim.log.levels.INFO, { title = "Uraeda" })
+    end
+    local items = vim.tbl_map(function(file)
+      return {
+        text = ("%s · %s · %s"):format(file.feature, file.file, file.text),
+        file = file.path,
+        pos = { file.line, 0 },
+      }
+    end, files)
+    local snacks = rawget(_G, "Snacks")
+    if snacks and snacks.picker and snacks.picker.pick then
+      return snacks.picker.pick({
+        title = waiting_title,
+        items = items,
+        format = "text",
+        preview = "file",
+        confirm = "jump",
+      })
+    end
+    vim.ui.select(items, {
+      prompt = waiting_title,
+      kind = "uraeda_waiting",
+      format_item = function(item)
+        return item.text
+      end,
+    }, function(item)
+      if item then
+        open_at(item.file, item.pos[1])
       end
     end)
   end)
