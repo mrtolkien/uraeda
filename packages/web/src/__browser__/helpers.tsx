@@ -262,8 +262,9 @@ function averageCharacter(element: Element) {
 }
 
 /**
- * No line of reading text holds more than about 125 characters (the UI layout decision): paragraphs, and the
- * toggles that hold text of their own, like a question's options.
+ * No line of reading text holds more than about 110 characters, the theme's reading measure (the UI
+ * layout decision): paragraphs, and the toggles that hold text of their own, like a question's
+ * options.
  */
 export function checkMeasure(root?: Element) {
   const main = region(root);
@@ -271,7 +272,7 @@ export function checkMeasure(root?: Element) {
     (toggle) => toggle.textContent?.trim() && toggle.getBoundingClientRect().width > 4,
   );
   for (const paragraph of [...paragraphs(root), ...toggles]) {
-    expect(longestLine(paragraph), paragraph.textContent?.slice(0, 60)).toBeLessThanOrEqual(125);
+    expect(longestLine(paragraph), paragraph.textContent?.slice(0, 60)).toBeLessThanOrEqual(115);
   }
 }
 
