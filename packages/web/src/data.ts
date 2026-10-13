@@ -109,23 +109,57 @@ export function useSession(id: string) {
   const request = { session: { id, view: SessionView } };
   const { session } = useRequest(request);
   useRefreshOnShow(request);
-  return useLiveView(SessionView, session);
+  const live = useLiveView(SessionView, session);
+  useReadOnceLive(request, id, true);
+  return live;
 }
 
-/** A turn of a session, without its items. */
-export function useTurn(id: string) {
+/** How long a view's live subscription may take to reach the server once asked for. */
+const SUBSCRIBED_MS = 1_000;
+
+/**
+ * Reads a record again as its view starts listening to its live updates, and once more when the
+ * subscription has surely reached the server, when `enabled`: a session just created by a send is
+ * drawn from the send's answer, and a reply that ended its turn before the view listened would
+ * leave it working past SC-002's second. Once per record shown.
+ */
+function useReadOnceLive(request: Parameters<typeof useRequest>[0], id: string, enabled: boolean) {
+  const fate = useFateClient();
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+    const read = () =>
+      void fate.request(request as never, { mode: "network-only" }).catch(() => {});
+    read();
+    const timer = setTimeout(read, SUBSCRIBED_MS);
+    return () => clearTimeout(timer);
+    // Once per record: `request` is a new object at each draw.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [fate, id, enabled]);
+}
+
+/**
+ * A turn of a session, without its items. `latest`, for the session's latest turn, which may still
+ * go on: read again once live, as a session is.
+ */
+export function useTurn(id: string, latest = false) {
   const request = { turn: { id, view: TurnView } };
   const { turn } = useRequest(request);
   useRefreshOnShow(request);
-  return useLiveView(TurnView, turn);
+  const live = useLiveView(TurnView, turn);
+  useReadOnceLive(request, id, latest);
+  return live;
 }
 
-/** A page of a turn's items, `<turn>:<page>`, of 100 items. */
-export function useTurnLog(id: string) {
+/** A page of a turn's items, `<turn>:<page>`, of 100 items; `latest` as for `useTurn`. */
+export function useTurnLog(id: string, latest = false) {
   const request = { turnLog: { id, view: TurnLogView } };
   const { turnLog } = useRequest(request);
   useRefreshOnShow(request);
-  return useLiveView(TurnLogView, turnLog);
+  const live = useLiveView(TurnLogView, turnLog);
+  useReadOnceLive(request, id, latest);
+  return live;
 }
 
 /** The sidebar's sessions, what needs the human first. */

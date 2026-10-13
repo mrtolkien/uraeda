@@ -4,29 +4,26 @@
 // (SC-004), no line of a paragraph runs past about 125 characters, text is left-aligned,
 // and axe-core finds no WCAG 2.1 A or AA violation (SC-003). On the phone, questions, options,
 // stories, and scenarios start within 50 px of the screen's left edge. A change of width keeps
-// what is being typed (US7 2) and the task view's address (the edge case on crossing 768 px).
-import { AppShell } from "@astryxdesign/core/AppShell";
-import { ChatMessageList } from "@astryxdesign/core/Chat";
-import { Theme } from "@astryxdesign/core/theme";
-import { VStack } from "@astryxdesign/core/VStack";
+// what is being typed (US7 2) and the task view's address (the edge case on crossing 768 px). The
+// session view, the chat view, and the sidebar pass the same checks (SC-004 of chat in the web UI).
 import { act, fireEvent, screen, within } from "@testing-library/react";
-import { createRoot } from "react-dom/client";
 import { afterEach, expect, test } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
-import { Page } from "../layout/Page.tsx";
-import { SessionStatus } from "../SessionPage.tsx";
-import { type TranscriptItem, TranscriptItems } from "../Transcript.tsx";
-import { uraedaTheme } from "../theme/built/uraeda.js";
 import {
+  agent,
   checkAccessibility,
   checkAlignment,
   checkControlHeights,
   checkInsets,
+  checkLayout,
   checkMeasure,
   checkPage,
   checkTextSizes,
-  drawn,
+  LIVE,
+  sendMessage,
+  settle,
   show,
+  startTurn,
 } from "./helpers.tsx";
 
 const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";
@@ -54,6 +51,9 @@ const PAGES: Array<[name: string, path: string, text: string, insets: string | n
   ["the priorities", "/priorities", "Git listener process", null],
   // Its agent panel offers "Start the agent": the test server's agent is the fake one.
   ["a feature waiting on an agent", "/f/2026-10-12-cli-tuis", "Start the agent", null],
+  // A feature's session before its first message, and an empty chat.
+  ["a feature's new session", "/f/2026-10-12-cli-tuis/session", "CLI TUIs", null],
+  ["a new chat", "/chats/new", "New chat", null],
 ];
 
 afterEach(() => {
@@ -193,97 +193,106 @@ test("the test server runs the fake agent", async () => {
 
 const LONG =
   "specs/2026-10-12-claude-code-runner-triggered-manually-https-code/clarifications-01.md";
+const CLI = "2026-10-12-cli-tuis";
 
-/** A session's transcript, drawn from its records: the browser tests' server runs no agent. */
-function Panel({ state, mode }: { state: "running" | "failed"; mode: "light" | "dark" }) {
-  const items: Array<TranscriptItem> = [
-    { seq: 0, kind: "system", text: "Started a new session: the previous one is gone." },
-    {
-      seq: 1,
-      kind: "text",
-      text: `Reading **the answers** of round 01 in \`${LONG}\`, then the spec.`,
-      streaming: false,
-    },
-    {
-      seq: 2,
-      kind: "tool",
-      id: "a",
-      name: "Read",
-      toolKind: "read",
-      target: LONG,
-      status: "completed",
-      durationMs: 200,
-    },
-    {
-      seq: 3,
-      kind: "tool",
-      id: "b",
-      name: "Bash",
-      toolKind: "execute",
-      target: `ura check ${LONG} && vp run ready`,
-      status: "in_progress",
-    },
-    { seq: 4, kind: "system", text: "Rate limited, retrying in 30 s." },
-    {
-      seq: 5,
-      kind: "denial",
-      tool: "Bash",
-      target: `gh pr create --draft --title "${LONG}"`,
-      rule: `Bash(gh pr create --draft --title "${LONG}")`,
-      allowed: false,
-    },
-  ];
-  return (
-    <Theme theme={uraedaTheme} mode={mode}>
-      {/* The shell paints the theme's background, as in the app. */}
-      <AppShell height="auto" contentPadding={0}>
-        <Page>
-          <VStack as="section" gap={3} aria-label="Agent">
-            <SessionStatus
-              status={state === "running" ? "working" : "failed"}
-              label={state === "running" ? "Working" : "Failed"}
-            />
-            <ChatMessageList align="top" density="compact" aria-label="Conversation">
-              <TranscriptItems
-                items={items}
-                turn="1"
-                ended={state === "failed"}
-                firstMessage={undefined}
-                queued={false}
-                actions={{ session: "1", canTakeBack: false, onAllow: async () => {} }}
-              />
-            </ChatMessageList>
-          </VStack>
-        </Page>
-      </AppShell>
-    </Theme>
-  );
-}
+/** A turn's lines with long paths and commands, as a session shows them. */
+const LONG_TURN = [
+  {
+    type: "text" as const,
+    text: `Reading **the answers** of round 01 in \`${LONG}\`, then the spec.`,
+  },
+  {
+    type: "toolStart" as const,
+    id: "a",
+    name: "Read",
+    kind: "read" as const,
+    input: { file_path: LONG },
+    target: LONG,
+  },
+  { type: "toolEnd" as const, id: "a", isError: false, output: `# ${LONG}` },
+  {
+    type: "toolStart" as const,
+    id: "b",
+    name: "Bash",
+    kind: "execute" as const,
+    input: { command: `ura check ${LONG} && vp run ready` },
+    target: `ura check ${LONG} && vp run ready`,
+  },
+  { type: "retry" as const, attempt: 1, delayMs: 30_000, error: "rate_limit" },
+];
 
-// The agent panel's states with long paths and commands, which a feature's page shows only once an
-// agent has run: the same checks as the pages', in both themes.
-test.skip.each(
-  (["running", "failed"] as const).flatMap((state) =>
+// A feature's session with long paths and commands, working, then failed with an action blocked,
+// and the feature page's agent section beside it or on its own page: the same checks as the
+// pages', in both themes.
+test.each(
+  (["working", "failed"] as const).flatMap((state) =>
     (["light", "dark"] as const).map((mode) => ({ state, mode })),
   ),
-)("the agent panel, $state, in $mode — rewritten in task 12", async ({ state, mode }) => {
-  const container = document.createElement("div");
-  document.body.append(container);
-  const root = createRoot(container);
-  try {
-    root.render(<Panel state={state} mode={mode} />);
-    await expect
-      .poll(() => document.body.textContent?.includes("Rate limited"), { timeout: 15_000 })
-      .toBe(true);
-    await drawn();
-    checkPage();
-    checkControlHeights();
-    checkTextSizes();
-    checkMeasure();
-    checkAlignment();
-    await checkAccessibility();
-  } finally {
-    root.unmount();
-    container.remove();
+)("a feature's session, $state, and its agent section, in $mode", async ({ state, mode }) => {
+  window.localStorage.setItem("uraeda.theme", mode);
+  await show(`/f/${CLI}/session`, "CLI TUIs");
+  await startTurn("Plan the CLI.", LONG_TURN);
+  await screen.findByText(/Rate limited/, undefined, LIVE);
+  if (state === "failed") {
+    await agent.agentEmit([
+      {
+        type: "result",
+        ok: false,
+        costUsd: 0.42,
+        errors: ["The tests failed."],
+        denials: [{ tool: "Bash", input: { command: `gh pr create --draft --title "${LONG}"` } }],
+        interrupted: false,
+      },
+    ]);
+    await screen.findByRole("button", { name: "Allow and retry" }, LIVE);
+  }
+  await settle();
+  await checkLayout();
+  // The feature page's agent section: beside the session on a wide screen, a page on the phone.
+  if (window.innerWidth < 768) {
+    await show(`/f/${CLI}`, "Open the session");
+    await screen.findAllByText(state === "working" ? "Working" : /Failed/, undefined, LIVE);
+    await checkLayout();
   }
 });
+
+/** Starts a chat with a turn whose action auto mode blocked. */
+async function blockedChat() {
+  await show("/chats/new", "New chat");
+  await sendMessage("Tag v0.3.0 and push the tag.");
+  // At once: a reply that ends the turn before the new chat's view listens still shows.
+  await agent.agentAccept();
+  await agent.agentEmit([
+    {
+      type: "toolStart",
+      id: "a",
+      name: "Bash",
+      kind: "execute",
+      input: { command: "git tag v0.3.0" },
+      target: "git tag v0.3.0",
+    },
+    { type: "toolEnd", id: "a", isError: false, output: "" },
+    { type: "text", text: "I created the tag `v0.3.0`, but pushing it was blocked." },
+    {
+      type: "result",
+      ok: true,
+      costUsd: 0.31,
+      errors: [],
+      denials: [{ tool: "Bash", input: { command: "git push origin v0.3.0" } }],
+      interrupted: false,
+    },
+  ]);
+  await expect.poll(() => window.location.pathname, LIVE).toMatch(/^\/chats\/(?!new)/);
+  await screen.findByRole("button", { name: "Allow and retry" }, LIVE);
+  await settle();
+}
+
+// A chat with a blocked action: the same checks.
+test.each((["light", "dark"] as const).map((mode) => ({ mode })))(
+  "a chat with a blocked action, in $mode",
+  async ({ mode }) => {
+    window.localStorage.setItem("uraeda.theme", mode);
+    await blockedChat();
+    await checkLayout();
+  },
+);
