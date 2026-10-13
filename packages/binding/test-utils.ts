@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readdirSync, realpathSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readdirSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,6 +22,23 @@ function isolateGit() {
 }
 isolateGit();
 
+const temporary: Array<string> = [];
+process.once("exit", () => {
+  for (const folder of temporary) {
+    rmSync(folder, { recursive: true, force: true });
+  }
+});
+
+/**
+ * A new folder in the system's temporary folder, its name starting with `<prefix>-`, removed when
+ * the process exits: thousands of test runs would otherwise fill a `/tmp` held in memory.
+ */
+export function temporaryFolder(prefix: string): string {
+  const folder = realpathSync(mkdtempSync(join(tmpdir(), `${prefix}-`)));
+  temporary.push(folder);
+  return folder;
+}
+
 /** A path inside the repository's shared `fixtures/` folder. */
 export function fixture(path: string): string {
   // Not `new URL(path, import.meta.url)`: Vite rewrites that pattern in the UI's tests.
@@ -40,7 +57,7 @@ export function git(cwd: string, ...args: Array<string>): string {
  */
 export function fixtureRepo(name = "repo"): string {
   const source = fixture(name);
-  const repo = realpathSync(mkdtempSync(join(tmpdir(), "uraeda-repo-")));
+  const repo = temporaryFolder("uraeda-repo");
   git(repo, "init", "--quiet", "--initial-branch", "main");
   for (const [key, value] of [
     ["user.name", "Test"],

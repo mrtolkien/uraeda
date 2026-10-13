@@ -1,8 +1,8 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
 import { fixtureRepo, git, port, testApp } from "./helpers.ts";
+import { temporaryFolder } from "uraeda-binding/test-utils";
 
 test("serves a mockup sandboxed, with its type", async () => {
   const repo = fixtureRepo();
@@ -33,7 +33,7 @@ test("serves a file's raw text, and nothing outside the repository", async () =>
 
 test("a file that cannot be read for another reason than its absence is a server error, logged", async () => {
   const log = vi.spyOn(console, "error").mockImplementation(() => {});
-  const app = testApp(mkdtempSync(join(tmpdir(), "uraeda-not-a-repo-")));
+  const app = testApp(temporaryFolder("uraeda-not-a-repo"));
 
   const raw = await app.request(`http://127.0.0.1:${port}/raw/README.md`);
   const mockup = await app.request(`http://127.0.0.1:${port}/mockups/ui.html`);

@@ -1,12 +1,12 @@
 import { createServer } from "node:http";
-import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, test } from "vite-plus/test";
 import { devHandler, devServer, stopDevRuns } from "../dev.ts";
 import { loadEnv } from "../env.ts";
 import { FakeAdapter } from "../runner/fake.ts";
 import { fixtureRepo } from "./helpers.ts";
+import { temporaryFolder } from "uraeda-binding/test-utils";
 
 // The browser project's setup sets both for the whole test run.
 const saved = {
@@ -25,7 +25,7 @@ afterEach(() => {
 
 /** US6.3 */
 test("vp dev listens on 127.0.0.1:4310 only, by default", () => {
-  const root = mkdtempSync(join(tmpdir(), "uraeda-dev-"));
+  const root = temporaryFolder("uraeda-dev");
 
   expect(devServer(loadEnv(root, {}))).toEqual({
     host: "127.0.0.1",
@@ -36,7 +36,7 @@ test("vp dev listens on 127.0.0.1:4310 only, by default", () => {
 });
 
 test("vp dev accepts the hosts listed in .env", () => {
-  const root = mkdtempSync(join(tmpdir(), "uraeda-dev-"));
+  const root = temporaryFolder("uraeda-dev");
   writeFileSync(join(root, ".env"), "URAEDA_ALLOWED_HOSTS=mac.tail1234.ts.net\n");
 
   expect(devServer(loadEnv(root, {})).allowedHosts).toEqual(["mac.tail1234.ts.net"]);
@@ -45,8 +45,8 @@ test("vp dev accepts the hosts listed in .env", () => {
 /** US6.4 */
 test("the server in vp dev reads URAEDA_REPO", async () => {
   const repo = fixtureRepo();
-  const root = mkdtempSync(join(tmpdir(), "uraeda-dev-"));
-  const data = mkdtempSync(join(tmpdir(), "uraeda-data-"));
+  const root = temporaryFolder("uraeda-dev");
+  const data = temporaryFolder("uraeda-data");
   writeFileSync(join(root, ".env"), `URAEDA_REPO=${repo}\nURAEDA_DATA_DIR=${data}\n`);
   delete process.env.URAEDA_REPO;
   delete process.env.URAEDA_DATA_DIR;

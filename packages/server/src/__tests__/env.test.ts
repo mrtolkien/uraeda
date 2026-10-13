@@ -1,12 +1,12 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { loadDataDir, loadEnv } from "../env.ts";
 import { parseOptions } from "../options.ts";
+import { temporaryFolder } from "uraeda-binding/test-utils";
 
 function root(env?: string) {
-  const dir = mkdtempSync(join(tmpdir(), "uraeda-env-"));
+  const dir = temporaryFolder("uraeda-env");
   if (env !== undefined) {
     writeFileSync(join(dir, ".env"), env);
   }
