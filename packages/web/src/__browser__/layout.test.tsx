@@ -287,7 +287,7 @@ async function blockedChat() {
   await settle();
 }
 
-// A chat with a blocked action: the same checks.
+// A chat, a new chat, and the sidebar searched: the same checks, the sidebar's on its own region.
 test.each((["light", "dark"] as const).map((mode) => ({ mode })))(
   "a chat with a blocked action, in $mode",
   async ({ mode }) => {
@@ -296,3 +296,52 @@ test.each((["light", "dark"] as const).map((mode) => ({ mode })))(
     await checkLayout();
   },
 );
+
+/** Opens the navigation, the phone's from its menu, and gives its region. */
+async function navigation() {
+  if (window.innerWidth < 768) {
+    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+  }
+  const search = await screen.findByRole("searchbox", { name: "Search sessions" });
+  await settle();
+  // The phone's drawer, or the navigation beside the page.
+  return search.closest("dialog") ?? search.closest("nav")!;
+}
+
+test.each(
+  ["CLI", "zzz", ""].flatMap((query) =>
+    (["light", "dark"] as const).map((mode) => ({ query, mode })),
+  ),
+)("the sidebar with sessions, searched for “$query”, in $mode", async ({ query, mode }) => {
+  window.localStorage.setItem("uraeda.theme", mode);
+  // A chat, then a feature's session with a sub-agent at work.
+  await blockedChat();
+  await show(`/f/${CLI}/session`, "CLI TUIs");
+  await startTurn("Plan the CLI.", [
+    {
+      type: "toolStart",
+      id: "task",
+      name: "Task",
+      kind: "other",
+      input: {},
+      subagent: { description: "Map the runner code" },
+    },
+  ]);
+  const nav = await navigation();
+  await within(nav as HTMLElement).findByText("Map the runner code", undefined, LIVE);
+  if (query) {
+    await userEvent.fill(within(nav as HTMLElement).getByRole("searchbox"), query);
+    await within(nav as HTMLElement).findByText(
+      query === "zzz" ? "No session matches “zzz”." : "CLI TUIs",
+      undefined,
+      LIVE,
+    );
+    if (query !== "zzz") {
+      await expect
+        .poll(() => within(nav as HTMLElement).queryByRole("link", { name: /^Home/ }))
+        .toBeNull();
+    }
+    await settle();
+  }
+  await checkLayout(nav);
+});

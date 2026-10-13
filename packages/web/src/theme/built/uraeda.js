@@ -624,6 +624,14 @@ export const uraedaTheme = {
                 "minHeight": "var(--size-element-md)"
               }
             },
+            "text-input": {
+              "base": {
+                ":is(*) button": {
+                  "minHeight": "var(--size-element-md)",
+                  "minWidth": "var(--size-element-md)"
+                }
+              }
+            },
             "segmented-control-item": {
               "size:sm": {
                 "height": "var(--size-element-sm)"
