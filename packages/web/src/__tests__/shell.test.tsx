@@ -304,9 +304,8 @@ test("US4.3: an archived chat moves under Archived, and a message brings it back
   );
   await click(screen.getByRole("button", { name: "Send" }));
 
-  await refreshUntil(() =>
-    expect(chats().getByRole("link", { name: /^List the open draft files, / })).toBeTruthy(),
-  );
-  expect(nav().queryByRole("button", { name: "Archived" })).toBeNull();
+  // The archived group, open, is inside the Chats section: the chat is back once it is gone.
+  await refreshUntil(() => expect(nav().queryByRole("button", { name: "Archived" })).toBeNull());
+  expect(chats().getByRole("link", { name: /^List the open draft files, / })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Archive" })).toBeTruthy();
 });
