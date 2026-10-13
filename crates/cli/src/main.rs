@@ -129,6 +129,8 @@ enum Command {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Serve workflow files to editors over stdio: diagnostics, completion, outline, actions
+    Lsp,
     /// Upgrade ura to the latest release, with the installer script or Homebrew it came from
     Upgrade,
 }
@@ -161,6 +163,9 @@ fn main() -> ExitCode {
             all,
             dry_run,
         } => clean::run(target, all, dry_run),
+        Command::Lsp => uraeda_lsp::stdio()
+            .map(|()| ExitCode::SUCCESS)
+            .map_err(|error| error.to_string()),
         Command::Upgrade => upgrade::run(),
         Command::Review {
             target,
