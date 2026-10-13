@@ -56,6 +56,11 @@ function M.comment(opts)
   require("uraeda.comment").open(0, first, last)
 end
 
+--- Opens the verdict window of the current spec, plan, assessment, or round of questions (US6).
+function M.verdict()
+  require("uraeda.verdict").open(0)
+end
+
 --- @class uraeda.Action
 --- @field name string the `:Uraeda` subcommand, and the `<Plug>(uraeda-<name>)` mapping
 --- @field desc string starts with `Uraeda`
@@ -106,6 +111,14 @@ M.list = {
     modes = { "n" },
     buffer_local = true,
     key = "e",
+  },
+  {
+    name = "verdict",
+    desc = "Uraeda: approve, request changes, or submit answers",
+    fn = M.verdict,
+    modes = { "n" },
+    buffer_local = true,
+    key = "v",
   },
 }
 

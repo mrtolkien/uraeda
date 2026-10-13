@@ -239,3 +239,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   [`crates/lsp/tests/commands.rs`](/crates/lsp/tests/commands.rs), and the first request of `open`
   in [`comment.lua`](/editors/nvim/lua/uraeda/comment.lua).
 - **Where**: task 9, `crates/lsp/src/`, `editors/nvim/lua/uraeda/comment.lua`.
+
+## R14: The verdict window's hints are virtual, and its command saves first
+
+- **Decision**: `Tab to change` and `Summary (optional)` are virtual text, so the buffer's lines are
+  the plan's: the header, a separator, then the summary only. The risk tier's, the plan review's,
+  and the separator's lines are found by extmarks, so an edit above them moves nothing. Plan review
+  starts at the spec's value, else at the tier's default. A review without comments reads
+  `Comments none`; one blank question reads `Q3 has no answer.`, as `ura check` words it. The window
+  opens centred, the cursor on the summary's line in normal mode. `<C-s>` runs the command with
+  `save`, like the other actions, so typed answers reach the disk before the submission; on a
+  refusal, the window and its summary stay. The plugin tests make the example spec's block a waiting
+  one, as the server's tests do, so its record can be checked. Step 2 failed with
+  `module 'uraeda.verdict' not found` in the screenshot tests, which call `verdict.open`, and with
+  no window in the others, which reach it through the missing `verdict` action.
+- **Rationale**: the plan sends the lines after the separator as the summary: a real
+  `Summary (optional)` line would be sent with it. US6.3 counts on the answers on disk, which the
+  core reads.
+- **Alternatives considered**: reading the summary from a marked first line: the human could delete
+  the label; refusing a file not waiting before the window opens: the server already refuses it with
+  the spec's text (R7).
+- **If wrong**: [`verdict.lua`](/editors/nvim/lua/uraeda/verdict.lua).
+- **Where**: task 10, `editors/nvim/lua/uraeda/verdict.lua`.
