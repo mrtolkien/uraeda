@@ -5,14 +5,15 @@
 - [Chat in the web UI: ask about a step without committing, see actual message that goes with the commit and push, ...](/specs/2026-10-13-chat-in-the-web-ui/proposal.md)
 - [Nvim plugin -> can be parallel to pretty much everything here](/specs/2026-10-13-nvim-plugin/proposal.md)
 
-## Next
-
+- Chats, proposals, and reviews should accept images (drag and drop in the page, still show a
+  dedicated button)
 - Look and feel pass: components style, logo, favicon, ...
   - Generally, the happy path should look good: parsed frontmatter should not appear in the edit
     box, we should have color and hierarchy for specs and plans, ...
-
 - Clean server code that can open any folder on the host + be run easily with node -> make the tool
   multi-repos
+
+## Next
 
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Setup with agent (checks project and creates relevant files)
@@ -56,3 +57,8 @@
 - Rename "Start and continue": all buttons starting an agent should be EXTREMELY CLEAR
 - Need icons for different harnesses (claude code, codex, pi, ...)
 - Text column is too slim on desktop
+- The text box with "answer" and "saved" below comments feels weird, it's just the same info as
+  above and weirdly presented
+  - And the text box is very big and always grows ahead of time, it feels iffy
+  - The text cursor jumps on save, sometimes text disappears... Add a "save comment" button, that
+    will be simpler
