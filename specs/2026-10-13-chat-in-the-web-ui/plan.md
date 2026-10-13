@@ -651,7 +651,7 @@ export class Sessions {
 
 Every refusal throws `Error("refused: <text>")`, as the runner did.
 
-- [ ] **Step 1: Write the failing tests**, with `testSessions()` in `helpers.ts` (fake adapter,
+- [x] **Step 1: Write the failing tests**, with `testSessions()` in `helpers.ts` (fake adapter,
       `SessionCache.open(":memory:")`, the real binding, `fixtureRepo()`, `vi.useFakeTimers()` for
       the timers), one test per scenario:
   - US1.1 "a chat message on a feature waiting on the human goes with the opening line": feature
@@ -706,12 +706,12 @@ Every refusal throws `Error("refused: <text>")`, as the runner did.
     keeps `subagent`.
   - Streaming "deltas update one text item until its block ends": `textDelta` × 3 then `text` gives
     one item, `streaming: false`, with the block's text.
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/runner/__tests__/sessions.test.ts`
 - Expected: FAIL, `Cannot find module '../sessions.ts'`
 
-- [ ] **Step 3: Implement `Sessions`**. Per session it keeps: the open `AgentProcess`, the running
+- [x] **Step 3: Implement `Sessions`**. Per session it keeps: the open `AgentProcess`, the running
       turn and its items' state (`tools` by id, the streaming text's `seq`), the queue of turns, and
       the idle and watchdog timers. `send` takes the session's process, opening it with
       `resume = adapter.hasSession(nativeId)`, a new `nativeId` (and the system line) when the
@@ -722,8 +722,8 @@ Every refusal throws `Error("refused: <text>")`, as the runner did.
       during a turn. `stop` calls `interrupt()`, then `kill("SIGINT")` after 10 s and
       `kill("SIGTERM")` 10 s later. `claimSession` guards every open; `releaseSession` on close.
       `onChange` fires on every recorded item (with `turn`) and on each state change (with `state`).
-- [ ] **Step 4: Run them**: same command, PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 4: Run them**: same command, PASS.
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/runner/sessions.ts packages/server/src/runner/__tests__/sessions.test.ts packages/server/src/runner/__tests__/helpers.ts
