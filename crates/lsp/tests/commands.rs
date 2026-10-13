@@ -504,6 +504,52 @@ fn a_round_is_submitted() {
     assert_eq!(repo.hook_runs(), 1);
 }
 
+/// Final review: only the round in the buffer is submitted, when it waits and is the latest; an
+/// answered round never submits the next one.
+#[test]
+fn only_the_waiting_latest_round_is_submitted() {
+    let answered = clarifications("answered", "Answered on 2026-10-13.", &["A", "B"]);
+    let waiting = clarifications("awaiting-human", "2 questions.", &["A", "B"]);
+    let (repo, _) = feature_with(
+        "awaiting-human",
+        &[
+            ("clarifications-01.md", &answered),
+            ("clarifications-02.md", &waiting),
+        ],
+    );
+    let first = repo.path().join(NVIM).join("clarifications-01.md");
+    let mut session = start(repo.path());
+
+    let error = session
+        .command("uraeda.submit", json!({ "uri": uri(&first) }))
+        .unwrap_err();
+
+    assert_eq!(
+        error.message,
+        "clarifications-01.md is not waiting for answers."
+    );
+    assert_eq!(error.data, Some(json!({ "code": "refused" })));
+    assert_eq!(repo.subjects(BRANCH)[0], "spec(nvim-plugin): spec");
+
+    let (repo, _) = feature_with(
+        "awaiting-human",
+        &[
+            ("clarifications-01.md", &waiting),
+            ("clarifications-02.md", &waiting),
+        ],
+    );
+    let first = repo.path().join(NVIM).join("clarifications-01.md");
+    let mut session = start(repo.path());
+    let error = session
+        .command("uraeda.submit", json!({ "uri": uri(&first) }))
+        .unwrap_err();
+    assert_eq!(
+        error.message,
+        "clarifications-01.md is not the latest round: clarifications-02.md is."
+    );
+    assert_eq!(repo.subjects(BRANCH)[0], "spec(nvim-plugin): spec");
+}
+
 /// US7.1, US7.2
 #[test]
 fn drafts_proposals_and_priorities_are_committed() {
