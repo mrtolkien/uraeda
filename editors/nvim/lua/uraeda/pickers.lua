@@ -113,7 +113,7 @@ end
 --- `<feature> · <file> · <text>`; the one picked opens at its block's line (US8). In snacks' picker
 --- with a preview of the file when snacks is installed, else through `vim.ui.select`.
 function M.waiting()
-  client().request_any("uraeda/waiting", vim.empty_dict(), function(files)
+  client().request_checkout("uraeda/waiting", vim.empty_dict(), function(files)
     files = files or {}
     if #files == 0 then
       return vim.notify("Nothing waits on you.", vim.log.levels.INFO, { title = "Uraeda" })

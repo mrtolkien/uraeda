@@ -79,6 +79,29 @@ T["waiting lists a round of another worktree"] = function() -- US8.1
   eq(child.lua_get("_G.notes"), {})
 end
 
+T["waiting asks the current repository's server"] = function()
+  local other = helpers.repo({ ["specs/PRIORITIES.md"] = "# Priorities\n\n## Now\n" })
+  helpers.edit(child, other .. "/specs/PRIORITIES.md")
+  eq(helpers.wait_client(child), true)
+  local repo, round = with_round()
+  child.cmd("cd " .. vim.fn.fnameescape(repo))
+  helpers.edit(child, repo .. "/README.md")
+  child.lua("_G.picks = { ... }", { item })
+
+  child.cmd("Uraeda waiting")
+
+  eq(wait("#_G.selects > 0 or #_G.notes > 0"), true)
+  eq(child.lua_get("_G.notes"), {})
+  eq(child.lua_get("_G.selects[1].items"), { item })
+  eq(child.lua_get("vim.api.nvim_buf_get_name(0)"), round)
+  -- A server started on the current repository, the other's left alone.
+  local roots = child.lua_get([[vim.tbl_map(function(client)
+    return client.root_dir
+  end, vim.lsp.get_clients({ name = 'uraeda' }))]])
+  eq(vim.tbl_contains(roots, repo), true)
+  eq(vim.tbl_contains(roots, other), true)
+end
+
 T["waiting uses snacks when present"] = function()
   local repo, round = with_round()
   -- A stub of snacks' picker, recording its options.
