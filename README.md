@@ -220,6 +220,7 @@ where `pnpm install` stands for `vp install` and the layout tests find their Web
 
 ```sh
 vp install         # dependencies
+vp run --filter uraeda-binding build  # the Rust core for Node: again after every pull
 vp run ready       # every check and test, as CI runs them
 vp dev             # the web UI on http://127.0.0.1:4310, for this repository
 cargo run -p uraeda-cli -- status

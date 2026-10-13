@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import { unplugin as stylex } from "@stylexjs/unplugin";
 import react from "@vitejs/plugin-react";
 import { fate } from "react-fate/vite";
-import { devHandler, devServer, loadEnv, stopDevRuns } from "uraeda-server/dev";
+import { checkBinding, devHandler, devServer, loadEnv, stopDevRuns } from "uraeda-server/dev";
 import { defineConfig, type Plugin } from "vite-plus";
 
 /** The repository's root, where `.env` lives and `vp dev` runs. */
@@ -10,12 +10,13 @@ const root = fileURLToPath(new URL("../..", import.meta.url));
 
 /**
  * The server's routes, in Vite's own server, on Claude Code unless `adapter` says otherwise. The
- * agents' runs end with Vite's server.
+ * agents' runs end with Vite's server. It does not start on a binding older than the Rust core.
  */
 export function uraedaServer(options: Parameters<typeof devHandler>[1] = {}): Plugin {
   return {
     name: "uraeda-server",
     configureServer(server) {
+      checkBinding();
       server.middlewares.use(devHandler(root, options));
       server.httpServer?.once("close", () => void stopDevRuns());
     },

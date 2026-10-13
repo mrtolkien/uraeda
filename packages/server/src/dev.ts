@@ -4,14 +4,14 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { resolve } from "node:path";
 import { getRequestListener } from "@hono/node-server";
 import { createApp } from "./app.ts";
-import { loadBinding } from "./binding.ts";
+import { checkBinding, loadBinding } from "./binding.ts";
 import { type Env, loadDataDir, loadEnv } from "./env.ts";
 import { startLive, startRunner } from "./live.ts";
 import type { Adapter } from "./runner/adapter.ts";
 import { ClaudeAdapter, PLUGIN_DIR } from "./runner/claude.ts";
 import type { Runner } from "./runner/runner.ts";
 
-export { loadEnv };
+export { checkBinding, loadEnv };
 
 /** Vite's server options from the settings: 127.0.0.1 only, on its port, with the allowed hosts. */
 export function devServer(env: Env) {
