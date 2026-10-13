@@ -7,9 +7,9 @@ import "../theme/built/uraeda.css";
 import axe from "axe-core";
 import { createRoot, type Root } from "react-dom/client";
 import { createFateClient } from "react-fate/client";
-import { configure } from "@testing-library/react";
+import { configure, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect } from "vite-plus/test";
-import { commands as browserCommands } from "vite-plus/test/browser";
+import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
 import { App } from "../App.tsx";
 
@@ -44,6 +44,9 @@ export async function show(path: string, text: string) {
   // A history entry of its own: the test files share the frame's history, and Back must not reach an
   // entry another test left.
   window.history.pushState(null, "", path);
+  // A page shown before in the test leaves, as the browser's own would.
+  root?.unmount();
+  document.body.innerHTML = "";
   await mount(text);
 }
 
@@ -137,10 +140,15 @@ function textLeft(element: Element) {
   return Math.min(...[...range.getClientRects()].map((rect) => rect.left));
 }
 
-export function checkPage() {
+/** The region a check reads: the main region by default, or another, like the navigation. */
+function region(root?: Element) {
+  return root ?? document.querySelector('[role="main"]') ?? document.body;
+}
+
+export function checkPage(root?: Element) {
   // Nothing scrolls the page sideways.
   expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
-  const main = document.querySelector('[role="main"]') ?? document.body;
+  const main = region(root);
   for (const element of main.querySelectorAll("*")) {
     const style = getComputedStyle(element);
     const name = element.outerHTML.slice(0, 120);
@@ -176,9 +184,9 @@ export function checkPage() {
   }
 }
 
-/** The main region's paragraphs that show. */
-function paragraphs() {
-  const main = document.querySelector('[role="main"]') ?? document.body;
+/** The region's paragraphs that show. */
+function paragraphs(root?: Element) {
+  const main = region(root);
   return [...main.querySelectorAll("p")].filter((p) => p.getBoundingClientRect().width > 4);
 }
 
@@ -186,9 +194,9 @@ function paragraphs() {
  * The UI layout decision's text sizes (SC-004, US6 1, 2): paragraphs are 17 px under 1024 px wide,
  * 19 px from 1024 px.
  */
-export function checkTextSizes() {
+export function checkTextSizes(root?: Element) {
   const size = window.innerWidth >= 1024 ? 19 : 17;
-  for (const paragraph of paragraphs()) {
+  for (const paragraph of paragraphs(root)) {
     expect(
       parseFloat(getComputedStyle(paragraph).fontSize),
       paragraph.textContent?.slice(0, 60),
@@ -254,12 +262,12 @@ function averageCharacter(element: Element) {
  * No line of reading text holds more than about 125 characters (the UI layout decision): paragraphs, and the
  * toggles that hold text of their own, like a question's options.
  */
-export function checkMeasure() {
-  const main = document.querySelector('[role="main"]') ?? document.body;
+export function checkMeasure(root?: Element) {
+  const main = region(root);
   const toggles = [...main.querySelectorAll("[aria-pressed]")].filter(
     (toggle) => toggle.textContent?.trim() && toggle.getBoundingClientRect().width > 4,
   );
-  for (const paragraph of [...paragraphs(), ...toggles]) {
+  for (const paragraph of [...paragraphs(root), ...toggles]) {
     expect(longestLine(paragraph), paragraph.textContent?.slice(0, 60)).toBeLessThanOrEqual(125);
   }
 }
@@ -268,8 +276,8 @@ export function checkMeasure() {
  * Text is left-aligned, never centred or justified (the UI layout decision): every run of text of
  * three words or more outside a control, whose own label a control may centre.
  */
-export function checkAlignment() {
-  const main = document.querySelector('[role="main"]') ?? document.body;
+export function checkAlignment(root?: Element) {
+  const main = region(root);
   for (const element of main.querySelectorAll("*")) {
     const own = [...element.childNodes]
       .filter((node) => node.nodeType === Node.TEXT_NODE)
@@ -396,4 +404,48 @@ export async function checkAccessibility() {
         .join(" | ")}`,
   );
   expect(violations).toEqual([]);
+}
+
+/**
+ * Every layout check of the UI checks decision on a region, the main one by default: no text cut,
+ * no sideways scroll, the text sizes, control heights, measure, and alignment, then axe-core's
+ * WCAG 2.1 A and AA rules on the whole document.
+ */
+export async function checkLayout(root?: Element) {
+  checkPage(root);
+  checkTextSizes(root);
+  checkControlHeights();
+  checkMeasure(root);
+  checkAlignment(root);
+  await checkAccessibility();
+}
+
+/** How long a session's live updates may take to arrive, throttled by the server, on a busy machine. */
+export const LIVE = { timeout: 10_000 };
+
+/** Waits for live updates and layout to settle. */
+export const settle = () => new Promise((resolve) => setTimeout(resolve, 500));
+
+/** The agent of the test server, which the tests drive as Claude Code would print. */
+export const agent = commands;
+
+/** Types a message in the composer and presses Send, as the human does. */
+export async function sendMessage(text: string) {
+  const sent = (await commands.agentSent()).length;
+  const box = await screen.findByRole("textbox", { name: "Message Claude Code" }, LIVE);
+  await userEvent.fill(box, text);
+  await userEvent.click(await screen.findByRole("button", { name: "Send" }));
+  await expect.poll(async () => (await commands.agentSent()).length, LIVE).toBe(sent + 1);
+}
+
+/**
+ * Starts a turn with a message the agent reads, then sends `events` on it: the session works until
+ * the test ends its turn.
+ */
+export async function startTurn(text: string, events: Parameters<RepoCommands["agentEmit"]>[0]) {
+  await sendMessage(text);
+  await commands.agentAccept();
+  await commands.agentEmit(events);
+  // The composer's Stop, and the agent section's beside it on a wide screen.
+  await screen.findAllByRole("button", { name: "Stop" }, LIVE);
 }
