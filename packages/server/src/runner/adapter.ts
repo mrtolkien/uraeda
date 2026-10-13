@@ -40,7 +40,8 @@ export interface AgentProcess {
   interrupt(): void;
   /** Ends the process once its turn is over. */
   close(): void;
-  kill(signal: "SIGINT" | "SIGTERM"): void;
+  /** Signals the process, and the processes it started. */
+  kill(signal: "SIGINT" | "SIGTERM" | "SIGKILL"): void;
 }
 
 /** The one interface every agent is reached through. */
