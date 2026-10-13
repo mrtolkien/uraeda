@@ -1,3 +1,5 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach } from "vite-plus/test";
 import * as binding from "uraeda-binding";
 import { fixture, fixtureRepo, git } from "uraeda-binding/test-utils";
@@ -78,17 +80,22 @@ export async function mutate(app: App, name: string, input: unknown, select: Arr
   return result;
 }
 
-/** A repository with `count` feature branches besides the fixture's, for timing. */
+/**
+ * A repository with `count` feature branches besides the fixture's, for timing, each holding its
+ * own folder's proposal: a branch without its folder is not a feature.
+ */
 export function repoWithBranches(count: number) {
   const repo = fixtureRepo();
+  const proposal = git(repo, "show", "2026-10-11-web-ui:specs/2026-10-11-web-ui/proposal.md");
   for (let n = 0; n < count; n++) {
-    git(
-      repo,
-      "branch",
-      `2026-11-${String(n + 1).padStart(2, "0")}-feature-${n}`,
-      "2026-10-11-web-ui",
-    );
+    const folder = `2026-11-${String(n + 1).padStart(2, "0")}-feature-${n}`;
+    git(repo, "switch", "--quiet", "--create", folder, "2026-10-11-web-ui");
+    mkdirSync(join(repo, "specs", folder));
+    writeFileSync(join(repo, "specs", folder, "proposal.md"), proposal);
+    git(repo, "add", "specs");
+    git(repo, "commit", "--quiet", "--no-verify", "--message", "chore: proposal");
   }
+  git(repo, "switch", "--quiet", "main");
   return repo;
 }
 
