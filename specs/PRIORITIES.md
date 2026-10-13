@@ -56,3 +56,5 @@
 - Tools path in the agent run view should be stripped and only show path from the repo root
 - Rename "Start and continue": all buttons starting an agent should be EXTREMELY CLEAR
 - Need icons for different harnesses (claude code, codex, pi, ...)
+- Better URLs for the navigation, right now it's a bit messy
+  (/f/2026-10-13-chat-in-the-web-ui/clarifications-01.md)
