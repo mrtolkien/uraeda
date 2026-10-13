@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use crate::files::{frontmatter, markdown, priorities};
-use crate::git::{Git, GitError, ObjectId};
+use crate::git::{Branch, Git, GitError, ObjectId};
 use crate::steps::{self, PullRequest, Step};
 use crate::today::{self, Date};
 
@@ -420,25 +420,259 @@ impl Reader<'_> {
     }
 }
 
+/// What the default branch merged, local or on `origin`, so a merge made on the forge shows before
+/// the next pull: the records and the folders of each tip.
+struct Merged {
+    records: Vec<BTreeMap<(Kind, String), String>>,
+    folders: Vec<(ObjectId, BTreeSet<(Kind, String)>)>,
+    /// Every feature and bug with a folder or a record there.
+    keys: BTreeSet<(Kind, String)>,
+}
+
+impl Merged {
+    fn read(reader: &Reader<'_>, tips: &[ObjectId]) -> Merged {
+        let records: Vec<BTreeMap<(Kind, String), String>> = tips
+            .iter()
+            .map(|tip| reader.records(ReadFrom::Commit(*tip)))
+            .collect();
+        let folders: Vec<(ObjectId, BTreeSet<(Kind, String)>)> = tips
+            .iter()
+            .map(|tip| (*tip, reader.folders(ReadFrom::Commit(*tip))))
+            .collect();
+        let keys = records
+            .iter()
+            .flat_map(|records| records.keys().cloned())
+            .chain(
+                folders
+                    .iter()
+                    .flat_map(|(_, folders)| folders.iter().cloned()),
+            )
+            .collect();
+        Merged {
+            records,
+            folders,
+            keys,
+        }
+    }
+}
+
+/// A workspace being read: the repository, and what reading each feature shares.
+struct Reading<'a> {
+    git: &'a Git,
+    reader: Reader<'a>,
+    root: &'a Path,
+    main_root: PathBuf,
+    /// The branches checked out in other working trees, read from their disk.
+    checked_out: BTreeMap<String, PathBuf>,
+    merged: Merged,
+}
+
+impl Reading<'_> {
+    /// A working tree's path as shown: from the main checkout, or `.` for it.
+    fn shown(&self, path: &Path) -> String {
+        match path.strip_prefix(&self.main_root) {
+            Ok(relative) if relative.as_os_str().is_empty() => ".".to_string(),
+            Ok(relative) => relative.to_string_lossy().into_owned(),
+            Err(_) => path.to_string_lossy().into_owned(),
+        }
+    }
+
+    /// The working tree's features: the current branch's, and folders not yet committed.
+    fn working_tree_features(
+        &self,
+        current_branch: Option<&str>,
+    ) -> BTreeMap<(Kind, String), Feature> {
+        let current_folder = current_branch.and_then(branch_folder);
+        let mut on_disk = self.reader.folders(ReadFrom::Disk);
+        if let Some((kind, folder)) = current_folder {
+            on_disk.insert((kind, folder.to_string()));
+        }
+        let head = self.git.head();
+        let mut features = BTreeMap::new();
+        for (kind, folder) in on_disk {
+            if self.merged.keys.contains(&(kind, folder.clone())) {
+                continue;
+            }
+            let branch = current_folder
+                .filter(|(k, f)| *k == kind && *f == folder)
+                .map(|_| folder_branch(kind, &folder));
+            let on_branch = branch.is_some();
+            let mut feature =
+                read_feature(&self.reader, kind, &folder, branch, ReadFrom::Disk, head);
+            if on_branch {
+                feature.worktree = Some(self.shown(self.root));
+            }
+            features.insert((kind, folder), feature);
+        }
+        features
+    }
+
+    /// Adds the feature of every other feature branch, from its tip.
+    fn add_branch_features(
+        &self,
+        branches: &[Branch],
+        features: &mut BTreeMap<(Kind, String), Feature>,
+    ) {
+        for branch in branches {
+            let Some((kind, folder)) = branch_folder(&branch.name) else {
+                continue;
+            };
+            let key = (kind, folder.to_string());
+            if self.merged.keys.contains(&key) || features.contains_key(&key) {
+                continue;
+            }
+            if let Some(feature) = self.branch_feature(branch, kind, folder) {
+                features.insert(key, feature);
+            }
+        }
+    }
+
+    /// A branch's feature: from the working tree that has it, else from its tip, local first; none
+    /// for a branch whose tip has neither its folder nor its record.
+    fn branch_feature(&self, branch: &Branch, kind: Kind, folder: &str) -> Option<Feature> {
+        let tip = branch.local.or(branch.remote)?;
+        let opened = self
+            .checked_out
+            .get(&branch.name)
+            .and_then(|path| Git::open(path).ok().map(|git| (path, git)));
+        let mut feature = match &opened {
+            Some((path, worktree_git)) => {
+                let worktree_reader = Reader { git: worktree_git };
+                let mut feature = read_feature(
+                    &worktree_reader,
+                    kind,
+                    folder,
+                    Some(branch.name.clone()),
+                    ReadFrom::Disk,
+                    worktree_git.head(),
+                );
+                feature.worktree = Some(self.shown(path));
+                feature
+            }
+            None => {
+                // Neither its folder nor its record, like a fix made outside the workflow:
+                // not a feature.
+                let from = ReadFrom::Commit(tip);
+                if self
+                    .reader
+                    .files(from, &folder_path(kind, folder))
+                    .is_empty()
+                    && self.reader.read(from, &record_path(folder)).is_none()
+                {
+                    return None;
+                }
+                let mut feature = read_feature(
+                    &self.reader,
+                    kind,
+                    folder,
+                    Some(branch.name.clone()),
+                    ReadFrom::Commit(tip),
+                    Some(tip),
+                );
+                feature.source = if branch.local.is_some() {
+                    Source::Local
+                } else {
+                    Source::Remote
+                };
+                feature
+            }
+        };
+        feature.behind = match (branch.local, branch.remote) {
+            (Some(local), Some(remote)) => Some(self.git.behind(local, remote)),
+            _ => None,
+        };
+        Some(feature)
+    }
+
+    /// The features merged into the default branch, read from it: the record first, local first,
+    /// with the branch and the worktree left behind.
+    fn merged_features(&self, branches: &[Branch]) -> Vec<Feature> {
+        let local_branches: BTreeSet<&str> = branches
+            .iter()
+            .filter(|branch| branch.local.is_some())
+            .map(|branch| branch.name.as_str())
+            .collect();
+        let worktrees = self.git.worktrees().unwrap_or_default();
+        let mut features = Vec::new();
+        for (kind, folder) in &self.merged.keys {
+            let key = (*kind, folder.clone());
+            let record = self
+                .merged
+                .records
+                .iter()
+                .find_map(|records| records.get(&key));
+            let mut feature = match record {
+                Some(text) => Feature::from_record(*kind, folder, text.clone()),
+                None => {
+                    let Some((tip, _)) = self
+                        .merged
+                        .folders
+                        .iter()
+                        .find(|(_, folders)| folders.contains(&key))
+                    else {
+                        continue;
+                    };
+                    let from = ReadFrom::Commit(*tip);
+                    read_feature(&self.reader, *kind, folder, None, from, Some(*tip))
+                }
+            };
+            let branch = folder_branch(*kind, folder);
+            feature.source = Source::DefaultBranch;
+            feature.branch = None;
+            feature.step = Step::done();
+            feature.left_worktree = worktrees
+                .iter()
+                .find(|w| w.path != self.main_root && w.branch.as_deref() == Some(branch.as_str()))
+                .map(|w| self.shown(&w.path));
+            feature.left_branch = local_branches.contains(branch.as_str()).then_some(branch);
+            features.push(feature);
+        }
+        features
+    }
+}
+
+/// The priorities' entries, each with the feature or the draft it links to.
+fn priority_entries(text: &str, features: &[Feature]) -> Vec<PriorityEntry> {
+    let entries = priorities::parse(text);
+    let keys = priorities::keys(&entries);
+    entries
+        .into_iter()
+        .zip(keys)
+        .map(|(entry, key)| {
+            let feature = entry
+                .link
+                .as_deref()
+                .and_then(|link| match_feature(link, features));
+            let draft = entry.link.as_deref().and_then(linked_draft);
+            PriorityEntry {
+                section: entry.section,
+                position: entry.position,
+                key,
+                text: entry.text,
+                link: entry.link,
+                feature,
+                draft,
+            }
+        })
+        .collect()
+}
+
 impl Workspace {
     /// Reads the workspace of the repository `git` is open in.
     pub fn read(git: &Git) -> Result<Workspace, WorkspaceError> {
-        let reader = Reader { git };
-        let root = git.root().to_path_buf();
+        let root = git.root();
         let default_branch = git.default_branch();
         let current_branch = git.current_branch();
         let default_tip = default_branch.as_deref().and_then(|b| git.tip(b));
         let on_default = current_branch.is_some() && current_branch == default_branch;
-        let head = git.head();
 
         let has_specs = root.join("specs").is_dir()
             || default_tip
                 .is_some_and(|tip| !git.list_files(tip, "specs").unwrap_or_default().is_empty());
         if !has_specs {
-            return Err(WorkspaceError::NoSpecs(root));
+            return Err(WorkspaceError::NoSpecs(root.to_path_buf()));
         }
 
-        // The branches checked out in other working trees, read from their disk.
         let checked_out: BTreeMap<String, PathBuf> = git
             .worktrees()
             .unwrap_or_default()
@@ -463,200 +697,40 @@ impl Workspace {
         let priorities_text = default_reader
             .read(priorities_from, "specs/PRIORITIES.md")
             .unwrap_or_default();
-        // Merged: a folder or a record on the default branch, local or on `origin`, so a merge
-        // made on the forge shows before the next pull.
+
+        let reader = Reader { git };
         let remote_default_tip = default_branch.as_deref().and_then(|b| git.remote_tip(b));
         let tips: Vec<ObjectId> = [default_tip, remote_default_tip]
             .into_iter()
             .flatten()
             .collect();
-        let merged_records: Vec<BTreeMap<(Kind, String), String>> = tips
-            .iter()
-            .map(|tip| reader.records(ReadFrom::Commit(*tip)))
-            .collect();
-        let merged_folders: Vec<(ObjectId, BTreeSet<(Kind, String)>)> = tips
-            .iter()
-            .map(|tip| (*tip, reader.folders(ReadFrom::Commit(*tip))))
-            .collect();
-        let merged: BTreeSet<(Kind, String)> = merged_records
-            .iter()
-            .flat_map(|records| records.keys().cloned())
-            .chain(
-                merged_folders
-                    .iter()
-                    .flat_map(|(_, folders)| folders.iter().cloned()),
-            )
-            .collect();
-
-        let mut features: BTreeMap<(Kind, String), Feature> = BTreeMap::new();
-        let main_root = git.main_root();
-        let shown = |path: &Path| -> String {
-            match path.strip_prefix(&main_root) {
-                Ok(relative) if relative.as_os_str().is_empty() => ".".to_string(),
-                Ok(relative) => relative.to_string_lossy().into_owned(),
-                Err(_) => path.to_string_lossy().into_owned(),
-            }
+        let reading = Reading {
+            git,
+            merged: Merged::read(&reader, &tips),
+            reader,
+            root,
+            main_root: git.main_root(),
+            checked_out,
         };
-        // The working tree: the current branch's feature, and folders not yet committed.
-        let current_folder = current_branch.as_deref().and_then(branch_folder);
-        let mut on_disk = reader.folders(ReadFrom::Disk);
-        if let Some((kind, folder)) = current_folder {
-            on_disk.insert((kind, folder.to_string()));
-        }
-        for (kind, folder) in on_disk {
-            if merged.contains(&(kind, folder.clone())) {
-                continue;
-            }
-            let branch = current_folder
-                .filter(|(k, f)| *k == kind && *f == folder)
-                .map(|_| folder_branch(kind, &folder));
-            let on_branch = branch.is_some();
-            let mut feature = read_feature(&reader, kind, &folder, branch, ReadFrom::Disk, head);
-            if on_branch {
-                feature.worktree = Some(shown(&root));
-            }
-            features.insert((kind, folder), feature);
-        }
-        // Every other feature branch, from its tip.
-        for branch in git.branches()? {
-            let Some((kind, folder)) = branch_folder(&branch.name) else {
-                continue;
-            };
-            let key = (kind, folder.to_string());
-            if merged.contains(&key) || features.contains_key(&key) {
-                continue;
-            }
-            let (Some(tip), source) = (branch.local.or(branch.remote), {
-                if branch.local.is_some() {
-                    Source::Local
-                } else {
-                    Source::Remote
-                }
-            }) else {
-                continue;
-            };
-            let opened = checked_out
-                .get(&branch.name)
-                .and_then(|path| Git::open(path).ok().map(|git| (path, git)));
-            let mut feature = match &opened {
-                Some((path, worktree_git)) => {
-                    let worktree_reader = Reader { git: worktree_git };
-                    let mut feature = read_feature(
-                        &worktree_reader,
-                        kind,
-                        folder,
-                        Some(branch.name.clone()),
-                        ReadFrom::Disk,
-                        worktree_git.head(),
-                    );
-                    feature.worktree = Some(shown(path));
-                    feature
-                }
-                None => {
-                    // Neither its folder nor its record, like a fix made outside the workflow:
-                    // not a feature.
-                    let from = From::Commit(tip);
-                    if reader.files(from, &folder_path(kind, folder)).is_empty()
-                        && reader.read(from, &record_path(folder)).is_none()
-                    {
-                        continue;
-                    }
-                    let mut feature = read_feature(
-                        &reader,
-                        kind,
-                        folder,
-                        Some(branch.name.clone()),
-                        ReadFrom::Commit(tip),
-                        Some(tip),
-                    );
-                    feature.source = source;
-                    feature
-                }
-            };
-            feature.behind = match (branch.local, branch.remote) {
-                (Some(local), Some(remote)) => Some(git.behind(local, remote)),
-                _ => None,
-            };
-            features.insert(key, feature);
-        }
+        let branches = git.branches()?;
+        let mut features = reading.working_tree_features(current_branch.as_deref());
+        reading.add_branch_features(&branches, &mut features);
         let mut features: Vec<Feature> = features.into_values().collect();
         for feature in &mut features {
             feature.step = steps::step(feature, PullRequest::Unknown);
         }
-        // Features merged into the default branch, read from it: the record first, local first.
-        let local_branches: BTreeSet<String> = git
-            .branches()?
-            .into_iter()
-            .filter(|branch| branch.local.is_some())
-            .map(|branch| branch.name)
-            .collect();
-        let worktrees = git.worktrees().unwrap_or_default();
-        for (kind, folder) in &merged {
-            let key = (*kind, folder.clone());
-            let mut feature = match merged_records.iter().find_map(|records| records.get(&key)) {
-                Some(text) => Feature::from_record(*kind, folder, text.clone()),
-                None => {
-                    let Some((tip, _)) = merged_folders
-                        .iter()
-                        .find(|(_, folders)| folders.contains(&key))
-                    else {
-                        continue;
-                    };
-                    read_feature(
-                        &reader,
-                        *kind,
-                        folder,
-                        None,
-                        ReadFrom::Commit(*tip),
-                        Some(*tip),
-                    )
-                }
-            };
-            let branch = folder_branch(*kind, folder);
-            feature.source = Source::DefaultBranch;
-            feature.branch = None;
-            feature.step = Step::done();
-            feature.left_worktree = worktrees
-                .iter()
-                .find(|w| w.path != main_root && w.branch.as_deref() == Some(branch.as_str()))
-                .map(|w| shown(&w.path));
-            feature.left_branch = local_branches.contains(&branch).then_some(branch);
-            features.push(feature);
-        }
+        features.extend(reading.merged_features(&branches));
 
-        let entries = priorities::parse(&priorities_text);
-        let keys = priorities::keys(&entries);
-        let priorities = entries
-            .into_iter()
-            .zip(keys)
-            .map(|(entry, key)| {
-                let feature = entry
-                    .link
-                    .as_deref()
-                    .and_then(|link| match_feature(link, &features));
-                let draft = entry.link.as_deref().and_then(linked_draft);
-                PriorityEntry {
-                    section: entry.section,
-                    position: entry.position,
-                    key,
-                    text: entry.text,
-                    link: entry.link,
-                    feature,
-                    draft,
-                }
-            })
-            .collect();
-        let drafts = default_reader.drafts(priorities_from);
         let fetched = git.fetched_at();
         Ok(Workspace {
-            root,
+            root: root.to_path_buf(),
             default_branch,
             current_branch,
             fetched_at: fetched.map(today::rfc3339),
             fetched_ago: fetched.map(today::ago),
-            priorities,
+            priorities: priority_entries(&priorities_text, &features),
             features,
-            drafts,
+            drafts: default_reader.drafts(priorities_from),
             problems: Vec::new(),
         })
     }
