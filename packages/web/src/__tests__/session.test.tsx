@@ -1,7 +1,7 @@
 // US1: a feature's session, its transcript and its composer, at both widths. The log following its
 // end and Back's position are in the browser tests.
 import { screen, waitFor, within } from "@testing-library/react";
-import { expect, test } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
 import {
   atWidth,
   click,
@@ -137,6 +137,21 @@ test("US1.5: Send turns into Stop during a turn, and Stop ends it as Stopped", a
   await waitFor(() => expect(fake.adapter.interrupts).toBe(1));
   await refreshUntil(() => expect(screen.getAllByText("Stopped").length).toBeGreaterThan(0));
   expect(screen.getByRole("button", { name: "Send" })).toBeTruthy();
+});
+
+test("a Stop that fails says why under the composer", async () => {
+  atWidth(402);
+  const fake = await fakeAgent();
+  await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: fake });
+  await openTurn(fake, "Look at the plan.");
+  await refreshUntil(() => expect(screen.getByRole("button", { name: "Stop" })).toBeTruthy());
+  vi.spyOn(fake.sessions, "stop").mockImplementation(() => {
+    throw new Error("refused: The agent did not take the interrupt.");
+  });
+
+  await click(screen.getByRole("button", { name: "Stop" }));
+
+  expect(await screen.findByText("The agent did not take the interrupt.")).toBeTruthy();
 });
 
 test("US4.4: without the agent, the composer is disabled and says why", async () => {
