@@ -10,11 +10,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { fixture } from "uraeda-binding/test-utils";
-import { ClaudeAdapter, claudeArgs, lines, parseLine, PLUGIN_DIR } from "../claude.ts";
-import type { AgentEvent } from "../events.ts";
+import { lines, parseLine } from "../claude-events.ts";
+import { allowRule, ClaudeAdapter, claudeArgs, PLUGIN_DIR } from "../claude.ts";
+import type { AgentEvent, Denial } from "../events.ts";
 
 const SESSION = "06e0f968-6806-4810-b91e-df3ca38e0f25";
-const start = { cwd: "/w", message: "m", sessionId: "3f2c", pluginDir: "/p" };
+const open = { cwd: "/w", nativeId: "id" };
 
 /** The lines of a recorded fixture, in `fixtures/claude/`. */
 function recorded(file: string): Array<string> {
@@ -38,32 +39,35 @@ async function* chunks(...parts: Array<Buffer>) {
 }
 
 test("SC-006: a new session's arguments", () => {
-  expect(claudeArgs({ ...start, resume: false })).toEqual([
+  expect(claudeArgs({ ...open, resume: false }, "/plugin")).toEqual([
     "-p",
     "--input-format",
     "stream-json",
     "--output-format",
     "stream-json",
     "--verbose",
+    "--include-partial-messages",
     "--permission-mode",
     "auto",
     "--plugin-dir",
-    "/p",
+    "/plugin",
     "--session-id",
-    "3f2c",
+    "id",
   ]);
 });
 
 test("a resumed session with an allow rule", () => {
   expect(
-    claudeArgs({ ...start, resume: true, allowed: "Bash(gh pr create --draft)" }).slice(10),
-  ).toEqual(["--resume", "3f2c", "--allowedTools", "Bash(gh pr create --draft)"]);
+    claudeArgs({ ...open, resume: true, allowed: "Bash(gh pr create --draft)" }, "/plugin").slice(
+      11,
+    ),
+  ).toEqual(["--resume", "id", "--allowedTools", "Bash(gh pr create --draft)"]);
 });
 
 test("no argument skips permissions or sets a model", () => {
   for (const args of [
-    claudeArgs({ ...start, resume: false }),
-    claudeArgs({ ...start, resume: true, allowed: "Bash(gh pr create --draft)" }),
+    claudeArgs({ ...open, resume: false }, "/plugin"),
+    claudeArgs({ ...open, resume: true, allowed: "Bash(gh pr create --draft)" }, "/plugin"),
   ]) {
     for (const forbidden of [
       "bypassPermissions",
@@ -74,6 +78,18 @@ test("no argument skips permissions or sets a model", () => {
       expect(args).not.toContain(forbidden);
     }
   }
+});
+
+test("Claude Code declares what it can do", () => {
+  const adapter = new ClaudeAdapter({ pluginDir: "/plugin" });
+  expect([adapter.kind, adapter.name]).toEqual(["claude", "Claude Code"]);
+  expect(adapter.capabilities).toEqual({
+    steer: true,
+    queue: true,
+    takeBack: true,
+    approvals: false,
+    subagents: true,
+  });
 });
 
 test.each<[string, Array<AgentEvent>]>([
@@ -108,7 +124,9 @@ test.each<[string, Array<AgentEvent>]>([
         type: "toolStart",
         id: "toolu_01SVEKzLxnSQyRcc45azZnG9",
         name: "Bash",
+        kind: "execute",
         input: { command: "echo ok", description: "Print ok" },
+        target: "echo ok",
       },
       { type: "toolEnd", id: "toolu_01SVEKzLxnSQyRcc45azZnG9", isError: false, output: "ok" },
     ],
@@ -116,7 +134,16 @@ test.each<[string, Array<AgentEvent>]>([
   ["retry.jsonl", [{ type: "retry", attempt: 1, delayMs: 30000, error: "rate_limit" }]],
   [
     "result-success.jsonl",
-    [{ type: "result", ok: true, costUsd: 0.188748, errors: [], denials: [] }],
+    [
+      {
+        type: "result",
+        ok: true,
+        costUsd: 0.188748,
+        errors: [],
+        denials: [],
+        interrupted: false,
+      },
+    ],
   ],
   [
     "result-denied.jsonl",
@@ -132,6 +159,7 @@ test.each<[string, Array<AgentEvent>]>([
             input: { command: "gh pr create --draft", description: "Create a draft pull request" },
           },
         ],
+        interrupted: false,
       },
     ],
   ],
@@ -144,6 +172,7 @@ test.each<[string, Array<AgentEvent>]>([
         costUsd: 0.0907116,
         errors: ["Reached maximum number of turns (1)"],
         denials: [],
+        interrupted: false,
       },
     ],
   ],
@@ -151,7 +180,7 @@ test.each<[string, Array<AgentEvent>]>([
   ["ignored.jsonl", []],
   ["unknown.jsonl", [{ type: "skipped" }]],
 ])("the lines of %s", (file, events) => {
-  expect(recorded(file).flatMap(parseLine)).toEqual(events);
+  expect(recorded(file).flatMap((line) => parseLine(line))).toEqual(events);
 });
 
 test("a tool result made of text blocks is joined", () => {
@@ -187,7 +216,14 @@ test("a success result marked as an error is not ok, and gives its text", () => 
     permission_denials: [],
   });
   expect(parseLine(line)).toEqual([
-    { type: "result", ok: false, costUsd: 0, errors: ["API Error: 500"], denials: [] },
+    {
+      type: "result",
+      ok: false,
+      costUsd: 0,
+      errors: ["API Error: 500"],
+      denials: [],
+      interrupted: false,
+    },
   ]);
 });
 
@@ -213,24 +249,308 @@ test("a session exists when its transcript is found", () => {
   const configDir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
   mkdirSync(join(configDir, "projects", "-w"), { recursive: true });
   writeFileSync(join(configDir, "projects", "-w", "3f2c.jsonl"), "");
-  const adapter = new ClaudeAdapter({ configDir });
+  const adapter = new ClaudeAdapter({ configDir, pluginDir: "/p" });
   expect(adapter.hasSession("3f2c")).toBe(true);
   expect(adapter.hasSession("9a9a")).toBe(false);
-  expect(new ClaudeAdapter({ configDir: join(configDir, "none") }).hasSession("3f2c")).toBe(false);
+  expect(
+    new ClaudeAdapter({ configDir: join(configDir, "none"), pluginDir: "/p" }).hasSession("3f2c"),
+  ).toBe(false);
+});
+
+/** A line of Claude Code's output, as JSON. */
+const line = (value: Record<string, unknown>) => JSON.stringify(value);
+const assistant = (content: Array<Record<string, unknown>>, parent: string | null = null) =>
+  line({
+    type: "assistant",
+    message: { role: "assistant", content },
+    parent_tool_use_id: parent,
+    session_id: SESSION,
+  });
+const toolUse = (name: string, input: Record<string, unknown>, id = "toolu_2") =>
+  assistant([{ type: "tool_use", id, name, input }]);
+const init = line({
+  type: "system",
+  subtype: "init",
+  session_id: SESSION,
+  plugins: [{ name: "uraeda", path: "/plugin" }],
+  plugin_errors: null,
+});
+
+test.each<[string, Array<string>, Array<Partial<AgentEvent>>]>([
+  [
+    "a partial text delta",
+    [
+      line({
+        type: "stream_event",
+        event: {
+          type: "content_block_delta",
+          index: 0,
+          delta: { type: "text_delta", text: "Hel" },
+        },
+        parent_tool_use_id: null,
+        session_id: SESSION,
+      }),
+    ],
+    [{ type: "textDelta", text: "Hel" }],
+  ],
+  [
+    "a sub-agent's delta, and other stream events",
+    [
+      line({
+        type: "stream_event",
+        event: { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "x" } },
+        parent_tool_use_id: "toolu_1",
+      }),
+      line({ type: "stream_event", event: { type: "message_start" }, parent_tool_use_id: null }),
+      line({
+        type: "stream_event",
+        event: { type: "content_block_delta", index: 0, delta: { type: "thinking_delta" } },
+        parent_tool_use_id: null,
+      }),
+    ],
+    [],
+  ],
+  [
+    "an assistant text block",
+    [assistant([{ type: "text", text: "Done." }])],
+    [{ type: "text", text: "Done." }],
+  ],
+  [
+    "a Read",
+    [toolUse("Read", { file_path: "/w/src/a.ts" })],
+    [
+      {
+        type: "toolStart",
+        id: "toolu_2",
+        name: "Read",
+        kind: "read",
+        input: { file_path: "/w/src/a.ts" },
+        target: "src/a.ts",
+      },
+    ],
+  ],
+  [
+    "a Bash",
+    [toolUse("Bash", { command: "ls" })],
+    [
+      {
+        type: "toolStart",
+        id: "toolu_2",
+        name: "Bash",
+        kind: "execute",
+        input: { command: "ls" },
+        target: "ls",
+      },
+    ],
+  ],
+  [
+    "a Grep",
+    [toolUse("Grep", { pattern: "TODO" })],
+    [
+      {
+        type: "toolStart",
+        id: "toolu_2",
+        name: "Grep",
+        kind: "search",
+        input: { pattern: "TODO" },
+        target: "TODO",
+      },
+    ],
+  ],
+  [
+    "a WebFetch",
+    [toolUse("WebFetch", { url: "https://example.com" })],
+    [
+      {
+        type: "toolStart",
+        id: "toolu_2",
+        name: "WebFetch",
+        kind: "fetch",
+        input: { url: "https://example.com" },
+        target: "https://example.com",
+      },
+    ],
+  ],
+  [
+    "an Edit",
+    [toolUse("Edit", { file_path: "/w/a.ts" })],
+    [
+      {
+        type: "toolStart",
+        id: "toolu_2",
+        name: "Edit",
+        kind: "edit",
+        input: { file_path: "/w/a.ts" },
+        target: "a.ts",
+      },
+    ],
+  ],
+  [
+    "a tool Claude Code adds later",
+    [toolUse("TodoWrite", { todos: [] })],
+    [{ type: "toolStart", id: "toolu_2", name: "TodoWrite", kind: "other", input: { todos: [] } }],
+  ],
+  [
+    "an Agent",
+    [toolUse("Agent", { description: "Map the runner code", prompt: "p" }, "toolu_1")],
+    [
+      {
+        type: "toolStart",
+        id: "toolu_1",
+        name: "Agent",
+        kind: "other",
+        input: { description: "Map the runner code", prompt: "p" },
+        subagent: { description: "Map the runner code" },
+      },
+    ],
+  ],
+  [
+    "a Task, as Claude Code 2.1.296 names it",
+    [toolUse("Task", { description: "Map the runner code" }, "toolu_1")],
+    [
+      {
+        type: "toolStart",
+        id: "toolu_1",
+        name: "Task",
+        kind: "other",
+        input: { description: "Map the runner code" },
+        subagent: { description: "Map the runner code" },
+      },
+    ],
+  ],
+  [
+    "a sub-agent's tool, and its result; its text is not the main agent's",
+    [
+      assistant(
+        [
+          { type: "text", text: "Looking." },
+          { type: "tool_use", id: "toolu_3", name: "Glob", input: { pattern: "*.ts" } },
+        ],
+        "toolu_1",
+      ),
+      line({
+        type: "user",
+        message: {
+          role: "user",
+          content: [{ type: "tool_result", tool_use_id: "toolu_3", content: "a.ts" }],
+        },
+        parent_tool_use_id: "toolu_1",
+      }),
+    ],
+    [
+      {
+        type: "toolStart",
+        id: "toolu_3",
+        name: "Glob",
+        kind: "search",
+        input: { pattern: "*.ts" },
+        target: "*.ts",
+        parent: "toolu_1",
+      },
+      { type: "toolEnd", id: "toolu_3", isError: false, output: "a.ts" },
+    ],
+  ],
+  [
+    "a message started",
+    [line({ type: "command_lifecycle", command_uuid: "m1", state: "started" })],
+    [{ type: "accepted", id: "m1" }],
+  ],
+  [
+    "a message cancelled",
+    [line({ type: "command_lifecycle", command_uuid: "m1", state: "cancelled" })],
+    [{ type: "cancelled", id: "m1" }],
+  ],
+  [
+    "a message queued, then completed",
+    [
+      line({ type: "command_lifecycle", command_uuid: "m1", state: "queued" }),
+      line({ type: "command_lifecycle", command_uuid: "m1", state: "completed" }),
+    ],
+    [],
+  ],
+  [
+    "an interrupted turn",
+    [
+      line({
+        type: "result",
+        subtype: "error_during_execution",
+        is_error: true,
+        terminal_reason: "aborted_streaming",
+        errors: ["[ede_diagnostic] aborted"],
+        total_cost_usd: 0.02,
+        permission_denials: [],
+      }),
+    ],
+    [{ type: "result", ok: false, costUsd: 0.02, denials: [], interrupted: true }],
+  ],
+  [
+    "init at each turn",
+    [init, init],
+    [
+      { type: "init", sessionId: SESSION, plugins: ["uraeda"], pluginErrors: [] },
+      { type: "init", sessionId: SESSION, plugins: ["uraeda"], pluginErrors: [] },
+    ],
+  ],
+  [
+    "control responses, and the system lines of 2.1.296 with nothing to show",
+    [
+      line({ type: "control_response", response: { subtype: "success", request_id: "r1" } }),
+      ...[
+        "status",
+        "hook_started",
+        "task_started",
+        "task_progress",
+        "thinking_tokens",
+        "background_tasks_changed",
+      ].map((subtype) => line({ type: "system", subtype })),
+      line({ type: "rate_limit_event" }),
+    ],
+    [],
+  ],
+])("%s", (_name, input, events) => {
+  const parsed = input.flatMap((text) => parseLine(text, "/w"));
+  expect(parsed).toHaveLength(events.length);
+  events.forEach((event, i) => expect(parsed[i]).toMatchObject(event));
+  // Exact: no key beyond those expected, like a null parent.
+  if (events.length > 0 && events[0]!.type === "toolStart") {
+    expect(parsed[0]).toEqual(events[0]);
+  }
+});
+
+test.each<[Denial, string]>([
+  [{ tool: "Bash", input: { command: "gh pr create --draft" } }, "Bash(gh pr create --draft)"],
+  // An absolute path takes two slashes: one is relative to the settings' folder. Claude Code checks
+  // a write against `Edit` rules only.
+  [{ tool: "Write", input: { file_path: "/home/me/.ssh/config" } }, "Edit(//home/me/.ssh/config)"],
+  [{ tool: "MultiEdit", input: { file_path: "/w/a.ts" } }, "Edit(//w/a.ts)"],
+  [{ tool: "Edit", input: { file_path: "/w/a.ts" } }, "Edit(//w/a.ts)"],
+  [{ tool: "Read", input: { file_path: "/w/b.ts" } }, "Read(//w/b.ts)"],
+  [{ tool: "Edit", input: { file_path: "src/a.ts" } }, "Edit(src/a.ts)"],
+  [{ tool: "WebFetch", input: { url: "https://example.com/a?b" } }, "WebFetch(domain:example.com)"],
+  [{ tool: "mcp__x__y", input: {} }, "mcp__x__y"],
+])("the allow rule of %o", (denial, rule) => {
+  expect(allowRule(denial)).toBe(rule);
+  expect(new ClaudeAdapter({ pluginDir: "/plugin" }).allowRule(denial)).toBe(rule);
 });
 
 test("review focus 5: a missing command exits as missing", async () => {
-  const run = new ClaudeAdapter({ command: "/nonexistent/claude" }).start({
-    ...start,
+  const agent = new ClaudeAdapter({ command: "/nonexistent/claude", pluginDir: "/p" }).open({
+    ...open,
     cwd: tmpdir(),
     resume: false,
   });
-  const events = await collect(run.events);
+  const events = await collect(agent.events);
   expect(events.at(-1)).toMatchObject({ type: "exit", missing: true });
+  // Writing to a process that is gone does nothing.
+  agent.send({ id: "m1", text: "hi", when: "steer" });
+  agent.interrupt();
+  agent.close();
 });
 
 test("version() is undefined without the command", async () => {
-  expect(await new ClaudeAdapter({ command: "/nonexistent/claude" }).version()).toBeUndefined();
+  expect(
+    await new ClaudeAdapter({ command: "/nonexistent/claude", pluginDir: "/p" }).version(),
+  ).toBeUndefined();
 });
 
 /** A command standing in for `claude`: a shell script, which runs no agent. */
@@ -242,16 +562,24 @@ function script(body: string): string {
   return path;
 }
 
+/** The JSON lines a stand-in command read on its stdin. */
+const written = (path: string) =>
+  readFileSync(path, "utf8")
+    .split("\n")
+    .filter(Boolean)
+    .map((text) => JSON.parse(text) as Record<string, unknown>);
+
 test("version() is the command's first line", async () => {
   const command = script('echo "2.1.296 (Claude Code)"; echo more');
-  expect(await new ClaudeAdapter({ command }).version()).toBe("2.1.296 (Claude Code)");
+  expect(await new ClaudeAdapter({ command, pluginDir: "/p" }).version()).toBe(
+    "2.1.296 (Claude Code)",
+  );
 });
 
-test("a run writes its message on stdin, streams its events, and exits with its stderr", async () => {
+test("an open process streams its events, and exits with its stderr", async () => {
   const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
   const command = script(
     [
-      `cat > "${join(dir, "stdin")}"`,
       `echo "$@" > "${join(dir, "args")}"`,
       `cat "${fixture("claude/tool.jsonl")}"`,
       "echo not json",
@@ -259,15 +587,15 @@ test("a run writes its message on stdin, streams its events, and exits with its 
       "exit 3",
     ].join("\n"),
   );
-  const run = new ClaudeAdapter({ command }).start({ ...start, cwd: dir, resume: false });
-  const events = await collect(run.events);
-
-  expect(JSON.parse(readFileSync(join(dir, "stdin"), "utf8"))).toEqual({
-    type: "user",
-    message: { role: "user", content: "m" },
+  const agent = new ClaudeAdapter({ command, pluginDir: "/plugin" }).open({
+    ...open,
+    cwd: dir,
+    resume: false,
   });
+  const events = await collect(agent.events);
+
   expect(readFileSync(join(dir, "args"), "utf8").trim()).toBe(
-    claudeArgs({ ...start, resume: false }).join(" "),
+    claudeArgs({ ...open, cwd: dir, resume: false }, "/plugin").join(" "),
   );
   expect(events.map((event) => event.type)).toEqual(["toolStart", "toolEnd", "skipped", "exit"]);
   const exit = events.at(-1) as Extract<AgentEvent, { type: "exit" }>;
@@ -276,17 +604,79 @@ test("a run writes its message on stdin, streams its events, and exits with its 
   expect(exit.stderr.split("\n")).toEqual(Array.from({ length: 20 }, (_, i) => `line ${i + 6}`));
 });
 
-test("interrupt() sends SIGINT to the process", async () => {
+test("send writes a user message with its uuid and priority", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  const command = script(`cat > "${join(dir, "stdin")}"`);
+  const agent = new ClaudeAdapter({ command, pluginDir: "/p" }).open({
+    ...open,
+    cwd: dir,
+    resume: false,
+  });
+  agent.send({ id: "m1", text: "hi", when: "steer" });
+  agent.send({ id: "m2", text: "then this", when: "queue" });
+  agent.takeBack("m2");
+  agent.close();
+  const events = await collect(agent.events);
+
+  expect(events).toEqual([{ type: "exit", code: 0, stderr: "" }]);
+  const [steer, queue, takeBack] = written(join(dir, "stdin"));
+  expect(steer).toEqual({
+    type: "user",
+    message: { role: "user", content: "hi" },
+    uuid: "m1",
+    priority: "next",
+  });
+  expect(queue).toEqual({
+    type: "user",
+    message: { role: "user", content: "then this" },
+    uuid: "m2",
+    priority: "later",
+  });
+  expect(takeBack).toMatchObject({
+    type: "control_request",
+    request: { subtype: "cancel_async_message", message_uuid: "m2" },
+  });
+  expect(takeBack!.request_id).toEqual(expect.any(String));
+});
+
+test("interrupt writes the interrupt control request, and close ends stdin", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  const command = script(`cat > "${join(dir, "stdin")}"\necho closed >&2`);
+  const agent = new ClaudeAdapter({ command, pluginDir: "/p" }).open({
+    ...open,
+    cwd: dir,
+    resume: false,
+  });
+  agent.interrupt();
+  agent.interrupt();
+  agent.close();
+  const events = await collect(agent.events);
+
+  expect(events).toEqual([{ type: "exit", code: 0, stderr: "closed" }]);
+  const [first, second] = written(join(dir, "stdin"));
+  expect(first).toEqual({
+    type: "control_request",
+    request_id: expect.any(String),
+    request: { subtype: "interrupt" },
+  });
+  expect(second!.request_id).not.toBe(first!.request_id);
+});
+
+test("kill sends its signal to the process", async () => {
   const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
   const command = script(
     `trap 'echo interrupted >&2; exit 130' INT\necho not json\nwhile true; do sleep 0.1; done`,
   );
-  const run = new ClaudeAdapter({ command }).start({ ...start, cwd: dir, resume: false });
+  const agent = new ClaudeAdapter({ command, pluginDir: "/p" }).open({
+    ...open,
+    cwd: dir,
+    resume: false,
+  });
   const events: Array<AgentEvent> = [];
-  for await (const event of run.events) {
+  for await (const event of agent.events) {
     events.push(event);
     if (event.type !== "exit") {
-      run.interrupt();
+      agent.kill("SIGINT");
     }
   }
   expect(events.at(-1)).toEqual({ type: "exit", code: 130, stderr: "interrupted" });

@@ -1,7 +1,5 @@
 import { expect, test } from "vite-plus/test";
-import type { Denial } from "../events.ts";
 import {
-  allowRule,
   chatOpening,
   chatTitle,
   retryMessage,
@@ -23,19 +21,6 @@ test.each<[Parameters<typeof triggerSentence>[0], string]>([
   [{ trigger: "start" }, "The human started the feature."],
   [{ trigger: "manual" }, "The human asked you to continue."],
 ])("the sentence of %o", (detail, sentence) => expect(triggerSentence(detail)).toBe(sentence));
-
-test.each<[Denial, string]>([
-  [{ tool: "Bash", input: { command: "gh pr create --draft" } }, "Bash(gh pr create --draft)"],
-  // An absolute path takes two slashes: one is relative to the settings' folder. Claude Code checks
-  // a write against `Edit` rules only.
-  [{ tool: "Write", input: { file_path: "/home/me/.ssh/config" } }, "Edit(//home/me/.ssh/config)"],
-  [{ tool: "MultiEdit", input: { file_path: "/w/a.ts" } }, "Edit(//w/a.ts)"],
-  [{ tool: "Edit", input: { file_path: "/w/a.ts" } }, "Edit(//w/a.ts)"],
-  [{ tool: "Read", input: { file_path: "/w/b.ts" } }, "Read(//w/b.ts)"],
-  [{ tool: "Edit", input: { file_path: "src/a.ts" } }, "Edit(src/a.ts)"],
-  [{ tool: "WebFetch", input: { url: "https://example.com/a?b" } }, "WebFetch(domain:example.com)"],
-  [{ tool: "mcp__x__y", input: {} }, "mcp__x__y"],
-])("the allow rule of %o", (denial, rule) => expect(allowRule(denial)).toBe(rule));
 
 test.each<[string, Record<string, unknown>, string | undefined]>([
   ["Bash", { command: "vp run ready", description: "Run the checks" }, "vp run ready"],
