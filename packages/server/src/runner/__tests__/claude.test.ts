@@ -547,6 +547,21 @@ test("review focus 5: a missing command exits as missing", async () => {
   agent.close();
 });
 
+test("a missing directory exits with why, not as a missing command", async () => {
+  const cwd = join(tmpdir(), "uraeda-no-such-directory");
+  const command = script("exit 0");
+  const agent = new ClaudeAdapter({ command, pluginDir: "/p" }).open({
+    ...open,
+    cwd,
+    resume: false,
+  });
+  const events = await collect(agent.events);
+  const exit = events.at(-1) as Extract<AgentEvent, { type: "exit" }>;
+  expect(exit).toMatchObject({ type: "exit", code: null });
+  expect(exit.missing).toBeUndefined();
+  expect(exit.stderr).toBe(`The session's directory is gone: ${cwd}`);
+});
+
 test("version() is undefined without the command", async () => {
   expect(
     await new ClaudeAdapter({ command: "/nonexistent/claude", pluginDir: "/p" }).version(),
