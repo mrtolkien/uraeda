@@ -1061,28 +1061,29 @@ git commit -m "feat(nvim-plugin): inline comments and priorities hints"
 
 - Consumes: every action of `actions.list`, the options of `config()`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```lua
-T["the help names every subcommand, Plug mapping, and option"] = function() end -- reads doc/uraeda.txt, checks each name of actions.list and each key of config()
-T[":help uraeda opens"] = function() end
+T["the help names every subcommand, Plug mapping, and option"] = function() end -- reads doc/uraeda.txt, checks the tags *:Uraeda-<name>*, *<Plug>(uraeda-<name>)* of actions.list and *vim.g.uraeda.<key>* of config()
+T[":help uraeda opens"] = function() end -- on a copy of doc/ with :helptags run, then :help each tag
 ```
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp run test:nvim`
-- Expected: FAIL, `E149: Sorry, no help for uraeda`
+- Expected: FAIL, `E484: Can't open file …/doc/uraeda.txt`
+  ([R17](rulings.md#r17-the-helps-names-are-tags-checked-on-a-copy-with-its-tags-generated))
 
-- [ ] **Step 3: Write the vimdoc, the plugin's README with the lazy.nvim spec
+- [x] **Step 3: Write the vimdoc, the plugin's README with the lazy.nvim spec
       `{ dir = "~/Development/ai/uraeda/editors/nvim", name = "uraeda.nvim" }`, and the repository's
       README and AGENTS.md lines**
 
-- [ ] **Step 4: Run all checks**
+- [x] **Step 4: Run all checks**
 
 - Run: `vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add editors/nvim README.md AGENTS.md

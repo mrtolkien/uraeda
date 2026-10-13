@@ -312,3 +312,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `refresh` in [`marks.lua`](/editors/nvim/lua/uraeda/marks.lua), its three callers,
   and one line of [`test_comment.lua`](/editors/nvim/tests/test_comment.lua).
 - **Where**: task 12, `editors/nvim/`.
+
+## R17: The help's names are tags, checked on a copy with its tags generated
+
+- **Decision**: [`test_doc.lua`](/editors/nvim/tests/test_doc.lua) checks that `doc/uraeda.txt`
+  defines a tag for each name: `*:Uraeda-<name>*` and `*<Plug>(uraeda-<name>)*` per action of
+  `actions.list`, and `*vim.g.uraeda.<key>*` per key of `config()`. `:help uraeda opens` copies the
+  help to a temporary `doc/`, runs `:helptags` there, puts it first on the child's runtimepath, and
+  opens `:help uraeda`, then each of those tags. Step 2 failed with
+  `E484: Can't open file …/doc/uraeda.txt` and a failed copy, not `E149: Sorry, no help for uraeda`,
+  since the test reads the file before asking for help. No `tags` file is committed.
+- **Rationale**: a tag is what `:help :Uraeda-draft` reaches, so the test checks what a user types,
+  not a word in a sentence. lazy.nvim generates the tags of a `dir` plugin; a committed `tags` file
+  would go stale, and running `:helptags` in `editors/nvim/doc/` would leave an untracked file.
+- **Alternatives considered**: a plain text search for each name: a mention in prose would pass
+  without a section; committing `doc/tags`: generated, and stale after an edit.
+- **If wrong**: [`test_doc.lua`](/editors/nvim/tests/test_doc.lua) only.
+- **Where**: task 13, `editors/nvim/tests/test_doc.lua`, `editors/nvim/doc/uraeda.txt`.
