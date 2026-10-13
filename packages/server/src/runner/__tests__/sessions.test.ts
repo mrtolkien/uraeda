@@ -567,6 +567,51 @@ test("review focus 2: a queued turn starts on a reopened process when the proces
   ]);
 });
 
+test.each(["stop", "take back"])(
+  "a queued turn ended by %s while its process reopens does not start",
+  async (end) => {
+    // The second worktree read, the reopening's, waits until the test lets it go.
+    let reads = 0;
+    let release = () => {};
+    const held = new Promise<void>((resolve) => (release = resolve));
+    const { sessions, adapter, cache, repo } = await testSessions(undefined, {
+      binding: {
+        ...binding,
+        workDir: async (...args: Parameters<typeof binding.workDir>) => {
+          if (++reads === 2) {
+            await held;
+          }
+          return binding.workDir(...args);
+        },
+      },
+    });
+    const session = await sessions.featureSession(repo, AGENT);
+    const chat = await sessions.send(repo, session.id, { text: "What is left?" });
+    const workflow = await sessions.send(repo, session.id, {
+      text: "Continue the feature.",
+      workflow: { trigger: "manual" },
+    });
+    adapter.script([]);
+    adapter.exit(1, "crashed");
+    await sessions.settled(chat.turn);
+    await vi.waitFor(() => expect(reads).toBe(2));
+
+    if (end === "stop") {
+      sessions.stop(repo, session.id);
+    } else {
+      sessions.takeBack(repo, session.id, cache.itemsOf(workflow.turn, "message")[0]!.id);
+    }
+    release();
+    // The process opens all the same, and waits for the next message.
+    await vi.waitFor(() => expect(adapter.opens).toHaveLength(2));
+    await flush();
+
+    expect(cache.turn(workflow.turn)?.state).toBe("stopped");
+    expect(adapter.sent.map(({ text }) => text)).toEqual([`${opening(AGENT)}\nWhat is left?`]);
+    expect(sessions.working(repo)).toEqual([]);
+  },
+);
+
 test("review focus 5: a chat title is cut at 80 characters, from the first line that is not blank", async () => {
   const { sessions, adapter, cache, repo } = await testSessions();
   const chat = await sessions.newChat(repo);
