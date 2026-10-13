@@ -6,6 +6,7 @@ pub mod document;
 pub mod frontmatter;
 pub mod items;
 pub mod markdown;
+pub mod outline;
 pub mod plan;
 pub mod priorities;
 pub mod review;

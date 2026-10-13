@@ -112,3 +112,25 @@ pub(crate) fn file_path(uri: &Uri) -> Option<PathBuf> {
     };
     Some(PathBuf::from(path))
 }
+
+/// Line `index` of a text, 0-based, without its line ending.
+pub(crate) fn line(text: &str, index: u32) -> Option<&str> {
+    text.lines().nth(usize::try_from(index).ok()?)
+}
+
+/// The length of a line in UTF-16 code units, LSP's default position encoding.
+pub(crate) fn utf16_len(line: &str) -> u32 {
+    u32::try_from(line.encode_utf16().count()).unwrap_or(u32::MAX)
+}
+
+/// The byte offset in `line` of a UTF-16 column, clamped to the line's end.
+pub(crate) fn byte_offset(line: &str, column: u32) -> usize {
+    let mut units = 0;
+    for (offset, char) in line.char_indices() {
+        if units >= column {
+            return offset;
+        }
+        units += u32::try_from(char.len_utf16()).unwrap_or(2);
+    }
+    line.len()
+}

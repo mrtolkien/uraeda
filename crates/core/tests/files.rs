@@ -474,3 +474,65 @@ fn a_commit_that_reads_as_a_float_stays_text() {
         assert_eq!(parsed.map(|r| r.commit), Ok(commit.to_string()), "{commit}");
     }
 }
+
+#[test]
+fn an_outline_names_the_items_of_its_file() {
+    use uraeda_core::files::outline::{OutlineKind, outline};
+    let text = "---\nstatus: awaiting-human\n---\n\n# Round\n\n## Q1: First?\n\n### Q1.A: Next?\n\n\
+                ## Notes\n";
+    let entries: Vec<_> = outline("clarifications-01.md", text)
+        .into_iter()
+        .map(|e| (e.kind, e.name, e.detail, e.level, e.line, e.end_line))
+        .collect();
+    assert_eq!(
+        entries,
+        [
+            (OutlineKind::Heading, "Round".into(), None, 1, 5, 11),
+            (
+                OutlineKind::Question,
+                "Q1".into(),
+                Some("First?".into()),
+                2,
+                7,
+                10
+            ),
+            (
+                OutlineKind::Question,
+                "Q1.A".into(),
+                Some("Next?".into()),
+                3,
+                9,
+                10
+            ),
+            (OutlineKind::Heading, "Notes".into(), None, 2, 11, 11),
+        ]
+    );
+    let names = |name: &str, text: &str| -> Vec<(OutlineKind, String)> {
+        outline(name, text)
+            .into_iter()
+            .map(|e| (e.kind, e.name))
+            .collect()
+    };
+    assert_eq!(
+        names(
+            "spec.md",
+            "# S\n\n### US2: Done (P1)\n\n## Q1: Not a round\n"
+        ),
+        [
+            (OutlineKind::Heading, "S".into()),
+            (OutlineKind::Story, "US2".into()),
+            (OutlineKind::Heading, "Q1: Not a round".into()),
+        ]
+    );
+    assert_eq!(
+        names("plan.md", "# P\n\n## Task 3: Menu\n\n### Task 4: Nested\n")[1..],
+        [
+            (OutlineKind::Task, "Task 3".into()),
+            (OutlineKind::Heading, "Task 4: Nested".into()),
+        ]
+    );
+    assert_eq!(
+        names("plan-review.md", "# R\n\n## C2: General\n")[1],
+        (OutlineKind::Comment, "C2".into())
+    );
+}

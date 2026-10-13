@@ -109,6 +109,15 @@ pub fn fields(root: &Path, path: &Path, text: &str) -> Vec<Field> {
     }
 }
 
+/// The frontmatter fields of the file at `path`, under `root`, as it is on disk: empty when it
+/// cannot be read.
+pub fn fields_on_disk(root: &Path, path: &Path) -> Vec<Field> {
+    match fs::read_to_string(path) {
+        Ok(text) => fields(root, path, &text),
+        Err(_) => Vec::new(),
+    }
+}
+
 /// A file's path with its folder resolved, even when the file itself is not on disk yet.
 fn canonical_file(path: &Path) -> PathBuf {
     if let Ok(path) = fs::canonicalize(path) {

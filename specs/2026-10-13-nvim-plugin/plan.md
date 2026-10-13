@@ -408,22 +408,36 @@ git commit -m "feat(nvim-plugin): ura lsp with diagnostics"
 
 - Create: `crates/lsp/src/completion.rs`, `crates/lsp/src/symbols.rs`, `crates/lsp/src/actions.rs`,
   `crates/lsp/src/requests.rs`
-- Modify: `crates/lsp/src/server.rs`
-- Test: `crates/lsp/tests/editing.rs`
+- Create: `crates/core/src/files/outline.rs`
+  ([R4](rulings.md#r4-the-outline-and-the-fields-on-disk-come-from-the-core))
+- Modify: `crates/lsp/src/server.rs`, `crates/lsp/src/documents.rs` (UTF-16 line helpers),
+  `crates/core/src/check/mod.rs` (`fields_on_disk`),
+  `crates/core/src/files/{mod,items,spec,review}.rs` (the heading parsers the outline shares)
+- Test: `crates/lsp/tests/editing.rs`, `crates/core/tests/files.rs`
 
 **Interfaces:**
 
 - Consumes: `check::fields` (task 1), `Session` (task 2).
 - Produces:
+  - `uraeda_core::files::outline::outline(name: &str, text: &str) -> Vec<OutlineEntry>`: every
+    heading in file order,
+    `OutlineEntry { kind: OutlineKind, name, detail: Option<String>, level, line, end_line }`
+    (1-based lines), `OutlineKind { Heading, Question, Story, Task, Comment }`; an item's `name` is
+    its id (`Q1.A`, `US1`, `Task 3`, `C1`) and `detail` the rest of its heading.
+  - `uraeda_core::check::fields_on_disk(root: &Path, path: &Path) -> Vec<Field>`: `fields` of the
+    file as it is on disk.
   - `textDocument/completion` on a frontmatter line `key: ` returns the `Choice` values of `key`.
   - `textDocument/documentSymbol`: headings nested by level, with questions, stories, tasks, and
-    comments as the symbols of their headings, kind `STRING` for questions and comments.
+    comments as the symbols of their headings, kind `STRING` for questions and comments, `EVENT` for
+    stories, `FUNCTION` for tasks, `NAMESPACE` for other headings
+    ([R5](rulings.md#r5-an-items-symbol-is-named-by-its-id)).
   - `textDocument/codeAction` on a field's line: `Set <field> to <value>` for each value but the
-    current one and those with an `action`, each a `WorkspaceEdit` replacing that line with the text
-    `frontmatter::set` gives.
-  - `uraeda/fields { uri }` → `Field[]` (task 1's type), from the open text.
+    current one and those with an `action`, each a `refactor.rewrite` `WorkspaceEdit` replacing that
+    line with the text `frontmatter::set` gives.
+  - `uraeda/fields { uri }` → `Field[]` (task 1's type), from the open text, else from disk; `[]`
+    outside `<root>/specs/`. Completion, symbols, and code actions also answer nothing there.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 #[test] fn risk_tier_completes_from_its_values() {}                 // US1.2: low, medium, high
@@ -435,23 +449,23 @@ git commit -m "feat(nvim-plugin): ura lsp with diagnostics"
 #[test] fn an_edit_keeps_the_comment_and_crlf() {}                  // review focus 5
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-lsp --test editing`
 - Expected: FAIL, `method not found: textDocument/completion`
 
-- [ ] **Step 3: Implement completion, symbols, code actions, and `uraeda/fields`**
+- [x] **Step 3: Implement completion, symbols, code actions, and `uraeda/fields`**
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run:
   `cargo test --workspace --exclude uraeda-binding && cargo clippy --workspace --all-targets -- -D warnings`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add crates/lsp
+git add crates/core crates/lsp specs/2026-10-13-nvim-plugin
 git commit -m "feat(nvim-plugin): completion, outline, and field edits in ura lsp"
 ```
 
