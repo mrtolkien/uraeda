@@ -2,9 +2,10 @@
 
 ## Now
 
+- [Chat in the web UI: ask about a step without committing, see actual message that goes with the commit and push, ...](/specs/2026-10-13-chat-in-the-web-ui/proposal.md)
+
 ## Next
 
-- [Chat in the web UI: ask about a step without committing, see actual message that goes with the commit and push, ...](drafts/chat-in-the-web-ui.md)
 - Nvim plugin -> can be parallel to pretty much everything here
 
 - Look and feel pass: components style, logo, favicon, ...
