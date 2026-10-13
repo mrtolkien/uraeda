@@ -629,7 +629,8 @@ git commit -m "feat(nvim-plugin): ura lsp commands"
   `editors/nvim/lua/uraeda/client.lua`, `editors/nvim/lua/uraeda/health.lua`,
   `editors/nvim/stylua.toml` (2 spaces, 100 columns), `editors/nvim/tests/minimal_init.lua`,
   `editors/nvim/tests/helpers.lua`, `editors/nvim/tests/test_attach.lua`,
-  `editors/nvim/tests/test_health.lua`
+  `editors/nvim/tests/test_health.lua`, `editors/nvim/tests/test_client.lua`
+  ([R10](rulings.md#r10-the-plugins-test-harness-and-health))
 - Modify: `flake.nix` (`neovim`, `stylua`, `MINI_TEST = "${pkgs.vimPlugins.mini-test}"`),
   `package.json` (a `test:nvim` script, and `ready` running `stylua --check editors/nvim` and it),
   `vite.config.ts` (`staged`: `"*.lua": "stylua"`; `!(*.{rs,lua})` for the rest)
@@ -648,13 +649,23 @@ git commit -m "feat(nvim-plugin): ura lsp commands"
     `cb(result)`; errors go to `vim.notify(message, ERROR, { title = "Uraeda" })`, a
     `MethodNotFound` or unknown command as `ura is older than the plugin: run ura upgrade.`, no
     client as `This file is not a Uraeda workflow file.`
-  - `health.lua`: Neovim 0.11, `ura` and `git` on the path, `ura lsp --help` exiting 0.
-  - Test helpers: `helpers.new_child()` (child Neovim with the plugin, `URAEDA_TEST` set, the `cmd`
-    pointed at `target/debug/ura`), `helpers.repo(files: table<string,string>, branches?: table)` (a
-    temporary git repository with a counting pre-commit hook, returning its path),
-    `helpers.edit(child, path)`, `helpers.wait_client(child)`, `helpers.git(path, args) -> string`.
+  - `health.lua`: Neovim 0.11, `ura` and `git` on the path, `ura --version` shown, and
+    `<cmd> --help` exiting 0, else `ura is older than the plugin: run ura upgrade.` with its stderr.
+  - `client.command` sends its own `workDoneToken` (`uraeda/nvim/<n>`) and listens to `LspProgress`
+    for it; `cb` and `client.request`'s `cb(result)` run on success only. `client.request`'s
+    `params` default to `{ uri }` of the buffer, as `client.command`'s `args.uri`.
+  - Test helpers, loaded with `dofile("tests/helpers.lua")` from `editors/nvim`:
+    `helpers.new_child()` (a mini.test child; `child.setup(config?)` restarts it with the plugin,
+    `URAEDA_TEST` set, and `vim.g.uraeda = config` over a `cmd` pointed at `target/debug/ura`),
+    `helpers.repo(files: table<string,string>, branches?: table<string, table<string,string>>)` (a
+    temporary git repository on `main` with a counting pre-commit hook, each branch committed from
+    `main` and checked out in `.worktrees/<branch>`, returning its real path),
+    `helpers.edit(child, path)`, `helpers.wait_client(child, timeout?) -> boolean`,
+    `helpers.git(path, args) -> string`, `helpers.write(path, text)`,
+    `helpers.set_hook(repo, script)`, `helpers.hook_runs(repo) -> integer`, `helpers.example()` (the
+    example project's `specs/` as `files`), `helpers.root`, `helpers.ura`.
 
-- [ ] **Step 1: Write the failing tests, and the helpers they use**
+- [x] **Step 1: Write the failing tests, and the helpers they use**
 
 ```lua
 -- editors/nvim/tests/test_attach.lua
@@ -674,23 +685,24 @@ T["reports a missing ura"] = function() end               -- "ura not found on P
 T["reports an ura without lsp"] = function() end          -- cmd pointed at a script exiting 2
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo build -q -p uraeda-cli && vp run test:nvim`
-- Expected: FAIL, `module 'uraeda' not found`
+- Expected: FAIL, no `uraeda` client attaches (`Left: false`),
+  `No healthcheck found for "uraeda" plugin.`, and `module 'uraeda.client' not found`
 
-- [ ] **Step 3: Implement the plugin's entry, config, client, and health**
+- [x] **Step 3: Implement the plugin's entry, config, client, and health**
 
 `plugin/uraeda.lua` returns early on Neovim older than 0.11, guards `vim.g.loaded_uraeda`, and calls
 `vim.lsp.enable("uraeda")` when `config().lsp`, with
 `vim.lsp.config("uraeda", { cmd = config().cmd })`.
 
-- [ ] **Step 4: Run all checks**
+- [x] **Step 4: Run all checks**
 
 - Run: `stylua --check editors/nvim && vp run test:nvim && vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add editors flake.nix flake.lock package.json vite.config.ts

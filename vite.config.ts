@@ -99,7 +99,9 @@ export default {
   defaultPackage: "./packages/web",
   staged: {
     "*.rs": "rustfmt",
-    "!(*.rs)": "vp check --fix",
+    // StyLua finds `editors/nvim/stylua.toml` from each file's folder.
+    "*.lua": "stylua",
+    "!(*.{rs,lua})": "vp check --fix",
   },
   lint: {
     ignorePatterns: [
