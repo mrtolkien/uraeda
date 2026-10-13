@@ -261,3 +261,31 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the spec's text (R7).
 - **If wrong**: [`verdict.lua`](/editors/nvim/lua/uraeda/verdict.lua).
 - **Where**: task 10, `editors/nvim/lua/uraeda/verdict.lua`.
+
+## R15: The waiting picker starts its own server, and `]u` is an entry's own key
+
+- **Decision**: `pickers.waiting()` asks `uraeda/waiting` through a new `client.request_any`: any
+  running `uraeda` client, else one started with `vim.lsp.start(…, { attach = false })` on the
+  checkout of the current buffer's file, else of the current folder (`<cwd>/specs/PRIORITIES.md`),
+  both found by `require("uraeda").checkout`, the function `lsp/uraeda.lua`'s `root_dir` now calls
+  instead of its own copy. The request waits for the started client's initialization. Outside a
+  checkout it says `This file is not a Uraeda workflow file.`; an empty answer says
+  `Nothing waits on you.` (info), rather than an empty picker. Snacks is used when the global
+  `Snacks` has `picker.pick`, with items `{ text, file, pos = { line, 0 } }`; `vim.ui.select` has
+  the kind `uraeda_waiting`. A registry entry takes `lhs`, a key of its own outside the prefix,
+  instead of `key`: `next` and `prev` have `]u` and `[u`, buffer-local, and like every key not set
+  when the prefix is `false`. SC-002's test checks that each action has exactly one of `key` and
+  `lhs`, and finds its mapping. `marks.jump` adds the jump to the jumplist, and moves nothing when
+  the window shows another buffer by the time the server answers. Step 2 failed with no picker, no
+  cursor move, and `unknown action "waiting"`, not `module 'uraeda.marks' not found`, since the
+  tests reach the modules through the actions and keys.
+- **Rationale**: US8 wants the list from any buffer, where no client is attached; the root must be
+  found as the server's is, so one function serves both. A notification says more than an empty
+  picker.
+- **Alternatives considered**: starting the client on the current buffer only: a `README.md` at the
+  repository's root has no `specs/` parent; a second list of keys outside the prefix in `keys.lua`:
+  two places to edit per action, against R11.
+- **If wrong**: `request_any` in [`client.lua`](/editors/nvim/lua/uraeda/client.lua), `waiting` in
+  [`pickers.lua`](/editors/nvim/lua/uraeda/pickers.lua), and `lhs` in
+  [`keys.lua`](/editors/nvim/lua/uraeda/keys.lua).
+- **Where**: task 11, `editors/nvim/lua/uraeda/`, `editors/nvim/lsp/uraeda.lua`.

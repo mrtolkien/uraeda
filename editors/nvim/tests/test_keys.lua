@@ -43,12 +43,12 @@ T["every action has a key, a subcommand, and a Plug mapping"] = function()
   open()
   local actions = child.lua_get([[vim.tbl_map(function(action)
     return { name = action.name, modes = action.modes, buffer_local = action.buffer_local,
-      key = action.key, desc = action.desc }
+      key = action.key, lhs = action.lhs, desc = action.desc }
   end, require("uraeda.actions").list)]])
   local names = vim.tbl_map(function(action)
     return action.name
   end, actions)
-  for _, name in ipairs({ "draft", "start", "commit" }) do
+  for _, name in ipairs({ "draft", "start", "commit", "waiting", "next", "prev" }) do
     eq(vim.tbl_contains(names, name), true)
   end
   eq(child.lua_get("vim.fn.getcompletion('Uraeda ', 'cmdline')"), names)
@@ -57,17 +57,23 @@ T["every action has a key, a subcommand, and a Plug mapping"] = function()
   local leader = "\\"
   for _, action in ipairs(actions) do
     eq(action.desc:find("^Uraeda") ~= nil, true)
+    -- A key under the prefix, or one of its own, like `]u`.
+    eq((action.key == nil) ~= (action.lhs == nil), true)
     for _, mode in ipairs(action.modes) do
       local plug = child.lua_get(
         "vim.fn.maparg(...).desc",
         { ("<Plug>(uraeda-%s)"):format(action.name), mode, false, true }
       )
       eq(plug, action.desc)
-      local key = uraeda_keys(mode, action.buffer_local)[leader .. "a" .. action.key]
+      local lhs = action.lhs or (leader .. "a" .. action.key)
+      local key = uraeda_keys(mode, action.buffer_local)[lhs]
       eq(key, action.desc)
     end
   end
   eq(uraeda_keys("n", true)["\\an"], "Uraeda: draft the priorities line")
+  eq(uraeda_keys("n", true)["]u"], "Uraeda: next question or comment")
+  eq(uraeda_keys("n", true)["[u"], "Uraeda: previous question or comment")
+  eq(uraeda_keys("n", false)["\\aw"], "Uraeda: files waiting on you")
 end
 
 T["no key collides under <leader>a"] = function()
