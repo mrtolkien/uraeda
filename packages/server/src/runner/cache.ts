@@ -568,16 +568,17 @@ export class SessionCache {
   }
 
   /**
-   * Marks the turns still `running` as stopped with the reason, and returns them, when their
-   * session is held by no process, by this one, or by one that is gone. Another live server's
-   * turns, of any repository, keep running.
+   * Marks the turns still `running` or `queued` as stopped with the reason, and returns them, when
+   * their session is held by no process, by this one, or by one that is gone: a queued turn left
+   * behind would read as working forever. Another live server's turns, of any repository, keep
+   * running.
    */
   interrupted(reason: string): Array<TurnRow> {
     return transaction(this.#db, () => {
       const running = this.#db
         .prepare(
           `SELECT t.id, s.pid FROM turns t JOIN sessions s ON s.id = t.session_id
-           WHERE t.state = 'running'`,
+           WHERE t.state IN ('running', 'queued')`,
         )
         .all() as Array<{ id: number; pid: number | null }>;
       const ended = now();
