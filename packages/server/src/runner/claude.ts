@@ -152,6 +152,15 @@ export class ClaudeAdapter implements Adapter {
     child.stdin.on("error", () => {});
     const exited = new Promise<AgentEvent>((resolve) => {
       child.on("error", (error: NodeJS.ErrnoException) => {
+        // Node says ENOENT for a missing directory as for a missing command.
+        if (error.code === "ENOENT" && !existsSync(options.cwd)) {
+          resolve({
+            type: "exit",
+            code: null,
+            stderr: `The session's directory is gone: ${options.cwd}`,
+          });
+          return;
+        }
         resolve({
           type: "exit",
           code: null,
