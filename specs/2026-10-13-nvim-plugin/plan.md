@@ -571,9 +571,12 @@ git commit -m "feat(nvim-plugin): reads and priorities hints in ura lsp"
   - `uraeda.submit { uri }`, `uraeda.commit { uri }`: commit refuses
     `Only drafts, backlog files, proposals, and PRIORITIES.md are committed from the editor.`
   - Every command runs on a worker thread, one at a time, between `$/progress` `begin` and `end`;
-    the loop keeps answering meanwhile.
+    the loop keeps answering meanwhile ([R9](rulings.md#r9-progress-results-and-unknown-commands)).
+  - The review refusals are checked by the server before the core, with the spec's texts
+    ([R7](rulings.md#r7-the-review-refusals-of-the-spec-are-the-servers-checked-before-the-core)); a
+    hook's output comes in `data.output`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 #[test] fn a_line_becomes_a_draft() {}                        // US2.1: specs/drafts/codex-runtime.md, link, nothing committed
@@ -581,7 +584,7 @@ git commit -m "feat(nvim-plugin): reads and priorities hints in ura lsp"
 #[test] fn the_second_line_of_a_wrapped_entry_drafts_it() {}  // review focus 2
 #[test] fn a_nested_line_is_not_an_entry() {}                 // review focus 2
 #[test] fn priorities_changed_on_disk_refuse_the_draft() {}   // edge: "PRIORITIES.md changed on disk. Nothing was drafted."
-#[test] fn a_draft_starts_a_feature() {}                      // US3.1: URA_TODAY=2026-10-14; two commits; opened proposal; hook ran twice
+#[test] fn a_draft_starts_a_feature() {}                      // US3.1: URA_TODAY=2026-10-14 (R8); two commits; opened proposal; hook ran twice
 #[test] fn a_spec_cannot_be_started() {}                      // US3.2
 #[test] fn a_comment_quotes_its_lines() {}                    // US4.1
 #[test] fn a_comment_is_edited_then_removed() {}              // US4.2, US4.3
@@ -596,20 +599,21 @@ git commit -m "feat(nvim-plugin): reads and priorities hints in ura lsp"
 #[test] fn requests_are_answered_while_a_command_runs() {}    // edge: a 1 s hook; uraeda/fields answers before the command
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-lsp --test commands`
-- Expected: FAIL, `unknown command uraeda.draft`
+- Expected: FAIL, `method not found: workspace/executeCommand`
+  ([R9](rulings.md#r9-progress-results-and-unknown-commands))
 
-- [ ] **Step 3: Implement the commands and the worker**
+- [x] **Step 3: Implement the commands and the worker**
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run:
   `cargo test --workspace --exclude uraeda-binding && cargo clippy --workspace --all-targets -- -D warnings`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates

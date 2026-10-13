@@ -118,16 +118,16 @@ pub(crate) struct Waiting {
 }
 
 /// A workflow file under `specs/`: its path, name, kind, and its folder from the root.
-struct WorkflowFile {
-    path: PathBuf,
-    name: String,
-    kind: FileKind,
-    round: Option<u32>,
+pub(crate) struct WorkflowFile {
+    pub path: PathBuf,
+    pub name: String,
+    pub kind: FileKind,
+    pub round: Option<u32>,
     /// From the root: `specs/2026-10-13-nvim-plugin`.
-    dir: String,
+    pub dir: String,
 }
 
-fn workflow_file(documents: &Documents, uri: &Uri) -> Option<WorkflowFile> {
+pub(crate) fn workflow_file(documents: &Documents, uri: &Uri) -> Option<WorkflowFile> {
     let path = documents
         .path(uri)
         .filter(|path| documents.in_specs(path))?;
@@ -155,7 +155,7 @@ impl WorkflowFile {
     }
 
     /// The comments of its pending review, from the review's open text, else from disk.
-    fn pending_comments(&self, documents: &Documents) -> Vec<CommentItem> {
+    pub fn pending_comments(&self, documents: &Documents) -> Vec<CommentItem> {
         if !matches!(
             self.kind,
             FileKind::Spec | FileKind::Plan | FileKind::Assessment
@@ -302,11 +302,15 @@ pub(crate) fn refused(message: impl Into<String>) -> ResponseError {
     }
 }
 
-/// An error of the core, with its code in `data`.
+/// An error of the core, with its code in `data`, and a hook's whole output.
 pub(crate) fn api_error(error: ApiError) -> ResponseError {
+    let data = match error.output {
+        Some(output) => json!({ "code": error.code, "output": output }),
+        None => json!({ "code": error.code }),
+    };
     ResponseError {
         code: ErrorCode::RequestFailed as i32,
         message: error.message,
-        data: Some(json!({ "code": error.code })),
+        data: Some(data),
     }
 }
