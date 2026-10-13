@@ -1,4 +1,5 @@
-//! Completion: on a frontmatter field's line, after its `key:`, the field's allowed values.
+//! Completion: on a frontmatter field's line, after its `key:`, the field's allowed values, each
+//! replacing the whole value.
 
 use lsp_types::{
     CompletionItem, CompletionItemKind, CompletionParams, CompletionResponse, CompletionTextEdit,
@@ -26,9 +27,21 @@ pub(crate) fn complete(
     if cursor < start {
         return None;
     }
+    // The value runs to a ` #` comment, or the line's end, without its trailing spaces; a
+    // completion replaces all of it, wherever the cursor is in it, and none of a comment.
+    let comment = line[start..]
+        .char_indices()
+        .find(|&(index, char)| {
+            char == '#' && (index == 0 || line[start..][..index].ends_with([' ', '\t']))
+        })
+        .map_or(line.len(), |(index, _)| start + index);
+    if cursor > comment {
+        return None;
+    }
+    let end = (start + line[start..comment].trim_end().len()).max(cursor);
     let range = Range::new(
         Position::new(position.line, documents::utf16_len(&line[..start])),
-        position,
+        Position::new(position.line, documents::utf16_len(&line[..end])),
     );
     let items = field
         .values
