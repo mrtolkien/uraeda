@@ -289,7 +289,7 @@ fn folder_path(kind: Kind, folder: &str) -> String {
 
 /// Where files are read from: a commit, or the working tree.
 #[derive(Clone, Copy)]
-enum From {
+enum ReadFrom {
     Commit(ObjectId),
     Disk,
 }
@@ -299,18 +299,18 @@ struct Reader<'a> {
 }
 
 impl Reader<'_> {
-    fn read(&self, from: From, path: &str) -> Option<String> {
+    fn read(&self, from: ReadFrom, path: &str) -> Option<String> {
         let bytes = match from {
-            From::Commit(commit) => self.git.read_file(commit, path).ok()??,
-            From::Disk => fs::read(self.git.root().join(path)).ok()?,
+            ReadFrom::Commit(commit) => self.git.read_file(commit, path).ok()??,
+            ReadFrom::Disk => fs::read(self.git.root().join(path)).ok()?,
         };
         String::from_utf8(bytes).ok()
     }
 
     /// The files directly inside a folder.
-    fn files(&self, from: From, dir: &str) -> Vec<String> {
+    fn files(&self, from: ReadFrom, dir: &str) -> Vec<String> {
         match from {
-            From::Commit(commit) => self
+            ReadFrom::Commit(commit) => self
                 .git
                 .list_files(commit, dir)
                 .unwrap_or_default()
@@ -320,7 +320,7 @@ impl Reader<'_> {
                     (!name.contains('/')).then(|| name.to_string())
                 })
                 .collect(),
-            From::Disk => {
+            ReadFrom::Disk => {
                 let mut names: Vec<String> = fs::read_dir(self.git.root().join(dir))
                     .into_iter()
                     .flatten()
@@ -335,12 +335,12 @@ impl Reader<'_> {
     }
 
     /// The drafts and postponed folders of `specs/drafts/` and `specs/backlog/`.
-    fn drafts(&self, from: From) -> Vec<String> {
+    fn drafts(&self, from: ReadFrom) -> Vec<String> {
         let mut drafts = BTreeSet::new();
         for dir in ["specs/drafts", "specs/backlog"] {
             let paths: Vec<String> = match from {
-                From::Commit(commit) => self.git.list_files(commit, dir).unwrap_or_default(),
-                From::Disk => fs::read_dir(self.git.root().join(dir))
+                ReadFrom::Commit(commit) => self.git.list_files(commit, dir).unwrap_or_default(),
+                ReadFrom::Disk => fs::read_dir(self.git.root().join(dir))
                     .into_iter()
                     .flatten()
                     .flatten()
@@ -370,7 +370,7 @@ impl Reader<'_> {
     }
 
     /// The records of `specs/done/`, by kind and folder, with their texts.
-    fn records(&self, from: From) -> BTreeMap<(Kind, String), String> {
+    fn records(&self, from: ReadFrom) -> BTreeMap<(Kind, String), String> {
         let mut records = BTreeMap::new();
         for name in self.files(from, "specs/done") {
             let Some(folder) = name.strip_suffix(".md") else {
@@ -387,11 +387,11 @@ impl Reader<'_> {
     }
 
     /// The feature and bug folders under `specs/`.
-    fn folders(&self, from: From) -> BTreeSet<(Kind, String)> {
+    fn folders(&self, from: ReadFrom) -> BTreeSet<(Kind, String)> {
         let mut folders = BTreeSet::new();
         for (kind, dir) in [(Kind::Feature, "specs"), (Kind::Bug, "specs/bugs")] {
             let names: Vec<String> = match from {
-                From::Commit(commit) => self
+                ReadFrom::Commit(commit) => self
                     .git
                     .list_files(commit, dir)
                     .unwrap_or_default()
@@ -402,7 +402,7 @@ impl Reader<'_> {
                         Some(folder.to_string())
                     })
                     .collect(),
-                From::Disk => fs::read_dir(self.git.root().join(dir))
+                ReadFrom::Disk => fs::read_dir(self.git.root().join(dir))
                     .into_iter()
                     .flatten()
                     .flatten()
@@ -457,8 +457,8 @@ impl Workspace {
             .as_ref()
             .map_or(Reader { git }, |git| Reader { git });
         let priorities_from = match default_tip {
-            Some(tip) if !on_default && default_worktree.is_none() => From::Commit(tip),
-            _ => From::Disk,
+            Some(tip) if !on_default && default_worktree.is_none() => ReadFrom::Commit(tip),
+            _ => ReadFrom::Disk,
         };
         let priorities_text = default_reader
             .read(priorities_from, "specs/PRIORITIES.md")
@@ -472,11 +472,11 @@ impl Workspace {
             .collect();
         let merged_records: Vec<BTreeMap<(Kind, String), String>> = tips
             .iter()
-            .map(|tip| reader.records(From::Commit(*tip)))
+            .map(|tip| reader.records(ReadFrom::Commit(*tip)))
             .collect();
         let merged_folders: Vec<(ObjectId, BTreeSet<(Kind, String)>)> = tips
             .iter()
-            .map(|tip| (*tip, reader.folders(From::Commit(*tip))))
+            .map(|tip| (*tip, reader.folders(ReadFrom::Commit(*tip))))
             .collect();
         let merged: BTreeSet<(Kind, String)> = merged_records
             .iter()
@@ -499,7 +499,7 @@ impl Workspace {
         };
         // The working tree: the current branch's feature, and folders not yet committed.
         let current_folder = current_branch.as_deref().and_then(branch_folder);
-        let mut on_disk = reader.folders(From::Disk);
+        let mut on_disk = reader.folders(ReadFrom::Disk);
         if let Some((kind, folder)) = current_folder {
             on_disk.insert((kind, folder.to_string()));
         }
@@ -511,7 +511,7 @@ impl Workspace {
                 .filter(|(k, f)| *k == kind && *f == folder)
                 .map(|_| folder_branch(kind, &folder));
             let on_branch = branch.is_some();
-            let mut feature = read_feature(&reader, kind, &folder, branch, From::Disk, head);
+            let mut feature = read_feature(&reader, kind, &folder, branch, ReadFrom::Disk, head);
             if on_branch {
                 feature.worktree = Some(shown(&root));
             }
@@ -546,7 +546,7 @@ impl Workspace {
                         kind,
                         folder,
                         Some(branch.name.clone()),
-                        From::Disk,
+                        ReadFrom::Disk,
                         worktree_git.head(),
                     );
                     feature.worktree = Some(shown(path));
@@ -566,7 +566,7 @@ impl Workspace {
                         kind,
                         folder,
                         Some(branch.name.clone()),
-                        From::Commit(tip),
+                        ReadFrom::Commit(tip),
                         Some(tip),
                     );
                     feature.source = source;
@@ -602,7 +602,14 @@ impl Workspace {
                     else {
                         continue;
                     };
-                    read_feature(&reader, *kind, folder, None, From::Commit(*tip), Some(*tip))
+                    read_feature(
+                        &reader,
+                        *kind,
+                        folder,
+                        None,
+                        ReadFrom::Commit(*tip),
+                        Some(*tip),
+                    )
                 }
             };
             let branch = folder_branch(*kind, folder);
@@ -697,7 +704,7 @@ fn read_feature(
     kind: Kind,
     folder: &str,
     branch: Option<String>,
-    from: From,
+    from: ReadFrom,
     committed: Option<ObjectId>,
 ) -> Feature {
     let path = folder_path(kind, folder);
@@ -718,8 +725,8 @@ fn read_feature(
         && unreadable.is_empty()
         && let Some(text) = reader.read(from, &record_path(folder))
     {
-        let committed_text =
-            committed.and_then(|commit| reader.read(From::Commit(commit), &record_path(folder)));
+        let committed_text = committed
+            .and_then(|commit| reader.read(ReadFrom::Commit(commit), &record_path(folder)));
         let recorded = record_kind(&text);
         let mut feature = Feature::from_record(kind, folder, text);
         if recorded != kind && feature.problems.is_empty() {
@@ -738,12 +745,12 @@ fn read_feature(
             });
             feature.step = Step::none();
         }
-        feature.uncommitted = matches!(from, From::Disk)
+        feature.uncommitted = matches!(from, ReadFrom::Disk)
             && committed_text.as_deref() != feature.text(&format!("{folder}.md"));
         feature.branch = branch;
         feature.source = match from {
-            From::Disk => Source::WorkingTree,
-            From::Commit(_) => Source::Local,
+            ReadFrom::Disk => Source::WorkingTree,
+            ReadFrom::Commit(_) => Source::Local,
         };
         return feature;
     }
@@ -764,8 +771,8 @@ fn read_feature(
     }
     feature.branch = branch;
     feature.source = match from {
-        From::Disk => Source::WorkingTree,
-        From::Commit(_) => Source::Local,
+        ReadFrom::Disk => Source::WorkingTree,
+        ReadFrom::Commit(_) => Source::Local,
     };
     let first_file = match kind {
         Kind::Feature => "proposal.md",
@@ -782,10 +789,11 @@ fn read_feature(
     });
     // Git's changes add the deleted files to the texts that differ from the commit.
     let folder_prefix = format!("{path}/");
-    feature.uncommitted = matches!(from, From::Disk)
+    feature.uncommitted = matches!(from, ReadFrom::Disk)
         && (feature.texts.iter().any(|(name, text)| {
-            let committed_text = committed
-                .and_then(|commit| reader.read(From::Commit(commit), &format!("{path}/{name}")));
+            let committed_text = committed.and_then(|commit| {
+                reader.read(ReadFrom::Commit(commit), &format!("{path}/{name}"))
+            });
             committed_text.as_deref() != Some(text.as_str())
         }) || reader
             .git
@@ -936,7 +944,13 @@ impl Feature {
 }
 
 /// Whether a decision the spec links is `proposed`, or has a proposed change for this folder.
-fn decisions_pending(reader: &Reader<'_>, from: From, dir: &str, folder: &str, spec: &str) -> bool {
+fn decisions_pending(
+    reader: &Reader<'_>,
+    from: ReadFrom,
+    dir: &str,
+    folder: &str,
+    spec: &str,
+) -> bool {
     let document = markdown::Document::parse(spec);
     let start = document
         .headings
