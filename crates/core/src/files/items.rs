@@ -393,17 +393,18 @@ fn choices(doc: &Document, list: &Block) -> Vec<Choice> {
     choices
 }
 
+/// `Task 3: The repeat menu`, a plan's level-2 heading, as its number and title.
+pub(crate) fn task_heading(text: &str) -> Option<(u32, String)> {
+    let (number, title) = text.strip_prefix("Task ")?.split_once(':')?;
+    Some((number.trim().parse().ok()?, title.trim().to_string()))
+}
+
 /// The tasks of a plan, `## Task N: title`, with their checkbox steps.
 fn tasks(doc: &Document) -> Vec<TaskItem> {
     let all = headings(doc);
     let mut tasks = Vec::new();
     for (position, (index, level, title)) in all.iter().enumerate() {
-        let Some((number, title)) = (*level == 2)
-            .then(|| title.strip_prefix("Task "))
-            .flatten()
-            .and_then(|rest| rest.split_once(':'))
-            .and_then(|(n, t)| Some((n.trim().parse().ok()?, t.trim().to_string())))
-        else {
+        let Some((number, title)) = (*level == 2).then(|| task_heading(title)).flatten() else {
             continue;
         };
         let end = all[position + 1..]

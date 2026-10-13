@@ -9,18 +9,21 @@ use lsp_types::notification::{
     DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, DidSaveTextDocument, Exit,
     Notification as _, PublishDiagnostics,
 };
-use lsp_types::request::{Request as _, Shutdown};
+use lsp_types::request::{
+    CodeActionRequest, Completion, DocumentSymbolRequest, Request as _, Shutdown,
+};
 use lsp_types::{
-    InitializeParams, InitializeResult, PublishDiagnosticsParams, SaveOptions, ServerCapabilities,
-    ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind, TextDocumentSyncOptions,
-    TextDocumentSyncSaveOptions, Uri,
+    CodeActionKind, CodeActionOptions, CodeActionProviderCapability, CompletionOptions,
+    InitializeParams, InitializeResult, OneOf, PublishDiagnosticsParams, SaveOptions,
+    ServerCapabilities, ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind,
+    TextDocumentSyncOptions, TextDocumentSyncSaveOptions, Uri,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use crate::documents::{self, Documents};
-use crate::{Error, diagnostics};
+use crate::{Error, actions, completion, diagnostics, requests, symbols};
 
 pub(crate) fn run(connection: Connection) -> Result<(), Error> {
     let (id, params) = connection.initialize_start()?;
@@ -55,6 +58,15 @@ fn initialize_result() -> InitializeResult {
                     ..TextDocumentSyncOptions::default()
                 },
             )),
+            completion_provider: Some(CompletionOptions {
+                trigger_characters: Some(vec![" ".to_string()]),
+                ..CompletionOptions::default()
+            }),
+            document_symbol_provider: Some(OneOf::Left(true)),
+            code_action_provider: Some(CodeActionProviderCapability::Options(CodeActionOptions {
+                code_action_kinds: Some(vec![CodeActionKind::REFACTOR_REWRITE]),
+                ..CodeActionOptions::default()
+            })),
             ..ServerCapabilities::default()
         },
         server_info: Some(ServerInfo {
@@ -98,6 +110,22 @@ impl Server {
                 Shutdown::METHOD => handle::<Shutdown>(request.params, |()| {
                     self.shut_down = true;
                     Ok(())
+                }),
+                Completion::METHOD => handle::<Completion>(request.params, |params| {
+                    Ok(completion::complete(&self.documents, params))
+                }),
+                DocumentSymbolRequest::METHOD => {
+                    handle::<DocumentSymbolRequest>(request.params, |params| {
+                        Ok(symbols::symbols(&self.documents, params))
+                    })
+                }
+                CodeActionRequest::METHOD => {
+                    handle::<CodeActionRequest>(request.params, |params| {
+                        Ok(actions::actions(&self.documents, params))
+                    })
+                }
+                requests::FIELDS => answer(requests::FIELDS, request.params, |params| {
+                    Ok(requests::fields(&self.documents, params))
                 }),
                 method => Err(error(
                     ErrorCode::MethodNotFound,
@@ -167,14 +195,24 @@ impl Server {
 /// Answers a typed request with `answer`, or refuses params that do not match its type.
 fn handle<R: lsp_types::request::Request>(
     params: Value,
-    answer: impl FnOnce(R::Params) -> Result<R::Result, ResponseError>,
+    answer_with: impl FnOnce(R::Params) -> Result<R::Result, ResponseError>,
 ) -> Result<Value, ResponseError>
 where
     R::Params: DeserializeOwned,
     R::Result: Serialize,
 {
+    answer(R::METHOD, params, answer_with)
+}
+
+/// Answers a request of `method` with `answer`, or refuses params that do not match `P`: the
+/// custom `uraeda/*` requests, whose results are the core's types.
+fn answer<P: DeserializeOwned, T: Serialize>(
+    method: &str,
+    params: Value,
+    answer: impl FnOnce(P) -> Result<T, ResponseError>,
+) -> Result<Value, ResponseError> {
     let params = serde_json::from_value(params)
-        .map_err(|e| error(ErrorCode::InvalidParams, format!("{}: {e}", R::METHOD)))?;
+        .map_err(|e| error(ErrorCode::InvalidParams, format!("{method}: {e}")))?;
     let result = answer(params)?;
     serde_json::to_value(result).map_err(|e| error(ErrorCode::InternalError, e.to_string()))
 }

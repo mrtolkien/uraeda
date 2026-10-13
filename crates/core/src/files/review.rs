@@ -87,6 +87,12 @@ pub enum ReviewError {
     NoComment(u32),
 }
 
+/// `C2: General`, a review's level-2 heading, as its number and anchor text.
+pub(crate) fn comment_heading(text: &str) -> Option<(u32, &str)> {
+    let (number, anchor) = text.strip_prefix('C')?.split_once(':')?;
+    Some((number.parse().ok()?, anchor.trim()))
+}
+
 fn anchor(text: &str) -> Option<Anchor> {
     if text == "General" {
         return Some(Anchor::General);
