@@ -3,10 +3,9 @@
 ## Now
 
 - [Chat in the web UI: ask about a step without committing, see actual message that goes with the commit and push, ...](/specs/2026-10-13-chat-in-the-web-ui/proposal.md)
+- [Nvim plugin -> can be parallel to pretty much everything here](/specs/2026-10-13-nvim-plugin/proposal.md)
 
 ## Next
-
-- Nvim plugin -> can be parallel to pretty much everything here
 
 - Look and feel pass: components style, logo, favicon, ...
   - Generally, the happy path should look good: parsed frontmatter should not appear in the edit
