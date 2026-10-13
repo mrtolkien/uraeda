@@ -12,6 +12,9 @@
 - Clean server code that can open any folder on the host + be run easily with node -> make the tool
   multi-repos
 
+- Offer nvim install during `ura install` if detected
+- Review flow against current repo: decisions, quality of features, ...
+
 ## Next
 
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
@@ -24,8 +27,6 @@
 - Ping user when input is needed
 - Git listener process
 
-## Later
-
 - Monorepo support: multiple `specs` folders, principles per package, ...
 - Codex runtime
 
@@ -35,6 +36,8 @@
 
 - Dedicated Pi-durable runtime with basic tooling
   - Web tools in pi-durable
+
+## Later
 
 - Use Jev-like model (Clef) for one-shot classification of decisions: "Is this decision relevant to
   this proposal?", "Is this a valuable decision?", "Is this code change in line with the
