@@ -84,6 +84,24 @@ fn frontmatter_set_keeps_every_other_byte() {
 }
 
 #[test]
+fn setting_a_field_keeps_its_comment() {
+    let text = "---\ndiscovery: high # low, medium, or high\n---\n";
+
+    assert_eq!(
+        frontmatter::set(text, "discovery", "low"),
+        "---\ndiscovery: low # low, medium, or high\n---\n"
+    );
+}
+
+#[test]
+fn setting_a_field_keeps_crlf_line_endings() {
+    assert_eq!(
+        frontmatter::set("---\r\nstatus: a # who sets it\r\n---\r\n", "status", "b"),
+        "---\r\nstatus: b # who sets it\r\n---\r\n"
+    );
+}
+
+#[test]
 fn headings_links_and_lines() {
     let text = "---\nstatus: x\n---\n\n# Title\n\nSee [d](discovery-01.md#git-backend) and [[due-dates]].\n\n## Q6: How does `ura` run git?\n\n```md\n# not a heading\n[not](a-link.md)\n```\n";
 
