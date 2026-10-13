@@ -78,15 +78,15 @@ messages are not workflow files, and look much better rendered: the human allowe
 Editors reach the workflow through a language server, which the human chose over a plugin calling
 the CLI, or parsing in Lua, so the editor gets diagnostics while typing and edits it can undo, and
 other editors can use the same server
-([Q1](../2026-10-13-nvim-plugin/clarifications-01.md#q1-how-does-the-plugin-reach-the-workflow-logic),
-[reaching the workflow logic](../2026-10-13-nvim-plugin/discovery-01.md#reaching-the-workflow-logic)).
+([Q1](../done/2026-10-13-nvim-plugin.md#q1-how-does-the-plugin-reach-the-workflow-logic),
+[reaching the workflow logic](../done/2026-10-13-nvim-plugin.md#q1-how-does-the-plugin-reach-the-workflow-logic)).
 `lsp-server` is the smallest server crate, synchronous like the core, and the one rust-analyzer
 uses; `tower-lsp-server` costs about five times more in the binary, with tokio
-([Rust language server crates](../2026-10-13-nvim-plugin/discovery-01.md#rust-language-server-crates)).
-A plugin parsing workflow files would be a second parser, drifting from the core's rules, as a
-TypeScript one would. Commits stay out of code actions: a code action is a quick fix, picked from a
-list next to other servers' fixes, and approving or starting a feature must be a deliberate act
-([Q2](../2026-10-13-nvim-plugin/clarifications-01.md#q2-what-does-picking-a-human-status-do)).
+([Rust language server crates](../done/2026-10-13-nvim-plugin.md)). A plugin parsing workflow files
+would be a second parser, drifting from the core's rules, as a TypeScript one would. Commits stay
+out of code actions: a code action is a quick fix, picked from a list next to other servers' fixes,
+and approving or starting a feature must be a deliberate act
+([Q2](../done/2026-10-13-nvim-plugin.md#q2-what-does-picking-a-human-status-do)).
 
 ## Alternatives considered
 

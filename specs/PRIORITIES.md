@@ -3,7 +3,6 @@
 ## Now
 
 - [Chat in the web UI: ask about a step without committing, see actual message that goes with the commit and push, ...](/specs/2026-10-13-chat-in-the-web-ui/proposal.md)
-- [Nvim plugin -> can be parallel to pretty much everything here](/specs/2026-10-13-nvim-plugin/proposal.md)
 
 - Chats, proposals, and reviews should accept images (drag and drop in the page, still show a
   dedicated button)
