@@ -217,3 +217,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a feature with no session shows one more button; the composer can be cleared by
   hand.
 - **Where**: task 10, `AgentPanel.tsx`, `SessionPage.tsx`.
+
+## R16: The session views follow main's wider reading column through the shared page
+
+- **Decision**: main changed [ui-layout](/specs/decisions/ui-layout.md) while this branch was open:
+  reading text is now about 120 characters wide, through the theme's `--size-reading-measure` and
+  `--size-page-max`. The session page, the transcript and the composer sit in the shared `Page`
+  column, so they take the new width with no change of their own.
+- **Rationale**: the decision applies to every view of `packages/web/` and does not conflict with
+  the spec, which sets no width; the views already build on the shared column.
+- **Alternatives considered**: a narrower column for the transcript of its own, which the decision
+  rules out.
+- **If wrong**: the transcript can cap its replies at the reading measure, as `Blocks.tsx` does.
+- **Where**: catching up with main, before the final review; `SessionPage.tsx`, `Transcript.tsx`.
