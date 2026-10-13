@@ -4,9 +4,11 @@
 //!
 //! [`server`] runs the loop and routes each request and notification to the module of its
 //! capability: [`diagnostics`], [`completion`], [`symbols`], [`actions`], [`hints`], and the
-//! custom [`requests`]; [`documents`] holds the open texts.
+//! custom [`requests`]; [`commands`] runs the actions that write files or commit, on a worker;
+//! [`documents`] holds the open texts.
 
 mod actions;
+mod commands;
 mod completion;
 mod diagnostics;
 mod documents;

@@ -6,7 +6,7 @@ pub mod repo;
 #[path = "../../../core/tests/common/texts.rs"]
 pub mod texts;
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
@@ -21,7 +21,8 @@ use lsp_types::{
     ClientCapabilities, Diagnostic, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
     DidOpenTextDocumentParams, DidSaveTextDocumentParams, InitializeParams, InitializeResult,
     PublishDiagnosticsParams, TextDocumentContentChangeEvent, TextDocumentIdentifier,
-    TextDocumentItem, Uri, VersionedTextDocumentIdentifier, WorkspaceFolder,
+    TextDocumentItem, Uri, VersionedTextDocumentIdentifier, WindowClientCapabilities,
+    WorkspaceFolder,
 };
 use serde_json::{Value, json};
 
@@ -47,6 +48,10 @@ pub struct Session {
     versions: i32,
     /// Notifications received and not yet read, in order.
     received: VecDeque<Notification>,
+    /// Responses received and not yet read, by request.
+    responses: HashMap<RequestId, Response>,
+    /// The server's own requests, in order.
+    server_requests: Vec<Request>,
     /// The initialize result.
     pub initialized: InitializeResult,
 }
@@ -61,11 +66,20 @@ impl Session {
             next_id: 0,
             versions: 0,
             received: VecDeque::new(),
+            responses: HashMap::new(),
+            server_requests: Vec::new(),
             initialized: InitializeResult::default(),
         };
         let uri = uraeda_lsp::file_uri(root);
         let params = InitializeParams {
-            capabilities: ClientCapabilities::default(),
+            // As Neovim does: the server may create work done progress.
+            capabilities: ClientCapabilities {
+                window: Some(WindowClientCapabilities {
+                    work_done_progress: Some(true),
+                    ..WindowClientCapabilities::default()
+                }),
+                ..ClientCapabilities::default()
+            },
             workspace_folders: Some(vec![WorkspaceFolder {
                 uri,
                 name: "root".to_string(),
@@ -130,25 +144,57 @@ impl Session {
 
     /// Sends a request by its method, and waits for its response.
     pub fn raw(&mut self, method: &str, params: Value) -> Result<Value, ResponseError> {
+        let id = self.send(method, params);
+        self.response(&id)
+    }
+
+    /// Sends a request by its method, without waiting for its response.
+    pub fn send(&mut self, method: &str, params: Value) -> RequestId {
         self.next_id += 1;
         let id = RequestId::from(self.next_id);
         let request = Request::new(id.clone(), method.to_string(), params);
         self.client.sender.send(request.into()).unwrap();
+        id
+    }
+
+    /// Waits for the response to the request `id`.
+    pub fn response(&mut self, id: &RequestId) -> Result<Value, ResponseError> {
         let deadline = Instant::now() + WAIT * 5;
         loop {
-            match self.receive(deadline) {
-                Some(Message::Response(response)) if response.id == id => {
-                    return response.response_result;
-                }
-                Some(_) => {}
-                None => panic!("no response to {method}"),
+            if let Some(response) = self.responses.remove(id) {
+                return response.response_result;
+            }
+            if self.receive(deadline).is_none() {
+                panic!("no response to the request {id}");
             }
         }
     }
 
+    /// Whether the response to the request `id` has arrived, without waiting for it.
+    pub fn answered(&mut self, id: &RequestId) -> bool {
+        while self.receive(Instant::now()).is_some() {}
+        self.responses.contains_key(id)
+    }
+
+    /// The params of every request of `method` the server sent so far.
+    pub fn server_requests(&mut self, method: &str) -> Vec<Value> {
+        while self.receive(Instant::now()).is_some() {}
+        self.server_requests
+            .iter()
+            .filter(|request| request.method == method)
+            .map(|request| request.params.clone())
+            .collect()
+    }
+
     /// Runs a command, `workspace/executeCommand` with `args` as its only argument.
     pub fn command(&mut self, name: &str, args: Value) -> Result<Value, ResponseError> {
-        self.raw(
+        let id = self.start_command(name, args);
+        self.response(&id)
+    }
+
+    /// Sends a command, without waiting for its response.
+    pub fn start_command(&mut self, name: &str, args: Value) -> RequestId {
+        self.send(
             "workspace/executeCommand",
             json!({ "command": name, "arguments": [args] }),
         )
@@ -195,18 +241,21 @@ impl Session {
         self.client.sender.send(notification.into()).unwrap();
     }
 
-    /// Receives one message until `deadline`: notifications are kept for later, and the server's
-    /// own requests answered with `null`. `None` once the deadline passes.
+    /// Receives one message until `deadline`: notifications and responses are kept for later, and
+    /// the server's own requests kept and answered with `null`. `None` once the deadline passes.
     fn receive(&mut self, deadline: Instant) -> Option<Message> {
         let timeout = deadline.saturating_duration_since(Instant::now());
         let message = self.client.receiver.recv_timeout(timeout).ok()?;
         match &message {
             Message::Notification(notification) => self.received.push_back(notification.clone()),
             Message::Request(request) => {
+                self.server_requests.push(request.clone());
                 let response = Response::new_ok(request.id.clone(), Value::Null);
                 self.client.sender.send(response.into()).unwrap();
             }
-            Message::Response(_) => {}
+            Message::Response(response) => {
+                self.responses.insert(response.id.clone(), response.clone());
+            }
         }
         Some(message)
     }

@@ -8,6 +8,7 @@ use std::str::FromStr;
 
 use lsp_types::Uri;
 
+#[derive(Clone)]
 pub(crate) struct Documents {
     /// The repository's top level, or the worktree's, holding `specs/`.
     pub root: PathBuf,

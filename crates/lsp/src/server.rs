@@ -2,37 +2,51 @@
 //! capability, until `exit`.
 
 use std::path::PathBuf;
+use std::thread::JoinHandle;
 
 use crossbeam_channel::Sender;
-use lsp_server::{Connection, ErrorCode, Message, Notification, Request, Response, ResponseError};
+use lsp_server::{
+    Connection, ErrorCode, Message, Notification, Request, RequestId, Response, ResponseError,
+};
 use lsp_types::notification::{
     DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, DidSaveTextDocument, Exit,
-    Notification as _, PublishDiagnostics,
+    Notification as _, Progress, PublishDiagnostics,
 };
 use lsp_types::request::{
-    CodeActionRequest, Completion, DocumentSymbolRequest, InlayHintRequest, Request as _, Shutdown,
+    CodeActionRequest, Completion, DocumentSymbolRequest, ExecuteCommand, InlayHintRequest,
+    Request as _, Shutdown, WorkDoneProgressCreate,
 };
 use lsp_types::{
     CodeActionKind, CodeActionOptions, CodeActionProviderCapability, CompletionOptions,
-    InitializeParams, InitializeResult, OneOf, PublishDiagnosticsParams, SaveOptions,
+    ExecuteCommandOptions, ExecuteCommandParams, InitializeParams, InitializeResult, OneOf,
+    ProgressParams, ProgressParamsValue, ProgressToken, PublishDiagnosticsParams, SaveOptions,
     ServerCapabilities, ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind,
-    TextDocumentSyncOptions, TextDocumentSyncSaveOptions, Uri,
+    TextDocumentSyncOptions, TextDocumentSyncSaveOptions, Uri, WorkDoneProgress,
+    WorkDoneProgressBegin, WorkDoneProgressCreateParams, WorkDoneProgressEnd,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use crate::documents::{self, Documents};
-use crate::{Error, actions, completion, diagnostics, hints, requests, symbols};
+use crate::{Error, actions, commands, completion, diagnostics, hints, requests, symbols};
 
 pub(crate) fn run(connection: Connection) -> Result<(), Error> {
     let (id, params) = connection.initialize_start()?;
     let params: InitializeParams = serde_json::from_value(params)?;
     connection.initialize_finish(id, serde_json::to_value(initialize_result())?)?;
+    let progress = params
+        .capabilities
+        .window
+        .as_ref()
+        .and_then(|window| window.work_done_progress)
+        .unwrap_or(false);
+    let (jobs, worker) = worker(connection.sender.clone(), progress);
     let mut server = Server {
         sender: connection.sender.clone(),
         documents: Documents::new(root(&params)),
         shut_down: false,
+        jobs,
     };
     for message in &connection.receiver {
         match message {
@@ -42,7 +56,88 @@ pub(crate) fn run(connection: Connection) -> Result<(), Error> {
             Message::Response(_) => {}
         }
     }
+    // The command running finishes, so a commit is never cut in half.
+    drop(server);
+    worker.join().map_err(|_| "the command worker panicked")?;
     Ok(())
+}
+
+/// A command for the worker: the request to answer, and a copy of the open documents.
+struct Job {
+    id: RequestId,
+    params: ExecuteCommandParams,
+    documents: Documents,
+}
+
+/// The worker: one thread running the commands one at a time, between `$/progress` `begin` and
+/// `end`, and answering each, while the loop keeps answering other requests. `progress` is
+/// whether the client creates work done progress on the server's request.
+fn worker(sender: Sender<Message>, progress: bool) -> (Sender<Job>, JoinHandle<()>) {
+    let (jobs, receiver) = crossbeam_channel::unbounded::<Job>();
+    let thread = std::thread::spawn(move || {
+        for (index, job) in receiver.into_iter().enumerate() {
+            let send = |message: Message| {
+                let _ = sender.send(message);
+            };
+            let ExecuteCommandParams {
+                command,
+                mut arguments,
+                work_done_progress_params,
+            } = job.params;
+            let args = if arguments.is_empty() {
+                Value::Null
+            } else {
+                arguments.swap_remove(0)
+            };
+            // The client's token, else one the server creates, when the client supports it.
+            let token = work_done_progress_params.work_done_token.or_else(|| {
+                progress.then(|| {
+                    let token = ProgressToken::String(format!("uraeda/command/{index}"));
+                    let create = WorkDoneProgressCreateParams {
+                        token: token.clone(),
+                    };
+                    send(
+                        Request::new(
+                            RequestId::from(format!("uraeda/progress/{index}")),
+                            WorkDoneProgressCreate::METHOD.to_string(),
+                            create,
+                        )
+                        .into(),
+                    );
+                    token
+                })
+            });
+            let report = |value: WorkDoneProgress| {
+                if let Some(token) = &token {
+                    let params = ProgressParams {
+                        token: token.clone(),
+                        value: ProgressParamsValue::WorkDone(value),
+                    };
+                    send(Notification::new(Progress::METHOD.to_string(), params).into());
+                }
+            };
+            report(WorkDoneProgress::Begin(WorkDoneProgressBegin {
+                title: commands::title(&job.documents, &command, &args),
+                ..WorkDoneProgressBegin::default()
+            }));
+            let done = commands::run(&job.documents, &command, args);
+            report(WorkDoneProgress::End(WorkDoneProgressEnd {
+                message: done.as_ref().ok().and_then(|done| done.message.clone()),
+            }));
+            let result = done.and_then(|done| {
+                serde_json::to_value(done.outcome)
+                    .map_err(|e| error(ErrorCode::InternalError, e.to_string()))
+            });
+            send(
+                Response {
+                    id: job.id,
+                    response_result: result,
+                }
+                .into(),
+            );
+        }
+    });
+    (jobs, thread)
 }
 
 fn initialize_result() -> InitializeResult {
@@ -68,6 +163,10 @@ fn initialize_result() -> InitializeResult {
                 code_action_kinds: Some(vec![CodeActionKind::REFACTOR_REWRITE]),
                 ..CodeActionOptions::default()
             })),
+            execute_command_provider: Some(ExecuteCommandOptions {
+                commands: commands::COMMANDS.map(String::from).to_vec(),
+                ..ExecuteCommandOptions::default()
+            }),
             ..ServerCapabilities::default()
         },
         server_info: Some(ServerInfo {
@@ -97,10 +196,15 @@ struct Server {
     documents: Documents,
     /// Set by `shutdown`: every later request is refused, until `exit`.
     shut_down: bool,
+    /// The commands for the worker.
+    jobs: Sender<Job>,
 }
 
 impl Server {
     fn on_request(&mut self, request: Request) {
+        if !self.shut_down && request.method == ExecuteCommand::METHOD {
+            return self.execute(request);
+        }
         let result = if self.shut_down {
             Err(error(
                 ErrorCode::InvalidRequest,
@@ -153,6 +257,42 @@ impl Server {
             id: request.id,
             response_result: result,
         });
+    }
+
+    /// Hands a known command to the worker, which answers it; refuses an unknown one at once.
+    fn execute(&mut self, request: Request) {
+        let params = serde_json::from_value::<ExecuteCommandParams>(request.params)
+            .map_err(|e| {
+                error(
+                    ErrorCode::InvalidParams,
+                    format!("{}: {e}", ExecuteCommand::METHOD),
+                )
+            })
+            .and_then(|params| {
+                if commands::COMMANDS.contains(&params.command.as_str()) {
+                    Ok(params)
+                } else {
+                    Err(error(
+                        ErrorCode::InvalidParams,
+                        format!("unknown command {}", params.command),
+                    ))
+                }
+            });
+        match params {
+            Ok(params) => {
+                let job = Job {
+                    id: request.id,
+                    params,
+                    documents: self.documents.clone(),
+                };
+                // The worker lives as long as the loop.
+                let _ = self.jobs.send(job);
+            }
+            Err(refused) => self.send(Response {
+                id: request.id,
+                response_result: Err(refused),
+            }),
+        }
     }
 
     fn on_notification(&mut self, notification: Notification) {

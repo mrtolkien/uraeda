@@ -640,6 +640,13 @@ fn reach_default(repo: &Path) -> Result<place::Place> {
     Ok(place::reach(&git, &default)?)
 }
 
+/// The checkout holding the default branch, where drafts and the priorities are written: this one,
+/// another that has it, or a worktree created for it, as [`create_draft`] reaches it.
+pub fn default_root(repo: &Path) -> Result<PathBuf> {
+    let _lock = write_lock();
+    Ok(reach_default(repo)?.root)
+}
+
 /// Drafts a priority line by its id, like `next-2`, over the priorities read at `previous`: an id
 /// names another line once lines are added or moved.
 pub fn create_draft(repo: &Path, id: &str, previous: &str) -> Result<DraftView> {

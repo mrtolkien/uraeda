@@ -98,3 +98,54 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   [`crates/lsp/src/requests.rs`](/crates/lsp/src/requests.rs) and
   [`crates/lsp/src/hints.rs`](/crates/lsp/src/hints.rs).
 - **Where**: task 4, `crates/core/src/api.rs`, `crates/lsp/src/`.
+
+## R7: The review refusals of the spec are the server's, checked before the core
+
+- **Decision**: `uraeda.comment`, `uraeda.approve`, and `uraeda.requestChanges` refuse with the
+  spec's texts before calling the core: `<name> is not waiting for a review.` from the text's
+  status, `<name> differs from its last commit: …` when the open text differs from the file at the
+  branch's tip (read with `api::read_file`), and `Requesting changes needs at least one comment.`
+  from the pending review's comments, as `uraeda/verdict` counts them. `uraeda.submit` on another
+  file than a round refuses `Only a round of questions is submitted.`, a text the spec does not
+  give. A hook's whole output comes in `data.output`, next to `data.code`.
+- **Rationale**: the core's own messages differ (`spec.md is not waiting for a review`,
+  `a request for changes needs at least one comment: ura review …`), and the CLI's tests pin them;
+  the core never compares an editor's unsaved text with the tip. The checks only read, through the
+  core's parsers and `api`, and every write stays the core's, which checks again.
+- **Alternatives considered**: changing the core's messages: rewrites the expected output of the
+  CLI's tests, and the CLI's wording; mapping the core's messages in the server: matching on text
+  that can change.
+- **If wrong**: three checks in [`crates/lsp/src/commands.rs`](/crates/lsp/src/commands.rs).
+- **Where**: task 5, `crates/lsp/src/commands.rs`, `crates/lsp/src/requests.rs` (`api_error`).
+
+## R8: The command tests set `URA_TODAY` once for their process
+
+- **Decision**: every test of `crates/lsp/tests/commands.rs` first sets `URA_TODAY=2026-10-14`
+  through one `Once`, so starts, approvals, and submissions write that day; the core reads the
+  variable from the process, which the server's thread shares with the test.
+- **Rationale**: the core has no other way in for the date, and adding one to `api` for tests
+  changes the binding's functions. One value for the whole file, set before any server starts, never
+  races with a read; the spec's `Approved on 2026-10-13.` is checked as `2026-10-14`, the day US3.1
+  needs.
+- **Alternatives considered**: a date parameter in `api`: a change to every write function for
+  tests; running `ura lsp` as a process per test: slower, and the in-memory `Session` is the plan's
+  helper.
+- **If wrong**: one helper of the test file.
+- **Where**: task 5, `crates/lsp/tests/commands.rs`.
+
+## R9: Progress, results, and unknown commands
+
+- **Decision**: the worker reports progress on the client's `workDoneToken`, else on a token it
+  creates with `window/workDoneProgress/create` when the client advertises
+  `window.workDoneProgress`, as Neovim does; the `Session` advertises it. `begin`'s title is the
+  action (`Starting Codex runtime…`, `Approving spec.md…`), and only a start's `end` has a message,
+  `Started <folder>`. `uraeda.commit` writes no file and answers `written: []`; `uraeda.start`
+  answers the default branch's `PRIORITIES.md` and draft as written. A command the server does not
+  know answers `InvalidParams`, `unknown command <name>`, and `initialize` lists the eight commands
+  in `executeCommandProvider`. The tests drive the protocol directly, so step 2 failed with
+  `method not found: workspace/executeCommand`, the server's answer before the capability existed.
+- **Rationale**: LSP lets a server create progress only for a client that supports it; the list of
+  commands lets the plugin tell an older `ura` from a refusal.
+- **Alternatives considered**: progress without `create`: clients drop tokens they did not create.
+- **If wrong**: the worker in [`crates/lsp/src/server.rs`](/crates/lsp/src/server.rs).
+- **Where**: task 5, `crates/lsp/src/server.rs`, `crates/lsp/tests/common/mod.rs`.
