@@ -116,6 +116,18 @@ pub struct SpecItems {
     /// The frontmatter's `risk-tier` and `plan-review`, which an approval may change.
     pub risk_tier: Option<String>,
     pub plan_review: Option<bool>,
+    /// The risk tiers an approval may pick, from the least risk to the most.
+    pub tiers: Vec<TierChoice>,
+}
+
+/// A risk tier an approval may pick, and whether the plan then waits for the human's review,
+/// unless the human says otherwise.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TierChoice {
+    pub value: String,
+    pub plan_review: bool,
 }
 
 #[cfg_attr(feature = "napi", napi(object))]
@@ -207,6 +219,7 @@ pub fn items(name: &str, text: &str, doc: &Document) -> Items {
                 Some(frontmatter::Value::Bool(value)) => Some(*value),
                 _ => None,
             });
+            spec.tiers = super::spec::tier_choices(spec.risk_tier.as_deref(), spec.plan_review);
             items.spec = Some(spec);
         }
         Some(FileKind::Plan) => items.plan = Some(PlanItems { tasks: tasks(doc) }),

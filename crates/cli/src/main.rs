@@ -92,7 +92,9 @@ enum Command {
         #[arg(long)]
         summary: Option<String>,
         /// Change the spec's risk tier on approval: low, medium, or high
-        #[arg(long)]
+        #[arg(long, value_parser = clap::builder::PossibleValuesParser::new(
+            uraeda_core::files::spec::risk_tiers(),
+        ))]
         risk_tier: Option<String>,
         /// Whether the plan waits for your review: true or false; by default, the spec's value, or
         /// with a new --risk-tier, that tier's default (true for high)

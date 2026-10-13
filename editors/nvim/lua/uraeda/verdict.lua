@@ -8,8 +8,6 @@ local function client()
   return require("uraeda.client")
 end
 
-local tiers = { "low", "medium", "high" }
-
 local titles = {
   approve = "Approve",
   requestChanges = "Request changes",
@@ -66,14 +64,24 @@ local function close(win, buf)
   end
 end
 
+--- The index in `tiers` of the tier `value`, 0 when it is none of them.
+local function tier_index(tiers, value)
+  return vim.iter(ipairs(tiers)):find(function(_, choice)
+    return choice.value == value
+  end) or 0
+end
+
 --- Opens the window of `action` on `bufnr`, from its `uraeda/verdict`.
 local function show(bufnr, verdict, action)
   highlights()
   local tier = action == "approve" and verdict.riskTier or nil
+  -- The tiers the server offers, each with the plan review it gives by default.
+  local tiers = verdict.tiers or {}
   -- The values sent with the verdict, shown on their lines.
   local state = { tier = tier, plan = verdict.planReview }
   if tier and state.plan == nil then
-    state.plan = tier == "high"
+    local current = tiers[tier_index(tiers, tier)]
+    state.plan = current ~= nil and current.planReview
   end
   local blocked = action == "submit" and #verdict.blank > 0
 
@@ -206,12 +214,9 @@ local function show(bufnr, verdict, action)
   if tier then
     map("n", "<Tab>", function()
       local at = vim.api.nvim_win_get_cursor(win)[1] - 1
-      if at == row("tier") then
-        local index = vim.iter(ipairs(tiers)):find(function(_, value)
-          return value == state.tier
-        end) or 0
-        state.tier = tiers[index % #tiers + 1]
-        state.plan = state.tier == "high"
+      if at == row("tier") and #tiers > 0 then
+        local next = tiers[tier_index(tiers, state.tier) % #tiers + 1]
+        state.tier, state.plan = next.value, next.planReview
         set_line("tier", "Risk tier    " .. choice(state.tier))
         set_line("plan", "Plan review  " .. choice(state.plan))
       elseif at == row("plan") then

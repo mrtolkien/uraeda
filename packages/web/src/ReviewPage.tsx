@@ -182,7 +182,7 @@ export function ReviewPage({ file }: { file: File }) {
   const lastElement = useRef<HTMLElement>(null);
   const sheet = useRef<HTMLDivElement>(null);
   const [summary, setSummary] = useState("");
-  const [tier, setTier] = useState(spec?.riskTier ?? "low");
+  const [tier, setTier] = useState(spec?.riskTier ?? spec?.tiers[0]?.value ?? "");
   const [planReview, setPlanReview] = useState<boolean>();
   const [error, setError] = useState<Refusal>();
   const [message, setMessage] = useState<{ text: string; ok: boolean }>();
@@ -397,9 +397,9 @@ export function ReviewPage({ file }: { file: File }) {
       </div>
     );
 
+  // The plan review the core gives the tier picked, unless the human set it.
   const plannedReview =
-    planReview ??
-    (tier !== spec?.riskTier ? tier === "high" : (spec?.planReview ?? tier === "high"));
+    planReview ?? spec?.tiers.find((choice) => choice.value === tier)?.planReview ?? false;
 
   return (
     <Page>
@@ -519,9 +519,13 @@ export function ReviewPage({ file }: { file: File }) {
               value={tier}
               onChange={(value: string) => setTier(value)}
             >
-              <SegmentedControlItem value="low" label="low" />
-              <SegmentedControlItem value="medium" label="medium" />
-              <SegmentedControlItem value="high" label="high" />
+              {spec?.tiers.map((choice) => (
+                <SegmentedControlItem
+                  key={choice.value}
+                  value={choice.value}
+                  label={choice.value}
+                />
+              ))}
             </SegmentedControl>
             <Switch
               label="The plan waits for your review"
