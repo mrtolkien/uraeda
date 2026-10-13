@@ -446,6 +446,74 @@ fn approving_records_the_block_and_commits() {
     assert_eq!(repo.porcelain(), "");
 }
 
+/// Final review: a verdict is refused when the open spec is not the one on disk, as when another
+/// process committed a revised spec behind the buffer: the human never saw what would be approved.
+#[test]
+fn a_verdict_is_refused_on_a_version_not_open() {
+    let (repo, path) = feature("awaiting-human");
+    let opened = std::fs::read_to_string(&path).unwrap();
+    let mut session = start(repo.path());
+    session.open(&path, &opened);
+    repo.write(
+        &format!("{NVIM}/spec.md"),
+        &opened.replace("## Edge cases", "## Edge cases, revised"),
+    );
+    repo.commit("spec(nvim-plugin): revise the spec");
+
+    for (command, args) in [
+        (
+            "uraeda.approve",
+            json!({ "uri": uri(&path), "riskTier": "medium" }),
+        ),
+        ("uraeda.requestChanges", json!({ "uri": uri(&path) })),
+    ] {
+        let error = session.command(command, args).unwrap_err();
+        assert_eq!(
+            error.message,
+            "spec.md changed since it was opened: reload it and review it again."
+        );
+        assert_eq!(error.data, Some(json!({ "code": "refused" })));
+    }
+    assert_eq!(
+        repo.subjects(BRANCH)[0],
+        "spec(nvim-plugin): revise the spec"
+    );
+
+    // Once the buffer has the disk's text, the verdict goes through.
+    session.change(&path, &std::fs::read_to_string(&path).unwrap());
+    session
+        .command(
+            "uraeda.approve",
+            json!({ "uri": uri(&path), "riskTier": "medium" }),
+        )
+        .unwrap();
+    assert_eq!(repo.subjects(BRANCH)[0], "spec(nvim-plugin): approve");
+}
+
+/// Final review: a round is not submitted when its open text is not the one on disk.
+#[test]
+fn a_round_is_refused_on_a_version_not_open() {
+    let round = clarifications("awaiting-human", "2 questions.", &["A", "B"]);
+    let (repo, _) = feature_with("awaiting-human", &[("clarifications-01.md", &round)]);
+    let path = repo.path().join(NVIM).join("clarifications-01.md");
+    let mut session = start(repo.path());
+    session.open(&path, &round);
+    repo.write(
+        &format!("{NVIM}/clarifications-01.md"),
+        &clarifications("awaiting-human", "2 questions.", &["A", "C"]),
+    );
+
+    let error = session
+        .command("uraeda.submit", json!({ "uri": uri(&path) }))
+        .unwrap_err();
+
+    assert_eq!(
+        error.message,
+        "clarifications-01.md changed since it was opened: reload it and check its answers again."
+    );
+    assert_eq!(repo.subjects(BRANCH)[0], "spec(nvim-plugin): spec");
+}
+
 /// US6.2
 #[test]
 fn changes_need_a_comment() {

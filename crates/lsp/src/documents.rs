@@ -42,11 +42,17 @@ impl Documents {
 
     /// The text of the file at `path`: its open document's, else the disk's.
     pub fn read(&self, path: &Path) -> Option<String> {
+        self.opened(path)
+            .map(str::to_string)
+            .or_else(|| fs::read_to_string(path).ok())
+    }
+
+    /// The text of the open document of the file at `path`, if one is open.
+    pub fn opened(&self, path: &Path) -> Option<&str> {
         self.texts
             .iter()
             .find(|(uri, _)| self.path(uri).as_deref() == Some(path))
-            .map(|(_, text)| text.clone())
-            .or_else(|| fs::read_to_string(path).ok())
+            .map(|(_, text)| text.as_str())
     }
 
     /// The file a `file:` URI names, with symbolic links resolved when it exists.
