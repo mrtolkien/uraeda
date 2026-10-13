@@ -39,8 +39,8 @@ test("no package depends on a markdown parser, and no source imports one", () =>
     for (const file of statSync(source, { throwIfNoEntry: false }) ? files(source) : []) {
       const text = readFileSync(file, "utf8");
       // The stack decision lets an agent's messages, which are not workflow files, render with
-      // Astryx's `Markdown`: the run log alone does.
-      const agentMessages = file.endsWith(join("web", "src", "RunLog.tsx"));
+      // Astryx's `Markdown`: the transcript alone does.
+      const agentMessages = file.endsWith(join("web", "src", "Transcript.tsx"));
       for (const parser of [
         ...PARSERS,
         ...(agentMessages ? [] : ["@astryxdesign/core/Markdown"]),
