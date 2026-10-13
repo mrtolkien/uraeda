@@ -1,6 +1,7 @@
 import {
   type ComponentProps,
   type MouseEvent,
+  type RefObject,
   useDeferredValue,
   useEffect,
   useLayoutEffect,
@@ -61,14 +62,15 @@ export function parseRoute(pathname: string): Route {
 }
 
 /**
- * What a history entry holds: its own id, the page's scroll position once left, the path of the
- * page it was opened from and that page's scroll position then, an open overlay's label (see
- * `layout/Overlay.tsx`), and the groups of tool calls opened in a session's transcript, by
- * their turn and first call.
+ * What a history entry holds: its own id, the page's scroll position once left, the detail pane's
+ * scroll position on wide screens (see `layout/Panes.tsx`), the path of the page it was opened
+ * from and that page's scroll position then, an open overlay's label (see `layout/Overlay.tsx`),
+ * and the groups of tool calls opened in a session's transcript, by their turn and first call.
  */
 export type Entry = {
   id?: string;
   scroll?: number;
+  pane?: number;
   from?: string;
   opener?: number;
   overlay?: string;
@@ -106,10 +108,16 @@ function saveScroll() {
   window.history.replaceState({ ...entry(), scroll: window.scrollY }, "");
 }
 
-/** Opens a page of the UI: the position on the current one is saved first, for Back. */
+/** What saves a position of the page other than the window's, like the detail pane's. */
+const savers = new Set<() => void>();
+
+/** Opens a page of the UI: the positions on the current one are saved first, for Back. */
 export function navigate(path: string, state?: { from?: string }) {
   const opener = window.scrollY;
   saveScroll();
+  for (const save of savers) {
+    save();
+  }
   window.history.pushState({ ...state, opener, id: newId() }, "", path);
   window.scrollTo?.(0, 0);
   window.dispatchEvent(new Event(CHANGE));
@@ -164,6 +172,46 @@ export function useRestoreScroll(ready: boolean) {
       window.removeEventListener("pagehide", save);
     };
   }, []);
+}
+
+/**
+ * Restores the scroll position of an element that scrolls on its own, like the detail pane beside a
+ * list, saved in the page's history entry, once `enabled`; and keeps it saved, as the window's is:
+ * when a page of the UI opens, on `pagehide`, and at most every 500 ms while scrolling.
+ */
+export function useRestorePaneScroll(ref: RefObject<HTMLElement | null>, enabled: boolean) {
+  // The entry this pane was drawn on, as `useRestoreScroll` keeps it.
+  const id = useRef(entry().id);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!enabled || !element) {
+      return;
+    }
+    const { pane } = entry();
+    if (entry().id === id.current && typeof pane === "number") {
+      element.scrollTop = pane;
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const save = () => {
+      clearTimeout(timer);
+      timer = undefined;
+      if (entry().id === id.current) {
+        updateEntry({ pane: element.scrollTop });
+      }
+    };
+    const onScroll = () => {
+      timer ??= setTimeout(save, 500);
+    };
+    element.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("pagehide", save);
+    savers.add(save);
+    return () => {
+      clearTimeout(timer);
+      savers.delete(save);
+      element.removeEventListener("scroll", onScroll);
+      window.removeEventListener("pagehide", save);
+    };
+  }, [ref, enabled]);
 }
 
 function subscribe(onChange: () => void) {
