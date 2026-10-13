@@ -1,8 +1,8 @@
 # Plan
 
-Turns the approved spec into an implementation plan: bite-sized tasks, each with its exact files,
-interfaces, failing tests as code, commands, and commit, written for an agent who has seen neither
-the codebase nor the spec.
+Turns the approved spec into an implementation plan: bite-sized tasks, with their responsibilities,
+required interfaces, behavioural tests, commands, and commits, written for an agent who has seen
+neither the codebase nor the spec.
 
 - **Runs when**: `spec.md` is `approved` and its decisions are active, and there is no `plan.md`, or
   its `spec-revision` is lower than the spec's `revision`; or `plan.md` is `changes-requested`
@@ -19,15 +19,15 @@ and complexity tracking.
 ## Overview
 
 Write the plan for an engineer who has not seen this codebase or this spec. Assume they write
-idiomatic code in the project's language once they know the exact interface and the exact test, and
-that they will make a reasonable choice wherever the plan leaves one open. What they cannot know is
-what you decided: which files, which names and signatures, which values from the spec, which tests
-prove each task. Document those. Give them the whole plan as bite-sized tasks. DRY. YAGNI. Tests
-first. Frequent commits.
+idiomatic code in the project's language once they know the required behaviour and interfaces.
+Document what they cannot infer: the approved constraints, who owns each responsibility, contracts
+between tasks, and the tests that prove the change and preserve existing behaviour. Public and
+cross-task contracts need exact names and signatures; private helpers and internal decomposition can
+evolve when implementation reveals a simpler design within those contracts.
 
 In Uraeda, this is literally true: the implementation runs later, often in another session, often by
-another agent, and each task may go to a fresh agent that sees only that task. Anything you leave
-out, they guess.
+another agent, and each task may go to a fresh agent that sees only that task. Give each task the
+context it needs without prescribing choices the implementer can make from the code.
 
 ## Read first
 
@@ -38,7 +38,10 @@ out, they guess.
    spec, start a new round of questions, following
    [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
 3. `spec-review.md`, when the spec was approved with comments: the plan carries out each one, and
-   says how in its `## Review comments` section. The approved spec is not changed for them.
+   says how in its `## Review comments` section. A human's approval comment supersedes the spec's
+   clause it explicitly changes; the approved spec is not changed for it. Read them together as the
+   approved behaviour. Conflicts with the constitution or active decisions still need the human's
+   explicit resolution.
 4. The discovery files of every round: their map of the code is your starting point.
 5. The code itself: its structure and patterns, the test setup and existing helpers, every place
    that reads or writes data the feature changes, and the commands that validate the project
@@ -60,12 +63,20 @@ own.
 ## File structure
 
 Before defining tasks, map out which files will be created or modified, and what each one is
-responsible for. This is where the decomposition decisions get locked in.
+responsible for. Record the ownership and interfaces later tasks rely on; refine private details
+when the implementation shows a better fit.
 
-- Design units with clear boundaries and well-defined interfaces. Each file has one clear
-  responsibility.
-- You reason best about code you can hold in context at once, and edits are more reliable when files
-  are focused. Prefer smaller, focused files over large ones that do too much.
+- Trace the changed rules and data through their readers, writers, and entry points. Identify what
+  changes and what must remain true, including existing validation, failure behaviour, and
+  compatibility. A shared guarantee needs one enforcement point used by all its callers, or an
+  explanation of why separate enforcement is necessary and how it stays consistent.
+- Give state transitions and business rules an explicit owner. For asynchronous or multi-process
+  work, distinguish authoritative state from local or cached views, and say who may modify it. For
+  resources, name who acquires and releases them on success, failure, and cancellation; this applies
+  to test fixtures too.
+- Split by responsibility and the decisions each unit hides from its callers. Check where a likely
+  change would belong: would it require editing the same rule in several places, or understanding
+  unrelated responsibilities? File length alone does not answer that question.
 - Files that change together live together. Split by responsibility, not by technical layer.
 - In an existing codebase, follow its established patterns. If it uses large files, do not
   restructure it unilaterally; but if a file you are modifying has grown unwieldy, a targeted split
@@ -74,8 +85,10 @@ responsible for. This is where the decomposition decisions get locked in.
   (rendering the app, seeding the store, setting the clock), so each test stays a few lines long.
   The spec's [Tests](spec.md#tests) rules apply: integration tests by default, Arrange, Act, Assert.
 
-This structure informs the task decomposition. Each task produces self-contained changes that make
-sense on their own.
+Put the ownership in **Architecture**, the affected callers in **Code read**, preserved guarantees
+in **Global constraints**, and the risky sequences in **Review focus** and their tasks. Scale this
+analysis to the change; no separate document is needed. Each task produces self-contained changes
+that make sense on their own.
 
 ## Task right-sizing
 
@@ -118,21 +131,22 @@ spec-revision: [the spec's revision]
 
 **Goal:** [One sentence on what this builds]
 
-**Architecture:** [Two or three sentences on the approach, linking to the spec's design]
+**Architecture:** [The approach, ownership of changed rules, state, and resources, and the
+boundaries tasks rely on, linking to the spec's design. Scale the detail to the change.]
 
 **Spec:** [spec.md](spec.md): the plan argues from the spec, so the implementer reads both.
 
 ## Review focus
 
-[The five input classes or failure modes the spec implies but no task's tests would otherwise
-exercise, most likely to bite a person using this software first, one line each: the input or
-condition, the behaviour a reasonable person would expect, and the task whose tests cover it.]
+[The most consequential input classes or failure modes the spec implies but no task's tests would
+otherwise exercise, including interactions with existing behaviour: the condition or sequence, the
+expected behaviour, and the task whose tests cover it.]
 
 ## Global constraints
 
-[The project-wide rules every task must follow, one line each, copied word for word from the
-decisions and the spec, with their source: formats, limits, exact user-facing text, names, timings.
-Every task's requirements implicitly include this section.]
+[The rules every task must follow, including existing guarantees the change must preserve, with
+their sources. Copy approved rules word for word: formats, limits, exact text, names, timings. Every
+task's requirements implicitly include this section.]
 
 ## Code read
 
@@ -169,8 +183,11 @@ What goes in each section:
   behaviours the plan adds to the spec, which is why they come first, and why the review block
   always mentions them. A review-focus item never narrows a rule of the spec: a new limit, like a
   maximum length or count, is a question for the human, not a review-focus item.
-- **Global constraints**: copy, do not paraphrase. When a decision says "Components MUST NOT call
-  IndexedDB or the `idb` library directly", the plan says exactly that.
+- **Global constraints**: copy approved rules, do not paraphrase. When a decision says "Components
+  MUST NOT call IndexedDB or the `idb` library directly", the plan says exactly that. When an
+  approval comment replaces a spec clause, use that comment with its source, and explain the
+  replacement in **Review comments**; do not also carry the superseded rule as a constraint. For an
+  existing guarantee established by code and tests, describe it and link the evidence.
 - **Code read**: claims about the code rest on this section. Name the test setup and its layout, the
   validation commands, and every place that reads or writes data the feature changes.
 - **Constitution check**: a table with one row per principle, all of them: principles always apply.
@@ -182,7 +199,8 @@ What goes in each section:
 - **Complexity tracking**: every new abstraction, meaning a type, module, layer, wrapper, or helper
   shared by several parts, tests included, even when the spec's design introduced it; and every
   constitution exception the human accepted. Each row says why it is needed, and the simpler
-  alternative rejected. "None." when there is none.
+  alternative rejected. Name the callers, shared rule, or approved variation it serves: unspecified
+  future features do not justify an abstraction. "None." when there is none.
 
 Add `data-model.md` when the feature adds or changes entities beyond a few fields: fields,
 relationships, validation rules, state transitions. Smaller changes stay in the spec's **Data**
@@ -231,8 +249,9 @@ test("a weekly task completed on its due date moves a week later", async () => {
 - [ ] **Step 3: Implement `completeTask(id: string): Promise<{ previousDueDate: CalendarDay }>` in
       `src/store/tasks.ts`**
 
-[One line on the approach when the signature and the tests leave a choice: which library call, which
-data structure. A code block only for an algorithm they do not determine.]
+[The responsibility and required behaviour, with exact signatures for public or cross-task
+contracts. Explain an algorithm when correctness depends on it; leave private implementation choices
+to the implementer.]
 
 - [ ] **Step 4: Run all tests**
 
@@ -253,20 +272,21 @@ run step. Keep one action per step.
 
 ## What a step contains
 
-A step is done when the implementer can write exactly one reasonable thing from it. That is the
-whole requirement: unambiguous, not complete. Each kind of step carries what makes it unambiguous,
-and nothing more:
+A step is done when its outcome and required contracts can be checked. Several implementations may
+meet them. State the decisions and evidence the implementer needs, and leave room to choose a
+simpler private design from what the code shows:
 
 - **A test step**: the tests' names and their assertions, as code, with the spec's exact values in
-  them. Integration tests by default, short, Arrange, Act, Assert, on the shared helpers. The step
-  also creates the helpers its tests use, so the first failure is about the feature, not a missing
-  helper.
+  them, including the human's approval comments. Derive expectations from the approved behaviour,
+  independently of the proposed implementation. Integration tests by default, short, Arrange, Act,
+  Assert, on the shared helpers. The step also creates the helpers its tests use, so the first
+  failure is about the feature, not a missing helper. Checks of preserved behaviour may already pass
+  before the change.
 - **A run step**: the command to run, and the output that means it worked. For a failing run, the
   first failure the run will actually hit: not "the test fails", but the message.
-- **A code step**: the exact signature (name, parameters, return type), the file it lives in, and
-  the specific values the spec pins. The implementer writes the body. A body appears only for an
-  algorithm the signature and tests do not determine, like date arithmetic, or for exact text the
-  spec fixes.
+- **A code step**: the responsibility, the files it belongs in, the specific values the spec pins,
+  and exact signatures where callers or other tasks rely on them. Do not prescribe private helpers
+  or function bodies unless a particular algorithm is needed for correctness, like date arithmetic.
 - **A commit step**: the files to add, and the message, following [Commits](../SKILL.md#commits).
 - **A reference to another task**: that task's Interfaces block says what to use. The plan does not
   repeat that task's code.
@@ -284,29 +304,33 @@ fix what you find inline. This is a checklist you run yourself.
 1. **Spec coverage**: skim each user story, acceptance scenario, edge case, success criterion, line
    of the **Testing** table, and global constraint. Can you point to a task and a test that asserts
    it, exact text and timings included? Add a task for any requirement without one.
-2. **Step scan**: every step lets the implementer write exactly one reasonable thing, and no step
-   carries more than that. A line that decides nothing is a gap; a function body the signature and
-   tests already determine is a transcript. Fix both. An algorithm the tests do not pin down is
-   written out.
-3. **Expected values**: work out every value a test expects from the plan's own algorithm, by hand.
-   Follow each edge case over two consecutive occurrences, not one: a month-end clamp that holds
-   once can drift the second time.
+2. **Step scan**: every step has a checkable outcome and the contracts its neighbours need. A line
+   that decides nothing is a gap; private code the implementer can choose is unnecessary
+   prescription. Fix both. Explain an algorithm when correctness depends on it.
+3. **Expected values**: work out each test's expectation from the approved rules, then check the
+   proposed algorithm against it. Follow stateful cases across successive operations and relevant
+   failure paths: a month-end clamp that holds once can drift the second time. Which plausible
+   incorrect behaviour would each important test detect?
 4. **Type consistency**: the types, signatures, and names used in later tasks match what earlier
    tasks define. A function called `clearLayers()` in task 3 but `clearFullLayers()` in task 7 is a
    bug. A task that changes the behaviour of an existing function declares it in **Produces**. No
    two functions share a name, test helpers included.
 5. **Review focus**: for each input class or failure mode the spec implies, is there a task whose
-   tests exercise it? The five uncovered ones most likely to bite a person go in **Review focus**,
-   each with its test added to the owning task. An empty section means you checked and found none,
-   not that you skipped the check.
+   tests exercise it? The most consequential uncovered ones go in **Review focus**, each with its
+   test added to the owning task. An empty section means you checked and found none, not that you
+   skipped the check.
 6. **Order**: each task can be built and tested with what the earlier tasks made, and each expected
    failure is the first one its run will actually hit.
 7. **Proportion**: compare the plan's length to the code it describes. If code blocks are most of
-   the document, replace bodies with signatures, test names, and assertions, and check that each
-   step is still unambiguous.
+   the document, replace private bodies with responsibilities, required contracts, test names, and
+   assertions. Keep instructions that change a decision or make an outcome checkable; link shared
+   context rather than repeating it in tasks.
 8. **The spec itself**: when two of its sections disagree, or an edge case cannot be met with its
    data, do not pick one: stop, as described in
    [Stopping to go back to the human](#stopping-to-go-back-to-the-human).
+9. **Ownership and change cost**: each changed rule and resource has an owner, its affected callers
+   are covered, and the necessary simplification stays within the feature. Justify any duplicated
+   enforcement or new indirection through a concrete constraint or approved need.
 
 ## Rulings while planning
 

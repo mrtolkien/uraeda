@@ -24,12 +24,18 @@ edited, or renamed. The edit panel, the custom screen, and the title parser all 
 `RepeatPattern`, which the store turns into a `RepeatRule` with its starting date. See the
 [spec's design](spec.md#design).
 
+The date module owns calendar arithmetic; the repeat module owns recurrence rules; the store owns
+transactions and applies those rules for every entry point. Components keep only the confirmation
+and undo state, and never calculate or save a next date themselves. The test helpers own the
+database, clock, and timezone setup and restore or close them after each test. A later preset should
+produce another `RepeatPattern`, without adding another scheduling implementation.
+
 **Spec:** [spec.md](spec.md): the plan argues from the spec, so the implementer reads both.
 
 ## Review focus
 
-Inputs the spec does not mention, most likely to bite a user first. Each gets a test in the task
-that owns the code.
+The most consequential conditions or sequences the spec implies but does not name, including
+interactions with existing behaviour. Each gets a test in the task that owns the code.
 
 1. **A double click on a repeating task's checkbox** moves it once: clicks while the confirmation
    shows are ignored. Task 2.
@@ -43,6 +49,11 @@ that owns the code.
 ## Global constraints
 
 From the decisions and the spec, word for word. Every task's requirements include these.
+
+Existing behaviour to preserve, from [the store](/src/store/tasks.ts): completing a task without a
+repeat marks it done. Task 2 checks this through the app on an upgraded task. The spec's
+[error handling](spec.md#error-handling) also requires a failed save to keep the previous due date;
+task 2 checks that together with the error shown.
 
 From [due dates](../decisions/due-dates.md):
 
@@ -166,7 +177,8 @@ The decisions this plan relies on, and where it follows them:
 The helpers: `tests/setup.ts` imports `fake-indexeddb/auto`, with a fresh `IDBFactory` before each
 test. `renderApp` sets `process.env.TZ`, fakes the clock with `vi.setSystemTime`, writes the seed
 tasks to the database directly, then starts the app. `versionOneDatabase` writes tasks as version 1
-saved them. `loggedWarnings` spies on `console.warn`.
+saved them. `loggedWarnings` spies on `console.warn`. Teardown unmounts the app, closes database
+connections, and restores the timezone, timers, and spies, even when a test fails.
 
 ```tsx
 // tests/recurring-tasks/upgrade.test.tsx
@@ -349,6 +361,11 @@ test("deleting a repeating task ends it", async () => {
 
 Also in `tests/recurring-tasks/upgrade.test.tsx`: a task upgraded from version 1 does not repeat:
 completing it marks it done.
+
+The expected dates come from the approved schedule rules, independently of `nextDueDate`. The
+month-end test follows two completions so that adding a month to the previous date, which produces
+December 30, cannot pass. The failed-save test checks both the error and the unchanged due date; the
+non-repeating completion check preserves existing behaviour and already passes before this task.
 
 - [x] **Step 2: Run them to check they fail**
 
@@ -682,9 +699,10 @@ test.each(["Gym", "Gym every so often", "Gym every 0 days", "every monday"])(
 
 - [x] **Step 3: Implement**
 
-`parseRepeat`: one regular expression, case-insensitive, anchored at the end of the title, ignoring
-a final period, for the phrases in the table, with any whole number from 1 as the interval.
-`createTask` and `renameTask` call it before saving, then `setRepeat` with the pattern.
+`parseRepeat` recognizes the table's phrases case-insensitively at the end of the title, ignoring a
+final period, with any whole number from 1 as the interval. Unrecognized phrases and titles made
+only of a repeat phrase stay unchanged. `createTask` and `renameTask` call it before saving, then
+`setRepeat` with the pattern; the parser's private implementation is left to the implementer.
 
 - [x] **Step 4: Run all tests**
 
