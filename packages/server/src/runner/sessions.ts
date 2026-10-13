@@ -421,8 +421,9 @@ export class Sessions {
   takeBack(repo: string, session: string, message: string): void {
     const live = this.#liveOf(this.#ownNow(repo, session));
     const sent = live.messages.get(message);
+    // A message no longer kept belongs to a turn that ended with nothing left to read.
     if (!sent) {
-      throw new Error(`no message ${message} in session ${session}`);
+      throw refused(REFUSALS.read);
     }
     if (sent.item.state === "taken-back") {
       return;
