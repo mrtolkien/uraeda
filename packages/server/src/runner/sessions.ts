@@ -734,6 +734,12 @@ export class Sessions {
       }
       return;
     }
+    // Stop, or a take-back, may have ended it while the process opened: the next one starts, or
+    // the idle timer does.
+    if (live.queue[0] !== queued) {
+      this.#next(live);
+      return;
+    }
     live.queue.shift();
     this.cache.startTurn(queued.id);
     if (replaced) {

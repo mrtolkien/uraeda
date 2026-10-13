@@ -12,9 +12,10 @@ export function flush() {
 
 /**
  * A session manager on the fake adapter, an in-memory cache, and the real binding, checked once.
- * Its timers are fake: a test moves them with `vi.advanceTimersByTime`.
+ * Its timers are fake: a test moves them with `vi.advanceTimersByTime`. `binding` replaces the real
+ * one, as to hold a call.
  */
-export async function testSessions(repo = fixtureRepo()) {
+export async function testSessions(repo = fixtureRepo(), { binding: through = binding } = {}) {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   const adapter = new FakeAdapter();
   const cache = SessionCache.open(":memory:");
@@ -22,7 +23,7 @@ export async function testSessions(repo = fixtureRepo()) {
   const sessions = new Sessions({
     adapter,
     cache,
-    binding,
+    binding: through,
     onChange: (change) => changes.push(change),
   });
   await sessions.check();
