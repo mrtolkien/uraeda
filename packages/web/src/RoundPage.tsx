@@ -21,7 +21,7 @@ import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { GrowingTextArea, PendingSaves, Question, statusStyles } from "./Question.tsx";
 import { jumpTo, type NavQuestion, RoundNav } from "./RoundNav.tsx";
-import { startRun, type Started } from "./sessions.ts";
+import { handOver } from "./sessions.ts";
 import { plain } from "./Spans.tsx";
 import { useRoundPosition } from "./useRoundPosition.ts";
 import { useSave } from "./useSave.ts";
@@ -99,9 +99,8 @@ export function RoundPage({ file }: { file: File }) {
   const readOnly = file.status !== "awaiting-human";
   const [notes, setNotes] = useState(round?.notes ?? "");
   const [error, setError] = useState<Refusal>();
-  // Whether the last commit asked to continue, for its Try again.
+  // Whether the last commit asked to start the agent, for its Try again.
   const continues = useRef(false);
-  const [started, setStarted] = useState<Started>();
   const pending = useRef(new Set<() => Promise<boolean>>()).current;
   const notesSave = useSave<string>(async (value, previous) => {
     const result = await fate.mutations.notes.save({
@@ -163,13 +162,10 @@ export function RoundPage({ file }: { file: File }) {
       ?.focus({ preventScroll: true });
   };
 
-  /** Starts the agent on the next step, once the round is committed. */
-  const proceed = async () => {
-    setStarted(await startRun(fate, { folder: file.folder, trigger: "answers", file: file.name }));
-  };
+  /** Hands the feature over to the agent, once the round is committed. */
+  const proceed = () => handOver(file.folder, "answers", file.name);
   const submit = async (next: boolean) => {
     setError(undefined);
-    setStarted(undefined);
     continues.current = next;
     // What is still being typed is saved first, and nothing is submitted unless it all is.
     const saved = await Promise.all([...[...pending].map((flush) => flush()), notesSave.flush()]);
@@ -188,7 +184,7 @@ export function RoundPage({ file }: { file: File }) {
     if (result.error) {
       setError(refusal(result.error));
     } else if (next) {
-      await proceed();
+      proceed();
     }
   };
   const retry = async () => {
@@ -198,7 +194,7 @@ export function RoundPage({ file }: { file: File }) {
     });
     setError(result.error ? refusal(result.error) : undefined);
     if (!result.error && continues.current) {
-      await proceed();
+      proceed();
     }
   };
 
@@ -290,12 +286,6 @@ export function RoundPage({ file }: { file: File }) {
           )}
           <CommitActions label="Submit answers" isDisabled={blank.length > 0} onCommit={submit} />
         </VStack>
-      )}
-      {/* After the commit, the round is read-only: the run's status stays in view under it. */}
-      {started && (
-        <span {...stylex.props(started.ok ? statusStyles.saved : statusStyles.error)}>
-          {started.message}
-        </span>
       )}
     </>
   );

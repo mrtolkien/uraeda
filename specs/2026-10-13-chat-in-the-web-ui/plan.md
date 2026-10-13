@@ -983,7 +983,7 @@ git commit -m "feat(chat-in-the-web-ui): sessions in the sidebar, with their sta
   the composer from `useWorkflowMessage`, and sends with `workflow: {trigger, file}`.
   `CommitActions`' default `continueLabel` is "Commit and start the agent" (C2).
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
   - US2.1 "Commit and start the agent commits, then opens the session with the message, unsent": on
     `2026-10-11-web-ui`'s round, answer, press "Commit and start the agent"; the round is committed
     (`git log` shows "discovery(web-ui): answer round 01"); the composer holds the three lines; the
@@ -997,18 +997,18 @@ git commit -m "feat(chat-in-the-web-ui): sessions in the sidebar, with their sta
     the agent" and "Try again" open the session with the message; no "Runs" list.
   - US2.3 "a run ending at a gate shows its closing text last, and Needs you".
   - US5.1 "a blocked action shows Allow and retry, and Needs you".
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `vp test packages/web/src/__tests__/agent-panel.test.tsx packages/web/src/__tests__/commit-actions.test.tsx`
 - Expected: FAIL, no button "Commit and start the agent"
 
-- [ ] **Step 3: Implement them**: callers of `startRun` call `handOver` after their commit; the
+- [x] **Step 3: Implement them**: callers of `startRun` call `handOver` after their commit; the
       `continueLabel`s change as C2 says; `AgentPanel` shows `StatusMark`, the latest turn's step
       and time, the cost, Stop while working, "Open the session", and "Start the agent" or "Try
       again" (both `handOver(folder, "manual")`), and drops the runs list.
-- [ ] **Step 4: Run all tests**: `vp check && vp test`, PASS, with no skipped test left from task 8.
-- [ ] **Step 5: Commit**
+- [x] **Step 4: Run all tests**: `vp check && vp test`, PASS, with no skipped test left from task 8.
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src

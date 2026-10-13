@@ -17,7 +17,7 @@ import { discoveryOf, LEVELS, withDiscovery, type Level } from "./discovery.ts";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
 import { navigate, useRestoreScroll } from "./routes.tsx";
-import { startRun } from "./sessions.ts";
+import { handOver } from "./sessions.ts";
 import { useSave } from "./useSave.ts";
 import { DraftView, FeatureView } from "./views.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
@@ -142,12 +142,7 @@ export function EditorPage({ path }: { path: string }) {
     }
     const folder = folderOf(path);
     if (continues && folder) {
-      const started = await startRun(fate, {
-        folder,
-        trigger: "proposal",
-        file: path.split("/").at(-1),
-      });
-      setMessage({ text: started.message, ok: started.ok });
+      handOver(folder, "proposal", path.split("/").at(-1));
     } else {
       setMessage({ text: "Committed.", ok: true });
     }
@@ -166,11 +161,11 @@ export function EditorPage({ path }: { path: string }) {
       setMessage({ text: refusal(result.error).message, ok: false });
     } else if (typeof result.result?.folder === "string") {
       const folder = result.result.folder;
-      // A refused run leaves "Start the agent" on the feature's page.
       if (continues) {
-        await startRun(fate, { folder, trigger: "start" });
+        handOver(folder, "start");
+      } else {
+        navigate(`/f/${folder}`);
       }
-      navigate(`/f/${folder}`);
     }
   };
   /** Reads the file again, and puts its text in place of the one that was not saved. */
@@ -316,7 +311,7 @@ export function EditorPage({ path }: { path: string }) {
             <TextInput label="Slug" value={slug} onChange={(value: string) => setSlug(value)} />
             <CommitActions
               label="Start the feature"
-              continueLabel="Start and continue"
+              continueLabel="Start the feature and the agent"
               onlyLabel="Start only"
               onCommit={start}
             />

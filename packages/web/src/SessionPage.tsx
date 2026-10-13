@@ -7,18 +7,18 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
-import type { SessionStatus as Status } from "uraeda-server/fate";
+import type { SessionStatus as Status, Trigger } from "uraeda-server/fate";
 import { Composer } from "./Composer.tsx";
 import { Crumbs } from "./Crumbs.tsx";
-import { useAgent, useFeature, useSession } from "./data.ts";
+import { useAgent, useFeature, useSession, useWorkflowMessage } from "./data.ts";
 import { EditableLine } from "./EditableLine.tsx";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { statusStyles } from "./Question.tsx";
-import { navigate, useRestoreScroll } from "./routes.tsx";
+import { navigate, redirect, useRestoreScroll, useSearch } from "./routes.tsx";
 import { StatusMark } from "./StatusMark.tsx";
 import { Transcript, useFollowEnd, useOpenGroups } from "./Transcript.tsx";
 import { SessionView } from "./views.ts";
@@ -104,8 +104,28 @@ function Header({
 /** The composer's text, kept by the view while its session is created under it. */
 type Draft = [string, (update: string | ((now: string) => string)) => void];
 
+/**
+ * What a feature's session was opened for: the workflow's message, while the composer holds it,
+ * or why there is none; and what follows a sent message.
+ */
+type Handing = {
+  workflow?: { trigger: Trigger; file?: string };
+  notice?: string;
+  onSent?: (session: string) => void;
+};
+
 /** A session that exists: its header, its transcript, and its composer. */
-function Session({ id, crumbs, draft }: { id: string; crumbs?: string; draft: Draft }) {
+function Session({
+  id,
+  crumbs,
+  draft,
+  handing = {},
+}: {
+  id: string;
+  crumbs?: string;
+  draft: Draft;
+  handing?: Handing;
+}) {
   const fate = useFateClient();
   const session = useSession(id);
   const groups = useOpenGroups();
@@ -192,7 +212,7 @@ function Session({ id, crumbs, draft }: { id: string; crumbs?: string; draft: Dr
         {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
       </VStack>
       <div {...stylex.props(styles.composer)}>
-        <Composer session={id} working={working} value={text} onChange={setText} />
+        <Composer session={id} working={working} value={text} onChange={setText} {...handing} />
       </div>
     </Page>
   );
@@ -207,12 +227,14 @@ function NoSession({
   folder,
   crumbs,
   draft: [text, setText],
+  handing = {},
   onSent,
 }: {
   title: string;
   folder?: string;
   crumbs?: string;
   draft: Draft;
+  handing?: Handing;
   onSent: (session: string) => void;
 }) {
   return (
@@ -227,20 +249,73 @@ function NoSession({
           {...(folder === undefined ? {} : { folder })}
           value={text}
           onChange={setText}
-          onSent={onSent}
+          {...handing}
+          onSent={(session) => {
+            onSent(session);
+            handing.onSent?.(session);
+          }}
         />
       </div>
     </Page>
   );
 }
 
-/** A feature's session: created with its first message, which this view sends. */
+/** The workflow's message an address asks for: `?continue=<trigger>&file=<file>`. */
+function useHandOver(search: string): { trigger: Trigger; file?: string } | undefined {
+  const params = new URLSearchParams(search);
+  const trigger = params.get("continue");
+  const file = params.get("file");
+  return trigger ? { trigger: trigger as Trigger, ...(file ? { file } : {}) } : undefined;
+}
+
+/** Reads the workflow's message for a feature, and gives it, or its refusal, to the page. */
+function WorkflowMessage({
+  folder,
+  workflow,
+  onRead,
+}: {
+  folder: string;
+  workflow: { trigger: Trigger; file?: string };
+  onRead: (message: { text: string; refusal: string | null }) => void;
+}) {
+  const message = useWorkflowMessage(folder, workflow.trigger, workflow.file);
+  const text = message?.text;
+  const refusal = message?.refusal;
+  useEffect(() => {
+    if (text !== undefined && refusal !== undefined) {
+      onRead({ text, refusal });
+    }
+    // Once per message read: `onRead` is a new function at each draw.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, refusal]);
+  return null;
+}
+
+/**
+ * A feature's session: created with its first message, which this view sends. Opened to hand the
+ * feature over (`?continue=<trigger>&file=<file>`), its composer starts with the workflow's
+ * message, before what the human already typed, and Send reads "Start the agent" until it is sent.
+ */
 function FeatureSession({ folder }: { folder: string }) {
   const feature = useFeature(folder);
   const wide = useWidthClass() === "wide";
   // A session created here shows before the feature's live update names it.
   const [created, setCreated] = useState<string>();
   const draft = useState("");
+  const [, setText] = draft;
+  const search = useSearch();
+  const workflow = useHandOver(search);
+  // The refusal read for an address: shown only while the address asks for that message.
+  const [refusal, setRefusal] = useState<{ search: string; text: string }>();
+  const refused = refusal?.search === search ? refusal.text : undefined;
+  // The address whose message the composer took: each is put in once.
+  const filled = useRef<string>(undefined);
+  const handingOver = workflow !== undefined;
+  useEffect(() => {
+    if (!handingOver) {
+      filled.current = undefined;
+    }
+  }, [handingOver]);
   if (!feature || feature.missing) {
     return (
       <Page>
@@ -259,16 +334,41 @@ function FeatureSession({ folder }: { folder: string }) {
   }
   const crumbs = wide ? undefined : folder;
   const id = feature.session ?? created;
-  return id === undefined ? (
-    <NoSession
-      title={feature.title}
-      folder={folder}
-      crumbs={crumbs}
-      draft={draft}
-      onSent={setCreated}
-    />
-  ) : (
-    <Session id={id} crumbs={crumbs} draft={draft} />
+  const read = (message: { text: string; refusal: string | null }) => {
+    setRefusal(message.refusal === null ? undefined : { search, text: message.refusal });
+    if (message.refusal === null && filled.current !== search) {
+      filled.current = search;
+      const text = message.text.trimEnd();
+      setText((now) => (now.trim() ? `${text}\n${now}` : text));
+    }
+  };
+  const handing: Handing = workflow
+    ? {
+        ...(refused === undefined ? { workflow } : { notice: refused }),
+        // Sent: the address no longer asks for the message.
+        onSent: () => redirect(`/f/${encodeURIComponent(folder)}/session`),
+      }
+    : {};
+  return (
+    <>
+      {workflow && (
+        <Suspense fallback={null}>
+          <WorkflowMessage key={search} folder={folder} workflow={workflow} onRead={read} />
+        </Suspense>
+      )}
+      {id === undefined ? (
+        <NoSession
+          title={feature.title}
+          folder={folder}
+          crumbs={crumbs}
+          draft={draft}
+          handing={handing}
+          onSent={setCreated}
+        />
+      ) : (
+        <Session id={id} crumbs={crumbs} draft={draft} handing={handing} />
+      )}
+    </>
   );
 }
 
