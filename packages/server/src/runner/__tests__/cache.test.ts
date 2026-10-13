@@ -363,6 +363,31 @@ test("interrupted stops the running turns of gone servers", () => {
   expect(ours.turn(done)?.state).toBe("done");
 });
 
+test("interrupted stops the queued turns of gone servers too, which would read as working", () => {
+  const path = tempPath();
+  const live = SessionCache.open(path, { pid: process.ppid });
+  const theirs = live.createSession(feature);
+  live.claimSession(theirs.id);
+  live.addTurn({ sessionId: theirs.id, ...workflowTurn });
+  const theirQueued = live.addTurn({ sessionId: theirs.id, ...workflowTurn, state: "queued" });
+  const gone = SessionCache.open(path, { pid: DEAD_PID });
+  const dead = gone.createSession({ ...feature, folder: "2026-10-14-other" });
+  gone.claimSession(dead.id);
+  const deadTurn = gone.addTurn({ sessionId: dead.id, ...workflowTurn });
+  const deadQueued = gone.addTurn({ sessionId: dead.id, ...workflowTurn, state: "queued" });
+  const ours = SessionCache.open(path);
+
+  const stopped = ours.interrupted("Stopped: the server stopped while it ran.");
+
+  expect(stopped.map((turn) => turn.id)).toEqual([deadTurn, deadQueued]);
+  expect(ours.turn(deadQueued)).toMatchObject({
+    state: "stopped",
+    reason: "Stopped: the server stopped while it ran.",
+    endedAt: expect.any(String),
+  });
+  expect(ours.turn(theirQueued)?.state).toBe("queued");
+});
+
 test("reopening the file keeps the sessions", () => {
   const path = join(mkdtempSync(join(tmpdir(), "uraeda-cache-")), "new", "runner.sqlite");
   const id = SessionCache.open(path).createSession(feature).id;
