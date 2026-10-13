@@ -1,0 +1,248 @@
+import type { AgentEvent, Denial, ToolKind } from "./events.ts";
+import { toolTarget } from "./message.ts";
+
+/**
+ * The line types Claude Code prints in stream-json output. Those the adapter has no use for, like
+ * hooks, rate limit status, and the answers to its control requests, give no event; any other type
+ * is skipped and counted.
+ */
+const KNOWN_TYPES = new Set([
+  "assistant",
+  "auth_status",
+  "command_lifecycle",
+  "control_response",
+  "conversation_reset",
+  "prompt_suggestion",
+  "rate_limit_event",
+  "result",
+  "stream_event",
+  "system",
+  "tool_progress",
+  "tool_use_summary",
+  "user",
+]);
+
+/** The tools that start a sub-agent: `Task` in Claude Code 2.1.296, `Agent` in others. */
+const SUBAGENT_TOOLS = new Set(["Task", "Agent"]);
+
+const KINDS: Record<string, ToolKind> = {
+  Read: "read",
+  Edit: "edit",
+  Write: "edit",
+  NotebookEdit: "edit",
+  MultiEdit: "edit",
+  Grep: "search",
+  Glob: "search",
+  LS: "search",
+  Bash: "execute",
+  BashOutput: "execute",
+  KillShell: "execute",
+  WebFetch: "fetch",
+  WebSearch: "fetch",
+};
+
+/** What a Claude Code tool does, in the Agent Client Protocol's words. */
+export function toolKind(name: string): ToolKind {
+  return KINDS[name] ?? "other";
+}
+
+type Json = Record<string, unknown>;
+
+const isObject = (value: unknown): value is Json =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+const objects = (value: unknown): Array<Json> =>
+  Array.isArray(value) ? value.filter(isObject) : [];
+const text = (value: unknown): string => (typeof value === "string" ? value : "");
+
+/**
+ * The events of one line of Claude Code's stream-json output. `cwd`, the session's directory, makes
+ * tool targets under it relative.
+ */
+export function parseLine(line: string, cwd?: string): Array<AgentEvent> {
+  let message: unknown;
+  try {
+    message = JSON.parse(line);
+  } catch {
+    return [{ type: "skipped" }];
+  }
+  if (!isObject(message) || typeof message.type !== "string" || !KNOWN_TYPES.has(message.type)) {
+    return [{ type: "skipped" }];
+  }
+  // A sub-agent's lines carry the tool call that started it; the main agent's carry null.
+  const parent =
+    typeof message.parent_tool_use_id === "string" ? message.parent_tool_use_id : undefined;
+  switch (message.type) {
+    case "system":
+      return systemEvents(message);
+    case "stream_event":
+      return streamEvents(message.event, parent);
+    case "command_lifecycle":
+      return lifecycleEvents(message);
+    case "assistant":
+      return objects(isObject(message.message) ? message.message.content : undefined).flatMap(
+        (block): Array<AgentEvent> => {
+          // A sub-agent's text is not the main agent's: only its tools are shown.
+          if (block.type === "text" && typeof block.text === "string" && block.text !== "") {
+            return parent === undefined ? [{ type: "text", text: block.text }] : [];
+          }
+          if (block.type === "tool_use" && typeof block.id === "string") {
+            return [toolStart(block.id, text(block.name), block.input, parent, cwd)];
+          }
+          return [];
+        },
+      );
+    case "user":
+      return objects(isObject(message.message) ? message.message.content : undefined).flatMap(
+        (block): Array<AgentEvent> =>
+          block.type === "tool_result" && typeof block.tool_use_id === "string"
+            ? [
+                {
+                  type: "toolEnd",
+                  id: block.tool_use_id,
+                  isError: block.is_error === true,
+                  output: toolOutput(block.content),
+                },
+              ]
+            : [],
+      );
+    case "result":
+      return [resultEvent(message)];
+    default:
+      return [];
+  }
+}
+
+function toolStart(
+  id: string,
+  name: string,
+  rawInput: unknown,
+  parent: string | undefined,
+  cwd: string | undefined,
+): AgentEvent {
+  const input = isObject(rawInput) ? rawInput : {};
+  const target = toolTarget(name, input, cwd);
+  return {
+    type: "toolStart",
+    id,
+    name,
+    kind: toolKind(name),
+    input,
+    ...(target === undefined ? {} : { target }),
+    ...(parent === undefined ? {} : { parent }),
+    ...(SUBAGENT_TOOLS.has(name) ? { subagent: { description: text(input.description) } } : {}),
+  };
+}
+
+/** The main agent's text deltas, from `--include-partial-messages`. */
+function streamEvents(event: unknown, parent: string | undefined): Array<AgentEvent> {
+  if (
+    parent === undefined &&
+    isObject(event) &&
+    event.type === "content_block_delta" &&
+    isObject(event.delta) &&
+    event.delta.type === "text_delta" &&
+    typeof event.delta.text === "string" &&
+    event.delta.text !== ""
+  ) {
+    return [{ type: "textDelta", text: event.delta.text }];
+  }
+  return [];
+}
+
+/** A message the agent read, or one taken back. Queued and completed say nothing new. */
+function lifecycleEvents(message: Json): Array<AgentEvent> {
+  if (typeof message.command_uuid !== "string") {
+    return [];
+  }
+  if (message.state === "started") {
+    return [{ type: "accepted", id: message.command_uuid }];
+  }
+  if (message.state === "cancelled") {
+    return [{ type: "cancelled", id: message.command_uuid }];
+  }
+  return [];
+}
+
+function systemEvents(message: Json): Array<AgentEvent> {
+  if (message.subtype === "init") {
+    return [
+      {
+        type: "init",
+        sessionId: text(message.session_id),
+        plugins: objects(message.plugins).map((plugin) => text(plugin.name)),
+        // Printed as `null` when every plugin loaded.
+        pluginErrors: objects(message.plugin_errors).map(
+          (error) => text(error.message) || text(error.type) || "unknown error",
+        ),
+      },
+    ];
+  }
+  if (message.subtype === "api_retry") {
+    return [
+      {
+        type: "retry",
+        attempt: typeof message.attempt === "number" ? message.attempt : 0,
+        delayMs: typeof message.retry_delay_ms === "number" ? message.retry_delay_ms : 0,
+        error: text(message.error) || "unknown",
+      },
+    ];
+  }
+  return [];
+}
+
+/** A tool result's content: a string, or text blocks. */
+function toolOutput(content: unknown): string {
+  if (typeof content === "string") {
+    return content;
+  }
+  return objects(content)
+    .filter((block) => block.type === "text")
+    .map((block) => text(block.text))
+    .join("\n");
+}
+
+function resultEvent(message: Json): AgentEvent {
+  const ok = message.subtype === "success" && message.is_error !== true;
+  const errors = Array.isArray(message.errors)
+    ? message.errors.filter((error): error is string => typeof error === "string")
+    : [];
+  // A success that is an error, like an API error, says why in its result.
+  if (!ok && errors.length === 0 && typeof message.result === "string" && message.result !== "") {
+    errors.push(message.result);
+  }
+  const denials = objects(message.permission_denials).map((denial): Denial => ({
+    tool: text(denial.tool_name),
+    input: isObject(denial.tool_input) ? denial.tool_input : {},
+  }));
+  return {
+    type: "result",
+    ok,
+    ...(typeof message.total_cost_usd === "number" ? { costUsd: message.total_cost_usd } : {}),
+    errors,
+    denials,
+    // An interrupt ends the turn this way, with only diagnostics in its errors.
+    interrupted: message.terminal_reason === "aborted_streaming",
+  };
+}
+
+/** The lines of a byte stream, decoded as UTF-8 across chunks. Empty lines are dropped. */
+export async function* lines(chunks: AsyncIterable<Buffer>): AsyncIterable<string> {
+  const decoder = new TextDecoder();
+  let rest = "";
+  for await (const chunk of chunks) {
+    rest += decoder.decode(chunk, { stream: true });
+    const parts = rest.split("\n");
+    rest = parts.pop() ?? "";
+    for (const part of parts) {
+      const line = part.replace(/\r$/, "");
+      if (line !== "") {
+        yield line;
+      }
+    }
+  }
+  rest += decoder.decode();
+  const line = rest.replace(/\r$/, "");
+  if (line !== "") {
+    yield line;
+  }
+}

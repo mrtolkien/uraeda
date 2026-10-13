@@ -1,5 +1,5 @@
 import { isAbsolute, relative, sep } from "node:path";
-import type { Denial, Trigger } from "./events.ts";
+import type { Trigger } from "./events.ts";
 
 /** What a committed file is, in a sentence: "round 01", "spec", "bug report". */
 function fileName(file = ""): string {
@@ -112,26 +112,6 @@ export function toolTarget(
   return undefined;
 }
 
-/**
- * The narrowest allow rule for a blocked action, for `--allowedTools`. Claude Code checks files
- * against `Edit` and `Read` rules only, so a blocked `Write` gets an `Edit` rule. In a file rule,
- * `/path` is relative to the settings' folder, so an absolute path takes two slashes:
- * `Edit(//home/me/a)`. A tool with no target gets its bare name, which allows its every call for
- * the run.
- */
-export function allowRule({ tool, input }: Denial): string {
-  const value = (key: string) => (typeof input[key] === "string" ? input[key] : undefined);
-  if (tool === "Bash" && value("command")) {
-    return `Bash(${value("command")})`;
-  }
-  const file = value("file_path");
-  if (["Edit", "Write", "MultiEdit", "Read"].includes(tool) && file) {
-    const path = file.startsWith("/") && !file.startsWith("//") ? `/${file}` : file;
-    return `${tool === "Read" ? "Read" : "Edit"}(${path})`;
-  }
-  const url = value("url");
-  if (tool === "WebFetch" && url && URL.canParse(url)) {
-    return `WebFetch(domain:${new URL(url).hostname})`;
-  }
-  return tool;
-}
+// TEMPORARY: runner.ts's import, loaded with the web's Vite config, until the session manager
+// replaces runner.ts. The rule is Claude Code's, and lives in its adapter.
+export { allowRule } from "./claude.ts";

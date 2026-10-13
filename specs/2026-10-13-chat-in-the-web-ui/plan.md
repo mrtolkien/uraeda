@@ -547,7 +547,7 @@ export interface Adapter {
   is sent; `emit(event)`, `exit(code?, stderr?)` on the current process; `interrupts`, `closes`,
   `kills: Array<signal>`; `ignoreInterrupt`.
 
-- [ ] **Step 1: Write the failing tests**, table-driven over recorded lines in `claude.test.ts`:
+- [x] **Step 1: Write the failing tests**, table-driven over recorded lines in `claude.test.ts`:
   - `claudeArgs({cwd, nativeId: "id", resume: false}, "/plugin")` is
     `-p --input-format stream-json --output-format stream-json --verbose --include-partial-messages --permission-mode auto --plugin-dir /plugin --session-id id`;
     with `resume: true`, `--resume id`; with `allowed`, `--allowedTools <rule>` last.
@@ -565,20 +565,20 @@ export interface Adapter {
     `when: "steer"`, and `"later"` for `queue`.
   - "interrupt writes the interrupt control request, and close ends stdin".
   - `fake.test.ts`: "a scripted turn plays when a message is sent, then waits for the next".
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `vp test packages/server/src/runner/__tests__/claude.test.ts packages/server/src/runner/__tests__/fake.test.ts`
 - Expected: FAIL, `claudeArgs` gives no `--include-partial-messages`
 
-- [ ] **Step 3: Implement them**. `ClaudeAdapter.open` spawns once and keeps stdin open; `send`
+- [x] **Step 3: Implement them**. `ClaudeAdapter.open` spawns once and keeps stdin open; `send`
       writes the user line with `uuid` and `priority` (`next` for steer, `later` for queue);
       `takeBack` writes the request R5 found (a no-op when none); `interrupt` writes
       `{"type":"control_request","request_id":<uuid>,"request":{"subtype":"interrupt"}}`; `close`
       ends stdin; `kill` sends the signal. The `cwd` passed to `toolTarget` makes targets relative.
       `allowRule` moves from `message.ts` into the adapter, unchanged.
-- [ ] **Step 4: Run them**: same command, PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 4: Run them**: same command, PASS.
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/runner/adapter.ts packages/server/src/runner/events.ts packages/server/src/runner/fake.ts packages/server/src/runner/claude.ts packages/server/src/runner/claude-events.ts packages/server/src/runner/message.ts packages/server/src/runner/__tests__/claude.test.ts packages/server/src/runner/__tests__/fake.test.ts

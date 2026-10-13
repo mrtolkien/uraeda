@@ -1,41 +1,25 @@
 import { execFile, spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Adapter, AgentRun, StartOptions } from "./adapter.ts";
+import type { Adapter, AgentProcess, Capabilities, OpenOptions } from "./adapter.ts";
+import { lines, parseLine } from "./claude-events.ts";
 import type { AgentEvent, Denial } from "./events.ts";
 
 /** The plugin folder around the server's copy of the skill, passed to `--plugin-dir`. */
 export const PLUGIN_DIR = fileURLToPath(new URL("../../plugin", import.meta.url));
 
-/** A failed run keeps this many lines of stderr. */
+/** A failed process keeps this many lines of stderr. */
 const STDERR_LINES = 20;
-/** The characters of stderr kept while a run goes on, enough for its last lines. */
+/** The characters of stderr kept while a process runs, enough for its last lines. */
 const STDERR_KEPT = 64_000;
 /** `claude --version` gives up after this long. */
 const VERSION_TIMEOUT_MS = 5_000;
 
-/**
- * The line types Claude Code documents for stream-json output. Those the runner has no use for,
- * like hooks and rate limit status, give no event; any other type is skipped and counted.
- */
-const KNOWN_TYPES = new Set([
-  "assistant",
-  "auth_status",
-  "conversation_reset",
-  "prompt_suggestion",
-  "rate_limit_event",
-  "result",
-  "stream_event",
-  "system",
-  "tool_progress",
-  "tool_use_summary",
-  "user",
-]);
-
-/** The arguments of one run: print mode, stream-json both ways, `auto` mode, and the skill. */
-export function claudeArgs(options: StartOptions): Array<string> {
+/** The arguments of a session's process: print mode, stream-json both ways, `auto` mode, and the skill. */
+export function claudeArgs(options: OpenOptions, pluginDir: string): Array<string> {
   return [
     "-p",
     "--input-format",
@@ -43,151 +27,69 @@ export function claudeArgs(options: StartOptions): Array<string> {
     "--output-format",
     "stream-json",
     "--verbose",
+    "--include-partial-messages",
     "--permission-mode",
     "auto",
     "--plugin-dir",
-    options.pluginDir,
+    pluginDir,
     options.resume ? "--resume" : "--session-id",
-    options.sessionId,
+    options.nativeId,
     ...(options.allowed === undefined ? [] : ["--allowedTools", options.allowed]),
   ];
 }
 
-type Json = Record<string, unknown>;
-
-const isObject = (value: unknown): value is Json =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-const objects = (value: unknown): Array<Json> =>
-  Array.isArray(value) ? value.filter(isObject) : [];
-const text = (value: unknown): string => (typeof value === "string" ? value : "");
-
-/** The events of one line of Claude Code's stream-json output. */
-export function parseLine(line: string): Array<AgentEvent> {
-  let message: unknown;
-  try {
-    message = JSON.parse(line);
-  } catch {
-    return [{ type: "skipped" }];
+/**
+ * The narrowest allow rule for a blocked action, for `--allowedTools`. Claude Code checks files
+ * against `Edit` and `Read` rules only, so a blocked `Write` gets an `Edit` rule. In a file rule,
+ * `/path` is relative to the settings' folder, so an absolute path takes two slashes:
+ * `Edit(//home/me/a)`. A tool with no target gets its bare name, which allows its every call for
+ * the process.
+ */
+export function allowRule({ tool, input }: Denial): string {
+  const value = (key: string) => (typeof input[key] === "string" ? input[key] : undefined);
+  if (tool === "Bash" && value("command")) {
+    return `Bash(${value("command")})`;
   }
-  if (!isObject(message) || typeof message.type !== "string" || !KNOWN_TYPES.has(message.type)) {
-    return [{ type: "skipped" }];
+  const file = value("file_path");
+  if (["Edit", "Write", "MultiEdit", "Read"].includes(tool) && file) {
+    const path = file.startsWith("/") && !file.startsWith("//") ? `/${file}` : file;
+    return `${tool === "Read" ? "Read" : "Edit"}(${path})`;
   }
-  switch (message.type) {
-    case "system":
-      return systemEvents(message);
-    case "assistant":
-      return objects(isObject(message.message) ? message.message.content : undefined).flatMap(
-        (block): Array<AgentEvent> => {
-          if (block.type === "text" && typeof block.text === "string" && block.text !== "") {
-            return [{ type: "text", text: block.text }];
-          }
-          if (block.type === "tool_use" && typeof block.id === "string") {
-            const input = isObject(block.input) ? block.input : {};
-            return [{ type: "toolStart", id: block.id, name: text(block.name), input }];
-          }
-          return [];
-        },
-      );
-    case "user":
-      return objects(isObject(message.message) ? message.message.content : undefined).flatMap(
-        (block): Array<AgentEvent> =>
-          block.type === "tool_result" && typeof block.tool_use_id === "string"
-            ? [
-                {
-                  type: "toolEnd",
-                  id: block.tool_use_id,
-                  isError: block.is_error === true,
-                  output: toolOutput(block.content),
-                },
-              ]
-            : [],
-      );
-    case "result":
-      return [resultEvent(message)];
-    default:
-      return [];
+  const url = value("url");
+  if (tool === "WebFetch" && url && URL.canParse(url)) {
+    return `WebFetch(domain:${new URL(url).hostname})`;
   }
+  return tool;
 }
 
-function systemEvents(message: Json): Array<AgentEvent> {
-  if (message.subtype === "init") {
-    return [
-      {
-        type: "init",
-        sessionId: text(message.session_id),
-        plugins: objects(message.plugins).map((plugin) => text(plugin.name)),
-        // Printed as `null` when every plugin loaded.
-        pluginErrors: objects(message.plugin_errors).map(
-          (error) => text(error.message) || text(error.type) || "unknown error",
-        ),
-      },
-    ];
-  }
-  if (message.subtype === "api_retry") {
-    return [
-      {
-        type: "retry",
-        attempt: typeof message.attempt === "number" ? message.attempt : 0,
-        delayMs: typeof message.retry_delay_ms === "number" ? message.retry_delay_ms : 0,
-        error: text(message.error) || "unknown",
-      },
-    ];
-  }
-  return [];
-}
+/** Events pushed by one reader and read in order by one consumer, until it ends. */
+class EventQueue implements AsyncIterable<AgentEvent> {
+  #items: Array<AgentEvent> = [];
+  #ended = false;
+  #wake: (() => void) | undefined;
 
-/** A tool result's content: a string, or text blocks. */
-function toolOutput(content: unknown): string {
-  if (typeof content === "string") {
-    return content;
+  push(event: AgentEvent) {
+    this.#items.push(event);
+    this.#wake?.();
   }
-  return objects(content)
-    .filter((block) => block.type === "text")
-    .map((block) => text(block.text))
-    .join("\n");
-}
 
-function resultEvent(message: Json): AgentEvent {
-  const ok = message.subtype === "success" && message.is_error !== true;
-  const errors = Array.isArray(message.errors)
-    ? message.errors.filter((error): error is string => typeof error === "string")
-    : [];
-  // A success that is an error, like an API error, says why in its result.
-  if (!ok && errors.length === 0 && typeof message.result === "string" && message.result !== "") {
-    errors.push(message.result);
+  end() {
+    this.#ended = true;
+    this.#wake?.();
   }
-  const denials = objects(message.permission_denials).map((denial): Denial => ({
-    tool: text(denial.tool_name),
-    input: isObject(denial.tool_input) ? denial.tool_input : {},
-  }));
-  return {
-    type: "result",
-    ok,
-    ...(typeof message.total_cost_usd === "number" ? { costUsd: message.total_cost_usd } : {}),
-    errors,
-    denials,
-  };
-}
 
-/** The lines of a byte stream, decoded as UTF-8 across chunks. Empty lines are dropped. */
-export async function* lines(chunks: AsyncIterable<Buffer>): AsyncIterable<string> {
-  const decoder = new TextDecoder();
-  let rest = "";
-  for await (const chunk of chunks) {
-    rest += decoder.decode(chunk, { stream: true });
-    const parts = rest.split("\n");
-    rest = parts.pop() ?? "";
-    for (const part of parts) {
-      const line = part.replace(/\r$/, "");
-      if (line !== "") {
-        yield line;
+  async *[Symbol.asyncIterator](): AsyncIterator<AgentEvent> {
+    for (;;) {
+      const event = this.#items.shift();
+      if (event !== undefined) {
+        yield event;
+      } else if (this.#ended) {
+        return;
+      } else {
+        await new Promise<void>((resolve) => (this.#wake = resolve));
+        this.#wake = undefined;
       }
     }
-  }
-  rest += decoder.decode();
-  const line = rest.replace(/\r$/, "");
-  if (line !== "") {
-    yield line;
   }
 }
 
@@ -196,19 +98,37 @@ export type ClaudeAdapterOptions = {
   command?: string;
   /** Claude Code's configuration folder, where it keeps its transcripts. */
   configDir?: string;
+  /** The plugin folder that holds the Uraeda skill, `PLUGIN_DIR` in the server. */
+  pluginDir: string;
 };
 
-/** Claude Code, run through its installed `claude` command, in print mode. */
+/**
+ * Claude Code, run through its installed `claude` command, in print mode, its stdin kept open for
+ * the session's messages.
+ */
 export class ClaudeAdapter implements Adapter {
+  readonly kind = "claude";
+  readonly name = "Claude Code";
+  /** Taking back is `cancel_async_message`, which `validate-claude.ts` checks (R5). */
+  readonly capabilities: Capabilities = {
+    steer: true,
+    queue: true,
+    takeBack: true,
+    approvals: false,
+    subagents: true,
+  };
   #command: string;
   #configDir: string;
+  #pluginDir: string;
 
   constructor({
     command = "claude",
     configDir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude"),
-  }: ClaudeAdapterOptions = {}) {
+    pluginDir,
+  }: ClaudeAdapterOptions) {
     this.#command = command;
     this.#configDir = configDir;
+    this.#pluginDir = pluginDir;
   }
 
   version(): Promise<string | undefined> {
@@ -226,7 +146,7 @@ export class ClaudeAdapter implements Adapter {
   }
 
   /** Looks for `<configDir>/projects/*\/<id>.jsonl`, without reading any file. */
-  hasSession(sessionId: string): boolean {
+  hasSession(nativeId: string): boolean {
     const projects = join(this.#configDir, "projects");
     let folders: Array<string>;
     try {
@@ -234,21 +154,25 @@ export class ClaudeAdapter implements Adapter {
     } catch {
       return false;
     }
-    return folders.some((folder) => existsSync(join(projects, folder, `${sessionId}.jsonl`)));
+    return folders.some((folder) => existsSync(join(projects, folder, `${nativeId}.jsonl`)));
   }
 
-  start(options: StartOptions): AgentRun {
-    const child = spawn(this.#command, claudeArgs(options), {
+  allowRule(denial: Denial): string {
+    return allowRule(denial);
+  }
+
+  open(options: OpenOptions): AgentProcess {
+    const child = spawn(this.#command, claudeArgs(options, this.#pluginDir), {
       cwd: options.cwd,
       stdio: ["pipe", "pipe", "pipe"],
     });
-    // Only its end is kept: a failed run shows its last lines.
+    // Only its end is kept: a failed process shows its last lines.
     let stderr = "";
     child.stderr.setEncoding("utf8");
     child.stderr.on("data", (data: string) => {
       stderr = (stderr + data).slice(-STDERR_KEPT);
     });
-    // A process that exits early closes stdin before it reads the message.
+    // A process that exited closes stdin: later writes fail here, and are dropped.
     child.stdin.on("error", () => {});
     const exited = new Promise<AgentEvent>((resolve) => {
       child.on("error", (error: NodeJS.ErrnoException) => {
@@ -265,22 +189,49 @@ export class ClaudeAdapter implements Adapter {
         resolve({ type: "exit", code, stderr: tail });
       });
     });
-    child.stdin.end(
-      `${JSON.stringify({ type: "user", message: { role: "user", content: options.message } })}\n`,
-    );
+
+    // Stdout is read as it comes, whether or not the events are: Claude Code loses its last lines
+    // when they are read slowly.
+    const events = new EventQueue();
+    void (async () => {
+      try {
+        for await (const line of lines(child.stdout)) {
+          for (const event of parseLine(line, options.cwd)) {
+            events.push(event);
+          }
+        }
+      } catch {
+        // A process that failed to start has no output.
+      }
+      events.push(await exited);
+      events.end();
+    })();
+
+    const write = (value: unknown) => {
+      if (child.stdin.writable) {
+        child.stdin.write(`${JSON.stringify(value)}\n`);
+      }
+    };
+    const control = (request: Record<string, unknown>) =>
+      write({ type: "control_request", request_id: randomUUID(), request });
 
     return {
-      events: (async function* () {
-        for await (const line of lines(child.stdout)) {
-          yield* parseLine(line);
-        }
-        yield await exited;
-      })(),
-      interrupt: () => {
-        child.kill("SIGINT");
+      events,
+      send: ({ id, text, when }) => {
+        write({
+          type: "user",
+          message: { role: "user", content: text },
+          uuid: id,
+          priority: when === "steer" ? "next" : "later",
+        });
       },
-      terminate: () => {
-        child.kill("SIGTERM");
+      takeBack: (id) => control({ subtype: "cancel_async_message", message_uuid: id }),
+      interrupt: () => control({ subtype: "interrupt" }),
+      close: () => {
+        child.stdin.end();
+      },
+      kill: (signal) => {
+        child.kill(signal);
       },
     };
   }
