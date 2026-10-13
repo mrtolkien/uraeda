@@ -230,3 +230,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   rules out.
 - **If wrong**: the transcript can cap its replies at the reading measure, as `Blocks.tsx` does.
 - **Where**: catching up with main, before the final review; `SessionPage.tsx`, `Transcript.tsx`.
+
+## R17: A turn that ends on its own takes back what the agent did not read
+
+- **Decision**: a turn that ends without Stop, as one whose result failed, takes back the messages
+  steered into it that the agent has not read, as Stop does (R11), and marks them taken back at
+  once. They leave the transcript, and their text does not return to the composer.
+- **Rationale**: the agent would otherwise read them after the turn ends, and answer in no turn: the
+  transcript would show neither the message's answer nor the work it led to. Taking them back is
+  what Stop already does, and the human can send again.
+- **Alternatives considered**: starting a turn of their own for them, which runs work the human
+  asked for during a turn that then failed; leaving them to the agent, which runs them unrecorded.
+- **If wrong**: a message sent just before a turn fails is lost, and has to be typed again.
+- **Where**: the final review's fixes, `sessions.ts` (`#result`).
