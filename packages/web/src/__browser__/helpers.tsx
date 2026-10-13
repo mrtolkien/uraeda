@@ -426,9 +426,6 @@ export async function checkLayout(root?: Element) {
 /** How long a session's live updates may take to arrive, throttled by the server, on a busy machine. */
 export const LIVE = { timeout: 10_000 };
 
-/** Waits for live updates and layout to settle. */
-export const settle = () => new Promise((resolve) => setTimeout(resolve, 500));
-
 /** The agent of the test server, which the tests drive as Claude Code would print. */
 export const agent = commands;
 

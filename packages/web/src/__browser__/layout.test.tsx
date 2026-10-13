@@ -19,9 +19,9 @@ import {
   checkMeasure,
   checkPage,
   checkTextSizes,
+  drawn,
   LIVE,
   sendMessage,
-  settle,
   show,
   startTurn,
 } from "./helpers.tsx";
@@ -246,7 +246,7 @@ test.each(
     ]);
     await screen.findByRole("button", { name: "Allow and retry" }, LIVE);
   }
-  await settle();
+  await drawn();
   await checkLayout();
   // The feature page's agent section: beside the session on a wide screen, a page on the phone.
   if (window.innerWidth < 768) {
@@ -284,7 +284,7 @@ async function blockedChat() {
   ]);
   await expect.poll(() => window.location.pathname, LIVE).toMatch(/^\/chats\/(?!new)/);
   await screen.findByRole("button", { name: "Allow and retry" }, LIVE);
-  await settle();
+  await drawn();
 }
 
 // A chat, a new chat, and the sidebar searched: the same checks, the sidebar's on its own region.
@@ -303,7 +303,7 @@ async function navigation() {
     await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
   }
   const search = await screen.findByRole("searchbox", { name: "Search sessions" });
-  await settle();
+  await drawn();
   // The phone's drawer, or the navigation beside the page.
   return search.closest("dialog") ?? search.closest("nav")!;
 }
@@ -341,7 +341,7 @@ test.each(
         .poll(() => within(nav as HTMLElement).queryByRole("link", { name: /^Home/ }))
         .toBeNull();
     }
-    await settle();
+    await drawn();
   }
   await checkLayout(nav);
 });
