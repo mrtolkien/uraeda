@@ -248,6 +248,64 @@ test("US1.7 and C1: an idle process closes after 15 minutes, and the next messag
   expect(adapter.opens[1]).toMatchObject({ resume: true, nativeId: adapter.opens[0]!.nativeId });
 });
 
+test("a closed process that keeps running gets SIGTERM, so the next message does not wait on it forever", async () => {
+  const { sessions, adapter, repo } = await testSessions();
+  adapter.ignoreClose = true;
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, session.id, { text: "Plan it" })).turn);
+  vi.advanceTimersByTime(IDLE_CLOSE_MS);
+  expect(adapter.closes).toBe(1);
+
+  adapter.script([]);
+  let sent = false;
+  const next = sessions.send(repo, session.id, { text: "And now?" }).then((result) => {
+    sent = true;
+    return result;
+  });
+  await flush();
+  expect([sent, adapter.kills]).toEqual([false, []]);
+
+  vi.advanceTimersByTime(TERMINATE_AFTER_MS);
+  expect(adapter.kills).toEqual(["SIGTERM"]);
+  await sessions.settled((await next).turn);
+  expect(adapter.opens).toHaveLength(2);
+});
+
+test("the server's stop kills a process that ignores its close and SIGTERM", async () => {
+  const { sessions, adapter, repo } = await testSessions();
+  adapter.ignoreClose = true;
+  adapter.ignoreTerm = true;
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, session.id, { text: "Plan it" })).turn);
+
+  let closed = false;
+  const closing = sessions.closeAll().then(() => (closed = true));
+  vi.advanceTimersByTime(TERMINATE_AFTER_MS);
+  await flush();
+  expect([closed, adapter.kills]).toEqual([false, ["SIGTERM"]]);
+  vi.advanceTimersByTime(TERMINATE_AFTER_MS);
+  await closing;
+  expect(adapter.kills).toEqual(["SIGTERM", "SIGKILL"]);
+});
+
+test("a session is forgotten once its process exited with nothing left to run", async () => {
+  const { sessions, adapter, repo } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, session.id, { text: "Plan it" })).turn);
+  expect(sessions.held(session.id)).toBe(true);
+
+  vi.advanceTimersByTime(IDLE_CLOSE_MS);
+  await flush();
+  expect(sessions.held(session.id)).toBe(false);
+
+  // Stop on a session with nothing running keeps nothing either.
+  sessions.stop(repo, session.id);
+  expect(sessions.held(session.id)).toBe(false);
+});
+
 test("US2.2: a workflow message starts a workflow turn", async () => {
   const { sessions, adapter, cache, repo } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
