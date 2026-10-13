@@ -9,9 +9,9 @@
     box, we should have color and hierarchy for specs and plans, ...
 - Clean server code that can open any folder on the host + be run easily with node -> make the tool
   multi-repos
-
-- Offer nvim install during `ura install` if detected
-- Review flow against current repo: decisions, quality of features, ...
+- [Code quality and maintainability through the skill](drafts/code-quality-in-the-skill.md)
+- Add a bugfixing/low impact change flow
+- Add a "scratchpad" concept: quick notes about the system, small issues, ...
 
 ## Next
 
@@ -27,10 +27,10 @@
 
 - Monorepo support: multiple `specs` folders, principles per package, ...
 - Codex runtime
+- Adversarial review flow with a secondary model
 
 - Nix + Docker based execution environments
 - References (docs) querying and storing workflow -> our own local context8
-- Code quality and style guides, workflow improvements
 
 - Dedicated Pi-durable runtime with basic tooling
   - Web tools in pi-durable
@@ -46,6 +46,7 @@
 - Non-technical users: a technical level in the proposal, adapting the spec's contents (plain
   language behaviour, design summarized or hidden, mockups) and the questions asked
 
+- Offer nvim install during `ura install` if detected
 - ?Slack integration?
 - [Nice TUI](drafts/cli-tuis.md)
 
@@ -58,3 +59,4 @@
 - Need icons for different harnesses (claude code, codex, pi, ...)
 - Better URLs for the navigation, right now it's a bit messy
   (/f/2026-10-13-chat-in-the-web-ui/clarifications-01.md)
+- Add an "open priorities" shortcut to the nvim plugin
