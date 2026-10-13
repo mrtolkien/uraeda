@@ -3,7 +3,7 @@
 //! is created, and the draft moves into the dated folder, unchanged, in a second commit.
 
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::files::markdown::Document;
 use crate::files::priorities::{self, Entry};
@@ -31,6 +31,12 @@ pub struct Started {
 pub enum StartError {
     #[error("{0}")]
     Refused(String),
+    #[error(transparent)]
+    Git(#[from] GitError),
+    #[error(transparent)]
+    Place(#[from] place::PlaceError),
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
     /// A failure after the first commit: what was done, and what is left to do by hand.
     #[error("{cause}")]
     Partial {
@@ -38,24 +44,6 @@ pub enum StartError {
         left: Vec<String>,
         cause: String,
     },
-}
-
-impl From<GitError> for StartError {
-    fn from(error: GitError) -> StartError {
-        StartError::Refused(error.to_string())
-    }
-}
-
-impl From<place::PlaceError> for StartError {
-    fn from(error: place::PlaceError) -> StartError {
-        StartError::Refused(error.to_string())
-    }
-}
-
-impl From<std::io::Error> for StartError {
-    fn from(error: std::io::Error) -> StartError {
-        StartError::Refused(error.to_string())
-    }
 }
 
 /// A slug as `ura draft` makes them: lowercase letters, digits, and hyphens.
@@ -112,247 +100,394 @@ pub fn run(
     } else {
         place::reach(git, &default)?
     };
-    let result = start(git, &place, workspace, draft, slug, today, &default, switch);
-    if let Err(StartError::Refused(_)) = &result {
+    let result = Start::open(git, &place, workspace, draft, &default, switch)
+        .and_then(|start| start.run(slug, today));
+    if matches!(&result, Err(error) if !matches!(error, StartError::Partial { .. })) {
         place::switch_back(git, &place, previous.as_deref());
     }
     result
 }
 
-#[allow(clippy::too_many_arguments)]
-fn start(
-    git: &Git,
-    place: &place::Place,
-    workspace: &Workspace,
-    draft: &str,
-    slug: Option<&str>,
-    today: Date,
-    default: &str,
+/// A start under way: where it runs, and the draft it starts.
+struct Start<'a> {
+    /// The repository the command runs in.
+    git: &'a Git,
+    workspace: &'a Workspace,
+    /// The working tree on the default branch, and its repository.
+    root: &'a Path,
+    at: Git,
+    draft: &'a str,
+    default: &'a str,
     switch: bool,
-) -> Result<Started, StartError> {
-    let default = default.to_string();
-    let at = Git::open(&place.root)?;
-    let root = place.root.as_path();
+}
 
-    // Every check, before anything is written.
-    let folder_draft = root.join(draft).is_dir();
-    let proposal_source = if folder_draft {
-        format!("{draft}/proposal.md")
-    } else {
-        draft.to_string()
-    };
-    let files = draft_files(root, draft)?;
-    let text = fs::read_to_string(root.join(&proposal_source))
-        .map_err(|_| StartError::Refused(format!("{proposal_source}: no such draft")))?;
-    let slug = slug.unwrap_or_else(|| draft_name(draft)).to_string();
-    if !valid_slug(&slug) {
-        return Err(StartError::Refused(format!(
-            "\"{slug}\" is not a slug: lowercase letters, digits, and hyphens; choose one with --slug"
-        )));
-    }
-    let folder = format!("{today}-{slug}");
-    let record = crate::workspace::record_path(&folder);
-    let recorded = root.join(&record).exists()
-        || workspace
-            .features
-            .iter()
-            .any(|feature| feature.folder == folder && feature.is_finished());
-    if recorded {
-        return Err(StartError::Refused(format!(
-            "{record} exists: choose another slug with --slug"
-        )));
-    }
-    let taken = at.branches()?.iter().any(|branch| branch.name == folder)
-        || root.join("specs").join(&folder).exists()
-        || workspace
-            .features
-            .iter()
-            .any(|feature| feature.folder == folder);
-    if taken {
-        return Err(StartError::Refused(format!(
-            "{folder} exists: choose another slug with --slug"
-        )));
-    }
-    let worktree = place::worktree_path(git, &folder);
-    if !switch && worktree.exists() {
-        return Err(GitError::WorktreeExists(format!(".worktrees/{folder}")).into());
-    }
-    // Which of the draft's files are committed, read before any write of ours.
-    let head = at.head();
-    let tracked: Vec<String> = files
-        .iter()
-        .filter(|file| head.is_some_and(|head| at.read_file(head, file).ok().flatten().is_some()))
-        .cloned()
-        .collect();
-    let others: Vec<String> = at
-        .changed_files()?
-        .into_iter()
-        .filter(|file| file != "specs/PRIORITIES.md" && !files.contains(file))
-        .collect();
-    if !others.is_empty() {
-        return Err(StartError::Refused(format!(
-            "cannot start: uncommitted changes in {}",
-            others.join(", ")
-        )));
-    }
-    let staged = crate::git::others_staged(&at.staged_files()?, &["specs/PRIORITIES.md".into()]);
-    if !staged.is_empty() {
-        return Err(GitError::OtherStagedFiles(staged).into());
-    }
-    let priorities_path = root.join("specs/PRIORITIES.md");
-    let priorities_text = fs::read_to_string(&priorities_path).unwrap_or_default();
-    let linking: Vec<Entry> = priorities::parse(&priorities_text)
-        .into_iter()
-        .filter(|entry| {
-            entry
-                .link
-                .as_deref()
-                .and_then(|link| resolve("specs", link))
-                .is_some_and(|path| path == draft || path == proposal_source)
-        })
-        .collect();
-    let target = format!("/specs/{folder}/proposal.md");
-    let title = Document::parse(&text)
-        .headings
-        .into_iter()
-        .find(|h| h.level == 1)
-        .map(|h| h.text);
-    let (name, edited) = match linking.as_slice() {
-        [] => {
-            let name = title.unwrap_or_else(|| slug.clone());
-            let edited = priorities::add_to_now(&priorities_text, &name, &target);
-            (name, edited)
-        }
-        [entry] => {
-            let edited =
-                priorities::move_to_now(&priorities_text, entry.line, &entry.text, &target)
-                    .ok_or_else(|| StartError::Refused("cannot move the entry".into()))?;
-            (entry.text.clone(), edited)
-        }
-        several => {
-            let entries: Vec<&Entry> = several.iter().collect();
-            return Err(StartError::Refused(format!(
-                "{} lines link {draft}:{}",
-                several.len(),
-                listed(&entries)
-            )));
-        }
-    };
+/// Everything a start writes, settled before anything is written.
+struct Plan {
+    /// Whether the draft is a postponed folder rather than a file.
+    folder_draft: bool,
+    files: Vec<String>,
+    /// The draft's files that are committed.
+    tracked: Vec<String>,
+    /// The dated folder, also the branch's name.
+    folder: String,
+    /// Where the branch's worktree goes, unless `switch`.
+    worktree: PathBuf,
+    /// `PRIORITIES.md` with the entry moved to **Now**.
+    priorities: String,
+    start_subject: String,
+    proposal_subject: String,
+    /// `specs/<folder>`.
+    destination: String,
+}
 
-    // The start commit, on the default branch.
-    fs::write(&priorities_path, edited)?;
-    let start_subject = format!("chore({slug}): start {name}");
-    let partial = |done: &[String], left: Vec<String>, cause: String| StartError::Partial {
-        done: done.to_vec(),
-        left,
-        cause,
-    };
-    let proposal_subject = format!("chore({slug}): proposal");
-    let destination = format!("specs/{folder}");
-    let commit_left = if folder_draft {
-        format!("commit {destination}/ as \"{proposal_subject}\"")
-    } else {
-        format!("commit {destination}/proposal.md as \"{proposal_subject}\"")
-    };
-    // Written, so a failed commit stays here: switching back could carry the staged file away.
-    if let Err(error) = at.commit(&["specs/PRIORITIES.md".to_string()], &start_subject, None) {
-        let left = vec![
-            format!("commit specs/PRIORITIES.md on {default} as \"{start_subject}\""),
-            format!("create the branch {folder}"),
-            format!("move {draft} to {destination}"),
-            commit_left,
-        ];
-        return Err(partial(&[], left, error.to_string()));
-    }
-    let mut done = vec![format!("the start commit on {default}")];
-
-    // The branch, and the draft moved into the dated folder.
-    let target_root = if switch {
-        if let Err(error) = at.switch_new(&folder, &default) {
-            let left = vec![
-                format!("create the branch {folder}"),
-                format!("move {draft} to {destination}"),
-                commit_left,
-            ];
-            return Err(partial(&done, left, error.to_string()));
-        }
-        root.to_path_buf()
-    } else {
-        let created = git
-            .exclude_worktrees()
-            .and_then(|()| at.add_worktree_new(&worktree, &folder, &default));
-        if let Err(error) = created {
-            let left = vec![
-                format!("create the branch {folder} in .worktrees/{folder}"),
-                format!("move {draft} to {destination}"),
-                commit_left,
-            ];
-            return Err(partial(&done, left, error.to_string()));
-        }
-        std::fs::canonicalize(&worktree).unwrap_or(worktree.clone())
-    };
-    done.push(format!("the branch {folder}"));
-    let mut moves = Vec::new();
-    for file in &files {
-        let to = if folder_draft {
+impl Plan {
+    /// The proposal commit, as the step left to do by hand.
+    fn commit_left(&self) -> String {
+        if self.folder_draft {
             format!(
-                "{destination}/{}",
-                file.strip_prefix(&format!("{draft}/")).unwrap_or(file)
+                "commit {}/ as \"{}\"",
+                self.destination, self.proposal_subject
             )
         } else {
-            format!("{destination}/proposal.md")
-        };
-        if let Some(parent) = target_root.join(&to).parent() {
-            fs::create_dir_all(parent)?;
+            format!(
+                "commit {}/proposal.md as \"{}\"",
+                self.destination, self.proposal_subject
+            )
         }
-        if switch {
-            fs::rename(root.join(file), target_root.join(&to))?;
+    }
+}
+
+/// A failure after the first commit.
+fn partial(done: &[String], left: Vec<String>, cause: impl ToString) -> StartError {
+    StartError::Partial {
+        done: done.to_vec(),
+        left,
+        cause: cause.to_string(),
+    }
+}
+
+impl<'a> Start<'a> {
+    fn open(
+        git: &'a Git,
+        place: &'a place::Place,
+        workspace: &'a Workspace,
+        draft: &'a str,
+        default: &'a str,
+        switch: bool,
+    ) -> Result<Start<'a>, StartError> {
+        Ok(Start {
+            git,
+            workspace,
+            root: place.root.as_path(),
+            at: Git::open(&place.root)?,
+            draft,
+            default,
+            switch,
+        })
+    }
+
+    fn run(&self, slug: Option<&str>, today: Date) -> Result<Started, StartError> {
+        let plan = self.plan(slug, today)?;
+        self.commit_start(&plan)?;
+        let mut done = vec![format!("the start commit on {}", self.default)];
+        let target_root = self.create_branch(&plan, &done)?;
+        done.push(format!("the branch {}", plan.folder));
+        let moves = self.move_draft(&plan, &target_root)?;
+        done.push("the move of the draft".to_string());
+        self.commit_proposal(&plan, &moves, &target_root, &done)?;
+        Ok(Started {
+            default_branch: self.default.to_string(),
+            start_subject: plan.start_subject,
+            branch: plan.folder.clone(),
+            worktree: (!self.switch).then(|| format!(".worktrees/{}", plan.folder)),
+            moves,
+            proposal_subject: plan.proposal_subject,
+        })
+    }
+
+    /// Every check, before anything is written.
+    fn plan(&self, slug: Option<&str>, today: Date) -> Result<Plan, StartError> {
+        let draft = self.draft;
+        let folder_draft = self.root.join(draft).is_dir();
+        let proposal_source = if folder_draft {
+            format!("{draft}/proposal.md")
         } else {
-            // The draft as it is here, uncommitted edits included, goes to the new branch; the
-            // default branch keeps its committed version.
-            fs::copy(root.join(file), target_root.join(&to))?;
-            let _ = fs::remove_file(target_root.join(file));
-            if tracked.contains(file) {
-                at.restore(file)?;
+            draft.to_string()
+        };
+        let files = draft_files(self.root, draft)?;
+        let text = fs::read_to_string(self.root.join(&proposal_source))
+            .map_err(|_| StartError::Refused(format!("{proposal_source}: no such draft")))?;
+        let slug = slug.unwrap_or_else(|| draft_name(draft)).to_string();
+        let folder = self.free_folder(&slug, today)?;
+        let worktree = place::worktree_path(self.git, &folder);
+        if !self.switch && worktree.exists() {
+            return Err(GitError::WorktreeExists(format!(".worktrees/{folder}")).into());
+        }
+        // Which of the draft's files are committed, read before any write of ours.
+        let tracked = self.tracked(&files);
+        self.check_clean(&files)?;
+        let (name, priorities) = self.moved_entry(&proposal_source, &text, &slug, &folder)?;
+        Ok(Plan {
+            folder_draft,
+            files,
+            tracked,
+            start_subject: format!("chore({slug}): start {name}"),
+            proposal_subject: format!("chore({slug}): proposal"),
+            destination: format!("specs/{folder}"),
+            folder,
+            worktree,
+            priorities,
+        })
+    }
+
+    /// The dated folder for a slug, refused when the slug is not one, or when a record, a branch,
+    /// or a folder already holds the name.
+    fn free_folder(&self, slug: &str, today: Date) -> Result<String, StartError> {
+        if !valid_slug(slug) {
+            return Err(StartError::Refused(format!(
+                "\"{slug}\" is not a slug: lowercase letters, digits, and hyphens; choose one with --slug"
+            )));
+        }
+        let folder = format!("{today}-{slug}");
+        let features = &self.workspace.features;
+        let record = crate::workspace::record_path(&folder);
+        let recorded = self.root.join(&record).exists()
+            || features
+                .iter()
+                .any(|feature| feature.folder == folder && feature.is_finished());
+        if recorded {
+            return Err(StartError::Refused(format!(
+                "{record} exists: choose another slug with --slug"
+            )));
+        }
+        let taken = self
+            .at
+            .branches()?
+            .iter()
+            .any(|branch| branch.name == folder)
+            || self.root.join("specs").join(&folder).exists()
+            || features.iter().any(|feature| feature.folder == folder);
+        if taken {
+            return Err(StartError::Refused(format!(
+                "{folder} exists: choose another slug with --slug"
+            )));
+        }
+        Ok(folder)
+    }
+
+    /// The files committed at `HEAD`, among `files`.
+    fn tracked(&self, files: &[String]) -> Vec<String> {
+        let head = self.at.head();
+        files
+            .iter()
+            .filter(|file| {
+                head.is_some_and(|head| self.at.read_file(head, file).ok().flatten().is_some())
+            })
+            .cloned()
+            .collect()
+    }
+
+    /// Refuses uncommitted changes outside the draft and `PRIORITIES.md`, and staged files the
+    /// start commit would carry.
+    fn check_clean(&self, files: &[String]) -> Result<(), StartError> {
+        let others: Vec<String> = self
+            .at
+            .changed_files()?
+            .into_iter()
+            .filter(|file| file != "specs/PRIORITIES.md" && !files.contains(file))
+            .collect();
+        if !others.is_empty() {
+            return Err(StartError::Refused(format!(
+                "cannot start: uncommitted changes in {}",
+                others.join(", ")
+            )));
+        }
+        let staged =
+            crate::git::others_staged(&self.at.staged_files()?, &["specs/PRIORITIES.md".into()]);
+        if !staged.is_empty() {
+            return Err(GitError::OtherStagedFiles(staged).into());
+        }
+        Ok(())
+    }
+
+    /// The feature's name, and `PRIORITIES.md` with its entry moved to the end of **Now** as a
+    /// link to the proposal, or added there when no entry links the draft.
+    fn moved_entry(
+        &self,
+        proposal_source: &str,
+        text: &str,
+        slug: &str,
+        folder: &str,
+    ) -> Result<(String, String), StartError> {
+        let draft = self.draft;
+        let priorities_text =
+            fs::read_to_string(self.root.join("specs/PRIORITIES.md")).unwrap_or_default();
+        let linking: Vec<Entry> = priorities::parse(&priorities_text)
+            .into_iter()
+            .filter(|entry| {
+                entry
+                    .link
+                    .as_deref()
+                    .and_then(|link| resolve("specs", link))
+                    .is_some_and(|path| path == draft || path == proposal_source)
+            })
+            .collect();
+        let target = format!("/specs/{folder}/proposal.md");
+        match linking.as_slice() {
+            [] => {
+                let name = Document::parse(text)
+                    .headings
+                    .into_iter()
+                    .find(|h| h.level == 1)
+                    .map_or_else(|| slug.to_string(), |h| h.text);
+                let edited = priorities::add_to_now(&priorities_text, &name, &target);
+                Ok((name, edited))
+            }
+            [entry] => {
+                let edited =
+                    priorities::move_to_now(&priorities_text, entry.line, &entry.text, &target)
+                        .ok_or_else(|| StartError::Refused("cannot move the entry".into()))?;
+                Ok((entry.text.clone(), edited))
+            }
+            several => {
+                let entries: Vec<&Entry> = several.iter().collect();
+                Err(StartError::Refused(format!(
+                    "{} lines link {draft}:{}",
+                    several.len(),
+                    listed(&entries)
+                )))
+            }
+        }
+    }
+
+    /// The start commit, on the default branch.
+    fn commit_start(&self, plan: &Plan) -> Result<(), StartError> {
+        fs::write(self.root.join("specs/PRIORITIES.md"), &plan.priorities)?;
+        // Written, so a failed commit stays here: switching back could carry the staged file away.
+        if let Err(error) = self.at.commit(
+            &["specs/PRIORITIES.md".to_string()],
+            &plan.start_subject,
+            None,
+        ) {
+            let left = vec![
+                format!(
+                    "commit specs/PRIORITIES.md on {} as \"{}\"",
+                    self.default, plan.start_subject
+                ),
+                format!("create the branch {}", plan.folder),
+                format!("move {} to {}", self.draft, plan.destination),
+                plan.commit_left(),
+            ];
+            return Err(partial(&[], left, error));
+        }
+        Ok(())
+    }
+
+    /// The feature's branch, switched to or in its new worktree: the working tree it is in.
+    fn create_branch(&self, plan: &Plan, done: &[String]) -> Result<PathBuf, StartError> {
+        let folder = &plan.folder;
+        let (created, branch_left) = if self.switch {
+            (
+                self.at.switch_new(folder, self.default),
+                format!("create the branch {folder}"),
+            )
+        } else {
+            (
+                self.git.exclude_worktrees().and_then(|()| {
+                    self.at
+                        .add_worktree_new(&plan.worktree, folder, self.default)
+                }),
+                format!("create the branch {folder} in .worktrees/{folder}"),
+            )
+        };
+        if let Err(error) = created {
+            let left = vec![
+                branch_left,
+                format!("move {} to {}", self.draft, plan.destination),
+                plan.commit_left(),
+            ];
+            return Err(partial(done, left, error));
+        }
+        Ok(if self.switch {
+            self.root.to_path_buf()
+        } else {
+            fs::canonicalize(&plan.worktree).unwrap_or(plan.worktree.clone())
+        })
+    }
+
+    /// Moves the draft's files into the dated folder of `target_root`: each move, from and to.
+    fn move_draft(
+        &self,
+        plan: &Plan,
+        target_root: &Path,
+    ) -> Result<Vec<(String, String)>, StartError> {
+        let (root, draft) = (self.root, self.draft);
+        let mut moves = Vec::new();
+        for file in &plan.files {
+            let to = if plan.folder_draft {
+                format!(
+                    "{}/{}",
+                    plan.destination,
+                    file.strip_prefix(&format!("{draft}/")).unwrap_or(file)
+                )
             } else {
-                fs::remove_file(root.join(file))?;
+                format!("{}/proposal.md", plan.destination)
+            };
+            if let Some(parent) = target_root.join(&to).parent() {
+                fs::create_dir_all(parent)?;
+            }
+            if self.switch {
+                fs::rename(root.join(file), target_root.join(&to))?;
+            } else {
+                // The draft as it is here, uncommitted edits included, goes to the new branch; the
+                // default branch keeps its committed version.
+                fs::copy(root.join(file), target_root.join(&to))?;
+                let _ = fs::remove_file(target_root.join(file));
+                if plan.tracked.contains(file) {
+                    self.at.restore(file)?;
+                } else {
+                    fs::remove_file(root.join(file))?;
+                }
+            }
+            moves.push((file.clone(), to));
+        }
+        if plan.folder_draft {
+            let _ = fs::remove_dir_all(target_root.join(draft));
+            if !self.switch && plan.tracked.is_empty() {
+                let _ = fs::remove_dir_all(root.join(draft));
             }
         }
-        moves.push((file.clone(), to));
+        Ok(moves)
     }
-    if folder_draft {
-        let _ = fs::remove_dir_all(target_root.join(draft));
-        if !switch && tracked.is_empty() {
-            let _ = fs::remove_dir_all(root.join(draft));
-        }
-    }
-    done.push("the move of the draft".to_string());
-    // Folders as pathspecs, so files git ignores, like `.DS_Store`, stay out of the commit.
-    let mut paths: Vec<String> = Vec::new();
-    if folder_draft {
-        paths.push(destination.clone());
-        if !tracked.is_empty() {
-            paths.push(draft.to_string());
-        }
-    } else {
-        for (from, to) in &moves {
-            paths.push(to.clone());
-            if tracked.contains(from) {
-                paths.push(from.clone());
+
+    /// The proposal commit, on the feature's branch.
+    fn commit_proposal(
+        &self,
+        plan: &Plan,
+        moves: &[(String, String)],
+        target_root: &Path,
+        done: &[String],
+    ) -> Result<(), StartError> {
+        // Folders as pathspecs, so files git ignores, like `.DS_Store`, stay out of the commit.
+        let mut paths: Vec<String> = Vec::new();
+        if plan.folder_draft {
+            paths.push(plan.destination.clone());
+            if !plan.tracked.is_empty() {
+                paths.push(self.draft.to_string());
+            }
+        } else {
+            for (from, to) in moves {
+                paths.push(to.clone());
+                if plan.tracked.contains(from) {
+                    paths.push(from.clone());
+                }
             }
         }
+        paths.sort();
+        let on_branch = Git::open(target_root)?;
+        if let Err(error) = on_branch.commit(&paths, &plan.proposal_subject, None) {
+            return Err(partial(done, vec![plan.commit_left()], error));
+        }
+        Ok(())
     }
-    paths.sort();
-    let on_branch = Git::open(&target_root)?;
-    if let Err(error) = on_branch.commit(&paths, &proposal_subject, None) {
-        return Err(partial(&done, vec![commit_left], error.to_string()));
-    }
-    Ok(Started {
-        default_branch: default,
-        start_subject,
-        branch: folder.clone(),
-        worktree: (!switch).then(|| format!(".worktrees/{folder}")),
-        moves,
-        proposal_subject,
-    })
 }
