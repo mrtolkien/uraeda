@@ -14,7 +14,7 @@ import { Markdown } from "@astryxdesign/core/Markdown";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, type RefObject, useEffect, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useLayoutEffect, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { Item } from "uraeda-server/fate";
 import { useAgent, useTurn, useTurnLog } from "./data.ts";
@@ -136,6 +136,32 @@ function scroller(element: HTMLElement): HTMLElement | undefined {
     }
   }
   return undefined;
+}
+
+/**
+ * Shows the end of a session's transcript as it opens, unless Back or a reload brings a saved
+ * position, or the address names a turn: the pane beside the feature page on wide screens, the
+ * window on narrow ones.
+ */
+export function useOpenAtEnd(ref: RefObject<HTMLElement | null>) {
+  useLayoutEffect(() => {
+    const element = ref.current;
+    const { scroll, pane } = currentEntry();
+    if (!element || scroll !== undefined || pane !== undefined) {
+      return;
+    }
+    if (window.location.hash.startsWith("#turn-")) {
+      return;
+    }
+    const box = scroller(element);
+    if (box) {
+      box.scrollTo(0, box.scrollHeight);
+    } else {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+    }
+    // Once, as the view opens.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 }
 
 /**
