@@ -1,6 +1,7 @@
-import { writeFileSync, mkdirSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expect, test } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
 import { fixtureRepo, git, port, testApp } from "./helpers.ts";
 
 test("serves a mockup sandboxed, with its type", async () => {
@@ -28,4 +29,16 @@ test("serves a file's raw text, and nothing outside the repository", async () =>
   expect(await draft.text()).toContain("# Git listener process");
   expect(draft.headers.get("content-type")).toBe("text/plain; charset=utf-8");
   expect(outside.status).toBe(404);
+});
+
+test("a file that cannot be read for another reason than its absence is a server error, logged", async () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  const app = testApp(mkdtempSync(join(tmpdir(), "uraeda-not-a-repo-")));
+
+  const raw = await app.request(`http://127.0.0.1:${port}/raw/README.md`);
+  const mockup = await app.request(`http://127.0.0.1:${port}/mockups/ui.html`);
+
+  expect([raw.status, mockup.status]).toEqual([500, 500]);
+  expect(log).toHaveBeenCalledTimes(2);
+  log.mockRestore();
 });
