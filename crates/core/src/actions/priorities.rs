@@ -28,13 +28,15 @@ pub fn read(place: &Place) -> Priorities {
     priorities::read(&text(place), committed(place).as_deref())
 }
 
-/// Applies an edit over the version read at `previous`, and returns the new hash.
+/// Applies an edit over the version read at `previous`, and returns the priorities as it wrote
+/// them: a change made elsewhere right after is not taken for this one, and the next edit over
+/// this version is refused.
 fn apply(
     place: &Place,
     previous: &str,
     edit: impl FnOnce(&str) -> Option<String>,
     refused: &str,
-) -> Result<String, ActionError> {
+) -> Result<Priorities, ActionError> {
     let current = text(place);
     if hash(&current) != previous {
         return Err(ActionError::Refused(
@@ -43,7 +45,7 @@ fn apply(
     }
     let edited = edit(&current).ok_or_else(|| ActionError::Refused(refused.to_string()))?;
     fs::write(place.root.join(PATH), &edited)?;
-    Ok(hash(&edited))
+    Ok(priorities::read(&edited, committed(place).as_deref()))
 }
 
 /// Adds a line at the end of a section.
@@ -52,7 +54,7 @@ pub fn add(
     section: Section,
     line: &str,
     previous: &str,
-) -> Result<String, ActionError> {
+) -> Result<Priorities, ActionError> {
     apply(
         place,
         previous,
@@ -69,7 +71,7 @@ pub fn insert(
     index: usize,
     lines: &[String],
     previous: &str,
-) -> Result<String, ActionError> {
+) -> Result<Priorities, ActionError> {
     apply(
         place,
         previous,
@@ -85,7 +87,7 @@ pub fn move_entry(
     section: Section,
     index: usize,
     previous: &str,
-) -> Result<String, ActionError> {
+) -> Result<Priorities, ActionError> {
     apply(
         place,
         previous,
@@ -95,7 +97,12 @@ pub fn move_entry(
 }
 
 /// Replaces an entry's text.
-pub fn edit(place: &Place, id: &str, line: &str, previous: &str) -> Result<String, ActionError> {
+pub fn edit(
+    place: &Place,
+    id: &str,
+    line: &str,
+    previous: &str,
+) -> Result<Priorities, ActionError> {
     apply(
         place,
         previous,
@@ -105,7 +112,7 @@ pub fn edit(place: &Place, id: &str, line: &str, previous: &str) -> Result<Strin
 }
 
 /// Removes an entry and its nested lines.
-pub fn remove(place: &Place, id: &str, previous: &str) -> Result<String, ActionError> {
+pub fn remove(place: &Place, id: &str, previous: &str) -> Result<Priorities, ActionError> {
     apply(
         place,
         previous,

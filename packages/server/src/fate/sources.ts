@@ -12,6 +12,7 @@ import {
   type FeatureRecord,
   type FileRecord,
   RUNNER_ID,
+  sentFile,
   runDataView,
   runLogDataView,
   runnerDataView,
@@ -110,12 +111,12 @@ export const sources = createSources<Context>([
       each(ids, async (id): Promise<FileRecord> => {
         const [folder, name] = id.split("/");
         try {
-          return await binding.readFile(repo, folder, name);
+          return sentFile(await binding.readFile(repo, folder, name));
         } catch (error) {
           // A file its feature has no longer, or of a folder that is no feature's, is answered, so
           // the page says so instead of waiting.
           if (isMissing(error)) {
-            return missingFile(id, folder, name);
+            return sentFile(missingFile(id, folder, name));
           }
           throw error;
         }

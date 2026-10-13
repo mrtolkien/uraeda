@@ -10,6 +10,7 @@ import {
   PRIORITIES_ID,
   prioritiesDataView,
   runDataView,
+  sentFile,
   type DraftRecord,
   type FileRecord,
   type PrioritiesRecord,
@@ -19,7 +20,7 @@ type Resolver<Input> = { ctx: Context; input: Input; select: Array<string> };
 
 /** The file a mutation changed, masked to the fields the client selected. */
 const file = (ctx: Context, record: FileRecord, select: Array<string>) =>
-  sources.masked(fileDataView, ctx, record, select);
+  sources.masked(fileDataView, ctx, sentFile(record), select);
 
 const priorities = (ctx: Context, record: Omit<PrioritiesRecord, "id">, select: Array<string>) =>
   sources.masked(prioritiesDataView, ctx, { id: PRIORITIES_ID, ...record }, select);

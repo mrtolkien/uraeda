@@ -816,6 +816,10 @@
     min-height: var(--size-element-md);
   }
 
+    .astryx-chat-tool-calls:is(*) [role="button"] {
+    min-height: var(--size-element-md);
+  }
+
     .astryx-switch-field {
     display: grid;
     min-height: var(--size-element-md);
