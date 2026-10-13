@@ -61,6 +61,21 @@ function M.verdict()
   require("uraeda.verdict").open(0)
 end
 
+--- Lists the files waiting on the human in every checkout, from any buffer (US8).
+function M.waiting()
+  require("uraeda.pickers").waiting()
+end
+
+--- Jumps to the next question of a round, or comment of a review (US8).
+function M.next()
+  require("uraeda.marks").jump(0, 1)
+end
+
+--- Jumps to the previous question of a round, or comment of a review (US8).
+function M.prev()
+  require("uraeda.marks").jump(0, -1)
+end
+
 --- @class uraeda.Action
 --- @field name string the `:Uraeda` subcommand, and the `<Plug>(uraeda-<name>)` mapping
 --- @field desc string starts with `Uraeda`
@@ -68,6 +83,7 @@ end
 --- @field modes string[] the modes of its mapping and key
 --- @field buffer_local boolean its key is set in workflow files only, else once globally
 --- @field key string? its key under the prefix
+--- @field lhs string? its key outside the prefix, like `]u`, when it has no `key`
 
 --- Every action, in the order of `:Uraeda`'s completion. Later actions are appended here.
 --- @type uraeda.Action[]
@@ -119,6 +135,30 @@ M.list = {
     modes = { "n" },
     buffer_local = true,
     key = "v",
+  },
+  {
+    name = "waiting",
+    desc = "Uraeda: files waiting on you",
+    fn = M.waiting,
+    modes = { "n" },
+    buffer_local = false,
+    key = "w",
+  },
+  {
+    name = "next",
+    desc = "Uraeda: next question or comment",
+    fn = M.next,
+    modes = { "n" },
+    buffer_local = true,
+    lhs = "]u",
+  },
+  {
+    name = "prev",
+    desc = "Uraeda: previous question or comment",
+    fn = M.prev,
+    modes = { "n" },
+    buffer_local = true,
+    lhs = "[u",
   },
 }
 

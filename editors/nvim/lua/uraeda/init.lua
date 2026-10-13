@@ -8,6 +8,21 @@ local defaults = {
   inline_comments = true,
 }
 
+--- The checkout of the file at `path`: the folder above the nearest `specs/` folder holding
+--- `PRIORITIES.md` among the file's parents, or nil. The `uraeda` server's root.
+--- @param path string an absolute, normalized path
+--- @return string?
+function M.checkout(path)
+  for dir in vim.fs.parents(path) do
+    if
+      vim.fs.basename(dir) == "specs"
+      and vim.uv.fs_stat(vim.fs.joinpath(dir, "PRIORITIES.md")) ~= nil
+    then
+      return vim.fs.dirname(dir)
+    end
+  end
+end
+
 --- `vim.g.uraeda` merged over the defaults, validated.
 --- @return { prefix: string|false, lsp: boolean, cmd: string[], inline_comments: boolean }
 function M.config()

@@ -64,6 +64,84 @@ function M.request(bufnr, method, params, cb)
   end, bufnr)
 end
 
+--- The checkout of the current buffer's file, else of the current folder, holding
+--- `specs/PRIORITIES.md`, found as the server's root is.
+local function current_checkout()
+  local uraeda = require("uraeda")
+  local name = vim.api.nvim_buf_get_name(0)
+  if name ~= "" and vim.bo.buftype == "" then
+    local root = uraeda.checkout(vim.fs.normalize(vim.fn.fnamemodify(name, ":p")))
+    if root then
+      return root
+    end
+  end
+  local cwd = vim.fs.normalize(vim.fn.getcwd())
+  return uraeda.checkout(vim.fs.joinpath(cwd, "specs", "PRIORITIES.md"))
+end
+
+--- Calls `cb(client)` with a running `uraeda` client, else with one started on the current
+--- checkout, attached to no buffer, once it is initialized. Notifies `not_workflow` outside a
+--- checkout.
+local function any_client(cb)
+  local running = vim.lsp.get_clients({ name = "uraeda" })[1]
+  if running then
+    return cb(running)
+  end
+  local root = current_checkout()
+  if root == nil then
+    return notify_error(not_workflow)
+  end
+  local config = vim.tbl_extend("force", vim.lsp.config.uraeda or {}, {
+    name = "uraeda",
+    cmd = require("uraeda").config().cmd,
+    root_dir = root,
+  })
+  local id = vim.lsp.start(config, { attach = false })
+  if id == nil then
+    return
+  end
+  -- Started, or reused while it starts: a request waits for the server's initialization.
+  local timer = assert(vim.uv.new_timer())
+  local waited, done = 0, false
+  timer:start(
+    0,
+    20,
+    vim.schedule_wrap(function()
+      if done then
+        return
+      end
+      local client = vim.lsp.get_client_by_id(id)
+      waited = waited + 20
+      if client and client.initialized then
+        done = true
+        timer:close()
+        cb(client)
+      elseif client == nil or client:is_stopped() or waited > 10000 then
+        done = true
+        timer:close()
+        notify_error("ura lsp did not start.")
+      end
+    end)
+  )
+end
+
+--- Sends `method` with `params` to any `uraeda` client, starting one on the current checkout when
+--- none runs, and calls `cb(result)` on success; errors are notified, and `cb` is not called. For
+--- the requests about every checkout, such as `uraeda/waiting`.
+--- @param method string
+--- @param params table
+--- @param cb fun(result: any)
+function M.request_any(method, params, cb)
+  any_client(function(client)
+    client:request(method, params, function(err, result)
+      if err then
+        return failed(err)
+      end
+      cb(result)
+    end)
+  end)
+end
+
 --- Reloads the loaded buffers of `paths` from disk.
 local function reload(paths)
   local written = {}
