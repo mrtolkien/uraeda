@@ -98,26 +98,26 @@ durable state, so the database can only be a cache.
 For the chat in the web UI, the human asked for back-and-forth chats like the ones they hold with
 Claude Code in the terminal, and for concepts generic enough for Codex and pi-durable. They chose
 one conversation per feature
-([Q1](../2026-10-13-chat-in-the-web-ui/clarifications-01.md#q1-how-do-chats-about-a-feature-relate-to-the-session-its-workflow-runs-use)),
+([Q1](../done/2026-10-13-chat-in-the-web-ui.md#q1-how-do-chats-about-a-feature-relate-to-the-session-its-workflow-runs-use)),
 chats that may act when asked
-([Q2](../2026-10-13-chat-in-the-web-ui/clarifications-01.md#q2-what-may-the-agent-change-during-a-chat)),
-the main checkout for sessions without a feature
-([Q5](../2026-10-13-chat-in-the-web-ui/clarifications-01.md#q5-where-does-a-session-without-a-feature-work)),
-one process per open session
-([Q6](../2026-10-13-chat-in-the-web-ui/clarifications-01.md#q6-how-does-the-server-keep-a-conversation-going-with-claude-code)),
+([Q2](../done/2026-10-13-chat-in-the-web-ui.md#q2-what-may-the-agent-change-during-a-chat)), the
+main checkout for sessions without a feature
+([Q5](../done/2026-10-13-chat-in-the-web-ui.md#q5-where-does-a-session-without-a-feature-work)), one
+process per open session
+([Q6](../done/2026-10-13-chat-in-the-web-ui.md#q6-how-does-the-server-keep-a-conversation-going-with-claude-code)),
 messages steered into a turn
-([Q6.A](../2026-10-13-chat-in-the-web-ui/clarifications-01.md#q6a-what-happens-to-a-message-you-send-while-the-agent-works)),
+([Q6.A](../done/2026-10-13-chat-in-the-web-ui.md#q6a-what-happens-to-a-message-you-send-while-the-agent-works)),
 a generic model with Claude as its only adapter
-([Q7](../2026-10-13-chat-in-the-web-ui/clarifications-01.md#q7-how-far-does-the-generic-agent-design-go-now)),
+([Q7](../done/2026-10-13-chat-in-the-web-ui.md#q7-how-far-does-the-generic-agent-design-go-now)),
 and blocked actions allowed by a narrow rule, as today
-([Q8](../2026-10-13-chat-in-the-web-ui/clarifications-01.md#q8-what-happens-when-auto-mode-blocks-an-action-during-a-chat)).
+([Q8](../done/2026-10-13-chat-in-the-web-ui.md#q8-what-happens-when-auto-mode-blocks-an-action-during-a-chat)).
 Claude Code takes several messages in one process with its stdin open, and interrupts a turn without
 ending the process; a process per message would lose the prompt cache at every commit, and could
 never reach a working agent
-([driving Claude Code](../2026-10-13-chat-in-the-web-ui/discovery-01.md#driving-claude-code-across-turns)).
+([driving Claude Code](../done/2026-10-13-chat-in-the-web-ui.md#q6-how-does-the-server-keep-a-conversation-going-with-claude-code)).
 Codex, pi, and pi-durable share the same session, turn, and item shape, which ACP's vocabulary
 names, while ACP itself would need the Agent SDK
-([common ground](../2026-10-13-chat-in-the-web-ui/discovery-01.md#common-ground-between-agents)).
+([common ground](../done/2026-10-13-chat-in-the-web-ui.md)).
 
 ## Alternatives considered
 
@@ -139,7 +139,7 @@ names, while ACP itself would need the Agent SDK
 - The server parses Claude Code's events, and writes its control messages, itself, and must follow
   their changes between Claude Code versions. The interrupt is not in Claude Code's public docs: the
   validation script checks it, and the human accepted that this integration stays fragile
-  ([Q6](../2026-10-13-chat-in-the-web-ui/clarifications-01.md#q6-how-does-the-server-keep-a-conversation-going-with-claude-code)).
+  ([Q6](../done/2026-10-13-chat-in-the-web-ui.md#q6-how-does-the-server-keep-a-conversation-going-with-claude-code)).
 - `claude` must be installed and signed in for sessions to work. Without it, the UI only commits.
 - Actions that `auto` mode blocks are skipped, shown in the session, and allowed for the session's
   reopened process.
