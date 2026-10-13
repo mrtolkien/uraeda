@@ -119,15 +119,15 @@ function TaskRoute({ entryKey }: { entryKey: string }) {
  * the entry has a position of its own.
  */
 function useListPosition() {
-  const wide = useWidthClass() === "wide";
+  // Once, when the view is drawn, at the width it is drawn at: the entry is read once too.
+  const width = useWidthClass();
+  const [wide] = useState(width === "wide");
   const [{ opener, scroll }] = useState(currentEntry);
   useLayoutEffect(() => {
     if (wide && scroll === undefined && opener !== undefined) {
       window.scrollTo(0, opener);
     }
-    // Once, when the view is drawn.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [wide, opener, scroll]);
 }
 
 /**

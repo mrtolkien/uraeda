@@ -31,22 +31,23 @@ export function useRoundPosition(
   questions: ReadonlyArray<NavQuestion>,
 ) {
   const key = `uraeda.round.${folder}/${file}`;
+  // Read, not followed: answering a question moves no one.
   const ids = useRef<ReadonlyArray<string>>([]);
   ids.current = questions.map((q) => q.id);
+  const firstBlank = useRef<string>(undefined);
+  firstBlank.current = questions.find((q) => !q.answered)?.id;
 
+  // Once per round, when it is drawn.
   useLayoutEffect(() => {
     if (typeof currentEntry().scroll === "number") {
       return;
     }
     const saved = read(key);
-    const target =
-      saved && ids.current.includes(saved) ? saved : questions.find((q) => !q.answered)?.id;
+    const target = saved && ids.current.includes(saved) ? saved : firstBlank.current;
     if (target) {
       jumpTo(target, true);
     }
-    // Once, when the round is drawn.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [key]);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
