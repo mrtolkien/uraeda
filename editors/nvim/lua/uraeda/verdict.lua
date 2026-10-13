@@ -222,8 +222,17 @@ local function show(bufnr, verdict, action)
   end
 end
 
---- Asks for the verdict on a review, unless `action` names it, and opens its window.
+--- Asks for the verdict on a review, unless `action` names it, and opens its window. A file not
+--- waiting for the human is refused with the server's text.
 local function pick(bufnr, verdict, action)
+  if not verdict.waiting then
+    local waits_for = verdict.kind == "round" and "answers" or "a review"
+    return vim.notify(
+      ("%s is not waiting for %s."):format(verdict.file, waits_for),
+      vim.log.levels.ERROR,
+      { title = "Uraeda" }
+    )
+  end
   if verdict.kind == "round" then
     return show(bufnr, verdict, "submit")
   end
@@ -258,8 +267,8 @@ local function pick(bufnr, verdict, action)
 end
 
 --- Opens the verdict window of `bufnr`: for a spec, a plan, or an assessment, the window of
---- `action`, else of the verdict the human picks; for a round of questions, the submission's. The
---- server refuses other files.
+--- `action`, else of the verdict the human picks; for a round of questions, the submission's. A
+--- file not waiting gets no window, and the server refuses other files.
 --- @param bufnr integer?
 --- @param action? "approve" | "requestChanges" | "submit"
 function M.open(bufnr, action)
