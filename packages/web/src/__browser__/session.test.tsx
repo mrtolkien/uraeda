@@ -131,3 +131,58 @@ test("a working session, with a sub-agent and a steered message, in dark (SC-004
   expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
   await checkLayout();
 });
+
+/**
+ * Follows a link of the agent's reply, a real click as the human's, while it shows, then comes
+ * back with Back.
+ */
+async function followAndComeBack(link: HTMLElement, path: string) {
+  await userEvent.click(link);
+  await expect.poll(() => window.location.pathname).toBe(path);
+  await settle();
+  await act(async () => window.history.back());
+  await expect.poll(() => window.location.pathname).toBe(`/f/${CLI}/session`);
+  await screen.findByRole("log", { name: "Conversation" }, LIVE);
+  await settle();
+}
+
+test("Back from a session view returns to its position, following the end only from the end", async () => {
+  await show(`/f/${CLI}/session`, "CLI TUIs");
+  await startTurn("Plan the CLI.", [
+    ...lines(20, "Line"),
+    { type: "text", text: `As [the proposal](/f/${CLI}/proposal.md) asks.` },
+    ...lines(20, "Next line"),
+  ]);
+  const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
+  await within(log).findByText("Next line 20.", undefined, LIVE);
+  await settle();
+
+  // Scrolled up to a link in the reply: Back returns there, and nothing moves as the turn grows.
+  let box = scroller();
+  const proposal = within(log).getByRole("link", { name: "the proposal" });
+  const top = box === document.scrollingElement ? 0 : box.getBoundingClientRect().top;
+  box.scrollTo(
+    0,
+    Math.round(box.scrollTop + proposal.getBoundingClientRect().top - top - box.clientHeight / 2),
+  );
+  await settle();
+  const position = Math.round(box.scrollTop);
+  expect(position).toBeGreaterThan(0);
+  await followAndComeBack(proposal, `/f/${CLI}/proposal.md`);
+  box = scroller();
+  await expect.poll(() => Math.round(box.scrollTop), LIVE).toBe(position);
+  await agent.agentEmit([{ type: "text", text: "A line while scrolled up." }]);
+  await screen.findByText("A line while scrolled up.", undefined, LIVE);
+  await settle();
+  expect(Math.round(box.scrollTop)).toBe(position);
+
+  // At the end: Back returns to the end, and the view follows it again.
+  await agent.agentEmit([{ type: "text", text: `Then [the spec](/f/${CLI}/spec.md).` }]);
+  const spec = await screen.findByRole("link", { name: "the spec" }, LIVE);
+  box.scrollTo(0, box.scrollHeight);
+  await settle();
+  await followAndComeBack(spec, `/f/${CLI}/spec.md`);
+  await agent.agentEmit([{ type: "text", text: "A line after coming back." }]);
+  const newest = await screen.findByText("A line after coming back.", undefined, LIVE);
+  await expect.poll(() => inView(newest), LIVE).toBe(true);
+});

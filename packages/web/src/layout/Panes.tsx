@@ -3,7 +3,8 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import * as stylex from "@stylexjs/stylex";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
-import type { ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
+import { useRestorePaneScroll } from "../routes.tsx";
 import { useWidthClass } from "./useWidthClass.ts";
 
 const styles = stylex.create({
@@ -35,7 +36,8 @@ const styles = stylex.create({
 
 /**
  * A list and the detail opened from it: side by side on wide screens, the detail 40% wide and at
- * least 400 px; on narrow screens, the detail alone when there is one, else the list.
+ * least 400 px, keeping its own scroll position for Back; on narrow screens, the detail alone when
+ * there is one, else the list.
  */
 export function Panes({
   list,
@@ -47,6 +49,9 @@ export function Panes({
   onCloseDetail: () => void;
 }) {
   const wide = useWidthClass() === "wide";
+  const pane = useRef<HTMLElement>(null);
+  // Back returns to where the detail was scrolled, as it does the page.
+  useRestorePaneScroll(pane, wide && detail !== undefined);
   if (!wide) {
     return <>{detail ?? list}</>;
   }
@@ -56,7 +61,7 @@ export function Panes({
   return (
     <div {...stylex.props(styles.panes)}>
       <div {...stylex.props(styles.list)}>{list}</div>
-      <section {...stylex.props(styles.detail)} aria-label="Detail">
+      <section ref={pane} {...stylex.props(styles.detail)} aria-label="Detail">
         <div {...stylex.props(styles.close)}>
           <HStack justify="end">
             <Button
