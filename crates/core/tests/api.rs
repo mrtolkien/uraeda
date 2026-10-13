@@ -367,6 +367,40 @@ fn drafting_is_refused_once_the_priorities_changed() {
     api::create_draft(repo.path(), "now-1", &edited.hash).unwrap();
 }
 
+/// A feature's files come in workflow order: each round's discovery before its questions.
+#[test]
+fn a_feature_lists_its_files_in_workflow_order() {
+    let repo = repo();
+    for name in ["discovery-02.md", "clarifications-02.md", "discovery-01.md"] {
+        repo.add_on_branch(FOLDER, &format!("specs/{FOLDER}/{name}"), "# Discovery\n");
+    }
+    repo.add_on_branch(
+        FOLDER,
+        &format!("specs/{FOLDER}/spec-review.md"),
+        "# Review\n",
+    );
+
+    let names: Vec<String> = api::read_feature(repo.path(), FOLDER)
+        .unwrap()
+        .files
+        .into_iter()
+        .map(|file| file.name)
+        .collect();
+
+    assert_eq!(
+        names,
+        [
+            "proposal.md",
+            "discovery-01.md",
+            "clarifications-01.md",
+            "discovery-02.md",
+            "clarifications-02.md",
+            "spec.md",
+            "spec-review.md"
+        ]
+    );
+}
+
 /// C1: a feature lists its mockups, from its branch's tip, or from its working tree when checked
 /// out.
 #[test]
