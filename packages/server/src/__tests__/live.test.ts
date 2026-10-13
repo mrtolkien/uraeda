@@ -170,6 +170,44 @@ test("a repository is watched once, until stopped", () => {
   stopLive(repo);
 });
 
+/**
+ * A feature's step changed through git, as a commit of its answers: its session's status reads
+ * the step, so the sidebar's list and the session are sent with the feature.
+ */
+test("a feature's change through git is published to its session and the list", async () => {
+  const { sessions, repo } = await testServer();
+  const session = await sessions.featureSession(repo, "2026-10-12-cli-tuis");
+  let watcher: ((changes: binding.Changes) => void) | undefined;
+  const capturing = {
+    ...binding,
+    watch: (path: string, callback: (changes: binding.Changes) => void) => {
+      watcher = callback;
+      return binding.watch(path, () => {});
+    },
+  };
+  startLive(capturing, repo, sessions);
+  const sent = published();
+
+  watcher!({
+    features: ["2026-10-12-cli-tuis", "2026-10-11-web-ui"],
+    files: [],
+    priorities: false,
+    workspace: false,
+  });
+  await vi.waitFor(() => expect(sent()).toContain(`Session ${session.id}`));
+  stopLive(repo);
+
+  expect(sent()).toEqual(
+    expect.arrayContaining([
+      "Feature 2026-10-12-cli-tuis",
+      "Feature 2026-10-11-web-ui",
+      "SessionList all",
+      `Session ${session.id}`,
+    ]),
+  );
+  expect(sent().filter((each) => each.startsWith("Session "))).toHaveLength(1);
+});
+
 /** A session with a running turn holding `items` text items, in a cache in memory. */
 function sessionWithItems(items: number) {
   const cache = SessionCache.open(":memory:");

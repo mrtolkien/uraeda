@@ -29,7 +29,7 @@ async function main(argv: Array<string>) {
   }
   const app = createApp({ ...options, binding, sessions });
   try {
-    startLive(binding, options.repo);
+    startLive(binding, options.repo, sessions);
   } catch (error) {
     console.error(`uraeda-server: ${(error as Error).message}; pages refresh when shown again`);
   }
