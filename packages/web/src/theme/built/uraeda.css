@@ -668,6 +668,17 @@
     flex-shrink: 0 !important;
   }
 
+  .astryx-side-nav-item {
+    height: auto;
+    min-height: var(--size-element-md);
+    padding-block: var(--spacing-1);
+  }
+
+  .astryx-side-nav-item:is(*) span {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   .astryx-text[data-color="primary"] { color: var(--color-text-primary); }
 
   .astryx-heading[data-color="primary"] { color: var(--color-text-primary); }
