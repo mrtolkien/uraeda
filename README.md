@@ -46,11 +46,12 @@ the next step from the files alone, does it, commits, and stops when it needs yo
 approve by editing the file, by telling the agent, or with `ura answer` and `ura review`, and run it
 again later.
 
-Or let the web UI run it: "Commit and continue" commits your answers or your approval, then starts
-Claude Code on the feature's next step, and it works until it needs you again. The feature page
-shows the run live, with its log, its estimated cost, and a Stop button. A runner that starts the
-agent when you push an answer is planned: see [the project status](#project-status). The skill
-follows the [Agent Skills format](https://agentskills.io/specification).
+Or hand it over from the web UI: "Commit and start the agent" commits your answers or your approval,
+then opens the feature's session with the workflow's message ready to send. You read it, add a note,
+and send it, and Claude Code works on the next step until it needs you again, while you watch, write
+to it, or stop it. A runner that starts the agent when you push an answer is planned: see
+[the project status](#project-status). The skill follows the
+[Agent Skills format](https://agentskills.io/specification).
 
 **A good fit** for features worth a spec: where getting the design wrong is costly, and where you
 would rather answer ten precise questions than review a guess. **Not a fit** for a one-line fix:
@@ -222,9 +223,10 @@ frontmatter values, and the human's actions, from commenting on a spec to approv
 ## Building the tools
 
 The tools are a Rust core, the `ura` CLI, and a web UI served with its server: it shows every
-feature and file with its structure, and performs every human step, answering, reviewing, drafting,
-and jotting down priorities, from a phone too. With Rust, Node 24, and pnpm, or in `nix develop`,
-where `pnpm install` stands for `vp install` and the layout tests find their WebKit browser:
+feature and file with its structure, performs every human step, answering, reviewing, drafting, and
+jotting down priorities, and holds your sessions with the agent, from a phone too. With Rust, Node
+24, and pnpm, or in `nix develop`, where `pnpm install` stands for `vp install` and the layout tests
+find their WebKit browser:
 
 ```sh
 vp install         # dependencies
@@ -240,18 +242,23 @@ accepts besides 127.0.0.1, like your machine's full name on your tailnet, `mac.t
 server listens on 127.0.0.1 only: `tailscale serve --bg 4310` reaches it from your phone, at
 `https://mac.tail1234.ts.net/`.
 
-"Commit and continue" needs `claude` installed and signed in on the machine. The server starts it in
-the feature's worktree, in `auto` permission mode, with your own Claude Code settings, and with the
-server's copy of the skill as a plugin: see the [agents](specs/decisions/agents.md) decision.
-Without `claude`, the pages only commit. Sessions and run logs are kept in `runner.sqlite`, in
-`URAEDA_DATA_DIR` or your system's data folder, `~/.local/share/uraeda/` on Linux. When Claude Code
-changes and runs break, `vp run validate:claude` checks the integration against the installed
-`claude`, with a few small runs.
+Sessions need `claude` installed and signed in on the machine. Each feature has one session, in its
+worktree, where the workflow's runs and your chat follow each other; "New chat" opens one without a
+feature, in the main checkout. The buttons that hand a feature over, like "Commit and start the
+agent" and "Approve and start the agent", commit, then open its session with the workflow's message
+in the composer: nothing goes until you send it. A message sent while the agent works is steered
+into its turn, Stop ends the turn and keeps the session, and the sidebar shows every session with
+what needs you, what works, and each new reply. Claude Code runs in `auto` permission mode, with
+your own settings, and with the server's copy of the skill as a plugin: see the
+[agents](specs/decisions/agents.md) decision. Without `claude`, the pages only commit. Sessions are
+kept in `runner.sqlite`, in `URAEDA_DATA_DIR` or your system's data folder, `~/.local/share/uraeda/`
+on Linux. When Claude Code changes and sessions break, `vp run validate:claude` checks the
+integration against the installed `claude`, with a few short sessions.
 
 The code is under the MIT or Apache-2.0 licenses, at your option.
 
 ## Project status
 
 What is being built now, and next, is in [specs/PRIORITIES.md](specs/PRIORITIES.md): the skill
-first, then a CLI, a web UI to view and edit the workflow files, a runner that starts Claude Code
-from the web UI, and a git listener that starts it when you commit an answer.
+first, then a CLI, a web UI to view and edit the workflow files, sessions with Claude Code in the
+web UI, and a git listener that starts it when you commit an answer.
