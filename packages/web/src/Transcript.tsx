@@ -383,6 +383,7 @@ function TurnPage({
   turn,
   ended,
   firstPage,
+  latest,
   queued,
   actions,
 }: {
@@ -390,10 +391,12 @@ function TurnPage({
   turn: string;
   ended: boolean;
   firstPage: boolean;
+  /** The latest page of the session's latest turn, which may still grow. */
+  latest: boolean;
   queued: boolean;
   actions: Actions;
 }) {
-  const page = useTurnLog(id);
+  const page = useTurnLog(id, latest);
   // The turn's first message, which started it, is the first of its first page.
   const first = firstPage ? page?.items.find((item) => item.kind === "message") : undefined;
   return page ? (
@@ -419,9 +422,12 @@ function ending(state: string, reason: string | null): string | undefined {
   return undefined;
 }
 
-/** A turn: a workflow turn opened by its step, its items, and how it ended when it went wrong. */
-function Turn({ id, actions }: { id: string; actions: Actions }) {
-  const turn = useTurn(id);
+/**
+ * A turn: a workflow turn opened by its step, its items, and how it ended when it went wrong.
+ * `latest` for the session's latest turn, which may still go on.
+ */
+function Turn({ id, latest, actions }: { id: string; latest: boolean; actions: Actions }) {
+  const turn = useTurn(id, latest);
   if (!turn) {
     return null;
   }
@@ -439,6 +445,7 @@ function Turn({ id, actions }: { id: string; actions: Actions }) {
           turn={turn.id}
           ended={ended}
           firstPage={page === 0}
+          latest={latest && page === turn.pages - 1}
           queued={turn.state === "queued"}
           actions={actions}
         />
@@ -484,8 +491,8 @@ export function Transcript({
   };
   return (
     <ChatMessageList align="top" density="compact" aria-label="Conversation">
-      {session.turns.map((id) => (
-        <Turn key={id} id={id} actions={actions} />
+      {session.turns.map((id, index) => (
+        <Turn key={id} id={id} latest={index === session.turns.length - 1} actions={actions} />
       ))}
     </ChatMessageList>
   );
