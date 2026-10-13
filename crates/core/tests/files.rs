@@ -241,6 +241,28 @@ fn follow_up_applicability() {
     }
 }
 
+/// A follow-up is asked once its parent's answer makes it apply, or leaves it unclear.
+#[test]
+fn a_follow_up_is_asked_once_its_parent_is_answered() {
+    let cases = [
+        ("C, we want a simple feature", false),
+        ("B and C: we need weekdays", true),
+        ("We'll see", true),
+        ("", false),
+    ];
+    for (parent_answer, expected) in cases {
+        let text = QUESTIONS.replace("B, we'll do it later", parent_answer);
+        let questions = clarifications::parse(&text);
+
+        assert!(questions[0].asked(&questions), "a question is always asked");
+        assert_eq!(
+            questions[1].asked(&questions),
+            expected,
+            "{parent_answer:?}"
+        );
+    }
+}
+
 #[test]
 fn set_answer_writes_after_the_answer_marker() {
     let answered = clarifications::set_answer(QUESTIONS, "Q2", "A, simpler.\n\nAnd more.").unwrap();

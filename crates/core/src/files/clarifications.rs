@@ -50,6 +50,17 @@ impl Question {
             Applicability::No
         }
     }
+
+    /// Whether the round asks it now: it may apply, and a follow-up's parent has an answer, which
+    /// tells whether it does.
+    pub fn asked(&self, all: &[Question]) -> bool {
+        let parent_blank = self.parent.as_ref().is_some_and(|parent| {
+            all.iter()
+                .find(|question| &question.id == parent)
+                .is_some_and(|parent| parent.answer.trim().is_empty())
+        });
+        self.applies(all) != Applicability::No && !parent_blank
+    }
 }
 
 /// The option letters an answer starts with: "B and C: ..." is B and C, "C, we want ..." is C.

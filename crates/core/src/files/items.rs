@@ -53,6 +53,8 @@ pub struct QuestionItem {
     pub comment: String,
     /// `yes`, `no`, or `unclear`: whether it needs an answer, from its parent's.
     pub applies: String,
+    /// Whether the round asks it now: it may apply, and a follow-up's parent has an answer.
+    pub asked: bool,
     /// The line of its `**Answer:**` marker, or 0.
     pub answer_line: u32,
 }
@@ -329,9 +331,10 @@ fn round(text: &str, doc: &Document) -> RoundItems {
                 options.extend(choices);
             }
         }
+        let parent_id = parent.as_ref().map(|(p, _)| p.clone());
         questions.push(QuestionItem {
             id,
-            parent: parent.as_ref().map(|(p, _)| p.clone()),
+            parent: parent_id.clone(),
             parent_letter: parent.map(|(_, letter)| letter.to_string()),
             title: question_title,
             start_line: heading.start_line,
@@ -343,6 +346,7 @@ fn round(text: &str, doc: &Document) -> RoundItems {
             letters: picked,
             comment,
             applies: applies.to_string(),
+            asked: found.map_or(parent_id.is_none(), |q| q.asked(&parsed)),
             answer_line,
         });
     }
