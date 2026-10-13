@@ -28,6 +28,9 @@ export const REFUSALS = {
   unavailable: (name: string) => `${name} is not available on this machine.`,
 };
 
+/** The plugin the skill loads as, which every process must report loaded. */
+const PLUGIN = "uraeda";
+
 /** The line a turn shows when its session's transcript was gone, and a new one started. */
 const REPLACED = "Started a new session: the previous one is gone.";
 /** Why a turn stopped as the server stopped. */
@@ -801,11 +804,16 @@ export class Sessions {
           cache.updateSession(live.id, { nativeId: event.sessionId });
           this.#changed(live);
         }
-        if (event.pluginErrors.length > 0) {
+        // The skill loads as the `uraeda` plugin: a process without it must not run.
+        if (event.pluginErrors.length > 0 || !event.plugins.includes(PLUGIN)) {
+          const why =
+            event.pluginErrors.length > 0
+              ? event.pluginErrors.join("; ")
+              : `the plugins loaded were ${event.plugins.join(", ") || "none"}`;
           if (turn) {
             this.#halt(live, turn, {
               state: "failed",
-              reason: `The Uraeda skill did not load: ${event.pluginErrors.join("; ")}`,
+              reason: `The Uraeda skill did not load: ${why}`,
             });
           }
           this.#close(proc);
