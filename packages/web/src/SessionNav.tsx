@@ -293,9 +293,16 @@ function FeatureRow({
   row: Row | undefined;
   pathname: string;
 }) {
+  // A finished feature with nothing to show draws no mark: an idle ring there reads as unfinished.
+  const finished = feature.step.name === "done" && status.status === "idle";
   return (
     <>
-      <Item label={feature.title} to={`/f/${feature.folder}`} pathname={pathname} status={status} />
+      <Item
+        label={feature.title}
+        to={`/f/${feature.folder}`}
+        pathname={pathname}
+        status={finished ? undefined : status}
+      />
       <Subagents row={row} to={sessionPath(feature.folder)} />
     </>
   );
