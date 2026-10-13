@@ -73,6 +73,11 @@ export type SessionRecord = {
   statusLabel: string;
   /** Why it needs you: a blocked action, or the feature's step. */
   statusReason: "blocked" | "step" | null;
+  /**
+   * Whether its latest turn ended after the human last saw it, whatever its status: the view
+   * records it seen.
+   */
+  unseen: boolean;
   /** Where it works: "branch <branch>", or "main checkout, branch <branch>" for a chat. */
   place: string;
   /** The agent's running total for the session, at its last turn's end. */
@@ -230,6 +235,7 @@ export const sessionDataView = dataView<SessionRecord>("Session")({
   status: true,
   statusLabel: true,
   statusReason: true,
+  unseen: true,
   place: true,
   costUsd: true,
   turns: true,
