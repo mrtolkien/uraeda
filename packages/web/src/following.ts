@@ -1,6 +1,7 @@
 // Following a session's transcript: it opens at its end, and keeps its end in view as it grows
 // while the human is there.
-import { type RefObject, useEffect, useLayoutEffect } from "react";
+import { type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useWidthClass, widthClassNow } from "./layout/useWidthClass.ts";
 import { currentEntry } from "./routes.tsx";
 
 /** How close to its end, in pixels, the transcript still counts as read to the end. */
@@ -38,50 +39,79 @@ export function useOpenAtEnd(ref: RefObject<HTMLElement | null>) {
     if (window.location.hash.startsWith("#turn-")) {
       return;
     }
-    const box = scroller(element);
-    if (box) {
-      box.scrollTo(0, box.scrollHeight);
-    } else {
-      window.scrollTo(0, document.documentElement.scrollHeight);
-    }
+    toEnd(scroller(element));
     // Once, as the view opens.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }
 
+/** Scrolls `box`, or the window without one, to its end. */
+function toEnd(box: HTMLElement | undefined) {
+  if (box) {
+    box.scrollTo(0, box.scrollHeight);
+  } else {
+    window.scrollTo(0, document.documentElement.scrollHeight);
+  }
+}
+
 /**
  * Keeps the end of an element in view as it grows, while `enabled` and while the human is at the
  * end: scrolled up, nothing moves. It scrolls the nearest element that scrolls on its own, or the
- * window.
+ * window. `following` says whether the human is at the end, enabled or not, and `jumpToLatest`
+ * brings them back there, following again.
  */
 export function useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolean) {
+  const [following, setFollowing] = useState(true);
+  // Read by the observer between draws: the last position read, at the end or not.
+  const followingNow = useRef(true);
+  const box = useRef<HTMLElement | undefined>(undefined);
+  const width = useWidthClass();
+  const drawn = useRef(width);
+  useLayoutEffect(() => {
+    drawn.current = width;
+  }, [width]);
+
   useEffect(() => {
     const element = ref.current;
-    if (!enabled || !element || typeof ResizeObserver === "undefined") {
+    if (!element) {
       return;
     }
-    const box = scroller(element);
-    // Growing does not scroll: the last position read, at the end or not, holds until the human
-    // scrolls.
-    let following = atEnd(box);
-    const onScroll = () => {
-      following = atEnd(box);
-    };
-    const target = box ?? window;
-    target.addEventListener("scroll", onScroll, { passive: true });
-    const observer = new ResizeObserver(() => {
-      if (following) {
-        if (box) {
-          box.scrollTo(0, box.scrollHeight);
-        } else {
-          window.scrollTo(0, document.documentElement.scrollHeight);
-        }
+    box.current = scroller(element);
+    const read = () => {
+      // A layout drawn for the other width class, as the window crosses the breakpoint: its
+      // positions are not the human's, and `useKeepPlace` puts the place back.
+      if (widthClassNow() !== drawn.current) {
+        return;
       }
-    });
-    observer.observe(element);
+      followingNow.current = atEnd(box.current);
+      setFollowing(followingNow.current);
+    };
+    read();
+    const target = box.current ?? window;
+    target.addEventListener("scroll", read, { passive: true });
+    // Growing does not scroll: the last position read holds until the human scrolls. Only a session
+    // at work follows its end; another reads whether its end moved away.
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(() => {
+            if (enabled && followingNow.current) {
+              toEnd(box.current);
+            } else {
+              read();
+            }
+          });
+    observer?.observe(element);
     return () => {
-      observer.disconnect();
-      target.removeEventListener("scroll", onScroll);
+      observer?.disconnect();
+      target.removeEventListener("scroll", read);
     };
   }, [ref, enabled]);
+
+  const jumpToLatest = useCallback(() => {
+    followingNow.current = true;
+    setFollowing(true);
+    toEnd(box.current);
+  }, []);
+  return { following, jumpToLatest };
 }

@@ -2,7 +2,8 @@
 // at both sizes, its transcript follows its end while the human is at the end, and Back returns to
 // the same position. US3 and its edge case "Width changing across 768 px": the phone's progress
 // line keeps its open state and position across Back, and the column turns into it and back as the
-// width changes. The session view passes the layout checks at both sizes, in light and dark
+// width changes. US4.1–US4.4: scrolled up, "Jump to the latest" brings back the end, and the page
+// follows it again. The session view passes the layout checks at both sizes, in light and dark
 // (SC-004).
 import { act, screen, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
@@ -70,6 +71,57 @@ test("a working session: a page of its own, following its end (US1)", async () =
   await drawn();
   expect(log.isConnected).toBe(true);
   expect(box.scrollTop).toBe(position);
+});
+
+const JUMP = "Jump to the latest";
+
+test("US4.2–US4.4: scrolled up, Jump to the latest brings the end back, and the page follows it", async () => {
+  const log = await openWorkingSession();
+  const box = scroller();
+
+  // US4.4: at the end, no button.
+  box.scrollTo(0, box.scrollHeight);
+  await drawn();
+  expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
+
+  // US4.2: scrolled up 400 px, the page keeps its position as lines arrive, and the button shows.
+  box.scrollTo(0, box.scrollTop - 400);
+  await drawn();
+  const position = box.scrollTop;
+  const jump = await screen.findByRole("button", { name: JUMP }, LIVE);
+  await agent.agentEmit(lines(5, "Later line"));
+  const latest = await within(log).findByText("Later line 5.", undefined, LIVE);
+  await drawn();
+  expect(box.scrollTop).toBe(position);
+  expect(inView(latest)).toBe(false);
+  await checkLayout();
+
+  // US4.3: pressed, the newest line shows, the button goes, and a further line stays in view.
+  await userEvent.click(jump);
+  await expect.poll(() => inView(latest), LIVE).toBe(true);
+  await expect.poll(() => screen.queryByRole("button", { name: JUMP }), LIVE).toBeNull();
+  await agent.agentEmit([{ text: "A line after the jump.", type: "text" }]);
+  const after = await within(log).findByText("A line after the jump.", undefined, LIVE);
+  await expect.poll(() => inView(after), LIVE).toBe(true);
+  expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
+});
+
+test("an ended session scrolled up also offers Jump to the latest", async () => {
+  const log = await openWorkingSession();
+  await agent.agentFinish();
+  await expect.poll(() => screen.queryByRole("button", { name: "Stop" }), LIVE).toBeNull();
+  await drawn();
+  const box = scroller();
+  box.scrollTo(0, box.scrollHeight);
+  await drawn();
+  expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
+
+  box.scrollTo(0, box.scrollTop - 400);
+  await userEvent.click(await screen.findByRole("button", { name: JUMP }, LIVE));
+
+  const last = within(log).getByText("Line 40.");
+  await expect.poll(() => inView(last), LIVE).toBe(true);
+  await expect.poll(() => screen.queryByRole("button", { name: JUMP }), LIVE).toBeNull();
 });
 
 // A session opened from a task view still opens at its end: the task view's pane keeps its own
