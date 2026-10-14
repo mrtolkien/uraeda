@@ -53,9 +53,10 @@ check their own work: one command they cannot forget a part of keeps them honest
 The web UI is compiled with React Compiler: typing a review comment redrew the whole spec at each
 keystroke, and nothing in the web UI was memoized. The human chose to fix it for every page with
 React Compiler, rather than by hand where it shows
-([Q7](../2026-10-14-text-inputs/clarifications-01.md#q7-should-the-comment-lag-be-fixed-in-the-review-page-or-for-the-whole-ui),
-[the comment lag](../2026-10-14-text-inputs/discovery-01.md#the-comment-lag)). The Babel route runs
-the compiler React ships as stable; `@vitejs/plugin-react` marks its Rust port experimental.
+([Q7](../done/2026-10-14-text-inputs.md#q7-should-the-comment-lag-be-fixed-in-the-review-page-or-for-the-whole-ui),
+[the comment lag](../done/2026-10-14-text-inputs.md#q7-should-the-comment-lag-be-fixed-in-the-review-page-or-for-the-whole-ui)).
+The Babel route runs the compiler React ships as stable; `@vitejs/plugin-react` marks its Rust port
+experimental.
 
 ## Alternatives considered
 
