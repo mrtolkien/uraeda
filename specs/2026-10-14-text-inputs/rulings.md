@@ -478,3 +478,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the two tests, and the reserved room in `SaveStatus`, which leaves an empty line
   under a phone's field while nothing changed.
 - **Where**: task 11, and the fix before task 13.
+
+## R29: "Leave page" is the dialog's main button, "Discard" its destructive one
+
+- **Decision**: a confirmation's button draws as the main one, Astryx's `primary`, unless its
+  options say `destructive`: "Leave page" is primary, as the mockup's section 4 draws it, and
+  "Discard", in "Discard your comment?" and "Discard your changes?", stays `destructive`.
+- **Rationale**: leaving loses nothing, the dialog itself saying the unsaved text stays in the
+  browser, so a red button would warn of a loss that does not happen. Discard deletes what the human
+  typed, which nothing brings back: the [UI behaviour](../decisions/ui-behaviour.md) decision keeps
+  dialogs for confirming what cannot be undone, and the destructive colour says so. The mockup draws
+  both as its one accent button, with colours it calls approximate.
+- **Alternatives considered**: both primary, as the mockup draws them, which makes deleting text
+  look like any other action; both destructive, as built in task 4, which makes leaving look like
+  deleting.
+- **If wrong**: one option, `destructive`, in `DISCARD_CHANGES` and `DISCARD_COMMENT`.
+- **Where**: [`Confirm.tsx`](/packages/web/src/fields/Confirm.tsx), the fix before task 13.

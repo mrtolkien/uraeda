@@ -9,7 +9,7 @@ import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
 import type { useImageText } from "./attach/useImageText.ts";
-import { useConfirm } from "./fields/Confirm.tsx";
+import { type ConfirmOptions, useConfirm } from "./fields/Confirm.tsx";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import type { Unsaved } from "./fields/unsaved.ts";
@@ -35,10 +35,11 @@ const styles = stylex.create({
 });
 
 /** What Cancel asks on a comment whose text changed. */
-export const DISCARD_COMMENT = {
+export const DISCARD_COMMENT: ConfirmOptions = {
   body: "The text you typed is deleted.",
   cancel: "Keep editing",
   confirm: "Discard",
+  destructive: true,
   title: "Discard your comment?",
 };
 
