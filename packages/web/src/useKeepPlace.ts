@@ -15,8 +15,15 @@ function atEnd() {
   return page.scrollHeight - window.scrollY - window.innerHeight <= AT_END;
 }
 
+/** Whether an element holds text of its own, besides its children's. */
+function holdsText(element: Element) {
+  return [...element.childNodes].some(
+    (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+  );
+}
+
 /**
- * The first innermost element of `parent` that reaches `line` or lies below it: the text read
+ * The innermost element of `parent` that reaches `line` first, or lies below it: the text read
  * there. Elements wholly above it are passed over without looking inside them.
  */
 function firstFrom(parent: Element, line: number): Element | undefined {
@@ -27,10 +34,14 @@ function firstFrom(parent: Element, line: number): Element | undefined {
     if (child.children.length === 0) {
       return child;
     }
-    // A child whose own padding reaches the line, its content above it: the place is further on.
     const inner = firstFrom(child, line);
     if (inner) {
       return inner;
+    }
+    // A child across the line whose children are all above it: a paragraph whose inline code
+    // comes first is the place itself, while a message's padding under its text is passed.
+    if (holdsText(child)) {
+      return child;
     }
   }
   return undefined;
@@ -62,16 +73,24 @@ export function useKeepPlace(content: RefObject<HTMLElement | null>) {
       }
       place.current = atEnd() ? "end" : placeIn(element);
     };
-    const onScroll = () => {
+    const later = () => {
       frame ??= requestAnimationFrame(read);
     };
     read();
-    window.addEventListener("scroll", onScroll, { passive: true });
+    // Read again as the human scrolls, and as what is drawn moves without a scroll: the line
+    // opening above the transcript, or a group of tool calls in it.
+    window.addEventListener("scroll", later, { passive: true });
+    const observer = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(later);
+    observer?.observe(document.documentElement);
+    if (content.current) {
+      observer?.observe(content.current);
+    }
     return () => {
       if (frame !== undefined) {
         cancelAnimationFrame(frame);
       }
-      window.removeEventListener("scroll", onScroll);
+      observer?.disconnect();
+      window.removeEventListener("scroll", later);
     };
   }, [content]);
 
