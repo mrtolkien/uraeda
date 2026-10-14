@@ -392,9 +392,9 @@ git commit -m "feat(session-view): the plan's progress in the step"
 - Create: `crates/core/src/changes.rs` (`ChangedFile`, `BranchChanges`, `branch_changes`, and the
   numstat call and parsing)
 - Modify: `crates/core/src/lib.rs` (`pub mod changes`)
-- Modify: `crates/core/src/git.rs` and `crates/core/src/api.rs`: `Git::output`, `open`, and `find`
-  become `pub(crate)`, nothing else. Both files are over the code quality decision's 500 lines, and
-  may only shrink.
+- Modify: `crates/core/src/git.rs`, `crates/core/src/api.rs`, and `crates/core/src/workspace.rs`:
+  `Git::output`, `open`, `find`, and `folder_path` become `pub(crate)`, nothing else. Both files are
+  over the code quality decision's 500 lines, and may only shrink.
 - Modify: `crates/binding/src/lib.rs` (new `branchChanges`)
 - Modify: `packages/binding/index.d.ts`, `packages/binding/index.js` (regenerated)
 - Create: `crates/core/tests/branch_changes.rs`
@@ -452,8 +452,12 @@ timed with `Instant`, asserting under 100 ms, run by hand with
 - **The refs.** `base` and `tip` are the commits `Git::tip` resolves for `default_branch()` and the
   feature's branch, local first, then `origin`'s, passed as hashes in one `<base>...<tip>` argument
   ([R10](rulings.md#r10-the-diff-names-commits-not-branches)).
-- **The result.** `branch_changes` drops paths under `specs/<folder>/` (or `specs/bugs/<folder>/`
-  for a bug), sorts by path, counts and sums all, and keeps the first 50.
+- **The result.** `branch_changes` drops the feature's own files: what `Feature::owns` gives it, and
+  the paths under `specs/<folder>/` (or `specs/bugs/<folder>/` for a bug), through
+  `workspace::folder_path`, so a finished feature's branch drops its record and its deleted folder,
+  not the rest of `specs/done/`
+  ([R11](rulings.md#r11-a-finished-features-own-files-are-its-record-and-its-folder)). It sorts by
+  path, counts and sums all, and keeps the first 50.
 - **The binding.** `crates/binding/src/lib.rs` exposes it like `read_raw`.
 
 - [x] **Step 4: Run all tests, and regenerate the binding**

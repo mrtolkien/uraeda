@@ -284,7 +284,7 @@ fn record_kind(text: &str) -> Kind {
     }
 }
 
-fn folder_path(kind: Kind, folder: &str) -> String {
+pub(crate) fn folder_path(kind: Kind, folder: &str) -> String {
     match kind {
         Kind::Feature => format!("specs/{folder}"),
         Kind::Bug => format!("specs/bugs/{folder}"),

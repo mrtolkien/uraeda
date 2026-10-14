@@ -9,6 +9,7 @@ use serde::Serialize;
 
 use crate::api::{self, ApiError};
 use crate::git::{Git, GitError};
+use crate::workspace::folder_path;
 
 /// The most files listed; the counts and totals still cover every file.
 const LISTED: usize = 50;
@@ -51,10 +52,18 @@ pub fn branch_changes(repo: &Path, folder: &str) -> Result<Option<BranchChanges>
     let (Some(tip), Some(base)) = (git.tip(branch), git.tip(default)) else {
         return Ok(None);
     };
-    let own = format!("{}/", feature.path);
+    // Its own files: what it owns, its folder or its record once finished, and its folder's files
+    // a finished feature's branch deleted.
+    let folder = folder_path(feature.kind, &feature.folder);
+    let own = |path: &str| {
+        feature.owns(path).is_some()
+            || path
+                .strip_prefix(folder.as_str())
+                .is_some_and(|rest| rest.starts_with('/'))
+    };
     let mut files: Vec<ChangedFile> = numstat(&git, &base.to_string(), &tip.to_string())?
         .into_iter()
-        .filter(|file| !file.path.starts_with(&own))
+        .filter(|file| !own(&file.path))
         .collect();
     files.sort_by(|a, b| a.path.cmp(&b.path));
     let changes = BranchChanges {
@@ -108,11 +117,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_reads_plain_binary_and_renamed_records() {
+    fn parse_reads_plain_binary_renamed_and_unusual_paths() {
         let output = concat!(
             "3\t1\tsrc/a.rs\0",
             "-\t-\tshot.png\0",
             "0\t0\t\0old.txt\0new.txt\0",
+            "2\t0\tdocs/a\tb é.md\0",
         );
         assert_eq!(
             parse(output),
@@ -130,6 +140,11 @@ mod tests {
                 ChangedFile {
                     path: "new.txt".into(),
                     added: Some(0),
+                    removed: Some(0)
+                },
+                ChangedFile {
+                    path: "docs/a\tb é.md".into(),
+                    added: Some(2),
                     removed: Some(0)
                 },
             ]
