@@ -1231,14 +1231,14 @@ git commit -m "ci(run-ui): publish the npm packages on the release tag"
 - Create: `specs/2026-10-14-run-ui/release-guide.md` (the guide the pull request's description
   copies)
 
-- [ ] **Step 1: Update the README**
+- [x] **Step 1: Update the README**
 
 "Install" gains a paragraph and a block: run `npx uraeda` in a repository; it needs Node 24 or
 later, and `claude` installed and signed in for sessions; `--no-open`, `--port`, and
 `--allowed-hosts`; `npm i -g uraeda@latest` for a lasting install, updated the same way. "Building
 the tools" keeps `vp dev` and `vp run dev`, and `pnpm start` loses `--web-root`.
 
-- [ ] **Step 2: Write the release guide, checking each command against npm's documentation**
+- [x] **Step 2: Write the release guide, checking each command against npm's documentation**
 
 For the human, in order, each step with its command, and the documentation page it was checked
 against ([trusted publishers](https://docs.npmjs.com/trusted-publishers),
@@ -1256,12 +1256,12 @@ against ([trusted publishers](https://docs.npmjs.com/trusted-publishers),
 6. Check on a clean machine: `npx uraeda@latest --version`, then `npx uraeda` in a repository.
 7. If the workflow stopped part way: run `npm.yml` again with the same tag, from the Actions tab.
 
-- [ ] **Step 3: Run all checks**
+- [x] **Step 3: Run all checks**
 
 - Run: `vp check && cargo run -q -p uraeda-cli -- check specs`
 - Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add README.md specs/2026-10-14-run-ui/release-guide.md
