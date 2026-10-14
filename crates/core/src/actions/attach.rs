@@ -6,7 +6,6 @@ use std::fs;
 
 use crate::files::priorities;
 use crate::images::{self, Encoded};
-use crate::workspace::resolve;
 
 use super::ActionError;
 use super::place::Place;
@@ -29,13 +28,14 @@ pub struct Attached {
 
 /// Saves an image next to the markdown file `path`, a file directly in a feature's, a bug's, or a
 /// draft's folder, or a single-file draft, in `place`. `name` is the image's original file name,
-/// `None` for a pasted image, named after `stamp`. The image is checked before anything is written.
+/// `None` for a pasted image, named after the time `stamp` gives. The image is checked before
+/// anything is written, and a failed write leaves the files as they were.
 pub fn attach(
     place: &Place,
     path: &str,
     bytes: &[u8],
     name: Option<&str>,
-    stamp: &str,
+    stamp: impl FnOnce() -> String,
 ) -> Result<Attached, ActionError> {
     let Some((folder, file)) = path.rsplit_once('/') else {
         return Err(not_markdown(path));
@@ -44,28 +44,31 @@ pub fn attach(
         return Err(not_markdown(path));
     }
     let single_draft = matches!(folder, "specs/drafts" | "specs/backlog");
-    if single_draft && !place.root.join(path).is_file() {
-        return Err(ActionError::Refused(format!("no draft {path}")));
+    if !place.root.join(path).is_file() {
+        return Err(ActionError::Refused(match single_draft {
+            true => format!("no draft {path}"),
+            false => format!("{path}: no such file"),
+        }));
     }
 
-    let stem = name.map(stem).filter(|stem| !stem.is_empty());
     let encoded = images::encode(bytes, name.unwrap_or("pasted image"))
         .map_err(|error| ActionError::Refused(error.to_string()))?;
+    let (base, alt) = match name.map(stem) {
+        Some(stem) => (file_name(stem), alt(stem)),
+        None => (format!("pasted-{}", stamp()), "pasted image".to_string()),
+    };
 
-    let (folder, moved) = if single_draft {
-        let moved = into_folder(place, path)?;
+    let (folder, image, moved) = if single_draft {
+        let (moved, image) = into_folder(place, path, &base, &encoded)?;
         let folder = moved.rsplit_once('/').map_or("", |(folder, _)| folder);
-        (folder.to_string(), Some(moved))
+        (folder.to_string(), image, Some(moved))
     } else {
-        (folder.to_string(), None)
+        (
+            folder.to_string(),
+            save(place, folder, &base, &encoded)?,
+            None,
+        )
     };
-
-    let base = match stem {
-        Some(stem) => file_name(stem),
-        None => format!("pasted-{stamp}"),
-    };
-    let image = save(place, &folder, &base, &encoded)?;
-    let alt = stem.map_or_else(|| "pasted image".to_string(), escape);
     Ok(Attached {
         path: format!("{folder}/images/{image}"),
         link: format!("![{alt}](images/{image})"),
@@ -79,7 +82,12 @@ fn not_markdown(path: &str) -> ActionError {
     ))
 }
 
-/// A file name without its folders and its extension.
+/// The spec's refusal for a write that fails on disk.
+fn failed(error: std::io::Error) -> ActionError {
+    ActionError::Refused(format!("The image could not be saved: {error}."))
+}
+
+/// A file name without its folders and its last extension, whatever it is: `.png` has none left.
 fn stem(name: &str) -> &str {
     let file = name.rsplit(['/', '\\']).next().unwrap_or(name);
     file.rsplit_once('.').map_or(file, |(stem, _)| stem)
@@ -105,6 +113,17 @@ fn file_name(stem: &str) -> String {
     }
 }
 
+/// An image's alt text: its name with every run of spaces and line breaks turned into one space,
+/// escaped, or `image` when nothing is left.
+fn alt(stem: &str) -> String {
+    let text = stem.split_whitespace().collect::<Vec<_>>().join(" ");
+    if text.is_empty() {
+        "image".to_string()
+    } else {
+        escape(&text)
+    }
+}
+
 /// Alt text with `[`, `]`, and `\` escaped.
 fn escape(text: &str) -> String {
     let mut escaped = String::new();
@@ -118,20 +137,24 @@ fn escape(text: &str) -> String {
 }
 
 /// Writes an image in `<folder>/images/` as `<base>.<extension>`, or `<base>-2`, `<base>-3`, and so
-/// on when the name is taken. Returns its file name.
+/// on when the name is taken. Returns its file name. Never writes through a symbolic link.
 fn save(place: &Place, folder: &str, base: &str, encoded: &Encoded) -> Result<String, ActionError> {
-    let failed = |error: std::io::Error| {
-        ActionError::Refused(format!("The image could not be saved: {error}."))
-    };
     let dir = place.root.join(folder).join("images");
     fs::create_dir_all(&dir).map_err(failed)?;
+    let root = fs::canonicalize(&place.root).map_err(failed)?;
+    if fs::canonicalize(&dir).map_err(failed)? != root.join(folder).join("images") {
+        return Err(ActionError::Refused(format!(
+            "The image could not be saved: {folder}/images goes through a symbolic link."
+        )));
+    }
     let mut number = 1;
     loop {
         let name = match number {
             1 => format!("{base}.{}", encoded.extension),
             _ => format!("{base}-{number}.{}", encoded.extension),
         };
-        // `create_new` never overwrites, even when another process writes the same name.
+        // `create_new` never overwrites, even when another process writes the same name, and never
+        // follows a symbolic link: a link takes the name.
         match fs::OpenOptions::new()
             .write(true)
             .create_new(true)
@@ -139,7 +162,10 @@ fn save(place: &Place, folder: &str, base: &str, encoded: &Encoded) -> Result<St
         {
             Ok(mut file) => {
                 use std::io::Write;
-                file.write_all(&encoded.bytes).map_err(failed)?;
+                if let Err(error) = file.write_all(&encoded.bytes) {
+                    let _ = fs::remove_file(dir.join(&name));
+                    return Err(failed(error));
+                }
                 return Ok(name);
             }
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => number += 1,
@@ -149,50 +175,64 @@ fn save(place: &Place, folder: &str, base: &str, encoded: &Encoded) -> Result<St
 }
 
 /// Moves the single-file draft `specs/<drafts|backlog>/<slug>.md` to
-/// `specs/<drafts|backlog>/<slug>/proposal.md`, numbering the folder when it exists, and points
-/// the priorities entry linking it to the new path. Returns the new path.
-fn into_folder(place: &Place, path: &str) -> Result<String, ActionError> {
+/// `specs/<drafts|backlog>/<slug>/proposal.md`, numbering the folder when it exists, with the image
+/// in its `images/`, and points the links of the priorities to the new path. Claims the folder,
+/// saves the image, moves the draft, then edits the priorities: a failure undoes what was done.
+/// Returns the new path and the image's file name.
+fn into_folder(
+    place: &Place,
+    path: &str,
+    base: &str,
+    encoded: &Encoded,
+) -> Result<(String, String), ActionError> {
     let (parent, file) = path.rsplit_once('/').unwrap_or(("specs", path));
     let slug = file.strip_suffix(".md").unwrap_or(file);
     let mut folder = format!("{parent}/{slug}");
     let mut number = 2;
-    while place.root.join(&folder).exists() {
-        folder = format!("{parent}/{slug}-{number}");
-        number += 1;
+    // `create_dir` claims a free name even when another process claims one at the same time.
+    loop {
+        match fs::create_dir(place.root.join(&folder)) {
+            Ok(()) => break,
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                folder = format!("{parent}/{slug}-{number}");
+                number += 1;
+            }
+            Err(error) => return Err(failed(error)),
+        }
     }
     let moved = format!("{folder}/proposal.md");
-    fs::create_dir_all(place.root.join(&folder))?;
-    fs::rename(place.root.join(path), place.root.join(&moved))?;
+    let result = save(place, &folder, base, encoded).and_then(|image| {
+        fs::rename(place.root.join(path), place.root.join(&moved)).map_err(failed)?;
+        if let Err(error) = retarget(place, path, &moved) {
+            let _ = fs::rename(place.root.join(&moved), place.root.join(path));
+            return Err(error);
+        }
+        Ok((moved, image))
+    });
+    // The folder is removed only once the draft is back in its place.
+    if result.is_err() && place.root.join(path).is_file() {
+        let _ = fs::remove_dir_all(place.root.join(&folder));
+    }
+    result
+}
 
-    let priorities_path = place.root.join(PRIORITIES);
-    let Ok(text) = fs::read_to_string(&priorities_path) else {
-        return Ok(moved);
+/// Points the links of the priorities to the draft `from` at `to`, leaving the file as it was when
+/// the write fails.
+fn retarget(place: &Place, from: &str, to: &str) -> Result<(), ActionError> {
+    let file = place.root.join(PRIORITIES);
+    let text = match fs::read_to_string(&file) {
+        Ok(text) => text,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(failed(error)),
     };
-    let new_name = format!("{}/proposal.md", folder.rsplit('/').next().unwrap_or(slug));
-    let mut edited = text.clone();
-    for entry in priorities::parse(&text) {
-        let Some(link) = entry.link.as_deref() else {
-            continue;
-        };
-        if resolve("specs", link).as_deref() != Some(path) {
-            continue;
-        }
-        let (target, anchor) = match link.split_once('#') {
-            Some((target, anchor)) => (target, format!("#{anchor}")),
-            None => (link, String::new()),
-        };
-        let Some(prefix) = target.strip_suffix(file) else {
-            continue;
-        };
-        let to = format!("{prefix}{new_name}{anchor}");
-        if let Some(text) = priorities::retarget(&edited, entry.line, link, &to) {
-            edited = text;
-        }
+    let edited = priorities::retarget(&text, from, to);
+    if edited != text
+        && let Err(error) = fs::write(&file, edited)
+    {
+        let _ = fs::write(&file, &text);
+        return Err(failed(error));
     }
-    if edited != text {
-        fs::write(&priorities_path, edited)?;
-    }
-    Ok(moved)
+    Ok(())
 }
 
 #[cfg(test)]
@@ -216,5 +256,8 @@ mod tests {
         assert_eq!(file_name("--"), "image");
         assert_eq!(file_name(&format!("{}-b", "a".repeat(59))), "a".repeat(59));
         assert_eq!(escape("a[b]\\c"), "a\\[b\\]\\\\c");
+        assert_eq!(stem(".png"), "");
+        assert_eq!(alt(""), "image");
+        assert_eq!(alt(" a \n\t b "), "a b");
     }
 }
