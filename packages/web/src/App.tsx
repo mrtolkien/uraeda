@@ -144,20 +144,9 @@ function useListPosition() {
   }, [wide, opener, scroll]);
 }
 
-/**
- * A feature's session: on wide screens, in a pane beside its feature's page; on narrow screens, a
- * page of its own.
- */
+/** A feature's session: a page of its own at every width. */
 function SessionRoute({ folder }: { folder: string }) {
-  const here = useRepoPath();
-  useListPosition();
-  return (
-    <Panes
-      detail={<SessionPage folder={folder} />}
-      list={<FeaturePage folder={folder} />}
-      onCloseDetail={() => navigate(here(`/f/${encodeURIComponent(folder)}`))}
-    />
-  );
+  return <SessionPage folder={folder} />;
 }
 
 /** An old run's address: its feature's session, at the turn the run became. */

@@ -35,6 +35,11 @@ function composer() {
   return screen.findByRole("textbox", { name: "Message Claude Code" });
 }
 
+/** The composer's text now. */
+function composerText() {
+  return screen.getByRole("textbox", { name: "Message Claude Code" }).textContent;
+}
+
 /** The transcript as drawn now: the page draws a new one once its session is created. */
 function log() {
   return within(screen.getByRole("log", { name: "Conversation" }));
@@ -172,8 +177,6 @@ test("US1.4: Take back removes the message and puts its text back in the compose
 });
 
 test("US1.5: Send turns into Stop during a turn, and Stop ends it as Stopped", async () => {
-  // The session's page alone: on a wide screen, the feature's page beside it has its own Stop.
-  atWidth(402);
   const fake = await fakeAgent();
   await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: fake });
   await openTurn(fake, "Look at the plan.");
@@ -189,7 +192,6 @@ test("US1.5: Send turns into Stop during a turn, and Stop ends it as Stopped", a
 });
 
 test("a Stop that fails says why under the composer", async () => {
-  atWidth(402);
   const fake = await fakeAgent();
   await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: fake });
   await openTurn(fake, "Look at the plan.");
@@ -290,25 +292,52 @@ test("a workflow turn opens with the step it ran", async () => {
   ).toBeTruthy();
 });
 
-test("on the phone, the session is a page of its own, with crumbs", async () => {
-  atWidth(402);
-  await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: await fakeAgent() });
+test.each([402, 1440])(
+  "US1.1: at %i px, the session is a page of its own, with crumbs",
+  async (width) => {
+    atWidth(width);
+    await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: await fakeAgent() });
 
+    await screen.findByRole("log", { name: "Conversation" });
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Web UI for the workflow files" }),
+    ).toBeTruthy();
+    const crumbs = within(screen.getByRole("navigation", { name: "Breadcrumbs" }));
+    expect(crumbs.getByRole("link", { name: "Web UI for the workflow files" })).toBeTruthy();
+    expect(crumbs.getByText("Session")).toBeTruthy();
+    expect(screen.queryByRole("list", { name: "Files" })).toBeNull();
+  },
+);
+
+test("US1.8: Open the session replaces the feature page, and Back returns to it", async () => {
+  await renderPage(`/f/${WEB_UI}`, fixtureRepo(), { agent: await fakeAgent() });
+  await screen.findByRole("list", { name: "Files" });
+  window.scrollTo(0, 120);
+
+  await click(await screen.findByRole("link", { name: "Open the session" }));
   await screen.findByRole("log", { name: "Conversation" });
-  const crumbs = within(screen.getByRole("navigation", { name: "Breadcrumbs" }));
-  expect(crumbs.getByRole("link", { name: "Web UI for the workflow files" })).toBeTruthy();
-  expect(crumbs.getByText("Session")).toBeTruthy();
   expect(screen.queryByRole("list", { name: "Files" })).toBeNull();
+  await act(async () => window.history.back());
+
+  await screen.findByRole("list", { name: "Files" });
+  expect(window.scrollY).toBe(120);
 });
 
-test("on a wide screen, the session is beside the feature page", async () => {
-  atWidth(1024);
-  await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: await fakeAgent() });
+test("US1.9: Ask the agent opens the session with the quote, and Back returns to the review", async () => {
+  const folder = "2026-10-06-recurring-tasks";
+  await renderPage(`/f/${folder}/spec.md`, fixtureRepo(), { agent: await fakeAgent() });
+  await click(await screen.findByRole("button", { name: /^Users can make a task repeat/ }));
+
+  await click(await screen.findByRole("button", { name: "Ask the agent" }));
 
   await screen.findByRole("log", { name: "Conversation" });
-  expect(await screen.findByRole("list", { name: "Files" })).toBeTruthy();
-  // The feature page's crumbs only: the session is in a pane beside it.
-  expect(screen.queryByText("Session")).toBeNull();
+  await waitFor(() =>
+    expect(composerText()).toContain(`About specs/${folder}/spec.md, lines 26–29:`),
+  );
+  await act(async () => window.history.back());
+
+  expect(await screen.findByRole("button", { name: "Approve and start the agent" })).toBeTruthy();
+  expect(window.location.pathname).toBe(atRepo(`/f/${folder}/spec.md`));
 });
 
 test("the status region says when a reply starts and ends", async () => {

@@ -26,7 +26,6 @@ import { useAgent, useFeature, useSession, useWorkflowMessage } from "./data.ts"
 import { EditableLine } from "./EditableLine.tsx";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
-import { useWidthClass } from "./layout/useWidthClass.ts";
 import { statusStyles } from "./Question.tsx";
 import { navigate, redirect, useRepoPath, useRestoreScroll, useSearch } from "./routes.tsx";
 import { sessionPath } from "./sessions.ts";
@@ -37,7 +36,7 @@ import { SessionView } from "./views.ts";
 
 const styles = stylex.create({
   composer: {
-    // The composer stays at the bottom of the pane or the window while the transcript scrolls.
+    // The composer stays at the bottom of the window while the transcript scrolls.
     backgroundColor: colorVars["--color-background-surface"],
     bottom: 0,
     paddingBlock: spacingVars["--spacing-3"],
@@ -80,12 +79,10 @@ function Header({
   title: string;
 }) {
   const agent = useAgent();
-  const wide = useWidthClass() === "wide";
   const meta = [agent?.name, place].filter((part): part is string => Boolean(part));
   return (
     <VStack gap={1}>
-      {/* Beside the feature page on wide screens, whose title is the page's heading. */}
-      <Heading level={wide ? 2 : 1}>
+      <Heading level={1}>
         {chat ? (
           <EditableLine field={chat.field} label="Title" onSave={chat.onRename} value={title} />
         ) : (
@@ -385,7 +382,6 @@ function WorkflowMessage({
 function FeatureSession({ folder }: { folder: string }) {
   const feature = useFeature(folder);
   const here = useRepoPath();
-  const wide = useWidthClass() === "wide";
   // A session created here shows before the feature's live update names it.
   const [created, setCreated] = useState<string>();
   const draft = useDraft();
@@ -426,7 +422,6 @@ function FeatureSession({ folder }: { folder: string }) {
       </Page>
     );
   }
-  const crumbs = wide ? undefined : folder;
   // A feature whose proposal is not committed has no branch for the agent to work on: the server
   // refuses every message with the same words.
   const blocked = feature.branch ? undefined : NO_BRANCH;
@@ -454,7 +449,7 @@ function FeatureSession({ folder }: { folder: string }) {
         </Suspense>
       )}
       <SessionPane
-        crumbs={crumbs}
+        crumbs={folder}
         draft={draft}
         folder={folder}
         handing={handing}
@@ -468,8 +463,8 @@ function FeatureSession({ folder }: { folder: string }) {
 }
 
 /**
- * A session's view: a feature's, by its folder, beside its feature page on wide screens; a chat, by
- * its ID; or an empty chat, which its first message creates.
+ * A session's page: a feature's, by its folder; a chat, by its ID; or an empty chat, which its
+ * first message creates.
  */
 export function SessionPage(props: { folder: string } | { id: string } | { newChat: true }) {
   // Its data is read before it draws: the position comes back at once.

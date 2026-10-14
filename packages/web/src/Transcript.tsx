@@ -104,14 +104,13 @@ function scroller(element: HTMLElement): HTMLElement | undefined {
 
 /**
  * Shows the end of a session's transcript as it opens, unless Back or a reload brings a saved
- * position, or the address names a turn: the pane beside the feature page on wide screens, the
- * window on narrow ones.
+ * position, or the address names a turn.
  */
 export function useOpenAtEnd(ref: RefObject<HTMLElement | null>) {
   useLayoutEffect(() => {
     const element = ref.current;
-    const { pane, scroll } = currentEntry();
-    if (!element || scroll !== undefined || pane !== undefined) {
+    const { scroll } = currentEntry();
+    if (!element || scroll !== undefined) {
       return;
     }
     if (window.location.hash.startsWith("#turn-")) {
@@ -130,8 +129,8 @@ export function useOpenAtEnd(ref: RefObject<HTMLElement | null>) {
 
 /**
  * Keeps the end of an element in view as it grows, while `enabled` and while the human is at the
- * end: scrolled up, nothing moves. It scrolls the element's pane on wide screens, the window on
- * narrow ones.
+ * end: scrolled up, nothing moves. It scrolls the nearest element that scrolls on its own, or the
+ * window.
  */
 export function useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolean) {
   useEffect(() => {

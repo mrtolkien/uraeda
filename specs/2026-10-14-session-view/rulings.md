@@ -181,3 +181,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the `progress` checks in `ProgressRow` and `FeatureRow` of `SessionNav.tsx`, and the
   `fill` style of `ProgressRing.tsx`.
 - **Where**: Task 5.
+
+## R15: The session's page tests follow what the page shows with the agent, and every check moves with it
+
+- **Decision**: US1.9 taps the fixture's recurring-tasks spec paragraph on lines 26–29, and Back
+  finds "Approve and start the agent", not "Approve". US1.1 also asserts the crumbs' link to the
+  feature. `agent-panel.test.tsx` reads the panel on the feature page, opened from the session's
+  crumbs. `useOpenAtEnd` no longer skips on the entry's `pane`, and its browser case opens the
+  session from a task view's pane, on a wide screen, through the sidebar's sub-agent row. The layout
+  test checks the feature page's agent section at both sizes, and `startTurn` waits for the one
+  Stop.
+- **Rationale**: with the agent available, the review's Approve is split into "Approve and start the
+  agent" and "Approve only", so "Approve" names no button. A session is never in a pane now, so a
+  `pane` in its entry could only be another view's. No link of a task view opens a session: the
+  sidebar is the way there. The agent section was checked only on the phone because the wide layout
+  drew it beside the session; it now has its own page at both sizes, and skipping it on a wide
+  screen would loosen the check.
+- **Alternatives considered**: the plan's lines 12–14, which fall inside the fixture's callout, not
+  a block of its own; keeping the `pane` check, harmless while `navigate` gives each page a new
+  entry, but a rule about a layout the session no longer has.
+- **If wrong**: the test's names and the one condition in `useOpenAtEnd`.
+- **Where**: Task 6.
