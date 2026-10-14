@@ -16,7 +16,7 @@ import {
   today,
   type,
 } from "./helpers.tsx";
-import { elapsed } from "../Transcript.tsx";
+import { elapsed, sentAt } from "../Transcript.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
 const WEB_UI = "2026-10-11-web-ui";
@@ -97,6 +97,31 @@ test("US1.3: a message sent during a turn shows greyed, with Take back", async (
   await refreshUntil(() => expect(log().getByText("Use the existing helper")).toBeTruthy());
   expect(log().getByText("Not read yet")).toBeTruthy();
   expect(log().getAllByRole("button", { name: "Take back" })).toHaveLength(1);
+});
+
+test("a message shows when it was sent", async () => {
+  const fake = await fakeAgent();
+  await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: fake });
+  await openTurn(fake);
+
+  await send("Use the existing helper");
+
+  await refreshUntil(() => expect(log().getByText("Use the existing helper")).toBeTruthy());
+  const times = document.querySelectorAll("[role=log] time");
+  expect(times.length).toBeGreaterThan(0);
+  const at = times[times.length - 1];
+  expect(at.textContent).toBe(sentAt(at.getAttribute("dateTime")!));
+});
+
+test("a message's time has its date unless it was sent today", () => {
+  const now = new Date(2026, 9, 14, 18, 0);
+  const today = new Date(2026, 9, 14, 9, 5);
+  const before = new Date(2026, 9, 12, 9, 5);
+  const time = today.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  expect(sentAt(today.toISOString(), now)).toBe(time);
+  expect(sentAt(before.toISOString(), now)).toMatch(/12/);
+  expect(sentAt(before.toISOString(), now)).toContain(time);
+  expect(sentAt(new Date(2025, 9, 12).toISOString(), now)).toContain("2025");
 });
 
 test("US1.3: without the agent's take-back, a message not read has no Take back", async () => {
