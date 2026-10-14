@@ -316,3 +316,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: asking as the sheet closes; opening the mockup's overlay at once.
 - **If wrong**: the sheets' `onClose`.
 - **Where**: task 7.
+
+## R20: `EditorPage`'s parts move into components with its actions
+
+- **Decision**: task 8's first step moves the commit, start, and discovery actions into
+  `useEditorActions`, as planned, and the page's parts into components of
+  [`EditorPage.tsx`](/packages/web/src/EditorPage.tsx): `EditorHeading`, `ConflictBanner`,
+  `DiscoveryEffort`, `EditorText` with `SectionHints`, and `EditorEnd` with `StartDraft`.
+- **Rationale**: the actions alone left `EditorPage` at about 215 lines, and its marker, which said
+  the form too must move into components, can only go once it is under 100.
+- **Alternatives considered**: a second hook for the save, which leaves the drawing over the limit.
+- **If wrong**: the components go back into the page, which only draws them.
+- **Where**: task 8, step 1.

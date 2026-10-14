@@ -831,9 +831,11 @@ git commit -m "feat(text-inputs): review comments render alone, and survive a re
 - Produces: `useSave(run, initial)` without `delay`; `schedule(value)` replaced by `save(value)`,
   which queues at once; `idle`, `settle`, `flush`, `write`, `state` unchanged.
 
-- [ ] **Step 1: Split `EditorPage` before it changes**
+- [x] **Step 1: Split `EditorPage` before it changes**
 
-Move the commit, start, and discovery actions into a hook, removing its marker.
+Move the commit, start, and discovery actions into a hook, and the page's parts, its heading, the
+conflict, the discovery effort, the text, and its end with Commit and Start, into components of the
+same file, removing its marker (R20).
 
 - Run: `vp check && vp test --project uraeda-web editor`, before and after
 - Expected: PASS both times
