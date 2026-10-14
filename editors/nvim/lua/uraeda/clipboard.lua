@@ -6,18 +6,26 @@ local M = {}
 M.no_image = "uraeda: the clipboard holds no image"
 M.no_tool = "uraeda: no clipboard tool found: install wl-clipboard, xclip, or pngpaste"
 
+--- The message for a configured command that is not on the `PATH`.
+--- @param command string[]
+function M.not_found(command)
+  return "uraeda: clipboard command not found: " .. command[1]
+end
+
 --- The image types taken from the clipboard, in order of preference.
 local types = { "image/png", "image/jpeg", "image/gif", "image/webp" }
 
---- Runs `command`, and returns its output, binary, or nil when it fails or cannot start.
+--- Runs `command`, and returns its output, binary, or nil when it fails, cannot start, or runs
+--- longer than `timeout` ms (default 10 s, for an image).
 --- @param command string[]
+--- @param timeout integer?
 --- @return string?
-local function run(command)
+local function run(command, timeout)
   local ok, process = pcall(vim.system, command)
   if not ok then
     return nil
   end
-  local result = process:wait(10000)
+  local result = process:wait(timeout or 10000)
   if result.code ~= 0 then
     return nil
   end
@@ -51,9 +59,10 @@ local function is_image(bytes)
     or (vim.startswith(bytes, "RIFF") and bytes:sub(9, 12) == "WEBP")
 end
 
---- The image bytes `get(type)` gives for the first image type `list` offers.
+--- The image bytes `get(type)` gives for the first image type `list` offers. Listing types is
+--- quick: it gives up after 3 s, where fetching the image may take 10.
 local function listed(list, get)
-  local type = first_type(run(list))
+  local type = first_type(run(list, 3000))
   return type and run(get(type))
 end
 
@@ -74,9 +83,23 @@ local function powershell_script(path)
   }, " ")
 end
 
---- The tools of this system, in order, each with `available()`.
+--- The tools of this system, in order, each with `available()`. On WSL, Windows' PowerShell comes
+--- first: WSLg sets `WAYLAND_DISPLAY`, but its `wl-paste` may not see a Windows screenshot.
 --- @type (uraeda.ClipboardTool | { available: fun(): boolean })[]
 local tools = {
+  {
+    name = "powershell.exe",
+    available = function()
+      return vim.fn.has("wsl") == 1
+        and vim.fn.executable("powershell.exe") == 1
+        and vim.fn.executable("wslpath") == 1
+    end,
+    save = function(path)
+      local windows = vim.trim(run({ "wslpath", "-w", path }) or "")
+      return windows ~= ""
+        and run({ "powershell.exe", "-NoProfile", "-Command", powershell_script(windows) }) ~= nil
+    end,
+  },
   {
     name = "wl-paste",
     available = function()
@@ -115,19 +138,6 @@ local tools = {
     end,
     save = function(path)
       return run({ "powershell", "-NoProfile", "-Command", powershell_script(path) }) ~= nil
-    end,
-  },
-  {
-    name = "powershell.exe",
-    available = function()
-      return vim.fn.has("wsl") == 1
-        and vim.fn.executable("powershell.exe") == 1
-        and vim.fn.executable("wslpath") == 1
-    end,
-    save = function(path)
-      local windows = vim.trim(run({ "wslpath", "-w", path }) or "")
-      return windows ~= ""
-        and run({ "powershell.exe", "-NoProfile", "-Command", powershell_script(windows) }) ~= nil
     end,
   },
 }
@@ -174,13 +184,17 @@ local function save(tool, path)
 end
 
 --- Writes the clipboard's image to a temporary file, and returns its path; else nil and the
---- message saying why: no tool, or no image.
+--- message saying why: no tool, a configured command not found, or no image.
 --- @return string? path
 --- @return string? message
 function M.read()
   local tool = M.tool()
   if tool == nil then
     return nil, M.no_tool
+  end
+  local command = require("uraeda").config().clipboard
+  if command and vim.fn.executable(command[1]) ~= 1 then
+    return nil, M.not_found(command)
   end
   local path = vim.fn.tempname()
   if not save(tool, path) then

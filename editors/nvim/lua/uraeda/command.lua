@@ -31,6 +31,14 @@ function M.run(opts)
     )
     return
   end
+  if #opts.fargs > 1 and not action.file then
+    vim.notify(
+      ("Uraeda: %s takes no arguments."):format(name),
+      vim.log.levels.ERROR,
+      { title = "Uraeda" }
+    )
+    return
+  end
   action.fn(opts)
 end
 

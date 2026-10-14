@@ -1152,23 +1152,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `CommentForm` in `packages/web/src/CommentForm.tsx`.
 - **Where**: task 11, review.
 
-## R76: `:Uraeda image` inserts the link exactly at the cursor, under `<leader>ai`
+## R76: `:Uraeda image` inserts the link after the cursor's character, under `<leader>ai`
 
-- **Decision**: the link goes at the cursor's line and column, tracked by an extmark while the
-  server works, with no blank lines added around it; on a moved draft, at the same line and column
-  of the reopened buffer. The action's key is `i` under the prefix, `<leader>ai`. Its messages,
-  errors and the core's refusals alike, start with "uraeda: ", as the spec writes them, and a saved
-  image says "uraeda: added images/<name>", with "; the draft is now a folder" when it moved, as the
-  mockup shows; other actions keep their messages as they are.
+- **Decision**: the link goes after the character under the cursor, as `p` puts text, past every
+  byte of a multi-byte character, or at the start of an empty line; the cursor then rests on the
+  link's last character. The place is tracked by an extmark while the server works; on a moved
+  draft, it is the same line and column of the reopened buffer. No blank lines are added around the
+  link. The action's key is `i` under the prefix, `<leader>ai`. Its messages, errors and the core's
+  refusals alike, start with "uraeda: ", as the spec writes them, and a saved image says "uraeda:
+  added images/<name>", with "; the draft is now a folder" when it moved, as the mockup shows; other
+  actions keep their messages as they are.
 - **Rationale**: the spec says "at the cursor", and a Neovim user places the cursor on the line the
   link takes, as the mockup's line 6 shows; the web's paragraph rule (R43) guesses a place a field
-  never focused lacks, which Neovim always has. Every action has a key (the keys test), and `i` is
-  free, outside LazyVim's AI keys.
-- **Alternatives considered**: R43's blank lines (two lines to remove by hand on an empty line); a
-  line below the cursor, as img-clip.nvim does (not "at the cursor"); no key (the keys test requires
-  one).
-- **If wrong**: `M.image` and `M.list` in `editors/nvim/lua/uraeda/actions.lua`.
-- **Where**: task 12.
+  never focused lacks, which Neovim always has. In normal mode the cursor rests on the last
+  character typed: inserting before it, as task 12 first did, split `See the login form:` into
+  `See the login form![…](…):`. After it is where `p` puts text, which a Neovim user expects. Every
+  action has a key (the keys test), and `i` is free, outside LazyVim's AI keys.
+- **Alternatives considered**: before the cursor's character, as `P` does (splits the last word
+  typed); R43's blank lines (two lines to remove by hand on an empty line); a line below the cursor,
+  as img-clip.nvim does (not "at the cursor"); no key (the keys test requires one).
+- **If wrong**: `after_cursor`, `M.image`, and `M.list` in `editors/nvim/lua/uraeda/actions.lua`.
+- **Where**: task 12, and its review.
 
 ## R77: A clipboard command's output is an image only by its first bytes
 
@@ -1182,6 +1186,55 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   them: the plugin neither names nor encodes the image, as the attachments decision requires.
 - **Alternatives considered**: sending any output to the core (text refused as "Only PNG, JPEG, GIF,
   and WebP images can be added: pasted image is not one.", not the spec's message); a type option
-  next to the command (one more option for every user).
+  next to the command (one more option for every user). Task 12's review named a cleaner one: the
+  core, or the language server, maps a type refusal of an image with no name to "the clipboard holds
+  no image", and the plugin checks no bytes. Kept the check instead: the web's paste also sends
+  images with no name, where "pasted image is not one" is right for a pasted SVG; text would still
+  be written to a temporary file, the buffer saved, and a request sent, for a refusal the plugin can
+  give at once; and the check is twelve lines that only decide the message, as the core checks the
+  bytes again.
 - **If wrong**: `is_image` in `editors/nvim/lua/uraeda/clipboard.lua`.
-- **Where**: task 12.
+- **Where**: task 12, and its review.
+
+## R78: On WSL, `:Uraeda image` tries PowerShell before `wl-paste`
+
+- **Decision**: on `has("wsl")`, with `powershell.exe` and `wslpath` found, the clipboard is read
+  through Windows' PowerShell, before `wl-paste` and `xclip`. Elsewhere the order is unchanged:
+  `wl-paste`, `xclip`, `pngpaste`, PowerShell. The first tool available is the only one tried.
+- **Rationale**: WSLg sets `WAYLAND_DISPLAY`, so `wl-paste` was picked first on WSL, but a
+  screenshot taken in Windows reaches its clipboard bridge unreliably, and the human then reads "the
+  clipboard holds no image" while one is there. PowerShell reads Windows' clipboard, where the
+  screenshot is. One tool per system keeps `:checkhealth uraeda` naming the tool used.
+- **Alternatives considered**: falling through to the next tool when one finds no image (two tools
+  run, slowly through PowerShell, for every clipboard that holds text, and health cannot name the
+  tool); leaving `wl-paste` first (wrong on most WSL setups).
+- **If wrong**: the order of `tools` in `editors/nvim/lua/uraeda/clipboard.lua`.
+- **Where**: task 12's review.
+
+## R79: A draft edited while it moves keeps the edits in its new buffer
+
+- **Decision**: when `:Uraeda image` moves a single-file draft into a folder and the old buffer was
+  edited while the server worked, its lines replace the new buffer's, unsaved, before the link is
+  inserted; the old buffer is then deleted, forced. The link's place is the mark in the old buffer,
+  which counts those edits.
+- **Rationale**: the core moves the file with `rename`, its text unchanged, so the old buffer's
+  lines are the new file's plus the edits. Left as it was, the old buffer could not be deleted and
+  still named the old path: a later `:w` re-created the single-file draft next to its folder.
+- **Alternatives considered**: a warning, and the old buffer renamed so a save fails (the edits stay
+  in a buffer the human must find and copy); an error asking to save first (the command already
+  saved, and the edit came after).
+- **If wrong**: `M.image` in `editors/nvim/lua/uraeda/actions.lua`.
+- **Where**: task 12's review.
+
+## R80: `ura` grew by 0.86 MB, within SC-003
+
+- **Decision**: `ura`'s release binary grew by 863,832 bytes (0.86 MB) over the feature's start,
+  measured after task 12, within SC-003's 1 MB. The spec's "about 0.83 MB" was the estimate before
+  task 12's language server command; the approved spec is not edited.
+- **Rationale**: SC-003 bounds the growth at 1 MB, and the measurement is what the pull request
+  compares; the estimate in the spec was right in size, and editing an approved spec for it would
+  need a new approval for no change in behaviour.
+- **Alternatives considered**: a new spec revision with the measured number (an approval for a
+  number); trimming the binary (no criterion is broken).
+- **If wrong**: the binary size line of the pull request.
+- **Where**: task 12's review.
