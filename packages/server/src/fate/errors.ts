@@ -24,7 +24,9 @@ export async function refusable<T>(call: () => Promise<T>): Promise<T> {
     if (REFUSAL.test(message)) {
       throw callSiteError(error);
     }
-    console.error(`A binding call failed: ${error instanceof Error ? error.stack : message}`);
+    process.stderr.write(
+      `A binding call failed: ${error instanceof Error ? error.stack : message}\n`,
+    );
     throw new FateRequestError("INTERNAL_ERROR", message);
   }
 }

@@ -300,12 +300,14 @@ export class SessionCache {
       return new SessionCache(connect(), pid);
     } catch (error) {
       if (!corrupt(error)) {
-        console.error(
-          `The runner's cache could not be opened, so this server keeps its sessions in memory: ${String(error)}`,
+        process.stderr.write(
+          `The runner's cache could not be opened, so this server keeps its sessions in memory: ${String(error)}\n`,
         );
         return new SessionCache(migrate(new DatabaseSync(":memory:")), pid);
       }
-      console.error(`The runner's cache could not be read, so it starts empty: ${String(error)}`);
+      process.stderr.write(
+        `The runner's cache could not be read, so it starts empty: ${String(error)}\n`,
+      );
       for (const suffix of ["", "-wal", "-shm"]) {
         rmSync(path + suffix, { force: true });
       }

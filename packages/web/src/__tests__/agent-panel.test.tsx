@@ -4,8 +4,8 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
-import * as binding from "uraeda-binding";
 import { expect, test, vi } from "vite-plus/test";
+import { startFeature } from "uraeda-binding";
 import {
   atRepo,
   answered,
@@ -177,11 +177,7 @@ test("Home shows a working agent", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   // A feature started from its draft, whose worktree passes the core's checks.
-  const { folder } = await binding.startFeature(
-    repo,
-    "specs/drafts/git-listener.md",
-    "git-listener",
-  );
+  const { folder } = await startFeature(repo, "specs/drafts/git-listener.md", "git-listener");
   await startTurn(fake, repo, folder);
 
   await renderPage("/", repo, { agent: fake });

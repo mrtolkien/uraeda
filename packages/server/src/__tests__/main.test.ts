@@ -9,6 +9,9 @@ import { fixtureRepo, temporaryFolder } from "uraeda-binding/test-utils";
 
 const main = fileURLToPath(new URL("../main.ts", import.meta.url));
 
+/** A binding import that fails, as when it is not built. */
+const missingBinding = () => Promise.reject(new Error("Cannot find native binding."));
+
 test("refuses to start on a folder that is not a repository", () => {
   const folder = temporaryFolder("uraeda-none");
 
@@ -40,9 +43,7 @@ test("a busy port exits 1 and names the first server", async () => {
 });
 
 test("explains a binding that is not built", async () => {
-  const load = () => Promise.reject(new Error("Cannot find native binding."));
-
-  await expect(loadBinding(load, () => {})).rejects.toThrow(
+  await expect(loadBinding(missingBinding, () => {})).rejects.toThrow(
     "the native binding is not built; run vp run ready",
   );
 });

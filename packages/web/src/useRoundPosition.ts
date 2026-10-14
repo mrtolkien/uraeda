@@ -34,8 +34,10 @@ export function useRoundPosition(
   const key = `uraeda.round.${useRepository()}/${folder}/${file}`;
   // Read, not followed: answering a question moves no one.
   const ids = useRef<ReadonlyArray<string>>([]);
+  // oxlint-disable-next-line react/refs -- before the code quality decision: the latest questions, kept for the effects to read
   ids.current = questions.map((q) => q.id);
   const firstBlank = useRef<string>(undefined);
+  // oxlint-disable-next-line react/refs -- before the code quality decision: the latest questions, kept for the effects to read
   firstBlank.current = questions.some((q) => q.answered)
     ? questions.find((q) => !q.answered)?.id
     : undefined;

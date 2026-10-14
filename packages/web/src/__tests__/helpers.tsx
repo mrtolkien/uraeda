@@ -2,13 +2,15 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { act, cleanup, configure, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach } from "vite-plus/test";
-import * as binding from "uraeda-binding";
 import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
 import { createApp, Hosts } from "uraeda-server";
 import { fakeSessions } from "uraeda-server/testing";
 import { App } from "../App.tsx";
 import { fateClients } from "../clients.ts";
 import { forgetUndoToasts } from "../layout/useUndoToast.ts";
+
+/** The core's binding, as one object: the server takes it whole. */
+const binding = await import("uraeda-binding");
 
 export { fixture, fixtureRepo, git };
 
@@ -213,7 +215,7 @@ export function serverFetch(
   );
   const fetch: typeof globalThis.fetch = async (input, init) => {
     const app = await created;
-    const url = input instanceof Request ? input.url : input.toString();
+    const url = typeof input === "object" && "url" in input ? input.url : input.toString();
     sent.push(typeof init?.body === "string" ? init.body : url);
     const response = await app.request(url, {
       body: init?.body as string,

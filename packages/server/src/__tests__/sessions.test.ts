@@ -1,6 +1,6 @@
 import { expect, test } from "vite-plus/test";
 import type { AgentEvent } from "../runner/events.ts";
-import { byId, mutate, testServer } from "./helpers.ts";
+import { byId, type Data, mutate, testServer } from "./helpers.ts";
 
 /** Waits on an agent, at step `plan`. */
 const AGENT = "2026-10-12-cli-tuis";
@@ -58,16 +58,16 @@ type Server = Awaited<ReturnType<typeof testServer>>;
 async function send(server: Server, input: Record<string, unknown>) {
   const sent = await mutate(server.app, "session.send", input, SESSION_FIELDS);
   expect(sent.error).toBeUndefined();
-  return sent.data as Record<string, any>;
+  return sent.data as Record<string, Data>;
 }
 
 /** Waits for the session's latest turn to end. */
-async function settle(server: Server, session: Record<string, any>) {
+async function settle(server: Server, session: Record<string, Data>) {
   await server.sessions.settled(Number(session.turns.at(-1)));
 }
 
 /** Stops the session's turn, and waits for it. */
-async function stop(server: Server, session: Record<string, any>) {
+async function stop(server: Server, session: Record<string, Data>) {
   await server.sessions.mainRoot(server.repo);
   server.sessions.stop(server.repo, session.id);
   await settle(server, session);
@@ -75,7 +75,7 @@ async function stop(server: Server, session: Record<string, any>) {
 
 const list = async (server: Server) =>
   ((await byId(server.app, "SessionList", ["all"], ["id", "rows"]))[0]?.rows ?? []) as Array<
-    Record<string, any>
+    Record<string, Data>
   >;
 
 test("session.send on a feature creates its session and returns it with its first turn", async () => {

@@ -321,6 +321,7 @@ export function Question({
   const { flush, idle, schedule, settle } = save;
   const dirty = comment !== savedComment;
   const local = useRef({ comment, dirty, letters });
+  // oxlint-disable-next-line react/refs -- before the code quality decision: the local answer, kept for the effects to read
   local.current = { comment, dirty, letters };
   // An answer changed elsewhere replaces this one when nothing of it waits to be saved, and no
   // comment is being written.

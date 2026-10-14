@@ -10,9 +10,9 @@ async function main(argv: Array<string>) {
   const binding = await loadBinding();
   const { app, stop } = await startServer({
     ...options,
+    adapter: new ClaudeAdapter({ pluginDir: PLUGIN_DIR }),
     binding,
     dataDir: loadDataDir(process.cwd()),
-    adapter: new ClaudeAdapter({ pluginDir: PLUGIN_DIR }),
   });
   // The sessions end with the server: their turns are interrupted, their processes closed, then
   // the server exits.
@@ -22,7 +22,7 @@ async function main(argv: Array<string>) {
     });
   }
   const server = serve({ fetch: app.fetch, hostname: "127.0.0.1", port: options.port }, () => {
-    console.log(`Uraeda server on http://127.0.0.1:${options.port}`);
+    process.stdout.write(`Uraeda server on http://127.0.0.1:${options.port}\n`);
   });
   server.once("error", (error: NodeJS.ErrnoException) => {
     const url = `http://127.0.0.1:${options.port}/`;
@@ -35,7 +35,9 @@ async function main(argv: Array<string>) {
   });
 }
 
-main(process.argv.slice(2)).catch((error: Error) => {
-  process.stderr.write(`uraeda-server: ${error.message}\n`);
+try {
+  await main(process.argv.slice(2));
+} catch (error) {
+  process.stderr.write(`uraeda-server: ${(error as Error).message}\n`);
   process.exit(1);
-});
+}

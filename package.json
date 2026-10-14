@@ -10,6 +10,10 @@
     "validate:claude": "node packages/server/scripts/validate-claude.ts"
   },
   "devDependencies": {
+    "@nkzw/eslint-plugin": "catalog:",
+    "@nkzw/oxlint-config": "catalog:",
+    "eslint-plugin-no-only-tests": "catalog:",
+    "eslint-plugin-perfectionist": "catalog:",
     "vite-plus": "catalog:"
   },
   "devEngines": {

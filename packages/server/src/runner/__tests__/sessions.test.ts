@@ -1,7 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vite-plus/test";
-import * as binding from "uraeda-binding";
 import { fixtureRepo } from "uraeda-binding/test-utils";
 import type { AgentEvent } from "../events.ts";
 import {
@@ -12,6 +11,9 @@ import {
   WATCHDOG_MS,
 } from "../sessions.ts";
 import { flush, testSessions } from "./helpers.ts";
+
+/** The core's binding, as one object: the server takes it whole. */
+const binding = await import("uraeda-binding");
 
 /** Waits on an agent, at step `plan`. */
 const AGENT = "2026-10-12-cli-tuis";
@@ -747,8 +749,7 @@ test.each(["stop", "take back"])(
   async (end) => {
     // The second worktree read, the reopening's, waits until the test lets it go.
     let reads = 0;
-    let release = () => {};
-    const held = new Promise<void>((resolve) => (release = resolve));
+    const { promise: held, resolve: release } = Promise.withResolvers<void>();
     const { adapter, cache, repo, sessions } = await testSessions(undefined, {
       binding: {
         ...binding,

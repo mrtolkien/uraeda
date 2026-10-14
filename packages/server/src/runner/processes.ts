@@ -104,8 +104,8 @@ export class Processes {
         this.#context.transcript.record(live, proc, event);
       } catch (error) {
         // A cache write that fails does not stop the session.
-        console.error(
-          `The session manager could not record an event of ${live.id}: ${String(error)}`,
+        process.stderr.write(
+          `The session manager could not record an event of ${live.id}: ${String(error)}\n`,
         );
       }
     }
