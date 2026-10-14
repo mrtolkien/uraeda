@@ -8,7 +8,7 @@ import { CommitActions } from "./CommitActions.tsx";
 import type { useFile } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
 import { GrowingTextArea, statusStyles } from "./Question.tsx";
-import { HookRefusal } from "./RoundPage.tsx";
+import { HookRefusal } from "./RoundSubmit.tsx";
 import { handOver } from "./sessions.ts";
 import { FileView } from "./views.ts";
 
