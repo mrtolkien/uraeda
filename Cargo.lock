@@ -2602,7 +2602,7 @@ checksum = "b4ac048d71ede7ee76d585517add45da530660ef4390e49b098733c6e897f254"
 
 [[package]]
 name = "uraeda-binding"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "napi",
  "napi-build",
@@ -2612,7 +2612,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-cli"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "clap",
  "ratatui",
@@ -2625,7 +2625,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-core"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "gix",
  "include_dir",
@@ -2644,7 +2644,7 @@ dependencies = [
 
 [[package]]
 name = "uraeda-lsp"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "crossbeam-channel",
  "lsp-server",
