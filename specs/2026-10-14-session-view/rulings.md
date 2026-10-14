@@ -483,3 +483,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `implemented` in `crates/core/src/steps.rs` and `view.rs`, and `Tasks` in
   `SessionAside.tsx`.
 - **Where**: the final review.
+
+## R28: A reload with the phone's line open restores before the line's sections load
+
+- **Decision**: not fixed. On the phone, reloading a session whose progress line was left open
+  restores the scroll position as soon as the page draws. When `plan.md` or the branch's changes
+  load slowly, the sections above the transcript arrive later and push it down, so the saved
+  position can land up to a section's height off.
+- **Rationale**: the final review found it, and
+  [R20](#r20-the-place-read-follows-what-moves-and-the-line-folds-back) already weighed it. Holding
+  the restore until the column's reads resolve would change how every page restores its position,
+  for a reload with a disclosure left open on a slow read. The session already made those reads, so
+  they are usually cached.
+- **Alternatives considered**: letting the open line's reads suspend to the page's boundary, so the
+  page draws once they arrive; retrying the restore when the sections appear.
+- **If wrong**: the page's restore would wait on the line's reads, in `ProgressLine.tsx` and
+  `SessionPage.tsx`.
+- **Where**: the final review.
