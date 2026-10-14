@@ -968,6 +968,38 @@ fn an_attached_file_that_is_no_image_is_refused() {
     assert!(!repo.exists(&format!("{NVIM}/images")));
 }
 
+/// Review: a file over the core's 20 MB is refused by its size, with the core's text, before it is
+/// read, and before the feature's worktree is made.
+#[test]
+fn an_image_file_over_20_mb_is_refused_unread() {
+    let (repo, _) = feature("awaiting-human");
+    repo.switch("main");
+    let path = repo.path().join(NVIM).join("proposal.md");
+    let mut session = start(repo.path());
+    let big = repo.path().join("big.png");
+    let size = uraeda_core::images::MAX_BYTES + 1;
+    // Sparse, no 20 MB written, and no image: read, its bytes would be refused by their type.
+    std::fs::File::create(&big)
+        .unwrap()
+        .set_len(size as u64)
+        .unwrap();
+
+    let error = session
+        .command(
+            "uraeda.attachImage",
+            json!({ "uri": uri(&path), "path": abs(&big), "name": "big.png" }),
+        )
+        .unwrap_err();
+
+    let expected = uraeda_core::images::ImageError::Size {
+        name: "big.png".into(),
+        bytes: size,
+    };
+    assert_eq!(error.message, expected.to_string());
+    assert_eq!(error.data, Some(json!({ "code": "refused" })));
+    assert!(!repo.exists(".worktrees"));
+}
+
 /// A path that cannot be read is said, and nothing is written.
 #[test]
 fn a_missing_image_file_is_refused() {

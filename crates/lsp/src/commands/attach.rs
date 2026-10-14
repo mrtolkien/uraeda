@@ -7,6 +7,7 @@ use lsp_types::Uri;
 use serde::Deserialize;
 use serde_json::Value;
 use uraeda_core::api;
+use uraeda_core::images::{self, ImageError};
 
 use super::{
     Done, NOT_WORKFLOW, Outcome, absolute, core, on_default_branch, priorities_path, relative,
@@ -27,6 +28,27 @@ pub(super) struct AttachImageArgs {
     path: PathBuf,
     /// The image's file name, `None` for a pasted image.
     name: Option<String>,
+}
+
+/// The image file's bytes, read before any checkout is reached, which may add a worktree. A file
+/// over the core's 20 MB is refused by its size, with the core's text, without reading it. The
+/// OS's error code is left out: "No such file or directory", not "... (os error 2)".
+fn read_image(args: &AttachImageArgs) -> Result<Vec<u8>, ResponseError> {
+    let unread = |error: std::io::Error| {
+        let error = error.to_string();
+        let error = error.split(" (os error ").next().unwrap_or_default();
+        refused(format!(
+            "{} could not be read: {error}.",
+            args.path.display()
+        ))
+    };
+    let size = std::fs::metadata(&args.path).map_err(unread)?.len();
+    if size > images::MAX_BYTES as u64 {
+        let name = args.name.as_deref().unwrap_or("pasted image").into();
+        let bytes = usize::try_from(size).unwrap_or(usize::MAX);
+        return Err(refused(ImageError::Size { name, bytes }.to_string()));
+    }
+    std::fs::read(&args.path).map_err(unread)
 }
 
 /// `uraeda.attachImage { uri, path, name? }`: saves the image file at `path` next to the file, a
@@ -56,16 +78,7 @@ pub(super) fn attach_image(
             })?;
         Some(folder)
     };
-    // Read before any checkout is reached, which may add a worktree. The OS's error code is left
-    // out: "No such file or directory", not "... (os error 2)".
-    let bytes = std::fs::read(&args.path).map_err(|error| {
-        let error = error.to_string();
-        let error = error.split(" (os error ").next().unwrap_or_default();
-        refused(format!(
-            "{} could not be read: {error}.",
-            args.path.display()
-        ))
-    })?;
+    let bytes = read_image(&args)?;
     let attached = core(api::attach_image(root, &path, &bytes, args.name.as_deref()))?;
     // The checkout the core wrote in: the default branch's for a draft, else the feature's or the
     // bug's, reached by now.
