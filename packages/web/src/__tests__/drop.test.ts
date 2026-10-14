@@ -1,5 +1,5 @@
 import { expect, test } from "vite-plus/test";
-import { dropIndex, dropMove } from "../PrioritiesPage.tsx";
+import { dropIndex, dropMove } from "../drop.ts";
 
 /** Review I5: a line dropped above another lands just above it, in either direction. */
 test("a line dropped above another lands there", () => {
