@@ -4,7 +4,7 @@
 
 use std::fs;
 
-use crate::files::priorities;
+use crate::files::retarget::retarget as retarget_links;
 use crate::images::{self, Encoded};
 
 use super::ActionError;
@@ -225,7 +225,7 @@ fn retarget(place: &Place, from: &str, to: &str) -> Result<(), ActionError> {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
         Err(error) => return Err(failed(error)),
     };
-    let edited = priorities::retarget(&text, from, to);
+    let edited = retarget_links(&text, from, to);
     if edited != text
         && let Err(error) = fs::write(&file, edited)
     {

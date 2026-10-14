@@ -501,8 +501,7 @@ fn tracked(repo: &TestRepo, branch: &str, folder: &str) -> Vec<String> {
 
 /// US1.5, and Review focus 1: a never-committed, unlinked image is deleted, never staged.
 #[test]
-#[allow(non_snake_case)]
-fn US1_5_a_proposal_commits_its_images_and_drops_the_unlinked() {
+fn us1_5_a_proposal_commits_its_images_and_drops_the_unlinked() {
     let repo = repo_with(&round("", "", ""));
     let (_, place) = reach(&repo);
     let attached =
@@ -635,8 +634,7 @@ fn a_committed_draft_moved_into_a_folder_commits_the_move() {
 }
 
 #[test]
-#[allow(non_snake_case)]
-fn US1_7_a_draft_folder_starts_with_its_images() {
+fn us1_7_a_draft_folder_starts_with_its_images() {
     let repo = draft_repo();
     let (main, moved) = draft_with_image(&repo);
     text::commit(&main, &moved).unwrap();
@@ -664,8 +662,7 @@ fn US1_7_a_draft_folder_starts_with_its_images() {
 
 /// US3.3
 #[test]
-#[allow(non_snake_case)]
-fn US3_3_a_verdict_commits_the_review_images() {
+fn us3_3_a_verdict_commits_the_review_images() {
     let repo = spec_repo();
     let git = Git::discover(repo.path()).unwrap();
     let (feature, place) = reach(&repo);
@@ -733,8 +730,7 @@ fn a_replaced_review_keeps_images_another_file_links() {
 
 /// US4.3
 #[test]
-#[allow(non_snake_case)]
-fn US4_3_submitted_answers_commit_their_images() {
+fn us4_3_submitted_answers_commit_their_images() {
     let repo = repo_with(&round(
         "B",
         "A",

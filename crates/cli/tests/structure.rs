@@ -14,7 +14,6 @@ const LARGE: &[(&str, usize)] = &[
     ("crates/core/src/files/priorities.rs", 685),
     ("crates/core/src/git.rs", 625),
     ("crates/core/src/workspace.rs", 1080),
-    ("crates/lsp/src/commands.rs", 539),
 ];
 
 /// A file's length without its tests: its lines before the `#[cfg(test)]` line of its first test

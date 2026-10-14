@@ -5,7 +5,7 @@ use std::fs;
 
 use crate::files::document::hash;
 use crate::files::markdown::Document;
-use crate::files::priorities;
+use crate::files::retarget::retarget as retarget_links;
 use crate::git::Git;
 use crate::workspace::folder_slug;
 
@@ -103,7 +103,7 @@ fn moved_from(place: &Place, git: &Git, path: &str, text: &str) -> Option<String
         let Some(before) = committed(PRIORITIES) else {
             return false;
         };
-        let after = priorities::retarget(&before, old, path);
+        let after = retarget_links(&before, old, path);
         let changed: Vec<&str> = after
             .lines()
             .filter(|line| !before.lines().any(|was| was == *line))
