@@ -31,6 +31,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { parseArgs } from "node:util";
+import { cargoVersion } from "./release.ts";
 
 /** `packages/uraeda`, which is packed. */
 const PACKAGE = resolve(import.meta.dirname, "..");
@@ -239,8 +240,7 @@ function expectedVersion(install: Install): string {
   if (version !== "0.0.0") {
     return version;
   }
-  const cargo = readFileSync(join(ROOT, "Cargo.toml"), "utf8");
-  return /^\[workspace\.package\][^[]*?^version = "([^"]+)"/m.exec(cargo)?.[1] ?? version;
+  return cargoVersion(ROOT);
 }
 
 /** The checks that need no server: version, help, an unknown option, and a missing binding. */

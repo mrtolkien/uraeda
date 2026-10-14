@@ -133,3 +133,51 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   and the interface does not describe.
 - **If wrong**: the field leaves `packages/binding/package.json`, and the folders are regenerated.
 - **Where**: Task 8.
+
+## R12: The release reads the version from `Cargo.toml`
+
+- **Decision**: `release.ts` checks the tag against the `[workspace.package]` version of
+  `Cargo.toml`, with `cargoVersion`, which the smoke test now imports instead of its own copy.
+- **Rationale**: `version()` returns that same version, but calling it needs a binding built for the
+  publishing machine; the publish job only downloads binaries. The distribution decision names the
+  Cargo workspace's version, and
+  [R10](#r10-the-smoke-test-expects-the-cargo-version-before-a-release) already reads it there.
+- **Alternatives considered**: building the host binding in the publish job to call `version()`: a
+  Rust build for one string.
+- **If wrong**: `cargoVersion` calls the binding instead.
+- **Where**: Task 9.
+
+## R13: The release builds the binaries outside the package
+
+- **Decision**: the workflow's `napi build --no-js` writes to `target/napi`, not `packages/binding`.
+- **Rationale**: with `--no-js`, napi-rs still writes the declarations, without the loader's
+  `__napiBindingTarget` export: built into the package, `index.d.ts` changed, and the check of
+  [Review focus](plan.md#review-focus) item 7 failed. Outside it, the committed files are never
+  touched, and the check still guards them.
+- **Alternatives considered**: `--dts` naming another file in the package, an untracked file left in
+  the package's folder.
+- **If wrong**: the output folder changes, in the build step and the upload.
+- **Where**: Task 9.
+
+## R14: The glibc check uses the cross toolchain's `objdump`
+
+- **Decision**: SC-003's `objdump -T` runs the target's own `objdump`, from the toolchain
+  `--use-napi-cross` downloads to `~/.napi-rs/cross-toolchain/<version>/<target>/bin/`.
+- **Rationale**: the runner's `objdump` reads x86-64 binaries only, not the arm64 one; the cross
+  toolchain ships binutils for its target, already downloaded by the build, and is the toolchain
+  that linked the binary.
+- **Alternatives considered**: `readelf`, which reads every architecture but is not the spec's
+  `objdump -T`; installing `binutils-aarch64-linux-gnu` with apt, a download the job does not
+  otherwise need.
+- **If wrong**: the step's first line names another `objdump`.
+- **Where**: Task 9.
+
+## R15: The smoke jobs take the four binaries
+
+- **Decision**: each smoke job downloads the four `.node` files, not only its platform's.
+- **Rationale**: `napi artifacts` fails when any configured target has no binary, so it cannot fill
+  one platform's folder alone; the four are built before the smoke tests anyway.
+- **Alternatives considered**: copying the one binary into its folder by hand, which duplicates what
+  `napi artifacts` does in the publish job.
+- **If wrong**: the smoke job copies its binary itself.
+- **Where**: Task 9.

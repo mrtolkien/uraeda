@@ -1,0 +1,228 @@
+name: npm
+
+# Publishes `uraeda` and its four platform packages from the tag that releases `ura`, through npm's
+# trusted publishing: no npm token is stored (see `specs/decisions/distribution.md`). It lives apart
+# from `release.yml`, which `dist generate` overwrites.
+on:
+  push:
+    tags:
+      # The pattern of `release.yml`.
+      - "**[0-9]+.[0-9]+.[0-9]+*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description:
+          The version tag to publish, such as v0.5.0, or to complete a release that stopped part way
+        required: true
+        type: string
+  pull_request:
+    paths:
+      - packages/uraeda/**
+      - packages/binding/npm/**
+      - .github/workflows/npm.yml
+
+permissions:
+  contents: read
+
+env:
+  # The tag released: the pushed one, or the one given by hand. Empty on pull requests.
+  TAG: ${{ inputs.tag || (github.ref_type == 'tag' && github.ref_name) || '' }}
+
+jobs:
+  binaries:
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            # napi-rs's prebuilt toolchain links against glibc 2.17 (SC-003).
+            cross: --use-napi-cross
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            cross: --use-napi-cross
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          # The version pinned in package.json's devEngines.
+          version: 12.9.1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install dependencies
+        # Without scripts: `prepare` runs `vp config`, which rewrites AGENTS.md.
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Add the Rust target
+        run: rustup target add ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build the binary
+        # The committed loader and declarations are never regenerated: `--no-js` writes no loader,
+        # and the declarations, which `--no-js` writes without the loader's export, go with the
+        # binary to `target/napi`, outside the package.
+        working-directory: packages/binding
+        run: >-
+          pnpm exec napi build --platform --release --no-js --esm --no-const-enum --manifest-path
+          ../../crates/binding/Cargo.toml --output-dir ../../target/napi --target ${{ matrix.target
+          }} ${{ matrix.cross }}
+
+      - name: Check the binary needs glibc 2.17 at most
+        if: runner.os == 'Linux'
+        working-directory: target/napi
+        # SC-003, with the `objdump` of the toolchain `--use-napi-cross` downloaded for the target:
+        # the runner's own reads only x86-64 binaries, not the arm64 one.
+        run: |
+          objdump=$(echo ~/.napi-rs/cross-toolchain/*/${{ matrix.target }}/bin/${{ matrix.target }}-objdump)
+          newest=$("$objdump" -T uraeda-binding.*.node | grep -o 'GLIBC_[0-9][0-9.]*' | sed 's/^GLIBC_//' | sort -uV | tail -n 1)
+          echo "newest glibc version needed: $newest"
+          test -n "$newest"
+          test "$(printf '%s\n' "$newest" 2.17 | sort -V | tail -n 1)" = 2.17
+
+      - name: Check the loader and declarations are unchanged
+        run: git diff --exit-code -- packages/binding/index.js packages/binding/index.d.ts
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: binding-${{ matrix.target }}
+          path: target/napi/uraeda-binding.*.node
+          if-no-files-found: error
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.9.1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build the binding for the host
+        run: pnpm exec vp run --filter uraeda-binding build
+      - name: Build the web UI
+        run: pnpm exec vp run --filter uraeda-web build
+      - name: Build uraeda
+        run: pnpm exec vp run --filter uraeda build
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: uraeda
+          path: |
+            packages/uraeda/dist
+            packages/uraeda/web
+            packages/uraeda/plugin
+          # The plugin's manifest is `plugin/.claude-plugin/plugin.json`.
+          include-hidden-files: true
+          if-no-files-found: error
+
+  smoke:
+    needs: [binaries, package]
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64-gnu
+          - os: macos-latest
+            platform: darwin-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.9.1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: uraeda
+          path: packages/uraeda
+      - uses: actions/download-artifact@v8
+        with:
+          # `napi artifacts` needs the binaries of every target.
+          pattern: binding-*
+          merge-multiple: true
+          path: packages/binding/artifacts
+      - name: Put the binaries in their packages
+        working-directory: packages/binding
+        run: pnpm exec napi artifacts
+
+      - name: Pack the platform package
+        working-directory: packages/binding/npm/${{ matrix.platform }}
+        run: npm pack --pack-destination "$RUNNER_TEMP"
+      - name: Run the smoke test
+        run:
+          node packages/uraeda/scripts/smoke.ts --platform "$RUNNER_TEMP"/uraeda-binding-${{
+          matrix.platform }}-*.tgz
+
+  publish:
+    # Only once the four binaries are built and the smoke test passed on both platforms.
+    if: github.event_name != 'pull_request'
+    needs: smoke
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # npm's trusted publishing, and the provenance statements.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.9.1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Install npm with trusted publishing
+        # Trusted publishing needs npm 11.5.1 or later. Run outside the checkout, whose devEngines
+        # ask for pnpm, which npm refuses.
+        working-directory: ${{ runner.temp }}
+        run: npm install --global npm@^11.5.1
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: uraeda
+          path: packages/uraeda
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: binding-*
+          merge-multiple: true
+          path: packages/binding/artifacts
+      - name: Put the binaries in their packages
+        working-directory: packages/binding
+        run: pnpm exec napi artifacts
+
+      - name: Set the versions, and print the sizes
+        run: node packages/uraeda/scripts/release.ts prepare "$TAG"
+      - name: Publish the platform packages, then uraeda
+        run: node packages/uraeda/scripts/release.ts publish "$TAG"
