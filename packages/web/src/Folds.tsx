@@ -3,7 +3,7 @@ import { sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useLayoutEffect, useMemo, useRef } from "react";
 import type { Block, Document, SpecItems } from "uraeda-binding";
-import { currentEntry, useHash } from "./routes.tsx";
+import { currentEntry, useEntryId, useHash } from "./routes.tsx";
 
 const styles = stylex.create({
   fold: {
@@ -67,13 +67,25 @@ export function foldOf(document: Document, folds: ReadonlyArray<Fold>, block: Bl
   return id === undefined ? undefined : folds.find((fold) => fold.ids.includes(id));
 }
 
+/** The anchor a location's hash names, as it is written when it is not a valid escape. */
+function anchorOf(hash: string): string {
+  try {
+    return decodeURIComponent(hash.slice(1));
+  } catch {
+    return hash.slice(1);
+  }
+}
+
 /**
  * Opens the fold holding the block the location's hash names, and scrolls to it once open: once
- * per hash, so the fold can be closed again. Not where Back, or a reload, returns to an entry with
- * a saved position: its folds are as the human left them, the hash's own closed again maybe.
+ * per visit of the address, so the fold can be closed again. Not where Back, or a reload, returns
+ * to an entry with a saved position: its folds are as the human left them, the hash's own closed
+ * again maybe.
  */
 export function useHashFold(document: Document, folds: Folds | undefined) {
-  const hash = decodeURIComponent(useHash().slice(1));
+  const hash = anchorOf(useHash());
+  // Handled per visit: a link to the same address is a new one, with a new history entry.
+  const visit = `${useEntryId()}${hash}`;
   const handled = useRef<string>(undefined);
   const list = folds?.list;
   const target = useMemo(
@@ -88,18 +100,18 @@ export function useHashFold(document: Document, folds: Folds | undefined) {
     [document, list, hash],
   );
   useLayoutEffect(() => {
-    if (!folds || !target || handled.current === hash) {
+    if (!folds || !target || handled.current === visit) {
       return;
     }
     if (typeof currentEntry().scroll === "number") {
-      handled.current = hash;
+      handled.current = visit;
       return;
     }
     if (!folds.open.includes(target.key)) {
       folds.onOpenChange(target.key, true);
       return;
     }
-    handled.current = hash;
+    handled.current = visit;
     const element = window.document.getElementById(hash);
     if (element) {
       element.scrollIntoView({ block: "start" });
@@ -107,7 +119,7 @@ export function useHashFold(document: Document, folds: Folds | undefined) {
       const bar = window.document.querySelector('[role="banner"]')?.getBoundingClientRect();
       window.scrollBy(0, -Math.max(bar?.bottom ?? 0, 0) - 16);
     }
-  }, [folds, hash, target]);
+  }, [folds, hash, target, visit]);
 }
 
 /**
