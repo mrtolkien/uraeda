@@ -523,6 +523,13 @@ export const uraedaTheme = {
         "padding": "var(--spacing-3)"
       }
     },
+    "lightbox": {
+      "base": {
+        ":is(*) button": {
+          "backgroundColor": "var(--color-overlay) !important"
+        }
+      }
+    },
     "chat-tool-calls": {
       "base": {
         ":is(*) span": {

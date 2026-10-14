@@ -1238,3 +1238,44 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   number); trimming the binary (no criterion is broken).
 - **If wrong**: the binary size line of the pull request.
 - **Where**: task 12's review.
+
+## R81: A thumbnail's remove button sits under it
+
+- **Decision**: each thumbnail of the composer is drawn without Astryx's remove button, in a group
+  with an Astryx `Button` of its own under it, icon only, named as Astryx names it, "Remove
+  image.png — image 1 of 2". The mockup's ✕ sits in the thumbnail's corner.
+- **Rationale**: Astryx's remove button is 20 px tall whatever the pointer, which the UI layout
+  decision's 44 px under a touch pointer refuses, and its style cannot be reached from the app. A 44
+  px button in a 64 px thumbnail's corner would hide most of the image it removes. A button of the
+  theme's size under the thumbnail is 44 px on the phone and stays small on a desktop.
+- **Alternatives considered**: the theme growing Astryx's button under a touch pointer (it covers
+  the image); larger thumbnails on the phone (fewer fit in the drawer, and the button still covers a
+  quarter of each).
+- **If wrong**: the drawer in `packages/web/src/Composer.tsx`.
+- **Where**: task 13, found by the layout checks (SC-005).
+
+## R82: The lightbox's Close has a scrim
+
+- **Decision**: the theme gives the buttons of Astryx's lightbox the `--color-overlay` background
+  that Astryx's thumbnails put under their remove button.
+- **Rationale**: the lightbox's Close is a ghost button with a light icon and no background: a
+  desktop screenshot opened on a desktop fills the window, and Close vanished over its light corner.
+  The UI behaviour decision wants every dialog's close button visible. The theme owns overrides of
+  Astryx's components.
+- **Alternatives considered**: a margin around the image (the lightbox's layout is not reachable
+  from the app); a lightbox of our own (one button's colour).
+- **If wrong**: `lightbox` in the components of `packages/web/src/theme/theme.ts`.
+- **Where**: task 13, found by the screenshots.
+
+## R83: The drop hint of a labelled field sits on its label's line
+
+- **Decision**: `DropHint` takes `isLabelled`: the hint of a review comment, an answer's comment,
+  and the notes, whose label shows above the field, sits at the end of the label's line. The
+  editor's text and the composer, whose labels are hidden, keep it inside the field's corner, as the
+  mockup draws it.
+- **Rationale**: the hint is placed from the top of what `DropHint` wraps, the label included: under
+  a label, it lay across the field's border.
+- **Alternatives considered**: the hint at the field's bottom (off screen in a long preview); a
+  wrapper around the text area alone (Astryx draws the label and the field as one component).
+- **If wrong**: `DropHint` in `packages/web/src/attach/DropHint.tsx`.
+- **Where**: task 13, found by the screenshots.
