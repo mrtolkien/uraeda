@@ -35,10 +35,10 @@ function useReplyStatus(agentName: string, working: boolean): string {
 
 /**
  * The composer under a transcript, on Astryx's `ChatComposer`: Send, which turns into Stop while
- * the session works, and reads "Start the agent" while it holds the workflow's message. Enter sends
- * on wide screens; on the phone, Return adds a line and only the button sends. It sends to
- * `session`, else to the feature of `folder`, else to a new chat, then calls `onSent` with the
- * session's ID. A refused send keeps the text, with the reason under it until the next send, as a
+ * the session works, and reads "Start the agent" while it holds the workflow's message, or "Start
+ * once this turn ends" while the session works on a chat. Enter sends on wide screens; on the
+ * phone, Return adds a line and only the button sends. It sends to `session`, else to the feature
+ * of `folder`, else to a new chat, then calls `onSent` with the session's ID. A refused send keeps the text, with the reason under it until the next send, as a
  * refused Stop does.
  * `notice` is the page's own reason under it, like the workflow's refusal to continue: with the
  * workflow's message, "Start the agent" stays, disabled, so the message never goes as a chat.
@@ -139,7 +139,7 @@ export function Composer({
           workflow ? (
             <Button
               variant="primary"
-              label="Start the agent"
+              label={working ? "Start once this turn ends" : "Start the agent"}
               isDisabled={!canSend || refused}
               clickAction={() => submit(value.trim())}
             />
