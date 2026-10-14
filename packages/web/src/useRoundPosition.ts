@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { currentEntry } from "./routes.tsx";
+import { currentEntry, useRepository } from "./routes.tsx";
 import { jumpTo, type NavQuestion, questionAtTop } from "./RoundNav.tsx";
 
 function read(key: string): string | undefined {
@@ -20,17 +20,18 @@ function write(key: string, value: string) {
 }
 
 /**
- * Where a round opens, and where it is kept on this browser: the id of the question at the top,
- * saved in `localStorage` at most once a second while the page scrolls. Opened anew, not by Back
- * or a reload (whose history entry holds its own position), the round goes to the saved question
- * when it still applies, else to the first blank question, else stays at its top.
+ * Where a round opens, and where it is kept on this browser, for its repository: the id of the
+ * question at the top, saved in `localStorage` at most once a second while the page scrolls.
+ * Opened anew, not by Back or a reload (whose history entry holds its own position), the round
+ * goes to the saved question when it still applies, else to the first blank question, else stays
+ * at its top.
  */
 export function useRoundPosition(
   folder: string,
   file: string,
   questions: ReadonlyArray<NavQuestion>,
 ) {
-  const key = `uraeda.round.${folder}/${file}`;
+  const key = `uraeda.round.${useRepository()}/${folder}/${file}`;
   // Read, not followed: answering a question moves no one.
   const ids = useRef<ReadonlyArray<string>>([]);
   ids.current = questions.map((q) => q.id);

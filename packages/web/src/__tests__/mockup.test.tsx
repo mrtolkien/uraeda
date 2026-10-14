@@ -4,7 +4,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { addMockup, click, fixtureRepo, git, renderPage, today, type } from "./helpers.tsx";
+import { addMockup, atRepo, click, fixtureRepo, git, renderPage, today, type } from "./helpers.tsx";
 
 const FOLDER = "2026-10-06-recurring-tasks";
 const SPEC = `specs/${FOLDER}/spec.md`;
@@ -35,7 +35,7 @@ test("a mockup shows in the UI, and a comment lands on the line that links it (C
   const repo = specWithMockup();
   await renderPage(`/f/${FOLDER}/mockups/repeat.html`, repo);
   expect((await screen.findByTitle("repeat.html")).getAttribute("src")).toBe(
-    `/mockups/specs/${FOLDER}/mockups/repeat.html`,
+    atRepo(`/mockups/specs/${FOLDER}/mockups/repeat.html`),
   );
   expect(screen.getByRole("link", { name: "Open in a new tab" }).getAttribute("target")).toBe(
     "_blank",

@@ -18,7 +18,7 @@ const NOT_FOUND = /^refused: .*: no such file$/s;
 /**
  * Files of the repository, read through the binding: `/raw/<path>` as text, for links to code,
  * and `/mockups/<path>` with their own type, sandboxed so their scripts run outside the UI's
- * origin. Mounted at `/`, and at `/r/:name`, whose prefix is left out of the file's path.
+ * origin. Mounted at `/r/:name`, whose prefix is left out of the file's path.
  */
 export function files() {
   const app = new Hono<{ Variables: FateVariables }>();
@@ -28,6 +28,9 @@ export function files() {
     path: string,
   ): Promise<string | 404 | 500> => {
     const { binding, repo } = context.get("fate");
+    if (repo === null) {
+      return 404;
+    }
     try {
       return await binding.readRaw(repo, decodeURIComponent(path));
     } catch (error) {

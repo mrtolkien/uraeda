@@ -4,7 +4,16 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { click, fixtureRepo, git, refreshUntil, renderPage, today, type } from "./helpers.tsx";
+import {
+  atRepo,
+  click,
+  fixtureRepo,
+  git,
+  refreshUntil,
+  renderPage,
+  today,
+  type,
+} from "./helpers.tsx";
 
 const WEB_UI = "2026-10-11-web-ui";
 const ROUND = `/f/${WEB_UI}/clarifications-01.md`;
@@ -68,7 +77,7 @@ function startInComposer() {
 
 /** Waits for the feature's session to open with `text` in its composer. */
 async function opensWith(folder: string, text: string | RegExp) {
-  await waitFor(() => expect(window.location.pathname).toBe(`/f/${folder}/session`));
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/f/${folder}/session`)));
   const box = await composer();
   await waitFor(() =>
     typeof text === "string"
@@ -176,7 +185,7 @@ test("the workflow's message goes before what the human typed", async () => {
   await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: true });
   await type(await composer(), "Why A in Q6?");
 
-  window.history.pushState(null, "", `/f/${CLI}/session?continue=manual`);
+  window.history.pushState(null, "", atRepo(`/f/${CLI}/session?continue=manual`));
   await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
 
   const box = await composer();
@@ -196,7 +205,7 @@ test("Commit only commits, and starts nothing", async () => {
   expect(git(repo, "log", "-1", "--format=%s", WEB_UI).trim()).toBe(
     "discovery(web-ui): answer round 01",
   );
-  expect(window.location.pathname).toBe(ROUND);
+  expect(window.location.pathname).toBe(atRepo(ROUND));
   expect(agent.sent).toHaveLength(0);
 });
 
@@ -207,14 +216,14 @@ test("C2: every commit button that leads to the agent says it starts the agent",
   expect(screen.getByRole("button", { name: "Request changes and start the agent" })).toBeTruthy();
   expectNoContinue();
 
-  window.history.replaceState(null, "", "/edit/specs/drafts/git-listener.md");
+  window.history.replaceState(null, "", atRepo("/edit/specs/drafts/git-listener.md"));
   await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
   expect(
     await screen.findByRole("button", { name: "Start the feature and the agent" }),
   ).toBeTruthy();
   expectNoContinue();
 
-  window.history.replaceState(null, "", ROUND);
+  window.history.replaceState(null, "", atRepo(ROUND));
   await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
   expect(await screen.findByRole("button", { name: "Commit and start the agent" })).toBeTruthy();
   expectNoContinue();
@@ -277,7 +286,7 @@ test("committing a proposal and starting a feature open their sessions with the 
     "chore(runner): proposal",
   );
 
-  window.history.replaceState(null, "", "/edit/specs/drafts/git-listener.md");
+  window.history.replaceState(null, "", atRepo("/edit/specs/drafts/git-listener.md"));
   await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
   await type(await screen.findByLabelText("Slug"), "git-listener");
   expect(screen.getByRole("button", { name: "Start only" })).toBeTruthy();
@@ -294,7 +303,7 @@ test("Start only opens the feature's page", async () => {
 
   await click(screen.getByRole("button", { name: "Start only" }));
 
-  await waitFor(() => expect(window.location.pathname).toBe("/f/2026-10-12-git-listener"));
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/f/2026-10-12-git-listener")));
 });
 
 test("a draft's Commit keeps its single button", async () => {
@@ -316,7 +325,7 @@ test("Try again after a refused hook commits, then opens the session with the me
       "The pre-commit hook refused the commit. Your answers are saved, not committed.",
     ),
   ).toBeTruthy();
-  expect(window.location.pathname).toBe(ROUND);
+  expect(window.location.pathname).toBe(atRepo(ROUND));
   hook.pass();
   await click(screen.getByRole("button", { name: "Try again" }));
 

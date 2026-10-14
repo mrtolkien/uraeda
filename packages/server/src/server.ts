@@ -82,14 +82,10 @@ export async function startServer(
     throw error;
   }
   const opened = hosts;
-  // TEMPORARY: the global endpoint serves the starting repository, or else the most recent one,
-  // until the UI moves to `/r/<name>/` (task 7, R3).
-  const repo = root ?? opened.mostRecent()?.path ?? options.repo;
   let stopping: Promise<void> | undefined;
   return {
     app: createApp({
       ...options,
-      repo,
       binding,
       sessions: sessions.sessions,
       hosts: opened,

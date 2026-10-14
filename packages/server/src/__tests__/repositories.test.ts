@@ -41,7 +41,6 @@ async function twoRepositories() {
   const repos = [repoWithFeature("Dark mode in uraeda"), repoWithFeature("Dark mode in todo-app")];
   const opened = await testHosts(repos, { installed: false });
   const app = createApp({
-    repo: repos[0],
     port,
     allowedHosts: [],
     allowOrigins: [],
@@ -346,7 +345,6 @@ test("opening a repository moves it first", async () => {
   writeFileSync(file, JSON.stringify(stored));
   await opened.hosts.reload();
   const app = createApp({
-    repo: opened.hosts.get(opened.names[0])!.path,
     port,
     allowedHosts: [],
     allowOrigins: [],
@@ -459,4 +457,66 @@ test("closed hosts stop following the file", async () => {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
   expect(opened.hosts.all()).toEqual([]);
+});
+
+/** Review focus 6 */
+test("the global endpoint refuses a repository's record", async () => {
+  const { app } = await testApp();
+
+  const results = await fateAt(app, null, [
+    { kind: "byId", type: "Workspace", ids: ["workspace"], select: ["root"] },
+    { kind: "mutation", name: "priorities.commit", input: {}, select: ["hash"] },
+  ]);
+
+  for (const result of results) {
+    expect(result.error).toEqual({ code: "BAD_REQUEST", message: "refused: no repository" });
+  }
+});
+
+test("the global endpoint still serves the list, suggestions, and the agent", async () => {
+  const { app, name } = await testApp();
+
+  const [repositories, suggestions, agent] = await fateAt(app, null, [
+    { kind: "byId", type: "Repositories", ids: ["repositories"], select: ["rows.name"] },
+    { kind: "byId", type: "FolderSuggestions", ids: ["/"], select: ["rows.path"] },
+    { kind: "byId", type: "Agent", ids: ["agent"], select: ["name"] },
+  ]);
+
+  expect(repositories.data[0].rows.map((row: { name: string }) => row.name)).toEqual([name]);
+  expect(suggestions.ok).toBe(true);
+  expect(agent.ok).toBe(true);
+});
+
+/** The edge case of old file links */
+test("an old raw link redirects to the most recent repository", async () => {
+  const { app, name } = await testApp();
+
+  const raw = await app.request(`http://127.0.0.1:${port}/raw/specs/PRIORITIES.md?plain=1`);
+  const mockup = await app.request(`http://127.0.0.1:${port}/mockups/specs/x/mockups/ui.html`);
+
+  expect([raw.status, raw.headers.get("location")]).toEqual([
+    307,
+    `/r/${name}/raw/specs/PRIORITIES.md?plain=1`,
+  ]);
+  expect([mockup.status, mockup.headers.get("location")]).toEqual([
+    307,
+    `/r/${name}/mockups/specs/x/mockups/ui.html`,
+  ]);
+});
+
+test("an old raw link without any repository is not found", async () => {
+  const opened = await testHosts([]);
+  const app = createApp({
+    port,
+    allowedHosts: [],
+    allowOrigins: [],
+    binding,
+    sessions: opened.sessions,
+    hosts: opened.hosts,
+    dataDir: opened.dataDir,
+  });
+
+  const response = await app.request(`http://127.0.0.1:${port}/raw/specs/PRIORITIES.md`);
+
+  expect(response.status).toBe(404);
 });

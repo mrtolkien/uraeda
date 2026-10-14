@@ -53,12 +53,10 @@ export async function testHosts(
 }
 
 function app(
-  repo: string,
   allowedHosts: Array<string>,
   { hosts, sessions, dataDir, names: [name] }: Awaited<ReturnType<typeof testHosts>>,
 ) {
   const created = createApp({
-    repo,
     port,
     allowedHosts,
     allowOrigins: ["http://localhost:5173"],
@@ -77,14 +75,14 @@ function app(
  */
 export async function testApp(repo = fixtureRepo(), allowedHosts: Array<string> = []) {
   const opened = await testHosts([repo], { installed: false });
-  return { ...opened, app: app(repo, allowedHosts, opened), name: opened.names[0], repo };
+  return { ...opened, app: app(allowedHosts, opened), name: opened.names[0], repo };
 }
 
 /** The server's app with sessions on the fake adapter, checked once. */
 export async function testServer(repo = fixtureRepo(), { installed = true } = {}) {
   const opened = await testHosts([repo], { installed });
   await opened.sessions.check();
-  return { ...opened, app: app(repo, [], opened), name: opened.names[0], repo };
+  return { ...opened, app: app([], opened), name: opened.names[0], repo };
 }
 
 /**

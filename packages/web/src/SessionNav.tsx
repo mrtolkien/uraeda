@@ -7,7 +7,7 @@ import * as stylex from "@stylexjs/stylex";
 import { startTransition, useEffect, useState } from "react";
 import type { SessionStatus } from "uraeda-server/fate";
 import { type useNavigation, useSessionSearch } from "./data.ts";
-import { navigate } from "./routes.tsx";
+import { navigate, useRepoPath } from "./routes.tsx";
 import { sessionPath } from "./sessions.ts";
 import { StatusMark } from "./StatusMark.tsx";
 
@@ -99,10 +99,11 @@ function Item({
   pathname: string;
   status?: Status;
 }) {
+  const here = useRepoPath();
   return (
     <SideNavItem
       label={label}
-      href={to}
+      href={here(to)}
       isSelected={pathname === to || (to !== "/" && pathname.startsWith(`${to}/`))}
       {...(status
         ? {
@@ -113,7 +114,7 @@ function Item({
         : {})}
       onClick={(event: React.MouseEvent) => {
         event.preventDefault();
-        navigate(to);
+        navigate(here(to));
       }}
     />
   );
@@ -122,6 +123,7 @@ function Item({
 /** The rows of a session's running sub-agents, under its own, each opening the session. */
 function Subagents({ row, to }: { row: Row | undefined; to: string }) {
   const { isCollapsed } = useSideNavCollapse();
+  const here = useRepoPath();
   if (!row || isCollapsed) {
     return null;
   }
@@ -131,11 +133,11 @@ function Subagents({ row, to }: { row: Row | undefined; to: string }) {
       label={subagent.description}
       aria-label={`${subagent.description}, Working`}
       icon={<StatusMark status="working" label="Working" small />}
-      href={to}
+      href={here(to)}
       xstyle={styles.subagent}
       onClick={(event: React.MouseEvent) => {
         event.preventDefault();
-        navigate(to);
+        navigate(here(to));
       }}
     />
   ));
@@ -185,6 +187,7 @@ function Sessions({
   query: string;
   found?: Map<string, Row>;
 }) {
+  const here = useRepoPath();
   // The live list gives statuses, also of the sessions a search found, which is not live.
   const rows = sessionList?.rows ?? [];
   const bySession = new Map(rows.map((row) => [row.id, row]));
@@ -255,11 +258,11 @@ function Sessions({
             <SideNavItem
               label="New chat"
               icon={<span aria-hidden="true">＋</span>}
-              href="/chats/new"
+              href={here("/chats/new")}
               isSelected={pathname === "/chats/new"}
               onClick={(event: React.MouseEvent) => {
                 event.preventDefault();
-                navigate("/chats/new");
+                navigate(here("/chats/new"));
               }}
             />
           )}

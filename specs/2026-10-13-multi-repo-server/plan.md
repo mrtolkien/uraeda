@@ -791,6 +791,12 @@ git commit -m "feat(multi-repo-server): one server wiring, started anywhere"
   repository); `packages/web/src/__tests__/helpers.tsx`
 - Create: `packages/web/src/RepositoryPages.tsx` (missing folder, unknown name)
 - Test: `packages/web/src/__tests__/routes.test.ts`, `repositories.test.tsx`, `links.test.ts`
+- Also changed while building it
+  ([R8](rulings.md#r8-the-ui-checks-the-repository-through-the-global-client-before-its-own)):
+  `clients.ts` (new, `fateClients`), `views.ts` (`RepositoriesView`), `Spans.tsx`,
+  `PrioritiesPage.tsx`, `AgentPanel.tsx`; the server's `fate/sources.ts`, `fate/mutations.ts`,
+  `fate/sessions.ts` (`RepoContext`), `server.ts` (its `TEMPORARY` repository goes), `dev.ts`; the
+  browser tests' helpers and `vite.browser.config.ts`, as R7 keeps them until task 9
 
 **Interfaces:**
 
@@ -811,7 +817,7 @@ git commit -m "feat(multi-repo-server): one server wiring, started anywhere"
   - `renderPage(path, repo, options)` registers `repo`, and takes the path without the prefix, which
     it adds; `serverFetch(repo)` serves the whole app.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/web/src/__tests__/routes.test.ts (table-driven)
@@ -863,12 +869,12 @@ test("an old raw link redirects to the most recent repository", async () => {
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/routes.test.ts`
 - Expected: FAIL, `parseLocation is not exported`.
 
-- [ ] **Step 3: Implement the router, the clients, the pages, and the global endpoint's change**
+- [x] **Step 3: Implement the router, the clients, the pages, and the global endpoint's change**
 
 Every path literal goes through `repoPath` or `useRepoPath`. On a page without a repository, the app
 reads `Repositories` through the global client, then redirects to `repoPath(rows[0].name, path)`, or
@@ -876,12 +882,12 @@ shows "Add your first repository" (a placeholder heading until task 8) when the 
 repository's page first checks its row: missing shows "Folder not found", absent shows "No
 repository named …". The round position's key becomes `uraeda.round.<repo>/<folder>/<file>`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src/ packages/server/src/
@@ -899,7 +905,14 @@ git commit -m "feat(multi-repo-server): every page and link under its repository
 
 **Interfaces:**
 
-- Consumes: `useRepositories`, `useRepoPath`, `navigate` (task 7); the mutations of task 5.
+- Consumes: `useRepositories`, `useRepoPath`, `useRepository`, `navigate` (task 7); the mutations of
+  task 5. `App` reads the list through the global client
+  ([R8](rulings.md#r8-the-ui-checks-the-repository-through-the-global-client-before-its-own)):
+  inside a repository's tree, `useFateClient()` is the repository's client, so a list mutation made
+  there updates only its cache; the menu's remove and add run them on the global client
+  (`clientFor(null)`, or a context giving it), so the gate sees the new list at once.
+  `RepositoryPages.tsx` has a `TEMPORARY` `FirstRun` to replace, and `UnknownRepository` and
+  `MissingFolder`, drawn without the navigation: the mockup's heading and menu go above them.
 - Produces: `RepositoryMenu` in the heading, wide and folded; `AddRepository({ inline?: boolean })`,
   in an overlay from the menu and inline on the first run; `useFolderSuggestions(text: string)`. The
   form opens `repoPath(result.added, "/")` from `repositories.add`'s answer, selecting `added`
@@ -1009,6 +1022,11 @@ git commit -m "feat(multi-repo-server): the repository menu, the add form, and t
     test waits for its name to be served (or `dev.ts` exports a reload of its servers' hosts).
     `vite.browser.config.ts` and `src/__browser__/setup.ts` stop setting `URAEDA_REPO` per test;
     `scripts/screenshots.ts` may keep setting it once, as the starting repository.
+  - Since task 7, `takeRepo` already adds its fixture to the list, and a `TEMPORARY` `repoName`
+    command gives its name; the browser helpers' `show(path)` prefixes `/r/<name>`, and `atRepo` and
+    `repository()` give the prefixed path and the name. `dev.ts` keeps a `TEMPORARY` set, `added`,
+    of the repositories it added on a request, in place of the `apps` map: the port's one app serves
+    every repository. Both go with `forgetRepo`.
 
 - [ ] **Step 1: Write the failing tests**
 

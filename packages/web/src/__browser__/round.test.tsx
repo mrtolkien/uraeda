@@ -4,14 +4,14 @@
 import { act, screen } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
-import { drawn, scrollStopped, show, watchFor } from "./helpers.tsx";
+import { atRepo, drawn, repository, scrollStopped, show, watchFor } from "./helpers.tsx";
 
 const FOLDER = "2026-10-11-web-ui";
 const PAGE = `/f/${FOLDER}/clarifications-01.md`;
 
 beforeEach(() => {
   // A browser that never opened the round: it opens at the first blank question, Q1.
-  window.localStorage.removeItem(`uraeda.round.${FOLDER}/clarifications-01.md`);
+  window.localStorage.removeItem(`uraeda.round.${repository()}/${FOLDER}/clarifications-01.md`);
 });
 
 /** How far a question's top is from where a jump puts it, under the bar. */
@@ -76,14 +76,14 @@ test("Back returns to the question at the top (US1 8)", async () => {
 
   // A real click: WebKit skips, on Back, an entry that added another without a user's gesture.
   await userEvent.click(screen.getByRole("link", { name: "discovery" }));
-  await expect.poll(() => window.location.pathname).toBe(`/f/${FOLDER}/discovery-01.md`);
+  await expect.poll(() => window.location.pathname).toBe(atRepo(`/f/${FOLDER}/discovery-01.md`));
   await expect
     .poll(() => document.body.textContent?.includes("A web UI for a spec workflow has four parts."))
     .toBe(true);
   // The round comes back at Q2, never through "Loading…".
   const loading = watchFor("Loading…");
   await act(async () => window.history.back());
-  await expect.poll(() => window.location.pathname).toBe(PAGE);
+  await expect.poll(() => window.location.pathname).toBe(atRepo(PAGE));
   await expect.poll(() => offset("Q2")).toBeLessThan(3);
   expect(loading.stop()).toBe(false);
 });

@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { fixtureRepo, git, renderPage, today } from "./helpers.tsx";
+import { atRepo, fixtureRepo, git, renderPage, today } from "./helpers.tsx";
 
 const FOLDER = "2026-10-06-recurring-tasks";
 const PAGE = `/f/${FOLDER}/spec.md`;
@@ -360,7 +360,7 @@ test("US6.1: Ask the agent opens the session with the selected lines quoted", as
 
   await click(await screen.findByRole("button", { name: "Ask the agent" }));
 
-  expect(window.location.pathname).toBe(`/f/${FOLDER}/session`);
+  expect(window.location.pathname).toBe(atRepo(`/f/${FOLDER}/session`));
   const lines = git(r, "show", `${FOLDER}:${SPEC}`).split("\n").slice(91, 95);
   const box = await composer();
   await waitFor(() =>

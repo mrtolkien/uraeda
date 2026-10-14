@@ -3,7 +3,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { resolve } from "node:path";
 import { getRequestListener } from "@hono/node-server";
-import { createApp } from "./app.ts";
 import { checkBinding, loadBinding } from "./binding.ts";
 import { type Env, loadDataDir, loadEnv } from "./env.ts";
 import type { Binding } from "./fate/context.ts";
@@ -38,11 +37,10 @@ type Started = { server: Server; binding: Binding; dataDir: string; listener: Li
 const servers = new Map<number, Promise<Started>>();
 
 /**
- * TEMPORARY (task 9): the apps of the repositories the browser tests name in `URAEDA_REPO`, by
- * port and repository, on their port's server. Task 9 opens each test's repository at
- * `/r/<name>/` instead.
+ * TEMPORARY (task 9): the repositories the browser tests named in `URAEDA_REPO`, by port and
+ * repository, added to their port's list. Task 9 adds each test's repository itself.
  */
-const apps = new Map<string, Listener>();
+const added = new Set<string>();
 
 /**
  * Stops the turns of the dev server's sessions and closes their processes and watches, as Vite's
@@ -51,21 +49,20 @@ const apps = new Map<string, Listener>();
 export async function stopDevRuns(): Promise<void> {
   const stopping = [...servers.values()];
   servers.clear();
-  apps.clear();
+  added.clear();
   await Promise.all(
     stopping.map(async (started) => (await started.catch(() => undefined))?.server.stop()),
   );
 }
 
 /**
- * TEMPORARY (task 9): forgets a repository the browser tests are done with: its apps, and its
- * entry in the list, whose host closes the watch of its files, which would otherwise go on for as
+ * TEMPORARY (task 9): forgets a repository the browser tests are done with: its entry in the list, whose host closes the watch of its files, which would otherwise go on for as
  * long as the server runs.
  */
 export async function forgetRepo(repo: string): Promise<void> {
-  for (const key of apps.keys()) {
+  for (const key of added) {
     if (key.endsWith(` ${repo}`)) {
-      apps.delete(key);
+      added.delete(key);
     }
   }
   for (const pending of servers.values()) {
@@ -118,8 +115,7 @@ export function devHandler(root: string, { adapter }: { adapter?: Adapter } = {}
       return started.listener;
     }
     const key = `${port} ${repo}`;
-    let app = apps.get(key);
-    if (!app) {
+    if (!added.has(key)) {
       const { server, binding, dataDir } = started;
       try {
         await binding.addRepository(dataDir, repo);
@@ -127,21 +123,9 @@ export function devHandler(root: string, { adapter }: { adapter?: Adapter } = {}
       } catch (error) {
         console.error(`uraeda: ${(error as Error).message.replace(/^refused: /, "")}`);
       }
-      app = getRequestListener(
-        createApp({
-          ...env,
-          port,
-          repo,
-          allowOrigins: [],
-          binding,
-          sessions: server.sessions,
-          hosts: server.hosts,
-          dataDir,
-        }).fetch,
-      );
-      apps.set(key, app);
+      added.add(key);
     }
-    return app;
+    return started.listener;
   };
   return (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     if (!SERVER_PATHS.test(req.url ?? "")) {

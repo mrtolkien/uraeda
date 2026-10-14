@@ -3,7 +3,7 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
-import { show } from "./helpers.tsx";
+import { atRepo, show } from "./helpers.tsx";
 
 test("on a wide screen, the task view opens beside home (US3 5)", async () => {
   if (window.innerWidth < 768) {
@@ -14,13 +14,13 @@ test("on a wide screen, the task view opens beside home (US3 5)", async () => {
   await userEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
   await expect
     .poll(() => window.location.pathname)
-    .toBe("/priorities/claude-code-runner-triggered-manually");
+    .toBe(atRepo("/priorities/claude-code-runner-triggered-manually"));
   expect(await screen.findByRole("radio", { name: "Next", checked: true })).toBeTruthy();
   // Home stays beside it.
   expect(screen.getByRole("link", { name: /Git listener process/ })).toBeTruthy();
   await act(async () => window.history.back());
   await waitFor(() => expect(screen.queryByRole("radio", { name: "Next" })).toBeNull());
-  expect(window.location.pathname).toBe("/");
+  expect(window.location.pathname).toBe(atRepo("/"));
 });
 
 test("on a wide screen, a second line tapped in home's list keeps home beside it", async () => {
@@ -33,7 +33,7 @@ test("on a wide screen, a second line tapped in home's list keeps home beside it
 
   await userEvent.click(screen.getByRole("link", { name: /Git listener process/ }));
 
-  await expect.poll(() => window.location.pathname).toBe("/priorities/git-listener");
+  await expect.poll(() => window.location.pathname).toBe(atRepo("/priorities/git-listener"));
   expect(await screen.findByRole("heading", { name: "What" })).toBeTruthy();
   // Home's list is still there, its own link to the priorities included, and Home is selected.
   expect(screen.getByRole("link", { name: "All priorities" })).toBeTruthy();

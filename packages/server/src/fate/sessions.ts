@@ -6,7 +6,7 @@ import type { Trigger } from "../runner/events.ts";
 import { runMessage } from "../runner/message.ts";
 import { REFUSALS } from "../runner/sessions.ts";
 import { sessionStatus, STATUS_ORDER } from "../runner/status.ts";
-import type { Context } from "./context.ts";
+import type { Context, RepoContext } from "./context.ts";
 import { callSiteError } from "./errors.ts";
 import {
   AGENT_ID,
@@ -53,9 +53,9 @@ export function agentRecord({ sessions }: Context): AgentRecord {
 }
 
 /** The workspaces read during one request, by their path: a list reads it once. */
-const workspaces = new WeakMap<Context, Map<string, Promise<WorkspaceView>>>();
+const workspaces = new WeakMap<RepoContext, Map<string, Promise<WorkspaceView>>>();
 
-function workspaceOf(ctx: Context, path: string): Promise<WorkspaceView> {
+function workspaceOf(ctx: RepoContext, path: string): Promise<WorkspaceView> {
   let read = workspaces.get(ctx);
   if (!read) {
     read = new Map();
@@ -70,7 +70,7 @@ function workspaceOf(ctx: Context, path: string): Promise<WorkspaceView> {
 }
 
 /** The session of this ID, when it is one of the server's repository: the cache holds them all. */
-async function ownSession(ctx: Context, id: string): Promise<SessionRow | undefined> {
+async function ownSession(ctx: RepoContext, id: string): Promise<SessionRow | undefined> {
   const row = ctx.sessions.cache.session(id);
   if (!row) {
     return undefined;
@@ -79,7 +79,7 @@ async function ownSession(ctx: Context, id: string): Promise<SessionRow | undefi
 }
 
 /** The turn of this ID, when its session is one of the server's repository. */
-async function ownTurn(ctx: Context, id: string): Promise<TurnRow | undefined> {
+async function ownTurn(ctx: RepoContext, id: string): Promise<TurnRow | undefined> {
   const turn = /^\d+$/.test(id) ? ctx.sessions.cache.turn(Number(id)) : undefined;
   return turn && (await ownSession(ctx, turn.sessionId)) ? turn : undefined;
 }
@@ -124,12 +124,12 @@ function titleOf(row: SessionRow, feature?: FeatureView): string {
 }
 
 /** A feature by its folder, or undefined once it is gone, as when it was finished. */
-function featureOf(ctx: Context, folder: string): Promise<FeatureView | undefined> {
+function featureOf(ctx: RepoContext, folder: string): Promise<FeatureView | undefined> {
   return ctx.binding.readFeature(ctx.repo, folder).catch(() => undefined);
 }
 
 /** Where the session works: its feature's branch, or the main checkout. */
-async function placeOf(ctx: Context, row: SessionRow, feature?: FeatureView): Promise<string> {
+async function placeOf(ctx: RepoContext, row: SessionRow, feature?: FeatureView): Promise<string> {
   if (row.folder !== null) {
     return feature?.branch ? `branch ${feature.branch}` : "no branch yet";
   }
@@ -151,7 +151,7 @@ function unseen(row: SessionRow, read: ReturnType<typeof turnsOf>): boolean {
   );
 }
 
-export async function sessionRecord(ctx: Context, row: SessionRow): Promise<SessionRecord> {
+export async function sessionRecord(ctx: RepoContext, row: SessionRow): Promise<SessionRecord> {
   const read = turnsOf(ctx.sessions.cache, row.id);
   const feature = row.folder === null ? undefined : await featureOf(ctx, row.folder);
   return {
@@ -169,12 +169,15 @@ export async function sessionRecord(ctx: Context, row: SessionRow): Promise<Sess
 }
 
 /** The session of this ID, for the server's repository. */
-export async function readSession(ctx: Context, id: string): Promise<SessionRecord | undefined> {
+export async function readSession(
+  ctx: RepoContext,
+  id: string,
+): Promise<SessionRecord | undefined> {
   const row = await ownSession(ctx, id);
   return row ? sessionRecord(ctx, row) : undefined;
 }
 
-export async function readTurn(ctx: Context, id: string): Promise<TurnRecord | undefined> {
+export async function readTurn(ctx: RepoContext, id: string): Promise<TurnRecord | undefined> {
   const turn = await ownTurn(ctx, id);
   if (!turn) {
     return undefined;
@@ -196,7 +199,10 @@ export async function readTurn(ctx: Context, id: string): Promise<TurnRecord | u
 }
 
 /** A page of a turn's items, by its ID, `<turn>:<page>`, without the messages taken back. */
-export async function readTurnLog(ctx: Context, id: string): Promise<TurnLogRecord | undefined> {
+export async function readTurnLog(
+  ctx: RepoContext,
+  id: string,
+): Promise<TurnLogRecord | undefined> {
   const match = /^(\d+):(\d+)$/.exec(id);
   if (!match || !(await ownTurn(ctx, match[1]))) {
     return undefined;
@@ -216,7 +222,10 @@ export async function readTurnLog(ctx: Context, id: string): Promise<TurnLogReco
  * The sidebar's rows of the sessions, what needs the human first, then the last updated. A
  * feature's session leaves the list with its feature, as when it was finished into its record.
  */
-async function rows(ctx: Context, sessions: Array<SessionRow>): Promise<Array<SessionRowRecord>> {
+async function rows(
+  ctx: RepoContext,
+  sessions: Array<SessionRow>,
+): Promise<Array<SessionRowRecord>> {
   const features = new Map(
     (await workspaceOf(ctx, ctx.repo)).features.map((feature) => [feature.folder, feature]),
   );
@@ -241,7 +250,7 @@ async function rows(ctx: Context, sessions: Array<SessionRow>): Promise<Array<Se
     .sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
 }
 
-export async function sessionList(ctx: Context): Promise<SessionListRecord> {
+export async function sessionList(ctx: RepoContext): Promise<SessionListRecord> {
   // A repository the core gives no main checkout for, like one without a commit, has no sessions.
   const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
   if (root === undefined) {
@@ -257,7 +266,7 @@ export async function sessionList(ctx: Context): Promise<SessionListRecord> {
  * The sessions whose title, folder, or messages hold the query, ignoring case, with the sessions
  * of the features whose title holds it.
  */
-export async function sessionSearch(ctx: Context, query: string): Promise<SessionSearchRecord> {
+export async function sessionSearch(ctx: RepoContext, query: string): Promise<SessionSearchRecord> {
   const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
   const { cache } = ctx.sessions;
   if (root === undefined) {
@@ -287,7 +296,7 @@ export async function sessionSearch(ctx: Context, query: string): Promise<Sessio
  * feature has no branch, or does not wait on the agent.
  */
 export async function readWorkflowMessage(
-  ctx: Context,
+  ctx: RepoContext,
   id: string,
 ): Promise<WorkflowMessageRecord | undefined> {
   const [folder, trigger, ...file] = id.split(":");
@@ -326,7 +335,10 @@ export async function readWorkflowMessage(
 }
 
 /** A feature's record: its view, with its session's ID. */
-export async function featureRecord(ctx: Context, feature: FeatureView): Promise<FeatureRecord> {
+export async function featureRecord(
+  ctx: RepoContext,
+  feature: FeatureView,
+): Promise<FeatureRecord> {
   const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
   const session =
     root === undefined ? undefined : ctx.sessions.cache.featureSession(root, feature.folder);
@@ -337,7 +349,7 @@ export async function featureRecord(ctx: Context, feature: FeatureView): Promise
  * The folders of the server's repository whose session has a turn running or queued: none in a
  * repository the core gives no main checkout for, like one without a commit.
  */
-export async function working(ctx: Context): Promise<Array<string>> {
+export async function working(ctx: RepoContext): Promise<Array<string>> {
   try {
     await ctx.sessions.mainRoot(ctx.repo);
   } catch {
@@ -352,7 +364,7 @@ export async function working(ctx: Context): Promise<Array<string>> {
  * `specs/bugs/<folder>/`.
  */
 export async function writable(
-  ctx: Context,
+  ctx: RepoContext,
   target: { folder: string } | { path: string },
 ): Promise<void> {
   const folder =

@@ -1,6 +1,6 @@
 import type { Trigger } from "../runner/events.ts";
 import { REFUSALS } from "../runner/sessions.ts";
-import type { Context } from "./context.ts";
+import { type Context, inRepository, type RepoContext } from "./context.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { featureRecord, readSession, TRIGGERS, writable } from "./sessions.ts";
 import { homedir } from "node:os";
@@ -20,7 +20,10 @@ import {
   type PrioritiesRecord,
 } from "./views.ts";
 
-type Resolver<Input> = { ctx: Context; input: Input; select: Array<string> };
+/** A repository's mutation's arguments: see `repositoryOnly`. */
+type Resolver<Input> = { ctx: RepoContext; input: Input; select: Array<string> };
+/** The arguments of a mutation of the list, which every endpoint serves. */
+type ListResolver<Input> = { ctx: Context; input: Input; select: Array<string> };
 
 /** The file a mutation changed, masked to the fields the client selected. */
 const file = (ctx: Context, record: FileRecord, select: Array<string>) =>
@@ -33,7 +36,7 @@ const draft = (ctx: Context, record: Omit<DraftRecord, "id">, select: Array<stri
   sources.masked(draftDataView, ctx, { id: record.path, ...record }, select);
 
 /** A session, masked to the fields the client selected. */
-const session = async (ctx: Context, id: string, select: Array<string>) => {
+const session = async (ctx: RepoContext, id: string, select: Array<string>) => {
   const record = await readSession(ctx, id);
   if (!record) {
     throw callSiteError(`refused: no session ${id}`);
@@ -55,7 +58,7 @@ async function refusedOn<T>(call: () => T | Promise<T>): Promise<T> {
  * Runs a call of the session manager that answers at once, after reading the repository's main
  * checkout, which it matches the session's repository with.
  */
-async function onSession<T>(ctx: Context, call: () => T | Promise<T>): Promise<T> {
+async function onSession<T>(ctx: RepoContext, call: () => T | Promise<T>): Promise<T> {
   return refusedOn(async () => {
     await ctx.sessions.mainRoot(ctx.repo);
     return call();
@@ -73,7 +76,7 @@ async function listChanged(ctx: Context, select: Array<string>, added: string | 
 
 type FileInput = { folder: string; file: string };
 
-export const mutations = {
+const repositoryMutations = {
   "answer.save": {
     type: "WorkflowFile",
     resolve: async ({
@@ -479,9 +482,13 @@ export const mutations = {
       return session(ctx, input.session, select);
     },
   },
+};
+
+/** The list's mutations, served by every endpoint, the global one too. */
+const listMutations = {
   "repositories.add": {
     type: "Repositories",
-    resolve: async ({ ctx, input, select }: Resolver<{ folder: string }>) => {
+    resolve: async ({ ctx, input, select }: ListResolver<{ folder: string }>) => {
       const folder = await refusedOn(() => typedFolder(input.folder, homedir()));
       const { repository } = await refusable(() => ctx.binding.addRepository(ctx.dataDir, folder));
       return listChanged(ctx, select, repository.name);
@@ -489,7 +496,7 @@ export const mutations = {
   },
   "repositories.remove": {
     type: "Repositories",
-    resolve: async ({ ctx, input, select }: Resolver<{ name: string }>) => {
+    resolve: async ({ ctx, input, select }: ListResolver<{ name: string }>) => {
       const host = ctx.hosts.get(input.name);
       if (host && ctx.sessions.working(host.path).length > 0) {
         throw callSiteError(`refused: An agent is working in ${input.name}: stop it first.`);
@@ -500,9 +507,40 @@ export const mutations = {
   },
   "repositories.open": {
     type: "Repositories",
-    resolve: async ({ ctx, input, select }: Resolver<{ name: string }>) => {
+    resolve: async ({ ctx, input, select }: ListResolver<{ name: string }>) => {
       await refusable(() => ctx.binding.openRepository(ctx.dataDir, input.name));
       return listChanged(ctx, select);
     },
   },
 };
+
+type RepositoryMutations = typeof repositoryMutations;
+
+/**
+ * The repository's mutations, refused on the global endpoint, which has no repository: their
+ * resolvers take the same arguments, with fate's context, whose repository may be null.
+ */
+function repositoryOnly(definitions: RepositoryMutations) {
+  return Object.fromEntries(
+    Object.entries(definitions).map(([name, { type, resolve }]) => [
+      name,
+      {
+        type,
+        resolve: (args: ListResolver<unknown>) =>
+          (resolve as (args: Resolver<unknown>) => unknown)({
+            ...args,
+            ctx: inRepository(args.ctx),
+          }),
+      },
+    ]),
+  ) as {
+    [Name in keyof RepositoryMutations]: {
+      type: RepositoryMutations[Name]["type"];
+      resolve: (
+        args: Omit<Parameters<RepositoryMutations[Name]["resolve"]>[0], "ctx"> & { ctx: Context },
+      ) => ReturnType<RepositoryMutations[Name]["resolve"]>;
+    };
+  };
+}
+
+export const mutations = { ...repositoryOnly(repositoryMutations), ...listMutations };

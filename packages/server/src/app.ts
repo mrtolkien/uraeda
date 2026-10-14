@@ -15,11 +15,12 @@ type Context = HonoContext<{ Variables: FateVariables }>;
 
 /**
  * The server's routes: each listed repository's under `/r/<name>/`, with its host's context and
- * fate server, and the global `/fate`, `/raw/*`, and `/mockups/*`, on the repository the server
- * started in (see the plan's R3).
+ * fate server; the global `/fate`, which serves the list and refuses a repository's records; and
+ * `/raw/*` and `/mockups/*`, links from before repositories had names, sent on to the most recently
+ * opened repository's.
  */
 export function createApp(
-  options: Omit<Options, "given"> & {
+  options: Omit<Options, "given" | "repo"> & {
     binding: Binding;
     sessions: Sessions;
     hosts: Hosts;
@@ -30,7 +31,7 @@ export function createApp(
   const app = new Hono<{ Variables: FateVariables }>();
   app.use(guard(options));
   app.use(async (context, next) => {
-    context.set("fate", { binding, sessions, hosts, dataDir, repo: options.repo });
+    context.set("fate", { binding, sessions, hosts, dataDir, repo: null });
     await next();
   });
   /** A repository's routes take its host's context; an unknown name is a 404. */
@@ -70,11 +71,19 @@ export function createApp(
       server(context).handleLiveRequest(context.req.raw, context),
     );
   };
-  // The starting repository's host serves the global endpoint while it is listed, so its views
-  // receive its live updates.
-  endpoint("", () => hosts.byPath(options.repo)?.fate ?? fateServer);
+  endpoint("", () => fateServer);
   endpoint("/r/:name", (context) => hosts.get(context.req.param("name")!)!.fate);
-  app.route("/", files());
+  /** An old file link: the same file in the most recently opened repository, or 404 with none. */
+  const moved = (context: Context) => {
+    const host = hosts.mostRecent();
+    if (!host) {
+      return context.text("No repository", 404);
+    }
+    const url = new URL(context.req.url);
+    return context.redirect(`/r/${encodeURIComponent(host.name)}${url.pathname}${url.search}`, 307);
+  };
+  app.get("/raw/*", moved);
+  app.get("/mockups/*", moved);
   app.route("/r/:name", files());
   if (options.webRoot) {
     app.use("/*", serveStatic({ root: options.webRoot }));

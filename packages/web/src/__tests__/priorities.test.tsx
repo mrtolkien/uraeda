@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { click, git, read, renderPage, type } from "./helpers.tsx";
+import { atRepo, click, git, read, renderPage, type } from "./helpers.tsx";
 
 const PATH = "specs/PRIORITIES.md";
 
@@ -37,7 +37,9 @@ test("tapping a line opens its task view, with no menu on the list (C3)", async 
   const line = await screen.findByRole("link", { name: /Claude Code runner/ });
   expect(screen.queryByRole("button", { name: /^Actions for/ })).toBeNull();
   await click(line);
-  expect(window.location.pathname).toBe("/priorities/claude-code-runner-triggered-manually");
+  expect(window.location.pathname).toBe(
+    atRepo("/priorities/claude-code-runner-triggered-manually"),
+  );
 });
 
 test("an Add row adds and stays ready (US4 4)", async () => {

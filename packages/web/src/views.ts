@@ -7,6 +7,7 @@ import type {
   Feature,
   Priorities,
   ProposalHints,
+  Repositories,
   Session,
   SessionList,
   SessionSearch,
@@ -195,4 +196,12 @@ export const WorkflowMessageView = view<WorkflowMessage>()({
 export const ProposalHintsView = view<ProposalHints>()({
   id: true,
   hints: true,
+});
+
+/** The list of repositories, which every endpoint serves. */
+export const RepositoriesView = view<Repositories>()({
+  id: true,
+  rows: true,
+  problem: true,
+  added: true,
 });

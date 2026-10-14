@@ -3,13 +3,14 @@ import "@astryxdesign/core/astryx.css";
 import "./theme/built/uraeda.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { createFateClient } from "react-fate/client";
 import { App } from "./App.tsx";
+import { fateClients } from "./clients.ts";
 
-const client = createFateClient({ url: "/fate" });
+/** One fate client per repository, `/r/<name>/fate`, and the global one, `/fate`, made once each. */
+const clientFor = fateClients();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App client={client} />
+    <App clientFor={clientFor} />
   </StrictMode>,
 );
