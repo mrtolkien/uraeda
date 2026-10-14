@@ -1,16 +1,16 @@
 ---
-status: awaiting-human
+status: approved
 revision: 3
 clarifications: 1
 risk-tier: high
-plan-review: true
+plan-review: false
 ---
 
 # Spec: Text inputs and comments
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 5 minutes: every multi-line field has a fixed height, everywhere.
+> Approved on 2026-10-14.
 >
 > - C1: done. No multi-line field grows or shrinks with its text: each has a fixed height, and
 >   scrolls when its text is longer. The lines you commented on are in the oldest record below,
