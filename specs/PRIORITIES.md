@@ -13,10 +13,9 @@
 
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Setup with agent (checks project and creates relevant files)
-- Make sure agents are resumable!
 
-- [Run the web UI with npx](drafts/run-the-web-ui-with-npx.md)
 - [Testing review](/specs/2026-10-14-testing-review/proposal.md)
+- [Run the UI easily](/specs/2026-10-14-run-ui/proposal.md)
 
 ## Next
 
@@ -71,6 +70,8 @@
 
 ## Scratchpad
 
+- Specs are still way too long and hard to read, with tens of bullet points (examples: "run ui")
+- Allow no selection in responses (after a warning)
 - Only true uraeda flows should show up in the UI -> `review-findings` was in the UI despite not
   having used the flow
 - We can likely drop the nvim plugin and LSP... The WebUI is turning out just as good and working
@@ -84,3 +85,5 @@
 - For UI work we need a few mock environments with fixed content. Once the environments exist, they
   can be used for reviews.
 - We'll need a model selector for each step
+- Make sure agents are resumable! -> highlight crashed/stopped sessions
+- In failures the `x` is is not centered in the circle
