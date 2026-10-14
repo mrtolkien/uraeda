@@ -2,16 +2,19 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import {
+  attachImage,
+  encodeImage,
   mainRoot,
   nextStep,
   readFile,
+  readImage,
   readWorkspace,
   saveAnswer,
   watch,
   workDir,
   type Changes,
 } from "./index.js";
-import { fixtureRepo } from "./test-utils.ts";
+import { fixture, fixtureRepo } from "./test-utils.ts";
 
 const ROUND = "specs/2026-10-11-web-ui/clarifications-01.md";
 
@@ -103,4 +106,49 @@ test("mainRoot gives the main checkout from a worktree", async () => {
   const worktree = await workDir(repo, "2026-10-12-cli-tuis");
 
   expect(await mainRoot(worktree)).toBe(repo);
+});
+
+test("attaches an image to a proposal and reads it back", async () => {
+  const repo = fixtureRepo();
+  const bytes = readFileSync(fixture("images/desktop.png"));
+
+  const attached = await attachImage(
+    repo,
+    "specs/2026-10-12-cli-tuis/proposal.md",
+    bytes,
+    "desktop.png",
+  );
+
+  expect(attached.link).toMatch(/^!\[desktop\]\(images\/desktop/);
+  expect(attached.moved ?? null).toBeNull();
+  const image = await readImage(repo, attached.path);
+  expect(image.type).toBe("image/webp");
+  expect(Buffer.isBuffer(image.bytes)).toBe(true);
+  expect(image.bytes.subarray(8, 12).toString("latin1")).toBe("WEBP");
+});
+
+test("encodes a chat image without writing it", async () => {
+  const encoded = await encodeImage(readFileSync(fixture("images/desktop.png")), "desktop.png");
+
+  expect(encoded).toMatchObject({ extension: "webp", width: 1440, height: 900 });
+  expect(encoded.bytes.subarray(8, 12).toString("latin1")).toBe("WEBP");
+});
+
+test("refuses an SVG with the spec's text", async () => {
+  const bytes = readFileSync(fixture("images/drawing.svg"));
+
+  await expect(
+    attachImage(fixtureRepo(), "specs/2026-10-12-cli-tuis/proposal.md", bytes, "drawing.svg"),
+  ).rejects.toThrow(
+    "refused: Only PNG, JPEG, GIF, and WebP images can be added: drawing.svg is not one.",
+  );
+  await expect(encodeImage(bytes, "drawing.svg")).rejects.toThrow(
+    "refused: Only PNG, JPEG, GIF, and WebP images can be added: drawing.svg is not one.",
+  );
+});
+
+test("does not read a markdown file as an image", async () => {
+  await expect(readImage(fixtureRepo(), "specs/README.md")).rejects.toThrow(
+    "refused: specs/README.md: no such file",
+  );
 });

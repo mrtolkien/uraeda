@@ -622,32 +622,32 @@ git commit -m "feat(image-attachments): commit images with the files that link t
 - Produces, in `uraeda-binding`:
   - `attachImage(repo: string, path: string, bytes: Buffer, name?: string): Promise<AttachedView>`
   - `encodeImage(bytes: Buffer, name: string): Promise<EncodedImage>`, with
-    `EncodedImage { bytes: Buffer; extension: string; width: number; height: number }` declared in
-    the binding crate, since `Buffer` is not `Serialize`.
+    `EncodedImage { bytes: Buffer; extension: "webp" | "gif"; width: number; height: number }`
+    declared in the binding crate, since `Buffer` is not `Serialize`.
   - `readImage(repo: string, path: string): Promise<ImageFile>`, with
     `ImageFile { bytes: Buffer; type: string }`.
   - `Span.image?: SpanImage`, `SpanImage { target: string; path?: string }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `attaches an image to a proposal and reads it back`: on `fixtureRepo()`, `attachImage` with
 `fixtures/images/desktop.png` returns a `link` starting `![desktop](images/desktop`, and `readImage`
 of its `path` returns `type: "image/webp"`. `refuses an SVG with the spec's text`: rejects with
 `refused: Only PNG, JPEG, GIF, and WebP images can be added: drawing.svg is not one.`
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp run --filter uraeda-binding build && vp test packages/binding`
 - Expected: FAIL, `binding.attachImage is not a function`.
 
-- [ ] **Step 3: Implement** the three exports as `AsyncTask<Job<T>>`, like the others.
+- [x] **Step 3: Implement** the three exports as `AsyncTask<Job<T>>`, like the others.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/binding packages/binding
