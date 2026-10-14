@@ -114,3 +114,31 @@ fn an_invalid_list_exits_1_and_is_kept() {
     assert_eq!(output.code, 1);
     assert_eq!(fs::read_to_string(&file).unwrap(), "{not json");
 }
+
+#[test]
+fn adds_at_the_same_moment_all_succeed_and_leave_one_whole_file() {
+    let repos: Vec<TestRepo> = (0..8)
+        .map(|index| TestRepo::named(&format!("repo-{index}")))
+        .collect();
+    let data = tempfile::TempDir::new().unwrap();
+
+    for _ in 0..3 {
+        let outputs: Vec<Output> = std::thread::scope(|scope| {
+            let running: Vec<_> = repos
+                .iter()
+                .map(|repo| scope.spawn(|| add(repo.path(), data.path(), &[])))
+                .collect();
+            running.into_iter().map(|run| run.join().unwrap()).collect()
+        });
+
+        for output in &outputs {
+            assert_eq!(output.code, 0, "{}", output.stderr);
+        }
+        assert!(!listed(data.path()).is_empty());
+        let files: Vec<String> = fs::read_dir(data.path())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(files, ["repositories.json"]);
+    }
+}

@@ -18,8 +18,11 @@ export type Host = {
   live: LiveBus;
 };
 
-/** The list's file in the data folder, and the temporary file a write renames over it. */
-const FILES = new Set(["repositories.json", "repositories.json.tmp"]);
+/**
+ * The list's file in the data folder. A write renames its own temporary file over it, which changes
+ * this name: the temporary files are not read.
+ */
+const FILE = "repositories.json";
 /** A change of the list's file is read this long after the last one, so a write is read once. */
 export const LIST_QUIET_MS = 100;
 
@@ -70,7 +73,7 @@ export class Hosts {
     try {
       mkdirSync(dataDir, { recursive: true });
       this.#watch = watch(dataDir, (_, file) => {
-        if (file === null || FILES.has(String(file))) {
+        if (file === null || String(file) === FILE) {
           clearTimeout(this.#timer);
           this.#timer = setTimeout(() => void this.reload(), LIST_QUIET_MS);
         }
