@@ -385,3 +385,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `SessionAnnouncer.tsx`; the effect in `Transcript.tsx`, removed once Astryx passes `aria-live`
   through.
 - **Where**: Task 10.
+
+## R24: Every turn that may change is announced, a taken-back message is not, and nothing is lost
+
+- **Decision**: `SessionAnnouncer` follows each of the session's turns not yet seen ended, and the
+  latest, keyed by its ID with its last state, instead of the latest turn only. A turn going from
+  queued to stopped, a message taken back or dropped before it ran, says nothing. The region keeps
+  its last three announcements, each a paragraph of its own. A new chat's page is opened with
+  `created` in its history entry, read once and cleared, so its first turn's start is announced,
+  while Back and a reload announce nothing. The announcer reads its records with
+  `useFeatureFollowed`, `useSessionFollowed`, and `useTurnFollowed`: from the cache, from the server
+  only when missing, then by their live updates, since the page beside it already reads them again.
+  The feature's announcer is keyed by its folder.
+- **Rationale**: the task's review found that a turn queued behind a running one hid the running
+  turn's failure, and that its stop announced "The agent stopped" while the agent went on. One draw
+  can bring a turn's end and the task's move together, and one text replaced the other. R23 left a
+  new chat's first start unannounced, and the announcer doubled the session's reads.
+- **Alternatives considered**: announcing a taken-back message as "Message taken back", words the
+  spec does not have; following every turn of the session, as many live views as the transcript's
+  turns, kept by the transcript anyway; a flag on `useSession` to skip its reads, which changes a
+  hook every page uses.
+- **If wrong**: `turnNews` and `SessionTurns` in `SessionAnnouncer.tsx`, `KEPT`, `useCreatedHere`,
+  and the three hooks at the end of `data.ts`.
+- **Where**: Task 10, after its review.

@@ -261,3 +261,25 @@ export function useFolderSuggestions(text: string) {
   });
   return useView(FolderSuggestionsView, folderSuggestions)?.rows ?? [];
 }
+
+/**
+ * A feature, a session, or a turn, from the cache, read from the server only when missing, and
+ * kept up to date by its live updates: for what is drawn beside the page that reads the record and
+ * reads it again, like the session's announcer, without reading it a second time.
+ */
+export function useFeatureFollowed(folder: string) {
+  const { feature } = useRequest({ feature: { id: folder, view: FeatureView } });
+  return useLiveView(FeatureView, feature);
+}
+
+/** A session, as `useFeatureFollowed` reads a feature. */
+export function useSessionFollowed(id: string) {
+  const { session } = useRequest({ session: { id, view: SessionView } });
+  return useLiveView(SessionView, session);
+}
+
+/** A turn, without its items, as `useFeatureFollowed` reads a feature. */
+export function useTurnFollowed(id: string) {
+  const { turn } = useRequest({ turn: { id, view: TurnView } });
+  return useLiveView(TurnView, turn);
+}
