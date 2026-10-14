@@ -51,11 +51,16 @@ export function useCommentSaves({
   /** The comment unsaved now, as the store holds it. */
   unsaved: () => string | undefined;
 }) {
-  // The comment last handed to a save: Submit does not save it again while that save runs.
+  // The comment handed to a save still running: Submit does not save it again meanwhile. Once
+  // the save returns, written or refused, Submit saves the comment the store still holds.
   const committed = useRef<string | undefined>(undefined);
   const save = (comment: string) => {
     committed.current = comment;
-    return commit(comment);
+    return commit(comment).finally(() => {
+      if (committed.current === comment) {
+        committed.current = undefined;
+      }
+    });
   };
   // What Submit does once it waited for the images, with the comment as the store holds it then.
   const saveUnsaved = useEffectEvent(() => {
