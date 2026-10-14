@@ -283,7 +283,7 @@ git add crates/core/src crates/cli/tests/structure.rs
 git commit -m "refactor(text-inputs): the round's items and the answer functions in modules of their own"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 One table-driven test of `split_notes` and `join_notes`, rows:
 
@@ -298,7 +298,8 @@ One table-driven test of `split_notes` and `join_notes`, rows:
 Plus: `join_notes` of each row's parts, split again, gives the same parts (SC-006). A round test on
 the fixture: `settled` holds no block at or after the `**Notes:**` line; `settled_points` lists each
 item's bold subject; a comment on a subject used twice points at the first point. A CLI test:
-`ura answer <fixture> notes "New"` keeps the fixture's comment bullet.
+`ura answer <fixture> notes "New"` keeps the fixture's comment bullet. And `set_answer` of blank
+notes over comments writes the marker alone, then the bullets as a list.
 
 The break each test catches:
 
@@ -308,13 +309,14 @@ The break each test catches:
 - No matching subject: every bold bullet taken as a comment.
 - Settled section: `named_section` still running to the end of the file.
 - CLI: `set_answer` writing over the comments.
+- Blank notes: the first bullet written on the `**Notes:**` line, where it is no list.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core notes`
 - Expected: FAIL, `cannot find function split_notes`
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 The split and join in `clarifications.rs`; `round()` computes `settled_points` from the list items
 of the settled section with a leading strong span, trimmed, then splits the notes with their
@@ -322,13 +324,13 @@ subjects; the settled section stops at the block holding the notes line. `set_an
 reads the file's current comments with the file's own subjects, then writes
 `join_notes(answer, comments)`. Regenerate the binding's declarations.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run: `cargo test && vp run --filter uraeda-binding build && vp test --project uraeda-web`
 - Expected: PASS. A web test asserting the notes appear among the settled points, if any, fails and
   is changed with a ruling.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates fixtures packages/binding

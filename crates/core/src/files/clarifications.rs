@@ -200,6 +200,94 @@ pub fn notes(text: &str) -> Option<(usize, String)> {
     found.map(|(line, notes)| (line, notes.trim().to_string()))
 }
 
+/// The bold subject a top-level bullet starts with, `- **<subject>**`, trimmed, and the text after
+/// it, without the `:` that follows the subject.
+fn comment_bullet(line: &str) -> Option<(&str, &str)> {
+    let (subject, rest) = line.strip_prefix("- **")?.split_once("**")?;
+    let rest = rest.strip_prefix(':').unwrap_or(rest);
+    Some((subject.trim(), rest.trim()))
+}
+
+/// Whether a line of the notes continues the bullet above it: indented, and not blank.
+fn continues(line: &str) -> bool {
+    line.starts_with([' ', '\t']) && !line.trim().is_empty()
+}
+
+/// The notes split into the free notes and the comments on settled points: the top-level bullets
+/// whose bold start is one of `subjects`, as `(subject, text)`, in order. A comment's further lines
+/// are its indented lines, and the blank lines between them; every other line is free notes.
+pub fn split_notes(notes: &str, subjects: &[String]) -> (String, Vec<(String, String)>) {
+    let lines: Vec<&str> = notes.lines().collect();
+    let mut free: Vec<&str> = Vec::new();
+    let mut comments = Vec::new();
+    let mut in_code = false;
+    // Whether the free notes' last line came before a comment taken out of them.
+    let mut after_comment = false;
+    let mut index = 0;
+    while index < lines.len() {
+        let line = lines[index];
+        index += 1;
+        if super::is_fence(line) {
+            in_code = !in_code;
+        }
+        let bullet = comment_bullet(line).filter(|(subject, _)| {
+            !in_code && subjects.iter().any(|known| known.trim() == *subject)
+        });
+        let Some((subject, first)) = bullet else {
+            let blank = line.trim().is_empty();
+            // The blank lines around a comment taken out of the free notes are kept once.
+            if !(blank && after_comment && free.last().is_none_or(|last| last.trim().is_empty())) {
+                free.push(line);
+            }
+            after_comment &= blank;
+            continue;
+        };
+        let mut text = vec![first.to_string()];
+        while index < lines.len() {
+            let blanks = lines[index..]
+                .iter()
+                .take_while(|line| line.trim().is_empty())
+                .count();
+            if !lines
+                .get(index + blanks)
+                .is_some_and(|line| continues(line))
+            {
+                break;
+            }
+            text.extend((0..blanks).map(|_| String::new()));
+            let line = lines[index + blanks];
+            let unindented = line
+                .strip_prefix("  ")
+                .or_else(|| line.strip_prefix('\t'))
+                .unwrap_or_else(|| line.trim_start());
+            text.push(unindented.to_string());
+            index += blanks + 1;
+        }
+        comments.push((subject.to_string(), text.join("\n").trim().to_string()));
+        after_comment = true;
+    }
+    (free.join("\n").trim().to_string(), comments)
+}
+
+/// The notes from the free notes and the comments on settled points: the free notes, a blank line,
+/// then one bullet per comment, `- **<subject>**: <text>`, its further lines indented by two
+/// spaces.
+pub fn join_notes(free: &str, comments: &[(String, String)]) -> String {
+    let bullets: Vec<String> = comments
+        .iter()
+        .map(|(subject, text)| {
+            let text = text.trim().replace('\n', "\n  ");
+            format!("- **{subject}**: {text}")
+        })
+        .collect();
+    let free = free.trim();
+    match (free.is_empty(), bullets.is_empty()) {
+        (_, true) => free.to_string(),
+        (true, false) => bullets.join("\n"),
+        (false, false) => format!("{free}\n\n{}", bullets.join("\n")),
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum AnswerError {
     #[error("no question {0}")]
@@ -225,8 +313,24 @@ pub fn set_answer(text: &str, id: &str, answer: &str) -> Result<String, AnswerEr
         return Err(AnswerError::Structure);
     }
     super::with_unix_newlines(text, |text| {
+        let mut answer = answer.trim().to_string();
         let (marker_line, marker) = if id == "notes" {
-            (notes(text).ok_or(AnswerError::NoNotesLine)?.0, NOTES[0])
+            let (line, notes) = notes(text).ok_or(AnswerError::NoNotesLine)?;
+            // The comments on settled points stay after the free notes written.
+            let document = super::document::parse(text, "");
+            let subjects: Vec<String> = super::items::settled_points(&document, line)
+                .into_iter()
+                .map(|point| point.subject)
+                .collect();
+            let (_, comments) = split_notes(&notes, &subjects);
+            let joined = join_notes(&answer, &comments);
+            // Notes starting with a comment start on the line after the marker, as a list.
+            answer = if answer.is_empty() && !comments.is_empty() {
+                format!("\n\n{joined}")
+            } else {
+                joined
+            };
+            (line, NOTES[0])
         } else {
             let question = parse(text)
                 .into_iter()
@@ -251,9 +355,10 @@ pub fn set_answer(text: &str, id: &str, answer: &str) -> Result<String, AnswerEr
             }
             end += 1;
         }
-        let answer = answer.trim();
         let first = if answer.is_empty() {
             marker.to_string()
+        } else if answer.starts_with('\n') {
+            format!("{marker}{answer}")
         } else {
             format!("{marker} {answer}")
         };
@@ -331,4 +436,65 @@ pub fn option_heading(strong: &str) -> Option<(char, bool, &str)> {
     rest.strip_prefix(". ")
         .or_else(|| (rest == ".").then_some(""))
         .map(|text| (letter, false, text))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{join_notes, set_answer, split_notes};
+
+    /// A notes text, its free notes, and its comments as `(subject, text)`.
+    type Row<'a> = (&'a str, &'a str, &'a [(&'a str, &'a str)]);
+
+    #[test]
+    fn notes_split_into_free_notes_and_comments_and_join_back() {
+        let subjects = ["Undoing a completion".to_string()];
+        let rows: [Row; 5] = [
+            ("Overall fine.", "Overall fine.", &[]),
+            (
+                "Overall fine.\n\n- **Undoing a completion**: Keep the undo.",
+                "Overall fine.",
+                &[("Undoing a completion", "Keep the undo.")],
+            ),
+            (
+                "- **Undoing a completion**: Keep the undo.\n  Also for deletes.",
+                "",
+                &[("Undoing a completion", "Keep the undo.\nAlso for deletes.")],
+            ),
+            (
+                "- **Nothing matches**: stays free.",
+                "- **Nothing matches**: stays free.",
+                &[],
+            ),
+            (
+                "Intro\n- **Undoing a completion**: written by hand\nOutro",
+                "Intro\nOutro",
+                &[("Undoing a completion", "written by hand")],
+            ),
+        ];
+        for (notes, free, comments) in rows {
+            let comments: Vec<(String, String)> = comments
+                .iter()
+                .map(|(subject, text)| (subject.to_string(), text.to_string()))
+                .collect();
+            let split = split_notes(notes, &subjects);
+            assert_eq!(split, (free.to_string(), comments.clone()), "{notes:?}");
+            // What is written reads back as the same parts.
+            let joined = join_notes(free, &comments);
+            assert_eq!(
+                split_notes(&joined, &subjects),
+                (free.to_string(), comments),
+                "{joined:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn blank_notes_keep_their_comments_as_a_list() {
+        let text = "## Settled without the human\n\n- **A point** settled.\n\n**Notes:** Old.\n\n- **A point**: Keep it.\n";
+
+        assert_eq!(
+            set_answer(text, "notes", "").unwrap(),
+            "## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n\n- **A point**: Keep it.\n"
+        );
+    }
 }

@@ -13,6 +13,7 @@ use crate::workspace::FileKind;
 mod round;
 
 use round::round;
+pub(crate) use round::settled_points;
 
 /// An option of a question.
 #[cfg_attr(feature = "napi", napi(object))]
@@ -72,10 +73,40 @@ pub struct RoundItems {
     /// The blocks of the round's context section.
     pub context: Vec<u32>,
     pub questions: Vec<QuestionItem>,
-    /// The blocks of the points settled without the human.
+    /// The blocks of the points settled without the human, up to the `**Notes:**` line.
     pub settled: Vec<u32>,
+    /// The settled points that start in bold, which take comments.
+    pub settled_points: Vec<SettledPoint>,
+    /// The free notes, trimmed, without the comments on settled points.
     pub notes: Option<String>,
     pub notes_line: Option<u32>,
+    /// The comments on settled points, written at the end of the notes.
+    pub settled_comments: Vec<SettledComment>,
+}
+
+/// A point settled without the human, by its bold start.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SettledPoint {
+    /// Its list item's block.
+    pub block: u32,
+    /// Its bold start, trimmed.
+    pub subject: String,
+}
+
+/// A comment on a settled point: a bullet of the notes, `- **<subject>**: <text>`.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SettledComment {
+    /// 1-based, in the notes' order.
+    pub number: u32,
+    pub subject: String,
+    /// The block of the first settled point with that subject.
+    pub point: u32,
+    /// Its text, without the bullet, the subject, or the indentation.
+    pub text: String,
 }
 
 #[cfg_attr(feature = "napi", napi(object))]
