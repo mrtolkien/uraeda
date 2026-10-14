@@ -1,8 +1,19 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { atRepo, click, fixtureRepo, git, read, renderPage, today, type } from "./helpers.tsx";
+import {
+  atRepo,
+  click,
+  fixture,
+  fixtureRepo,
+  git,
+  read,
+  renderPage,
+  sent,
+  today,
+  type,
+} from "./helpers.tsx";
 
 today("2026-10-12");
 
@@ -278,4 +289,50 @@ test("Load the new version loads it", async () => {
       "# Changed elsewhere\n\nMore.\n",
     ),
   );
+});
+
+/** Picks files with "Add image", as the system's picker gives them. */
+async function pick(files: File[]) {
+  const input = screen.getByLabelText("Add image", { selector: "input" });
+  await act(async () => {
+    fireEvent.change(input, { target: { files } });
+  });
+}
+
+/** US1.6 */
+test("a draft that gets an image opens at its folder's proposal", async () => {
+  const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
+  const field = (await edit()) as HTMLTextAreaElement;
+  field.setSelectionRange(field.value.length, field.value.length);
+  const bytes = readFileSync(fixture("images/phone.png"));
+
+  await pick([new File([bytes], "login.png", { type: "image/png" })]);
+
+  const moved = "specs/drafts/git-listener/proposal.md";
+  await waitFor(() => expect(window.location.pathname).toBe(`/edit/${moved}`));
+  await waitFor(() =>
+    expect((screen.getByRole("textbox", { name: "Text" }) as HTMLTextAreaElement).value).toBe(
+      "# Git listener process\n\n## What\n\nRun the next step when a branch changes.\n\n## Why\n\nSo agents start without me.\n\n![login](images/login.webp)\n",
+    ),
+  );
+  await waitFor(() => expect(read(repo, moved)).toContain("![login](images/login.webp)"));
+  expect(existsSync(join(repo, "specs/drafts/git-listener/images/login.webp"))).toBe(true);
+  expect(existsSync(join(repo, "specs/drafts/git-listener.md"))).toBe(false);
+  expect(read(repo)).toContain("(drafts/git-listener/proposal.md)");
+});
+
+/** Review focus 12: a slow upload over the limit may fail before the server's refusal arrives. */
+test("a file over 20 MB is refused before it is uploaded", async () => {
+  const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
+  const field = (await edit()) as HTMLTextAreaElement;
+  const before = field.value;
+
+  await pick([new File([new Uint8Array(20 * 1024 * 1024 + 1)], "big.png", { type: "image/png" })]);
+
+  expect(
+    (await screen.findAllByText("This image is over 20 MB: big.png is 20.1 MB.")).length,
+  ).toBeGreaterThan(0);
+  expect(sent.some((request) => request.includes("/attach"))).toBe(false);
+  expect(field.value).toBe(before);
+  expect(existsSync(join(repo, "specs/drafts/git-listener"))).toBe(false);
 });

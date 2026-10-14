@@ -8,14 +8,18 @@ import { TextArea } from "@astryxdesign/core/TextArea";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
+import { AttachButton } from "./attach/AttachButton.tsx";
+import { AttachStatus } from "./attach/AttachStatus.tsx";
+import { DropHint } from "./attach/DropHint.tsx";
+import { type Linked, useImageText } from "./attach/useImageText.ts";
 import { Blocks } from "./Blocks.tsx";
 import { CommitActions } from "./CommitActions.tsx";
 import { useDraft, useProposalHints } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
-import { navigate, useRepoPath, useRestoreScroll } from "./routes.tsx";
+import { navigate, redirect, repoPath, useRepoPath, useRepository, useRestoreScroll } from "./routes.tsx";
 import { handOver } from "./sessions.ts";
 import { useSave } from "./useSave.ts";
 import { DraftView, FeatureView } from "./views.ts";
@@ -34,6 +38,12 @@ function levelLabel(level: string) {
 }
 
 /**
+ * The text of a draft that became a folder as an image was added, with the image's link, for its
+ * editor at the new path: what was typed there is saved at the new path.
+ */
+const movedTexts = new Map<string, Linked>();
+
+/**
  * A draft or a proposal: drawn once written, with Edit, or edited as text, with the template's
  * guidance for each empty section; saved as typed over the version it was read at, committed, and,
  * for a draft, started as a feature.
@@ -42,13 +52,16 @@ function levelLabel(level: string) {
 export function EditorPage({ path }: { path: string }) {
   const fate = useFateClient();
   const here = useRepoPath();
+  const repo = useRepository();
   const draft = useDraft(path);
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
-  const [text, setText] = useState(draft?.text ?? "");
+  // A draft that just became a folder brings its text, with an image's link.
+  const [moved] = useState(() => movedTexts.get(path));
+  const [text, setText] = useState(moved?.text ?? draft?.text ?? "");
   const hints = useProposalHints();
   // A written proposal opens drawn; one that holds only its title and What opens to be written.
-  const [drawn, setDrawn] = useState(() => draft?.written ?? false);
+  const [drawn, setDrawn] = useState(() => !moved && (draft?.written ?? false));
   const [conflict, setConflict] = useState<string>();
   const [message, setMessage] = useState<{ ok: boolean; text: string }>();
   const [slug, setSlug] = useState(draft?.slug ?? "");
@@ -66,16 +79,61 @@ export function EditorPage({ path }: { path: string }) {
     }
     return { ok: true, saved: result.result?.hash ?? previous };
   }, draft?.hash ?? "");
-  const { idle, settle } = save;
+  const { flush, idle, schedule, settle } = save;
   const shown = useRef(text);
   // oxlint-disable-next-line react/refs -- before the code quality decision: the shown text, kept for the effects to read
   shown.current = text;
-  // A text changed elsewhere replaces this one when nothing of it waits to be saved.
+  // While images upload, the text is kept, not saved: a draft may move into a folder meanwhile.
+  const holding = useRef(false);
+  // The text saved as the upload started: a refused image leaves nothing new to save but typing.
+  const started = useRef(text);
+  useEffect(() => {
+    if (moved) {
+      movedTexts.delete(path);
+      schedule(moved.text, true);
+    }
+    // Once, the text the draft brought.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const images = useImageText({
+    path,
+    text,
+    label: path.split("/").at(-1) ?? path,
+    priority: 1,
+    initialSelection: moved?.selection,
+    onStart: useCallback(async () => {
+      holding.current = true;
+      started.current = shown.current;
+      setDrawn(false);
+      if (await flush()) {
+        return true;
+      }
+      holding.current = false;
+      return false;
+    }, [flush]),
+    onText: useCallback(
+      (value: string, added: boolean) => {
+        holding.current = false;
+        setText(value);
+        // What was typed during the upload is saved too.
+        if (added || value !== started.current) {
+          schedule(value, added);
+        }
+      },
+      [schedule],
+    ),
+    onMoved: useCallback((next: string, linked: Linked) => {
+      movedTexts.set(next, linked);
+      redirect(repoPath(repo, `/edit/${next}`));
+    }, [repo]),
+  });
+  // A text changed elsewhere replaces this one when nothing of it waits to be saved, nor is held
+  // during an upload.
   useEffect(() => {
     if (!draft) {
       return;
     }
-    if (idle() && draft.text !== shown.current) {
+    if (idle() && !holding.current && draft.text !== shown.current) {
       setText(draft.text);
     }
     settle(draft.hash);
@@ -199,6 +257,7 @@ export function EditorPage({ path }: { path: string }) {
       (block) => block.parent === undefined && !(block.kind === "heading" && block.level === 1),
     )
     .map((block) => block.id);
+  const attachButton = <AttachButton onFiles={(files) => void images.addFiles(files)} />;
   const shownHints = hints.filter((hint) => draft.emptySections.includes(hint.heading));
 
   return (
@@ -251,19 +310,27 @@ export function EditorPage({ path }: { path: string }) {
           </VStack>
         )}
         {drawn ? (
-          <Blocks document={draft.document} ids={drawnIds} />
+          <DropHint hint={images.hint}>
+            <Blocks document={draft.document} ids={drawnIds} />
+          </DropHint>
         ) : (
           <VStack gap={2}>
-            <TextArea
-              isLabelHidden
-              label="Text"
-              onChange={(value: string) => {
-                setText(value);
-                save.schedule(value);
-              }}
-              rows={Math.max(16, text.split("\n").length + 2)}
-              value={text}
-            />
+            <DropHint hint={images.hint}>
+              <TextArea
+                isLabelHidden
+                label="Text"
+                onChange={(value: string) => {
+                  setText(value);
+                  if (!holding.current) {
+                    save.schedule(value);
+                  }
+                }}
+                rows={Math.max(16, text.split("\n").length + 2)}
+                value={text}
+                {...images.fieldProps}
+              />
+            </DropHint>
+            <AttachStatus status={images.status} />
             {shownHints.length > 0 && (
               <VStack gap={1}>
                 <Text color="secondary" type="supporting">
@@ -291,13 +358,15 @@ export function EditorPage({ path }: { path: string }) {
           </Text>
         )}
         {isDraft ? (
-          <HStack gap={2}>
+          <HStack gap={2} wrap="wrap">
             <Button label={drawn ? "Edit" : "Preview"} onClick={() => setDrawn(!drawn)} />
+            {attachButton}
             <Button clickAction={() => commit(false)} label="Commit" variant="secondary" />
           </HStack>
         ) : (
           <CommitActions label="Commit" onCommit={commit}>
             <Button label={drawn ? "Edit" : "Preview"} onClick={() => setDrawn(!drawn)} />
+            {attachButton}
           </CommitActions>
         )}
         {isDraft && (

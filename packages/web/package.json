@@ -3,6 +3,9 @@
   "private": true,
   "license": "MIT OR Apache-2.0",
   "type": "module",
+  "imports": {
+    "#theme-icons": "./src/theme/icons.ts"
+  },
   "scripts": {
     "dev": "vp dev",
     "build": "vp build",

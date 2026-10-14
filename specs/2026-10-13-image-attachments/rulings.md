@@ -625,3 +625,69 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   in `packages/server/src/runner/sessions.ts`. Task 10's composer keeps images out of the workflow's
   message, or shows this refusal.
 - **Where**: task 7, review.
+
+## R43: Links go in a paragraph of their own
+
+- **Decision**: `insertLinks` puts the links one per line, with a blank line before them unless they
+  start the text, and after them unless they end it, counting the line breaks already there. A
+  dropped screenshot after "covers the login button:" gives
+  `button:\n\n![…](images/….webp)\n\n## Why`.
+- **Rationale**: the mockup shows the link on its own line, under the sentence; an image glued to a
+  sentence draws inside its paragraph, and an image before a heading on the next line breaks it. The
+  spec's "at the cursor" still holds: the cursor picks the place between the paragraphs.
+- **Alternatives considered**: inserting exactly at the cursor (a link inside a word or a heading
+  line); one line break only (an image in the sentence's paragraph).
+- **If wrong**: `insertLinks` in `packages/web/src/attach/insertLink.ts`.
+- **Where**: task 8.
+
+## R44: A drop goes to the cursor, or the end of a field never focused
+
+- **Decision**: the links go where the field's cursor was when the files came, moved by every edit
+  typed before it during the upload, tracked edit by edit (`followEdits`). A field never focused
+  since it was drawn takes them at its end. Text typed at the cursor itself goes after the links.
+- **Rationale**: a field never focused has no cursor the human chose: WebKit reports 0, the top of
+  the file, before its title. Tracking each edit keeps two edits on both sides of the cursor apart,
+  which one diff of the texts before and after the upload cannot.
+- **Alternatives considered**: the browser's selection whatever the focus (links above the title);
+  one diff at the end (typing before and after the cursor reads as one edit around it).
+- **If wrong**: `addFiles` in `packages/web/src/attach/useImageText.ts`.
+- **Where**: task 8, Review focus 8.
+
+## R45: Pasted files are pasted images
+
+- **Decision**: every file of a paste is sent without its name, so the core names it
+  `pasted-YYYYMMDD-HHmmss` with the alt text "pasted image", and the status says "Adding pasted
+  image…".
+- **Rationale**: browsers name a pasted screenshot `image.png` whatever it is; US1.2 names pasted
+  images by the time. A file copied in a file manager and pasted loses its name, which a drop or the
+  button keeps.
+- **Alternatives considered**: keeping names other than `image.png` (a guess at each browser's
+  default name).
+- **If wrong**: `onPaste` in `packages/web/src/attach/useImageText.ts`.
+- **Where**: task 8; tasks 10 and 11 paste the same way.
+
+## R46: A drop on the editor's preview opens its text
+
+- **Decision**: the editor's field is a drop target whether its text or its preview shows. A drop on
+  the preview switches to the text, links the images at its end, and selects the first alt text.
+  "Add image" shows in both.
+- **Rationale**: a written proposal opens on its preview, and US1 drops "anywhere on the page"; a
+  drop that did nothing there would look broken. The end is the only place the human did not have to
+  choose.
+- **Alternatives considered**: no target while the preview shows (the drop is lost); a link at the
+  cursor of the last edit (none, on a freshly opened page).
+- **If wrong**: `onStart` in `packages/web/src/EditorPage.tsx`, and `pick` in
+  `packages/web/src/attach/useImageDrop.ts`, which counts fields not drawn.
+- **Where**: task 8.
+
+## R47: The paperclip is imported as `#theme-icons`
+
+- **Decision**: the paperclip lives in `packages/web/src/theme/icons.ts`, written without JSX, and
+  `theme.ts` imports it through `package.json`'s `imports`, `#theme-icons`, as the theme's `icons`.
+- **Rationale**: R6 registers it in the theme. Astryx's theme build (CLI 0.6.8) copies the icons'
+  import specifier into `built/uraeda.js` as written, where a relative path no longer resolves, and
+  loads `theme.ts` without a JSX runtime. A package import resolves the same from both files.
+- **Alternatives considered**: `registerIcons` at module level (outside the theme, against R6); a
+  hand-edited `built/uraeda.js` (rebuilt and checked by `theme --check`).
+- **If wrong**: the `imports` field of `packages/web/package.json`, and `theme.ts`.
+- **Where**: task 8.
