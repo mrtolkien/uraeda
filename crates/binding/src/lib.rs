@@ -14,8 +14,8 @@ use napi_derive::napi;
 use uraeda_core::api::{self, ApiError};
 use uraeda_core::files::priorities::Priorities;
 use uraeda_core::view::{
-    CommitView, DraftView, FeatureView, FileView, NextView, ProposalHint, StartedView,
-    WorkspaceView,
+    AddedView, CommitView, DraftView, FeatureView, FileView, NextView, ProposalHint,
+    RepositoryView, StartedView, WorkspaceView,
 };
 use uraeda_core::watch::{self, Changes};
 
@@ -356,6 +356,38 @@ pub fn commit_priorities(repo: String) -> AsyncTask<Job<Priorities>> {
 #[napi(ts_return_type = "Promise<Priorities>")]
 pub fn discard_priorities(repo: String) -> AsyncTask<Job<Priorities>> {
     job(move || api::discard_priorities(Path::new(&repo)))
+}
+
+/// Uraeda's data folder: `custom` when set and not empty, else `URAEDA_DATA_DIR` from this
+/// process's environment, else the operating system's default.
+#[napi]
+pub fn data_dir(custom: Option<String>) -> String {
+    api::data_dir(custom.as_deref())
+}
+
+/// The list of repositories in the data folder, the most recently opened first.
+#[napi(ts_return_type = "Promise<Array<Repository>>")]
+pub fn read_repositories(data_dir: String) -> AsyncTask<Job<Vec<RepositoryView>>> {
+    job(move || api::read_repositories(Path::new(&data_dir)))
+}
+
+/// Adds the git repository holding `folder`, an absolute path, to the list; one listed already
+/// is opened, and returned with `existed`.
+#[napi(ts_return_type = "Promise<Added>")]
+pub fn add_repository(data_dir: String, folder: String) -> AsyncTask<Job<AddedView>> {
+    job(move || api::add_repository(Path::new(&data_dir), Path::new(&folder)))
+}
+
+/// Takes a repository off the list, leaving its folder and sessions as they are.
+#[napi(ts_return_type = "Promise<void>")]
+pub fn remove_repository(data_dir: String, name: String) -> AsyncTask<Job<()>> {
+    job(move || api::remove_repository(Path::new(&data_dir), &name))
+}
+
+/// Records that a repository was opened now, and returns it.
+#[napi(ts_return_type = "Promise<Repository>")]
+pub fn open_repository(data_dir: String, name: String) -> AsyncTask<Job<RepositoryView>> {
+    job(move || api::open_repository(Path::new(&data_dir), &name))
 }
 
 /// A running watch of a repository.

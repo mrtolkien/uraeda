@@ -426,3 +426,49 @@ impl WorkspaceView {
         }
     }
 }
+
+/// A repository of the list.
+// `Repository` in JavaScript, where the core's own `Repository` has no type.
+#[cfg_attr(feature = "napi", napi(object, js_name = "Repository"))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RepositoryView {
+    /// Unique in the list, the `<name>` of its `/r/<name>/` URLs.
+    pub name: String,
+    /// The main checkout, absolute.
+    pub path: String,
+    /// When it was added or last opened, in RFC 3339, in UTC.
+    pub opened_at: String,
+    /// The folder no longer holds the main checkout of a git repository.
+    pub missing: bool,
+}
+
+impl From<crate::repositories::Repository> for RepositoryView {
+    fn from(repository: crate::repositories::Repository) -> Self {
+        RepositoryView {
+            name: repository.name,
+            path: repository.path.to_string_lossy().into_owned(),
+            opened_at: repository.opened_at,
+            missing: repository.missing,
+        }
+    }
+}
+
+/// A repository added to the list, or found listed already.
+// `Added` in JavaScript.
+#[cfg_attr(feature = "napi", napi(object, js_name = "Added"))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AddedView {
+    pub repository: RepositoryView,
+    pub existed: bool,
+}
+
+impl From<crate::repositories::Added> for AddedView {
+    fn from(added: crate::repositories::Added) -> Self {
+        AddedView {
+            repository: added.repository.into(),
+            existed: added.existed,
+        }
+    }
+}

@@ -4,7 +4,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
-import { dataDir, migrations, SessionCache } from "../cache.ts";
+import { migrations, SessionCache } from "../cache.ts";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 
 const REPO = "/repo/a";
@@ -32,20 +32,6 @@ const workflowTurn = {
 const DEAD_PID = 2 ** 31 - 1;
 
 const tempPath = () => join(temporaryFolder("uraeda-cache"), "runner.sqlite");
-
-test.each([
-  [{ URAEDA_DATA_DIR: "/data" }, "linux", "/data"],
-  [{ XDG_DATA_HOME: "/xdg" }, "linux", "/xdg/uraeda"],
-  [{}, "linux", "/home/me/.local/share/uraeda"],
-  [{}, "darwin", "/home/me/Library/Application Support/uraeda"],
-  [
-    { APPDATA: "C:\\Users\\me\\AppData\\Roaming" },
-    "win32",
-    "C:\\Users\\me\\AppData\\Roaming\\uraeda",
-  ],
-])("the data folder for %o on %s is %s", (env, platform, expected) => {
-  expect(dataDir(env, platform as NodeJS.Platform, "/home/me")).toBe(expected);
-});
 
 test("a session keeps its fields, and their updates", () => {
   const cache = SessionCache.open(":memory:");
