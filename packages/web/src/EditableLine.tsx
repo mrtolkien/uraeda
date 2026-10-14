@@ -4,9 +4,8 @@ import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useRef, useState } from "react";
-
-const EMPTY = "A priority cannot be empty.";
+import type { ReactNode } from "react";
+import { useLineSave } from "./useLineSave.ts";
 
 const styles = stylex.create({
   text: {
@@ -23,7 +22,6 @@ const styles = stylex.create({
  * shows, the value by default. With `stayOpen`, as an Add row, a saved field empties and stays open
  * for the next line, and leaving it empty closes it.
  */
-// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the save in a hook, and the field in a component
 export function EditableLine({
   display,
   label,
@@ -37,55 +35,16 @@ export function EditableLine({
   stayOpen?: boolean;
   value: string;
 }) {
-  const [text, setText] = useState<string>();
-  const [error, setError] = useState<string>();
-  const [status, setStatus] = useState<"saving" | "saved">();
-  // Escape and Enter end the edit before the field's blur, which then has nothing to do.
-  const done = useRef(false);
-
-  const save = async (blurred = false) => {
-    if (text === undefined || done.current) {
-      return;
-    }
-    if (!text.trim()) {
-      if (stayOpen && blurred) {
-        setError(undefined);
-        setText(undefined);
-      } else {
-        setError(EMPTY);
-      }
-      return;
-    }
-    if (text === value) {
-      setText(undefined);
-      return;
-    }
-    done.current = true;
-    setError(undefined);
-    setStatus("saving");
-    const failed = await onSave(text.trim());
-    done.current = false;
-    if (failed) {
-      setStatus(undefined);
-      setError(failed);
-    } else {
-      setStatus("saved");
-      setText(stayOpen ? "" : undefined);
-    }
-  };
+  const { cancel, change, error, open, save, status, text } = useLineSave({
+    onSave,
+    stayOpen,
+    value,
+  });
 
   if (text === undefined) {
     return (
       <VStack gap={1}>
-        <Link
-          color="primary"
-          onClick={() => {
-            setStatus(undefined);
-            setText(value);
-          }}
-          type="inherit"
-          xstyle={styles.text}
-        >
+        <Link color="primary" onClick={open} type="inherit" xstyle={styles.text}>
           {display ?? value}
         </Link>
         {status === "saved" && (
@@ -104,20 +63,14 @@ export function EditableLine({
         isLoading={status === "saving"}
         label={label}
         onBlur={() => void save(true)}
-        onChange={(next: string) => {
-          setText(next);
-          setError(undefined);
-          setStatus(undefined);
-        }}
+        onChange={change}
         onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
           if (event.key === "Enter") {
             event.preventDefault();
             void save();
           } else if (event.key === "Escape") {
             event.preventDefault();
-            done.current = false;
-            setError(undefined);
-            setText(undefined);
+            cancel();
           }
         }}
         status={error ? { message: error, type: "error" } : undefined}
