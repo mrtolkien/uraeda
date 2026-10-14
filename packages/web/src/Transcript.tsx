@@ -1,4 +1,3 @@
-// oxlint-disable max-lines -- over the limit before the code quality decision: the tool groups in a module of their own
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import {
@@ -6,16 +5,14 @@ import {
   ChatMessageBubble,
   ChatMessageList,
   ChatSystemMessage,
-  ChatToolCalls,
 } from "@astryxdesign/core/Chat";
-import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Markdown } from "@astryxdesign/core/Markdown";
 import { Text } from "@astryxdesign/core/Text";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, type RefObject, useEffect, useLayoutEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { ChatImage, Item } from "uraeda-server/fate";
 import { useAgent, useTurn, useTurnLog } from "./data.ts";
@@ -23,8 +20,8 @@ import { refusal } from "./errors.ts";
 import { stepLabel } from "./labels.ts";
 import { statusStyles } from "./Question.tsx";
 import { MessageBody } from "./MessageBody.tsx";
-import { currentEntry } from "./routes.tsx";
 import { StatusMark } from "./StatusMark.tsx";
+import { ToolGroup, type ToolGroupSlot } from "./ToolGroups.tsx";
 import type { OpenKeys } from "./useOpenKeys.ts";
 import { SessionView } from "./views.ts";
 
@@ -45,128 +42,8 @@ const styles = stylex.create({
 
 /** A line of a turn, as the server keeps it. */
 type TranscriptItem = Item & { seq: number };
-type ToolItem = Extract<TranscriptItem, { kind: "tool" }>;
 type MessageItem = Extract<TranscriptItem, { kind: "message" }>;
 type DenialItem = Extract<TranscriptItem, { kind: "denial" }>;
-
-/** A tool call's duration: `340 ms` below a second, else `2.5 s`. */
-export function duration(ms: number) {
-  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
-}
-
-/** What a tool call left going by a turn that ended shows. */
-const UNFINISHED = "Not finished: the turn ended.";
-
-const STATUS = {
-  cancelled: "error",
-  completed: "complete",
-  failed: "error",
-  in_progress: "running",
-  pending: "pending",
-} as const;
-
-function toolCalls(tools: Array<ToolItem>, ended: boolean) {
-  return tools.map((tool) => {
-    // The turn ended before the call did: it will never end, and must not spin.
-    const unfinished = ended && (tool.status === "pending" || tool.status === "in_progress");
-    const output = unfinished ? UNFINISHED : tool.output;
-    const status = unfinished ? ("error" as const) : STATUS[tool.status];
-    return {
-      duration: tool.durationMs === undefined ? undefined : duration(tool.durationMs),
-      errorMessage:
-        status === "error"
-          ? (output ?? (tool.status === "cancelled" ? "Cancelled" : undefined))
-          : undefined,
-      key: tool.id,
-      name: tool.name,
-      resultDetail: output ? (
-        <CodeBlock code={output} isWrapped size="sm" width="100%" />
-      ) : undefined,
-      status,
-      target: tool.subagent?.description ?? tool.target,
-    };
-  });
-}
-
-/** How close to its end, in pixels, the transcript still counts as read to the end. */
-export const AT_END = 24;
-
-/** The element that scrolls an element: the nearest that scrolls on its own, or the window. */
-function scroller(element: HTMLElement): HTMLElement | undefined {
-  for (let node = element.parentElement; node; node = node.parentElement) {
-    const overflow = getComputedStyle(node).overflowY;
-    if (overflow === "auto" || overflow === "scroll") {
-      return node;
-    }
-  }
-  return undefined;
-}
-
-/**
- * Shows the end of a session's transcript as it opens, unless Back or a reload brings a saved
- * position, or the address names a turn.
- */
-export function useOpenAtEnd(ref: RefObject<HTMLElement | null>) {
-  useLayoutEffect(() => {
-    const element = ref.current;
-    const { scroll } = currentEntry();
-    if (!element || scroll !== undefined) {
-      return;
-    }
-    if (window.location.hash.startsWith("#turn-")) {
-      return;
-    }
-    const box = scroller(element);
-    if (box) {
-      box.scrollTo(0, box.scrollHeight);
-    } else {
-      window.scrollTo(0, document.documentElement.scrollHeight);
-    }
-    // Once, as the view opens.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-}
-
-/**
- * Keeps the end of an element in view as it grows, while `enabled` and while the human is at the
- * end: scrolled up, nothing moves. It scrolls the nearest element that scrolls on its own, or the
- * window.
- */
-export function useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolean) {
-  useEffect(() => {
-    const element = ref.current;
-    if (!enabled || !element || typeof ResizeObserver === "undefined") {
-      return;
-    }
-    const box = scroller(element);
-    const atEnd = () =>
-      box
-        ? box.scrollHeight - box.scrollTop - box.clientHeight <= AT_END
-        : document.documentElement.scrollHeight - window.scrollY - window.innerHeight <= AT_END;
-    // Growing does not scroll: the last position read, at the end or not, holds until the human
-    // scrolls.
-    let following = atEnd();
-    const onScroll = () => {
-      following = atEnd();
-    };
-    const target = box ?? window;
-    target.addEventListener("scroll", onScroll, { passive: true });
-    const observer = new ResizeObserver(() => {
-      if (following) {
-        if (box) {
-          box.scrollTo(0, box.scrollHeight);
-        } else {
-          window.scrollTo(0, document.documentElement.scrollHeight);
-        }
-      }
-    });
-    observer.observe(element);
-    return () => {
-      observer.disconnect();
-      target.removeEventListener("scroll", onScroll);
-    };
-  }, [ref, enabled]);
-}
 
 /** What the transcript does with a message or a blocked action, from the session's view. */
 export type Actions = {
@@ -300,7 +177,6 @@ function Denial({ actions, item, turn }: { actions: Actions; item: DenialItem; t
  * of tool calls in one group, a sub-agent and its tools in a group of their own, and the system
  * lines and blocked actions as notices.
  */
-// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the tool grouping in a function
 function TranscriptItems({
   actions,
   ended,
@@ -319,14 +195,13 @@ function TranscriptItems({
 }) {
   const { groups } = actions;
   // Each slot holds a group of tools, or one of the other lines.
-  type Group = { key: string; label?: string; tools: Array<ToolItem> };
-  const shown: Array<ReactNode | Group> = [];
-  const subagents = new Map<string, Group>();
-  let current: Group | undefined;
+  const shown: Array<ReactNode | ToolGroupSlot> = [];
+  const subagents = new Map<string, ToolGroupSlot>();
+  let current: ToolGroupSlot | undefined;
   for (const item of items) {
     if (item.kind === "tool") {
       if (item.subagent) {
-        const group: Group = {
+        const group: ToolGroupSlot = {
           key: `${turn}:${item.seq}`,
           label: item.subagent.description,
           tools: [item],
@@ -343,7 +218,7 @@ function TranscriptItems({
       }
       if (item.parent !== undefined) {
         // Its sub-agent started on an earlier page: its tools are a group of their own here.
-        const group: Group = { key: `${turn}:${item.seq}`, tools: [item] };
+        const group: ToolGroupSlot = { key: `${turn}:${item.seq}`, tools: [item] };
         subagents.set(item.parent, group);
         shown.push(group);
         current = undefined;
@@ -388,19 +263,7 @@ function TranscriptItems({
         if (!slot || typeof slot !== "object" || !("tools" in slot)) {
           return slot as ReactNode;
         }
-        const { key, label, tools } = slot;
-        return (
-          <ChatMessage key={`tools-${key}`} sender="assistant">
-            <ChatToolCalls
-              calls={toolCalls(tools, ended)}
-              isExpanded={groups ? groups.open.includes(key) : undefined}
-              label={label}
-              onExpandedChange={
-                groups ? (open: boolean) => groups.onOpenChange(key, open) : undefined
-              }
-            />
-          </ChatMessage>
-        );
+        return <ToolGroup ended={ended} group={slot} groups={groups} key={`tools-${slot.key}`} />;
       })}
     </>
   );

@@ -1177,7 +1177,7 @@ git commit -m "feat(session-view): the session's progress line on the phone"
   `following` is false once the reader is more than `AT_END` (24 px) from the end, and true again at
   the end. `jumpToLatest` scrolls to the end and follows again. `useOpenAtEnd(ref)` is unchanged.
 
-- [ ] **Step 1: Restructure `Transcript.tsx`, and commit**
+- [x] **Step 1: Restructure `Transcript.tsx`, and commit**
 
 Move the tool groups into a module of their own, `ToolGroups.tsx`, as the file's `max-lines` marker
 says, and the following hooks, with `AT_END` and `scroller`, into `following.ts`. Remove the file's
