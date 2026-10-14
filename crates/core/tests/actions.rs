@@ -349,6 +349,61 @@ fn settled_comments_stay_when_the_free_notes_are_saved() {
     );
 }
 
+/// The free notes saved over notes changed since they were read are refused, the file kept.
+#[test]
+fn free_notes_saved_over_notes_changed_elsewhere_are_refused() {
+    let repo = repo_with(&settled_round(
+        "Theirs.\n\n- **Undoing a completion**: Keep the undo.",
+    ));
+    let (feature, place) = reach(&repo);
+    let before = read(&place, ROUND);
+
+    let error = answer::save_notes(&place, &feature, "Mine.", "Overall fine.").unwrap_err();
+
+    assert!(matches!(error, ActionError::Changed { .. }), "{error}");
+    assert_eq!(read(&place, ROUND), before);
+}
+
+/// A comment removed over a text changed since it was read is refused, the file kept.
+#[test]
+fn a_settled_comment_changed_elsewhere_is_not_removed() {
+    let notes = "- **Undoing a completion**: Theirs.\n- **Deleting a repeating task**: Ask first.";
+    let repo = repo_with(&settled_round(notes));
+    let (feature, place) = reach(&repo);
+    let before = read(&place, ROUND);
+
+    let error = answer::remove_settled_comment(&place, &feature, 1, "Keep the undo.").unwrap_err();
+
+    assert!(matches!(error, ActionError::Changed { .. }), "{error}");
+    assert_eq!(read(&place, ROUND), before);
+}
+
+/// A submitted round is a record: its notes and settled comments are written no more, as its
+/// answers are not.
+#[test]
+fn a_submitted_rounds_notes_and_settled_comments_are_refused() {
+    let notes = "Overall fine.\n\n- **Undoing a completion**: Keep the undo.";
+    let repo =
+        repo_with(&settled_round(notes).replace("status: awaiting-human", "status: answered"));
+    let (feature, place) = reach(&repo);
+    let before = read(&place, ROUND);
+
+    let refusals = [
+        answer::save_notes(&place, &feature, "Mine.", "Overall fine."),
+        answer::add_settled_comment(&place, &feature, UNDO, "Text."),
+        answer::edit_settled_comment(&place, &feature, 1, "Drop it.", "Keep the undo."),
+        answer::remove_settled_comment(&place, &feature, 1, "Keep the undo."),
+    ];
+
+    for refusal in refusals {
+        assert_eq!(
+            refusal.unwrap_err().to_string(),
+            "clarifications-01.md is not waiting for answers"
+        );
+    }
+    assert_eq!(read(&place, ROUND), before);
+}
+
 const SPEC: &str = "specs/2026-10-11-web-ui/spec.md";
 const REVIEW: &str = "specs/2026-10-11-web-ui/spec-review.md";
 
