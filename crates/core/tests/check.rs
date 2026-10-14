@@ -82,6 +82,37 @@ fn the_example_has_no_problems() {
     assert_eq!(summary(&example.problems()), Vec::<String>::new());
 }
 
+/// US2.2: a spec in the old layout, with Data, Components, Error handling, and Testing under
+/// `## Design`, says which sections to move.
+#[test]
+fn a_spec_in_the_old_layout_reports_its_moved_sections() {
+    let example = Example::new();
+    let spec = format!("{FEATURE}/spec.md");
+    let text = example.read(&spec);
+    let (text, details) = text.split_once("## Details\n\n").unwrap();
+    let old = text
+        .replace("## Architecture", "## Design")
+        .replace("## Assumptions", &format!("{details}\n## Assumptions"));
+    example.write(&spec, &old);
+
+    let problems = summary(&example.problems());
+
+    let line = |needle: &str| old.lines().position(|l| l == needle).unwrap() + 1;
+    for expected in [
+        format!("{spec}: missing section \"## Details\""),
+        format!(
+            "{spec}:{}: unknown section \"## Design\"",
+            line("## Design")
+        ),
+        format!(
+            "{spec}:{}: \"## Assumptions\" must come before \"### Testing\", as in the template",
+            line("## Assumptions")
+        ),
+    ] {
+        assert!(problems.contains(&expected), "{expected}\nin {problems:#?}");
+    }
+}
+
 /// One row per rule: how to break the example, and the problem expected.
 #[test]
 #[expect(

@@ -57,8 +57,8 @@ the plan, the rulings, and the review files.
 - **What and why**: the proposal's or the report's intent, in the human's terms.
 - **Behaviour**: one line per user story, with the rules a later feature must keep, as the code does
   them, not as the spec first said. For a bug, the behaviour fixed.
-- **Design**: the approach, and the main components, each with a link to its code. For a bug, the
-  root cause and the fix.
+- **Design**: the spec's architecture, and the main components, each with a link to its code. For a
+  bug, the root cause and the fix.
 - **Questions**: every round, `### Round 01`, then every question under its exact heading at level
   4, `#### Q2: When does the next occurrence appear?`, so its anchor stays the questions file's. Its
   answer in a sentence: the letters and what they chose, or the human's words, shortened, quoted

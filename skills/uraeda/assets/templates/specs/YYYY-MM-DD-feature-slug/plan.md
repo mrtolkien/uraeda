@@ -15,7 +15,8 @@ spec-revision: [the spec's revision]
 **Goal:** [one sentence on what the feature builds]
 
 **Architecture:** [the approach, ownership of changed rules, state, and resources, and the
-boundaries tasks rely on. Scale the detail to the change. See the [spec's design](spec.md#design).]
+boundaries tasks rely on. Scale the detail to the change. See the
+[spec's architecture](spec.md#architecture).]
 
 **Spec:** [spec.md](spec.md): the plan argues from the spec, so the implementer reads both.
 

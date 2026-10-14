@@ -94,8 +94,8 @@ feature went through the whole workflow:
    ```
 
 4. **It writes the [spec](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/spec.md)**:
-   user stories with acceptance scenarios, the technical design, and two new decisions,
-   [due dates](skills/uraeda/assets/example/specs/decisions/due-dates.md) and
+   user stories with acceptance scenarios, the architecture, the build details last, and two new
+   decisions, [due dates](skills/uraeda/assets/example/specs/decisions/due-dates.md) and
    [repeating tasks](skills/uraeda/assets/example/specs/decisions/repeating-tasks.md). You approve
    it, and the decisions become active.
 5. **It writes the [plan](skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/plan.md)**,
@@ -147,7 +147,7 @@ specs/
     proposal.md                # you: what and why
     discovery-01.md            # agent: findings and options
     clarifications-01.md       # agent: questions; you: answers
-    spec.md                    # agent: behaviour and design; you: approval
+    spec.md                    # agent: behaviour, architecture, details; you: approval
     plan.md                    # agent: implementation tasks and tests
 ```
 

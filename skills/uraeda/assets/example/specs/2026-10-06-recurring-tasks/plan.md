@@ -22,7 +22,7 @@ it moves it to its next due date.
 calendar-day helpers in `src/lib/dates.ts`. The store applies them when a task is completed, moved,
 edited, or renamed. The edit panel, the custom screen, and the title parser all produce the same
 `RepeatPattern`, which the store turns into a `RepeatRule` with its starting date. See the
-[spec's design](spec.md#design).
+[spec's architecture](spec.md#architecture).
 
 The date module owns calendar arithmetic; the repeat module owns recurrence rules; the store owns
 transactions and applies those rules for every entry point. Components keep only the confirmation
