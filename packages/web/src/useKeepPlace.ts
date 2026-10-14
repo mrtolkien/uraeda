@@ -3,17 +3,11 @@
 // moves the scroll position or clamps it at the end. The place is put back once the new layout is
 // drawn.
 import { type RefObject, useEffect, useLayoutEffect, useRef } from "react";
+import { atEnd } from "./following.ts";
 import { useWidthClass, widthClassNow } from "./layout/useWidthClass.ts";
-import { AT_END } from "./Transcript.tsx";
 
 /** How far down the window the place is read: below the top bar, above the sticky composer. */
 const READ_AT = 1 / 3;
-
-/** Whether the window shows the end of the page, by following's measure. */
-function atEnd() {
-  const page = document.documentElement;
-  return page.scrollHeight - window.scrollY - window.innerHeight <= AT_END;
-}
 
 /** Whether an element holds text of its own, besides its children's. */
 function holdsText(element: Element) {
