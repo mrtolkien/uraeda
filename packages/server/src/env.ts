@@ -36,10 +36,11 @@ export function loadEnv(root: string, environment: NodeJS.ProcessEnv = process.e
 /**
  * Uraeda's data folder, where the runner keeps its cache and the list of repositories:
  * `URAEDA_DATA_DIR` from the environment or `<root>/.env`, or else the operating system's
- * default, from the core.
+ * default, from the core. A relative path is resolved from the root: the agent runs in the
+ * repository, where it would point elsewhere (R39).
  */
 export function loadDataDir(root: string, environment: NodeJS.ProcessEnv = process.env): string {
-  return dataDir(settings(root, environment)("URAEDA_DATA_DIR"));
+  return resolve(root, dataDir(settings(root, environment)("URAEDA_DATA_DIR")));
 }
 
 /** A setting by its name: from the environment, else from `<root>/.env`. */
