@@ -21,6 +21,9 @@ export type Context = {
 /** The context of a repository's endpoint, `/r/<name>/fate`. */
 export type RepoContext = Context & { repo: string };
 
+/** A repository's mutation's arguments: see `repositoryOnly` in `mutations.ts`. */
+export type Resolver<Input> = { ctx: RepoContext; input: Input; select: Array<string> };
+
 /**
  * The context of a repository's endpoint, or the refusal of a repository's record or mutation on
  * the global endpoint: a stale client never reads another repository's.
