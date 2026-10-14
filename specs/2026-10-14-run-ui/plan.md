@@ -246,7 +246,7 @@ From [spec-review.md](spec-review.md), approved with comments:
 
 - Produces: `version(): string` from `uraeda-binding`, the Cargo workspace's version, `0.4.0` today.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 test("the binding's version is the Cargo workspace's", () => {
@@ -260,24 +260,25 @@ test("the binding's version is the Cargo workspace's", () => {
 The break it catches: a version hardcoded in the binding, or read from the binding crate's own
 manifest out of step with the workspace.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test packages/binding/index.test.ts`
-- Expected: FAIL, `version` is not exported (`does not provide an export named 'version'`)
+- Expected: FAIL, `version` is not exported (`TypeError: version is not a function`: Vitest's
+  transform leaves a missing named import `undefined`)
 
-- [ ] **Step 3: Add `#[napi] pub fn version() -> String` returning `env!("CARGO_PKG_VERSION")`**
+- [x] **Step 3: Add `#[napi] pub fn version() -> String` returning `env!("CARGO_PKG_VERSION")`**
 
 Synchronous: it reads nothing. The binding crate takes `version.workspace = true` from the
 workspace, so its `CARGO_PKG_VERSION` is the workspace's; check its `Cargo.toml` says so. Rebuild
 with `vp run --filter uraeda-binding build`, which regenerates `index.js` and `index.d.ts`. `lib.rs`
 stays under 500 lines.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run --filter uraeda-binding build && vp test packages/binding && cargo test`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/binding/src/lib.rs packages/binding/index.js packages/binding/index.d.ts packages/binding/index.test.ts
