@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRepositoryPath } from "../routes.tsx";
 import {
   differ,
@@ -41,6 +41,19 @@ export function useTextField(field: string, saved: string, extra?: Unsaved["extr
   const shown = typed && (typed.over === saved || !differ(typed.text, saved)) ? typed.text : saved;
   const text = entry?.text ?? shown;
 
+  // Whether this field dropped its entry itself, by a change back to the saved text or a save, and
+  // whether it held one: an entry dropped elsewhere, like by another field on the same key, or by
+  // Submit, takes the text typed here with it.
+  const droppedHere = useRef(false);
+  const held = useRef(entry !== undefined);
+  useEffect(() => {
+    if (!entry && held.current && !droppedHere.current) {
+      setTyped(undefined);
+    }
+    held.current = entry !== undefined;
+    droppedHere.current = false;
+  }, [entry]);
+
   // While drawn, the field's unsaved text is the page's: leaving it asks first.
   const [self] = useState(() => ({}));
   useEffect(() => drawField(self, key, saved), [self, key, saved]);
@@ -55,6 +68,7 @@ export function useTextField(field: string, saved: string, extra?: Unsaved["extr
   const change = (value: string) => {
     setTyped({ over: saved, text: value });
     if (!differ(value, saved)) {
+      droppedHere.current = true;
       dropUnsaved(key);
       return;
     }
@@ -76,6 +90,7 @@ export function useTextField(field: string, saved: string, extra?: Unsaved["extr
     setTyped({ over: saved, text: value });
     const now = readUnsaved(key);
     if (now?.text === value) {
+      droppedHere.current = true;
       dropUnsaved(key);
     } else if (now) {
       // Typed during the save: still unsaved, over the text just saved.

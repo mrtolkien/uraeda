@@ -762,6 +762,41 @@ test("a verdict after a comment with an image was cancelled deletes the image", 
   expect(git(r, "ls-tree", "-r", "--name-only", FOLDER, `specs/${FOLDER}/images`).trim()).toBe("");
 });
 
+/** Adds a general comment holding an image, and opens a new comment on a block. */
+async function addedWithImage() {
+  await generalWithImage();
+  await waitFor(() => expect(commentText()).toContain("![login]"));
+  await typeComment(`Look: ${commentText()}`);
+  await click(screen.getByRole("button", { name: "Add comment" }));
+  await saved(/^C1/, "Look:");
+  await click(await scenario(FIRST));
+  await waitFor(() => expect(commentText()).toBe(""));
+}
+
+/** Final review: the comment added with its image holds nothing of the next one. */
+test("after a comment with an image is added, a verdict with the next one empty goes through", async () => {
+  const r = repo();
+  await renderPage(PAGE, r);
+  await addedWithImage();
+
+  await click(screen.getByRole("button", { name: "Approve" }));
+
+  await waitFor(() => expect(lastCommit(r)).toBe("spec(recurring-tasks): approve"));
+  expect(shown(UNSENT)).toEqual([]);
+});
+
+/** Final review: an image added to the next comment brings back nothing of the one added. */
+test("after a comment with an image is added, an image on the next one adds its link alone", async () => {
+  const r = repo();
+  await renderPage(PAGE, r);
+  await addedWithImage();
+
+  await pick([png("other.png")]);
+
+  await waitFor(() => expect(commentText()).toContain("![other]"));
+  expect(commentText()).not.toContain("![login]");
+});
+
 /** R64: the refusal is said where the human looks: in the comment's sheet on the phone. */
 test.each([
   [402, true],
