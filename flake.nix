@@ -37,6 +37,9 @@
             # pnpm downloads the exact version pinned in package.json's devEngines.
             pnpm
             (rust-bin.fromRustupToolchainFile ./rust-toolchain.toml)
+            # The Rust tests' runner, and their coverage.
+            cargo-nextest
+            cargo-llvm-cov
             # The Neovim plugin's formatter, and the Neovim its tests run in.
             neovim
             stylua
