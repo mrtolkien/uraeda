@@ -12,10 +12,9 @@ plan-review: false
 >
 > Approved on 2026-10-14.
 >
-> - One changed decision,
->   [toolchain](../decisions/toolchain.md#proposed-change-2026-10-14-testing-review): `ready`
->   becomes cached tasks run in parallel; CI runs them uncached in parallel jobs; cargo-nextest runs
->   the Rust tests; no test is retried; coverage is a report; the Neovim tests run on CI only.
+> - One changed decision, [toolchain](../decisions/toolchain.md): `ready` becomes cached tasks run
+>   in parallel; CI runs them uncached in parallel jobs; cargo-nextest runs the Rust tests; no test
+>   is retried; coverage is a report; the Neovim tests run on CI only.
 > - Your Lua answer, read one way: the Neovim tests leave `ready` but still run on CI, in their own
 >   parallel job, where they cost no waiting. Say so if you meant not running them on CI either.
 > - Your question on the UI tests is answered in [the UI tests](#the-ui-tests): they found 8 real
@@ -312,10 +311,9 @@ Settled while writing this spec:
 
 Changed, applied when this spec is approved:
 
-- [Toolchain](../decisions/toolchain.md#proposed-change-2026-10-14-testing-review): `ready` is a
-  graph of cached tasks with listed inputs; CI runs them uncached in parallel jobs; the Rust tests
-  run with cargo-nextest; no runner retries a test; coverage is reported, never enforced; the Neovim
-  tests run on CI only.
+- [Toolchain](../decisions/toolchain.md): `ready` is a graph of cached tasks with listed inputs; CI
+  runs them uncached in parallel jobs; the Rust tests run with cargo-nextest; no runner retries a
+  test; coverage is reported, never enforced; the Neovim tests run on CI only.
 
 Relied on:
 
