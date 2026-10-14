@@ -1133,6 +1133,83 @@ async function summaryField() {
   return screen.getByLabelText("Summary") as HTMLTextAreaElement;
 }
 
+/** A pending review on the long spec: one comment per line given, each with its text. */
+function pendingComments(r: string, comments: Array<[line: number, text: string]>) {
+  const tip = git(r, "rev-parse", "--short=7", FOLDER).trim();
+  const written = comments.map(
+    ([line, text], index) =>
+      `## C${index + 1}: Line ${line}, under "Somewhere"\n\n> Quoted.\n\n${text}\n`,
+  );
+  writeFileSync(
+    join(r, WORKTREE, REVIEW),
+    `---\nverdict: pending\ncommit: ${tip}\n---\n\n# Review: Spec, Recurring tasks\n\n${written.join("\n")}`,
+  );
+}
+
+/** Second review: an edit kept for C2 follows it to C1 as C1 is removed, and is saved into it. */
+test("an edit of a review comment follows it when a comment before it is removed", async () => {
+  const r = longSpec();
+  pendingComments(r, [
+    [40, "First."],
+    [52, "Second."],
+    [60, "Third."],
+  ]);
+  await renderPage(PAGE, r);
+  await click(
+    within(await screen.findByRole("group", { name: "C2 · line 52" })).getByRole("button", {
+      name: "Edit",
+    }),
+  );
+  await typeComment("Second, edited.");
+
+  await click(
+    within(screen.getByRole("group", { name: "C1 · line 40" })).getByRole("button", {
+      name: "Remove",
+    }),
+  );
+
+  await waitFor(() => expect(screen.queryByRole("group", { name: "C1 · line 40" })).toBeNull());
+  const form = screen.getByRole("form", { name: "Comment" });
+  expect(within(form).getByText("Editing C1")).toBeTruthy();
+  expect(commentText()).toBe("Second, edited.");
+
+  await reload(r);
+
+  const restored = await screen.findByRole("form", { name: "Comment" });
+  expect(within(restored).getByText("Editing C1")).toBeTruthy();
+  expect(commentText()).toBe("Second, edited.");
+  await click(within(restored).getByRole("button", { name: "Save comment" }));
+  await saved("C1 · line 52", "Second, edited.");
+  expect(read(r, REVIEW)).toContain("Third.");
+});
+
+/** Second review: an edit kept for a number another comment took elsewhere does not open on it. */
+test("an edit of a review comment removed elsewhere is not restored onto the next one", async () => {
+  const r = longSpec();
+  pendingComments(r, [
+    [40, "First."],
+    [52, "Second."],
+    [60, "Third."],
+  ]);
+  await renderPage(PAGE, r);
+  await click(
+    within(await screen.findByRole("group", { name: "C2 · line 52" })).getByRole("button", {
+      name: "Edit",
+    }),
+  );
+  await typeComment("Second, edited.");
+
+  pendingComments(r, [
+    [52, "Second."],
+    [60, "Third."],
+  ]);
+  await reload(r);
+
+  await screen.findByRole("group", { name: "C1 · line 52" });
+  expect(screen.queryByRole("form", { name: "Comment" })).toBeNull();
+  expect(screen.getByRole("group", { name: "C2 · line 60" }).textContent).toContain("Third.");
+});
+
 /** SC-004: the review's summary typed comes back after a reload. */
 test("the summary typed is restored after a reload", async () => {
   const r = repo();

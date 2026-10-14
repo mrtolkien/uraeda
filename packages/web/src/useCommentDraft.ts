@@ -125,5 +125,17 @@ export function useCommentDraft(
     lastElement.current = null;
   };
 
-  return { close, draft, last, selection, sheet, start, tap, writing };
+  /** Once comment `number` is removed: its edit closes, and an edit of one after it follows it. */
+  const removed = (number: number) => {
+    if (draft?.kind !== "edit" || draft.number < number) {
+      return;
+    }
+    if (draft.number === number) {
+      close();
+    } else {
+      setDraft({ kind: "edit", number: draft.number - 1 });
+    }
+  };
+
+  return { close, draft, last, removed, selection, sheet, start, tap, writing };
 }
