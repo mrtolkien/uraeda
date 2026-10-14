@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { startFeature } from "uraeda-binding";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
@@ -312,6 +312,12 @@ test("the slug typed is restored after a reload, and on the line's page", async 
   expect(await screen.findByLabelText("Slug")).toHaveProperty("value", "listener");
   expect(screen.getByText(/^Unsaved text restored from \d\d:\d\d\.$/)).toBeTruthy();
   await act(async () => navigate(atRepo("/priorities/git-listener")));
+  // The slug is unsaved: leaving the editor asks first.
+  await click(
+    within(await screen.findByRole("dialog", { name: "Leave page?" })).getByRole("button", {
+      name: "Leave page",
+    }),
+  );
   // The line's page, with its own Delete.
   await screen.findByRole("button", { name: "Delete" });
   expect(screen.getByLabelText("Slug")).toHaveProperty("value", "listener");
