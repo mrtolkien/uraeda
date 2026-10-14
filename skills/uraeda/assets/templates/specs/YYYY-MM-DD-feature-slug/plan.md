@@ -56,9 +56,9 @@ The decisions this plan relies on, and where it follows them:
 ## Complexity tracking
 
 [Every new abstraction: a type, module, layer, wrapper, or helper shared by several parts, tests
-included, even when the spec's design introduced it. Every constitution exception the human
-accepted. Name the callers, shared rule, or approved variation that needs each abstraction, and the
-simpler alternative rejected. "None." otherwise.]
+included, even when the spec's architecture or details introduced it. Every constitution exception
+the human accepted. Name the callers, shared rule, or approved variation that needs each
+abstraction, and the simpler alternative rejected. "None." otherwise.]
 
 | Abstraction or exception | Why it is needed | Simpler alternative rejected because |
 | ------------------------ | ---------------- | ------------------------------------ |
