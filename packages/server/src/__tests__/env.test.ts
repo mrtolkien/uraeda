@@ -23,13 +23,19 @@ test("reads the allowed hosts, the port, and the repository from .env", () => {
     allowedHosts: ["a.ts.net", "b.ts.net"],
     port: 4999,
     repo: join(dir, "../todo"),
+    given: true,
   });
 });
 
 test("defaults to port 4310 and the root itself", () => {
   const dir = root();
 
-  expect(loadEnv(dir, {})).toEqual({ allowedHosts: [], port: 4310, repo: dir });
+  expect(loadEnv(dir, {})).toEqual({
+    allowedHosts: [],
+    port: 4310,
+    repo: dir,
+    given: false,
+  });
 });
 
 test("the environment wins over .env, and the command line over both", () => {
@@ -38,6 +44,15 @@ test("the environment wins over .env, and the command line over both", () => {
   const env = loadEnv(dir, { URAEDA_PORT: "5000" });
   expect(env.port).toBe(5000);
   expect(parseOptions(["--port", "5001"], env).port).toBe(5001);
+});
+
+test("the repository is given by URAEDA_REPO or --repo, not by the folder the server starts in", () => {
+  const dir = root();
+
+  expect(loadEnv(dir, { URAEDA_REPO: "../todo" }).given).toBe(true);
+  expect(loadEnv(dir, { URAEDA_REPO: "" }).given).toBe(false);
+  expect(parseOptions([], loadEnv(dir, {})).given).toBe(false);
+  expect(parseOptions(["--repo", "../todo"], loadEnv(dir, {})).given).toBe(true);
 });
 
 test("the data folder comes from .env, then the environment, then the system's default", () => {

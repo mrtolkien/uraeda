@@ -7,11 +7,9 @@ import { createApp } from "./app.ts";
 import { checkBinding, loadBinding } from "./binding.ts";
 import { type Env, loadDataDir, loadEnv } from "./env.ts";
 import type { Binding } from "./fate/context.ts";
-import { startSessions } from "./live.ts";
-import { Hosts } from "./repositories.ts";
 import type { Adapter } from "./runner/adapter.ts";
 import { ClaudeAdapter, PLUGIN_DIR } from "./runner/claude.ts";
-import type { Sessions } from "./runner/sessions.ts";
+import { type Server, startServer } from "./server.ts";
 
 export { checkBinding, loadEnv };
 
@@ -28,57 +26,41 @@ export function devServer(env: Env) {
 /** The paths the server answers, a repository's and the global ones; Vite serves everything else. */
 const SERVER_PATHS = /^\/(r\/[^/?]+\/)?(fate|raw|mockups)(\/|\?|$)/;
 
-/** The process's session manager and hosts, shared by the dev server's apps. */
-type Shared = {
-  binding: Binding;
-  dataDir: string;
-  sessions: Sessions;
-  hosts: Hosts;
-  stop: () => Promise<void>;
-};
+type Listener = (req: IncomingMessage, res: ServerResponse) => Promise<void>;
+
+/** A started server of the dev server, and its app as a Node listener. */
+type Started = { server: Server; binding: Binding; dataDir: string; listener: Listener };
 
 /**
- * The process's one session manager and its hosts, on the list in the data folder, shared by the
- * dev server's apps, started with the first request.
+ * The dev server's servers, by port: one per Vite server, started with its first request, which
+ * gives the port the guard takes, Vite's own.
  */
-let shared: Promise<Shared> | undefined;
+const servers = new Map<number, Promise<Started>>();
 
-async function start(root: string, adapter: Adapter): Promise<Shared> {
-  const binding = await loadBinding();
-  const dataDir = loadDataDir(root);
-  let hosts: Hosts | undefined;
-  const started = await startSessions({ adapter, binding, dataDir, hosts: () => hosts });
-  const opened = await Hosts.open({ binding, dataDir, sessions: started.sessions });
-  hosts = opened;
-  return {
-    binding,
-    dataDir,
-    sessions: started.sessions,
-    hosts: opened,
-    stop: async () => {
-      opened.close();
-      await started.stop();
-    },
-  };
-}
+/**
+ * TEMPORARY (task 9): the apps of the repositories the browser tests name in `URAEDA_REPO`, by
+ * port and repository, on their port's server. Task 9 opens each test's repository at
+ * `/r/<name>/` instead.
+ */
+const apps = new Map<string, Listener>();
 
 /**
  * Stops the turns of the dev server's sessions and closes their processes and watches, as Vite's
  * server closes. A server Vite starts again starts a new session manager.
  */
 export async function stopDevRuns(): Promise<void> {
-  const stopping = shared;
-  shared = undefined;
+  const stopping = [...servers.values()];
+  servers.clear();
   apps.clear();
-  await (await stopping)?.stop();
+  await Promise.all(
+    stopping.map(async (started) => (await started.catch(() => undefined))?.server.stop()),
+  );
 }
 
-/** The dev server's apps, by port and repository. */
-const apps = new Map<string, (req: IncomingMessage, res: ServerResponse) => Promise<void>>();
-
 /**
- * Forgets a repository the tests are done with: its apps, and its entry in the list, whose host
- * closes the watch of its files, which would otherwise go on for as long as the server runs.
+ * TEMPORARY (task 9): forgets a repository the browser tests are done with: its apps, and its
+ * entry in the list, whose host closes the watch of its files, which would otherwise go on for as
+ * long as the server runs.
  */
 export async function forgetRepo(repo: string): Promise<void> {
   for (const key of apps.keys()) {
@@ -86,38 +68,76 @@ export async function forgetRepo(repo: string): Promise<void> {
       apps.delete(key);
     }
   }
-  const started = await shared;
-  const host = started?.hosts.byPath(repo);
-  if (started && host) {
-    await started.binding.removeRepository(started.dataDir, host.name);
-    await started.hosts.reload();
+  for (const pending of servers.values()) {
+    const started = await pending.catch(() => undefined);
+    const host = started?.server.hosts.byPath(repo);
+    if (started && host) {
+      await started.binding.removeRepository(started.dataDir, host.name);
+      await started.server.hosts.reload();
+    }
   }
 }
 
 /**
- * A Connect middleware serving the server's routes for the repository of the settings, or of
- * `URAEDA_REPO` when it is set in the environment later, as tests do. The guard takes the port the
- * request came in on, Vite's own. The repository is added to the list with the first request to
- * it, which starts its host and its watch, and the session manager with the first request, on
- * Claude Code unless `adapter` says otherwise.
+ * A Connect middleware serving the server's routes, on the server `startServer` starts with the
+ * first request to its port, in the repository of the settings, on Claude Code unless `adapter`
+ * says otherwise. A start that fails answers 500 with its reason, and the next request tries again.
  */
 export function devHandler(root: string, { adapter }: { adapter?: Adapter } = {}) {
   const env = loadEnv(root);
-  const listener = async (repo: string, port: number) => {
+  const start = async (port: number): Promise<Started> => {
+    const binding = await loadBinding();
+    const dataDir = loadDataDir(root);
+    const server = await startServer({
+      ...env,
+      port,
+      allowOrigins: [],
+      binding,
+      dataDir,
+      adapter: adapter ?? new ClaudeAdapter({ pluginDir: PLUGIN_DIR }),
+    });
+    return { server, binding, dataDir, listener: getRequestListener(server.app.fetch) };
+  };
+  const serverOf = (port: number) => {
+    let started = servers.get(port);
+    if (!started) {
+      started = start(port);
+      servers.set(port, started);
+      started.catch((error: Error) => {
+        servers.delete(port);
+        console.error(`uraeda: ${error.message}`);
+      });
+    }
+    return started;
+  };
+  const listener = async (port: number): Promise<Listener> => {
+    const started = await serverOf(port);
+    // TEMPORARY (task 9): the browser tests set `URAEDA_REPO` for each test, read at each request.
+    const repo = process.env.URAEDA_REPO ? resolve(root, process.env.URAEDA_REPO) : env.repo;
+    if (repo === env.repo) {
+      return started.listener;
+    }
     const key = `${port} ${repo}`;
     let app = apps.get(key);
     if (!app) {
-      shared ??= start(root, adapter ?? new ClaudeAdapter({ pluginDir: PLUGIN_DIR }));
-      const { binding, dataDir, sessions, hosts } = await shared;
+      const { server, binding, dataDir } = started;
       try {
         await binding.addRepository(dataDir, repo);
-        await hosts.reload();
+        await server.hosts.reload();
       } catch (error) {
         console.error(`uraeda: ${(error as Error).message.replace(/^refused: /, "")}`);
       }
       app = getRequestListener(
-        createApp({ ...env, port, repo, allowOrigins: [], binding, sessions, hosts, dataDir })
-          .fetch,
+        createApp({
+          ...env,
+          port,
+          repo,
+          allowOrigins: [],
+          binding,
+          sessions: server.sessions,
+          hosts: server.hosts,
+          dataDir,
+        }).fetch,
       );
       apps.set(key, app);
     }
@@ -128,8 +148,13 @@ export function devHandler(root: string, { adapter }: { adapter?: Adapter } = {}
       next();
       return;
     }
-    const repo = process.env.URAEDA_REPO ? resolve(root, process.env.URAEDA_REPO) : env.repo;
     const port = req.socket.localPort ?? env.port;
-    void listener(repo, port).then((app) => app(req, res));
+    void listener(port).then(
+      (app) => app(req, res),
+      (error: Error) => {
+        res.statusCode = 500;
+        res.end(error.message);
+      },
+    );
   };
 }

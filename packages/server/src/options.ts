@@ -2,6 +2,7 @@ import { parseArgs } from "node:util";
 import { resolve } from "node:path";
 import type { Env } from "./env.ts";
 
+/** The server's options; `given` is also true when `--repo` named the repository. */
 export type Options = Env & {
   /** Origins allowed besides the server's own and the allowed hosts', like a dev server's. */
   allowOrigins: Array<string>;
@@ -23,6 +24,7 @@ export function parseOptions(argv: Array<string>, env: Env): Options {
   return {
     ...env,
     repo: values.repo ? resolve(values.repo) : env.repo,
+    given: Boolean(values.repo) || env.given,
     port: values.port ? Number(values.port) : env.port,
     allowOrigins: values["allow-origin"],
     webRoot: values["web-root"],
