@@ -568,3 +568,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `editOf`, `renumberEdits`, and `useSaveSettled` in
   [`SettledPoints.tsx`](/packages/web/src/SettledPoints.tsx).
 - **Where**: the final review.
+
+## R34: A question's answer keeps its code blocks, and a code block starts below its marker
+
+- **Decision**: `clarifications::parse` reads an answer with its code blocks as written, as the
+  notes are read (R32): a fence and its lines are the answer's, and a heading, a marker, or an
+  option line in a code block is code. An answer or notes whose first line is a fence are written on
+  the line below the marker, after a blank line, `**Answer:**` then the code block; a comment
+  starting with a fence, after letters, starts the same way below `A:`. The web UI's `composed`
+  writes it as the core does.
+- **Rationale**: the answers were read without their code, so a save returned a comment cut short
+  and the next option tap wrote it back without its code; R32 had made `check_lines` accept `#` in a
+  closed code block of a question's answer, which made the loss reach headings in code too, and main
+  already lost the code of every answer. A fence counts only at the start of its line: written after
+  the marker, the code block was not one, and its `#` lines ended the answer or the notes.
+- **Alternatives considered**: refusing `#` and `**Answer:**` lines in a question's answer, code
+  included, as main did, which still loses every other line of code an answer holds, and keeps two
+  rules for answers and notes.
+- **If wrong**: `parse`, `replace_after`, and `compose_answer` in
+  [`clarifications.rs`](/crates/core/src/files/clarifications.rs).
+- **Where**: the second review.
