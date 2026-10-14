@@ -1,7 +1,13 @@
 {
   "name": "uraeda-binding",
+  "version": "0.0.0",
   "private": true,
   "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrtolkien/uraeda.git",
+    "directory": "packages/binding"
+  },
   "type": "module",
   "main": "index.js",
   "types": "index.d.ts",
@@ -20,6 +26,12 @@
     "@types/node": "^24.19.1"
   },
   "napi": {
-    "binaryName": "uraeda-binding"
+    "binaryName": "uraeda-binding",
+    "targets": [
+      "x86_64-unknown-linux-gnu",
+      "aarch64-unknown-linux-gnu",
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin"
+    ]
   }
 }

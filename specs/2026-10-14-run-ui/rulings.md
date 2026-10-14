@@ -118,3 +118,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   version, which would not catch a binding of another release.
 - **If wrong**: `expectedVersion` in the smoke test changes alone.
 - **Where**: Task 7.
+
+## R11: The binding package holds version `0.0.0`
+
+- **Decision**: `packages/binding/package.json` gets `"version": "0.0.0"`, so `napi create-npm-dirs`
+  writes `0.0.0` into the four `npm/` folders, as the plan's interface asks.
+- **Rationale**: napi-rs copies each folder's `version` from the binding's `package.json`, which had
+  none, so the folders came out with no `version` field; the generated files must not be edited by
+  hand. The release's `napi version` reads the same field. With a version, napi-rs's loader also
+  compares the platform package's version with `0.0.0`, but only when
+  `NAPI_RS_ENFORCE_VERSION_CHECK` is set, which nothing sets.
+- **Alternatives considered**: editing the generated `package.json` files, which the toolchain
+  decision forbids; leaving them without a version until the release, which `npm publish` refuses
+  and the interface does not describe.
+- **If wrong**: the field leaves `packages/binding/package.json`, and the folders are regenerated.
+- **Where**: Task 8.
