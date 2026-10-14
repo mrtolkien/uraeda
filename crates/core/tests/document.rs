@@ -399,3 +399,29 @@ fn every_example_and_specs_file_parses() {
         }
     }
 }
+
+#[test]
+fn a_query_is_not_part_of_the_path() {
+    let doc = parse(
+        "![s](images/shot.webp?v=2) [n](notes.md?raw#top) [q](?only)\n",
+        "specs/f",
+    );
+
+    let paths: Vec<_> = doc.blocks[0]
+        .spans
+        .iter()
+        .filter_map(|s| match (&s.image, &s.link) {
+            (Some(image), _) => Some(image.path.clone()),
+            (None, Some(link)) => Some(link.path.clone()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        paths,
+        [
+            Some("specs/f/images/shot.webp".to_string()),
+            Some("specs/f/notes.md".to_string()),
+            None
+        ]
+    );
+}

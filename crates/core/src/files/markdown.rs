@@ -43,6 +43,9 @@ pub struct Callout {
 pub struct Document {
     pub headings: Vec<Heading>,
     pub links: Vec<Link>,
+    /// The targets of Obsidian embeds, `![[shot.png]]`, which `links` leaves out: only a commit's
+    /// image pass reads them.
+    pub embeds: Vec<String>,
     pub callout: Option<Callout>,
     pub line_count: usize,
 }
@@ -78,6 +81,7 @@ impl Document {
         let lines = Lines::new(text);
         let mut headings = Vec::new();
         let mut links = Vec::new();
+        let mut embeds = Vec::new();
         let mut callout = None;
         let mut heading: Option<Heading> = None;
         let mut seen_section = false;
@@ -121,7 +125,9 @@ impl Document {
                     ..
                 }) => {
                     image_depth += 1;
-                    if image_depth == 1 && !matches!(link_type, LinkType::WikiLink { .. }) {
+                    if image_depth == 1 && matches!(link_type, LinkType::WikiLink { .. }) {
+                        embeds.push(dest_url.to_string());
+                    } else if image_depth == 1 {
                         links.push(Link {
                             target: dest_url.to_string(),
                             wiki: false,
@@ -158,6 +164,7 @@ impl Document {
         Document {
             headings,
             links,
+            embeds,
             callout,
             line_count: text.lines().count(),
         }

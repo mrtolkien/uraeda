@@ -755,3 +755,248 @@ fn US4_3_submitted_answers_commit_their_images() {
         ]
     );
 }
+
+/// A commit refused by a hook leaves its new image staged; once its link is removed, the next
+/// commit deletes the file and unstages it, instead of refusing it as another staged file.
+#[test]
+fn an_image_staged_by_a_refused_commit_then_unlinked_is_dropped() {
+    let repo = repo_with(&round("", "", ""));
+    let (_, place) = reach(&repo);
+    let before = read(&place, PROPOSAL);
+    append(&place, PROPOSAL, "![login](images/login.webp)");
+    put(&place, &format!("{IMAGES}/login.webp"), b"login");
+    repo.set_hook("exit 1");
+    let error = text::commit(&place, PROPOSAL).unwrap_err();
+    assert!(matches!(error, ActionError::Hook { .. }), "{error}");
+    repo.set_hook("exit 0");
+
+    std::fs::write(place.root.join(PROPOSAL), format!("{before}Without it.\n")).unwrap();
+    text::commit(&place, PROPOSAL).unwrap();
+
+    assert_eq!(repo.changed_in(FOLDER), [PROPOSAL]);
+    assert!(!place.root.join(IMAGES).exists());
+    assert_eq!(
+        common::repo::run_git(&place.root, &["status", "--porcelain"]),
+        ""
+    );
+}
+
+/// Review focus 2: `<slug>/` was taken, so the draft moved to `<slug>-2/proposal.md`.
+#[test]
+fn a_committed_draft_moved_into_a_numbered_folder_commits_the_move() {
+    let repo = draft_repo();
+    std::fs::create_dir_all(repo.path().join(DRAFT_FOLDER)).unwrap();
+    let (main, moved) = draft_with_image(&repo);
+    assert_eq!(moved, "specs/drafts/login-banner-2/proposal.md");
+
+    let committed = text::commit(&main, &moved).unwrap();
+
+    assert_eq!(
+        committed.change.subject,
+        "chore: edit the draft Login banner"
+    );
+    assert_eq!(
+        repo.changed_in("main"),
+        [
+            "specs/PRIORITIES.md".to_string(),
+            "specs/drafts/login-banner-2/images/login.webp".to_string(),
+            moved.clone(),
+            DRAFT.to_string(),
+        ]
+    );
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// A single-file draft deleted on purpose, next to a new, unrelated folder draft of the same name,
+/// is not a move: the new draft's commit leaves the deletion out.
+#[test]
+fn an_unrelated_folder_draft_does_not_take_a_deleted_draft() {
+    let repo = draft_repo();
+    repo.remove(DRAFT);
+    let other = format!("{DRAFT_FOLDER}/proposal.md");
+    repo.write(&other, "# Other idea\n\n## What\n\nSomething else.\n");
+    let git = Git::discover(repo.path()).unwrap();
+    let main = place::reach(&git, "main").unwrap();
+
+    let committed = text::commit(&main, &other).unwrap();
+
+    assert_eq!(committed.change.subject, "chore: draft Other idea");
+    assert_eq!(repo.changed_in("main"), [other]);
+    assert_eq!(repo.porcelain(), format!(" D {DRAFT}\n"));
+}
+
+/// Links a markdown link alone misses: wikilinks and Obsidian embeds, by path or by file name, a
+/// target with a query, and markdown files in subfolders. HTML is not read.
+#[test]
+fn every_kind_of_link_keeps_its_image() {
+    let repo = repo_with(&round("", "", ""));
+    repo.add_on_branch(
+        FOLDER,
+        "specs/2026-10-11-web-ui/contracts/api.md",
+        "# API\n\n![c](../images/c.webp)\n",
+    );
+    let (_, place) = reach(&repo);
+    append(
+        &place,
+        PROPOSAL,
+        "![[images/x.webp]] ![[y.webp|300]] [[images/z.webp]] ![q](images/q.webp?v=2)",
+    );
+    put(
+        &place,
+        "specs/2026-10-11-web-ui/mockups/page.html",
+        b"<img src=\"../images/h.webp\">",
+    );
+    for name in ["x", "y", "z", "q", "c", "h"] {
+        put(&place, &format!("{IMAGES}/{name}.webp"), name.as_bytes());
+    }
+
+    text::commit(&place, PROPOSAL).unwrap();
+
+    let kept: Vec<String> = ["c", "q", "x", "y", "z"]
+        .iter()
+        .map(|name| format!("{IMAGES}/{name}.webp"))
+        .collect();
+    assert_eq!(tracked(&repo, FOLDER, IMAGES), kept);
+    assert!(!place.root.join(IMAGES).join("h.webp").exists());
+}
+
+/// Files in folders under `images/` follow the same rule: kept while linked, deleted otherwise,
+/// and a change to commit on their own.
+#[test]
+fn nested_images_are_kept_while_linked() {
+    let repo = repo_with(&round("", "", ""));
+    let (_, place) = reach(&repo);
+    append(&place, PROPOSAL, "![kept](images/sub/kept.webp)");
+    common::repo::run_git(
+        &place.root,
+        &["commit", "--quiet", "--no-verify", "-am", "link"],
+    );
+    put(&place, &format!("{IMAGES}/sub/kept.webp"), b"kept");
+    put(&place, &format!("{IMAGES}/old/gone.webp"), b"gone");
+
+    let committed = text::commit(&place, PROPOSAL).unwrap();
+
+    assert_eq!(committed.change.subject, "chore(web-ui): edit the proposal");
+    assert_eq!(repo.changed_in(FOLDER), [format!("{IMAGES}/sub/kept.webp")]);
+    assert!(!place.root.join(IMAGES).join("old").exists());
+}
+
+/// A linked file git does not add, ignored or a symbolic link already committed, is no change.
+#[test]
+#[cfg(unix)]
+fn files_git_would_not_add_are_no_change() {
+    let repo = repo_with(&round("", "", ""));
+    let (_, place) = reach(&repo);
+    put(&place, ".gitignore", b"*.png\n");
+    put(&place, "elsewhere.webp", b"x");
+    append(
+        &place,
+        PROPOSAL,
+        "![a](images/link.webp) ![b](images/ignored.png)",
+    );
+    std::fs::create_dir_all(place.root.join(IMAGES)).unwrap();
+    std::os::unix::fs::symlink(
+        "../../../elsewhere.webp",
+        place.root.join(IMAGES).join("link.webp"),
+    )
+    .unwrap();
+    common::repo::run_git(&place.root, &["add", "--all"]);
+    common::repo::run_git(
+        &place.root,
+        &["commit", "--quiet", "--no-verify", "-m", "link"],
+    );
+    put(&place, &format!("{IMAGES}/ignored.png"), b"ignored");
+
+    let error = text::commit(&place, PROPOSAL).unwrap_err();
+
+    assert_eq!(
+        error.to_string(),
+        format!("{PROPOSAL} has no change to commit")
+    );
+}
+
+/// A refusal over other staged files comes before any image is deleted.
+#[test]
+fn a_refusal_over_staged_files_keeps_the_images() {
+    let repo = repo_with(&round("", "", ""));
+    let (feature, place) = reach(&repo);
+    append(&place, PROPOSAL, "More.");
+    put(&place, &format!("{IMAGES}/old.webp"), b"old");
+    put(&place, "specs/README.md", b"# Changed\n");
+    common::repo::run_git(&place.root, &["add", "specs/README.md"]);
+
+    let error = text::commit(&place, PROPOSAL).unwrap_err();
+    assert!(
+        error.to_string().contains("other files are staged"),
+        "{error}"
+    );
+    let error = answer::submit_and_commit(&place, &feature, today()).unwrap_err();
+    assert!(
+        error.to_string().contains("other files are staged"),
+        "{error}"
+    );
+
+    assert!(place.root.join(IMAGES).join("old.webp").exists());
+}
+
+/// A replaced review's image that no other file links goes with the verdict.
+#[test]
+fn a_replaced_review_drops_the_images_only_it_linked() {
+    let repo = spec_repo();
+    let git = Git::discover(repo.path()).unwrap();
+    let (feature, place) = reach(&repo);
+    review::comment(
+        &git,
+        &place,
+        &feature,
+        "spec.md",
+        None,
+        "![shot](images/shot.webp)",
+    )
+    .unwrap();
+    put(&place, &format!("{IMAGES}/shot.webp"), b"shot");
+    append(&place, SPEC, "A new version.");
+    common::repo::run_git(
+        &place.root,
+        &["commit", "--quiet", "--no-verify", "-am", "spec"],
+    );
+    let git = Git::discover(repo.path()).unwrap();
+    let replaced = review::comment(&git, &place, &feature, "spec.md", None, "Fine.").unwrap();
+    assert!(replaced.replaced);
+
+    review::approve_and_commit(&place, &feature, "spec.md", None, &Tier::default(), today())
+        .unwrap();
+
+    assert_eq!(repo.changed_in(FOLDER), [REVIEW, SPEC]);
+    assert!(!place.root.join(IMAGES).exists());
+}
+
+#[test]
+fn a_request_for_changes_commits_the_review_images() {
+    let repo = spec_repo();
+    let git = Git::discover(repo.path()).unwrap();
+    let (feature, place) = reach(&repo);
+    review::comment(
+        &git,
+        &place,
+        &feature,
+        "spec.md",
+        Some((1, 1)),
+        "Like this: ![shot](images/shot.webp)",
+    )
+    .unwrap();
+    put(&place, &format!("{IMAGES}/shot.webp"), b"shot");
+    put(&place, &format!("{IMAGES}/old.webp"), b"old");
+
+    review::request_changes_and_commit(&place, &feature, "spec.md", None, today()).unwrap();
+
+    assert_eq!(
+        repo.changed_in(FOLDER),
+        [
+            format!("{IMAGES}/shot.webp"),
+            REVIEW.to_string(),
+            SPEC.to_string()
+        ]
+    );
+    assert!(!place.root.join(IMAGES).join("old.webp").exists());
+}
