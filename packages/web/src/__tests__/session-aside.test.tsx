@@ -2,10 +2,11 @@
 // wide screen, and its edge cases.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { cleanup, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import { addPlan, commitOnBranch, ELEVEN, temporaryFolder } from "uraeda-binding/test-utils";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import {
+  answered,
   atWidth,
   type Binding,
   click,
@@ -14,6 +15,7 @@ import {
   git,
   refreshUntil,
   renderPage,
+  serverFetch,
   type,
 } from "./helpers.tsx";
 
@@ -172,6 +174,7 @@ test("US1.7: Hide progress folds it, for every session and after a reload", asyn
 
   expect(screen.queryByRole("complementary", { name: "Progress" })).toBeNull();
   expect(screen.getByRole("button", { name: "Show progress" })).toBeTruthy();
+  expect(window.localStorage.getItem("uraeda.sessionAside")).toBe("hidden");
   // Another feature's session, in a new page.
   cleanup();
   await renderPage(`/f/${WEB_UI}/session`, repo, { agent: await fakeAgent() });
@@ -182,6 +185,7 @@ test("US1.7: Hide progress folds it, for every session and after a reload", asyn
   await click(screen.getByRole("button", { name: "Show progress" }));
   expect(await findAside()).toBeTruthy();
   expect(screen.getByRole("button", { name: "Hide progress" })).toBeTruthy();
+  expect(window.localStorage.getItem("uraeda.sessionAside")).toBe("shown");
 });
 
 test("no plan yet: the step, then No plan yet.", async () => {
@@ -200,6 +204,7 @@ test("a plan in review: its tasks, without a current one or a bar", async () => 
   await renderPage(`/f/${CLI}/session`, repo, { agent: await fakeAgent() });
 
   const column = await findAside();
+  expect(column.getByRole("heading", { name: "Review the plan" })).toBeTruthy();
   const tasks = await within(await column.findByRole("list", { name: "Tasks" })).findAllByRole(
     "listitem",
   );
@@ -275,7 +280,8 @@ test("a feature without a branch: no changes section", async () => {
   await renderPage(`/f/${folder}/session`, repo, { agent: await fakeAgent() });
 
   const column = await findAside();
-  await column.findByRole("heading", { name: "Feature" });
+  expect(column.getByRole("heading", { name: "Write the proposal" })).toBeTruthy();
+  await answered("BranchChanges");
   expect(column.queryByRole("heading", { name: "Changed on the branch" })).toBeNull();
 });
 
@@ -301,8 +307,13 @@ test("no session: the column shows, and the transcript is empty", async () => {
   expect(screen.getByRole("log", { name: "Conversation" }).textContent).toBe("");
 });
 
-test("the feature's links: its page, then its workflow files", async () => {
-  await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: await fakeAgent() });
+test("the feature's links: its page, then its workflow files but its reviews", async () => {
+  const repo = fixtureRepo();
+  commitOnBranch(repo, CLI, {
+    [`specs/${CLI}/spec-review.md`]:
+      "---\nverdict: approved\ncommit: 1234567\n---\n\n# Review: Spec, CLI TUIs\n",
+  });
+  await renderPage(`/f/${CLI}/session`, repo, { agent: await fakeAgent() });
 
   const column = await findAside();
   const links = within(column.getByRole("list", { name: "Feature" }))
@@ -310,19 +321,61 @@ test("the feature's links: its page, then its workflow files", async () => {
     .map((link) => link.textContent);
   expect(links[0]).toBe("Feature page");
   expect(links).toContain("spec.md");
+  expect(links).not.toContain("spec-review.md");
 });
 
 test("localStorage refused: the column shows, and Hide progress still folds it", async () => {
-  vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-    throw new Error("QuotaExceededError");
-  });
-  await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: await fakeAgent() });
+  const repo = fixtureRepo();
+  const real = window.localStorage;
+  // A private window's storage: it reads nothing, and refuses every write.
+  const refusing = {
+    clear() {},
+    getItem: () => null,
+    key: () => null,
+    length: 0,
+    removeItem() {},
+    setItem() {
+      throw new Error("QuotaExceededError");
+    },
+  } satisfies Storage;
+  vi.spyOn(window, "localStorage", "get").mockReturnValue(refusing);
+  await renderPage(`/f/${CLI}/session`, repo, { agent: await fakeAgent() });
   await findAside();
 
   await click(screen.getByRole("button", { name: "Hide progress" }));
 
   expect(screen.queryByRole("complementary", { name: "Progress" })).toBeNull();
   expect(screen.getByRole("button", { name: "Show progress" })).toBeTruthy();
+  expect(real.getItem("uraeda.sessionAside")).toBeNull();
+  // Another page of the same document, which draws its page anew: still hidden.
+  cleanup();
+  await renderPage(`/f/${WEB_UI}/session`, repo, { agent: await fakeAgent() });
+  expect(await screen.findByRole("button", { name: "Show progress" })).toBeTruthy();
+  expect(screen.queryByRole("complementary", { name: "Progress" })).toBeNull();
+  // Shown again, which storage takes once more.
+  vi.restoreAllMocks();
+  await click(screen.getByRole("button", { name: "Show progress" }));
+  expect(await findAside()).toBeTruthy();
+});
+
+test("a column's read that fails leaves the session and the rest of the column", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const server = serverFetch(repo, fake.sessions);
+  let refused = false;
+  const fetch: typeof globalThis.fetch = async (input, init) => {
+    if (typeof init?.body === "string" && init.body.includes("plan.md")) {
+      refused = true;
+      throw new Error("The server went away.");
+    }
+    return server(input, init);
+  };
+  await renderPage(`/f/${CLI}/session`, repo, { agent: fake, fetch });
+  await waitFor(() => expect(refused).toBe(true));
+  await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+
+  expect(screen.getByRole("log", { name: "Conversation" })).toBeTruthy();
+  expect(aside().getByRole("link", { name: "Feature page" })).toBeTruthy();
 });
 
 test("US5.1: a chat has no column", async () => {

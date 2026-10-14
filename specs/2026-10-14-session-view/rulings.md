@@ -243,3 +243,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `WithAside` in `SessionAside.tsx`, and the two `Page`s it wraps in
   `SessionPage.tsx`.
 - **Where**: Task 7, after its review.
+
+## R18: The column's step reads as a gate, and its reads fail alone
+
+- **Decision**: the column's first heading is `waiting(feature).title` while the step waits on the
+  human, like "Review the plan" or "Write the proposal", and `stepLabel` otherwise. Each of its
+  reads has its own error boundary, which leaves the section out when the read fails. A choice
+  storage refuses is kept in a module variable for the document's life. The `BranchChanges` source
+  answers a repository without `specs/` as having no changes, without a log, as it answers a folder
+  that is no feature's.
+- **Rationale**: the task's review found the heading showing the core's raw `human-gate` and `none`;
+  Home already names a gate with `waiting`. One failed read took the whole page down to the server's
+  error banner, transcript included. Pages are drawn anew at each address, so a choice kept in a
+  component's state was lost on the next session. A repository whose `specs/` went away under an
+  open page is not a git failure, and was logged as one in a web test.
+- **Alternatives considered**: new labels for `human-gate` and `none` in `labels.ts`, which say less
+  than the gate's own words; one boundary around the whole column, which would hide the feature's
+  links with a failed diff; treating "no specs/ folder" as missing in every source, which changes
+  the other sources' answers.
+- **If wrong**: `stepTitle` and `Section` in `SessionAside.tsx`, and one condition in
+  `branchChanges` of `sources.ts`.
+- **Where**: Task 7, after its review.

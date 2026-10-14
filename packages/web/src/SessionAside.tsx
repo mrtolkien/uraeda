@@ -10,10 +10,10 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, Suspense, useState } from "react";
+import { Component, type ReactNode, Suspense, useState } from "react";
 import type { Feature } from "uraeda-server/fate";
 import { useBranchChanges, useFeature, useFile, useSession } from "./data.ts";
-import { stepLabel } from "./labels.ts";
+import { stepLabel, waiting } from "./labels.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { statusStyles } from "./Question.tsx";
 import { useRepoPath } from "./routes.tsx";
@@ -35,6 +35,12 @@ const styles = stylex.create({
 /** Where the column's folded state is kept, for every session: `"shown"` or `"hidden"`. */
 const KEY = "uraeda.sessionAside";
 
+/**
+ * The choice made in this document when storage refused it: pages are drawn anew at each address,
+ * and keep it until the document goes.
+ */
+let refusedChoice: boolean | undefined;
+
 /** Whether the column shows, and the function that shows or hides it. */
 export type AsideShown = [boolean, (shown: boolean) => void];
 
@@ -44,6 +50,9 @@ export type AsideShown = [boolean, (shown: boolean) => void];
  */
 export function useAsideShown(): AsideShown {
   const [shown, setShown] = useState(() => {
+    if (refusedChoice !== undefined) {
+      return refusedChoice;
+    }
     try {
       return window.localStorage.getItem(KEY) !== "hidden";
     } catch {
@@ -53,8 +62,10 @@ export function useAsideShown(): AsideShown {
   const set = (next: boolean) => {
     try {
       window.localStorage.setItem(KEY, next ? "shown" : "hidden");
+      refusedChoice = undefined;
     } catch {
-      // Private windows may refuse storage: the choice lasts until the page reloads.
+      // Private windows may refuse storage: the choice lasts until the document reloads.
+      refusedChoice = next;
     }
     setShown(next);
   };
@@ -115,6 +126,27 @@ export function WithAside({
   );
 }
 
+/**
+ * A section of the column whose read failed: left out, so the session and the other sections go
+ * on. The read is tried again with the page.
+ */
+class Section extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    return this.state.failed ? null : <Suspense fallback={null}>{this.props.children}</Suspense>;
+  }
+}
+
+/** What the feature's step is, in words: what a gate asks of the human, or the step's name. */
+function stepTitle(feature: Parameters<typeof waiting>[0] & { step: { waitsOn: string } }) {
+  return feature.step.waitsOn === "human" ? waiting(feature).title : stepLabel(feature.step.name);
+}
+
 /** A section's heading: a level-2 heading, sized as a sidebar's. */
 function SectionHeading({ children }: { children: ReactNode }) {
   return (
@@ -136,19 +168,19 @@ export function SessionAside({ folder, session }: { folder: string; session?: st
   return (
     <VStack gap={6}>
       <VStack gap={2}>
-        <SectionHeading>{stepLabel(feature.step.name)}</SectionHeading>
-        <Suspense fallback={null}>
+        <SectionHeading>{stepTitle(feature)}</SectionHeading>
+        <Section>
           <Tasks folder={folder} progress={feature.step.progress ?? null} />
-        </Suspense>
+        </Section>
       </VStack>
       {session !== undefined && (
-        <Suspense fallback={null}>
+        <Section>
           <Subagents session={session} />
-        </Suspense>
+        </Section>
       )}
-      <Suspense fallback={null}>
+      <Section>
         <Changes folder={folder} />
-      </Suspense>
+      </Section>
       <Pages feature={feature} />
     </VStack>
   );
