@@ -134,6 +134,20 @@
         white-space: pre-wrap;
         background: var(--surface);
       }
+      .textarea {
+        height: calc(7 * 1.45em);
+        overflow-y: auto;
+        resize: vertical;
+      }
+      .textarea.notes {
+        height: calc(12 * 1.45em);
+      }
+      .textarea.r3 {
+        height: calc(3 * 1.45em);
+      }
+      .textarea.editor-text {
+        height: calc(20 * 1.45em);
+      }
       .textarea.focus {
         outline: 2px solid var(--accent);
         outline-offset: 1px;
@@ -477,7 +491,7 @@
             </ul>
             <div class="band"></div>
             <div class="field-label">Notes</div>
-            <div class="textarea">Overall fine, but I want the repeat icon bigger.</div>
+            <div class="textarea notes">Overall fine, but I want the repeat icon bigger.</div>
             <div class="actions">
               <button class="btn" disabled>Save notes</button>
               <span class="status saved">saved ✓</span>
@@ -504,7 +518,9 @@
               <button class="btn">Discard</button>
             </div>
             <div class="field-label">Notes</div>
-            <div class="textarea">Overall fine, but I want the repeat icon bigger, and grey.</div>
+            <div class="textarea notes">
+              Overall fine, but I want the repeat icon bigger, and grey.
+            </div>
             <div class="actions">
               <button class="btn">Save notes</button>
               <span class="status unsaved">Unsaved changes</span>
@@ -522,7 +538,9 @@
               <button class="btn">Discard</button>
             </div>
             <div class="field-label">Notes</div>
-            <div class="textarea">Overall fine, but I want the repeat icon bigger, and grey.</div>
+            <div class="textarea notes">
+              Overall fine, but I want the repeat icon bigger, and grey.
+            </div>
             <div class="actions">
               <button class="btn">Save notes</button>
               <span class="status unsaved">Unsaved changes</span>
@@ -614,8 +632,8 @@
       <!-- 6 -->
       <h2>6. The proposal editor</h2>
       <p class="note">
-        Save writes the text; Commit saves it first, then commits. The text area is as tall as the
-        text, the page scrolling past it.
+        Save writes the text; Commit saves it first, then commits. The text area is 20 rows tall,
+        whatever its text.
       </p>
       <div class="widths">
         <div class="phone">
@@ -656,24 +674,38 @@
       </div>
 
       <!-- 7 -->
-      <h2>7. How a text area grows</h2>
+      <h2>7. Text area heights</h2>
       <p class="note">
-        Two rows when empty or short; one more row for each line of text, measured as it wraps at
-        the field's real width; no empty row ahead. Past half the window it scrolls.
+        Each kind of field has one fixed height, wherever it appears, at both widths: it never grows
+        or shrinks with its text, and scrolls past it. The resize handle stays, to give it more room
+        by hand.
       </p>
       <div class="compare">
         <div>
-          <div class="label">Today: rows guessed at 50 characters</div>
-          <div class="textarea bad">
-            One line that fits the desktop field in a single row.
-
-            <span class="empty-row">(empty row, guessed for the second 50 characters)</span>
+          <div class="label">Comment, any page, and the review summary: 7 rows</div>
+          <div class="textarea">Too vague: say which fields.</div>
+        </div>
+        <div>
+          <div class="label">Comment holding 12 lines: still 7 rows, scrolled</div>
+          <div class="textarea">
+            1. First point 2. Second point 3. Third point 4. Fourth point 5. Fifth point 6. Sixth
+            point 7. Seventh point 8. Eighth point 9. Ninth point 10. Tenth point 11. Eleventh point
+            12. Twelfth point
           </div>
         </div>
         <div>
-          <div class="label">With this spec: rows measured</div>
-          <div class="textarea">One line that fits the desktop field in a single row. &nbsp;</div>
-          <div class="hint">The second row is the two-row minimum, not a guess.</div>
+          <div class="label">Quick add: 3 rows</div>
+          <div class="textarea r3">Run the web UI with npx</div>
+        </div>
+      </div>
+      <div class="compare" style="margin-top: 16px">
+        <div>
+          <div class="label">Round notes: 12 rows</div>
+          <div class="textarea notes">Overall fine, but I want the repeat icon bigger.</div>
+        </div>
+        <div>
+          <div class="label">Proposal editor: 20 rows</div>
+          <div class="textarea editor-text"># Text inputs and comments</div>
         </div>
       </div>
     </main>
