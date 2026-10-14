@@ -120,3 +120,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   status in each field, which would copy its four states into nine places.
 - **If wrong**: additions to the `fields/` modules, which tasks 5 to 10 use.
 - **Where**: task 4.
+
+## R9: The confirmation is the app's overlay, not Astryx's alert dialog
+
+- **Decision**: `ConfirmHost` draws its question in
+  [`Overlay`](/packages/web/src/layout/Overlay.tsx), a dialog on wide screens and a bottom sheet on
+  the phone, with Close, and Back closing it, the body above its two buttons. Close, Back, Escape,
+  and the cancel button answer `false`. Every answer comes once the browser went back over the
+  overlay's history entry, so a page a caller opens on "Leave page" or "Discard" is not undone by
+  that Back. `useConfirm` is unchanged.
+- **Rationale**: Astryx's `AlertDialog`, which task 4 used, has no close button, Back does not close
+  it, and it is a centred dialog on the phone: the [UI behaviour](../decisions/ui-behaviour.md)
+  decision requires a visible close button and Back on every sheet and dialog, the
+  [UI layout](../decisions/ui-layout.md) decision a bottom sheet for a short form on the phone, and
+  the spec's confirmation dialog both.
+- **Alternatives considered**: `AlertDialog` with a close button and `useBackCloses` added around
+  it, which still draws a dialog on the phone.
+- **If wrong**: one component, `fields/Confirm.tsx`, behind an unchanged hook.
+- **Where**: task 5, before its first step; the plan's task 4 interface says so.

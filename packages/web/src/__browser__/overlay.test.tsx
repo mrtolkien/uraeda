@@ -6,6 +6,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { flushSync } from "react-dom";
 import { expect, test } from "vite-plus/test";
+import { ConfirmHost, useConfirm } from "../fields/Confirm.tsx";
 import { Overlay } from "../layout/Overlay.tsx";
 import { uraedaTheme } from "../theme/built/uraeda.js";
 
@@ -113,4 +114,37 @@ test("an overlay opened while another's closing goes back stays open, and Back c
   window.history.back();
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(overlayEntry()).toBeUndefined();
+});
+
+/** A button that asks to discard, and the overlay entry current when each answer came. */
+function Asker({ entries }: { entries: Array<string | undefined> }) {
+  const confirm = useConfirm();
+  const question = {
+    body: "The text you typed is deleted.",
+    cancel: "Keep editing",
+    confirm: "Discard",
+    title: "Discard your comment?",
+  };
+  return (
+    <Button
+      label="Cancel"
+      onClick={() => confirm(question).then(() => entries.push(overlayEntry()))}
+    />
+  );
+}
+
+test("a confirmation answers once the browser went back over its entry", async () => {
+  const entries: Array<string | undefined> = [];
+  render(
+    <Theme mode="light" theme={uraedaTheme}>
+      <ConfirmHost>
+        <Asker entries={entries} />
+      </ConfirmHost>
+    </Theme>,
+  );
+  screen.getByRole("button", { name: "Cancel" }).click();
+  await waitFor(() => expect(overlayEntry()).toBe("Discard your comment?"));
+  screen.getByRole("button", { name: "Discard" }).click();
+  // A page the answer opens is not undone by the Back that closes the confirmation.
+  await waitFor(() => expect(entries).toEqual([undefined]));
 });
