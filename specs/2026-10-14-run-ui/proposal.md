@@ -6,11 +6,11 @@ discovery: medium # low, medium, or high: how far the agent researches before as
 
 ## What
 
-Uraeda's web UI runs from any folder with one command, `npx uraeda`, without cloning Uraeda or
-installing Rust: the server starts in the current folder, which the multi-repo server opens first.
+We need to find the best and simplest way to package uraeda _today_.
 
-Split from the multi-repo server, on the `2026-10-13-multi-repo-server` branch, whose round 01
-researched it: see its discovery's "Shipping the UI" and "Publishing a napi-rs addon to npm".
+Test out solutions that would let it compile to a single binary (best case scenario, test all
+promising solutions), or package it as a desktop application (Tauri? Electron?), or otherwise set up
+everything so it can be as simple as `npx uraeda` or similar.
 
 ## Why
 
