@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Run the UI easily
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 7 questions, about 25 minutes.
+> Answered on 2026-10-14.
 >
 > - How Uraeda ships lasts beyond this feature, and comes with measured numbers: an `npx` package
 >   built and run here is 3.5 MB but needs Node 24; single executables built with Node and with Bun
@@ -76,7 +76,7 @@ server is tested on, for every later feature.
   - [con] 80 to 150 MB, signing and an updater to maintain, and the phone, through
     `tailscale serve`, needs the server reachable anyway.
 
-**Answer:**
+**Answer:** A
 
 ### Q1.B: Does the repository move to Node 26?
 
@@ -131,7 +131,7 @@ decision changes.
   - [pro] one install for npm users.
   - [con] a third way to install `ura`, which `ura upgrade` must recognize.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Which names does Uraeda take on npm?
 
@@ -160,7 +160,7 @@ release.
   - [pro] one name, one setup.
   - [con] unusual versions in `npm view uraeda`, and a loader written by hand.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: What happens when the port is already taken?
 
@@ -186,7 +186,7 @@ server runs, the most common case once several repositories are listed.
   - [pro] always starts.
   - [con] two servers on one data folder by default, breaking the one-session-per-feature rule.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: Does the command open the browser?
 
@@ -205,7 +205,7 @@ Why it matters: it is the first thing a new user sees, and the phone or SSH case
   - [pro] nothing can fail, nothing opens unasked.
   - [con] one more step for every user.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: How are releases published to npm?
 
@@ -227,7 +227,7 @@ manual.
   - [pro] no CI work.
   - [con] four platforms to build locally, and no provenance.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: Which channels does this feature cover?
 
@@ -250,7 +250,7 @@ These options combine: B and C can come on top of A.
   - [pro] `nix run` for Nix users, as for `ura`.
   - [con] a flake output building the UI and the binding.
 
-**Answer:**
+**Answer:** A: We might do homebrew and nix later, but it's not crucial
 
 ## Settled without the human
 
@@ -283,3 +283,5 @@ These options combine: B and C can come on top of A.
   command, the Node requirement, and `claude` as before.
 
 **Notes:**
+
+- Also deliver a _clear guide_ on what I need to do, in the PR body.
