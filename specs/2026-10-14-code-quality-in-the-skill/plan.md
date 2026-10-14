@@ -964,13 +964,15 @@ git commit -m "feat(code-quality-in-the-skill): a spec's mockups open from the t
   - the folder map;
   - finding the next step, its table included;
   - "Going back to the human with new questions" and "Coming back to the human", whose anchors stay;
+  - the rule that an active decision is never edited before approval
+    ([R20](rulings.md#r20-the-skills-entry-point-keeps-the-rule-on-active-decisions));
   - one line per reference, saying when to read it.
 - **`conventions.md`**: markdown, the status table, review files, branches and worktrees, and
   commits, with the anchor `#commits`.
 - **`projects.md`**: setting up a project; starting, postponing, and dropping a feature; finishing.
 - **`cli.md`**: the `ura` commands and what they refuse.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```rust
 // crates/cli/tests/skill.rs: US7.1, SC-004.
@@ -986,23 +988,23 @@ fn the_skill_entry_point_stays_lean() {
 }
 ```
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `cargo test -p uraeda-cli --test skill`
-- Expected: FAIL, `SKILL.md has 34339 characters, over 20,000`.
+- Expected: FAIL, `SKILL.md has 34325 characters, over 20,000`.
 
-- [ ] **Step 3: Move the content, then update the links**
+- [x] **Step 3: Move the content, then update the links**
 
 - Text moves without rewording, except the sentences that join what is left.
 - Every link to a moved section points to its new file. Find them with
-  `grep -rn "SKILL.md#" skills specs AGENTS.md README.md crates packages`.
+  `grep -rn "SKILL.md#" skills specs AGENTS.md README.md crates packages editors`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo test -p uraeda-cli --test skill && cargo run -q -p uraeda-cli -- check specs`
 - Expected: PASS. The command test still finds every command, now in `cli.md`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add skills AGENTS.md README.md crates/cli/tests/skill.rs

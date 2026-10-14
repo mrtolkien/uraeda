@@ -163,7 +163,7 @@ folder, and the agent drafts the constitution with you. `ura init` also offers t
 for your user, when your agents have none.
 
 The workflow itself is in the [Uraeda skill](skills/uraeda/SKILL.md), with one
-[reference](skills/uraeda/references/) per step and
+[reference](skills/uraeda/references/) per step, one for its conventions, and
 [templates](skills/uraeda/assets/templates/specs/) for every file.
 
 ## Install

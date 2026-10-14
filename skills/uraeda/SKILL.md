@@ -20,13 +20,14 @@ design to approve, then the plan, the code, and a pull request. The human never 
 they answer when they have time, in files built so their time goes into thinking, not searching.
 Assume a technical user, who reads code and designs.
 
-This file holds the conventions shared by all steps, and tells you which step to run. Each step has
-its own instructions in `references/`.
+This file tells you which step to run, and how to come back to the human. Each step has its own
+instructions in `references/`, and the conventions shared by all steps are in
+[Conventions](references/conventions.md): read the [references](#references) each step names.
 
 The `ura` command-line tool performs the mechanical parts of the steps: finding the next step,
 checking files, recording answers and reviews, starting features. It is optional: every step below
 says what to do by hand, and names the command that does it, to use when `ura` is installed. See
-[The `ura` CLI](#the-ura-cli).
+[The `ura` CLI](references/cli.md).
 
 ## Rules for agents
 
@@ -89,119 +90,13 @@ apply to your work: their **Applies to** section says where. The constitution wi
 and decisions win over specs and plans. Decisions are high-impact choices made by the human, and
 they change over time: see [what is a decision](references/spec.md#what-is-a-decision).
 
+An active decision is never edited before approval: changes are proposed in a `## Proposed change`
+section at the end of the file, and applied when the spec that links to them is approved.
+
 Templates for every file are in `assets/templates/specs/`, at the same paths. A filled-in example,
 for a todo app, is in `assets/example/specs/`: `2026-10-06-recurring-tasks/` is the model of every
 file, from the proposal to a fully checked plan, with the blocks that waited for the human kept as
 records. Other files show work still waiting for the human.
-
-### Markdown
-
-Workflow files must read well as plain text, on GitHub, and in Obsidian, the reference renderer. Use
-GitHub Flavored Markdown, plus these extensions, which stay readable where they do not render:
-
-- **Callouts**: `> [!IMPORTANT]`, `> [!NOTE]`, `> [!TIP]`, `> [!WARNING]`, `> [!QUESTION]`.
-- **Typed bullets**, with a word or sign that reads on its own: `- [pro]`, `- [con]`, `- [?]`
-  question, `- [!]` important.
-- **List callouts**, a marker after the dash, to highlight one bullet: `- ! warning`,
-  `- ? question`, `- & note`.
-- **Links**: markdown links, with a relative path (`[spec](spec.md)`) or a path from the repository
-  root (`[auth](/src/auth.ts)`). Humans may write wikilinks (`[[due-dates]]`): read them, but do not
-  write them. Link to what a file relies on: decisions, discovery, code.
-
-Templates are strict where tools and agents need to find things, and free elsewhere:
-
-- **Frontmatter**: exactly the fields this skill defines.
-- **Headings**: the template's text, level, and order. Leave out an optional section entirely, never
-  rename it.
-- **Optional sections**: in the templates, their placeholder starts with `[Optional`.
-- **Structured items**: fixed patterns, so they can be found and rendered: questions `## Q1: ...`,
-  numbered from Q1, each with its `**Answer:**` line, and follow-ups `### Q1.B: ...`, on an option
-  of their parent; options `- **A (recommended). ...**` with `[pro]` and `[con]` bullets; user
-  stories `### US1: Title (P1)`; acceptance scenarios with **Given**, **When**, **Then**; success
-  criteria `SC-001`; plan tasks `## Task 1: ...`; rulings `## R1: ...`; review comments
-  `## C1: ...`.
-- **Everything else**, inside sections, is free text.
-
-With `ura`, run `ura check` before every commit of workflow files: it verifies the rules of this
-file, and reports each problem with its file and line. In short: folder names `YYYY-MM-DD-<slug>`
-with a real date, and rounds with two digits; the frontmatter fields of each file, with the values
-of the [status table](#workflow-status), `plan-review` `true` or `false`, a spec's `clarifications`
-at most its last round, and a plan's `spec-revision` at most the spec's `revision`; the template's
-title, sections, and order, and no level-2 section the template does not have; the structured items
-above; an answer for every question that applies once a round is `answered`; the `> [!IMPORTANT]`
-block of a file waiting for the human; a record's name, `YYYY-MM-DD-<slug>.md`, its `finished` date,
-its numbered rounds and questions, and its opening `> [!NOTE]` block; links to markdown files and
-into `specs/` that resolve, anchors included; and the [review files](#review-files) rules.
-
-### Branches
-
-Each feature lives on its own branch, named after its folder (`2026-10-06-recurring-tasks`), from
-the proposal to the code: discovery, questions, spec, decisions, plan, and implementation, until its
-folder is [finished](#finishing-a-feature) into a record. Its pull request merges all of it at once.
-Decisions become active on the branch when its spec is approved, and bind the rest of the project
-once the branch is merged. A bug lives on `fix/YYYY-MM-DD-<slug>`, named after its folder. Run every
-step on the target's branch: the human answers and approves on it too.
-
-Never switch the human's checkout to reach a branch. Write where the branch is checked out, the
-checkout itself or a worktree, or else in a worktree at `.worktrees/<branch>/`, at the root of the
-main checkout, created with `git worktree add`. Keep `.worktrees/` out of `git status` through the
-repository's `.git/info/exclude`, never a tracked file. When `core.hooksPath` is a relative path,
-commit in a worktree with it made absolute from the main checkout, so the same hooks run. Worktrees
-stay until removed with `git worktree remove`. `ura` does all of this.
-
-### Workflow status
-
-Workflow files track their state in frontmatter fields.
-
-| File                   | Field            | Set by the agent                      | Set by the human                  |
-| ---------------------- | ---------------- | ------------------------------------- | --------------------------------- |
-| `proposal.md`          | `discovery`      |                                       | `low`, `medium`, or `high`        |
-| `clarifications-NN.md` | `status`         | `awaiting-human`                      | `answered`                        |
-| `spec.md`              | `status`         | `awaiting-human`                      | `approved` or `changes-requested` |
-| `spec.md`              | `revision`       | `1`, then `+1` at every change        | `+1` when editing it              |
-| `spec.md`              | `clarifications` | the last round it includes: `2`       |                                   |
-| `spec.md`              | `risk-tier`      | `low`, `medium`, or `high`            | may change it on approval         |
-| `spec.md`              | `plan-review`    | `false`                               | may change it on approval         |
-| `plan.md`              | `status`         | `awaiting-human` or `auto-approved`   | `approved` or `changes-requested` |
-| `plan.md`              | `spec-revision`  | the spec `revision` it implements     |                                   |
-| `decisions/*.md`       | `status`         | `proposed`, then `active` on approval | `active`                          |
-| `decisions/*.md`       | `approved-by`    | the approver, on approval, if known   | the approver                      |
-| `bugs/*/assessment.md` | `status`         | `awaiting-human`                      | `approved` or `changes-requested` |
-
-The bug flow is an agent-authored draft that needs human review: see [Bug](references/bug.md).
-
-Only set a human status when the human expressly asks you to in the session, for example "the spec
-is approved". Commit with the message `ura` would write, `spec(recurring-tasks): approve`, and say
-so in its body: "Approved by the human in chat." When the human changes a spec's `risk-tier` on
-approval without naming `plan-review`, set `plan-review` to `false`. With `ura`, pass `--no-commit`
-to `ura answer` or `ura review`, and commit with that message and body. With `changes-requested`,
-the human's feedback is in the file's [review file](#review-files).
-
-### Review files
-
-A review of `spec.md`, `plan.md`, or `assessment.md` writes its comments in `spec-review.md`,
-`plan-review.md`, or `assessment-review.md`, next to it, from
-[the template](assets/templates/specs/YYYY-MM-DD-feature-slug/spec-review.md). The file exists only
-when the latest review has comments: the next review replaces it, and a review without comments
-deletes it. Git keeps the earlier ones. The reviewed file keeps its `status`, the source of truth.
-
-- **Frontmatter**: `verdict`, `pending` while the human writes it, then `approved` or
-  `changes-requested`; and `commit`, the short hash of the commit holding the version reviewed.
-- **Comments**: `## C1: ...`, numbered from C1. A comment points to
-  `Lines 50–52, under "<heading>"`, `Line 50, under "<heading>"`, or `General`: the line numbers are
-  those of the version at `commit`, and the heading is the nearest one above them. A line comment
-  quotes its lines, as a quote block, then says what it has to say.
-- **Changes requested** need at least one comment.
-- **Approved with comments**: the comments do not change the approved file. The next step carries
-  them out, and says how: the plan, in its `## Review comments` section, for a spec; the
-  implementation, in the pull request's description, for a plan or an assessment.
-
-With `ura`, `ura review` writes the comments, `--comment 50-52 "<text>"` or
-`--comment general "<text>"`, then records the verdict, `--approve` or `--request-changes`, with the
-status, the block's record, and the commit.
-
-An active decision is never edited before approval: changes are proposed in a `## Proposed change`
-section at the end of the file, and applied when the spec that links to them is approved.
 
 ## Finding the next step
 
@@ -213,10 +108,10 @@ step. By hand:
    `specs/PRIORITIES.md` on the default branch, list the feature and bug branches (`git branch -a`),
    and take the first branch with work for an agent, in the order of the **Now** section. An entry
    matches the branch whose slug matches its file's name. Starting a feature is a human action: see
-   [below](#starting-postponing-and-dropping-a-feature).
+   [Projects](references/projects.md#starting-postponing-and-dropping-a-feature).
 2. **Find the step.** Read the target's branch where it is checked out, or in its worktree (see
-   [Branches](#branches)). In its spec folder, `NN` is the highest clarifications round. Go down
-   this table and run the first row that matches.
+   [Branches](references/conventions.md#branches)). In its spec folder, `NN` is the highest
+   clarifications round. Go down this table and run the first row that matches.
 
 | State of the spec folder                                                                        | Step                                                         |
 | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -303,151 +198,21 @@ questions in the first line of its block, and commit.
 The human may also write under **Notes:**, at the end of the questions, about the points settled
 without them: the spec step reads the notes like answers.
 
-## Starting, postponing, and dropping a feature
+## References
 
-Do these only when a human asks.
+Read a step's reference before running it, and the others when the step needs them:
 
-- **Draft**: a line of `PRIORITIES.md` becomes a draft in `specs/drafts/<slug>.md`, from the
-  proposal template with the line as its title and as the first paragraph of What, and no
-  placeholder text, and the line links to it. With `ura`, `ura draft <text>` does it, on the default
-  branch, without committing, and opens the editor.
-- **Start**: name the folder with today's date and a slug of two words at most,
-  `YYYY-MM-DD-feature-slug`, like `2026-10-06-recurring-tasks`. Propose a slug from the feature's
-  name and ask the human for theirs before starting. The date never changes, even if the feature is
-  renamed. If a folder or branch with that name exists, choose another slug. With `ura`,
-  `ura start <draft> --slug <slug>` runs these steps for a draft file or postponed folder, whatever
-  it holds: the proposal is freeform. Without `--slug`, it takes the first two words of the draft's
-  name that name something.
-  1. On the default branch, move the feature's `PRIORITIES.md` entry to the end of **Now**, unless
-     the human says otherwise, as a link to the future `proposal.md` from the repository root,
-     `[Name](/specs/YYYY-MM-DD-feature-slug/proposal.md)`, and commit with
-     `chore(<slug>): start <feature name>`. Entries match branches through that link.
-     `PRIORITIES.md` lives on the default branch: feature branches only remove their own entry, in
-     their last commit.
-  2. Create the branch `YYYY-MM-DD-feature-slug` from there, checked out in its worktree,
-     `.worktrees/YYYY-MM-DD-feature-slug/`, unless the human asks to switch their checkout to it. On
-     it, create `specs/YYYY-MM-DD-feature-slug/`, and move the draft or backlog file into it as
-     `proposal.md`, unchanged: the proposal is the human's words, never rewritten. When the entry is
-     a folder, a feature postponed earlier, move all its files into it, unchanged. Commit with
-     `chore(<slug>): proposal`. When the entry has no file, write `proposal.md` from the template
-     with only what the human said, and do not commit it: the human writes it out, and commits it
-     once it is ready. Until then, the feature waits at a gate on `proposal.md`, and no step runs.
-  3. Then run the next step in the same session when you can: [Discovery](references/discovery.md),
-     round 01, for a proposal alone, or the first matching row of
-     [the table](#finding-the-next-step) for a folder. A round left waiting for answers stays at its
-     gate. When the human asks for fresh research, start a new round instead, following
-     [going back to the human](#going-back-to-the-human-with-new-questions).
-- **Postpone or block**: on the feature's branch, move the whole folder to `specs/drafts/<slug>/` or
-  `specs/backlog/<slug>/`, as the human prefers, without its date: the proposal, the discovery
-  rounds, and the questions, answered or not, stay as they are. Delete the feature's `proposed`
-  decisions, and the `## Proposed change` sections it added. In the same commit, move the
-  `PRIORITIES.md` entry to the right section, with the reason when it is blocked, and link it to the
-  folder's `proposal.md`. Commit with `chore(<slug>): postpone <feature name>`, merge the branch
-  into the default branch, and delete it.
-- **Drop**: delete the branch, and the `PRIORITIES.md` entry, after the human confirms.
-
-## Finishing a feature
-
-Once a feature's final review or a bug's fix is done, its folder is replaced by one record,
-`specs/done/YYYY-MM-DD-<slug>.md`, in the last commit of its branch, before its pull request is
-ready: the default branch keeps what the feature does and why, and git keeps the rest. Links into
-the folder are rewritten to the record, whose questions keep their anchors. Records are frozen once
-merged. See [Finish](references/finish.md).
-
-After the merge, the branch and its worktree stay until the human runs `ura clean`, which removes
-them unless that would lose work.
-
-## Commits
-
-One commit per step, and one per task during the implementation, containing only its files. Messages
-follow [Conventional Commits](https://www.conventionalcommits.org/), with one extra type per
-workflow step. The scope is the feature's or the bug's slug, its folder's name without the date. The
-description is the feature name for a first version, and what changed for later commits.
-
-| Type          | Step                                     | Example                                            |
-| ------------- | ---------------------------------------- | -------------------------------------------------- |
-| `discovery:`  | A discovery and questions round          | `discovery(recurring-tasks): recurring tasks`      |
-| `decision:`   | Apply approved decisions                 | `decision(recurring-tasks): apply due dates`       |
-| `spec:`       | Write or revise a spec and its decisions | `spec(recurring-tasks): recurring tasks`           |
-| `plan:`       | Write or revise a plan                   | `plan(recurring-tasks): split the store migration` |
-| `assessment:` | Assess a bug                             | `assessment(tasks-reappear): stale copy saved`     |
-| `finish:`     | Replace the folder with its record       | `finish(recurring-tasks): recurring tasks`         |
-
-Code commits use the plan's messages, with the standard types and the same scope:
-`feat(recurring-tasks): repeat menu`, `fix(tasks-reappear): save new tasks as they are`.
-
-The human's commits, and the agent's when the human asks, use the step's type for what they answer
-and `chore:` for the rest. `ura` and the web UI write the same messages.
-
-| Commit                         | Example                                                                                             |
-| ------------------------------ | --------------------------------------------------------------------------------------------------- |
-| Answer a round of questions    | `discovery(recurring-tasks): answer round 01`                                                       |
-| Approve, or request changes    | `spec(recurring-tasks): approve`, `plan(recurring-tasks): request changes`                          |
-| A draft, then its edits        | `chore: draft Recurring tasks`, `chore: edit the draft Recurring tasks`                             |
-| A backlog file, then its edits | `chore: add Benchmarks to the backlog`, `chore: edit Benchmarks in the backlog`                     |
-| A proposal, then its edits     | `chore(recurring-tasks): proposal`, `chore(recurring-tasks): edit the proposal`                     |
-| Start, postpone                | `chore(recurring-tasks): start Recurring tasks`, `chore(recurring-tasks): postpone Recurring tasks` |
-| `PRIORITIES.md` alone          | `chore: move "Recurring tasks" to Next`                                                             |
-
-A commit of `PRIORITIES.md` alone names its one change: `add "<entry>" to <section>`,
-`remove "<entry>"`, `edit "<entry>"`, `move "<entry>" to <section>`, or
-`move "<entry>" within <section>`, with the start of the entry's text. With more changes, the
-subject names the first one and ends with `, and <count> more`, and the body lists every change, one
-per line: `- Add to Now: <entry>`.
-
-The commit type is only a label: the `status` fields and the checkboxes are the source of truth.
-
-## Setting up a project
-
-When asked to set up Uraeda in a project, copy `assets/templates/specs/README.md`,
-`CONSTITUTION.md`, and `PRIORITIES.md` into the project's `specs/` folder, and create its `drafts/`,
-`backlog/`, `decisions/`, and `bugs/` folders, each with an empty `.gitkeep`, since git keeps no
-empty folder. Never overwrite a file that exists. The constitution is the human's: help them write
-it by asking about the project's goals and constraints, and propose principles with recommended
-wording. Do not copy the feature, decision, or bug templates: they stay in this skill.
-
-With `ura`, `ura init` does it, and writes nothing outside `specs/`. When it finds no Uraeda skill,
-for the user or in the repository, it offers to install this skill for the user. `ura install`
-installs or updates this skill, for the user in the home folder (`--user`) or in the repository's
-top level (`--repo`), in `.agents/skills/uraeda/` (`--agents`), `.claude/skills/uraeda`
-(`--claude`), or both, the second then a link to the first. It writes a `.ura-manifest` of the
-files' hashes, so running it again updates the files nobody edited, and it never writes into a
-folder it did not install, nor through a link. `ura install --update` updates every copy it
-installed. Agents always pass these flags and `--no-input`: an agent's terminal can pass the
-terminal check, yet no one presses its keys.
-
-## The `ura` CLI
-
-Every command works without a terminal, with flags, and the read commands print JSON with `--json`.
-A command that acts on a feature, a bug, or a draft takes it as a path under `specs/` or a name
-matching one item, its folder name or slug; without it, the current branch's feature, or the only
-one waiting for that action.
-
-| Command                                                               | What it does                                                                |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `ura init`                                                            | [Sets a project up](#setting-up-a-project)                                  |
-| `ura install`, `--user`, `--repo`, `--agents`, `--claude`, `--update` | [Installs the skill](#setting-up-a-project)                                 |
-| `ura status`                                                          | Every feature and bug, its step, and who it waits on                        |
-| `ura next [feature]`                                                  | The target and its step, from [the table](#finding-the-next-step)           |
-| `ura check [path]`                                                    | The rules of [Markdown](#markdown), file by file                            |
-| `ura draft <text>`                                                    | [Drafts](#starting-postponing-and-dropping-a-feature) a line                |
-| `ura start <draft>`, `--switch`                                       | [Starts](#starting-postponing-and-dropping-a-feature) a feature             |
-| `ura answer [feature] <Q2> <answer>`, `--submit`                      | Answers a round of questions, then submits it                               |
-| `ura review [feature] --comment`, `--approve`, `--request-changes`    | [Reviews](#review-files) a spec, plan, or assessment                        |
-| `ura clean [feature]`, `--all`, `--dry-run`                           | [Cleans](references/finish.md#after-the-merge) a merged feature             |
-| `ura upgrade`                                                         | Installs `ura`'s latest release, then updates the user's skill              |
-| `ura lsp`                                                             | Serves workflow files to editors: diagnostics, completion, outline, actions |
-| `ura add [folder]`                                                    | Adds the repository holding a folder to the web UI's list                   |
-
-`ura answer --submit` and `ura review` set the human's status, record the block, and commit: a human
-runs them, or an agent the human asked, with `--no-commit`. Every command writes on a branch through
-its worktree (see [Branches](#branches)); `ura start --switch` switches the checkout instead.
-
-`ura` refuses, before writing anything, what would break these rules by hand too:
-
-- An answer or a note with a line starting with `#`, `**Answer:**`, or `**Notes:**`, and a review
-  comment with a line starting with `#`: they would read as a new heading or answer.
-- A commit while other files are staged, since it would carry them; with `--switch`, a branch switch
-  over uncommitted changes; a worktree whose folder is taken by something else.
-- A review file that does not parse: it may hold the human's comments, and is never overwritten.
-- `ura start` on a bug: the bug flow starts by hand, until it has its spec.
+- [Discovery](references/discovery.md): a round of findings and questions, the first or a new one.
+- [Spec](references/spec.md): writing or revising a spec and its decisions, once the answers are in.
+- [Approval](references/approval.md): applying the decisions of an approved spec.
+- [Plan](references/plan.md): writing or revising the plan of an approved spec.
+- [Implementation](references/implementation.md): the plan's tasks, the final review, the pull
+  request, and the changes it requests.
+- [Finish](references/finish.md): replacing a folder with its record, and cleaning up after merge.
+- [Bug](references/bug.md): every step of a bug, from its report to its fix.
+- [Conventions](references/conventions.md): markdown, the status table, review files, branches and
+  worktrees, and commits; read it before writing or committing a workflow file.
+- [Projects](references/projects.md): setting up a project, starting, postponing, or dropping a
+  feature, and finishing one; read it when the human asks for one of these.
+- [The `ura` CLI](references/cli.md): every command and what it refuses; read it before running
+  `ura`.
