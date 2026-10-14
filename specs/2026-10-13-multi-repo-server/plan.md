@@ -223,7 +223,7 @@ The decisions this plan relies on, and where it follows them:
   - `pub fn remove(data_dir: &Path, name: &str) -> Result<(), ListError>`
   - `pub fn touch(data_dir: &Path, name: &str, now: SystemTime) -> Result<Repository, ListError>`
 
-- [ ] **Step 1: Write the failing tests, and the helpers they use**
+- [x] **Step 1: Write the failing tests, and the helpers they use**
 
 ```rust
 // crates/core/tests/repositories.rs
@@ -301,12 +301,12 @@ fn the_data_folder_follows_the_platform() {
 [`crates/core/tests/common/repo.rs`](/crates/core/tests/common/repo.rs) if it cannot name its
 folder; `at(text)` parses an RFC 3339 instant for the tests.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test repositories`
 - Expected: FAIL to compile, `unresolved import uraeda_core::repositories`.
 
-- [ ] **Step 3: Implement `crates/core/src/repositories.rs`**
+- [x] **Step 3: Implement `crates/core/src/repositories.rs`**
 
 The file format and naming rule are the spec's [Data](spec.md#data). `data_dir` ports `dataDir` from
 [`runner/cache.ts`](/packages/server/src/runner/cache.ts) with the same results. Every write takes
@@ -314,12 +314,12 @@ the core's write lock, reads the file again, changes it, writes `repositories.js
 it over `repositories.json`, creating the data folder if needed; an unreadable file is never
 written. `missing` is true when `Git::open(path)` fails or its `main_root()` differs from `path`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo test -p uraeda-core`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core/src/repositories.rs crates/core/src/lib.rs crates/core/src/api.rs crates/core/tests/

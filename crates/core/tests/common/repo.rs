@@ -16,8 +16,13 @@ pub struct TestRepo {
 #[allow(dead_code)]
 impl TestRepo {
     pub fn new() -> TestRepo {
+        TestRepo::named("repo")
+    }
+
+    /// A repository whose folder has this name, like `todo-app`.
+    pub fn named(name: &str) -> TestRepo {
         let dir = TempDir::new().expect("a temporary folder");
-        let path = fs::canonicalize(dir.path()).unwrap().join("repo");
+        let path = fs::canonicalize(dir.path()).unwrap().join(name);
         fs::create_dir(&path).unwrap();
         let repo = TestRepo { dir, path };
         repo.git(&["init", "--quiet", "--initial-branch", "main"]);
