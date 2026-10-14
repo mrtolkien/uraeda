@@ -629,3 +629,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   [`useReviewActions.ts`](/packages/web/src/useReviewActions.ts), and `removed` in
   [`useCommentDraft.ts`](/packages/web/src/useCommentDraft.ts).
 - **Where**: the second review.
+
+## R37: A fence left open in an answer, the notes, or a comment is closed at its end
+
+- **Decision**: R32's closing fence no longer waits for comments to follow. A question's answer, the
+  free notes, and each settled comment that leave a fence open, ` ``` ` or `~~~`, get a closing
+  fence, as opened, on a line of their own at their end when they are written, and read back with
+  it. A `#` or `**Answer:**` line after a fence left open is still refused, as R32 says.
+- **Rationale**: a fence left open runs to the end of the file. In an answer, the next questions
+  were read as its code, and saving the answer then deleted them from the file; in the notes or a
+  comment, a section after the notes was read as notes, and rewritten as them. Closing it keeps the
+  text the human typed, as R32 chose for the free notes, and leaves nothing after it to swallow.
+- **Alternatives considered**: refusing an answer, notes, or a comment with a fence left open, a
+  clear message like the structure refusal, which refuses text the human typed, as R32 declined to;
+  closing it only when something follows, which depends on a file's later sections.
+- **If wrong**: `open_fence`, `closed`, and `set_answer` in
+  [`clarifications.rs`](/crates/core/src/files/clarifications.rs), and `join_notes` in
+  [`notes.rs`](/crates/core/src/files/clarifications/notes.rs).
+- **Where**: the second review.

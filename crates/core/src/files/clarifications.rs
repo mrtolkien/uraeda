@@ -237,9 +237,31 @@ fn check_lines(answer: &str) -> Result<(), AnswerError> {
     Ok(())
 }
 
-/// Writes an answer after a question's `**Answer:**` marker, replacing the earlier one. The id
-/// `notes` writes the free notes after the `**Notes:**` marker, keeping the comments on settled
-/// points after them.
+/// The fence a text leaves open, `` ``` `` or `~~~`, if any.
+fn open_fence(text: &str) -> Option<&'static str> {
+    let mut open = None;
+    for line in text.lines().filter(|line| super::is_fence(line)) {
+        open = match open {
+            Some(_) => None,
+            None if line.trim_start().starts_with('~') => Some("~~~"),
+            None => Some("```"),
+        };
+    }
+    open
+}
+
+/// A text with the fence it leaves open closed on a line of its own, so what follows it in the file
+/// is not code.
+fn closed(text: &str) -> String {
+    match open_fence(text) {
+        Some(fence) => format!("{text}\n{fence}"),
+        None => text.to_string(),
+    }
+}
+
+/// Writes an answer after a question's `**Answer:**` marker, replacing the earlier one, with a fence
+/// it leaves open closed at its end, so the next questions are not code. The id `notes` writes the
+/// free notes after the `**Notes:**` marker, keeping the comments on settled points after them.
 pub fn set_answer(text: &str, id: &str, answer: &str) -> Result<String, AnswerError> {
     let answer = answer.replace("\r\n", "\n");
     check_lines(&answer)?;
@@ -259,7 +281,7 @@ pub fn set_answer(text: &str, id: &str, answer: &str) -> Result<String, AnswerEr
             text,
             question.answer_line,
             ANSWER,
-            answer.trim(),
+            &closed(answer.trim()),
         ))
     })
 }
@@ -421,6 +443,32 @@ mod tests {
                 assert_eq!(
                     split_answer(answer, &options),
                     (letters.clone(), comment.to_string()),
+                    "{written:?}"
+                );
+                // Saving the answer read keeps the file as it is.
+                assert_eq!(set_answer(&written, "Q1", answer).unwrap(), written);
+            }
+        }
+    }
+
+    #[test]
+    fn a_fence_left_open_in_an_answer_is_closed_before_the_next_question() {
+        let text =
+            "## Q1: Which?\n\n- **A. One**\n\n**Answer:**\n\n## Q2: Next?\n\n**Answer:** Kept.\n";
+        let rows = [
+            ("```\ncode", "```\ncode\n```"),
+            ("See:\n\n~~~sh\ncode", "See:\n\n~~~sh\ncode\n~~~"),
+        ];
+        for (comment, read) in rows {
+            for letters in [vec![], vec!["A".to_string()]] {
+                let written = set_answer(text, "Q1", &compose_answer(&letters, comment)).unwrap();
+                let questions = parse(&written);
+                assert_eq!(questions.len(), 2, "{written:?}");
+                assert_eq!(questions[1].answer, "Kept.", "{written:?}");
+                let answer = &questions[0].answer;
+                assert_eq!(
+                    split_answer(answer, &['A']),
+                    (letters.clone(), read.to_string()),
                     "{written:?}"
                 );
                 // Saving the answer read keeps the file as it is.
