@@ -177,49 +177,37 @@ function Chat({ pathname, row }: { pathname: string; row: Row }) {
   );
 }
 
-/**
- * The navigation's sessions: the feature groups, each sorted by status, then the chats, with "New
- * chat" and the archived ones. `found`, during a search, holds the sessions found, by ID.
- */
-// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the search's filter in a function, and each group in a component
-function Sessions({
-  data: { sessionList, workspace },
-  found,
-  pathname,
-  query,
-}: {
-  data: Data;
-  found?: Map<string, Row>;
-  pathname: string;
-  query: string;
-}) {
-  const here = useRepoPath();
-  // The live list gives statuses, also of the sessions a search found, which is not live.
-  const rows = sessionList?.rows ?? [];
-  const bySession = new Map(rows.map((row) => [row.id, row]));
-  // A session found that the list leaves out, past its last row, shows as the search read it.
-  const all = [...rows, ...[...(found?.values() ?? [])].filter((row) => !bySession.has(row.id))];
-  const byFolder = new Map(all.flatMap((row) => (row.folder ? [[row.folder, row]] : [])));
+/** The features a search shows: those whose session it found, or whose title holds the query. */
+function matching(
+  features: Array<Feature>,
+  byFolder: Map<string, Row>,
+  found: Map<string, Row> | undefined,
+  query: string,
+) {
+  if (!found) {
+    return features;
+  }
   const needle = query.toLowerCase();
-  const features = (workspace?.features ?? []).filter((feature) => {
-    if (!found) {
-      return true;
-    }
+  return features.filter((feature) => {
     const row = byFolder.get(feature.folder);
     return (row && found.has(row.id)) || feature.title.toLowerCase().includes(needle);
   });
-  const statuses = new Map(
-    features.map((feature) => [
-      feature.folder,
-      featureStatus(feature, byFolder.get(feature.folder)),
-    ]),
-  );
+}
+
+/**
+ * The feature groups, each sorted by status: what waits on the human, what agents work on, and
+ * what is done.
+ */
+function grouped(
+  features: Array<Feature>,
+  statuses: Map<string, Status>,
+): Array<[string, Array<Feature>]> {
   const sorted = (list: Array<Feature>) =>
     [...list].sort(
       (a, b) =>
         STATUS_ORDER[statuses.get(a.folder)!.status] - STATUS_ORDER[statuses.get(b.folder)!.status],
     );
-  const groups: Array<[string, Array<Feature>]> = [
+  return [
     ["Waiting on you", sorted(features.filter((f) => f.step.waitsOn === "human"))],
     [
       "Agents at work",
@@ -235,24 +223,126 @@ function Sessions({
       ),
     ],
   ];
-  // The list's order: what needs the human first, then the last updated.
-  const chats = all.filter((row) => row.folder === null && (!found || found.has(row.id)));
+}
+
+/** A group of features, under its title, drawn only when it has one. */
+function FeatureGroup({
+  byFolder,
+  list,
+  pathname,
+  statuses,
+  title,
+}: {
+  byFolder: Map<string, Row>;
+  list: Array<Feature>;
+  pathname: string;
+  statuses: Map<string, Status>;
+  title: string;
+}) {
+  if (list.length === 0) {
+    return null;
+  }
+  return (
+    <SideNavSection title={title}>
+      {list.map((feature) => (
+        <FeatureRow
+          feature={feature}
+          key={feature.folder}
+          pathname={pathname}
+          row={byFolder.get(feature.folder)}
+          status={statuses.get(feature.folder)!}
+        />
+      ))}
+    </SideNavSection>
+  );
+}
+
+/** The chats' section: "New chat" outside a search, the open chats, then the archived ones. */
+function Chats({
+  chats,
+  pathname,
+  searching,
+}: {
+  chats: Array<Row>;
+  pathname: string;
+  searching: boolean;
+}) {
+  const here = useRepoPath();
   const open = chats.filter((row) => !row.archived);
   const archived = chats.filter((row) => row.archived);
-  const group = ([title, list]: [string, Array<Feature>]) =>
-    list.length > 0 && (
-      <SideNavSection key={title} title={title}>
-        {list.map((feature) => (
-          <FeatureRow
-            feature={feature}
-            key={feature.folder}
-            pathname={pathname}
-            row={byFolder.get(feature.folder)}
-            status={statuses.get(feature.folder)!}
-          />
-        ))}
-      </SideNavSection>
-    );
+  if (searching && chats.length === 0) {
+    return null;
+  }
+  return (
+    <SideNavSection title="Chats">
+      {!searching && (
+        <SideNavItem
+          href={here("/chats/new")}
+          icon={<span aria-hidden="true">＋</span>}
+          isSelected={pathname === "/chats/new"}
+          label="New chat"
+          onClick={(event: React.MouseEvent) => {
+            event.preventDefault();
+            navigate(here("/chats/new"));
+          }}
+        />
+      )}
+      {open.map((row) => (
+        <Chat key={row.id} pathname={pathname} row={row} />
+      ))}
+      {archived.length > 0 && (
+        // Archived chats stay hidden until asked for, as archiving hides a chat.
+        <SideNavItem collapsible={{ defaultIsCollapsed: true }} label="Archived">
+          {archived.map((row) => (
+            <Chat key={row.id} pathname={pathname} row={row} />
+          ))}
+        </SideNavItem>
+      )}
+    </SideNavSection>
+  );
+}
+
+/**
+ * The navigation's sessions: the feature groups, each sorted by status, then the chats, with "New
+ * chat" and the archived ones. `found`, during a search, holds the sessions found, by ID.
+ */
+function Sessions({
+  data: { sessionList, workspace },
+  found,
+  pathname,
+  query,
+}: {
+  data: Data;
+  found?: Map<string, Row>;
+  pathname: string;
+  query: string;
+}) {
+  // The live list gives statuses, also of the sessions a search found, which is not live.
+  const rows = sessionList?.rows ?? [];
+  const bySession = new Map(rows.map((row) => [row.id, row]));
+  // A session found that the list leaves out, past its last row, shows as the search read it.
+  const all = [...rows, ...[...(found?.values() ?? [])].filter((row) => !bySession.has(row.id))];
+  const byFolder = new Map(all.flatMap((row) => (row.folder ? [[row.folder, row]] : [])));
+  const features = matching(workspace?.features ?? [], byFolder, found, query);
+  const statuses = new Map(
+    features.map((feature) => [
+      feature.folder,
+      featureStatus(feature, byFolder.get(feature.folder)),
+    ]),
+  );
+  const groups = grouped(features, statuses);
+  // The list's order: what needs the human first, then the last updated.
+  const chats = all.filter((row) => row.folder === null && (!found || found.has(row.id)));
+  const group = ([title, list]: [string, Array<Feature>]) => (
+    <FeatureGroup
+      byFolder={byFolder}
+      key={title}
+      list={list}
+      pathname={pathname}
+      statuses={statuses}
+      title={title}
+    />
+  );
 
   if (found && features.length === 0 && chats.length === 0) {
     return (
@@ -273,33 +363,7 @@ function Sessions({
       )}
       {!found && <Item label="Priorities" pathname={pathname} to="/priorities" />}
       {groups.slice(0, 2).map(group)}
-      {(!found || chats.length > 0) && (
-        <SideNavSection title="Chats">
-          {!found && (
-            <SideNavItem
-              href={here("/chats/new")}
-              icon={<span aria-hidden="true">＋</span>}
-              isSelected={pathname === "/chats/new"}
-              label="New chat"
-              onClick={(event: React.MouseEvent) => {
-                event.preventDefault();
-                navigate(here("/chats/new"));
-              }}
-            />
-          )}
-          {open.map((row) => (
-            <Chat key={row.id} pathname={pathname} row={row} />
-          ))}
-          {archived.length > 0 && (
-            // Archived chats stay hidden until asked for, as archiving hides a chat.
-            <SideNavItem collapsible={{ defaultIsCollapsed: true }} label="Archived">
-              {archived.map((row) => (
-                <Chat key={row.id} pathname={pathname} row={row} />
-              ))}
-            </SideNavItem>
-          )}
-        </SideNavSection>
-      )}
+      <Chats chats={chats} pathname={pathname} searching={!!found} />
       {groups.slice(2).map(group)}
     </>
   );
