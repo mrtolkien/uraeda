@@ -11,7 +11,7 @@ const ROOT = fileURLToPath(new URL("../../..", import.meta.url));
  * What the binding is built from: the core, the binding's crate, and the skill the core embeds. Not
  * the crates' tests, which a build does not read.
  */
-const SOURCES = [
+export const SOURCES = [
   "crates/core/src",
   "crates/core/build.rs",
   "crates/core/Cargo.toml",

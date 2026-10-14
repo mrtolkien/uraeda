@@ -235,6 +235,7 @@ vp install         # dependencies
 vp run --filter uraeda-binding build  # the Rust core for Node: again after every pull
 vp run ready       # every check and test, as CI runs them
 vp dev             # the web UI on http://127.0.0.1:4310, opening this repository first
+vp run dev         # the same, rebuilding the Rust core and restarting as it or the server changes
 cargo run -p uraeda-cli -- status
 ```
 
@@ -242,10 +243,10 @@ One server serves every repository in Uraeda's list, kept in your data folder: t
 left of the web UI switches between them, adds one by its folder, and removes one, and `ura add`
 adds the repository of the folder you are in. Each repository's pages are under `/r/<name>/`.
 
-`vp dev` reads `.env` at the root, from [`.env.example`](.env.example): `URAEDA_REPO` names the
-repository opened first, and adds it to the list, `URAEDA_PORT` changes the port, and
-`URAEDA_ALLOWED_HOSTS` lists the host names it accepts besides 127.0.0.1, like your machine's full
-name on your tailnet, `mac.tail1234.ts.net`. The server listens on 127.0.0.1 only:
+`vp dev` and `vp run dev` read `.env` at the root, from [`.env.example`](.env.example):
+`URAEDA_REPO` names the repository opened first, and adds it to the list, `URAEDA_PORT` changes the
+port, and `URAEDA_ALLOWED_HOSTS` lists the host names it accepts besides 127.0.0.1, like your
+machine's full name on your tailnet, `mac.tail1234.ts.net`. The server listens on 127.0.0.1 only:
 `tailscale serve --bg 4310` reaches it from your phone, at `https://mac.tail1234.ts.net/`.
 
 Sessions need `claude` installed and signed in on the machine. Each feature has one session, in its
