@@ -224,6 +224,18 @@ test("closing a fold keeps the draft", async () => {
   expect(field.value).toBe("Twice?");
 });
 
+test("a fold's trigger opens it and selects no block", async () => {
+  await renderPage(PAGE, repo());
+
+  await click(await fold("Details"));
+  await click(await fold("Scenarios (4)"));
+
+  expect((await fold("Details")).getAttribute("aria-expanded")).toBe("true");
+  expect((await fold("Scenarios (4)")).getAttribute("aria-expanded")).toBe("true");
+  expect(screen.queryByLabelText("Comment text")).toBeNull();
+  expect(document.querySelector("button[aria-pressed='true']")).toBeNull();
+});
+
 /** Review C2: the mockups, the easiest part of a spec to check, open from the top of its review. */
 test("the mockups are first on a spec under review", async () => {
   await renderPage(PAGE, repo());
