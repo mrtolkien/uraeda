@@ -52,3 +52,71 @@ Back on sheets (NN/g), state that survives navigation (Vercel)
 ## Applies to
 
 - [`packages/web/`](/packages/web/), and every feature that adds or changes a view
+
+## Proposed change (2026-10-14-text-inputs)
+
+Proposed by the [spec](../2026-10-14-text-inputs/spec.md). Text is saved only by a button or the
+field's own key, never as it is typed or on blur; unsaved text is kept in the browser, and leaving
+it asks first; and every multi-line field grows with its text the same way.
+
+The rules become:
+
+- A row that leads somewhere MUST be tappable as a whole, not only through a button or a chevron.
+- A small edit, like a line's text, MUST happen in place: Enter or its Save button saves, Escape or
+  its Cancel button cancels. Leaving the field MUST NOT save it: it stays open with its text.
+- A text field MUST save only when the human presses its Save button, its own key (Enter in a
+  one-line field, Ctrl+Enter or Cmd+Enter in a multi-line one), or a button that uses its text, like
+  Add comment, Submit, Commit, Start, or a verdict. It MUST NOT save as it is typed, after a pause,
+  or when it loses the focus. Adding an image to a field MAY save that field at once, with its text
+  as typed. Toggles, switches, segmented controls, and option picks MAY save at once.
+- A text field whose text differs from what is saved MUST say "Unsaved changes" next to its Save
+  button. Its Save button MUST be disabled while nothing changed.
+- Cancel or Escape on a field whose text changed MUST ask first, with "Discard" and "Keep editing".
+- Leaving a page that holds unsaved text MUST ask first: the app's own dialog, "Leave page" and
+  "Stay", for a link or Back, and the browser's prompt for a reload or a closed tab. Nothing MUST
+  ask when nothing is unsaved.
+- The unsaved text of every field MUST be kept in the browser until it is saved or discarded, and
+  restored when the field shows again, with a notice saying so and a Discard button.
+- Every multi-line text field MUST use the app's one growing text area: as tall as its text, never
+  with an empty row beyond its minimum, and no taller than half the window, past which it scrolls.
+  The editor of drafts and proposals MAY grow without that limit, the page scrolling instead.
+- A modal sheet or dialog MUST be used only to confirm an irreversible action or to fill a short
+  form, like adding a line. Everything else happens in the page.
+- Every sheet and dialog MUST have a visible close button, and Back MUST close it.
+- A save's status MUST show next to its control: saving, saved, or the error.
+- A toast MAY confirm only a result the human cannot see on screen. It MUST last 5 seconds, MAY
+  carry one action, Undo, which reverts that change alone, and MUST NOT be the only place an error
+  shows.
+- Errors MUST stay on screen until the human deals with them, or the action is retried.
+- Back MUST return to the same scroll position and the same open items. A page MUST keep showing its
+  content while its data reloads.
+- Nothing MUST work only on hover: every action has a tap or a keyboard path.
+- A keyboard shortcut MUST NOT act while a text field has the focus. A field's own keys, Enter and
+  Ctrl+Enter or Cmd+Enter, are not shortcuts.
+
+Why: notes saved as they were typed lost letters, because each save came back trimmed into the
+field, and a line saved on blur saves half-typed text; the human asked for every text field to save
+only with a button, lines on Enter or a Save button
+([Q1](../2026-10-14-text-inputs/clarifications-01.md#q1-which-text-fields-should-save-only-with-a-button),
+[which fields](../2026-10-14-text-inputs/discovery-01.md#which-fields-save-on-a-button)), and Primer
+recommends explicit saving for text. Saving on a button puts unsaved text at risk, so the human
+asked for both a warning before leaving and text kept in the browser, like GitHub
+([Q3](../2026-10-14-text-inputs/clarifications-01.md#q3-what-protects-text-you-typed-and-did-not-save),
+[unsaved text](../2026-10-14-text-inputs/discovery-01.md#unsaved-text)). Images keep saving their
+field at once, so an image and its link are never apart
+([Q6](../2026-10-14-text-inputs/clarifications-01.md#q6-should-adding-an-image-still-save-its-field-at-once)).
+The human found text boxes taller than their text, and asked for one coherent behaviour everywhere
+([notes](../2026-10-14-text-inputs/clarifications-01.md#settled-without-the-human)).
+
+Alternatives considered, added:
+
+- Lines saving on Enter or blur, the earlier rule: a tap elsewhere saved a half-typed line.
+- Notes and the editor saving 400 ms after the last keystroke: the field took the file's trimmed
+  text back while the human typed.
+
+Consequences, added:
+
+- Every field that saves text goes through one shared hook, which holds its unsaved text, keeps it
+  in the browser, and tells the router whether a page may be left.
+- A line left open stays open until it is saved or cancelled.
+- Text typed on one device is restored on that device only.
