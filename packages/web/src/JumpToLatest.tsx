@@ -1,6 +1,6 @@
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, radiusVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { RefObject } from "react";
 
@@ -16,6 +16,11 @@ const styles = stylex.create({
     position: "absolute",
   },
   jumpButton: {
+    // The secondary button's fill is translucent: the page's surface under it keeps the transcript's
+    // text from showing through.
+    backgroundColor: colorVars["--color-background-surface"],
+    borderRadius: radiusVars["--radius-element"],
+    display: "inline-flex",
     pointerEvents: "auto",
   },
 });
