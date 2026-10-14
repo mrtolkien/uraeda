@@ -1210,6 +1210,47 @@ test("an edit of a review comment removed elsewhere is not restored onto the nex
   expect(screen.getByRole("group", { name: "C2 · line 60" }).textContent).toContain("Third.");
 });
 
+/** Second review: the summary typed while the verdict is being sent stays unsaved. */
+test("the summary typed while Approve is sent is kept", async () => {
+  const r = repo();
+  const server = serverFetch(r);
+  const waiting: Array<() => void> = [];
+  // The verdict's response, once the server sent it.
+  let responded: Promise<unknown> | undefined;
+  const fetch = (async (input, init) => {
+    const body = typeof init?.body === "string" ? init.body : "";
+    if (!body.includes('"summary":"Close"')) {
+      return server(input, init);
+    }
+    await new Promise<void>((resolve) => waiting.push(resolve));
+    const response = server(input, init);
+    responded = response;
+    return response;
+  }) as typeof globalThis.fetch;
+  await renderPage(PAGE, r, { fetch });
+  const summary = await summaryField();
+  await act(async () => {
+    fireEvent.change(summary, { target: { value: "Close" } });
+  });
+  await click(screen.getByRole("button", { name: "Approve" }));
+  await waitFor(() => expect(waiting).toHaveLength(1));
+
+  await act(async () => {
+    fireEvent.change(summary, { target: { value: "Close, and more" } });
+  });
+  await act(async () => waiting.shift()!());
+  await act(async () => {
+    await responded;
+  });
+
+  await waitFor(() => expect(screen.queryByRole("button", { name: "Approve" })).toBeNull());
+  expect(lastCommit(r)).toBe("spec(recurring-tasks): approve");
+  const kept = Object.keys(localStorage)
+    .filter((key) => key.endsWith("#summary"))
+    .map((key) => JSON.parse(localStorage.getItem(key)!).text);
+  expect(kept).toEqual(["Close, and more"]);
+});
+
 /** SC-004: the review's summary typed comes back after a reload. */
 test("the summary typed is restored after a reload", async () => {
   const r = repo();

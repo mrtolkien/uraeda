@@ -95,7 +95,8 @@ export function ReviewVerdict({
   const proceed = (trigger: "approval" | "changes") => handOver(file.folder, trigger, file.name);
 
   const verdict = async (approve: boolean, next: boolean) => {
-    const input = { ...where, summary: summary.text || undefined };
+    const sent = summary.text;
+    const input = { ...where, summary: sent || undefined };
     const trigger = approve ? "approval" : "changes";
     continues.current = next ? trigger : undefined;
     const done = await run(() =>
@@ -106,7 +107,8 @@ export function ReviewVerdict({
           })
         : fate.mutations.review.requestChanges({ input, view: FileView }),
     );
-    if (done) {
+    // The summary sent goes; text typed while the verdict was sent stays unsaved.
+    if (done && summary.unsavedNow()?.text === sent) {
       summary.discard();
     }
     if (done && next) {
