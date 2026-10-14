@@ -1,16 +1,16 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: high
-plan-review: true
+plan-review: false
 ---
 
 # Spec: Image attachments
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 40 minutes.
+> Approved on 2026-10-14.
 >
 > - One new decision, [attachments](../decisions/attachments.md): images committed as WebP in an
 >   `images/` folder next to the file that links them, deleted when the feature finishes; chat
