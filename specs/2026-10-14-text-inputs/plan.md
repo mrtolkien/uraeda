@@ -610,11 +610,17 @@ git commit -m "feat(text-inputs): the notes save with their button, and keep wha
 
 - Consumes: task 2's `settled.*` mutations and `settledPoints`/`settledComments`; task 4's
   `useTextField`, `TextField`, `useConfirm`.
-- Produces: `CommentForm` takes `field: string` (its unsaved key) instead of `text` and
-  `onTextChange`; Cancel asks "Discard your comment?" when its text changed.
+- Produces: `CommentForm` takes `field: string` (its unsaved key) and `saved` (the comment's text as
+  the file holds it, empty for a new one) instead of `text` and `onTextChange`, which stay for the
+  review and the mockup page until task 7; with `field`, Cancel asks "Discard your comment?"
+  (`DISCARD_COMMENT`) when its text changed, "Unsaved changes" shows beside its buttons, its submit
+  button waits for a change, and a restored text shows the restore notice (R10).
   `SettledPoints({ file, readOnly })`.
+  `CommentNote({ label, name, text, onEdit?, onRemove?, error? })` in `ReviewComments.tsx`,
+  `PendingComment`'s look; `Selection.canSelect` narrows the blocks a tap selects, the others
+  keeping what follows them.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 US4 1 to 8, on a fixture round with the recurring-tasks example's settled points, with the values of
 the spec's scenarios: tap "Undoing a completion", type, "Add comment", read the notes from the file;
@@ -629,25 +635,25 @@ The break each test catches: the bullet shown in the notes field (US4 2); a note
 comments (US4 3); Edit or Remove on a read-only round (US4 6); adding a comment saving the notes
 field's draft (US4 7).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web settled`
 - Expected: FAIL,
   `Unable to find an accessible element with the role "button" and name "Undoing a completion"`
 
-- [ ] **Step 3: Implement**: each settled point with a subject is a selectable block, as in
+- [x] **Step 3: Implement**: each settled point with a subject is a selectable block, as in
       [`Selection.tsx`](/packages/web/src/Selection.tsx); the form under it on wide screens and in
       an `Overlay` sheet on the phone, keyed `${path}#settled:<subject>` or
       `${path}#settled-edit:<number>`; comments under their point through `PendingComment`'s look,
       with Edit and Remove only while awaiting the human. The review page keeps passing its text
       until task 7: give `CommentForm` both modes only if needed, and remove the old one in task 7.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check && vp test --project uraeda-web`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web
