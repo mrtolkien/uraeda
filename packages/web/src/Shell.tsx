@@ -16,51 +16,51 @@ import { SearchField, SessionNav, useSessionQuery } from "./SessionNav.tsx";
 import { type ThemeMode, useThemeMode } from "./theme.tsx";
 
 const styles = stylex.create({
-  // The page's surface behind a short page too: Astryx paints it on the content only, which on the
-  // phone ends with the page's text, leaving the shell's wash below it.
-  shell: {
-    backgroundColor: colorVars["--color-background-surface"],
+  controls: {
+    alignItems: "center",
+    display: "flex",
+    flexShrink: 0,
+    marginInlineStart: "auto",
   },
-  // The errors of refused Undos, in the page's column, above it.
   errors: {
+    // The errors of refused Undos, in the page's column, above it.
     boxSizing: "border-box",
-    width: "100%",
-    maxWidth: "var(--size-page-max)",
     marginInline: "auto",
+    maxWidth: "var(--size-page-max)",
     paddingBlockStart: spacingVars["--spacing-4"],
     paddingInline: spacingVars["--spacing-4"],
+    width: "100%",
   },
-  // The page's own inset on wide screens, so the banner lines up with its column.
   errorsWide: {
+    // The page's own inset on wide screens, so the banner lines up with its column.
     paddingBlockStart: spacingVars["--spacing-6"],
     paddingInline: spacingVars["--spacing-8"],
   },
-  // The navigation's heading: the link home, then the page's controls at its end.
+  folded: {
+    // Folded: the link home, then the page's controls, one under the other.
+    alignItems: "center",
+    display: "flex",
+    flexDirection: "column",
+    gap: spacingVars["--spacing-1"],
+  },
   heading: {
+    // The navigation's heading: the link home, then the page's controls at its end.
+    alignItems: "center",
     display: "flex",
     flexGrow: 1,
-    alignItems: "center",
     gap: spacingVars["--spacing-2"],
     minWidth: 0,
     paddingInline: spacingVars["--spacing-2"],
   },
-  // The menu's trigger takes the room the page's controls leave.
   menu: {
+    // The menu's trigger takes the room the page's controls leave.
     flexGrow: 1,
     minWidth: 0,
   },
-  controls: {
-    display: "flex",
-    flexShrink: 0,
-    alignItems: "center",
-    marginInlineStart: "auto",
-  },
-  // Folded: the link home, then the page's controls, one under the other.
-  folded: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: spacingVars["--spacing-1"],
+  shell: {
+    // The page's surface behind a short page too: Astryx paints it on the content only, which on the
+    // phone ends with the page's text, leaving the shell's wash below it.
+    backgroundColor: colorVars["--color-background-surface"],
   },
 });
 
@@ -100,13 +100,13 @@ function ThemeSwitch() {
   return (
     <SegmentedControl
       label="Theme"
+      onChange={(value: string) => setMode(value as ThemeMode)}
       size="sm"
       value={mode}
-      onChange={(value: string) => setMode(value as ThemeMode)}
     >
-      <SegmentedControlItem value="system" label="System" />
-      <SegmentedControlItem value="light" label="Light" />
-      <SegmentedControlItem value="dark" label="Dark" />
+      <SegmentedControlItem label="System" value="system" />
+      <SegmentedControlItem label="Light" value="light" />
+      <SegmentedControlItem label="Dark" value="dark" />
     </SegmentedControl>
   );
 }
@@ -118,25 +118,25 @@ function ThemeSwitch() {
  * browser.
  */
 function Nav({ slot }: { slot: ReactNode }) {
-  const { workspace, sessionList } = useNavigation();
+  const { sessionList, workspace } = useNavigation();
   const current = useRepository();
   const path = useLocalPath();
-  const { text, setText, query } = useSessionQuery();
+  const { query, setText, text } = useSessionQuery();
   // A task view opened from home shows beside home on wide screens: home stays the page selected.
   const pathname = path.startsWith("/priorities/") && currentEntry().from === "/" ? "/" : path;
   return (
     <SideNav
-      header={<Heading current={current} slot={slot} />}
-      topContent={<SearchField text={text} onChange={setText} />}
-      footer={<ThemeSwitch />}
       collapsible
-      resizable={{ defaultWidth: 240, minWidth: 200, maxWidth: 360, autoSaveId: "uraeda.nav" }}
+      footer={<ThemeSwitch />}
+      header={<Heading current={current} slot={slot} />}
+      resizable={{ autoSaveId: "uraeda.nav", defaultWidth: 240, maxWidth: 360, minWidth: 200 }}
+      topContent={<SearchField onChange={setText} text={text} />}
     >
       <SessionNav
-        workspace={workspace}
-        sessionList={sessionList}
         pathname={pathname}
         query={query}
+        sessionList={sessionList}
+        workspace={workspace}
       />
     </SideNav>
   );
@@ -153,13 +153,13 @@ function UndoErrors() {
     <VStack gap={2} xstyle={[styles.errors, wide && styles.errorsWide]}>
       {errors.map((error) => (
         <Banner
+          collapsible={false}
+          dismissLabel="Dismiss"
+          isDismissable
           key={error.id}
+          onDismiss={() => dismiss(error.id)}
           status="error"
           title={error.text}
-          collapsible={false}
-          isDismissable
-          dismissLabel="Dismiss"
-          onDismiss={() => dismiss(error.id)}
         />
       ))}
     </VStack>
@@ -169,7 +169,7 @@ function UndoErrors() {
 export function Shell({ children }: { children: ReactNode }) {
   const [slot, setSlot] = useState<ReactNode>(null);
   return (
-    <AppShell sideNav={<Nav slot={slot} />} height="auto" contentPadding={0} xstyle={styles.shell}>
+    <AppShell contentPadding={0} height="auto" sideNav={<Nav slot={slot} />} xstyle={styles.shell}>
       <UndoErrors />
       <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
     </AppShell>
@@ -180,12 +180,12 @@ export function Shell({ children }: { children: ReactNode }) {
  * The shell of a page that is not a repository's, like a name not in the list or a missing folder:
  * the heading's menu alone, which reads no repository.
  */
-export function BareShell({ current, children }: { current: string | null; children: ReactNode }) {
+export function BareShell({ children, current }: { children: ReactNode; current: string | null }) {
   return (
     <AppShell
-      sideNav={<SideNav header={<Heading current={current} slot={null} />} />}
-      height="auto"
       contentPadding={0}
+      height="auto"
+      sideNav={<SideNav header={<Heading current={current} slot={null} />} />}
       xstyle={styles.shell}
     >
       {children}

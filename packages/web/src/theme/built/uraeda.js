@@ -201,15 +201,15 @@ export const uraedaTheme = {
     "--astryx-theme-neutral-color-on-tint-overlay-pressed": "light-dark(#fafafa33, #0a0a0a33)",
     "--astryx-theme-neutral-color-destructive-overlay-hover": "light-dark(#ff7f770D, #ee736c0D)",
     "--astryx-theme-neutral-color-destructive-overlay-pressed": "light-dark(#ff7f771A, #ee736c1A)",
-    "--text-reading-size": "17px",
     "--text-reading-line": "1.5",
+    "--text-reading-size": "17px",
     "--size-reading-measure": "90ch",
     "--size-page-max": "720px",
     "--size-pane-min": "400px",
     "--size-viewport-height": "100dvh",
     "--size-round-index": "240px",
-    "--size-menu": "360px",
     "--size-form": "560px",
+    "--size-menu": "360px",
     "--color-selection": "var(--color-background-yellow)",
     "--color-selection-edge": "var(--color-border-yellow)"
   },
@@ -224,15 +224,15 @@ export const uraedaTheme = {
     "--astryx-theme-neutral-color-on-tint-overlay-pressed": "neutral",
     "--astryx-theme-neutral-color-destructive-overlay-hover": "neutral",
     "--astryx-theme-neutral-color-destructive-overlay-pressed": "neutral",
-    "--text-reading-size": "uraeda",
     "--text-reading-line": "uraeda",
+    "--text-reading-size": "uraeda",
     "--size-reading-measure": "uraeda",
     "--size-page-max": "uraeda",
     "--size-pane-min": "uraeda",
     "--size-viewport-height": "uraeda",
     "--size-round-index": "uraeda",
-    "--size-menu": "uraeda",
     "--size-form": "uraeda",
+    "--size-menu": "uraeda",
     "--color-selection": "uraeda",
     "--color-selection-edge": "uraeda"
   },
@@ -520,12 +520,12 @@ export const uraedaTheme = {
     },
     "chat-tool-calls": {
       "base": {
-        "minWidth": "0",
-        "maxWidth": "100%",
         ":is(*) span": {
-          "whiteSpace": "normal",
-          "overflowWrap": "anywhere"
+          "overflowWrap": "anywhere",
+          "whiteSpace": "normal"
         },
+        "maxWidth": "100%",
+        "minWidth": "0",
         ":is(*) span:nth-child(2)": {
           "flexShrink": "0 !important"
         }
@@ -533,13 +533,13 @@ export const uraedaTheme = {
     },
     "side-nav-item": {
       "base": {
+        ":is(*) span": {
+          "overflowWrap": "anywhere",
+          "whiteSpace": "normal"
+        },
         "height": "auto",
         "minHeight": "var(--size-element-md)",
-        "paddingBlock": "var(--spacing-1)",
-        ":is(*) span": {
-          "whiteSpace": "normal",
-          "overflowWrap": "anywhere"
-        }
+        "paddingBlock": "var(--spacing-1)"
       }
     }
   },
@@ -575,10 +575,9 @@ export const uraedaTheme = {
           }
         },
         "value": {
-          "typography": {
-            "scale": {
-              "base": 16.8
-            }
+          "localTokens": {
+            "--size-page-max": "1200px",
+            "--text-reading-size": "19px"
           },
           "tokens": {
             "--spacing-1": "4.8px",
@@ -595,13 +594,14 @@ export const uraedaTheme = {
             "--spacing-12": "57.6px",
             "--spacing-0-5": "2.4px",
             "--spacing-1-5": "7.2px",
-            "--size-element-sm": "33.6px",
+            "--size-element-lg": "43.2px",
             "--size-element-md": "38.4px",
-            "--size-element-lg": "43.2px"
+            "--size-element-sm": "33.6px"
           },
-          "localTokens": {
-            "--text-reading-size": "19px",
-            "--size-page-max": "1200px"
+          "typography": {
+            "scale": {
+              "base": 16.8
+            }
           }
         }
       },
@@ -610,11 +610,6 @@ export const uraedaTheme = {
           "pointer": "coarse"
         },
         "value": {
-          "tokens": {
-            "--size-element-sm": "44px",
-            "--size-element-md": "44px",
-            "--size-element-lg": "44px"
-          },
           "components": {
             "item": {
               "base": {
@@ -648,16 +643,21 @@ export const uraedaTheme = {
               }
             },
             "segmented-control-item": {
-              "size:sm": {
-                "height": "var(--size-element-sm)"
+              "size:lg": {
+                "height": "var(--size-element-lg)"
               },
               "size:md": {
                 "height": "var(--size-element-md)"
               },
-              "size:lg": {
-                "height": "var(--size-element-lg)"
+              "size:sm": {
+                "height": "var(--size-element-sm)"
               }
             }
+          },
+          "tokens": {
+            "--size-element-lg": "44px",
+            "--size-element-md": "44px",
+            "--size-element-sm": "44px"
           }
         }
       }

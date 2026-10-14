@@ -14,15 +14,15 @@ import {
 /** The UI's pages, from the location's path. */
 export type Route =
   | { page: "home" }
-  | { page: "feature"; folder: string }
-  | { page: "file"; folder: string; name: string }
+  | { folder: string; page: "feature" }
+  | { folder: string; name: string; page: "file" }
   | { page: "priorities" }
-  | { page: "task"; key: string }
+  | { key: string; page: "task" }
   | { page: "edit"; path: string }
-  | { page: "mockup"; folder: string; name: string }
-  | { page: "session"; folder: string }
-  | { page: "run"; folder: string; id: string }
-  | { page: "chat"; id: string }
+  | { folder: string; name: string; page: "mockup" }
+  | { folder: string; page: "session" }
+  | { folder: string; id: string; page: "run" }
+  | { id: string; page: "chat" }
   | { page: "new-chat" }
   | { page: "first-run" }
   | { page: "missing"; path: string };
@@ -89,28 +89,28 @@ export function parseRoute(pathname: string): Route {
     return { page: "home" };
   }
   if (parts[0] === "f" && parts.length === 2) {
-    return { page: "feature", folder: parts[1] };
+    return { folder: parts[1], page: "feature" };
   }
   if (parts[0] === "f" && parts.length === 3 && parts[2] === "session") {
-    return { page: "session", folder: parts[1] };
+    return { folder: parts[1], page: "session" };
   }
   if (parts[0] === "f" && parts.length === 3) {
-    return { page: "file", folder: parts[1], name: parts[2] };
+    return { folder: parts[1], name: parts[2], page: "file" };
   }
   if (parts[0] === "f" && parts.length === 4 && parts[2] === "mockups") {
-    return { page: "mockup", folder: parts[1], name: parts[3] };
+    return { folder: parts[1], name: parts[3], page: "mockup" };
   }
   if (parts[0] === "f" && parts.length === 4 && parts[2] === "runs") {
-    return { page: "run", folder: parts[1], id: parts[3] };
+    return { folder: parts[1], id: parts[3], page: "run" };
   }
   if (parts[0] === "chats" && parts.length === 2) {
-    return parts[1] === "new" ? { page: "new-chat" } : { page: "chat", id: parts[1] };
+    return parts[1] === "new" ? { page: "new-chat" } : { id: parts[1], page: "chat" };
   }
   if (parts[0] === "priorities" && parts.length === 1) {
     return { page: "priorities" };
   }
   if (parts[0] === "priorities" && parts.length === 2) {
-    return { page: "task", key: parts[1] };
+    return { key: parts[1], page: "task" };
   }
   if (parts[0] === "edit" && parts.length > 1) {
     return { page: "edit", path: parts.slice(1).join("/") };
@@ -125,13 +125,13 @@ export function parseRoute(pathname: string): Route {
  * and the groups of tool calls opened in a session's transcript, by their turn and first call.
  */
 type Entry = {
-  id?: string;
-  scroll?: number;
-  pane?: number;
   from?: string;
+  id?: string;
+  open?: Array<string>;
   opener?: number;
   overlay?: string;
-  open?: Array<string>;
+  pane?: number;
+  scroll?: number;
 };
 
 /** The current history entry's state. */
@@ -183,7 +183,7 @@ export function navigate(path: string, state?: { from?: string }) {
   for (const save of savers) {
     save();
   }
-  window.history.pushState({ ...state, opener, id: newId() }, "", path);
+  window.history.pushState({ ...state, id: newId(), opener }, "", path);
   window.scrollTo?.(0, 0);
   window.dispatchEvent(new Event(CHANGE));
 }
@@ -322,7 +322,7 @@ export function useSearch(): string {
  * The route to draw: it follows the location a step behind, so a page that loads keeps the one
  * before it on screen until it is drawn, instead of "Loading…".
  */
-export function useRoute(): { repo: string | null; route: Route; pathname: string } {
+export function useRoute(): { pathname: string; repo: string | null; route: Route } {
   const pathname = useDeferredValue(usePathname());
   return { ...parseLocation(pathname), pathname };
 }
@@ -345,13 +345,13 @@ function inApp(href: string | undefined, target: string | undefined): href is st
  */
 export function RouterAnchor({
   href,
-  to: _to,
   onClick,
+  to: _to,
   ...props
 }: {
   href?: string;
-  to?: string;
   onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
+  to?: string;
 } & Omit<ComponentProps<"a">, "href" | "onClick">) {
   return (
     <a

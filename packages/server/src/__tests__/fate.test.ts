@@ -34,7 +34,7 @@ test("saves an answer, and returns the file", async () => {
   const result = await mutate(
     (await testApp(repo)).app,
     "answer.save",
-    { folder: "2026-10-11-web-ui", question: "Q2", letters: ["A"], comment: "", previous: "" },
+    { comment: "", folder: "2026-10-11-web-ui", letters: ["A"], previous: "", question: "Q2" },
     ["id", "current"],
   );
 
@@ -46,7 +46,7 @@ test("saves an answer, and returns the file", async () => {
 
 test("refuses a stale answer at the call site, with its code", async () => {
   const { app } = await testApp();
-  const input = { folder: "2026-10-11-web-ui", question: "Q2", comment: "", previous: "" };
+  const input = { comment: "", folder: "2026-10-11-web-ui", previous: "", question: "Q2" };
   await mutate(app, "answer.save", { ...input, letters: ["A"] }, ["id"]);
 
   const result = await mutate(app, "answer.save", { ...input, letters: ["B"] }, ["id"]);
@@ -89,7 +89,7 @@ test("adds a priority line", async () => {
   const result = await mutate(
     app,
     "priorities.add",
-    { section: "next", text: "Show the agent's last commit", hash: priorities.hash },
+    { hash: priorities.hash, section: "next", text: "Show the agent's last commit" },
     ["id", "sections", "changes"],
   );
 
@@ -110,10 +110,10 @@ test("puts a removed priority line back", async () => {
     app,
     "priorities.insert",
     {
-      section: "later",
+      hash: removed.data.hash,
       index: 0,
       lines: ["- Nix + Docker based execution environments", "  - with a cache"],
-      hash: removed.data.hash,
+      section: "later",
     },
     ["id", "sections", "changes"],
   );
@@ -126,7 +126,7 @@ test("puts a removed priority line back", async () => {
 
 test("a file without a review is sent with none, so a removed review leaves the page", async () => {
   const { app } = await testApp();
-  const file = { folder: "2026-10-06-recurring-tasks", file: "spec.md" };
+  const file = { file: "spec.md", folder: "2026-10-06-recurring-tasks" };
 
   const commented = await mutate(app, "review.comment", { ...file, text: "Why?" }, [
     "id",

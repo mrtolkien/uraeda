@@ -9,16 +9,16 @@ import { selectable } from "./Blocks.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 
 const styles = stylex.create({
-  // A pending comment under its block: a bar down its side.
   pending: {
-    marginBlockStart: spacingVars["--spacing-0-5"],
-    marginBlockEnd: spacingVars["--spacing-2"],
-    marginInlineStart: spacingVars["--spacing-6"],
-    paddingInlineStart: spacingVars["--spacing-3"],
-    borderInlineStartWidth: spacingVars["--spacing-1"],
-    borderInlineStartStyle: "solid",
+    // A pending comment under its block: a bar down its side.
     borderInlineStartColor: colorVars["--color-warning"],
+    borderInlineStartStyle: "solid",
+    borderInlineStartWidth: spacingVars["--spacing-1"],
+    marginBlockEnd: spacingVars["--spacing-2"],
+    marginBlockStart: spacingVars["--spacing-0-5"],
+    marginInlineStart: spacingVars["--spacing-6"],
     overflowWrap: "anywhere",
+    paddingInlineStart: spacingVars["--spacing-3"],
   },
 });
 
@@ -61,29 +61,29 @@ export function PendingComment({
   onRemove: () => void;
 }) {
   return (
-    <div role="group" aria-label={where(comment)} {...stylex.props(styles.pending)}>
-      <HStack justify="between" align="center" gap={2} wrap="wrap">
-        <Text type="supporting" color="secondary">
+    <div aria-label={where(comment)} role="group" {...stylex.props(styles.pending)}>
+      <HStack align="center" gap={2} justify="between" wrap="wrap">
+        <Text color="secondary" type="supporting">
           {where(comment)}
         </Text>
         <HStack gap={1}>
           <Button
-            variant="ghost"
-            size="sm"
             label="Edit"
             onClick={(event: React.MouseEvent) => {
               event.stopPropagation();
               onEdit();
             }}
+            size="sm"
+            variant="ghost"
           />
           <Button
-            variant="ghost"
-            size="sm"
             label="Remove"
             onClick={(event: React.MouseEvent) => {
               event.stopPropagation();
               onRemove();
             }}
+            size="sm"
+            variant="ghost"
           />
         </HStack>
       </HStack>

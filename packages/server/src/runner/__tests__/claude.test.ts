@@ -52,7 +52,7 @@ test("SC-006: a new session's arguments", () => {
 
 test("a resumed session with an allow rule", () => {
   expect(
-    claudeArgs({ ...open, resume: true, allowed: "Bash(gh pr create --draft)" }, "/plugin").slice(
+    claudeArgs({ ...open, allowed: "Bash(gh pr create --draft)", resume: true }, "/plugin").slice(
       11,
     ),
   ).toEqual(["--resume", "id", "--allowedTools", "Bash(gh pr create --draft)"]);
@@ -61,7 +61,7 @@ test("a resumed session with an allow rule", () => {
 test("no argument skips permissions or sets a model", () => {
   for (const args of [
     claudeArgs({ ...open, resume: false }, "/plugin"),
-    claudeArgs({ ...open, resume: true, allowed: "Bash(gh pr create --draft)" }, "/plugin"),
+    claudeArgs({ ...open, allowed: "Bash(gh pr create --draft)", resume: true }, "/plugin"),
   ]) {
     for (const forbidden of [
       "bypassPermissions",
@@ -78,11 +78,11 @@ test("Claude Code declares what it can do", () => {
   const adapter = new ClaudeAdapter({ pluginDir: "/plugin" });
   expect([adapter.kind, adapter.name]).toEqual(["claude", "Claude Code"]);
   expect(adapter.capabilities).toEqual({
-    steer: true,
-    queue: true,
-    takeBack: true,
     approvals: false,
+    queue: true,
+    steer: true,
     subagents: true,
+    takeBack: true,
   });
 });
 
@@ -91,10 +91,10 @@ test.each<[string, Array<AgentEvent>]>([
     "init.jsonl",
     [
       {
-        type: "init",
-        sessionId: SESSION,
-        plugins: ["uraeda", "cc-plugin-telemetry"],
         pluginErrors: [],
+        plugins: ["uraeda", "cc-plugin-telemetry"],
+        sessionId: SESSION,
+        type: "init",
       },
     ],
   ],
@@ -102,39 +102,39 @@ test.each<[string, Array<AgentEvent>]>([
     "init-plugin-error.jsonl",
     [
       {
-        type: "init",
-        sessionId: "cb94b45c-b09a-43bb-88f4-a60071539d67",
-        plugins: ["cc-plugin-telemetry"],
         pluginErrors: ["Path not found: /tmp/no-such-plugin (commands)"],
+        plugins: ["cc-plugin-telemetry"],
+        sessionId: "cb94b45c-b09a-43bb-88f4-a60071539d67",
+        type: "init",
       },
     ],
   ],
   // A thinking block shows nothing, then the text.
-  ["text.jsonl", [{ type: "text", text: "ready" }]],
+  ["text.jsonl", [{ text: "ready", type: "text" }]],
   [
     "tool.jsonl",
     [
       {
-        type: "toolStart",
         id: "toolu_01SVEKzLxnSQyRcc45azZnG9",
-        name: "Bash",
-        kind: "execute",
         input: { command: "echo ok", description: "Print ok" },
+        kind: "execute",
+        name: "Bash",
         target: "echo ok",
+        type: "toolStart",
       },
-      { type: "toolEnd", id: "toolu_01SVEKzLxnSQyRcc45azZnG9", isError: false, output: "ok" },
+      { id: "toolu_01SVEKzLxnSQyRcc45azZnG9", isError: false, output: "ok", type: "toolEnd" },
     ],
   ],
-  ["retry.jsonl", [{ type: "retry", attempt: 1, delayMs: 30000, error: "rate_limit" }]],
+  ["retry.jsonl", [{ attempt: 1, delayMs: 30_000, error: "rate_limit", type: "retry" }]],
   [
     "result-success.jsonl",
     [
       {
-        type: "result",
-        ok: true,
-        errors: [],
         denials: [],
+        errors: [],
         interrupted: false,
+        ok: true,
+        type: "result",
       },
     ],
   ],
@@ -142,16 +142,16 @@ test.each<[string, Array<AgentEvent>]>([
     "result-denied.jsonl",
     [
       {
-        type: "result",
-        ok: true,
-        errors: [],
         denials: [
           {
-            tool: "Bash",
             input: { command: "gh pr create --draft", description: "Create a draft pull request" },
+            tool: "Bash",
           },
         ],
+        errors: [],
         interrupted: false,
+        ok: true,
+        type: "result",
       },
     ],
   ],
@@ -159,11 +159,11 @@ test.each<[string, Array<AgentEvent>]>([
     "result-error.jsonl",
     [
       {
-        type: "result",
-        ok: false,
-        errors: ["Reached maximum number of turns (1)"],
         denials: [],
+        errors: ["Reached maximum number of turns (1)"],
         interrupted: false,
+        ok: false,
+        type: "result",
       },
     ],
   ],
@@ -176,42 +176,42 @@ test.each<[string, Array<AgentEvent>]>([
 
 test("a tool result made of text blocks is joined", () => {
   const line = JSON.stringify({
-    type: "user",
     message: {
-      role: "user",
       content: [
         {
-          type: "tool_result",
-          tool_use_id: "toolu_1",
-          is_error: true,
           content: [
-            { type: "text", text: "Exit code 1" },
-            { type: "text", text: "no git remotes found" },
+            { text: "Exit code 1", type: "text" },
+            { text: "no git remotes found", type: "text" },
           ],
+          is_error: true,
+          tool_use_id: "toolu_1",
+          type: "tool_result",
         },
       ],
+      role: "user",
     },
+    type: "user",
   });
   expect(parseLine(line)).toEqual([
-    { type: "toolEnd", id: "toolu_1", isError: true, output: "Exit code 1\nno git remotes found" },
+    { id: "toolu_1", isError: true, output: "Exit code 1\nno git remotes found", type: "toolEnd" },
   ]);
 });
 
 test("a success result marked as an error is not ok, and gives its text", () => {
   const line = JSON.stringify({
-    type: "result",
-    subtype: "success",
     is_error: true,
-    result: "API Error: 500",
     permission_denials: [],
+    result: "API Error: 500",
+    subtype: "success",
+    type: "result",
   });
   expect(parseLine(line)).toEqual([
     {
-      type: "result",
-      ok: false,
-      errors: ["API Error: 500"],
       denials: [],
+      errors: ["API Error: 500"],
       interrupted: false,
+      ok: false,
+      type: "result",
     },
   ]);
 });
@@ -227,7 +227,7 @@ test("review focus 1: a line split across chunks, in the middle of a character, 
   const cut = line.indexOf(Buffer.from("é")) + 1;
   const result = await collect(lines(chunks(line.subarray(0, cut), line.subarray(cut))));
   expect(result).toHaveLength(1);
-  expect(parseLine(result[0]!)).toEqual([{ type: "text", text: "Café" }]);
+  expect(parseLine(result[0]!)).toEqual([{ text: "Café", type: "text" }]);
 });
 
 test("lines() keeps a last line without a newline, and drops empty lines", async () => {
@@ -250,19 +250,19 @@ test("a session exists when its transcript is found", () => {
 const line = (value: Record<string, unknown>) => JSON.stringify(value);
 const assistant = (content: Array<Record<string, unknown>>, parent: string | null = null) =>
   line({
-    type: "assistant",
-    message: { role: "assistant", content },
+    message: { content, role: "assistant" },
     parent_tool_use_id: parent,
     session_id: SESSION,
+    type: "assistant",
   });
 const toolUse = (name: string, input: Record<string, unknown>, id = "toolu_2") =>
-  assistant([{ type: "tool_use", id, name, input }]);
+  assistant([{ id, input, name, type: "tool_use" }]);
 const init = line({
-  type: "system",
-  subtype: "init",
-  session_id: SESSION,
-  plugins: [{ name: "uraeda", path: "/plugin" }],
   plugin_errors: null,
+  plugins: [{ name: "uraeda", path: "/plugin" }],
+  session_id: SESSION,
+  subtype: "init",
+  type: "system",
 });
 
 test.each<[string, Array<string>, Array<Partial<AgentEvent>>]>([
@@ -270,51 +270,51 @@ test.each<[string, Array<string>, Array<Partial<AgentEvent>>]>([
     "a partial text delta",
     [
       line({
-        type: "stream_event",
         event: {
-          type: "content_block_delta",
+          delta: { text: "Hel", type: "text_delta" },
           index: 0,
-          delta: { type: "text_delta", text: "Hel" },
+          type: "content_block_delta",
         },
         parent_tool_use_id: null,
         session_id: SESSION,
+        type: "stream_event",
       }),
     ],
-    [{ type: "textDelta", text: "Hel" }],
+    [{ text: "Hel", type: "textDelta" }],
   ],
   [
     "a sub-agent's delta, and other stream events",
     [
       line({
-        type: "stream_event",
-        event: { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "x" } },
+        event: { delta: { text: "x", type: "text_delta" }, index: 0, type: "content_block_delta" },
         parent_tool_use_id: "toolu_1",
-      }),
-      line({ type: "stream_event", event: { type: "message_start" }, parent_tool_use_id: null }),
-      line({
         type: "stream_event",
-        event: { type: "content_block_delta", index: 0, delta: { type: "thinking_delta" } },
+      }),
+      line({ event: { type: "message_start" }, parent_tool_use_id: null, type: "stream_event" }),
+      line({
+        event: { delta: { type: "thinking_delta" }, index: 0, type: "content_block_delta" },
         parent_tool_use_id: null,
+        type: "stream_event",
       }),
     ],
     [],
   ],
   [
     "an assistant text block",
-    [assistant([{ type: "text", text: "Done." }])],
-    [{ type: "text", text: "Done." }],
+    [assistant([{ text: "Done.", type: "text" }])],
+    [{ text: "Done.", type: "text" }],
   ],
   [
     "a Read",
     [toolUse("Read", { file_path: "/w/src/a.ts" })],
     [
       {
-        type: "toolStart",
         id: "toolu_2",
-        name: "Read",
-        kind: "read",
         input: { file_path: "/w/src/a.ts" },
+        kind: "read",
+        name: "Read",
         target: "src/a.ts",
+        type: "toolStart",
       },
     ],
   ],
@@ -323,12 +323,12 @@ test.each<[string, Array<string>, Array<Partial<AgentEvent>>]>([
     [toolUse("Bash", { command: "ls" })],
     [
       {
-        type: "toolStart",
         id: "toolu_2",
-        name: "Bash",
-        kind: "execute",
         input: { command: "ls" },
+        kind: "execute",
+        name: "Bash",
         target: "ls",
+        type: "toolStart",
       },
     ],
   ],
@@ -337,12 +337,12 @@ test.each<[string, Array<string>, Array<Partial<AgentEvent>>]>([
     [toolUse("Grep", { pattern: "TODO" })],
     [
       {
-        type: "toolStart",
         id: "toolu_2",
-        name: "Grep",
-        kind: "search",
         input: { pattern: "TODO" },
+        kind: "search",
+        name: "Grep",
         target: "TODO",
+        type: "toolStart",
       },
     ],
   ],
@@ -351,12 +351,12 @@ test.each<[string, Array<string>, Array<Partial<AgentEvent>>]>([
     [toolUse("WebFetch", { url: "https://example.com" })],
     [
       {
-        type: "toolStart",
         id: "toolu_2",
-        name: "WebFetch",
-        kind: "fetch",
         input: { url: "https://example.com" },
+        kind: "fetch",
+        name: "WebFetch",
         target: "https://example.com",
+        type: "toolStart",
       },
     ],
   ],
@@ -365,31 +365,31 @@ test.each<[string, Array<string>, Array<Partial<AgentEvent>>]>([
     [toolUse("Edit", { file_path: "/w/a.ts" })],
     [
       {
-        type: "toolStart",
         id: "toolu_2",
-        name: "Edit",
-        kind: "edit",
         input: { file_path: "/w/a.ts" },
+        kind: "edit",
+        name: "Edit",
         target: "a.ts",
+        type: "toolStart",
       },
     ],
   ],
   [
     "a tool Claude Code adds later",
     [toolUse("TodoWrite", { todos: [] })],
-    [{ type: "toolStart", id: "toolu_2", name: "TodoWrite", kind: "other", input: { todos: [] } }],
+    [{ id: "toolu_2", input: { todos: [] }, kind: "other", name: "TodoWrite", type: "toolStart" }],
   ],
   [
     "an Agent",
     [toolUse("Agent", { description: "Map the runner code", prompt: "p" }, "toolu_1")],
     [
       {
-        type: "toolStart",
         id: "toolu_1",
-        name: "Agent",
-        kind: "other",
         input: { description: "Map the runner code", prompt: "p" },
+        kind: "other",
+        name: "Agent",
         subagent: { description: "Map the runner code" },
+        type: "toolStart",
       },
     ],
   ],
@@ -398,12 +398,12 @@ test.each<[string, Array<string>, Array<Partial<AgentEvent>>]>([
     [toolUse("Task", { description: "Map the runner code" }, "toolu_1")],
     [
       {
-        type: "toolStart",
         id: "toolu_1",
-        name: "Task",
-        kind: "other",
         input: { description: "Map the runner code" },
+        kind: "other",
+        name: "Task",
         subagent: { description: "Map the runner code" },
+        type: "toolStart",
       },
     ],
   ],
@@ -412,48 +412,48 @@ test.each<[string, Array<string>, Array<Partial<AgentEvent>>]>([
     [
       assistant(
         [
-          { type: "text", text: "Looking." },
-          { type: "tool_use", id: "toolu_3", name: "Glob", input: { pattern: "*.ts" } },
+          { text: "Looking.", type: "text" },
+          { id: "toolu_3", input: { pattern: "*.ts" }, name: "Glob", type: "tool_use" },
         ],
         "toolu_1",
       ),
       line({
-        type: "user",
         message: {
+          content: [{ content: "a.ts", tool_use_id: "toolu_3", type: "tool_result" }],
           role: "user",
-          content: [{ type: "tool_result", tool_use_id: "toolu_3", content: "a.ts" }],
         },
         parent_tool_use_id: "toolu_1",
+        type: "user",
       }),
     ],
     [
       {
-        type: "toolStart",
         id: "toolu_3",
-        name: "Glob",
-        kind: "search",
         input: { pattern: "*.ts" },
-        target: "*.ts",
+        kind: "search",
+        name: "Glob",
         parent: "toolu_1",
+        target: "*.ts",
+        type: "toolStart",
       },
-      { type: "toolEnd", id: "toolu_3", isError: false, output: "a.ts" },
+      { id: "toolu_3", isError: false, output: "a.ts", type: "toolEnd" },
     ],
   ],
   [
     "a message started",
-    [line({ type: "command_lifecycle", command_uuid: "m1", state: "started" })],
-    [{ type: "accepted", id: "m1" }],
+    [line({ command_uuid: "m1", state: "started", type: "command_lifecycle" })],
+    [{ id: "m1", type: "accepted" }],
   ],
   [
     "a message cancelled",
-    [line({ type: "command_lifecycle", command_uuid: "m1", state: "cancelled" })],
-    [{ type: "cancelled", id: "m1" }],
+    [line({ command_uuid: "m1", state: "cancelled", type: "command_lifecycle" })],
+    [{ id: "m1", type: "cancelled" }],
   ],
   [
     "a message queued, then completed",
     [
-      line({ type: "command_lifecycle", command_uuid: "m1", state: "queued" }),
-      line({ type: "command_lifecycle", command_uuid: "m1", state: "completed" }),
+      line({ command_uuid: "m1", state: "queued", type: "command_lifecycle" }),
+      line({ command_uuid: "m1", state: "completed", type: "command_lifecycle" }),
     ],
     [],
   ],
@@ -461,28 +461,28 @@ test.each<[string, Array<string>, Array<Partial<AgentEvent>>]>([
     "an interrupted turn",
     [
       line({
-        type: "result",
-        subtype: "error_during_execution",
-        is_error: true,
-        terminal_reason: "aborted_streaming",
         errors: ["[ede_diagnostic] aborted"],
+        is_error: true,
         permission_denials: [],
+        subtype: "error_during_execution",
+        terminal_reason: "aborted_streaming",
+        type: "result",
       }),
     ],
-    [{ type: "result", ok: false, denials: [], interrupted: true }],
+    [{ denials: [], interrupted: true, ok: false, type: "result" }],
   ],
   [
     "init at each turn",
     [init, init],
     [
-      { type: "init", sessionId: SESSION, plugins: ["uraeda"], pluginErrors: [] },
-      { type: "init", sessionId: SESSION, plugins: ["uraeda"], pluginErrors: [] },
+      { pluginErrors: [], plugins: ["uraeda"], sessionId: SESSION, type: "init" },
+      { pluginErrors: [], plugins: ["uraeda"], sessionId: SESSION, type: "init" },
     ],
   ],
   [
     "control responses, and the system lines of 2.1.296 with nothing to show",
     [
-      line({ type: "control_response", response: { subtype: "success", request_id: "r1" } }),
+      line({ response: { request_id: "r1", subtype: "success" }, type: "control_response" }),
       ...[
         "status",
         "hook_started",
@@ -490,7 +490,7 @@ test.each<[string, Array<string>, Array<Partial<AgentEvent>>]>([
         "task_progress",
         "thinking_tokens",
         "background_tasks_changed",
-      ].map((subtype) => line({ type: "system", subtype })),
+      ].map((subtype) => line({ subtype, type: "system" })),
       line({ type: "rate_limit_event" }),
     ],
     [],
@@ -509,43 +509,43 @@ test("the main agent's thinking and tool calls being written are activities; a s
   const blocks: Blocks = new Map();
   const parse = (event: Record<string, unknown>, parent: string | null = null) =>
     parseLine(
-      line({ type: "stream_event", event, parent_tool_use_id: parent }),
+      line({ event, parent_tool_use_id: parent, type: "stream_event" }),
       "/w",
       new Map(),
       blocks,
     );
   const start = (index: number, block: Record<string, unknown>) =>
-    parse({ type: "content_block_start", index, content_block: block });
+    parse({ content_block: block, index, type: "content_block_start" });
   const input = (index: number, partial_json: string) =>
     parse({
-      type: "content_block_delta",
+      delta: { partial_json, type: "input_json_delta" },
       index,
-      delta: { type: "input_json_delta", partial_json },
+      type: "content_block_delta",
     });
 
-  expect(start(0, { type: "thinking", thinking: "" })).toEqual([
-    { type: "activity", activity: { kind: "thinking" } },
+  expect(start(0, { thinking: "", type: "thinking" })).toEqual([
+    { activity: { kind: "thinking" }, type: "activity" },
   ]);
-  expect(start(1, { type: "tool_use", id: "toolu_1", name: "Write", input: {} })).toEqual([
-    { type: "activity", activity: { kind: "tool", name: "Write" } },
+  expect(start(1, { id: "toolu_1", input: {}, name: "Write", type: "tool_use" })).toEqual([
+    { activity: { kind: "tool", name: "Write" }, type: "activity" },
   ]);
   // The path is named once it is whole, made relative to the session's folder, and only once.
   expect(input(1, '{"file_path": "/w/specs/a/sp')).toEqual([]);
   expect(input(1, 'ec.md", "content": "# Spec')).toEqual([
-    { type: "activity", activity: { kind: "tool", name: "Write", target: "specs/a/spec.md" } },
+    { activity: { kind: "tool", name: "Write", target: "specs/a/spec.md" }, type: "activity" },
   ]);
-  expect(input(1, '\\n\\nMore", "file_path": "/w/b.md"}')).toEqual([]);
-  parse({ type: "content_block_stop", index: 1 });
+  expect(input(1, String.raw`\n\nMore", "file_path": "/w/b.md"}`)).toEqual([]);
+  parse({ index: 1, type: "content_block_stop" });
   expect(blocks.size).toBe(0);
   // An escaped quote stays in the path.
-  start(2, { type: "tool_use", id: "toolu_2", name: "Edit", input: {} });
-  expect(input(2, '{"file_path": "/w/a \\"b\\".md"}')).toEqual([
-    { type: "activity", activity: { kind: "tool", name: "Edit", target: 'a "b".md' } },
+  start(2, { id: "toolu_2", input: {}, name: "Edit", type: "tool_use" });
+  expect(input(2, String.raw`{"file_path": "/w/a \"b\".md"}`)).toEqual([
+    { activity: { kind: "tool", name: "Edit", target: 'a "b".md' }, type: "activity" },
   ]);
   // A sub-agent's blocks are its own: its thinking and tools show as its tool calls end.
   expect(
     parse(
-      { type: "content_block_start", index: 0, content_block: { type: "thinking" } },
+      { content_block: { type: "thinking" }, index: 0, type: "content_block_start" },
       "toolu_9",
     ),
   ).toEqual([]);
@@ -556,14 +556,14 @@ test("background sub-agents are reported by their tool calls; shells and watcher
   const parse = (value: Record<string, unknown>) =>
     parseLine(line({ type: "system", ...value }), undefined, tasks);
   const task = (id: string, type: string, extra: Record<string, unknown> = {}) => ({
+    description: id,
     task_id: id,
     task_type: type,
-    description: id,
     ...extra,
   });
 
   expect(
-    parse({ subtype: "task_started", task_id: "t1", tool_use_id: "toolu_1", description: "Map" }),
+    parse({ description: "Map", subtype: "task_started", task_id: "t1", tool_use_id: "toolu_1" }),
   ).toEqual([]);
   expect(
     parse({
@@ -575,30 +575,33 @@ test("background sub-agents are reported by their tool calls; shells and watcher
         task("t4", "local_agent", { ambient: true }),
       ],
     }),
-  ).toEqual([{ type: "background", tools: ["toolu_1", "t2"] }]);
+  ).toEqual([{ tools: ["toolu_1", "t2"], type: "background" }]);
   expect(parse({ subtype: "background_tasks_changed", tasks: [] })).toEqual([
-    { type: "background", tools: [] },
+    { tools: [], type: "background" },
   ]);
 });
 
 test.each<[Denial, string]>([
-  [{ tool: "Bash", input: { command: "gh pr create --draft" } }, "Bash(gh pr create --draft)"],
+  [{ input: { command: "gh pr create --draft" }, tool: "Bash" }, "Bash(gh pr create --draft)"],
   // An absolute path takes two slashes: one is relative to the settings' folder. Claude Code checks
   // a write against `Edit` rules only.
-  [{ tool: "Write", input: { file_path: "/home/me/.ssh/config" } }, "Edit(//home/me/.ssh/config)"],
-  [{ tool: "MultiEdit", input: { file_path: "/w/a.ts" } }, "Edit(//w/a.ts)"],
-  [{ tool: "Edit", input: { file_path: "/w/a.ts" } }, "Edit(//w/a.ts)"],
-  [{ tool: "Read", input: { file_path: "/w/b.ts" } }, "Read(//w/b.ts)"],
-  [{ tool: "Edit", input: { file_path: "src/a.ts" } }, "Edit(src/a.ts)"],
-  [{ tool: "WebFetch", input: { url: "https://example.com/a?b" } }, "WebFetch(domain:example.com)"],
-  [{ tool: "mcp__x__y", input: {} }, "mcp__x__y"],
+  [{ input: { file_path: "/home/me/.ssh/config" }, tool: "Write" }, "Edit(//home/me/.ssh/config)"],
+  [{ input: { file_path: "/w/a.ts" }, tool: "MultiEdit" }, "Edit(//w/a.ts)"],
+  [{ input: { file_path: "/w/a.ts" }, tool: "Edit" }, "Edit(//w/a.ts)"],
+  [{ input: { file_path: "/w/b.ts" }, tool: "Read" }, "Read(//w/b.ts)"],
+  [{ input: { file_path: "src/a.ts" }, tool: "Edit" }, "Edit(src/a.ts)"],
+  [{ input: { url: "https://example.com/a?b" }, tool: "WebFetch" }, "WebFetch(domain:example.com)"],
+  [{ input: {}, tool: "mcp__x__y" }, "mcp__x__y"],
   // A path rule is a gitignore pattern: its special characters are escaped, as Claude Code escapes
   // the paths it saves, so the rule matches only the path.
-  [{ tool: "Edit", input: { file_path: "/w/*.ts" } }, "Edit(//w/\\*.ts)"],
-  [{ tool: "Write", input: { file_path: "/w/**/a?[0].md" } }, "Edit(//w/\\*\\*/a\\?\\[0\\].md)"],
-  [{ tool: "Read", input: { file_path: "a\\b" } }, "Read(a\\\\b)"],
-  [{ tool: "Edit", input: { file_path: "!a.ts" } }, "Edit(\\!a.ts)"],
-  [{ tool: "Edit", input: { file_path: "#a.ts" } }, "Edit(\\#a.ts)"],
+  [{ input: { file_path: "/w/*.ts" }, tool: "Edit" }, String.raw`Edit(//w/\*.ts)`],
+  [
+    { input: { file_path: "/w/**/a?[0].md" }, tool: "Write" },
+    String.raw`Edit(//w/\*\*/a\?\[0\].md)`,
+  ],
+  [{ input: { file_path: "a\\b" }, tool: "Read" }, String.raw`Read(a\\b)`],
+  [{ input: { file_path: "!a.ts" }, tool: "Edit" }, String.raw`Edit(\!a.ts)`],
+  [{ input: { file_path: "#a.ts" }, tool: "Edit" }, String.raw`Edit(\#a.ts)`],
 ])("the allow rule of %o", (denial, rule) => {
   expect(allowRule(denial)).toBe(rule);
   expect(new ClaudeAdapter({ pluginDir: "/plugin" }).allowRule(denial)).toBe(rule);
@@ -606,7 +609,7 @@ test.each<[Denial, string]>([
 
 test("a command with a `*` has no allow rule: Claude Code would read it as a wildcard", () => {
   for (const command of ["rm -rf build/*", "git log --format=*", "ls:*"]) {
-    expect(allowRule({ tool: "Bash", input: { command } })).toBeUndefined();
+    expect(allowRule({ input: { command }, tool: "Bash" })).toBeUndefined();
   }
 });
 
@@ -617,7 +620,7 @@ test("review focus 5: a missing command exits as missing", async () => {
     resume: false,
   });
   const events = await collect(agent.events);
-  expect(events.at(-1)).toMatchObject({ type: "exit", missing: true });
+  expect(events.at(-1)).toMatchObject({ missing: true, type: "exit" });
   // Writing to a process that is gone does nothing.
   agent.send({ id: "m1", text: "hi", when: "steer" });
   agent.interrupt();
@@ -634,7 +637,7 @@ test("a missing directory exits with why, not as a missing command", async () =>
   });
   const events = await collect(agent.events);
   const exit = events.at(-1) as Extract<AgentEvent, { type: "exit" }>;
-  expect(exit).toMatchObject({ type: "exit", code: null });
+  expect(exit).toMatchObject({ code: null, type: "exit" });
   expect(exit.missing).toBeUndefined();
   expect(exit.stderr).toBe(`The session's directory is gone: ${cwd}`);
 });
@@ -710,23 +713,23 @@ test("send writes a user message with its uuid and priority", async () => {
   agent.close();
   const events = await collect(agent.events);
 
-  expect(events).toEqual([{ type: "exit", code: 0, stderr: "" }]);
+  expect(events).toEqual([{ code: 0, stderr: "", type: "exit" }]);
   const [steer, queue, takeBack] = written(join(dir, "stdin"));
   expect(steer).toEqual({
-    type: "user",
-    message: { role: "user", content: "hi" },
-    uuid: "m1",
+    message: { content: "hi", role: "user" },
     priority: "next",
+    type: "user",
+    uuid: "m1",
   });
   expect(queue).toEqual({
-    type: "user",
-    message: { role: "user", content: "then this" },
-    uuid: "m2",
+    message: { content: "then this", role: "user" },
     priority: "later",
+    type: "user",
+    uuid: "m2",
   });
   expect(takeBack).toMatchObject({
+    request: { message_uuid: "m2", subtype: "cancel_async_message" },
     type: "control_request",
-    request: { subtype: "cancel_async_message", message_uuid: "m2" },
   });
   expect(takeBack!.request_id).toEqual(expect.any(String));
 });
@@ -744,12 +747,12 @@ test("interrupt writes the interrupt control request, and close ends stdin", asy
   agent.close();
   const events = await collect(agent.events);
 
-  expect(events).toEqual([{ type: "exit", code: 0, stderr: "closed" }]);
+  expect(events).toEqual([{ code: 0, stderr: "closed", type: "exit" }]);
   const [first, second] = written(join(dir, "stdin"));
   expect(first).toEqual({
-    type: "control_request",
-    request_id: expect.any(String),
     request: { subtype: "interrupt" },
+    request_id: expect.any(String),
+    type: "control_request",
   });
   expect(second!.request_id).not.toBe(first!.request_id);
 });
@@ -771,7 +774,7 @@ test("kill sends its signal to the process", async () => {
       agent.kill("SIGINT");
     }
   }
-  expect(events.at(-1)).toEqual({ type: "exit", code: 130, stderr: "interrupted" });
+  expect(events.at(-1)).toEqual({ code: 130, stderr: "interrupted", type: "exit" });
 });
 
 /** Whether the process is running. */

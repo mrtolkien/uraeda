@@ -15,18 +15,18 @@ export function parseOptions(argv: Array<string>, env: Env): Options {
   const { values } = parseArgs({
     args: argv,
     options: {
-      repo: { type: "string" },
+      "allow-origin": { default: [], multiple: true, type: "string" },
       port: { type: "string" },
-      "allow-origin": { type: "string", multiple: true, default: [] },
+      repo: { type: "string" },
       "web-root": { type: "string" },
     },
   });
   return {
     ...env,
-    repo: values.repo ? resolve(values.repo) : env.repo,
+    allowOrigins: values["allow-origin"],
     given: Boolean(values.repo) || env.given,
     port: values.port ? Number(values.port) : env.port,
-    allowOrigins: values["allow-origin"],
+    repo: values.repo ? resolve(values.repo) : env.repo,
     webRoot: values["web-root"],
   };
 }

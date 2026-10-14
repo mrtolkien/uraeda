@@ -10,42 +10,42 @@ import * as stylex from "@stylexjs/stylex";
 import type { SessionStatus } from "uraeda-server/fate";
 
 const styles = stylex.create({
-  // Large enough for its mark to read, as the sidebar's rows draw it.
   dot: {
-    width: spacingVars["--spacing-4"],
+    // Large enough for its mark to read, as the sidebar's rows draw it.
     height: spacingVars["--spacing-4"],
+    width: spacingVars["--spacing-4"],
   },
-  // A sub-agent's row, and a line of text.
-  small: {
-    width: spacingVars["--spacing-3"],
-    height: spacingVars["--spacing-3"],
-  },
-  // Blue while working, as the mockup draws it: the theme's accent is its ink, near the idle grey.
-  working: {
-    backgroundColor: colorVars["--color-icon-blue"],
-  },
-  // A ring when idle: apart from working by its shape, also when the pulse is off.
   idle: {
-    boxSizing: "border-box",
+    // A ring when idle: apart from working by its shape, also when the pulse is off.
     backgroundColor: "transparent",
-    borderWidth: borderVars["--border-width"],
-    borderStyle: "solid",
     borderColor: colorVars["--color-icon-secondary"],
+    borderStyle: "solid",
+    borderWidth: borderVars["--border-width"],
+    boxSizing: "border-box",
   },
   mark: {
     fontSize: typeScaleVars["--text-heading-6-size"],
     fontWeight: fontWeightVars["--font-weight-bold"],
     lineHeight: "100%",
   },
+  small: {
+    // A sub-agent's row, and a line of text.
+    height: spacingVars["--spacing-3"],
+    width: spacingVars["--spacing-3"],
+  },
+  working: {
+    // Blue while working, as the mockup draws it: the theme's accent is its ink, near the idle grey.
+    backgroundColor: colorVars["--color-icon-blue"],
+  },
 });
 
 /** Each status's colour, and its mark beside the colour, so it never reads by colour alone. */
 const DOTS = {
-  working: { variant: "accent", mark: undefined },
-  "needs-you": { variant: "warning", mark: "!" },
-  failed: { variant: "error", mark: "×" },
-  unread: { variant: "success", mark: "✓" },
-  idle: { variant: "neutral", mark: undefined },
+  failed: { mark: "×", variant: "error" },
+  idle: { mark: undefined, variant: "neutral" },
+  "needs-you": { mark: "!", variant: "warning" },
+  unread: { mark: "✓", variant: "success" },
+  working: { mark: undefined, variant: "accent" },
 } as const;
 
 /**
@@ -54,21 +54,21 @@ const DOTS = {
  * reply not seen yet, and a grey ring when idle.
  */
 export function StatusMark({
-  status,
   label,
   small = false,
+  status,
 }: {
-  status: SessionStatus;
   label: string;
   small?: boolean;
+  status: SessionStatus;
 }) {
-  const { variant, mark } = DOTS[status];
+  const { mark, variant } = DOTS[status];
   return (
     <StatusDot
-      variant={variant}
-      label={label}
-      isPulsing={status === "working"}
       icon={mark ? <span {...stylex.props(styles.mark)}>{mark}</span> : undefined}
+      isPulsing={status === "working"}
+      label={label}
+      variant={variant}
       xstyle={[
         small ? styles.small : styles.dot,
         status === "working" && styles.working,

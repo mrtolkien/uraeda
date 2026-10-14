@@ -35,30 +35,30 @@ import { Paragraph } from "./layout/Paragraph.tsx";
 type File = NonNullable<ReturnType<typeof useFile>>;
 
 const styles = stylex.create({
-  // The comment field under the block on wide screens.
-  inline: {
-    marginBlockEnd: spacingVars["--spacing-4"],
-    padding: spacingVars["--spacing-3"],
-    borderWidth: borderVars["--border-width"],
-    borderStyle: "solid",
-    borderColor: colorVars["--color-border"],
-    borderRadius: radiusVars["--radius-container"],
-  },
-  // A story's heading, after a band to the screen's edges on the phone.
   band: {
+    // A story's heading, after a band to the screen's edges on the phone.
+    backgroundColor: colorVars["--color-background-muted"],
     height: spacingVars["--spacing-2"],
     marginBlock: spacingVars["--spacing-5"],
-    backgroundColor: colorVars["--color-background-muted"],
   },
   bandBleed: {
     marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
   },
+  inline: {
+    // The comment field under the block on wide screens.
+    borderColor: colorVars["--color-border"],
+    borderRadius: radiusVars["--radius-container"],
+    borderStyle: "solid",
+    borderWidth: borderVars["--border-width"],
+    marginBlockEnd: spacingVars["--spacing-4"],
+    padding: spacingVars["--spacing-3"],
+  },
+  sheetRoom: {
+    // Room at the page's end, so the last block can rise above the comment sheet.
+    height: "var(--size-viewport-height)",
+  },
   task: {
     marginBlock: spacingVars["--spacing-4"],
-  },
-  // Room at the page's end, so the last block can rise above the comment sheet.
-  sheetRoom: {
-    height: "var(--size-viewport-height)",
   },
 });
 
@@ -97,7 +97,7 @@ export function ReviewPage({ file }: { file: File }) {
   const tasks = version.items.plan?.tasks ?? [];
   const review = file.review?.review;
   const comments = useMemo(() => (review?.verdict === "pending" ? review.comments : []), [review]);
-  const { selection, draft, text, setText, last, sheet, tap, start, close } = useCommentDraft(wide);
+  const { close, draft, last, selection, setText, sheet, start, tap, text } = useCommentDraft(wide);
   const refusals = useRefusals();
   const { run } = refusals;
   const placed = usePlacedComments(comments, tree);
@@ -109,7 +109,7 @@ export function ReviewPage({ file }: { file: File }) {
     if (!draft) {
       return undefined;
     }
-    const input = { folder: file.folder, file: file.name };
+    const input = { file: file.name, folder: file.folder };
     const result =
       draft.kind === "edit"
         ? await fate.mutations.review.edit({
@@ -121,7 +121,7 @@ export function ReviewPage({ file }: { file: File }) {
               ...input,
               text: written,
               ...(draft.kind === "lines" && selection
-                ? { startLine: selection.start, endLine: selection.end }
+                ? { endLine: selection.end, startLine: selection.start }
                 : {}),
             },
             view: FileView,
@@ -149,7 +149,11 @@ export function ReviewPage({ file }: { file: File }) {
       .sort((a, b) => a.startLine - b.startLine)[0];
   const form = draft && (
     <CommentForm
-      key={draft.kind === "edit" ? `edit-${draft.number}` : draft.kind}
+      action={
+        agent?.available &&
+        draft.kind === "lines" &&
+        selection && <Button label="Ask the agent" onClick={() => ask(selection)} />
+      }
       anchor={
         draft.kind === "lines" && selection
           ? anchor(selection)
@@ -157,17 +161,13 @@ export function ReviewPage({ file }: { file: File }) {
             ? `Editing C${draft.number}`
             : "General"
       }
-      quote={draft.kind === "lines" && first ? quoteOf(textOf(tree, first)) : undefined}
-      text={text}
-      onTextChange={setText}
-      submitLabel={draft.kind === "edit" ? "Save comment" : "Add comment"}
-      onSubmit={send}
+      key={draft.kind === "edit" ? `edit-${draft.number}` : draft.kind}
       onCancel={close}
-      action={
-        agent?.available &&
-        draft.kind === "lines" &&
-        selection && <Button label="Ask the agent" onClick={() => ask(selection)} />
-      }
+      onSubmit={send}
+      onTextChange={setText}
+      quote={draft.kind === "lines" && first ? quoteOf(textOf(tree, first)) : undefined}
+      submitLabel={draft.kind === "edit" ? "Save comment" : "Add comment"}
+      text={text}
     />
   );
   /** The comment field, in the page on wide screens: on the phone, it is in the sheet. */
@@ -179,13 +179,13 @@ export function ReviewPage({ file }: { file: File }) {
       <div key={comment.number}>{inPage(true)}</div>
     ) : (
       <PendingComment
-        key={comment.number}
         comment={comment}
+        key={comment.number}
         onEdit={() => start({ kind: "edit", number: comment.number, text: comment.text })}
         onRemove={() =>
           void run(() =>
             fate.mutations.review.remove({
-              input: { folder: file.folder, file: file.name, number: comment.number },
+              input: { file: file.name, folder: file.folder, number: comment.number },
               view: FileView,
             }),
           )
@@ -195,55 +195,42 @@ export function ReviewPage({ file }: { file: File }) {
 
   return (
     <Page>
-      <Crumbs folder={file.folder} current={file.name} />
+      <Crumbs current={file.name} folder={file.folder} />
       <VStack gap={3}>
         {file.reviewStale && comments.length > 0 && (
           <Banner
-            status="warning"
-            title={`The ${file.kind} changed since your comments: your ${comments.length} pending ${
-              comments.length === 1 ? "comment is" : "comments are"
-            } on the previous version. Adding a comment replaces it.`}
             endContent={
               <Button
-                label="Start over"
                 clickAction={async () => {
                   await run(() =>
                     fate.mutations.review.startOver({
-                      input: { folder: file.folder, file: file.name },
+                      input: { file: file.name, folder: file.folder },
                       view: FileView,
                     }),
                   );
                 }}
+                label="Start over"
               />
             }
+            status="warning"
+            title={`The ${file.kind} changed since your comments: your ${comments.length} pending ${
+              comments.length === 1 ? "comment is" : "comments are"
+            } on the previous version. Adding a comment replaces it.`}
           />
         )}
-        <Text type="supporting" color="secondary">
+        <Text color="secondary" type="supporting">
           Tap a block to comment on it. Showing the version committed at <Code>{file.tip}</Code>
           {file.committed && ", which differs from the file on disk"}.
         </Text>
         <Blocks
           document={tree}
-          selection={{
-            isSelected: (block) =>
-              selection !== undefined &&
-              block.startLine >= selection.start &&
-              block.endLine <= selection.end,
-            onTap: tap,
-            after: (block) => (
-              <>
-                {placed.get(block.id)?.map(pendingNote)}
-                {inPage(draft?.kind === "lines" && block.id === last)}
-              </>
-            ),
-          }}
           override={(block) => {
             const story = stories.get(block.id);
             if (story) {
               return (
-                <div key={block.id} id={block.anchor}>
+                <div id={block.anchor} key={block.id}>
                   <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />
-                  <Text type="supporting" color="secondary" weight="semibold">
+                  <Text color="secondary" type="supporting" weight="semibold">
                     {story.id} · {story.priority}
                   </Text>
                   <Heading level={3}>{story.title}</Heading>
@@ -253,12 +240,12 @@ export function ReviewPage({ file }: { file: File }) {
             const task = taskHeadings.get(block.id);
             if (task) {
               return (
-                <div key={block.id} id={block.anchor} {...stylex.props(styles.task)}>
+                <div id={block.anchor} key={block.id} {...stylex.props(styles.task)}>
                   <Heading level={3}>
                     Task {task.number}: {task.title}{" "}
                     <Badge
-                      variant={task.done === task.total ? "success" : "neutral"}
                       label={`${task.done}/${task.total}`}
+                      variant={task.done === task.total ? "success" : "neutral"}
                     />
                   </Heading>
                 </div>
@@ -266,11 +253,24 @@ export function ReviewPage({ file }: { file: File }) {
             }
             return undefined;
           }}
+          selection={{
+            after: (block) => (
+              <>
+                {placed.get(block.id)?.map(pendingNote)}
+                {inPage(draft?.kind === "lines" && block.id === last)}
+              </>
+            ),
+            isSelected: (block) =>
+              selection !== undefined &&
+              block.startLine >= selection.start &&
+              block.endLine <= selection.end,
+            onTap: tap,
+          }}
         />
         <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />
         <Heading level={2}>Your review</Heading>
         {comments.length === 0 && (
-          <Text type="supporting" color="secondary">
+          <Text color="secondary" type="supporting">
             No comment yet.
           </Text>
         )}
@@ -279,8 +279,8 @@ export function ReviewPage({ file }: { file: File }) {
           comment.general ? (
             pendingNote(comment)
           ) : (
-            <VStack key={comment.number} gap={0}>
-              <Text type="supporting" color="secondary">
+            <VStack gap={0} key={comment.number}>
+              <Text color="secondary" type="supporting">
                 {where(comment)}
               </Text>
               <Paragraph>{comment.text}</Paragraph>
@@ -291,15 +291,15 @@ export function ReviewPage({ file }: { file: File }) {
           <Button label="Add a general comment" onClick={() => start({ kind: "general" })} />
         </HStack>
         {inPage(draft?.kind === "general")}
-        <ReviewVerdict file={file} comments={comments.length} refusals={refusals} />
+        <ReviewVerdict comments={comments.length} file={file} refusals={refusals} />
       </VStack>
       {!wide && draft && <div {...stylex.props(styles.sheetRoom)} />}
       {!wide && (
         <Overlay
-          label="Comment"
-          isOpen={draft !== undefined}
-          onClose={close}
           isModal={false}
+          isOpen={draft !== undefined}
+          label="Comment"
+          onClose={close}
           sheetHeight="capped"
           sheetRef={sheet}
         >

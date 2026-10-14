@@ -110,12 +110,12 @@ function skillLoaded(sessionId: string): boolean {
 }
 
 /** A line of Claude Code's stream-json output, as it printed it. */
-type Line = Record<string, unknown> & { type?: string; subtype?: string };
+type Line = Record<string, unknown> & { subtype?: string; type?: string };
 
 /** A message or a response the stdin checks wait for longer than this fails its check. */
 const WAIT_MS = 120_000;
 /** After a turn's `result`, a reply that should not come is waited for this long. */
-const QUIET_MS = 8_000;
+const QUIET_MS = 8000;
 /** A tool call long enough to write messages while it runs. */
 const SLEEP_5 =
   "Run the shell command `sleep 5` with the Bash tool, in the foreground, then reply with the word done.";
@@ -156,7 +156,7 @@ class StdinSession {
         try {
           this.lines.push(JSON.parse(line) as Line);
         } catch {
-          this.lines.push({ type: "unparsed", line });
+          this.lines.push({ line, type: "unparsed" });
         }
         for (const wake of this.#waiters.splice(0)) {
           wake();
@@ -179,7 +179,7 @@ class StdinSession {
       type: "user",
       uuid,
       ...(priority === undefined ? {} : { priority }),
-      message: { role: "user", content },
+      message: { content, role: "user" },
     });
     return uuid;
   }
@@ -233,7 +233,7 @@ function toolUses(line: Line): Array<{ id: string; name: string }> {
   const content = (line.message as { content?: unknown } | undefined)?.content;
   return Array.isArray(content)
     ? content.filter(
-        (block): block is { type: "tool_use"; id: string; name: string } =>
+        (block): block is { id: string; name: string; type: "tool_use" } =>
           block?.type === "tool_use" && typeof block.id === "string",
       )
     : [];
@@ -270,8 +270,8 @@ function names(lines: Array<Line>): Array<string> {
 /** The take-back requests to try, in order, for the `take back` check. */
 const TAKE_BACKS: Array<[string, (uuid: string) => Record<string, unknown>]> = [
   ["cancel_queued_message", (uuid) => ({ subtype: "cancel_queued_message", uuid })],
-  ["cancel_async_message", (uuid) => ({ subtype: "cancel_async_message", message_uuid: uuid })],
-  ["interrupt with cancel_queued", () => ({ subtype: "interrupt", cancel_queued: true })],
+  ["cancel_async_message", (uuid) => ({ message_uuid: uuid, subtype: "cancel_async_message" })],
+  ["interrupt with cancel_queued", () => ({ cancel_queued: true, subtype: "interrupt" })],
 ];
 
 /**
@@ -284,7 +284,7 @@ async function stdinChecks() {
     // 1. Two turns, a few seconds apart. 2. Their partial text. 5. Their lifecycle events.
     const first = session.say("Remember the word pineapple. Reply with the word ok.");
     const firstEnd = await session.next(0, isResult);
-    await new Promise((resolve) => setTimeout(resolve, 3_000));
+    await new Promise((resolve) => setTimeout(resolve, 3000));
     const from = session.lines.length;
     const second = session.say("Reply with the word two.");
     const secondEnd = await session.next(from, isResult);
@@ -330,7 +330,7 @@ async function stdinChecks() {
         steerEnd >= 0 &&
         steerExtra < 0 &&
         said(session.slice(start, steerEnd)).includes("steered"),
-      { steerTool, steerEnd, steerExtra, said: said(session.slice(start)) },
+      { said: said(session.slice(start)), steerEnd, steerExtra, steerTool },
     );
 
     // 4. A queued message, answered in a turn of its own.
@@ -358,13 +358,13 @@ async function stdinChecks() {
       await session.next(start, isToolUse);
       const uuid = session.say("Reply with the word cancelme.", "later");
       await session.next(start, lifecycle(uuid, "queued"));
-      session.write({ type: "control_request", request_id: randomUUID(), request: request(uuid) });
+      session.write({ request: request(uuid), request_id: randomUUID(), type: "control_request" });
       const cancelled = await session.next(start, lifecycle(uuid, "cancelled"), 10_000);
       const end = await session.next(start, isResult);
       const extra = await session.next(end + 1, isResult, QUIET_MS);
       const response = session.slice(start).find((line) => line.type === "control_response");
       const turnKept = said(session.slice(start, end)).includes("done");
-      tried.push({ name, cancelled, extra, turnKept, response: response?.response });
+      tried.push({ cancelled, extra, name, response: response?.response, turnKept });
       if (cancelled >= 0 && extra < 0 && !said(session.slice(start)).includes("cancelme")) {
         worked = name;
         break;
@@ -382,9 +382,9 @@ async function stdinChecks() {
     await session.next(start, isToolUse);
     const interruptedAt = Date.now();
     session.write({
-      type: "control_request",
-      request_id: randomUUID(),
       request: { subtype: "interrupt" },
+      request_id: randomUUID(),
+      type: "control_request",
     });
     const interruptEnd = await session.next(start, isResult, INTERRUPT_MS);
     const stoppedIn = Date.now() - interruptedAt;
@@ -397,7 +397,7 @@ async function stdinChecks() {
       interruptEnd >= 0 &&
         afterEnd >= 0 &&
         said(session.slice(afterStart, afterEnd)).includes("after"),
-      { interruptEnd, afterEnd, result: interruptResult },
+      { afterEnd, interruptEnd, result: interruptResult },
     );
 
     // 8. A sub-agent's messages carry the id of the tool call that started it.
@@ -461,10 +461,10 @@ async function stdinChecks() {
   const version = (await adapter.version()) ?? "unknown";
   console.log(`\nClaude Code ${version}`);
   console.log(`take back: ${takeBack ?? "none"}`);
-  const { subtype, is_error, terminal_reason, errors, result, user_message_uuids } =
+  const { errors, is_error, result, subtype, terminal_reason, user_message_uuids } =
     interruptResult ?? {};
   console.log(
-    `interrupt result: ${JSON.stringify({ subtype, is_error, terminal_reason, errors, result, user_message_uuids })}`,
+    `interrupt result: ${JSON.stringify({ errors, is_error, result, subtype, terminal_reason, user_message_uuids })}`,
   );
   console.log(`sub-agent lines: ${subAgentLines.join(", ")}`);
   console.log(`lines seen: ${seen.join(", ")}`);
@@ -538,7 +538,7 @@ try {
         stoppedIn <= INTERRUPT_MS &&
         find(after, "init")?.sessionId === sessionId &&
         find(after, "result")?.ok === true,
-      { stoppedIn, interrupted: summary(interrupted), after: summary(after) },
+      { after: summary(after), interrupted: summary(interrupted), stoppedIn },
     );
 
     // 6. The allow rule of a write outside the project matches it. `auto` mode lets that write
@@ -547,7 +547,7 @@ try {
     // way, and must block the write. A single leading slash would match nothing. The ask rule is
     // passed with `--settings` to this run only, through a wrapper around `claude`.
     const target = join(outside, "allowed.txt");
-    const rule = allowRule({ tool: "Write", input: { file_path: target } });
+    const rule = allowRule({ input: { file_path: target }, tool: "Write" });
     const settings = join(outside, "settings.json");
     writeFileSync(settings, JSON.stringify({ permissions: { ask: [rule] } }));
     const wrapper = join(outside, "claude-with-settings");
@@ -558,21 +558,21 @@ try {
       randomUUID(),
       false,
       undefined,
-      new ClaudeAdapter({ configDir, command: wrapper, pluginDir: PLUGIN_DIR }),
+      new ClaudeAdapter({ command: wrapper, configDir, pluginDir: PLUGIN_DIR }),
     );
     const denials = find(blocked, "result")?.denials ?? [];
     report(
       `the rule ${rule} matches a write outside the project`,
       denials.some((denial) => denial.tool === "Write" && allowRule(denial) === rule) &&
         !existsSync(target),
-      { rule, denials, written: existsSync(target) },
+      { denials, rule, written: existsSync(target) },
     );
   }
   await stdinChecks();
 } finally {
-  rmSync(cwd, { recursive: true, force: true });
-  rmSync(outside, { recursive: true, force: true });
-  rmSync(stdinDir, { recursive: true, force: true });
+  rmSync(cwd, { force: true, recursive: true });
+  rmSync(outside, { force: true, recursive: true });
+  rmSync(stdinDir, { force: true, recursive: true });
 }
 
 process.exit(failed ? 1 : 0);

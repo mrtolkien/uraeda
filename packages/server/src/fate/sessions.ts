@@ -48,7 +48,7 @@ export function pages(cache: SessionCache, turn: number): number {
 }
 
 export function agentRecord({ sessions }: Context): AgentRecord {
-  const { kind, name, capabilities } = sessions.adapter;
+  const { capabilities, kind, name } = sessions.adapter;
   return { id: AGENT_ID, kind, name, ...sessions.status(), capabilities: { ...capabilities } };
 }
 
@@ -93,14 +93,14 @@ function turnsOf(cache: SessionCache, session: string) {
     ? cache
         .itemsOf(running.id, "tool")
         .filter((tool) => tool.subagent !== undefined && tool.status === "in_progress")
-        .map((tool) => ({ id: tool.id, description: tool.subagent?.description ?? "" }))
+        .map((tool) => ({ description: tool.subagent?.description ?? "", id: tool.id }))
     : [];
   return {
-    turns,
+    blocked: latest ? cache.itemsOf(latest.id, "denial").some((denial) => !denial.allowed) : false,
     latest,
     queued: turns.some((turn) => turn.state === "queued"),
-    blocked: latest ? cache.itemsOf(latest.id, "denial").some((denial) => !denial.allowed) : false,
     subagents,
+    turns,
   };
 }
 
@@ -108,10 +108,10 @@ function turnsOf(cache: SessionCache, session: string) {
 function statusOf(row: SessionRow, read: ReturnType<typeof turnsOf>, feature?: FeatureView) {
   const status = sessionStatus({
     ...(read.latest === undefined ? {} : { latest: read.latest }),
-    queued: read.queued,
     blocked: read.blocked,
-    waitsOnHuman: feature?.step.waitsOn === "human",
+    queued: read.queued,
     seenAt: row.seenAt,
+    waitsOnHuman: feature?.step.waitsOn === "human",
   });
   return { status: status.status, statusLabel: status.label, statusReason: status.reason ?? null };
 }
@@ -155,16 +155,16 @@ export async function sessionRecord(ctx: RepoContext, row: SessionRow): Promise<
   const read = turnsOf(ctx.sessions.cache, row.id);
   const feature = row.folder === null ? undefined : await featureOf(ctx, row.folder);
   return {
-    id: row.id,
-    folder: row.folder,
     agent: row.agent,
+    folder: row.folder,
+    id: row.id,
     title: titleOf(row, feature),
     ...statusOf(row, read, feature),
-    unseen: unseen(row, read),
-    place: await placeOf(ctx, row, feature),
-    turns: read.turns.map((turn) => String(turn.id)),
     archived: row.archivedAt !== null,
+    place: await placeOf(ctx, row, feature),
     subagents: read.subagents,
+    turns: read.turns.map((turn) => String(turn.id)),
+    unseen: unseen(row, read),
   };
 }
 
@@ -183,18 +183,18 @@ export async function readTurn(ctx: RepoContext, id: string): Promise<TurnRecord
     return undefined;
   }
   return {
-    id: String(turn.id),
-    session: turn.sessionId,
-    kind: turn.kind,
-    trigger: turn.trigger,
-    step: turn.step,
-    allowed: turn.allowed,
-    state: turn.state,
-    reason: turn.reason,
-    startedAt: turn.startedAt,
-    endedAt: turn.endedAt,
-    pages: pages(ctx.sessions.cache, turn.id),
     activity: (turn.state === "running" && ctx.sessions.activity(turn.id)) || null,
+    allowed: turn.allowed,
+    endedAt: turn.endedAt,
+    id: String(turn.id),
+    kind: turn.kind,
+    pages: pages(ctx.sessions.cache, turn.id),
+    reason: turn.reason,
+    session: turn.sessionId,
+    startedAt: turn.startedAt,
+    state: turn.state,
+    step: turn.step,
+    trigger: turn.trigger,
   };
 }
 
@@ -210,11 +210,11 @@ export async function readTurnLog(
   const [turn, page] = [Number(match[1]), Number(match[2])];
   return {
     id,
-    turn: String(turn),
-    page,
     items: ctx.sessions.cache
       .items(turn, page * TURN_PAGE, TURN_PAGE)
       .filter((item) => !(item.kind === "message" && item.state === "taken-back")),
+    page,
+    turn: String(turn),
   };
 }
 
@@ -237,14 +237,14 @@ async function rows(
       const read = turnsOf(cache, row.id);
       const { status, statusLabel } = statusOf(row, read, feature);
       return {
-        id: row.id,
+        archived: row.archivedAt !== null,
         folder: row.folder,
-        title: titleOf(row, feature),
+        id: row.id,
         status,
         statusLabel,
-        archived: row.archivedAt !== null,
-        updatedAt: row.updatedAt,
         subagents: read.subagents,
+        title: titleOf(row, feature),
+        updatedAt: row.updatedAt,
       };
     })
     .sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
@@ -307,7 +307,7 @@ export async function readWorkflowMessage(
   if (!next) {
     return undefined;
   }
-  const { step, branch } = next;
+  const { branch, step } = next;
   const refusal =
     branch === undefined
       ? REFUSALS.noBranch
@@ -315,22 +315,22 @@ export async function readWorkflowMessage(
         ? REFUSALS.human
         : null;
   if (refusal !== null || branch === undefined || !step.reference) {
-    return { id, text: "", step: step.name, refusal };
+    return { id, refusal, step: step.name, text: "" };
   }
   const feature = await featureOf(ctx, folder);
   return {
     id,
+    refusal: null,
+    step: step.name,
     text: runMessage({
-      folder,
       branch,
       bug: feature?.kind === "bug",
-      step: step.name,
+      folder,
       reference: step.reference,
+      step: step.name,
       trigger: trigger as Trigger,
       ...(file.length === 0 ? {} : { file: file.join(":") }),
     }),
-    step: step.name,
-    refusal: null,
   };
 }
 

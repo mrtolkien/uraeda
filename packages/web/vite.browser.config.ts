@@ -23,11 +23,11 @@ const plugins = (base.plugins ?? []).filter(
  * own token, so a test only ever ends its own turn.
  */
 const shared = globalThis as {
-  uraedaRepoTurn?: Promise<void>;
-  uraedaRepoHolder?: { token: number; release: () => void };
-  uraedaRepoTokens?: number;
   /** The test's repository: its folder, and its name in the test server's list. */
-  uraedaRepo?: { path: string; name: string };
+  uraedaRepo?: { name: string; path: string };
+  uraedaRepoHolder?: { release: () => void; token: number };
+  uraedaRepoTokens?: number;
+  uraedaRepoTurn?: Promise<void>;
 };
 
 /** The folder of the test's repository. */
@@ -35,7 +35,7 @@ function repoFolder(): string {
   return shared.uraedaRepo!.path;
 }
 
-type Context = { page: Page; frame: () => Promise<Frame> };
+type Context = { frame: () => Promise<Frame>; page: Page };
 
 /** The test server's agent, which the tests that follow a session drive. */
 const agent = new FakeAdapter();
@@ -52,17 +52,17 @@ const commands = {
     shared.uraedaRepoTurn = previous.then(() => new Promise<void>((done) => (release = done)));
     await previous;
     const token = (shared.uraedaRepoTokens = (shared.uraedaRepoTokens ?? 0) + 1);
-    shared.uraedaRepoHolder = { token, release };
+    shared.uraedaRepoHolder = { release, token };
     const path = fixtureRepo();
     const { repository } = await addRepository(process.env.URAEDA_DATA_DIR!, path);
     // Served at once, without waiting for the server's watch of the list.
     await reloadRepositories();
-    shared.uraedaRepo = { path, name: repository.name };
+    shared.uraedaRepo = { name: repository.name, path };
     agent.sent = [];
     // A turn whose test gave up waiting for it is never released by that test: it ends once longer
     // than any test and its hooks, so one stuck test does not hold up every one after it.
     setTimeout(() => void commands.releaseRepo(undefined, token), 120_000).unref();
-    return { token, name: repository.name };
+    return { name: repository.name, token };
   },
   /**
    * Ends a test's turn: its repository leaves the list, which closes its watch, its copy is
@@ -75,12 +75,12 @@ const commands = {
     }
     // The agent's process ends with the test: the next test's session opens one of its own.
     agent.exit(1, "ended by the test");
-    const { path, name } = shared.uraedaRepo!;
+    const { name, path } = shared.uraedaRepo!;
     try {
       await removeRepository(process.env.URAEDA_DATA_DIR!, name);
       await reloadRepositories();
     } finally {
-      rmSync(path, { recursive: true, force: true });
+      rmSync(path, { force: true, recursive: true });
       shared.uraedaRepo = undefined;
       shared.uraedaRepoHolder = undefined;
       holder.release();
@@ -101,7 +101,7 @@ const commands = {
   agentAccept(_context: unknown, index = -1) {
     const message = agent.sent.at(index);
     if (message) {
-      agent.emit({ type: "accepted", id: message.id });
+      agent.emit({ id: message.id, type: "accepted" });
     }
   },
   /** Sends events on the agent's current process, as Claude Code would print them. */
@@ -120,7 +120,7 @@ const commands = {
    */
   async mouse(
     context: Context,
-    steps: Array<{ type: "move" | "down" | "up" | "wait"; x?: number; y?: number; ms?: number }>,
+    steps: Array<{ ms?: number; type: "move" | "down" | "up" | "wait"; x?: number; y?: number }>,
   ) {
     const frame = await context.frame();
     const box = await (await frame.frameElement()).boundingBox();
@@ -145,17 +145,17 @@ const commands = {
 };
 
 export type RepoCommands = {
-  takeRepo: () => Promise<{ token: number; name: string }>;
-  releaseRepo: (token: number) => Promise<void>;
-  readRepo: (path?: string) => Promise<string>;
-  writeRepo: (text: string, path?: string) => Promise<void>;
-  agentSent: () => Promise<Array<{ id: string; text: string; when: string }>>;
   agentAccept: (index?: number) => Promise<void>;
   agentEmit: (events: Array<AgentEvent>) => Promise<void>;
   agentFinish: (code?: number, stderr?: string) => Promise<void>;
+  agentSent: () => Promise<Array<{ id: string; text: string; when: string }>>;
   mouse: (
-    steps: Array<{ type: "move" | "down" | "up" | "wait"; x?: number; y?: number; ms?: number }>,
+    steps: Array<{ ms?: number; type: "move" | "down" | "up" | "wait"; x?: number; y?: number }>,
   ) => Promise<void>;
+  readRepo: (path?: string) => Promise<string>;
+  releaseRepo: (token: number) => Promise<void>;
+  takeRepo: () => Promise<{ name: string; token: number }>;
+  writeRepo: (text: string, path?: string) => Promise<void>;
 };
 
 export default defineConfig({
@@ -168,32 +168,33 @@ export default defineConfig({
   // tests run: bundled late, on a cold cache, it reloads the browser and fails the test files.
   optimizeDeps: { include: ["@stylexjs/stylex/lib/stylex-inject"] },
   test: {
-    name: "uraeda-web-browser",
-    include: ["src/__browser__/**/*.test.tsx"],
     globalSetup: ["src/__browser__/setup.ts"],
+    include: ["src/__browser__/**/*.test.tsx"],
+    name: "uraeda-web-browser",
     testTimeout: 30_000,
     // A test's turn waits for the other size's test, up to its own timeout.
     hookTimeout: 60_000,
     // Test files run in frames of one page, whose history they share: one file's Back would move
     // another's. One file at a time, in each browser.
     fileParallelism: false,
-    // CI's WebKit draws without a GPU, and its scrolling and animations take longer than a desktop's.
-    expect: { poll: { timeout: 5_000 } },
+    // WebKit, at a phone's size and a desktop's.
     browser: {
+      commands,
       enabled: true,
       headless: true,
-      provider: playwright(),
-      commands,
       instances: [
         // A touch screen, as a phone has.
         {
           browser: "webkit",
           name: "phone",
-          viewport: { width: 402, height: 874 },
           provider: playwright({ contextOptions: { hasTouch: true } }),
+          viewport: { height: 874, width: 402 },
         },
-        { browser: "webkit", name: "desktop", viewport: { width: 1440, height: 900 } },
+        { browser: "webkit", name: "desktop", viewport: { height: 900, width: 1440 } },
       ],
+      provider: playwright(),
     },
+    // CI's WebKit draws without a GPU, and its scrolling and animations take longer than a desktop's.
+    expect: { poll: { timeout: 5000 } },
   },
 });

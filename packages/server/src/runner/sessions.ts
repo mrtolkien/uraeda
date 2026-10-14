@@ -44,8 +44,8 @@ const now = () => new Date().toISOString();
 export class Sessions {
   #options: {
     adapter: Adapter;
-    cache: SessionCache;
     binding: Binding;
+    cache: SessionCache;
     onChange: (change: SessionChange) => void;
   };
   #status: { available: boolean; version: string | null } = { available: false, version: null };
@@ -55,21 +55,21 @@ export class Sessions {
 
   constructor(options: {
     adapter: Adapter;
-    cache: SessionCache;
     binding: Binding;
+    cache: SessionCache;
     onChange: (change: SessionChange) => void;
   }) {
     this.#options = options;
     // Each part reaches the others through the context, filled once they are all made.
     const context = {
       adapter: options.adapter,
-      cache: options.cache,
       binding: options.binding,
+      cache: options.cache,
       changed: (live, turn, state) =>
         options.onChange({
+          folder: live.folder,
           repo: live.repo,
           session: live.id,
-          folder: live.folder,
           ...(turn === undefined ? {} : { turn }),
           ...(state === undefined ? {} : { state }),
         }),
@@ -156,10 +156,10 @@ export class Sessions {
     }
     try {
       return cache.createSession({
-        repo: root,
-        folder,
         agent: this.adapter.kind,
+        folder,
         nativeId: randomUUID(),
+        repo: root,
         title: null,
       });
     } catch (error) {
@@ -175,10 +175,10 @@ export class Sessions {
   /** A new chat, without a feature, titled by its first message. */
   async newChat(repo: string): Promise<SessionRow> {
     return this.cache.createSession({
-      repo: await this.mainRoot(repo),
-      folder: null,
       agent: this.adapter.kind,
+      folder: null,
       nativeId: randomUUID(),
+      repo: await this.mainRoot(repo),
       title: null,
     });
   }
@@ -192,7 +192,7 @@ export class Sessions {
   async send(
     repo: string,
     session: string,
-    input: { text: string; workflow?: { trigger: Trigger; file?: string } },
+    input: { text: string; workflow?: { file?: string; trigger: Trigger } },
   ): Promise<{ turn: number }> {
     if (input.text.trim() === "") {
       throw refused(REFUSALS.blank);
@@ -204,9 +204,9 @@ export class Sessions {
 
   async #send(
     live: Live,
-    { text, workflow }: { text: string; workflow?: { trigger: Trigger; file?: string } },
+    { text, workflow }: { text: string; workflow?: { file?: string; trigger: Trigger } },
   ): Promise<{ turn: number }> {
-    const { cache, adapter, binding, turns, processes, changed } = this.#context;
+    const { adapter, binding, cache, changed, processes, turns } = this.#context;
     let step: string | null = null;
     let branch: string | undefined;
     if (live.folder !== null) {
@@ -237,9 +237,9 @@ export class Sessions {
 
     // During a turn, a human message joins it, when the agent can steer and the turn is not ending.
     if (live.turn && !live.turn.stop && !workflow && adapter.capabilities.steer) {
-      const item: Message = { kind: "message", id, text, origin, state: "pending", at: now() };
+      const item: Message = { at: now(), id, kind: "message", origin, state: "pending", text };
       const seq = cache.appendItem(live.turn.id, item);
-      live.messages.set(id, { turn: live.turn.id, seq, item, written: true });
+      live.messages.set(id, { item, seq, turn: live.turn.id, written: true });
       changed(live, live.turn.id);
       live.proc?.agent.send({ id, text, when: "steer" });
       return { turn: live.turn.id };
@@ -249,19 +249,19 @@ export class Sessions {
     const opening =
       kind === "chat" && live.folder !== null && branch !== undefined && this.#opens(live)
         ? chatOpening({
-            folder: live.folder,
             branch,
             bug: (await binding.readFeature(live.repo, live.folder)).kind === "bug",
+            folder: live.folder,
           })
         : undefined;
     const item: Message = {
-      kind: "message",
       id,
-      text,
+      kind: "message",
       origin,
+      text,
       ...(opening === undefined ? {} : { opening }),
-      state: "pending",
       at: now(),
+      state: "pending",
     };
     const message: Outgoing = {
       id,
@@ -269,10 +269,10 @@ export class Sessions {
       when: "queue",
     };
     const turn = {
-      kind,
-      trigger: workflow?.trigger ?? null,
-      step,
       allowed: null,
+      kind,
+      step,
+      trigger: workflow?.trigger ?? null,
     };
 
     // A busy session queues the turn: Uraeda writes its message once the running turn ends.
@@ -280,7 +280,7 @@ export class Sessions {
       const queued = cache.addTurn({ sessionId: live.id, ...turn, state: "queued" });
       turns.track(queued);
       const seq = cache.appendItem(queued, item);
-      live.messages.set(id, { turn: queued, seq, item, written: false });
+      live.messages.set(id, { item, seq, turn: queued, written: false });
       live.queue.push({ id: queued, message });
       changed(live, queued, "queued");
       return { turn: queued };
@@ -329,7 +329,7 @@ export class Sessions {
     if (queued >= 0) {
       live.queue.splice(queued, 1);
       turns.mark(live, sent, "taken-back");
-      turns.end(live, sent.turn, { state: "stopped", reason: "Taken back." });
+      turns.end(live, sent.turn, { reason: "Taken back.", state: "stopped" });
       return;
     }
     if (!this.adapter.capabilities.takeBack) {
@@ -359,7 +359,7 @@ export class Sessions {
     this.#available();
     const live = this.#context.live.of(await this.#own(repo, session));
     return this.#context.live.serial(live, async () => {
-      const { cache, processes, turns, changed } = this.#context;
+      const { cache, changed, processes, turns } = this.#context;
       const denial = cache.itemsOf(turn, "denial").find((item) => item.seq === seq);
       if (cache.turn(turn)?.sessionId !== live.id || !denial) {
         throw new Error(`no blocked action ${seq} in turn ${turn}`);
@@ -375,20 +375,20 @@ export class Sessions {
       const id = randomUUID();
       const text = retryMessage(denial);
       const started = turns.begin(live, {
-        kind: "allow",
-        trigger: null,
-        step: null,
         allowed: rule,
-        item: { kind: "message", id, text, origin: "human", state: "pending" },
+        item: { id, kind: "message", origin: "human", state: "pending", text },
+        kind: "allow",
         message: { id, text, when: "queue" },
         replaced,
+        step: null,
+        trigger: null,
       });
       cache.updateItem(turn, seq, {
         kind: "denial",
         tool: denial.tool,
         ...(denial.target === undefined ? {} : { target: denial.target }),
-        rule,
         allowed: true,
+        rule,
       });
       changed(live, turn);
       return { turn: started };
@@ -405,7 +405,7 @@ export class Sessions {
       throw refused(REFUSALS.blank);
     }
     this.cache.updateSession(row.id, { title: chatTitle(title) });
-    this.#options.onChange({ repo: row.repo, session: row.id, folder: row.folder });
+    this.#options.onChange({ folder: row.folder, repo: row.repo, session: row.id });
   }
 
   /** Archives a chat, or brings it back. */
@@ -415,14 +415,14 @@ export class Sessions {
       throw new Error("a feature's session is not archived");
     }
     this.cache.updateSession(row.id, { archivedAt: archived ? now() : null });
-    this.#options.onChange({ repo: row.repo, session: row.id, folder: row.folder });
+    this.#options.onChange({ folder: row.folder, repo: row.repo, session: row.id });
   }
 
   /** Records that the human saw the session. */
   seen(repo: string, session: string): void {
     const row = this.#ownNow(repo, session);
     this.cache.updateSession(row.id, { seenAt: now() });
-    this.#options.onChange({ repo: row.repo, session: row.id, folder: row.folder });
+    this.#options.onChange({ folder: row.folder, repo: row.repo, session: row.id });
   }
 
   /** How many of the session's messages this server keeps: those of its turns not ended, or unread. */
@@ -442,14 +442,14 @@ export class Sessions {
 
   /** Stops every turn and closes every process, as the server stops, and waits for them. */
   async closeAll(): Promise<void> {
-    const { turns, processes } = this.#context;
+    const { processes, turns } = this.#context;
     const procs: Array<Promise<void>> = [];
     for (const live of this.#context.live.values()) {
       for (const queued of live.queue.splice(0)) {
-        turns.end(live, queued.id, { state: "stopped", reason: SERVER_STOPPED });
+        turns.end(live, queued.id, { reason: SERVER_STOPPED, state: "stopped" });
       }
       if (live.turn) {
-        turns.halt(live, live.turn, { state: "stopped", reason: SERVER_STOPPED });
+        turns.halt(live, live.turn, { reason: SERVER_STOPPED, state: "stopped" });
       }
       if (live.proc) {
         processes.close(live.proc);

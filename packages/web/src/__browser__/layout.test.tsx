@@ -63,10 +63,10 @@ afterEach(() => {
 });
 
 const CASES = PAGES.flatMap(([name, path, text, insets]) =>
-  (["light", "dark"] as const).map((mode) => ({ name, path, text, insets, mode })),
+  (["light", "dark"] as const).map((mode) => ({ insets, mode, name, path, text })),
 );
 
-test.each(CASES)("$name, in $mode", async ({ path, text, insets, mode }) => {
+test.each(CASES)("$name, in $mode", async ({ insets, mode, path, text }) => {
   await checkCase(path, text, insets, mode);
 });
 
@@ -124,7 +124,7 @@ test("a task view keeps its address as the window crosses 768 px", async () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
     });
-    await screen.findByRole("radio", { name: "Next", checked: true });
+    await screen.findByRole("radio", { checked: true, name: "Next" });
     // A pane beside home.
     expect(screen.getByRole("link", { name: /Git listener process/ })).toBeTruthy();
 
@@ -134,14 +134,14 @@ test("a task view keeps its address as the window crosses 768 px", async () => {
     await expect
       .poll(() => screen.queryByRole("link", { name: /Git listener process/ }))
       .toBeNull();
-    expect(screen.getByRole("radio", { name: "Next", checked: true })).toBeTruthy();
+    expect(screen.getByRole("radio", { checked: true, name: "Next" })).toBeTruthy();
     expect(window.location.pathname).toBe(atRepo(TASK));
 
     await page.viewport(1440, 900);
     await expect.poll(() => window.innerWidth).toBe(1440);
     // A pane again.
     expect(await screen.findByRole("link", { name: /Git listener process/ })).toBeTruthy();
-    expect(screen.getByRole("radio", { name: "Next", checked: true })).toBeTruthy();
+    expect(screen.getByRole("radio", { checked: true, name: "Next" })).toBeTruthy();
     expect(window.location.pathname).toBe(atRepo(TASK));
   } finally {
     await page.viewport(1440, 900);
@@ -190,12 +190,12 @@ test("the folded navigation keeps ＋, Home, and the repository menu (US6 4, 5; 
 // The agents decision: the tests `vp run ready` runs use the fake adapter, never Claude Code.
 test("the test server runs the fake agent", async () => {
   const response = await fetch("/fate", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
     body: JSON.stringify({
+      operations: [{ id: "1", ids: ["agent"], kind: "byId", select: ["version"], type: "Agent" }],
       version: 1,
-      operations: [{ id: "1", kind: "byId", type: "Agent", ids: ["agent"], select: ["version"] }],
     }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
   });
   const { results } = (await response.json()) as { results: Array<{ data: Array<unknown> }> };
   expect(results[0].data).toEqual([{ id: "agent", version: "0.0.0 (fake agent)" }]);
@@ -208,27 +208,27 @@ const CLI = "2026-10-12-cli-tuis";
 /** A turn's lines with long paths and commands, as a session shows them. */
 const LONG_TURN = [
   {
-    type: "text" as const,
     text: `Reading **the answers** of round 01 in \`${LONG}\`, then the spec.`,
+    type: "text" as const,
   },
   {
-    type: "toolStart" as const,
     id: "a",
-    name: "Read",
-    kind: "read" as const,
     input: { file_path: LONG },
+    kind: "read" as const,
+    name: "Read",
     target: LONG,
-  },
-  { type: "toolEnd" as const, id: "a", isError: false, output: `# ${LONG}` },
-  {
     type: "toolStart" as const,
-    id: "b",
-    name: "Bash",
-    kind: "execute" as const,
-    input: { command: `ura check ${LONG} && vp run ready` },
-    target: `ura check ${LONG} && vp run ready`,
   },
-  { type: "retry" as const, attempt: 1, delayMs: 30_000, error: "rate_limit" },
+  { id: "a", isError: false, output: `# ${LONG}`, type: "toolEnd" as const },
+  {
+    id: "b",
+    input: { command: `ura check ${LONG} && vp run ready` },
+    kind: "execute" as const,
+    name: "Bash",
+    target: `ura check ${LONG} && vp run ready`,
+    type: "toolStart" as const,
+  },
+  { attempt: 1, delayMs: 30_000, error: "rate_limit", type: "retry" as const },
 ];
 
 // A feature's session with long paths and commands, working, then failed with an action blocked,
@@ -236,9 +236,9 @@ const LONG_TURN = [
 // pages', in both themes.
 test.each(
   (["working", "failed"] as const).flatMap((state) =>
-    (["light", "dark"] as const).map((mode) => ({ state, mode })),
+    (["light", "dark"] as const).map((mode) => ({ mode, state })),
   ),
-)("a feature's session, $state, and its agent section, in $mode", async ({ state, mode }) => {
+)("a feature's session, $state, and its agent section, in $mode", async ({ mode, state }) => {
   window.localStorage.setItem("uraeda.theme", mode);
   await show(`/f/${CLI}/session`, "CLI TUIs");
   await startTurn("Plan the CLI.", LONG_TURN);
@@ -246,11 +246,11 @@ test.each(
   if (state === "failed") {
     await agent.agentEmit([
       {
-        type: "result",
-        ok: false,
+        denials: [{ input: { command: `gh pr create --draft --title "${LONG}"` }, tool: "Bash" }],
         errors: ["The tests failed."],
-        denials: [{ tool: "Bash", input: { command: `gh pr create --draft --title "${LONG}"` } }],
         interrupted: false,
+        ok: false,
+        type: "result",
       },
     ]);
     await screen.findByRole("button", { name: "Allow and retry" }, LIVE);
@@ -273,21 +273,21 @@ async function blockedChat() {
   await agent.agentAccept();
   await agent.agentEmit([
     {
-      type: "toolStart",
       id: "a",
-      name: "Bash",
-      kind: "execute",
       input: { command: "git tag v0.3.0" },
+      kind: "execute",
+      name: "Bash",
       target: "git tag v0.3.0",
+      type: "toolStart",
     },
-    { type: "toolEnd", id: "a", isError: false, output: "" },
-    { type: "text", text: "I created the tag `v0.3.0`, but pushing it was blocked." },
+    { id: "a", isError: false, output: "", type: "toolEnd" },
+    { text: "I created the tag `v0.3.0`, but pushing it was blocked.", type: "text" },
     {
-      type: "result",
-      ok: true,
+      denials: [{ input: { command: "git push origin v0.3.0" }, tool: "Bash" }],
       errors: [],
-      denials: [{ tool: "Bash", input: { command: "git push origin v0.3.0" } }],
       interrupted: false,
+      ok: true,
+      type: "result",
     },
   ]);
   await expect
@@ -320,21 +320,21 @@ async function navigation() {
 
 test.each(
   ["CLI", "zzz", ""].flatMap((query) =>
-    (["light", "dark"] as const).map((mode) => ({ query, mode })),
+    (["light", "dark"] as const).map((mode) => ({ mode, query })),
   ),
-)("the sidebar with sessions, searched for “$query”, in $mode", async ({ query, mode }) => {
+)("the sidebar with sessions, searched for “$query”, in $mode", async ({ mode, query }) => {
   window.localStorage.setItem("uraeda.theme", mode);
   // A chat, then a feature's session with a sub-agent at work.
   await blockedChat();
   await show(`/f/${CLI}/session`, "CLI TUIs");
   await startTurn("Plan the CLI.", [
     {
-      type: "toolStart",
       id: "task",
-      name: "Task",
-      kind: "other",
       input: {},
+      kind: "other",
+      name: "Task",
       subagent: { description: "Map the runner code" },
+      type: "toolStart",
     },
   ]);
   const nav = await navigation();

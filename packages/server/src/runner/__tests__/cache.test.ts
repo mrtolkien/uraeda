@@ -11,21 +11,21 @@ const REPO = "/repo/a";
 const FOLDER = "2026-10-12-cli-tuis";
 
 const feature = {
-  repo: REPO,
-  folder: FOLDER,
   agent: "claude",
+  folder: FOLDER,
   nativeId: "3f2c",
+  repo: REPO,
   title: null,
 };
 
 const chat = { ...feature, folder: null, title: "New chat" };
 
 const workflowTurn = {
-  kind: "workflow" as const,
-  trigger: "manual" as const,
-  step: "plan",
   allowed: null,
+  kind: "workflow" as const,
   state: "running" as const,
+  step: "plan",
+  trigger: "manual" as const,
 };
 
 /** A pid no process has: above Linux's and macOS's highest. */
@@ -39,14 +39,14 @@ test("a session keeps its fields, and their updates", () => {
   const created = cache.createSession(feature);
 
   expect(created).toMatchObject({
-    repo: REPO,
-    folder: FOLDER,
     agent: "claude",
-    nativeId: "3f2c",
-    title: null,
-    seenAt: null,
     archivedAt: null,
+    folder: FOLDER,
+    nativeId: "3f2c",
     pid: null,
+    repo: REPO,
+    seenAt: null,
+    title: null,
   });
   expect(created.id).toMatch(/^[0-9a-f-]{36}$/);
   expect(created.updatedAt).toBe(created.createdAt);
@@ -59,8 +59,8 @@ test("a session keeps its fields, and their updates", () => {
 
   expect(cache.session(created.id)).toMatchObject({
     nativeId: "9a9a",
-    title: null,
     seenAt: "2026-10-13T10:00:00.000Z",
+    title: null,
   });
 });
 
@@ -88,34 +88,34 @@ test("a session's turns come back oldest first, with their start and end", () =>
   const first = cache.addTurn({ sessionId: session.id, ...workflowTurn });
   cache.endTurn(first, { state: "done" });
   const second = cache.addTurn({
-    sessionId: session.id,
-    kind: "chat",
-    trigger: null,
-    step: null,
     allowed: null,
+    kind: "chat",
+    sessionId: session.id,
     state: "queued",
+    step: null,
+    trigger: null,
   });
 
   expect(cache.turns(session.id).map((turn) => turn.id)).toEqual([first, second]);
   expect(cache.turn(first)).toMatchObject({
-    sessionId: session.id,
-    kind: "workflow",
-    trigger: "manual",
-    step: "plan",
-    state: "done",
-    reason: null,
-    startedAt: expect.any(String),
     endedAt: expect.any(String),
+    kind: "workflow",
+    reason: null,
+    sessionId: session.id,
+    startedAt: expect.any(String),
+    state: "done",
+    step: "plan",
+    trigger: "manual",
   });
-  expect(cache.turn(second)).toMatchObject({ state: "queued", startedAt: null, endedAt: null });
+  expect(cache.turn(second)).toMatchObject({ endedAt: null, startedAt: null, state: "queued" });
 
   cache.startTurn(second);
-  cache.endTurn(second, { state: "failed", reason: "Rate limit reached" });
+  cache.endTurn(second, { reason: "Rate limit reached", state: "failed" });
 
   expect(cache.turn(second)).toMatchObject({
-    state: "failed",
     reason: "Rate limit reached",
     startedAt: expect.any(String),
+    state: "failed",
   });
   expect(cache.turn(second + 1)).toBeUndefined();
 });
@@ -140,22 +140,22 @@ test("a turn's items come back in order, a tool updated in place", () => {
   const id = cache.addTurn({ sessionId: cache.createSession(feature).id, ...workflowTurn });
 
   expect(
-    cache.appendItem(id, { kind: "text", text: "Reading the answers", streaming: false }),
+    cache.appendItem(id, { kind: "text", streaming: false, text: "Reading the answers" }),
   ).toBe(0);
   const tool = {
-    kind: "tool" as const,
     id: "toolu_1",
+    kind: "tool" as const,
     name: "Bash",
-    toolKind: "execute" as const,
     target: "vp run ready",
+    toolKind: "execute" as const,
   };
   const seq = cache.appendItem(id, { ...tool, status: "in_progress" });
   expect(seq).toBe(1);
-  cache.updateItem(id, seq, { ...tool, status: "completed", durationMs: 2500, output: "ok" });
+  cache.updateItem(id, seq, { ...tool, durationMs: 2500, output: "ok", status: "completed" });
 
   expect(cache.items(id, 0, 100)).toEqual([
-    { seq: 0, kind: "text", text: "Reading the answers", streaming: false },
-    { seq: 1, ...tool, status: "completed", durationMs: 2500, output: "ok" },
+    { kind: "text", seq: 0, streaming: false, text: "Reading the answers" },
+    { seq: 1, ...tool, durationMs: 2500, output: "ok", status: "completed" },
   ]);
   expect(cache.items(id, 1, 100).map((item) => item.seq)).toEqual([1]);
   expect(cache.itemCount(id)).toBe(2);
@@ -164,23 +164,23 @@ test("a turn's items come back in order, a tool updated in place", () => {
 test("a turn's items of one kind come back alone, with their seq", () => {
   const cache = SessionCache.open(":memory:");
   const id = cache.addTurn({ sessionId: cache.createSession(feature).id, ...workflowTurn });
-  cache.appendItem(id, { kind: "text", text: "Opening the pull request", streaming: false });
+  cache.appendItem(id, { kind: "text", streaming: false, text: "Opening the pull request" });
   cache.appendItem(id, {
-    kind: "denial",
-    tool: "Bash",
-    target: "gh pr create",
-    rule: "Bash(gh pr create)",
     allowed: false,
+    kind: "denial",
+    rule: "Bash(gh pr create)",
+    target: "gh pr create",
+    tool: "Bash",
   });
 
   expect(cache.itemsOf(id, "denial")).toEqual([
     {
-      seq: 1,
-      kind: "denial",
-      tool: "Bash",
-      target: "gh pr create",
-      rule: "Bash(gh pr create)",
       allowed: false,
+      kind: "denial",
+      rule: "Bash(gh pr create)",
+      seq: 1,
+      target: "gh pr create",
+      tool: "Bash",
     },
   ]);
   expect(cache.itemsOf(id, "tool")).toEqual([]);
@@ -194,39 +194,39 @@ function chatWith(
 ) {
   const session = cache.createSession({ ...chat, repo });
   const turn = cache.addTurn({
-    sessionId: session.id,
-    kind: "chat",
-    trigger: null,
-    step: null,
     allowed: null,
+    kind: "chat",
+    sessionId: session.id,
     state: "running",
+    step: null,
+    trigger: null,
   });
   cache.appendItem(turn, item);
   return session.id;
 }
 
-const text = (text: string) => ({ kind: "text" as const, text, streaming: false });
+const text = (text: string) => ({ kind: "text" as const, streaming: false, text });
 
 test("search matches titles, folders, and message and text items, case-insensitively", () => {
   const cache = SessionCache.open(":memory:");
   const wal = chatWith(cache, text("the cache uses WAL mode"));
   const message = chatWith(cache, {
-    kind: "message",
     id: "m1",
-    text: "Why Wal?",
+    kind: "message",
     origin: "human",
     state: "read",
+    text: "Why Wal?",
   });
   const titled = cache.createSession({ ...chat, title: "Walking the tree" }).id;
   const folder = cache.createSession({ ...feature, folder: "2026-10-13-wal-mode" }).id;
   chatWith(cache, { kind: "system", text: "WAL" });
   chatWith(cache, {
-    kind: "tool",
     id: "t",
+    kind: "tool",
     name: "Bash",
-    toolKind: "execute",
-    target: "wal",
     status: "completed",
+    target: "wal",
+    toolKind: "execute",
   });
   chatWith(cache, text("nothing here"));
 
@@ -241,7 +241,7 @@ test("search matches its text literally", () => {
   chatWith(cache, text("1000 done"));
   const underscore = chatWith(cache, text("a_b"));
   chatWith(cache, text("axb"));
-  const backslash = chatWith(cache, text("C:\\temp"));
+  const backslash = chatWith(cache, text(String.raw`C:\temp`));
   chatWith(cache, text("C:temp"));
 
   expect(cache.sessions(REPO, { query: "100%" }).map((session) => session.id)).toEqual([percent]);
@@ -270,12 +270,12 @@ test("sessions are newest first, at most 50", () => {
   const bumped = ids[0];
   vi.advanceTimersByTime(1000);
   cache.addTurn({
-    sessionId: bumped,
-    kind: "chat",
-    trigger: null,
-    step: null,
     allowed: null,
+    kind: "chat",
+    sessionId: bumped,
     state: "running",
+    step: null,
+    trigger: null,
   });
 
   const listed = cache.sessions(REPO).map((session) => session.id);
@@ -339,9 +339,9 @@ test("interrupted stops the running turns of gone servers", () => {
 
   expect(stopped.map((turn) => turn.id)).toEqual([deadTurn, unclaimedTurn]);
   expect(stopped[0]).toMatchObject({
-    state: "stopped",
-    reason: "Stopped: the server stopped while it ran.",
     endedAt: expect.any(String),
+    reason: "Stopped: the server stopped while it ran.",
+    state: "stopped",
   });
   expect(ours.turn(theirTurn)?.state).toBe("running");
   expect(ours.turn(done)?.state).toBe("done");
@@ -365,9 +365,9 @@ test("interrupted stops the queued turns of gone servers too, which would read a
 
   expect(stopped.map((turn) => turn.id)).toEqual([deadTurn, deadQueued]);
   expect(ours.turn(deadQueued)).toMatchObject({
-    state: "stopped",
-    reason: "Stopped: the server stopped while it ran.",
     endedAt: expect.any(String),
+    reason: "Stopped: the server stopped while it ran.",
+    state: "stopped",
   });
   expect(ours.turn(theirQueued)?.state).toBe("queued");
 });
@@ -517,44 +517,44 @@ test("migration 3 turns each feature's runs into the turns of one session", () =
   const session = cache.featureSession(REPO, "f")!;
 
   expect(session).toMatchObject({
-    repo: REPO,
-    folder: "f",
     agent: "claude",
-    nativeId: "bbbb",
-    title: null,
-    pid: null,
     createdAt: "2026-10-12T10:00:00.000Z",
+    folder: "f",
+    nativeId: "bbbb",
+    pid: null,
+    repo: REPO,
+    title: null,
     updatedAt: "2026-10-12T12:05:00.000Z",
   });
   expect(cache.turns(session.id)).toEqual([
     {
-      id: first,
-      sessionId: session.id,
-      kind: "workflow",
-      trigger: "manual",
-      step: "plan",
       allowed: null,
-      state: "done",
-      reason: null,
-      startedAt: "2026-10-12T10:00:00.000Z",
       endedAt: "2026-10-12T10:05:00.000Z",
+      id: first,
+      kind: "workflow",
+      reason: null,
+      sessionId: session.id,
+      startedAt: "2026-10-12T10:00:00.000Z",
+      state: "done",
+      step: "plan",
+      trigger: "manual",
     },
-    expect.objectContaining({ id: second, kind: "workflow", trigger: "answers", step: "spec" }),
+    expect.objectContaining({ id: second, kind: "workflow", step: "spec", trigger: "answers" }),
     expect.objectContaining({
+      allowed: "Bash(gh pr create)",
       id: allow,
       kind: "allow",
       trigger: null,
-      allowed: "Bash(gh pr create)",
     }),
   ]);
-  expect(cache.items(first, 0, 10)).toEqual([{ seq: 0, kind: "text", text: "Planning" }]);
+  expect(cache.items(first, 0, 10)).toEqual([{ kind: "text", seq: 0, text: "Planning" }]);
   expect(cache.items(second, 0, 10)).toEqual([
-    { seq: 0, kind: "system", text: "Started a new session" },
+    { kind: "system", seq: 0, text: "Started a new session" },
   ]);
   expect(cache.featureSession("/repo/b", "f")).toMatchObject({ nativeId: "cccc" });
   expect(cache.featureSession(REPO, "g")).toMatchObject({
-    nativeId: "dddd",
     createdAt: "2026-10-12T09:00:00.000Z",
+    nativeId: "dddd",
   });
   expect(cache.turns(cache.featureSession(REPO, "g")!.id)).toEqual([]);
   expect(cache.interrupted("Stopped: the server stopped while it ran.")).toHaveLength(1);

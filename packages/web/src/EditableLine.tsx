@@ -9,10 +9,10 @@ import { type ReactNode, useRef, useState } from "react";
 const EMPTY = "A priority cannot be empty.";
 
 const styles = stylex.create({
-  // The text reads as text, from the start of its line, as tall as a control for a finger.
   text: {
-    textAlign: "start",
+    // The text reads as text, from the start of its line, as tall as a control for a finger.
     minHeight: sizeVars["--size-element-md"],
+    textAlign: "start",
   },
 });
 
@@ -24,17 +24,17 @@ const styles = stylex.create({
  * for the next line, and leaving it empty closes it.
  */
 export function EditableLine({
-  value,
+  display,
   label,
   onSave,
-  display,
   stayOpen = false,
+  value,
 }: {
-  value: string;
+  display?: ReactNode;
   label: string;
   onSave: (text: string) => Promise<string | undefined>;
-  display?: ReactNode;
   stayOpen?: boolean;
+  value: string;
 }) {
   const [text, setText] = useState<string>();
   const [error, setError] = useState<string>();
@@ -77,18 +77,18 @@ export function EditableLine({
     return (
       <VStack gap={1}>
         <Link
-          type="inherit"
           color="primary"
-          xstyle={styles.text}
           onClick={() => {
             setStatus(undefined);
             setText(value);
           }}
+          type="inherit"
+          xstyle={styles.text}
         >
           {display ?? value}
         </Link>
         {status === "saved" && (
-          <Text type="supporting" color="secondary">
+          <Text color="secondary" type="supporting">
             Saved
           </Text>
         )}
@@ -98,12 +98,11 @@ export function EditableLine({
   return (
     <VStack gap={1}>
       <TextInput
-        label={label}
-        isLabelHidden
-        value={text}
         hasAutoFocus
+        isLabelHidden
         isLoading={status === "saving"}
-        status={error ? { type: "error", message: error } : undefined}
+        label={label}
+        onBlur={() => void save(true)}
         onChange={(next: string) => {
           setText(next);
           setError(undefined);
@@ -120,9 +119,10 @@ export function EditableLine({
             setText(undefined);
           }
         }}
-        onBlur={() => void save(true)}
+        status={error ? { message: error, type: "error" } : undefined}
+        value={text}
       />
-      <Text type="supporting" color="secondary">
+      <Text color="secondary" type="supporting">
         {status === "saving"
           ? "Saving…"
           : status === "saved"

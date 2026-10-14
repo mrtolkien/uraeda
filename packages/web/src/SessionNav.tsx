@@ -16,21 +16,21 @@ const SEARCH_DELAY = 200;
 
 /** The order of statuses within a group: what needs the human first. */
 const STATUS_ORDER: Record<SessionStatus, number> = {
-  "needs-you": 0,
   failed: 1,
+  idle: 4,
+  "needs-you": 0,
   unread: 2,
   working: 3,
-  idle: 4,
 };
 
 const styles = stylex.create({
-  // A sub-agent's row, under its session's.
-  subagent: {
-    paddingInlineStart: spacingVars["--spacing-6"],
-  },
   empty: {
-    paddingInline: spacingVars["--spacing-2"],
     paddingBlock: spacingVars["--spacing-3"],
+    paddingInline: spacingVars["--spacing-2"],
+  },
+  subagent: {
+    // A sub-agent's row, under its session's.
+    paddingInlineStart: spacingVars["--spacing-6"],
   },
 });
 
@@ -40,7 +40,7 @@ type Row = NonNullable<Data["sessionList"]>["rows"][number];
 type Feature = NonNullable<Data["workspace"]>["features"][number];
 
 /** A status and its label. */
-type Status = { status: SessionStatus; label: string };
+type Status = { label: string; status: SessionStatus };
 
 /**
  * The search's text as typed, and the query read from it once typing stops: the list keeps showing
@@ -53,16 +53,16 @@ export function useSessionQuery() {
     const timer = setTimeout(() => startTransition(() => setQuery(text.trim())), SEARCH_DELAY);
     return () => clearTimeout(timer);
   }, [text]);
-  return { text, setText, query };
+  return { query, setText, text };
 }
 
 /** The search field at the top of the navigation; the folded navigation has no room for it. */
 export function SearchField({
-  text,
   onChange,
+  text,
 }: {
-  text: string;
   onChange: (text: string) => void;
+  text: string;
 }) {
   const { isCollapsed } = useSideNavCollapse();
   if (isCollapsed) {
@@ -70,49 +70,49 @@ export function SearchField({
   }
   return (
     <TextInput
-      label="Search sessions"
-      isLabelHidden
-      placeholder="Search sessions"
-      role="searchbox"
-      startIcon="search"
       hasClear
-      value={text}
+      isLabelHidden
+      label="Search sessions"
       onChange={onChange}
       onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
         if (event.key === "Escape") {
           onChange("");
         }
       }}
+      placeholder="Search sessions"
+      role="searchbox"
+      startIcon="search"
+      value={text}
     />
   );
 }
 
 /** A row that opens a page, selected while the page or one of its own pages is open. */
 function Item({
+  foldedIcon,
   label,
-  to,
   pathname,
   status,
-  foldedIcon,
+  to,
 }: {
-  label: string;
-  to: string;
-  pathname: string;
-  status?: Status;
   /** Its icon in the folded navigation, which shows only rows with one. */
   foldedIcon?: ReactNode;
+  label: string;
+  pathname: string;
+  status?: Status;
+  to: string;
 }) {
   const here = useRepoPath();
   const { isCollapsed } = useSideNavCollapse();
   return (
     <SideNavItem
-      label={label}
       href={here(to)}
       isSelected={pathname === to || (to !== "/" && pathname.startsWith(`${to}/`))}
+      label={label}
       {...(foldedIcon && isCollapsed && !status ? { icon: foldedIcon } : {})}
       {...(status
         ? {
-            icon: <StatusMark status={status.status} label={status.label} />,
+            icon: <StatusMark label={status.label} status={status.status} />,
             // The status is read with the title, also when the folded navigation shows only the dot.
             "aria-label": `${label}, ${status.label}`,
           }
@@ -134,16 +134,16 @@ function Subagents({ row, to }: { row: Row | undefined; to: string }) {
   }
   return row.subagents.map((subagent) => (
     <SideNavItem
+      aria-label={`${subagent.description}, Working`}
+      href={here(to)}
+      icon={<StatusMark label="Working" small status="working" />}
       key={subagent.id}
       label={subagent.description}
-      aria-label={`${subagent.description}, Working`}
-      icon={<StatusMark status="working" label="Working" small />}
-      href={here(to)}
-      xstyle={styles.subagent}
       onClick={(event: React.MouseEvent) => {
         event.preventDefault();
         navigate(here(to));
       }}
+      xstyle={styles.subagent}
     />
   ));
 }
@@ -154,23 +154,23 @@ function Subagents({ row, to }: { row: Row | undefined; to: string }) {
  */
 function featureStatus(feature: Feature, row: Row | undefined): Status {
   if (row) {
-    return { status: row.status, label: row.statusLabel };
+    return { label: row.statusLabel, status: row.status };
   }
   return feature.step.waitsOn === "human"
-    ? { status: "needs-you", label: "Needs you" }
-    : { status: "idle", label: "Idle" };
+    ? { label: "Needs you", status: "needs-you" }
+    : { label: "Idle", status: "idle" };
 }
 
 /** A chat's row, and its sub-agents'. */
-function Chat({ row, pathname }: { row: Row; pathname: string }) {
+function Chat({ pathname, row }: { pathname: string; row: Row }) {
   const to = `/chats/${row.id}`;
   return (
     <>
       <Item
         label={row.title}
-        to={to}
         pathname={pathname}
-        status={{ status: row.status, label: row.statusLabel }}
+        status={{ label: row.statusLabel, status: row.status }}
+        to={to}
       />
       <Subagents row={row} to={to} />
     </>
@@ -182,15 +182,15 @@ function Chat({ row, pathname }: { row: Row; pathname: string }) {
  * chat" and the archived ones. `found`, during a search, holds the sessions found, by ID.
  */
 function Sessions({
-  data: { workspace, sessionList },
+  data: { sessionList, workspace },
+  found,
   pathname,
   query,
-  found,
 }: {
   data: Data;
+  found?: Map<string, Row>;
   pathname: string;
   query: string;
-  found?: Map<string, Row>;
 }) {
   const here = useRepoPath();
   // The live list gives statuses, also of the sessions a search found, which is not live.
@@ -243,11 +243,11 @@ function Sessions({
       <SideNavSection key={title} title={title}>
         {list.map((feature) => (
           <FeatureRow
-            key={feature.folder}
             feature={feature}
-            status={statuses.get(feature.folder)!}
-            row={byFolder.get(feature.folder)}
+            key={feature.folder}
             pathname={pathname}
+            row={byFolder.get(feature.folder)}
+            status={statuses.get(feature.folder)!}
           />
         ))}
       </SideNavSection>
@@ -264,22 +264,22 @@ function Sessions({
     <>
       {!found && (
         <Item
-          label="Home"
-          to="/"
-          pathname={pathname}
           foldedIcon={<span aria-hidden="true">⌂</span>}
+          label="Home"
+          pathname={pathname}
+          to="/"
         />
       )}
-      {!found && <Item label="Priorities" to="/priorities" pathname={pathname} />}
+      {!found && <Item label="Priorities" pathname={pathname} to="/priorities" />}
       {groups.slice(0, 2).map(group)}
       {(!found || chats.length > 0) && (
         <SideNavSection title="Chats">
           {!found && (
             <SideNavItem
-              label="New chat"
-              icon={<span aria-hidden="true">＋</span>}
               href={here("/chats/new")}
+              icon={<span aria-hidden="true">＋</span>}
               isSelected={pathname === "/chats/new"}
+              label="New chat"
               onClick={(event: React.MouseEvent) => {
                 event.preventDefault();
                 navigate(here("/chats/new"));
@@ -287,13 +287,13 @@ function Sessions({
             />
           )}
           {open.map((row) => (
-            <Chat key={row.id} row={row} pathname={pathname} />
+            <Chat key={row.id} pathname={pathname} row={row} />
           ))}
           {archived.length > 0 && (
             // Archived chats stay hidden until asked for, as archiving hides a chat.
-            <SideNavItem label="Archived" collapsible={{ defaultIsCollapsed: true }}>
+            <SideNavItem collapsible={{ defaultIsCollapsed: true }} label="Archived">
               {archived.map((row) => (
-                <Chat key={row.id} row={row} pathname={pathname} />
+                <Chat key={row.id} pathname={pathname} row={row} />
               ))}
             </SideNavItem>
           )}
@@ -307,14 +307,14 @@ function Sessions({
 /** A feature's row, with its session's status, and its running sub-agents under it. */
 function FeatureRow({
   feature,
-  status,
-  row,
   pathname,
+  row,
+  status,
 }: {
   feature: Feature;
-  status: Status;
-  row: Row | undefined;
   pathname: string;
+  row: Row | undefined;
+  status: Status;
 }) {
   // A finished feature with nothing to show draws no mark: an idle ring there reads as unfinished.
   const finished = feature.step.name === "done" && status.status === "idle";
@@ -322,9 +322,9 @@ function FeatureRow({
     <>
       <Item
         label={feature.title}
-        to={`/f/${feature.folder}`}
         pathname={pathname}
         status={finished ? undefined : status}
+        to={`/f/${feature.folder}`}
       />
       <Subagents row={row} to={sessionPath(feature.folder)} />
     </>
@@ -335,7 +335,7 @@ function FeatureRow({
 function Found({ data, pathname, query }: { data: Data; pathname: string; query: string }) {
   const search = useSessionSearch(query);
   const found = new Map((search?.rows ?? []).map((row) => [row.id, row]));
-  return <Sessions data={data} pathname={pathname} query={query} found={found} />;
+  return <Sessions data={data} found={found} pathname={pathname} query={query} />;
 }
 
 /**
@@ -343,13 +343,13 @@ function Found({ data, pathname, query }: { data: Data; pathname: string; query:
  * and the chats; during a search, only the features and chats it found.
  */
 export function SessionNav({
-  workspace,
-  sessionList,
   pathname,
   query,
+  sessionList,
+  workspace,
 }: Data & { pathname: string; query: string }) {
   const { isCollapsed } = useSideNavCollapse();
-  const data = { workspace, sessionList };
+  const data = { sessionList, workspace };
   // The folded navigation hides the search field: its rows are not filtered.
   return query && !isCollapsed ? (
     <Found data={data} pathname={pathname} query={query} />

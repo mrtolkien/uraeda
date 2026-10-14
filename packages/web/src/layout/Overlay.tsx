@@ -16,24 +16,24 @@ function overlayOf(state: unknown): string | undefined {
  * told otherwise, each with a visible Close. Opening it adds a history entry, so Back closes it.
  */
 export function Overlay({
-  label,
-  isOpen,
-  onClose,
+  children,
   isModal = true,
+  isOpen,
+  label,
+  onClose,
   sheetHeight = "tall",
   sheetRef,
-  children,
 }: {
-  label: string;
-  isOpen: boolean;
-  onClose: () => void;
+  children: ReactNode;
   /** On narrow screens, whether the page behind the sheet is blocked, and dimmed. */
   isModal?: boolean;
+  isOpen: boolean;
+  label: string;
+  onClose: () => void;
   /** On narrow screens, the sheet's height: Astryx's `tall` (92%) or `capped` (62%). */
   sheetHeight?: "tall" | "capped";
   /** On narrow screens, the sheet's panel, as drawn on screen. */
   sheetRef?: RefObject<HTMLDivElement | null>;
-  children: ReactNode;
 }) {
   const wide = useWidthClass() === "wide";
   const pushed = useRef(false);
@@ -83,31 +83,31 @@ export function Overlay({
 
   if (wide) {
     return (
-      <Dialog isOpen={isOpen} onOpenChange={onOpenChange} purpose="form" padding={4}>
-        <DialogHeader title={label} onOpenChange={onOpenChange} hasDivider={false} />
+      <Dialog isOpen={isOpen} onOpenChange={onOpenChange} padding={4} purpose="form">
+        <DialogHeader hasDivider={false} onOpenChange={onOpenChange} title={label} />
         {isOpen && children}
       </Dialog>
     );
   }
   return (
     <BottomSheet
-      label={label}
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      purpose="form"
-      height={sheetHeight}
       hasScrim={isModal}
-      ref={sheetRef}
+      height={sheetHeight}
+      isOpen={isOpen}
+      label={label}
+      onOpenChange={onOpenChange}
       padding={4}
+      purpose="form"
+      ref={sheetRef}
     >
-      <HStack justify="between" align="center" gap={2}>
+      <HStack align="center" gap={2} justify="between">
         <Heading level={2}>{label}</Heading>
         <Button
-          variant="ghost"
-          label="Close"
-          isIconOnly
           icon={<Icon icon="close" />}
+          isIconOnly
+          label="Close"
           onClick={close}
+          variant="ghost"
         />
       </HStack>
       {isOpen && children}

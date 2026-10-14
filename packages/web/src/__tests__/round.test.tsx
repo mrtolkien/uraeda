@@ -29,7 +29,7 @@ function text(repo: string) {
 function answerLine(repo: string, id: string) {
   const lines = text(repo).split("\n");
   const heading = lines.findIndex((line) =>
-    new RegExp(`^#{2,3} ${id.replace(".", "\\.")}:`).test(line),
+    new RegExp(`^#{2,3} ${id.replace(".", String.raw`\.`)}:`).test(line),
   );
   return lines.slice(heading).find((line) => line.startsWith("**Answer:**"));
 }
@@ -42,7 +42,7 @@ function answered(answers: Record<string, string>) {
   for (const [id, answer] of Object.entries(answers)) {
     const lines = round.split("\n");
     const heading = lines.findIndex((line) =>
-      line.match(new RegExp(`^#{2,3} ${id.replace(".", "\\.")}:`)),
+      line.match(new RegExp(`^#{2,3} ${id.replace(".", String.raw`\.`)}:`)),
     );
     const at = lines.findIndex((line, index) => index > heading && line.startsWith("**Answer:**"));
     lines[at] = answer ? `**Answer:** ${answer}` : "**Answer:**";

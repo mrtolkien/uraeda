@@ -42,7 +42,7 @@ const LONG = "specs/2026-10-12-cli-tuis/clarifications-01.md";
 
 type Size = "phone" | "desktop";
 type Mode = "light" | "dark";
-type Shot = { size: Size; mode: Mode; context: BrowserContext; page: Page };
+type Shot = { context: BrowserContext; mode: Mode; page: Page; size: Size };
 
 /** The fixture, with the example's mockup committed on the recurring tasks' branch. */
 function repository() {
@@ -76,9 +76,9 @@ async function main() {
   const server = await createServer({
     ...base,
     configFile: false,
-    root: web,
     logLevel: "warn",
     plugins: [...plugins, uraedaServer({ adapter })],
+    root: web,
     server: { host: "127.0.0.1", port: 4390, strictPort: false },
   });
   await server.listen();
@@ -92,24 +92,24 @@ async function main() {
       for (const mode of ["light", "dark"] as const) {
         const context = await browser.newContext({
           baseURL: url,
-          viewport: size === "phone" ? { width: 402, height: 874 } : { width: 1440, height: 900 },
+          colorScheme: mode,
+          viewport: size === "phone" ? { height: 874, width: 402 } : { height: 900, width: 1440 },
           // A touch screen, as the browser tests' phone has.
           hasTouch: size === "phone",
-          colorScheme: mode,
           reducedMotion: "reduce",
         });
         await context.addInitScript((value) => {
           window.localStorage.setItem("uraeda.theme", value);
         }, mode);
-        shots.push({ size, mode, context, page: await context.newPage() });
+        shots.push({ context, mode, page: await context.newPage(), size });
       }
     }
     await take(shots, adapter, repo, `/r/${encodeURIComponent(listed.name)}`);
   } finally {
     await browser?.close();
     await server.close();
-    rmSync(data, { recursive: true, force: true });
-    rmSync(repo, { recursive: true, force: true });
+    rmSync(data, { force: true, recursive: true });
+    rmSync(repo, { force: true, recursive: true });
   }
 }
 
@@ -166,7 +166,7 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
     async ({ page }) => {
       await show(page, "/", "Waiting on you");
       await page.getByRole("link", { name: /Claude Code runner/ }).click();
-      await page.getByRole("radio", { name: "Next", checked: true }).waitFor();
+      await page.getByRole("radio", { checked: true, name: "Next" }).waitFor();
       await settle(page);
     },
     "desktop",
@@ -196,20 +196,20 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
       // A press held for half a second, then the finger moving: dnd-kit's touch drag.
       const box = (await line.boundingBox())!;
       await page.evaluate(
-        async ({ x, y, to }) => {
+        async ({ to, x, y }) => {
           const touch = (type: string, target: EventTarget, at: number) =>
             target.dispatchEvent(
               new PointerEvent(type, {
                 bubbles: true,
-                cancelable: true,
-                composed: true,
-                pointerId: 1,
-                pointerType: "touch",
-                isPrimary: true,
                 button: type === "pointermove" ? -1 : 0,
                 buttons: 1,
+                cancelable: true,
                 clientX: x,
                 clientY: at,
+                composed: true,
+                isPrimary: true,
+                pointerId: 1,
+                pointerType: "touch",
               }),
             );
           const element = document.elementFromPoint(x, y)!;
@@ -220,7 +220,7 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
             await new Promise((resolve) => setTimeout(resolve, 60));
           }
         },
-        { x: box.x + box.width / 2, y: box.y + box.height / 2, to: above.y + 2 },
+        { to: above.y + 2, x: box.x + box.width / 2, y: box.y + box.height / 2 },
       );
     }
     await wait(600);
@@ -330,37 +330,37 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
     }
     return adapter.sent.at(-1)!.id;
   };
-  const result = { type: "result" as const, ok: true, errors: [], denials: [], interrupted: false };
+  const result = { denials: [], errors: [], interrupted: false, ok: true, type: "result" as const };
 
   // Two chats: one replied to, one whose action auto mode blocked.
   await show(first, "/chats/new", "New chat");
   let id = await send(first, "Why is CI slow on WebKit?");
-  adapter.emit({ type: "accepted", id });
+  adapter.emit({ id, type: "accepted" });
   adapter.emit({
-    type: "text",
     text: "WebKit draws without a GPU on CI: its animations take longer.",
+    type: "text",
   });
   adapter.emit(result);
   await first.waitForURL(/\/chats\/(?!new)/);
   await show(first, "/chats/new", "New chat");
   id = await send(first, "Tag v0.3.0 and push the tag.");
-  adapter.emit({ type: "accepted", id });
+  adapter.emit({ id, type: "accepted" });
   adapter.emit({
-    type: "toolStart",
     id: "tag",
-    name: "Bash",
-    kind: "execute",
     input: { command: "git tag v0.3.0" },
+    kind: "execute",
+    name: "Bash",
     target: "git tag v0.3.0",
+    type: "toolStart",
   });
-  adapter.emit({ type: "toolEnd", id: "tag", isError: false, output: "" });
+  adapter.emit({ id: "tag", isError: false, output: "", type: "toolEnd" });
   adapter.emit({
-    type: "text",
     text: "I created the tag `v0.3.0`, but pushing it was blocked. Allow the push and I'll retry.",
+    type: "text",
   });
   adapter.emit({
     ...result,
-    denials: [{ tool: "Bash", input: { command: "git push origin v0.3.0" } }],
+    denials: [{ input: { command: "git push origin v0.3.0" }, tool: "Bash" }],
   });
   await first.waitForURL(/\/chats\/(?!new)/);
   const chat = here(first);
@@ -370,37 +370,37 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
   // A feature's session at work: a sub-agent's tools, a reply streaming, and a steered message.
   await show(first, `${AGENT}/session`, "CLI TUIs");
   id = await send(first, "Plan the CLI.");
-  adapter.emit({ type: "accepted", id });
-  adapter.emit({ type: "text", text: `Reading **the answers** of round 01 in \`${LONG}\`.` });
+  adapter.emit({ id, type: "accepted" });
+  adapter.emit({ text: `Reading **the answers** of round 01 in \`${LONG}\`.`, type: "text" });
   adapter.emit({
-    type: "toolStart",
     id: "a",
-    name: "Read",
-    kind: "read",
     input: { file_path: LONG },
+    kind: "read",
+    name: "Read",
     target: LONG,
-  });
-  adapter.emit({ type: "toolEnd", id: "a", isError: false, output: "…" });
-  adapter.emit({
     type: "toolStart",
+  });
+  adapter.emit({ id: "a", isError: false, output: "…", type: "toolEnd" });
+  adapter.emit({
     id: "task",
-    name: "Task",
+    input: {},
     kind: "other",
-    input: {},
+    name: "Task",
     subagent: { description: "Map the runner code" },
-  });
-  adapter.emit({
     type: "toolStart",
-    id: "b",
-    name: "Grep",
-    kind: "search",
-    input: {},
-    target: '"sessions" packages/server/src/runner/',
-    parent: "task",
   });
   adapter.emit({
-    type: "textDelta",
+    id: "b",
+    input: {},
+    kind: "search",
+    name: "Grep",
+    parent: "task",
+    target: '"sessions" packages/server/src/runner/',
+    type: "toolStart",
+  });
+  adapter.emit({
     text: "The runner already keeps one cache per repository. I'll key sessions by their own ID",
+    type: "textDelta",
   });
   await first.getByRole("button", { name: "Stop" }).first().waitFor();
   await send(first, "Use the existing helper for the cache's paths.");

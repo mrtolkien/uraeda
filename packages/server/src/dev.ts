@@ -13,10 +13,10 @@ export { checkBinding, loadEnv };
 /** Vite's server options from the settings: 127.0.0.1 only, on its port, with the allowed hosts. */
 export function devServer(env: Env) {
   return {
+    allowedHosts: env.allowedHosts,
     host: "127.0.0.1",
     port: env.port,
     strictPort: true,
-    allowedHosts: env.allowedHosts,
   };
 }
 
@@ -26,7 +26,7 @@ const SERVER_PATHS = /^\/(r\/[^/?]+\/)?(fate|raw|mockups)(\/|\?|$)/;
 type Listener = (req: IncomingMessage, res: ServerResponse) => Promise<void>;
 
 /** A started server of the dev server, and its app as a Node listener. */
-type Started = { server: Server; listener: Listener };
+type Started = { listener: Listener; server: Server };
 
 /**
  * The dev server's servers, by port: one per Vite server, started with its first request, which
@@ -73,13 +73,13 @@ export function devHandler(root: string, { adapter }: { adapter?: Adapter } = {}
     // Vite's server is made.
     const server = await startServer({
       ...loadEnv(root),
-      port,
+      adapter: adapter ?? new ClaudeAdapter({ pluginDir: PLUGIN_DIR }),
       allowOrigins: [],
       binding,
       dataDir,
-      adapter: adapter ?? new ClaudeAdapter({ pluginDir: PLUGIN_DIR }),
+      port,
     });
-    return { server, listener: getRequestListener(server.app.fetch) };
+    return { listener: getRequestListener(server.app.fetch), server };
   };
   const serverOf = (port: number) => {
     let started = servers.get(port);

@@ -11,16 +11,16 @@ export { FakeAdapter };
  * it reads unavailable until `sessions.check()`, which finds the agent when `installed`.
  */
 export function fakeSessions({
-  installed = true,
   hosts = () => undefined,
-}: { installed?: boolean; hosts?: HostsOf } = {}) {
+  installed = true,
+}: { hosts?: HostsOf; installed?: boolean } = {}) {
   const adapter = new FakeAdapter();
   adapter.installed = installed;
   const sessions = createSessions({
     adapter,
-    cache: SessionCache.open(":memory:"),
     binding,
+    cache: SessionCache.open(":memory:"),
     hosts,
   });
-  return { sessions, adapter };
+  return { adapter, sessions };
 }

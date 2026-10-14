@@ -2,11 +2,11 @@ import { Hono } from "hono";
 import type { FateVariables } from "./fate.ts";
 
 const types: Record<string, string> = {
-  html: "text/html; charset=utf-8",
   css: "text/css; charset=utf-8",
+  html: "text/html; charset=utf-8",
   js: "text/javascript; charset=utf-8",
-  svg: "image/svg+xml",
   json: "application/json",
+  svg: "image/svg+xml",
 };
 
 /**
@@ -61,8 +61,8 @@ export function files() {
     }
     const extension = path.split(".").pop() ?? "";
     return context.body(text, 200, {
-      "content-type": types[extension] ?? "text/plain; charset=utf-8",
       "content-security-policy": "sandbox allow-scripts",
+      "content-type": types[extension] ?? "text/plain; charset=utf-8",
     });
   });
   return app;

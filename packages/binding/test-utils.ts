@@ -1,10 +1,9 @@
 import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdtempSync, readdirSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
-const fixtures = join(dirname(fileURLToPath(import.meta.url)), "../../fixtures");
+const fixtures = join(import.meta.dirname, "../../fixtures");
 
 /**
  * Keeps git away from the machine's: every test that builds a repository imports this module, and
@@ -25,7 +24,7 @@ isolateGit();
 const temporary: Array<string> = [];
 process.once("exit", () => {
   for (const folder of temporary) {
-    rmSync(folder, { recursive: true, force: true });
+    rmSync(folder, { force: true, recursive: true });
   }
 });
 

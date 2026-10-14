@@ -11,14 +11,14 @@ const styles = stylex.create({
   form: {
     margin: 0,
   },
-  // The commented lines, quoted with the selection's bar.
   quote: {
-    display: "block",
-    paddingInlineStart: spacingVars["--spacing-3"],
-    borderInlineStartWidth: spacingVars["--spacing-1"],
-    borderInlineStartStyle: "solid",
+    // The commented lines, quoted with the selection's bar.
     borderInlineStartColor: "var(--color-selection-edge)",
+    borderInlineStartStyle: "solid",
+    borderInlineStartWidth: spacingVars["--spacing-1"],
+    display: "block",
     overflowWrap: "anywhere",
+    paddingInlineStart: spacingVars["--spacing-3"],
   },
 });
 
@@ -30,25 +30,25 @@ const styles = stylex.create({
  * page.
  */
 export function CommentForm({
-  anchor,
-  quote,
-  initial = "",
-  text: held,
-  onTextChange,
-  submitLabel = "Add comment",
-  onSubmit,
-  onCancel,
   action,
+  anchor,
+  initial = "",
+  onCancel,
+  onSubmit,
+  onTextChange,
+  quote,
+  submitLabel = "Add comment",
+  text: held,
 }: {
-  anchor: string;
-  quote?: string;
-  initial?: string;
-  text?: string;
-  onTextChange?: (text: string) => void;
-  submitLabel?: string;
-  onSubmit: (text: string) => Promise<string | undefined>;
-  onCancel: () => void;
   action?: ReactNode;
+  anchor: string;
+  initial?: string;
+  onCancel: () => void;
+  onSubmit: (text: string) => Promise<string | undefined>;
+  onTextChange?: (text: string) => void;
+  quote?: string;
+  submitLabel?: string;
+  text?: string;
 }) {
   const [own, setOwn] = useState(initial);
   const text = held ?? own;
@@ -61,7 +61,7 @@ export function CommentForm({
       {...stylex.props(styles.form)}
     >
       <VStack gap={2}>
-        <Text type="supporting" color="secondary">
+        <Text color="secondary" type="supporting">
           {anchor}
         </Text>
         {quote && (
@@ -69,16 +69,16 @@ export function CommentForm({
             <Text type="supporting">{quote}</Text>
           </div>
         )}
-        <GrowingTextArea label="Comment text" value={text} onChange={setText} />
+        <GrowingTextArea label="Comment text" onChange={setText} value={text} />
         {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
         <HStack gap={2} justify="end" wrap="wrap">
           {action}
           <Button label="Cancel" onClick={onCancel} />
           <Button
-            variant="primary"
-            label={submitLabel}
-            isDisabled={!text.trim()}
             clickAction={async () => setError(await onSubmit(text))}
+            isDisabled={!text.trim()}
+            label={submitLabel}
+            variant="primary"
           />
         </HStack>
       </VStack>
@@ -88,7 +88,7 @@ export function CommentForm({
 
 /** The start of a commented text: its first 120 characters or so, cut at a word. */
 export function quoteOf(text: string) {
-  const flat = text.replace(/\s+/g, " ").trim();
+  const flat = text.replaceAll(/\s+/g, " ").trim();
   if (flat.length <= 120) {
     return flat;
   }

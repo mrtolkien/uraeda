@@ -90,8 +90,8 @@ test("nextStep and workDir give where and what an agent runs", async () => {
   expect(next).toMatchObject({ folder: "2026-10-12-cli-tuis", mainRoot: repo });
   expect(next.step).toMatchObject({
     name: "plan",
-    waitsOn: "agent",
     reference: "skills/uraeda/references/plan.md",
+    waitsOn: "agent",
   });
   expect(await workDir(repo, "2026-10-12-cli-tuis")).toBe(
     join(repo, ".worktrees", "2026-10-12-cli-tuis"),

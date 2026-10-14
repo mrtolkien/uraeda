@@ -68,23 +68,23 @@ export function FeaturePage({ folder }: { folder: string }) {
         <Heading level={1}>{feature.title}</Heading>
         {gate && (
           <Banner
-            status="warning"
-            title={gate.title}
-            description={gate.line}
             collapsible={false}
+            description={gate.line}
             endContent={
               <Button
-                variant="primary"
                 label={gate.verb}
                 onClick={() => navigate(here(gate.href))}
+                variant="primary"
               />
             }
+            status="warning"
+            title={gate.title}
           />
         )}
         <Suspense fallback={null}>
           <AgentPanel feature={feature} />
         </Suspense>
-        <Text type="supporting" display="block">
+        <Text display="block" type="supporting">
           {feature.branch ? (
             <>
               Branch <Code>{feature.branch}</Code>
@@ -102,8 +102,6 @@ export function FeaturePage({ folder }: { folder: string }) {
         </Text>
         {left && (
           <Banner
-            status="info"
-            title={left}
             collapsible={false}
             description={
               <>
@@ -116,54 +114,57 @@ export function FeaturePage({ folder }: { folder: string }) {
                 {feature.leftWorktree && feature.leftBranch ? "them" : "it"}.
               </>
             }
+            status="info"
+            title={left}
           />
         )}
         <List aria-label="Files" hasDividers>
           {files.map((file) => (
             <ListItem
-              key={file.name}
-              href={here(`/f/${folder}/${file.name}`)}
-              label={<Text type="code">{file.name}</Text>}
               endContent={
                 <HStack gap={2}>
                   {problemFiles.has(`specs/${folder}/${file.name}`) && (
-                    <Badge variant="error" label="problem" />
+                    <Badge label="problem" variant="error" />
                   )}
                   <Badge
-                    variant={statusVariant(file.status)}
                     label={file.kind === "record" ? "record" : (file.status ?? "committed")}
+                    variant={statusVariant(file.status)}
                   />
                 </HStack>
               }
+              href={here(`/f/${folder}/${file.name}`)}
+              key={file.name}
+              label={<Text type="code">{file.name}</Text>}
             />
           ))}
           {missing.map((name) => (
             <ListItem
+              endContent={<Badge label="not yet" variant="neutral" />}
               key={name}
               label={
-                <Text type="code" color="secondary">
+                <Text color="secondary" type="code">
                   {name}
                 </Text>
               }
-              endContent={<Badge variant="neutral" label="not yet" />}
             />
           ))}
         </List>
         {feature.mockups.length > 0 && (
-          <List header={<Heading level={2}>Mockups</Heading>} hasDividers>
+          <List hasDividers header={<Heading level={2}>Mockups</Heading>}>
             {feature.mockups.map((name) => (
               <ListItem
-                key={name}
                 href={here(`/f/${folder}/mockups/${name}`)}
+                key={name}
                 label={<Text type="code">{name}</Text>}
               />
             ))}
           </List>
         )}
         {feature.problems.length > 0 && (
-          <List header={<Heading level={2}>Problems</Heading>} hasDividers>
+          <List hasDividers header={<Heading level={2}>Problems</Heading>}>
             {feature.problems.map((problem, index) => (
               <ListItem
+                description={<>{problem.message}</>}
                 key={index}
                 label={
                   <Text type="code">
@@ -171,7 +172,6 @@ export function FeaturePage({ folder }: { folder: string }) {
                     {problem.line ? `:${problem.line}` : ""}
                   </Text>
                 }
-                description={<>{problem.message}</>}
               />
             ))}
           </List>

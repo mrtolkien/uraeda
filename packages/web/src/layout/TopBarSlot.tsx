@@ -4,11 +4,11 @@ const SetSlot = createContext<(content: ReactNode) => void>(() => {});
 
 /** The shell's side of the slot: `onChange` receives what the current page puts in it. */
 export function TopBarSlotProvider({
-  onChange,
   children,
+  onChange,
 }: {
-  onChange: (content: ReactNode) => void;
   children: ReactNode;
+  onChange: (content: ReactNode) => void;
 }) {
   return <SetSlot value={onChange}>{children}</SetSlot>;
 }

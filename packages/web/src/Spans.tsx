@@ -28,18 +28,18 @@ function SpanLink({ span }: { span: Span }) {
   if (link.path) {
     const { href, inApp } = pathLink(link.path, repo);
     return inApp ? (
-      <Link type="inherit" hasUnderline href={href}>
+      <Link hasUnderline href={href} type="inherit">
         {text}
       </Link>
     ) : (
-      <Link type="inherit" hasUnderline href={href} target="_blank" rel="noreferrer">
+      <Link hasUnderline href={href} rel="noreferrer" target="_blank" type="inherit">
         {text}
       </Link>
     );
   }
   if (link.target.startsWith("#")) {
     return (
-      <Link type="inherit" hasUnderline href={link.target}>
+      <Link hasUnderline href={link.target} type="inherit">
         {text}
       </Link>
     );
@@ -48,7 +48,7 @@ function SpanLink({ span }: { span: Span }) {
     return text;
   }
   return (
-    <Link type="inherit" hasUnderline href={link.target} target="_blank" rel="noreferrer">
+    <Link hasUnderline href={link.target} rel="noreferrer" target="_blank" type="inherit">
       {text}
     </Link>
   );

@@ -61,9 +61,9 @@ export function createApp(
   // Selections reach fate as whole fields (see `fate/select.ts`).
   const rewritten = async (request: Request) =>
     new Request(request.url, {
-      method: "POST",
-      headers: request.headers,
       body: JSON.stringify(withWholeFields(await request.json().catch(() => undefined))),
+      headers: request.headers,
+      method: "POST",
     });
   /** The fate endpoint and its live updates, at `base`, on the server `server` gives. */
   const endpoint = (base: string, server: (context: Context) => FateServer) => {
@@ -93,7 +93,7 @@ export function createApp(
   app.route("/r/:name", files());
   if (options.webRoot) {
     app.use("/*", serveStatic({ root: options.webRoot }));
-    app.get("/*", serveStatic({ root: options.webRoot, path: "index.html" }));
+    app.get("/*", serveStatic({ path: "index.html", root: options.webRoot }));
   }
   return app;
 }

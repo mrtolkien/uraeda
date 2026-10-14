@@ -2,52 +2,52 @@ import { expect, test } from "vite-plus/test";
 import { sessionStatus } from "../status.ts";
 
 type Input = Parameters<typeof sessionStatus>[0];
-const base: Input = { queued: false, blocked: false, waitsOnHuman: false, seenAt: null };
-const ended = (state: "done" | "failed" | "stopped") => ({ state, endedAt: "2026-10-13T10:00" });
+const base: Input = { blocked: false, queued: false, seenAt: null, waitsOnHuman: false };
+const ended = (state: "done" | "failed" | "stopped") => ({ endedAt: "2026-10-13T10:00", state });
 
 test.each<[string, Partial<Input>, ReturnType<typeof sessionStatus>]>([
   [
     "a running turn",
-    { latest: { state: "running", endedAt: null } },
-    { status: "working", label: "Working" },
+    { latest: { endedAt: null, state: "running" } },
+    { label: "Working", status: "working" },
   ],
-  ["a queued turn only", { queued: true }, { status: "working", label: "Working" }],
+  ["a queued turn only", { queued: true }, { label: "Working", status: "working" }],
   [
     "a running turn while the step waits on the human",
-    { latest: { state: "running", endedAt: null }, waitsOnHuman: true },
-    { status: "working", label: "Working" },
+    { latest: { endedAt: null, state: "running" }, waitsOnHuman: true },
+    { label: "Working", status: "working" },
   ],
   [
     "an ended turn with a blocked action",
-    { latest: ended("done"), blocked: true },
-    { status: "needs-you", label: "Needs you", reason: "blocked" },
+    { blocked: true, latest: ended("done") },
+    { label: "Needs you", reason: "blocked", status: "needs-you" },
   ],
   [
     "a step that waits on the human",
     { latest: ended("done"), seenAt: "2026-10-13T11:00", waitsOnHuman: true },
-    { status: "needs-you", label: "Needs you", reason: "step" },
+    { label: "Needs you", reason: "step", status: "needs-you" },
   ],
-  ["a failed turn", { latest: ended("failed") }, { status: "failed", label: "Failed" }],
+  ["a failed turn", { latest: ended("failed") }, { label: "Failed", status: "failed" }],
   [
     "a turn that ended after it was seen",
     { latest: ended("done"), seenAt: "2026-10-13T09:00" },
-    { status: "unread", label: "New reply" },
+    { label: "New reply", status: "unread" },
   ],
   [
     "a turn that ended before it was seen",
     { latest: ended("done"), seenAt: "2026-10-13T11:00" },
-    { status: "idle", label: "Idle" },
+    { label: "Idle", status: "idle" },
   ],
   [
     "a stopped turn, seen",
     { latest: ended("stopped"), seenAt: "2026-10-13T11:00" },
-    { status: "idle", label: "Stopped" },
+    { label: "Stopped", status: "idle" },
   ],
-  ["no turn", {}, { status: "idle", label: "Idle" }],
+  ["no turn", {}, { label: "Idle", status: "idle" }],
   [
     "no turn, and a step that waits on the human",
     { waitsOnHuman: true },
-    { status: "needs-you", label: "Needs you", reason: "step" },
+    { label: "Needs you", reason: "step", status: "needs-you" },
   ],
 ])("sessionStatus: %s", (_, input, expected) =>
   expect(sessionStatus({ ...base, ...input })).toEqual(expected),
