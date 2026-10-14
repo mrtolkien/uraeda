@@ -55,6 +55,8 @@
   this proposal?", "Is this a valuable decision?", "Is this code change in line with the
   constitution?", ...
 - Optional embeddings for code and docs search with Gemma Embeddings 2
+- Mutation testing of the Rust code with cargo-mutants, on demand, to find code no test checks
+  (asked in the testing review)
 
 - Public documentation maintenance / hooks?
 - Non-technical users: a technical level in the proposal, adapting the spec's contents (plain
