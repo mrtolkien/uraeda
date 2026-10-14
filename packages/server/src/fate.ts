@@ -6,6 +6,7 @@ import { mutations } from "./fate/mutations.ts";
 import { sources } from "./fate/sources.ts";
 import {
   agentDataView,
+  branchChangesDataView,
   draftDataView,
   featureDataView,
   fileDataView,
@@ -25,6 +26,7 @@ import {
 
 export {
   agentDataView,
+  branchChangesDataView,
   draftDataView,
   featureDataView,
   fileDataView,
@@ -52,6 +54,7 @@ export {
 /** The types fate's generated client and the UI's views use, named after each view's type. */
 export type Workspace = Entity<typeof workspaceDataView, "Workspace">;
 export type Feature = Entity<typeof featureDataView, "Feature">;
+export type BranchChanges = Entity<typeof branchChangesDataView, "BranchChanges">;
 export type WorkflowFile = Entity<typeof fileDataView, "WorkflowFile">;
 export type Priorities = Entity<typeof prioritiesDataView, "Priorities">;
 export type Draft = Entity<typeof draftDataView, "Draft">;

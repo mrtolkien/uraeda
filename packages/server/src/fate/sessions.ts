@@ -17,6 +17,7 @@ import {
   type SessionRecord,
   type SessionRowRecord,
   type SessionSearchRecord,
+  sentStep,
   type SubagentRecord,
   type TurnLogRecord,
   type TurnRecord,
@@ -342,7 +343,12 @@ export async function featureRecord(
   const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
   const session =
     root === undefined ? undefined : ctx.sessions.cache.featureSession(root, feature.folder);
-  return { id: feature.folder, ...feature, session: session?.id ?? null };
+  return {
+    id: feature.folder,
+    ...feature,
+    session: session?.id ?? null,
+    step: sentStep(feature.step),
+  };
 }
 
 /**

@@ -523,7 +523,7 @@ git commit -m "feat(session-view): publish a feature when its branch moves"
 
 **Files:**
 
-- Modify: `packages/binding/test-utils.ts` (new `addPlan`)
+- Modify: `packages/binding/test-utils.ts` (new `addPlan`, `commitOnBranch`, and `ELEVEN`)
 - Modify: `packages/server/src/fate/views.ts` (`BranchChangesRecord`, `branchChangesDataView`,
   `Root`)
 - Modify: `packages/server/src/fate/sources.ts` (the `BranchChanges` source; `missingFeature`)
@@ -531,7 +531,9 @@ git commit -m "feat(session-view): publish a feature when its branch moves"
 - Modify: `packages/server/src/fate.ts` (exports)
 - Modify: `packages/server/src/live.ts` (`publish`)
 - Modify: `packages/web/.fate/client.generated.ts` (regenerated)
-- Test: `packages/server/src/__tests__/fate.test.ts`, `packages/server/src/__tests__/live.test.ts`
+- Test: `packages/server/src/__tests__/fate.test.ts`, `packages/server/src/__tests__/live.test.ts`,
+  `packages/server/src/__tests__/helpers.ts` (`testApp`'s options), and
+  `packages/server/src/__tests__/guard.test.ts` (its call of `testApp`)
 
 **Interfaces:**
 
@@ -542,13 +544,17 @@ git commit -m "feat(session-view): publish a feature when its branch moves"
   - `addPlan(repo: string, folder: string, tasks: Array<[title: string, done: number, total: number]>, status = "auto-approved"): void`
     in `uraeda-binding/test-utils`. It commits `specs/<folder>/plan.md`, with `spec-revision: 1` and
     steps written `- [x] **Step N: Do**`, on the folder's branch, and leaves the checkout on `main`.
+    It is built on
+    `commitOnBranch(repo: string, branch: string, files: Record<string, string>): void`, exported
+    beside it, which commits files on a branch from the main checkout and switches back to `main`
+    ([R12](rulings.md#r12-the-test-helpers-commit-through-one-exported-commitonbranch)).
   - The fate type `BranchChanges`:
     `{ id: string /* folder */; changes: BranchChanges | null; failed: boolean }`, requested as
-    `branchChanges` by id.
+    `branchChanges` by id. A binary file's `added` and `removed` are sent as `null`.
   - Every `Feature` record's `step.progress` is present, `null` when absent.
   - `publish` updates `BranchChanges <folder>` for each changed feature.
 
-- [ ] **Step 1: Write the failing tests, and `addPlan`**
+- [x] **Step 1: Write the failing tests, and `addPlan`**
 
 The fixture plan, exported from `test-utils.ts` beside `addPlan` and used again by the web tasks:
 `ELEVEN`, 11 tasks of 5 steps, the first 6 done. Their titles, in order: "Plan progress in the
@@ -605,35 +611,38 @@ test("a branch whose changes cannot be read is answered as failed", async () => 
 });
 ```
 
-`commitOnBranch` is a local helper of the test file over `git`. If `testApp` takes no binding
-option, add one, passed on to `testHosts`.
+`commitOnBranch` is exported from `test-utils.ts`, and `addPlan` uses it. `testApp` takes its
+options as `{ allowedHosts, binding }`, the binding passed on to `testHosts` and `createApp`. The
+failed answer also holds `id: CLI`, which fate sends with every record. Two more tests: a folder
+that is no feature's sends `step.progress` as `null`, and a binary file's lines are sent as `null`.
 
 In `live.test.ts`, extend the watcher-driven test: a change listing `CLI` publishes
 `"BranchChanges 2026-10-12-cli-tuis"` beside `"Feature 2026-10-12-cli-tuis"`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `vp test packages/server/src/__tests__/fate.test.ts packages/server/src/__tests__/live.test.ts`
-- Expected: FAIL. The first test fails with `expected undefined to deeply equal { position: 7, … }`
-  if `progress` is not sent, and the second with `unknown type BranchChanges`.
+- Expected: FAIL. The binding already sends a set `progress`, so the first test fails at its last
+  line, `expected { name: 'pull-request', … } to have property "progress" with value null`, and the
+  changes' tests with `No source registered for 'BranchChanges'`.
 
-- [ ] **Step 3: Implement the source, the records, and the live update**
+- [x] **Step 3: Implement the source, the records, and the live update**
 
 - **`step.progress`.** `featureRecord` and `missingFeature` send it as `null` when the core leaves
   it out ([review focus 1](#review-focus)), as `sentFile` does for files.
-- **The source.** The `BranchChanges` source calls `ctx.binding.branchChanges(ctx.repo, id)`. On a
-  thrown error, it logs `console.error` with the error's first line, and answers
-  `{ id, changes: null, failed: true }`.
+- **The source.** The `BranchChanges` source calls `ctx.binding.branchChanges(ctx.repo, id)`, and
+  sends a binary file's lines as `null`. On a thrown error, it writes the error's first line to
+  `process.stderr`, as the server logs elsewhere, and answers `{ id, changes: null, failed: true }`.
 - **The live update.** `publish` updates `BranchChanges` in its loop over `changes.features`.
 - **The client.** Regenerate it with `vp run --filter uraeda-web build`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check && vp test --project uraeda-binding --project uraeda-server`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/binding/test-utils.ts packages/server/src packages/web/.fate/client.generated.ts
