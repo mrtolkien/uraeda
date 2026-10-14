@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Multi-repo server: mockups</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        font:
+          14px/1.45 system-ui,
+          sans-serif;
+        color: #1f2328;
+        background: #d9dce0;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 20px;
+      }
+      .intro,
+      section > p.note {
+        max-width: 860px;
+        margin: 0 0 16px;
+        color: #444c56;
+      }
+      section {
+        margin: 0 0 40px;
+      }
+      section > h2 {
+        margin: 0 0 4px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #444c56;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .screens {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 28px;
+        align-items: flex-start;
+      }
+      .frame-label {
+        margin: 0 0 6px;
+        font-size: 12px;
+        color: #444c56;
+      }
+
+      /* Neutral theme tokens. */
+      .phone,
+      .desktop {
+        --bg: #ffffff;
+        --bar: #f4f4f5;
+        --fg: #18181b;
+        --muted: #5f6368;
+        --rule: #e4e4e7;
+        --accent: #2563eb;
+        --btn: #18181b;
+        --on-btn: #ffffff;
+        --err: #b91c1c;
+        --err-bg: #fef2f2;
+        --hover: #ececef;
+        --scrim: rgb(0 0 0 / 0.35);
+        position: relative;
+        overflow: hidden;
+        color: var(--fg);
+        background: var(--bg);
+        box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
+      }
+      .phone {
+        width: 402px;
+        height: 760px;
+        border-radius: 22px;
+        display: flex;
+        flex-direction: column;
+        font:
+          17px/1.5 system-ui,
+          sans-serif;
+      }
+      .desktop {
+        width: 1180px;
+        height: 640px;
+        border-radius: 10px;
+        display: flex;
+        font:
+          19px/1.5 system-ui,
+          sans-serif;
+      }
+
+      /* Navigation. */
+      .nav {
+        width: 260px;
+        flex: none;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 14px 10px;
+        background: var(--bar);
+        border-right: 1px solid var(--rule);
+        font-size: 16px;
+      }
+      .switcher {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        margin: 0 0 10px;
+        border-radius: 8px;
+        border: 1px solid transparent;
+      }
+      .switcher.open {
+        background: var(--hover);
+        border-color: var(--rule);
+      }
+      .switcher .names {
+        flex: 1;
+        line-height: 1.25;
+      }
+      .brand {
+        font-weight: 700;
+      }
+      .repo {
+        display: block;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .chev {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .search {
+        margin: 0 0 8px;
+        padding: 6px 10px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: var(--bg);
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .item {
+        padding: 5px 8px;
+        border-radius: 6px;
+      }
+      .item.current {
+        background: var(--hover);
+        font-weight: 600;
+      }
+      .section-title {
+        margin: 12px 8px 2px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+
+      /* Page. */
+      .page {
+        flex: 1;
+        padding: 28px 40px;
+        overflow: hidden;
+      }
+      .page h3 {
+        margin: 0 0 12px;
+        font-size: 28px;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .mono {
+        font-family: ui-monospace, monospace;
+        font-size: 0.88em;
+      }
+      .row-line {
+        padding: 10px 0;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      /* Menu: a popover on wide screens, a bottom sheet on narrow ones. */
+      .popover {
+        position: absolute;
+        top: 66px;
+        left: 12px;
+        width: 360px;
+        padding: 8px;
+        border-radius: 10px;
+        background: var(--bg);
+        border: 1px solid var(--rule);
+        box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+        font-size: 16px;
+        z-index: 2;
+      }
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background: var(--scrim);
+        z-index: 1;
+      }
+      .sheet {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 10px 16px 22px;
+        border-radius: 16px 16px 0 0;
+        background: var(--bg);
+        z-index: 2;
+      }
+      .grab {
+        width: 40px;
+        height: 5px;
+        margin: 0 auto 10px;
+        border-radius: 3px;
+        background: var(--rule);
+      }
+      .sheet-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 0 0 10px;
+        font-weight: 600;
+      }
+      .close {
+        padding: 4px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--rule);
+        font-weight: 400;
+        font-size: 15px;
+      }
+      .filter {
+        padding: 7px 10px;
+        margin: 0 0 6px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        color: var(--muted);
+      }
+      .entry {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 8px;
+        border-radius: 8px;
+        min-height: 44px;
+        box-sizing: border-box;
+      }
+      .entry.selected {
+        background: var(--hover);
+      }
+      .entry .mark {
+        width: 18px;
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .entry .text {
+        flex: 1;
+        line-height: 1.25;
+        min-width: 0;
+      }
+      .entry .path {
+        display: block;
+        font-size: 13px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .entry .missing {
+        color: var(--err);
+      }
+      .more {
+        padding: 2px 8px;
+        border-radius: 6px;
+        color: var(--muted);
+      }
+      .more.open {
+        background: var(--hover);
+        color: var(--fg);
+      }
+      .divider {
+        margin: 6px 0;
+        border-top: 1px solid var(--rule);
+      }
+      .add {
+        padding: 9px 8px;
+        border-radius: 8px;
+        font-weight: 600;
+      }
+      .submenu {
+        position: absolute;
+        left: 384px;
+        top: 168px;
+        width: 220px;
+        padding: 6px;
+        border-radius: 10px;
+        background: var(--bg);
+        border: 1px solid var(--rule);
+        box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+        font-size: 16px;
+        z-index: 3;
+      }
+      .submenu div {
+        padding: 7px 10px;
+        border-radius: 6px;
+      }
+
+      /* Forms. */
+      .dialog {
+        position: absolute;
+        top: 120px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 560px;
+        padding: 20px 22px;
+        border-radius: 12px;
+        background: var(--bg);
+        box-shadow: 0 12px 32px rgb(0 0 0 / 0.25);
+        z-index: 2;
+      }
+      .dialog-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 0 0 14px;
+        font-size: 22px;
+        font-weight: 700;
+      }
+      label.field {
+        display: block;
+        margin: 0 0 4px;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .input {
+        padding: 8px 12px;
+        border: 2px solid var(--accent);
+        border-radius: 8px;
+        font-family: ui-monospace, monospace;
+        font-size: 16px;
+      }
+      .input.idle {
+        border: 1px solid var(--rule);
+      }
+      .input.bad {
+        border-color: var(--err);
+      }
+      .hint {
+        margin: 4px 0 0;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .suggestions {
+        margin: 4px 0 0;
+        padding: 4px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        font-size: 16px;
+      }
+      .suggestions div {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 8px;
+        border-radius: 6px;
+        font-family: ui-monospace, monospace;
+      }
+      .suggestions .active {
+        background: var(--hover);
+      }
+      .badge {
+        font-family: system-ui, sans-serif;
+        font-size: 12px;
+        padding: 1px 6px;
+        border-radius: 10px;
+        border: 1px solid var(--rule);
+        color: var(--muted);
+      }
+      .error {
+        margin: 8px 0 0;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: var(--err-bg);
+        color: var(--err);
+        font-size: 15px;
+      }
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin: 18px 0 0;
+      }
+      .btn {
+        padding: 7px 16px;
+        border-radius: 8px;
+        border: 1px solid var(--rule);
+      }
+      .btn.primary {
+        background: var(--btn);
+        color: var(--on-btn);
+        border-color: var(--btn);
+      }
+      .top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--rule);
+      }
+      .top .names {
+        flex: 1;
+        line-height: 1.2;
+      }
+      .content {
+        padding: 18px 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Multi-repo server</h1>
+    <p class="intro">
+      The repository selector, adding a repository, the first run, and a missing folder, on a wide
+      screen (desktop, 19 px text) and a narrow one (phone, 17 px text). Names and paths are
+      examples. The spec's text is the reference for behaviour.
+    </p>
+
+    <section>
+      <h2>1. The selector, open</h2>
+      <p class="note">
+        The heading opens the menu: the repositories, most recently opened first, the current one
+        checked, a filter, a missing folder marked, and "Add a repository…". A popover on wide
+        screens, a bottom sheet on narrow ones. Home stays the first row of the navigation.
+      </p>
+      <div class="screens">
+        <div>
+          <p class="frame-label">Wide</p>
+          <div class="desktop">
+            <div class="nav">
+              <div class="switcher open">
+                <div class="names">
+                  <span class="brand">Uraeda</span><span class="repo">uraeda</span>
+                </div>
+                <span class="chev">▾</span>
+              </div>
+              <div class="search">Search sessions</div>
+              <div class="item current">Home</div>
+              <div class="item">Priorities</div>
+              <div class="section-title">Waiting for you</div>
+              <div class="item">Multi-repo server</div>
+              <div class="section-title">Chats</div>
+              <div class="item">New chat</div>
+            </div>
+            <div class="page">
+              <h3>uraeda</h3>
+              <div class="row-line">
+                Multi-repo server <span class="muted">· spec to review</span>
+              </div>
+              <div class="row-line">Image attachments <span class="muted">· discovery</span></div>
+            </div>
+            <div class="popover">
+              <div class="filter">Filter repositories</div>
+              <div class="entry selected">
+                <span class="mark">✓</span>
+                <span class="text">uraeda<span class="path">~/Development/ai/uraeda</span></span>
+                <span class="more">⋯</span>
+              </div>
+              <div class="entry">
+                <span class="mark"></span>
+                <span class="text">todo-app<span class="path">~/dev/todo-app</span></span>
+                <span class="more">⋯</span>
+              </div>
+              <div class="entry">
+                <span class="mark"></span>
+                <span class="text"
+                  >client-site<span class="path missing"
+                    >Folder not found: ~/work/client-site</span
+                  ></span
+                >
+                <span class="more">⋯</span>
+              </div>
+              <div class="divider"></div>
+              <div class="add">+ Add a repository…</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="frame-label">Narrow</p>
+          <div class="phone">
+            <div class="top">
+              <div class="names">
+                <span class="brand">Uraeda</span><span class="repo">uraeda</span>
+              </div>
+              <span class="chev">▾</span>
+            </div>
+            <div class="content">
+              <div class="row-line">Multi-repo server</div>
+              <div class="row-line">Image attachments</div>
+            </div>
+            <div class="scrim"></div>
+            <div class="sheet">
+              <div class="grab"></div>
+              <div class="sheet-head">Repositories <span class="close">Close</span></div>
+              <div class="filter">Filter repositories</div>
+              <div class="entry selected">
+                <span class="mark">✓</span>
+                <span class="text">uraeda<span class="path">~/Development/ai/uraeda</span></span>
+                <span class="more">⋯</span>
+              </div>
+              <div class="entry">
+                <span class="mark"></span>
+                <span class="text">todo-app<span class="path">~/dev/todo-app</span></span>
+                <span class="more">⋯</span>
+              </div>
+              <div class="entry">
+                <span class="mark"></span>
+                <span class="text"
+                  >client-site<span class="path missing"
+                    >Folder not found: ~/work/client-site</span
+                  ></span
+                >
+                <span class="more">⋯</span>
+              </div>
+              <div class="divider"></div>
+              <div class="add">+ Add a repository…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>2. Removing a repository</h2>
+      <p class="note">
+        Each row's ⋯ menu holds one action. Removing takes the repository off the list only. While
+        an agent works in it, the menu shows the refusal in place of the action.
+      </p>
+      <div class="screens">
+        <div>
+          <p class="frame-label">Wide, the row's menu open</p>
+          <div class="desktop" style="height: 360px">
+            <div class="nav">
+              <div class="switcher open">
+                <div class="names">
+                  <span class="brand">Uraeda</span><span class="repo">uraeda</span>
+                </div>
+                <span class="chev">▾</span>
+              </div>
+            </div>
+            <div class="page"></div>
+            <div class="popover">
+              <div class="filter">Filter repositories</div>
+              <div class="entry selected">
+                <span class="mark">✓</span>
+                <span class="text">uraeda<span class="path">~/Development/ai/uraeda</span></span>
+                <span class="more">⋯</span>
+              </div>
+              <div class="entry">
+                <span class="mark"></span>
+                <span class="text">todo-app<span class="path">~/dev/todo-app</span></span>
+                <span class="more open">⋯</span>
+              </div>
+              <div class="divider"></div>
+              <div class="add">+ Add a repository…</div>
+            </div>
+            <div class="submenu" style="top: 130px">
+              <div>Remove from Uraeda</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="frame-label">Wide, an agent working in it</p>
+          <div class="desktop" style="width: 640px; height: 360px">
+            <div class="nav">
+              <div class="switcher open">
+                <div class="names">
+                  <span class="brand">Uraeda</span><span class="repo">uraeda</span>
+                </div>
+                <span class="chev">▾</span>
+              </div>
+            </div>
+            <div class="page"></div>
+            <div class="popover">
+              <div class="entry">
+                <span class="mark"></span>
+                <span class="text">todo-app<span class="path">~/dev/todo-app</span></span>
+                <span class="more open">⋯</span>
+              </div>
+              <div class="error">An agent is working in todo-app: stop it first.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>3. Adding a repository</h2>
+      <p class="note">
+        "Add a repository…" opens a short form: a dialog on wide screens, a sheet on narrow ones.
+        The path completes as it is typed, with the folders the server finds; folders in git carry a
+        "git" mark. Enter or "Add" adds the folder and opens it.
+      </p>
+      <div class="screens">
+        <div>
+          <p class="frame-label">Wide, completing</p>
+          <div class="desktop" style="height: 520px">
+            <div class="nav">
+              <div class="switcher">
+                <div class="names">
+                  <span class="brand">Uraeda</span><span class="repo">uraeda</span>
+                </div>
+                <span class="chev">▾</span>
+              </div>
+            </div>
+            <div class="page"></div>
+            <div class="scrim"></div>
+            <div class="dialog">
+              <div class="dialog-head">Add a repository <span class="close">Close</span></div>
+              <label class="field">Folder</label>
+              <div class="input">~/dev/to</div>
+              <div class="suggestions">
+                <div class="active">~/dev/todo-app/ <span class="badge">git</span></div>
+                <div>~/dev/tools/</div>
+                <div>~/dev/tour-site/ <span class="badge">git</span></div>
+              </div>
+              <p class="hint">
+                A folder in a git repository. From a terminal: <span class="mono">ura add</span>
+              </p>
+              <div class="actions">
+                <span class="btn">Cancel</span><span class="btn primary">Add</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="frame-label">Narrow, a folder outside git</p>
+          <div class="phone">
+            <div class="top">
+              <div class="names">
+                <span class="brand">Uraeda</span><span class="repo">uraeda</span>
+              </div>
+              <span class="chev">▾</span>
+            </div>
+            <div class="scrim"></div>
+            <div class="sheet">
+              <div class="grab"></div>
+              <div class="sheet-head">Add a repository <span class="close">Close</span></div>
+              <label class="field">Folder</label>
+              <div class="input bad">~/dev/tools</div>
+              <div class="error">
+                Not a git repository: /home/me/dev/tools. Run git init there first.
+              </div>
+              <p class="hint">
+                A folder in a git repository. From a terminal: <span class="mono">ura add</span>
+              </p>
+              <div class="actions">
+                <span class="btn">Cancel</span><span class="btn primary">Add</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>4. First run</h2>
+      <p class="note">
+        With an empty list, every page shows this view, without the navigation: the same form, in
+        the page.
+      </p>
+      <div class="screens">
+        <div>
+          <p class="frame-label">Wide</p>
+          <div class="desktop" style="height: 420px">
+            <div class="page" style="padding: 56px 120px">
+              <h3>Add your first repository</h3>
+              <p class="muted" style="margin: 0 0 20px">
+                Uraeda shows the specs and runs agents in git repositories on this machine.
+              </p>
+              <label class="field">Folder</label>
+              <div class="input idle" style="width: 560px">~/</div>
+              <p class="hint">
+                A folder in a git repository. From a terminal: <span class="mono">ura add</span>
+              </p>
+              <div class="actions" style="justify-content: flex-start">
+                <span class="btn primary">Add</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="frame-label">Narrow</p>
+          <div class="phone" style="height: 520px">
+            <div class="content" style="padding-top: 40px">
+              <h3 style="margin: 0 0 10px; font-size: 24px">Add your first repository</h3>
+              <p class="muted" style="margin: 0 0 18px">
+                Uraeda shows the specs and runs agents in git repositories on this machine.
+              </p>
+              <label class="field">Folder</label>
+              <div class="input idle">~/</div>
+              <p class="hint">
+                A folder in a git repository. From a terminal: <span class="mono">ura add</span>
+              </p>
+              <div class="actions" style="justify-content: flex-start">
+                <span class="btn primary">Add</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>5. A missing folder, and an unknown name</h2>
+      <p class="note">
+        Opening a repository whose folder is gone shows where it was last seen, and Remove. A URL
+        with a name that is not in the list says so, with a link to the most recent repository.
+      </p>
+      <div class="screens">
+        <div>
+          <p class="frame-label">Wide, folder not found</p>
+          <div class="desktop" style="height: 360px">
+            <div class="nav">
+              <div class="switcher">
+                <div class="names">
+                  <span class="brand">Uraeda</span><span class="repo">client-site</span>
+                </div>
+                <span class="chev">▾</span>
+              </div>
+            </div>
+            <div class="page">
+              <h3>Folder not found</h3>
+              <p>
+                client-site was at <span class="mono">/home/me/work/client-site</span>, which no
+                longer holds a git repository. Move it back, or remove it from Uraeda.
+              </p>
+              <div class="actions" style="justify-content: flex-start">
+                <span class="btn">Remove from Uraeda</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="frame-label">Narrow, unknown name</p>
+          <div class="phone" style="height: 360px">
+            <div class="top">
+              <div class="names"><span class="brand">Uraeda</span><span class="repo">—</span></div>
+              <span class="chev">▾</span>
+            </div>
+            <div class="content">
+              <h3 style="margin: 0 0 10px; font-size: 24px">No repository named “old-site”</h3>
+              <p>
+                It is not in Uraeda's list. <a href="#" style="color: var(--accent)">Open uraeda</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>
