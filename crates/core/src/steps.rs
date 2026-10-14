@@ -92,6 +92,9 @@ pub struct Step {
     pub task: Option<String>,
     /// Where the implementation is in the plan's tasks, for implementation.
     pub progress: Option<TaskProgress>,
+    /// Whether the implementation is over: every task of the plan, or every box of a bug's
+    /// assessment, is done, and the feature is past them, at its final review or after.
+    pub implemented: bool,
     pub pull_request: Option<PullRequest>,
 }
 
@@ -117,6 +120,7 @@ impl Step {
             file: None,
             task: None,
             progress: None,
+            implemented: false,
             pull_request: None,
         }
     }
@@ -141,7 +145,10 @@ impl Step {
 
     /// The step of a feature merged into the default branch.
     pub fn done() -> Step {
-        Step::new(StepName::Done, WaitsOn::Nobody)
+        Step {
+            implemented: true,
+            ..Step::new(StepName::Done, WaitsOn::Nobody)
+        }
     }
 
     /// Whether the pull request's state decides this step.
@@ -176,6 +183,7 @@ fn finished_step(pull_request: PullRequest) -> Step {
         PullRequest::Unknown => Step::agent(StepName::PullRequest, "finish"),
     };
     Step {
+        implemented: true,
         pull_request: Some(pull_request),
         ..step
     }
@@ -264,6 +272,7 @@ fn after_the_last_step(pull_request: PullRequest, without: StepName, reference: 
         PullRequest::Unknown => Step::agent(StepName::PullRequest, reference),
     };
     Step {
+        implemented: true,
         pull_request: Some(pull_request),
         ..step
     }

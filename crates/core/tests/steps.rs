@@ -348,6 +348,39 @@ fn no_progress_outside_the_implementation() {
     }
 }
 
+#[test]
+fn implemented_once_past_the_implementation() {
+    let all = [("One", 2, 2), ("Two", 1, 1)];
+    let rows: Vec<(&str, String, bool)> = vec![
+        ("every box checked", plan("auto-approved", 1, &all), true),
+        (
+            "an unchecked box",
+            plan("auto-approved", 1, &[("One", 2, 2), ("Two", 0, 1)]),
+            false,
+        ),
+        (
+            "every box checked, plan waiting for the human",
+            plan("awaiting-human", 1, &all),
+            false,
+        ),
+        (
+            "every box checked, plan with changes requested",
+            plan("changes-requested", 1, &all),
+            false,
+        ),
+        (
+            "every box checked, plan behind the spec's revision",
+            plan("auto-approved", 0, &all),
+            false,
+        ),
+    ];
+    for (name, plan_text, implemented) in rows {
+        let feature = at_plan(plan_text);
+
+        assert_eq!(feature.step.implemented, implemented, "{name}");
+    }
+}
+
 fn assessment(status: &str, done: usize, total: usize) -> String {
     let mut text = format!("---\nstatus: {status}\n---\n\n# Assessment: Bug\n\n## Fix\n\n");
     for step in 0..total {

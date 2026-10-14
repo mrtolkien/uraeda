@@ -464,3 +464,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `useDraft.ts`, the session page's `Session` and `NoSession`, and the composer's
   status in `Composer.tsx`.
 - **Where**: catching up with the default branch, after Task 11.
+
+## R27: The full bar shows once the core says the implementation is over
+
+- **Decision**: the core's step gains `implemented`, true from the final review on (the final
+  review, the pull request and its changes, finishing, and done), and false before it. The column
+  draws "11 of 11 tasks done" when it is set, instead of whenever every task of the plan is done.
+  The binding's `StepView` carries it, and the web's feature view selects it.
+- **Rationale**: the spec's edge cases give a plan waiting for its review or a revision no bar, and
+  only "every box checked", at the final review, a full one. Deciding from the plan's boxes showed a
+  full bar on a plan with every box checked that waits for its review, or for its revision after a
+  spec revision. Which steps come after the implementation is a workflow rule, which the
+  [stack](../decisions/stack.md) decision keeps in the core; the field costs one boolean set where
+  the core already leaves the implementation, as R14 relies on `progress` for the same reason.
+- **Alternatives considered**: a list of step names after the implementation in the web code, which
+  repeats the core's tables in TypeScript; the plan's boxes and the step's name together, the same
+  rule in two places.
+- **If wrong**: `implemented` in `crates/core/src/steps.rs` and `view.rs`, and `Tasks` in
+  `SessionAside.tsx`.
+- **Where**: the final review.

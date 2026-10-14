@@ -172,7 +172,11 @@ export function SessionAside({ folder, session }: { folder: string; session?: st
       <VStack gap={2}>
         <SectionHeading>{stepTitle(feature)}</SectionHeading>
         <Section>
-          <Tasks folder={folder} progress={feature.step.progress ?? null} />
+          <Tasks
+            folder={folder}
+            implemented={feature.step.implemented}
+            progress={feature.step.progress ?? null}
+          />
         </Section>
       </VStack>
       {session !== undefined && (
@@ -191,16 +195,23 @@ export function SessionAside({ folder, session }: { folder: string; session?: st
 type Progress = NonNullable<Feature["step"]["progress"]>;
 
 /**
- * The plan's tasks, the current one marked, under a bar while the implementation goes on, or once
- * every task is done; "No plan yet." without a plan or a task.
+ * The plan's tasks, the current one marked, under a bar while the implementation goes on, or a full
+ * one once the core says it is over; "No plan yet." without a plan or a task.
  */
-function Tasks({ folder, progress }: { folder: string; progress: Progress | null }) {
+function Tasks({
+  folder,
+  implemented,
+  progress,
+}: {
+  folder: string;
+  implemented: boolean;
+  progress: Progress | null;
+}) {
   const plan = useFile(folder, "plan.md");
   const tasks = plan && !plan.missing ? (plan.current.items.plan?.tasks ?? []) : [];
   if (tasks.length === 0) {
     return <Text color="secondary">No plan yet.</Text>;
   }
-  const done = tasks.every((task) => task.done === task.total);
   return (
     <VStack gap={2}>
       {progress ? (
@@ -210,7 +221,7 @@ function Tasks({ folder, progress }: { folder: string; progress: Progress | null
           value={progress.position}
         />
       ) : (
-        done && (
+        implemented && (
           <ProgressBar
             label={`${tasks.length} of ${tasks.length} tasks done`}
             max={tasks.length}
