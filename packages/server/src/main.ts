@@ -3,16 +3,18 @@ import { chatImages } from "./attach.ts";
 import { loadBinding } from "./binding.ts";
 import { loadDataDir, loadEnv } from "./env.ts";
 import { parseOptions } from "./options.ts";
-import { ClaudeAdapter, PLUGIN_DIR } from "./runner/claude.ts";
+import { layout } from "./paths.ts";
+import { ClaudeAdapter } from "./runner/claude.ts";
 import { startServer } from "./server.ts";
 
 async function main(argv: Array<string>) {
-  const options = parseOptions(argv, loadEnv(process.cwd()));
+  const { checkout, plugin } = layout();
+  const options = parseOptions(argv, loadEnv(checkout));
   const binding = await loadBinding();
-  const dataDir = loadDataDir(process.cwd());
+  const dataDir = loadDataDir(checkout);
   const { app, stop } = await startServer({
     ...options,
-    adapter: new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: PLUGIN_DIR }),
+    adapter: new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: plugin }),
     binding,
     dataDir,
   });

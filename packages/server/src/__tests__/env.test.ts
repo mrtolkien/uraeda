@@ -78,3 +78,14 @@ test("a relative data folder is resolved from the root, as Claude Code runs in a
     vi.unstubAllEnvs();
   }
 });
+
+test("without a checkout, no .env is read", () => {
+  const dir = root("URAEDA_PORT=5000\nURAEDA_ALLOWED_HOSTS=evil.test\n");
+  const previous = process.cwd();
+  process.chdir(dir);
+  try {
+    expect(loadEnv(null, {})).toEqual({ allowedHosts: [], given: false, port: 4310, repo: dir });
+  } finally {
+    process.chdir(previous);
+  }
+});
