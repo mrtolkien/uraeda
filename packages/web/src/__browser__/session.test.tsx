@@ -8,7 +8,17 @@
 import { act, screen, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
-import { atRepo, agent, checkLayout, drawn, LIVE, show, startTurn } from "./helpers.tsx";
+import {
+  atRepo,
+  agent,
+  checkLayout,
+  drawn,
+  grown,
+  LIVE,
+  sendMessage,
+  show,
+  startTurn,
+} from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
 
@@ -21,10 +31,14 @@ function scroller() {
   return document.scrollingElement!;
 }
 
-/** Whether an element's bottom shows above the composer, which stays at the bottom. */
+/** The composer's text field, which stays at the bottom. */
+function composer() {
+  return screen.getByRole("textbox", { name: "Message Claude Code" });
+}
+
+/** Whether an element's bottom shows above the composer. */
 function inView(element: Element) {
-  const composer = screen.getByRole("textbox", { name: "Message Claude Code" });
-  return element.getBoundingClientRect().bottom <= composer.getBoundingClientRect().top + 1;
+  return element.getBoundingClientRect().bottom <= composer().getBoundingClientRect().top + 1;
 }
 
 /** Lines of the agent's text, numbered. */
@@ -84,11 +98,19 @@ test("US4.2–US4.4: scrolled up, Jump to the latest brings the end back, and th
   await drawn();
   expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
 
-  // US4.2: scrolled up 400 px, the page keeps its position as lines arrive, and the button shows.
+  // US4.2: scrolled up 400 px, the page keeps its position as lines arrive, and the button shows,
+  // above the composer, without growing the page.
+  const height = box.scrollHeight;
   box.scrollTo(0, box.scrollTop - 400);
   await drawn();
   const position = box.scrollTop;
   const jump = await screen.findByRole("button", { name: JUMP }, LIVE);
+  await drawn();
+  expect(jump.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+    composer().getBoundingClientRect().top,
+  );
+  expect(box.scrollHeight).toBe(height);
+  expect(box.scrollTop).toBe(position);
   await agent.agentEmit(lines(5, "Later line"));
   const latest = await within(log).findByText("Later line 5.", undefined, LIVE);
   await drawn();
@@ -96,10 +118,12 @@ test("US4.2–US4.4: scrolled up, Jump to the latest brings the end back, and th
   expect(inView(latest)).toBe(false);
   await checkLayout();
 
-  // US4.3: pressed, the newest line shows, the button goes, and a further line stays in view.
+  // US4.3: pressed, the newest line shows, the button goes, the focus moves to the composer rather
+  // than to the page, and a further line stays in view.
   await userEvent.click(jump);
   await expect.poll(() => inView(latest), LIVE).toBe(true);
   await expect.poll(() => screen.queryByRole("button", { name: JUMP }), LIVE).toBeNull();
+  expect(document.activeElement).toBe(composer());
   await agent.agentEmit([{ text: "A line after the jump.", type: "text" }]);
   const after = await within(log).findByText("A line after the jump.", undefined, LIVE);
   await expect.poll(() => inView(after), LIVE).toBe(true);
@@ -117,11 +141,34 @@ test("an ended session scrolled up also offers Jump to the latest", async () => 
   expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
 
   box.scrollTo(0, box.scrollTop - 400);
-  await userEvent.click(await screen.findByRole("button", { name: JUMP }, LIVE));
+  // Pressed from the keyboard: the focus goes to the composer, not to the page.
+  (await screen.findByRole("button", { name: JUMP }, LIVE)).focus();
+  await userEvent.keyboard("{Enter}");
 
   const last = within(log).getByText("Line 40.");
   await expect.poll(() => inView(last), LIVE).toBe(true);
   await expect.poll(() => screen.queryByRole("button", { name: JUMP }), LIVE).toBeNull();
+  expect(document.activeElement).toBe(composer());
+});
+
+test("idle at the end, send: the reply stays in view and no button shows", async () => {
+  const log = await openWorkingSession();
+  await agent.agentFinish();
+  await expect.poll(() => screen.queryByRole("button", { name: "Stop" }), LIVE).toBeNull();
+  await drawn();
+  const box = scroller();
+  box.scrollTo(0, box.scrollHeight);
+  await drawn();
+
+  // The message, two lines, grows the transcript before the session works.
+  await sendMessage("Now the tests.\nThen the docs.");
+  await agent.agentAccept();
+  await agent.agentEmit(lines(10, "Reply"));
+  const reply = await within(log).findByText("Reply 10.", undefined, LIVE);
+  await expect.poll(() => inView(reply), LIVE).toBe(true);
+  await drawn();
+  expect(inView(reply)).toBe(true);
+  expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
 });
 
 // A session opened from a task view still opens at its end: the task view's pane keeps its own
@@ -419,7 +466,8 @@ test("opening the line moves the place read, which the next width keeps", async 
     // Opened without scrolling to it, as a tap at the top of the page would.
     await act(async () => screen.getByRole("button", { name: LINE }).click());
     await screen.findByRole("region", { name: "Progress" }, LIVE);
-    await drawn();
+    // Its sections drawn, each once its files are read.
+    await grown();
     const read = readLine(log);
     const top = read.getBoundingClientRect().top;
 

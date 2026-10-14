@@ -139,6 +139,26 @@ export async function scrollStopped() {
 }
 
 /**
+ * Waits for the page to stop growing, as the sections of an opened line draw one by one: the same
+ * height over 200 ms, then drawn.
+ */
+export async function grown() {
+  let last = Number.NaN;
+  await expect
+    .poll(
+      () => {
+        const height = document.documentElement.scrollHeight;
+        const same = height === last;
+        last = height;
+        return same;
+      },
+      { interval: 200, timeout: 10_000 },
+    )
+    .toBe(true);
+  await drawn();
+}
+
+/**
  * Whether an element sits inside one that scrolls sideways, as a table or code may: one that only
  * scrolls down, like a pane or the navigation, does not excuse the text it cuts.
  */
