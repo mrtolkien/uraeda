@@ -264,11 +264,11 @@ const sessionColumns = {
  * lock.
  */
 export class SessionCache {
-  #db: DatabaseSync;
+  readonly db: DatabaseSync;
   #pid: number;
 
   private constructor(db: DatabaseSync, pid: number) {
-    this.#db = db;
+    this.db = db;
     this.#pid = pid;
   }
 
@@ -325,7 +325,7 @@ export class SessionCache {
     title: string | null;
   }): SessionRow {
     const created = now();
-    const inserted = this.#db
+    const inserted = this.db
       .prepare(
         `INSERT INTO sessions (id, repo, folder, agent, native_id, title, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
@@ -344,13 +344,13 @@ export class SessionCache {
   }
 
   session(id: string): SessionRow | undefined {
-    const row = this.#db.prepare("SELECT * FROM sessions WHERE id = ?").get(id) as Row | undefined;
+    const row = this.db.prepare("SELECT * FROM sessions WHERE id = ?").get(id) as Row | undefined;
     return row ? toSession(row) : undefined;
   }
 
   /** The feature's one session. */
   featureSession(repo: string, folder: string): SessionRow | undefined {
-    const row = this.#db
+    const row = this.db
       .prepare("SELECT * FROM sessions WHERE repo = ? AND folder = ?")
       .get(repo, folder) as Row | undefined;
     return row ? toSession(row) : undefined;
@@ -367,7 +367,7 @@ export class SessionCache {
     if (changed.length === 0) {
       return;
     }
-    this.#db
+    this.db
       .prepare(
         `UPDATE sessions SET ${changed.map((field) => `${sessionColumns[field]} = ?`).join(", ")}
          WHERE id = ?`,
@@ -381,21 +381,21 @@ export class SessionCache {
    * transaction, so two servers cannot both claim it.
    */
   claimSession(id: string): boolean {
-    return transaction(this.#db, () => {
-      const row = this.#db.prepare("SELECT pid FROM sessions WHERE id = ?").get(id) as
+    return transaction(this.db, () => {
+      const row = this.db.prepare("SELECT pid FROM sessions WHERE id = ?").get(id) as
         | { pid: number | null }
         | undefined;
       if (!row || (row.pid !== null && row.pid !== this.#pid && alive(row.pid))) {
         return false;
       }
-      this.#db.prepare("UPDATE sessions SET pid = ? WHERE id = ?").run(this.#pid, id);
+      this.db.prepare("UPDATE sessions SET pid = ? WHERE id = ?").run(this.#pid, id);
       return true;
     });
   }
 
   /** Releases the session when this process holds it, once its agent's process closed. */
   releaseSession(id: string): void {
-    this.#db.prepare("UPDATE sessions SET pid = NULL WHERE id = ? AND pid = ?").run(id, this.#pid);
+    this.db.prepare("UPDATE sessions SET pid = NULL WHERE id = ? AND pid = ?").run(id, this.#pid);
   }
 
   /**
@@ -407,7 +407,7 @@ export class SessionCache {
     { limit = SESSIONS_LIMIT, query }: { limit?: number; query?: string } = {},
   ): Array<SessionRow> {
     const rows = query
-      ? (this.#db
+      ? (this.db
           .prepare(
             `SELECT * FROM sessions s WHERE repo = ?1 AND (
                lower(s.title) LIKE lower(?2) ESCAPE '\\'
@@ -419,7 +419,7 @@ export class SessionCache {
              ORDER BY updated_at DESC, rowid DESC LIMIT ?3`,
           )
           .all(repo, contains(query), limit) as Array<Row>)
-      : (this.#db
+      : (this.db
           .prepare(
             "SELECT * FROM sessions WHERE repo = ? ORDER BY updated_at DESC, rowid DESC LIMIT ?",
           )
@@ -436,9 +436,9 @@ export class SessionCache {
     step: string | null;
     trigger: Trigger | null;
   }): number {
-    return transaction(this.#db, () => {
+    return transaction(this.db, () => {
       const at = now();
-      const { lastInsertRowid } = this.#db
+      const { lastInsertRowid } = this.db
         .prepare(
           `INSERT INTO turns (session_id, kind, trigger, step, allowed, state, started_at)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -459,9 +459,9 @@ export class SessionCache {
 
   /** Starts a queued turn. */
   startTurn(id: number): void {
-    transaction(this.#db, () => {
+    transaction(this.db, () => {
       const at = now();
-      const row = this.#db
+      const row = this.db
         .prepare(
           "UPDATE turns SET state = 'running', started_at = ? WHERE id = ? RETURNING session_id",
         )
@@ -474,8 +474,8 @@ export class SessionCache {
 
   /** Makes an ended turn run again, as its agent went on after it ended. */
   reopenTurn(id: number): void {
-    transaction(this.#db, () => {
-      const row = this.#db
+    transaction(this.db, () => {
+      const row = this.db
         .prepare(
           `UPDATE turns SET state = 'running', reason = NULL, ended_at = NULL WHERE id = ?
            RETURNING session_id`,
@@ -489,9 +489,9 @@ export class SessionCache {
 
   /** Ends a turn. */
   endTurn(id: number, end: { reason?: string; state: TurnState }): void {
-    transaction(this.#db, () => {
+    transaction(this.db, () => {
       const at = now();
-      const row = this.#db
+      const row = this.db
         .prepare(
           `UPDATE turns SET state = ?, reason = ?, ended_at = ? WHERE id = ? RETURNING session_id`,
         )
@@ -503,13 +503,13 @@ export class SessionCache {
   }
 
   turn(id: number): TurnRow | undefined {
-    const row = this.#db.prepare("SELECT * FROM turns WHERE id = ?").get(id) as Row | undefined;
+    const row = this.db.prepare("SELECT * FROM turns WHERE id = ?").get(id) as Row | undefined;
     return row ? toTurn(row) : undefined;
   }
 
   /** The session's turns, oldest first. */
   turns(sessionId: string): Array<TurnRow> {
-    const rows = this.#db
+    const rows = this.db
       .prepare("SELECT * FROM turns WHERE session_id = ? ORDER BY id")
       .all(sessionId) as Array<Row>;
     return rows.map(toTurn);
@@ -517,10 +517,10 @@ export class SessionCache {
 
   /** Adds an item at the end of the turn, and returns its `seq`. */
   appendItem(turnId: number, item: Item): number {
-    const { seq } = this.#db
+    const { seq } = this.db
       .prepare("SELECT COALESCE(MAX(seq) + 1, 0) AS seq FROM items WHERE turn_id = ?")
       .get(turnId) as { seq: number };
-    this.#db
+    this.db
       .prepare("INSERT INTO items (turn_id, seq, at, kind, data) VALUES (?, ?, ?, ?, ?)")
       .run(turnId, seq, now(), ...stored(item));
     return seq;
@@ -528,14 +528,14 @@ export class SessionCache {
 
   /** Replaces an item of the turn, like a tool call once its result arrives. */
   updateItem(turnId: number, seq: number, item: Item): void {
-    this.#db
+    this.db
       .prepare("UPDATE items SET kind = ?, data = ? WHERE turn_id = ? AND seq = ?")
       .run(...stored(item), turnId, seq);
   }
 
   /** A page of the turn's items, in order. */
   items(turnId: number, offset: number, limit: number): Array<Item & { seq: number }> {
-    const rows = this.#db
+    const rows = this.db
       .prepare("SELECT seq, kind, data FROM items WHERE turn_id = ? ORDER BY seq LIMIT ? OFFSET ?")
       .all(turnId, limit, offset) as Array<{ data: string; kind: string; seq: number }>;
     return rows.map(
@@ -548,7 +548,7 @@ export class SessionCache {
     turnId: number,
     kind: K,
   ): Array<Extract<Item, { kind: K }> & { seq: number }> {
-    const rows = this.#db
+    const rows = this.db
       .prepare("SELECT seq, data FROM items WHERE turn_id = ? AND kind = ? ORDER BY seq")
       .all(turnId, kind) as Array<{ data: string; seq: number }>;
     return rows.map(
@@ -557,22 +557,8 @@ export class SessionCache {
     );
   }
 
-  /** The chat images the messages of every repository hold, by their IDs. */
-  imagesInUse(): Set<string> {
-    const rows = this.#db
-      .prepare(
-        `SELECT DISTINCT json_extract(image.value, '$.id') AS id
-         FROM items,
-           json_each(CASE WHEN json_valid(items.data) THEN items.data ELSE '{}' END, '$.images')
-             AS image
-         WHERE items.kind = 'message'`,
-      )
-      .all() as Array<{ id: string | null }>;
-    return new Set(rows.flatMap(({ id }) => (id === null ? [] : [id])));
-  }
-
   itemCount(turnId: number): number {
-    const { count } = this.#db
+    const { count } = this.db
       .prepare("SELECT COUNT(*) AS count FROM items WHERE turn_id = ?")
       .get(turnId) as { count: number };
     return count;
@@ -585,15 +571,15 @@ export class SessionCache {
    * running.
    */
   interrupted(reason: string): Array<TurnRow> {
-    return transaction(this.#db, () => {
-      const running = this.#db
+    return transaction(this.db, () => {
+      const running = this.db
         .prepare(
           `SELECT t.id, s.pid FROM turns t JOIN sessions s ON s.id = t.session_id
            WHERE t.state IN ('running', 'queued')`,
         )
         .all() as Array<{ id: number; pid: number | null }>;
       const ended = now();
-      const stop = this.#db.prepare(
+      const stop = this.db.prepare(
         "UPDATE turns SET state = 'stopped', reason = ?, ended_at = ? WHERE id = ? RETURNING *",
       );
       return running
@@ -605,7 +591,7 @@ export class SessionCache {
 
   /** Records a change of the session's turns. */
   #touch(sessionId: string, at: string): void {
-    this.#db.prepare("UPDATE sessions SET updated_at = ? WHERE id = ?").run(at, sessionId);
+    this.db.prepare("UPDATE sessions SET updated_at = ? WHERE id = ?").run(at, sessionId);
   }
 }
 

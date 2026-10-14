@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { Hono } from "hono";
 import { chatImages } from "./attach.ts";
 import type { FateVariables } from "./fate.ts";
+import { imageInUse } from "./runner/image-uses.ts";
 import { chatImageType } from "./runner/images.ts";
 
 const types: Record<string, string> = {
@@ -119,7 +120,7 @@ export function files() {
     if (images.path(id) === undefined) {
       return context.text("Not found", 404);
     }
-    if (sessions.cache.imagesInUse().has(id)) {
+    if (imageInUse(sessions.cache.db, id)) {
       return context.json({ error: `refused: ${id} is in a sent message.` }, 400);
     }
     await images.remove(id);

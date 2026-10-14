@@ -9,6 +9,7 @@ import type { Options } from "./options.ts";
 import { Hosts } from "./repositories.ts";
 import type { Adapter } from "./runner/adapter.ts";
 import { SessionCache } from "./runner/cache.ts";
+import { imagesInUse } from "./runner/image-uses.ts";
 import type { Sessions } from "./runner/sessions.ts";
 
 /** How often the server checks that the agent still works. */
@@ -31,7 +32,7 @@ export async function startSessions(options: {
   // Every repository shares the data folder: an image a composer holds, not sent yet, is kept for
   // a day (R5). A cleanup that fails never stops the server (R40).
   try {
-    await chatImages(options.dataDir).clean(cache.imagesInUse(), Date.now());
+    await chatImages(options.dataDir).clean(imagesInUse(cache.db), Date.now());
   } catch (error) {
     process.stderr.write(`uraeda: the chat images were not cleaned: ${(error as Error).message}\n`);
   }
