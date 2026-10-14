@@ -1,6 +1,8 @@
 import type { Trigger } from "../runner/events.ts";
 import { REFUSALS } from "../runner/sessions.ts";
 import { type Context, inRepository, type RepoContext } from "./context.ts";
+import type { ChatImage } from "../runner/images.ts";
+import { sentImages } from "./chat-images.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { featureRecord, readSession, TRIGGERS, writable } from "./sessions.ts";
 import { type ListResolver, listMutations, refusedOn } from "./list-mutations.ts";
@@ -370,6 +372,8 @@ const repositoryMutations = {
       /** The session to send to. */
       session?: string;
       text: string;
+      /** The chat images, as `POST /attach` saved them. */
+      images?: Array<ChatImage>;
       /** The workflow's message, which starts the feature's step. */
       workflow?: { file?: string; trigger: Trigger };
     }>) => {
@@ -377,6 +381,7 @@ const repositoryMutations = {
       if (workflow && !TRIGGERS.includes(workflow.trigger)) {
         throw callSiteError(`refused: no trigger ${workflow.trigger}`);
       }
+      const images = sentImages(ctx, input.images);
       const id = await onSession(ctx, async () => {
         if (input.session !== undefined) {
           return input.session;
@@ -394,6 +399,7 @@ const repositoryMutations = {
       await refusedOn(() =>
         ctx.sessions.send(ctx.repo, id, {
           text: input.text,
+          ...(images.length === 0 ? {} : { images }),
           ...(workflow === undefined
             ? {}
             : {

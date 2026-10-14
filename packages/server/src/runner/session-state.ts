@@ -18,6 +18,8 @@ export const WATCHDOG_MS = 30 * 60_000;
 export const TERMINATE_AFTER_MS = 10_000;
 /** A tool's output is cut to this many characters. */
 export const OUTPUT_LIMIT = 4000;
+/** A message takes at most this many images. */
+export const MAX_IMAGES = 10;
 
 export const REFUSALS = {
   /** A write on a feature, or a session another server holds, while its agent works. */
@@ -31,6 +33,11 @@ export const REFUSALS = {
   blank: "The message is empty.",
   /** An allow of a blocked action no rule matches alone, as a command with a `*`. */
   noRule: "No allow rule can match only this action.",
+  /** Images sent to an agent that does not declare them. */
+  noImages: "This agent cannot read images.",
+  tooManyImages: `A message takes at most ${MAX_IMAGES} images.`,
+  /** An image ID with no file in the data folder: removed, or never uploaded. */
+  imageGone: "This image is gone: add it again.",
   unavailable: (name: string) => `${name} is not available on this machine.`,
 };
 

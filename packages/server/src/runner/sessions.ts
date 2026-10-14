@@ -6,6 +6,7 @@ import type { Trigger, TurnActivity, TurnKind } from "./events.ts";
 import { LiveSessions } from "./live-sessions.ts";
 import { chatOpening, chatTitle, retryMessage } from "./message.ts";
 import { Processes } from "./processes.ts";
+import { checkSend, type SendInput } from "./send-input.ts";
 import {
   type Live,
   type Message,
@@ -18,8 +19,10 @@ import {
 import { Transcript } from "./transcript.ts";
 import { Turns } from "./turns.ts";
 
+export { type SendInput, type SentImage } from "./send-input.ts";
 export {
   IDLE_CLOSE_MS,
+  MAX_IMAGES,
   OUTPUT_LIMIT,
   REFUSALS,
   RESUMED,
@@ -187,24 +190,18 @@ export class Sessions {
    * Sends a message to the session, and returns its turn. Idle, it starts a turn, opening the
    * process when it is closed. During a turn, the human's message is steered into it, and the
    * workflow's is queued after it. A workflow message is refused unless the feature waits on the
-   * agent.
+   * agent. A message may be images alone, at most 10, to an agent that declares images.
    */
-  async send(
-    repo: string,
-    session: string,
-    input: { text: string; workflow?: { file?: string; trigger: Trigger } },
-  ): Promise<{ turn: number }> {
-    if (input.text.trim() === "") {
-      throw refused(REFUSALS.blank);
-    }
+  async send(repo: string, session: string, input: SendInput): Promise<{ turn: number }> {
+    const message = checkSend(input, this.adapter.capabilities);
     this.#available();
     const live = this.#context.live.of(await this.#own(repo, session));
-    return this.#context.live.serial(live, () => this.#send(live, input));
+    return this.#context.live.serial(live, () => this.#send(live, message));
   }
 
   async #send(
     live: Live,
-    { text, workflow }: { text: string; workflow?: { file?: string; trigger: Trigger } },
+    { held, paths, text, workflow }: ReturnType<typeof checkSend>,
   ): Promise<{ turn: number }> {
     const { adapter, binding, cache, changed, processes, turns } = this.#context;
     let step: string | null = null;
@@ -227,21 +224,20 @@ export class Sessions {
     this.#available();
     const row = rowOf(cache, live);
     if (row.folder === null && row.title === null) {
-      cache.updateSession(row.id, { title: chatTitle(text) });
+      cache.updateSession(row.id, { title: chatTitle(text, paths.length > 0) });
     }
     if (row.archivedAt !== null) {
       cache.updateSession(row.id, { archivedAt: null });
     }
     const id = randomUUID();
     const origin = workflow ? "workflow" : "human";
-
     // During a turn, a human message joins it, when the agent can steer and the turn is not ending.
     if (live.turn && !live.turn.stop && !workflow && adapter.capabilities.steer) {
-      const item: Message = { at: now(), id, kind: "message", origin, state: "pending", text };
+      const item: Message = { at: now(), id, kind: "message", origin, state: "pending", text, ...held };
       const seq = cache.appendItem(live.turn.id, item);
       live.messages.set(id, { item, seq, turn: live.turn.id, written: true });
       changed(live, live.turn.id);
-      live.proc?.agent.send({ id, text, when: "steer" });
+      live.proc?.agent.send({ id, images: paths, text, when: "steer" });
       return { turn: live.turn.id };
     }
 
@@ -262,11 +258,13 @@ export class Sessions {
       ...(opening === undefined ? {} : { opening }),
       at: now(),
       state: "pending",
+      ...held,
     };
     const message: Outgoing = {
       id,
-      text: opening === undefined ? text : `${opening}\n${text}`,
+      text: opening === undefined ? text : text === "" ? opening : `${opening}\n${text}`,
       when: "queue",
+      images: paths,
     };
     const turn = {
       allowed: null,
@@ -378,7 +376,7 @@ export class Sessions {
         allowed: rule,
         item: { id, kind: "message", origin: "human", state: "pending", text },
         kind: "allow",
-        message: { id, text, when: "queue" },
+        message: { id, images: [], text, when: "queue" },
         replaced,
         step: null,
         trigger: null,

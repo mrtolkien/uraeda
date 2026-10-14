@@ -566,3 +566,27 @@ test("migration 3 turns each feature's runs into the turns of one session", () =
       .map((turn) => turn.id),
   ).toEqual([first, second, allow]);
 });
+
+test("imagesInUse lists the images of every repository's messages, taken back or not", () => {
+  const cache = SessionCache.open(":memory:");
+  const image = (id: string) => ({ id, width: 2, height: 1 });
+  for (const [repo, state, images] of [
+    ["/repo/a", "read", [image("a.webp"), image("b.webp")]],
+    ["/repo/b", "taken-back", [image("c.webp")]],
+    ["/repo/b", "pending", undefined],
+  ] as const) {
+    const session = cache.createSession({ ...chat, repo, nativeId: `${repo}-${state}` });
+    const turn = cache.addTurn({ sessionId: session.id, ...workflowTurn });
+    cache.appendItem(turn, {
+      kind: "message",
+      id: `${repo}-${state}`,
+      text: "Look",
+      origin: "human",
+      state,
+      ...(images === undefined ? {} : { images: [...images] }),
+    });
+    cache.appendItem(turn, { kind: "text", text: "a.webp", streaming: false });
+  }
+
+  expect(cache.imagesInUse()).toEqual(new Set(["a.webp", "b.webp", "c.webp"]));
+});

@@ -733,10 +733,11 @@ git commit -m "feat(image-attachments): upload and image routes"
 
 - Modify: `packages/server/src/runner/adapter.ts`, `events.ts`, `sessions.ts`, `message.ts`,
   `claude.ts`, `fake.ts`, `live.ts` (cleanup at startup, with task 6's `cache.imagesInUse()`),
-  `packages/server/src/fate/mutations.ts` (`session.send`), `fate/views.ts` (capabilities),
-  `packages/server/scripts/validate-claude.ts`
+  `main.ts` and `dev.ts` (the adapter's `imagesDir`), `packages/server/src/fate/mutations.ts`
+  (`session.send`), `packages/web/src/views.ts` (the agent view's capabilities, listed field by
+  field), `packages/server/scripts/validate-claude.ts`
 - Test: `packages/server/src/runner/__tests__/sessions.test.ts`, `claude.test.ts`, `cache.test.ts`,
-  `packages/server/src/__tests__/sessions.test.ts`
+  `packages/server/src/__tests__/sessions.test.ts`, `live.test.ts`
 
 **Interfaces:**
 
@@ -745,17 +746,22 @@ git commit -m "feat(image-attachments): upload and image routes"
   - `Capabilities.images: boolean`, `true` for Claude Code and the fake adapter by default.
   - `Outgoing.images: { path: string }[]`.
   - The message item gains `images?: ChatImage[]`.
-  - `Sessions.send(repo, session, input: { text: string; images?: string[]; workflow?: ... })`;
-    `session.send` takes `images?: string[]`, the ids.
+  - `Sessions.send(repo, session, input: SendInput)`, with
+    `SendInput = { text: string; images?: SentImage[]; workflow?: ... }` and
+    `SentImage = ChatImage & { path: string }`; `session.send` takes `images?: ChatImage[]`, as
+    `POST /attach` returned them, and resolves their paths
+    ([R35](rulings.md#r35-sessionsend-takes-the-images-as-the-upload-returned-them)).
   - `ClaudeAdapterOptions.imagesDir: string`; `claudeArgs(options, pluginDir, imagesDir)` adds
-    `--add-dir <imagesDir>`.
+    `--add-dir <imagesDir>`; `messageContent(text, images)` writes the `[Image: <path>]` lines.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
-- `US2.2: the agent receives the text, then one line per image`: `adapter.sent[0]` is
-  `{ text: "What is wrong here?\n\n[Image: <dir>/a.webp]\n[Image: <dir>/b.webp]", ... }` with the
-  Claude adapter's formatting checked in `claude.test.ts` (the stdin JSON line), and the fake's
-  `sent[0].images` holding both paths; the item holds `images` with their ids and sizes.
+- `US2.2: the agent receives the text, then one line per image`: the fake's `sent[0]` is
+  `{ text: "What is wrong here?", images: [{ path: <dir>/a.webp }, { path: <dir>/b.webp }], ... }`,
+  and the Claude adapter writes
+  `"What is wrong here?\n\n[Image: <dir>/a.webp]\n[Image: <dir>/b.webp]"` on its stdin JSON line
+  (`claude.test.ts`); the item holds `images` with their ids and sizes. `session.send` resolves the
+  ids in the data folder, and refuses one with no file: "refused: This image is gone: add it again."
 - `US2.4: a message of an image alone is sent, and its chat is titled "Image"`.
 - `US2.5: a taken-back message keeps its images on its item` (the UI restores them; the item's
   `images` stay readable).
@@ -763,32 +769,35 @@ git commit -m "feat(image-attachments): upload and image routes"
 - `refuses images to an agent without them`: "refused: This agent cannot read images."
 - `Claude Code passes --add-dir with the images folder` (update the exact-arguments test) and
   `declares images` (update the capabilities test).
-- `cleans chat images no session uses, older than a day` (Review focus 10): an image referenced by
-  another repository's item stays, one uploaded an hour ago stays.
+- `cleans chat images no session uses, older than a day` (Review focus 10, in `live.test.ts`,
+  through `startSessions`): an image referenced by another repository's item stays, one uploaded an
+  hour ago stays.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/runner`
-- Expected: FAIL, `US2.2`: `expected 'What is wrong here?' to be ...`.
+- Expected: FAIL, `US2.2`:
+  `expected { …(3) } to match object { text: 'What is wrong here?', …(2) }`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-Sessions resolve ids to paths through `ChatImages`, refuse unknown ids, and pass paths in
-`Outgoing.images`. The Claude adapter appends a blank line and one `[Image: <path>]` line per image
-to the text it writes, and creates `imagesDir` before spawning. `chatTitle` of an empty text with
-images is "Image". The cleanup runs in `startSessions`, with `inUse` from every item of the cache.
-The validation script adds two checks: a chat message with an image, and a prompt asking about a
-proposal that links an image (US6.1); each passes when a `Read` of the image's path is seen.
+`session.send` resolves ids to paths through `ChatImages` and refuses unknown ids; the sessions pass
+the paths in `Outgoing.images`. The Claude adapter appends a blank line and one `[Image: <path>]`
+line per image to the text it writes, and creates `imagesDir` before spawning. `chatTitle` of an
+empty text with images is "Image". The cleanup runs in `startSessions`, with `inUse` from every item
+of the cache. The validation script adds two checks: a chat message with an image, and a prompt
+asking about a proposal that links an image (US6.1); each passes when a `Read` of the image's path
+is seen.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/server
+git add packages/server packages/web/src/views.ts
 git commit -m "feat(image-attachments): images in chat messages"
 ```
 
@@ -905,7 +914,8 @@ git commit -m "feat(image-attachments): draw images in documents"
 **Files:**
 
 - Modify: `packages/web/src/Composer.tsx`, `SessionPage.tsx` (the draft holds images with the text),
-  `Transcript.tsx`, `sessions.ts` (`sendMessage` takes `images`)
+  `Transcript.tsx`, `sessions.ts` (`sendMessage` takes `images`, the `ChatImage`s the upload
+  returned, passed to `session.send` as they are)
 - Test: `packages/web/src/__tests__/session.test.tsx`,
   `packages/web/src/__browser__/attach.test.tsx`
 
