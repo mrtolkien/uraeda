@@ -53,7 +53,7 @@ export function useRoundNotes(file: File) {
     settle(read);
   }, [read, settle]);
   /** Saves the notes as `value`, after the saves before it; resolves with whether it did. */
-  const commit = (value: string) => save.write((previous) => run(value, previous));
+  const commit = (value: string) => save.save(value);
   /** Takes how to wait for the images being added. */
   const waitFor = useCallback((wait: () => Promise<void>) => {
     settled.current = wait;

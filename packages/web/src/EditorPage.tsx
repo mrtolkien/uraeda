@@ -4,9 +4,7 @@ import { Divider } from "@astryxdesign/core/Divider";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
-import { TextArea } from "@astryxdesign/core/TextArea";
 import { Text } from "@astryxdesign/core/Text";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { type ReactNode, useState } from "react";
 import { useFateClient } from "react-fate";
@@ -18,10 +16,15 @@ import { Blocks } from "./Blocks.tsx";
 import { CommitActions } from "./CommitActions.tsx";
 import { useDraft, useProposalHints } from "./data.ts";
 import { refusal } from "./errors.ts";
+import { RestoreNotice } from "./fields/RestoreNotice.tsx";
+import { SaveStatus } from "./fields/SaveStatus.tsx";
+import { TextField } from "./fields/TextField.tsx";
+import { useTextField } from "./fields/useTextField.ts";
 import { Page } from "./layout/Page.tsx";
 import { useRestoreScroll } from "./routes.tsx";
 import { useEditorActions } from "./useEditorActions.ts";
-import { useSave } from "./useSave.ts";
+import { SlugField } from "./SlugField.tsx";
+import { type SaveState, useSave } from "./useSave.ts";
 import { DraftView } from "./views.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
 
@@ -41,13 +44,13 @@ type Draft = NonNullable<ReturnType<typeof useDraft>>;
 type Hints = ReturnType<typeof useProposalHints>;
 
 /** The draft's file and what became of it, its title, and its line in the priorities. */
-function EditorHeading({ draft, path, status }: { draft: Draft; path: string; status: string }) {
+function EditorHeading({ draft, path }: { draft: Draft; path: string }) {
   return (
     <>
       <HStack gap={2} justify="between" wrap="wrap">
         <Text type="code">{path.replace(/^specs\//, "")}</Text>
         <Text color="secondary" type="supporting">
-          {status}
+          {draft.committed ? "committed" : "not committed"}
         </Text>
       </HStack>
       <Heading level={1}>{draft.title}</Heading>
@@ -130,72 +133,86 @@ function SectionHints({ draft, hints }: { draft: Draft; hints: Hints }) {
   );
 }
 
-/** The draft drawn, or its text to edit, which takes images, with the empty sections' guidance. */
+/** What the notice says when the file changed since its unsaved text was typed. */
+const EDITOR_CHANGED = "The file changed since: saving replaces it.";
+
+/**
+ * The draft drawn, or its text to edit, which takes images, with the empty sections' guidance; its
+ * unsaved text restored, and Save, or Ctrl+Enter, with what it did.
+ */
 function EditorText({
   draft,
   drawn,
+  field,
   hints,
   images,
-  onChange,
-  text,
+  onSave,
+  state,
 }: {
   draft: Draft;
   drawn: boolean;
+  field: ReturnType<typeof useTextField>;
   hints: Hints;
-  images: ReturnType<typeof useEditorImages>["images"];
-  onChange: (text: string) => void;
-  text: string;
+  images: ReturnType<typeof useEditorImages>;
+  onSave: () => void;
+  state: SaveState;
 }) {
-  if (drawn) {
-    // The title is the page's heading already.
-    const ids = draft.document.blocks
-      .filter(
-        (block) => block.parent === undefined && !(block.kind === "heading" && block.level === 1),
-      )
-      .map((block) => block.id);
-    return (
-      <DropHint hint={images.hint}>
-        <Blocks document={draft.document} ids={ids} />
-      </DropHint>
-    );
-  }
+  // The title is the page's heading already.
+  const ids = draft.document.blocks
+    .filter(
+      (block) => block.parent === undefined && !(block.kind === "heading" && block.level === 1),
+    )
+    .map((block) => block.id);
   return (
     <VStack gap={2}>
-      <DropHint hint={images.hint}>
-        <TextArea
-          isLabelHidden
-          label="Text"
-          onChange={onChange}
-          rows={Math.max(16, text.split("\n").length + 2)}
-          value={text}
-          {...images.fieldProps}
+      {field.restored && (
+        <RestoreNotice
+          changed={EDITOR_CHANGED}
+          onDiscard={field.discard}
+          restored={field.restored}
         />
-      </DropHint>
-      <AttachStatus status={images.status} />
-      <SectionHints draft={draft} hints={hints} />
+      )}
+      {drawn ? (
+        <DropHint hint={images.hint}>
+          <Blocks document={draft.document} ids={ids} />
+        </DropHint>
+      ) : (
+        <>
+          <DropHint hint={images.hint}>
+            <TextField
+              isLabelHidden
+              kind="editor"
+              label="Text"
+              onChange={field.change}
+              onSubmit={onSave}
+              value={field.text}
+              {...images.fieldProps}
+            />
+          </DropHint>
+          <AttachStatus status={images.status} />
+          <SectionHints draft={draft} hints={hints} />
+        </>
+      )}
+      <HStack align="center" gap={2} wrap="wrap">
+        <Button isDisabled={!field.dirty} label="Save" onClick={onSave} />
+        <SaveStatus dirty={field.dirty} state={state} />
+      </HStack>
     </VStack>
   );
 }
 
 /** A draft's slug, and Start, which turns it into a feature. */
 function StartDraft({
-  onSlug,
   slug,
   start,
 }: {
-  onSlug: (slug: string) => void;
-  slug: string;
+  slug: ReturnType<typeof useTextField>;
   start: (continues: boolean) => Promise<void>;
 }) {
   return (
     <>
       <Divider />
-      <TextInput
-        description="Two words at most: it names the folder and the branch."
-        label="Slug"
-        onChange={onSlug}
-        value={slug}
-      />
+      <SlugField field={slug} />
       <CommitActions
         continueLabel="Start the feature and the agent"
         label="Start the feature"
@@ -214,14 +231,12 @@ function EditorEnd({
   actions,
   draft,
   leading,
-  onSlug,
   slug,
 }: {
   actions: ReturnType<typeof useEditorActions>;
   draft: Draft;
   leading: ReactNode;
-  onSlug: (slug: string) => void;
-  slug: string;
+  slug: ReturnType<typeof useTextField>;
 }) {
   const isDraft = draft.kind === "draft";
   const changes = draft.priorityChanges;
@@ -242,7 +257,7 @@ function EditorEnd({
           {leading}
         </CommitActions>
       )}
-      {isDraft && <StartDraft onSlug={onSlug} slug={slug} start={actions.start} />}
+      {isDraft && <StartDraft slug={slug} start={actions.start} />}
       {actions.message && (
         <Banner
           collapsible={false}
@@ -256,8 +271,8 @@ function EditorEnd({
 
 /**
  * A draft or a proposal: drawn once written, with Edit, or edited as text, with the template's
- * guidance for each empty section; saved as typed over the version it was read at, committed, and,
- * for a draft, started as a feature.
+ * guidance for each empty section; saved with Save or Ctrl+Enter over the version it was read at,
+ * its unsaved text kept until then, committed, and, for a draft, started as a feature.
  */
 export function EditorPage({ path }: { path: string }) {
   const fate = useFateClient();
@@ -266,11 +281,12 @@ export function EditorPage({ path }: { path: string }) {
   useRestoreScroll(true);
   const moved = useMovedText(path);
   const hints = useProposalHints();
-  const [text, setText] = useState(moved?.text ?? asTyped(draft?.text ?? ""));
-  // A written proposal opens drawn; one that holds only its title and What opens to be written.
-  const [drawn, setDrawn] = useState(() => !moved && (draft?.written ?? false));
+  const field = useTextField(`${path}#editor`, asTyped(draft?.text ?? ""));
+  const slug = useTextField(`${path}#slug`, draft?.slug ?? "");
+  // A written proposal opens drawn, unless it holds unsaved text; one that holds only its title and
+  // What opens to be written.
+  const [drawn, setDrawn] = useState(() => !moved && !field.entry && (draft?.written ?? false));
   const [conflict, setConflict] = useState<string>();
-  const [slug, setSlug] = useState(draft?.slug ?? "");
   const save = useSave<string>(async (value, previous) => {
     const result = await fate.mutations.text.save({
       input: { hash: previous, path, text: value },
@@ -283,18 +299,11 @@ export function EditorPage({ path }: { path: string }) {
       }
       return { message: failed.message, ok: false };
     }
+    field.saved(value);
     return { ok: true, saved: result.result?.hash ?? previous };
   }, draft?.hash ?? "");
-  const { holding, images } = useEditorImages({
-    draft,
-    moved,
-    path,
-    save,
-    setDrawn,
-    setText,
-    text,
-  });
-  const actions = useEditorActions({ draft, path, save, setConflict, setText, slug });
+  const images = useEditorImages({ draft, field, moved, path, save, setDrawn });
+  const actions = useEditorActions({ draft, field, path, save, setConflict, slug });
 
   if (!draft) {
     return (
@@ -303,46 +312,41 @@ export function EditorPage({ path }: { path: string }) {
       </Page>
     );
   }
-  /** Reads the file again, and puts its text in place of the one that was not saved. */
+  /** Reads the file again, and shows its text in place of the one that was not saved. */
   const reload = async () => {
     setConflict(undefined);
     const fresh = await readDraft(fate, path);
     if (fresh) {
-      setText(asTyped(fresh.text));
+      field.discard();
       save.settle(fresh.hash, true);
     }
   };
-  const status =
-    save.state.kind === "saving" || images.busy
-      ? "saving…"
-      : save.state.kind === "saved"
-        ? "saved ✓"
-        : draft.committed
-          ? "committed"
-          : "not committed";
+  // A conflict says why the save was refused already.
+  const state: SaveState = images.busy
+    ? { kind: "saving" }
+    : conflict && save.state.kind === "error"
+      ? { kind: "idle" }
+      : save.state;
 
   return (
     <Page>
       <VStack gap={4}>
-        <EditorHeading draft={draft} path={path} status={status} />
-        {conflict && <ConflictBanner conflict={conflict} onReload={reload} text={text} />}
+        <EditorHeading draft={draft} path={path} />
+        {conflict && <ConflictBanner conflict={conflict} onReload={reload} text={field.text} />}
         <DiscoveryEffort draft={draft} onChange={(level) => void actions.setDiscovery(level)} />
         <EditorText
           draft={draft}
           drawn={drawn}
+          field={field}
           hints={hints}
           images={images}
-          onChange={(value) => {
-            setText(value);
-            if (!holding.current) {
-              save.schedule(value);
+          onSave={() => {
+            if (field.dirty) {
+              void save.save(field.text);
             }
           }}
-          text={text}
+          state={state}
         />
-        {save.state.kind === "error" && !conflict && (
-          <Banner collapsible={false} status="error" title={`Not saved: ${save.state.message}`} />
-        )}
         <EditorEnd
           actions={actions}
           draft={draft}
@@ -352,7 +356,6 @@ export function EditorPage({ path }: { path: string }) {
               <AttachButton onFiles={(files) => void images.addFiles(files)} />
             </>
           }
-          onSlug={setSlug}
           slug={slug}
         />
       </VStack>
