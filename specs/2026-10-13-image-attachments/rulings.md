@@ -710,3 +710,98 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `packages/web/src/ImageView.tsx`, the paragraph case of `BlockNode` in
   `packages/web/src/Blocks.tsx`.
 - **Where**: task 9; task 10 draws chat images with the same `ImageView`.
+
+## R49: Images added during an upload wait their turn, in one run
+
+- **Decision**: `useImageText` queues every batch, dropped, pasted, or picked, behind the ones
+  uploading, in one run. The run saves the text once before its first upload (`onStart`), holds the
+  field's saves while it lasts, and ends when its last batch is done: one save of the text with
+  every link (`onText`), or, when a single-file draft moved, one move to the new path (`onMoved`),
+  whose page shows the last status. A later batch goes to the path an earlier one moved the draft
+  to, and its links go after an earlier batch's at the same place. Links inserted while batches
+  still wait show at once (`onLinks`), not saved. While a run lasts, the page reads "saving…" and
+  asks before it is closed. A version of the file read during the run is not taken as the one the
+  next save is made over: the save after the run is refused as a conflict when the file changed,
+  with "Load the new version". A run that ends after the human left the page saves its text, at the
+  new path when the draft moved, without taking them back. A text that could not be saved before the
+  run starts no upload, and says "Your text is not saved: the image was not added." under the field.
+- **Rationale**: two uploads at once on a single-file draft sent the second to a path the first had
+  moved, and its refusal was lost behind the move; the first one's end also ended the hold while the
+  second still ran. An outside edit taken as the base while held was overwritten without a conflict.
+  One run keeps the draft's one move and its one save, as for several files in one drop. A human who
+  left the page chose where to be: the link is still saved, since the image is.
+- **Alternatives considered**: disabling the button and the drop during an upload (a drop that does
+  nothing looks broken); a link lost when the page is left (the image stays, unlinked, and is
+  deleted at the next commit); saving each batch's links as they come (a draft that moves after its
+  text was saved at the old path).
+- **If wrong**: `addFiles`, `upload`, and `end` in `packages/web/src/attach/useImageText.ts`;
+  `adopt`, `onText`, and `onMoved` in `packages/web/src/EditorPage.tsx`. The plan's `useImageText`
+  interface gains `initialStatus`, `onLinks`, and `onMoved`'s status; `useAttach` gains `attach`'s
+  path, `show`, and `lastStatus`; `useSave` gains `load`.
+- **Where**: task 8, review.
+
+## R50: The editor's text has LF line breaks
+
+- **Decision**: the editor holds a file's text with its CRLF and CR line breaks read as LF, as its
+  text field does. Opening a file writes nothing; its first save, typed or with an image's link,
+  writes LF line breaks.
+- **Rationale**: a text field's value has LF line breaks whatever it was given, and its cursor
+  counts them so: a link inserted at the cursor in the CRLF text went one character early per line
+  above it. Typing already saved the field's LF value, so the first save changes the line breaks
+  either way.
+- **Alternatives considered**: keeping CRLF and mapping each cursor position to the file's text
+  (every edit typed saves LF anyway); converting the file on open (a write the human did not make).
+- **If wrong**: `asTyped` in `packages/web/src/EditorPage.tsx`.
+- **Where**: task 8, review.
+
+## R51: A paste with text is a paste of text
+
+- **Decision**: a paste is taken as images only when the clipboard holds files and no text but
+  blanks in `text/plain`. Markup holding only an `<img>`, as a browser copies an image with, does
+  not count as text.
+- **Rationale**: Word, Excel, and LibreOffice copy a picture of the selection with its text: the
+  human copied text, and a paste that uploaded a picture of it instead would lose it. A copied image
+  carries no plain text.
+- **Alternatives considered**: files first (the office suites' text lost); asking which to paste (a
+  dialog for a paste).
+- **If wrong**: `onPaste` in `packages/web/src/attach/useImageText.ts`.
+- **Where**: task 8, review; tasks 10 and 11 paste the same way.
+
+## R52: The over-20 MB refusal is written once for TypeScript
+
+- **Decision**: `packages/server/src/limits.ts`, exported as `uraeda-server/limits`, holds the limit
+  and the refusal's text, "This image is over 20 MB: <name> is <size> MB.", which the upload route
+  and `useAttach` import. The core writes the same text in Rust, for the files that reach it.
+- **Rationale**: the route refuses a body over the limit without reading it, and the UI refuses
+  before uploading (Review focus 12): both must say what the core says. A module free of Node's
+  modules is one the UI bundles, and the UI already depends on `uraeda-server` for its types.
+- **Alternatives considered**: a shared package (one module does not need one); the binding giving
+  the text (the UI does not load the binding).
+- **If wrong**: `packages/server/src/limits.ts`, and the core's `ImageError::Size` refusal in
+  `crates/core/src/images.rs`, which its tests and the UI's pin to the same text.
+- **Where**: task 8, review.
+
+## R53: An answer that is not the route's says the status
+
+- **Decision**: an upload whose answer is not JSON shows its text only when it is plain text, like
+  the guard's "Forbidden site", and otherwise "The image could not be added (HTTP <status>)."; no
+  answer at all shows "Could not reach the Uraeda server.".
+- **Rationale**: a proxy's or a tunnel's error page is HTML, unreadable under a field; the status
+  says enough to look for the cause. The guard's plain refusals name the cause.
+- **Alternatives considered**: always the raw text (markup under the field); always the status (the
+  guard's cause hidden).
+- **If wrong**: `upload` in `packages/web/src/attach/useAttach.ts`.
+- **Where**: task 8, review.
+
+## R54: The window's drop listeners last as long as the app
+
+- **Decision**: `useDropGuard`, mounted by `App`, adds the window's drag and drop listeners with its
+  first mount and removes them with its last, instead of adding them when `useImageDrop.ts` loads.
+- **Rationale**: a module replaced in development added a second set of listeners, whose state no
+  field registers with. The app is mounted on every page, so a drop outside every field still never
+  leaves it (Review focus 9). A script's drag carries no drop effect in the browser tests: they
+  check that `dragover` and `drop` are cancelled, not the cursor.
+- **Alternatives considered**: counting the fields' registrations (a page without a field would open
+  a dropped file); `import.meta.hot.dispose` (the package's types do not include Vite's).
+- **If wrong**: `useDropGuard` in `packages/web/src/attach/useImageDrop.ts`.
+- **Where**: task 8, review.

@@ -7,7 +7,8 @@
     ".": "./src/app.ts",
     "./fate": "./src/fate.ts",
     "./dev": "./src/dev.ts",
-    "./testing": "./src/testing.ts"
+    "./testing": "./src/testing.ts",
+    "./limits": "./src/limits.ts"
   },
   "scripts": {
     "start": "node src/main.ts"

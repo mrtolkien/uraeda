@@ -240,7 +240,7 @@ export function serverFetch(
     const text = await response.text();
     answers.push(typeof init?.body === "string" ? init.body : url);
     return new Response(text, {
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": response.headers.get("content-type") ?? "application/json" },
       status: response.status,
     });
   };

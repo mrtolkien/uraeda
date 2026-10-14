@@ -3,22 +3,13 @@ import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import type { FateVariables } from "./fate.ts";
 import { writable } from "./fate/sessions.ts";
+import { IMAGE_LIMIT, overLimit } from "./limits.ts";
 import { ChatImages } from "./runner/images.ts";
 
-const MIB = 1024 * 1024;
 /** The body's limit: the core's 20 MB for the image, and room for the multipart around it. */
-const BODY_LIMIT = 21 * MIB;
+const BODY_LIMIT = IMAGE_LIMIT + 1024 * 1024;
 /** The name in refusals of an image without one, as the core names it. */
 const PASTED = "pasted image";
-
-/**
- * A size in MB, rounded up to one decimal, as the core writes it in its refusals: the core never
- * sees a body over the limit.
- */
-function megabytes(bytes: number): string {
-  const tenths = Math.ceil((bytes * 10) / MIB);
-  return tenths % 10 === 0 ? String(tenths / 10) : (tenths / 10).toFixed(1);
-}
 
 /** A refusal, as the UI reads fate's: the binding's message with its code. */
 const refusal = (error: unknown) => ({
@@ -43,10 +34,7 @@ export function attach() {
       onError: (context) => {
         const name = context.req.query("name") || PASTED;
         const size = Number(context.req.header("content-length")) || BODY_LIMIT;
-        return context.json(
-          { error: `refused: This image is over 20 MB: ${name} is ${megabytes(size)} MB.` },
-          400,
-        );
+        return context.json({ error: `refused: ${overLimit(name, size)}` }, 400);
       },
     }),
     async (context) => {

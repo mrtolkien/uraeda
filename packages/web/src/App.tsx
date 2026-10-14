@@ -9,6 +9,7 @@ import { Component, type ReactNode, Suspense, useLayoutEffect, useState } from "
 import { FateClient } from "react-fate";
 import type { FateClient as Client } from "./clients.ts";
 import { useRepositories } from "./data.ts";
+import { useDropGuard } from "./attach/useImageDrop.ts";
 import { FeaturePage } from "./FeaturePage.tsx";
 import { EditorPage } from "./EditorPage.tsx";
 import { FilePage } from "./FilePage.tsx";
@@ -243,6 +244,7 @@ function InRepository({
 export function App({ clientFor }: { clientFor: (repo: string | null) => Client }) {
   const { pathname, repo, route } = useRoute();
   const [attempt, setAttempt] = useState(0);
+  useDropGuard();
   return (
     <FateClient client={clientFor(null)}>
       <ThemeModeProvider>

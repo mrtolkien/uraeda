@@ -1,16 +1,22 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import * as binding from "uraeda-binding";
 import { expect, test } from "vite-plus/test";
+import { navigate } from "../routes.tsx";
 import {
   atRepo,
+  answered,
+  answersSoFar,
   click,
+  fakeAgent,
   fixture,
   fixtureRepo,
   git,
   read,
   renderPage,
   sent,
+  serverFetch,
   today,
   type,
 } from "./helpers.tsx";
@@ -335,4 +341,249 @@ test("a file over 20 MB is refused before it is uploaded", async () => {
   expect(sent.some((request) => request.includes("/attach"))).toBe(false);
   expect(field.value).toBe(before);
   expect(existsSync(join(repo, "specs/drafts/git-listener"))).toBe(false);
+});
+
+/** The login banner's proposal, a folder draft, written in a repository: its path. */
+function proposal(repo: string, text = "# Login error banner\n\n## What\n\nThe banner.\n") {
+  const path = "specs/drafts/login-banner/proposal.md";
+  mkdirSync(join(repo, "specs/drafts/login-banner"), { recursive: true });
+  writeFileSync(join(repo, path), text);
+  return path;
+}
+
+/** The address a request goes to. */
+const urlOf = (input: RequestInfo | URL) =>
+  input instanceof Request ? input.url : input.toString();
+
+/** A PNG, as the picker gives it. */
+const png = (name: string) =>
+  new File([readFileSync(fixture("images/phone.png"))], name, { type: "image/png" });
+
+/**
+ * The server in process, whose uploads wait until the test lets each one through: what happens
+ * during an upload.
+ */
+function holdUploads(repo: string, fetch = serverFetch(repo)) {
+  const waiting: Array<() => void> = [];
+  return {
+    waiting,
+    fetch: (async (input, init) => {
+      if (urlOf(input).startsWith("/attach")) {
+        await new Promise<void>((resolve) => waiting.push(resolve));
+      }
+      return fetch(input, init);
+    }) as typeof globalThis.fetch,
+    /** Lets the next upload through, once it waits. */
+    async release() {
+      await waitFor(() => expect(waiting.length).toBeGreaterThan(0));
+      await act(async () => waiting.shift()!());
+    },
+  };
+}
+
+/** Review: a version read during an upload is not taken as the one the save is made over. */
+test("a file changed elsewhere during an upload is a conflict, not overwritten", async () => {
+  const repo = fixtureRepo();
+  const path = proposal(repo);
+  const held = holdUploads(repo);
+  await renderPage(`/edit/${path}`, repo, { fetch: held.fetch });
+  await screen.findByRole("textbox", { name: "Text" });
+
+  await pick([png("login.png")]);
+  await waitFor(() => expect(held.waiting).toHaveLength(1));
+  writeFileSync(join(repo, path), "# Theirs\n");
+  const from = answersSoFar();
+  await act(async () => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await answered("Draft", from);
+  await held.release();
+
+  expect(await screen.findByRole("button", { name: "Load the new version" })).toBeTruthy();
+  expect(read(repo, path)).toBe("# Theirs\n");
+});
+
+/** Review: a second drop during an upload goes to the folder the first one made. */
+test("images added during an upload to a single-file draft all go to its new folder", async () => {
+  const repo = fixtureRepo();
+  const held = holdUploads(repo);
+  await renderPage("/edit/specs/drafts/git-listener.md", repo, { fetch: held.fetch });
+  await edit();
+
+  await pick([png("one.png")]);
+  await pick([png("two.png")]);
+  await held.release();
+  await held.release();
+
+  const moved = "specs/drafts/git-listener/proposal.md";
+  await waitFor(() => expect(window.location.pathname).toBe(`/edit/${moved}`));
+  await waitFor(() =>
+    expect(read(repo, moved)).toContain("![one](images/one.webp)\n\n![two](images/two.webp)\n"),
+  );
+  expect(existsSync(join(repo, "specs/drafts/git-listener/images/two.webp"))).toBe(true);
+  // The last status shows on the page at the new path.
+  expect(screen.getAllByText("Added two.webp").length).toBeGreaterThan(0);
+});
+
+/** Review: a draft's page is kept while its images upload, though the draft moved meanwhile. */
+test("the editor keeps its draft while the images upload, though it moved", async () => {
+  const repo = fixtureRepo();
+  const held = holdUploads(repo);
+  await renderPage("/edit/specs/drafts/git-listener.md", repo, { fetch: held.fetch });
+  await edit();
+
+  await pick([png("one.png")]);
+  await pick([png("two.png")]);
+  await held.release();
+  await waitFor(() => expect(held.waiting).toHaveLength(1));
+  // The draft moved: read again, its old path holds nothing, and fate keeps the draft read last.
+  const from = answersSoFar();
+  await act(async () => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await waitFor(() => expect(answersSoFar()).toBeGreaterThan(from));
+  await act(() => new Promise((resolve) => setTimeout(resolve)));
+
+  expect(screen.queryByText(/No draft/)).toBeNull();
+  expect(screen.getByRole("textbox", { name: "Text" })).toBeTruthy();
+  await held.release();
+  await waitFor(() =>
+    expect(window.location.pathname).toBe("/edit/specs/drafts/git-listener/proposal.md"),
+  );
+});
+
+/** Review: an upload that ends after the human left saves its link, and leaves them there. */
+test("an upload that ends after the page was left saves its link, where it moved", async () => {
+  const repo = fixtureRepo();
+  const held = holdUploads(repo);
+  await renderPage("/edit/specs/drafts/git-listener.md", repo, { fetch: held.fetch });
+  await edit();
+
+  await pick([png("login.png")]);
+  await waitFor(() => expect(held.waiting).toHaveLength(1));
+  await act(async () => navigate("/"));
+  await held.release();
+
+  const moved = "specs/drafts/git-listener/proposal.md";
+  await waitFor(() => expect(read(repo, moved)).toContain("![login](images/login.webp)"));
+  expect(window.location.pathname).toBe("/");
+});
+
+/** Review: what is typed during an upload is saved once it ends, and leaving before asks. */
+test("typing during an upload shows saving, and leaving the page asks", async () => {
+  const repo = fixtureRepo();
+  const path = proposal(repo);
+  const held = holdUploads(repo);
+  await renderPage(`/edit/${path}`, repo, { fetch: held.fetch });
+  const field = await screen.findByRole("textbox", { name: "Text" });
+
+  await pick([png("login.png")]);
+  await waitFor(() => expect(held.waiting).toHaveLength(1));
+  await type(field, "# Login error banner\n\n## What\n\nThe banner, typed.\n");
+
+  expect(screen.getByText("saving…")).toBeTruthy();
+  const leaving = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(leaving);
+  expect(leaving.defaultPrevented).toBe(true);
+  await held.release();
+  await waitFor(() => expect(read(repo, path)).toContain("typed.\n\n![login](images/login.webp)"));
+  await waitFor(() => expect(screen.getByText("saved ✓")).toBeTruthy());
+});
+
+/** Review: an image is not added over a text that could not be saved, and says so. */
+test("an image is refused while the text is not saved, and added once reloaded", async () => {
+  const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
+  const field = await edit();
+  writeFileSync(join(repo, "specs/drafts/git-listener.md"), "# Theirs\n");
+  await type(field, "# Mine\n");
+
+  await pick([png("login.png")]);
+
+  expect(
+    (await screen.findAllByText("Your text is not saved: the image was not added.")).length,
+  ).toBeGreaterThan(0);
+  expect(sent.some((request) => request.includes("/attach"))).toBe(false);
+
+  await click(screen.getByRole("button", { name: "Load the new version" }));
+  await waitFor(() =>
+    expect((screen.getByRole("textbox", { name: "Text" }) as HTMLTextAreaElement).value).toBe(
+      "# Theirs\n",
+    ),
+  );
+  await pick([png("login.png")]);
+  await waitFor(() =>
+    expect(read(repo, "specs/drafts/git-listener/proposal.md")).toBe(
+      "# Theirs\n\n![login](images/login.webp)\n",
+    ),
+  );
+});
+
+test.each([
+  [
+    "an error page",
+    () =>
+      new Response("<h1>Bad gateway</h1>", {
+        status: 502,
+        headers: { "content-type": "text/html" },
+      }),
+    "The image could not be added (HTTP 502).",
+  ],
+  [
+    "the guard's refusal",
+    () =>
+      new Response("Forbidden site", { status: 403, headers: { "content-type": "text/plain" } }),
+    "Forbidden site",
+  ],
+  [
+    "no answer",
+    () => {
+      throw new TypeError("Failed to fetch");
+    },
+    "Could not reach the Uraeda server.",
+  ],
+])("an upload that gets %s says so under the field", async (_, answer, message) => {
+  const repo = fixtureRepo();
+  const path = proposal(repo);
+  const server = serverFetch(repo);
+  const fetch: typeof globalThis.fetch = async (input, init) =>
+    urlOf(input).startsWith("/attach") ? answer() : server(input, init);
+  await renderPage(`/edit/${path}`, repo, { fetch });
+  const field = (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
+  const before = field.value;
+
+  await pick([png("login.png")]);
+
+  expect((await screen.findAllByText(message)).length).toBeGreaterThan(0);
+  expect(field.value).toBe(before);
+});
+
+/** Edge case: an image added while the feature's agent works is refused, as every write. */
+test("an image added while the feature's agent works is refused under the field", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const { folder } = await binding.startFeature(
+    repo,
+    "specs/drafts/git-listener.md",
+    "git-listener",
+  );
+  const session = await fake.sessions.featureSession(repo, folder);
+  await fake.sessions.send(repo, session.id, {
+    text: "Continue the feature.",
+    workflow: { trigger: "manual" },
+  });
+  await renderPage(`/edit/specs/${folder}/proposal.md`, repo, { agent: fake });
+  const field = (await edit()) as HTMLTextAreaElement;
+  const before = field.value;
+
+  await pick([png("login.png")]);
+
+  expect(
+    (
+      await screen.findAllByText(
+        "An agent is working on this feature. Stop it first, or wait for it.",
+      )
+    ).length,
+  ).toBeGreaterThan(0);
+  expect(field.value).toBe(before);
+  expect(sent.some((request) => request.includes("/attach"))).toBe(true);
 });
