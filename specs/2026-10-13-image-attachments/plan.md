@@ -275,6 +275,8 @@ The decisions this plan relies on, and where it follows them:
 | Astryx gap: hidden `<input type="file">`                           | `FileInput` is a visible field, not a picker behind an icon button            | A visible field in the composer and toolbars              |
 | Astryx gap: a custom send button and Enter for image-only messages | Astryx refuses to submit empty text                                           | Requiring text with every image, against US2.4            |
 | `uraeda:attach` icon, registered with Astryx                       | Astryx has no paperclip                                                       | `lucide-react` as a new dependency for one icon           |
+| Astryx gap: a thumbnail's remove button of our own                 | Astryx's sits in the thumbnail's corner, 20 px tall under a touch pointer too | A 44 px button in a 64 px thumbnail's corner hides it     |
+| Astryx gap: a scrim under the lightbox's Close, in the theme       | Astryx's Close has no background: it vanishes over a light screenshot         | A lightbox of our own, for one button                     |
 
 ## Review comments
 
@@ -1166,27 +1168,36 @@ git commit -m "feat(image-attachments): paste images from Neovim"
   `packages/web/scripts/screenshots.ts`
 - Create: `specs/2026-10-13-image-attachments/screenshots/`
 
-- [ ] **Step 1: Add the pages** to `PAGES`: the composer with two thumbnails, the editor with an
-      image in its preview, a proposal page with an image, and a review comment holding a link.
+- [x] **Step 1: Add the pages** to the layout checks: the composer with two thumbnails and a message
+      with images, the editor with an image in its preview, the editor with an image's link, a
+      refusal, and the drop hint, a proposal page with an image, the lightbox, a review comment
+      holding a link with the drop hint, and a round's answer holding a link. They need a page
+      driven after it opens, so each is a test of its own beside `PAGES`, with the same checks
+      (`checkLayout`), in both themes.
 
-- [ ] **Step 2: Run them**
+- [x] **Step 2: Run them**
 
 - Run: `vp test packages/web/vite.browser.config.ts`
 - Expected: PASS at both sizes, in both themes (SC-005); fix what fails.
 
-- [ ] **Step 3: Take and review the screenshots**
+- [x] **Step 3: Take and review the screenshots**
 
 - Run:
-  `vp run --filter uraeda-web screenshots 2026-10-13-image-attachments composer editor proposal review`
+  `vp run --filter uraeda-web screenshots 2026-10-13-image-attachments editor-image image-refused editor-preview proposal-image lightbox review-image round-image chat-images`
 - Expected: the files in `screenshots/`; compare them with the [mockup](mockups/attachments.html),
-  and fix what differs.
+  and fix what differs. The checks and the screenshots found three: a thumbnail's remove button 20
+  px tall on the phone, the lightbox's Close unseen over a light screenshot, and the drop hint over
+  the border of a field whose label shows
+  ([R81](rulings.md#r81-a-thumbnails-remove-button-sits-under-it),
+  [R82](rulings.md#r82-the-lightboxs-close-has-a-scrim),
+  [R83](rulings.md#r83-the-drop-hint-of-a-labelled-field-sits-on-its-labels-line)).
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-13-image-attachments/screenshots

@@ -6,12 +6,17 @@
 // stories, and scenarios start within 50 px of the screen's left edge. A change of width keeps
 // what is being typed (US7 2) and the task view's address (the edge case on crossing 768 px). The
 // session view, the chat view, and the sidebar pass the same checks (SC-004 of chat in the web UI).
+// So do the views images were added to (SC-005 of image attachments): the editor with an image's
+// link, a refusal, and the drop hint, its preview and a proposal with the image, the lightbox, the
+// composer's thumbnails and a message's images, a review comment and a round's answer with a link.
 import { act, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
-import { page, userEvent } from "vite-plus/test/browser";
+import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
+import type { RepoCommands } from "../../vite.browser.config.ts";
 import {
   atRepo,
   agent,
+  attached,
   checkAccessibility,
   checkAlignment,
   checkControlHeights,
@@ -20,13 +25,20 @@ import {
   checkMeasure,
   checkPage,
   checkTextSizes,
+  dragEnd,
+  dragOver,
   drawn,
+  drop,
+  image,
   LIVE,
+  paste,
   repository,
   sendMessage,
   show,
   startTurn,
 } from "./helpers.tsx";
+
+const commands = browserCommands as unknown as RepoCommands;
 
 const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";
 const SPEC = "/f/2026-10-06-recurring-tasks/spec.md";
@@ -370,4 +382,160 @@ test.each(
     await drawn();
   }
   await checkLayout(nav);
+});
+
+const MODES = (["light", "dark"] as const).map((mode) => ({ mode }));
+
+const DRAFT = "specs/drafts/login-banner/proposal.md";
+const LEAD = "When the password is wrong, the banner covers the login button:";
+
+/** A proposal's text with a screenshot under its first paragraph. */
+const withImage = (title: string, link: string) =>
+  `# ${title}\n\n## What\n\n${LEAD}\n\n${link}\n\n## Why\n\nUsers miss the button.\n`;
+
+/** The login banner's draft, a folder holding a screenshot its text links. */
+async function draftWithImage() {
+  await commands.writeRepo(withImage("Login error banner", ""), DRAFT);
+  const link = await attached(DRAFT, await image("desktop.png", "login.png"));
+  await commands.writeRepo(withImage("Login error banner", link), DRAFT);
+}
+
+/** Waits for every image of the main region to load. */
+async function imagesLoaded() {
+  await expect
+    .poll(
+      () =>
+        [...document.querySelectorAll<HTMLImageElement>('[role="main"] img')].every(
+          (one) => one.complete && one.naturalWidth > 0,
+        ),
+      LIVE,
+    )
+    .toBe(true);
+  await drawn();
+}
+
+test.each(MODES)("the editor's preview with an image, in $mode", async ({ mode }) => {
+  window.localStorage.setItem("uraeda.theme", mode);
+  await draftWithImage();
+  try {
+    await show(`/edit/${DRAFT}`, "Login error banner");
+    await screen.findByRole("img", { name: "login" });
+    await imagesLoaded();
+    await checkLayout();
+  } finally {
+    // The editor of a draft the fixture lacks leaves before its repository goes.
+    await show("/", "Priorities");
+  }
+});
+
+test.each(MODES)(
+  "the editor with an image's link, a refusal, and the drop hint, in $mode",
+  async ({ mode }) => {
+    window.localStorage.setItem("uraeda.theme", mode);
+    await draftWithImage();
+    try {
+      await show(`/edit/${DRAFT}`, "Login error banner");
+      await userEvent.click(screen.getByRole("button", { name: "Edit" }));
+      const field = screen.getByRole("textbox", { name: "Text" });
+      drop([await image("drawing.svg", "diagram.svg")], field);
+      await screen.findByText(/diagram\.svg is not one\./, undefined, LIVE);
+      dragOver([await image("phone.png", "shot.png")], field);
+      await screen.findByText("Drop to add to proposal.md", undefined, LIVE);
+      await drawn();
+      await checkLayout();
+    } finally {
+      dragEnd();
+      await show("/", "Priorities");
+    }
+  },
+);
+
+const PROPOSAL = `specs/${CLI}/proposal.md`;
+
+/** A feature's proposal with a screenshot, read on its page: written in its branch's worktree. */
+async function proposalWithImage() {
+  const link = await attached(PROPOSAL, await image("desktop.png", "login.png"));
+  await commands.writeRepo(withImage("CLI TUIs", link), `.worktrees/${CLI}/${PROPOSAL}`);
+  await show(`/f/${CLI}/proposal.md`, LEAD);
+  await screen.findByRole("img", { name: "login" });
+  await imagesLoaded();
+}
+
+test.each(MODES)("a proposal with an image, in $mode", async ({ mode }) => {
+  window.localStorage.setItem("uraeda.theme", mode);
+  await proposalWithImage();
+  await checkLayout();
+});
+
+test.each(MODES)("an image open full screen, in $mode", async ({ mode }) => {
+  window.localStorage.setItem("uraeda.theme", mode);
+  await proposalWithImage();
+  await userEvent.click(screen.getByRole("link", { name: "login" }));
+  const lightbox = await screen.findByRole("dialog");
+  await drawn();
+  await checkLayout(lightbox);
+});
+
+test.each(MODES)(
+  "the composer with two thumbnails, and a message with images, in $mode",
+  async ({ mode }) => {
+    window.localStorage.setItem("uraeda.theme", mode);
+    await show(`/f/${CLI}/session`, "Message Claude Code");
+    const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
+    const thumbnails = async () => {
+      await expect
+        .poll(() => screen.queryAllByRole("button", { name: /^Remove / }).length, LIVE)
+        .toBe(2);
+      await expect
+        .poll(() => screen.getByRole("button", { name: "Send" }).hasAttribute("disabled"), LIVE)
+        .toBe(false);
+    };
+    paste([await image("phone.png", "image.png"), await image("desktop.png", "desktop.png")], box);
+    await thumbnails();
+    await userEvent.fill(box, "The login button overlaps the error banner on the phone.");
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    await agent.agentAccept();
+    // The page draws a new view once the first message creates the session.
+    await screen.findByRole("link", { name: "Image 2 of 2" }, LIVE);
+    // Two more for the next message, beside the sent one, in the new view's composer.
+    paste(
+      [await image("phone.png", "image.png"), await image("desktop.png", "desktop.png")],
+      await screen.findByRole("textbox", { name: "Message Claude Code" }),
+    );
+    await thumbnails();
+    await imagesLoaded();
+    await checkLayout();
+  },
+);
+
+test.each(MODES)(
+  "a review comment holding an image's link, with the drop hint, in $mode",
+  async ({ mode }) => {
+    window.localStorage.setItem("uraeda.theme", mode);
+    await show(SPEC, "Complete a repeating task");
+    try {
+      drop([await image("phone.png", "shot.png")]);
+      const form = await screen.findByRole("form", { name: "Comment" });
+      const field = within(form).getByRole("textbox", { name: "Comment text" });
+      await expect.poll(() => (field as HTMLTextAreaElement).value, LIVE).toContain("(images/");
+      dragOver([await image("phone.png", "shot.png")]);
+      await within(form).findByText(/^Drop to add to/, undefined, LIVE);
+      await drawn();
+      await checkLayout();
+    } finally {
+      dragEnd();
+    }
+  },
+);
+
+test.each(MODES)("a round's answer holding an image's link, in $mode", async ({ mode }) => {
+  window.localStorage.setItem("uraeda.theme", mode);
+  await show(ROUND, "How does your iPhone reach the server?");
+  const field = within(document.getElementById("Q3")!).getByRole("textbox", { name: "Comment" });
+  await userEvent.click(field);
+  paste([await image("phone.png", "image.png")], field);
+  await expect.poll(() => (field as HTMLTextAreaElement).value, LIVE).toContain("(images/");
+  await screen.findByText(/^Added /, undefined, LIVE);
+  await drawn();
+  await checkLayout();
 });
