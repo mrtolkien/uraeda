@@ -821,15 +821,21 @@ git commit -m "feat(text-inputs): review comments render alone, and survive a re
 
 **Files:**
 
+- Create: `packages/web/src/useEditorActions.ts`, `SlugField.tsx`
 - Modify: `packages/web/src/EditorPage.tsx` (split first), `attach/useEditorImages.ts`,
-  `TaskView.tsx` (the slug), `useSave.ts` (no timer, no `schedule` delay)
-- Test: `packages/web/src/__tests__/editor.test.tsx`
+  `TaskView.tsx` (the slug), `useSave.ts` (no timer, no `schedule` delay), `RoundNotes.tsx`
+  (`save(value)`)
+- Test: `packages/web/src/__tests__/editor.test.tsx` (four tests press Save, R21)
 
 **Interfaces:**
 
 - Consumes: task 4's `useTextField`, `TextField kind="editor"`.
 - Produces: `useSave(run, initial)` without `delay`; `schedule(value)` replaced by `save(value)`,
-  which queues at once; `idle`, `settle`, `flush`, `write`, `state` unchanged.
+  which queues at once, and resolves with whether it wrote; a value queued and not written yet is
+  not queued again, and resolves once the queue is done (R22). `flush` waits for the saves queued;
+  `idle` says no save is under way; `settle(text, reloaded?)` always takes the text; `write` and
+  `state` unchanged. The editor's text is `${path}#editor`, the slug `${draft path}#slug` through
+  `SlugField`, on the editor and the line's page.
 
 - [x] **Step 1: Split `EditorPage` before it changes**
 
@@ -845,7 +851,7 @@ git add packages/web/src/EditorPage.tsx packages/web/src/useEditorActions.ts
 git commit -m "refactor(text-inputs): the editor's actions in a hook"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 - US2 3: change the text, wait for another file's change to be read (`refreshUntil`): the file is
   unchanged, "Unsaved changes" next to "Save".
@@ -856,25 +862,26 @@ git commit -m "refactor(text-inputs): the editor's actions in a hook"
 - A remount restores the editor's text, with the notice.
 
 The break each test catches: a leftover timer saving (US2 3); Commit committing the old text (US2
-4).
+4); the line's page keeping its own slug (the slug).
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web editor`
-- Expected: FAIL, `expected file to equal the committed text`
+- Expected: FAIL, `Unable to find an accessible element with the role "button" and name "Save"`, and
+  for US2 3 the file saved by the timer, not equal to the text before
 
-- [ ] **Step 4: Implement**, and remove `useSave`'s timer and its `react/refs` marker once no caller
+- [x] **Step 4: Implement**, and remove `useSave`'s timer and its `react/refs` marker once no caller
       schedules with a delay.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run: `vp check && vp test --project uraeda-web`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add packages/web
+git add packages/web specs/2026-10-14-text-inputs
 git commit -m "feat(text-inputs): the editor saves with its button"
 ```
 

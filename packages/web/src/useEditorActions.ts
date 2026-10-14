@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { useDraft } from "./data.ts";
+import type { useTextField } from "./fields/useTextField.ts";
 import { refusal } from "./errors.ts";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { handOver } from "./sessions.ts";
@@ -10,32 +11,37 @@ import { DraftView, FeatureView } from "./views.ts";
 type Draft = NonNullable<ReturnType<typeof useDraft>>;
 
 /**
- * The editor's actions on its draft or proposal, each after the text shown is saved: commit it,
- * start it as a feature under `slug`, and set its discovery effort, in the save queue. `message`
- * says what the last one did, or why it did not.
+ * The editor's actions on its draft or proposal, each after the text typed in `field` is saved:
+ * commit it, start it as a feature under the slug typed in `slug`, and set its discovery effort,
+ * in the save queue. `message` says what the last one did, or why it did not.
  */
 export function useEditorActions({
   draft,
+  field,
   path,
   save,
   setConflict,
-  setText,
   slug,
 }: {
   draft: Draft | undefined;
+  field: ReturnType<typeof useTextField>;
   path: string;
   save: ReturnType<typeof useSave<string>>;
   setConflict: (conflict: string) => void;
-  setText: (text: string) => void;
-  slug: string;
+  slug: ReturnType<typeof useTextField>;
 }) {
   const fate = useFateClient();
   const here = useRepoPath();
   const [message, setMessage] = useState<{ ok: boolean; text: string }>();
+  /** Saves the text typed, after the saves before it; resolves with whether the text is saved. */
+  const saveTyped = () => {
+    const unsaved = field.unsavedNow();
+    return unsaved ? save.save(unsaved.text) : save.flush();
+  };
 
   const commit = async (continues: boolean) => {
     setMessage(undefined);
-    if (!(await save.flush())) {
+    if (!(await saveTyped())) {
       setMessage({ ok: false, text: "Your text is not saved: nothing was committed." });
       return;
     }
@@ -53,18 +59,19 @@ export function useEditorActions({
   };
   const start = async (continues: boolean) => {
     setMessage(undefined);
-    if (!(await save.flush())) {
+    if (!(await saveTyped())) {
       setMessage({ ok: false, text: "Your text is not saved: the feature was not started." });
       return;
     }
     const result = await fate.mutations.feature.start({
-      input: { draft: path, slug },
+      input: { draft: path, slug: slug.text },
       view: FeatureView,
     });
     if (result.error) {
       setMessage({ ok: false, text: refusal(result.error).message });
     } else if (typeof result.result?.folder === "string") {
       const folder = result.result.folder;
+      slug.discard();
       if (continues) {
         handOver(folder, "start");
       } else {
@@ -73,11 +80,12 @@ export function useEditorActions({
     }
   };
   /**
-   * Sets the discovery effort in the frontmatter, in the save queue: after the text shown is saved,
-   * and before a later save, commit, or start.
+   * Sets the discovery effort in the frontmatter, in the save queue: after the text typed is saved,
+   * as the effort is written into it, and before a later save, commit, or start (R21).
    */
   const setDiscovery = async (level: string) => {
     setMessage(undefined);
+    void saveTyped();
     let refused: string | undefined;
     const wrote = await save.write(async (previous) => {
       const result = await fate.mutations.text.discovery({
@@ -93,11 +101,7 @@ export function useEditorActions({
         }
         return { message: failed.message, ok: false };
       }
-      if (result.result) {
-        setText(result.result.text);
-        return { ok: true, saved: result.result.hash };
-      }
-      return { ok: true, saved: previous };
+      return { ok: true, saved: result.result?.hash ?? previous };
     });
     if (!wrote) {
       setMessage({

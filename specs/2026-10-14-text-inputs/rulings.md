@@ -249,11 +249,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: a verdict is refused while the open comment holds unsaved text, or links images, or
   its image is uploading, with one message, "Add or cancel your comment first.", which replaces "Add
   or cancel your comment first: its images are not in the review yet.". An edit opened and left
-  unchanged holds nothing back. In `review.test.tsx`, `UNSENT` takes the new text; "a verdict with
-  an open comment of text alone goes through" becomes "a verdict with an open comment holding text
-  is refused", and "a verdict with an open comment of no text goes through" keeps what it checked of
-  an open form; "a verdict after a comment with an image was cancelled deletes the image" and "the
-  verdict's refusal goes once the comment is cancelled" answer "Discard" after Cancel.
+  unchanged holds nothing back. In `review.test.tsx`, `UNSENT` takes the new text, as does the
+  refusal of the browser test "a verdict waits for a comment holding an image to be added or
+  cancelled" in `attach.test.tsx`, changed in task 8; "a verdict with an open comment of text alone
+  goes through" becomes "a verdict with an open comment holding text is refused", and "a verdict
+  with an open comment of no text goes through" keeps what it checked of an open form; "a verdict
+  after a comment with an image was cancelled deletes the image" and "the verdict's refusal goes
+  once the comment is cancelled" answer "Discard" after Cancel.
 - **Rationale**: US5 10 and the spec's error handling refuse a verdict with an open comment holding
   text, which the R64 test of image attachments let through; the plan changes the message. Cancel on
   changed text now asks first (US5 7), so the two tests that cancel a comment holding an image's
@@ -328,3 +330,45 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a second hook for the save, which leaves the drawing over the limit.
 - **If wrong**: the components go back into the page, which only draws them.
 - **Where**: task 8, step 1.
+
+## R21: Four editor tests save with the button
+
+- **Decision**: in [`editor.test.tsx`](/packages/web/src/__tests__/editor.test.tsx), "a draft is
+  saved as typed, byte for byte", "a draft changed elsewhere shows when the page reads again", "a
+  save over a change made elsewhere keeps the text, and offers the new version", and "Load the new
+  version loads it" press "Save" after each text they type.
+- **Rationale**: each waited for the save 400 ms after the last keystroke, which the
+  [UI behaviour](../decisions/ui-behaviour.md) decision now forbids. What they check stays: the text
+  is written byte for byte, a save after a reread builds on the version read, a save over a change
+  made elsewhere is refused with the text kept, and the new version replaces it.
+- **Alternatives considered**: deleting them, since US2's tests cover Save; they cover the conflict
+  and the reread, which those do not.
+- **If wrong**: one line in each test.
+- **Where**: task 8.
+
+## R22: The editor's unsaved text, the discovery effort, and a save already queued
+
+- **Decision**: setting the discovery effort saves the editor's typed text first, as before, then
+  writes the effort into it: the control rewrites the text, so it uses it, like Commit. A draft read
+  while the editor holds unsaved text does not become the version the next save is made over: a save
+  over a file changed elsewhere is refused as a conflict, with "Copy my text" and "Load the new
+  version", as today. A restored text, after a reload, is saved over the version read then, and its
+  notice says "The file changed since: saving replaces it." when it did; it opens to be edited, not
+  drawn. `useSave`'s `save(value)` does not queue a value queued and not written yet again, so quick
+  clicks, like two efforts then Commit, do not write the typed text over the efforts. A draft moved
+  into a folder as an image was added keeps its text with the link as the new path's unsaved text,
+  saved at once, without the restore notice. The page's head says only "committed" or "not
+  committed": "saving…", "saved ✓", "Unsaved changes", and the error show next to Save. The slug's
+  notice says "The draft's name changed since." when the slug it gives changed.
+- **Rationale**: the effort is written into the frontmatter of the text the editor holds, so typed
+  text saved after it would remove it; the editor's conflict refusal is an existing guarantee, which
+  taking every read would turn into a silent overwrite; the moved page selects the image's alt text
+  in the text holding the link, which must show from its first draw; one status per page keeps
+  "saving…" in one place.
+- **Alternatives considered**: the effort keeping the typed text unsaved, as a tap keeps a
+  question's comment (US2 1), which Commit would then write over the effort; taking every read, as
+  the notes do, whose core compares only the notes.
+- **If wrong**: `setDiscovery` in [`useEditorActions.ts`](/packages/web/src/useEditorActions.ts),
+  `adopt` in [`useEditorImages.ts`](/packages/web/src/attach/useEditorImages.ts), and `save` in
+  [`useSave.ts`](/packages/web/src/useSave.ts).
+- **Where**: task 8.
