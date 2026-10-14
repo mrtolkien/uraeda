@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { addMockup, fixtureRepo, git, record, renderPage } from "./helpers.tsx";
+import { atRepo, addMockup, fixtureRepo, git, record, renderPage } from "./helpers.tsx";
 
 /** US1.5 */
 test("lists a feature's files in workflow order, then what is not there yet", async () => {
@@ -87,7 +87,9 @@ test("the feature page lists its mockups (C1)", async () => {
   await renderPage("/f/2026-10-06-recurring-tasks", repo);
 
   const link = await screen.findByRole("link", { name: /repeat\.html/ });
-  expect(link.getAttribute("href")).toBe("/f/2026-10-06-recurring-tasks/mockups/repeat.html");
+  expect(link.getAttribute("href")).toBe(
+    atRepo("/f/2026-10-06-recurring-tasks/mockups/repeat.html"),
+  );
 });
 
 test("a file page shows breadcrumbs", async () => {

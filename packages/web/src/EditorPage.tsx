@@ -15,7 +15,7 @@ import { CommitActions } from "./CommitActions.tsx";
 import { useDraft, useProposalHints } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
-import { navigate, useRestoreScroll } from "./routes.tsx";
+import { navigate, useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { handOver } from "./sessions.ts";
 import { useSave } from "./useSave.ts";
 import { DraftView, FeatureView } from "./views.ts";
@@ -40,6 +40,7 @@ function levelLabel(level: string) {
  */
 export function EditorPage({ path }: { path: string }) {
   const fate = useFateClient();
+  const here = useRepoPath();
   const draft = useDraft(path);
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
@@ -127,7 +128,7 @@ export function EditorPage({ path }: { path: string }) {
       if (continues) {
         handOver(folder, "start");
       } else {
-        navigate(`/f/${folder}`);
+        navigate(here(`/f/${folder}`));
       }
     }
   };

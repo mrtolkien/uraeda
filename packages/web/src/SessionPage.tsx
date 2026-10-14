@@ -18,7 +18,7 @@ import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { statusStyles } from "./Question.tsx";
-import { navigate, redirect, useRestoreScroll, useSearch } from "./routes.tsx";
+import { navigate, redirect, useRepoPath, useRestoreScroll, useSearch } from "./routes.tsx";
 import { sessionPath } from "./sessions.ts";
 import { StatusMark } from "./StatusMark.tsx";
 import { Transcript, useFollowEnd, useOpenAtEnd, useOpenGroups } from "./Transcript.tsx";
@@ -122,6 +122,7 @@ function Session({
   blocked?: string;
 }) {
   const fate = useFateClient();
+  const here = useRepoPath();
   const session = useSession(id);
   const groups = useOpenGroups();
   const log = useRef<HTMLDivElement>(null);
@@ -146,7 +147,7 @@ function Session({
           title={`No session ${id}.`}
           collapsible={false}
           description={
-            <Link href="/" hasUnderline>
+            <Link href={here("/")} hasUnderline>
               Open home
             </Link>
           }
@@ -310,6 +311,7 @@ function WorkflowMessage({
  */
 function FeatureSession({ folder }: { folder: string }) {
   const feature = useFeature(folder);
+  const here = useRepoPath();
   const wide = useWidthClass() === "wide";
   // A session created here shows before the feature's live update names it.
   const [created, setCreated] = useState<string>();
@@ -343,7 +345,7 @@ function FeatureSession({ folder }: { folder: string }) {
           title={`No feature ${folder}.`}
           collapsible={false}
           description={
-            <Link href="/" hasUnderline>
+            <Link href={here("/")} hasUnderline>
               Open home
             </Link>
           }
@@ -365,7 +367,7 @@ function FeatureSession({ folder }: { folder: string }) {
     }
   };
   // Sent: the address no longer asks for the message, or the quote.
-  const sent = () => redirect(sessionPath(folder));
+  const sent = () => redirect(here(sessionPath(folder)));
   const handing: Handing = workflow
     ? { workflow, ...(refused === undefined ? {} : { notice: refused }), onSent: sent }
     : ask !== undefined
@@ -408,6 +410,7 @@ function FeatureSession({ folder }: { folder: string }) {
 export function SessionPage(props: { folder: string } | { id: string } | { newChat: true }) {
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
+  const here = useRepoPath();
   const draft = useState("");
   if ("folder" in props) {
     return <FeatureSession folder={props.folder} />;
@@ -415,5 +418,7 @@ export function SessionPage(props: { folder: string } | { id: string } | { newCh
   if ("id" in props) {
     return <Session id={props.id} draft={draft} />;
   }
-  return <NoSession title="New chat" draft={draft} onSent={(id) => navigate(`/chats/${id}`)} />;
+  return (
+    <NoSession title="New chat" draft={draft} onSent={(id) => navigate(here(`/chats/${id}`))} />
+  );
 }

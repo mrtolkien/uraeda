@@ -13,7 +13,7 @@ import { Crumbs } from "./Crumbs.tsx";
 import { useFeature } from "./data.ts";
 import { waiting } from "./labels.ts";
 import { Page } from "./layout/Page.tsx";
-import { navigate, useRestoreScroll } from "./routes.tsx";
+import { navigate, useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 
 function statusVariant(status?: string) {
@@ -34,6 +34,7 @@ function statusVariant(status?: string) {
 /** A feature: what waits on the human, its branch, its files in workflow order, its problems. */
 export function FeaturePage({ folder }: { folder: string }) {
   const feature = useFeature(folder);
+  const here = useRepoPath();
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   if (!feature || feature.missing) {
@@ -72,7 +73,11 @@ export function FeaturePage({ folder }: { folder: string }) {
             description={gate.line}
             collapsible={false}
             endContent={
-              <Button variant="primary" label={gate.verb} onClick={() => navigate(gate.href)} />
+              <Button
+                variant="primary"
+                label={gate.verb}
+                onClick={() => navigate(here(gate.href))}
+              />
             }
           />
         )}
@@ -117,7 +122,7 @@ export function FeaturePage({ folder }: { folder: string }) {
           {files.map((file) => (
             <ListItem
               key={file.name}
-              href={`/f/${folder}/${file.name}`}
+              href={here(`/f/${folder}/${file.name}`)}
               label={<Text type="code">{file.name}</Text>}
               endContent={
                 <HStack gap={2}>
@@ -149,7 +154,7 @@ export function FeaturePage({ folder }: { folder: string }) {
             {feature.mockups.map((name) => (
               <ListItem
                 key={name}
-                href={`/f/${folder}/mockups/${name}`}
+                href={here(`/f/${folder}/mockups/${name}`)}
                 label={<Text type="code">{name}</Text>}
               />
             ))}

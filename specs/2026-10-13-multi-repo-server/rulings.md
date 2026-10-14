@@ -39,6 +39,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   review as one.
 - **If wrong**: nothing lasts beyond task 7.
 - **Where**: tasks 4 and 7
+- **Ended**: in task 7, the global `/fate` has no repository, and `/raw/*` and `/mockups/*` answer
+  307 to the most recently opened repository's.
 
 ## R4: The list's JavaScript types are views, and the data folder's platform cases are tested in Rust
 
@@ -109,3 +111,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: task 9 removes the `TEMPORARY` parts either way; listening first is a change to
   `main.ts` alone.
 - **Where**: tasks 6 and 9
+
+## R8: The UI checks the repository through the global client, before its own
+
+- **Decision**: `App` reads `Repositories` through the global client, `/fate`, and draws a
+  repository's pages, on its own client, only when the URL's name is listed and its folder is there;
+  otherwise the unknown-name or missing-folder page, or, without a name, a redirect to the most
+  recent repository or the first run. Inside, the name comes from `RepositoryContext`
+  (`useRepository`, `useRepoPath`); calls made outside a component, like `handOver`, use
+  `navigateHere`, which reads it from the location. A history entry's `from` holds the path within
+  the repository, as the pages compare it with `/` and `/priorities`. The clients are made by
+  `fateClients` (`clients.ts`), shared by `main.tsx` and the tests. `createApp` no longer takes
+  `repo`.
+- **Rationale**: an unknown name's endpoint answers 404, which would show "Could not reach the
+  Uraeda server." through the error boundary; asking the global endpoint first never sends a request
+  to a repository that is not served (the spec's "its fate requests are not sent").
+- **Alternatives considered**: reading the list through the repository's own client, which fails for
+  the very names it must explain; a prefix on every `navigate` call, which would hide the repository
+  from the paths the pages build, against SC-003's one place.
+- **If wrong**: the gate is one component in `App.tsx`.
+- **Where**: tasks 7 and 8

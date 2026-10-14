@@ -1,8 +1,9 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
 import {
+  atRepo,
   answered as readAnswered,
   answersSoFar,
   atWidth,
@@ -406,8 +407,11 @@ test("Submit stops when an answer could not be saved", async () => {
   );
 });
 
-/** The key under which this browser keeps the round's position. */
-const POSITION = `uraeda.round.${FOLDER}/clarifications-01.md`;
+/**
+ * The key under which this browser keeps the round's position in a repository: the list's name of
+ * a copy of the fixture is its folder's.
+ */
+const position = (repo: string) => `uraeda.round.${basename(repo)}/${FOLDER}/clarifications-01.md`;
 
 /** The title of the question that has the focus. */
 function focused() {
@@ -429,7 +433,7 @@ test("Next goes to the first blank question after the one at the top, and focuse
   atWidth(402);
   const repo = answered({ Q1: "A" });
   // The round reopens at Q1, answered: without a position, it would open at Q2, the first blank.
-  window.localStorage.setItem(POSITION, "Q1");
+  window.localStorage.setItem(position(repo), "Q1");
   await renderPage(PAGE, repo);
   await screen.findByText("Which human steps does the UI perform?");
   expect(focused()).toContain("Which human steps does the UI perform?");
@@ -465,7 +469,7 @@ test("the index lists the questions with their state, and jumps (US1 5)", async 
 /** US1 9 */
 test("the round reopens where it was left (US1 9)", async () => {
   const repo = answered({});
-  window.localStorage.setItem(POSITION, "Q3");
+  window.localStorage.setItem(position(repo), "Q3");
   await renderPage(PAGE, repo);
   await screen.findByText("Which repositories does the UI open now?");
   expect(focused()).toContain("Which repositories does the UI open now?");
@@ -478,10 +482,19 @@ test("a new browser opens at the first blank question (US1 10)", async () => {
   expect(focused()).toContain("How does your iPhone reach the server?");
 });
 
+/** The round's position is kept per repository: another's same round opens as on a new browser. */
+test("a position saved in another repository does not apply", async () => {
+  const repo = answered({ Q1: "A" });
+  window.localStorage.setItem(position(answered({})), "Q3");
+  await renderPage(PAGE, repo);
+  await screen.findByText("How does your iPhone reach the server?");
+  expect(focused()).toContain("How does your iPhone reach the server?");
+});
+
 /** Edge case: a position saved on a question that no longer applies. */
 test("a saved position on a question that no longer applies falls back", async () => {
   const repo = answered({ Q1: "A" });
-  window.localStorage.setItem(POSITION, "Q1.B");
+  window.localStorage.setItem(position(repo), "Q1.B");
   await renderPage(PAGE, repo);
   await screen.findByText("How does your iPhone reach the server?");
   expect(focused()).toContain("How does your iPhone reach the server?");
@@ -526,7 +539,7 @@ test("US6.2: a question's Ask the agent quotes its title", async () => {
 
   await tap(within(question("Q3")).getAllByRole("button", { name: "Ask the agent" })[0]);
 
-  expect(window.location.pathname).toBe(`/f/${FOLDER}/session`);
+  expect(window.location.pathname).toBe(atRepo(`/f/${FOLDER}/session`));
   const box = await composer();
   await waitFor(() =>
     expect(box.textContent).toBe(

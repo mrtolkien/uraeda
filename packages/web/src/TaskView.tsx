@@ -18,7 +18,15 @@ import { EditableLine } from "./EditableLine.tsx";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
 import { useUndoToast } from "./layout/useUndoToast.ts";
-import { currentEntry, navigate, pathLink, redirect, useRestoreScroll } from "./routes.tsx";
+import {
+  currentEntry,
+  navigate,
+  pathLink,
+  redirect,
+  useRepoPath,
+  useRepository,
+  useRestoreScroll,
+} from "./routes.tsx";
 import { plain } from "./Spans.tsx";
 import { DraftView, FeatureView, PrioritiesView } from "./views.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
@@ -49,7 +57,10 @@ function isDraft(path: string) {
   return /^specs\/(drafts|backlog)\/.+\.md$/.test(path);
 }
 
-/** The page a task view was opened from, which it returns to once its line is deleted. */
+/**
+ * The page a task view was opened from, within its repository, which it returns to once its line
+ * is deleted.
+ */
 function origin() {
   return currentEntry().from === "/" ? "/" : "/priorities";
 }
@@ -58,6 +69,7 @@ function origin() {
 function DraftPart({ path }: { path: string }) {
   const fate = useFateClient();
   const draft = useDraft(path);
+  const here = useRepoPath();
   const [message, setMessage] = useState<string>();
   if (!draft) {
     return <Paragraph>No draft {path}.</Paragraph>;
@@ -78,7 +90,7 @@ function DraftPart({ path }: { path: string }) {
     if (result.error) {
       setMessage(refusal(result.error).message);
     } else if (typeof result.result?.folder === "string") {
-      navigate(`/f/${result.result.folder}`);
+      navigate(here(`/f/${result.result.folder}`));
     }
   };
   return (
@@ -88,7 +100,7 @@ function DraftPart({ path }: { path: string }) {
       </Text>
       <Blocks document={draft.document} ids={ids} />
       <HStack gap={2}>
-        <Button label="Edit" onClick={() => navigate(`/edit/${path}`)} />
+        <Button label="Edit" onClick={() => navigate(here(`/edit/${path}`))} />
         <Button variant="primary" label="Start the feature" clickAction={start} />
       </HStack>
       {message && <Banner status="error" title={message} collapsible={false} />}
@@ -106,6 +118,8 @@ export function TaskView({ entryKey }: { entryKey: string }) {
   const [renaming, setRenaming] = useState<string>();
   const { priorities, found } = usePriority(entryKey, renaming);
   const toast = useUndoToast();
+  const here = useRepoPath();
+  const repo = useRepository();
   const [message, setMessage] = useState<string>();
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
@@ -120,7 +134,7 @@ export function TaskView({ entryKey }: { entryKey: string }) {
           title="This line is no longer in PRIORITIES.md."
           collapsible={false}
           description={
-            <Link href="/priorities" hasUnderline>
+            <Link href={here("/priorities")} hasUnderline>
               Open the priorities
             </Link>
           }
@@ -165,7 +179,7 @@ export function TaskView({ entryKey }: { entryKey: string }) {
       .flatMap((s) => s.entries)
       .find((e) => e.id === entry.id)?.key;
     if (key && key !== entryKey) {
-      redirect(`/priorities/${key}`);
+      redirect(here(`/priorities/${key}`));
     }
     return undefined;
   };
@@ -184,7 +198,7 @@ export function TaskView({ entryKey }: { entryKey: string }) {
     );
     const path = (result as { result?: { path?: unknown } }).result?.path;
     if (!result.error && typeof path === "string") {
-      navigate(`/edit/${path}`);
+      navigate(here(`/edit/${path}`));
     }
   };
 
@@ -212,11 +226,11 @@ export function TaskView({ entryKey }: { entryKey: string }) {
         return failed;
       }
     });
-    redirect(origin());
+    redirect(here(origin()));
   };
 
   const step = (to: number) =>
-    navigate(`/priorities/${entries[to].key}`, { from: currentEntry().from });
+    navigate(here(`/priorities/${entries[to].key}`), { from: currentEntry().from });
 
   return (
     <Page>
@@ -244,7 +258,7 @@ export function TaskView({ entryKey }: { entryKey: string }) {
           </Suspense>
         ) : link ? (
           <Paragraph>
-            <Link href={pathLink(link).href} hasUnderline>
+            <Link href={pathLink(link, repo).href} hasUnderline>
               Open {link.replace(/^specs\//, "")}
             </Link>
           </Paragraph>

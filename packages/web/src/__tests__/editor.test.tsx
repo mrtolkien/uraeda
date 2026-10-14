@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { click, fixtureRepo, git, read, renderPage, today, type } from "./helpers.tsx";
+import { atRepo, click, fixtureRepo, git, read, renderPage, today, type } from "./helpers.tsx";
 
 today("2026-10-12");
 
@@ -20,7 +20,7 @@ test("Draft turns a line into a draft, linked, and opens its editor", async () =
   await click(await screen.findByRole("button", { name: "Draft" }));
 
   const path = "specs/drafts/claude-code-runner-triggered-manually.md";
-  await waitFor(() => expect(window.location.pathname).toBe(`/edit/${path}`));
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/edit/${path}`)));
   expect(readFileSync(join(repo, path), "utf8")).toMatch(
     /\n---\n\n# Claude Code runner \(triggered manually\)\n/,
   );
@@ -44,7 +44,9 @@ test("Draft is refused once the priorities changed elsewhere", async () => {
 
   expect(await screen.findByText(/PRIORITIES.md changed/)).toBeTruthy();
   expect(existsSync(join(repo, "specs/drafts/other.md"))).toBe(false);
-  expect(window.location.pathname).toBe("/priorities/claude-code-runner-triggered-manually");
+  expect(window.location.pathname).toBe(
+    atRepo("/priorities/claude-code-runner-triggered-manually"),
+  );
 });
 
 /** US5 3 */
@@ -187,7 +189,7 @@ test("Start turns a draft into a feature in its own worktree", async () => {
 
   await click(screen.getByRole("button", { name: "Start the feature" }));
 
-  await waitFor(() => expect(window.location.pathname).toBe("/f/2026-10-12-git-listener"));
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/f/2026-10-12-git-listener")));
   expect(
     existsSync(
       join(repo, ".worktrees/2026-10-12-git-listener/specs/2026-10-12-git-listener/proposal.md"),
@@ -232,7 +234,7 @@ test("a draft with the template's placeholders starts", async () => {
 
   await click(await screen.findByRole("button", { name: "Start the feature" }));
 
-  await waitFor(() => expect(window.location.pathname).toBe("/f/2026-10-12-git-listener"));
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/f/2026-10-12-git-listener")));
   expect(git(repo, "branch", "--list", "2026-10-12-git-listener").trim()).not.toBe("");
 });
 

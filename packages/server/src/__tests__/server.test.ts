@@ -98,7 +98,8 @@ test("a given folder outside git stops the start", async () => {
   await expect(start(folder, dataDir, true)).rejects.toThrow(`${folder} is not a git repository`);
 });
 
-test("the global endpoint serves the starting repository until the UI moves", async () => {
+/** Review focus 6: the global endpoint has no repository, whichever the server started in. */
+test("the global endpoint serves no repository's records", async () => {
   const repo = fixtureRepo();
   const { app } = await start(repo, temporaryFolder("uraeda-data"));
 
@@ -113,8 +114,8 @@ test("the global endpoint serves the starting repository until the UI moves", as
     }),
   });
 
-  const body = (await response.json()) as { results: Array<{ data: Array<{ root: string }> }> };
-  expect(body.results[0].data[0].root).toBe(repo);
+  const body = (await response.json()) as { results: Array<{ error: { message: string } }> };
+  expect(body.results[0].error.message).toBe("refused: no repository");
 });
 
 test("stopping closes the hosts and the session manager", async () => {

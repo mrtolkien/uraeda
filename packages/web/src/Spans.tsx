@@ -1,7 +1,7 @@
 import { Code } from "@astryxdesign/core/Code";
 import { Link } from "@astryxdesign/core/Link";
 import type { Span } from "uraeda-binding";
-import { pathLink } from "./routes.tsx";
+import { pathLink, useRepository } from "./routes.tsx";
 
 function Marked({ span }: { span: Span }) {
   let node: React.ReactNode = span.text;
@@ -23,9 +23,10 @@ function Marked({ span }: { span: Span }) {
 /** A link of the document: a workflow file or a draft in the UI, other files and the web in a new tab. */
 function SpanLink({ span }: { span: Span }) {
   const link = span.link!;
+  const repo = useRepository();
   const text = <Marked span={span} />;
   if (link.path) {
-    const { href, inApp } = pathLink(link.path);
+    const { href, inApp } = pathLink(link.path, repo);
     return inApp ? (
       <Link type="inherit" hasUnderline href={href}>
         {text}

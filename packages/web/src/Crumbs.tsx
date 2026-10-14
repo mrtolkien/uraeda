@@ -2,6 +2,7 @@ import { BreadcrumbItem, Breadcrumbs } from "@astryxdesign/core/Breadcrumbs";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useWorkspace } from "./data.ts";
+import { useRepoPath } from "./routes.tsx";
 
 const styles = stylex.create({
   crumbs: {
@@ -19,10 +20,11 @@ const styles = stylex.create({
  */
 export function Crumbs({ folder, current }: { folder: string; current?: string }) {
   const workspace = useWorkspace();
+  const here = useRepoPath();
   const title = workspace?.features.find((feature) => feature.folder === folder)?.title ?? folder;
   return (
     <Breadcrumbs label="Breadcrumbs" separator="›" xstyle={styles.crumbs}>
-      <BreadcrumbItem href="/" xstyle={styles.item}>
+      <BreadcrumbItem href={here("/")} xstyle={styles.item}>
         Home
       </BreadcrumbItem>
       {current === undefined ? (
@@ -31,7 +33,7 @@ export function Crumbs({ folder, current }: { folder: string; current?: string }
         </BreadcrumbItem>
       ) : (
         <>
-          <BreadcrumbItem href={`/f/${folder}`} xstyle={styles.item}>
+          <BreadcrumbItem href={here(`/f/${folder}`)} xstyle={styles.item}>
             {title}
           </BreadcrumbItem>
           <BreadcrumbItem isCurrent xstyle={styles.item}>

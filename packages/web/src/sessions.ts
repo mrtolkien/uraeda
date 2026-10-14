@@ -2,7 +2,7 @@
 import type { useFateClient } from "react-fate";
 import type { Trigger } from "uraeda-server/fate";
 import { refusal } from "./errors.ts";
-import { navigate } from "./routes.tsx";
+import { navigateHere } from "./routes.tsx";
 import { SessionView } from "./views.ts";
 
 type Fate = ReturnType<typeof useFateClient>;
@@ -52,7 +52,7 @@ export async function sendMessage(
     : { ok: true, session: id };
 }
 
-/** The address of a feature's session. */
+/** The address of a feature's session, within its repository. */
 export function sessionPath(folder: string): string {
   return `/f/${encodeURIComponent(folder)}/session`;
 }
@@ -64,7 +64,7 @@ export function sessionPath(folder: string): string {
  */
 export function handOver(folder: string, trigger: Trigger, file?: string): void {
   const query = new URLSearchParams({ continue: trigger, ...(file === undefined ? {} : { file }) });
-  navigate(`${sessionPath(folder)}?${query.toString()}`);
+  navigateHere(`${sessionPath(folder)}?${query.toString()}`);
 }
 
 /**
@@ -73,7 +73,7 @@ export function handOver(folder: string, trigger: Trigger, file?: string): void 
  */
 export function askAbout(folder: string, quote: string): void {
   const query = new URLSearchParams({ ask: quote });
-  navigate(`${sessionPath(folder)}?${query.toString()}`);
+  navigateHere(`${sessionPath(folder)}?${query.toString()}`);
 }
 
 /** A quote of lines: a header, then each line after `> `. */

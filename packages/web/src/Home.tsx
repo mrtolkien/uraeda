@@ -10,7 +10,7 @@ import { stepLabel, waiting } from "./labels.ts";
 import { Page } from "./layout/Page.tsx";
 import { TopBarSlot } from "./layout/TopBarSlot.tsx";
 import { QuickAdd } from "./QuickAdd.tsx";
-import { usePathname, useRestoreScroll } from "./routes.tsx";
+import { useLocalPath, useRepoPath, useRestoreScroll } from "./routes.tsx";
 
 /** A row that leads somewhere, tapped as a whole. */
 function Row({
@@ -62,7 +62,8 @@ export function Home() {
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   // The task view open beside home, on wide screens.
-  const pathname = usePathname();
+  const pathname = useLocalPath();
+  const here = useRepoPath();
   if (!workspace) {
     return null;
   }
@@ -101,7 +102,7 @@ export function Home() {
               return (
                 <Row
                   key={feature.folder}
-                  href={href}
+                  href={here(href)}
                   badge={<Badge variant="warning" label={verb} />}
                   title={feature.title}
                   line={line}
@@ -115,7 +116,7 @@ export function Home() {
             {invalid.map((feature) => (
               <Row
                 key={feature.folder}
-                href={`/f/${feature.folder}`}
+                href={here(`/f/${feature.folder}`)}
                 badge={<Badge variant="error" label="Problems" />}
                 title={feature.title}
                 line={feature.problems[0].message}
@@ -134,7 +135,7 @@ export function Home() {
               return (
                 <Row
                   key={feature.folder}
-                  href={`/f/${feature.folder}`}
+                  href={here(`/f/${feature.folder}`)}
                   // A running agent says so; its step moves to the line under the title.
                   badge={
                     <Badge
@@ -153,20 +154,20 @@ export function Home() {
           {priorities.map((entry) => (
             <Row
               key={entry.id}
-              href={`/priorities/${entry.key}`}
+              href={here(`/priorities/${entry.key}`)}
               isSelected={pathname === `/priorities/${entry.key}`}
               title={entry.text}
               line={entry.section === "now" ? "Now" : "Next"}
             />
           ))}
-          <Row href="/priorities" title="All priorities" />
+          <Row href={here("/priorities")} title="All priorities" />
         </Group>
         {done.length > 0 && (
           <Group title="Done">
             {done.map((feature) => (
               <Row
                 key={feature.folder}
-                href={`/f/${feature.folder}`}
+                href={here(`/f/${feature.folder}`)}
                 badge={<Badge variant="success" label="Merged" />}
                 title={feature.title}
               />

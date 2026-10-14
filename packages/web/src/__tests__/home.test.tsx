@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fireEvent, screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { git, read, refreshUntil, renderPage } from "./helpers.tsx";
+import { atRepo, git, read, refreshUntil, renderPage } from "./helpers.tsx";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 
 /** The page's own content, without the navigation. */
@@ -55,9 +55,11 @@ test("lists Now and Next lines not started, each opening its task view", async (
   const runner = await page.findByRole("link", {
     name: /Claude Code runner \(triggered manually\)/,
   });
-  expect(runner.getAttribute("href")).toBe("/priorities/claude-code-runner-triggered-manually");
+  expect(runner.getAttribute("href")).toBe(
+    atRepo("/priorities/claude-code-runner-triggered-manually"),
+  );
   const listener = page.getByRole("link", { name: /Git listener process/ });
-  expect(listener.getAttribute("href")).toBe("/priorities/git-listener");
+  expect(listener.getAttribute("href")).toBe(atRepo("/priorities/git-listener"));
   expect(page.queryByRole("button", { name: "Draft" })).toBeNull();
   expect(screen.queryByText("Nix + Docker based execution environments")).toBeNull();
 });
@@ -105,5 +107,5 @@ test("opens a feature from its row", async () => {
 
   fireEvent.click(await (await main()).findByText("CLI TUIs"));
 
-  expect(window.location.pathname).toBe("/f/2026-10-12-cli-tuis");
+  expect(window.location.pathname).toBe(atRepo("/f/2026-10-12-cli-tuis"));
 });
