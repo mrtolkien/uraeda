@@ -57,6 +57,14 @@ export function attach() {
       if (chat === (path !== undefined)) {
         return context.json({ error: "refused: Give either a path or chat=1." }, 400);
       }
+      // The refusals that need no image come before the body is read.
+      try {
+        if (path !== undefined) {
+          await writable(ctx, { path });
+        }
+      } catch (error) {
+        return context.json(refusal(error), 400);
+      }
       const body = await context.req.parseBody().catch(() => ({}) as Record<string, unknown>);
       const file = body.file;
       if (!(file instanceof File)) {
@@ -65,7 +73,6 @@ export function attach() {
       try {
         const bytes = Buffer.from(await file.arrayBuffer());
         if (path !== undefined) {
-          await writable(ctx, { path });
           return context.json(await ctx.binding.attachImage(ctx.repo, path, bytes, name));
         }
         const encoded = await ctx.binding.encodeImage(bytes, name ?? PASTED);

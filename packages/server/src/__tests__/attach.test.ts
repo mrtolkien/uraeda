@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { fixture, fixtureRepo, git, mutate, port, testApp, testServer } from "./helpers.ts";
@@ -204,4 +204,144 @@ test("does not serve or delete a chat image outside the images folder", async ()
     method: "DELETE",
   });
   expect(removed.status).toBe(404);
+});
+
+test("refuses a chunked upload over the body limit, said to be 21 MB", async () => {
+  // No content-length: the body is counted as it is read, and refused past the limit.
+  const chunk = new Uint8Array(1024 * 1024);
+  let sent = 0;
+  const body = new ReadableStream({
+    pull(controller) {
+      if (sent++ < 22) {
+        controller.enqueue(chunk);
+      } else {
+        controller.close();
+      }
+    },
+  });
+
+  const response = await testApp().request(
+    `http://127.0.0.1:${port}/attach?name=huge.png&path=${PROPOSAL}`,
+    {
+      method: "POST",
+      body,
+      headers: { "content-type": "multipart/form-data; boundary=x" },
+      duplex: "half",
+    } as RequestInit,
+  );
+
+  expect(response.status).toBe(400);
+  expect(await response.json()).toEqual({
+    error: "refused: This image is over 20 MB: huge.png is 21 MB.",
+  });
+});
+
+test("refuses an upload with both a path and chat=1, or neither", async () => {
+  const app = testApp();
+  const queries: Array<Record<string, string>> = [
+    { name: "desktop.png", path: PROPOSAL, chat: "1" },
+    { name: "desktop.png" },
+  ];
+  for (const query of queries) {
+    const response = await upload(app, query);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "refused: Give either a path or chat=1." });
+  }
+});
+
+/** A multipart body that fails the test when read. */
+function unread() {
+  const state = { read: false };
+  const body = new ReadableStream(
+    {
+      pull() {
+        state.read = true;
+        throw new Error("the body was read");
+      },
+    },
+    { highWaterMark: 0 },
+  );
+  return { state, body };
+}
+
+test("refuses an upload to a working feature, or without a target, before reading the body", async () => {
+  const server = await testServer();
+  const sent = await mutate(server.app, "session.send", { folder: HUMAN, text: "Hi" }, [
+    "id",
+    "turns",
+  ]);
+  expect(sent.error).toBeUndefined();
+
+  for (const [query, error] of [
+    [
+      `path=specs/${HUMAN}/proposal.md`,
+      "refused: An agent is working on this feature. Stop it first, or wait for it.",
+    ],
+    ["chat=1&path=x.md", "refused: Give either a path or chat=1."],
+  ]) {
+    const { state, body } = unread();
+    const response = await server.app.request(
+      `http://127.0.0.1:${port}/attach?name=desktop.png&${query}`,
+      {
+        method: "POST",
+        body,
+        // Under the limit, as a browser declares it: the limit lets it through unread.
+        headers: { "content-length": "1000", "content-type": "multipart/form-data; boundary=x" },
+        duplex: "half",
+      } as RequestInit,
+    );
+    expect(response.status, query).toBe(400);
+    expect(await response.json()).toEqual({ error });
+    expect(state.read, query).toBe(false);
+  }
+  await server.sessions.mainRoot(server.repo);
+  server.sessions.stop(server.repo, sent.data.id);
+  await server.sessions.settled(Number(sent.data.turns.at(-1)));
+});
+
+test("a chat image that cannot be written is refused with the system's error", async () => {
+  const server = await testServer();
+  // The images folder is a file: the write fails on disk.
+  writeFileSync(join(server.dataDir, "images"), "");
+
+  const response = await upload(server.app, { name: "desktop.png", chat: "1" });
+
+  expect(response.status).toBe(400);
+  const { error } = (await response.json()) as { error: string };
+  expect(error).toMatch(/^refused: The image could not be saved: E[A-Z]+: .+\.$/);
+});
+
+test("refuses a cross-site upload or deletion without an Origin header", async () => {
+  const server = await testServer();
+  const headers = { "sec-fetch-site": "cross-site" };
+
+  const posted = await upload(
+    server.app,
+    { name: "desktop.png", chat: "1" },
+    "desktop.png",
+    headers,
+  );
+  const deleted = await server.app.request(
+    `http://127.0.0.1:${port}/chat-images/00000000-0000-0000-0000-000000000000.webp`,
+    { method: "DELETE", headers },
+  );
+
+  expect(posted.status).toBe(403);
+  expect(deleted.status).toBe(403);
+  expect(existsSync(join(server.dataDir, "images"))).toBe(false);
+});
+
+test("a chat image is private to its owner, served cached and same-origin only", async () => {
+  const server = await testServer();
+  const image = (await (await upload(server.app, { name: "desktop.png", chat: "1" })).json()) as {
+    id: string;
+  };
+  const dir = join(server.dataDir, "images");
+
+  const served = await server.app.request(`http://127.0.0.1:${port}/chat-images/${image.id}`);
+
+  expect(statSync(dir).mode & 0o777).toBe(0o700);
+  expect(statSync(join(dir, image.id)).mode & 0o777).toBe(0o600);
+  expect(served.headers.get("cross-origin-resource-policy")).toBe("same-origin");
+  expect(served.headers.get("cache-control")).toBe("private, max-age=31536000, immutable");
 });

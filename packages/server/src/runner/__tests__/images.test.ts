@@ -1,4 +1,4 @@
-import { mkdtempSync, readdirSync, rmSync, utimesSync } from "node:fs";
+import { mkdtempSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test } from "vite-plus/test";
@@ -59,4 +59,23 @@ test("cleans images no message holds, once a day old", async () => {
 
 test("cleaning a data folder without images does nothing", async () => {
   await expect(images().clean(new Set(), Date.now())).resolves.toBeUndefined();
+});
+
+test("an image that cannot be written is refused with the system's error", async () => {
+  const store = images();
+  // The images folder is a file.
+  writeFileSync(store.dir, "");
+
+  await expect(store.save(encoded("webp"))).rejects.toThrow(
+    /^refused: The image could not be saved: E[A-Z]+: .+\.$/,
+  );
+});
+
+test("the images folder and its files are the owner's only", async () => {
+  const store = images();
+
+  const { id } = await store.save(encoded("webp"));
+
+  expect(statSync(store.dir).mode & 0o777).toBe(0o700);
+  expect(statSync(join(store.dir, id)).mode & 0o777).toBe(0o600);
 });

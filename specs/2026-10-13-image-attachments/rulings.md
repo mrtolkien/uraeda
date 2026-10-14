@@ -480,7 +480,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   without a `content-length`, which browsers do not do, is said to be 21 MB.
 - **Rationale**: the body limit answers before reading the body, so the core never sees it; the UI
   shows one text for every image over 20 MB. The size counts the multipart around the file, a few
-  hundred bytes.
+  hundred bytes. The size check therefore comes before the core's type check, unlike the spec's
+  order of the checks: a 30 MB SVG gets "over 20 MB", not "Only PNG, JPEG, GIF, and WebP". Accepted:
+  either refusal is true, and checking the type first would mean reading the body.
 - **Alternatives considered**: reading the body to pass it to the core (an unbounded upload held in
   memory); a separate text for the route (two texts for one refusal).
 - **If wrong**: `megabytes` and the `bodyLimit` handler in `packages/server/src/attach.ts`, kept in
@@ -506,3 +508,48 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `sentImages` in `packages/server/src/fate/mutations.ts`, `SendInput` and `SentImage`
   in `packages/server/src/runner/sessions.ts`, and task 10's `sendMessage`.
 - **Where**: task 7.
+
+## R36: A write without an `Origin` is refused when the browser says another site sent it
+
+- **Decision**: the guard refuses a request other than `GET` or `HEAD` that has no `Origin` header
+  and a `Sec-Fetch-Site` other than `same-origin` or `none`, with 403 "Forbidden site". A request
+  with neither header passes, as tests, `curl`, and scripts send them; one whose `Origin` is allowed
+  passes whatever its `Sec-Fetch-Site`, since an allowed origin on another port, like
+  `http://localhost:5173`, is `same-site`.
+- **Rationale**: browsers send an `Origin` with every cross-site write today, but the guard let
+  through any request without one, and `POST /attach` and `DELETE /chat-images` write to disk. Every
+  browser that omits the `Origin` still sends `Sec-Fetch-Site`.
+- **Alternatives considered**: refusing every write without an `Origin` (breaks tests and `curl`);
+  checking `Sec-Fetch-Site` even with an allowed `Origin` (refuses the allowed origins).
+- **If wrong**: `guard` in `packages/server/src/guard.ts`, and its rows in `guard.test.ts`.
+- **Where**: task 6, review.
+
+## R37: A chat image's type is the extension the core gave it
+
+- **Decision**: `GET /chat-images/<id>` answers with the type of the ID's extension, `image/webp` or
+  `image/gif`, without reading the file's first bytes.
+- **Rationale**: the server only serves files it wrote itself, from the core's `encodeImage`, under
+  an ID holding the extension the core chose; the ID pattern admits no other. The type is the core's
+  detection, recorded in the name. Checking the bytes again in TypeScript would reimplement the
+  core's detection, which the stack decision forbids, and a binding call for it would only guard
+  against someone with write access to the data folder, who can already change the cache.
+- **Alternatives considered**: an `imageType(bytes)` binding call (a new core entry point for a file
+  the server wrote); a signature check in TypeScript (the core's parsing, duplicated).
+- **If wrong**: `chatImageType` in `packages/server/src/runner/images.ts`; a binding call can
+  replace it.
+- **Where**: task 6, review.
+
+## R38: Chat images are their owner's, cached for good, and never embedded elsewhere
+
+- **Decision**: the images folder is created with mode `0700` and its files `0600`. Both image
+  routes answer with `Cross-Origin-Resource-Policy: same-origin`. `/chat-images/<id>` adds
+  `Cache-Control: private, max-age=31536000, immutable`; `/images/<path>` has no `Cache-Control`.
+- **Rationale**: chat images hold what the human pasted, often screenshots of private work, in a
+  folder other users of the machine could read under the default umask. Another site cannot read the
+  bytes, but it could embed them in its page; `same-origin` stops that. A chat image's ID is never
+  given to another image, so its bytes never change; a repository image's path gets a new image when
+  one is attached again under the same name, and must be read again.
+- **Alternatives considered**: an `ETag` on repository images (a hash of every image served).
+- **If wrong**: `ChatImages.save` in `packages/server/src/runner/images.ts`, and `imageHeaders` and
+  the `/chat-images` route in `packages/server/src/files.ts`.
+- **Where**: task 6, review.
