@@ -40,6 +40,8 @@ jobs:
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
             cross: --use-napi-cross
+            # The toolchain's GCC 4.8.5 lacks the NEON intrinsics libwebp's vendored C code uses.
+            clang: true
           - target: x86_64-apple-darwin
             os: macos-latest
           - target: aarch64-apple-darwin
@@ -66,6 +68,14 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
+
+      - name: Compile C code with clang
+        # napi-rs keeps a clang `TARGET_CC`, and points it at its toolchain's glibc 2.17 sysroot,
+        # through `TARGET_CFLAGS`: clang's own `arm_neon.h` has the intrinsics GCC 4.8.5 lacks.
+        if: matrix.clang
+        run: |
+          echo "TARGET_CC=clang" >> "$GITHUB_ENV"
+          echo "TARGET_CFLAGS=--target=${{ matrix.target }}" >> "$GITHUB_ENV"
 
       - name: Build the binary
         # The committed loader and declarations are never regenerated: `--no-js` writes no loader,
