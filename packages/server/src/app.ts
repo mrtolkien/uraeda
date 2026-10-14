@@ -34,10 +34,13 @@ export function createApp(
     context.set("fate", { binding, sessions, hosts, dataDir, repo: null });
     await next();
   });
-  /** A repository's routes take its host's context; an unknown name is a 404. */
+  /**
+   * A repository's routes take its host's context, its folder looked at now; an unknown name is a
+   * 404.
+   */
   const hosted = async (context: Context, next: Next) => {
     const name = context.req.param("name")!;
-    const host = hosts.get(name);
+    const host = await hosts.current(name);
     if (!host) {
       return context.text(`No repository named “${name}”`, 404);
     }
