@@ -4,7 +4,13 @@ import { afterEach, expect, test, vi } from "vite-plus/test";
 import * as binding from "uraeda-binding";
 import { fixtureRepo } from "uraeda-binding/test-utils";
 import type { AgentEvent } from "../events.ts";
-import { IDLE_CLOSE_MS, OUTPUT_LIMIT, TERMINATE_AFTER_MS, WATCHDOG_MS } from "../sessions.ts";
+import {
+  IDLE_CLOSE_MS,
+  OUTPUT_LIMIT,
+  RESUMED,
+  TERMINATE_AFTER_MS,
+  WATCHDOG_MS,
+} from "../sessions.ts";
 import { flush, testSessions } from "./helpers.ts";
 
 /** Waits on an agent, at step `plan`. */
@@ -246,6 +252,38 @@ test("US1.7 and C1: an idle process closes after 15 minutes, and the next messag
   await sessions.settled((await sessions.send(repo, session.id, { text: "And now?" })).turn);
   expect(adapter.opens).toHaveLength(2);
   expect(adapter.opens[1]).toMatchObject({ resume: true, nativeId: adapter.opens[0]!.nativeId });
+});
+
+test("a turn reopens when its agent goes on by itself after it ended, and its process stays open", async () => {
+  const { sessions, adapter, cache, repo } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  const { turn } = await sessions.send(repo, session.id, { text: "Implement it" });
+  // A background shell does not hold the turn: shells and watchers may never end.
+  adapter.emit({ type: "toolStart", id: "bash-1", name: "Bash", kind: "execute", input: {} });
+  adapter.emit({ type: "toolEnd", id: "bash-1", isError: false, output: "Running in background." });
+  adapter.emit({ type: "text", text: "The baseline runs." });
+  adapter.emit(done());
+  await sessions.settled(turn);
+  expect(cache.turn(turn)).toMatchObject({ state: "done" });
+
+  // The shell reports back: the agent goes on, in the same turn.
+  vi.advanceTimersByTime(IDLE_CLOSE_MS - 1);
+  adapter.emit({ type: "text", text: "The baseline passed." });
+  await flush();
+  expect(cache.turn(turn)).toMatchObject({ state: "running", endedAt: null });
+  expect(sessions.working(repo)).toEqual([AGENT]);
+  expect(cache.items(turn, 0, 10).slice(-2)).toMatchObject([
+    { kind: "system", text: RESUMED },
+    { kind: "text", text: "The baseline passed." },
+  ]);
+  vi.advanceTimersByTime(IDLE_CLOSE_MS);
+  expect(adapter.closes).toBe(0);
+
+  adapter.emit(done());
+  await sessions.settled(turn);
+  expect(cache.turn(turn)).toMatchObject({ state: "done" });
+  vi.advanceTimersByTime(IDLE_CLOSE_MS);
+  expect(adapter.closes).toBe(1);
 });
 
 test("a closed process that keeps running gets SIGTERM, so the next message does not wait on it forever", async () => {

@@ -22,6 +22,7 @@ export {
   IDLE_CLOSE_MS,
   OUTPUT_LIMIT,
   REFUSALS,
+  RESUMED,
   type SessionChange,
   TERMINATE_AFTER_MS,
   WATCHDOG_MS,
