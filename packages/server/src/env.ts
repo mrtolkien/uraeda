@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseEnv } from "node:util";
-import { dataDir } from "uraeda-binding";
 
 /** The server's settings, from `.env` at the checkout's root, if any, then the process's environment. */
 export type Env = {
@@ -27,27 +26,35 @@ export function loadEnv(root: string | null, environment: NodeJS.ProcessEnv = pr
   const port = value("URAEDA_PORT");
   const repo = value("URAEDA_REPO");
   return {
-    allowedHosts: hosts
-      .split(",")
-      .map((host) => host.trim())
-      .filter(Boolean),
+    allowedHosts: hostNames(hosts),
     given: Boolean(repo),
     port: port ? Number(port) : DEFAULT_PORT,
     repo: resolve(root ?? process.cwd(), repo || "."),
   };
 }
 
+/** A comma separated list of host names, as `URAEDA_ALLOWED_HOSTS` and `--allowed-hosts` take. */
+export function hostNames(list: string): Array<string> {
+  return list
+    .split(",")
+    .map((host) => host.trim())
+    .filter(Boolean);
+}
+
 /**
  * Uraeda's data folder, where the runner keeps its cache and the list of repositories:
  * `URAEDA_DATA_DIR` from the environment or `<root>/.env`, or else the operating system's
- * default, from the core. A relative path is resolved from the root, or the current folder without
+ * default, from the core, given by the binding: this module never loads it, so `--help` runs
+ * without it. A relative path is resolved from the root, or the current folder without
  * one: the agent runs in the repository, where it would point elsewhere (R39).
  */
 export function loadDataDir(
   root: string | null,
+  core: { dataDir: (custom?: string | null) => string },
   environment: NodeJS.ProcessEnv = process.env,
 ): string {
-  return resolve(root ?? process.cwd(), dataDir(settings(root, environment)("URAEDA_DATA_DIR")));
+  const custom = settings(root, environment)("URAEDA_DATA_DIR");
+  return resolve(root ?? process.cwd(), core.dataDir(custom));
 }
 
 /** A setting by its name: from the environment, else from `<root>/.env` when there is a root. */

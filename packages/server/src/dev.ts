@@ -74,7 +74,7 @@ export function devHandler(root: string | null, { adapter }: { adapter?: Adapter
   const env = loadEnv(root);
   const start = async (port: number): Promise<Started> => {
     const binding = await loadBinding();
-    const dataDir = loadDataDir(root);
+    const dataDir = loadDataDir(root, binding);
     // Read with the first request, as the data folder is: the browser tests' setup sets them after
     // Vite's server is made.
     const server = await startServer({

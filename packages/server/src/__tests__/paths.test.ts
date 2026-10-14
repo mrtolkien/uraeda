@@ -1,7 +1,8 @@
-import { existsSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
-import { layout } from "../paths.ts";
+import { layout, requireWeb } from "../paths.ts";
+import { temporaryFolder } from "uraeda-binding/test-utils";
 
 test.each([
   {
@@ -34,4 +35,14 @@ test("this checkout's plugin holds the skill", () => {
   const { plugin } = layout();
 
   expect(existsSync(join(plugin, "skills", "uraeda", "SKILL.md"))).toBe(true);
+});
+
+test("a web folder without index.html is not built", () => {
+  const web = temporaryFolder("uraeda-web");
+
+  expect(() => requireWeb(web)).toThrow(
+    "the web UI is not built; run vp run --filter uraeda-web build",
+  );
+  writeFileSync(join(web, "index.html"), "");
+  expect(() => requireWeb(web)).not.toThrow();
 });

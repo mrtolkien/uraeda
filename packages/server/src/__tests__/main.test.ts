@@ -5,6 +5,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vite-plus/test";
 import { checkBinding, loadBinding } from "../binding.ts";
+import { HELP } from "../options.ts";
+import { version } from "uraeda-binding";
 import { fixtureRepo, temporaryFolder } from "uraeda-binding/test-utils";
 
 const main = fileURLToPath(new URL("../main.ts", import.meta.url));
@@ -15,9 +17,32 @@ const missingBinding = () => Promise.reject(new Error("Cannot find native bindin
 test("refuses to start on a folder that is not a repository", () => {
   const folder = temporaryFolder("uraeda-none");
 
-  const result = spawnSync(process.execPath, [main, "--repo", folder], { encoding: "utf8" });
+  const result = spawnSync(process.execPath, [main, "--no-open", "--repo", folder], {
+    encoding: "utf8",
+  });
 
-  expect(result.stderr).toBe(`uraeda-server: ${folder} is not a git repository\n`);
+  expect(result.stderr).toBe(`uraeda: ${folder} is not a git repository\n`);
+  expect(result.status).toBe(1);
+});
+
+test("--help prints the options and exits 0", () => {
+  const result = spawnSync(process.execPath, [main, "--help"], { encoding: "utf8" });
+
+  expect(result.stdout).toBe(HELP);
+  expect(result.status).toBe(0);
+});
+
+test("--version prints the workspace's version", () => {
+  const result = spawnSync(process.execPath, [main, "--version"], { encoding: "utf8" });
+
+  expect(result.stdout).toBe(`${version()}\n`);
+  expect(result.status).toBe(0);
+});
+
+test("an unknown option names --help and exits 1", () => {
+  const result = spawnSync(process.execPath, [main, "--colour"], { encoding: "utf8" });
+
+  expect(result.stderr).toBe("uraeda: unknown option --colour; see uraeda --help\n");
   expect(result.status).toBe(1);
 });
 
@@ -28,16 +53,20 @@ test("a busy port exits 1 and names the first server", async () => {
   await new Promise<void>((resolve) => listener.listen(0, "127.0.0.1", resolve));
   const { port } = listener.address() as { port: number };
 
-  const child = spawn(process.execPath, [main, "--repo", repo, "--port", String(port)], {
-    env: { ...process.env, URAEDA_DATA_DIR: data },
-  });
+  const child = spawn(
+    process.execPath,
+    [main, "--no-open", "--repo", repo, "--port", String(port)],
+    {
+      env: { ...process.env, URAEDA_DATA_DIR: data },
+    },
+  );
   let stderr = "";
   child.stderr.on("data", (chunk) => (stderr += chunk));
   const code = await new Promise((resolve) => child.on("exit", resolve));
   listener.close();
 
   expect(stderr).toBe(
-    `uraeda-server: port ${port} is in use: another Uraeda server may run at http://127.0.0.1:${port}/\n`,
+    `uraeda: port ${port} is in use: another Uraeda server may run at http://127.0.0.1:${port}/\n`,
   );
   expect(code).toBe(1);
 });
