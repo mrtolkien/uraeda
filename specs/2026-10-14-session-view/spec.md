@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Dedicated session view
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Approved on 2026-10-14.
 >
 > - **One changed decision, [UI layout](../decisions/ui-layout.md).** A session, a feature's or a
 >   chat, becomes a page of its own at both widths, never a pane. The sidebar's rows are kept short:
