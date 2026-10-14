@@ -2,6 +2,7 @@
 // listed repositories, the starting repository, and the app.
 import { join } from "node:path";
 import { createApp } from "./app.ts";
+import { chatImages } from "./attach.ts";
 import type { Binding } from "./fate/context.ts";
 import { createSessions, type HostsOf } from "./live.ts";
 import type { Options } from "./options.ts";
@@ -15,7 +16,8 @@ export const CHECK_EVERY_MS = 60_000;
 
 /**
  * The server's session manager: its cache opened in the data folder, the turns a stopped server
- * left marked stopped, and the agent checked now and every 60 seconds. `stop` stops its turns and
+ * left marked stopped, the chat images no message holds deleted once a day old, and the agent
+ * checked now and every 60 seconds. `stop` stops its turns and
  * closes its processes.
  */
 export async function startSessions(options: {
@@ -26,6 +28,9 @@ export async function startSessions(options: {
 }): Promise<{ sessions: Sessions; stop: () => Promise<void> }> {
   const cache = SessionCache.open(join(options.dataDir, "runner.sqlite"));
   cache.interrupted("Stopped: the server stopped while it ran.");
+  // Every repository shares the data folder: an image a composer holds, not sent yet, is kept for
+  // a day (R5).
+  await chatImages(options.dataDir).clean(cache.imagesInUse(), Date.now());
   const sessions = createSessions({ ...options, cache });
   await sessions.check();
   const timer = setInterval(() => void sessions.check(), CHECK_EVERY_MS);

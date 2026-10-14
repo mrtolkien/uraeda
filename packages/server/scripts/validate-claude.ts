@@ -3,7 +3,8 @@
  * Checks the Claude Code integration against this machine's `claude`, signed in: its version, a
  * first run with the Uraeda skill loaded as a plugin, its session's transcript, a resumed run, an
  * interrupted run followed by a resumed one, and the allow rule of a blocked write outside the
- * project. Then the messages a session writes to one process with its stdin kept open, with
+ * project, a chat image the agent reads by its path, and an image a proposal links, which the agent
+ * opens as the skill says. Then the messages a session writes to one process with its stdin kept open, with
  * `--model haiku` in an empty temporary folder: two turns, partial text, a steered and a queued
  * message, their lifecycle events, taking a queued message back, an interrupt, a sub-agent, and a
  * resume after stdin closes.
@@ -24,17 +25,20 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Readable, Writable } from "node:stream";
-import { fixtureRepo } from "uraeda-binding/test-utils";
+import * as binding from "uraeda-binding";
+import { fixture, fixtureRepo } from "uraeda-binding/test-utils";
 import type { AgentProcess } from "../src/runner/adapter.ts";
 import { allowRule, lines } from "../src/runner/claude-events.ts";
 import { ClaudeAdapter, PLUGIN_DIR } from "../src/runner/claude.ts";
 import type { AgentEvent } from "../src/runner/events.ts";
+import { ChatImages } from "../src/runner/images.ts";
 
 /** A run that has not exited after this long is stopped, and its check fails. */
 const RUN_TIMEOUT_MS = 180_000;
@@ -42,7 +46,10 @@ const RUN_TIMEOUT_MS = 180_000;
 const INTERRUPT_MS = 10_000;
 
 const configDir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude");
-const adapter = new ClaudeAdapter({ configDir, pluginDir: PLUGIN_DIR });
+/** A data folder for the chat images, as the server's, in a temporary folder. */
+const dataDir = realpathSync(mkdtempSync(join(tmpdir(), "uraeda-data-")));
+const images = new ChatImages(join(dataDir, "images"));
+const adapter = new ClaudeAdapter({ configDir, pluginDir: PLUGIN_DIR, imagesDir: images.dir });
 const cwd = fixtureRepo();
 /** A folder outside the project, for the sixth check. */
 const outside = mkdtempSync(join(tmpdir(), "uraeda-outside-"));
@@ -73,11 +80,17 @@ async function run(
   resume: boolean,
   onEvent?: (event: AgentEvent, agent: AgentProcess) => void,
   agentAdapter: ClaudeAdapter = adapter,
+  paths: Array<string> = [],
 ): Promise<Array<AgentEvent>> {
   const agent = agentAdapter.open({ cwd, nativeId: sessionId, resume });
   const timeout = setTimeout(() => agent.kill("SIGTERM"), RUN_TIMEOUT_MS);
   const events: Array<AgentEvent> = [];
-  agent.send({ id: randomUUID(), text: message, when: "queue" });
+  agent.send({
+    id: randomUUID(),
+    text: message,
+    when: "queue",
+    images: paths.map((path) => ({ path })),
+  });
   try {
     for await (const event of agent.events) {
       events.push(event);
@@ -94,6 +107,17 @@ async function run(
 
 const find = <T extends AgentEvent["type"]>(events: Array<AgentEvent>, type: T) =>
   events.find((event): event is Extract<AgentEvent, { type: T }> => event.type === type);
+
+/** Whether a run read the file at `path` with its Read tool. */
+const readFile = (events: Array<AgentEvent>, path: string) =>
+  events.some(
+    (event) =>
+      event.type === "toolStart" && event.name === "Read" && event.input.file_path === path,
+  );
+
+/** The tools a run called, and their inputs, when a check fails. */
+const tools = (events: Array<AgentEvent>) =>
+  events.flatMap((event) => (event.type === "toolStart" ? [[event.name, event.input]] : []));
 
 /** What a run gave, when a check fails: its init, its result, and its exit. */
 const summary = (events: Array<AgentEvent>) =>
@@ -562,7 +586,12 @@ try {
       randomUUID(),
       false,
       undefined,
-      new ClaudeAdapter({ command: wrapper, configDir, pluginDir: PLUGIN_DIR }),
+      new ClaudeAdapter({
+        configDir,
+        command: wrapper,
+        pluginDir: PLUGIN_DIR,
+        imagesDir: images.dir,
+      }),
     );
     const denials = find(blocked, "result")?.denials ?? [];
     report(
@@ -571,12 +600,53 @@ try {
         !existsSync(target),
       { denials, rule, written: existsSync(target) },
     );
+
+    // 7. A chat image, saved in the data folder as the server saves it, is read by its path, with
+    // no permission prompt (US6.2).
+    const screenshot = readFileSync(fixture("images/desktop.png"));
+    const chatImage = await images.save(await binding.encodeImage(screenshot, "desktop.png"));
+    const chatPath = join(images.dir, chatImage.id);
+    const chat = await run(
+      "What does this screenshot show? Answer in one sentence.",
+      randomUUID(),
+      false,
+      undefined,
+      adapter,
+      [chatPath],
+    );
+    report(
+      "a chat image is read by its path",
+      readFile(chat, chatPath) && find(chat, "result")?.ok === true,
+      { tools: tools(chat), result: find(chat, "result") },
+    );
+
+    // 8. An image a proposal links is opened by an agent asked about the proposal, as the skill
+    // says (US6.1).
+    const proposal = "specs/2026-10-10-cli-core/proposal.md";
+    const attached = await binding.attachImage(cwd, proposal, screenshot, "login.png");
+    const proposalPath = join(cwd, proposal);
+    writeFileSync(
+      proposalPath,
+      `${readFileSync(proposalPath, "utf8").trimEnd()}\n\n${attached.link}\n`,
+    );
+    const linkedPath = join(cwd, attached.path);
+    const asked = await run(
+      `/uraeda:uraeda Do not continue the workflow, and change no file. What does ${proposal} ask for? Answer in two sentences.`,
+      randomUUID(),
+      false,
+    );
+    report(
+      "an image a proposal links is opened with the proposal",
+      readFile(asked, linkedPath) && find(asked, "result")?.ok === true,
+      { tools: tools(asked), result: find(asked, "result") },
+    );
   }
   await stdinChecks();
 } finally {
   rmSync(cwd, { force: true, recursive: true });
   rmSync(outside, { force: true, recursive: true });
   rmSync(stdinDir, { force: true, recursive: true });
+  rmSync(dataDir, { force: true, recursive: true });
 }
 
 process.exit(failed ? 1 : 0);

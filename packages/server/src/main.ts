@@ -1,4 +1,5 @@
 import { serve } from "@hono/node-server";
+import { chatImages } from "./attach.ts";
 import { loadBinding } from "./binding.ts";
 import { loadDataDir, loadEnv } from "./env.ts";
 import { parseOptions } from "./options.ts";

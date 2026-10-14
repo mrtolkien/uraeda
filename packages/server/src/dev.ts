@@ -2,6 +2,7 @@
 // own process (see the web package's `vite.config.ts`).
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { getRequestListener } from "@hono/node-server";
+import { chatImages } from "./attach.ts";
 import { checkBinding, loadBinding } from "./binding.ts";
 import { type Env, loadDataDir, loadEnv } from "./env.ts";
 import type { Adapter } from "./runner/adapter.ts";
@@ -73,7 +74,8 @@ export function devHandler(root: string, { adapter }: { adapter?: Adapter } = {}
     // Vite's server is made.
     const server = await startServer({
       ...loadEnv(root),
-      adapter: adapter ?? new ClaudeAdapter({ pluginDir: PLUGIN_DIR }),
+      adapter:
+        adapter ?? new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: PLUGIN_DIR }),
       allowOrigins: [],
       binding,
       dataDir,

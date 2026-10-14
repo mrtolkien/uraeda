@@ -44,7 +44,7 @@ test("a scripted turn plays when a message is sent, then waits for the next", as
     { pluginErrors: [], plugins: ["uraeda"], sessionId: "s1", type: "init" },
   ]);
 
-  agent.send({ id: "m1", text: "hi", when: "steer" });
+  agent.send({ id: "m1", text: "hi", when: "steer", images: [] });
   expect(await readUntil(agent, (event) => event.type === "result")).toEqual([
     { id: "m1", type: "accepted" },
     { text: "first", type: "text" },
@@ -54,6 +54,8 @@ test("a scripted turn plays when a message is sent, then waits for the next", as
   // Nothing plays until the next message: an event emitted by the test comes first.
   adapter.emit({ text: "between", type: "text" });
   agent.send({ id: "m2", text: "again", when: "queue" });
+  adapter.emit({ type: "text", text: "between" });
+  agent.send({ id: "m2", text: "again", when: "queue", images: [] });
   expect(await readUntil(agent, (event) => event.type === "result")).toEqual([
     { text: "between", type: "text" },
     { id: "m2", type: "accepted" },
@@ -61,12 +63,12 @@ test("a scripted turn plays when a message is sent, then waits for the next", as
     done(),
   ]);
   expect(adapter.sent).toEqual([
-    { id: "m1", text: "hi", when: "steer" },
-    { id: "m2", text: "again", when: "queue" },
+    { id: "m1", text: "hi", when: "steer", images: [] },
+    { id: "m2", text: "again", when: "queue", images: [] },
   ]);
 
   // A message with no script left plays nothing.
-  agent.send({ id: "m3", text: "more", when: "steer" });
+  agent.send({ id: "m3", text: "more", when: "steer", images: [] });
   adapter.exit(1, "boom");
   expect(await readUntil(agent, () => false)).toEqual([{ code: 1, stderr: "boom", type: "exit" }]);
 });
