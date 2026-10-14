@@ -366,25 +366,36 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R22: The code merged from main follows the lint config and limits
 
 - **Decision**: the rebase on `main`, which gained the multi-repository server, the repository menu,
-  and `ura add`, brings their code under the branch's checks, behaviour unchanged.
+  and `ura add`, brings their code under the branch's checks, behaviour unchanged, with no new
+  marker.
   - Fixed: the autofixes (sorted keys, props, and types, `at`, `String.raw`), with each style's
     comment moved back inside its style in `RepositoryMenu.tsx` and `Shell.tsx`; the server's logs
     in `repositories.ts`, `server.ts`, `dev.ts`, and `files.ts` written to the process's streams
     (R8), their tests spying on `process.stderr`; the binding imported whole by a dynamic import in
     five more test files (R10); functions that capture nothing moved to their module's scope, in
     `app.ts`, `files.ts`, `live.ts`, `claude-events.ts`, and three tests; an apostrophe escaped in
-    `RepositoryPages.tsx`; and a `[...nodes].at(-1)!` where the autofix's `at` did not type check.
-  - Marked: `fate/mutations.ts` (546 lines) and `scripts/screenshots.ts` (527 lines) at their top,
-    as R11 says; the `hosts` of the server's test helpers, which the session manager may read while
-    they open, keeps its `let` under a `prefer-const` marker; `heard`'s spy takes `Array<never>`
-    instead of `any`. `crates/core/src/api.rs` stays in `LARGE` at its new 1,050 lines.
-- **Rationale**: the code was over the limits on `main` before this branch's checks reached it, as
-  the code R9 and R11 marked was. A split of `mutations.ts` or `screenshots.ts` is a restructuring
-  of its own, not part of bringing the merge under the checks.
-- **Alternatives considered**: splitting the two files now, which changes code this branch did not
-  write without a task of its plan; a `const` for `hosts`, which would throw when read before
-  `Hosts.open` returns.
-- **If wrong**: each marker goes with its split, in a commit of its own; `LARGE` takes the shorter
-  length.
-- **Where**: `packages/server/src/`, `packages/web/src/`, `packages/web/scripts/screenshots.ts`,
-  `crates/cli/tests/structure.rs`.
+    `RepositoryPages.tsx`; a `[...nodes].at(-1)!` where the autofix's `at` did not type check; and
+    `heard`'s spy takes `Array<never>` instead of `any`. The server's test helpers hold the hosts in
+    a `const` object while they open, which the session manager may read before `Hosts.open`
+    returns, instead of a `let` that `prefer-const` refuses.
+  - Split, each in a structural commit of its own: `fate/mutations.ts` (546 lines on `main`) gives
+    the list's mutations and what they share to `fate/list-mutations.ts`; `crates/core/src/api.rs`,
+    which grew from the 1,004 lines `LARGE` listed to 1,050, gives the repository list and the
+    priorities' edits to `api/repository_list.rs` and `api/priority_edits.rs`, re-exported at the
+    same paths, and `LARGE` takes its new length, 941. The branch's own growth past 500 lines is
+    split the same way: `scripts/screenshots.ts` (479 lines on `main`) gives its helpers and the
+    spec's folds to `scripts/shots.ts`, and `PrioritiesPage.tsx` (495 on `main`) gives the drop's
+    order and moves to `drop.ts`.
+  - Markers: none added. The function markers of `screenshots.ts` and `PrioritiesPage.tsx` stay, as
+    R9 and R11 set them, for functions over the limit before the decision.
+- **Rationale**: the decision marks only code that broke a limit when it was approved, and a new
+  marker needs a constitution exception a human approves. The code from `main` grew after the
+  decision, and the branch grew two files itself: each is split instead, which needs no exception,
+  and a listed file may only shrink.
+- **Alternatives considered**: marking `mutations.ts` and `screenshots.ts` at their top and raising
+  `api.rs`'s length in `LARGE`, which the decision does not allow for code that grew after it;
+  keeping the `let` of the hosts under a `prefer-const` marker, the same.
+- **If wrong**: a split module merges back into its file, which then needs a marker approved as an
+  exception.
+- **Where**: `packages/server/src/`, `packages/web/src/`, `packages/web/scripts/`,
+  `crates/core/src/api.rs`, `crates/core/src/api/`, `crates/cli/tests/structure.rs`.
