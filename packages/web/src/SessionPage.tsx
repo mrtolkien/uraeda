@@ -312,7 +312,11 @@ function SessionPane({
           <Transcript session={{ id: "", turns: [] }} />
         </VStack>
       ) : (
-        <SessionLog draft={draft} id={id} />
+        // Read once the first message created the session: its title stays, and the composer, as
+        // it is read. The transcript waits for it: a page shows one log.
+        <Suspense fallback={title === undefined ? null : <Header title={title} />}>
+          <SessionLog draft={draft} id={id} />
+        </Suspense>
       )}
       <div {...stylex.props(styles.composer)}>
         <Composer
