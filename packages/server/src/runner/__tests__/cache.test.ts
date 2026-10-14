@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import { migrations, SessionCache } from "../cache.ts";
+import { imageInUse, imagesInUse } from "../image-uses.ts";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 
 const REPO = "/repo/a";
@@ -570,7 +571,7 @@ test("migration 3 turns each feature's runs into the turns of one session", () =
 /** A chat image of a message, by its ID. */
 const image = (id: string) => ({ height: 1, id, width: 2 });
 
-test("imagesInUse lists the images of every repository's messages, taken back or not", () => {
+test("imagesInUse and imageInUse list the images of every repository's messages, taken back or not", () => {
   const cache = SessionCache.open(":memory:");
   for (const [repo, state, images] of [
     ["/repo/a", "read", [image("a.webp"), image("b.webp")]],
@@ -590,10 +591,14 @@ test("imagesInUse lists the images of every repository's messages, taken back or
     cache.appendItem(turn, { kind: "text", streaming: false, text: "a.webp" });
   }
 
-  expect(cache.imagesInUse()).toEqual(new Set(["a.webp", "b.webp", "c.webp"]));
+  expect(imagesInUse(cache.db)).toEqual(new Set(["a.webp", "b.webp", "c.webp"]));
+  for (const id of ["a.webp", "b.webp", "c.webp"]) {
+    expect(imageInUse(cache.db, id)).toBe(true);
+  }
+  expect(imageInUse(cache.db, "d.webp")).toBe(false);
 });
 
-test("imagesInUse skips an item whose data is not JSON", () => {
+test("imagesInUse and imageInUse skip an item whose data is not JSON", () => {
   const path = join(temporaryFolder("uraeda-cache"), "runner.sqlite");
   const cache = SessionCache.open(path);
   const session = cache.createSession({ ...chat, nativeId: "native", repo: "/repo/a" });
@@ -612,5 +617,6 @@ test("imagesInUse skips an item whose data is not JSON", () => {
   ).run(turn);
   db.close();
 
-  expect(cache.imagesInUse()).toEqual(new Set(["a.webp"]));
+  expect(imagesInUse(cache.db)).toEqual(new Set(["a.webp"]));
+  expect(imageInUse(cache.db, "a.webp")).toBe(true);
 });
