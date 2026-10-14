@@ -384,7 +384,8 @@ git commit -m "feat(image-attachments): re-encode images in the core"
 
 - Create: `crates/core/src/actions/attach.rs`
 - Modify: `crates/core/src/actions/mod.rs`, `crates/core/src/api.rs`, `crates/core/src/today.rs`,
-  `crates/core/src/view.rs`
+  `crates/core/src/view.rs`, `crates/core/src/images.rs` (`mime`),
+  `crates/core/src/files/priorities.rs` (`retarget`), `packages/binding/index.d.ts` (generated)
 - Test: `crates/core/tests/attach.rs`
 
 **Interfaces:**
@@ -399,10 +400,16 @@ git commit -m "feat(image-attachments): re-encode images in the core"
     `name` is the original file name, `None` for clipboard data.
   - `pub fn api::encode_image(bytes: &[u8], name: &str) -> Result<Encoded>`, errors as `refused`.
   - `pub fn api::read_image(repo: &Path, path: &str) -> Result<(Vec<u8>, &'static str)>`: the bytes
-    and the MIME type, for PNG, JPEG, GIF, or WebP files under `specs/` only, read like `read_raw`;
-    anything else is `refused` as "<path>: no such file".
+    and the MIME type, for PNG, JPEG, GIF, or WebP files under `specs/` only, read like `read_raw`,
+    except a draft's, read from the default branch's checkout, else its tip
+    ([R14](rulings.md#r14-a-drafts-image-is-read-from-the-default-branchs-checkout)); anything else
+    is `refused` as "<path>: no such file".
+  - `pub fn images::mime(bytes: &[u8]) -> Option<&'static str>`: the MIME type of an accepted image,
+    from its first bytes.
+  - `pub fn priorities::retarget(text, line, from, to) -> Option<String>`: replaces a link target in
+    one entry's text, the rest left as written (R8).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 With `URA_NOW=20261014-103512` set in the test, on a `TestRepo` with a feature
 `2026-10-14-login-banner` (proposal only) and a draft `specs/drafts/login-banner.md` linked from
@@ -429,12 +436,12 @@ With `URA_NOW=20261014-103512` set in the test, on a `TestRepo` with a feature
 - `images_are_read_by_their_bytes_only`: `read_image` returns `image/webp` for an attached image,
   and refuses `specs/2026-10-14-login-banner/proposal.md` and `specs/../Cargo.toml`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test attach`
 - Expected: FAIL, `cannot find function attach_image in module api`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `attach::attach(place, path, bytes, name, stamp)` resolves the folder holding `path`, which must be
 a markdown file directly in a feature's, a bug's, or a draft's folder, or a single-file draft. A
@@ -444,15 +451,15 @@ its link target replaced, nothing else of its text. The image is encoded with `i
 named per [Data](spec.md#data), and written. `api::attach_image` takes the write lock, finds the
 place as `text_place` does, and maps `ImageError` to `refused` with its text.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add crates/core
+git add crates/core packages/binding/index.d.ts specs/2026-10-13-image-attachments
 git commit -m "feat(image-attachments): attach images to workflow files"
 ```
 

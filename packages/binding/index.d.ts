@@ -156,6 +156,16 @@ export interface Added {
   existed: boolean
 }
 
+/** An image attached to a workflow file. */
+export interface AttachedView {
+  /** The image's path, from the top level. */
+  path: string
+  /** The markdown to insert, linking the image from the file. */
+  link: string
+  /** The file's new path, when a single-file draft became a folder. */
+  moved?: string
+}
+
 /** A block, its place in the tree, its lines, and the fields of its kind. */
 export interface Block {
   /** Its index in the document's blocks. */

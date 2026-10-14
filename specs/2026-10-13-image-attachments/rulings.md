@@ -155,3 +155,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   2000 × 2576 / 3000 = 1717.3, rounded to 1717. The plan's 1728 could not hold.
 - **If wrong**: one test row.
 - **Where**: task 1.
+
+## R14: A draft's image is read from the default branch's checkout
+
+- **Decision**: `api::read_image` reads a path under `specs/drafts/` or `specs/backlog/` from the
+  working tree that has the default branch, else from its tip, as `read_draft` reads the draft;
+  every other path is read as `read_raw` reads it.
+- **Rationale**: `read_raw` serves a file outside every feature only when it is tracked, so an image
+  just attached to a draft, not yet committed, would not show in the editor's preview (US1.4).
+- **Alternatives considered**: reading drafts' files this way in `read_raw` too (changes what `/raw`
+  serves, outside this task).
+- **If wrong**: one branch in `read_image`.
+- **Where**: task 2.

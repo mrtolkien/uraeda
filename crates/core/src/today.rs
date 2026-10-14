@@ -1,4 +1,4 @@
-//! Calendar days: today's, those in folder names, and timestamps for JSON.
+//! Calendar days: today's, those in folder names, and timestamps for JSON and file names.
 
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -65,6 +65,45 @@ pub fn today() -> Date {
         .ok()
         .and_then(|output| Date::parse(String::from_utf8_lossy(&output.stdout).trim()))
         .unwrap_or_else(|| utc(SystemTime::now()).0)
+}
+
+/// Whether a text is a time as [`stamp`] gives it: `YYYYMMDD-HHmmss`.
+fn is_stamp(text: &str) -> bool {
+    text.len() == 15
+        && text.bytes().enumerate().all(|(index, byte)| match index {
+            8 => byte == b'-',
+            _ => byte.is_ascii_digit(),
+        })
+}
+
+/// Now, as `YYYYMMDD-HHmmss` in local time, for the names of pasted images: `URA_NOW` when set,
+/// else the local time from `date`, else the UTC time.
+pub fn stamp() -> String {
+    if let Some(now) = std::env::var("URA_NOW")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| is_stamp(value))
+    {
+        return now;
+    }
+    Command::new("date")
+        .arg("+%Y%m%d-%H%M%S")
+        .output()
+        .ok()
+        .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string())
+        .filter(|value| is_stamp(value))
+        .unwrap_or_else(|| {
+            let (date, seconds) = utc(SystemTime::now());
+            format!(
+                "{:04}{:02}{:02}-{:02}{:02}{:02}",
+                date.year,
+                date.month,
+                date.day,
+                seconds / 3600,
+                seconds % 3600 / 60,
+                seconds % 60
+            )
+        })
 }
 
 /// The UTC date and the seconds into that day.
@@ -143,5 +182,14 @@ mod tests {
         let time = UNIX_EPOCH + Duration::from_secs(1_791_706_320);
         assert_eq!(rfc3339(time), "2026-10-11T08:12:00Z");
         assert_eq!(rfc3339(UNIX_EPOCH), "1970-01-01T00:00:00Z");
+    }
+
+    #[test]
+    fn stamps() {
+        assert!(is_stamp("20261014-103512"));
+        for invalid in ["2026-10-14", "20261014103512", "20261014-10351a", ""] {
+            assert!(!is_stamp(invalid), "{invalid}");
+        }
+        assert!(is_stamp(&stamp()));
     }
 }

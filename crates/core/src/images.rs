@@ -125,6 +125,16 @@ pub fn encode(bytes: &[u8], name: &str) -> Result<Encoded, ImageError> {
     })
 }
 
+/// The MIME type of an accepted image, from its first bytes: `None` for anything else.
+pub fn mime(bytes: &[u8]) -> Option<&'static str> {
+    Some(match detect(bytes)? {
+        ImageFormat::Png => "image/png",
+        ImageFormat::Jpeg => "image/jpeg",
+        ImageFormat::Gif => "image/gif",
+        _ => "image/webp",
+    })
+}
+
 /// The accepted type of the bytes, from their signature.
 fn detect(bytes: &[u8]) -> Option<ImageFormat> {
     if bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
