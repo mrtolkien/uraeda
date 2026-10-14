@@ -6,7 +6,7 @@ import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
 import { useImageText } from "./attach/useImageText.ts";
-import { GrowingTextArea } from "./Question.tsx";
+import { TextField } from "./fields/TextField.tsx";
 
 const styles = stylex.create({
   actions: {
@@ -132,7 +132,8 @@ export function CommentField({
   return (
     <>
       <DropHint hint={images.hint} isLabelled>
-        <GrowingTextArea
+        <TextField
+          kind="comment"
           label="Comment"
           onChange={onChange}
           value={comment}

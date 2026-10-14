@@ -9,7 +9,8 @@ import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
 import type { useImageText } from "./attach/useImageText.ts";
-import { GrowingTextArea, statusStyles } from "./Question.tsx";
+import { TextField } from "./fields/TextField.tsx";
+import { statusStyles } from "./Question.tsx";
 
 /** A comment field's images: the `useImageText` of the text the form holds. */
 export type CommentImages = ReturnType<typeof useImageText>;
@@ -84,7 +85,8 @@ export function CommentForm({
         )}
         {images ? (
           <DropHint hint={images.hint} isLabelled>
-            <GrowingTextArea
+            <TextField
+              kind="comment"
               label="Comment text"
               onChange={setText}
               value={text}
@@ -92,7 +94,7 @@ export function CommentForm({
             />
           </DropHint>
         ) : (
-          <GrowingTextArea label="Comment text" onChange={setText} value={text} />
+          <TextField kind="comment" label="Comment text" onChange={setText} value={text} />
         )}
         {images && <AttachStatus status={images.status} />}
         {(error ?? notice) && <span {...stylex.props(statusStyles.error)}>{error ?? notice}</span>}

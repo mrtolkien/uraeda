@@ -85,3 +85,38 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   twice for each change.
 - **If wrong**: `SessionPane` splits back into its two branches.
 - **Where**: [`SessionPage.tsx`](/packages/web/src/SessionPage.tsx), before task 3's commit.
+
+## R7: Two notes tests of the round page save with the button
+
+- **Decision**: "the notes are saved as the last line" types "LGTM", then presses "Save notes";
+  "notes changed elsewhere show when the page reads again" presses "Save notes" after typing
+  "theirs, and mine". "Submit waits for the notes being typed" stays as it was: it already types the
+  notes and presses "Submit answers" alone, which now saves them first.
+- **Rationale**: both tests checked that notes typed reach the file, by waiting for the save 400 ms
+  after the last keystroke, which the [UI behaviour](../decisions/ui-behaviour.md) decision now
+  forbids. What they check stays: the notes are written as the last line, and a save after notes
+  changed elsewhere builds on the notes read, not on those first shown.
+- **Alternatives considered**: deleting them, since the notes tests cover saving; they also cover
+  the line's place in the file and the `previous` of a save after a reread, which those do not.
+- **If wrong**: two lines in [`round.test.tsx`](/packages/web/src/__tests__/round.test.tsx).
+- **Where**: task 4.
+
+## R8: What the field hook and the restore notice also give
+
+- **Decision**: `useTextField` also returns `entry`, the field's unsaved entry, and `unsavedNow()`,
+  the entry as the store holds it when called. `RestoreNotice` takes `changed`, the sentence saying
+  the saved text changed since, "The notes changed since: saving replaces them." for the notes. The
+  store's keys name the repository by its folder, read through `useRepositoryPath()` in
+  [`routes.tsx`](/packages/web/src/routes.tsx), which `App` sets from the repository's row. A
+  field's status, "Unsaved changes", "saving…", "saved ✓", or the error, is `fields/SaveStatus.tsx`.
+  `fields/Confirm.tsx`'s host is `ConfirmHost`, wrapping the pages in `App`. `saved(text)` keeps the
+  entry when the field changed during the save, and an entry equal to the saved text, trimmed, goes
+  once the file's text comes back, as when an image's save wrote it.
+- **Rationale**: the round answered elsewhere shows the notice for text typed on the page, not
+  restored, which needs the entry's time; Submit reads the notes after waiting for images, when the
+  text drawn may be older than the store's; a comment's notice cannot say "the notes"; the spec's
+  key holds the repository path, which the pages did not have.
+- **Alternatives considered**: the repository's name in the keys, which a rename would orphan; the
+  status in each field, which would copy its four states into nine places.
+- **If wrong**: additions to the `fields/` modules, which tasks 5 to 10 use.
+- **Where**: task 4.

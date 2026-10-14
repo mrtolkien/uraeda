@@ -8,6 +8,7 @@ import { fakeSessions } from "uraeda-server/testing";
 import { App } from "../App.tsx";
 import { ServerFetch } from "../attach/ServerFetch.tsx";
 import { fateClients } from "../clients.ts";
+import { forgetUnsaved } from "../fields/unsaved.ts";
 import { forgetUndoToasts } from "../layout/useUndoToast.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
@@ -48,6 +49,8 @@ beforeEach(() => {
   } catch {
     // No storage: nothing to clear.
   }
+  // The unsaved text of the last test, in memory, goes with its storage.
+  forgetUnsaved();
 });
 
 afterEach(cleanup);

@@ -499,18 +499,26 @@ git commit -m "build(text-inputs): React Compiler compiles the web UI"
     30 days, called once at start); `forgetUnsaved()` for tests. `localStorage` errors fall back to
     memory.
   - `fields/useTextField.ts`:
-    `useTextField(key: string, saved: string): { text: string; dirty: boolean; restored?: { at: string; changed: boolean }; change(text: string): void; discard(): void; saved(text: string): void }`.
+    `useTextField(key: string, saved: string): { text: string; dirty: boolean; restored?: { at: string; changed: boolean }; entry?: Unsaved; unsavedNow(): Unsaved | undefined; change(text: string): void; discard(): void; saved(text: string): void }`.
     `dirty` compares trimmed texts; `change` writes the entry, or drops it when equal to `saved`
-    trimmed; `saved(text)` drops the entry; `restored` is set when the entry existed at mount and
-    differs from `saved`, `changed` when its `base` differs from `saved`.
+    trimmed; `saved(text)` drops the entry, unless the field changed during the save; an entry equal
+    to `saved`, trimmed, is dropped once `saved` comes back; `restored` is set when the entry
+    existed at mount and differs from `saved`, `changed` when its `base` differs from `saved`;
+    `entry` is the entry now, and `unsavedNow()` reads it from the store when called, for code that
+    runs after waiting. The repository part of the key comes from `useRepositoryPath()` in
+    `routes.tsx`, the repository's folder, which `App` sets (R8).
   - `fields/TextField.tsx`:
     `TextField({ kind: "editor" | "notes" | "comment" | "line", onSubmit?, ...TextAreaProps })`:
     Astryx `TextArea` with `rows` 20, 12, 7, or 3, and Ctrl+Enter or Cmd+Enter calling `onSubmit`.
   - `fields/Confirm.tsx`:
     `useConfirm(): (options: { title: string; body: string; confirm: string; cancel: string }) => Promise<boolean>`
-    and its host, rendered once in `App.tsx`, on Astryx's `AlertDialog`.
-  - `fields/RestoreNotice.tsx`: `RestoreNotice({ restored, onDiscard, answered? })`, texts from the
-    global constraints.
+    and its host, `ConfirmHost`, wrapping the pages once in `App.tsx`, on Astryx's `AlertDialog`;
+    `false` for the cancel button, Escape, or a newer question.
+  - `fields/RestoreNotice.tsx`: `RestoreNotice({ restored, onDiscard, changed, answered? })`, texts
+    from the global constraints; `changed` is the sentence shown when `restored.changed`, like "The
+    notes changed since: saving replaces them." (`NOTES_CHANGED` in `RoundNotes.tsx`).
+  - `fields/SaveStatus.tsx`: `SaveStatus({ dirty, state })`, next to a Save button: "Unsaved
+    changes", "saving…", "saved ✓", or "Not saved: <error>" (R8).
 
 - [x] **Step 1: Split `RoundPage` before it changes**
 
@@ -527,7 +535,7 @@ git add packages/web/src/RoundPage.tsx packages/web/src/RoundSubmit.tsx packages
 git commit -m "refactor(text-inputs): the round's submit and its end of page out of RoundPage"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 In `notes.test.tsx`, on a fixture round awaiting the human:
 
@@ -556,31 +564,31 @@ In `notes.test.tsx`, on a fixture round awaiting the human:
 In `unsaved.test.ts`, table-driven: entries older than 30 days pruned, younger kept; a
 `localStorage` whose methods throw keeps entries in memory (review focus 9).
 
-Change `round.test.tsx`'s "the notes are saved as the last line" and "Submit waits for the notes
-being typed" to save with the button and with Submit; write a ruling saying what each checked and
-why it changed.
+Change `round.test.tsx`'s "the notes are saved as the last line" and "notes changed elsewhere show
+when the page reads again" to save with the button; "Submit waits for the notes being typed" already
+saves with Submit, and stays (R7).
 
 The break each test catches: the field copying the file's notes while dirty (US1 3, SC-003); a
 `dirty` without trimming (focus 3); the entry kept after an image's save (focus 1); an entry dropped
 on a refused save (focus 2); the restore notice ignoring `base` (US5 3).
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web notes unsaved`
 - Expected: FAIL, `Unable to find an element with the text: Unsaved changes`
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 The five `fields/` modules, `pruneUnsaved` called once in `App.tsx`; the notes field on
 `useTextField(\`${path}#notes\`, notes)`and`TextField
 kind="notes"`, a "Save notes" button with the status beside it; `useRoundNotes`loses its effect copying the file into the field and its`schedule`calls; an image run calls the save at once with the text and drops the entry. The`Blocks`of the settled points render`round.settled`, which no longer holds the notes. Every caller of `GrowingTextArea`moves to`TextField`with its kind:`"comment"`in`QuestionComment`, `CommentForm`, and `ReviewVerdict`.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run: `vp check && vp test --project uraeda-web`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web
