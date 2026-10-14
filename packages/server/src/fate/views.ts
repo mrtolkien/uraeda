@@ -150,6 +150,40 @@ export type WorkflowMessageRecord = {
   refusal: string | null;
 };
 
+/** A listed repository, as the menu shows it. */
+export type RepositoryRow = {
+  /** Its name in the list, the `<name>` of its `/r/<name>/` URLs. */
+  name: string;
+  /** Its main checkout, absolute. */
+  path: string;
+  /** `path` with the home folder written `~`. */
+  home: string;
+  /** Its folder no longer holds a git repository. */
+  missing: boolean;
+};
+
+/**
+ * The listed repositories, most recently opened first: one record, `repositories`, kept live, read
+ * from every endpoint.
+ */
+export type RepositoriesRecord = {
+  id: string;
+  rows: Array<RepositoryRow>;
+  /** Why `repositories.json` could not be read at its last change: the rows are the last read. */
+  problem: string | null;
+  /**
+   * The repository `repositories.add` added or found listed, in that mutation's answer only: null
+   * in every other answer.
+   */
+  added: string | null;
+};
+
+/** A folder the add form suggests, `path` as typed and ending with `/`. */
+export type FolderSuggestionRecord = { path: string; git: boolean };
+
+/** The folders the add form suggests for a typed text, which is its ID: not live. */
+export type FolderSuggestionsRecord = { id: string; rows: Array<FolderSuggestionRecord> };
+
 export const workspaceDataView = dataView<WorkspaceRecord>("Workspace")({
   id: true,
   root: true,
@@ -293,12 +327,25 @@ export const proposalHintsDataView = dataView<ProposalHintsRecord>("ProposalHint
   hints: true,
 });
 
+export const repositoriesDataView = dataView<RepositoriesRecord>("Repositories")({
+  id: true,
+  rows: true,
+  problem: true,
+  added: true,
+});
+
+export const folderSuggestionsDataView = dataView<FolderSuggestionsRecord>("FolderSuggestions")({
+  id: true,
+  rows: true,
+});
+
 /** The ids of the records there is one of. */
 export const WORKSPACE_ID = "workspace";
 export const PRIORITIES_ID = "priorities";
 export const AGENT_ID = "agent";
 export const SESSION_LIST_ID = "all";
 export const PROPOSAL_HINTS_ID = "proposal";
+export const REPOSITORIES_ID = "repositories";
 
 /** The roots: one list per type, so every type is read by id. */
 export const Root = {
@@ -315,4 +362,6 @@ export const Root = {
   sessionSearches: list(sessionSearchDataView),
   workflowMessages: list(workflowMessageDataView),
   proposalHintsList: list(proposalHintsDataView),
+  repositoriesList: list(repositoriesDataView),
+  folderSuggestionsList: list(folderSuggestionsDataView),
 };

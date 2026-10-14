@@ -9,8 +9,10 @@ import {
   draftDataView,
   featureDataView,
   fileDataView,
+  folderSuggestionsDataView,
   prioritiesDataView,
   proposalHintsDataView,
+  repositoriesDataView,
   Root as Views,
   sessionDataView,
   sessionListDataView,
@@ -26,8 +28,10 @@ export {
   draftDataView,
   featureDataView,
   fileDataView,
+  folderSuggestionsDataView,
   prioritiesDataView,
   proposalHintsDataView,
+  repositoriesDataView,
   sessionDataView,
   sessionListDataView,
   sessionSearchDataView,
@@ -40,6 +44,7 @@ export {
   AGENT_ID,
   PRIORITIES_ID,
   PROPOSAL_HINTS_ID,
+  REPOSITORIES_ID,
   SESSION_LIST_ID,
   WORKSPACE_ID,
 } from "./fate/views.ts";
@@ -58,6 +63,8 @@ export type TurnLog = Entity<typeof turnLogDataView, "TurnLog">;
 export type SessionList = Entity<typeof sessionListDataView, "SessionList">;
 export type SessionSearch = Entity<typeof sessionSearchDataView, "SessionSearch">;
 export type WorkflowMessage = Entity<typeof workflowMessageDataView, "WorkflowMessage">;
+export type Repositories = Entity<typeof repositoriesDataView, "Repositories">;
+export type FolderSuggestions = Entity<typeof folderSuggestionsDataView, "FolderSuggestions">;
 /** What started a workflow turn, for `session.send`'s `workflow`. */
 export type { Trigger } from "./runner/events.ts";
 /** A turn's item, as a `TurnLog` page lists it. */

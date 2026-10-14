@@ -1,11 +1,24 @@
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { basename, dirname, join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
 import * as binding from "uraeda-binding";
 import { temporaryFolder } from "uraeda-binding/test-utils";
+import { live } from "../fate.ts";
+import { homePath } from "../folders.ts";
 import { Hosts } from "../repositories.ts";
 import { fakeSessions } from "../testing.ts";
-import { byIdAt, fixtureRepo, git, port, testApp, testHosts } from "./helpers.ts";
+import {
+  byIdAt,
+  fateAt,
+  fixtureRepo,
+  git,
+  mutate,
+  port,
+  testApp,
+  testHosts,
+  testServer,
+} from "./helpers.ts";
 import { createApp } from "../app.ts";
 
 const FOLDER = "2026-10-14-dark-mode";
@@ -170,4 +183,280 @@ test("an invalid list keeps the hosts, with its problem", async () => {
   expect(hosts.get(names[0])).toBeDefined();
   expect(hosts.problem).toMatch(/^repositories\.json could not be read: /);
   log.mockRestore();
+});
+
+const LIST = ["id", "rows", "problem", "added"];
+
+type Opened = Awaited<ReturnType<typeof testApp>>;
+
+/** The list, as the `Repositories` record of an endpoint gives it: the global one for null. */
+async function list(app: Opened["app"], name: string | null) {
+  const [record] = await byIdAt(app, name, "Repositories", ["repositories"], LIST);
+  return record;
+}
+
+/** A list mutation through the repository's endpoint. */
+const change = (opened: Opened, mutation: string, input: unknown) =>
+  mutate(opened.app, `repositories.${mutation}`, input, LIST);
+
+/** The calls a bus's `update` gets from now on, as `<type> <id>`. */
+function heard(bus: { update: (...args: Array<any>) => void }) {
+  const update = vi.spyOn(bus, "update");
+  // The global bus's spy is shared by the tests of this file: its earlier calls are not heard.
+  const from = update.mock.calls.length;
+  return () => update.mock.calls.slice(from).map(([type, id]) => `${String(type)} ${String(id)}`);
+}
+
+test("the list is read from every endpoint, each path also from the home folder", async () => {
+  const opened = await testApp();
+  const path = realpathSync(opened.repo);
+  const row = { name: opened.name, path, home: homePath(path, homedir()), missing: false };
+
+  const global = await list(opened.app, null);
+  const hosted = await list(opened.app, opened.name);
+
+  expect(global).toEqual({ id: "repositories", rows: [row], problem: null, added: null });
+  expect(hosted).toEqual(global);
+});
+
+/** US2.2, US2.4 */
+test("adding a folder in a git repository adds its main checkout", async () => {
+  const opened = await testApp();
+  const other = fixtureRepo();
+
+  const result = await change(opened, "add", { folder: join(other, "specs") });
+
+  const name = basename(other);
+  expect(result.error).toBeUndefined();
+  expect(result.data.added).toBe(name);
+  const rows = result.data.rows.map((row: { name: string; path: string }) => [row.name, row.path]);
+  expect(rows).toHaveLength(2);
+  expect(rows).toContainEqual([name, realpathSync(other)]);
+  expect(opened.hosts.get(name)?.path).toBe(realpathSync(other));
+});
+
+test("a folder typed from the home folder is added", async () => {
+  const opened = await testApp();
+  const other = fixtureRepo();
+  vi.stubEnv("HOME", dirname(other));
+
+  const result = await change(opened, "add", { folder: `~/${basename(other)}/` });
+  vi.unstubAllEnvs();
+
+  expect(result.error).toBeUndefined();
+  expect(result.data.added).toBe(basename(other));
+});
+
+/** US2.5 */
+test("adding a listed repository again leaves the list as it was, and answers its name", async () => {
+  const opened = await testApp();
+
+  const result = await change(opened, "add", { folder: opened.repo });
+
+  expect(result.data.added).toBe(opened.name);
+  expect(result.data.rows).toHaveLength(1);
+});
+
+/** US2.3 and the add form's edge cases */
+test.each([
+  [
+    "outside git",
+    () => temporaryFolder("tools"),
+    (folder: string) => `refused: Not a git repository: ${folder}. Run git init there first.`,
+  ],
+  [
+    "missing",
+    () => join(temporaryFolder("dev"), "nope"),
+    (folder: string) => `refused: No such folder: ${folder}.`,
+  ],
+  ["relative", () => "dev/todo-app", () => "refused: Type an absolute path, starting with / or ~."],
+])("adding a %s folder is refused, the list unchanged", async (_, folder, message) => {
+  const opened = await testApp();
+  const typed = folder();
+
+  const result = await change(opened, "add", { folder: typed });
+
+  expect(result.error).toEqual({ code: "BAD_REQUEST", message: message(typed) });
+  expect((await list(opened.app, null)).rows).toHaveLength(1);
+});
+
+/** US5.1 */
+test("removing leaves the folder and its sessions", async () => {
+  const opened = await testApp();
+  const root = realpathSync(opened.repo);
+  const session = opened.sessions.cache.createSession({
+    repo: root,
+    folder: "2026-10-11-web-ui",
+    agent: "fake",
+    nativeId: "3f2c",
+    title: null,
+  });
+
+  const result = await change(opened, "remove", { name: opened.name });
+
+  expect(result.error).toBeUndefined();
+  expect(result.data.rows).toEqual([]);
+  expect(opened.hosts.get(opened.name)).toBeUndefined();
+  expect(existsSync(join(opened.repo, "specs"))).toBe(true);
+  expect(opened.sessions.cache.featureSession(root, "2026-10-11-web-ui")?.id).toBe(session.id);
+});
+
+/** US5.3 */
+test("removing while an agent works is refused", async () => {
+  const server = await testServer();
+  const sent = await mutate(
+    server.app,
+    "session.send",
+    { folder: "2026-10-11-web-ui", text: "Why A?" },
+    ["id", "turns"],
+  );
+  expect(sent.error).toBeUndefined();
+
+  const result = await mutate(server.app, "repositories.remove", { name: server.name }, LIST);
+
+  expect(result.error).toEqual({
+    code: "BAD_REQUEST",
+    message: `refused: An agent is working in ${server.name}: stop it first.`,
+  });
+  expect(server.hosts.get(server.name)).toBeDefined();
+  server.sessions.stop(server.repo, sent.data.id);
+  await server.sessions.settled(Number(sent.data.turns.at(-1)));
+});
+
+test("removing an unknown name is refused", async () => {
+  const opened = await testApp();
+
+  const result = await change(opened, "remove", { name: "old-site" });
+
+  expect(result.error).toEqual({
+    code: "BAD_REQUEST",
+    message: "refused: No repository named “old-site”",
+  });
+});
+
+/** US1.4 */
+test("opening a repository moves it first", async () => {
+  const opened = await testHosts([fixtureRepo(), fixtureRepo()], { installed: false });
+  // Opened at 09:00 and 10:00, long ago: the list's times are to the second, which the adds share.
+  const file = join(opened.dataDir, "repositories.json");
+  const stored = JSON.parse(readFileSync(file, "utf8"));
+  stored.repositories.forEach((entry: { openedAt: string }, index: number) => {
+    entry.openedAt = `2020-01-01T${String(9 + index).padStart(2, "0")}:00:00Z`;
+  });
+  writeFileSync(file, JSON.stringify(stored));
+  await opened.hosts.reload();
+  const app = createApp({
+    repo: opened.hosts.get(opened.names[0])!.path,
+    port,
+    allowedHosts: [],
+    allowOrigins: [],
+    binding,
+    sessions: opened.sessions,
+    hosts: opened.hosts,
+    dataDir: opened.dataDir,
+  });
+  const last = opened.hosts.rows().at(-1)!.name;
+
+  const [result] = await fateAt(app, null, [
+    { kind: "mutation", name: "repositories.open", input: { name: last }, select: LIST },
+  ]);
+
+  expect(result.data.rows[0].name).toBe(last);
+  expect(result.data.added).toBeNull();
+  expect(opened.hosts.mostRecent()?.name).toBe(last);
+});
+
+test("a change of the list is sent on every repository's bus and the global one", async () => {
+  const opened = await testApp();
+  const buses = [live, opened.hosts.get(opened.name)!.live].map(heard);
+
+  await change(opened, "add", { folder: fixtureRepo() });
+
+  for (const calls of buses) {
+    expect(calls()).toContain("Repositories repositories");
+  }
+});
+
+/** US4.3, SC-004, review focus 2 */
+test("ura add reaches a running server within a second", async () => {
+  const opened = await testApp();
+  const global = heard(live);
+  const other = fixtureRepo();
+
+  const { repository } = await binding.addRepository(opened.dataDir, other);
+  const start = performance.now();
+  await vi.waitFor(() => expect(global()).toContain("Repositories repositories"), {
+    timeout: 1000,
+    interval: 10,
+  });
+
+  expect(performance.now() - start).toBeLessThan(1000);
+  expect(opened.hosts.get(repository.name)?.path).toBe(realpathSync(other));
+  const names = (await list(opened.app, null)).rows.map((row: { name: string }) => row.name);
+  expect(names).toContain(repository.name);
+});
+
+/** Review focus 2 */
+test("a hand edit removing a repository closes its host", async () => {
+  const opened = await testHosts([fixtureRepo(), fixtureRepo()], { installed: false });
+  const file = join(opened.dataDir, "repositories.json");
+  const stored = JSON.parse(readFileSync(file, "utf8"));
+  stored.repositories = stored.repositories.filter(
+    (entry: { name: string }) => entry.name !== opened.names[1],
+  );
+
+  writeFileSync(file, JSON.stringify(stored));
+
+  await vi.waitFor(() => expect(opened.hosts.get(opened.names[1])).toBeUndefined(), {
+    timeout: 1000,
+    interval: 10,
+  });
+  expect(opened.hosts.get(opened.names[0])).toBeDefined();
+});
+
+/** The edge case of an invalid `repositories.json`, review focus 2 */
+test("an invalid list on disk keeps the hosts, reports the problem, and refuses adding", async () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  const opened = await testApp();
+  const file = join(opened.dataDir, "repositories.json");
+
+  writeFileSync(file, "{not json");
+  await vi.waitFor(() => expect(opened.hosts.problem).not.toBeNull(), {
+    timeout: 1000,
+    interval: 10,
+  });
+  const record = await list(opened.app, opened.name);
+  const result = await change(opened, "add", { folder: fixtureRepo() });
+
+  expect(record.problem).toMatch(/^repositories\.json could not be read: /);
+  expect(record.rows.map((row: { name: string }) => row.name)).toEqual([opened.name]);
+  expect(opened.hosts.get(opened.name)).toBeDefined();
+  expect(result.error).toEqual({ code: "BAD_REQUEST", message: `refused: ${record.problem}` });
+  expect(readFileSync(file, "utf8")).toBe("{not json");
+  log.mockRestore();
+});
+
+test("the hosts watch a data folder that does not exist yet", async () => {
+  const dataDir = join(temporaryFolder("uraeda"), "data");
+  const { sessions } = fakeSessions({ installed: false });
+  const hosts = await Hosts.open({ binding, dataDir, sessions });
+
+  const { repository } = await binding.addRepository(dataDir, fixtureRepo());
+
+  await vi.waitFor(() => expect(hosts.get(repository.name)).toBeDefined(), {
+    timeout: 1000,
+    interval: 10,
+  });
+  hosts.close();
+  sessions.close();
+});
+
+test("closed hosts stop following the file", async () => {
+  const opened = await testHosts([fixtureRepo()], { installed: false });
+  opened.hosts.close();
+
+  await binding.addRepository(opened.dataDir, fixtureRepo());
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  expect(opened.hosts.all()).toEqual([]);
 });
