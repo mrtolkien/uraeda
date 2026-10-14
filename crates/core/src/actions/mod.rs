@@ -2,6 +2,7 @@
 //! returns the files it changed and the commit to make.
 
 pub mod answer;
+pub mod attach;
 pub mod clean;
 pub mod commit;
 pub mod draft;

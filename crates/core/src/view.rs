@@ -211,6 +211,19 @@ pub struct CommitView {
     pub commit: String,
 }
 
+/// An image attached to a workflow file.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AttachedView {
+    /// The image's path, from the top level.
+    pub path: String,
+    /// The markdown to insert, linking the image from the file.
+    pub link: String,
+    /// The file's new path, when a single-file draft became a folder.
+    pub moved: Option<String>,
+}
+
 /// A feature started.
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
