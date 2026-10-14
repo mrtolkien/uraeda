@@ -125,3 +125,33 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   decoding.
 - **If wrong**: one test row and one condition.
 - **Where**: task 1.
+
+## R11: The type is checked before the size
+
+- **Decision**: `images::encode` refuses an unknown type before an input over 20 MB, so a 30 MB SVG
+  gets the type's refusal.
+- **Rationale**: the spec's [error handling](spec.md#error-handling) lists its refusals "in order of
+  the checks", the type first; the plan's step 3 checked the size first. Detecting the type reads 12
+  bytes, so the order costs nothing.
+- **Alternatives considered**: the size first, as the plan read.
+- **If wrong**: two checks to swap in `crates/core/src/images.rs`.
+- **Where**: task 1.
+
+## R12: The libwebp wrapper returns libwebp's error
+
+- **Decision**: `webp::encode_rgba` returns `Result<Vec<u8>, WebPEncodingError>`, and `encode` turns
+  a failure into "This image could not be read: <name>."
+- **Rationale**: the wrapper does not know the file's name, which every refusal holds; the plan gave
+  it `ImageError`. libwebp fails only on memory or dimensions, both bounded before it runs.
+- **Alternatives considered**: passing the name to the wrapper; a new refusal text the spec does not
+  list.
+- **If wrong**: one `map_err` in `crates/core/src/images.rs`.
+- **Where**: task 1.
+
+## R13: The photo fixture becomes 1717×2576
+
+- **Decision**: the test expects `photo.jpg`, 3000×2000 with orientation 6, to come out 1717×2576.
+- **Rationale**: turned upright it is 2000×3000; scaled to 2576 on its long edge, its short edge is
+  2000 × 2576 / 3000 = 1717.3, rounded to 1717. The plan's 1728 could not hold.
+- **If wrong**: one test row.
+- **Where**: task 1.
