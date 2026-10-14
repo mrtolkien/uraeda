@@ -1,0 +1,136 @@
+import { Collapsible } from "@astryxdesign/core/Collapsible";
+import { sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
+import { type ReactNode, useLayoutEffect, useMemo, useRef } from "react";
+import type { Block, Document, SpecItems } from "uraeda-binding";
+import { currentEntry, useHash } from "./routes.tsx";
+
+const styles = stylex.create({
+  fold: {
+    marginBlockEnd: spacingVars["--spacing-3"],
+  },
+  foldBody: {
+    // What a fold holds, at the reading size, which Astryx's content area sets to the body's.
+    fontSize: "var(--text-reading-size)",
+    lineHeight: "var(--text-reading-line)",
+    paddingBlockStart: spacingVars["--spacing-2"],
+  },
+  foldLabel: {
+    // A fold's label, at the reading size, its row a control's height for a finger.
+    alignItems: "center",
+    display: "flex",
+    fontSize: "var(--text-reading-size)",
+    minHeight: sizeVars["--size-element-md"],
+  },
+});
+
+/** Top-level blocks drawn folded, behind a toggle named by `label`, open when `key` is. */
+export type Fold = { ids: ReadonlyArray<number>; key: string; label: string };
+
+/** A document's folds, the open ones' keys, and how to open or close one. */
+export type Folds = {
+  list: ReadonlyArray<Fold>;
+  onOpenChange: (key: string, isOpen: boolean) => void;
+  open: ReadonlyArray<string>;
+};
+
+/**
+ * A spec's folds, as the core finds them: each story's scenarios, keyed by the story's id, then
+ * the Details section.
+ */
+export function specFolds(spec: Pick<SpecItems, "details" | "stories">): Array<Fold> {
+  const folds: Array<Fold> = spec.stories
+    .filter((story) => story.details.length > 0)
+    .map((story) => ({
+      ids: story.details,
+      key: story.id,
+      label: `Scenarios (${story.scenarios.length})`,
+    }));
+  if (spec.details.length > 0) {
+    folds.push({ ids: spec.details, key: "details", label: "Details" });
+  }
+  return folds;
+}
+
+/** The top-level block a block lies in, itself when it is one. */
+export function topBlock(document: Document, block: Block | undefined) {
+  let top = block;
+  while (top?.parent !== undefined) {
+    top = document.blocks[top.parent];
+  }
+  return top;
+}
+
+/** The fold holding a block, at any depth, if any. */
+export function foldOf(document: Document, folds: ReadonlyArray<Fold>, block: Block | undefined) {
+  const id = topBlock(document, block)?.id;
+  return id === undefined ? undefined : folds.find((fold) => fold.ids.includes(id));
+}
+
+/**
+ * Opens the fold holding the block the location's hash names, and scrolls to it once open: once
+ * per hash, so the fold can be closed again, and not where Back returns to a saved position.
+ */
+export function useHashFold(document: Document, folds: Folds | undefined) {
+  const hash = decodeURIComponent(useHash().slice(1));
+  const handled = useRef<string>(undefined);
+  const list = folds?.list;
+  const target = useMemo(
+    () =>
+      hash && list
+        ? foldOf(
+            document,
+            list,
+            document.blocks.find((b) => b.anchor === hash),
+          )
+        : undefined,
+    [document, list, hash],
+  );
+  useLayoutEffect(() => {
+    if (!folds || !target || handled.current === hash) {
+      return;
+    }
+    if (!folds.open.includes(target.key)) {
+      folds.onOpenChange(target.key, true);
+      return;
+    }
+    handled.current = hash;
+    const element = window.document.getElementById(hash);
+    if (element && typeof currentEntry().scroll !== "number") {
+      element.scrollIntoView({ block: "start" });
+      // A little below the top, or the top bar, where it stays on the phone.
+      const bar = window.document.querySelector('[role="banner"]')?.getBoundingClientRect();
+      window.scrollBy(0, -Math.max(bar?.bottom ?? 0, 0) - 16);
+    }
+  }, [folds, hash, target]);
+}
+
+/**
+ * A fold: its toggle, named by its label, in place of its first block, its `title`, like the
+ * scenarios' intro or the Details heading, whose anchor it takes; then what it holds, drawn while
+ * it is open.
+ */
+export function FoldNode({
+  children,
+  fold,
+  folds,
+  title,
+}: {
+  children: ReactNode;
+  fold: Fold;
+  folds: Folds;
+  title: Block | undefined;
+}) {
+  return (
+    <div id={title?.anchor} {...stylex.props(styles.fold)}>
+      <Collapsible
+        chevronPosition="start"
+        isOpen={folds.open.includes(fold.key)}
+        onOpenChange={(isOpen: boolean) => folds.onOpenChange(fold.key, isOpen)}
+        trigger={<span {...stylex.props(styles.foldLabel)}>{fold.label}</span>}
+      >
+        <div {...stylex.props(styles.foldBody)}>{children}</div>
+      </Collapsible>
+    </div>
+  );
+}

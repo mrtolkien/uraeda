@@ -1,6 +1,5 @@
 import { Blockquote } from "@astryxdesign/core/Blockquote";
 import { CodeBlock } from "@astryxdesign/core/CodeBlock";
-import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { Divider } from "@astryxdesign/core/Divider";
 import { Heading } from "@astryxdesign/core/Heading";
 import { List, ListItem } from "@astryxdesign/core/List";
@@ -8,9 +7,9 @@ import { Table, TableBody, TableCell, TableHeaderCell, TableRow } from "@astryxd
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useLayoutEffect, useMemo, useRef } from "react";
-import type { Block, Document, SpecItems } from "uraeda-binding";
-import { currentEntry, useHash } from "./routes.tsx";
+import { type ReactNode, useMemo } from "react";
+import type { Block, Document } from "uraeda-binding";
+import { type Fold, FoldNode, type Folds, useHashFold } from "./Folds.tsx";
 import { After, Selectable, type Selection, useSelect } from "./Selection.tsx";
 import { Spans } from "./Spans.tsx";
 
@@ -63,22 +62,6 @@ const styles = stylex.create({
     textWrap: "pretty",
     // The page's inset, which a list's rows take back, so their text lines up with the paragraphs'.
     "--container-padding-inline-start": spacingVars["--spacing-4"],
-  },
-  fold: {
-    marginBlockEnd: spacingVars["--spacing-3"],
-  },
-  foldBody: {
-    // What a fold holds, at the reading size, which Astryx's content area sets to the body's.
-    fontSize: "var(--text-reading-size)",
-    lineHeight: "var(--text-reading-line)",
-    paddingBlockStart: spacingVars["--spacing-2"],
-  },
-  foldLabel: {
-    // A fold's label, at the reading size, its row a control's height for a finger.
-    alignItems: "center",
-    display: "flex",
-    fontSize: "var(--text-reading-size)",
-    minHeight: "var(--size-element-md)",
   },
   headerCell: {
     // A header cell wraps its text, as a body cell does, instead of cutting it.
@@ -152,34 +135,6 @@ function useChildren(document: Document) {
     }
     return children;
   }, [document]);
-}
-
-/** Top-level blocks drawn folded, behind a toggle named by `label`, open when `key` is. */
-export type Fold = { ids: ReadonlyArray<number>; key: string; label: string };
-
-/** A document's folds, the open ones' keys, and how to open or close one. */
-export type Folds = {
-  list: ReadonlyArray<Fold>;
-  onOpenChange: (key: string, isOpen: boolean) => void;
-  open: ReadonlyArray<string>;
-};
-
-/**
- * A spec's folds, as the core finds them: each story's scenarios, keyed by the story's id, then
- * the Details section.
- */
-export function specFolds(spec: Pick<SpecItems, "details" | "stories">): Array<Fold> {
-  const folds: Array<Fold> = spec.stories
-    .filter((story) => story.details.length > 0)
-    .map((story) => ({
-      ids: story.details,
-      key: story.id,
-      label: `Scenarios (${story.scenarios.length})`,
-    }));
-  if (spec.details.length > 0) {
-    folds.push({ ids: spec.details, key: "details", label: "Details" });
-  }
-  return folds;
 }
 
 type Context = {
@@ -385,66 +340,6 @@ function BlockNode({ block, context }: { block: Block; context: Context }): Reac
 }
 
 /**
- * Opens the fold holding the block the location's hash names, and scrolls to it once open: once
- * per hash, so the fold can be closed again, and not where Back returns to a saved position.
- */
-function useHashFold(document: Document, folds: Folds | undefined) {
-  const hash = decodeURIComponent(useHash().slice(1));
-  const handled = useRef<string>(undefined);
-  const target = useMemo(() => {
-    let block = hash ? document.blocks.find((b) => b.anchor === hash) : undefined;
-    while (block?.parent !== undefined) {
-      block = document.blocks[block.parent];
-    }
-    const id = block?.id;
-    return folds?.list.find((fold) => id !== undefined && fold.ids.includes(id));
-  }, [document, folds?.list, hash]);
-  useLayoutEffect(() => {
-    if (!folds || !target || handled.current === hash) {
-      return;
-    }
-    if (!folds.open.includes(target.key)) {
-      folds.onOpenChange(target.key, true);
-      return;
-    }
-    handled.current = hash;
-    const element = window.document.getElementById(hash);
-    if (element && typeof currentEntry().scroll !== "number") {
-      element.scrollIntoView({ block: "start" });
-      // A little below the top, or the top bar, where it stays on the phone.
-      const bar = window.document.querySelector('[role="banner"]')?.getBoundingClientRect();
-      window.scrollBy(0, -Math.max(bar?.bottom ?? 0, 0) - 16);
-    }
-  }, [folds, hash, target]);
-}
-
-/**
- * A fold: its toggle, named by its label, in place of its first block, its title, like the
- * scenarios' intro or the Details heading, whose anchor it takes; then its other blocks, drawn
- * while it is open, after what follows its title in a review, like a pending comment on it.
- */
-function FoldNode({ context, fold, folds }: { context: Context; fold: Fold; folds: Folds }) {
-  const [title, ...rest] = fold.ids.map((id) => context.document.blocks[id]);
-  return (
-    <div id={title?.anchor} {...stylex.props(styles.fold)}>
-      <Collapsible
-        chevronPosition="start"
-        isOpen={folds.open.includes(fold.key)}
-        onOpenChange={(isOpen: boolean) => folds.onOpenChange(fold.key, isOpen)}
-        trigger={<span {...stylex.props(styles.foldLabel)}>{fold.label}</span>}
-      >
-        <div {...stylex.props(styles.foldBody)}>
-          {title && context.selection?.after && <After>{context.selection.after(title)}</After>}
-          {rest.map(
-            (block) => block && <BlockNode block={block} context={context} key={block.id} />,
-          )}
-        </div>
-      </Collapsible>
-    </div>
-  );
-}
-
-/**
  * Draws blocks of a document: `ids` the top-level ones to draw, all of them by default. With a
  * selection, top-level blocks, list items, and table rows become tappable. With folds, each fold
  * is drawn where its first block would be, and its blocks inside it.
@@ -479,9 +374,19 @@ export function Blocks({
           return <BlockNode block={block} context={context} key={block.id} />;
         }
         const fold = folded.get(block.id);
+        if (!fold || !folds) {
+          return null;
+        }
+        // The fold's title is its toggle; what follows the title in a review, like a pending
+        // comment on it, comes first inside.
+        const [title, ...rest] = fold.ids.map((id) => document.blocks[id]);
         return (
-          fold &&
-          folds && <FoldNode context={context} fold={fold} folds={folds} key={`fold-${fold.key}`} />
+          <FoldNode fold={fold} folds={folds} key={`fold-${fold.key}`} title={title}>
+            {title && selection?.after && <After>{selection.after(title)}</After>}
+            {rest.map(
+              (inner) => inner && <BlockNode block={inner} context={context} key={inner.id} />,
+            )}
+          </FoldNode>
         );
       })}
     </div>
