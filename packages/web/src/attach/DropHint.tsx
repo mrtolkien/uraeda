@@ -23,14 +23,29 @@ const styles = stylex.create({
     zIndex: 1,
     pointerEvents: "none",
   },
+  // On the line of a field's label, at its end, clear of the field's border.
+  labelled: { insetBlockStart: 0, insetInlineEnd: 0 },
 });
 
-/** A field, with the hint "Drop to add to <label>" over its corner while it is the drop's target. */
-export function DropHint({ hint, children }: { hint?: string; children: ReactNode }) {
+/**
+ * A field, with the hint "Drop to add to <label>" over its corner while it is the drop's target:
+ * inside the field, or, for a field whose label shows, at the end of the label's line.
+ */
+export function DropHint({
+  hint,
+  isLabelled = false,
+  children,
+}: {
+  hint?: string;
+  isLabelled?: boolean;
+  children: ReactNode;
+}) {
   return (
     <div {...stylex.props(styles.field)}>
       {children}
-      {hint && <Badge variant="info" label={hint} xstyle={styles.hint} />}
+      {hint && (
+        <Badge variant="info" label={hint} xstyle={[styles.hint, isLabelled && styles.labelled]} />
+      )}
     </div>
   );
 }

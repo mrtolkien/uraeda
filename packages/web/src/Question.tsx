@@ -308,7 +308,7 @@ function CommentField({
   }, [onSettled, images.settled]);
   return (
     <>
-      <DropHint hint={images.hint}>
+      <DropHint hint={images.hint} isLabelled>
         <GrowingTextArea
           label="Comment"
           value={comment}

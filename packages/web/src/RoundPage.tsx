@@ -117,7 +117,7 @@ function NotesField({
   }, [onSettled, images.settled]);
   return (
     <VStack gap={2}>
-      <DropHint hint={images.hint}>
+      <DropHint hint={images.hint} isLabelled>
         <GrowingTextArea label="Notes" value={notes} onChange={onChange} {...images.fieldProps} />
       </DropHint>
       <AttachStatus status={images.status} />

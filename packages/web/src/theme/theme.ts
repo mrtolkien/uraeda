@@ -95,6 +95,14 @@ export const uraedaTheme = defineTheme({
     ],
   },
   components: {
+    // Astryx gap: the lightbox's Close is a ghost button, its icon the colour of text on dark, with
+    // no background of its own: over a light screenshot that fills the window, it vanished. The
+    // scrim Astryx's thumbnails put under their remove button keeps it seen over any image.
+    // Important, as the ghost button's own transparent background may be emitted outside any
+    // layer, where it wins over the theme's.
+    lightbox: {
+      base: { ":is(*) button": { backgroundColor: "var(--color-overlay) !important" } },
+    },
     // Astryx gap: a tool call's name and target are cut with an ellipsis at the row's edge, with no
     // prop to wrap them, and StyleX cannot reach them. The theme, which owns component overrides,
     // wraps them, so a run's log shows a long path or command whole on the phone (the UI checks

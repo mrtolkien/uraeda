@@ -83,7 +83,7 @@ export function CommentForm({
           </div>
         )}
         {images ? (
-          <DropHint hint={images.hint}>
+          <DropHint hint={images.hint} isLabelled>
             <GrowingTextArea
               label="Comment text"
               onChange={setText}
