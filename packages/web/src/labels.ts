@@ -22,7 +22,10 @@ export function stepLabel(name: string) {
   return STEPS[name] ?? name;
 }
 
-/** What a feature at a human gate asks: the action, and the page that does it. */
+/**
+ * What a feature at a human gate asks: the action, and the page that does it, by its path within
+ * the repository.
+ */
 export function waiting(feature: Pick<FeatureView, "folder" | "step" | "files">) {
   const file = feature.step.file;
   const summary = feature.files.find((f) => f.name === file);

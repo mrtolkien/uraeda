@@ -10,6 +10,7 @@ import {
   FileView,
   PrioritiesView,
   ProposalHintsView,
+  RepositoriesView,
   SessionListView,
   SessionSearchView,
   SessionView,
@@ -25,6 +26,7 @@ const PRIORITIES_ID = "priorities";
 const AGENT_ID = "agent";
 const SESSION_LIST_ID = "all";
 const PROPOSAL_HINTS_ID = "proposal";
+const REPOSITORIES_ID = "repositories";
 
 /** Reads a request again from the server when the page comes back to the foreground. */
 function useRefreshOnShow(request: Parameters<typeof useRequest>[0]) {
@@ -226,4 +228,15 @@ export function usePriority(key: string, id?: string) {
   };
   const found = find((entry) => entry.key === key) ?? (id ? find((e) => e.id === id) : undefined);
   return { priorities, found };
+}
+
+/**
+ * The list of repositories, most recently opened first, and why `repositories.json` could not be
+ * read: the same from every endpoint, kept up to date as the list changes.
+ */
+export function useRepositories() {
+  const request = { repositories: { id: REPOSITORIES_ID, view: RepositoriesView } };
+  const { repositories } = useRequest(request);
+  useRefreshOnShow(request);
+  return useLiveView(RepositoriesView, repositories);
 }

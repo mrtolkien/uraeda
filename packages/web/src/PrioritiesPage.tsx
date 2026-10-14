@@ -37,7 +37,7 @@ import { Page } from "./layout/Page.tsx";
 import { TopBarSlot } from "./layout/TopBarSlot.tsx";
 import { closeUndoToasts } from "./layout/useUndoToast.ts";
 import { QuickAdd } from "./QuickAdd.tsx";
-import { usePathname, useRestoreScroll } from "./routes.tsx";
+import { useLocalPath, useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { plain } from "./Spans.tsx";
 import { PrioritiesView } from "./views.ts";
 
@@ -161,6 +161,7 @@ function Line({
   isSelected: boolean;
   isReduced: boolean;
 }) {
+  const here = useRepoPath();
   const { ref, handleRef, isDragging } = useSortable({
     id: entry.key,
     index,
@@ -175,7 +176,7 @@ function Line({
   return (
     <ListItem
       ref={ref}
-      href={`/priorities/${entry.key}`}
+      href={here(`/priorities/${entry.key}`)}
       isSelected={isSelected}
       xstyle={[styles.line, isDragging && styles.lifted]}
       startContent={
@@ -291,7 +292,7 @@ export function PrioritiesPage() {
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   // The task view open beside the list, on wide screens.
-  const pathname = usePathname();
+  const pathname = useLocalPath();
   const isReduced = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [message, setMessage] = useState<string>();
   const [confirm, setConfirm] = useState(false);

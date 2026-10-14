@@ -7,6 +7,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import * as binding from "uraeda-binding";
 import { expect, test, vi } from "vite-plus/test";
 import {
+  atRepo,
   answered,
   atWidth,
   click,
@@ -109,7 +110,7 @@ function sidebarStatus(title: string) {
 
 /** Waits for the feature's session to open with the workflow's message in its composer. */
 async function opensWith(folder: string, text: string) {
-  await waitFor(() => expect(window.location.pathname).toBe(`/f/${folder}/session`));
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/f/${folder}/session`)));
   const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
   await waitFor(() => expect(box.textContent).toBe(text));
 }
@@ -126,7 +127,7 @@ test("the feature page shows the session's status and Open the session", async (
   expect(panel().getByRole("img", { name: "New reply" })).toBeTruthy();
   expect(panel().getByText(/Run: Plan/)).toBeTruthy();
   expect(panel().getByRole("link", { name: "Open the session" }).getAttribute("href")).toBe(
-    `/f/${CLI}/session`,
+    atRepo(`/f/${CLI}/session`),
   );
   expect(screen.queryByRole("list", { name: "Runs" })).toBeNull();
 });

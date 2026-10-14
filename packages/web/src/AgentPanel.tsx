@@ -11,6 +11,7 @@ import { refusal } from "./errors.ts";
 import { stepLabel } from "./labels.ts";
 import { statusStyles } from "./Question.tsx";
 import { SessionStatus } from "./SessionPage.tsx";
+import { useRepoPath } from "./routes.tsx";
 import { handOver, sessionPath } from "./sessions.ts";
 import { SessionView } from "./views.ts";
 
@@ -119,6 +120,7 @@ function Summary({ id, actions }: { id: string; actions: (endedBadly: boolean) =
  */
 export function AgentPanel({ feature }: { feature: Feature }) {
   const agent = useAgent();
+  const here = useRepoPath();
   const available = Boolean(agent?.available);
   const waitsOnAgent =
     feature.step.waitsOn === "agent" && !["none", "done"].includes(feature.step.name);
@@ -132,7 +134,7 @@ export function AgentPanel({ feature }: { feature: Feature }) {
       <Button
         variant={canStart ? "secondary" : "primary"}
         label="Open the session"
-        href={sessionPath(feature.folder)}
+        href={here(sessionPath(feature.folder))}
       />
       {canStart && (
         <Button

@@ -13,7 +13,7 @@ import { useFile } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { Overlay } from "./layout/Overlay.tsx";
 import { anchor, textOf } from "./ReviewPage.tsx";
-import { useRestoreScroll } from "./routes.tsx";
+import { useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { FileView } from "./views.ts";
 
 const styles = stylex.create({
@@ -59,8 +59,9 @@ export function MockupPage({ folder, name }: { folder: string; name: string }) {
   const fate = useFateClient();
   const spec = useFile(folder, "spec.md");
   const [open, setOpen] = useState(false);
+  const here = useRepoPath();
   useRestoreScroll(true);
-  const source = `/mockups/specs/${folder}/mockups/${name}`;
+  const source = here(`/mockups/specs/${folder}/mockups/${name}`);
   const reviewing = spec && !spec.missing && spec.status === "awaiting-human";
   const document = spec && (spec.committed ?? spec.current).document;
   // The first block of the spec, in its order, that links the mockup.

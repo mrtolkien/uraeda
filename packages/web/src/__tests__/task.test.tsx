@@ -3,7 +3,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { click, fixtureRepo, read, renderPage, serverFetch, type } from "./helpers.tsx";
+import { atRepo, click, fixtureRepo, read, renderPage, serverFetch, type } from "./helpers.tsx";
 
 /** Types a line's new text in its field, and presses a key. */
 async function edit(text: string, key: string) {
@@ -28,7 +28,9 @@ async function deleted() {
 test("a line without a draft opens its task view (US3 1)", async () => {
   await renderPage("/");
   await click(await screen.findByRole("link", { name: /Claude Code runner/ }));
-  expect(window.location.pathname).toBe("/priorities/claude-code-runner-triggered-manually");
+  expect(window.location.pathname).toBe(
+    atRepo("/priorities/claude-code-runner-triggered-manually"),
+  );
   expect(await screen.findByRole("radio", { name: "Next", checked: true })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Draft" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Delete" })).toBeTruthy();
@@ -49,7 +51,9 @@ test("editing the line in place moves the address (US3 3)", async () => {
   await click(await screen.findByRole("button", { name: /^Claude Code runner/ }));
   await edit("Claude Code runner", "Enter");
   await waitFor(() => expect(read(repo)).toContain("- Claude Code runner\n"));
-  await waitFor(() => expect(window.location.pathname).toBe("/priorities/claude-code-runner"));
+  await waitFor(() =>
+    expect(window.location.pathname).toBe(atRepo("/priorities/claude-code-runner")),
+  );
   expect(await screen.findByRole("button", { name: /^Claude Code runner$/ })).toBeTruthy();
 });
 
@@ -86,7 +90,7 @@ test("Next › walks the section, disabled on the last (US3 6)", async () => {
     true,
   );
   await click(screen.getByRole("button", { name: "Next ›" }));
-  await waitFor(() => expect(window.location.pathname).toBe("/priorities/git-listener"));
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/priorities/git-listener")));
   expect(await screen.findByRole("heading", { name: "What" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Next ›" }).hasAttribute("disabled")).toBe(true);
 });
@@ -96,7 +100,9 @@ test("a reload shows the same line (US3 7)", async () => {
   await renderPage("/priorities/claude-code-runner-triggered-manually", repo);
   expect(await screen.findByRole("button", { name: /^Claude Code runner/ })).toBeTruthy();
   await renderPage(window.location.pathname, repo, { reload: true });
-  expect(window.location.pathname).toBe("/priorities/claude-code-runner-triggered-manually");
+  expect(window.location.pathname).toBe(
+    atRepo("/priorities/claude-code-runner-triggered-manually"),
+  );
   expect(
     await screen.findByRole("button", { name: "Claude Code runner (triggered manually)" }),
   ).toBeTruthy();
@@ -156,7 +162,7 @@ test("Delete, then Undo, puts the line and its nested line back (US4 9)", async 
   await click(await screen.findByRole("button", { name: "Delete" }));
   const undo = await deleted();
   expect(read(repo)).not.toContain("with a cache");
-  expect(window.location.pathname).toBe("/priorities");
+  expect(window.location.pathname).toBe(atRepo("/priorities"));
   await click(undo);
   await waitFor(() => expect(read(repo)).toBe(before));
 });

@@ -1,13 +1,13 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { act, cleanup, configure, fireEvent, render, waitFor } from "@testing-library/react";
-import { createFateClient } from "react-fate/client";
 import { afterAll, afterEach, beforeAll, beforeEach } from "vite-plus/test";
 import * as binding from "uraeda-binding";
 import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
 import { createApp, Hosts } from "uraeda-server";
 import { fakeSessions } from "uraeda-server/testing";
 import { App } from "../App.tsx";
+import { fateClients } from "../clients.ts";
 import { forgetUndoToasts } from "../layout/useUndoToast.ts";
 
 export { fixture, fixtureRepo, git };
@@ -120,31 +120,52 @@ export async function fakeAgent({ installed = true } = {}): Promise<Fake> {
   return fake;
 }
 
+/** The name of the repository the last page rendered was on, in the list of its server. */
+let current = "";
+
+/** A path of the UI, `/priorities` for one, in the repository the last page rendered was on. */
+export function atRepo(path: string): string {
+  return `/r/${encodeURIComponent(current)}${path}`;
+}
+
 /**
- * Renders the UI at a path, on a repository, with its requests sent to the server in process.
- * Without `agent`, the agent is not installed, and the pages keep their single buttons; `true`
- * gives a new fake agent, which a test can also build first with `fakeAgent`.
+ * Renders the UI at a path of a repository, `/priorities` for one, prefixed with the repository's
+ * `/r/<name>`, with its requests sent to the server in process, whose list holds the repository.
+ * `raw` renders the path as given, like `/` or `/r/old-site/`; `dataDir` gives the server the list
+ * already in that data folder, the repository left out of it. Without `agent`, the agent is not
+ * installed, and the pages keep their single buttons; `true` gives a new fake agent, which a test
+ * can also build first with `fakeAgent`.
  */
 export async function renderPage(
   path = "/",
   repo = fixtureRepo(),
-  options: { agent?: boolean | Fake; fetch?: typeof globalThis.fetch; reload?: boolean } = {},
+  options: {
+    agent?: boolean | Fake;
+    fetch?: typeof globalThis.fetch;
+    reload?: boolean;
+    raw?: boolean;
+    dataDir?: string;
+  } = {},
 ) {
   const fake =
     typeof options.agent === "object"
       ? options.agent
       : await fakeAgent({ installed: options.agent === true });
-  const fetch = options.fetch ?? serverFetch(repo, fake.sessions);
+  const fetch =
+    options.fetch ??
+    serverFetch(options.dataDir === undefined ? repo : null, fake.sessions, options.dataDir);
+  current = (await names.get(fetch)) ?? basename(repo);
   if (options.reload) {
     // A reload: the page goes, and its history entry, with its state, stays.
     cleanup();
   } else {
-    window.history.replaceState(null, "", path);
+    window.history.replaceState(null, "", options.raw ? path : atRepo(path));
   }
-  const client = createFateClient({ url: `${origin}/fate`, fetch });
   // The page suspends while fate loads: an awaited act lets React render the data.
-  const rendered = await act(async () => render(<App client={client} />));
-  return { ...rendered, repo, agent: fake.adapter, sessions: fake.sessions };
+  const rendered = await act(async () =>
+    render(<App clientFor={fateClients({ origin, fetch })} />),
+  );
+  return { ...rendered, repo, name: current, agent: fake.adapter, sessions: fake.sessions };
 }
 
 /** The hosts of the tests' apps, whose watches are closed after each test. */
@@ -156,21 +177,31 @@ afterEach(async () => {
   }
 });
 
+/** The name of each server's repository, as its list holds it. */
+const names = new WeakMap<typeof globalThis.fetch, Promise<string | undefined>>();
+
 /**
- * The server's app in process, as a `fetch`, on sessions whose agent is not installed by default.
- * The pages use the global endpoint, on `repo`, with a list of repositories empty for now.
+ * The server's app in process, as a `fetch`, on sessions whose agent is not installed by default,
+ * with a list in a temporary data folder holding `repo`; or, given `dataDir`, the list already
+ * there, which `repo` is added to unless it is null.
  */
-export function serverFetch(repo: string, sessions?: Fake["sessions"]): typeof globalThis.fetch {
+export function serverFetch(
+  repo: string | null,
+  sessions?: Fake["sessions"],
+  dataDir = temporaryFolder("uraeda-data"),
+): typeof globalThis.fetch {
   if (!sessions) {
     sessions = fakeSessions({ installed: false }).sessions;
     managers.push(sessions);
   }
-  const dataDir = temporaryFolder("uraeda-data");
-  const hosts = Hosts.open({ binding, dataDir, sessions });
+  const added =
+    repo === null
+      ? Promise.resolve(undefined)
+      : binding.addRepository(dataDir, repo).then(({ repository }) => repository.name);
+  const hosts = added.then(() => Hosts.open({ binding, dataDir, sessions }));
   opened.push(hosts);
   const created = hosts.then((hosts) =>
     createApp({
-      repo,
       port,
       allowedHosts: [],
       allowOrigins: [],
@@ -180,7 +211,7 @@ export function serverFetch(repo: string, sessions?: Fake["sessions"]): typeof g
       dataDir,
     }),
   );
-  return async (input, init) => {
+  const fetch: typeof globalThis.fetch = async (input, init) => {
     const app = await created;
     const url = input instanceof Request ? input.url : input.toString();
     sent.push(typeof init?.body === "string" ? init.body : url);
@@ -196,6 +227,28 @@ export function serverFetch(repo: string, sessions?: Fake["sessions"]): typeof g
       headers: { "content-type": "application/json" },
     });
   };
+  names.set(fetch, added);
+  return fetch;
+}
+
+/**
+ * Writes a list of repositories in a new data folder, as by hand, each opened a minute before the
+ * one above it, and returns the folder.
+ */
+export function listOf(repositories: Array<[name: string, path: string]>): string {
+  const dataDir = temporaryFolder("uraeda-data");
+  writeFileSync(
+    join(dataDir, "repositories.json"),
+    JSON.stringify({
+      version: 1,
+      repositories: repositories.map(([name, path], index) => ({
+        name,
+        path,
+        openedAt: `2026-10-14T10:${String(59 - index).padStart(2, "0")}:00Z`,
+      })),
+    }),
+  );
+  return dataDir;
 }
 
 /**

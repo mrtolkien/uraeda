@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
 import { expect, test, vi } from "vite-plus/test";
 import {
+  atRepo,
   atWidth,
   click,
   type Fake,
@@ -218,7 +219,7 @@ test("an old run's address opens the session at that turn", async () => {
 
   await renderPage(`/f/${CLI}/runs/${turn}`, repo, { agent: fake });
 
-  await waitFor(() => expect(window.location.pathname).toBe(`/f/${CLI}/session`));
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/f/${CLI}/session`)));
   expect(window.location.hash).toBe(`#turn-${turn}`);
   expect(
     await within(await screen.findByRole("log", { name: "Conversation" })).findByText(

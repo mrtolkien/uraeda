@@ -2,7 +2,7 @@
 // detail.
 import { renderHook } from "@testing-library/react";
 import { expect, test, vi } from "vite-plus/test";
-import { navigate, parseRoute, useRestoreScroll } from "../routes.tsx";
+import { navigate, parseLocation, parseRoute, repoPath, useRestoreScroll } from "../routes.tsx";
 import { sessionPath } from "../sessions.ts";
 
 test.each([
@@ -13,6 +13,27 @@ test.each([
   ],
   ["/f/2026-10-12-cli-tuis/runs/7", { page: "run", folder: "2026-10-12-cli-tuis", id: "7" }],
 ])("parseRoute(%s)", (path, route) => expect(parseRoute(path)).toEqual(route));
+
+/** US6.3: the repository is in the URL, and a path without it is still a page's. */
+test.each([
+  ["/r/uraeda/", { repo: "uraeda", route: { page: "home" } }],
+  ["/r/uraeda", { repo: "uraeda", route: { page: "home" } }],
+  [
+    "/r/uraeda/f/2026-10-14-dark-mode",
+    { repo: "uraeda", route: { page: "feature", folder: "2026-10-14-dark-mode" } },
+  ],
+  ["/r/my%20app/priorities", { repo: "my app", route: { page: "priorities" } }],
+  [
+    "/f/2026-10-14-dark-mode",
+    { repo: null, route: { page: "feature", folder: "2026-10-14-dark-mode" } },
+  ],
+  ["/", { repo: null, route: { page: "home" } }],
+])("parseLocation(%s)", (path, expected) => expect(parseLocation(path)).toEqual(expected));
+
+test("a repository's path starts with its encoded name", () => {
+  expect(repoPath("uraeda", "/f/2026-10-14-dark-mode")).toBe("/r/uraeda/f/2026-10-14-dark-mode");
+  expect(repoPath("a#b", "/")).toBe("/r/a%23b/");
+});
 
 test("a feature's session address encodes its folder, as every link to it does", () => {
   expect(sessionPath("2026-10-12-a#b?c")).toBe("/f/2026-10-12-a%23b%3Fc/session");

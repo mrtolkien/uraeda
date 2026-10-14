@@ -1,7 +1,9 @@
 import {
   type ComponentProps,
+  createContext,
   type MouseEvent,
   type RefObject,
+  useContext,
   useDeferredValue,
   useEffect,
   useLayoutEffect,
@@ -22,10 +24,65 @@ export type Route =
   | { page: "run"; folder: string; id: string }
   | { page: "chat"; id: string }
   | { page: "new-chat" }
+  | { page: "first-run" }
   | { page: "missing"; path: string };
 
 const CHANGE = "uraeda:navigate";
 
+/** A repository's prefix, `/r/<name>`, and the page's path after it. */
+const PREFIX = /^\/r\/([^/]+)(\/.*)?$/;
+
+/**
+ * The repository a location names, and its page: a page path without `/r/<name>`, like links from
+ * before repositories had names, parses with `repo: null`.
+ */
+export function parseLocation(pathname: string): { repo: string | null; route: Route } {
+  const prefixed = PREFIX.exec(pathname);
+  if (!prefixed) {
+    return { repo: null, route: parseRoute(pathname) };
+  }
+  return { repo: decodeURIComponent(prefixed[1]), route: parseRoute(prefixed[2] ?? "/") };
+}
+
+/** A location's path within its repository: `/r/uraeda/priorities` is `/priorities`. */
+export function localPath(pathname: string): string {
+  const prefixed = PREFIX.exec(pathname);
+  return prefixed ? (prefixed[2] ?? "/") : pathname;
+}
+
+/** A page or a file of a repository, from its path within it: every link the pages build. */
+export function repoPath(repo: string, path: string): string {
+  return `/r/${encodeURIComponent(repo)}${path}`;
+}
+
+/** The repository of the page tree, set by `App`. */
+export const RepositoryContext = createContext<string | null>(null);
+
+/** The repository of the page drawn: its pages build every path with it. */
+export function useRepository(): string {
+  const repo = useContext(RepositoryContext);
+  if (repo === null) {
+    throw new Error("A repository's page is drawn outside its repository");
+  }
+  return repo;
+}
+
+/** Builds the paths of the current repository's pages and files, from their path within it. */
+export function useRepoPath(): (path: string) => string {
+  const repo = useRepository();
+  return (path) => repoPath(repo, path);
+}
+
+/**
+ * Opens a page of the repository the location is in, from its path within it: for a call made
+ * outside a component, after the human acted on the page.
+ */
+export function navigateHere(path: string, state?: { from?: string }) {
+  const { repo } = parseLocation(window.location.pathname);
+  navigate(repo === null ? path : repoPath(repo, path), state);
+}
+
+/** A page's path within its repository, as `parseRoute` reads it. */
 export function parseRoute(pathname: string): Route {
   const parts = pathname.split("/").filter(Boolean).map(decodeURIComponent);
   if (parts.length === 0) {
@@ -251,6 +308,11 @@ export function usePathname(): string {
   return useSyncExternalStore(subscribe, () => window.location.pathname);
 }
 
+/** The location's path within its repository: what a page compares its links' paths with. */
+export function useLocalPath(): string {
+  return localPath(usePathname());
+}
+
 /** The location's query, `?…`, or "": a page reads its options from it, like the session's message. */
 export function useSearch(): string {
   return useSyncExternalStore(subscribe, () => window.location.search);
@@ -260,9 +322,9 @@ export function useSearch(): string {
  * The route to draw: it follows the location a step behind, so a page that loads keeps the one
  * before it on screen until it is drawn, instead of "Loading…".
  */
-export function useRoute(): { route: Route; pathname: string } {
+export function useRoute(): { repo: string | null; route: Route; pathname: string } {
   const pathname = useDeferredValue(usePathname());
-  return { route: parseRoute(pathname), pathname };
+  return { ...parseLocation(pathname), pathname };
 }
 
 /** Whether a link opens a page of the UI: a path of this origin, in this tab. */
@@ -271,7 +333,7 @@ function inApp(href: string | undefined, target: string | undefined): href is st
     !!href &&
     href.startsWith("/") &&
     !href.startsWith("//") &&
-    !/^\/(raw|mockups)\//.test(href) &&
+    !/^\/(r\/[^/]+\/)?(raw|mockups)\//.test(href) &&
     (!target || target === "_self")
   );
 }
@@ -308,29 +370,33 @@ export function RouterAnchor({
           return;
         }
         event.preventDefault();
-        // The page a link was followed from, which a task view shows beside it on wide screens. A
-        // task view's link is followed from the list beside it, which it carries on.
+        // The page a link was followed from, within its repository, which a task view shows beside
+        // it on wide screens. A task view's link is followed from the list beside it, which it
+        // carries on.
         const here = window.location.pathname;
-        navigate(href, { from: parseRoute(here).page === "task" ? currentEntry().from : here });
+        navigate(href, {
+          from: parseLocation(here).route.page === "task" ? currentEntry().from : localPath(here),
+        });
       }}
     />
   );
 }
 
-/** The page of a file of the repository, from its path from the top level. */
-export function pathLink(path: string): { href: string; inApp: boolean } {
+/** The page of a file of the repository `repo`, from its path from the top level. */
+export function pathLink(path: string, repo: string): { href: string; inApp: boolean } {
   const [, hash = ""] = path.split("#");
   const file = path.split("#")[0];
+  const at = (local: string) => repoPath(repo, local);
   // A feature's folder is in `specs/`, a bug's in `specs/bugs/`: both open at `/f/<folder>`.
   const feature = /^specs\/(?:bugs\/)?(\d{4}-\d{2}-\d{2}-[^/]+)\/([^/]+\.md)$/.exec(file);
   if (feature) {
-    return { href: `/f/${feature[1]}/${feature[2]}${hash ? `#${hash}` : ""}`, inApp: true };
+    return { href: at(`/f/${feature[1]}/${feature[2]}${hash ? `#${hash}` : ""}`), inApp: true };
   }
   if (/^specs\/(drafts|backlog)\/.+\.md$/.test(file)) {
-    return { href: `/edit/${file}`, inApp: true };
+    return { href: at(`/edit/${file}`), inApp: true };
   }
   if (file.endsWith(".html")) {
-    return { href: `/mockups/${file}`, inApp: false };
+    return { href: at(`/mockups/${file}`), inApp: false };
   }
-  return { href: `/raw/${file}`, inApp: false };
+  return { href: at(`/raw/${file}`), inApp: false };
 }

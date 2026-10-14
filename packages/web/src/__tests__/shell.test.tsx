@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import {
+  atRepo,
   click,
   type Fake,
   fakeAgent,
@@ -18,7 +19,7 @@ import {
 test("Uraeda goes home (US6 4)", async () => {
   await renderPage("/priorities");
   await click((await screen.findAllByRole("link", { name: /Uraeda/ }))[0]!);
-  expect(window.location.pathname).toBe("/");
+  expect(window.location.pathname).toBe(atRepo("/"));
 });
 
 /**
@@ -247,12 +248,14 @@ test("US4.1: New chat opens an empty chat, and its first message lists it in Cha
 
   await click(await nav().findByRole("link", { name: "New chat" }));
 
-  expect(window.location.pathname).toBe("/chats/new");
+  expect(window.location.pathname).toBe(atRepo("/chats/new"));
   const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
   await type(box, "List the open draft files");
   await click(screen.getByRole("button", { name: "Send" }));
 
-  await waitFor(() => expect(window.location.pathname).toMatch(/^\/chats\/(?!new)/));
+  await waitFor(() =>
+    expect(window.location.pathname).toMatch(new RegExp(`^${atRepo("/chats/")}(?!new)`)),
+  );
   expect(fake.adapter.sent[0].text).toBe("List the open draft files");
   await refreshUntil(() => {
     const chats = within(nav().getByRole("group", { name: "Chats" }));

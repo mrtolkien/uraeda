@@ -5,7 +5,7 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
-import { agent, checkLayout, drawn, LIVE, show, startTurn } from "./helpers.tsx";
+import { atRepo, agent, checkLayout, drawn, LIVE, show, startTurn } from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
 
@@ -37,7 +37,7 @@ function lines(count: number, prefix: string) {
 async function openWorkingSession() {
   await show(`/f/${CLI}`, "Open the session");
   await userEvent.click(screen.getByRole("link", { name: "Open the session" }));
-  await expect.poll(() => window.location.pathname).toBe(`/f/${CLI}/session`);
+  await expect.poll(() => window.location.pathname).toBe(atRepo(`/f/${CLI}/session`));
   await startTurn("Plan the CLI.", lines(40, "Line"));
   const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
   await within(log).findByText("Line 40.", undefined, LIVE);
@@ -81,7 +81,7 @@ test("a working session: beside the feature page or a page, following its end (U
         }),
       );
     });
-    await waitFor(() => expect(window.location.pathname).toBe(`/f/${CLI}`));
+    await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/f/${CLI}`)));
     expect(screen.queryByRole("log", { name: "Conversation" })).toBeNull();
   }
 });
@@ -139,11 +139,11 @@ test("a working session, with a sub-agent and a steered message, in dark (SC-004
  */
 async function followAndComeBack(link: HTMLElement, path: string) {
   await userEvent.click(link);
-  await expect.poll(() => window.location.pathname).toBe(path);
+  await expect.poll(() => window.location.pathname).toBe(atRepo(path));
   await expect.poll(() => link.isConnected, LIVE).toBe(false);
   await drawn();
   await act(async () => window.history.back());
-  await expect.poll(() => window.location.pathname).toBe(`/f/${CLI}/session`);
+  await expect.poll(() => window.location.pathname).toBe(atRepo(`/f/${CLI}/session`));
   await screen.findByRole("log", { name: "Conversation" }, LIVE);
   await drawn();
 }

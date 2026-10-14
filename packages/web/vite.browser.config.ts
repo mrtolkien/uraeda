@@ -4,6 +4,7 @@
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Frame, Page } from "playwright";
+import { addRepository } from "uraeda-binding";
 import { fixtureRepo } from "uraeda-binding/test-utils";
 import { forgetRepo } from "uraeda-server/dev";
 import { FakeAdapter } from "uraeda-server/testing";
@@ -24,6 +25,8 @@ const shared = globalThis as {
   uraedaRepoTurn?: Promise<void>;
   uraedaRepoHolder?: { token: number; release: () => void };
   uraedaRepoTokens?: number;
+  /** TEMPORARY (task 9): the name of the test's repository in the test server's list. */
+  uraedaRepoName?: string;
 };
 
 type Context = { page: Page; frame: () => Promise<Frame> };
@@ -42,6 +45,12 @@ const commands = {
     const token = (shared.uraedaRepoTokens = (shared.uraedaRepoTokens ?? 0) + 1);
     shared.uraedaRepoHolder = { token, release };
     process.env.URAEDA_REPO = fixtureRepo();
+    // TEMPORARY (task 9): listed now, so the test knows its name, `/r/<name>/`.
+    const { repository } = await addRepository(
+      process.env.URAEDA_DATA_DIR!,
+      process.env.URAEDA_REPO,
+    );
+    shared.uraedaRepoName = repository.name;
     agent.sent = [];
     // A turn whose test gave up waiting for it is never released by that test: it ends once longer
     // than any test and its hooks, so one stuck test does not hold up every one after it.
@@ -61,6 +70,10 @@ const commands = {
     rmSync(repo, { recursive: true, force: true });
     shared.uraedaRepoHolder = undefined;
     holder.release();
+  },
+  /** TEMPORARY (task 9): the name of the test's repository, which its pages' paths start with. */
+  repoName() {
+    return shared.uraedaRepoName!;
   },
   /** A file of the repository, `PRIORITIES.md` by default. */
   readRepo(_context: unknown, path = "specs/PRIORITIES.md") {
@@ -123,6 +136,7 @@ const commands = {
 export type RepoCommands = {
   takeRepo: () => Promise<number>;
   releaseRepo: (token: number) => Promise<void>;
+  repoName: () => Promise<string>;
   readRepo: (path?: string) => Promise<string>;
   writeRepo: (text: string, path?: string) => Promise<void>;
   agentSent: () => Promise<Array<{ id: string; text: string; when: string }>>;

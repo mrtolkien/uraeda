@@ -18,7 +18,7 @@ import { useNavigation } from "./data.ts";
 import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
 import { useUndoErrors } from "./layout/useUndoToast.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
-import { currentEntry, navigate, usePathname } from "./routes.tsx";
+import { currentEntry, navigate, useLocalPath, useRepoPath } from "./routes.tsx";
 import { SearchField, SessionNav, useSessionQuery } from "./SessionNav.tsx";
 import { type ThemeMode, useThemeMode } from "./theme.tsx";
 
@@ -87,16 +87,17 @@ const styles = stylex.create({
  */
 function Heading({ repository, slot }: { repository: string; slot: ReactNode }) {
   const { isCollapsed } = useSideNavCollapse();
+  const home = useRepoPath()("/");
   if (isCollapsed) {
     return (
       <div {...stylex.props(styles.folded)}>
         <SideNavItem
           label="Uraeda"
           icon={<span aria-hidden="true">⌂</span>}
-          href="/"
+          href={home}
           onClick={(event: React.MouseEvent) => {
             event.preventDefault();
-            navigate("/");
+            navigate(home);
           }}
         />
         {slot}
@@ -105,7 +106,7 @@ function Heading({ repository, slot }: { repository: string; slot: ReactNode }) 
   }
   return (
     <div {...stylex.props(styles.heading)}>
-      <Link href="/" color="primary" xstyle={styles.home}>
+      <Link href={home} color="primary" xstyle={styles.home}>
         <span {...stylex.props(styles.name)}>Uraeda</span>
         <Text type="supporting" color="secondary" display="block">
           {repository}
@@ -146,7 +147,7 @@ function ThemeSwitch() {
  */
 function Nav({ slot }: { slot: ReactNode }) {
   const { workspace, sessionList } = useNavigation();
-  const path = usePathname();
+  const path = useLocalPath();
   const { text, setText, query } = useSessionQuery();
   // A task view opened from home shows beside home on wide screens: home stays the page selected.
   const pathname = path.startsWith("/priorities/") && currentEntry().from === "/" ? "/" : path;

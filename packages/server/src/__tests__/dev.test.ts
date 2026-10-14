@@ -55,17 +55,23 @@ test("the server in vp dev reads URAEDA_REPO", async () => {
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address() as { port: number };
 
-  const response = await fetch(`http://127.0.0.1:${port}/fate`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      version: 1,
-      operations: [
-        { id: "1", kind: "byId", type: "Workspace", ids: ["workspace"], select: ["root"] },
-        { id: "2", kind: "byId", type: "Agent", ids: ["agent"], select: ["available"] },
-      ],
-    }),
-  });
+  /** Native fate operations, sent to the endpoint at `base`. */
+  const fate = (base: string, operations: Array<Record<string, unknown>>) =>
+    fetch(`http://127.0.0.1:${port}${base}/fate`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ version: 1, operations }),
+    });
+  const list = (await (
+    await fate("", [
+      { id: "1", kind: "byId", type: "Repositories", ids: ["repositories"], select: ["rows.name"] },
+    ])
+  ).json()) as { results: Array<{ data: Array<{ rows: Array<{ name: string }> }> }> };
+  const [{ name }] = list.results[0].data[0].rows;
+  const response = await fate(`/r/${name}`, [
+    { id: "1", kind: "byId", type: "Workspace", ids: ["workspace"], select: ["root"] },
+    { id: "2", kind: "byId", type: "Agent", ids: ["agent"], select: ["available"] },
+  ]);
   const other = await fetch(`http://127.0.0.1:${port}/index.html`);
   server.close();
   await stopDevRuns();

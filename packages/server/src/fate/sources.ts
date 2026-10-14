@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { homePath, suggest } from "../folders.ts";
-import type { Context } from "./context.ts";
+import { type Context, inRepository, type RepoContext } from "./context.ts";
 import {
   agentRecord,
   featureRecord,
@@ -12,7 +12,7 @@ import {
   sessionSearch,
   working,
 } from "./sessions.ts";
-import { createSources, fileSource } from "./source.ts";
+import { createSources, fileSource, type FileSourceReaders } from "./source.ts";
 import {
   AGENT_ID,
   agentDataView,
@@ -56,7 +56,7 @@ async function found<T>(
   return (await Promise.all(ids.map(read))).flatMap((record) => record ?? []);
 }
 
-async function workspace(ctx: Context): Promise<WorkspaceRecord> {
+async function workspace(ctx: RepoContext): Promise<WorkspaceRecord> {
   return {
     id: WORKSPACE_ID,
     ...(await ctx.binding.readWorkspace(ctx.repo)),
@@ -121,79 +121,125 @@ function isMissing(error: unknown) {
   return error instanceof Error && /( has no |\bno feature )/.test(error.message);
 }
 
+/**
+ * A repository's readers, refused on the global endpoint, which has none: see `inRepository`.
+ */
+function repository<Item extends Record<string, unknown>>(
+  readers: FileSourceReaders<RepoContext, Item>,
+): FileSourceReaders<Context, Item> {
+  const { byIds, list } = readers;
+  return {
+    byIds: (ctx, ids) => byIds(inRepository(ctx), ids),
+    ...(list ? { list: (ctx: Context) => list(inRepository(ctx)) } : {}),
+  };
+}
+
 export const sources = createSources<Context>([
-  fileSource(workspaceDataView, {
-    byIds: async (ctx, ids) => (ids.includes(WORKSPACE_ID) ? [await workspace(ctx)] : []),
-    list: async (ctx) => [await workspace(ctx)],
-  }),
-  fileSource(featureDataView, {
-    byIds: (ctx, ids) =>
-      each(ids, async (id) => {
-        try {
-          return await featureRecord(ctx, await ctx.binding.readFeature(ctx.repo, id));
-        } catch (error) {
-          // A folder that is no feature's is answered, so the page says so instead of waiting.
-          if (isMissing(error)) {
-            return missingFeature(id);
+  fileSource(
+    workspaceDataView,
+    repository({
+      byIds: async (ctx, ids) => (ids.includes(WORKSPACE_ID) ? [await workspace(ctx)] : []),
+      list: async (ctx) => [await workspace(ctx)],
+    }),
+  ),
+  fileSource(
+    featureDataView,
+    repository({
+      byIds: (ctx, ids) =>
+        each(ids, async (id) => {
+          try {
+            return await featureRecord(ctx, await ctx.binding.readFeature(ctx.repo, id));
+          } catch (error) {
+            // A folder that is no feature's is answered, so the page says so instead of waiting.
+            if (isMissing(error)) {
+              return missingFeature(id);
+            }
+            throw error;
           }
-          throw error;
-        }
-      }),
-    list: async (ctx) =>
-      Promise.all(
-        (await ctx.binding.readWorkspace(ctx.repo)).features.map((feature) =>
-          featureRecord(ctx, feature),
+        }),
+      list: async (ctx) =>
+        Promise.all(
+          (await ctx.binding.readWorkspace(ctx.repo)).features.map((feature) =>
+            featureRecord(ctx, feature),
+          ),
         ),
-      ),
-  }),
-  fileSource(fileDataView, {
-    byIds: ({ binding, repo }, ids) =>
-      each(ids, async (id): Promise<FileRecord> => {
-        const [folder, name] = id.split("/");
-        try {
-          return sentFile(await binding.readFile(repo, folder, name));
-        } catch (error) {
-          // A file its feature has no longer, or of a folder that is no feature's, is answered, so
-          // the page says so instead of waiting.
-          if (isMissing(error)) {
-            return sentFile(missingFile(id, folder, name));
+    }),
+  ),
+  fileSource(
+    fileDataView,
+    repository({
+      byIds: ({ binding, repo }, ids) =>
+        each(ids, async (id): Promise<FileRecord> => {
+          const [folder, name] = id.split("/");
+          try {
+            return sentFile(await binding.readFile(repo, folder, name));
+          } catch (error) {
+            // A file its feature has no longer, or of a folder that is no feature's, is answered, so
+            // the page says so instead of waiting.
+            if (isMissing(error)) {
+              return sentFile(missingFile(id, folder, name));
+            }
+            throw error;
           }
-          throw error;
-        }
-      }),
-  }),
-  fileSource(prioritiesDataView, {
-    byIds: async ({ binding, repo }, ids) =>
-      ids.includes(PRIORITIES_ID)
-        ? [{ id: PRIORITIES_ID, ...(await binding.readPriorities(repo)) }]
-        : [],
-  }),
-  fileSource(draftDataView, {
-    byIds: ({ binding, repo }, ids) =>
-      each(ids, async (id) => ({ id, ...(await binding.readText(repo, id)) })),
-  }),
+        }),
+    }),
+  ),
+  fileSource(
+    prioritiesDataView,
+    repository({
+      byIds: async ({ binding, repo }, ids) =>
+        ids.includes(PRIORITIES_ID)
+          ? [{ id: PRIORITIES_ID, ...(await binding.readPriorities(repo)) }]
+          : [],
+    }),
+  ),
+  fileSource(
+    draftDataView,
+    repository({
+      byIds: ({ binding, repo }, ids) =>
+        each(ids, async (id) => ({ id, ...(await binding.readText(repo, id)) })),
+    }),
+  ),
   fileSource(agentDataView, {
     byIds: async (ctx, ids) => (ids.includes(AGENT_ID) ? [agentRecord(ctx)] : []),
     list: async (ctx) => [agentRecord(ctx)],
   }),
-  fileSource(sessionDataView, {
-    byIds: async (ctx, ids) => found(ids, (id) => readSession(ctx, id)),
-  }),
-  fileSource(turnDataView, {
-    byIds: async (ctx, ids) => found(ids, (id) => readTurn(ctx, id)),
-  }),
-  fileSource(turnLogDataView, {
-    byIds: async (ctx, ids) => found(ids, (id) => readTurnLog(ctx, id)),
-  }),
-  fileSource(sessionListDataView, {
-    byIds: async (ctx, ids) => (ids.includes(SESSION_LIST_ID) ? [await sessionList(ctx)] : []),
-  }),
-  fileSource(sessionSearchDataView, {
-    byIds: async (ctx, ids) => Promise.all(ids.map((query) => sessionSearch(ctx, query))),
-  }),
-  fileSource(workflowMessageDataView, {
-    byIds: async (ctx, ids) => found(ids, (id) => readWorkflowMessage(ctx, id)),
-  }),
+  fileSource(
+    sessionDataView,
+    repository({
+      byIds: async (ctx, ids) => found(ids, (id) => readSession(ctx, id)),
+    }),
+  ),
+  fileSource(
+    turnDataView,
+    repository({
+      byIds: async (ctx, ids) => found(ids, (id) => readTurn(ctx, id)),
+    }),
+  ),
+  fileSource(
+    turnLogDataView,
+    repository({
+      byIds: async (ctx, ids) => found(ids, (id) => readTurnLog(ctx, id)),
+    }),
+  ),
+  fileSource(
+    sessionListDataView,
+    repository({
+      byIds: async (ctx, ids) => (ids.includes(SESSION_LIST_ID) ? [await sessionList(ctx)] : []),
+    }),
+  ),
+  fileSource(
+    sessionSearchDataView,
+    repository({
+      byIds: async (ctx, ids) => Promise.all(ids.map((query) => sessionSearch(ctx, query))),
+    }),
+  ),
+  fileSource(
+    workflowMessageDataView,
+    repository({
+      byIds: async (ctx, ids) => found(ids, (id) => readWorkflowMessage(ctx, id)),
+    }),
+  ),
   fileSource(repositoriesDataView, {
     byIds: async (ctx, ids) => (ids.includes(REPOSITORIES_ID) ? [repositoriesRecord(ctx)] : []),
   }),

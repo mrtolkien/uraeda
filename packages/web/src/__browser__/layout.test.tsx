@@ -10,6 +10,7 @@ import { act, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
 import {
+  atRepo,
   agent,
   checkAccessibility,
   checkAlignment,
@@ -133,14 +134,14 @@ test("a task view keeps its address as the window crosses 768 px", async () => {
       .poll(() => screen.queryByRole("link", { name: /Git listener process/ }))
       .toBeNull();
     expect(screen.getByRole("radio", { name: "Next", checked: true })).toBeTruthy();
-    expect(window.location.pathname).toBe(TASK);
+    expect(window.location.pathname).toBe(atRepo(TASK));
 
     await page.viewport(1440, 900);
     await expect.poll(() => window.innerWidth).toBe(1440);
     // A pane again.
     expect(await screen.findByRole("link", { name: /Git listener process/ })).toBeTruthy();
     expect(screen.getByRole("radio", { name: "Next", checked: true })).toBeTruthy();
-    expect(window.location.pathname).toBe(TASK);
+    expect(window.location.pathname).toBe(atRepo(TASK));
   } finally {
     await page.viewport(1440, 900);
   }
@@ -161,7 +162,7 @@ test("the folded navigation keeps ＋ and a link home (US6 4, 5)", async () => {
 
     expect(within(nav()).getByRole("button", { name: "Add a priority" })).toBeTruthy();
     await userEvent.click(within(nav()).getByRole("link", { name: "Uraeda" }));
-    await expect.poll(() => window.location.pathname).toBe("/");
+    await expect.poll(() => window.location.pathname).toBe(atRepo("/"));
 
     await userEvent.click(within(nav()).getByRole("button", { name: "Expand sidebar" }));
     // Unfolded: the heading again, "Uraeda" with the repository's name, and ＋ beside it.
@@ -280,7 +281,9 @@ async function blockedChat() {
       interrupted: false,
     },
   ]);
-  await expect.poll(() => window.location.pathname, LIVE).toMatch(/^\/chats\/(?!new)/);
+  await expect
+    .poll(() => window.location.pathname, LIVE)
+    .toMatch(new RegExp(`^${atRepo("/chats/")}(?!new)`));
   await screen.findByRole("button", { name: "Allow and retry" }, LIVE);
   await drawn();
 }

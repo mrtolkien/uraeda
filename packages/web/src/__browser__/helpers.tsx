@@ -6,12 +6,12 @@ import "@astryxdesign/core/astryx.css";
 import "../theme/built/uraeda.css";
 import axe from "axe-core";
 import { createRoot, type Root } from "react-dom/client";
-import { createFateClient } from "react-fate/client";
 import { configure, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
 import { App } from "../App.tsx";
+import { fateClients } from "../clients.ts";
 
 // CI's WebKit draws without a GPU: what it shows takes longer to appear than on a desktop.
 configure({ asyncUtilTimeout: 5_000 });
@@ -23,11 +23,24 @@ let root: Root | undefined;
 // Every test has the repository to itself, a fresh copy of the fixture: the phone's and the
 // desktop's tests run at the same time, and one that changes it would change what another shows.
 let turn: number | undefined;
+/** The name of the test's repository: its pages are under `/r/<name>/`. */
+let name = "";
+
+/** The name of the test's repository in the test server's list. */
+export function repository(): string {
+  return name;
+}
+
+/** A path of the UI, `/priorities` for one, in the test's repository. */
+export function atRepo(path: string): string {
+  return `/r/${encodeURIComponent(name)}${path}`;
+}
 
 beforeEach(async () => {
   // What a page remembers, like the question a round was left at, is another test's.
   window.localStorage.clear();
   turn = await commands.takeRepo();
+  name = await commands.repoName();
 });
 
 afterEach(async () => {
@@ -39,11 +52,14 @@ afterEach(async () => {
   }
 });
 
-/** Renders the UI at a path, against the test server's own `/fate`, and waits for a text. */
+/**
+ * Renders the UI at a path of the test's repository, `/priorities` for one, against the test
+ * server's own fate endpoints, and waits for a text.
+ */
 export async function show(path: string, text: string) {
   // A history entry of its own: the test files share the frame's history, and Back must not reach an
   // entry another test left.
-  window.history.pushState(null, "", path);
+  window.history.pushState(null, "", atRepo(path));
   // A page shown before in the test leaves, as the browser's own would.
   root?.unmount();
   document.body.innerHTML = "";
@@ -64,7 +80,7 @@ async function mount(text: string) {
   const container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
-  root.render(<App client={createFateClient({ url: "/fate" })} />);
+  root.render(<App clientFor={fateClients()} />);
   await expect
     .poll(() => document.body.textContent?.includes(text), { timeout: 15_000 })
     .toBe(true);
