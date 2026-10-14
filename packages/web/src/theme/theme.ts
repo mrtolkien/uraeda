@@ -154,6 +154,8 @@ export const uraedaTheme = defineTheme({
     "--size-composer-input": "88px",
     // The round's index, a column beside its questions on wide screens.
     "--size-round-index": "240px",
+    // The session's column of progress and changes, beside its transcript on wide screens.
+    "--size-session-aside": "320px",
     // The repository menu's popover on wide screens, and the add form's field in the first run.
     "--size-form": "560px",
     "--size-menu": "360px",

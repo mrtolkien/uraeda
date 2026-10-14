@@ -24,11 +24,12 @@ import { Composer } from "./Composer.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { useAgent, useFeature, useSession, useWorkflowMessage } from "./data.ts";
 import { EditableLine } from "./EditableLine.tsx";
-import { refusal } from "./errors.ts";
+import { type AsideShown, AsideToggle, useAsideShown, WithAside } from "./SessionAside.tsx";
 import { Page } from "./layout/Page.tsx";
 import { statusStyles } from "./Question.tsx";
 import { navigate, redirect, useRepoPath, useRestoreScroll, useSearch } from "./routes.tsx";
 import { sessionPath } from "./sessions.ts";
+import { type ChatControls, useSessionControls } from "./useSessionControls.ts";
 import { StatusMark } from "./StatusMark.tsx";
 import { Transcript, useFollowEnd, useOpenAtEnd } from "./Transcript.tsx";
 import { useOpenKeys } from "./useOpenKeys.ts";
@@ -54,25 +55,18 @@ export function SessionStatus({ label, status }: { label: string; status: Status
   );
 }
 
-/** A chat's title, renamed in place, and Archive, which hides it under "Archived" in the sidebar. */
-type ChatControls = {
-  archived: boolean;
-  /** The title's key in the unsaved store. */
-  field: string;
-  onArchive: () => Promise<void>;
-  onRename: (title: string) => Promise<string | undefined>;
-};
-
 /**
  * A session's header: its title, then its status, agent, and place on one line. A chat's
- * title is renamed in place, and the chat archived or brought back.
+ * title is renamed in place, and the chat archived or brought back. A feature's folds its column.
  */
 function Header({
+  aside,
   chat,
   place,
   status,
   title,
 }: {
+  aside?: AsideShown | undefined;
   chat?: ChatControls;
   place?: string;
   status?: { label: string; status: Status };
@@ -102,6 +96,7 @@ function Header({
             variant="secondary"
           />
         )}
+        {aside && <AsideToggle aside={aside} />}
       </HStack>
     </VStack>
   );
@@ -157,52 +152,17 @@ type Handing = {
   workflow?: { file?: string; trigger: Trigger };
 };
 
-/**
- * What the human does on a session besides writing to it: allow a tool, and, for a chat, rename
- * and archive it. The last refusal shows under the transcript.
- */
-function useSessionControls(id: string, session: ReturnType<typeof useSession>) {
-  const fate = useFateClient();
-  const [error, setError] = useState<string>();
-  const chat: ChatControls | undefined =
-    session && session.folder === null
-      ? {
-          archived: session.archived,
-          field: `session#${id}:title`,
-          onArchive: async () => {
-            setError(undefined);
-            const result = await fate.mutations.session.archive({
-              input: { archived: !session.archived, session: id },
-              view: SessionView,
-            });
-            if (result.error) {
-              setError(refusal(result.error).message);
-            }
-          },
-          onRename: async (title) => {
-            const result = await fate.mutations.session.rename({
-              input: { session: id, title },
-              view: SessionView,
-            });
-            return result.error ? refusal(result.error).message : undefined;
-          },
-        }
-      : undefined;
-  const allow = async (turn: string, seq: number) => {
-    setError(undefined);
-    const result = await fate.mutations.session.allow({
-      input: { seq, session: id, turn },
-      view: SessionView,
-    });
-    if (result.error) {
-      setError(refusal(result.error).message);
-    }
-  };
-  return { allow, chat, error };
-}
-
 /** A session's header, transcript, and errors, or why there is no session `id`. */
-function SessionLog({ draft, id }: { draft: Draft; id: string }) {
+function SessionLog({
+  aside,
+  draft,
+  id,
+}: {
+  /** A feature's column, shown or not. */
+  aside?: AsideShown | undefined;
+  draft: Draft;
+  id: string;
+}) {
   const fate = useFateClient();
   const here = useRepoPath();
   const session = useSession(id);
@@ -237,6 +197,7 @@ function SessionLog({ draft, id }: { draft: Draft; id: string }) {
   return (
     <VStack gap={3}>
       <Header
+        aside={aside}
         place={session.place}
         status={{ label: session.statusLabel, status: session.status }}
         title={session.title}
@@ -276,6 +237,7 @@ function useSessionRecord(id: string | undefined) {
  * session under the same composer, which keeps the field typed in, its focus, and its text.
  */
 function SessionPane({
+  aside,
   blocked,
   crumbs,
   draft,
@@ -285,6 +247,8 @@ function SessionPane({
   onSent,
   title,
 }: {
+  /** A feature's column, shown or not. */
+  aside?: AsideShown;
   /** Why nothing can be sent to it, which disables the composer. */
   blocked?: string;
   crumbs?: string;
@@ -308,33 +272,35 @@ function SessionPane({
   }
   return (
     <Page>
-      {crumbs !== undefined && <Crumbs current="Session" folder={crumbs} />}
-      {id === undefined ? (
-        <VStack gap={3}>
-          <Header title={title ?? ""} />
-          <Transcript session={{ id: "", turns: [] }} />
-        </VStack>
-      ) : (
-        // Read once the first message created the session: its title stays, and the composer, as
-        // it is read. The transcript waits for it: a page shows one log.
-        <Suspense fallback={title === undefined ? null : <Header title={title} />}>
-          <SessionLog draft={draft} id={id} />
-        </Suspense>
-      )}
-      <div {...stylex.props(styles.composer)}>
-        <Composer
-          {...(folder === undefined ? {} : { folder })}
-          {...composerDraft(draft)}
-          {...(id === undefined ? {} : { session: id })}
-          working={session?.status === "working"}
-          {...handing}
-          {...(blocked === undefined ? {} : { blocked })}
-          onSent={(created) => {
-            onSent?.(created);
-            handing.onSent?.(created);
-          }}
-        />
-      </div>
+      <WithAside aside={aside} folder={crumbs} {...(id === undefined ? {} : { session: id })}>
+        {crumbs !== undefined && <Crumbs current="Session" folder={crumbs} />}
+        {id === undefined ? (
+          <VStack gap={3}>
+            <Header aside={aside} title={title ?? ""} />
+            <Transcript session={{ id: "", turns: [] }} />
+          </VStack>
+        ) : (
+          // Read once the first message created the session: its title stays, and the composer, as
+          // it is read. The transcript waits for it: a page shows one log.
+          <Suspense fallback={title === undefined ? null : <Header aside={aside} title={title} />}>
+            <SessionLog aside={aside} draft={draft} id={id} />
+          </Suspense>
+        )}
+        <div {...stylex.props(styles.composer)}>
+          <Composer
+            {...(folder === undefined ? {} : { folder })}
+            {...composerDraft(draft)}
+            {...(id === undefined ? {} : { session: id })}
+            working={session?.status === "working"}
+            {...handing}
+            {...(blocked === undefined ? {} : { blocked })}
+            onSent={(created) => {
+              onSent?.(created);
+              handing.onSent?.(created);
+            }}
+          />
+        </div>
+      </WithAside>
     </Page>
   );
 }
@@ -382,6 +348,7 @@ function WorkflowMessage({
 function FeatureSession({ folder }: { folder: string }) {
   const feature = useFeature(folder);
   const here = useRepoPath();
+  const aside = useAsideShown();
   // A session created here shows before the feature's live update names it.
   const [created, setCreated] = useState<string>();
   const draft = useDraft();
@@ -449,6 +416,7 @@ function FeatureSession({ folder }: { folder: string }) {
         </Suspense>
       )}
       <SessionPane
+        aside={aside}
         crumbs={folder}
         draft={draft}
         folder={folder}

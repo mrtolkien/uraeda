@@ -14,6 +14,9 @@ import { forgetUndoToasts } from "../layout/useUndoToast.ts";
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
 
+/** The binding the server runs on: the core's, or a fake spreading it. */
+export type Binding = typeof binding;
+
 export { fixture, fixtureRepo, git };
 
 // Saves wait 400 ms for typing to stop, then go through git: slower machines, like CI's, need
@@ -141,13 +144,15 @@ export function atRepo(path: string): string {
  * `raw` renders the path as given, like `/` or `/r/old-site/`; `dataDir` gives the server the list
  * already in that data folder, the repository left out of it. Without `agent`, the agent is not
  * installed, and the pages keep their single buttons; `true` gives a new fake agent, which a test
- * can also build first with `fakeAgent`.
+ * can also build first with `fakeAgent`. `binding` gives the server a binding of its own, as one
+ * whose call fails.
  */
 export async function renderPage(
   path = "/",
   repo = fixtureRepo(),
   options: {
     agent?: boolean | Fake;
+    binding?: Binding;
     dataDir?: string;
     fetch?: typeof globalThis.fetch;
     raw?: boolean;
@@ -160,7 +165,12 @@ export async function renderPage(
       : await fakeAgent({ installed: options.agent === true });
   const fetch =
     options.fetch ??
-    serverFetch(options.dataDir === undefined ? repo : null, fake.sessions, options.dataDir);
+    serverFetch(
+      options.dataDir === undefined ? repo : null,
+      fake.sessions,
+      options.dataDir,
+      options.binding,
+    );
   current = (await names.get(fetch)) ?? basename(repo);
   if (options.reload) {
     // A reload: the page goes, and its history entry, with its state, stays.
@@ -203,12 +213,13 @@ async function settleRequests() {
 /**
  * The server's app in process, as a `fetch`, on sessions whose agent is not installed by default,
  * with a list in a temporary data folder holding `repo`; or, given `dataDir`, the list already
- * there, which `repo` is added to unless it is null.
+ * there, which `repo` is added to unless it is null; on the core's binding, or `server`'s.
  */
 export function serverFetch(
   repo: string | null,
   sessions?: Fake["sessions"],
   dataDir = temporaryFolder("uraeda-data"),
+  server: Binding = binding,
 ): typeof globalThis.fetch {
   if (!sessions) {
     sessions = fakeSessions({ installed: false }).sessions;
@@ -218,13 +229,13 @@ export function serverFetch(
     repo === null
       ? Promise.resolve(undefined)
       : binding.addRepository(dataDir, repo).then(({ repository }) => repository.name);
-  const hosts = added.then(() => Hosts.open({ binding, dataDir, sessions }));
+  const hosts = added.then(() => Hosts.open({ binding: server, dataDir, sessions }));
   opened.push(hosts);
   const created = hosts.then((hosts) =>
     createApp({
       allowedHosts: [],
       allowOrigins: [],
-      binding,
+      binding: server,
       dataDir,
       hosts,
       port,

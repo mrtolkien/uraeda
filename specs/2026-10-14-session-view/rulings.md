@@ -202,3 +202,28 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   entry, but a rule about a layout the session no longer has.
 - **If wrong**: the test's names and the one condition in `useOpenAtEnd`.
 - **Where**: Task 6.
+
+## R16: The column's tests follow the core's steps, and the layout wraps the whole session
+
+- **Decision**: the column's heading is the core's step, so "no plan yet" on `CLI` as fixtured reads
+  "Plan", not "Spec", and a plan whose boxes are all checked reads "Pull request", not "Final
+  review", in the tests. The `Layout` holds the crumbs, the header, the transcript, and the composer
+  as its content, `height="auto"`, and its `LayoutPanel` is made sticky through `xstyle`. The folded
+  state is read once in `FeatureSession`, through `useAsideShown`, and passed to `Session` and
+  `NoSession`; `WithAside` and `AsideToggle`, in `SessionAside.tsx`, draw the column and the button.
+  The bar of "Task 7 of 11" shows its label above it, as the column's line. Its sections' headings
+  are level 2 for screen readers, sized as level 4. `renderPage` takes the server's `binding`, for
+  the failing diff.
+- **Rationale**: `CLI`'s spec is approved, so its step is the plan's; with every box checked, the
+  core moves past the final review when it cannot know the pull request, which the tests' machine
+  cannot ask GitHub for (`PullRequest::Unknown`, as Task 4's expected failure shows). The mockup
+  puts the column beside the whole page, the header included, and the window, not the layout,
+  scrolls, so the panel follows `RoundNav`'s sticky column. One state for both views keeps the
+  choice when a first message turns `NoSession` into `Session`, even where storage is refused.
+  Astryx's `ProgressBar` names itself from its label: shown, it is the line the spec asks for,
+  without saying it twice. `renderPage` had no server options.
+- **Alternatives considered**: a fake pull request state in the web tests, which no helper offers;
+  the transcript and composer alone in the `Layout`, with the header across it, unlike the mockup; a
+  `useAsideShown` in each view, which forgets a refused choice on the first message.
+- **If wrong**: the test's two headings; `WithAside`'s slots in `SessionAside.tsx`.
+- **Where**: Task 7.
