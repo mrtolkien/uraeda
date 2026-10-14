@@ -142,7 +142,10 @@ validated when the plugin starts. The defaults: >lua
     Only PNG, JPEG, GIF, and WebP images are taken, re-encoded as WebP by
     `ura`. A single-file draft, `specs/drafts/<name>.md`, becomes the folder
     `specs/drafts/<name>/proposal.md` first: its buffer reopens at the new
-    path, without its undo history unless 'undofile' is set.
+    path, without its undo history unless 'undofile' is set. Drafts are the
+    default branch's: in another branch's checkout, a draft holding the
+    default branch's text reopens from the default branch's checkout, which
+    takes the image, and an edited copy is refused.
 
     Says "uraeda: the clipboard holds no image" when it holds text, and
     names the tools to install when none is found, see
