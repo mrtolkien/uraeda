@@ -1,5 +1,8 @@
 //! Texts of workflow files for tests, shared by the core's and the CLI's tests.
-#![allow(dead_code)]
+#![allow(
+    dead_code,
+    reason = "each test binary uses only part of the shared helpers"
+)]
 
 pub fn proposal() -> String {
     "# Feature\n\n## What\n\nA thing.\n\n## Why\n\nA reason.\n".to_string()

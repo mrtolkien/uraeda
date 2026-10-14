@@ -61,6 +61,10 @@ pub struct Cleaned {
 }
 
 /// Removes a merged feature's worktree and local branch, or, on a dry run, says what it would do.
+#[expect(
+    clippy::too_many_lines,
+    reason = "over the limit before the code quality decision: split the worktree and the branch steps"
+)]
 pub fn clean(
     git: &Git,
     workspace: &Workspace,

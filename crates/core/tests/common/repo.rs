@@ -13,7 +13,10 @@ pub struct TestRepo {
     path: PathBuf,
 }
 
-#[allow(dead_code)]
+#[allow(
+    dead_code,
+    reason = "each test binary uses only part of the shared helpers"
+)]
 impl TestRepo {
     pub fn new() -> TestRepo {
         TestRepo::named("repo")

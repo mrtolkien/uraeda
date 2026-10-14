@@ -47,7 +47,10 @@ fn close(stack: &mut Vec<(u8, DocumentSymbol)>, roots: &mut Vec<DocumentSymbol>,
     }
 }
 
-#[allow(deprecated)]
+#[allow(
+    deprecated,
+    reason = "`DocumentSymbol` still requires its deprecated field"
+)]
 fn symbol(text: &str, entry: &OutlineEntry) -> DocumentSymbol {
     let line = to_u32(entry.line.saturating_sub(1));
     let end = to_u32(entry.end_line.saturating_sub(1));

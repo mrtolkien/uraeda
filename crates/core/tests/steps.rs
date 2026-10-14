@@ -26,6 +26,10 @@ fn waiting() -> String {
 }
 
 #[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "over the limit before the code quality decision: split the table by step"
+)]
 fn feature_table() {
     let rows: Vec<(&str, Files, StepName, WaitsOn)> = vec![
         ("no proposal", vec![], StepName::HumanGate, WaitsOn::Human),
