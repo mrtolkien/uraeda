@@ -1,26 +1,16 @@
 import { createServer } from "node:http";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { afterEach, expect, test } from "vite-plus/test";
+import { afterEach, expect, test, vi } from "vite-plus/test";
 import { devHandler, devServer, stopDevRuns } from "../dev.ts";
 import { loadEnv } from "../env.ts";
 import { FakeAdapter } from "../runner/fake.ts";
 import { fixture, fixtureRepo } from "./helpers.ts";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 
-// The browser project's setup sets both for the whole test run.
-const saved = {
-  URAEDA_DATA_DIR: process.env.URAEDA_DATA_DIR,
-  URAEDA_REPO: process.env.URAEDA_REPO,
-};
+// The tests set the server's variables for its handler: the next tests get the process's back.
 afterEach(() => {
-  for (const [name, value] of Object.entries(saved)) {
-    if (value === undefined) {
-      delete process.env[name];
-    } else {
-      process.env[name] = value;
-    }
-  }
+  vi.unstubAllEnvs();
 });
 
 /** US6.3 */
@@ -48,8 +38,8 @@ test("the server in vp dev reads URAEDA_REPO", async () => {
   const root = temporaryFolder("uraeda-dev");
   const data = temporaryFolder("uraeda-data");
   writeFileSync(join(root, ".env"), `URAEDA_REPO=${repo}\nURAEDA_DATA_DIR=${data}\n`);
-  delete process.env.URAEDA_REPO;
-  delete process.env.URAEDA_DATA_DIR;
+  vi.stubEnv("URAEDA_REPO", undefined);
+  vi.stubEnv("URAEDA_DATA_DIR", undefined);
   const handler = devHandler(root, { adapter: new FakeAdapter() });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -120,8 +110,8 @@ test("the dev server serves a repository's image routes, its uploads in the data
   const repo = fixtureRepo();
   const root = temporaryFolder("uraeda-dev");
   const data = temporaryFolder("uraeda-data");
-  process.env.URAEDA_REPO = repo;
-  process.env.URAEDA_DATA_DIR = data;
+  vi.stubEnv("URAEDA_REPO", repo);
+  vi.stubEnv("URAEDA_DATA_DIR", data);
   const handler = devHandler(root, { adapter: new FakeAdapter() });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));

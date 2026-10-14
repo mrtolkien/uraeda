@@ -1,10 +1,10 @@
 // SC-003: every link a repository's pages build starts with `/r/<name>/`.
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { pathLink } from "../routes.tsx";
-import { addMockup, answered, atRepo, fixtureRepo, git, renderPage } from "./helpers.tsx";
+import { addMockup, answered, atRepo, fixtureRepo, git, quiet, renderPage } from "./helpers.tsx";
 
 test("a feature's workflow file opens in the UI", () => {
   expect(pathLink("specs/2026-10-11-web-ui/spec.md#us1", "uraeda")).toEqual({
@@ -64,7 +64,7 @@ test.each(PAGES)("every link of %s starts with its repository's prefix", async (
   const { name } = await renderPage(path, repo);
   await waitFor(() => expect(document.body.textContent).toContain(text));
   await answered("Workspace");
-  await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+  await quiet();
 
   const prefix = `/r/${name}/`;
   const links = [...document.querySelectorAll("a[href]")].map((a) => a.getAttribute("href")!);

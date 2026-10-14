@@ -11,5 +11,6 @@ test("SC-003: searching 500 sessions holding 100,000 items answers in under 200 
     cache.sessions("/repo", { query: "needle" });
   }).run();
 
+  process.stdout.write(`A search answered in ${result.latency.mean.toFixed(1)} ms on average.\n`);
   expect(result.latency.mean).toBeLessThan(200);
 });

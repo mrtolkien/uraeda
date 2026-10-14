@@ -112,14 +112,6 @@ export type Fake = ReturnType<typeof fakeSessions>;
 
 const managers: Array<Fake["sessions"]> = [];
 
-afterEach(async () => {
-  await settleRequests();
-  // Turns left going keep their watchdog's timer.
-  for (const sessions of managers.splice(0)) {
-    sessions.close();
-  }
-});
-
 /** Sessions on the fake agent, checked, so the pages offer "Commit and start the agent". */
 export async function fakeAgent({ installed = true } = {}): Promise<Fake> {
   const fake = fakeSessions({ installed });
@@ -192,9 +184,21 @@ export async function renderPage(
 /** The hosts of the tests' apps, whose watches are closed after each test. */
 const opened: Array<Promise<Hosts>> = [];
 
+/**
+ * After each test, in order: the page goes, which may send its last saves; the server answers every
+ * request it was sent, while its repository is still there; then its hosts' watches and the turns'
+ * timers stop. A request left going would read the repository the file's end deletes, or a closed
+ * host, and fail with no page left to show it.
+ */
 afterEach(async () => {
+  cleanup();
+  await settleRequests();
   for (const hosts of opened.splice(0)) {
     (await hosts).close();
+  }
+  // Turns left going keep their watchdog's timer.
+  for (const sessions of managers.splice(0)) {
+    sessions.close();
   }
 });
 
@@ -204,10 +208,21 @@ const names = new WeakMap<typeof globalThis.fetch, Promise<string | undefined>>(
 /** The requests started by the page, which refresh and teardown wait for. */
 const pending = new Set<Promise<Response>>();
 
+/** Waits until the server answered every request, those sent while it answered the others too. */
 async function settleRequests() {
-  while (pending.size > 0) {
+  do {
+    // A request the page queued as it went is sent at the next turn of the event loop.
+    await new Promise((resolve) => setImmediate(resolve));
     await Promise.allSettled(pending);
-  }
+  } while (pending.size > 0);
+}
+
+/**
+ * Waits until the page sent no request the server has not answered, and drew the answers: what the
+ * page shows then is all it will show until something changes.
+ */
+export async function quiet() {
+  await act(settleRequests);
 }
 
 /**

@@ -4,7 +4,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { expect, test } from "vite-plus/test";
 import { ImageView } from "../ImageView.tsx";
 import { navigate } from "../routes.tsx";
-import { atRepo, fixtureRepo, git, renderPage } from "./helpers.tsx";
+import { atRepo, click, fixtureRepo, git, renderPage } from "./helpers.tsx";
 
 const TEXT = `# Web UI
 
@@ -47,7 +47,8 @@ test("opens workflow files in the UI, code as text, and the web in a new tab", a
   expect(code.getAttribute("href")).toBe(atRepo("/raw/crates/core/src/git.rs"));
   expect(code.getAttribute("target")).toBe("_blank");
   expect(screen.getByRole("link", { name: "Vite" }).getAttribute("target")).toBe("_blank");
-  fireEvent.click(screen.getByRole("link", { name: "the spec" }));
+  // Awaited: the spec's page suspends while it reads.
+  await click(screen.getByRole("link", { name: "the spec" }));
   expect(window.location.pathname).toBe(atRepo("/f/2026-10-11-web-ui/spec.md"));
 });
 
