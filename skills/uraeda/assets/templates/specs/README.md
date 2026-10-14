@@ -28,7 +28,8 @@ Without it, the file names and their `status` fields still tell where each featu
   - `discovery-NN.md`: the agent's investigation of the code and outside sources, with the options
     found, never decisions
   - `clarifications-NN.md`: the questions only a human can decide, with their answers
-  - `spec.md`: the feature's behaviour and technical design, approved by a human, amended in place
+  - `spec.md`: the feature's behaviour and architecture for the human to approve, then the details
+    the agents build from, amended in place
   - `spec-review.md`, `plan-review.md`: a human's review comments, when the latest review has any
   - `plan.md`: the implementation tasks, with the files and tests of each, amended in place
   - `data-model.md` and `contracts/`: entities and interfaces, when needed

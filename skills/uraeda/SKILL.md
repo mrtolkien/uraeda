@@ -70,7 +70,7 @@ specs/
     clarifications-01.md    # agent questions, human answers and notes
     discovery-02.md         # a later round, when one is needed
     clarifications-02.md
-    spec.md                 # agent: behaviour and design, approved by a human, amended in place
+    spec.md                 # agent: behaviour, architecture, then details; human-approved, amended
     spec-review.md          # human: comments on the spec, with the verdict, when there are any
     plan.md                 # agent: tasks with files and test-first steps, checked off as built
     plan-review.md          # human: comments on the plan, when it is reviewed with comments

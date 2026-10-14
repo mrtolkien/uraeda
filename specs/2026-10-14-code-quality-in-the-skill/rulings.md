@@ -190,3 +190,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: each file marker moves in one line.
 - **Where**: task 4, `packages/web/src/{Blocks,PrioritiesPage,Transcript}.tsx`,
   `packages/server/src/runner/cache.ts`, `packages/server/scripts/validate-claude.ts`.
+
+## R12: The old-layout test keeps Details under Design
+
+- **Decision**: the test of US2.2 builds the old layout from the example: `## Architecture` renamed
+  `## Design`, `## Details`'s heading removed, and its four subsections put back before
+  `## Assumptions`. It checks the missing `## Details`, the unknown `## Design`, and
+  `"## Assumptions" must come before "### Testing"`.
+  - The example's Architecture keeps the Approach text, followed by three bullets: its main units,
+    where its rules live, and its tradeoffs.
+  - `references/implementation.md` and `references/bug.md` are unchanged: their lines name the
+    record's **Behaviour** and **Design**, which this feature does not change, and the `#tests`
+    anchor, which stays.
+- **Rationale**: US2.2 asks for the missing section and the sections out of order. With the
+  subsections left after `## Risk tier`, as the plan's test sketched, they are in order and no order
+  problem shows.
+- **Alternatives considered**: the plan's arrangement, which tests two of the three problems US2.2
+  names.
+- **If wrong**: the test checks one more problem than planned; dropping its row is one line.
+- **Where**: task 5, `crates/core/tests/check.rs`, the example spec.

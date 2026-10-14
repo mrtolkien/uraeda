@@ -22,7 +22,7 @@ plan-review: false
 
 ### US1: [Title] (P1)
 
-[The user's journey, in plain language.]
+[The user's journey, in plain language, in one or two sentences.]
 
 Why this priority: [reason]
 
@@ -38,40 +38,16 @@ Acceptance scenarios:
 
 - **SC-001**: [Measurable outcome]
 
-## Design
+## Architecture
 
-### Approach
+[The chosen approach in a few sentences, and why it fits: the main units, where each new rule lives,
+and the tradeoffs. Links to the decisions and discovery topics behind it.]
 
-[The chosen approach in a few sentences, and why it fits. Links to the decisions and discovery
-topics behind it.]
-
-### Data
-
-[What is stored or changes, with exact types, the rules that apply to it, and how it flows between
-the components.]
-
-### Components
-
-- **[Unit]** ([`path`](/path)): [what it does, how it is used, what it depends on]
-
-### Mockups
+## Mockups
 
 [Optional, UI work only: remove this section otherwise.]
 
 - [[Screen or state](mockups/screen-name.html): what it shows]
-
-### Error handling
-
-- [What can fail, and what the user sees]
-
-### Testing
-
-[How the integration tests run: what they render, on which store, with which clock, and how they
-drive the feature like a user.]
-
-| What                                       | Test                                             |
-| ------------------------------------------ | ------------------------------------------------ |
-| [Acceptance scenarios, edge cases, SC-00x] | [Integration test, table-driven test, benchmark] |
 
 ## Assumptions
 
@@ -107,3 +83,27 @@ Relied on:
 ## Risk tier
 
 **[Tier]**: [one-line reason]
+
+## Details
+
+### Data
+
+[What is stored or changes, with exact types, the rules that apply to it, and how it flows between
+the components.]
+
+### Components
+
+- **[Unit]** ([`path`](/path)): [what it does, how it is used, what it depends on]
+
+### Error handling
+
+- [What can fail, and what the user sees]
+
+### Testing
+
+[How the integration tests run: what they render, on which store, with which clock, and how they
+drive the feature like a user.]
+
+| What                                       | Test                                             |
+| ------------------------------------------ | ------------------------------------------------ |
+| [Acceptance scenarios, edge cases, SC-00x] | [Integration test, table-driven test, benchmark] |
