@@ -266,11 +266,12 @@ No new marker, and no constitution exception.
   - `set_answer(text, "notes", free)` writes `free` and keeps the file's comments after it. Every
     caller, `save_notes` and the CLI, gets this.
 
-- [ ] **Step 1: Split `items.rs` and `api.rs` before they change**
+- [x] **Step 1: Split `items.rs` and `api.rs` before they change**
 
-Move `round()`, `named_section`, `section`, and `leading_strong` into `files/items/round.rs`, and
-`save_answer`, `save_notes`, `submit_answers` from `api.rs` into `api/answers.rs`, re-exported so no
-caller changes. Lower `api.rs`'s length in `structure.rs`'s `LARGE` list to its new length.
+Move `round()`, `named_section`, `leading_strong`, and `choices` into `files/items/round.rs`
+(`section` stays in `items.rs`, shared with specs and rulings, R3), and `save_answer`, `save_notes`,
+`submit_answers`, with `round_name`, from `api.rs` into `api/answers.rs`, re-exported so no caller
+changes. Lower `api.rs`'s length in `structure.rs`'s `LARGE` list to its new length.
 
 - Run:
   `cargo test -p uraeda-core && cargo test -p uraeda-cli --test structure && cargo clippy --workspace --all-targets -- -D warnings`,
