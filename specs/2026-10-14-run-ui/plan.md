@@ -571,7 +571,7 @@ git commit -m "feat(run-ui): the command's help, version, and options"
   error calls `warn("uraeda: could not open a browser: <message>\n")`, whose default writes to
   stderr.
 
-- [ ] **Step 1: Write the failing table test**
+- [x] **Step 1: Write the failing table test**
 
 ```ts
 test.each([
@@ -633,21 +633,21 @@ calls its listener with `error` when given. The breaks: opening over SSH, where 
 text browser in the terminal; `DISPLAY` alone checked, missing Wayland; a spawn error thrown instead
 of warned.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test packages/server/src/__tests__/browser.test.ts`
-- Expected: FAIL, `Failed to resolve import "../browser.ts"`
+- Expected: FAIL, `Cannot find module '../browser.ts'`
 
-- [ ] **Step 3: Implement `openBrowser`**
+- [x] **Step 3: Implement `openBrowser`**
 
 Any other platform returns `"skipped"`: Windows is not supported.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check && vp test packages/server`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/browser.ts packages/server/src/__tests__/browser.test.ts
