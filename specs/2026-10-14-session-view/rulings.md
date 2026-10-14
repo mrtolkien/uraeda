@@ -362,3 +362,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the two effects of `useFollowEnd`, `JumpToLatest`'s `jump`, and the frame in
   `useKeepPlace`'s layout effect.
 - **Where**: Task 9, after its review.
+
+## R23: The announcer is named, lives above the session, and the log is silenced in an effect
+
+- **Decision**: `SessionAnnouncer` is a status region named "Agent updates", drawn by the feature's
+  session around both its states, before and after its session exists, and beside a chat's session.
+  It takes the first read of a session as found, not news, unless the session was created under it:
+  the first workflow turn sent from `?continue=` is then announced as started. Each announcement is
+  a new text node, so "The agent started: Implementation" said twice is heard twice. The log's
+  `aria-live` is set to `off` in an effect: Astryx's `ChatMessageList` writes `aria-live="polite"`
+  after the props it passes on, an Astryx gap. The tests read the region by its name, and a stopped
+  turn has a test of its own.
+- **Rationale**: Astryx draws four status regions of its own on the session's page, so `status()`
+  needs a name to find the page's one. An announcer inside `Session` would be drawn only once the
+  first message created the session, with its turn already running: US4.5's first "The agent
+  started" would be found, not announced. A new chat moves to its own address once sent, and its
+  first turn's start is not announced there, as its page opens with the turn running; its end is.
+- **Alternatives considered**: reading the last of the page's status regions, which depends on
+  Astryx's markup; keeping the announcer in `Session` and announcing a running turn on arrival,
+  against the review focus's item 5.
+- **If wrong**: the region's label and `status()` in `session.test.tsx`; `created` in
+  `SessionAnnouncer.tsx`; the effect in `Transcript.tsx`, removed once Astryx passes `aria-live`
+  through.
+- **Where**: Task 10.

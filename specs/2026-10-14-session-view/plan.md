@@ -1245,7 +1245,8 @@ git commit -m "feat(session-view): jump to the latest"
 
 - Consumes: the session's turns and `step.progress`.
 - Produces: `SessionAnnouncer({ session, feature }: { session?: string; feature?: string })`, a
-  visually hidden `role="status"` region.
+  visually hidden `role="status"` region named "Agent updates", drawn by `FeatureSession` around
+  both its states and beside a chat's `Session` (R23).
 
 - [x] **Step 1: Restructure `Composer` in `Composer.tsx`, and commit**
 
@@ -1254,10 +1255,12 @@ the marker. Behaviour does not change: `vp check && vp test --project uraeda-web
 test changed. Commit `packages/web/src/Composer.tsx` and any new file alone:
 `refactor(session-view): the composer's send and stop in a hook`.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Replace the test at lines 295–309 of `session.test.tsx`, which checks "is replying" and "Reply
-complete", with these. `status()` returns the page's `role="status"` region:
+complete", with these, and "a stopped turn is announced". `status()` returns the page's
+`role="status"` region by its name, "Agent updates", since Astryx draws status regions of its own
+(R23):
 
 ```tsx
 test("US4.5: turns are announced as they start, end, and fail", async () => {
@@ -1295,13 +1298,14 @@ The failed turn is ended through the cache as
 `endTurn(..., { state: "failed", reason: "No output for 30 minutes." })`, as `shell.test.tsx` writes
 turns (lines 139–158).
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/session.test.tsx`
 - Expected: FAIL, US4.5 with
-  `expected 'Claude Code is replying' to be 'The agent started: Implementation'`.
+  `Unable to find an accessible element with the role "status" and name "Agent updates"`, and the
+  log's test with `expected 'polite' to be 'off'`.
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 - **What it says.** `SessionAnnouncer` says what changed after it was drawn, never what it found:
   - a turn starting: "The agent started: <step label>" for a workflow turn, else "The agent
@@ -1311,18 +1315,19 @@ turns (lines 139–158).
 - **The composer's region goes.** It would announce the same turn twice.
 - **The log stops announcing.** `ChatMessageList` gets `aria-live="off"`. If Astryx does not pass
   the attribute through, list it as an Astryx gap in this task's commit body, and set it on the log
-  element in an effect.
+  element in an effect. It does not: the effect sets it (R23).
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run: `vp check && vp test`
 - Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web/src/SessionAnnouncer.tsx packages/web/src/Composer.tsx packages/web/src/SessionPage.tsx \
-  packages/web/src/Transcript.tsx packages/web/src/__tests__/session.test.tsx
+  packages/web/src/Transcript.tsx packages/web/src/__tests__/session.test.tsx \
+  specs/2026-10-14-session-view/plan.md specs/2026-10-14-session-view/rulings.md
 git commit -m "feat(session-view): announce turns and tasks, not every word"
 ```
 
