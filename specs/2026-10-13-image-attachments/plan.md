@@ -48,6 +48,9 @@ interactions with existing behaviour. Each gets a test in the task that owns the
 11. **An image linked only from an unsaved field**, like an open comment form, is deleted by a
     verdict or a submit: the UI saves or blocks pending fields before a verdict or a submit.
     Task 11.
+12. **A slow upload over 20 MB** may end in a network error before the server's JSON refusal
+    arrives: `useAttach` refuses a file over 20 MiB before uploading it, with the core's text.
+    Task 8.
 
 ## Global constraints
 
@@ -842,6 +845,8 @@ Browser tests, files from `fixtures/images/` sent through an in-page `DataTransf
 - `the link goes where the cursor was at the drop` (Review focus 8): text typed during the upload is
   kept before or after the link, as typed.
 - `a drop outside every field stays in the app` (Review focus 9) on the feature page.
+- `a file over 20 MB is refused before it is uploaded` (Review focus 12): no request reaches
+  `/attach`, and the field shows "This image is over 20 MB: <name> is <size> MB."
 - `several images are linked one per line`.
 - `SC-002: a 1440×900 screenshot is linked within a second of its drop`.
 
@@ -855,7 +860,10 @@ Browser tests, files from `fixtures/images/` sent through an in-page `DataTransf
 The hidden input and the window listeners carry the Astryx-gap suppressions, in the codebase's
 format. The editor remembers the cursor at the drop, saves and flushes before attaching, inserts the
 links with `insertLinks`, schedules a save, and, when `moved` is set, redirects to `/edit/<moved>`
-after flushing, inserting the link once the new page has loaded its text.
+after flushing, inserting the link once the new page has loaded its text. `useAttach` refuses a file
+over 20 MiB before uploading it, with the core's text, "This image is over 20 MB: <name> is <size>
+MB.", the size rounded up as [R9](rulings.md#r9-sizes-are-counted-in-mib) says: a slow upload over
+the limit may end in a network error before the server's refusal arrives (Review focus 12).
 
 - [ ] **Step 4: Run all tests**
 

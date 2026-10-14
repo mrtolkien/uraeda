@@ -562,7 +562,9 @@ export class SessionCache {
     const rows = this.#db
       .prepare(
         `SELECT DISTINCT json_extract(image.value, '$.id') AS id
-         FROM items, json_each(items.data, '$.images') AS image
+         FROM items,
+           json_each(CASE WHEN json_valid(items.data) THEN items.data ELSE '{}' END, '$.images')
+             AS image
          WHERE items.kind = 'message'`,
       )
       .all() as Array<{ id: string | null }>;

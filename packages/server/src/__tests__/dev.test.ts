@@ -1,11 +1,12 @@
 import { createServer } from "node:http";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test } from "vite-plus/test";
 import { devHandler, devServer, stopDevRuns } from "../dev.ts";
 import { loadEnv } from "../env.ts";
 import { FakeAdapter } from "../runner/fake.ts";
-import { fixtureRepo } from "./helpers.ts";
+import { fixture, fixtureRepo } from "./helpers.ts";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 
 // The browser project's setup sets both for the whole test run.
@@ -84,4 +85,35 @@ test("the server in vp dev reads URAEDA_REPO", async () => {
   expect(body.results[1].data[0].available).toBe(true);
   expect(existsSync(join(data, "runner.sqlite"))).toBe(true);
   expect(await other.text()).toBe("vite");
+});
+
+test("the dev server's apps share the data folder of their session manager", async () => {
+  const [first, second] = [fixtureRepo(), fixtureRepo()];
+  const root = mkdtempSync(join(tmpdir(), "uraeda-dev-"));
+  const [data, later] = [
+    mkdtempSync(join(tmpdir(), "uraeda-data-")),
+    mkdtempSync(join(tmpdir(), "uraeda-data-")),
+  ];
+  process.env.URAEDA_REPO = first;
+  process.env.URAEDA_DATA_DIR = data;
+  const handler = devHandler(root, { adapter: new FakeAdapter() });
+  const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address() as { port: number };
+  const url = `http://127.0.0.1:${port}`;
+  const started = await fetch(`${url}/raw/specs/drafts/git-listener.md`);
+  // A second repository's app, created after the data folder's setting changed.
+  process.env.URAEDA_REPO = second;
+  process.env.URAEDA_DATA_DIR = later;
+  const body = new FormData();
+  body.set("file", new File([readFileSync(fixture("images/desktop.png"))], "desktop.png"));
+
+  const response = await fetch(`${url}/attach?name=desktop.png&chat=1`, { method: "POST", body });
+  server.close();
+  await stopDevRuns();
+
+  expect(started.status).toBe(200);
+  const { id } = (await response.json()) as { id: string };
+  expect(existsSync(join(data, "images", id))).toBe(true);
+  expect(existsSync(join(later, "images"))).toBe(false);
 });

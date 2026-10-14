@@ -17,6 +17,33 @@ const cases: Array<[string, string, Record<string, string>, number, string?]> = 
   ["an allowed host, with the port", `${tailnet}:${port}`, {}, 200],
   ["a host not listed", "evil.example", {}, 403, "Forbidden host"],
   ["an origin not listed", tailnet, { origin: "https://evil.example" }, 403, "Forbidden origin"],
+  // A browser's cross-site POST without an Origin header, as some requests are sent.
+  [
+    "another site, without an origin",
+    `127.0.0.1:${port}`,
+    { "sec-fetch-site": "cross-site" },
+    403,
+    "Forbidden site",
+  ],
+  [
+    "a sibling site, without an origin",
+    `127.0.0.1:${port}`,
+    { "sec-fetch-site": "same-site" },
+    403,
+  ],
+  [
+    "its own page, without an origin",
+    `127.0.0.1:${port}`,
+    { "sec-fetch-site": "same-origin" },
+    200,
+  ],
+  ["a typed address, without an origin", `127.0.0.1:${port}`, { "sec-fetch-site": "none" }, 200],
+  [
+    "an allowed origin, from another site",
+    `127.0.0.1:${port}`,
+    { origin: "http://localhost:5173", "sec-fetch-site": "same-site" },
+    200,
+  ],
 ];
 
 test.each(cases)("a request to %s", async (_, host, headers, status, body) => {

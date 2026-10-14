@@ -12,12 +12,20 @@ const types: Record<string, string> = {
   svg: "image/svg+xml",
 };
 
-/** The headers of an image: its detected type, never sniffed, and nothing it could load or run. */
+/**
+ * The headers of an image: its detected type, never sniffed, nothing it could load or run, and no
+ * page of another site may embed it.
+ */
 const imageHeaders = (type: string) => ({
   "content-type": type,
   "x-content-type-options": "nosniff",
   "content-security-policy": "default-src 'none'",
+  "cross-origin-resource-policy": "same-origin",
 });
+
+/** A buffer's bytes as the response's body, without copying them. */
+const view = (bytes: Buffer) =>
+  new Uint8Array(bytes.buffer as ArrayBuffer, bytes.byteOffset, bytes.byteLength);
 
 /**
  * The core's refusal of a file it did not find, or does not serve: a path outside the repository,
@@ -87,7 +95,7 @@ export function files() {
     }
     try {
       const image = await binding.readImage(repo, decodeURIComponent(path));
-      return context.body(new Uint8Array(image.bytes), 200, imageHeaders(image.type));
+      return context.body(view(image.bytes), 200, imageHeaders(image.type));
     } catch {
       return context.text("Not found", 404);
     }
@@ -98,7 +106,11 @@ export function files() {
     const bytes = path === undefined ? undefined : await readFile(path).catch(() => undefined);
     return bytes === undefined
       ? context.text("Not found", 404)
-      : context.body(new Uint8Array(bytes), 200, imageHeaders(chatImageType(id)));
+      : // An ID is never given to another image: its bytes never change.
+        context.body(view(bytes), 200, {
+          ...imageHeaders(chatImageType(id)),
+          "cache-control": "private, max-age=31536000, immutable",
+        });
   });
   app.delete("/chat-images/:id", async (context) => {
     const { dataDir, sessions } = context.get("fate");

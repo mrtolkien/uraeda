@@ -88,6 +88,9 @@ test("serves an image with its type, nosniff, and default-src 'none'", async () 
   expect(response.headers.get("content-type")).toBe("image/webp");
   expect(response.headers.get("x-content-type-options")).toBe("nosniff");
   expect(response.headers.get("content-security-policy")).toBe("default-src 'none'");
+  expect(response.headers.get("cross-origin-resource-policy")).toBe("same-origin");
+  // A path may get another image later: never cached.
+  expect(response.headers.get("cache-control")).toBeNull();
   expect(
     Buffer.from(await response.arrayBuffer())
       .subarray(8, 12)
