@@ -210,6 +210,8 @@ Read a step's reference before running it, and the others when the step needs th
   request, and the changes it requests.
 - [Finish](references/finish.md): replacing a folder with its record, and cleaning up after merge.
 - [Bug](references/bug.md): every step of a bug, from its report to its fix.
+- [Code quality](references/code-quality.md): the five code-quality concepts each step links to, and
+  how a project sets up its checks.
 - [Conventions](references/conventions.md): markdown, the status table, review files, branches and
   worktrees, and commits; read it before writing or committing a workflow file.
 - [Projects](references/projects.md): setting up a project, starting, postponing, or dropping a

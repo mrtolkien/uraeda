@@ -9,7 +9,8 @@ approved-by:
 
 ## Rules
 
-- [Rule written with MUST, SHOULD, or MUST NOT]
+- [Rule written with MUST, SHOULD, or MUST NOT.] Checked by [a lint, a test, `ura check`, or
+  review].
 
 ## Why
 
@@ -42,7 +43,8 @@ Proposed by the [spec](../YYYY-MM-DD-feature-slug/spec.md). [The change, in a se
 
 The rules become:
 
-- [Every rule of the decision as it would read after the change, not only the new ones]
+- [Every rule of the decision as it would read after the change, not only the new ones, each with
+  how it is checked]
 
 Why: [the problem, with links to the clarification question and the discovery topic].
 

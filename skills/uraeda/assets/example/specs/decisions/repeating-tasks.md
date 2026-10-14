@@ -12,10 +12,11 @@ done.
 
 ## Rules
 
-- A repeating task MUST be a single task, with its repeat rule stored on it.
+- A repeating task MUST be a single task, with its repeat rule stored on it. Checked by the
+  `RepeatRule` field of the `Task` type.
 - Completing a repeating task MUST move its due date to the next occurrence, and MUST NOT create a
-  new task.
-- Features MUST NOT rely on a history of completed occurrences: there is none.
+  new task. Checked by the completion tests of the task store.
+- Features MUST NOT rely on a history of completed occurrences: there is none. Checked by review.
 
 ## Why
 

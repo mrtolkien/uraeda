@@ -12,6 +12,12 @@ empty folder. Never overwrite a file that exists. The constitution is the human'
 it by asking about the project's goals and constraints, and propose principles with recommended
 wording. Do not copy the feature, decision, or bug templates: they stay in this skill.
 
+Once the constitution is written, propose a code-quality decision,
+`specs/decisions/code-quality.md`, for the project's own linters: limits, the stack's shared lint
+config if it has one, and today's offenders marked in place, as
+[setting up checks](code-quality.md#setting-up-checks) describes. It stays `proposed` until the
+human approves it; then configure the linters and mark the offenders, in a commit of their own.
+
 With `ura`, `ura init` does it, and writes nothing outside `specs/`. When it finds no Uraeda skill,
 for the user or in the repository, it offers to install this skill for the user. `ura install`
 installs or updates this skill, for the user in the home folder (`--user`) or in the repository's
