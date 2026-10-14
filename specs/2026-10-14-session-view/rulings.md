@@ -140,10 +140,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `packages/binding/test-utils.ts`, and `addPlan` writes its plan through it, rather than a local
   helper of `fate.test.ts` beside an `addPlan` with its own git calls. The `BranchChanges` source
   logs through `process.stderr.write`, not `console.error`. `testApp` takes its options as one
-  object, `{ allowedHosts, binding }`, so `guard.test.ts` passes `{ allowedHosts }`.
-- **Rationale**: one helper switches to a branch, commits, and switches back to `main`, so the
-  checkout is left on `main` in both, and the web tests can commit code on a branch too. The server
+  object, `{ allowedHosts, binding }`, so `guard.test.ts` passes `{ allowedHosts }`. It commits in a
+  temporary worktree of the branch, adding only the given paths, and removes it.
+- **Rationale**: one helper commits on a branch for both, and the web tests can commit code on a
+  branch too. A temporary worktree leaves the main checkout alone: switching it would carry its
+  uncommitted files onto the branch, and show the branch's specs in it to a live watcher. The server
   logs every other failure on `process.stderr`.
-- **Alternatives considered**: the plan's local helper, which would repeat the switch and commit.
+- **Alternatives considered**: the plan's local helper, which would repeat the commit; switching the
+  main checkout, as `fixtureRepo` does; git's plumbing, which needs a temporary index and more
+  calls. The worktree cannot be added while the branch is checked out elsewhere, as in a feature's
+  `.worktrees/<folder>`, which no test does before calling it.
 - **If wrong**: the helper moves into `fate.test.ts`, and `addPlan` calls git itself.
 - **Where**: Task 4.
+
+## R13: A folder that is no feature's has no branch changes, not failed ones
+
+- **Decision**: the `BranchChanges` source answers a folder the core refuses as missing with
+  `{ changes: null, failed: false }`, without a log. Only other errors are `failed`.
+- **Rationale**: a deleted folder or a wrong address is not a git failure. The `Feature` source
+  answers it as missing the same way, so the page says so instead of "The changes could not be
+  read.", and the server's log keeps real failures only.
+- **Alternatives considered**: answering it as failed, which logs every stale page's request.
+- **If wrong**: the `isMissing` branch of `branchChanges` in `sources.ts`.
+- **Where**: Task 4, after its review.

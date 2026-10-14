@@ -19,21 +19,25 @@ import type { SessionStatus } from "../runner/status.ts";
 
 type Record_<T> = { [Key in keyof T]: T[Key] };
 
-export type WorkspaceRecord = Record_<WorkspaceView> & {
-  id: string;
-  /** The folders whose session has a turn running or queued. */
-  running: Array<string>;
-};
 /** A feature's step, its progress sent as null when it has none. */
 export type StepRecord = Omit<StepView, "progress"> & { progress: TaskProgress | null };
 
 /**
- * A step as it is sent: its progress, when absent, sent as null. The client's cache keeps a field
- * an answer leaves out, so a feature leaving its implementation would keep its last task.
+ * A step as it is sent: its progress, when absent, sent as null. fate merges a record's fields
+ * shallowly and replaces a nested object like `step` whole, so this is not for freshness: every
+ * step has one shape, `TaskProgress | null`, wherever the UI reads it.
  */
 export function sentStep(step: StepView): StepRecord {
   return { ...step, progress: step.progress ?? null };
 }
+
+export type WorkspaceRecord = Omit<Record_<WorkspaceView>, "features"> & {
+  /** Its features, each step sent as `sentStep` sends it. */
+  features: Array<Omit<FeatureView, "step"> & { step: StepRecord }>;
+  id: string;
+  /** The folders whose session has a turn running or queued. */
+  running: Array<string>;
+};
 
 /** A feature, or `missing` alone when no feature has its folder. */
 export type FeatureRecord = Omit<Record_<FeatureView>, "step"> & {

@@ -28,10 +28,13 @@ current task.
 
 ## Review focus
 
-1. **Fields the client cache keeps.** fate's client keeps a field an answer leaves out
-   ([`fate/views.ts`](/packages/server/src/fate/views.ts), `sentFile`). A feature that leaves its
-   implementation would keep showing "7/11" if `step.progress` were left out instead of sent as
-   `null`. The same holds for `BranchChanges` once a branch is merged. Task 4.
+1. **One shape for absent fields.** napi-rs leaves a `None` field's key out of the object, while
+   fate's client keeps a record's field an answer leaves out
+   ([`fate/views.ts`](/packages/server/src/fate/views.ts), `sentFile`). fate merges records
+   shallowly and replaces a nested object like `step` whole, so `step.progress` would not go stale:
+   it is sent as `null`, in the features and the workspace's features alike, so the UI reads one
+   type, `TaskProgress | null`. `BranchChanges.changes` and a binary file's lines are sent as `null`
+   too. Task 4.
 2. **A branch only on `origin`, or with a slash in its name** (`fix/2026-10-13-x`): the diff must
    use the ref `Git::tip` resolves, and its name must be passed as one argument. Task 2.
 3. **A feature whose branch disappears**, merged and deleted: the watcher's hash must not fail, and
@@ -543,10 +546,11 @@ git commit -m "feat(session-view): publish a feature when its branch moves"
 - Produces:
   - `addPlan(repo: string, folder: string, tasks: Array<[title: string, done: number, total: number]>, status = "auto-approved"): void`
     in `uraeda-binding/test-utils`. It commits `specs/<folder>/plan.md`, with `spec-revision: 1` and
-    steps written `- [x] **Step N: Do**`, on the folder's branch, and leaves the checkout on `main`.
-    It is built on
+    steps written `- [x] **Step N: Do**`, on the folder's branch, without touching the main
+    checkout. It is built on
     `commitOnBranch(repo: string, branch: string, files: Record<string, string>): void`, exported
-    beside it, which commits files on a branch from the main checkout and switches back to `main`
+    beside it, which commits the given files on a branch in a temporary worktree, removed after, so
+    the main checkout and its uncommitted files are left as they are
     ([R12](rulings.md#r12-the-test-helpers-commit-through-one-exported-commitonbranch)).
   - The fate type `BranchChanges`:
     `{ id: string /* folder */; changes: BranchChanges | null; failed: boolean }`, requested as
@@ -613,8 +617,11 @@ test("a branch whose changes cannot be read is answered as failed", async () => 
 
 `commitOnBranch` is exported from `test-utils.ts`, and `addPlan` uses it. `testApp` takes its
 options as `{ allowedHosts, binding }`, the binding passed on to `testHosts` and `createApp`. The
-failed answer also holds `id: CLI`, which fate sends with every record. Two more tests: a folder
-that is no feature's sends `step.progress` as `null`, and a binary file's lines are sent as `null`.
+failed answer also holds `id: CLI`, which fate sends with every record. More tests: a folder that is
+no feature's sends `step.progress` as `null`, and no branch changes, `failed: false`, without a log;
+the workspace's features send `progress`, `null` when absent; a binary file's lines are sent as
+`null`. `packages/binding/test-utils.test.ts` checks that `commitOnBranch` leaves the main checkout
+and its uncommitted files alone.
 
 In `live.test.ts`, extend the watcher-driven test: a change listing `CLI` publishes
 `"BranchChanges 2026-10-12-cli-tuis"` beside `"Feature 2026-10-12-cli-tuis"`.
@@ -629,11 +636,13 @@ In `live.test.ts`, extend the watcher-driven test: a change listing `CLI` publis
 
 - [x] **Step 3: Implement the source, the records, and the live update**
 
-- **`step.progress`.** `featureRecord` and `missingFeature` send it as `null` when the core leaves
-  it out ([review focus 1](#review-focus)), as `sentFile` does for files.
+- **`step.progress`.** `featureRecord`, `missingFeature`, and the workspace's features send it as
+  `null` when the core leaves it out ([review focus 1](#review-focus)), through `sentStep`.
 - **The source.** The `BranchChanges` source calls `ctx.binding.branchChanges(ctx.repo, id)`, and
   sends a binary file's lines as `null`. On a thrown error, it writes the error's first line to
   `process.stderr`, as the server logs elsewhere, and answers `{ id, changes: null, failed: true }`.
+  A folder that is no feature's, refused as missing, is answered
+  `{ id, changes: null, failed: false }` without a log, as the `Feature` source answers it.
 - **The live update.** `publish` updates `BranchChanges` in its loop over `changes.features`.
 - **The client.** Regenerate it with `vp run --filter uraeda-web build`.
 
