@@ -432,3 +432,35 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `ProgressRow`'s `aria-label` in `SessionNav.tsx`, and the names in
   `__tests__/shell.test.tsx` and `scripts/sessionShots.ts`.
 - **Where**: Task 11.
+
+## R26: Caught up with image attachments: the composer and the transcript take images, the session page keeps its own parts
+
+- **Decision**: the branch is rebased on the default branch, which gained
+  [image attachments](../done/2026-10-13-image-attachments.md) and the
+  [attachments](../decisions/attachments.md) decision. The decision applies to the core's image code
+  and its callers; this branch adds none, and sends the composer's images through the default
+  branch's own path, so it meets the decision unchanged: images are encoded by the core, chat images
+  stay in the data folder, and the web code passes bytes only. The conflicts were resolved keeping
+  both features:
+  - The session's draft is the default branch's, text and images, with its take-back putting both
+    back; the session page draws it inside its column (`WithAside`), with the progress line, Jump to
+    the latest, and the following hooks. The draft, its composer props, and the take-back moved to
+    `useDraft.ts`, so `SessionPage.tsx` stays under 500 lines (521 once merged).
+  - The composer is the default branch's, whose `useSend` already holds the send and stop: the
+    branch's own hook for them (Task 10's refactor) is dropped, and that commit keeps only its plan
+    line. The reply status, "is replying" and "Reply complete", is removed from it, as R1 and
+    R23–R24 replace it with the announcer; the attachments' status stays.
+  - The transcript keeps the default branch's message body with its images, and the branch's tool
+    groups and following in their own modules.
+  - The binding's generated files list both `attachImage` and `branchChanges`; the browser tests'
+    commands and helpers keep both features' (`fixtureImage`, `addPlan`, `commitOnBranch`), and the
+    layout checks hold both features' views, with one `MODES`.
+- **Rationale**: the spec asks this feature to build on image attachments or rebase on it, and puts
+  new parts in new files under the 500-line limit. Images in the composer and the transcript are the
+  default branch's behaviour; the page's layout, following, and announcer are this spec's.
+- **Alternatives considered**: keeping the branch's `useComposerActions` beside `useSend`, two homes
+  for one rule; keeping the composer's reply status beside the announcer, two status regions saying
+  the same turn.
+- **If wrong**: `useDraft.ts`, the session page's `Session` and `NoSession`, and the composer's
+  status in `Composer.tsx`.
+- **Where**: catching up with the default branch, after Task 11.
