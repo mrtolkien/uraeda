@@ -36,6 +36,9 @@ export const REFUSALS = {
 /** The line a turn shows when its session's transcript was gone, and a new one started. */
 export const REPLACED = "Started a new session: the previous one is gone.";
 
+/** The line a turn shows when it reopened: its agent went on after it ended. */
+export const RESUMED = "The agent went on by itself: a background task reported back.";
+
 /** What changed: the agent's availability, or a session, with the turn and its new state. */
 export type SessionChange =
   | { agent: true }
@@ -63,6 +66,11 @@ export type Proc = {
    * report back.
    */
   background: Set<string>;
+  /**
+   * The turn that last ended on it, which reopens when the agent goes on by itself after it ended:
+   * a background shell or sub-agent reported back.
+   */
+  ended?: { id: number; first: string };
 };
 
 /** The turn running on a session's process. */

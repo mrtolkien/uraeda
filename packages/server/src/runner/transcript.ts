@@ -16,10 +16,21 @@ const PLUGIN = "uraeda";
 
 type Result = Extract<AgentEvent, { type: "result" }>;
 
+/** The events that show the agent working, which reopen its ended turn. */
+const RESUMES = new Set<AgentEvent["type"]>([
+  "activity",
+  "textDelta",
+  "text",
+  "toolStart",
+  "toolEnd",
+  "retry",
+]);
+
 /**
  * The sessions' events, recorded as their turns' items in the cache: texts as they stream, tool
  * calls, retries, skipped lines, blocked actions, and the messages the agent read or took back. A
  * result ends its turn once no background sub-agent runs, and an `init` without the skill fails it.
+ * Output after the turn ended, when the agent goes on by itself, reopens it.
  */
 export class Transcript {
   #context: SessionContext;
@@ -31,7 +42,7 @@ export class Transcript {
   /** Records an event of the session's process, other than its exit. */
   record(live: Live, proc: Proc, event: Exclude<AgentEvent, { type: "exit" }>) {
     const { cache, adapter, turns, changed } = this.#context;
-    const turn = live.turn;
+    const turn = live.turn ?? (RESUMES.has(event.type) ? turns.resume(live, proc) : undefined);
     if (turn && !turn.stop) {
       turns.watch(live, turn);
     }

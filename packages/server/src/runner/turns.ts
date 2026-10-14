@@ -5,7 +5,9 @@ import {
   IDLE_CLOSE_MS,
   type Live,
   type Message,
+  type Proc,
   REPLACED,
+  RESUMED,
   type Running,
   type Sent,
   type SessionContext,
@@ -74,11 +76,34 @@ export class Turns {
 
   /** Makes the turn the running one, and writes its message. */
   #run(live: Live, id: number, message: Outgoing) {
+    this.#open(live, id, message.id);
+    live.proc?.agent.send(message);
+  }
+
+  /** Makes the turn the running one, started by the message `first`. */
+  #open(live: Live, id: number, first: string): Running {
     clearTimeout(live.idle);
-    live.turn = { id, first: message.id, tools: new Map(), terminate: [], activity: working() };
+    live.turn = { id, first, tools: new Map(), terminate: [], activity: working() };
     this.watch(live, live.turn);
     this.#context.changed(live, id, "running");
-    live.proc?.agent.send(message);
+    return live.turn;
+  }
+
+  /**
+   * Reopens the turn that last ended on the process, whose agent goes on by itself: a background
+   * task reported back. Without it, its output would show nowhere, and the idle timer would close
+   * the process mid-work. None when a turn runs or starts, or the process is closing.
+   */
+  resume(live: Live, proc: Proc): Running | undefined {
+    const ended = proc.ended;
+    if (!ended || live.turn || live.queue.length > 0 || proc.closing || live.proc !== proc) {
+      return undefined;
+    }
+    const { cache } = this.#context;
+    cache.reopenTurn(ended.id);
+    cache.appendItem(ended.id, { kind: "system", text: RESUMED });
+    this.track(ended.id);
+    return this.#open(live, ended.id, ended.first);
   }
 
   /** Restarts the turn's watchdog. */
@@ -134,6 +159,9 @@ export class Turns {
     if (live.turn?.id === id) {
       clearTimeout(live.turn.watchdog);
       live.turn.terminate.forEach(clearTimeout);
+      if (live.proc) {
+        live.proc.ended = { id, first: live.turn.first };
+      }
       live.turn = undefined;
     }
     try {

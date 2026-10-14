@@ -469,6 +469,21 @@ export class SessionCache {
     });
   }
 
+  /** Makes an ended turn run again, as its agent went on after it ended. */
+  reopenTurn(id: number): void {
+    transaction(this.#db, () => {
+      const row = this.#db
+        .prepare(
+          `UPDATE turns SET state = 'running', reason = NULL, ended_at = NULL WHERE id = ?
+           RETURNING session_id`,
+        )
+        .get(id) as { session_id: string } | undefined;
+      if (row) {
+        this.#touch(row.session_id, now());
+      }
+    });
+  }
+
   /** Ends a turn. */
   endTurn(id: number, end: { state: TurnState; reason?: string }): void {
     transaction(this.#db, () => {
