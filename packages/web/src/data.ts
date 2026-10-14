@@ -5,6 +5,7 @@ import { useFateClient, useLiveView, useRequest, useView } from "react-fate";
 import type { Priorities, Trigger } from "uraeda-server/fate";
 import {
   AgentView,
+  BranchChangesView,
   DraftView,
   FeatureView,
   FileView,
@@ -55,6 +56,14 @@ export function useFeature(folder: string) {
   const { feature } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(FeatureView, feature);
+}
+
+/** The files changed on a feature's branch, outside its folder, by the feature's folder. */
+export function useBranchChanges(folder: string) {
+  const request = { branchChanges: { id: folder, view: BranchChangesView } };
+  const { branchChanges } = useRequest(request);
+  useRefreshOnShow(request);
+  return useLiveView(BranchChangesView, branchChanges);
 }
 
 export function useFile(folder: string, name: string) {
