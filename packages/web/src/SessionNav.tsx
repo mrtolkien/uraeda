@@ -177,7 +177,8 @@ function ProgressRow({ feature, pathname }: { feature: Feature; pathname: string
   const to = sessionPath(feature.folder);
   return (
     <SideNavItem
-      aria-label={`Task ${position} of ${total}: ${title}`}
+      // Its visible text first, as WCAG's label in name asks, then the task in full words.
+      aria-label={`${position}/${total} · ${title}, Task ${position} of ${total}`}
       href={here(to)}
       icon={<ProgressRing position={position} total={total} />}
       isSelected={selects(pathname, to)}
