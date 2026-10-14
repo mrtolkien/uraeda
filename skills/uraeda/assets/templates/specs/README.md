@@ -23,9 +23,9 @@ Without it, the file names and their `status` fields still tell where each featu
   changes made after approval. The folder's files stay in git: `git log -- specs/<folder>/`
 - `bugs/YYYY-MM-DD-<slug>/`: a bug `report.md` from a human, and its `assessment.md` from an agent,
   on the branch `fix/YYYY-MM-DD-<slug>`, until it is finished into its record
-- `images/`, in a feature's, a bug's, or a draft's folder: the images a human attached, as WebP,
-  linked from the folder's files with `![alt](images/name.webp)`, and deleted with the folder when
-  it is finished
+- `images/`, in a feature's, a bug's, or a draft's folder: the images a human attached, as WebP or
+  animated GIF, linked from the folder's files with `![alt](images/name.webp)`, and deleted with a
+  feature's or a bug's folder when it is finished
 - `YYYY-MM-DD-feature-slug/`: one folder per feature, dated the day it started, on the branch of the
   same name until it is finished into its record, with these files, in workflow order:
   - `proposal.md`: what and why, written by a human

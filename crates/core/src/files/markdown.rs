@@ -82,6 +82,8 @@ impl Document {
         let mut heading: Option<Heading> = None;
         let mut seen_section = false;
         let mut quote_depth = 0;
+        // Open images: one inside another's alt text is not a link of its own.
+        let mut image_depth = 0u32;
         for (event, range) in Parser::new_ext(text, options()).into_offset_iter() {
             match event {
                 Event::Start(Tag::Heading { level, .. }) => {
@@ -117,12 +119,18 @@ impl Document {
                     link_type,
                     dest_url,
                     ..
-                }) if !matches!(link_type, LinkType::WikiLink { .. }) => links.push(Link {
-                    target: dest_url.to_string(),
-                    wiki: false,
-                    image: true,
-                    line: lines.of(range.start),
-                }),
+                }) => {
+                    image_depth += 1;
+                    if image_depth == 1 && !matches!(link_type, LinkType::WikiLink { .. }) {
+                        links.push(Link {
+                            target: dest_url.to_string(),
+                            wiki: false,
+                            image: true,
+                            line: lines.of(range.start),
+                        });
+                    }
+                }
+                Event::End(TagEnd::Image) => image_depth -= 1,
                 Event::Start(Tag::BlockQuote(kind)) => {
                     quote_depth += 1;
                     let kind = match kind {

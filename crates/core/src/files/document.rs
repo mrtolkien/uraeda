@@ -96,7 +96,8 @@ pub enum CalloutKind {
 pub struct SpanLink {
     pub target: String,
     pub wiki: bool,
-    /// The file from the repository's top level, `None` for a web link or an anchor in the page.
+    /// The file from the repository's top level; absent for a web link, a URI, or an anchor in
+    /// the page.
     pub path: Option<String>,
 }
 
@@ -106,7 +107,8 @@ pub struct SpanLink {
 #[serde(rename_all = "camelCase")]
 pub struct SpanImage {
     pub target: String,
-    /// The file from the repository's top level, `None` for a web image.
+    /// The file from the repository's top level; absent for an image on the web or in a URI,
+    /// such as `data:`.
     pub path: Option<String>,
 }
 
@@ -228,8 +230,9 @@ struct Marks {
     emphasis: u32,
     strike: u32,
     link: Option<SpanLink>,
-    /// Whether the alt text of an image is being read, into the last span.
-    image: bool,
+    /// How many images are open: inside one, their alt text is read into the outer image's span,
+    /// the last one, and an inner image is only text.
+    image: u32,
 }
 
 struct Builder<'a> {
@@ -282,7 +285,7 @@ impl Builder<'_> {
         };
         let marks = self.marks.clone();
         let spans = &mut self.blocks[target as usize].spans;
-        if marks.image
+        if marks.image > 0
             && let Some(last) = spans.last_mut()
         {
             last.text.push_str(text);
@@ -311,8 +314,13 @@ impl Builder<'_> {
         });
     }
 
-    /// Starts an image's span, which its alt text then fills.
+    /// Starts an image's span, which its alt text then fills, or reads a nested image's alt text
+    /// into the outer one's.
     fn image(&mut self, target: &str) {
+        self.marks.image += 1;
+        if self.marks.image > 1 {
+            return;
+        }
         let Some(block) = self.target else {
             return;
         };
@@ -329,7 +337,6 @@ impl Builder<'_> {
                 path: resolve(self.dir, target),
             }),
         });
-        self.marks.image = true;
     }
 
     fn link(&self, target: &str, wiki: bool) -> SpanLink {
@@ -365,7 +372,7 @@ fn item_marker(item: &mut Block) {
         item.marker = Some(ItemMarker::Plain);
         return;
     };
-    let found = (!first.code && !first.strong)
+    let found = (!first.code && !first.strong && first.image.is_none())
         .then(|| {
             TYPED
                 .iter()
@@ -572,12 +579,16 @@ impl Builder<'_> {
                 let wiki = matches!(link_type, LinkType::WikiLink { .. });
                 self.marks.link = Some(self.link(&dest_url, wiki));
             }
-            // An Obsidian embed, `![[shot.png]]`, stays text, as wikilinks are not resolved.
+            // An Obsidian embed, `![[shot.png]]`, stays text, as wikilinks are not resolved, unless
+            // it is inside an image's alt text. The end of an embed outside images leaves the
+            // count at 0.
             Tag::Image {
                 link_type,
                 dest_url,
                 ..
-            } if !matches!(link_type, LinkType::WikiLink { .. }) => self.image(&dest_url),
+            } if self.marks.image > 0 || !matches!(link_type, LinkType::WikiLink { .. }) => {
+                self.image(&dest_url);
+            }
             _ => {}
         }
     }
@@ -619,7 +630,7 @@ impl Builder<'_> {
             TagEnd::Emphasis => self.marks.emphasis -= 1,
             TagEnd::Strikethrough => self.marks.strike -= 1,
             TagEnd::Link => self.marks.link = None,
-            TagEnd::Image => self.marks.image = false,
+            TagEnd::Image => self.marks.image = self.marks.image.saturating_sub(1),
             _ => {}
         }
     }
