@@ -829,7 +829,7 @@ git commit -m "feat(run-ui): hand a folder over to the running server"
   >;
   ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // main.test.ts; `start(args, env)` spawns main.ts with --no-open and returns { child, stdout,
@@ -891,19 +891,27 @@ test("a second start during the first's start waits for it", async () => {
 });
 ```
 
-Use the turn state name `cache.ts` uses for a turn in progress. The breaks: the port taken after the
-cache opens, marking the running turns stopped (today's behaviour); a handoff that writes the list
-itself, from a data folder the running server may not use; the first server's early requests hanging
-with no listener; a relative `--repo` sent as is.
+Use the turn state name `cache.ts` uses for a turn in progress. Every start in these tests passes
+`--repo`: from the sources, the checkout's layout defaults the repository to the checkout's root,
+not the current folder (`env.test.ts`, "defaults to port 4310 and the root itself"), so the folder
+sent is the test's own only when given. The name in `/r/<name>/` is read from the list, as the core
+assigns it. For the start during the first's start, the test builds its fixtures first, waits until
+the port accepts connections, then sends `handOff` from the test's process at once, along with a
+second start: a spawned second start alone would usually arrive after the first is ready. The
+existing test of a folder outside git passes a free port, since the start now takes the port before
+refusing it. The breaks: the port taken after the cache opens, marking the running turns stopped
+(today's behaviour); a handoff that writes the list itself, from a data folder the running server
+may not use; the first server's early requests hanging with no listener; a relative `--repo` sent as
+is.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/__tests__/main.test.ts`
 - Expected: FAIL, first the second start exits 1 with
   `uraeda: port <port> is used by another program: pass --port to use another one`, or with today's
   `in use` message if Task 3's text is not reached first
 
-- [ ] **Step 3: Implement the start**
+- [x] **Step 3: Implement the start**
 
 In `main.ts`: parse the options; for `show`, print and exit. Create a Node HTTP server, `listen` on
 127.0.0.1 and the port. On `EADDRINUSE`, call `handOff` with the absolute folder and `given`: print
@@ -915,12 +923,12 @@ and resolve the app with `getRequestListener(app.fetch)` from `@hono/node-server
 without one, unless `--no-open`: `startServer` returns it as `Server.url`. Keep the signal handling
 as it is. `main.ts`'s functions stay under 100 lines.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check && vp test`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src
