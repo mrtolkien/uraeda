@@ -278,3 +278,31 @@ fn is_ancestor_of_a_merged_branch() {
     assert!(git.is_ancestor(main, branch));
     assert!(!git.is_ancestor(branch, main));
 }
+
+/// A worktree's repository deleted while it is read, as a test's temporary repository is: the
+/// status reads go on instead of panicking, which would abort the Node process holding the
+/// binding. The worktree's branch has no commit yet, so its status reads no object before it opens
+/// the object store again, which gix did without its `parallel` feature, panicking on a missing
+/// folder.
+#[test]
+fn a_worktree_whose_repository_is_deleted_is_read_without_a_panic() {
+    let repo = TestRepo::new();
+    let worktree = repo.parent().join("wt");
+    repo.git(&[
+        "worktree",
+        "add",
+        "--quiet",
+        "--orphan",
+        "-b",
+        "2026-10-10-a",
+        worktree.to_str().unwrap(),
+    ]);
+    let git = Git::discover(&worktree).unwrap();
+
+    std::fs::remove_dir_all(repo.path().join(".git/objects")).unwrap();
+
+    // Nothing is read from the deleted store: its empty index lists nothing.
+    assert_eq!(git.changed_files().unwrap(), Vec::<String>::new());
+    assert_eq!(git.staged_files().unwrap(), Vec::<String>::new());
+    assert!(!git.has_local_changes().unwrap());
+}
