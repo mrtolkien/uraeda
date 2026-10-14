@@ -71,15 +71,15 @@ async function workspace(ctx: RepoContext): Promise<WorkspaceRecord> {
 export function repositoriesRecord(ctx: Context, added: string | null = null): RepositoriesRecord {
   const home = homedir();
   return {
+    added,
     id: REPOSITORIES_ID,
-    rows: ctx.hosts.rows().map(({ name, path, missing }) => ({
-      name,
-      path,
+    problem: ctx.hosts.problem,
+    rows: ctx.hosts.rows().map(({ missing, name, path }) => ({
       home: homePath(path, home),
       missing,
+      name,
+      path,
     })),
-    problem: ctx.hosts.problem,
-    added,
   };
 }
 

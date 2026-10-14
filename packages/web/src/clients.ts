@@ -9,9 +9,9 @@ export type FateClient = ReturnType<typeof createFateClient>;
  * server's, the page's own when empty, and `fetch` sends its requests, the browser's by default.
  */
 export function fateClients({
-  origin = "",
   fetch,
-}: { origin?: string; fetch?: typeof globalThis.fetch } = {}): (repo: string | null) => FateClient {
+  origin = "",
+}: { fetch?: typeof globalThis.fetch; origin?: string } = {}): (repo: string | null) => FateClient {
   const clients = new Map<string | null, FateClient>();
   return (repo) => {
     let client = clients.get(repo);

@@ -1,10 +1,12 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vite-plus/test";
-import * as binding from "uraeda-binding";
 import { fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
 import { FakeAdapter } from "../runner/fake.ts";
 import { startServer } from "../server.ts";
+
+/** The core's binding, as one object: the server takes it whole. */
+const binding = await import("uraeda-binding");
 
 /** The servers of a test, stopped after it. */
 const started: Array<{ stop: () => Promise<void> }> = [];
@@ -19,14 +21,14 @@ afterEach(async () => {
 /** A server started in `repo`, on the fake agent and the data folder, stopped after the test. */
 async function start(repo: string, dataDir: string, given = false) {
   const server = await startServer({
-    repo,
-    given,
-    port: 4310,
+    adapter: new FakeAdapter(),
     allowedHosts: [],
     allowOrigins: [],
     binding,
     dataDir,
-    adapter: new FakeAdapter(),
+    given,
+    port: 4310,
+    repo,
   });
   started.push(server);
   return server;
@@ -37,12 +39,12 @@ function list(dataDir: string, repositories: Array<[name: string, path: string]>
   writeFileSync(
     join(dataDir, "repositories.json"),
     JSON.stringify({
-      version: 1,
       repositories: repositories.map(([name, path], index) => ({
         name,
-        path,
         openedAt: `2020-01-0${index + 1}T00:00:00Z`,
+        path,
       })),
+      version: 1,
     }),
   );
 }
@@ -79,14 +81,14 @@ test("starting outside git keeps the list's most recent", async () => {
   const dataDir = temporaryFolder("uraeda-data");
   list(dataDir, [["todo-app", todo]]);
   const folder = temporaryFolder("uraeda-home");
-  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 
   const { hosts } = await start(folder, dataDir);
 
   expect(hosts.mostRecent()?.name).toBe("todo-app");
   expect(hosts.rows()).toHaveLength(1);
   expect(log).toHaveBeenCalledWith(
-    `uraeda-server: ${folder} is not in a git repository: add one from the web UI`,
+    `uraeda-server: ${folder} is not in a git repository: add one from the web UI\n`,
   );
 });
 
@@ -122,14 +124,14 @@ function repoWithoutSpecs(): string {
 /** The workspace of a listed repository, read through its own endpoint. */
 async function workspaceOf(app: Awaited<ReturnType<typeof start>>["app"], name: string) {
   const response = await app.request(`http://127.0.0.1:4310/r/${name}/fate`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      version: 1,
       operations: [
-        { id: "1", kind: "byId", type: "Workspace", ids: ["workspace"], select: ["noSpecs"] },
+        { id: "1", ids: ["workspace"], kind: "byId", select: ["noSpecs"], type: "Workspace" },
       ],
+      version: 1,
     }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
   });
   return (await response.json()) as { results: Array<{ data?: unknown; error?: unknown }> };
 }
@@ -157,14 +159,14 @@ test("the global endpoint serves no repository's records", async () => {
   const { app } = await start(repo, temporaryFolder("uraeda-data"));
 
   const response = await app.request("http://127.0.0.1:4310/fate", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      version: 1,
       operations: [
-        { id: "1", kind: "byId", type: "Workspace", ids: ["workspace"], select: ["root"] },
+        { id: "1", ids: ["workspace"], kind: "byId", select: ["root"], type: "Workspace" },
       ],
+      version: 1,
     }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
   });
 
   const body = (await response.json()) as { results: Array<{ error: { message: string } }> };

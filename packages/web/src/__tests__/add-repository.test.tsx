@@ -4,8 +4,10 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import * as binding from "uraeda-binding";
 import { click, listOf, renderPage, repoAt, sent, temporaryHome, type } from "./helpers.tsx";
+
+/** The core's binding, as one object: the server takes it whole. */
+const binding = await import("uraeda-binding");
 
 const home = temporaryHome();
 

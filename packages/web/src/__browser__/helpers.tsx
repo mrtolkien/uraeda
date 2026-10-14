@@ -40,7 +40,7 @@ export function atRepo(path: string): string {
 beforeEach(async () => {
   // What a page remembers, like the question a round was left at, is another test's.
   window.localStorage.clear();
-  ({ token: turn, name } = await commands.takeRepo());
+  ({ name, token: turn } = await commands.takeRepo());
 });
 
 afterEach(async () => {
