@@ -44,9 +44,10 @@ fn rust_files(dir: &Path, files: &mut Vec<PathBuf>) {
     }
 }
 
-/// What breaks the limit, for a file at `name` measuring `lines`.
-fn problem(name: &str, lines: usize) -> Option<String> {
-    match LARGE.iter().find(|(listed, _)| *listed == name) {
+/// What breaks the limit, for a file at `name` measuring `lines`, with `large` the files over it
+/// when the decision was approved.
+fn problem(large: &[(&str, usize)], name: &str, lines: usize) -> Option<String> {
+    match large.iter().find(|(listed, _)| *listed == name) {
         None if lines > LIMIT => Some(format!(
             "{name} has {lines} lines, over the {LIMIT} of the code quality decision: split it by \
              responsibility, into modules of its folder."
@@ -86,7 +87,7 @@ fn rust_source_files_stay_under_500_lines() {
             .to_string_lossy()
             .replace('\\', "/");
         let lines = measure(&fs::read_to_string(path).unwrap());
-        problems.extend(problem(&name, lines));
+        problems.extend(problem(LARGE, &name, lines));
     }
     for (listed, _) in LARGE {
         if !root.join(listed).is_file() {
@@ -96,6 +97,29 @@ fn rust_source_files_stay_under_500_lines() {
         }
     }
     assert!(problems.is_empty(), "{}", problems.join("\n"));
+}
+
+#[test]
+fn a_problem_names_what_breaks_the_limit() {
+    let large = [("src/large.rs", 600)];
+    let rows: [(&str, usize, Option<&str>); 6] = [
+        ("src/new.rs", 500, None),
+        ("src/new.rs", 501, Some("split it by responsibility")),
+        ("src/large.rs", 601, Some("grew from 600 to 601 lines")),
+        ("src/large.rs", 600, None),
+        ("src/large.rs", 550, None),
+        ("src/large.rs", 500, Some("remove it from LARGE")),
+    ];
+    for (name, lines, expected) in rows {
+        let found = problem(&large, name, lines);
+        match expected {
+            None => assert_eq!(found, None, "{name} at {lines} lines"),
+            Some(text) => assert!(
+                found.as_deref().is_some_and(|found| found.contains(text)),
+                "{name} at {lines} lines: expected {text:?}, found {found:?}"
+            ),
+        }
+    }
 }
 
 #[test]
