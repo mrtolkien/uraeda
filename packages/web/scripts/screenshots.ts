@@ -24,6 +24,7 @@ import { FakeAdapter } from "uraeda-server/testing";
 import { createServer, type PluginOption } from "vite-plus";
 import base, { uraedaServer } from "../vite.config.ts";
 import { takeImages } from "./image-shots.ts";
+import { takeTextInputs } from "./text-input-shots.ts";
 import {
   here,
   setPrefix,
@@ -113,6 +114,7 @@ async function main() {
     const at = `/r/${encodeURIComponent(listed.name)}`;
     await take(shots, adapter, repo, at);
     await takeImages(shooter(shots, out, views), shots[0]!.page, adapter, repo, `${url}${at}`);
+    await takeTextInputs(shooter(shots, out, views));
   } finally {
     await browser?.close();
     await server.close();

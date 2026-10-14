@@ -9,10 +9,14 @@
 // So do the views images were added to (SC-005 of image attachments): the editor with an image's
 // link, a refusal, and the drop hint, its preview and a proposal with the image, the lightbox, the
 // composer's thumbnails and a message's images, a review comment and a round's answer with a link.
+// And the views text inputs changed: a round with a comment under a settled point and the form of
+// another open, the notes restored with their notice, and the "Leave page?" and "Discard your
+// comment?" confirmations.
 import { act, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
 import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
+import { navigate } from "../routes.tsx";
 import {
   atRepo,
   agent,
@@ -32,6 +36,7 @@ import {
   image,
   LIVE,
   paste,
+  reload,
   repository,
   sendMessage,
   show,
@@ -540,4 +545,104 @@ test.each(MODES)("a round's answer holding an image's link, in $mode", async ({ 
   await screen.findByText(/^Added /, undefined, LIVE);
   await drawn();
   await checkLayout();
+});
+
+const QUESTION = "How does your iPhone reach the server?";
+const COMMITS = "The actions' commits move into the core";
+const ANSWER = "An answer is written";
+
+/** A settled point of the round, by the bold subject its toggle's name starts with. */
+const settledPoint = (subject: string) =>
+  screen.findByRole("button", { name: new RegExp(`^${subject}`) });
+
+/** The comment form open: under its point on a wide screen, in a sheet on the phone. */
+async function settledForm() {
+  return (await screen.findByRole("form", { name: "Comment" })) as HTMLElement;
+}
+
+/** The round, a comment added under its first settled point, and a form open with text under the second. */
+async function settledComments() {
+  await show(ROUND, QUESTION);
+  await userEvent.click(await settledPoint(COMMITS), { force: true });
+  let form = await settledForm();
+  await userEvent.fill(
+    within(form).getByLabelText("Comment text"),
+    "Keep them in the core, but say so in the CLI's help.",
+  );
+  await userEvent.click(within(form).getByRole("button", { name: "Add comment" }));
+  await screen.findByRole("group", { name: `Your comment on "${COMMITS}"` }, LIVE);
+  // The phone's sheet gone, its history entry with it, before the next point is tapped.
+  await expect.poll(() => screen.queryByRole("form", { name: "Comment" })).toBeNull();
+  await drawn();
+  await userEvent.click(await settledPoint(ANSWER), { force: true });
+  form = await settledForm();
+  await userEvent.fill(
+    within(form).getByLabelText("Comment text"),
+    "Keep the comment after the letters.",
+  );
+  await drawn();
+  return form;
+}
+
+/** The overlay a form or a confirmation shows in on the phone, or the dialog on a wide screen. */
+const overlayOf = (element: HTMLElement) => element.closest("dialog") ?? element;
+
+test.each(MODES)(
+  "a round with a settled point's comment and another's form open, in $mode",
+  async ({ mode }) => {
+    window.localStorage.setItem("uraeda.theme", mode);
+    const form = await settledComments();
+    if (window.innerWidth < 768) {
+      // The form in its sheet, then the page under it, once the sheet is closed.
+      await checkLayout(overlayOf(form));
+      await userEvent.click(within(overlayOf(form)).getByRole("button", { name: "Close" }));
+      await expect.poll(() => screen.queryByRole("form", { name: "Comment" })).toBeNull();
+      await drawn();
+    }
+    await checkLayout();
+  },
+);
+
+test.each(MODES)(
+  "the notes restored after a reload, with their notice, in $mode",
+  async ({ mode }) => {
+    window.localStorage.setItem("uraeda.theme", mode);
+    await show(ROUND, QUESTION);
+    await userEvent.fill(screen.getByLabelText("Notes"), "Overall fine, but say where answers go.");
+    await reload(QUESTION);
+    await screen.findByText(/^Unsaved text restored from \d\d:\d\d\./);
+    screen.getByLabelText("Notes").scrollIntoView({ block: "center" });
+    await drawn();
+    await checkLayout();
+  },
+);
+
+test.each(MODES)("the Leave page? confirmation, in $mode", async ({ mode }) => {
+  window.localStorage.setItem("uraeda.theme", mode);
+  await show("/f/2026-10-11-web-ui", "Web UI for the workflow files");
+  await act(async () => navigate(atRepo(ROUND)));
+  await screen.findByText(QUESTION);
+  const comment = within(document.getElementById("Q3")!).getAllByRole("textbox", {
+    name: "Comment",
+  })[0] as HTMLTextAreaElement;
+  await userEvent.fill(comment, "Neither, keep it simple");
+  window.history.back();
+  const dialog = await screen.findByRole("dialog", { name: "Leave page?" });
+  await drawn();
+  await checkLayout(dialog);
+});
+
+test.each(MODES)("the Discard your comment? confirmation, in $mode", async ({ mode }) => {
+  window.localStorage.setItem("uraeda.theme", mode);
+  await show(ROUND, QUESTION);
+  await userEvent.click(await settledPoint(ANSWER), { force: true });
+  const form = await settledForm();
+  await userEvent.fill(
+    within(form).getByLabelText("Comment text"),
+    "Keep the comment after the letters.",
+  );
+  await userEvent.click(within(form).getByRole("button", { name: "Cancel" }));
+  const dialog = await screen.findByRole("dialog", { name: "Discard your comment?" });
+  await drawn();
+  await checkLayout(dialog);
 });
