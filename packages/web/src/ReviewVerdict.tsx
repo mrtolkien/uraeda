@@ -5,7 +5,9 @@ import { useFateClient } from "react-fate";
 import { CommitActions } from "./CommitActions.tsx";
 import type { useFile } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
+import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { TextField } from "./fields/TextField.tsx";
+import { useTextField } from "./fields/useTextField.ts";
 import { statusStyles } from "./Question.tsx";
 import { approveChoices, initialChoices, ReviewChoices } from "./ReviewChoices.tsx";
 import { HookRefusal } from "./RoundSubmit.tsx";
@@ -48,6 +50,24 @@ export function useRefusals() {
   return { error, message, run, setMessage };
 }
 
+/** A review's summary, kept in the unsaved store until the verdict sends it. */
+function SummaryField({ summary }: { summary: ReturnType<typeof useTextField> }) {
+  return (
+    <>
+      {summary.restored && (
+        <RestoreNotice changed="" onDiscard={summary.discard} restored={summary.restored} />
+      )}
+      <TextField
+        kind="comment"
+        label="Summary"
+        onChange={summary.change}
+        placeholder="Optional"
+        value={summary.text}
+      />
+    </>
+  );
+}
+
 /**
  * The end of a review: its summary, a spec's risk tier and plan review, and the verdict, which
  * commits and may hand the feature over to the agent.
@@ -66,7 +86,7 @@ export function ReviewVerdict({
   const spec = (file.committed ?? file.current).items.spec;
   const isSpec = file.kind === "spec";
   const where = { file: file.name, folder: file.folder };
-  const [summary, setSummary] = useState("");
+  const summary = useTextField(`${file.path}#summary`, "");
   const [choices, setChoices] = useState(() => initialChoices(spec));
   // The verdict last committed to start the agent, for its Try again.
   const continues = useRef<"approval" | "changes">(undefined);
@@ -75,7 +95,7 @@ export function ReviewVerdict({
   const proceed = (trigger: "approval" | "changes") => handOver(file.folder, trigger, file.name);
 
   const verdict = async (approve: boolean, next: boolean) => {
-    const input = { ...where, summary: summary || undefined };
+    const input = { ...where, summary: summary.text || undefined };
     const trigger = approve ? "approval" : "changes";
     continues.current = next ? trigger : undefined;
     const done = await run(() =>
@@ -86,6 +106,9 @@ export function ReviewVerdict({
           })
         : fate.mutations.review.requestChanges({ input, view: FileView }),
     );
+    if (done) {
+      summary.discard();
+    }
     if (done && next) {
       proceed(trigger);
     }
@@ -93,13 +116,7 @@ export function ReviewVerdict({
 
   return (
     <>
-      <TextField
-        kind="comment"
-        label="Summary"
-        onChange={setSummary}
-        placeholder="Optional"
-        value={summary}
-      />
+      <SummaryField summary={summary} />
       {isSpec && <ReviewChoices choices={choices} onChange={setChoices} spec={spec} />}
       {error && (
         <HookRefusal

@@ -1,3 +1,4 @@
+import { startTransition, useOptimistic } from "react";
 import { useFateClient } from "react-fate";
 import type { useFile } from "./data.ts";
 import { refusal } from "./errors.ts";
@@ -10,10 +11,15 @@ type File = NonNullable<ReturnType<typeof useFile>>;
 type Draft = ReturnType<typeof useCommentDraft>;
 type Refusals = ReturnType<typeof useRefusals>;
 
+/** A new comment being added: its text, and its lines, if on lines. */
+export type Adding = { range?: Range; text: string };
+
 /**
  * What a review sends: a comment on the selected lines or the whole file, an edit of one, its
  * removal, and starting over; and Ask the agent, which opens the feature's session with the
- * selected lines quoted, as they read in the file.
+ * selected lines quoted, as they read in the file. A new comment is `adding` from its "Add
+ * comment" until the review file holds it, its form hidden: refused, the form shows again, with
+ * the error.
  */
 export function useReviewActions(
   file: File,
@@ -21,7 +27,24 @@ export function useReviewActions(
   { run }: Refusals,
 ) {
   const fate = useFateClient();
+  // Shown from "Add comment" until the comment is written, in a transition of its own.
+  const [adding, setAdding] = useOptimistic<Adding | undefined>(undefined);
   const input = { file: file.name, folder: file.folder };
+  const add = (text: string) => {
+    const range = draft?.kind === "lines" ? selection : undefined;
+    return new Promise<{ error?: unknown }>((resolve) =>
+      startTransition(async () => {
+        setAdding({ range, text });
+        const extent = range ? { endLine: range.end, startLine: range.start } : {};
+        resolve(
+          await fate.mutations.review.comment({
+            input: { ...input, text, ...extent },
+            view: FileView,
+          }),
+        );
+      }),
+    );
+  };
   const send = async (written: string) => {
     if (!draft) {
       return undefined;
@@ -32,16 +55,7 @@ export function useReviewActions(
             input: { ...input, number: draft.number, text: written },
             view: FileView,
           })
-        : await fate.mutations.review.comment({
-            input: {
-              ...input,
-              text: written,
-              ...(draft.kind === "lines" && selection
-                ? { endLine: selection.end, startLine: selection.start }
-                : {}),
-            },
-            view: FileView,
-          });
+        : await add(written);
     if (result.error) {
       return refusal(result.error).message;
     }
@@ -60,5 +74,5 @@ export function useReviewActions(
   const startOver = async () => {
     await run(() => fate.mutations.review.startOver({ input, view: FileView }));
   };
-  return { ask, remove, send, startOver };
+  return { adding, ask, remove, send, startOver };
 }

@@ -59,17 +59,23 @@ async function placeAboveSheet(element: HTMLElement, sheet: RefObject<HTMLElemen
 }
 
 /**
- * The comment being written on a review: the lines selected by tapping blocks, the last block
- * tapped, under which the field opens on wide screens, and the text typed, kept as the field
- * moves. On the phone, the last tapped block goes above the comment sheet, as it opens and at each
- * tap.
+ * The comment being written on a review: the lines selected by tapping blocks, and the last block
+ * tapped, under which the field opens on wide screens. Its text is the field's, in the unsaved
+ * store: `onSelect` says where it goes as the lines change, for the store to keep them with it.
+ * `restored` is the comment the page opens as it is drawn; `writing` says which comment is written,
+ * a new one at each close and each edit started. On the phone, the last tapped block goes
+ * above the comment sheet, as it opens and at each tap.
  */
-export function useCommentDraft(wide: boolean) {
-  const [selection, setSelection] = useState<Range>();
-  const [draft, setDraft] = useState<CommentDraft>();
-  // The comment's text, kept here: the field moves under each tapped block on wide screens.
-  const [text, setText] = useState("");
-  const [last, setLast] = useState<number>();
+export function useCommentDraft(
+  wide: boolean,
+  onSelect: (selection: Range | undefined) => void,
+  restored?: { draft: CommentDraft; last?: number; selection?: Range },
+) {
+  const [selection, setSelection] = useState<Range | undefined>(restored?.selection);
+  const [draft, setDraft] = useState<CommentDraft | undefined>(restored?.draft);
+  const [last, setLast] = useState<number | undefined>(restored?.last);
+  // Which comment is written: a new one with each close and each edit started (R71).
+  const [writing, setWriting] = useState(0);
   const lastElement = useRef<HTMLElement>(null);
   const sheet = useRef<HTMLDivElement>(null);
 
@@ -96,27 +102,28 @@ export function useCommentDraft(wide: boolean) {
     if (draft?.kind !== "lines") {
       setDraft({ kind: "lines" });
     }
+    onSelect(next);
   };
 
-  /** Starts a comment on the whole file, or an edit of a pending comment, with its text. */
-  const start = (next: { kind: "general" } | { kind: "edit"; number: number; text: string }) => {
+  /** Starts a comment on the whole file, or an edit of a pending comment. */
+  const start = (next: Exclude<CommentDraft, { kind: "lines" }>) => {
     setSelection(undefined);
     setLast(undefined);
-    if (next.kind === "edit") {
-      setDraft({ kind: "edit", number: next.number });
-      setText(next.text);
+    setDraft(next);
+    if (next.kind === "general") {
+      onSelect(undefined);
     } else {
-      setDraft(next);
+      setWriting((was) => was + 1);
     }
   };
 
   const close = () => {
+    setWriting((was) => was + 1);
     setDraft(undefined);
-    setText("");
     setSelection(undefined);
     setLast(undefined);
     lastElement.current = null;
   };
 
-  return { close, draft, last, selection, setText, sheet, start, tap, text };
+  return { close, draft, last, selection, sheet, start, tap, writing };
 }

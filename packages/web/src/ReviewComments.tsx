@@ -5,9 +5,9 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useMemo } from "react";
 import type { CommentItem, Document } from "uraeda-binding";
-import { selectable } from "./Selection.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { statusStyles } from "./Question.tsx";
+import { holderOf } from "./reviewField.ts";
 
 const styles = stylex.create({
   pending: {
@@ -38,11 +38,7 @@ export function usePlacedComments(comments: ReadonlyArray<CommentItem>, tree: Do
   return useMemo(() => {
     const map = new Map<number, Array<CommentItem>>();
     for (const comment of comments.filter((c) => !c.general)) {
-      const holder = tree.blocks
-        .filter(
-          (b) => selectable(b) && b.startLine <= comment.endLine && comment.endLine <= b.endLine,
-        )
-        .sort((a, b) => a.endLine - a.startLine - (b.endLine - b.startLine))[0];
+      const holder = holderOf(tree, comment.endLine);
       if (holder) {
         map.set(holder.id, [...(map.get(holder.id) ?? []), comment]);
       }

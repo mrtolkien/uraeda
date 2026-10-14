@@ -499,7 +499,7 @@ git commit -m "build(text-inputs): React Compiler compiles the web UI"
     30 days, called once at start); `forgetUnsaved()` for tests. `localStorage` errors fall back to
     memory.
   - `fields/useTextField.ts`:
-    `useTextField(key: string, saved: string): { text: string; dirty: boolean; restored?: { at: string; changed: boolean }; entry?: Unsaved; unsavedNow(): Unsaved | undefined; change(text: string): void; discard(): void; saved(text: string): void }`.
+    `useTextField(key: string, saved: string, extra?: Unsaved["extra"]): { text: string; dirty: boolean; restored?: { at: string; changed: boolean }; entry?: Unsaved; unsavedNow(): Unsaved | undefined; change(text: string): void; discard(): void; saved(text: string): void }`.
     `dirty` compares trimmed texts; `change` writes the entry, or drops it when equal to `saved`
     trimmed; `saved(text)` drops the entry, unless the field changed during the save; an entry equal
     to `saved`, trimmed, is dropped once `saved` comes back; `restored` is set when the entry
@@ -740,16 +740,25 @@ git commit -m "feat(text-inputs): a tap saves the letters, and a comment saves w
 
 **Files:**
 
+- Create: `packages/web/src/ReviewChoices.tsx`, `ReviewCommentForm.tsx`, `reviewField.ts`
 - Modify: `packages/web/src/useCommentDraft.ts` (no `text`), `ReviewPage.tsx`, `useReviewImages.ts`,
-  `useReviewActions.ts`, `ReviewComments.tsx`, `CommentForm.tsx` (drop the `text` mode),
-  `MockupPage.tsx`, `ReviewVerdict.tsx` (split first)
+  `useReviewActions.ts`, `ReviewComments.tsx`, `YourReview.tsx`, `CommentForm.tsx` (drop the `text`
+  mode), `MockupPage.tsx`, `ReviewVerdict.tsx` (split first), `fields/useTextField.ts` (`extra`)
 - Test: `packages/web/src/__tests__/review.test.tsx`, `__tests__/mockup.test.tsx`
 
 **Interfaces:**
 
 - Consumes: tasks 3 to 5.
 - Produces: the review comment's text in the store under `${path}#review` or
-  `${path}#review-edit:<number>`, with `extra` holding the selection and the reviewed commit.
+  `${path}#review-edit:<number>`, with `extra` holding the selection and the reviewed commit, none
+  for a general comment; the summary under `${path}#summary`; a mockup's comment under
+  `${spec path}#mockup:<name>` (R15). `useTextField(key, saved, extra?)` writes `extra` with each
+  change. `CommentForm` has only its stored mode: `field`, `saved?`, `extra?`. `CommentHost` and
+  `FormSlot` in `ReviewCommentForm.tsx` draw the review's form apart from the document, and
+  `ReviewImagesContext` in `useReviewImages.ts` gives its images to the verdict (R17);
+  `useCommentDraft(wide, onSelect, restored?)` returns `writing`, and `useReviewActions` returns
+  `adding`, the new comment shown "saving…" (R18). `reviewField.ts`: `reviewKey`, `reviewEditKey`,
+  `holderOf`, `restoredComment`, `reanchor`.
 
 - [x] **Step 1: Split `ReviewVerdict` before it changes**
 
@@ -763,7 +772,7 @@ git add packages/web/src/ReviewVerdict.tsx packages/web/src/ReviewChoices.tsx
 git commit -m "refactor(text-inputs): the verdict's tier and plan review choices in a component"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 - US3 1 and SC-002: a spec of 300 blocks (a generated fixture), a comment form open on line 40, type
   "a" with React's `Profiler` around the document's `Blocks`: the profiler's `onRender` is not
@@ -778,30 +787,33 @@ git commit -m "refactor(text-inputs): the verdict's tier and plan review choices
 - A typed comment restored after a remount, its selection included; review focus 6: restored after
   the reviewed commit changed, as a general comment starting "On lines 40–52 of the previous
   version:".
-- The summary typed, remounted: restored. The mockup page's comment typed, the overlay closed with
-  Discard confirmed: gone; closed with "Keep editing": kept.
+- The summary typed, remounted: restored. The mockup page's comment typed, Cancel then Discard:
+  gone; Cancel then "Keep editing": kept; remounted: restored.
+- A new comment refused as it is added: its form shows again, with its text and the error.
 
 The break each test catches: the text back in page state (US3 1); a form remount losing the text
 (US3 2); a verdict ignoring a form with text but no image (US5 10); a restore that keeps stale line
 numbers (focus 6).
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web review mockup`
 - Expected: FAIL, `expected "spy" to not be called`
 
-- [ ] **Step 4: Implement** within the approved behaviour; `hold` also refuses while the form holds
-      text, with the existing UNSENT message changed to "Add or cancel your comment first.".
+- [x] **Step 4: Implement** within the approved behaviour; `hold` also refuses while the form holds
+      unsaved text, with the existing UNSENT message changed to "Add or cancel your comment first."
+      (R16). The form is drawn apart from the document (R17), a new comment shows at once (R18), and
+      the tests that cancel a comment holding an image's link confirm "Discard" (R16).
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run: `vp check && vp test --project uraeda-web`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add packages/web
+git add packages/web specs/2026-10-14-text-inputs
 git commit -m "feat(text-inputs): review comments render alone, and survive a reload"
 ```
 

@@ -20,7 +20,8 @@ function differ(a: string, b: string) {
  * into the store. The file never writes into the field while it holds unsaved text.
  *
  * - `dirty`: the text differs from `saved`, its ends trimmed.
- * - `change`: keeps the text typed; text equal to `saved`, trimmed, leaves no entry.
+ * - `change`: keeps the text typed, with `extra`, like a review comment's lines; text equal to
+ *   `saved`, trimmed, leaves no entry.
  * - `discard`: forgets the unsaved text, and shows `saved` again.
  * - `saved(text)`: says `text` was saved: its entry goes, unless the field changed since.
  * - `restored`: the unsaved text the field had when drawn, while it is still unsaved: when it was
@@ -28,7 +29,7 @@ function differ(a: string, b: string) {
  * - `entry`: the unsaved text now, and `unsavedNow()` as the store holds it when called, for code
  *   that runs after waiting, like a submit.
  */
-export function useTextField(field: string, saved: string) {
+export function useTextField(field: string, saved: string, extra?: Unsaved["extra"]) {
   const key = unsavedKey(useRepositoryPath(), field);
   const entry = useUnsaved(key);
   const [atMount] = useState(() => readUnsaved(key));
@@ -56,7 +57,7 @@ export function useTextField(field: string, saved: string) {
       at: new Date().toISOString(),
       base: before?.base ?? saved,
       text: value,
-      ...(before?.extra ? { extra: before.extra } : {}),
+      ...(extra ? { extra } : {}),
     });
   };
 
