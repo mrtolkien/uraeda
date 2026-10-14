@@ -18,7 +18,7 @@ const NOT_FOUND = /^refused: .*: no such file$/s;
 /**
  * Files of the repository, read through the binding: `/raw/<path>` as text, for links to code,
  * and `/mockups/<path>` with their own type, sandboxed so their scripts run outside the UI's
- * origin.
+ * origin. Mounted at `/`, and at `/r/:name`, whose prefix is left out of the file's path.
  */
 export function files() {
   const app = new Hono<{ Variables: FateVariables }>();
@@ -39,16 +39,19 @@ export function files() {
       return 500;
     }
   };
+  /** The request's path after its repository's prefix and `/<route>/`. */
+  const rest = (context: { req: { path: string } }, route: string) =>
+    context.req.path.replace(/^\/r\/[^/]+/, "").slice(`/${route}/`.length);
   const failed = (status: 404 | 500) =>
     status === 404 ? "Not found" : "The file could not be read";
   app.get("/raw/*", async (context) => {
-    const text = await read(context, context.req.path.slice("/raw/".length));
+    const text = await read(context, rest(context, "raw"));
     return typeof text === "number"
       ? context.text(failed(text), text)
       : context.text(text, 200, { "content-type": "text/plain; charset=utf-8" });
   });
   app.get("/mockups/*", async (context) => {
-    const path = context.req.path.slice("/mockups/".length);
+    const path = rest(context, "mockups");
     const text = await read(context, path);
     if (typeof text === "number") {
       return context.text(failed(text), text);
