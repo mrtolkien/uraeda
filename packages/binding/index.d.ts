@@ -388,6 +388,16 @@ export interface LineRange {
   end: number
 }
 
+/** A link of a spec's `## Mockups` section to a file under `mockups/`. */
+export interface MockupLink {
+  /** `mockups/repeat.html`, from the spec's folder. */
+  path: string
+  /** The link's text. */
+  label: string
+  /** The selectable block holding the link: its list item, row, or paragraph. */
+  block: number
+}
+
 /** A feature's next step, as `ura next` gives it, for an agent's run. */
 export interface NextStepView {
   /** `human-gate`, `plan`, `implementation`, `done`, ... */
@@ -563,6 +573,8 @@ export interface SpecItems {
    * up to the next level-1 or level-2 heading, or none.
    */
   details: Array<number>
+  /** The mockups the `## Mockups` section links, in its order. */
+  mockups: Array<MockupLink>
 }
 
 /** A feature started. */

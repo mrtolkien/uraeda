@@ -20,6 +20,7 @@ import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { PendingComment, usePlacedComments } from "./ReviewComments.tsx";
 import { reviewHeadings } from "./ReviewHeadings.tsx";
+import { ReviewMockups } from "./ReviewMockups.tsx";
 import { useRefusals } from "./ReviewVerdict.tsx";
 import { selectable } from "./Selection.tsx";
 import { plain } from "./Spans.tsx";
@@ -175,6 +176,7 @@ export function ReviewPage({ file }: { file: File }) {
         {file.reviewStale && comments.length > 0 && (
           <StaleBanner count={comments.length} kind={file.kind} onStartOver={actions.startOver} />
         )}
+        <ReviewMockups folder={file.folder} mockups={version.items.spec?.mockups} wide={wide} />
         <Text color="secondary" type="supporting">
           Tap a block to comment on it. Showing the version committed at <Code>{file.tip}</Code>
           {file.committed && ", which differs from the file on disk"}.

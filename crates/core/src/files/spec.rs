@@ -1,7 +1,9 @@
 //! The user stories and success criteria of a spec.
 
-use super::document::{BlockKind, Document};
-use super::items::{Criterion, Scenario, SpecItems, Story, TierChoice, headings, section};
+use super::document::{Block, BlockKind, Document};
+use super::items::{
+    Criterion, MockupLink, Scenario, SpecItems, Story, TierChoice, headings, section,
+};
 use crate::check::allowed_values;
 use crate::workspace::FileKind;
 
@@ -118,24 +120,73 @@ pub fn items(doc: &Document) -> SpecItems {
         plan_review: None,
         tiers: Vec::new(),
         details: details(doc),
+        mockups: mockups(doc),
     }
+}
+
+/// The blocks of the level-2 section titled `title`, nested ones included, as a range of indices.
+fn section_range(doc: &Document, title: &str) -> Option<std::ops::Range<usize>> {
+    let all = headings(doc);
+    let position = all
+        .iter()
+        .position(|(_, level, text)| *level == 2 && text == title)?;
+    let end = all[position + 1..]
+        .iter()
+        .find(|(_, level, _)| *level <= 2)
+        .map_or(doc.blocks.len(), |(index, _, _)| *index);
+    Some(all[position].0..end)
+}
+
+/// The links of the `## Mockups` section to files under `mockups/`, in order, each with the block
+/// a review comment on it lands on. A link whose text has several marks, several spans, is one.
+fn mockups(doc: &Document) -> Vec<MockupLink> {
+    let Some(range) = section_range(doc, "Mockups") else {
+        return Vec::new();
+    };
+    let mut links: Vec<MockupLink> = Vec::new();
+    for block in &doc.blocks[range] {
+        let mut previous = None;
+        for span in &block.spans {
+            let target = span.link.as_ref().map(|link| link.target.as_str());
+            let path = target
+                .and_then(|target| target.split('#').next())
+                .map(|path| path.strip_prefix("./").unwrap_or(path))
+                .filter(|path| path.starts_with("mockups/"));
+            match (path, links.last_mut()) {
+                (Some(_), Some(last)) if previous == target => last.label.push_str(&span.text),
+                (Some(path), _) => links.push(MockupLink {
+                    path: path.to_string(),
+                    label: span.text.clone(),
+                    block: holder(doc, block),
+                }),
+                _ => {}
+            }
+            previous = target;
+        }
+    }
+    links
+}
+
+/// The block a review selects for a block: itself, or its nearest list item or table row, or its
+/// top-level block.
+fn holder(doc: &Document, block: &Block) -> u32 {
+    let mut current = block;
+    while let Some(parent) = current.parent {
+        if matches!(current.kind, BlockKind::Item | BlockKind::Row) {
+            break;
+        }
+        current = &doc.blocks[parent as usize];
+    }
+    current.id
 }
 
 /// The `## Details` heading and the top-level blocks after it, its subheadings included, up to the
 /// next level-1 or level-2 heading.
 fn details(doc: &Document) -> Vec<u32> {
-    let all = headings(doc);
-    let Some(position) = all
-        .iter()
-        .position(|(_, level, text)| *level == 2 && text == "Details")
-    else {
+    let Some(range) = section_range(doc, "Details") else {
         return Vec::new();
     };
-    let end = all[position + 1..]
-        .iter()
-        .find(|(_, level, _)| *level <= 2)
-        .map_or(doc.blocks.len(), |(index, _, _)| *index);
-    doc.blocks[all[position].0..end]
+    doc.blocks[range]
         .iter()
         .filter(|b| b.parent.is_none())
         .map(|b| b.id)

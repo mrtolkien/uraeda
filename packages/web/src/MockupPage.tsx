@@ -5,8 +5,6 @@ import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tok
 import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
-import type { Block, Document } from "uraeda-binding";
-import { selectable } from "./Selection.tsx";
 import { CommentForm, quoteOf } from "./CommentForm.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { useFile } from "./data.ts";
@@ -36,20 +34,6 @@ const styles = stylex.create({
   },
 });
 
-/** Whether a block of the spec links the mockup, `mockups/<name>`, in its text or its cells. */
-function links(document: Document, block: Block, name: string) {
-  const spans = [
-    ...block.spans,
-    ...document.blocks
-      .filter((b) => b.parent === block.id && b.kind === "cell")
-      .flatMap((b) => b.spans),
-  ];
-  return spans.some((span) => {
-    const target = span.link?.target.split("#")[0].replace(/^\.\//, "");
-    return target === `mockups/${name}`;
-  });
-}
-
 /**
  * A mockup of a feature, inside the UI: its file in a sandboxed frame, a link to open it in a tab of
  * its own, and, while the spec waits for review, a comment on the spec's line that links it, or a
@@ -63,10 +47,11 @@ export function MockupPage({ folder, name }: { folder: string; name: string }) {
   useRestoreScroll(true);
   const source = here(`/mockups/specs/${folder}/mockups/${name}`);
   const reviewing = spec && !spec.missing && spec.status === "awaiting-human";
-  const document = spec && (spec.committed ?? spec.current).document;
-  // The first block of the spec, in its order, that links the mockup.
-  const line =
-    document && document.blocks.find((block) => selectable(block) && links(document, block, name));
+  const version = spec && (spec.committed ?? spec.current);
+  const document = version?.document;
+  // The block of the spec's Mockups section that links the mockup.
+  const link = version?.items.spec?.mockups.find((mockup) => mockup.path === `mockups/${name}`);
+  const line = link && document?.blocks[link.block];
 
   const send = async (text: string) => {
     const result = await fate.mutations.review.comment({

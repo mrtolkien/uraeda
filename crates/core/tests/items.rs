@@ -203,6 +203,45 @@ fn a_spec_has_its_folds() {
     }
 }
 
+/// C2: the mockups the review opens first are the links of the `## Mockups` section, each with the
+/// block a comment on it lands on.
+#[test]
+fn a_spec_has_its_mockups() {
+    let (_, example, doc) = example("spec.md");
+    let mockups = example.spec.unwrap().mockups;
+
+    assert_eq!(mockups.len(), 1);
+    assert_eq!(mockups[0].path, "mockups/repeat.html");
+    assert_eq!(mockups[0].label, "Repeat");
+    let block = &doc.blocks[mockups[0].block as usize];
+    assert_eq!(
+        (block.start_line, block.heading.as_deref()),
+        (141, Some("Mockups"))
+    );
+
+    let story = "# Spec: X\n\n## User stories\n\n### US1: Y (P1)\n\nSee [it](mockups/a.html).\n";
+    let doc = document::parse(story, "specs/x");
+    assert!(
+        items("spec.md", story, &doc)
+            .spec
+            .unwrap()
+            .mockups
+            .is_empty()
+    );
+
+    let section = "## Mockups\n\n- [**Big** board](./mockups/b.html#top), [data](data.md)\n";
+    let text = format!("{story}\n{section}");
+    let doc = document::parse(&text, "specs/x");
+    let links: Vec<(String, String)> = items("spec.md", &text, &doc)
+        .spec
+        .unwrap()
+        .mockups
+        .into_iter()
+        .map(|m| (m.path, m.label))
+        .collect();
+    assert_eq!(links, [("mockups/b.html".into(), "Big board".into())]);
+}
+
 #[test]
 fn a_plan_has_its_tasks_and_steps() {
     let (_, items, _) = example("plan.md");

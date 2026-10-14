@@ -125,6 +125,21 @@ pub struct SpecItems {
     /// The blocks the web UI folds: the `## Details` heading and every top-level block after it,
     /// up to the next level-1 or level-2 heading, or none.
     pub details: Vec<u32>,
+    /// The mockups the `## Mockups` section links, in its order.
+    pub mockups: Vec<MockupLink>,
+}
+
+/// A link of a spec's `## Mockups` section to a file under `mockups/`.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MockupLink {
+    /// `mockups/repeat.html`, from the spec's folder.
+    pub path: String,
+    /// The link's text.
+    pub label: String,
+    /// The selectable block holding the link: its list item, row, or paragraph.
+    pub block: u32,
 }
 
 /// A risk tier an approval may pick, and whether the plan then waits for the human's review,
