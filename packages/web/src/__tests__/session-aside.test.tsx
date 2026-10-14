@@ -14,6 +14,7 @@ import {
   git,
   refreshUntil,
   renderPage,
+  type,
 } from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
@@ -338,4 +339,36 @@ test("US5.1: a chat has no column", async () => {
   await waitFor(() => expect(screen.queryByRole("button", { name: "Archive" })).toBeTruthy());
   expect(screen.queryByRole("complementary", { name: "Progress" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Hide progress" })).toBeNull();
+});
+
+test("folding the column keeps the focus on its button", async () => {
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  await renderPage(`/f/${CLI}/session`, repo, { agent: await fakeAgent() });
+  await findAside();
+  const hide = screen.getByRole("button", { name: "Hide progress" });
+  hide.focus();
+
+  await click(hide);
+
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: "Show progress" }));
+});
+
+test("an error under the composer stays on screen when the column folds", async () => {
+  const fake = await fakeAgent();
+  await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: fake });
+  await type(await screen.findByRole("textbox", { name: "Message Claude Code" }), "Plan it.");
+  await click(await screen.findByRole("button", { name: "Send" }));
+  await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
+  fake.adapter.emit({ id: fake.adapter.sent[0].id, type: "accepted" });
+  await refreshUntil(() => expect(screen.getByRole("button", { name: "Stop" })).toBeTruthy());
+  vi.spyOn(fake.sessions, "stop").mockImplementation(() => {
+    throw new Error("refused: The agent did not take the interrupt.");
+  });
+  await click(screen.getByRole("button", { name: "Stop" }));
+  await screen.findByText("The agent did not take the interrupt.");
+
+  await click(screen.getByRole("button", { name: "Hide progress" }));
+
+  expect(screen.getByText("The agent did not take the interrupt.")).toBeTruthy();
 });

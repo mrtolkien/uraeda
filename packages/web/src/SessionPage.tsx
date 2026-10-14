@@ -271,8 +271,8 @@ function SessionPane({
     );
   }
   return (
-    <Page>
-      <WithAside aside={aside} folder={crumbs} {...(id === undefined ? {} : { session: id })}>
+    <WithAside aside={aside} folder={crumbs} {...(id === undefined ? {} : { session: id })}>
+      <Page>
         {crumbs !== undefined && <Crumbs current="Session" folder={crumbs} />}
         {id === undefined ? (
           <VStack gap={3}>
@@ -300,8 +300,8 @@ function SessionPane({
             }}
           />
         </div>
-      </WithAside>
-    </Page>
+      </Page>
+    </WithAside>
   );
 }
 
