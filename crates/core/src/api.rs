@@ -2,6 +2,7 @@
 //! branch it writes on through a worktree, acts, and returns what the UI shows next.
 
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 use crate::actions::review::{self, Tier};
 use crate::actions::{ActionError, answer, draft, place, priorities as edits, start, text};
@@ -13,9 +14,11 @@ use crate::files::proposal;
 use crate::files::review::Verdict;
 use crate::gates::{AWAITING_HUMAN, Gate, gate_of};
 use crate::git::{Git, GitError};
+use crate::repositories::{self, ListError};
 use crate::view::{
-    CommitView, DraftView, FeatureView, FileView, NextView, PriorityLink, PriorityView,
-    ProposalHint, StartedView, StepView, VersionView, WaitingFile, WorkspaceView, title,
+    AddedView, CommitView, DraftView, FeatureView, FileView, NextView, PriorityLink, PriorityView,
+    ProposalHint, RepositoryView, StartedView, StepView, VersionView, WaitingFile, WorkspaceView,
+    title,
 };
 use crate::workspace::{
     Feature, FileKind, Problem, Source, Workspace, WorkspaceError, linked_draft,
@@ -67,6 +70,12 @@ impl From<ActionError> for ApiError {
             }
             error => refused(error.to_string()),
         }
+    }
+}
+
+impl From<ListError> for ApiError {
+    fn from(error: ListError) -> ApiError {
+        refused(error.to_string())
     }
 }
 
@@ -388,6 +397,39 @@ pub fn work_dir(repo: &Path, folder: &str) -> Result<String> {
 pub fn main_root(repo: &Path) -> Result<String> {
     let (git, _) = open(repo)?;
     Ok(git.main_root().to_string_lossy().into_owned())
+}
+
+/// Uraeda's data folder: `custom` when set and not empty, else `URAEDA_DATA_DIR` from this
+/// process's environment, else the operating system's default.
+pub fn data_dir(custom: Option<&str>) -> String {
+    custom
+        .filter(|folder| !folder.is_empty())
+        .map_or_else(repositories::default_data_dir, PathBuf::from)
+        .to_string_lossy()
+        .into_owned()
+}
+
+/// The list of repositories in `data_dir`, the most recently opened first.
+pub fn read_repositories(data_dir: &Path) -> Result<Vec<RepositoryView>> {
+    Ok(repositories::read(data_dir)?
+        .into_iter()
+        .map(RepositoryView::from)
+        .collect())
+}
+
+/// Adds the git repository holding `folder`, an absolute path, to the list.
+pub fn add_repository(data_dir: &Path, folder: &Path) -> Result<AddedView> {
+    Ok(repositories::add(data_dir, folder, SystemTime::now())?.into())
+}
+
+/// Takes a repository off the list, leaving its folder and sessions as they are.
+pub fn remove_repository(data_dir: &Path, name: &str) -> Result<()> {
+    Ok(repositories::remove(data_dir, name)?)
+}
+
+/// Records that a repository was opened now.
+pub fn open_repository(data_dir: &Path, name: &str) -> Result<RepositoryView> {
+    Ok(repositories::touch(data_dir, name, SystemTime::now())?.into())
 }
 
 fn round_name(feature: &Feature) -> Result<String> {

@@ -1,8 +1,7 @@
 import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { parseEnv } from "node:util";
-import { dataDir } from "./runner/cache.ts";
+import { dataDir } from "uraeda-binding";
 
 /** The server's settings, from `.env` at the root, then the process's environment. */
 export type Env = {
@@ -31,17 +30,12 @@ export function loadEnv(root: string, environment: NodeJS.ProcessEnv = process.e
 }
 
 /**
- * Uraeda's data folder, where the runner keeps its cache: `URAEDA_DATA_DIR` from the environment
- * or `<root>/.env`, or else the operating system's default.
+ * Uraeda's data folder, where the runner keeps its cache and the list of repositories:
+ * `URAEDA_DATA_DIR` from the environment or `<root>/.env`, or else the operating system's
+ * default, from the core.
  */
-export function loadDataDir(
-  root: string,
-  environment: NodeJS.ProcessEnv = process.env,
-  platform: NodeJS.Platform = process.platform,
-  home: string = homedir(),
-): string {
-  const value = settings(root, environment);
-  return dataDir({ ...environment, URAEDA_DATA_DIR: value("URAEDA_DATA_DIR") }, platform, home);
+export function loadDataDir(root: string, environment: NodeJS.ProcessEnv = process.env): string {
+  return dataDir(settings(root, environment)("URAEDA_DATA_DIR"));
 }
 
 /** A setting by its name: from the environment, else from `<root>/.env`. */

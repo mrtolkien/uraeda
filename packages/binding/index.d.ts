@@ -21,6 +21,12 @@ export declare function addComment(repo: string, folder: string, file: string, s
 /** Adds a line at the end of a section of the priorities. */
 export declare function addPriority(repo: string, section: string, text: string, previous: string): Promise<Priorities>
 
+/**
+ * Adds the git repository holding `folder`, an absolute path, to the list; one listed already
+ * is opened, and returned with `existed`.
+ */
+export declare function addRepository(dataDir: string, folder: string): Promise<Added>
+
 /** Approves a spec, a plan, or an assessment, and commits it. */
 export declare function approve(repo: string, folder: string, file: string, summary?: string | undefined | null, riskTier?: string | undefined | null, planReview?: boolean | undefined | null): Promise<FileView>
 
@@ -32,6 +38,12 @@ export declare function commitText(repo: string, path: string): Promise<CommitVi
 
 /** Drafts a priority line by its id, like `next-2`, over the priorities read at `previous`. */
 export declare function createDraft(repo: string, id: string, previous: string): Promise<DraftView>
+
+/**
+ * Uraeda's data folder: `custom` when set and not empty, else `URAEDA_DATA_DIR` from this
+ * process's environment, else the operating system's default.
+ */
+export declare function dataDir(custom?: string | undefined | null): string
 
 /** Restores the committed priorities. */
 export declare function discardPriorities(repo: string): Promise<Priorities>
@@ -57,6 +69,9 @@ export declare function movePriority(repo: string, id: string, section: string, 
 /** A feature's next step, with its branch and the main checkout's path, for an agent's run. */
 export declare function nextStep(repo: string, folder: string): Promise<NextView>
 
+/** Records that a repository was opened now, and returns it. */
+export declare function openRepository(dataDir: string, name: string): Promise<Repository>
+
 /** Each section of the proposal template, with the guidance the editor shows while it is empty. */
 export declare function proposalHints(): Promise<Array<ProposalHint>>
 
@@ -75,6 +90,9 @@ export declare function readPriorities(repo: string): Promise<Priorities>
 /** A file of the repository as text, for links to code and mockups. */
 export declare function readRaw(repo: string, path: string): Promise<string>
 
+/** The list of repositories in the data folder, the most recently opened first. */
+export declare function readRepositories(dataDir: string): Promise<Array<Repository>>
+
 /** A draft or a proposal, for its editor, by its path from the top level. */
 export declare function readText(repo: string, path: string): Promise<DraftView>
 
@@ -86,6 +104,9 @@ export declare function removeComment(repo: string, folder: string, file: string
 
 /** Removes a priority line and its nested lines. */
 export declare function removePriority(repo: string, id: string, previous: string): Promise<Priorities>
+
+/** Takes a repository off the list, leaving its folder and sessions as they are. */
+export declare function removeRepository(dataDir: string, name: string): Promise<void>
 
 /** Requests changes on a spec, a plan, or an assessment, and commits it. */
 export declare function requestChanges(repo: string, folder: string, file: string, summary?: string | undefined | null): Promise<FileView>
@@ -128,6 +149,12 @@ export declare function watch(repo: string, onChange: (changes: Changes) => void
 
 /** The directory an agent works on a feature in, its worktree created when none has its branch. */
 export declare function workDir(repo: string, folder: string): Promise<string>
+
+/** A repository added to the list, or found listed already. */
+export interface Added {
+  repository: Repository
+  existed: boolean
+}
 
 /** A block, its place in the tree, its lines, and the fields of its kind. */
 export interface Block {
@@ -451,6 +478,18 @@ export interface QuestionItem {
   asked: boolean
   /** The line of its `**Answer:**` marker, or 0. */
   answerLine: number
+}
+
+/** A repository of the list. */
+export interface Repository {
+  /** Unique in the list, the `<name>` of its `/r/<name>/` URLs. */
+  name: string
+  /** The main checkout, absolute. */
+  path: string
+  /** When it was added or last opened, in RFC 3339, in UTC. */
+  openedAt: string
+  /** The folder no longer holds the main checkout of a git repository. */
+  missing: boolean
 }
 
 export interface ReviewItems {
