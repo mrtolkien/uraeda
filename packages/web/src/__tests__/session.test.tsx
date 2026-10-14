@@ -391,6 +391,8 @@ test("US4.5: turns are announced as they start, end, and fail, each time", async
   await click(start);
 
   await announced("The agent started: Implementation");
+  // `status` reads the whole region by default: only the new announcement is read.
+  expect(status().getAttribute("aria-atomic")).toBe("false");
   fake.adapter.emit({ id: fake.adapter.sent[0].id, type: "accepted" });
   fake.adapter.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
   await announced("The agent finished");
