@@ -71,12 +71,7 @@ export function ConfirmHost({ children }: { children: ReactNode }) {
     <ConfirmContext value={ask}>
       {children}
       {shown !== undefined && (
-        <Overlay
-          isOpen={open}
-          label={shown.title}
-          onClose={() => answer(false)}
-          sheetHeight="capped"
-        >
+        <Overlay isOpen={open} label={shown.title} onClose={() => answer(false)} sheetHeight="hug">
           <VStack gap={4}>
             <Text>{shown.body}</Text>
             <HStack gap={2} justify="end">
