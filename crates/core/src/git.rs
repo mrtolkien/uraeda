@@ -576,8 +576,31 @@ impl Git {
         self.run("commit", &commit)
     }
 
+    /// Whether the files at or under `path` differ between `HEAD` and the working tree, as
+    /// `git add --all` would stage them: ignored files left out, symbolic links compared as links,
+    /// and a new file staged then deleted from disk, `AD`, no change.
+    pub fn differs_from_head(&self, path: &str) -> Result<bool, GitError> {
+        let output = self.output(
+            "status",
+            &[
+                "--no-optional-locks",
+                "status",
+                "--porcelain=v1",
+                "-z",
+                "--untracked-files=all",
+                "--no-renames",
+                "--",
+                path,
+            ],
+        )?;
+        Ok(output
+            .split('\0')
+            .filter(|entry| entry.len() > 3)
+            .any(|entry| !entry.starts_with("AD ")))
+    }
+
     /// Whether the index holds `path`, or files under it.
-    fn in_index(&self, path: &str) -> Result<bool, GitError> {
+    pub(crate) fn in_index(&self, path: &str) -> Result<bool, GitError> {
         let index = self
             .repo
             .index_or_empty()

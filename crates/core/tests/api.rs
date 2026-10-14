@@ -497,3 +497,62 @@ fn a_feature_lists_its_mockups() {
         vec!["a.html", "repeat.html"]
     );
 }
+
+/// A refused approval staged the review's new image; once the review no longer links it, trying
+/// again deletes it and commits without it.
+#[test]
+fn try_again_drops_an_image_staged_then_unlinked() {
+    let repo = repo();
+    let review = "specs/2026-10-11-web-ui/spec-review.md";
+    let worktree = ".worktrees/2026-10-11-web-ui";
+    api::add_comment(
+        repo.path(),
+        FOLDER,
+        "spec.md",
+        None,
+        "![shot](images/shot.webp)",
+    )
+    .unwrap();
+    repo.write(
+        &format!("{worktree}/specs/2026-10-11-web-ui/images/shot.webp"),
+        "shot",
+    );
+    repo.set_hook("exit 1");
+    let refused = api::approve(repo.path(), FOLDER, "spec.md", None, None, None).unwrap_err();
+    assert_eq!(refused.code, "hook");
+    repo.set_hook("exit 0");
+    let path = format!("{worktree}/{review}");
+    let text = repo
+        .read(&path)
+        .replace("![shot](images/shot.webp)", "Fine.");
+    repo.write(&path, &text);
+
+    api::retry_commit(repo.path(), FOLDER, "spec.md").unwrap();
+
+    assert_eq!(repo.changed_in(FOLDER), [review, SPEC]);
+    assert!(!repo.exists(&format!("{worktree}/specs/2026-10-11-web-ui/images")));
+}
+
+/// Trying again checks the staged files before deleting any image.
+#[test]
+fn try_again_refuses_other_staged_files_before_deleting_images() {
+    let repo = repo();
+    let worktree = ".worktrees/2026-10-11-web-ui";
+    repo.set_hook("exit 1");
+    let refused = api::approve(repo.path(), FOLDER, "spec.md", None, None, None).unwrap_err();
+    assert_eq!(refused.code, "hook");
+    repo.set_hook("exit 0");
+    let image = format!("{worktree}/specs/2026-10-11-web-ui/images/old.webp");
+    repo.write(&image, "old");
+    repo.write(&format!("{worktree}/specs/README.md"), "# Changed\n");
+    common::repo::run_git(&repo.path().join(worktree), &["add", "specs/README.md"]);
+
+    let error = api::retry_commit(repo.path(), FOLDER, "spec.md").unwrap_err();
+
+    assert!(
+        error.message.contains("other files are staged"),
+        "{}",
+        error.message
+    );
+    assert!(repo.exists(&image));
+}

@@ -45,6 +45,9 @@ interactions with existing behaviour. Each gets a test in the task that owns the
 9. **A drop outside every field** never makes the browser leave the app. Task 8.
 10. **The startup cleanup of chat images** never deletes an image another server's session uses, nor
     one uploaded in the last 24 hours. Task 7.
+11. **An image linked only from an unsaved field**, like an open comment form, is deleted by a
+    verdict or a submit: the UI saves or blocks pending fields before a verdict or a submit.
+    Task 11.
 
 ## Global constraints
 
@@ -542,13 +545,17 @@ git commit -m "feat(image-attachments): images in documents, checks, and the ski
 - Consumes: `attach_image` (task 2), to set tests up; image links in `document.links` (task 3).
 - Produces:
   - `pub fn linked_images(place: &Place, folder: &str) -> Result<Vec<String>, ActionError>`: deletes
-    every file of `<folder>/images/` that no markdown file directly in `<folder>` links, by an image
-    or a plain link; returns `["<folder>/images"]` when that folder exists or HEAD tracks files
-    under it, else `[]`.
+    every file under `<folder>/images/` that no markdown file of `<folder>` or its subfolders links,
+    by an image, a link, a wikilink, or an embed
+    ([R31](rulings.md#r31-markdown-links-of-any-kind-keep-an-image-html-does-not),
+    [R33](rulings.md#r33-folders-under-images-follow-the-same-rule-and-git-says-what-changed));
+    returns `["<folder>/images"]` when that folder exists, or HEAD or the index holds files under it
+    ([R29](rulings.md#r29-a-file-staged-under-images-keeps-the-folder-in-the-commit)), else `[]`.
   - Changed behaviour: the text, review, and answer changes append `linked_images` to their paths; a
-    text change counts as a change when only images changed; a folder draft whose old file
-    `specs/<drafts|backlog>/<slug>.md` is tracked at HEAD and gone adds that path, with the subject
-    "chore: edit the draft <title>" or "chore: edit <title> in the backlog".
+    text change counts as a change when only images changed; a folder draft moved from a file
+    tracked at HEAD and gone adds that path
+    ([R30](rulings.md#r30-a-moved-draft-is-found-by-its-priorities-line-or-its-title)), with the
+    subject "chore: edit the draft <title>" or "chore: edit <title> in the backlog".
 
 - [x] **Step 1: Write the failing tests**
 

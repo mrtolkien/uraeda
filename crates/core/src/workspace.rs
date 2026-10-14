@@ -1058,9 +1058,10 @@ fn decisions_pending(
 
 /// A link's file, from the top level, relative to the folder `dir` holding the linking file.
 /// `None` for an anchor in the page, a URI with a scheme (`https:`, `data:`, `mailto:`), or a
-/// protocol-relative URL (`//host/x`). A percent-encoded path is decoded: `my%20shot.webp`.
+/// protocol-relative URL (`//host/x`). A `?query` is left out, and a percent-encoded path is
+/// decoded: `my%20shot.webp`.
 pub fn resolve(dir: &str, target: &str) -> Option<String> {
-    let path = target.split('#').next()?;
+    let path = target.split('#').next()?.split('?').next()?;
     if path.is_empty() || has_scheme(path) || path.starts_with("//") {
         return None;
     }

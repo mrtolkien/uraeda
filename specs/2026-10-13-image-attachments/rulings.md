@@ -383,3 +383,90 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `Marks::image` and the `Tag::Image` arms in `crates/core/src/files/document.rs`,
   `image_depth` in `crates/core/src/files/markdown.rs`, and their tests.
 - **Where**: task 3, review.
+
+## R29: A file staged under `images/` keeps the folder in the commit
+
+- **Decision**: `linked_images` returns `<folder>/images` also when the index holds files under it,
+  besides when the folder exists or `HEAD` tracks files under it. A new image a hook-refused commit
+  staged, then unlinked and deleted, is unstaged by the next commit's `git add --all` instead of
+  refusing it as another staged file; R25's rule still skips a folder whose files the index no
+  longer holds. `retry_commit` checks the staged files against the file, its review, and
+  `<folder>/images` before deleting any image, as the first try does.
+- **Rationale**: the refused commit ran `git add --all`, so the image stayed in the index; once its
+  link was removed, the commit deleted the file and left the folder out, and every later commit,
+  `retry_commit` included, refused "other files are staged: …/images/login.webp".
+- **Alternatives considered**: unstaging `images/` with `git reset` after a refused commit (a second
+  write after a failure, which can fail too).
+- **If wrong**: `linked_images` in `crates/core/src/actions/images.rs`, `Git::in_index`, and
+  `an_image_staged_by_a_refused_commit_then_unlinked_is_dropped`,
+  `try_again_drops_an_image_staged_then_unlinked`.
+- **Where**: task 4, review.
+
+## R30: A moved draft is found by its priorities line or its title
+
+- **Decision**: a commit of `specs/<drafts|backlog>/<dir>/proposal.md` holds the deletion of
+  `<dir>.md`, or of `<base>.md` when `<dir>` is `<base>-<N>` with `N` at least 2, the folder
+  `attach` numbers when `<base>/` is taken, when that file is tracked at `HEAD`, gone from disk, and
+  its move shows: either the `PRIORITIES.md` line linking it at `HEAD`, retargeted to the proposal
+  as `attach` does, is a line of `PRIORITIES.md` now, or its level-1 heading at `HEAD` is the
+  proposal's now. The subject is then "chore: edit the draft <title>".
+- **Rationale**: the name alone mapped `<slug>-2/` back to `<slug>-2.md`, which never existed, and
+  took an unrelated `foo/proposal.md` for the move of a `foo.md` deleted on purpose. The line covers
+  a draft whose title changed since; the title covers a backlog file, which `PRIORITIES.md` does not
+  link. A draft deleted on purpose, next to an unrelated folder draft, shows neither.
+- **Alternatives considered**: comparing the old and new texts as git's rename detection does (more
+  code, and a threshold to choose); the `PRIORITIES.md` line only (misses backlog files).
+- **If wrong**: `single_files` and `moved_from` in `crates/core/src/actions/text.rs`, and
+  `a_committed_draft_moved_into_a_numbered_folder_commits_the_move`,
+  `an_unrelated_folder_draft_does_not_take_a_deleted_draft`.
+- **Where**: task 4, review.
+
+## R31: Markdown links of any kind keep an image; HTML does not
+
+- **Decision**: an image under `<folder>/images/` is kept when a markdown file of `<folder>` or of
+  any of its subfolders (`contracts/api.md`) links it: a markdown image or link, resolved from the
+  linking file's folder; or a wikilink or an Obsidian embed, `![[images/x.webp]]`,
+  `![[x.webp|300]]`, `[[images/x.webp]]`, whose target, without its `#` and `|` parts, is the
+  image's path or the end of it after a `/`, as Obsidian matches the shortest path. HTML is not
+  parsed: an image only a mockup's `<img src>`, or an inline `<img>` in markdown, uses is deleted.
+  Paths compare as written, so on a case-insensitive file system `images/Shot.webp` does not keep
+  `shot.webp`.
+- **Rationale**: the skill prescribes `![alt](images/name.webp)`, which every tool writes; a
+  wikilink or embed is what a human writes in Obsidian, and keeping its image costs one rule.
+  Matching by the end of the path keeps every candidate Obsidian could pick, never fewer. Parsing
+  HTML for `src` adds a parser for a form nothing writes; folding case would keep a file another
+  checkout, on a case-sensitive system, does not find.
+- **Alternatives considered**: resolving wikilinks to one file as Obsidian does (its vault-wide
+  shortest path needs the whole vault); reading `<img src>` with a pattern.
+- **If wrong**: `Linked` and `markdown_files` in `crates/core/src/actions/images.rs`, `embeds` in
+  `crates/core/src/files/markdown.rs`, and `every_kind_of_link_keeps_its_image`.
+- **Where**: task 4, review.
+
+## R32: A query is not part of a link's path
+
+- **Decision**: `workspace::resolve` leaves out a target's `?query`, after its `#anchor`:
+  `images/shot.webp?v=2` is `images/shot.webp`, and a target that is only a query has no path. A
+  `%3F` stays part of the path, since decoding comes after.
+- **Rationale**: a URL's query is never part of the file name; read as one, `ura check` reported the
+  image missing and a commit deleted it. Every caller of `resolve` gets the same rule, as for R27.
+- **If wrong**: `resolve` in `crates/core/src/workspace.rs`, and `a_query_is_not_part_of_the_path`.
+- **Where**: task 4, review.
+
+## R33: Folders under `images/` follow the same rule, and git says what changed
+
+- **Decision**: `linked_images` walks the folders under `images/` too, deleting their unlinked files
+  and the folders left empty, never following a symbolic link: an unlinked link is deleted as a
+  file. `images_changed` asks `git status` about `<folder>/images`, untracked files included, so it
+  compares as `git add --all` stages: ignored files left out, symbolic links compared as links, and
+  nested files counted. A new file staged then deleted from disk, `AD`, is no change.
+- **Rationale**: the commit's pathspec already held nested files, while the deletion and the change
+  check looked at the top level only. Comparing file contents by hand followed symbolic links and
+  counted ignored files, so a commit with nothing for git to add failed with "nothing to commit",
+  reported as a hook's refusal.
+- **Alternatives considered**: keeping nested folders as they are (their files committed, but never
+  deleted); gix's status (two comparisons, `HEAD` to the index and the index to the files, to
+  combine by hand).
+- **If wrong**: `prune` and `images_changed` in `crates/core/src/actions/images.rs`,
+  `Git::differs_from_head`, and `nested_images_are_kept_while_linked`,
+  `files_git_would_not_add_are_no_change`.
+- **Where**: task 4, review.
