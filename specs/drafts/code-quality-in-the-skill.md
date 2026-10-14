@@ -9,6 +9,8 @@ discovery: high # low, medium, or high: how far the agent researches before aski
 Code quality and maintainability, built into the Uraeda skill, so that apps stay maintainable
 feature after feature without the human reading code:
 
+Human goal:
+
 > What I want is a system that gives me the least amount of work to create high quality,
 > maintainable apps. I do not intend to read a single line of code.
 
@@ -19,8 +21,6 @@ Three changes to the workflow:
 3. **A maintenance flow**: an agent audits the codebase, the human answers its findings like a round
    of questions, and the fixes, decisions, and checks go through the usual flow.
 
-The issues found in this repository are fixed later, through the maintenance flow once it exists.
-
 ### 1. Spec for the human, design for the agent
 
 > I did review the specs but rarely the plan indeed. [...] The important point is splitting the spec
@@ -28,16 +28,16 @@ The issues found in this repository are fixed later, through the maintenance flo
 > was hard to read. Clarifications were IMO the perfect size.
 
 - **`spec.md`, for the human, approved**: the behaviour in plain terms, what changes for the human
-  and for users, the decisions it proposes, the tradeoffs and risks, and the assumptions. The size
-  of a clarifications round.
+  and for users, the decisions it proposes, the tradeoffs and risks, and the assumptions. Dense,
+  concise, straight to the point, actionable. It needs to strike the balance between thoroughness
+  and length: it should properly convey all the decisions made to the human, without being
+  overwhelming or too time-consuming. Structure and information hierarchy is key. Big picture code
+  architecture information is valuable.
 - **A design file, for the agent, not reviewed** (`design.md`, or another name): data, components,
   exact strings, edge cases, the test map, and where each rule lives. It must agree with the spec
   and the active decisions; the review checks it does.
-- **The rule that keeps the split safe**: anything that changes what a user sees, or can lose, is in
-  the human's part. For example, chat-in-the-web-ui's ruling R17 (an unread message silently taken
-  back when a turn ends) was settled by the agent, and should have reached the human.
 - With nobody reading the design or the code, maintainability rests on the checks, the reviews, and
-  the maintenance flow below. The human gets reports about quality, never code.
+  the maintenance flow below. The human gets reports about quality, not code.
 
 ### 2. Concepts for the references
 
@@ -131,13 +131,19 @@ The research says the same, at scale:
   (2025): long markdown specs are "very verbose and tedious to review", and agents still duplicated
   existing classes the spec described.
 
+## Consititution changes
+
+**Constitution**: "each rule lives in one place" and "quality never regresses" belong in the
+constitution, which only the human amends.
+
+Make a proposal for an uraeda constitution update that includes those, and add this text to the
+default constituition template.
+
 ## Notes
 
 - **Out of scope**: the adversarial review with a secondary model, its own line in Next. This
   feature leaves a place for it in the review steps. Fixing this repository's issues, which the
   maintenance flow does later.
-- **Constitution**: "each rule lives in one place" and "quality never regresses" may belong in the
-  constitution, which only the human amends: ask.
 - **Keep the skill short**: `SKILL.md` is at 450 of the 500 lines the Agent Skills guidance
   recommends, and the references total about 2,100 lines. Adding concepts should come with trimming:
   the CLI reference and rare cases could move out of the paths every step reads.
