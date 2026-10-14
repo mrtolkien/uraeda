@@ -6,8 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Code quality and maintainability through the skill](drafts/code-quality-in-the-skill.md)
-
 - Look and feel pass: components style, logo, favicon, ...
   - Generally, the happy path should look good: parsed frontmatter should not appear in the edit
     box, we should have color and hierarchy for specs and plans, ...
@@ -20,6 +18,7 @@
 - [Chats, proposals, and reviews should accept images (drag and drop in the page, still show a dedicated button)](/specs/2026-10-13-image-attachments/proposal.md)
 - [Clean server code that can open any folder on the host + be run easily with node -> make the tool multi-repos](/specs/2026-10-13-multi-repo-server/proposal.md)
 - [Run the web UI with npx](drafts/run-the-web-ui-with-npx.md)
+- [Code quality and maintainability through the skill](/specs/2026-10-14-code-quality-in-the-skill/proposal.md)
 
 ## Next
 
