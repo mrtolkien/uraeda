@@ -54,13 +54,19 @@ Rationale: human attention is the scarcest resource in the workflow.
 Rationale: the workflow is the product. Tools make it faster and safer, but must never be the only
 way to follow it.
 
-### VI. Code is checked against the spec
+### VI. Code is checked and stays maintainable
 
 - Implementations MUST include tests covering the spec's acceptance scenarios.
 - Code SHOULD stay explicit and simple. New abstractions MUST be justified in the plan's complexity
   tracking.
+- Each rule MUST live in one place. A copy in another layer or language MUST be justified in the
+  plan's complexity tracking.
+- Warnings, size, complexity, and duplication measured by the project's checks MUST NOT go up. An
+  exception MUST be approved by a human in the plan.
 
-Rationale: "high-quality code" cannot be checked, but acceptance tests and justified complexity can.
+Rationale: "high-quality code" cannot be checked, but acceptance tests, justified complexity, and
+checks that never go back can. Agents grow and copy code feature after feature unless something
+measured stops them.
 
 ## Governance
 
@@ -70,4 +76,4 @@ Rationale: "high-quality code" cannot be checked, but acceptance tests and justi
 - Specs and plans MUST include a constitution check. Exceptions MUST be listed in the plan's
   complexity tracking and approved by a human.
 
-**Version**: 1.2.1 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-11
+**Version**: 1.3.0 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-14
