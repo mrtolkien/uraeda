@@ -1279,3 +1279,128 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   wrapper around the text area alone (Astryx draws the label and the field as one component).
 - **If wrong**: `DropHint` in `packages/web/src/attach/DropHint.tsx`.
 - **Where**: task 13, found by the screenshots.
+
+## R84: The image routes are a repository's, under `/r/<name>/`
+
+- **Decision**: `POST /attach`, `GET /images/<path>`, and `GET` and `DELETE /chat-images/<id>` are
+  served only under the repository's prefix, `/r/<name>/attach`, `/r/<name>/images/…`, and
+  `/r/<name>/chat-images/…`, with its host's context, like `/raw` and `/mockups`; an unknown name or
+  a path without the prefix is a 404. The UI builds them with `repoPath`: the editor's and the
+  comments' uploads, a document's images, and a chat's thumbnails and transcript. The dev proxy
+  takes them only with a prefix, so Vite keeps every other `/images/…`. Chat images stay in the one
+  data folder that every repository shares, served under the prefix of the session's repository.
+- **Rationale**: the repositories decision, merged meanwhile, wants every route that reads or writes
+  a repository's data under `/r/<name>/`: an upload writes a workflow file's folder, and an image is
+  read from one. A chat image belongs to a session, which belongs to a repository. Unlike `/raw` and
+  `/mockups`, no old link names the image routes, so they get no redirect.
+- **Alternatives considered**: redirecting the unprefixed routes to the most recent repository, as
+  `/raw` does (no link was ever written with them); chat images outside any prefix (a route reading
+  the data folder that names no repository, against the decision's wording).
+- **If wrong**: `createApp` in `packages/server/src/app.ts`, `SERVER_PATHS` in `dev.ts`, and
+  `repoPath` in `useAttach.ts`, `Spans.tsx`, and `chatImageSrc`.
+- **Where**: the catch-up with the default branch, 52a73ec.
+
+## R85: The data folder is the core's, made absolute by the server
+
+- **Decision**: the server reads the data folder from the core, `dataDir`, as the default branch
+  does, and `loadDataDir` resolves it from the root the server starts in, so a relative
+  `URAEDA_DATA_DIR`, or a relative `XDG_DATA_HOME`, still names one absolute folder (R39). The
+  startup cleanup of chat images runs in `startSessions`, now in `server.ts`, once for the one
+  server that serves every repository.
+- **Rationale**: the repositories decision puts finding the data folder in the core; the agent runs
+  in another folder than the server, so the chat images' paths and `--add-dir` must be absolute.
+  Resolving a `.env` path from its file is the server's setting, not the core's rule.
+- **Alternatives considered**: making the core's `data_dir` absolute from the process's folder
+  (`ura add` and the server could then disagree on a relative setting read from `.env`).
+- **If wrong**: `loadDataDir` in `packages/server/src/env.ts`.
+- **Where**: the catch-up with the default branch, 52a73ec.
+
+## R86: The feature's code meets the code quality limits without a marker
+
+- **Decision**: no limit marker is added. Files over 500 lines on the default branch only shrink:
+  the feature's additions to the core's `api.rs`, `document.rs`, `priorities.rs`, `git.rs`, and
+  `workspace.rs` move to modules of their own (`api/files.rs`, `document/inline.rs`,
+  `files/retarget.rs`, `git/status.rs`, `workspace/links.rs`), and the language server's
+  `commands.rs`, its image and draft commands in `commands/`, falls to 500 lines and leaves the size
+  test's list. In TypeScript, the composer, the editor's images, the review's images, a question's
+  and the notes' images, and the session manager's message checks are split into hooks and modules,
+  so no function the feature wrote passes 100 lines, no file passes 500, and the functions marked on
+  the default branch do not grow. The fate config's rules apply to the feature's code, sorted keys
+  included.
+- **Rationale**: the code quality decision and the constitution's principle VI, both merged
+  meanwhile: a new marker needs a human's approval, and the sizes the checks measure must not go up.
+- **Alternatives considered**: markers on the feature's long functions (a human's approval for each,
+  for code that splits along its responsibilities).
+- **If wrong**: the modules named above, and `crates/cli/tests/structure.rs`.
+- **Where**: the catch-up with the default branch, a17dc84, 12a155d.
+
+## R87: The rules the feature copies across layers are listed and justified
+
+- **Decision**: the plan's complexity tracking lists the three copies of a rule the feature keeps:
+  the over-20 MB refusal and its rounding to MiB in `limits.ts`, the first bytes of the four image
+  types in the Neovim plugin, and the four types' MIME names where files are chosen by type. The
+  chat's own limits, 10 images and their refusals, live once, in `limits.ts`, for the sessions and
+  the composer.
+- **Rationale**: the constitution's amended principle VI wants each rule in one place, and a copy in
+  another layer justified in the plan. Each copy decides only a message or a choice made before the
+  core sees the bytes, and the core checks again.
+- **Alternatives considered**: removing the copies (each removal costs a request the user waits for,
+  or a body read that the limit exists to avoid, as R34, R52, and R77 say).
+- **If wrong**: the plan's complexity tracking.
+- **Where**: the catch-up with the default branch, in the plan's complexity tracking.
+
+## R88: `:Uraeda image` from another branch's checkout writes the default branch's draft
+
+- **Decision**: in another branch's checkout, `uraeda.attachImage` acts on a draft or backlog file
+  only while its copy holds the default branch's text, and otherwise refuses, naming the default
+  branch's checkout, as the other commands do. The image goes into the default branch's checkout, as
+  the core already placed it, and the plugin reopens the buffer at the default branch's file to
+  insert the link there; "the draft is now a folder" is said only when it moved.
+- **Rationale**: the git decision, amended meanwhile, writes drafts on the default branch from every
+  tool and checkout. Before, the link went into the other checkout's copy, which links an image it
+  does not hold.
+- **Alternatives considered**: refusing the command outside the default branch's checkout (the human
+  chose acting from anywhere, for the Neovim plugin's other commands).
+- **If wrong**: `attach_image` in `crates/lsp/src/commands/attach.rs`, and `M.image` in
+  `editors/nvim/lua/uraeda/actions.lua`.
+- **Where**: the catch-up with the default branch, 3f2be17.
+
+## R89: The validation runs a bare `cargo test`
+
+- **Decision**: the feature's Rust tests run with `cargo test`, through the workspace's
+  `default-members`, and the binding's from TypeScript, as `vp run ready` does; the image tests of
+  the core and the language server need no other member.
+- **Rationale**: the toolchain decision, amended meanwhile, makes `cargo test --workspace`
+  unsupported.
+- **Alternatives considered**: none.
+- **If wrong**: `package.json`'s `ready`.
+- **Where**: the catch-up with the default branch.
+
+## R90: `afterOverlayCloses` waits for the Backs under way
+
+- **Decision**: the default branch's `afterOverlayCloses`, which the repository menu uses to open
+  the add form, or a page, once the menu's history entry is gone, lives with `useBackCloses` and
+  waits for the page's pending Backs as the overlays do (R58), instead of listening to `popstate` on
+  its own.
+- **Rationale**: both answer the same race, a Back still under way as the next overlay opens; with
+  two listeners, the order of their `popstate` handlers decided which overlay took which entry, and
+  a Back on the add form left the page. One count of the Backs under way serves both.
+- **Alternatives considered**: the default branch's overlay without the count (the lightbox's and
+  the forms' races of R58 come back).
+- **If wrong**: `packages/web/src/layout/useBackCloses.ts`.
+- **Where**: the catch-up with the default branch, 12a155d, found by the browser tests.
+
+## R91: The spec moves to the human-first layout, its text unchanged
+
+- **Decision**: the approved spec's sections move to the template's order merged meanwhile: its
+  Approach becomes the Architecture section, Mockups follows it, and Data, Components, Error
+  handling, and Testing go under Details at the end. No word of the spec changes; the links to its
+  Approach and Design, in the spec, the plan, and the attachments decision, point to its
+  Architecture, and the first discovery round's link to the skill's Markdown rules points to the
+  conventions reference, where they moved.
+- **Rationale**: `ura check`, in the default branch's validation, checks every spec against the
+  template, as the code quality feature did for its own spec. The approval stands: only headings
+  move.
+- **Alternatives considered**: leaving the spec in its old layout (the validation fails).
+- **If wrong**: `specs/2026-10-13-image-attachments/spec.md`.
+- **Where**: the catch-up with the default branch.

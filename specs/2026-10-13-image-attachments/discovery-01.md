@@ -60,7 +60,8 @@ thumbnails, and a lightbox.
 
 ### Obsidian
 
-Obsidian is the reference renderer of workflow files ([skill](/skills/uraeda/SKILL.md#markdown)).
+Obsidian is the reference renderer of workflow files
+([skill](/skills/uraeda/references/conventions.md#markdown)).
 
 - A pasted or dropped image is copied as a regular file into the default attachment location and
   embedded in the note. There is no upload button
