@@ -10,8 +10,9 @@ import { CommentForm, quoteOf } from "./CommentForm.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { useFile } from "./data.ts";
 import { refusal } from "./errors.ts";
+import { useTextField } from "./fields/useTextField.ts";
 import { Overlay } from "./layout/Overlay.tsx";
-import { anchor, textOf } from "./ReviewPage.tsx";
+import { anchor, textOf } from "./ReviewCommentForm.tsx";
 import { useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { FileView } from "./views.ts";
 
@@ -36,25 +37,24 @@ const styles = stylex.create({
 });
 
 /**
- * The comment form of a mockup, drawn while open: its text takes images pasted or picked. A drop
- * on the mockup lands in its frame, another page, and never reaches this one.
+ * The comment form of a mockup, drawn while open, its text kept in the unsaved store by `field`:
+ * its text takes images pasted or picked. A drop on the mockup lands in its frame, another page,
+ * and never reaches this one.
  */
 function MockupComment({
+  field,
   path,
   ...props
-}: { path: string } & Omit<
-  ComponentProps<typeof CommentForm>,
-  "text" | "onTextChange" | "images"
->) {
-  const [text, setText] = useState("");
+}: { path: string } & Omit<ComponentProps<typeof CommentForm>, "images" | "saved">) {
+  const { change, text } = useTextField(field, "");
   const images = useImageText({
     label: "the comment",
-    onText: setText,
+    onText: change,
     path,
     priority: 1,
     text,
   });
-  return <CommentForm {...props} images={images} onTextChange={setText} text={text} />;
+  return <CommentForm {...props} field={field} images={images} />;
 }
 
 /**
@@ -114,6 +114,7 @@ export function MockupPage({ folder, name }: { folder: string; name: string }) {
                 ? anchor({ end: line.endLine, heading: line.heading ?? "", start: line.startLine })
                 : `General, on ${name}`
             }
+            field={`${spec.path}#mockup:${name}`}
             onCancel={() => setOpen(false)}
             onSubmit={send}
             path={spec.path}

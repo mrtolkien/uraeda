@@ -1,7 +1,9 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { type ComponentProps, Profiler } from "react";
 import { expect, test, vi } from "vite-plus/test";
+import { forgetUnsaved } from "../fields/unsaved.ts";
 import {
   atRepo,
   atWidth,
@@ -20,6 +22,20 @@ const REVIEW = `specs/${FOLDER}/spec-review.md`;
 const WORKTREE = join(".worktrees", FOLDER);
 
 today("2026-10-11");
+
+/** Called each time the document's blocks render: a `Profiler` around every `Blocks` (US3 1). */
+const profiled = vi.hoisted(() => ({ onRender: vi.fn() }));
+vi.mock(import("../Blocks.tsx"), async (original) => {
+  const blocks = await original();
+  return {
+    ...blocks,
+    Blocks: (props: ComponentProps<typeof blocks.Blocks>) => (
+      <Profiler id="document" onRender={profiled.onRender}>
+        <blocks.Blocks {...props} />
+      </Profiler>
+    ),
+  };
+});
 
 /** Commits a change to the spec on its branch, in the feature's worktree. */
 function commitSpec(repo: string, edit: (text: string) => string) {
@@ -473,6 +489,13 @@ test("on a wide screen, the comment field opens under the block (US2 3, 4)", asy
   expect((await scenario(FIRST)).getAttribute("aria-pressed")).toBe("false");
 });
 
+/** Answers "Discard" to "Discard your comment?". */
+async function discard() {
+  const dialog = await screen.findByRole("dialog", { name: "Discard your comment?" });
+  await click(within(dialog).getByRole("button", { name: "Discard" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+}
+
 /** Types in the comment field, without sending it. */
 async function typeComment(text: string) {
   const field = await screen.findByLabelText("Comment text");
@@ -637,7 +660,7 @@ function holdUploads(repo: string) {
   };
 }
 
-const UNSENT = "Add or cancel your comment first: its images are not in the review yet.";
+const UNSENT = "Add or cancel your comment first.";
 const STILL_ADDING = "An image is still being added: wait for it, then try again.";
 
 /** The texts shown on the page, not in the screen reader's announcements. */
@@ -691,14 +714,26 @@ test("Request changes during an upload is refused, and commits nothing", async (
   expect(lastCommit(r)).toBe(before);
 });
 
-/** R64: only a comment's images hold a verdict back, not its text. */
-test("a verdict with an open comment of text alone goes through", async () => {
+/** US5 10: a comment open with text holds the verdict back, images or not (R16). */
+test("a verdict with an open comment holding text is refused", async () => {
+  const r = repo();
+  await renderPage(PAGE, r);
+  const before = lastCommit(r);
+  await click(await screen.findByRole("button", { name: "Add a general comment" }));
+  await typeComment("Half a tho");
+
+  await click(screen.getByRole("button", { name: "Approve" }));
+
+  await waitFor(() => expect(shown(UNSENT)).toHaveLength(1));
+  expect(lastCommit(r)).toBe(before);
+  expect(read(r, SPEC)).toContain("status: awaiting-human\n");
+});
+
+/** An open comment with no text lets the verdict through. */
+test("a verdict with an open comment of no text goes through", async () => {
   const r = repo();
   await renderPage(PAGE, r);
   await click(await screen.findByRole("button", { name: "Add a general comment" }));
-  await act(async () => {
-    fireEvent.change(screen.getByLabelText("Comment text"), { target: { value: "Half a tho" } });
-  });
 
   await click(screen.getByRole("button", { name: "Approve" }));
 
@@ -719,6 +754,7 @@ test("a verdict after a comment with an image was cancelled deletes the image", 
   );
 
   await click(screen.getByRole("button", { name: "Cancel" }));
+  await discard();
   await click(screen.getByRole("button", { name: "Approve" }));
 
   await waitFor(() => expect(lastCommit(r)).toBe("spec(recurring-tasks): approve"));
@@ -786,6 +822,7 @@ test("the verdict's refusal goes once the comment is cancelled", async () => {
   await waitFor(() => expect(shown(UNSENT)).toHaveLength(1));
 
   await click(screen.getByRole("button", { name: "Cancel" }));
+  await discard();
 
   expect(shown(UNSENT)).toEqual([]);
 });
@@ -807,5 +844,224 @@ test("an image picked for a comment does not go into a comment edited during its
   await waitFor(() => expect(shown("Added login.webp").length).toBeGreaterThan(0));
   expect((screen.getByLabelText("Comment text") as HTMLTextAreaElement).value).toBe(
     "Say it stays.",
+  );
+});
+
+/**
+ * A repository whose spec, at its branch's tip, holds 300 more blocks before its stories: one
+ * paragraph on every other line from line 32, "Paragraph 5 of the long spec." on line 40 and
+ * "Paragraph 11 of the long spec." on line 52.
+ */
+function longSpec() {
+  const r = fixtureRepo();
+  const paragraphs = Array.from(
+    { length: 300 },
+    (_, index) => `Paragraph ${index + 1} of the long spec.\n\n`,
+  );
+  commitSpec(r, (text) =>
+    text.replace("## User stories\n", `\n${paragraphs.join("")}## User stories\n`),
+  );
+  expect(lineOf(r, "Paragraph 5 of the long spec.")).toBe(40);
+  expect(lineOf(r, "Paragraph 11 of the long spec.")).toBe(52);
+  return r;
+}
+
+const LINE_40 = "Paragraph 5 of the long spec.";
+const LINE_52 = "Paragraph 11 of the long spec.";
+
+/** The comment field's text. */
+const commentText = () => (screen.getByLabelText("Comment text") as HTMLTextAreaElement).value;
+
+/** The page shown again, as after a reload: the store reads `localStorage` anew. */
+async function reload(r: string) {
+  forgetUnsaved();
+  await renderPage(PAGE, r, { reload: true });
+}
+
+/** US3 1, SC-002: a keystroke renders the comment form, not the document. */
+test("typing a comment renders none of the document's blocks (US3 1, SC-002)", async () => {
+  await renderPage(PAGE, longSpec());
+  await click(await scenario(LINE_40));
+  const field = await screen.findByLabelText("Comment text");
+  await act(async () => {});
+  profiled.onRender.mockClear();
+
+  await act(async () => {
+    fireEvent.change(field, { target: { value: "a" } });
+  });
+
+  expect(commentText()).toBe("a");
+  expect(profiled.onRender).not.toHaveBeenCalled();
+});
+
+/** US3 2: the form moves under the block tapped, its text with it, on the lines selected. */
+test("the comment typed on line 40 follows the field to line 52 (US3 2)", async () => {
+  await renderPage(PAGE, longSpec());
+  await click(await scenario(LINE_40));
+  await typeComment("Too vague");
+
+  const block = await scenario(LINE_52);
+  await click(block);
+
+  const form = screen.getByRole("form", { name: "Comment" });
+  expect(within(form).getByText(/^Lines 40–52, under "/)).toBeTruthy();
+  expect(commentText()).toBe("Too vague");
+  expect(block.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
+/** The server in process, whose writes of a text wait until the test lets each one through. */
+function holdWrites(repo: string, text: string) {
+  const fetch = serverFetch(repo);
+  const waiting: Array<() => void> = [];
+  return {
+    fetch: (async (input, init) => {
+      if (typeof init?.body === "string" && init.body.includes(text)) {
+        await new Promise<void>((resolve) => waiting.push(resolve));
+      }
+      return fetch(input, init);
+    }) as typeof globalThis.fetch,
+    /** Lets the next write through, once it waits. */
+    async release() {
+      await waitFor(() => expect(waiting.length).toBeGreaterThan(0));
+      await act(async () => waiting.shift()!());
+    },
+  };
+}
+
+/** US3 3: a new comment shows under its block at once, marked "saving…" until it is written. */
+test("a comment added shows under its block at once, saving… until written (US3 3)", async () => {
+  const r = longSpec();
+  const held = holdWrites(r, "Too vague");
+  await renderPage(PAGE, r, { fetch: held.fetch });
+  await click(await scenario(LINE_40));
+  const block = await scenario(LINE_52);
+  await click(block);
+  await typeComment("Too vague");
+
+  await click(screen.getByRole("button", { name: "Add comment" }));
+
+  const adding = await waitFor(() => {
+    const note = document.querySelector<HTMLElement>('[aria-label="Lines 40–52 · saving…"]');
+    expect(note).toBeTruthy();
+    return note!;
+  });
+  expect(adding.textContent).toContain("Too vague");
+  expect(block.compareDocumentPosition(adding) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.queryByLabelText("Comment text")).toBeNull();
+  expect(existsSync(join(r, WORKTREE, REVIEW))).toBe(false);
+  await held.release();
+  await saved("C1 · lines 40–52", "Too vague");
+  expect(screen.queryByText("saving…", { exact: false })).toBeNull();
+  expect(read(r, REVIEW)).toContain("\nToo vague\n");
+});
+
+/** The spec's error handling: a comment refused shows its form again, its text kept. */
+test("a comment refused as it is added comes back in its form, with the error", async () => {
+  const r = longSpec();
+  await renderPage(PAGE, r);
+  await click(await scenario(LINE_40));
+  await typeComment("# Too vague");
+
+  await click(screen.getByRole("button", { name: "Add comment" }));
+
+  expect(
+    await screen.findByText('a comment line cannot start with "#"', { exact: false }),
+  ).toBeTruthy();
+  expect(commentText()).toBe("# Too vague");
+  expect(document.querySelector('[aria-label="Line 40 · saving…"]')).toBeNull();
+  expect(existsSync(join(r, WORKTREE, REVIEW))).toBe(false);
+});
+
+/** US5 7: Cancel on a comment typed asks first. */
+test("Cancel on a review comment typed asks first (US5 7)", async () => {
+  await renderPage(PAGE, longSpec());
+  await click(await scenario(LINE_40));
+  await typeComment("Too vague");
+
+  await click(screen.getByRole("button", { name: "Cancel" }));
+  const dialog = await screen.findByRole("dialog", { name: "Discard your comment?" });
+  await click(within(dialog).getByRole("button", { name: "Keep editing" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect(commentText()).toBe("Too vague");
+
+  await click(screen.getByRole("button", { name: "Cancel" }));
+  await discard();
+  await waitFor(() => expect(screen.queryByLabelText("Comment text")).toBeNull());
+  await click(await scenario(LINE_40));
+  expect(commentText()).toBe("");
+});
+
+/** US5 8: Cancel on an empty comment closes it without asking. */
+test("Cancel on an empty review comment closes it without asking (US5 8)", async () => {
+  await renderPage(PAGE, longSpec());
+  await click(await scenario(LINE_40));
+
+  await click(await screen.findByRole("button", { name: "Cancel" }));
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+  await waitFor(() => expect(screen.queryByLabelText("Comment text")).toBeNull());
+});
+
+/** US5 1, SC-004: a comment typed comes back after a reload, on the lines it was on. */
+test("a review comment typed is restored after a reload, with its lines", async () => {
+  const r = longSpec();
+  await renderPage(PAGE, r);
+  await click(await scenario(LINE_40));
+  await click(await scenario(LINE_52));
+  await typeComment("Too vague");
+
+  await reload(r);
+
+  const form = await screen.findByRole("form", { name: "Comment" });
+  expect(within(form).getByText(/^Lines 40–52, under "/)).toBeTruthy();
+  expect(commentText()).toBe("Too vague");
+  expect(screen.getByText("Unsaved text restored from", { exact: false })).toBeTruthy();
+  expect((await scenario(LINE_52)).getAttribute("aria-pressed")).toBe("true");
+});
+
+/** Review focus 6: lines of a version the review is no longer on are named in the text. */
+test("a comment restored after the reviewed commit changed is a general one", async () => {
+  const r = longSpec();
+  await renderPage(PAGE, r);
+  await click(await scenario(LINE_40));
+  await click(await scenario(LINE_52));
+  await typeComment("Too vague");
+  commitSpec(r, (text) => `${text}\nOne more line.\n`);
+
+  await reload(r);
+
+  const form = await screen.findByRole("form", { name: "Comment" });
+  expect(within(form).getByText("General")).toBeTruthy();
+  await waitFor(() =>
+    expect(commentText()).toBe("On lines 40–52 of the previous version: Too vague"),
+  );
+  expect(document.querySelector("button[aria-pressed='true']")).toBeNull();
+  await click(screen.getByRole("button", { name: "Add comment" }));
+  await saved("C1 · general", "On lines 40–52 of the previous version: Too vague");
+});
+
+/** The summary's field, once the end of the page is drawn. */
+async function summaryField() {
+  await screen.findByRole("radio", { name: "high" });
+  return screen.getByLabelText("Summary") as HTMLTextAreaElement;
+}
+
+/** SC-004: the review's summary typed comes back after a reload. */
+test("the summary typed is restored after a reload", async () => {
+  const r = repo();
+  await renderPage(PAGE, r);
+  const summary = await summaryField();
+  await act(async () => {
+    fireEvent.change(summary, { target: { value: "Close" } });
+  });
+
+  await reload(r);
+
+  expect((await summaryField()).value).toBe("Close");
+  expect(screen.getByText("Unsaved text restored from", { exact: false })).toBeTruthy();
+  await click(screen.getByRole("button", { name: "Approve" }));
+  await waitFor(() => expect(lastCommit(r)).toBe("spec(recurring-tasks): approve"));
+  await waitFor(() =>
+    expect(Object.keys(localStorage).filter((key) => key.endsWith("#summary"))).toEqual([]),
   );
 });
