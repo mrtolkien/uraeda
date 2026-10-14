@@ -35,14 +35,17 @@ export function createApp(
     await next();
   });
   /**
-   * A repository's routes take its host's context, its folder looked at now; an unknown name is a
-   * 404.
+   * A repository's routes take its host's context, its folder looked at now; an unknown name or a
+   * missing folder is a 404, so the core never looks for a repository above it.
    */
   const hosted = async (context: Context, next: Next) => {
     const name = context.req.param("name")!;
     const host = await hosts.current(name);
     if (!host) {
       return context.text(`No repository named “${name}”`, 404);
+    }
+    if (host.missing) {
+      return context.text(`Folder not found: ${host.path}`, 404);
     }
     context.set("fate", { binding, sessions, hosts, dataDir, repo: host.path });
     await next();
