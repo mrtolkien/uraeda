@@ -672,17 +672,18 @@ git commit -m "feat(text-inputs): comments on the points settled without the hum
 - Consumes: task 4's `useTextField`, task 5's settled forms.
 - Produces: `PendingSaves` entries also come from open settled-point forms holding text.
 
-- [ ] **Step 1: Split `Question` before it changes**
+- [x] **Step 1: Split `Question` before it changes**
 
 Move the answer's saving into `useAnswer(question, folder)`, so `Question` is under 100 lines, and
 keep the latest answer for the effects without writing a ref during render, removing the
 `max-lines-per-function` and `react/refs` markers. The `forbid-elements` marker on the option stays.
+`PendingSaves` and `composed` move with it into `useAnswer.ts`, which `RoundPage` imports (R11).
 
 - Run: `vp check && vp test --project uraeda-web round`, before and after
 - Expected: PASS both times
 
 ```bash
-git add packages/web/src/Question.tsx packages/web/src/useAnswer.ts
+git add packages/web/src/Question.tsx packages/web/src/useAnswer.ts packages/web/src/RoundPage.tsx specs/2026-10-14-text-inputs
 git commit -m "refactor(text-inputs): a question's saving in a hook"
 ```
 

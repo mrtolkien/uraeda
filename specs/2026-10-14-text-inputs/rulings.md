@@ -161,3 +161,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   for every new settled comment, which a tap on another point would carry over to the wrong point.
 - **If wrong**: texts in `SettledPoints.tsx` and `CommentForm.tsx`, and the sheet's `onClose`.
 - **Where**: task 5.
+
+## R11: `PendingSaves` and `composed` move into `useAnswer.ts`
+
+- **Decision**: task 6's split moves `PendingSaves`, the context of the saves Submit waits for, and
+  `composed`, the answer as the core writes it, from `Question.tsx` into `useAnswer.ts`, with the
+  answer's saving; `RoundPage` imports `PendingSaves` from there.
+- **Rationale**: the hook uses both, and `Question.tsx` imports the hook: leaving them in
+  `Question.tsx` makes the two modules import each other.
+- **Alternatives considered**: a module of their own, for two small values that serve the answer's
+  saving alone.
+- **If wrong**: two exports move between two files.
+- **Where**: task 6, step 1.
