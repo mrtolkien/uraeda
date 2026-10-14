@@ -1,6 +1,6 @@
 // US2 scenario 1 and the tall block's edge case: on the phone, the comment sheet opens with the
 // selected block in view above it, and quotes the lines it comments on. A spec's folds (US1 of code
-// quality in the skill): they survive Back, and a link into Details opens it.
+// quality in the skill): they survive Back, and a link into Details opens it, once.
 import { act, screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
@@ -127,4 +127,22 @@ test.each(["data", "details"])("a link to #%s opens the details (US1 5)", async 
       return box.top >= bar - 1 && box.bottom <= window.innerHeight;
     })
     .toBe(true);
+});
+
+test("Back keeps closed a fold a link opened (US1 4, 5)", async () => {
+  await show(`${SPEC}#data`, "Complete a repeating task");
+  await expect.poll(() => fold("Details")?.getAttribute("aria-expanded")).toBe("true");
+  await userEvent.click(fold("Details"));
+  expect(fold("Details").getAttribute("aria-expanded")).toBe("false");
+
+  await userEvent.click(screen.getAllByRole("link", { name: "Recurring tasks" })[0]!);
+  await expect.poll(() => window.location.pathname).toBe("/f/2026-10-06-recurring-tasks");
+  // The feature's page drawn, the spec's gone.
+  await expect.poll(() => screen.queryAllByRole("button", { name: "Details" }).length).toBe(0);
+  await act(async () => window.history.back());
+  await expect.poll(() => window.location.pathname).toBe(SPEC);
+
+  await expect.poll(() => fold("Scenarios (4)")?.getAttribute("aria-expanded")).toBe("false");
+  await drawn();
+  expect(fold("Details").getAttribute("aria-expanded")).toBe("false");
 });

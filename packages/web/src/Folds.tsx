@@ -69,7 +69,8 @@ export function foldOf(document: Document, folds: ReadonlyArray<Fold>, block: Bl
 
 /**
  * Opens the fold holding the block the location's hash names, and scrolls to it once open: once
- * per hash, so the fold can be closed again, and not where Back returns to a saved position.
+ * per hash, so the fold can be closed again. Not where Back, or a reload, returns to an entry with
+ * a saved position: its folds are as the human left them, the hash's own closed again maybe.
  */
 export function useHashFold(document: Document, folds: Folds | undefined) {
   const hash = decodeURIComponent(useHash().slice(1));
@@ -90,13 +91,17 @@ export function useHashFold(document: Document, folds: Folds | undefined) {
     if (!folds || !target || handled.current === hash) {
       return;
     }
+    if (typeof currentEntry().scroll === "number") {
+      handled.current = hash;
+      return;
+    }
     if (!folds.open.includes(target.key)) {
       folds.onOpenChange(target.key, true);
       return;
     }
     handled.current = hash;
     const element = window.document.getElementById(hash);
-    if (element && typeof currentEntry().scroll !== "number") {
+    if (element) {
       element.scrollIntoView({ block: "start" });
       // A little below the top, or the top bar, where it stays on the phone.
       const bar = window.document.querySelector('[role="banner"]')?.getBoundingClientRect();

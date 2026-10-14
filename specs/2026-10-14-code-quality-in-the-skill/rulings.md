@@ -306,3 +306,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the region moves, or its buttons change size, in `ReviewMockups.tsx` alone.
 - **Where**: task 8, `packages/web/src/{ReviewMockups,ReviewPage,MockupPage}.tsx`,
   `crates/core/src/files/spec.rs`.
+
+## R19: A link's hash opens its fold on a new entry only
+
+- **Decision**: `useHashFold` opens the fold a hash names only on a history entry without a saved
+  scroll position. Back, or a reload, to an entry with one leaves its folds as the entry keeps them,
+  a fold the human closed after the link opened it included.
+- **Rationale**: the UI behaviour decision says Back returns to the same open items. A page
+  remounted on Back still has the hash in its URL, and opened the fold again. `navigate` saves the
+  position of the entry it leaves, so a saved position marks an entry the human has been on, the
+  sign the scroll to the hash already skipped on.
+- **Alternatives considered**: recording the handled hash in the history entry, a second field
+  saying what the saved position already says.
+- **If wrong**: an entry left before the link's fold opened, like one Back skipped past while the
+  page loaded, keeps the fold closed, and a tap opens it. The check is one line in `useHashFold`, in
+  `packages/web/src/Folds.tsx`.
+- **Where**: `packages/web/src/Folds.tsx`, `packages/web/src/__browser__/review.test.tsx`.
