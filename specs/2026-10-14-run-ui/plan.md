@@ -1113,21 +1113,27 @@ git commit -m "build(run-ui): the binding's platform packages"
 
 - Create: `.github/workflows/npm.yml`
 - Create: `packages/uraeda/scripts/release.ts` (versions, gate, and publish, called by the workflow)
+- Create: `packages/uraeda/scripts/release.test.ts`
+- Modify: `packages/uraeda/scripts/smoke.ts` (reads the Cargo version through `release.ts`)
+- Modify: `vite.config.ts` (`packages/uraeda` in `test.projects`)
 
 **Interfaces:**
 
 - Consumes: `version()` (Task 1); `scripts/smoke.ts` and the build (Task 7); the `npm/` folders
   (Task 8).
 - Produces: `node packages/uraeda/scripts/release.ts prepare <tag>` and `... publish <tag>`.
-  `prepare` checks the tag without its `v` equals `version()`, writes it into the five
+  `prepare` checks the tag without its `v` equals the Cargo workspace's version, which `version()`
+  returns, read from `Cargo.toml` as the smoke test does
+  ([R12](rulings.md#r12-the-release-reads-the-version-from-cargotoml)), writes it into the five
   `package.json` files with `npm pkg set` (and `napi version` for the `npm/` folders), sets
   `uraeda`'s `optionalDependencies` to the four names at exactly that version, checks the four
   `.node` files are in their folders, and prints each package's size. `publish` publishes each
   platform package not on npm at that version (`npm view <name>@<version>` answers 404), then
   `uraeda` the same way, with `npm publish --provenance --access public`, and `--tag next` when the
-  version has a prerelease suffix.
+  version has a prerelease suffix. npm runs in each package's folder: in the checkout's root, the
+  root's `devEngines` asking for pnpm makes npm refuse to run.
 
-- [ ] **Step 1: Write the failing tests of `release.ts`'s pure parts**
+- [x] **Step 1: Write the failing tests of `release.ts`'s pure parts**
 
 A table test, `packages/uraeda/scripts/release.test.ts`, run by `vp test` (add `packages/uraeda` to
 the root's `test.projects`):
@@ -1161,12 +1167,12 @@ test("the four platforms in order, before uraeda", () => {
 The breaks: a prerelease published as `latest`; a tag out of step with the Cargo version; `uraeda`
 published before a platform package.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/uraeda/scripts/release.test.ts`
 - Expected: FAIL, `Failed to resolve import "./release.ts"`
 
-- [ ] **Step 3: Implement `release.ts` and the workflow**
+- [x] **Step 3: Implement `release.ts` and the workflow**
 
 `npm.yml` runs on `push` of tags matching `release.yml`'s pattern, on `workflow_dispatch` with a tag
 input (to complete a partial release), and on `pull_request` with `paths` on `packages/uraeda/**`,
@@ -1177,13 +1183,18 @@ input (to complete a partial release), and on `pull_request` with `paths` on `pa
    `macos-latest`. Each installs Node 24 and pnpm 12.9.1 as `devEngines` pins them, runs
    `pnpm install --frozen-lockfile --ignore-scripts`, `rustup target add <target>`, then
    `napi build --platform --release --no-js --target <target>` in `packages/binding`, with
-   `--use-napi-cross` on Linux. On Linux, `objdump -T` of the `.node` shows no `GLIBC_` above `2.17`
-   (SC-003). It fails if `packages/binding/index.js` or `index.d.ts` changed. Uploads the `.node`.
+   `--use-napi-cross` on Linux, and `--output-dir ../../target/napi`
+   ([R13](rulings.md#r13-the-release-builds-the-binaries-outside-the-package)). On Linux,
+   `objdump -T` of the `.node` shows no `GLIBC_` above `2.17` (SC-003), with the target's `objdump`
+   from the toolchain `--use-napi-cross` downloads
+   ([R14](rulings.md#r14-the-glibc-check-uses-the-cross-toolchains-objdump)). It fails if
+   `packages/binding/index.js` or `index.d.ts` changed. Uploads the `.node`.
 2. **package**, on `ubuntu-latest`: builds the binding for the host, the web UI, and `uraeda`;
    uploads `packages/uraeda` with its built files.
 3. **smoke**, a matrix on `ubuntu-latest` (linux-x64-gnu) and `macos-latest` (darwin-arm64), after
-   both: downloads the package and that platform's `.node`, runs `napi artifacts` into the `npm/`
-   folders, packs that platform package, and runs `smoke.ts --platform <its tarball>`.
+   both: downloads the package and the four `.node` files, which `napi artifacts` needs
+   ([R15](rulings.md#r15-the-smoke-jobs-take-the-four-binaries)), runs it into the `npm/` folders,
+   packs that platform package, and runs `smoke.ts --platform <its tarball>`.
 4. **publish**, only on a tag or `workflow_dispatch`, after **smoke**, with
    `permissions: id-token: write, contents: read`: downloads everything, runs `napi artifacts`,
    `release.ts prepare <tag>`, then `release.ts publish <tag>`. No `NODE_AUTH_TOKEN` or npm token.
@@ -1197,10 +1208,18 @@ Format the workflow with `vp check`; it is not generated, unlike `release.yml`.
 - The workflow itself runs on this branch's pull request, up to **smoke**: check its run is green
   before the final review.
 
-- [ ] **Step 5: Commit**
+Ran: `vp test packages/uraeda` and `vp check` passed, and `actionlint` found nothing in `npm.yml`.
+The Linux x64 binary built as the workflow builds it needed at most `GLIBC_2.15`, the host's build
+`GLIBC_2.39`, which the check refused; packed, it passed `smoke.ts --platform`. `napi artifacts`,
+then `release.ts prepare v0.4.0`, wrote `0.4.0` into the five packages and printed their sizes, with
+placeholders for the three binaries not built here, and every change was then reverted. Not run
+here: the arm64 and macOS builds, `release.ts publish`, and the workflow itself, whose first run is
+this branch's pull request.
+
+- [x] **Step 5: Commit**
 
 ```bash
-git add .github/workflows/npm.yml packages/uraeda vite.config.ts
+git add .github/workflows/npm.yml packages/uraeda vite.config.ts specs/2026-10-14-run-ui
 git commit -m "ci(run-ui): publish the npm packages on the release tag"
 ```
 
