@@ -101,14 +101,20 @@ pub fn split_notes(notes: &str, subjects: &[String]) -> (String, Vec<(String, St
 
 /// The notes from the free notes and the comments on settled points: the free notes, a blank line,
 /// then one bullet per comment, `- **<subject>**: <text>`, its further lines indented by two
-/// spaces. A fence the free notes or a comment leave open is closed at their end, so the comments
+/// spaces, and a comment starting with a code block on the line below its bullet. A fence the free notes or a comment leave open is closed at their end, so the comments
 /// and the sections after the notes are not code.
 pub fn join_notes(free: &str, comments: &[(String, String)]) -> String {
     let bullets: Vec<String> = comments
         .iter()
         .map(|(subject, text)| {
             let text = closed(text.trim()).replace('\n', "\n  ");
-            format!("- **{subject}**: {text}")
+            if text.lines().next().is_some_and(crate::files::is_fence) {
+                // A fence is one only at the start of its line: a code block starts below the
+                // bullet.
+                format!("- **{subject}**:\n  {text}")
+            } else {
+                format!("- **{subject}**: {text}")
+            }
         })
         .collect();
     let free = closed(free.trim());
@@ -245,7 +251,7 @@ mod tests {
         let round = "## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n";
         let code = "See:\n\n```\n## Not a heading\n- **A point**: not a comment\n```\n\nAfter.";
         let fenced = "```sh\n# a shell comment\n```\n\nAfter.";
-        let rows: [Written; 7] = [
+        let rows: [Written; 8] = [
             // Code in the free notes, a heading and a bullet in it, with no comment.
             (code, &[], code, &[]),
             // Code in the free notes, then a comment.
@@ -285,6 +291,13 @@ mod tests {
                 fenced,
                 &[("A point", "Keep it.")],
             ),
+            // A comment starting with a code block, which starts on the line below its bullet.
+            (
+                "Fine.",
+                &[("A point", fenced)],
+                "Fine.",
+                &[("A point", fenced)],
+            ),
         ];
         for (free, comments, read_free, read_comments) in rows {
             let written = set_notes(round, free, &owned(comments)).unwrap();
@@ -302,7 +315,7 @@ mod tests {
     #[test]
     fn a_fence_left_open_in_the_notes_is_closed_before_what_follows() {
         let round = "## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n\n## Later\n\nKept.\n";
-        let rows: [Written; 3] = [
+        let rows: [Written; 4] = [
             ("See:\n\n```\ncode", &[], "See:\n\n```\ncode\n```", &[]),
             (
                 "Fine.",
@@ -315,6 +328,12 @@ mod tests {
                 &[("A point", "Try:\n\n```\nmore")],
                 "```\ncode\n```",
                 &[("A point", "Try:\n\n```\nmore\n```")],
+            ),
+            (
+                "",
+                &[("A point", "```\ncode\n```")],
+                "",
+                &[("A point", "```\ncode\n```")],
             ),
         ];
         for (free, comments, read_free, read_comments) in rows {
