@@ -863,6 +863,56 @@ test("Submit adds no comment for a settled point's form left blank", async () =>
   expect(committed.trimEnd()).toMatch(/\*\*Notes:\*\*\n\n- \*\*An answer is written\*\*: Clear\.$/);
 });
 
+/** The server in process, whose first write of a settled point's comment `text` waits. */
+function holdSettled(repo: string, text: string) {
+  let first = true;
+  return hold(repo, (body) => {
+    const now = first && body.includes(`"text":"${text}"`);
+    first &&= !now;
+    return now;
+  });
+}
+
+/** Second review: an Add comment still being written is not added again by Submit. */
+test("Submit during a settled point's Add comment adds the comment once", async () => {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  const held = holdSettled(repo, "Good.");
+  await renderPage(PAGE, repo, { fetch: held.fetch });
+  await tap(await settledPoint(COMMITS));
+  await type(settledField(), "Good.");
+  await tap(within(settledField().closest("form")!).getByRole("button", { name: "Add comment" }));
+  await waitFor(() => expect(held.waiting).toHaveLength(1));
+
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+  await held.release();
+
+  await waitFor(() => expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(SUBMITTED));
+  const committed = git(repo, "show", `${FOLDER}:${ROUND}`);
+  expect(committed.slice(committed.indexOf("**Notes:**")).trimEnd()).toBe(
+    `**Notes:**\n\n- **${COMMITS}**: Good.`,
+  );
+});
+
+/** Second review: Submit keeps the text typed in a settled point's form while it saved it. */
+test("Submit keeps a settled point's comment typed while it was saving it", async () => {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  const held = holdSettled(repo, "Good.");
+  await renderPage(PAGE, repo, { fetch: held.fetch });
+  await tap(await settledPoint(COMMITS));
+  await type(settledField(), "Good.");
+
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+  await waitFor(() => expect(held.waiting).toHaveLength(1));
+  await type(settledField(), "Good. And more.");
+  await held.release();
+
+  await waitFor(() => expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(SUBMITTED));
+  const kept = Object.keys(localStorage)
+    .filter((key) => key.endsWith(`#settled:${COMMITS}`))
+    .map((key) => JSON.parse(localStorage.getItem(key)!).text);
+  expect(kept).toEqual(["Good. And more."]);
+});
+
 /** A round answered, whose notes hold a comment on each settled point. */
 function withTwoComments() {
   const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });

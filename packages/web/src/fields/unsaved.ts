@@ -125,6 +125,22 @@ export function dropUnsaved(key: string) {
   notify(key);
 }
 
+/**
+ * Says `value` was saved from a key's field: its entry goes while it still holds that text, and text
+ * typed since stays unsaved, over the text saved. Returns whether the entry went.
+ */
+export function savedUnsaved(key: string, value: string): boolean {
+  const now = readUnsaved(key);
+  if (now?.text === value) {
+    dropUnsaved(key);
+    return true;
+  }
+  if (now) {
+    writeUnsaved(key, { ...now, base: value });
+  }
+  return false;
+}
+
 /** Whether any field whose key starts with `prefix` holds unsaved text: any field, by default. */
 export function hasUnsaved(prefix = PREFIX): boolean {
   load();

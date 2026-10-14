@@ -588,3 +588,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `parse`, `replace_after`, and `compose_answer` in
   [`clarifications.rs`](/crates/core/src/files/clarifications.rs).
 - **Where**: the second review.
+
+## R35: Submit waits for the settled comments being written, and keeps what is typed meanwhile
+
+- **Decision**: every write of a settled comment, from its form or from Submit, is kept in a set of
+  the writes in progress until it is done, and drops its field's entry itself, as `useTextField`'s
+  `saved` does: the entry goes only while it holds the text written, and text typed since stays
+  unsaved, over it (`savedUnsaved` in [`unsaved.ts`](/packages/web/src/fields/unsaved.ts)). Submit
+  waits for the writes in progress before it reads the entries still unsaved.
+- **Rationale**: Submit read the entry of a comment whose Add was still being written and added it a
+  second time, and dropped an entry once it wrote it, with the text typed in the form while it did.
+  A write that drops its own entry, before Submit's wait ends, leaves nothing for Submit to read
+  twice.
+- **Alternatives considered**: the forms putting their writes in the `PendingSaves` the questions
+  use, whose flushes run before the settled comments are read but say nothing of the entry; Submit
+  disabling the forms while it saves, which the UI behaviour decision does not ask.
+- **If wrong**: `writing` and `useSettledWrites` in
+  [`SettledPoints.tsx`](/packages/web/src/SettledPoints.tsx).
+- **Where**: the second review.
