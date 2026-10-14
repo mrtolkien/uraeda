@@ -2,6 +2,7 @@
 
 pub mod actions;
 pub mod api;
+pub mod changes;
 pub mod check;
 pub mod embedded;
 pub mod files;

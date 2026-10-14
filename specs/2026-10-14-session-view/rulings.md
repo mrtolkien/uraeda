@@ -105,3 +105,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   and would also change the review's type.
 - **If wrong**: the review page keeps drawing its own tree, so only `plan::tasks` changes back.
 - **Where**: Task 1.
+
+## R10: The diff names commits, not branches
+
+- **Decision**: `branch_changes` passes the commits `Git::tip` resolves for the default branch and
+  the feature's branch, as hashes, in `git diff --numstat -z -M --no-ext-diff <base>...<tip>`,
+  rather than the feature's ref name and the default branch's name.
+- **Rationale**: git does not resolve `main` to `origin/main`, so a default branch known only on
+  `origin` would fail the diff, and a hash needs no care for a `fix/` slash
+  ([review focus 2](plan.md#review-focus)). `--no-ext-diff` keeps the user's configured diff tool
+  out of a call whose output is parsed.
+- **Alternatives considered**: the full ref names `refs/heads/<branch>` or
+  `refs/remotes/origin/<branch>`, which would need `Git::tip` to return which one it found.
+- **If wrong**: `numstat`'s two arguments in `changes.rs`.
+- **Where**: Task 2.
