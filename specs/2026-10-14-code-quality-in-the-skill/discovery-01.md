@@ -757,7 +757,7 @@ Criteria:
   [II](../CONSTITUTION.md#ii-git-and-plain-text-first) plain text,
   [IV](../CONSTITUTION.md#iv-review-effort-matches-impact) review effort matches impact,
   [V](../CONSTITUTION.md#v-tools-are-optional) tools are optional, and
-  [VI](../CONSTITUTION.md#vi-code-is-checked-against-the-spec) code checked against the spec.
+  [VI](../CONSTITUTION.md#vi-code-is-checked-and-stays-maintainable) code checked against the spec.
 - From the decisions: [stack](../decisions/stack.md), logic once in the core; and
   [toolchain](../decisions/toolchain.md), tools pinned in the Nix flake.
 
