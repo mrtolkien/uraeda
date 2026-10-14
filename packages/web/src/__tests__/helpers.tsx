@@ -6,6 +6,7 @@ import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-
 import { createApp, Hosts } from "uraeda-server";
 import { fakeSessions } from "uraeda-server/testing";
 import { App } from "../App.tsx";
+import { ServerFetch } from "../attach/ServerFetch.tsx";
 import { fateClients } from "../clients.ts";
 import { forgetUndoToasts } from "../layout/useUndoToast.ts";
 
@@ -165,7 +166,11 @@ export async function renderPage(
   }
   // The page suspends while fate loads: an awaited act lets React render the data.
   const rendered = await act(async () =>
-    render(<App clientFor={fateClients({ fetch, origin })} />),
+    render(
+      <ServerFetch fetch={fetch}>
+        <App clientFor={fateClients({ fetch, origin })} />
+      </ServerFetch>,
+    ),
   );
   return { ...rendered, agent: fake.adapter, name: current, repo, sessions: fake.sessions };
 }
@@ -215,13 +220,23 @@ export function serverFetch(
   );
   const fetch: typeof globalThis.fetch = async (input, init) => {
     const app = await created;
-    const url = typeof input === "object" && "url" in input ? input.url : input.toString();
+    // The UI's plain requests, like uploads, name a path of the page's own server.
+    const url = new URL(
+      typeof input === "object" && "url" in input ? input.url : input.toString(),
+      origin,
+    ).href;
     sent.push(typeof init?.body === "string" ? init.body : url);
-    const response = await app.request(url, {
-      body: init?.body as string,
-      headers: { "content-type": "application/json" },
-      method: init?.method,
-    });
+    // fate's requests are JSON; an upload's multipart body sets its own type, with its boundary.
+    const response = await app.request(
+      url,
+      init?.body instanceof FormData
+        ? { body: init.body, method: init.method }
+        : {
+            body: init?.body as string,
+            headers: { "content-type": "application/json" },
+            method: init?.method,
+          },
+    );
     const text = await response.text();
     answers.push(typeof init?.body === "string" ? init.body : url);
     return new Response(text, {

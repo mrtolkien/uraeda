@@ -7,7 +7,8 @@
  */
 
 import { neutralTheme } from '@astryxdesign/theme-neutral';
-const themeIcons = neutralTheme["icons"];
+import { uraedaIcons } from '#theme-icons';
+const themeIcons = {...neutralTheme["icons"], ...uraedaIcons};
 /**
  * uraeda theme — built by `pnpm exec astryx theme build`
  * Import the CSS file alongside this module:

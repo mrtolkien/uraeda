@@ -270,6 +270,7 @@ The decisions this plan relies on, and where it follows them:
 | Chat image store (server)                                          | Writes, resolves, and cleans the data folder's images for sessions and routes | Inlining it in each route and in the sessions             |
 | `ServerFetch` context (web)                                        | `useAttach` must reach the in-process server in happy-dom tests, as fate does | Stubbing global `fetch` per test                          |
 | `useImageDrop`, `useAttach`, `AttachButton`, `insertLink` (web)    | Shared by the editor, comments, answers, notes, and the composer              | One copy per page                                         |
+| `useImageText` (web)                                               | One text field taking images, shared by the editor, comments, answers, notes  | The same cursor tracking copied into four fields          |
 | Astryx gap: page-wide drop on `window`                             | No Astryx component makes a page a drop target                                | A dropzone per field misses the proposal's "in the page"  |
 | Astryx gap: hidden `<input type="file">`                           | `FileInput` is a visible field, not a picker behind an icon button            | A visible field in the composer and toolbars              |
 | Astryx gap: a custom send button and Enter for image-only messages | Astryx refuses to submit empty text                                           | Requiring text with every image, against US2.4            |
@@ -808,72 +809,106 @@ git commit -m "feat(image-attachments): images in chat messages"
 
 **Files:**
 
-- Create: `packages/web/src/attach/useAttach.ts`, `useImageDrop.ts`, `AttachButton.tsx`,
-  `insertLink.ts`, `ServerFetch.tsx`
+- Create: `packages/web/src/attach/useAttach.ts`, `useImageDrop.ts`, `useImageText.ts`,
+  `AttachButton.tsx`, `AttachStatus.tsx`, `DropHint.tsx`, `insertLink.ts`, `ServerFetch.tsx`;
+  `packages/web/src/theme/icons.ts` (the paperclip)
 - Modify: `packages/web/src/EditorPage.tsx`, `Question.tsx` (`GrowingTextArea` forwards its ref and
-  HTML props), `main.tsx`, `routes.tsx` (`inApp`), `theme/theme.ts` (the `uraeda:attach` icon),
-  `packages/web/src/__tests__/helpers.tsx` (`serverFetch` passes `FormData` through; the
-  `ServerFetch` provider), `packages/web/vite.browser.config.ts` (a `repoFileSize` command)
+  HTML props), `routes.tsx` (`inApp`), `theme/theme.ts` and `theme/built/` (the `uraeda:attach`
+  icon, through `package.json`'s `imports`,
+  [R47](rulings.md#r47-the-paperclip-is-imported-as-theme-icons)),
+  `packages/web/src/__tests__/helpers.tsx` (`serverFetch` passes `FormData` through and resolves the
+  UI's relative paths; the `ServerFetch` provider), `packages/web/vite.browser.config.ts`
+  (`repoFileSize` and `fixtureImage` commands; `writeRepo` creates folders),
+  `packages/server/src/fate.ts` (exports the `ChatImage` type). `main.tsx` is unchanged: the
+  context's default is the browser's `fetch`.
 - Test: `packages/web/src/__browser__/attach.test.tsx`, `packages/web/src/__tests__/editor.test.tsx`
 
 **Interfaces:**
 
 - Produces:
-  - `useAttach(target: { path: string } | { chat: true }): { attach(files: File[]): Promise<AttachResult[]>; busy: boolean }`,
+  - `useAttach(target: { path: string } | { chat: true }): { attach(files: File[]): Promise<AttachResult[]>; busy: boolean; status?: AttachStatus }`,
     `AttachResult = { ok: true; value: AttachedView | ChatImage } | { ok: false; message: string }`,
-    announcing "Adding <name>…", "Added <name>", or the refusal, with Astryx's `useAnnounce`, and
-    showing the last refusal under the field.
-  - `useImageDrop(field: { ref: RefObject<HTMLElement | null>; priority: number; onFiles(files: File[]): void; label: string })`:
-    registers a drop target; while a file is dragged over the window, the target is the focused
-    field, else the registered field with the highest priority, outlined, with the hint "Drop to add
-    to <label>"; `dragover` and `drop` of files are cancelled on `window` whatever the target.
-  - `AttachButton({ multiple, onFiles, label })`: "Add image" or "Add images".
+    `AttachStatus = { text: string; error: boolean }`, announcing "Adding <name>…", "Added <name>",
+    or the refusal, with Astryx's `useAnnounce`; `status` is the last of them, a refusal kept over
+    the images added after it, which `AttachStatus({ status })` shows under the field. A file
+    without a name, as a paste gives, is sent without `name`, and told "pasted image". A draft that
+    moved with the first image takes the next ones at its new path.
+  - `useImageDrop(field: { ref: RefObject<HTMLElement | null>; priority: number; onFiles(files: File[]): void; label: string }): { isTarget: boolean; hint?: string }`:
+    registers a drop target while mounted, drawn or not; while a file is dragged over the window,
+    the target is the focused field, else the registered field with the highest priority, outlined
+    with `dropStyles.target`, with the hint "Drop to add to <label>" that
+    `DropHint({ hint, children })` shows over the field's corner; `dragover` and `drop` of files are
+    cancelled on `window` whatever the target, and a drop a field already cancelled is left to it.
+  - `AttachButton({ multiple?, onFiles, isIconOnly?, isDisabled? })`: "Add image", or "Add images"
+    when `multiple`, with the paperclip; icon only in the composer's bar.
   - `insertLinks(text: string, at: number, links: string[]): { text: string; selection: [number, number] }`,
-    links one per line, the first link's alt text selected.
+    links one per line, in a paragraph of their own
+    ([R43](rulings.md#r43-links-go-in-a-paragraph-of-their-own)), the first link's alt text
+    selected; `followEdits(before: string, after: string, at: number): number` moves a position by
+    an edit before it.
+  - `useImageText({ path, text, label, priority, initialSelection?, onStart?, onText(text, added), onMoved?(moved, { text, selection }) }): { fieldProps, addFiles(files: File[]): Promise<void>, hint?, busy, status? }`:
+    a text field taking images by drop, paste, and `addFiles` (the button's); `fieldProps` (its
+    `ref`, `onPaste`, `onFocus`, and the outline's `xstyle`) are spread on the `TextArea` or
+    `GrowingTextArea`. The links go where the cursor was when the files came, moved by what is typed
+    meanwhile, or at the end of a field never focused
+    ([R44](rulings.md#r44-a-drop-goes-to-the-cursor-or-the-end-of-a-field-never-focused)); a paste's
+    files are sent as pasted images, without their names
+    ([R45](rulings.md#r45-pasted-files-are-pasted-images)).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Browser tests, files from `fixtures/images/` sent through an in-page `DataTransfer`:
 
 - `US1.1: a screenshot dropped anywhere on the page is linked at the cursor`: the link of the spec
   inserted after "covers the login button:", its alt text selected, and `repoFileSize` of the image
   above 0.
+- `US1.1: a drop on the preview opens the text, linked at its end`
+  ([R46](rulings.md#r46-a-drop-on-the-editors-preview-opens-its-text)).
 - `US1.2: a pasted image is linked as "pasted image"`.
 - `US1.3: "Add image" picks a file` (`userEvent.upload` on the hidden input).
-- `US1.6: a draft that gets an image opens at its folder's proposal`.
 - `US1.8: an SVG is refused under the field`.
+- `several images dropped on a single-file draft all go to its new folder`.
 - `the link goes where the cursor was at the drop` (Review focus 8): text typed during the upload is
   kept before or after the link, as typed.
 - `a drop outside every field stays in the app` (Review focus 9) on the feature page.
-- `a file over 20 MB is refused before it is uploaded` (Review focus 12): no request reaches
-  `/attach`, and the field shows "This image is over 20 MB: <name> is <size> MB."
 - `several images are linked one per line`.
 - `SC-002: a 1440×900 screenshot is linked within a second of its drop`.
 
-- [ ] **Step 2: Run them to check they fail**
+UI tests (happy-dom, `editor.test.tsx`), through the in-process server, which needs `FormData`:
 
-- Run: `vp test packages/web/src/__browser__/attach.test.tsx`
-- Expected: FAIL, `Unable to find role="button" and name "Add image"`.
+- `a draft that gets an image opens at its folder's proposal` (US1.6, the spec's UI test of the
+  editor's new path), picked with "Add image".
+- `a file over 20 MB is refused before it is uploaded` (Review focus 12): no request reaches
+  `/attach`, and the field shows "This image is over 20 MB: <name> is <size> MB."
 
-- [ ] **Step 3: Implement**
+- [x] **Step 2: Run them to check they fail**
 
-The hidden input and the window listeners carry the Astryx-gap suppressions, in the codebase's
-format. The editor remembers the cursor at the drop, saves and flushes before attaching, inserts the
-links with `insertLinks`, schedules a save, and, when `moved` is set, redirects to `/edit/<moved>`
-after flushing, inserting the link once the new page has loaded its text. `useAttach` refuses a file
-over 20 MiB before uploading it, with the core's text, "This image is over 20 MB: <name> is <size>
-MB.", the size rounded up as [R9](rulings.md#r9-sizes-are-counted-in-mib) says: a slow upload over
-the limit may end in a network error before the server's refusal arrives (Review focus 12).
+- Run: `vp test --project uraeda-web-browser packages/web/src/__browser__/attach.test.tsx` and
+  `vp test packages/web/src/__tests__/editor.test.tsx`
+- Expected: FAIL, `Unable to find role="button" and name "Add image"`, and links never inserted.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 3: Implement**
+
+The hidden input carries the Astryx-gap suppression, in the codebase's format; the window listeners
+are native events, with no raw element to suppress. The editor remembers the cursor at the drop,
+saves and flushes before attaching, holds its saves while the images upload (a draft may move
+meanwhile), inserts the links with `insertLinks`, and saves. When `moved` is set, it redirects to
+`/edit/<moved>`, replacing the address that no longer exists, and hands its text with the links to
+the new page, which saves it at the new path. "Added <name>" names the saved file, as the mockup
+shows. `useAttach` refuses a file over 20 MiB before uploading it, with the core's text, "This image
+is over 20 MB: <name> is <size> MB.", the size rounded up as
+[R9](rulings.md#r9-sizes-are-counted-in-mib) says: a slow upload over the limit may end in a network
+error before the server's refusal arrives (Review focus 12).
+
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/web
+git add packages/web packages/server/src/fate.ts specs/2026-10-13-image-attachments
 git commit -m "feat(image-attachments): attach images in the editor"
 ```
 
@@ -981,7 +1016,8 @@ git commit -m "feat(image-attachments): images in chats"
 
 **Interfaces:**
 
-- Consumes: task 8's hooks and button.
+- Consumes: task 8's hooks and button: `useImageText` for each field, with `AttachStatus` under it
+  and `DropHint` around it, and `AttachButton`.
 
 - [ ] **Step 1: Write the failing tests**
 
