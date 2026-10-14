@@ -242,6 +242,21 @@ test("a folder that is no feature's has no branch changes, and logs nothing", as
   expect(logged).not.toHaveBeenCalled();
 });
 
+test("a repository without specs/ has no branch changes, and logs nothing", async () => {
+  const logged = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  onTestFinished(() => logged.mockRestore());
+  const { app } = await testApp(fixtureRepo(), {
+    binding: {
+      ...binding,
+      branchChanges: () => Promise.reject(new Error("no specs/ folder at /tmp/gone: run ura init")),
+    },
+  });
+
+  const [changes] = await byId(app, "BranchChanges", [CLI], ["changes", "failed"]);
+  expect(changes).toEqual({ changes: null, failed: false, id: CLI });
+  expect(logged).not.toHaveBeenCalled();
+});
+
 test("a feature that is no feature's folder is sent with no progress", async () => {
   const [missing] = await byId((await testApp()).app, "Feature", ["2026-01-01-none"], ["step"]);
 
