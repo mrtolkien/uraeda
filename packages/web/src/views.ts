@@ -38,7 +38,14 @@ const ItemsSelection = {
   plan: { tasks: true },
   review: { comments: true, commit: true, summary: true, verdict: true },
   rulings: true,
-  spec: { criteria: true, planReview: true, riskTier: true, stories: true, tiers: true },
+  spec: {
+    criteria: true,
+    details: true,
+    planReview: true,
+    riskTier: true,
+    stories: true,
+    tiers: true,
+  },
 } as const;
 
 const VersionSelection = {

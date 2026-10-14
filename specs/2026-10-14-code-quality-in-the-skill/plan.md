@@ -707,35 +707,41 @@ git commit -m "feat(code-quality-in-the-skill): specs put the human's part first
   - In TypeScript, through the generated declarations: `story.details` and `spec.details`, both
     `Array<number>`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 A table-driven test, `a_spec_has_its_folds`, with one row per case:
 
 - the example spec: US2's details are the block ids of "Acceptance scenarios:" and its list (lines
-  56 to 61), and `details` starts with the `## Details` heading block and ends with the Testing
+  56 to 65), and `details` starts with the `## Details` heading block and ends with the Testing
   table;
 - a story with no scenarios: empty;
 - a story whose list has no "…scenarios:" intro: empty (review focus 3);
+- a `## Details` followed by another level-2 heading: `details` stops before it, its `###`
+  subheadings included
+  ([R14](rulings.md#r14-the-details-fold-keeps-its-subheadings-and-ends-at-the-next-section));
 - a spec without `## Details`: empty.
 
 The break this catches: folding from `## Details` to the end of the file, and not to the next
 level-2 heading.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test items`
 - Expected: FAIL to compile: `no field details on type Story`.
 
-- [ ] **Step 3: Implement, from `section` and `headings`, then regenerate the binding**
+- [x] **Step 3: Implement, from `section` and `headings`, then regenerate the binding**
+
+A story's details come from its `section`. The spec's come from `headings` alone: `section` leaves
+out headings, and the Details fold holds its own and its subheadings.
 
 Add `details: true` to `ItemsSelection.spec`. `stories` comes whole.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo test && vp run --filter uraeda-binding build && vp check && vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core packages/binding/index.d.ts packages/web/src/views.ts
