@@ -75,3 +75,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the getter is one parameter in the wiring; task 6's `startServer` is its only caller
   besides the tests.
 - **Where**: tasks 4 and 6
+
+## R6: `repositories.add` answers the list, with the added name
+
+- **Decision**: the `Repositories` record has an `added` field, null in every answer but
+  `repositories.add`'s, where it is the name of the repository added or found listed. The three list
+  mutations answer with the `Repositories` record.
+- **Rationale**: a fate mutation answers with one record type, and the add form needs the name to
+  open the repository's page (US2.2, US2.5); the list's record already updates the client's cache,
+  and the order cannot say which row was added, since `openedAt` is to the second.
+- **Alternatives considered**: a `Repository` record type for `repositories.add`'s answer, a second
+  view for one field, while the list would then wait for its live update.
+- **If wrong**: a client caching `added` from the answer keeps it until the record is read again;
+  the form reads it from the answer only.
+- **Where**: tasks 5 and 8

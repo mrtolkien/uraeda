@@ -3,13 +3,16 @@ import { REFUSALS } from "../runner/sessions.ts";
 import type { Context } from "./context.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { featureRecord, readSession, TRIGGERS, writable } from "./sessions.ts";
-import { sources } from "./sources.ts";
+import { homedir } from "node:os";
+import { typedFolder } from "../folders.ts";
+import { repositoriesRecord, sources } from "./sources.ts";
 import {
   draftDataView,
   featureDataView,
   fileDataView,
   PRIORITIES_ID,
   prioritiesDataView,
+  repositoriesDataView,
   sentFile,
   sessionDataView,
   type DraftRecord,
@@ -57,6 +60,15 @@ async function onSession<T>(ctx: Context, call: () => T | Promise<T>): Promise<T
     await ctx.sessions.mainRoot(ctx.repo);
     return call();
   });
+}
+
+/**
+ * The list after a change through the binding, read again by the hosts, which sends it to every
+ * view: masked to the fields the client selected.
+ */
+async function listChanged(ctx: Context, select: Array<string>, added: string | null = null) {
+  await ctx.hosts.reload();
+  return sources.masked(repositoriesDataView, ctx, repositoriesRecord(ctx, added), select);
 }
 
 type FileInput = { folder: string; file: string };
@@ -465,6 +477,32 @@ export const mutations = {
     resolve: async ({ ctx, input, select }: Resolver<{ session: string }>) => {
       await onSession(ctx, () => ctx.sessions.seen(ctx.repo, input.session));
       return session(ctx, input.session, select);
+    },
+  },
+  "repositories.add": {
+    type: "Repositories",
+    resolve: async ({ ctx, input, select }: Resolver<{ folder: string }>) => {
+      const folder = await refusedOn(() => typedFolder(input.folder, homedir()));
+      const { repository } = await refusable(() => ctx.binding.addRepository(ctx.dataDir, folder));
+      return listChanged(ctx, select, repository.name);
+    },
+  },
+  "repositories.remove": {
+    type: "Repositories",
+    resolve: async ({ ctx, input, select }: Resolver<{ name: string }>) => {
+      const host = ctx.hosts.get(input.name);
+      if (host && ctx.sessions.working(host.path).length > 0) {
+        throw callSiteError(`refused: An agent is working in ${input.name}: stop it first.`);
+      }
+      await refusable(() => ctx.binding.removeRepository(ctx.dataDir, input.name));
+      return listChanged(ctx, select);
+    },
+  },
+  "repositories.open": {
+    type: "Repositories",
+    resolve: async ({ ctx, input, select }: Resolver<{ name: string }>) => {
+      await refusable(() => ctx.binding.openRepository(ctx.dataDir, input.name));
+      return listChanged(ctx, select);
     },
   },
 };
