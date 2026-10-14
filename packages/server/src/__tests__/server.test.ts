@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import * as binding from "uraeda-binding";
-import { fixtureRepo, temporaryFolder } from "uraeda-binding/test-utils";
+import { fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
 import { FakeAdapter } from "../runner/fake.ts";
 import { startServer } from "../server.ts";
 
@@ -97,6 +97,59 @@ test("a given folder outside git stops the start", async () => {
 
   await expect(start(folder, dataDir, true)).rejects.toThrow(`${folder} is not a git repository`);
 });
+
+/** A git repository with one commit and no specs/ folder. */
+function repoWithoutSpecs(): string {
+  const repo = temporaryFolder("uraeda-plain");
+  git(repo, "init", "--quiet", "--initial-branch", "main");
+  writeFileSync(join(repo, "README.md"), "# Plain\n");
+  git(repo, "add", "--all");
+  git(
+    repo,
+    "-c",
+    "user.name=Test",
+    "-c",
+    "user.email=test@example.com",
+    "commit",
+    "--quiet",
+    "--no-verify",
+    "--message",
+    "chore: start",
+  );
+  return repo;
+}
+
+/** The workspace of a listed repository, read through its own endpoint. */
+async function workspaceOf(app: Awaited<ReturnType<typeof start>>["app"], name: string) {
+  const response = await app.request(`http://127.0.0.1:4310/r/${name}/fate`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      version: 1,
+      operations: [
+        { id: "1", kind: "byId", type: "Workspace", ids: ["workspace"], select: ["noSpecs"] },
+      ],
+    }),
+  });
+  return (await response.json()) as { results: Array<{ data?: unknown; error?: unknown }> };
+}
+
+/** A repository without specs/ starts, as before repositories had a list: its home says ura init. */
+test.each([false, true])(
+  "starting in a repository without specs/ adds it, given: %s",
+  async (given) => {
+    const repo = repoWithoutSpecs();
+    const dataDir = temporaryFolder("uraeda-data");
+
+    const { app, hosts } = await start(repo, dataDir, given);
+
+    expect(hosts.rows().map((row) => [row.path, row.missing])).toEqual([[repo, false]]);
+    const name = hosts.rows()[0].name;
+    const body = await workspaceOf(app, name);
+    expect(body.results[0].error).toBeUndefined();
+    expect(JSON.stringify(body.results[0].data)).toContain(`"noSpecs":"${repo}"`);
+  },
+);
 
 /** Review focus 6: the global endpoint has no repository, whichever the server started in. */
 test("the global endpoint serves no repository's records", async () => {

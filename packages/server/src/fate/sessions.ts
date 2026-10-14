@@ -347,7 +347,7 @@ export async function featureRecord(
 
 /**
  * The folders of the server's repository whose session has a turn running or queued: none in a
- * repository the core gives no main checkout for, like one without a commit.
+ * folder the core gives no main checkout for, outside git.
  */
 export async function working(ctx: RepoContext): Promise<Array<string>> {
   try {
