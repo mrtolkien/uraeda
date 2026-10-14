@@ -63,6 +63,9 @@ export const uraedaTheme = defineTheme({
     "--size-viewport-height": "100dvh",
     // The round's index, a column beside its questions on wide screens.
     "--size-round-index": "240px",
+    // The repository menu's popover on wide screens, and the add form's field in the first run.
+    "--size-menu": "360px",
+    "--size-form": "560px",
     // The selected block of a review: an amber tint and bar, apart from the muted background.
     "--color-selection": "var(--color-background-yellow)",
     "--color-selection-edge": "var(--color-border-yellow)",

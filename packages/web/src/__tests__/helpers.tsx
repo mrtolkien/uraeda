@@ -1,5 +1,5 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { act, cleanup, configure, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach } from "vite-plus/test";
 import * as binding from "uraeda-binding";
@@ -233,7 +233,7 @@ export function serverFetch(
 
 /**
  * Writes a list of repositories in a new data folder, as by hand, each opened a minute before the
- * one above it, and returns the folder.
+ * one above it, all long ago, so a repository the tests open moves first, and returns the folder.
  */
 export function listOf(repositories: Array<[name: string, path: string]>): string {
   const dataDir = temporaryFolder("uraeda-data");
@@ -244,11 +244,35 @@ export function listOf(repositories: Array<[name: string, path: string]>): strin
       repositories: repositories.map(([name, path], index) => ({
         name,
         path,
-        openedAt: `2026-10-14T10:${String(59 - index).padStart(2, "0")}:00Z`,
+        openedAt: `2000-01-01T10:${String(59 - index).padStart(2, "0")}:00Z`,
       })),
     }),
   );
   return dataDir;
+}
+
+/**
+ * A new home folder for each of the file's tests, as the server reads it, `HOME`, to write paths
+ * under it with `~`: the folder of the current test, and the machine's put back after each.
+ */
+export function temporaryHome(): () => string {
+  const before = process.env.HOME;
+  let home = "";
+  beforeEach(() => {
+    home = temporaryFolder("uraeda-home");
+    process.env.HOME = home;
+  });
+  afterEach(() => {
+    process.env.HOME = before;
+  });
+  return () => home;
+}
+
+/** A copy of the fixture repository at a path, its parent folders made. */
+export function repoAt(path: string): string {
+  mkdirSync(dirname(path), { recursive: true });
+  renameSync(fixtureRepo(), path);
+  return path;
 }
 
 /**

@@ -114,3 +114,21 @@ export function Overlay({
     </BottomSheet>
   );
 }
+
+/**
+ * Runs once the overlay `label` is closed, its history entry gone: a page opened, or another
+ * overlay, while its entry is still there would be undone by the Back that closes it.
+ */
+export function afterOverlayCloses(label: string, run: () => void) {
+  if (overlayOf(window.history.state) !== label) {
+    run();
+    return;
+  }
+  const onPop = () => {
+    if (overlayOf(window.history.state) !== label) {
+      window.removeEventListener("popstate", onPop);
+      run();
+    }
+  };
+  window.addEventListener("popstate", onPop);
+}

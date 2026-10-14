@@ -1,4 +1,4 @@
-// US6: "Uraeda" goes home, and ＋ shows on home and the priorities page only, its result confirmed
+// US6: Home goes home, and ＋ shows on home and the priorities page only, its result confirmed
 // by a toast with Undo. Below them, the chat's US3 and US4: the sessions in the sidebar.
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -16,9 +16,13 @@ import {
   type,
 } from "./helpers.tsx";
 
-test("Uraeda goes home (US6 4)", async () => {
+test("Home goes home (US6 4)", async () => {
   await renderPage("/priorities");
-  await click((await screen.findAllByRole("link", { name: /Uraeda/ }))[0]!);
+  await click(
+    within(await screen.findByRole("navigation", { name: "Side navigation" })).getByRole("link", {
+      name: "Home",
+    }),
+  );
   expect(window.location.pathname).toBe(atRepo("/"));
 });
 
@@ -36,8 +40,11 @@ async function addToLater(text: string) {
 
 test("＋ adds to Later with a toast and Undo, and the bar does not change (US6 5)", async () => {
   const { repo } = await renderPage("/");
-  // The bar: the link home, and the page's controls beside it.
-  const bar = (await screen.findAllByRole("link", { name: /Uraeda/ }))[0]!.parentElement!;
+  // The bar: the repository menu, and the page's controls beside it.
+  let bar = (await screen.findAllByRole("button", { name: /^Uraeda \S/ }))[0]!;
+  while (!within(bar).queryByRole("button", { name: "Add a priority" })) {
+    bar = bar.parentElement!;
+  }
   const before = bar.textContent;
 
   const undo = await addToLater("Show the agent's last commit");
