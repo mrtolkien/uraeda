@@ -94,3 +94,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: 500, which the second start treats as another program on the port.
 - **If wrong**: the route's `catch` changes alone.
 - **Where**: Task 5.
+
+## R9: `--binding` takes a folder
+
+- **Decision**: the smoke test's `--binding` takes a `.node` file, or a folder holding exactly one
+  `uraeda-binding.*.node`; `vp run ready` passes `--binding packages/binding`.
+- **Rationale**: the plan finds the checkout's `.node` by its name, and `vp run` runs a script's
+  simple commands without a shell, so `packages/binding/uraeda-binding.*.node` reaches the script
+  unexpanded. A folder finds it on any platform.
+- **Alternatives considered**: a shell glob, which `vp run` does not expand; naming the Linux x64
+  file, which breaks `vp run ready` on macOS.
+- **If wrong**: `nodeFile` in the smoke test changes alone.
+- **Where**: Task 7.
+
+## R10: The smoke test expects the Cargo version before a release
+
+- **Decision**: the version check expects the installed package's version, or, while it is `0.0.0`,
+  the Cargo workspace's version from the checkout's `Cargo.toml`.
+- **Rationale**: `uraeda --version` prints the binding's `version()`, the Cargo workspace's, so a
+  checkout's build prints `0.4.0` while the committed package says `0.0.0`. The release writes the
+  tag's version into the package, and then both must agree.
+- **Alternatives considered**: expecting `0.0.0`, which the command never prints; accepting any
+  version, which would not catch a binding of another release.
+- **If wrong**: `expectedVersion` in the smoke test changes alone.
+- **Where**: Task 7.
