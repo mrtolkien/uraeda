@@ -60,7 +60,14 @@ export class Processes {
         resume,
         ...(allowed === undefined ? {} : { allowed }),
       });
-      const proc: Proc = { agent, cwd, closing: false, done: Promise.resolve(), terminate: [] };
+      const proc: Proc = {
+        agent,
+        cwd,
+        closing: false,
+        done: Promise.resolve(),
+        terminate: [],
+        background: new Set(),
+      };
       live.proc = proc;
       proc.done = this.#consume(live, proc);
       return { proc, replaced };
@@ -126,10 +133,7 @@ export class Processes {
               state: "failed" as const,
               reason: stderr || `${adapter.name} exited with code ${exit.code}.`,
             });
-      turns.end(live, turn.id, {
-        ...end,
-        ...(turn.cost === undefined ? {} : { costUsd: turn.cost }),
-      });
+      turns.end(live, turn.id, end);
     }
     this.#context.changed(live);
     turns.next(live);

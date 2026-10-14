@@ -238,7 +238,6 @@ test.each(
       {
         type: "result",
         ok: false,
-        costUsd: 0.42,
         errors: ["The tests failed."],
         denials: [{ tool: "Bash", input: { command: `gh pr create --draft --title "${LONG}"` } }],
         interrupted: false,
@@ -276,7 +275,6 @@ async function blockedChat() {
     {
       type: "result",
       ok: true,
-      costUsd: 0.31,
       errors: [],
       denials: [{ tool: "Bash", input: { command: "git push origin v0.3.0" } }],
       interrupted: false,

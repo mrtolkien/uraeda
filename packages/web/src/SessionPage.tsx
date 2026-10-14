@@ -34,11 +34,6 @@ const styles = stylex.create({
   },
 });
 
-/** The session's cost, as the agent's latest result gave it. */
-export function costText(costUsd: number) {
-  return `$${costUsd.toFixed(2)} this session`;
-}
-
 /** A session's status: its dot, and its label. */
 export function SessionStatus({ status, label }: { status: Status; label: string }) {
   return (
@@ -57,27 +52,23 @@ type ChatControls = {
 };
 
 /**
- * A session's header: its title, then its status, agent, place, and cost on one line. A chat's
+ * A session's header: its title, then its status, agent, and place on one line. A chat's
  * title is renamed in place, and the chat archived or brought back.
  */
 function Header({
   title,
   status,
   place,
-  costUsd,
   chat,
 }: {
   title: string;
   status?: { status: Status; label: string };
   place?: string;
-  costUsd?: number | null;
   chat?: ChatControls;
 }) {
   const agent = useAgent();
   const wide = useWidthClass() === "wide";
-  const meta = [agent?.name, place, costUsd == null ? undefined : costText(costUsd)].filter(
-    (part): part is string => Boolean(part),
-  );
+  const meta = [agent?.name, place].filter((part): part is string => Boolean(part));
   return (
     <VStack gap={1}>
       {/* Beside the feature page on wide screens, whose title is the page's heading. */}
@@ -204,7 +195,6 @@ function Session({
           title={session.title}
           status={{ status: session.status, label: session.statusLabel }}
           place={session.place}
-          costUsd={session.costUsd}
           {...(chat ? { chat } : {})}
         />
         <div ref={log}>

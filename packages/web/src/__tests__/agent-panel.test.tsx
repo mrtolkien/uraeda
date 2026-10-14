@@ -137,19 +137,6 @@ test("a feature waiting on you, with no session yet, opens its session to chat",
   expect(await screen.findByRole("link", { name: "Open the session" })).toBeTruthy();
 });
 
-/** US2.5 */
-test("the panel shows the session's cost", async () => {
-  const repo = fixtureRepo();
-  const fake = await fakeAgent();
-  await seedRun(fake, repo, CLI, [
-    { type: "result", ok: true, costUsd: 3.1, errors: [], denials: [], interrupted: false },
-  ]);
-
-  await renderPage(`/f/${CLI}`, repo, { agent: fake });
-
-  expect(await screen.findByText(/\$3\.10 this session/)).toBeTruthy();
-});
-
 test("Stop stops the turn, and Try again opens the session with the message", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();

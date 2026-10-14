@@ -132,7 +132,6 @@ test.each<[string, Array<AgentEvent>]>([
       {
         type: "result",
         ok: true,
-        costUsd: 0.188748,
         errors: [],
         denials: [],
         interrupted: false,
@@ -145,7 +144,6 @@ test.each<[string, Array<AgentEvent>]>([
       {
         type: "result",
         ok: true,
-        costUsd: 0.1160696,
         errors: [],
         denials: [
           {
@@ -163,7 +161,6 @@ test.each<[string, Array<AgentEvent>]>([
       {
         type: "result",
         ok: false,
-        costUsd: 0.0907116,
         errors: ["Reached maximum number of turns (1)"],
         denials: [],
         interrupted: false,
@@ -206,14 +203,12 @@ test("a success result marked as an error is not ok, and gives its text", () => 
     subtype: "success",
     is_error: true,
     result: "API Error: 500",
-    total_cost_usd: 0,
     permission_denials: [],
   });
   expect(parseLine(line)).toEqual([
     {
       type: "result",
       ok: false,
-      costUsd: 0,
       errors: ["API Error: 500"],
       denials: [],
       interrupted: false,
@@ -471,11 +466,10 @@ test.each<[string, Array<string>, Array<Partial<AgentEvent>>]>([
         is_error: true,
         terminal_reason: "aborted_streaming",
         errors: ["[ede_diagnostic] aborted"],
-        total_cost_usd: 0.02,
         permission_denials: [],
       }),
     ],
-    [{ type: "result", ok: false, costUsd: 0.02, denials: [], interrupted: true }],
+    [{ type: "result", ok: false, denials: [], interrupted: true }],
   ],
   [
     "init at each turn",
@@ -509,6 +503,36 @@ test.each<[string, Array<string>, Array<Partial<AgentEvent>>]>([
   if (events.length > 0 && events[0]!.type === "toolStart") {
     expect(parsed[0]).toEqual(events[0]);
   }
+});
+
+test("background sub-agents are reported by their tool calls; shells and watchers are not", () => {
+  const tasks = new Map<string, string>();
+  const parse = (value: Record<string, unknown>) =>
+    parseLine(line({ type: "system", ...value }), undefined, tasks);
+  const task = (id: string, type: string, extra: Record<string, unknown> = {}) => ({
+    task_id: id,
+    task_type: type,
+    description: id,
+    ...extra,
+  });
+
+  expect(
+    parse({ subtype: "task_started", task_id: "t1", tool_use_id: "toolu_1", description: "Map" }),
+  ).toEqual([]);
+  expect(
+    parse({
+      subtype: "background_tasks_changed",
+      tasks: [
+        task("t1", "local_agent"),
+        task("t2", "local_workflow"),
+        task("t3", "local_bash"),
+        task("t4", "local_agent", { ambient: true }),
+      ],
+    }),
+  ).toEqual([{ type: "background", tools: ["toolu_1", "t2"] }]);
+  expect(parse({ subtype: "background_tasks_changed", tasks: [] })).toEqual([
+    { type: "background", tools: [] },
+  ]);
 });
 
 test.each<[Denial, string]>([

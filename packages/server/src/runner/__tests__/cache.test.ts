@@ -100,7 +100,7 @@ test("a session's turns come back oldest first, with their start and end", () =>
   const cache = SessionCache.open(":memory:");
   const session = cache.createSession(feature);
   const first = cache.addTurn({ sessionId: session.id, ...workflowTurn });
-  cache.endTurn(first, { state: "done", costUsd: 3.1 });
+  cache.endTurn(first, { state: "done" });
   const second = cache.addTurn({
     sessionId: session.id,
     kind: "chat",
@@ -118,7 +118,6 @@ test("a session's turns come back oldest first, with their start and end", () =>
     step: "plan",
     state: "done",
     reason: null,
-    costUsd: 3.1,
     startedAt: expect.any(String),
     endedAt: expect.any(String),
   });
@@ -130,7 +129,6 @@ test("a session's turns come back oldest first, with their start and end", () =>
   expect(cache.turn(second)).toMatchObject({
     state: "failed",
     reason: "Rate limit reached",
-    costUsd: null,
     startedAt: expect.any(String),
   });
   expect(cache.turn(second + 1)).toBeUndefined();
@@ -428,7 +426,7 @@ test("a cache another process holds locked is kept, never replaced", () => {
   other.close();
   expect(SessionCache.open(path).featureSession(REPO, FOLDER)).toBeUndefined();
   expect(new DatabaseSync(path).prepare("PRAGMA user_version").get()).toEqual({
-    user_version: 3,
+    user_version: migrations.length,
   });
 });
 
@@ -444,6 +442,14 @@ test("a cache in WAL mode reads while another connection writes", () => {
   expect(cache.session(id)).toMatchObject({ title: null });
   other.exec("COMMIT");
   expect(cache.session(id)).toMatchObject({ title: "Renamed" });
+});
+
+test("migration 4 drops the turns' costs", () => {
+  const path = tempPath();
+  SessionCache.open(path);
+
+  const columns = new DatabaseSync(path).prepare("PRAGMA table_info(turns)").all();
+  expect(columns.map((column) => column.name)).not.toContain("cost_usd");
 });
 
 test("migration 3 turns each feature's runs into the turns of one session", () => {
@@ -544,7 +550,6 @@ test("migration 3 turns each feature's runs into the turns of one session", () =
       allowed: null,
       state: "done",
       reason: null,
-      costUsd: 1.5,
       startedAt: "2026-10-12T10:00:00.000Z",
       endedAt: "2026-10-12T10:05:00.000Z",
     },

@@ -10,7 +10,7 @@ import { useAgent, useSession, useTurn } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { stepLabel } from "./labels.ts";
 import { statusStyles } from "./Question.tsx";
-import { costText, SessionStatus } from "./SessionPage.tsx";
+import { SessionStatus } from "./SessionPage.tsx";
 import { handOver, sessionPath } from "./sessions.ts";
 import { SessionView } from "./views.ts";
 
@@ -43,15 +43,13 @@ const ENDINGS: Partial<Record<string, string>> = { failed: "Failed", stopped: "S
 
 /**
  * The session's latest turn, the step it ran or a chat, how it ended when it went wrong, and how
- * long it ran, with the cost; then `children`, told whether the turn failed or was stopped.
+ * long it ran; then `children`, told whether the turn failed or was stopped.
  */
 function LatestTurn({
   id,
-  cost,
   children,
 }: {
   id: string;
-  cost?: string;
   children: (endedBadly: boolean) => ReactNode;
 }) {
   const turn = useTurn(id);
@@ -66,14 +64,14 @@ function LatestTurn({
   const time = turn?.startedAt ? turnTime(turn.startedAt, turn.endedAt) : undefined;
   return (
     <>
-      <Line parts={[what, ending, time, cost]} />
+      <Line parts={[what, ending, time]} />
       {children(ending !== undefined)}
     </>
   );
 }
 
 /**
- * The session's status, its latest turn and cost, Stop while it works, with why when it is refused,
+ * The session's status, its latest turn, Stop while it works, with why when it is refused,
  * and the panel's buttons.
  */
 function Summary({ id, actions }: { id: string; actions: (endedBadly: boolean) => ReactNode }) {
@@ -92,7 +90,6 @@ function Summary({ id, actions }: { id: string; actions: (endedBadly: boolean) =
     }
   };
   const latest = session.turns.at(-1);
-  const cost = session.costUsd == null ? undefined : costText(session.costUsd);
   const rest = (endedBadly: boolean) => (
     <>
       {session.status === "working" && (
@@ -109,22 +106,13 @@ function Summary({ id, actions }: { id: string; actions: (endedBadly: boolean) =
   return (
     <>
       <SessionStatus status={session.status} label={session.statusLabel} />
-      {latest === undefined ? (
-        <>
-          <Line parts={[cost]} />
-          {rest(false)}
-        </>
-      ) : (
-        <LatestTurn id={latest} cost={cost}>
-          {rest}
-        </LatestTurn>
-      )}
+      {latest === undefined ? rest(false) : <LatestTurn id={latest}>{rest}</LatestTurn>}
     </>
   );
 }
 
 /**
- * A feature's agent: its session's status, its latest turn, its cost, Stop while it works, "Open
+ * A feature's agent: its session's status, its latest turn, Stop while it works, "Open
  * the session", and, when the feature waits on an agent, "Start the agent" or "Try again", which
  * open the session with the workflow's message in the composer, unsent. Nothing shows without a
  * session when the agent is not on this machine, or when the feature has no branch.

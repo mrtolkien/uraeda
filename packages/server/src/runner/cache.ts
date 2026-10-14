@@ -59,8 +59,6 @@ export type TurnRow = {
   state: TurnState;
   /** Why it failed or stopped, in the UI's words. */
   reason: string | null;
-  /** The agent's running total for the session, at the turn's end. */
-  costUsd: number | null;
   startedAt: string | null;
   endedAt: string | null;
 };
@@ -196,6 +194,8 @@ export const migrations: Array<Migration> = [
   // The process that runs it: servers of other repositories share the file.
   "ALTER TABLE runs ADD COLUMN pid INTEGER;",
   sessionsOfTurns,
+  // Costs were the agent's own estimates, and are no longer shown.
+  "ALTER TABLE turns DROP COLUMN cost_usd;",
 ];
 
 /** How long a statement waits for another process's lock, by default. */
@@ -247,7 +247,6 @@ const toTurn = (row: Row): TurnRow => ({
   allowed: row.allowed as string | null,
   state: row.state as TurnState,
   reason: row.reason as string | null,
-  costUsd: row.cost_usd as number | null,
   startedAt: row.started_at as string | null,
   endedAt: row.ended_at as string | null,
 });
@@ -487,18 +486,15 @@ export class SessionCache {
     });
   }
 
-  /** Ends a turn. The cost is kept when the end gives none. */
-  endTurn(id: number, end: { state: TurnState; reason?: string; costUsd?: number }): void {
+  /** Ends a turn. */
+  endTurn(id: number, end: { state: TurnState; reason?: string }): void {
     transaction(this.#db, () => {
       const at = now();
       const row = this.#db
         .prepare(
-          `UPDATE turns SET state = ?, reason = ?, cost_usd = COALESCE(?, cost_usd), ended_at = ?
-           WHERE id = ? RETURNING session_id`,
+          `UPDATE turns SET state = ?, reason = ?, ended_at = ? WHERE id = ? RETURNING session_id`,
         )
-        .get(end.state, end.reason ?? null, end.costUsd ?? null, at, id) as
-        | { session_id: string }
-        | undefined;
+        .get(end.state, end.reason ?? null, at, id) as { session_id: string } | undefined;
       if (row) {
         this.#touch(row.session_id, at);
       }

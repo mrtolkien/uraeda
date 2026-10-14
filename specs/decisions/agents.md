@@ -29,7 +29,8 @@ cache that is never committed.
   the real agent, and MUST be kept in the repository.
 - Sessions, turns, and items MUST be stored and sent to the UI in one agent-neutral shape: a session
   has Uraeda's own ID, the agent's kind, and the agent's own session ID; a turn is one message until
-  the agent settles; items are messages, the agent's text, tool calls with the
+  the agent settles, after its background sub-agents report back; items are messages, the agent's
+  text, tool calls with the
   [Agent Client Protocol](https://agentclientprotocol.com/protocol/tool-calls)'s kinds and statuses,
   sub-agents, blocked actions, and system lines. An agent's own formats MUST stay inside its
   adapter.

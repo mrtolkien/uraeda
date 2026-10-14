@@ -28,11 +28,15 @@ export type AgentEvent =
   /** A message was taken back before the agent read it. */
   | { type: "cancelled"; id: string }
   | { type: "retry"; attempt: number; delayMs: number; error: string }
-  /** The turn ended. `costUsd` is the process's total so far. */
+  /**
+   * The tool calls of the agent's background sub-agents still running, after one started or
+   * ended. The agent goes on by itself when one reports back.
+   */
+  | { type: "background"; tools: Array<string> }
+  /** The agent ended its reply. */
   | {
       type: "result";
       ok: boolean;
-      costUsd?: number;
       errors: Array<string>;
       denials: Array<Denial>;
       /** Ended by an interrupt: a stop, not an error. */

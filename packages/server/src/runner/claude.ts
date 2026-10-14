@@ -226,10 +226,11 @@ export class ClaudeAdapter implements Adapter {
     // Stdout is read as it comes, whether or not the events are: Claude Code loses its last lines
     // when they are read slowly.
     const events = new EventQueue();
+    const tasks = new Map<string, string>();
     void (async () => {
       try {
         for await (const line of lines(child.stdout)) {
-          for (const event of parseLine(line, options.cwd)) {
+          for (const event of parseLine(line, options.cwd, tasks)) {
             events.push(event);
           }
         }

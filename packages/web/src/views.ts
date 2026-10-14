@@ -148,7 +148,6 @@ export const SessionView = view<Session>()({
   statusReason: true,
   unseen: true,
   place: true,
-  costUsd: true,
   turns: true,
   archived: true,
   subagents: true,

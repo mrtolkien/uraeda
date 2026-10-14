@@ -58,6 +58,11 @@ export type Proc = {
   done: Promise<void>;
   /** SIGTERM, then SIGKILL, for a closed process that does not exit. */
   terminate: Array<Timer>;
+  /**
+   * The tool calls of its background sub-agents still running: a turn does not end before they
+   * report back.
+   */
+  background: Set<string>;
 };
 
 /** The turn running on a session's process. */
@@ -67,11 +72,17 @@ export type Running = {
   stop?: TurnEnd;
   /** The ID of the message that started it. */
   first: string;
-  tools: Map<string, { seq: number; item: Tool; at: number }>;
+  /**
+   * Its tool calls not ended, or whose background sub-agent still runs: `ended` holds their
+   * result until it ends.
+   */
+  tools: Map<
+    string,
+    { seq: number; item: Tool; at: number; ended?: { isError: boolean; output: string } }
+  >;
   /** The text block being streamed. */
   text?: { seq: number; text: string };
   skipped?: { seq: number; count: number };
-  cost?: number;
   watchdog?: Timer;
   terminate: Array<Timer>;
 };

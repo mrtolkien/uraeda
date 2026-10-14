@@ -86,9 +86,14 @@ const text = (value: unknown): string => (typeof value === "string" ? value : ""
 
 /**
  * The events of one line of Claude Code's stream-json output. `cwd`, the session's directory, makes
- * tool targets under it relative.
+ * tool targets under it relative. `tasks`, kept across a process's lines, maps its background
+ * tasks to the tool calls that started them.
  */
-export function parseLine(line: string, cwd?: string): Array<AgentEvent> {
+export function parseLine(
+  line: string,
+  cwd?: string,
+  tasks = new Map<string, string>(),
+): Array<AgentEvent> {
   let message: unknown;
   try {
     message = JSON.parse(line);
@@ -103,7 +108,7 @@ export function parseLine(line: string, cwd?: string): Array<AgentEvent> {
     typeof message.parent_tool_use_id === "string" ? message.parent_tool_use_id : undefined;
   switch (message.type) {
     case "system":
-      return systemEvents(message);
+      return systemEvents(message, tasks);
     case "stream_event":
       return streamEvents(message.event, parent);
     case "command_lifecycle":
@@ -193,7 +198,7 @@ function lifecycleEvents(message: Json): Array<AgentEvent> {
   return [];
 }
 
-function systemEvents(message: Json): Array<AgentEvent> {
+function systemEvents(message: Json, tasks: Map<string, string>): Array<AgentEvent> {
   if (message.subtype === "init") {
     return [
       {
@@ -206,6 +211,26 @@ function systemEvents(message: Json): Array<AgentEvent> {
         ),
       },
     ];
+  }
+  if (
+    message.subtype === "task_started" &&
+    typeof message.task_id === "string" &&
+    typeof message.tool_use_id === "string"
+  ) {
+    tasks.set(message.task_id, message.tool_use_id);
+    return [];
+  }
+  // Every live background task: shells and watchers may never end, so only the sub-agents and
+  // workflows the agent waits for count.
+  if (message.subtype === "background_tasks_changed" && Array.isArray(message.tasks)) {
+    const tools = objects(message.tasks)
+      .filter(
+        (task) =>
+          (task.task_type === "local_agent" || task.task_type === "local_workflow") &&
+          task.ambient !== true,
+      )
+      .map((task) => tasks.get(text(task.task_id)) ?? text(task.task_id));
+    return [{ type: "background", tools }];
   }
   if (message.subtype === "api_retry") {
     return [
@@ -247,7 +272,6 @@ function resultEvent(message: Json): AgentEvent {
   return {
     type: "result",
     ok,
-    ...(typeof message.total_cost_usd === "number" ? { costUsd: message.total_cost_usd } : {}),
     errors,
     denials,
     // An interrupt ends the turn this way, with only diagnostics in its errors.

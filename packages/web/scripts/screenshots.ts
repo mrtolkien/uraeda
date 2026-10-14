@@ -330,7 +330,7 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string) {
     type: "text",
     text: "WebKit draws without a GPU on CI: its animations take longer.",
   });
-  adapter.emit({ ...result, costUsd: 0.12 });
+  adapter.emit(result);
   await first.waitForURL(/\/chats\/(?!new)/);
   await show(first, "/chats/new", "New chat");
   id = await send(first, "Tag v0.3.0 and push the tag.");
@@ -350,7 +350,6 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string) {
   });
   adapter.emit({
     ...result,
-    costUsd: 0.31,
     denials: [{ tool: "Bash", input: { command: "git push origin v0.3.0" } }],
   });
   await first.waitForURL(/\/chats\/(?!new)/);
