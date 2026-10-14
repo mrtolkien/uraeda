@@ -95,15 +95,16 @@ pub struct Step {
     pub pull_request: Option<PullRequest>,
 }
 
-/// The first task with an unchecked step: its place among the plan's tasks, and its title.
+/// The plan's progress during the implementation: the first task with an unchecked step.
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskProgress {
-    /// From 1, its index among the plan's tasks, whatever its heading's number.
+    /// Its position among the plan's tasks, from 1, whatever its `## Task N` number.
     pub position: u32,
-    /// How many tasks the plan has.
+    /// The number of tasks in the plan.
     pub total: u32,
+    /// Its title, as written after `## Task N:`.
     pub title: String,
 }
 

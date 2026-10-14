@@ -327,7 +327,8 @@ The decisions this plan relies on, and where it follows them:
     exposed through napi as `TaskProgress`;
   - `Step.progress: Option<TaskProgress>` and `StepView.progress: Option<TaskProgress>`, set only
     when the step's name is `implementation`;
-  - `plan::tasks(text: &str, dir: &str) -> Vec<TaskItem>`, in place of the line-based count.
+  - `plan::tasks(text: &str, dir: &str) -> Vec<TaskItem>`, in place of the line-based count, each
+    title as written after `Task N:`, with its markup (R9).
   - `Step.task` keeps its text. `plan::Task` is removed.
 
 - [x] **Step 1: Write the failing tests**
@@ -363,10 +364,10 @@ napi-rs leaves a `None` field's key out, so `toMatchObject({ progress: undefined
 - [x] **Step 3: Implement the progress**
 
 `plan::tasks` parses the text with `document::parse` and returns `items::tasks(&doc)`, the same
-`TaskItem`s the review reads. `feature_step` calls it with the feature's `path`, and finds the first
-task with `done < total`. `position` is its index plus one, `total` is the number of tasks, and
-`task` is built from the same task's `number` and `title`. Both step views copy `progress`. Remove
-`plan::Task`.
+`TaskItem`s the review reads, with each title taken back as written from the heading's line (R9).
+`feature_step` calls it with the feature's `path`, and finds the first task with `done < total`.
+`position` is its index plus one, `total` is the number of tasks, and `task` is built from the same
+task's `number` and `title`. Both step views copy `progress`. Remove `plan::Task`.
 
 - [x] **Step 4: Run all tests, and regenerate the binding**
 

@@ -722,12 +722,13 @@ export interface TaskItem {
   total: number
 }
 
-/** The first task with an unchecked step: its place among the plan's tasks, and its title. */
+/** The plan's progress during the implementation: the first task with an unchecked step. */
 export interface TaskProgress {
-  /** From 1, its index among the plan's tasks, whatever its heading's number. */
+  /** Its position among the plan's tasks, from 1, whatever its `## Task N` number. */
   position: number
-  /** How many tasks the plan has. */
+  /** The number of tasks in the plan. */
   total: number
+  /** Its title, as written after `## Task N:`. */
   title: string
 }
 

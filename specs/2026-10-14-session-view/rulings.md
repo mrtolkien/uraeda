@@ -93,3 +93,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   field's shape; the server fills `null` itself in Task 4.
 - **If wrong**: one assertion to rewrite.
 - **Where**: Task 1.
+
+## R9: Task titles are taken as written from the heading's line
+
+- **Decision**: `plan::tasks` keeps the parsed plan's tasks and counts, and replaces each title with
+  the text after `Task N:` on its heading's source line, markup included.
+- **Rationale**: the document tree flattens a heading's spans, so "The `ura status` command" lost
+  its backticks, while the spec shows the title "as written", and `ura status` printed it raw
+  before.
+- **Alternatives considered**: a raw-text field on `TaskItem` in `items.rs`, which is at 499 lines
+  and would also change the review's type.
+- **If wrong**: the review page keeps drawing its own tree, so only `plan::tasks` changes back.
+- **Where**: Task 1.

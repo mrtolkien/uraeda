@@ -236,6 +236,27 @@ fn numbered_plan(tasks: &[(u32, &str, usize, usize)], after: &str) -> String {
     text + after
 }
 
+/// The step of a feature with an approved spec at revision 1 and this plan.
+fn at_plan(plan_text: String) -> Feature {
+    feature(
+        Kind::Feature,
+        &[
+            ("proposal.md", proposal()),
+            ("clarifications-01.md", answered()),
+            ("spec.md", spec("approved", 1, 1)),
+            ("plan.md", plan_text),
+        ],
+    )
+}
+
+fn progress(position: u32, total: u32, title: &str) -> Option<TaskProgress> {
+    Some(TaskProgress {
+        position,
+        total,
+        title: title.to_string(),
+    })
+}
+
 #[test]
 fn implementation_progress() {
     let mut eleven: Vec<(String, usize, usize)> = (1..=11)
@@ -247,16 +268,13 @@ fn implementation_progress() {
         .iter()
         .map(|(title, done, total)| (title.as_str(), *done, *total))
         .collect();
-    let rows: Vec<(&str, String, Option<&str>, Option<TaskProgress>)> = vec![
+    let title = "The `ura status` command, **bold**, and [a link](x.md)";
+    let rows: Vec<(&str, String, String, Option<TaskProgress>)> = vec![
         (
             "11 tasks, the first 6 done",
             plan("auto-approved", 1, &eleven),
-            Some("Task 7: Session column"),
-            Some(TaskProgress {
-                position: 7,
-                total: 11,
-                title: "Session column".to_string(),
-            }),
+            "Task 7: Session column".to_string(),
+            progress(7, 11, "Session column"),
         ),
         (
             "tasks numbered 1, 3, 3",
@@ -264,25 +282,55 @@ fn implementation_progress() {
                 &[(1, "One", 1, 1), (3, "Second", 0, 1), (3, "Third", 0, 1)],
                 "",
             ),
-            Some("Task 3: Second"),
-            Some(TaskProgress {
-                position: 2,
-                total: 3,
-                title: "Second".to_string(),
-            }),
+            "Task 3: Second".to_string(),
+            progress(2, 3, "Second"),
         ),
+        (
+            "tasks finished out of order",
+            plan("auto-approved", 1, &[("One", 0, 1), ("Two", 1, 1)]),
+            "Task 1: One".to_string(),
+            progress(1, 2, "One"),
+        ),
+        (
+            "a task without steps before the current one",
+            plan(
+                "auto-approved",
+                1,
+                &[("One", 1, 1), ("Empty", 0, 0), ("Three", 0, 1)],
+            ),
+            "Task 3: Three".to_string(),
+            progress(3, 3, "Three"),
+        ),
+        (
+            "a title with markup",
+            plan("auto-approved", 1, &[(title, 0, 1)]),
+            format!("Task 1: {title}"),
+            progress(1, 1, title),
+        ),
+    ];
+    for (name, plan_text, task, progress) in rows {
+        let feature = at_plan(plan_text);
+
+        assert_eq!(feature.step.task.as_deref(), Some(task.as_str()), "{name}");
+        assert_eq!(feature.step.progress, progress, "{name}");
+    }
+}
+
+#[test]
+fn no_progress_outside_the_implementation() {
+    let rows: Vec<(&str, String)> = vec![
         (
             "every box checked",
             plan("auto-approved", 1, &[("One", 2, 2), ("Two", 1, 1)]),
-            None,
-            None,
         ),
-        ("no task heading", plan("auto-approved", 1, &[]), None, None),
+        ("no task heading", plan("auto-approved", 1, &[])),
         (
             "plan waiting for the human",
             plan("awaiting-human", 1, &[("One", 0, 1)]),
-            None,
-            None,
+        ),
+        (
+            "plan behind the spec's revision",
+            plan("auto-approved", 0, &[("One", 0, 1)]),
         ),
         (
             "unchecked boxes after the last task's section",
@@ -290,23 +338,13 @@ fn implementation_progress() {
                 &[(1, "One", 1, 1), (2, "Two", 1, 1)],
                 "\n## Notes\n\n- [ ] Not a step\n- [ ] Nor this\n",
             ),
-            None,
-            None,
         ),
     ];
-    for (name, plan_text, task, progress) in rows {
-        let feature = feature(
-            Kind::Feature,
-            &[
-                ("proposal.md", proposal()),
-                ("clarifications-01.md", answered()),
-                ("spec.md", spec("approved", 1, 1)),
-                ("plan.md", plan_text),
-            ],
-        );
+    for (name, plan_text) in rows {
+        let feature = at_plan(plan_text);
 
-        assert_eq!(feature.step.task.as_deref(), task, "{name}");
-        assert_eq!(feature.step.progress, progress, "{name}");
+        assert_eq!(feature.step.task, None, "{name}");
+        assert_eq!(feature.step.progress, None, "{name}");
     }
 }
 
