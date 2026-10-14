@@ -45,6 +45,10 @@ const styles = stylex.create({
     fontWeight: fontWeightVars["--font-weight-semibold"],
     lineHeight: typeScaleVars["--text-large-leading"],
   },
+  // A path wraps anywhere rather than be cut: the UI checks decision cuts no text.
+  path: {
+    overflowWrap: "anywhere",
+  },
   // A row without the check keeps its name where the checked row's is.
   unchecked: {
     visibility: "hidden",
@@ -144,11 +148,13 @@ function Menu({
             label={row.name}
             description={
               row.missing ? (
-                <Text type="supporting" color="error" display="block">
+                <Text type="supporting" color="error" display="block" xstyle={styles.path}>
                   Folder not found: {row.home}
                 </Text>
               ) : (
-                row.home
+                <Text type="supporting" color="secondary" display="block" xstyle={styles.path}>
+                  {row.home}
+                </Text>
               )
             }
             isSelected={row.name === current}

@@ -20,8 +20,9 @@ const commands = browserCommands as unknown as RepoCommands;
 
 let root: Root | undefined;
 
-// Every test has the repository to itself, a fresh copy of the fixture: the phone's and the
-// desktop's tests run at the same time, and one that changes it would change what another shows.
+// Every test has a repository of its own, a fresh copy of the fixture under its own name: the
+// phone's and the desktop's tests run at the same time, and one that changes it would change what
+// another shows. The turn is the shared fake agent's.
 let turn: number | undefined;
 /** The name of the test's repository: its pages are under `/r/<name>/`. */
 let name = "";
@@ -39,8 +40,7 @@ export function atRepo(path: string): string {
 beforeEach(async () => {
   // What a page remembers, like the question a round was left at, is another test's.
   window.localStorage.clear();
-  turn = await commands.takeRepo();
-  name = await commands.repoName();
+  ({ token: turn, name } = await commands.takeRepo());
 });
 
 afterEach(async () => {

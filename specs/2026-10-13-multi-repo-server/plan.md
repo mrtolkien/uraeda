@@ -1027,7 +1027,10 @@ git commit -m "feat(multi-repo-server): the repository menu, the add form, and t
 
 - Modify: `packages/web/vite.browser.config.ts` (`takeRepo`, `releaseRepo`),
   `packages/server/src/dev.ts` (its `TEMPORARY` parts go), `packages/web/scripts/screenshots.ts`,
-  `packages/web/src/__browser__/setup.ts`, `helpers.tsx`, `README.md` (the web UI's section)
+  `packages/web/src/__browser__/setup.ts`, `helpers.tsx`, `README.md` (the web UI's section),
+  `.env.example`; and, for what the tests found
+  ([R11](rulings.md#r11-paths-in-the-menu-and-the-suggestions-wrap-and-the-first-run-paints-its-surface)),
+  `packages/web/src/RepositoryMenu.tsx`, `AddRepository.tsx`, `RepositoryPages.tsx`
 - Create: `packages/web/src/__browser__/repositories.test.tsx`
 
 **Interfaces:**
@@ -1044,6 +1047,12 @@ git commit -m "feat(multi-repo-server): the repository menu, the add form, and t
     test waits for its name to be served (or `dev.ts` exports a reload of its servers' hosts).
     `vite.browser.config.ts` and `src/__browser__/setup.ts` stop setting `URAEDA_REPO` per test;
     `scripts/screenshots.ts` may keep setting it once, as the starting repository.
+  - Since task 9
+    ([R10](rulings.md#r10-the-browser-tests-list-their-repository-and-the-dev-server-reloads-its-hosts-at-once)):
+    `dev.ts` exports `reloadRepositories()`, which `takeRepo` and `releaseRepo` call after changing
+    the list, and `devHandler` reads the settings when its server starts, so the setup's
+    `URAEDA_REPO`, set after Vite's server is made, is the repository opened first.
+    `scripts/screenshots.ts` opens pages under `/r/<name>/`, and takes the menu and the add form.
   - Since task 7, `takeRepo` already adds its fixture to the list, and a `TEMPORARY` `repoName`
     command gives its name; the browser helpers' `show(path)` prefixes `/r/<name>`, and `atRepo` and
     `repository()` give the prefixed path and the name. `dev.ts` keeps a `TEMPORARY` set, `added`,
@@ -1058,7 +1067,7 @@ git commit -m "feat(multi-repo-server): the repository menu, the add form, and t
     heading's menu in a navigation of its own (`BareShell`); the first run has none. The existing
     browser tests pass with the menu closed; `layout.test.tsx`'s folded-navigation test opens it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // packages/web/src/__browser__/repositories.test.tsx, at both sizes
@@ -1069,22 +1078,22 @@ test("the add form is a dialog on wide screens and a sheet on narrow ones, with 
 test("the first run fits both widths without horizontal scroll", async () => {});
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/vite.browser.config.ts`
 - Expected: FAIL, `takeRepo` returns a number, not `{ token, name }`.
 
-- [ ] **Step 3: Move the browser tests to their own repositories, and update the README**
+- [x] **Step 3: Move the browser tests to their own repositories, and update the README**
 
 The README's web UI section: the server serves several repositories, the top left switches them,
 `ura add` adds the current folder, and `URAEDA_REPO` names the repository opened first.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/ README.md
