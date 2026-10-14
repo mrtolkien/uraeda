@@ -487,7 +487,7 @@ git commit -m "feat(session-view): the files changed on a feature's branch"
 - Produces: `Changes.features` lists a feature whose branch's tip moved, even when no file of its
   folder changed.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `crates/core/tests/watch.rs`:
 
@@ -497,22 +497,22 @@ In `crates/core/tests/watch.rs`:
   Then the watcher reports `FOLDER` and does not panic, and a write to `specs/PRIORITIES.md` after
   that does not list `FOLDER` again.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test watch`
 - Expected: FAIL, `a_code_commit_on_a_feature_branch_is_reported` timing out in `next` after 5 s.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Add the hex of `git.tip(branch)` for the feature's branch to the feature's hash in `snapshot`, an
 empty string when there is no branch or no tip.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo test -p uraeda-core`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core/src/watch.rs crates/core/tests/watch.rs

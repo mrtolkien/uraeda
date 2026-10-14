@@ -3,7 +3,7 @@ mod common;
 use std::sync::mpsc;
 use std::time::Duration;
 
-use common::repo::{TestRepo, without_user_git};
+use common::repo::{TestRepo, run_git, without_user_git};
 use common::texts::{clarifications, proposal};
 use uraeda_core::actions::place;
 use uraeda_core::git::Git;
@@ -124,6 +124,83 @@ fn a_commit_on_another_branch_is_reported() {
             .files
             .contains(&"2026-10-11-web-ui/spec.md".to_string()),
         "{changes:?}"
+    );
+}
+
+/// The spec's watcher update: a code commit moves the branch's tip without touching `specs/`.
+#[test]
+fn a_code_commit_on_a_feature_branch_is_reported() {
+    let repo = repo();
+    let place = place::reach(&Git::discover(repo.path()).unwrap(), FOLDER).unwrap();
+    let (_watcher, receiver) = watching(&repo);
+
+    std::fs::create_dir_all(place.root.join("src")).unwrap();
+    std::fs::write(place.root.join("src/main.rs"), "fn main() {}\n").unwrap();
+    run_git(&place.root, &["add", "src/main.rs"]);
+    run_git(
+        &place.root,
+        &[
+            "commit",
+            "--quiet",
+            "--no-verify",
+            "--message",
+            "feat(web-ui): main",
+        ],
+    );
+
+    let changes = next(&receiver);
+    assert!(
+        changes.features.contains(&FOLDER.to_string()),
+        "{changes:?}"
+    );
+}
+
+/// Writes the priorities, and returns every report up to the one that saw the write: the
+/// snapshot that saw it was read after everything done before the write.
+fn until_priorities(
+    repo: &TestRepo,
+    receiver: &mpsc::Receiver<Changes>,
+    idea: &str,
+) -> Vec<Changes> {
+    repo.write(
+        "specs/PRIORITIES.md",
+        &format!("# Priorities\n\n## Now\n\n- {idea}\n"),
+    );
+    let mut reports = vec![next(receiver)];
+    while !reports.last().unwrap().priorities {
+        reports.push(next(receiver));
+    }
+    reports
+}
+
+/// Review focus 3: a merged and deleted branch has no tip, and its feature is published once.
+#[test]
+fn a_deleted_feature_branch_is_reported_once() {
+    let repo = repo();
+    let (_watcher, receiver) = watching(&repo);
+
+    repo.git(&[
+        "merge",
+        "--quiet",
+        "--no-ff",
+        "--no-verify",
+        "--message",
+        "merge",
+        FOLDER,
+    ]);
+    repo.git(&["branch", "--delete", FOLDER]);
+
+    let reports = until_priorities(&repo, &receiver, "After the merge");
+    assert!(
+        reports
+            .iter()
+            .any(|changes| changes.features.contains(&FOLDER.to_string())),
+        "{reports:?}"
+    );
+    let reports = until_priorities(&repo, &receiver, "Later");
+    assert!(
+        reports.iter().all(|changes| changes.features.is_empty()),
+        "{reports:?}"
     );
 }
 
