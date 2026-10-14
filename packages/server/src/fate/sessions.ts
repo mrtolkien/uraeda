@@ -101,7 +101,6 @@ function turnsOf(cache: SessionCache, session: string) {
     queued: turns.some((turn) => turn.state === "queued"),
     blocked: latest ? cache.itemsOf(latest.id, "denial").some((denial) => !denial.allowed) : false,
     subagents,
-    costUsd: turns.findLast((turn) => turn.costUsd !== null)?.costUsd ?? null,
   };
 }
 
@@ -163,7 +162,6 @@ export async function sessionRecord(ctx: Context, row: SessionRow): Promise<Sess
     ...statusOf(row, read, feature),
     unseen: unseen(row, read),
     place: await placeOf(ctx, row, feature),
-    costUsd: read.costUsd,
     turns: read.turns.map((turn) => String(turn.id)),
     archived: row.archivedAt !== null,
     subagents: read.subagents,

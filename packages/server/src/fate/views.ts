@@ -80,8 +80,6 @@ export type SessionRecord = {
   unseen: boolean;
   /** Where it works: "branch <branch>", or "main checkout, branch <branch>" for a chat. */
   place: string;
-  /** The agent's running total for the session, at its last turn's end. */
-  costUsd: number | null;
   /** Its turns' IDs, oldest first. */
   turns: Array<string>;
   archived: boolean;
@@ -244,7 +242,6 @@ export const sessionDataView = dataView<SessionRecord>("Session")({
   statusReason: true,
   unseen: true,
   place: true,
-  costUsd: true,
   turns: true,
   archived: true,
   subagents: true,

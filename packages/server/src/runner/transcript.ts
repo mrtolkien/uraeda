@@ -18,7 +18,7 @@ type Result = Extract<AgentEvent, { type: "result" }>;
 /**
  * The sessions' events, recorded as their turns' items in the cache: texts as they stream, tool
  * calls, retries, skipped lines, blocked actions, and the messages the agent read or took back. A
- * result ends its turn, and an `init` without the skill fails it.
+ * result ends its turn once no background sub-agent runs, and an `init` without the skill fails it.
  */
 export class Transcript {
   #context: SessionContext;
@@ -54,6 +54,18 @@ export class Transcript {
             });
           }
           this.#context.processes.close(proc);
+        }
+        return;
+      }
+      case "background": {
+        // A background sub-agent's tool call ends once it reports back, not when it starts.
+        const done = [...proc.background].filter((id) => !event.tools.includes(id));
+        proc.background = new Set(event.tools);
+        for (const id of done) {
+          const tool = turn?.tools.get(id);
+          if (turn && tool?.ended) {
+            this.#endTool(live, turn, id, tool.ended);
+          }
         }
         return;
       }
@@ -112,16 +124,11 @@ export class Transcript {
       }
       case "toolEnd": {
         const tool = turn.tools.get(event.id);
-        if (!tool) {
-          return;
+        if (tool && proc.background.has(event.id) && !event.isError) {
+          tool.ended = event;
+        } else {
+          this.#endTool(live, turn, event.id, event);
         }
-        turn.tools.delete(event.id);
-        update(tool.seq, {
-          ...tool.item,
-          status: event.isError ? "failed" : "completed",
-          durationMs: Date.now() - tool.at,
-          output: event.output.slice(0, OUTPUT_LIMIT),
-        });
         return;
       }
       case "retry":
@@ -144,9 +151,26 @@ export class Transcript {
     }
   }
 
+  /** Records a tool call's end, with its result. */
+  #endTool(live: Live, turn: Running, id: string, end: { isError: boolean; output: string }) {
+    const { cache, changed } = this.#context;
+    const tool = turn.tools.get(id);
+    if (!tool) {
+      return;
+    }
+    turn.tools.delete(id);
+    cache.updateItem(turn.id, tool.seq, {
+      ...tool.item,
+      status: end.isError ? "failed" : "completed",
+      durationMs: Date.now() - tool.at,
+      output: end.output.slice(0, OUTPUT_LIMIT),
+    });
+    changed(live, turn.id);
+  }
+
   /**
-   * Ends the turn with its result, unless a message steered into it waits to be read: the agent
-   * answers it before the turn settles.
+   * Ends the turn with its result, unless a message steered into it waits to be read, or a
+   * background sub-agent still runs: the agent answers them before the turn settles.
    */
   #result(live: Live, proc: Proc, turn: Running, result: Result, append: (item: Item) => number) {
     const { adapter, turns } = this.#context;
@@ -161,9 +185,6 @@ export class Transcript {
         allowed: false,
       });
     }
-    if (result.costUsd !== undefined) {
-      turn.cost = result.costUsd;
-    }
     const first = live.messages.get(turn.first);
     if (first?.item.state === "pending") {
       turns.mark(live, first, "read");
@@ -171,7 +192,7 @@ export class Transcript {
     const unread = [...live.messages.values()].some(
       (sent) => sent.turn === turn.id && sent.written && sent.item.state === "pending",
     );
-    if (result.ok && !turn.stop && unread) {
+    if (result.ok && !turn.stop && (unread || proc.background.size > 0)) {
       return;
     }
     // A turn that ends on its own, as one that failed, takes back what the agent did not read:
@@ -192,10 +213,7 @@ export class Transcript {
               state: "failed" as const,
               reason: result.errors.join("\n") || `${adapter.name} ended the turn with an error.`,
             });
-    turns.end(live, turn.id, {
-      ...end,
-      ...(turn.cost === undefined ? {} : { costUsd: turn.cost }),
-    });
+    turns.end(live, turn.id, end);
     turns.next(live);
   }
 }

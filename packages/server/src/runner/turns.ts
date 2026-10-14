@@ -129,7 +129,7 @@ export class Turns {
   }
 
   /** Records the end of a turn, running or queued. */
-  end(live: Live, id: number, end: { state: TurnState; reason?: string; costUsd?: number }) {
+  end(live: Live, id: number, end: { state: TurnState; reason?: string }) {
     if (live.turn?.id === id) {
       clearTimeout(live.turn.watchdog);
       live.turn.terminate.forEach(clearTimeout);

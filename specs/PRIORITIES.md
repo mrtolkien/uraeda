@@ -91,3 +91,5 @@
 - Slug for drafts/features should be 3 words max: ask the human
 - We can likely drop the nvim plugin and LSP... The WebUI is turning out just as good and working
   with worktrees in nvim is pretty hard. I like it for writing proposals though.
+- When clicking on a "clarifications" step in the sidebar it skips the intro, which is very
+  important.

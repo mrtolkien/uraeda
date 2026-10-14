@@ -17,7 +17,6 @@ const SESSION_FIELDS = [
   "statusReason",
   "unseen",
   "place",
-  "costUsd",
   "turns",
   "archived",
   "subagents",
@@ -93,7 +92,6 @@ test("session.send on a feature creates its session and returns it with its firs
     statusReason: null,
     unseen: false,
     place: `branch ${HUMAN}`,
-    costUsd: null,
     archived: false,
     subagents: [],
   });
@@ -405,13 +403,48 @@ test("session.stop stops the turn, and keeps the session", async () => {
   expect(seen.data.statusLabel).toBe("Stopped");
 });
 
+test("a turn waits for its background sub-agents to report back, and lists them meanwhile", async () => {
+  const server = await testServer();
+  const session = await send(server, { folder: AGENT, text: "Discover it" });
+  const subagents = async () =>
+    (await byId(server.app, "Session", [session.id], ["id", "subagents"]))[0]!.subagents;
+  const state = async () =>
+    (await byId(server.app, "Turn", session.turns, ["id", "state"]))[0]!.state;
+  server.adapter.emit({
+    type: "toolStart",
+    id: "agent-1",
+    name: "Agent",
+    kind: "other",
+    input: {},
+    subagent: { description: "Research the tools" },
+  });
+  server.adapter.emit({ type: "background", tools: ["agent-1"] });
+  server.adapter.emit({ type: "toolEnd", id: "agent-1", isError: false, output: "Launched." });
+  server.adapter.emit({ type: "text", text: "I'll write the files once it reports back." });
+  server.adapter.emit(result());
+  await flush();
+
+  expect(await state()).toBe("running");
+  expect(await subagents()).toEqual([{ id: "agent-1", description: "Research the tools" }]);
+
+  server.adapter.emit({ type: "background", tools: [] });
+  await flush();
+  expect(await subagents()).toEqual([]);
+  expect(await state()).toBe("running");
+
+  server.adapter.emit({ type: "text", text: "Written." });
+  server.adapter.emit(result());
+  await settle(server, session);
+  expect(await state()).toBe("done");
+});
+
 test("TurnLog reads a turn's items in pages of 100, without taken-back messages", async () => {
   const server = await testServer();
   const texts: Array<AgentEvent> = Array.from({ length: 249 }, (_, n) => ({
     type: "text",
     text: `Line ${n}`,
   }));
-  server.adapter.script([...texts, result({ costUsd: 0.5 })]);
+  server.adapter.script([...texts, result()]);
   const session = await send(server, { folder: AGENT, text: "Plan it" });
   await settle(server, session);
   const id = session.turns[0];
@@ -423,10 +456,8 @@ test("TurnLog reads a turn's items in pages of 100, without taken-back messages"
     [`${id}:0`, `${id}:1`, `${id}:2`],
     ["id", "turn", "page", "items"],
   );
-  const [record] = await byId(server.app, "Session", [session.id], ["id", "costUsd"]);
 
   expect(turn.pages).toBe(3);
-  expect(record.costUsd).toBe(0.5);
   expect(pages.map((page) => [page.id, page.turn, page.page, page.items.length])).toEqual([
     [`${id}:0`, id, 0, 100],
     [`${id}:1`, id, 1, 100],
