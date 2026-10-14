@@ -1,4 +1,4 @@
-import type { FeatureView } from "uraeda-binding";
+import type { FeatureView, StepView } from "uraeda-binding";
 
 const STEPS: Record<string, string> = {
   approval: "Approval",
@@ -26,7 +26,9 @@ export function stepLabel(name: string) {
  * What a feature at a human gate asks: the action, and the page that does it, by its path within
  * the repository.
  */
-export function waiting(feature: Pick<FeatureView, "folder" | "step" | "files">) {
+export function waiting(
+  feature: Pick<FeatureView, "folder" | "files"> & { step: Pick<StepView, "file" | "name"> },
+) {
   const file = feature.step.file;
   const summary = feature.files.find((f) => f.name === file);
   const kind = summary?.kind;

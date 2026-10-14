@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test, vi } from "vite-plus/test";
+import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import { refusable } from "../fate/errors.ts";
 import {
   addPlan,
@@ -207,6 +207,41 @@ test("a feature at its implementation sends its progress, and null once every bo
   expect(done.step).toHaveProperty("progress", null);
 });
 
+test("the workspace's features send their progress, null when they have none", async () => {
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  const [workspace] = await byId(
+    (await testApp(repo)).app,
+    "Workspace",
+    ["workspace"],
+    ["features"],
+  );
+
+  const steps = Object.fromEntries(
+    workspace.features.map((f: { folder: string; step: unknown }) => [f.folder, f.step]),
+  );
+  expect(steps[CLI]).toHaveProperty("progress", {
+    position: 7,
+    title: "Session column",
+    total: 11,
+  });
+  expect(steps["2026-10-11-web-ui"]).toHaveProperty("progress", null);
+});
+
+test("a folder that is no feature's has no branch changes, and logs nothing", async () => {
+  const logged = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  onTestFinished(() => logged.mockRestore());
+
+  const [changes] = await byId(
+    (await testApp()).app,
+    "BranchChanges",
+    ["2026-01-01-none"],
+    ["changes", "failed"],
+  );
+  expect(changes).toEqual({ changes: null, failed: false, id: "2026-01-01-none" });
+  expect(logged).not.toHaveBeenCalled();
+});
+
 test("a feature that is no feature's folder is sent with no progress", async () => {
   const [missing] = await byId((await testApp()).app, "Feature", ["2026-01-01-none"], ["step"]);
 
@@ -244,6 +279,7 @@ test("a binary file is sent with null lines, not without them", async () => {
 
 test("a branch whose changes cannot be read is answered as failed, and logged", async () => {
   const logged = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  onTestFinished(() => logged.mockRestore());
   const { app } = await testApp(fixtureRepo(), {
     binding: {
       ...binding,
@@ -255,5 +291,4 @@ test("a branch whose changes cannot be read is answered as failed, and logged", 
   expect(changes).toEqual({ changes: null, failed: true, id: CLI });
   expect(logged.mock.calls.flat().join(" ")).toContain("git: not found");
   expect(logged.mock.calls.flat().join(" ")).not.toContain("second line");
-  logged.mockRestore();
 });
