@@ -3,9 +3,11 @@ import {
   ChatComposer,
   ChatComposerInput,
   type ChatComposerInputHandle,
+  type ChatComposerInputProps,
   ChatSendButton,
 } from "@astryxdesign/core/Chat";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
+import * as stylex from "@stylexjs/stylex";
 import {
   type Dispatch,
   type KeyboardEvent,
@@ -29,6 +31,18 @@ import { refusal } from "./errors.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { sendMessage } from "./sessions.ts";
 import { SessionView } from "./views.ts";
+
+const styles = stylex.create({
+  input: { height: "var(--size-composer-input)" },
+});
+
+/**
+ * The composer's field: 4 rows, the same empty or full (the UI behaviour decision), its text
+ * scrolling inside them.
+ */
+function ComposerInput(props: Omit<ChatComposerInputProps, "maxRows" | "xstyle">) {
+  return <ChatComposerInput {...props} maxRows={4} xstyle={styles.input} />;
+}
 
 /** Why the draft's images stay in the composer while it holds the workflow's message. */
 const WORKFLOW_KEEPS_IMAGES =
@@ -260,7 +274,7 @@ export function Composer(props: ComposerProps) {
             ) : undefined
           }
           input={
-            <ChatComposerInput
+            <ComposerInput
               handleRef={input}
               label={placeholder}
               onFiles={attaching.addFiles}

@@ -1005,34 +1005,35 @@ git commit -m "feat(text-inputs): leaving a page with unsaved text asks first"
 
 **Files:**
 
-- Modify: `packages/web/src/Composer.tsx`, `packages/web/src/theme/theme.ts` if a size is missing
+- Modify: `packages/web/src/Composer.tsx`, `packages/web/src/theme/theme.ts` and its build
 - Test: `packages/web/src/__browser__/fields.test.tsx`
 
 **Interfaces:**
 
 - Consumes: task 4's `TextField` kinds, now used everywhere.
 
-- [ ] **Step 1: Write the failing browser tests**, at both sizes: US6 1 to 8 with the heights of the
+- [x] **Step 1: Write the failing browser tests**, at both sizes: US6 1 to 8 with the heights of the
       global constraints, measured as `clientHeight` against the field's line height and padding; 30
-      lines typed leave each height unchanged (SC-005); the content below a comment field does not
-      move as 12 lines are typed (US6 3); the composer is 4 rows empty and with 10 lines; dragging a
-      comment field's resize handle makes it taller (US6 8). The break: the composer's default
-      growth.
+      lines typed leave each height unchanged (SC-005); the field and its Save button do not move as
+      12 lines are typed, nor the next question from the first line typed (US6 3, R28); the composer
+      is 4 rows empty and with 10 lines, its text inside it; a comment field keeps its resize
+      handle, and a height set as dragging it does while typing (US6 8, R28: WebKit ignores
+      Playwright's mouse on the handle). The break: the composer's default growth.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web-browser fields`
-- Expected: FAIL on the composer: its height with 10 lines exceeds 4 rows
+- Expected: FAIL on the composer only: 1 row empty, and 8 rows, Astryx's default, with 10 lines
 
-- [ ] **Step 3: Implement**: `maxRows={4}` and a fixed height of 4 rows through its `xstyle`, from
-      the theme's sizes.
+- [x] **Step 3: Implement**: `maxRows={4}` and a fixed height of 4 rows through its `xstyle`,
+      `--size-composer-input` in the theme: 4 of Astryx's composer lines, 22 px at every size.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check && vp test`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web
