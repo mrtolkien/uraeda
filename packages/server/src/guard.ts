@@ -1,8 +1,13 @@
 import { createMiddleware } from "hono/factory";
 
+/** What a browser's `Sec-Fetch-Site` says of a request the server's own page, or its user, sent. */
+const OWN_SITES = new Set(["same-origin", "none"]);
+
 /**
  * Rejects requests a web page could send to the local server: any `Host` but the server's own or
- * an allowed host name, as in DNS rebinding, and any `Origin` but theirs and the allowed ones.
+ * an allowed host name, as in DNS rebinding, any `Origin` but theirs and the allowed ones, and a
+ * write without an `Origin` that the browser says another site sent. A request without either
+ * header, from a test or `curl`, passes.
  */
 export function guard({
   allowedHosts = [],
@@ -30,6 +35,15 @@ export function guard({
     const origin = context.req.header("origin");
     if (origin !== undefined && !origins.has(origin)) {
       return context.text("Forbidden origin", 403);
+    }
+    const site = context.req.header("sec-fetch-site");
+    if (
+      origin === undefined &&
+      site !== undefined &&
+      !OWN_SITES.has(site) &&
+      !["GET", "HEAD"].includes(context.req.method)
+    ) {
+      return context.text("Forbidden site", 403);
     }
     await next();
   });

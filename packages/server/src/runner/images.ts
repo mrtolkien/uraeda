@@ -28,11 +28,20 @@ export class ChatImages {
     this.dir = dir;
   }
 
-  /** Writes an image the core encoded, under a new ID. */
+  /**
+   * Writes an image the core encoded, under a new ID, readable by its owner only. A write that
+   * fails is refused with the system's error, as the core refuses one, leaving no partial file.
+   */
   async save(encoded: EncodedImage): Promise<ChatImage> {
     const id = `${randomUUID()}.${encoded.extension}`;
-    await mkdir(this.dir, { recursive: true });
-    await writeFile(join(this.dir, id), encoded.bytes, { flag: "wx" });
+    const path = join(this.dir, id);
+    try {
+      await mkdir(this.dir, { recursive: true, mode: 0o700 });
+      await writeFile(path, encoded.bytes, { flag: "wx", mode: 0o600 });
+    } catch (error) {
+      await rm(path, { force: true }).catch(() => undefined);
+      throw new Error(`refused: The image could not be saved: ${(error as Error).message}.`);
+    }
     return { id, width: encoded.width, height: encoded.height };
   }
 

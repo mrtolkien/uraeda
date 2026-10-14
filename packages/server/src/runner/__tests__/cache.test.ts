@@ -590,3 +590,25 @@ test("imagesInUse lists the images of every repository's messages, taken back or
 
   expect(cache.imagesInUse()).toEqual(new Set(["a.webp", "b.webp", "c.webp"]));
 });
+
+test("imagesInUse skips an item whose data is not JSON", () => {
+  const path = join(mkdtempSync(join(tmpdir(), "uraeda-cache-")), "runner.sqlite");
+  const cache = SessionCache.open(path);
+  const session = cache.createSession({ ...chat, repo: "/repo/a", nativeId: "native" });
+  const turn = cache.addTurn({ sessionId: session.id, ...workflowTurn });
+  cache.appendItem(turn, {
+    kind: "message",
+    id: "m1",
+    text: "Look",
+    origin: "human",
+    state: "read",
+    images: [{ id: "a.webp", width: 2, height: 1 }],
+  });
+  const db = new DatabaseSync(path);
+  db.prepare(
+    "INSERT INTO items (turn_id, seq, at, kind, data) VALUES (?, 99, '', 'message', '{')",
+  ).run(turn);
+  db.close();
+
+  expect(cache.imagesInUse()).toEqual(new Set(["a.webp"]));
+});
