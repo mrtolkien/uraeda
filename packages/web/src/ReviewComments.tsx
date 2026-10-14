@@ -5,7 +5,7 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useMemo } from "react";
 import type { CommentItem, Document } from "uraeda-binding";
-import { selectable } from "./Blocks.tsx";
+import { selectable } from "./Selection.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 
 const styles = stylex.create({

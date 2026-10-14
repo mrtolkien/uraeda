@@ -779,14 +779,20 @@ git commit -m "feat(code-quality-in-the-skill): a spec's scenarios and details a
       n is its number of scenarios;
     - then `{ key: "details", label: "Details" }` when `spec.details` is not empty.
 
-- [ ] **Step 1: Restructure `Blocks.tsx` and `ReviewPage.tsx` under their limits, alone**
+- [x] **Step 1: Restructure `Blocks.tsx` and `ReviewPage.tsx` under their limits, alone**
 
 `Blocks.tsx` is over 500 lines and the `ReviewPage` component over 100, both marked.
 
 - Move the selection parts of `Blocks.tsx` (`Selection`, `selectable`, `useSelect`, `After`,
-  `Selectable`) to `Selection.tsx`.
-- Split `ReviewPage` into its heading override, its "Your review" list, and its handlers, until the
-  component is under 100 lines.
+  `Selectable`) to `Selection.tsx`. They take the `selection` instead of `Blocks`' context, and
+  `useSelect` gives a table row its styles, which stay in `Selection.tsx`.
+- Split `ReviewPage` into its parts, until the component is under 100 lines
+  ([R15](rulings.md#r15-the-review-pages-parts-each-in-a-file)):
+  - its heading override, `reviewHeadings`, with the story's `Band`, in `ReviewHeadings.tsx`;
+  - its "Your review" list, `YourReview`, and the stale comments' `StaleBanner`, in
+    `YourReview.tsx`;
+  - its handlers, `useReviewActions` (send, ask, remove, start over), in `useReviewActions.ts`;
+  - its comment field, `ReviewForm`, in `ReviewPage.tsx`.
 - Remove both markers, move `useOpenGroups` to `useOpenKeys.ts`, and change no behaviour.
 
 - Run: `vp check && vp test`
