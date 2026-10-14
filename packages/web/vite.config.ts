@@ -1,7 +1,8 @@
 import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import babel from "@rolldown/plugin-babel";
 import { unplugin as stylex } from "@stylexjs/unplugin";
-import react from "@vitejs/plugin-react";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { fate } from "react-fate/vite";
 import { checkBinding, devHandler, devServer, loadEnv, stopDevRuns } from "uraeda-server/dev";
 import { defineConfig, type Plugin } from "vite-plus";
@@ -80,6 +81,9 @@ export default defineConfig({
   plugins: [
     stylexPlugin(),
     react(),
+    // React Compiler memoizes the components, in the build, the dev server, and the tests, which
+    // reuse these plugins (see `specs/decisions/toolchain.md`).
+    babel({ presets: [reactCompilerPreset()] }),
     fate({
       module: "uraeda-server/fate",
       transport: "native",

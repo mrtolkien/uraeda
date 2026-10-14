@@ -27,6 +27,8 @@
   },
   "devDependencies": {
     "@astryxdesign/cli": "0.6.8",
+    "@babel/core": "catalog:",
+    "@rolldown/plugin-babel": "catalog:",
     "@stylexjs/eslint-plugin": "0.19.1",
     "@stylexjs/unplugin": "0.19.1",
     "@testing-library/react": "16.3.3",
@@ -36,6 +38,7 @@
     "@vitejs/plugin-react": "6.1.2",
     "@vitest/browser-playwright": "5.0.1",
     "axe-core": "4.14.0",
+    "babel-plugin-react-compiler": "catalog:",
     "happy-dom": "20.14.6",
     "playwright": "1.63.0",
     "uraeda-binding": "workspace:*"
