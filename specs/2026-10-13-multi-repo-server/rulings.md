@@ -89,3 +89,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a client caching `added` from the answer keeps it until the record is read again;
   the form reads it from the answer only.
 - **Where**: tasks 5 and 8
+
+## R7: The browser tests keep `URAEDA_REPO` until task 9
+
+- **Decision**: `dev.ts` starts one server per port with `startServer`, and keeps, marked
+  `TEMPORARY`, the browser tests' way in until task 9: a request made while `URAEDA_REPO` names
+  another repository than the starting one is served by an app on that repository, built on the
+  port's hosts and sessions after adding it to the list, and `forgetRepo` removes it again.
+  `main.ts` starts the server before it listens, and a busy port stops it again, then exits 1.
+- **Rationale**: the browser tests take a fresh fixture per test, through `URAEDA_REPO`, and read it
+  on the global endpoint, which serves one repository from task 6 on; moving them to `/r/<name>/` is
+  task 9's work, once the UI has those URLs (task 7). Checking the folder before listening keeps
+  `--repo` outside git exiting with its own message whatever holds the port, and the cache only
+  marks stopped the turns of processes that are gone, so a second server leaves the first one's
+  turns as they are.
+- **Alternatives considered**: moving the browser tests now, to URLs the UI does not have yet;
+  listening before the start, through a hook in `startServer`, which only saves the second server
+  one check of the agent.
+- **If wrong**: task 9 removes the `TEMPORARY` parts either way; listening first is a change to
+  `main.ts` alone.
+- **Where**: tasks 6 and 9

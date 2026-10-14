@@ -1,10 +1,11 @@
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { createServer } from "node:net";
 import { mkdirSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vite-plus/test";
 import { checkBinding, loadBinding } from "../binding.ts";
-import { temporaryFolder } from "uraeda-binding/test-utils";
+import { fixtureRepo, temporaryFolder } from "uraeda-binding/test-utils";
 
 const main = fileURLToPath(new URL("../main.ts", import.meta.url));
 
@@ -15,6 +16,27 @@ test("refuses to start on a folder that is not a repository", () => {
 
   expect(result.stderr).toBe(`uraeda-server: ${folder} is not a git repository\n`);
   expect(result.status).toBe(1);
+});
+
+test("a busy port exits 1 and names the first server", async () => {
+  const repo = fixtureRepo();
+  const data = temporaryFolder("uraeda-data");
+  const listener = createServer();
+  await new Promise<void>((resolve) => listener.listen(0, "127.0.0.1", resolve));
+  const { port } = listener.address() as { port: number };
+
+  const child = spawn(process.execPath, [main, "--repo", repo, "--port", String(port)], {
+    env: { ...process.env, URAEDA_DATA_DIR: data },
+  });
+  let stderr = "";
+  child.stderr.on("data", (chunk) => (stderr += chunk));
+  const code = await new Promise((resolve) => child.on("exit", resolve));
+  listener.close();
+
+  expect(stderr).toBe(
+    `uraeda-server: port ${port} is in use: another Uraeda server may run at http://127.0.0.1:${port}/\n`,
+  );
+  expect(code).toBe(1);
 });
 
 test("explains a binding that is not built", async () => {
