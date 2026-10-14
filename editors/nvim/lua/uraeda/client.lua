@@ -44,9 +44,10 @@ function M.exited(code, client_id)
   end)
 end
 
---- Shows a server's error: the core's message with a hook's output, or `older` for a method or a
---- command the server does not know.
-local function failed(err)
+--- Shows a server's error: the core's message with a hook's output, after `prefix` when given, or
+--- `older` for a method or a command the server does not know.
+--- @param prefix string?
+local function failed(err, prefix)
   local message = err.message or tostring(err)
   if
     err.code == codes.MethodNotFound
@@ -58,7 +59,7 @@ local function failed(err)
   if type(output) == "string" and vim.trim(output) ~= "" then
     message = message .. "\n\n" .. vim.trim(output)
   end
-  notify_error(message)
+  notify_error((prefix or "") .. message)
 end
 
 --- The buffer's `uraeda` client, if one is attached.
@@ -216,13 +217,13 @@ end
 --- Runs the server's command `name` with `args` (`uri` defaults to the buffer's): saves the buffer
 --- first when `opts.save`, shows the server's progress, reloads the buffers of `written`, redraws
 --- the inline comments next to them, edits `opened` in the current window, then calls
---- `cb(result)`. Errors are notified after reloading the files they list in `data.written`, and
---- `cb` is not called.
+--- `cb(result)`. Errors are notified, after `opts.prefix` when given, after reloading the files
+--- they list in `data.written`, and `cb` is not called.
 --- @param bufnr integer?
 --- @param name string
 --- @param args table?
---- @param opts { save?: boolean }?
---- @param cb fun(result: { opened?: string, written: string[] })?
+--- @param opts { save?: boolean, prefix?: string }?
+--- @param cb fun(result: { opened?: string, written: string[], link?: string })?
 function M.command(bufnr, name, args, opts, cb)
   bufnr = resolve(bufnr)
   opts = opts or {}
@@ -253,7 +254,7 @@ function M.command(bufnr, name, args, opts, cb)
       require("uraeda.marks").refresh(written)
     end
     if err then
-      return failed(err)
+      return failed(err, opts.prefix)
     end
     result = result or {}
     if result.opened then

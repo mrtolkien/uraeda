@@ -34,6 +34,71 @@ function M.commit()
   client().command(0, "uraeda.commit", nil, { save = true })
 end
 
+local images = vim.api.nvim_create_namespace("uraeda.image")
+
+--- Saves the clipboard's image, or the file named after `:Uraeda image`, next to the current file,
+--- and inserts its link where the cursor was, in one undo step, tracked by a mark while the server
+--- works. A single-file draft becomes a folder: its buffer reopens at the new path, with the link at
+--- the same place (image-attachments US5).
+--- @param opts table?
+function M.image(opts)
+  local bufnr = vim.api.nvim_get_current_buf()
+  if client().get(bufnr) == nil then
+    -- Says why, as every action does, before the clipboard is read.
+    return client().command(bufnr, "uraeda.attachImage")
+  end
+  -- A file's name names the image; a pasted image is named by the time, from a temporary file.
+  local args, pasted
+  local file = opts and opts.fargs and table.concat(vim.list_slice(opts.fargs, 2), " ") or ""
+  if file ~= "" then
+    local path = vim.fn.fnamemodify(vim.fs.normalize(file), ":p")
+    args = { path = path, name = vim.fs.basename(path) }
+  else
+    local message
+    pasted, message = require("uraeda.clipboard").read()
+    if pasted == nil then
+      return vim.notify(message, vim.log.levels.ERROR, { title = "Uraeda" })
+    end
+    args = { path = pasted }
+  end
+  local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+  local mark = vim.api.nvim_buf_set_extmark(bufnr, images, row - 1, col, {})
+  client().command(
+    bufnr,
+    "uraeda.attachImage",
+    args,
+    { save = true, prefix = "uraeda: " },
+    function(result)
+      if pasted then
+        os.remove(pasted)
+      end
+      local place = { row - 1, col }
+      if vim.api.nvim_buf_is_valid(bufnr) then
+        place = vim.api.nvim_buf_get_extmark_by_id(bufnr, images, mark, {})
+        vim.api.nvim_buf_del_extmark(bufnr, images, mark)
+      end
+      -- A moved draft is now the current buffer, its old buffer left as `:Uraeda start` leaves it.
+      local target = result.opened and vim.api.nvim_get_current_buf() or bufnr
+      if result.opened and target ~= bufnr and vim.api.nvim_buf_is_valid(bufnr) then
+        pcall(vim.api.nvim_buf_delete, bufnr, {})
+      end
+      if vim.api.nvim_buf_is_valid(target) and result.link then
+        local last = vim.api.nvim_buf_line_count(target) - 1
+        local line_row = math.min(place[1], last)
+        local line = vim.api.nvim_buf_get_lines(target, line_row, line_row + 1, false)[1] or ""
+        local line_col = math.min(place[2], #line)
+        vim.api.nvim_buf_set_text(target, line_row, line_col, line_row, line_col, { result.link })
+      end
+      local saved = "images/" .. vim.fs.basename(result.written[1] or "")
+      local note = "uraeda: added " .. saved
+      if result.opened then
+        note = note .. "; the draft is now a folder"
+      end
+      vim.notify(note, vim.log.levels.INFO, { id = "uraeda", title = "Uraeda" })
+    end
+  )
+end
+
 --- Picks a frontmatter field of the current file, then its value (US5).
 function M.field()
   require("uraeda.pickers").field(0)
@@ -116,6 +181,14 @@ M.list = {
     modes = { "n" },
     buffer_local = true,
     key = "g",
+  },
+  {
+    name = "image",
+    desc = "Uraeda: add the clipboard's image",
+    fn = M.image,
+    modes = { "n" },
+    buffer_local = true,
+    key = "i",
   },
   {
     name = "comment",

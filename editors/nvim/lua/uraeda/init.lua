@@ -23,8 +23,8 @@ function M.checkout(path)
   end
 end
 
---- `vim.g.uraeda` merged over the defaults, validated.
---- @return { prefix: string|false, lsp: boolean, cmd: string[], inline_comments: boolean }
+--- `vim.g.uraeda` merged over the defaults, validated. `clipboard` is nil unless set.
+--- @return { prefix: string|false, lsp: boolean, cmd: string[], inline_comments: boolean, clipboard: string[]? }
 function M.config()
   local options = vim.g.uraeda or {}
   vim.validate("vim.g.uraeda", options, "table")
@@ -33,12 +33,16 @@ function M.config()
     return prefix == false or type(prefix) == "string"
   end, "a string, or false")
   vim.validate("vim.g.uraeda.lsp", config.lsp, "boolean")
-  vim.validate("vim.g.uraeda.cmd", config.cmd, function(cmd)
+  local function command(cmd)
     return vim.islist(cmd)
       and #cmd > 0
       and vim.iter(cmd):all(function(part)
         return type(part) == "string"
       end)
+  end
+  vim.validate("vim.g.uraeda.cmd", config.cmd, command, "a list of strings")
+  vim.validate("vim.g.uraeda.clipboard", config.clipboard, function(cmd)
+    return cmd == nil or command(cmd)
   end, "a list of strings")
   vim.validate("vim.g.uraeda.inline_comments", config.inline_comments, "boolean")
   return config
