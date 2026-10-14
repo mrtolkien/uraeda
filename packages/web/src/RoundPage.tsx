@@ -102,6 +102,7 @@ export function RoundPage({ file }: { file: File }) {
   const [error, setError] = useState<Refusal>();
   // Whether the last commit asked to start the agent, for its Try again.
   const continues = useRef(false);
+  // oxlint-disable-next-line react/refs -- before the code quality decision: a set made once, kept for the page's life
   const pending = useRef(new Set<() => Promise<boolean>>()).current;
   const notesSave = useSave<string>(async (value, previous) => {
     const result = await fate.mutations.notes.save({
@@ -115,6 +116,7 @@ export function RoundPage({ file }: { file: File }) {
   }, round?.notes ?? "");
   const { idle, settle } = notesSave;
   const shownNotes = useRef(notes);
+  // oxlint-disable-next-line react/refs -- before the code quality decision: the shown notes, kept for the effects to read
   shownNotes.current = notes;
   // Notes changed elsewhere replace these when nothing of them waits to be saved.
   useEffect(() => {
@@ -133,8 +135,7 @@ export function RoundPage({ file }: { file: File }) {
   const title = document.blocks.find((b) => b.kind === "heading" && b.level === 1);
   // The applicable questions in the page's order, each follow-up after its parent.
   const nav: Array<NavQuestion> = questions
-    .filter((q) => !q.parent)
-    .flatMap((q) => [q, ...questions.filter((f) => f.parent === q.id && f.asked)])
+    .flatMap((q) => (q.parent ? [] : [q, ...questions.filter((f) => f.parent === q.id && f.asked)]))
     .map((q) => ({
       answered: q.answer.trim() !== "",
       id: q.id,

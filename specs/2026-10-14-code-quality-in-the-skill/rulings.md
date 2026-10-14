@@ -102,3 +102,74 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a function of over 100 raw lines with fewer than 100 code lines passes. The decision
   names clippy's lint as the check, so its count is the measure.
 - **Where**: task 2, `crates/core/src/actions/clean.rs`, `crates/core/tests/{check,steps}.rs`.
+
+## R7: The autofix commit keeps order and comments by hand
+
+- **Decision**: the commit of the fate config's autofixes also holds the hand edits that keep them
+  from changing anything but layout.
+  - `QuickAdd`'s and `TaskView`'s section titles are a `Map`, in the order the page shows them: the
+    sorted object put Blocked first.
+  - A comment that headed one style of a `stylex.create` now sits inside that style, at its top.
+  - Four other comments go back on their keys, and the keys around them get a comment of their own
+    or move before it: a refusal in `session-state.ts`, `screenshots.ts`'s browser context,
+    `live.test.ts`'s stream, and `vite.browser.config.ts`'s `browser` and `expect`.
+  - The theme's generated files are rebuilt: the sorted theme orders their declarations, with no
+    property or selector changed.
+- **Rationale**: `perfectionist/sort-objects` runs with `partitionByComment`, so a comment above a
+  key stays at the top of its group while the keys under it are sorted: it ends up above another
+  key. The tests did not catch the segment order, which is behaviour.
+- **Alternatives considered**: the autofixes alone in their commit, the hand edits in the next. That
+  commit would change the priorities' order on screen, and leave dozens of comments on the wrong
+  styles.
+- **If wrong**: the first commit is not purely mechanical. Its message lists the hand edits.
+- **Where**: task 3, `packages/web/src/{QuickAdd,TaskView}.tsx`, the web UI's styles, and the files
+  above.
+
+## R8: Logs write to the process's streams
+
+- **Decision**: the server's logs and the scripts' output call `process.stderr.write` and
+  `process.stdout.write`, with the same text and a newline, instead of `console`. The two tests that
+  check a failure is logged spy on `process.stderr.write`.
+- **Rationale**: `no-console` comes with `@nkzw/oxlint-config`, and no active decision covers
+  logging, so the rule cannot be turned off. The spec's example of a conflict, the server's logging,
+  presumed one. Writing to the stream prints the same line, and `main.ts` already did it.
+- **Alternatives considered**: turning `no-console` off for `packages/server`, which no decision
+  allows; a logging helper, an abstraction for one line.
+- **If wrong**: a later logging decision can bring `console` back and turn the rule off, naming
+  itself.
+- **Where**: task 3, `packages/server/src/{dev,files,main}.ts`, `fate/errors.ts`,
+  `runner/{cache,processes,turns}.ts`, `packages/server/scripts/validate-claude.ts`,
+  `packages/web/scripts/screenshots.ts`, and `__tests__/{fate,files}.test.ts`.
+
+## R9: What no behaviour-preserving fix clears is marked in place
+
+- **Decision**: two rules of the config keep today's offenders, each marked in place with
+  `oxlint-disable-next-line <rule> -- before the code quality decision: <reason>`.
+  - `react/refs`, 8 times: hooks keep the latest value in a ref during render for their effects and
+    timers. The web UI's old `"react/refs": "off"` is removed, since no decision names it.
+  - `typescript/no-explicit-any`, once: `__tests__/helpers.ts` exports `Data`, the `any` of fate's
+    results, which the server's tests read field by field.
+- **Rationale**: the spec says the config's remaining violations are "either fixed or marked", and
+  the decision marks code that broke a rule when it was approved. Moving a ref's write into an
+  effect changes when it is read; typing every fate result is a rewrite of the server's tests.
+- **Alternatives considered**: keeping `react/refs` off, which the decision forbids without a
+  decision to name; `unknown` in the helpers, which fails dozens of type checks in the tests.
+- **If wrong**: the markers say where to start, and fail once their code is fixed.
+- **Where**: task 3,
+  `packages/web/src/{useRoundPosition,useSave,EditorPage,Question,RoundPage,PrioritiesPage}.ts(x)`,
+  `packages/server/src/__tests__/{helpers,sessions.test}.ts`.
+
+## R10: The binding is imported whole by a dynamic import
+
+- **Decision**: the files that pass the binding whole, as the server takes it, load it with
+  `const binding = await import("uraeda-binding")`. A test that only calls one function imports it
+  by name. `import/no-namespace` ignores `@stylexjs/stylex` only, naming the UI components decision.
+- **Rationale**: `import/no-namespace` refuses `import * as binding`, and `createApp` and the
+  session manager take the binding as one object, as `loadBinding` gives it in production. A dynamic
+  import gives the same module object. `stylex.create`, which the UI components decision names, is
+  StyleX's namespace.
+- **Alternatives considered**: ignoring `uraeda-binding` in the rule too, which no decision covers;
+  an object built from named imports, which would list the binding's 34 functions by hand.
+- **If wrong**: the files change back in one line each, if a decision allows the namespace.
+- **Where**: task 3, `packages/server/src/testing.ts`, the server's and the web UI's test helpers,
+  `vite.config.ts`.

@@ -66,6 +66,9 @@ const CASES = PAGES.flatMap(([name, path, text, insets]) =>
   (["light", "dark"] as const).map((mode) => ({ insets, mode, name, path, text })),
 );
 
+/** The side navigation. Folding draws it anew: it is found again each time. */
+const nav = () => screen.getByRole("navigation", { name: "Side navigation" });
+
 test.each(CASES)("$name, in $mode", async ({ insets, mode, path, text }) => {
   await checkCase(path, text, insets, mode);
 });
@@ -154,8 +157,6 @@ test("the folded navigation keeps ＋, Home, and the repository menu (US6 4, 5; 
   }
   try {
     await show("/priorities", "Claude Code runner");
-    // Folding draws the navigation anew: it is found again each time.
-    const nav = () => screen.getByRole("navigation", { name: "Side navigation" });
     await userEvent.click(within(nav()).getByRole("button", { name: "Collapse sidebar" }));
     await expect
       .poll(() => within(nav()).queryByRole("button", { name: "Expand sidebar" }))

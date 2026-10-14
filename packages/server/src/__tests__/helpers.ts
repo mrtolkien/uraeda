@@ -1,5 +1,4 @@
 import { afterEach } from "vite-plus/test";
-import * as binding from "uraeda-binding";
 import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
 import { createApp } from "../app.ts";
 import type { Binding } from "../fate/context.ts";
@@ -7,6 +6,9 @@ import { Hosts } from "../repositories.ts";
 import { SessionCache } from "../runner/cache.ts";
 import type { Sessions } from "../runner/sessions.ts";
 import { fakeSessions } from "../testing.ts";
+
+/** The core's binding, as one object: the server takes it whole. */
+const binding = await import("uraeda-binding");
 
 export { fixture, fixtureRepo, git };
 
@@ -28,6 +30,10 @@ afterEach(() => {
 
 type App = ReturnType<typeof createApp>;
 
+/** A value of fate's JSON results, which the tests read field by field. */
+// oxlint-disable-next-line typescript/no-explicit-any -- before the code quality decision: the tests read untyped fate results by path; typing them means a type per view
+export type Data = any;
+
 /** The name each test app's `fate` calls go to: its first repository's. */
 const names = new WeakMap<App, string>();
 
@@ -44,6 +50,7 @@ export async function testHosts(
   for (const repo of repos) {
     added.push((await binding.addRepository(dataDir, repo)).repository.name);
   }
+  // oxlint-disable-next-line prefer-const -- the session manager may read the hosts while they open: undefined until then, where a const would throw
   let hosts: Hosts | undefined;
   const { adapter, sessions } = fakeSessions({ hosts: () => hosts, installed });
   managers.push(sessions);
@@ -104,7 +111,7 @@ export async function fateAt(
     method: "POST",
   });
   const body = (await response.json()) as {
-    results: Array<{ data?: any; error?: { code: string; message: string }; ok: boolean }>;
+    results: Array<{ data?: Data; error?: { code: string; message: string }; ok: boolean }>;
   };
   return body.results;
 }
@@ -126,7 +133,7 @@ export async function byIdAt(
   if (!result.ok) {
     throw new Error(result.error?.message);
   }
-  return result.data as Array<Record<string, any>>;
+  return result.data as Array<Record<string, Data>>;
 }
 
 /** Reads records of a type by id, with the given fields. */

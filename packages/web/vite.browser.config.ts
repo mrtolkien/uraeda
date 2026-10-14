@@ -48,8 +48,8 @@ const commands = {
    */
   async takeRepo() {
     const previous = shared.uraedaRepoTurn ?? Promise.resolve();
-    let release = () => {};
-    shared.uraedaRepoTurn = previous.then(() => new Promise<void>((done) => (release = done)));
+    const { promise: turn, resolve: release } = Promise.withResolvers<void>();
+    shared.uraedaRepoTurn = previous.then(() => turn);
     await previous;
     const token = (shared.uraedaRepoTokens = (shared.uraedaRepoTokens ?? 0) + 1);
     shared.uraedaRepoHolder = { release, token };

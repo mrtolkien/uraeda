@@ -13,6 +13,14 @@ import type { Sessions } from "./runner/sessions.ts";
 
 type Context = HonoContext<{ Variables: FateVariables }>;
 
+/** The request with its selections as whole fields, the way they reach fate (see `fate/select.ts`). */
+const rewritten = async (request: Request) =>
+  new Request(request.url, {
+    body: JSON.stringify(withWholeFields(await request.json().catch(() => undefined))),
+    headers: request.headers,
+    method: "POST",
+  });
+
 /**
  * The server's routes: each listed repository's under `/r/<name>/`, with its host's context and
  * fate server; the global `/fate`, which serves the list and refuses a repository's records; and
@@ -22,16 +30,16 @@ type Context = HonoContext<{ Variables: FateVariables }>;
 export function createApp(
   options: Omit<Options, "given" | "repo"> & {
     binding: Binding;
-    sessions: Sessions;
-    hosts: Hosts;
     dataDir: string;
+    hosts: Hosts;
+    sessions: Sessions;
   },
 ) {
-  const { binding, sessions, hosts, dataDir } = options;
+  const { binding, dataDir, hosts, sessions } = options;
   const app = new Hono<{ Variables: FateVariables }>();
   app.use(guard(options));
   app.use(async (context, next) => {
-    context.set("fate", { binding, sessions, hosts, dataDir, repo: null });
+    context.set("fate", { binding, dataDir, hosts, repo: null, sessions });
     await next();
   });
   /**
@@ -47,7 +55,7 @@ export function createApp(
     if (host.missing) {
       return context.text(`Folder not found: ${host.path}`, 404);
     }
-    context.set("fate", { binding, sessions, hosts, dataDir, repo: host.path });
+    context.set("fate", { binding, dataDir, hosts, repo: host.path, sessions });
     await next();
   };
   for (const path of [
@@ -58,13 +66,6 @@ export function createApp(
   ]) {
     app.use(path, hosted);
   }
-  // Selections reach fate as whole fields (see `fate/select.ts`).
-  const rewritten = async (request: Request) =>
-    new Request(request.url, {
-      body: JSON.stringify(withWholeFields(await request.json().catch(() => undefined))),
-      headers: request.headers,
-      method: "POST",
-    });
   /** The fate endpoint and its live updates, at `base`, on the server `server` gives. */
   const endpoint = (base: string, server: (context: Context) => FateServer) => {
     app.post(`${base}/fate`, async (context) =>

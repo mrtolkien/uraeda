@@ -53,10 +53,12 @@ let failed = false;
 
 function report(name: string, ok: boolean, got: unknown) {
   if (ok) {
-    console.log(`PASS ${name}`);
+    process.stdout.write(`PASS ${name}\n`);
   } else {
     failed = true;
-    console.log(`FAIL ${name}: got ${typeof got === "string" ? got : JSON.stringify(got)}`);
+    process.stdout.write(
+      `FAIL ${name}: got ${typeof got === "string" ? got : JSON.stringify(got)}\n`,
+    );
   }
 }
 
@@ -459,15 +461,15 @@ async function stdinChecks() {
   }
 
   const version = (await adapter.version()) ?? "unknown";
-  console.log(`\nClaude Code ${version}`);
-  console.log(`take back: ${takeBack ?? "none"}`);
+  process.stdout.write(`\nClaude Code ${version}\n`);
+  process.stdout.write(`take back: ${takeBack ?? "none"}\n`);
   const { errors, is_error, result, subtype, terminal_reason, user_message_uuids } =
     interruptResult ?? {};
-  console.log(
-    `interrupt result: ${JSON.stringify({ errors, is_error, result, subtype, terminal_reason, user_message_uuids })}`,
+  process.stdout.write(
+    `interrupt result: ${JSON.stringify({ errors, is_error, result, subtype, terminal_reason, user_message_uuids })}\n`,
   );
-  console.log(`sub-agent lines: ${subAgentLines.join(", ")}`);
-  console.log(`lines seen: ${seen.join(", ")}`);
+  process.stdout.write(`sub-agent lines: ${subAgentLines.join(", ")}\n`);
+  process.stdout.write(`lines seen: ${seen.join(", ")}\n`);
 }
 
 /** What the stdin checks saw, printed after them for the rulings. */

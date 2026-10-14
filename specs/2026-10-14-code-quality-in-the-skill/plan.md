@@ -487,55 +487,70 @@ git commit -m "build(code-quality-in-the-skill): clippy limits and a size test h
 - Produces:
   - `vite.config.ts`'s `lint` extends `@nkzw/oxlint-config`, keeps today's rules and overrides, and
     sets `options.reportUnusedDisableDirectives: "error"`.
-  - Rules turned off carry a comment naming the decision they conflict with.
+  - Rules turned off carry a comment naming the decision they conflict with. One is narrowed:
+    `import/no-namespace` ignores `@stylexjs/stylex`, for the
+    [UI components](../decisions/ui-components.md) decision's `stylex.create`. The old
+    `react/refs: "off"` of the web UI is gone: its 8 offenders are marked in place
+    ([R9](rulings.md#r9-what-no-behaviour-preserving-fix-clears-is-marked-in-place)).
+  - Logs write to `process.stderr` and `process.stdout`, as `main.ts` already did
+    ([R8](rulings.md#r8-logs-write-to-the-processs-streams)).
+  - `__tests__/helpers.ts` exports `Data`, the marked `any` of fate's results in the server's tests.
+  - Files that pass the binding whole load it with `await import("uraeda-binding")`
+    ([R10](rulings.md#r10-the-binding-is-imported-whole-by-a-dynamic-import)).
 
-- [ ] **Step 1: Write the failing lint tests**
+- [x] **Step 1: Write the failing lint tests**
 
 Add to the `test.each` of `lint.test.ts` (US3.6, review focus 4):
 
 - `["only-test.test.tsx", "no-only-tests"]`, on a file with one `test.only(...)`;
-- `["unused-directive.tsx", "Unused eslint-disable directive"]`, on a file whose
+- `["unused-directive.tsx", "Unused oxlint-disable directive"]`, on a file whose
   `// oxlint-disable-next-line no-console -- reason` sits above a line without a console call.
 
 Match the message Oxlint really prints, checked once by hand.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/lint.test.ts`
 - Expected: FAIL. The output of `only-test.test.tsx` does not contain `no-only-tests`.
 
-- [ ] **Step 3: Add the config and its plugins, pinned, and extend it**
+- [x] **Step 3: Add the config and its plugins, pinned, and extend it**
 
 Import the config object in `vite.config.ts`, and pass it to `lint.extends`, as fate's own
 `vite.config.ts` does. Run `vp lint` and keep its report.
 
-- [ ] **Step 4: Apply the autofixes in a commit of their own**
+- [x] **Step 4: Apply the autofixes in a commit of their own**
 
-- Run: `vp check --fix`, then `vp test`.
+- Run: `vp check --fix` until it fixes nothing more, then `vp test`.
 - Expected: PASS. The autofixes change no behaviour.
+
+The sorts move a comment off the key it heads, and reorder an object a page iterates. The same
+commit keeps both as they were, by hand, and rebuilds the theme's generated files
+([R7](rulings.md#r7-the-autofix-commit-keeps-order-and-comments-by-hand)).
 
 ```bash
 git add packages
 git commit -m "style(code-quality-in-the-skill): apply the fate lint config's fixes"
 ```
 
-- [ ] **Step 5: Fix what remains**
+- [x] **Step 5: Fix what remains**
 
 Fix each remaining error by hand, without changing behaviour. A rule may be turned off only where it
 conflicts with an active decision, naming it next to the rule. If an error can be neither fixed nor
 tied to a decision, stop and write a ruling before going on.
 
-Each existing `oxlint-disable` that is now unused is removed. One still needed keeps its reason.
+Each existing `oxlint-disable` that is now unused is removed. One still needed keeps its reason. The
+three `react-hooks/exhaustive-deps` ones are still needed: the config turns that rule on, and each
+keeps the reason written above it.
 
-- [ ] **Step 6: Run all checks**
+- [x] **Step 6: Run all checks**
 
 - Run: `vp check && vp test`
 - Expected: PASS, the two new fixtures included.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
-git add package.json pnpm-workspace.yaml pnpm-lock.yaml vite.config.ts packages
+git add package.json pnpm-workspace.yaml pnpm-lock.yaml vite.config.ts packages specs
 git commit -m "build(code-quality-in-the-skill): TypeScript follows the fate stack's lint config"
 ```
 

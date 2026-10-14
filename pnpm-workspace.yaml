@@ -1,6 +1,10 @@
 packages:
   - packages/*
 catalog:
+  "@nkzw/eslint-plugin": 2.0.0
+  "@nkzw/oxlint-config": 2.0.1
+  eslint-plugin-no-only-tests: 3.4.0
+  eslint-plugin-perfectionist: 5.12.1
   vite: npm:@voidzero-dev/vite-plus-core@1.0.0
   vite-plus: 1.0.0
 minimumReleaseAgeExclude:

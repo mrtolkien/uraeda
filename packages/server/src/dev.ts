@@ -88,7 +88,7 @@ export function devHandler(root: string, { adapter }: { adapter?: Adapter } = {}
       servers.set(port, started);
       started.catch((error: Error) => {
         servers.delete(port);
-        console.error(`uraeda: ${error.message}`);
+        process.stderr.write(`uraeda: ${error.message}\n`);
       });
     }
     return started;
