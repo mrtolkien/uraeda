@@ -5,7 +5,7 @@
 use std::fs;
 
 use crate::files::retarget::retarget as retarget_links;
-use crate::images::{self, Encoded};
+use crate::images::Encoded;
 
 use super::ActionError;
 use super::place::Place;
@@ -26,14 +26,14 @@ pub struct Attached {
     pub moved: Option<String>,
 }
 
-/// Saves an image next to the markdown file `path`, a file directly in a feature's, a bug's, or a
-/// draft's folder, or a single-file draft, in `place`. `name` is the image's original file name,
-/// `None` for a pasted image, named after the time `stamp` gives. The image is checked before
-/// anything is written, and a failed write leaves the files as they were.
+/// Saves an image, as [`crate::images::encode`] checked and encoded it, next to the markdown
+/// file `path`, a file directly in a feature's, a bug's, or a draft's folder, or a single-file
+/// draft, in `place`. `name` is the image's original file name, `None` for a pasted image, named
+/// after the time `stamp` gives. A failed write leaves the files as they were.
 pub fn attach(
     place: &Place,
     path: &str,
-    bytes: &[u8],
+    encoded: &Encoded,
     name: Option<&str>,
     stamp: impl FnOnce() -> String,
 ) -> Result<Attached, ActionError> {
@@ -51,21 +51,19 @@ pub fn attach(
         }));
     }
 
-    let encoded = images::encode(bytes, name.unwrap_or("pasted image"))
-        .map_err(|error| ActionError::Refused(error.to_string()))?;
     let (base, alt) = match name.map(stem) {
         Some(stem) => (file_name(stem), alt(stem)),
         None => (format!("pasted-{}", stamp()), "pasted image".to_string()),
     };
 
     let (folder, image, moved) = if single_draft {
-        let (moved, image) = into_folder(place, path, &base, &encoded)?;
+        let (moved, image) = into_folder(place, path, &base, encoded)?;
         let folder = moved.rsplit_once('/').map_or("", |(folder, _)| folder);
         (folder.to_string(), image, Some(moved))
     } else {
         (
             folder.to_string(),
-            save(place, folder, &base, &encoded)?,
+            save(place, folder, &base, encoded)?,
             None,
         )
     };
