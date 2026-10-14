@@ -88,7 +88,7 @@ type Result<T> = std::result::Result<T, ApiError>;
 /// action reads, edits, and writes a file, which two calls at once would interleave.
 static WRITES: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
-fn write_lock() -> std::sync::MutexGuard<'static, ()> {
+pub(crate) fn write_lock() -> std::sync::MutexGuard<'static, ()> {
     WRITES
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
