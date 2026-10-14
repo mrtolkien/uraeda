@@ -305,7 +305,7 @@ The decisions this plan relies on, and where it follows them:
 
 - **C1** (the UI layout decision should rest on concepts, readability first, with some views in
   panes and others in pages). The approval step carried it out, rewriting the decision around that
-  goal (commit `8ae66ff`), and every task follows the rewritten rules listed in
+  goal (commit `8e38346`), and every task follows the rewritten rules listed in
   [Global constraints](#global-constraints). It supersedes no clause of the spec: the spec's layout
   is one of the choices the decision now allows.
 
@@ -470,7 +470,7 @@ timed with `Instant`, asserting under 100 ms, run by hand with
   `cargo test && cargo clippy --workspace --all-targets -- -D warnings && vp run --filter uraeda-binding build`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core/src/changes.rs crates/core/src/lib.rs crates/core/src/git.rs crates/core/src/api.rs \
