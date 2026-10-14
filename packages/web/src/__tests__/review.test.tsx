@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test, vi } from "vite-plus/test";
 import { atRepo, fixtureRepo, git, renderPage, today } from "./helpers.tsx";
+import { expect, test } from "vite-plus/test";
+import { atWidth, fixture, fixtureRepo, git, renderPage, serverFetch, today } from "./helpers.tsx";
 
 const FOLDER = "2026-10-06-recurring-tasks";
 const PAGE = `/f/${FOLDER}/spec.md`;
@@ -590,4 +592,213 @@ test("taps in a block's image, opened full screen, do not select the block", asy
 
   expect(block.getAttribute("aria-pressed")).toBe("false");
   expect(screen.queryByLabelText("Comment text")).toBeNull();
+});
+
+/** The address a request goes to. */
+const urlOf = (input: RequestInfo | URL) =>
+  input instanceof Request ? input.url : input.toString();
+
+/** A PNG, as the picker gives it. */
+const png = (name: string) =>
+  new File([readFileSync(fixture("images/phone.png"))], name, { type: "image/png" });
+
+/** Picks files with the comment's "Add image", as the system's picker gives them. */
+async function pick(files: File[]) {
+  const input = await screen.findByLabelText("Add image", { selector: "input" });
+  await act(async () => {
+    fireEvent.change(input, { target: { files } });
+  });
+}
+
+/** The server in process, whose uploads wait until the test lets each one through. */
+function holdUploads(repo: string) {
+  const fetch = serverFetch(repo);
+  const waiting: Array<() => void> = [];
+  return {
+    waiting,
+    fetch: (async (input, init) => {
+      if (urlOf(input).startsWith("/attach")) {
+        await new Promise<void>((resolve) => waiting.push(resolve));
+      }
+      return fetch(input, init);
+    }) as typeof globalThis.fetch,
+    /** Lets the next upload through, once it waits. */
+    async release() {
+      await waitFor(() => expect(waiting.length).toBeGreaterThan(0));
+      await act(async () => waiting.shift()!());
+    },
+  };
+}
+
+const UNSENT = "Add or cancel your comment first: its images are not in the review yet.";
+const STILL_ADDING = "An image is still being added: wait for it, then try again.";
+
+/** The texts shown on the page, not in the screen reader's announcements. */
+function shown(text: string) {
+  return screen
+    .queryAllByText(text)
+    .filter((element) => !element.closest("[data-astryx-live-region]"));
+}
+
+/** Whether a text was announced to screen readers. */
+function announced(text: string) {
+  return [...document.querySelectorAll("[data-astryx-live-region]")].some((region) =>
+    region.textContent?.includes(text),
+  );
+}
+
+/** The image a comment of the review links, in the feature's worktree. */
+const IMAGE = `specs/${FOLDER}/images/login.webp`;
+
+/** The last commit's subject on the feature's branch. */
+const lastCommit = (r: string) => git(r, "log", "-1", "--format=%s", FOLDER).trim();
+
+/** Opens a general comment and picks an image for it, linked once its upload ends. */
+async function generalWithImage() {
+  await click(await screen.findByRole("button", { name: "Add a general comment" }));
+  await pick([png("login.png")]);
+}
+
+/** Review focus 11, R64: an image uploading is in no file yet, which a verdict would delete. */
+test("Request changes during an upload is refused, and commits nothing", async () => {
+  const r = repo();
+  const held = holdUploads(r);
+  await renderPage(PAGE, r, { fetch: held.fetch });
+  await click(await scenario(FIRST));
+  await comment("Say it stays.");
+  await saved(/^C1/, "Say it stays.");
+  const before = lastCommit(r);
+  await generalWithImage();
+  await waitFor(() => expect(held.waiting).toHaveLength(1));
+
+  await click(screen.getByRole("button", { name: "Request changes" }));
+
+  await waitFor(() => expect(shown(UNSENT)).toHaveLength(1));
+  expect(lastCommit(r)).toBe(before);
+  await held.release();
+  await waitFor(() =>
+    expect((screen.getByLabelText("Comment text") as HTMLTextAreaElement).value).toContain(
+      "![login](images/login.webp)",
+    ),
+  );
+  expect(lastCommit(r)).toBe(before);
+});
+
+/** R64: only a comment's images hold a verdict back, not its text. */
+test("a verdict with an open comment of text alone goes through", async () => {
+  const r = repo();
+  await renderPage(PAGE, r);
+  await click(await screen.findByRole("button", { name: "Add a general comment" }));
+  await act(async () => {
+    fireEvent.change(screen.getByLabelText("Comment text"), { target: { value: "Half a tho" } });
+  });
+
+  await click(screen.getByRole("button", { name: "Approve" }));
+
+  await waitFor(() => expect(lastCommit(r)).toBe("spec(recurring-tasks): approve"));
+  expect(shown(UNSENT)).toEqual([]);
+});
+
+/** R64: a comment cancelled lets the verdict through, and its image goes with the commit. */
+test("a verdict after a comment with an image was cancelled deletes the image", async () => {
+  const r = repo();
+  await renderPage(PAGE, r);
+  await generalWithImage();
+  await waitFor(() => expect(existsSync(join(r, WORKTREE, IMAGE))).toBe(true));
+  await waitFor(() =>
+    expect((screen.getByLabelText("Comment text") as HTMLTextAreaElement).value).toContain(
+      "![login]",
+    ),
+  );
+
+  await click(screen.getByRole("button", { name: "Cancel" }));
+  await click(screen.getByRole("button", { name: "Approve" }));
+
+  await waitFor(() => expect(lastCommit(r)).toBe("spec(recurring-tasks): approve"));
+  expect(existsSync(join(r, WORKTREE, IMAGE))).toBe(false);
+  expect(git(r, "ls-tree", "-r", "--name-only", FOLDER, `specs/${FOLDER}/images`).trim()).toBe("");
+});
+
+/** R64: the refusal is said where the human looks: in the comment's sheet on the phone. */
+test.each([
+  [402, true],
+  [1440, false],
+])("at %i px, the verdict's refusal is in the comment form: %s", async (width, inForm) => {
+  atWidth(width);
+  const r = repo();
+  await renderPage(PAGE, r);
+  await generalWithImage();
+  await waitFor(() =>
+    expect((screen.getByLabelText("Comment text") as HTMLTextAreaElement).value).toContain(
+      "![login]",
+    ),
+  );
+
+  await click(screen.getByRole("button", { name: "Approve" }));
+
+  await waitFor(() => expect(shown(UNSENT)).toHaveLength(1));
+  const form = screen.getByRole("form", { name: "Comment" });
+  expect(form.contains(shown(UNSENT)[0]!)).toBe(inForm);
+  await waitFor(() => expect(announced(UNSENT)).toBe(true));
+  expect(lastCommit(r)).not.toBe("spec(recurring-tasks): approve");
+});
+
+/** A comment cancelled during its upload leaves no form to say the refusal in: the page says it. */
+test("on the phone, a verdict during the upload of a cancelled comment is refused on the page", async () => {
+  atWidth(402);
+  const r = repo();
+  const held = holdUploads(r);
+  await renderPage(PAGE, r, { fetch: held.fetch });
+  await generalWithImage();
+  await waitFor(() => expect(held.waiting).toHaveLength(1));
+  await click(screen.getByRole("button", { name: "Cancel" }));
+
+  await click(screen.getByRole("button", { name: "Approve" }));
+
+  await waitFor(() => expect(shown(STILL_ADDING)).toHaveLength(1));
+  await waitFor(() => expect(announced(STILL_ADDING)).toBe(true));
+  await held.release();
+  // Once the image is in, the refusal is dealt with, and the verdict goes through.
+  await waitFor(() => expect(shown(STILL_ADDING)).toEqual([]));
+  await click(screen.getByRole("button", { name: "Approve" }));
+  await waitFor(() => expect(lastCommit(r)).toBe("spec(recurring-tasks): approve"));
+  expect(existsSync(join(r, WORKTREE, IMAGE))).toBe(false);
+});
+
+/** The refusal is about the open comment: it goes with it. */
+test("the verdict's refusal goes once the comment is cancelled", async () => {
+  const r = repo();
+  await renderPage(PAGE, r);
+  await generalWithImage();
+  await waitFor(() =>
+    expect((screen.getByLabelText("Comment text") as HTMLTextAreaElement).value).toContain(
+      "![login]",
+    ),
+  );
+  await click(screen.getByRole("button", { name: "Approve" }));
+  await waitFor(() => expect(shown(UNSENT)).toHaveLength(1));
+
+  await click(screen.getByRole("button", { name: "Cancel" }));
+
+  expect(shown(UNSENT)).toEqual([]);
+});
+
+/** An image picked for one comment never goes into another opened during its upload. */
+test("an image picked for a comment does not go into a comment edited during its upload", async () => {
+  const r = repo();
+  const held = holdUploads(r);
+  await renderPage(PAGE, r, { fetch: held.fetch });
+  await click(await scenario(FIRST));
+  await comment("Say it stays.");
+  const pending = await saved(/^C1/, "Say it stays.");
+  await generalWithImage();
+  await waitFor(() => expect(held.waiting).toHaveLength(1));
+
+  await click(within(pending).getByRole("button", { name: "Edit" }));
+  await held.release();
+
+  await waitFor(() => expect(shown("Added login.webp").length).toBeGreaterThan(0));
+  expect((screen.getByLabelText("Comment text") as HTMLTextAreaElement).value).toBe(
+    "Say it stays.",
+  );
 });

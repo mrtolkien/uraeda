@@ -8,21 +8,25 @@ const ACCEPT = "image/png,image/jpeg,image/gif,image/webp";
 /**
  * "Add image", or "Add images" for several, with a paperclip: opens the system's picker, on
  * phones its photos and camera, and hands the picked files over. Icon only where the space is
- * short, like the composer's bar.
+ * short, like the composer's bar. `name` tells the button apart where a page has several, as
+ * "Add image to the notes": it starts with what the button shows, which stays "Add image".
  */
 export function AttachButton({
   multiple = false,
   onFiles,
+  name,
   isIconOnly = false,
   isDisabled = false,
 }: {
   multiple?: boolean;
   onFiles: (files: File[]) => void;
+  name?: string;
   isIconOnly?: boolean;
   isDisabled?: boolean;
 }) {
   const input = useRef<HTMLInputElement>(null);
-  const label = multiple ? "Add images" : "Add image";
+  const shown = multiple ? "Add images" : "Add image";
+  const label = name ?? shown;
   const picker = (
     // oxlint-disable-next-line react/forbid-elements -- the system's file picker behind a button: Astryx's FileInput is a visible field (an Astryx gap, see the plan)
     <input
@@ -44,13 +48,16 @@ export function AttachButton({
   );
   return (
     <>
+      {/* A label other than the text shown is the button's accessible name, its `aria-label`. */}
       <Button
         label={label}
         icon={<Icon icon="uraeda:attach" />}
         isIconOnly={isIconOnly}
         isDisabled={isDisabled}
         onClick={() => input.current?.click()}
-      />
+      >
+        {isIconOnly ? undefined : shown}
+      </Button>
       {picker}
     </>
   );

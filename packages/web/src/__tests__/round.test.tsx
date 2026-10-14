@@ -7,9 +7,11 @@ import {
   answered as readAnswered,
   answersSoFar,
   atWidth,
+  fixture,
   fixtureRepo,
   git,
   renderPage,
+  serverFetch,
   today,
 } from "./helpers.tsx";
 
@@ -584,4 +586,169 @@ test("an option's image is part of the option's toggle", async () => {
   expect(option("Q2", "A").getAttribute("aria-pressed")).toBe("true");
   expect(screen.queryByRole("dialog", { name: "Login" })).toBeNull();
   await waitFor(() => expect(answerLine(repo, "Q2")).toBe("**Answer:** A"));
+});
+
+/** The address a request goes to. */
+const urlOf = (input: RequestInfo | URL) =>
+  input instanceof Request ? input.url : input.toString();
+
+/** A PNG, as the picker gives it. */
+const png = (name: string) =>
+  new File([readFileSync(fixture("images/phone.png"))], name, { type: "image/png" });
+
+/** Picks files with an "Add image" button, named for its field, as the system's picker gives them. */
+async function pick(name: string, files: File[]) {
+  const input = screen.getByLabelText(name, { selector: "input" });
+  await act(async () => {
+    fireEvent.change(input, { target: { files } });
+  });
+}
+
+/**
+ * The server in process, whose uploads, and the requests `alsoHold` picks, wait until the test lets
+ * each one through.
+ */
+function hold(repo: string, alsoHold: (body: string) => boolean = () => false) {
+  const fetch = serverFetch(repo);
+  const waiting: Array<() => void> = [];
+  return {
+    waiting,
+    fetch: (async (input, init) => {
+      const body = typeof init?.body === "string" ? init.body : "";
+      if (urlOf(input).startsWith("/attach") || alsoHold(body)) {
+        await new Promise<void>((resolve) => waiting.push(resolve));
+      }
+      return fetch(input, init);
+    }) as typeof globalThis.fetch,
+    /** Lets the next request held through, once it waits. */
+    async release() {
+      await waitFor(() => expect(waiting.length).toBeGreaterThan(0));
+      await act(async () => waiting.shift()!());
+    },
+  };
+}
+
+const LINK = "![login](images/login.webp)";
+const IMAGES = `specs/${FOLDER}/images`;
+
+/** The images the round's branch holds. */
+const committedImages = (repo: string) =>
+  git(repo, "ls-tree", "-r", "--name-only", FOLDER, IMAGES).trim();
+
+const SUBMITTED = "discovery(web-ui): answer round 01";
+
+/** Review: several "Add image" buttons on one page are told apart by their field. */
+test("each Add image names its field, and shows Add image", async () => {
+  await renderPage(PAGE, answered({}));
+  await screen.findByText("How does your iPhone reach the server?");
+
+  const q2 = screen.getByRole("button", { name: "Add image to Q2's comment" });
+  expect(q2.textContent).toBe("Add image");
+  expect(screen.getByRole("button", { name: "Add image to the notes" }).textContent).toBe(
+    "Add image",
+  );
+  expect(screen.queryByRole("button", { name: "Add image" })).toBeNull();
+});
+
+/** US4.1 with the picker: the answer holds the image's link at once. */
+test("Add image on an answer links the image in its comment, saved at once", async () => {
+  const repo = answered({ Q2: "A" });
+  await renderPage(PAGE, repo);
+  await screen.findByText("How does your iPhone reach the server?");
+
+  await pick("Add image to Q2's comment", [png("login.png")]);
+
+  await waitFor(() => expect((comment("Q2") as HTMLTextAreaElement).value).toBe(`${LINK}\n`));
+  await waitFor(() => expect(answerLine(repo, "Q2")).toBe(`**Answer:** A: ${LINK}`));
+  expect(existsSync(join(repo, ".worktrees", FOLDER, IMAGES, "login.webp"))).toBe(true);
+});
+
+/** US4.2 with the picker: the notes hold the image's link, saved. */
+test("Add image on the notes links the image at their end, saved", async () => {
+  const repo = answered({});
+  await renderPage(PAGE, repo);
+  const notes = (await screen.findByLabelText("Notes")) as HTMLTextAreaElement;
+  await type(notes, "See:");
+
+  await pick("Add image to the notes", [png("login.png")]);
+
+  await waitFor(() => expect(notes.value).toBe(`See:\n\n${LINK}\n`));
+  await waitFor(() => expect(text(repo)).toContain(`**Notes:** See:`));
+  await waitFor(() => expect(text(repo)).toContain(LINK));
+});
+
+/** Review focus 11, R64: Submit waits for an answer's image, and commits it with the round. */
+test("Submit during an answer's upload commits the round with the image", async () => {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  const held = hold(repo);
+  await renderPage(PAGE, repo, { fetch: held.fetch });
+  await screen.findByText("How does your iPhone reach the server?");
+  await pick("Add image to Q2's comment", [png("login.png")]);
+  await waitFor(() => expect(held.waiting).toHaveLength(1));
+
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+  await held.release();
+
+  await waitFor(() => expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(SUBMITTED));
+  expect(git(repo, "show", `${FOLDER}:${ROUND}`)).toContain(`**Answer:** A: ${LINK}`);
+  expect(committedImages(repo)).toBe(`${IMAGES}/login.webp`);
+});
+
+/** Review: a follow-up gone during its upload still has its image saved before Submit commits. */
+test("Submit waits for the image of a follow-up that stopped applying during its upload", async () => {
+  const repo = answered({ Q1: "B", Q2: "A", Q3: "A" });
+  const held = hold(repo);
+  await renderPage(PAGE, repo, { fetch: held.fetch });
+  await waitFor(() => expect(question("Q1.B")).toBeTruthy());
+  await pick("Add image to Q1.B's comment", [png("login.png")]);
+  await waitFor(() => expect(held.waiting).toHaveLength(1));
+
+  await tap(option("Q1", "A"));
+  await tap(option("Q1", "B"));
+  await waitFor(() => expect(question("Q1.B")).toBeNull());
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+  await held.release();
+
+  await waitFor(() => expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(SUBMITTED));
+  expect(git(repo, "show", `${FOLDER}:${ROUND}`)).toContain(LINK);
+  expect(committedImages(repo)).toBe(`${IMAGES}/login.webp`);
+});
+
+/** Review: an answer saved at once for its image is not saved again by Submit. */
+test("Submit does not save again an answer saved for its image", async () => {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  const saves: Array<string> = [];
+  let holdSave = true;
+  const held = hold(repo, (body) => {
+    if (!body.includes("images/login.webp") || body.includes("submit")) {
+      return false;
+    }
+    saves.push(body);
+    const now = holdSave;
+    holdSave = false;
+    return now;
+  });
+  await renderPage(PAGE, repo, { fetch: held.fetch });
+  await screen.findByText("How does your iPhone reach the server?");
+  await pick("Add image to Q2's comment", [png("login.png")]);
+  await held.release();
+  // The answer's save, held while Submit starts.
+  await waitFor(() => expect(saves).toHaveLength(1));
+
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+  await held.release();
+
+  await waitFor(() => expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(SUBMITTED));
+  expect(saves).toHaveLength(1);
+});
+
+/** Review: the bar's Submit takes the focus to "Submit answers", not to the notes' buttons. */
+test("the bar's Submit focuses Submit answers", async () => {
+  atWidth(402);
+  await renderPage(PAGE, answered({ Q1: "A", Q2: "A", Q3: "A" }));
+  await screen.findByRole("button", { name: "3/3" });
+
+  await tap(screen.getByRole("button", { name: "Submit" }));
+
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: "Submit answers" }));
 });

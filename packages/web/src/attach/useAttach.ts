@@ -17,6 +17,16 @@ export type AttachStatus = { text: string; error: boolean };
 /** The name in texts of an image without one, as the core names it. */
 const PASTED = "pasted image";
 
+/**
+ * How long an upload may take, the core's encoding included: a 20 MB photo over a slow phone
+ * connection takes most of it. An upload the server never answers ends then, and what waits for
+ * it, like Submit, goes on (R72).
+ */
+const UPLOAD_TIMEOUT = 120_000;
+
+/** The refusal of an upload the server did not answer in time. */
+const TIMED_OUT = "The image could not be added: the server did not answer in time.";
+
 /** The name a file is told by: a pasted image has none. */
 const nameOf = (file: File) => file.name || PASTED;
 
@@ -60,10 +70,20 @@ export function useAttach(target: { path: string } | { chat: true }, initial?: A
       let response: Response;
       let text: string;
       try {
-        response = await fetch(`/attach?${query}`, { method: "POST", body });
+        response = await fetch(`/attach?${query}`, {
+          method: "POST",
+          body,
+          signal: AbortSignal.timeout(UPLOAD_TIMEOUT),
+        });
         text = await response.text();
-      } catch {
-        return { ok: false, message: "Could not reach the Uraeda server." };
+      } catch (error) {
+        return {
+          ok: false,
+          message:
+            error instanceof DOMException && error.name === "TimeoutError"
+              ? TIMED_OUT
+              : "Could not reach the Uraeda server.",
+        };
       }
       // Not the route's answer: the guard's refusal, like "Forbidden site", is plain text, worth
       // showing; a proxy's error page is not.
