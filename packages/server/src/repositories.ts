@@ -1,4 +1,5 @@
 import { existsSync, type FSWatcher, mkdirSync, watch } from "node:fs";
+import { join } from "node:path";
 import type { Repository, WatchHandle } from "uraeda-binding";
 import type { Binding } from "./fate/context.ts";
 import { REPOSITORIES_ID } from "./fate/views.ts";
@@ -99,7 +100,9 @@ export class Hosts {
    */
   async current(name: string): Promise<Host | undefined> {
     const host = this.get(name);
-    if (host && host.missing === existsSync(host.path)) {
+    // A main checkout holds `.git`: without it, the core would find the repository holding the
+    // folder, maybe another one.
+    if (host && host.missing === existsSync(join(host.path, ".git"))) {
       await this.reload();
       return this.get(name);
     }

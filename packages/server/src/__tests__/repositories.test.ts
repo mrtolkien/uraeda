@@ -252,13 +252,44 @@ test("a repository's endpoint finds its folder moved away, and back", async () =
     ]);
 
   renameSync(opened.repo, away);
-  await workspace();
+  const response = await opened.app.request(
+    `http://127.0.0.1:${port}/r/${opened.name}/raw/specs/PRIORITIES.md`,
+  );
+  expect([response.status, await response.text()]).toEqual([
+    404,
+    `Folder not found: ${realpathSync(away).replace(/-away$/, "")}`,
+  ]);
   expect(opened.hosts.get(opened.name)?.missing).toBe(true);
 
   renameSync(away, opened.repo);
   const [result] = await workspace();
   expect(opened.hosts.get(opened.name)?.missing).toBe(false);
   expect(result.ok).toBe(true);
+});
+
+test("a repository inside another one that loses its .git is refused, not its parent", async () => {
+  const parent = fixtureRepo();
+  const child = join(parent, "child");
+  renameSync(fixtureRepo(), child);
+  const opened = await testApp(child);
+
+  rmSync(join(child, ".git"), { recursive: true, force: true });
+  const response = await opened.app.request(`http://127.0.0.1:${port}/r/${opened.name}/fate`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      operations: [
+        { id: "0", kind: "byId", type: "Workspace", ids: ["workspace"], select: ["root"] },
+      ],
+      version: 1,
+    }),
+  });
+
+  expect(opened.hosts.get(opened.name)?.missing).toBe(true);
+  expect([response.status, await response.text()]).toEqual([
+    404,
+    `Folder not found: ${realpathSync(child)}`,
+  ]);
 });
 
 /** US2.2, US2.4 */

@@ -1,7 +1,9 @@
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
-import { fixtureRepo, git, port, testApp } from "./helpers.ts";
+import * as binding from "uraeda-binding";
+import { createApp } from "../app.ts";
+import { fixtureRepo, git, port, testApp, testHosts } from "./helpers.ts";
 
 test("serves a mockup sandboxed, with its type", async () => {
   const repo = fixtureRepo();
@@ -37,13 +39,29 @@ test("serves a file's raw text, and nothing outside the repository", async () =>
 });
 
 test("a file that cannot be read for another reason than its absence is a server error, logged", async () => {
-  const { app, name, repo } = await testApp();
-  // The folder leaves git once listed: the core can no longer read it.
-  rmSync(join(repo, ".git"), { recursive: true, force: true });
+  const { hosts, sessions, dataDir, names } = await testHosts([fixtureRepo()], {
+    installed: false,
+  });
+  // The core fails for a reason other than a missing file.
+  const failing = {
+    ...binding,
+    readRaw: () => Promise.reject(new Error("refused: disk unreadable")),
+  };
+  const app = createApp({
+    port,
+    allowedHosts: [],
+    allowOrigins: [],
+    binding: failing,
+    sessions,
+    hosts,
+    dataDir,
+  });
   const log = vi.spyOn(console, "error").mockImplementation(() => {});
 
-  const raw = await app.request(`http://127.0.0.1:${port}/r/${name}/raw/README.md`);
-  const mockup = await app.request(`http://127.0.0.1:${port}/r/${name}/mockups/ui.html`);
+  const raw = await app.request(`http://127.0.0.1:${port}/r/${names[0]}/raw/specs/README.md`);
+  const mockup = await app.request(
+    `http://127.0.0.1:${port}/r/${names[0]}/mockups/specs/README.md`,
+  );
 
   expect([raw.status, mockup.status]).toEqual([500, 500]);
   expect(log).toHaveBeenCalledTimes(2);
