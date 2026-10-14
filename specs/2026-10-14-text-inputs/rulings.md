@@ -455,3 +455,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   page restores the unsaved slug.
 - **If wrong**: one step in the test.
 - **Where**: task 10.
+
+## R28: How the fixed heights are checked where the browser cannot show them
+
+- **Decision**: in [`fields.test.tsx`](/packages/web/src/__browser__/fields.test.tsx), US6 8 checks
+  that a comment field's computed `resize` is `vertical`, then sets the field's height as dragging
+  its handle does, and checks typing keeps it: WebKit ignores Playwright's mouse on a text area's
+  resize handle, so the drag itself cannot run in the tests. US6 3 checks that the field's height
+  and its Save button do not move from the field empty to 12 lines, and that the content further
+  down, the next question, does not move from the first line typed to the twelfth: "Unsaved changes"
+  shows at the first letter, a rule of the global constraints, and on the phone wraps under the
+  field's buttons, one line lower.
+- **Rationale**: the drag was tried at both sizes, with real mouse moves, presses, and waits, at the
+  handle's corner: the events reach the text area, which never resizes. The status line is not the
+  field's height, which is what US6 fixes; reserving its line would leave an empty line under every
+  field.
+- **Alternatives considered**: a drag through another driver, which the browser tests do not have; a
+  status always taking its line, empty while nothing changed.
+- **If wrong**: the two tests, and `SaveStatus` in
+  [`SaveStatus.tsx`](/packages/web/src/fields/SaveStatus.tsx) reserving its line.
+- **Where**: task 11.
