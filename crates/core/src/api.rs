@@ -4,7 +4,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::actions::review::{self, Tier};
-use crate::actions::{ActionError, answer, draft, place, priorities as edits, start, text};
+use crate::actions::{ActionError, answer, attach, draft, place, priorities as edits, start, text};
 use crate::check;
 use crate::files::document::{self, hash};
 use crate::files::items::items;
@@ -13,10 +13,12 @@ use crate::files::proposal;
 use crate::files::review::Verdict;
 use crate::gates::{AWAITING_HUMAN, Gate, gate_of};
 use crate::git::{Git, GitError};
+use crate::images::{self, Encoded};
 use crate::repositories::ListError;
 use crate::view::{
-    CommitView, DraftView, FeatureView, FileView, NextView, PriorityLink, PriorityView,
-    ProposalHint, StartedView, StepView, VersionView, WaitingFile, WorkspaceView, title,
+    AttachedView, CommitView, DraftView, FeatureView, FileView, NextView, PriorityLink,
+    PriorityView, ProposalHint, StartedView, StepView, VersionView, WaitingFile, WorkspaceView,
+    title,
 };
 use crate::workspace::{
     Feature, FileKind, Problem, Source, Workspace, WorkspaceError, linked_draft,
@@ -611,7 +613,15 @@ fn on_default(git: &Git, workspace: &Workspace, path: &str) -> (Option<String>, 
         .tip(default)
         .and_then(|tip| git.read_file(tip, path).ok().flatten())
         .and_then(|bytes| String::from_utf8(bytes).ok());
-    let checked_out = if git.current_branch().as_deref() == Some(default) {
+    match default_checkout(git, default) {
+        Some(root) => (std::fs::read_to_string(root.join(path)).ok(), committed),
+        None => (committed.clone(), committed),
+    }
+}
+
+/// The working tree that has the default branch checked out, if any.
+fn default_checkout(git: &Git, default: &str) -> Option<PathBuf> {
+    if git.current_branch().as_deref() == Some(default) {
         Some(git.root().to_path_buf())
     } else {
         git.worktrees()
@@ -619,10 +629,6 @@ fn on_default(git: &Git, workspace: &Workspace, path: &str) -> (Option<String>, 
             .into_iter()
             .find(|worktree| worktree.branch.as_deref() == Some(default))
             .map(|worktree| worktree.path)
-    };
-    match checked_out {
-        Some(root) => (std::fs::read_to_string(root.join(path)).ok(), committed),
-        None => (committed.clone(), committed),
     }
 }
 
@@ -896,9 +902,15 @@ pub fn read_raw(repo: &Path, path: &str) -> Result<String> {
         return Err(refused(format!("{path}: no such file")));
     }
     let (git, workspace) = open(repo)?;
-    let feature = feature_of(&workspace, path);
-    let bytes = match feature {
-        Some(feature) => match feature_dir(&git, feature) {
+    raw_bytes(&git, &workspace, path)
+        .and_then(|bytes| String::from_utf8(bytes).ok())
+        .ok_or_else(|| refused(format!("{path}: no such file")))
+}
+
+/// A file's bytes, read as [`read_raw`] reads it.
+fn raw_bytes(git: &Git, workspace: &Workspace, path: &str) -> Option<Vec<u8>> {
+    match feature_of(workspace, path) {
+        Some(feature) => match feature_dir(git, feature) {
             Some(dir) => read_plain(&dir, path),
             None => feature
                 .branch
@@ -917,10 +929,55 @@ pub fn read_raw(repo: &Path, path: &str) -> Result<String> {
             .head()
             .and_then(|head| git.read_file(head, path).ok().flatten())
             .and_then(|_| read_plain(git.root(), path)),
+    }
+}
+
+/// Attaches an image to a draft, a proposal, a report, or another markdown file of a feature's or
+/// a bug's folder: re-encoded, saved in the `images/` folder next to it, a single-file draft
+/// becoming a folder first. `name` is the image's original file name, `None` for a pasted image.
+pub fn attach_image(
+    repo: &Path,
+    path: &str,
+    bytes: &[u8],
+    name: Option<&str>,
+) -> Result<AttachedView> {
+    let _lock = write_lock();
+    let place = text_place(repo, path)?;
+    let attached = attach::attach(&place, path, bytes, name, &today::stamp())?;
+    Ok(AttachedView {
+        path: attached.path,
+        link: attached.link,
+        moved: attached.moved,
+    })
+}
+
+/// Checks and re-encodes an image, for a chat message. `name` is its file name, for refusals.
+pub fn encode_image(bytes: &[u8], name: &str) -> Result<Encoded> {
+    images::encode(bytes, name).map_err(|error| refused(error.to_string()))
+}
+
+/// The bytes and the MIME type of a PNG, JPEG, GIF, or WebP file under `specs/`: a draft's from the
+/// default branch's checkout, else read as [`read_raw`] reads it. Anything else is no such file.
+pub fn read_image(repo: &Path, path: &str) -> Result<(Vec<u8>, &'static str)> {
+    let missing = || refused(format!("{path}: no such file"));
+    if !plain(path) || !path.starts_with("specs/") {
+        return Err(missing());
+    }
+    let (git, workspace) = open(repo)?;
+    let bytes = if target::is_draft(path) {
+        let default = workspace.default_branch.as_deref();
+        match default.and_then(|default| default_checkout(&git, default)) {
+            Some(root) => read_plain(&root, path),
+            None => default
+                .and_then(|default| git.tip(default))
+                .and_then(|tip| git.read_file(tip, path).ok().flatten()),
+        }
+    } else {
+        raw_bytes(&git, &workspace, path)
     };
-    bytes
-        .and_then(|bytes| String::from_utf8(bytes).ok())
-        .ok_or_else(|| refused(format!("{path}: no such file")))
+    let bytes = bytes.ok_or_else(missing)?;
+    let mime = images::mime(&bytes).ok_or_else(missing)?;
+    Ok((bytes, mime))
 }
 
 /// A file under `root`, when neither it nor a folder on its way is a symlink: a committed link

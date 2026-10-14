@@ -162,6 +162,21 @@ pub fn link(text: &str, line: usize, target: &str) -> Option<String> {
     .ok()
 }
 
+/// Replaces the target `from` of the links of the entry starting at `line` with `to`, leaving the
+/// rest of its text as written.
+pub fn retarget(text: &str, line: usize, from: &str, to: &str) -> Option<String> {
+    super::with_unix_newlines(text, |text| {
+        let entry = entry_at(text, line).ok_or(())?;
+        let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
+        let (from, to) = (format!("]({from})"), format!("]({to})"));
+        for line in &mut lines[entry.line - 1..entry.text_end] {
+            *line = line.replace(&from, &to);
+        }
+        Ok::<_, ()>(lines.join("\n"))
+    })
+    .ok()
+}
+
 /// Removes the entry starting at `line`, sub-items included, and adds a link to `target` at the
 /// end of **Now**.
 pub fn move_to_now(text: &str, line: usize, link_text: &str, target: &str) -> Option<String> {
