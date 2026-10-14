@@ -7,6 +7,7 @@ import { useMemo } from "react";
 import type { CommentItem, Document } from "uraeda-binding";
 import { selectable } from "./Selection.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
+import { statusStyles } from "./Question.tsx";
 
 const styles = stylex.create({
   pending: {
@@ -61,33 +62,69 @@ export function PendingComment({
   onRemove: () => void;
 }) {
   return (
-    <div aria-label={where(comment)} role="group" {...stylex.props(styles.pending)}>
+    <CommentNote
+      label={where(comment)}
+      name={where(comment)}
+      onEdit={onEdit}
+      onRemove={onRemove}
+      text={comment.text}
+    />
+  );
+}
+
+/**
+ * A comment under what it is on, a bar down its side: `label` above its text, the group named
+ * `name`, and Edit and Remove when given, as a pending review comment or a comment on a settled
+ * point has. `error` is what refused its removal.
+ */
+export function CommentNote({
+  error,
+  label,
+  name,
+  onEdit,
+  onRemove,
+  text,
+}: {
+  error?: string;
+  label: string;
+  name: string;
+  onEdit?: () => void;
+  onRemove?: () => void;
+  text: string;
+}) {
+  return (
+    <div aria-label={name} role="group" {...stylex.props(styles.pending)}>
       <HStack align="center" gap={2} justify="between" wrap="wrap">
         <Text color="secondary" type="supporting">
-          {where(comment)}
+          {label}
         </Text>
         <HStack gap={1}>
-          <Button
-            label="Edit"
-            onClick={(event: React.MouseEvent) => {
-              event.stopPropagation();
-              onEdit();
-            }}
-            size="sm"
-            variant="ghost"
-          />
-          <Button
-            label="Remove"
-            onClick={(event: React.MouseEvent) => {
-              event.stopPropagation();
-              onRemove();
-            }}
-            size="sm"
-            variant="ghost"
-          />
+          {onEdit && (
+            <Button
+              label="Edit"
+              onClick={(event: React.MouseEvent) => {
+                event.stopPropagation();
+                onEdit();
+              }}
+              size="sm"
+              variant="ghost"
+            />
+          )}
+          {onRemove && (
+            <Button
+              label="Remove"
+              onClick={(event: React.MouseEvent) => {
+                event.stopPropagation();
+                onRemove();
+              }}
+              size="sm"
+              variant="ghost"
+            />
+          )}
         </HStack>
       </HStack>
-      <Paragraph>{comment.text}</Paragraph>
+      <Paragraph>{text}</Paragraph>
+      {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
     </div>
   );
 }

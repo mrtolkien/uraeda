@@ -13,6 +13,7 @@ import { useRoundNotes } from "./RoundNotes.tsx";
 import { RoundEnd } from "./RoundSubmit.tsx";
 import { askAbout, quoted } from "./sessions.ts";
 import { plain } from "./Spans.tsx";
+import { SettledPoints } from "./SettledPoints.tsx";
 import { useRoundPosition } from "./useRoundPosition.ts";
 import { type useFile, useAgent } from "./data.ts";
 
@@ -114,14 +115,7 @@ export function RoundPage({ file }: { file: File }) {
           </div>
         ))}
       <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />
-      {round.settled.length > 0 && (
-        <>
-          <Heading level={2} xstyle={styles.title}>
-            Settled without you
-          </Heading>
-          <Blocks document={document} ids={round.settled} />
-        </>
-      )}
+      <SettledPoints file={file} readOnly={readOnly} />
       <RoundEnd
         blank={blank}
         end={end}

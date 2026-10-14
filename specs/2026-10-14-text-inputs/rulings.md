@@ -138,3 +138,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   it, which still draws a dialog on the phone.
 - **If wrong**: one component, `fields/Confirm.tsx`, behind an unchanged hook.
 - **Where**: task 5, before its first step; the plan's task 4 interface says so.
+
+## R10: How a settled point's comment form behaves
+
+- **Decision**: a settled point's form says where it goes as `On "<subject>"`, and a comment under
+  its point is headed "Your comment", as the mockup draws them, in a group named
+  `Your comment on "<subject>"`. A form with `field` shows "Unsaved changes" beside its buttons
+  while its text differs from `saved`, and its submit button waits for a change, as the UI behaviour
+  decision asks of every text field; restored text shows the restore notice, whose sentence for a
+  comment changed since is "The comment changed since: saving replaces it.". The form holding
+  unsaved text when the round's page is drawn opens again, under its point. Closing the phone's
+  sheet, with Close, Back, or Escape, keeps the text unsaved, without asking: nothing is lost, and a
+  tap on the point restores it; Cancel asks. A round answered while a settled comment holds unsaved
+  text shows, under its point, the notice saying the round was answered, with Discard. A form whose
+  point left the round stays open after the points, wide, so its refusal shows. One form is open at
+  a time: a tap on another point opens its own, the first one's text kept.
+- **Rationale**: the spec names the texts of the notes, not those of a settled comment's anchor,
+  heading, or restore notice; the mockup's section 2 draws the first two. A sheet closed by Back
+  that asked first would need to reopen itself and push its history entry again; keeping the text
+  loses nothing, and the leave guard of task 10 still counts it.
+- **Alternatives considered**: asking "Discard your comment?" as the sheet closes; one shared key
+  for every new settled comment, which a tap on another point would carry over to the wrong point.
+- **If wrong**: texts in `SettledPoints.tsx` and `CommentForm.tsx`, and the sheet's `onClose`.
+- **Where**: task 5.
