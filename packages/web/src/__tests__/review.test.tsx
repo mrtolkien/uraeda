@@ -570,3 +570,24 @@ test("without the agent, a selection offers no Ask the agent", async () => {
   await screen.findByLabelText("Comment text");
   expect(screen.queryByRole("button", { name: "Ask the agent" })).toBeNull();
 });
+
+/** US1.4 in a review: the image opens full screen, and taps in it leave the block as it was. */
+test("taps in a block's image, opened full screen, do not select the block", async () => {
+  const r = fixtureRepo();
+  commitSpec(r, (text) =>
+    text.replace(
+      "## User stories\n",
+      "The banner: ![Login](images/login.webp)\n\n## User stories\n",
+    ),
+  );
+  await renderPage(PAGE, r);
+  const block = await scenario("The banner:");
+
+  await click(screen.getByRole("link", { name: "Login" }));
+  const dialog = screen.getByRole("dialog", { name: "Login" });
+  await click(within(dialog).getByRole("img", { name: "Login" }));
+  await click(dialog);
+
+  expect(block.getAttribute("aria-pressed")).toBe("false");
+  expect(screen.queryByLabelText("Comment text")).toBeNull();
+});

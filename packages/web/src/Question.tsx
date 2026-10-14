@@ -17,6 +17,7 @@ import { useFateClient } from "react-fate";
 import type { Choice, Document, QuestionItem } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { refusal } from "./errors.ts";
+import { StaticImages } from "./ImageView.tsx";
 import { Spans } from "./Spans.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { type SaveState, useSave } from "./useSave.ts";
@@ -240,19 +241,22 @@ function Option({
       type="button"
       {...stylex.props(styles.option, selected && styles.optionOn, disabled && styles.optionOff)}
     >
-      {choice.recommended && <span {...stylex.props(styles.tag)}>Recommended</span>}
-      <span {...stylex.props(styles.summary)}>
-        <span {...stylex.props(styles.letter, selected && styles.letterOn)}>{choice.letter}</span>{" "}
-        <Spans spans={choice.summary} />
-      </span>
-      {(choice.pros.length > 0 || choice.cons.length > 0 || choice.why !== undefined) && (
-        <ul {...stylex.props(styles.points)}>
-          {choice.pros.map((id) => point(id, "+", styles.pro))}
-          {choice.cons.map((id) => point(id, "−", styles.con))}
-          {choice.why !== undefined && point(choice.why, "★", styles.why)}
-        </ul>
-      )}
-      {choice.other.length > 0 && <Blocks document={document} ids={choice.other} />}
+      {/* A toggle holds its images alone: a link in it is invalid, and a tap is the toggle's. */}
+      <StaticImages>
+        {choice.recommended && <span {...stylex.props(styles.tag)}>Recommended</span>}
+        <span {...stylex.props(styles.summary)}>
+          <span {...stylex.props(styles.letter, selected && styles.letterOn)}>{choice.letter}</span>{" "}
+          <Spans spans={choice.summary} />
+        </span>
+        {(choice.pros.length > 0 || choice.cons.length > 0 || choice.why !== undefined) && (
+          <ul {...stylex.props(styles.points)}>
+            {choice.pros.map((id) => point(id, "+", styles.pro))}
+            {choice.cons.map((id) => point(id, "−", styles.con))}
+            {choice.why !== undefined && point(choice.why, "★", styles.why)}
+          </ul>
+        )}
+        {choice.other.length > 0 && <Blocks document={document} ids={choice.other} />}
+      </StaticImages>
     </button>
   );
 }

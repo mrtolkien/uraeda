@@ -919,15 +919,22 @@ git commit -m "feat(image-attachments): attach images in the editor"
 - Create: `packages/web/src/ImageView.tsx` (the image and its lightbox, Back closing it)
 - Create: `packages/web/src/layout/useBackCloses.ts` (`Overlay`'s history entry, shared)
 - Modify: `packages/web/src/Spans.tsx`, `Blocks.tsx` (a paragraph holding an image is a `div`),
-  `layout/Overlay.tsx`
-- Test: `packages/web/src/__tests__/document.test.tsx` (or the existing document page test file)
+  `Question.tsx` (an option's images are static), `layout/Overlay.tsx`, `theme/theme.ts` and
+  `theme/built/` (`--size-image-max-height`)
+- Test: `packages/web/src/__tests__/document.test.tsx`, `review.test.tsx`, `round.test.tsx`,
+  `overlay.test.tsx`, `packages/web/src/__browser__/overlay.test.tsx`
 
 **Interfaces:**
 
 - Consumes: `Span.image` (task 5), `/images/<path>` (task 6).
-- Produces: `ImageView({ src, alt })`, used by spans and by chat messages (task 10): the image as a
-  link to its own address, opening the lightbox in place, and "Image missing" in its place when it
-  fails to load ([R48](rulings.md#r48-an-image-is-a-link-to-itself-in-a-box-of-its-own)).
+- Produces: `ImageView({ src, alt, isStatic? })`, used by spans and by chat messages (task 10): the
+  image as a link to its own address, opening the lightbox in place, and "Image missing: <alt>", or
+  "Image missing" without alt text, in its place when it fails to load
+  ([R48](rulings.md#r48-an-image-is-a-link-to-itself-in-a-box-of-its-own),
+  [R57](rulings.md#r57-image-missing-names-its-alt-text-and-an-image-without-one-is-image));
+  `StaticImages`, around content drawn inside a control, like a question's option, and an image
+  inside a link, draw the image alone
+  ([R55](rulings.md#r55-an-image-inside-a-control-or-a-link-is-drawn-alone)).
 
 - [x] **Step 1: Write the failing tests**
 
@@ -935,7 +942,14 @@ git commit -m "feat(image-attachments): attach images in the editor"
   `getByRole("img", { name: "Login" })` with `src` `/images/specs/.../login.webp`; clicking it opens
   a dialog; Back closes it.
 - `an image outside specs, or a URL, is a link`.
-- `a missing image shows "Image missing"`.
+- `a missing image shows "Image missing"`, with its alt text.
+- From the review: Close and Escape take the lightbox's history entry back and focus its link; a
+  path with a space, `#`, and `%` is encoded; an image whose address changes after it failed shows
+  again; an image without alt text is "Image"; an image inside a link is drawn in it; taps in a
+  review's lightbox do not select the block
+  ([R56](rulings.md#r56-the-lightbox-keeps-its-clicks-not-its-keys)); an option's image toggles the
+  option; an overlay renamed while open, or opened again during its Back, keeps one entry
+  ([R58](rulings.md#r58-an-overlays-history-entry-is-pushed-once-per-opening)).
 
 - [x] **Step 2: Run them to check they fail**
 
@@ -943,7 +957,9 @@ git commit -m "feat(image-attachments): attach images in the editor"
 - Expected: FAIL, `Unable to find role="img" and name "Login"`.
 
 - [x] **Step 3: Implement** `ImageView` with Astryx's `useLightbox`, the history entry taken out of
-      `layout/Overlay.tsx` into `useBackCloses`, and StyleX `maxInlineSize: "100%"`.
+      `layout/Overlay.tsx` into `useBackCloses`, and StyleX `maxInlineSize: "100%"` and the theme's
+      `--size-image-max-height`
+      ([R59](rulings.md#r59-an-image-is-at-most-80--of-the-windows-height)).
 
 - [x] **Step 4: Run all tests**
 

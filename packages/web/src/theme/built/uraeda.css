@@ -331,6 +331,7 @@
     --size-page-max: 720px;
     --size-pane-min: 400px;
     --size-viewport-height: 100dvh;
+    --size-image-max-height: 80dvh;
     --size-round-index: 240px;
     --size-form: 560px;
     --size-menu: 360px;

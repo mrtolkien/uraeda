@@ -1,5 +1,6 @@
 import { Code } from "@astryxdesign/core/Code";
 import { Link } from "@astryxdesign/core/Link";
+import type { ReactNode } from "react";
 import type { Span } from "uraeda-binding";
 import { ImageView } from "./ImageView.tsx";
 import { pathLink, repoPath, useRepository } from "./routes.tsx";
@@ -21,11 +22,14 @@ function Marked({ span }: { span: Span }) {
   return node;
 }
 
-/** A link of the document: a workflow file or a draft in the UI, other files and the web in a new tab. */
-function SpanLink({ span }: { span: Span }) {
+/**
+ * A link of the document: a workflow file or a draft in the UI, other files and the web in a new
+ * tab. It shows its text, or `children`, like an image it holds.
+ */
+function SpanLink({ span, children }: { span: Span; children?: ReactNode }) {
   const link = span.link!;
   const repo = useRepository();
-  const text = <Marked span={span} />;
+  const text = children ?? <Marked span={span} />;
   if (link.path) {
     const { href, inApp } = pathLink(link.path, repo);
     return inApp ? (
@@ -56,16 +60,41 @@ function SpanLink({ span }: { span: Span }) {
 }
 
 /**
+ * The path, within its repository, an image of the document is drawn from: a file under `specs/`,
+ * from `/images/`, else none.
+ */
+function imageSource(span: Span): string | undefined {
+  const path = span.image?.path;
+  return path?.startsWith("specs/")
+    ? `/images/${path.split("/").map(encodeURIComponent).join("/")}`
+    : undefined;
+}
+
+/** Whether a span draws an image that opens in a lightbox, a dialog drawn beside it. */
+export function opensImage(span: Span): boolean {
+  return imageSource(span) !== undefined && !span.link;
+}
+
+/**
  * An image of the document: a file under `specs/` draws in place, from the repository's
- * `/r/<name>/images/`;
- * any other file, or the web, is a link to it with the alt text, never loaded in the page.
+ * `/r/<name>/images/`; any other file, or the web, is a link to it with the alt text, never loaded
+ * in the page. An image inside a link, like a badge, is drawn in that link, which keeps its own
+ * target: the image alone, or its alt text.
  */
 function SpanImage({ span }: { span: Span }) {
   const image = span.image!;
   const repo = useRepository();
-  if (image.path?.startsWith("specs/")) {
-    const file = image.path.split("/").map(encodeURIComponent).join("/");
-    return <ImageView alt={span.text} src={repoPath(repo, `/images/${file}`)} />;
+  const path = imageSource(span);
+  const src = path === undefined ? undefined : repoPath(repo, path);
+  if (span.link) {
+    return (
+      <SpanLink span={span}>
+        {src ? <ImageView alt={span.text} isStatic src={src} /> : <Marked span={span} />}
+      </SpanLink>
+    );
+  }
+  if (src) {
+    return <ImageView alt={span.text} src={src} />;
   }
   return <SpanLink span={{ ...span, image: undefined, link: { ...image, wiki: false } }} />;
 }
