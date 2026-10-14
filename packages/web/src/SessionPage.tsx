@@ -153,57 +153,15 @@ type Handing = {
   workflow?: { file?: string; trigger: Trigger };
 };
 
-/** A session that exists: its header, its transcript, and its composer. */
-// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the chat controls in a hook
-function Session({
-  blocked,
-  crumbs,
-  draft,
-  handing = {},
-  id,
-}: {
-  /** Why nothing can be sent to it, which disables the composer. */
-  blocked?: string;
-  crumbs?: string;
-  draft: Draft;
-  handing?: Handing;
-  id: string;
-}) {
+/** A session's actions that answer with an error: a chat's rename and archive, and Allow. */
+function useSessionActions(
+  id: string,
+  session: { archived: boolean; folder: string | null } | null,
+  setError: (error: string | undefined) => void,
+) {
   const fate = useFateClient();
-  const here = useRepoPath();
-  const session = useSession(id);
-  const groups = useOpenKeys();
-  const log = useRef<HTMLDivElement>(null);
-  const [error, setError] = useState<string>();
-  const working = session?.status === "working";
-  useOpenAtEnd(log);
-  useFollowEnd(log, working);
-  // Shown with its latest turn ended: the human saw the reply, whatever the status shows, as "Needs
-  // you" at a gate.
-  const unseen = session?.unseen === true;
-  useEffect(() => {
-    if (unseen) {
-      void fate.mutations.session.seen({ input: { session: id }, view: SessionView });
-    }
-  }, [fate, id, unseen]);
-  if (!session) {
-    return (
-      <Page>
-        <Banner
-          collapsible={false}
-          description={
-            <Link hasUnderline href={here("/")}>
-              Open home
-            </Link>
-          }
-          status="error"
-          title={`No session ${id}.`}
-        />
-      </Page>
-    );
-  }
   const chat: ChatControls | undefined =
-    session.folder === null
+    session?.folder === null
       ? {
           archived: session.archived,
           onArchive: async () => {
@@ -235,6 +193,58 @@ function Session({
       setError(refusal(result.error).message);
     }
   };
+  return { allow, chat };
+}
+
+/** A session that exists: its header, its transcript, and its composer. */
+function Session({
+  blocked,
+  crumbs,
+  draft,
+  handing = {},
+  id,
+}: {
+  /** Why nothing can be sent to it, which disables the composer. */
+  blocked?: string;
+  crumbs?: string;
+  draft: Draft;
+  handing?: Handing;
+  id: string;
+}) {
+  const fate = useFateClient();
+  const here = useRepoPath();
+  const session = useSession(id);
+  const groups = useOpenKeys();
+  const log = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string>();
+  const { allow, chat } = useSessionActions(id, session, setError);
+  const working = session?.status === "working";
+  useOpenAtEnd(log);
+  useFollowEnd(log, working);
+  // Shown with its latest turn ended: the human saw the reply, whatever the status shows, as "Needs
+  // you" at a gate.
+  const unseen = session?.unseen === true;
+  useEffect(() => {
+    if (unseen) {
+      void fate.mutations.session.seen({ input: { session: id }, view: SessionView });
+    }
+  }, [fate, id, unseen]);
+  if (!session) {
+    return (
+      <Page>
+        <Banner
+          collapsible={false}
+          description={
+            <Link hasUnderline href={here("/")}>
+              Open home
+            </Link>
+          }
+          status="error"
+          title={`No session ${id}.`}
+        />
+      </Page>
+    );
+  }
   return (
     <Page>
       {crumbs !== undefined && <Crumbs current="Session" folder={crumbs} />}
