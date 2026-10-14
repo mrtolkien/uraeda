@@ -216,9 +216,7 @@ Acceptance scenarios:
 - **SC-004**: No attached image holds EXIF, XMP, or GPS data, whatever its input held.
 - **SC-005**: The UI decisions' checks pass on every changed page, at both sizes and in both themes.
 
-## Design
-
-### Approach
+## Architecture
 
 Every image goes through one function of the Rust core, which checks it, re-encodes it, and names
 it, as the new [attachments](../decisions/attachments.md) decision requires. The web UI sends the
@@ -247,6 +245,104 @@ A 3840×1725 phone photo (1977 KiB JPEG) takes 1009 KiB as WebP q80, and 480 KiB
 totals with the same settings, so encoding in the core costs nothing in quality, and is the only
 place Neovim can reach. See the [attachments](../decisions/attachments.md) decision for the rules,
 and [processing images](discovery-01.md#processing-images).
+
+## Mockups
+
+- [Attachments](mockups/attachments.html): the composer with thumbnails and a file dragged over it,
+  images in the transcript, the editor with a link inserted and its preview, the outline while
+  dragging, the refusals, a review comment opened by a drop, the phone composer, and Neovim's
+  command with its messages.
+
+## Assumptions
+
+Settled in the [clarifications](clarifications-01.md#settled-without-the-human):
+
+- The chat composer shows images as removable thumbnails above the text, opening full screen.
+- In files, the image is a link inserted at the cursor.
+- The alt text is the image's name, selected after insertion; no dialog asks for it.
+- Accepted inputs are PNG, JPEG, GIF, and WebP; SVG and HEIC are refused, and iPhones convert their
+  photos to JPEG for the picker.
+- Upload status and errors are announced to screen readers, and the button is reachable by keyboard.
+- Uploads go through their own route, as multipart, and the core writes the files.
+- The UI shows images in proposals, reviews, and the editor's preview.
+- `ura check` checks image links into `specs/`.
+- An image commits with the text that links to it, and unlinked images are deleted at the commit.
+- A draft that gets an image becomes a folder.
+- A replaced review file's images stay while linked: see the edge cases.
+- A chat message can be an image alone, and take-back returns its images.
+- The attach button appears in a chat only when its agent declares images.
+- Image mockups written by agents, attaching from the CLI, and scanning screenshots for secrets are
+  left out.
+- Changed by the answer to
+  [Q6](clarifications-01.md#q6-are-images-changed-before-they-are-saved-or-sent): the limit is 20 MB
+  per input, instead of 5 MB, since outputs are downscaled and re-encoded.
+
+Settled while writing this spec:
+
+- Encoding runs in the Rust core with libwebp, not with sharp in the server, so Neovim and the web
+  UI share it: see [Approach](#architecture).
+- WebP, not JPEG XL: Claude and Obsidian cannot read JPEG XL, and GitHub serves it as a download.
+- Screenshots are near-lossless, photos lossy, chosen by the input's type, as measured in
+  [Approach](#architecture).
+- Images are downscaled to 2576 pixels on their long edge, the size of Claude's high-resolution
+  tier.
+- Animated GIFs are kept as they are, so an animation still plays; libwebp's animation encoder is
+  not wrapped.
+- Chat images reach Claude Code as `[Image: <path>]` lines after the text, with `--add-dir` on the
+  images folder only, never the whole data folder, since added folders are writable in `auto` mode.
+  Tested on Claude Code 2.1.296: the agent opened each image without being asked, with no prompt.
+- At most 10 images per chat message, below Claude's stricter limits above 20 images per request.
+- A drop on a page without a text field does nothing.
+- No `ura` CLI command attaches images: humans attach through the web UI or their editor, and the
+  skill says how to do it by hand.
+- Neovim reads the clipboard with the system's tools, like img-clip.nvim, rather than the `arboard`
+  crate, which would add about 430 KB to `ura` and miss some Wayland compositors.
+- Moving a draft into a folder reopens its buffer in Neovim, which loses the buffer's undo history
+  unless `undofile` is set.
+
+## Decisions
+
+New, applied when this spec is approved:
+
+- [Attachments](../decisions/attachments.md): images of workflow files are committed as WebP in an
+  `images/` folder next to the file that links them, and go with the folder at finish; chat images
+  stay in the data folder; the Rust core encodes every image, with libwebp.
+
+Relied on:
+
+- [Stack](../decisions/stack.md): the core encodes and writes; the UI draws images from the core's
+  document tree; Neovim reaches them through `ura lsp`, with an explicit command.
+- [Agents](../decisions/agents.md): the image capability is declared by the adapter, and the image
+  lines are written inside it.
+- [CLI](../decisions/cli.md): the binary's growth is measured, about 0.83 MB, and libwebp is the
+  smallest dependency that compresses screenshots well.
+- [Git](../decisions/git.md): images are committed through the `git` binary, with the actions' other
+  files.
+- [UI components](../decisions/ui-components.md): Astryx's composer, thumbnails, lightbox, and
+  buttons; the page drop and the hidden file input are listed as Astryx gaps.
+- [UI layout](../decisions/ui-layout.md), [UI behaviour](../decisions/ui-behaviour.md), and
+  [UI checks](../decisions/ui-checks.md): status shows next to the field, and the changed pages are
+  checked and screenshotted.
+- [Toolchain](../decisions/toolchain.md): `vp run ready` runs the new tests; the Nix shell provides
+  the C compiler libwebp needs.
+
+## Constitution check
+
+| Principle                            | Complies | Notes                                                                                                       |
+| ------------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------- |
+| I. Humans stay in control            | yes      | The decision waits for this approval                                                                        |
+| II. Git and plain text first         | yes      | Images are binary files in git, an exception the attachments decision justifies                             |
+| III. Asynchronous by default         | yes      | Images of workflow files are in git; chat images, like chats, are not workflow state                        |
+| IV. Review effort matches impact     | yes      | Agents open the screenshots, so the human explains less                                                     |
+| V. Tools are optional                | yes      | Images are plain files and links, readable on GitHub and in Obsidian; the skill says how to add one by hand |
+| VI. Code is checked against the spec | yes      | Every scenario has its test; the libwebp wrapper is the one new abstraction, justified in the plan          |
+
+## Risk tier
+
+**High**: a new route that writes files from uploads, `unsafe` C bindings in the core, and drafts
+moved into folders.
+
+## Details
 
 ### Data
 
@@ -399,13 +495,6 @@ Skill ([`skills/uraeda`](/skills/uraeda/)):
 - The specs README template, and this repository's [specs README](../README.md): the `images/`
   folder.
 
-### Mockups
-
-- [Attachments](mockups/attachments.html): the composer with thumbnails and a file dragged over it,
-  images in the transcript, the editor with a link inserted and its preview, the outline while
-  dragging, the refusals, a review comment opened by a drop, the phone composer, and Neovim's
-  command with its messages.
-
 ### Error handling
 
 Refusals show under the field that would have received the image, in its live region, and leave the
@@ -452,92 +541,3 @@ plugin against `ura lsp` with the clipboard command set to a fixture.
 | SC-002                                                        | Browser test timing a 1440×900 drop                                                       |
 | SC-003                                                        | CI's binary size line, compared in the pull request                                       |
 | SC-005                                                        | The UI checks `vp run ready` runs                                                         |
-
-## Assumptions
-
-Settled in the [clarifications](clarifications-01.md#settled-without-the-human):
-
-- The chat composer shows images as removable thumbnails above the text, opening full screen.
-- In files, the image is a link inserted at the cursor.
-- The alt text is the image's name, selected after insertion; no dialog asks for it.
-- Accepted inputs are PNG, JPEG, GIF, and WebP; SVG and HEIC are refused, and iPhones convert their
-  photos to JPEG for the picker.
-- Upload status and errors are announced to screen readers, and the button is reachable by keyboard.
-- Uploads go through their own route, as multipart, and the core writes the files.
-- The UI shows images in proposals, reviews, and the editor's preview.
-- `ura check` checks image links into `specs/`.
-- An image commits with the text that links to it, and unlinked images are deleted at the commit.
-- A draft that gets an image becomes a folder.
-- A replaced review file's images stay while linked: see the edge cases.
-- A chat message can be an image alone, and take-back returns its images.
-- The attach button appears in a chat only when its agent declares images.
-- Image mockups written by agents, attaching from the CLI, and scanning screenshots for secrets are
-  left out.
-- Changed by the answer to
-  [Q6](clarifications-01.md#q6-are-images-changed-before-they-are-saved-or-sent): the limit is 20 MB
-  per input, instead of 5 MB, since outputs are downscaled and re-encoded.
-
-Settled while writing this spec:
-
-- Encoding runs in the Rust core with libwebp, not with sharp in the server, so Neovim and the web
-  UI share it: see [Approach](#approach).
-- WebP, not JPEG XL: Claude and Obsidian cannot read JPEG XL, and GitHub serves it as a download.
-- Screenshots are near-lossless, photos lossy, chosen by the input's type, as measured in
-  [Approach](#approach).
-- Images are downscaled to 2576 pixels on their long edge, the size of Claude's high-resolution
-  tier.
-- Animated GIFs are kept as they are, so an animation still plays; libwebp's animation encoder is
-  not wrapped.
-- Chat images reach Claude Code as `[Image: <path>]` lines after the text, with `--add-dir` on the
-  images folder only, never the whole data folder, since added folders are writable in `auto` mode.
-  Tested on Claude Code 2.1.296: the agent opened each image without being asked, with no prompt.
-- At most 10 images per chat message, below Claude's stricter limits above 20 images per request.
-- A drop on a page without a text field does nothing.
-- No `ura` CLI command attaches images: humans attach through the web UI or their editor, and the
-  skill says how to do it by hand.
-- Neovim reads the clipboard with the system's tools, like img-clip.nvim, rather than the `arboard`
-  crate, which would add about 430 KB to `ura` and miss some Wayland compositors.
-- Moving a draft into a folder reopens its buffer in Neovim, which loses the buffer's undo history
-  unless `undofile` is set.
-
-## Decisions
-
-New, applied when this spec is approved:
-
-- [Attachments](../decisions/attachments.md): images of workflow files are committed as WebP in an
-  `images/` folder next to the file that links them, and go with the folder at finish; chat images
-  stay in the data folder; the Rust core encodes every image, with libwebp.
-
-Relied on:
-
-- [Stack](../decisions/stack.md): the core encodes and writes; the UI draws images from the core's
-  document tree; Neovim reaches them through `ura lsp`, with an explicit command.
-- [Agents](../decisions/agents.md): the image capability is declared by the adapter, and the image
-  lines are written inside it.
-- [CLI](../decisions/cli.md): the binary's growth is measured, about 0.83 MB, and libwebp is the
-  smallest dependency that compresses screenshots well.
-- [Git](../decisions/git.md): images are committed through the `git` binary, with the actions' other
-  files.
-- [UI components](../decisions/ui-components.md): Astryx's composer, thumbnails, lightbox, and
-  buttons; the page drop and the hidden file input are listed as Astryx gaps.
-- [UI layout](../decisions/ui-layout.md), [UI behaviour](../decisions/ui-behaviour.md), and
-  [UI checks](../decisions/ui-checks.md): status shows next to the field, and the changed pages are
-  checked and screenshotted.
-- [Toolchain](../decisions/toolchain.md): `vp run ready` runs the new tests; the Nix shell provides
-  the C compiler libwebp needs.
-
-## Constitution check
-
-| Principle                            | Complies | Notes                                                                                                       |
-| ------------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------- |
-| I. Humans stay in control            | yes      | The decision waits for this approval                                                                        |
-| II. Git and plain text first         | yes      | Images are binary files in git, an exception the attachments decision justifies                             |
-| III. Asynchronous by default         | yes      | Images of workflow files are in git; chat images, like chats, are not workflow state                        |
-| IV. Review effort matches impact     | yes      | Agents open the screenshots, so the human explains less                                                     |
-| V. Tools are optional                | yes      | Images are plain files and links, readable on GitHub and in Obsidian; the skill says how to add one by hand |
-| VI. Code is checked against the spec | yes      | Every scenario has its test; the libwebp wrapper is the one new abstraction, justified in the plan          |
-
-## Risk tier
-
-**High**: a new route that writes files from uploads, `unsafe` C bindings in the core, and drafts
-moved into folders.
