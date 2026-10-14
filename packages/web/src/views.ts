@@ -3,6 +3,7 @@
 import { view } from "react-fate";
 import type {
   Agent,
+  BranchChanges,
   Draft,
   Feature,
   FolderSuggestions,
@@ -89,6 +90,13 @@ export const FeatureView = view<Feature>()({
   title: true,
   uncommitted: true,
   worktree: true,
+});
+
+/** A feature's branch changes, by its folder: null without a branch, and whether they `failed`. */
+export const BranchChangesView = view<BranchChanges>()({
+  changes: { added: true, count: true, files: true, removed: true },
+  failed: true,
+  id: true,
 });
 
 export const FileView = view<WorkflowFile>()({

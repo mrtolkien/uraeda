@@ -943,6 +943,8 @@ git commit -m "feat(session-view): the session's own page at every width"
 - Modify: `packages/web/src/theme/theme.ts`, `packages/web/src/theme/built/*`
   (`--size-session-aside: 320px`)
 - Create: `packages/web/src/__tests__/session-aside.test.tsx`
+- Modify: `packages/web/src/__tests__/helpers.tsx` (`renderPage` and `serverFetch` take the server's
+  `binding`)
 
 **Interfaces:**
 
@@ -955,10 +957,15 @@ git commit -m "feat(session-view): the session's own page at every width"
 - Produces:
   - `SessionAside({ folder, session }: { folder: string; session?: string })`, the column's
     sections, used by Task 8 too;
-  - `useAsideShown(): [boolean, (shown: boolean) => void]`, over `localStorage`'s
-    `uraeda.sessionAside`.
+  - `useAsideShown(): AsideShown`, with `type AsideShown = [boolean, (shown: boolean) => void]`,
+    over `localStorage`'s `uraeda.sessionAside`, called once in `FeatureSession` and passed to
+    `Session` and `NoSession` as `aside`;
+  - `WithAside({ aside, children, folder, session })`, the `Layout` with the column on wide screens
+    while shown, the children alone otherwise, and `AsideToggle({ aside })`, "Hide progress" or
+    "Show progress" on wide screens only
+    ([R16](rulings.md#r16-the-columns-tests-follow-the-cores-steps-and-the-layout-wraps-the-whole-session)).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `session-aside.test.tsx`, at 1440 px, with a helper `aside()` returning
 `within(screen.getByRole("complementary", { name: "Progress" }))`:
@@ -971,9 +978,9 @@ In `session-aside.test.tsx`, at 1440 px, with a helper `aside()` returning
 | US1.5: a new commit adds a file                                     | then one more commit, `refreshUntil`                                         | "3 files"                                                                                                                                 |
 | US1.6: a running sub-agent is listed                                | a session with a sub-agent, as in `shell.test.tsx`                           | "Sub-agents", "Explore the tests"                                                                                                         |
 | US1.7: Hide progress folds it, for every session and after a reload | click "Hide progress"; open `WEB_UI`'s session; render again                 | no `complementary` "Progress"; the button reads "Show progress"                                                                           |
-| Edge: no plan yet                                                   | `CLI` as fixtured                                                            | "Spec", "No plan yet."                                                                                                                    |
+| Edge: no plan yet                                                   | `CLI` as fixtured                                                            | "Plan", "No plan yet."                                                                                                                    |
 | Edge: a plan in review                                              | `addPlan(..., "awaiting-human")`                                             | 11 tasks, none "Current:", no `progressbar`                                                                                               |
-| Edge: every box checked                                             | `addPlan` all done                                                           | "Final review", "11 of 11 tasks done"                                                                                                     |
+| Edge: every box checked                                             | `addPlan` all done                                                           | "Pull request", "11 of 11 tasks done", a full `progressbar`                                                                               |
 | Edge: nothing changed                                               | `CLI` as fixtured                                                            | "Nothing outside the feature's folder yet."                                                                                               |
 | Edge: more than 50 files                                            | 60 files committed                                                           | 50 paths, "and 10 more files"                                                                                                             |
 | Edge: a binary file                                                 | a PNG committed                                                              | its path and "binary"                                                                                                                     |
@@ -984,19 +991,22 @@ In `session-aside.test.tsx`, at 1440 px, with a helper `aside()` returning
 | US5.1: a chat has no column                                         | a chat                                                                       | no `complementary` "Progress", no "Hide progress"                                                                                         |
 
 The task list's items are named "Done: <title>", "Current: <title>", or "<title>", so screen readers
-hear the marks.
+hear the marks. `CLI` as fixtured is at the plan's step, its spec approved, and a plan whose boxes
+are all checked reaches "Pull request" in the tests, which know no pull request
+([R16](rulings.md#r16-the-columns-tests-follow-the-cores-steps-and-the-layout-wraps-the-whole-session)).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/session-aside.test.tsx`
 - Expected: FAIL, US1.2 with `Unable to find role "complementary" with name "Progress"`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-- **The layout.** On wide screens, a feature's `Session` and `NoSession` are an Astryx `Layout`. The
-  transcript and the composer are its content, and a `LayoutPanel` labelled "Progress", 320 px from
-  the theme, `role="complementary"`, sticky and scrolling on its own like `RoundNav`, is its `end`
-  slot.
+- **The layout.** On wide screens, a feature's `Session` and `NoSession` are an Astryx `Layout`,
+  `height="auto"` as the window scrolls. The crumbs, the header, the transcript, and the composer
+  are its content, as in the mockup, and a `LayoutPanel` labelled "Progress", 320 px from the theme,
+  `role="complementary"`, with a divider, sticky through its `xstyle` and scrolling on its own like
+  `RoundNav`, is its `end` slot.
 - **"Hide progress" and "Show progress"** sit in the header's status line, on wide screens only.
 - **`useAsideShown`** reads and writes `uraeda.sessionAside` in try/catch, falling back to the
   page's own state.
@@ -1014,16 +1024,18 @@ hear the marks.
 - **The theme.** Add `--size-session-aside`, rebuild with `vp run --filter uraeda-web theme`, and
   commit both.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run --filter uraeda-web theme --check && vp check && vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src/SessionAside.tsx packages/web/src/SessionPage.tsx packages/web/src/views.ts \
-  packages/web/src/data.ts packages/web/src/theme packages/web/src/__tests__/session-aside.test.tsx
+  packages/web/src/data.ts packages/web/src/theme packages/web/src/__tests__/session-aside.test.tsx \
+  packages/web/src/__tests__/helpers.tsx specs/2026-10-14-session-view/plan.md \
+  specs/2026-10-14-session-view/rulings.md
 git commit -m "feat(session-view): the session's column of progress and changes"
 ```
 
