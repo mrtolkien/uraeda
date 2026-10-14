@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { loadDataDir, loadEnv } from "../env.ts";
 import { parseOptions } from "../options.ts";
+import { dataDir } from "uraeda-binding";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 
 function root(env?: string) {
@@ -42,8 +43,8 @@ test("the environment wins over .env, and the command line over both", () => {
 test("the data folder comes from .env, then the environment, then the system's default", () => {
   const dir = root("URAEDA_DATA_DIR=/data/from-env-file\n");
 
-  expect(loadDataDir(dir, {}, "linux", "/home/me")).toBe("/data/from-env-file");
-  expect(loadDataDir(dir, { URAEDA_DATA_DIR: "/data/env" }, "linux", "/home/me")).toBe("/data/env");
-  expect(loadDataDir(root(), {}, "linux", "/home/me")).toBe("/home/me/.local/share/uraeda");
-  expect(loadDataDir(root(), { XDG_DATA_HOME: "/xdg" }, "linux", "/home/me")).toBe("/xdg/uraeda");
+  expect(loadDataDir(dir, {})).toBe("/data/from-env-file");
+  expect(loadDataDir(dir, { URAEDA_DATA_DIR: "/data/env" })).toBe("/data/env");
+  expect(loadDataDir(root(), {})).toBe(dataDir());
+  expect(loadDataDir(root("URAEDA_DATA_DIR=\n"), {})).toBe(dataDir());
 });

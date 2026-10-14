@@ -1,25 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { mkdirSync, rmSync } from "node:fs";
-import { dirname, posix, win32 } from "node:path";
+import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type { Item, Trigger, TurnKind, TurnState } from "./events.ts";
-
-/**
- * Uraeda's data folder for the user: `URAEDA_DATA_DIR`, or else the operating system's default
- * for application data.
- */
-export function dataDir(env: NodeJS.ProcessEnv, platform: NodeJS.Platform, home: string): string {
-  if (env.URAEDA_DATA_DIR) {
-    return env.URAEDA_DATA_DIR;
-  }
-  if (platform === "win32") {
-    return win32.join(env.APPDATA || win32.join(home, "AppData", "Roaming"), "uraeda");
-  }
-  if (platform === "darwin") {
-    return posix.join(home, "Library", "Application Support", "uraeda");
-  }
-  return posix.join(env.XDG_DATA_HOME || posix.join(home, ".local", "share"), "uraeda");
-}
 
 /** A session, as the cache keeps it. */
 export type SessionRow = {

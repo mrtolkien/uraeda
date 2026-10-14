@@ -396,12 +396,16 @@ git commit -m "feat(multi-repo-server): ura add"
 
 **Files:**
 
-- Modify: `crates/core/src/repositories.rs` (`napi(object)` on `Repository` and `Added`),
+- Modify: `crates/core/src/view.rs` (`RepositoryView` and `AddedView`, `Repository` and `Added` in
+  JavaScript, see
+  [R4](rulings.md#r4-the-lists-javascript-types-are-views-and-the-data-folders-platform-cases-are-tested-in-rust)),
+  `crates/core/src/api.rs` (the list's operations, `ListError` refused),
   `crates/binding/src/lib.rs`, `packages/binding/index.d.ts` and `index.js` (generated),
   `packages/server/src/env.ts` (`loadDataDir`), `packages/server/src/runner/cache.ts` (remove
   `dataDir`)
-- Test: `packages/binding/__tests__/repositories.test.ts`,
-  `packages/server/src/__tests__/env.test.ts`
+- Test: `packages/binding/repositories.test.ts`, next to the binding's `index.test.ts`,
+  `packages/server/src/__tests__/env.test.ts`, `packages/server/src/runner/__tests__/cache.test.ts`
+  (its data folder table goes: the core's `data_dir` test holds its cases)
 
 **Interfaces:**
 
@@ -418,10 +422,10 @@ git commit -m "feat(multi-repo-server): ura add"
   - Errors reject with `refused: <ListError's Display>`.
 - `loadDataDir(root, environment)` keeps its signature and results, through `binding.dataDir`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
-// packages/binding/__tests__/repositories.test.ts
+// packages/binding/repositories.test.ts
 test("a repository added through the binding is read back", async () => {
   const data = tempDir();
   const repo = fixtureRepo();
@@ -444,26 +448,28 @@ test("a folder outside git is refused", async () => {
 });
 ```
 
-The data folder cases of `env.test.ts` stay as they are, now through the binding.
+The data folder cases of `env.test.ts` stay, now through the binding: `.env` and the environment as
+overrides, and no override giving `binding.dataDir()`; the platforms' defaults are the core's
+`data_dir` table test (R4).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp run --filter uraeda-binding build && vp test packages/binding`
 - Expected: FAIL, `binding.addRepository is not a function`.
 
-- [ ] **Step 3: Implement the exports and switch `loadDataDir` to `binding.dataDir`**
+- [x] **Step 3: Implement the exports and switch `loadDataDir` to `binding.dataDir`**
 
 `loadDataDir` reads `URAEDA_DATA_DIR` from the environment, then `<root>/.env`, as today, and passes
 it as the override. Remove `dataDir` from `runner/cache.ts`. Add to
 [`.env.example`](/.env.example)'s `URAEDA_DATA_DIR` comment: "`ura add` reads the environment only:
 set it there too, or the CLI and the server use two lists."
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS, and `git status` shows the regenerated `index.d.ts` staged with this task.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/ packages/binding/ packages/server/src/env.ts packages/server/src/runner/cache.ts packages/server/src/__tests__/env.test.ts .env.example

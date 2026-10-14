@@ -164,9 +164,13 @@ fn two_adds_at_once_both_stay_with_unique_names() {
         }
     });
 
+    // Either add may run first: the second one takes its parent's name.
     let mut listed = names(data.path());
     listed.sort();
-    assert_eq!(listed, ["todo-app", "work-todo-app"]);
+    assert!(
+        listed == ["todo-app", "work-todo-app"] || listed == ["dev-todo-app", "todo-app"],
+        "{listed:?}"
+    );
 }
 
 #[test]

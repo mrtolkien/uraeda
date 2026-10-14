@@ -39,3 +39,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   review as one.
 - **If wrong**: nothing lasts beyond task 7.
 - **Where**: tasks 4 and 7
+
+## R4: The list's JavaScript types are views, and the data folder's platform cases are tested in Rust
+
+- **Decision**: the binding returns `RepositoryView` and `AddedView` from the core's `view.rs`,
+  named `Repository` and `Added` in JavaScript, with `path` a string. `binding.dataDir(custom?)`
+  reads this process's environment for its default, so `loadDataDir(root, environment)` drops its
+  `platform` and `home` parameters, and its tests check the overrides and that no override gives the
+  binding's default; the platforms' defaults are the core's `data_dir` table test.
+- **Rationale**: napi cannot return a `PathBuf`, and the core's other JavaScript types are views in
+  `view.rs`. The default reads the real environment, as `ura add` does, so the CLI and the server
+  find the same folder; passing a fake environment through the binding would only serve tests.
+- **Alternatives considered**: a `path: String` in the core's `Repository`, which the CLI and the
+  core's checks use as a path; a binding `dataDir` taking an environment, a platform, and a home.
+- **If wrong**: a test of the server's default on another platform needs the core's table test
+  instead, which it has.
+- **Where**: task 3
