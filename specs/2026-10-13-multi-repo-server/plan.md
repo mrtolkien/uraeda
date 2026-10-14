@@ -902,6 +902,15 @@ git commit -m "feat(multi-repo-server): every page and link under its repository
 - Modify: `Shell.tsx` (`Heading`), `RepositoryPages.tsx` (first run), `data.ts`
   (`useFolderSuggestions`)
 - Test: `packages/web/src/__tests__/repository-menu.test.tsx`, `add-repository.test.tsx`
+- Also changed while building it
+  ([R9](rulings.md#r9-the-menu-is-a-popover-or-a-sheet-by-width-and-the-folder-field-a-text-field-with-a-list)):
+  `App.tsx` (`ListClientContext`, `useOpenRepository`), `views.ts` (`FolderSuggestionsView`),
+  `layout/Overlay.tsx` (`afterOverlayCloses`), `SessionNav.tsx` (Home keeps an icon in the folded
+  navigation, as the heading no longer links home), `theme/theme.ts` and its build (`--size-menu`,
+  `--size-form`); the tests' `helpers.tsx` (`temporaryHome`, `repoAt`, and `listOf`'s times in the
+  past, so a repository a test opens moves first), `setup.ts` (the browsers' rule hiding a popover),
+  `shell.test.tsx` (Home goes home), and the browser test of the folded navigation in
+  `layout.test.tsx`
 
 **Interfaces:**
 
@@ -917,8 +926,18 @@ git commit -m "feat(multi-repo-server): every page and link under its repository
   in an overlay from the menu and inline on the first run; `useFolderSuggestions(text: string)`. The
   form opens `repoPath(result.added, "/")` from `repositories.add`'s answer, selecting `added`
   ([R6](rulings.md#r6-repositoriesadd-answers-the-list-with-the-added-name)).
+  - As built
+    ([R9](rulings.md#r9-the-menu-is-a-popover-or-a-sheet-by-width-and-the-folder-field-a-text-field-with-a-list)):
+    `RepositoryMenu({ current: string | null, isFolded?: boolean })`, its trigger a button named
+    `Uraeda <name>` (`Uraeda` on a page of no repository), opening a `Popover` labelled
+    "Repositories" on wide screens, or an `Overlay` sheet of that label on narrow ones; the rows a
+    list "Repositories", each with a `MoreMenu` "More for <name>"; the form an `Overlay` "Add a
+    repository", its field a `TextInput` "Folder" and its suggestions a list "Folders".
+    `AddRepository({ inline?, onAdded?, onCancel? })`. `BareShell({ current, children })`
+    (`Shell.tsx`) gives the unknown-name and missing-folder pages the heading's menu. The list's
+    mutations run on the global client, given by `ListClientContext` from `App`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // packages/web/src/__tests__/repository-menu.test.tsx
@@ -974,25 +993,28 @@ test("an empty list shows the first run, with the field set to ~/", async () => 
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/repository-menu.test.tsx`
 - Expected: FAIL, no button named "uraeda" in the heading (it is a link today).
 
-- [ ] **Step 3: Implement the menu, the form, and the first run**
+- [x] **Step 3: Implement the menu, the form, and the first run**
 
-Follow the [mockups](mockups/repositories.html): Astryx's menu components with adaptive
-presentation, the form in the project's `Overlay` (dialog or sheet), its field an Astryx `Typeahead`
-fed by `useFolderSuggestions`, at most one request in flight per text. The menu calls
-`repositories.open` the first time a repository's page shows in the tab. Paths show with the home
-folder as `~`, as `Repositories.rows[].home` gives them.
+Follow the [mockups](mockups/repositories.html): an Astryx `Popover` on wide screens and a sheet on
+narrow ones, by the width class, the form in the project's `Overlay` (dialog or sheet), its field an
+Astryx `TextInput` with its suggestions in a `List` under it, fed by `useFolderSuggestions`, at most
+one request in flight per text
+([R9](rulings.md#r9-the-menu-is-a-popover-or-a-sheet-by-width-and-the-folder-field-a-text-field-with-a-list):
+`DropdownMenu`'s adaptive presentation follows the pointer, and `Typeahead` keeps its query). The
+menu calls `repositories.open` the first time a repository's page shows in the tab. Paths show with
+the home folder as `~`, as `Repositories.rows[].home` gives them.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src/
@@ -1027,6 +1049,14 @@ git commit -m "feat(multi-repo-server): the repository menu, the add form, and t
     `repository()` give the prefixed path and the name. `dev.ts` keeps a `TEMPORARY` set, `added`,
     of the repositories it added on a request, in place of the `apps` map: the port's one app serves
     every repository. Both go with `forgetRepo`.
+  - Since task 8
+    ([R9](rulings.md#r9-the-menu-is-a-popover-or-a-sheet-by-width-and-the-folder-field-a-text-field-with-a-list)):
+    the heading's button is named `Uraeda <name>`; it opens a `Popover`, a dialog named
+    "Repositories", on wide screens, and a bottom sheet of that name, with Close, on narrow ones;
+    the add form is the dialog or sheet "Add a repository". Folded, the heading is an icon button of
+    the same name, and Home has an icon. The unknown-name and missing-folder pages have the
+    heading's menu in a navigation of its own (`BareShell`); the first run has none. The existing
+    browser tests pass with the menu closed; `layout.test.tsx`'s folded-navigation test opens it.
 
 - [ ] **Step 1: Write the failing tests**
 

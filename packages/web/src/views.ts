@@ -5,6 +5,7 @@ import type {
   Agent,
   Draft,
   Feature,
+  FolderSuggestions,
   Priorities,
   ProposalHints,
   Repositories,
@@ -204,4 +205,10 @@ export const RepositoriesView = view<Repositories>()({
   rows: true,
   problem: true,
   added: true,
+});
+
+/** The folders the add form suggests for a typed text, its id. */
+export const FolderSuggestionsView = view<FolderSuggestions>()({
+  id: true,
+  rows: true,
 });

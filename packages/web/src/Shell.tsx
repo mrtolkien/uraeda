@@ -1,24 +1,17 @@
 import { AppShell } from "@astryxdesign/core/AppShell";
 import { Banner } from "@astryxdesign/core/Banner";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
-import { Link } from "@astryxdesign/core/Link";
-import { SideNav, SideNavItem, useSideNavCollapse } from "@astryxdesign/core/SideNav";
-import { Text } from "@astryxdesign/core/Text";
+import { SideNav, useSideNavCollapse } from "@astryxdesign/core/SideNav";
 import { VStack } from "@astryxdesign/core/VStack";
-import {
-  colorVars,
-  fontWeightVars,
-  sizeVars,
-  spacingVars,
-  typeScaleVars,
-} from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
 import { useNavigation } from "./data.ts";
 import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
 import { useUndoErrors } from "./layout/useUndoToast.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
-import { currentEntry, navigate, useLocalPath, useRepoPath } from "./routes.tsx";
+import { RepositoryMenu } from "./RepositoryMenu.tsx";
+import { currentEntry, useLocalPath, useRepository } from "./routes.tsx";
 import { SearchField, SessionNav, useSessionQuery } from "./SessionNav.tsx";
 import { type ThemeMode, useThemeMode } from "./theme.tsx";
 
@@ -51,20 +44,10 @@ const styles = stylex.create({
     minWidth: 0,
     paddingInline: spacingVars["--spacing-2"],
   },
-  // As tall as a control, so a finger reaches it.
-  home: {
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
+  // The menu's trigger takes the room the page's controls leave.
+  menu: {
+    flexGrow: 1,
     minWidth: 0,
-    minHeight: sizeVars["--size-element-md"],
-    textDecoration: "none",
-  },
-  name: {
-    display: "block",
-    fontSize: typeScaleVars["--text-large-size"],
-    fontWeight: fontWeightVars["--font-weight-semibold"],
-    lineHeight: typeScaleVars["--text-large-leading"],
   },
   controls: {
     display: "flex",
@@ -82,36 +65,25 @@ const styles = stylex.create({
 });
 
 /**
- * The navigation's heading: "Uraeda" and the repository's name, one link home, and beside it, not
- * inside it, the page's own controls. Folded, the link home is an icon, the controls under it.
+ * The navigation's heading: the repository menu, "Uraeda" over the repository's name, and beside
+ * it, not inside it, the page's own controls. Folded, the menu's trigger is an icon, the controls
+ * under it.
  */
-function Heading({ repository, slot }: { repository: string; slot: ReactNode }) {
+function Heading({ current, slot }: { current: string | null; slot: ReactNode }) {
   const { isCollapsed } = useSideNavCollapse();
-  const home = useRepoPath()("/");
   if (isCollapsed) {
     return (
       <div {...stylex.props(styles.folded)}>
-        <SideNavItem
-          label="Uraeda"
-          icon={<span aria-hidden="true">⌂</span>}
-          href={home}
-          onClick={(event: React.MouseEvent) => {
-            event.preventDefault();
-            navigate(home);
-          }}
-        />
+        <RepositoryMenu current={current} isFolded />
         {slot}
       </div>
     );
   }
   return (
     <div {...stylex.props(styles.heading)}>
-      <Link href={home} color="primary" xstyle={styles.home}>
-        <span {...stylex.props(styles.name)}>Uraeda</span>
-        <Text type="supporting" color="secondary" display="block">
-          {repository}
-        </Text>
-      </Link>
+      <div {...stylex.props(styles.menu)}>
+        <RepositoryMenu current={current} />
+      </div>
       {slot && <div {...stylex.props(styles.controls)}>{slot}</div>}
     </div>
   );
@@ -147,14 +119,14 @@ function ThemeSwitch() {
  */
 function Nav({ slot }: { slot: ReactNode }) {
   const { workspace, sessionList } = useNavigation();
+  const current = useRepository();
   const path = useLocalPath();
   const { text, setText, query } = useSessionQuery();
   // A task view opened from home shows beside home on wide screens: home stays the page selected.
   const pathname = path.startsWith("/priorities/") && currentEntry().from === "/" ? "/" : path;
-  const repository = workspace?.root.split("/").pop() ?? "uraeda";
   return (
     <SideNav
-      header={<Heading repository={repository} slot={slot} />}
+      header={<Heading current={current} slot={slot} />}
       topContent={<SearchField text={text} onChange={setText} />}
       footer={<ThemeSwitch />}
       collapsible
@@ -200,6 +172,23 @@ export function Shell({ children }: { children: ReactNode }) {
     <AppShell sideNav={<Nav slot={slot} />} height="auto" contentPadding={0} xstyle={styles.shell}>
       <UndoErrors />
       <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
+    </AppShell>
+  );
+}
+
+/**
+ * The shell of a page that is not a repository's, like a name not in the list or a missing folder:
+ * the heading's menu alone, which reads no repository.
+ */
+export function BareShell({ current, children }: { current: string | null; children: ReactNode }) {
+  return (
+    <AppShell
+      sideNav={<SideNav header={<Heading current={current} slot={null} />} />}
+      height="auto"
+      contentPadding={0}
+      xstyle={styles.shell}
+    >
+      {children}
     </AppShell>
   );
 }

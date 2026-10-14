@@ -30,6 +30,7 @@ import {
   useRestoreScroll,
   useRoute,
 } from "./routes.tsx";
+import { ListClientContext, useOpenRepository } from "./RepositoryMenu.tsx";
 import { FirstRun, MissingFolder, UnknownRepository } from "./RepositoryPages.tsx";
 import { SessionPage } from "./SessionPage.tsx";
 import { TaskView } from "./TaskView.tsx";
@@ -210,22 +211,27 @@ function InRepository({
 }) {
   const rows = useRepositories()?.rows ?? [];
   const mostRecent = rows[0]?.name;
+  const row = repo === null ? undefined : rows.find((candidate) => candidate.name === repo);
+  // Its page shown, the repository moves first in the list.
+  useOpenRepository(row && !row.missing ? row.name : null);
   if (repo === null) {
     return <ToMostRecent name={mostRecent} pathname={pathname} />;
   }
-  const row = rows.find((candidate) => candidate.name === repo);
   if (!row) {
     return <UnknownRepository name={repo} mostRecent={mostRecent} />;
   }
   if (row.missing) {
     return <MissingFolder name={row.name} path={row.path} />;
   }
+  // The repository menu changes the list on the global client, which this gate reads.
   return (
-    <RepositoryContext value={repo}>
-      <FateClient key={repo} client={clientFor(repo)}>
-        {children}
-      </FateClient>
-    </RepositoryContext>
+    <ListClientContext value={clientFor(null)}>
+      <RepositoryContext value={repo}>
+        <FateClient key={repo} client={clientFor(repo)}>
+          {children}
+        </FateClient>
+      </RepositoryContext>
+    </ListClientContext>
   );
 }
 

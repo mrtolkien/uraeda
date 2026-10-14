@@ -80,7 +80,7 @@ test("a removed repository's open page says it is unknown", async () => {
   expect(screen.queryByText("Could not reach the Uraeda server.")).toBeNull();
 });
 
-/** US3.3, until the add form comes (task 8) */
+/** US3.3: the add form's own tests are in `add-repository.test.tsx` */
 test("an empty list shows the first run on every page", async () => {
   await renderPage("/priorities", undefined, { dataDir: listOf([]), raw: true });
 

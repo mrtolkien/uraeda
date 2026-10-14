@@ -22,6 +22,7 @@ import {
   checkTextSizes,
   drawn,
   LIVE,
+  repository,
   sendMessage,
   show,
   startTurn,
@@ -147,7 +148,7 @@ test("a task view keeps its address as the window crosses 768 px", async () => {
   }
 });
 
-test("the folded navigation keeps ＋ and a link home (US6 4, 5)", async () => {
+test("the folded navigation keeps ＋, Home, and the repository menu (US6 4, 5; US1)", async () => {
   if (window.innerWidth < 768) {
     return;
   }
@@ -161,12 +162,20 @@ test("the folded navigation keeps ＋ and a link home (US6 4, 5)", async () => {
       .toBeTruthy();
 
     expect(within(nav()).getByRole("button", { name: "Add a priority" })).toBeTruthy();
-    await userEvent.click(within(nav()).getByRole("link", { name: "Uraeda" }));
+    // Folded, the heading's icon opens the menu.
+    await userEvent.click(within(nav()).getByRole("button", { name: `Uraeda ${repository()}` }));
+    const menu = await screen.findByRole("dialog", { name: "Repositories" });
+    expect(within(menu).getByRole("list", { name: "Repositories" })).toBeTruthy();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => screen.queryByRole("dialog", { name: "Repositories" })).toBeNull();
+    await userEvent.click(within(nav()).getByRole("link", { name: "Home" }));
     await expect.poll(() => window.location.pathname).toBe(atRepo("/"));
 
     await userEvent.click(within(nav()).getByRole("button", { name: "Expand sidebar" }));
-    // Unfolded: the heading again, "Uraeda" with the repository's name, and ＋ beside it.
-    await expect.poll(() => within(nav()).queryByRole("link", { name: /^Uraeda \S/ })).toBeTruthy();
+    // Unfolded: the heading again, "Uraeda" over the repository's name, and ＋ beside it.
+    await expect
+      .poll(() => within(nav()).queryByRole("button", { name: `Uraeda ${repository()}` }))
+      .toBeTruthy();
     expect(within(nav()).getByRole("button", { name: "Add a priority" })).toBeTruthy();
   } finally {
     // The navigation's state is kept in the browser: the next tests start unfolded.

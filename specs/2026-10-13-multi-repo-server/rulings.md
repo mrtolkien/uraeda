@@ -131,3 +131,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   from the paths the pages build, against SC-003's one place.
 - **If wrong**: the gate is one component in `App.tsx`.
 - **Where**: tasks 7 and 8
+
+## R9: The menu is a popover or a sheet by width, and the Folder field a text field with a list
+
+- **Decision**: the repository menu is Astryx's `Popover` on wide screens and the project's
+  `Overlay`, a `BottomSheet` with Close, on narrow ones, chosen by `useWidthClass`; its rows are a
+  `List` of `ListItem`s, each with a `MoreMenu` whose presentation is chosen the same way. The add
+  form's Folder field is a `TextInput`, its suggestions a `List` under it, each row a button that
+  fills the field, with a `Badge` "git". The pages without a repository's navigation, "No repository
+  named …" and "Folder not found", show the heading's menu in a `BareShell`, a side navigation
+  holding the heading alone. The UI's happy-dom tests get the browsers' rule hiding a popover never
+  shown, `[popover] { display: none }`, since happy-dom has no Popover API.
+- **Rationale**: `DropdownMenu`'s `presentation="adaptive"` takes a bottom sheet only under a coarse
+  pointer, and its compound mode, needed for a filter and rows with their own ⋯ menu, is popover
+  only, while the UI layout decision chooses by width alone. `Typeahead` keeps its query to itself,
+  clears it when a result is picked, and shows the pick as a token: the field could neither start at
+  `~/` nor take a picked folder as text to type on from, as the mockup and US3.3 show.
+- **Alternatives considered**: `DropdownMenu` with data items, which has no room for the filter, the
+  path under each name, or the refusal; `BaseTypeahead` with field chrome of the app's own, against
+  the rule of Astryx components first, for the same uncontrolled query.
+- **If wrong**: the menu and the field are each one component, `RepositoryMenu.tsx` and
+  `AddRepository.tsx`, behind the same tests.
+- **Where**: task 8
