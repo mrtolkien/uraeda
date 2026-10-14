@@ -334,7 +334,11 @@ fn the_file_is_the_documented_json() {
             ]
         })
     );
-    assert!(!data.path().join("repositories.json.tmp").exists());
+    let files: Vec<_> = fs::read_dir(data.path())
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name())
+        .collect();
+    assert_eq!(files, ["repositories.json"]);
 }
 
 #[test]
