@@ -1,4 +1,3 @@
-// oxlint-disable max-lines -- over the limit before the code quality decision: each group of views' shots in a module of its own
 /**
  * Screenshots of the UI's views for review, as the UI checks decision asks before handing a UI
  * change over: each view at a phone's size (402 × 874, with a touch screen) and a desktop's
@@ -18,12 +17,24 @@ import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { type Browser, type BrowserContext, type Page, webkit } from "playwright";
+import { type Browser, type Page, webkit } from "playwright";
 import { addRepository } from "uraeda-binding";
 import { fixtureRepo, git } from "uraeda-binding/test-utils";
 import { FakeAdapter } from "uraeda-server/testing";
 import { createServer, type PluginOption } from "vite-plus";
 import base, { uraedaServer } from "../vite.config.ts";
+import {
+  here,
+  setPrefix,
+  settle,
+  shooter,
+  show,
+  type Shot,
+  type Size,
+  SPEC,
+  takeFolds,
+  wait,
+} from "./shots.ts";
 
 const web = fileURLToPath(new URL("..", import.meta.url));
 const root = fileURLToPath(new URL("../../..", import.meta.url));
@@ -36,14 +47,9 @@ const out = join(root, "specs", folder, "screenshots");
 const views = process.argv.slice(3);
 
 const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";
-const SPEC = "/f/2026-10-06-recurring-tasks/spec.md";
 const AGENT = "/f/2026-10-12-cli-tuis";
 const MOCKUP = "/f/2026-10-06-recurring-tasks/mockups/repeat.html";
 const LONG = "specs/2026-10-12-cli-tuis/clarifications-01.md";
-
-type Size = "phone" | "desktop";
-type Mode = "light" | "dark";
-type Shot = { context: BrowserContext; mode: Mode; page: Page; size: Size };
 
 /** The fixture, with the example's mockup committed on the recurring tasks' branch. */
 function repository() {
@@ -60,8 +66,6 @@ function repository() {
   git(repo, "switch", "--quiet", "main");
   return repo;
 }
-
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function main() {
   const repo = repository();
@@ -114,95 +118,32 @@ async function main() {
   }
 }
 
-/** The repository's prefix, `/r/<name>`, which every page's path starts with. */
-let prefix = "";
-
-/** Opens a page of the repository, and waits for a text and for the page to settle. */
-async function show(page: Page, path: string, text: string | RegExp) {
-  await page.goto(`${prefix}${path}`);
-  await page.getByText(text).first().waitFor({ timeout: 20_000 });
+/** Home, with the navigation open on the phone. */
+async function sidebar(page: Page, size: Size) {
+  await show(page, "/", "Waiting on you");
+  if (size === "phone") {
+    await page.getByRole("button", { name: "Open navigation" }).click();
+  }
+  await page.getByText("Map the runner code").first().waitFor();
   await settle(page);
 }
 
-/** Waits for fonts, then for transitions to end. */
-async function settle(page: Page) {
-  await page.evaluate(() => document.fonts.ready);
-  await wait(500);
-}
-
-async function save(shot: Shot, view: string) {
-  const path = join(out, `${view}-${shot.size}-${shot.mode}.png`);
-  await shot.page.screenshot({ path });
-  process.stdout.write(`  ${view}-${shot.size}-${shot.mode}.png\n`);
-}
-
-/** Takes a view, at both sizes and in both themes, or on one size when only it shows it. */
-type Each = (view: string, act: (shot: Shot) => Promise<void>, only?: Size) => Promise<void>;
-
-/** What takes each view of the shots, unless the views named after the folder leave it out. */
-function shooter(shots: Array<Shot>): Each {
-  return async (view, act, only) => {
-    if (views.length > 0 && !views.includes(view)) {
-      return;
-    }
-    for (const shot of shots) {
-      if (only && shot.size !== only) {
-        continue;
-      }
-      await act(shot);
-      await save(shot, view);
-    }
-  };
-}
-
-/** Scrolls a page so an element is near its top, below the phone's top bar. */
-async function scrollToTop(page: Page, locator: ReturnType<Page["getByText"]>) {
-  await locator.evaluate((element) =>
-    window.scrollBy(0, element.getBoundingClientRect().top - (window.innerWidth < 768 ? 64 : 16)),
-  );
-  await wait(300);
-}
-
-const APPROVED = "/f/2026-10-13-plan-review/spec.md";
-
-/** A spec's first story: its band's text under review, its heading once approved. */
-const story = (page: Page) => page.getByText(/^US1( ·|:)/).first();
-
-/**
- * A spec under review at its top, its mockups first. A spec's folds: under review, closed, with US2's scenarios open, and with Details opened from a
- * link to its Data; an approved spec's, closed, then with Details open.
- */
-async function takeFolds(each: Each) {
-  await each("spec-mockups", ({ page }) => show(page, SPEC, "Open the mockup: Repeat"));
-  await each("spec-folded", async ({ page }) => {
-    await show(page, SPEC, "Complete a repeating task");
-    await scrollToTop(page, story(page));
-  });
-  await each("spec-scenarios", async ({ page }) => {
-    await show(page, SPEC, "Complete a repeating task");
-    await page.getByRole("button", { exact: true, name: "Scenarios (4)" }).first().click();
-    await scrollToTop(page, page.getByText("US2 · P1"));
-  });
-  await each("spec-details", ({ page }) => show(page, `${SPEC}#data`, "Complete a repeating task"));
-  await each("spec-approved", async ({ page }) => {
-    await show(page, APPROVED, "Complete a repeating task");
-    await scrollToTop(page, story(page));
-  });
-  await each("spec-approved-details", async ({ page }) => {
-    await show(page, APPROVED, "Complete a repeating task");
-    const details = page.getByRole("button", { exact: true, name: "Details" });
-    await details.click();
-    await scrollToTop(page, details);
-  });
+/** The repository menu, from its trigger in the navigation's heading or the phone's top bar. */
+async function repositories(page: Page) {
+  await show(page, "/", "Waiting on you");
+  await page
+    .getByRole("button", { name: /^Uraeda / })
+    .first()
+    .click();
+  await page.getByRole("dialog", { name: "Repositories" }).waitFor();
+  await settle(page);
 }
 
 /** Every view, each at both sizes and in both themes, or on one size when only it shows it. */
 // oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: each view's shots in a function of their own
 async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: string) {
-  prefix = at;
-  /** A page's path within the repository, from the page's URL. */
-  const here = (page: Page) => new URL(page.url()).pathname.slice(prefix.length);
-  const each = shooter(shots);
+  setPrefix(at);
+  const each = shooter(shots, out, views);
   await takeFolds(each);
   const priorities = () => readFileSync(join(repo, "specs/PRIORITIES.md"), "utf8");
   const original = priorities();
@@ -471,27 +412,8 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
     await wait(300);
   });
 
-  /** Home, with the navigation open on the phone. */
-  const sidebar = async (page: Page, size: Size) => {
-    await show(page, "/", "Waiting on you");
-    if (size === "phone") {
-      await page.getByRole("button", { name: "Open navigation" }).click();
-    }
-    await page.getByText("Map the runner code").first().waitFor();
-    await settle(page);
-  };
   await each("sidebar", ({ page, size }) => sidebar(page, size));
 
-  /** The repository menu, from its trigger in the navigation's heading or the phone's top bar. */
-  const repositories = async (page: Page) => {
-    await show(page, "/", "Waiting on you");
-    await page
-      .getByRole("button", { name: /^Uraeda / })
-      .first()
-      .click();
-    await page.getByRole("dialog", { name: "Repositories" }).waitFor();
-    await settle(page);
-  };
   await each("repositories", ({ page }) => repositories(page));
   await each("repositories-add", async ({ page }) => {
     await repositories(page);
