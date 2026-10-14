@@ -10,7 +10,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { Component, type ReactNode, Suspense, useState } from "react";
+import { Component, Fragment, type ReactNode, Suspense, useState } from "react";
 import type { Feature } from "uraeda-server/fate";
 import { useBranchChanges, useFeature, useFile, useSession } from "./data.ts";
 import { stepLabel, waiting } from "./labels.ts";
@@ -21,6 +21,7 @@ import { StatusMark } from "./StatusMark.tsx";
 
 const styles = stylex.create({
   added: { color: colorVars["--color-text-green"] },
+  // A long path breaks anywhere, rather than running under its lines' counts.
   panel: {
     // Beside the transcript, in view while the window scrolls, scrolling on its own when taller
     // than the window.
@@ -29,6 +30,7 @@ const styles = stylex.create({
     position: "sticky",
     top: 0,
   },
+  path: { minWidth: 0, overflowWrap: "anywhere" },
   removed: { color: colorVars["--color-text-red"] },
 });
 
@@ -261,6 +263,20 @@ function Subagents({ session }: { session: string }) {
   );
 }
 
+/** A path that breaks after its slashes first, where a line has room for its folders. */
+function breakable(path: string) {
+  const parts = path.split("/");
+  return parts.map((part, index) =>
+    index < parts.length - 1 ? (
+      <Fragment key={index}>
+        {part}/<wbr />
+      </Fragment>
+    ) : (
+      part
+    ),
+  );
+}
+
 /** "1 file", or "N files". */
 function fileCount(count: number) {
   return `${count} ${count === 1 ? "file" : "files"}`;
@@ -311,7 +327,11 @@ function Changes({ folder }: { folder: string }) {
               <ListItem
                 endContent={<Lines added={file.added} removed={file.removed} />}
                 key={file.path}
-                label={<Text type="code">{file.path}</Text>}
+                label={
+                  <Text type="code" xstyle={styles.path}>
+                    {breakable(file.path)}
+                  </Text>
+                }
               />
             ))}
           </List>
