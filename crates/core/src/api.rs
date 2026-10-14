@@ -2,28 +2,37 @@
 //! branch it writes on through a worktree, acts, and returns what the UI shows next.
 
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
 
 use crate::actions::review::{self, Tier};
 use crate::actions::{ActionError, answer, draft, place, priorities as edits, start, text};
 use crate::check;
 use crate::files::document::{self, hash};
 use crate::files::items::items;
-use crate::files::priorities::{self, Priorities, Section};
+use crate::files::priorities::{self, Priorities};
 use crate::files::proposal;
 use crate::files::review::Verdict;
 use crate::gates::{AWAITING_HUMAN, Gate, gate_of};
 use crate::git::{Git, GitError};
-use crate::repositories::{self, ListError};
+use crate::repositories::ListError;
 use crate::view::{
-    AddedView, CommitView, DraftView, FeatureView, FileView, NextView, PriorityLink, PriorityView,
-    ProposalHint, RepositoryView, StartedView, StepView, VersionView, WaitingFile, WorkspaceView,
-    title,
+    CommitView, DraftView, FeatureView, FileView, NextView, PriorityLink, PriorityView,
+    ProposalHint, StartedView, StepView, VersionView, WaitingFile, WorkspaceView, title,
 };
 use crate::workspace::{
     Feature, FileKind, Problem, Source, Workspace, WorkspaceError, linked_draft,
 };
 use crate::{steps, target, today};
+
+mod priority_edits;
+mod repository_list;
+
+pub use priority_edits::{
+    add_priority, commit_priorities, discard_priorities, edit_priority, insert_priority,
+    move_priority, remove_priority,
+};
+pub use repository_list::{
+    add_repository, data_dir, open_repository, read_repositories, remove_repository,
+};
 
 /// An operation refused or failed: `code` is `refused`, `conflict` for a change made elsewhere,
 /// or `hook` for a commit a hook refused, with its whole `output`.
@@ -400,39 +409,6 @@ pub fn main_root(repo: &Path) -> Result<String> {
         .main_root()
         .to_string_lossy()
         .into_owned())
-}
-
-/// Uraeda's data folder: `custom` when set and not empty, else `URAEDA_DATA_DIR` from this
-/// process's environment, else the operating system's default.
-pub fn data_dir(custom: Option<&str>) -> String {
-    custom
-        .filter(|folder| !folder.is_empty())
-        .map_or_else(repositories::default_data_dir, PathBuf::from)
-        .to_string_lossy()
-        .into_owned()
-}
-
-/// The list of repositories in `data_dir`, the most recently opened first.
-pub fn read_repositories(data_dir: &Path) -> Result<Vec<RepositoryView>> {
-    Ok(repositories::read(data_dir)?
-        .into_iter()
-        .map(RepositoryView::from)
-        .collect())
-}
-
-/// Adds the git repository holding `folder`, an absolute path, to the list.
-pub fn add_repository(data_dir: &Path, folder: &Path) -> Result<AddedView> {
-    Ok(repositories::add(data_dir, folder, SystemTime::now())?.into())
-}
-
-/// Takes a repository off the list, leaving its folder and sessions as they are.
-pub fn remove_repository(data_dir: &Path, name: &str) -> Result<()> {
-    Ok(repositories::remove(data_dir, name)?)
-}
-
-/// Records that a repository was opened now.
-pub fn open_repository(data_dir: &Path, name: &str) -> Result<RepositoryView> {
-    Ok(repositories::touch(data_dir, name, SystemTime::now())?.into())
 }
 
 fn round_name(feature: &Feature) -> Result<String> {
@@ -880,91 +856,6 @@ pub fn start_feature(repo: &Path, draft: &str, slug: Option<&str>) -> Result<Sta
         ))),
         Err(error) => Err(refused(error.to_string())),
     }
-}
-
-fn section(id: &str) -> Result<Section> {
-    Section::from_id(id).ok_or_else(|| refused(format!("no section {id}")))
-}
-
-/// Adds a line at the end of a section.
-pub fn add_priority(
-    repo: &Path,
-    section_id: &str,
-    line: &str,
-    previous: &str,
-) -> Result<Priorities> {
-    let _lock = write_lock();
-    let place = reach_default(repo)?;
-    Ok(edits::add(&place, section(section_id)?, line, previous)?)
-}
-
-/// Inserts a line with its nested lines, as written, before the line at `index` of a section, or
-/// at its end: Undo of a removal.
-pub fn insert_priority(
-    repo: &Path,
-    section_id: &str,
-    index: u32,
-    lines: &[String],
-    previous: &str,
-) -> Result<Priorities> {
-    let _lock = write_lock();
-    let place = reach_default(repo)?;
-    Ok(edits::insert(
-        &place,
-        section(section_id)?,
-        index as usize,
-        lines,
-        previous,
-    )?)
-}
-
-/// Moves a line before the line at `index` of a section, or to its end.
-pub fn move_priority(
-    repo: &Path,
-    id: &str,
-    section_id: &str,
-    index: u32,
-    previous: &str,
-) -> Result<Priorities> {
-    let _lock = write_lock();
-    let place = reach_default(repo)?;
-    Ok(edits::move_entry(
-        &place,
-        id,
-        section(section_id)?,
-        index as usize,
-        previous,
-    )?)
-}
-
-/// Replaces a line's text.
-pub fn edit_priority(repo: &Path, id: &str, line: &str, previous: &str) -> Result<Priorities> {
-    let _lock = write_lock();
-    let place = reach_default(repo)?;
-    Ok(edits::edit(&place, id, line, previous)?)
-}
-
-/// Removes a line and its nested lines.
-pub fn remove_priority(repo: &Path, id: &str, previous: &str) -> Result<Priorities> {
-    let _lock = write_lock();
-    let place = reach_default(repo)?;
-    Ok(edits::remove(&place, id, previous)?)
-}
-
-/// Commits the priorities alone.
-pub fn commit_priorities(repo: &Path) -> Result<Priorities> {
-    let _lock = write_lock();
-    let place = reach_default(repo)?;
-    edits::commit(&place)?;
-    Ok(edits::read(&place))
-}
-
-/// Restores the committed priorities.
-pub fn discard_priorities(repo: &Path) -> Result<Priorities> {
-    let _lock = write_lock();
-    let place = reach_default(repo)?;
-    edits::discard(&place)?;
-    Ok(edits::read(&place))
 }
 
 /// A draft or a proposal, for its editor: a draft from the default branch, a proposal from its
