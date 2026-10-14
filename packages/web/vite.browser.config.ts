@@ -57,7 +57,7 @@ const commands = {
     // The agent's process ends with the test: the next test's session opens one of its own.
     agent.exit(1, "ended by the test");
     const repo = process.env.URAEDA_REPO!;
-    forgetRepo(repo);
+    await forgetRepo(repo);
     rmSync(repo, { recursive: true, force: true });
     shared.uraedaRepoHolder = undefined;
     holder.release();

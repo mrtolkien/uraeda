@@ -55,3 +55,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a test of the server's default on another platform needs the core's table test
   instead, which it has.
 - **Where**: task 3
+
+## R5: The session manager reaches the hosts once they open, and the global endpoint is the starting repository's host
+
+- **Decision**: `sessionPublisher(cache, hosts)`, `createSessions`, `startSessions`, and the tests'
+  `fakeSessions` take `hosts: HostsOf`, a function giving the hosts once they are open, since the
+  session manager starts first and `Hosts.open` takes it. `Hosts` gains `all()`, the buses the
+  `Agent` update goes to. Until task 7, the global `/fate` is served by the fate server of the
+  starting repository's host when it is listed, else by the module's own; `main.ts` adds the
+  starting repository to the list, and `dev.ts` adds each repository on its first request, which
+  `forgetRepo` removes again.
+- **Rationale**: the hosts need the session manager to send a feature's sessions, and the session
+  manager needs the hosts to send its changes: one of them has to find the other later. Watches
+  moved to the hosts, so the UI on the global endpoint gets its live updates only through the
+  starting repository's host; adding it is what task 6 does at the start anyway (US3.1).
+- **Alternatives considered**: a setter on `Sessions` for its change handler, which changes the
+  runner for a wiring concern; sending every update on the global bus as well, which task 7 would
+  have to find and remove.
+- **If wrong**: the getter is one parameter in the wiring; task 6's `startServer` is its only caller
+  besides the tests.
+- **Where**: tasks 4 and 6
