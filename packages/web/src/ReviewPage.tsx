@@ -11,7 +11,7 @@ import {
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useMemo } from "react";
 import type { Block, CommentItem, Document } from "uraeda-binding";
-import { Blocks } from "./Blocks.tsx";
+import { Blocks, type Fold } from "./Blocks.tsx";
 import { CommentForm, quoteOf } from "./CommentForm.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { type useFile, useAgent } from "./data.ts";
@@ -24,6 +24,7 @@ import { useRefusals } from "./ReviewVerdict.tsx";
 import { selectable } from "./Selection.tsx";
 import { plain } from "./Spans.tsx";
 import { type Range, useCommentDraft } from "./useCommentDraft.ts";
+import { useSpecFolds } from "./useOpenKeys.ts";
 import { useReviewActions } from "./useReviewActions.ts";
 import { StaleBanner, YourReview } from "./YourReview.tsx";
 
@@ -64,6 +65,26 @@ export function textOf(tree: Document, block: Block) {
     .filter((cell) => cell.parent === block.id)
     .map((cell) => plain(cell.spans))
     .join(" | ");
+}
+
+/**
+ * The folds a review opens: those holding a pending comment's block, or a block of the selection.
+ */
+function shownFolds(tree: Document, placed: ReadonlyMap<number, unknown>, selection?: Range) {
+  const top = (id: number) => {
+    let block = tree.blocks[id];
+    while (block?.parent !== undefined) {
+      block = tree.blocks[block.parent];
+    }
+    return block?.id;
+  };
+  const holders = new Set([...placed.keys()].map(top));
+  const selected = (block: Block | undefined) =>
+    !!block && !!selection && block.startLine <= selection.end && block.endLine >= selection.start;
+  return (folds: ReadonlyArray<Fold>) =>
+    folds
+      .filter((fold) => fold.ids.some((id) => holders.has(id) || selected(tree.blocks[id])))
+      .map((fold) => fold.key);
 }
 
 /** The comment field of a review, on the selected lines, the whole file, or a comment edited. */
@@ -128,6 +149,7 @@ export function ReviewPage({ file }: { file: File }) {
   const refusals = useRefusals();
   const actions = useReviewActions(file, commentDraft, refusals);
   const placed = usePlacedComments(comments, tree);
+  const folds = useSpecFolds(version.items.spec, shownFolds(tree, placed, selection));
 
   const form = <ReviewForm actions={actions} draft={commentDraft} tree={tree} />;
   /** The comment field, in the page on wide screens: on the phone, it is in the sheet. */
@@ -159,6 +181,7 @@ export function ReviewPage({ file }: { file: File }) {
         </Text>
         <Blocks
           document={tree}
+          folds={folds}
           override={reviewHeadings(version.items, wide)}
           selection={{
             after: (block) => (

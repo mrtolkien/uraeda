@@ -1,6 +1,7 @@
 // US2 scenario 1 and the tall block's edge case: on the phone, the comment sheet opens with the
-// selected block in view above it, and quotes the lines it comments on.
-import { screen, within } from "@testing-library/react";
+// selected block in view above it, and quotes the lines it comments on. A spec's folds (US1 of code
+// quality in the skill): they survive Back, and a link into Details opens it.
+import { act, screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 import { drawn, show } from "./helpers.tsx";
@@ -13,6 +14,20 @@ function blockOf(phrase: string) {
   return screen
     .getAllByRole("button", { name: (name) => name.includes(phrase) })
     .find((b) => b.hasAttribute("aria-pressed")) as HTMLElement;
+}
+
+const SPEC = "/f/2026-10-06-recurring-tasks/spec.md";
+
+/** A fold's trigger, by its label: the first with it, US2's for "Scenarios (4)". */
+function fold(name: string) {
+  return screen
+    .getAllByRole("button", { name })
+    .find((b) => b.hasAttribute("aria-expanded")) as HTMLElement;
+}
+
+/** Whether a text shows on the page: a folded one is not drawn. */
+function shows(text: RegExp) {
+  return screen.queryAllByText(text).some((element) => element.getBoundingClientRect().height > 0);
 }
 
 /** A tap in the middle of a block, on its text, which lies over its toggle. */
@@ -35,7 +50,8 @@ test("the selected block stays visible above the sheet, quoted (US2 1, 2)", asyn
   if (window.innerWidth >= 768) {
     return;
   }
-  await show("/f/2026-10-06-recurring-tasks/spec.md", "Complete a repeating task");
+  await show(SPEC, "Complete a repeating task");
+  await userEvent.click(fold("Scenarios (4)"));
   const block = blockOf("Given a weekly task");
   block.scrollIntoView({ block: "end" });
   await tap(block);
@@ -76,6 +92,39 @@ test("a block taller than the space above the sheet starts under the bar", async
     .poll(() => {
       const box = tallest.getBoundingClientRect();
       return box.height > sheetTop() - barBottom() && Math.abs(box.top - barBottom()) < 3;
+    })
+    .toBe(true);
+});
+
+test("open folds survive Back (US1 4)", async () => {
+  await show(SPEC, "Complete a repeating task");
+  expect(shows(/a weekly task due Monday the 5th/)).toBe(false);
+  await userEvent.click(fold("Scenarios (4)"));
+  await userEvent.click(fold("Details"));
+  expect(shows(/a weekly task due Monday the 5th/)).toBe(true);
+
+  // A real click: WebKit skips, on Back, an entry that added another without a user's gesture.
+  await userEvent.click(screen.getAllByRole("link", { name: "Recurring tasks" })[0]!);
+  await expect.poll(() => window.location.pathname).toBe("/f/2026-10-06-recurring-tasks");
+  await act(async () => window.history.back());
+  await expect.poll(() => window.location.pathname).toBe(SPEC);
+
+  await expect.poll(() => fold("Scenarios (4)")?.getAttribute("aria-expanded")).toBe("true");
+  expect(fold("Details").getAttribute("aria-expanded")).toBe("true");
+  expect(fold("Scenarios (3)").getAttribute("aria-expanded")).toBe("false");
+});
+
+test.each(["data", "details"])("a link to #%s opens the details (US1 5)", async (anchor) => {
+  await show(`${SPEC}#${anchor}`, "Complete a repeating task");
+
+  const heading = await screen.findByRole("heading", { name: "Data" });
+  expect(fold("Details").getAttribute("aria-expanded")).toBe("true");
+  // Under the top bar, which the phone has.
+  const bar = screen.queryByRole("banner")?.getBoundingClientRect().bottom ?? 0;
+  await expect
+    .poll(() => {
+      const box = heading.getBoundingClientRect();
+      return box.top >= bar - 1 && box.bottom <= window.innerHeight;
     })
     .toBe(true);
 });

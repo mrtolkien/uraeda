@@ -313,6 +313,11 @@ export function useLocalPath(): string {
   return localPath(usePathname());
 }
 
+/** The location's hash, `#…`, or "": a page scrolls to the block it names. */
+export function useHash(): string {
+  return useSyncExternalStore(subscribe, () => window.location.hash);
+}
+
 /** The location's query, `?…`, or "": a page reads its options from it, like the session's message. */
 export function useSearch(): string {
   return useSyncExternalStore(subscribe, () => window.location.search);

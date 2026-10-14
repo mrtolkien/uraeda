@@ -135,17 +135,12 @@ async function save(shot: Shot, view: string) {
   process.stdout.write(`  ${view}-${shot.size}-${shot.mode}.png\n`);
 }
 
-/** Every view, each at both sizes and in both themes, or on one size when only it shows it. */
-// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: each view's shots in a function of their own
-async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: string) {
-  prefix = at;
-  /** A page's path within the repository, from the page's URL. */
-  const here = (page: Page) => new URL(page.url()).pathname.slice(prefix.length);
-  const each = async (
-    view: string,
-    act: (shot: Shot) => Promise<void>,
-    only?: Size,
-  ): Promise<void> => {
+/** Takes a view, at both sizes and in both themes, or on one size when only it shows it. */
+type Each = (view: string, act: (shot: Shot) => Promise<void>, only?: Size) => Promise<void>;
+
+/** What takes each view of the shots, unless the views named after the folder leave it out. */
+function shooter(shots: Array<Shot>): Each {
+  return async (view, act, only) => {
     if (views.length > 0 && !views.includes(view)) {
       return;
     }
@@ -157,6 +152,56 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
       await save(shot, view);
     }
   };
+}
+
+/** Scrolls a page so an element is near its top, below the phone's top bar. */
+async function scrollToTop(page: Page, locator: ReturnType<Page["getByText"]>) {
+  await locator.evaluate((element) =>
+    window.scrollBy(0, element.getBoundingClientRect().top - (window.innerWidth < 768 ? 64 : 16)),
+  );
+  await wait(300);
+}
+
+const APPROVED = "/f/2026-10-13-plan-review/spec.md";
+
+/** A spec's first story: its band's text under review, its heading once approved. */
+const story = (page: Page) => page.getByText(/^US1( ·|:)/).first();
+
+/**
+ * A spec's folds: under review, closed, with US2's scenarios open, and with Details opened from a
+ * link to its Data; an approved spec's, closed, then with Details open.
+ */
+async function takeFolds(each: Each) {
+  await each("spec-folded", async ({ page }) => {
+    await show(page, SPEC, "Complete a repeating task");
+    await scrollToTop(page, story(page));
+  });
+  await each("spec-scenarios", async ({ page }) => {
+    await show(page, SPEC, "Complete a repeating task");
+    await page.getByRole("button", { exact: true, name: "Scenarios (4)" }).first().click();
+    await scrollToTop(page, page.getByText("US2 · P1"));
+  });
+  await each("spec-details", ({ page }) => show(page, `${SPEC}#data`, "Complete a repeating task"));
+  await each("spec-approved", async ({ page }) => {
+    await show(page, APPROVED, "Complete a repeating task");
+    await scrollToTop(page, story(page));
+  });
+  await each("spec-approved-details", async ({ page }) => {
+    await show(page, APPROVED, "Complete a repeating task");
+    const details = page.getByRole("button", { exact: true, name: "Details" });
+    await details.click();
+    await scrollToTop(page, details);
+  });
+}
+
+/** Every view, each at both sizes and in both themes, or on one size when only it shows it. */
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: each view's shots in a function of their own
+async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: string) {
+  prefix = at;
+  /** A page's path within the repository, from the page's URL. */
+  const here = (page: Page) => new URL(page.url()).pathname.slice(prefix.length);
+  const each = shooter(shots);
+  await takeFolds(each);
   const priorities = () => readFileSync(join(repo, "specs/PRIORITIES.md"), "utf8");
   const original = priorities();
 
@@ -266,6 +311,7 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
 
   await each("review-comment", async ({ page, size }) => {
     await show(page, SPEC, "Complete a repeating task");
+    await page.getByRole("button", { exact: true, name: "Scenarios (4)" }).first().click();
     // The element itself: once pressed, the locator would find the next block.
     const block = (await page
       .getByRole("button", { name: /Given a weekly task/, pressed: false })
