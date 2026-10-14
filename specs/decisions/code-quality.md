@@ -44,16 +44,16 @@ violation, and on a marker left behind once its code is fixed, so the numbers ca
 
 - **The research.** Agents extending their own code grow functions and files feature after feature.
   Instructions lower the starting level, not the decay
-  ([discovery](../2026-10-14-code-quality-in-the-skill/discovery-01.md#research-on-agents-and-code-quality)).
+  ([record](../done/2026-10-14-code-quality-in-the-skill.md)).
 - **The human's choice.** Limits in the linters already installed, with today's offenders in their
   baselines, rather than new tools
-  ([Q7](../2026-10-14-code-quality-in-the-skill/clarifications-01.md#q7-which-checks-does-this-repository-adopt-now)).
+  ([Q7](../done/2026-10-14-code-quality-in-the-skill.md#q7-which-checks-does-this-repository-adopt-now)).
 - **The limits.** 100 lines per function, 7 parameters, 4 levels of nesting, 500 lines per file
-  ([Q7.A](../2026-10-14-code-quality-in-the-skill/clarifications-01.md#q7a-what-limits)). They stop
-  growth without baselining a third of the web UI.
+  ([Q7.A](../done/2026-10-14-code-quality-in-the-skill.md#q7a-what-limits)). They stop growth
+  without baselining a third of the web UI.
 - **The fate stack's rules.** The human asked to follow them. Its lint configuration is the stack's
   shared default, and it holds no size limits of its own
-  ([checks in this repository](../2026-10-14-code-quality-in-the-skill/discovery-01.md#checks-in-this-repository)).
+  ([checks in this repository](../done/2026-10-14-code-quality-in-the-skill.md#q7-which-checks-does-this-repository-adopt-now)).
 - **Markers in place.** They keep each exception next to its code with its reason, the same way in
   both languages, and fail once the code is fixed.
 
