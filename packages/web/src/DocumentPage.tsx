@@ -21,7 +21,7 @@ export function DocumentPage({ file }: { file: File }) {
   const here = useRepoPath();
   return (
     <Page>
-      <Crumbs folder={file.folder} current={file.name} />
+      <Crumbs current={file.name} folder={file.folder} />
       {file.kind === "proposal" && (
         <HStack gap={2} xstyle={styles.actions}>
           <Button label="Edit" onClick={() => navigate(here(`/edit/${file.path}`))} />

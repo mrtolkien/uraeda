@@ -10,8 +10,8 @@ import { uraedaTheme } from "../theme/built/uraeda.js";
 function OpenOverlay({ label }: { label: string }) {
   const [open, setOpen] = useState(true);
   return (
-    <Theme theme={uraedaTheme} mode="light">
-      <Overlay label={label} isOpen={open} onClose={() => setOpen(false)}>
+    <Theme mode="light" theme={uraedaTheme}>
+      <Overlay isOpen={open} label={label} onClose={() => setOpen(false)}>
         <p>A short form.</p>
       </Overlay>
     </Theme>

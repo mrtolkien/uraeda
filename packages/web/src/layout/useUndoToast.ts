@@ -60,11 +60,9 @@ export function useUndoToast(): (message: string, undo: () => Promise<string | u
   return useCallback(
     (message, undo) => {
       const dismiss = showToast({
-        body: message,
         autoHideDuration: 5000,
+        body: message,
         endContent: createElement(Button, {
-          label: "Undo",
-          variant: "ghost",
           clickAction: async () => {
             close();
             const error = await undo();
@@ -73,6 +71,8 @@ export function useUndoToast(): (message: string, undo: () => Promise<string | u
               setErrors([...errors, { id: nextId, text: error }]);
             }
           },
+          label: "Undo",
+          variant: "ghost",
         }),
       });
       const close = () => {

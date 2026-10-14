@@ -15,12 +15,12 @@ const root = fileURLToPath(new URL("../..", import.meta.url));
  */
 export function uraedaServer(options: Parameters<typeof devHandler>[1] = {}): Plugin {
   return {
-    name: "uraeda-server",
     configureServer(server) {
       checkBinding();
       server.middlewares.use(devHandler(root, options));
       server.httpServer?.once("close", () => void stopDevRuns());
     },
+    name: "uraeda-server",
   };
 }
 
@@ -33,7 +33,6 @@ const theme = fileURLToPath(new URL("src/theme/theme.ts", import.meta.url));
  */
 function themeWatcher(): Plugin {
   return {
-    name: "uraeda-theme",
     apply: "serve",
     configureServer(server) {
       server.watcher.add(theme);
@@ -44,7 +43,7 @@ function themeWatcher(): Plugin {
         execFile(
           "node_modules/.bin/astryx",
           ["theme", "build", "src/theme/theme.ts", "--out", "src/theme/built/uraeda.css"],
-          { cwd: fileURLToPath(new URL(".", import.meta.url)) },
+          { cwd: import.meta.dirname },
           (error, _stdout, stderr) => {
             if (error) {
               server.config.logger.error(`Theme not rebuilt: ${stderr || error.message}`);
@@ -55,6 +54,7 @@ function themeWatcher(): Plugin {
         );
       });
     },
+    name: "uraeda-theme",
   };
 }
 
@@ -93,8 +93,8 @@ export default defineConfig({
     // A mockup's frame is not loaded: the server in process answers only the UI's own requests.
     environmentOptions: {
       happyDOM: {
-        url: "http://127.0.0.1:4310/",
         settings: { disableIframePageLoading: true },
+        url: "http://127.0.0.1:4310/",
       },
     },
     // The binding's setup gives each test file its own temporary folder; the UI's leaves out

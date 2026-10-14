@@ -8,7 +8,7 @@ import { SessionView } from "./views.ts";
 type Fate = ReturnType<typeof useFateClient>;
 
 /** A message sent, with its session's ID, or the server's refusal. */
-export type Sent = { ok: true; session: string } | { ok: false; message: string };
+export type Sent = { ok: true; session: string } | { message: string; ok: false };
 
 /**
  * Sends a message: to a session, to a feature's session, created with its first message, or, with
@@ -18,21 +18,21 @@ export type Sent = { ok: true; session: string } | { ok: false; message: string 
 export async function sendMessage(
   fate: Fate,
   input: {
-    session?: string;
     folder?: string;
+    session?: string;
     text: string;
-    workflow?: { trigger: Trigger; file?: string };
+    workflow?: { file?: string; trigger: Trigger };
   },
 ): Promise<Sent> {
   let { session } = input;
   if (session === undefined && input.folder === undefined) {
     const created = await fate.mutations.session.newChat({ input: {}, view: SessionView });
     if (created.error) {
-      return { ok: false, message: refusal(created.error).message };
+      return { message: refusal(created.error).message, ok: false };
     }
     session = (created.result as { id: string } | undefined)?.id;
     if (session === undefined) {
-      return { ok: false, message: "The chat did not start." };
+      return { message: "The chat did not start.", ok: false };
     }
   }
   const result = await fate.mutations.session.send({
@@ -44,11 +44,11 @@ export async function sendMessage(
     view: SessionView,
   });
   if (result.error) {
-    return { ok: false, message: refusal(result.error).message };
+    return { message: refusal(result.error).message, ok: false };
   }
   const id = (result.result as { id: string } | undefined)?.id ?? session;
   return id === undefined
-    ? { ok: false, message: "The message was not sent." }
+    ? { message: "The message was not sent.", ok: false }
     : { ok: true, session: id };
 }
 

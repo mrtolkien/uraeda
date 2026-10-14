@@ -36,7 +36,7 @@ const SUBAGENT_TOOLS = new Set(["Task", "Agent"]);
  * command with one has no rule. A file rule is a gitignore pattern, so its special characters are
  * escaped, as Claude Code escapes the paths it saves.
  */
-export function allowRule({ tool, input }: Denial): string | undefined {
+export function allowRule({ input, tool }: Denial): string | undefined {
   const value = (key: string) => (typeof input[key] === "string" ? input[key] : undefined);
   const command = value("command");
   if (tool === "Bash" && command) {
@@ -44,7 +44,9 @@ export function allowRule({ tool, input }: Denial): string | undefined {
   }
   const file = value("file_path");
   if (["Edit", "Write", "MultiEdit", "Read"].includes(tool) && file) {
-    const escaped = file.replace(/[\\*?[\]]/g, "\\$&").replace(/^[!#]/, "\\$&");
+    const escaped = file
+      .replaceAll(/[\\*?[\]]/g, String.raw`\$&`)
+      .replace(/^[!#]/, String.raw`\$&`);
     const path = escaped.startsWith("/") && !escaped.startsWith("//") ? `/${escaped}` : escaped;
     return `${tool === "Read" ? "Read" : "Edit"}(${path})`;
   }
@@ -56,19 +58,19 @@ export function allowRule({ tool, input }: Denial): string | undefined {
 }
 
 const KINDS: Record<string, ToolKind> = {
-  Read: "read",
-  Edit: "edit",
-  Write: "edit",
-  NotebookEdit: "edit",
-  MultiEdit: "edit",
-  Grep: "search",
-  Glob: "search",
-  LS: "search",
   Bash: "execute",
   BashOutput: "execute",
+  Edit: "edit",
+  Glob: "search",
+  Grep: "search",
   KillShell: "execute",
+  LS: "search",
+  MultiEdit: "edit",
+  NotebookEdit: "edit",
+  Read: "read",
   WebFetch: "fetch",
   WebSearch: "fetch",
+  Write: "edit",
 };
 
 /** What a Claude Code tool does, in the Agent Client Protocol's words. */
@@ -120,7 +122,7 @@ export function parseLine(
         (block): Array<AgentEvent> => {
           // A sub-agent's text is not the main agent's: only its tools are shown.
           if (block.type === "text" && typeof block.text === "string" && block.text !== "") {
-            return parent === undefined ? [{ type: "text", text: block.text }] : [];
+            return parent === undefined ? [{ text: block.text, type: "text" }] : [];
           }
           if (block.type === "tool_use" && typeof block.id === "string") {
             return [toolStart(block.id, text(block.name), block.input, parent, cwd)];
@@ -134,10 +136,10 @@ export function parseLine(
           block.type === "tool_result" && typeof block.tool_use_id === "string"
             ? [
                 {
-                  type: "toolEnd",
                   id: block.tool_use_id,
                   isError: block.is_error === true,
                   output: toolOutput(block.content),
+                  type: "toolEnd",
                 },
               ]
             : [],
@@ -159,11 +161,11 @@ function toolStart(
   const input = isObject(rawInput) ? rawInput : {};
   const target = toolTarget(name, input, cwd);
   return {
-    type: "toolStart",
     id,
-    name,
-    kind: toolKind(name),
     input,
+    kind: toolKind(name),
+    name,
+    type: "toolStart",
     ...(target === undefined ? {} : { target }),
     ...(parent === undefined ? {} : { parent }),
     ...(SUBAGENT_TOOLS.has(name) ? { subagent: { description: text(input.description) } } : {}),
@@ -171,7 +173,7 @@ function toolStart(
 }
 
 /** The main agent's tool calls being written, by their block's index: their name, and input so far. */
-export type Blocks = Map<number, { name: string; input: string; target?: string }>;
+export type Blocks = Map<number, { input: string; name: string; target?: string }>;
 
 /** A file path, whole, in a tool call's input still being written. */
 const FILE_PATH = /"file_path"\s*:\s*("(?:[^"\\]|\\.)*")/;
@@ -185,14 +187,14 @@ function streamEvents(event: unknown, blocks: Blocks, cwd: string | undefined): 
   if (!isObject(event) || typeof event.index !== "number") {
     return [];
   }
-  const activity = (value: Activity): Array<AgentEvent> => [{ type: "activity", activity: value }];
+  const activity = (value: Activity): Array<AgentEvent> => [{ activity: value, type: "activity" }];
   if (event.type === "content_block_start" && isObject(event.content_block)) {
     const block = event.content_block;
     if (block.type === "thinking" || block.type === "redacted_thinking") {
       return activity({ kind: "thinking" });
     }
     if (block.type === "tool_use" && typeof block.name === "string") {
-      blocks.set(event.index, { name: block.name, input: "" });
+      blocks.set(event.index, { input: "", name: block.name });
       return activity({ kind: "tool", name: block.name });
     }
     return [];
@@ -206,7 +208,7 @@ function streamEvents(event: unknown, blocks: Blocks, cwd: string | undefined): 
   }
   const { delta } = event;
   if (delta.type === "text_delta" && typeof delta.text === "string" && delta.text !== "") {
-    return [{ type: "textDelta", text: delta.text }];
+    return [{ text: delta.text, type: "textDelta" }];
   }
   const tool = blocks.get(event.index);
   if (delta.type !== "input_json_delta" || typeof delta.partial_json !== "string" || !tool) {
@@ -233,10 +235,10 @@ function lifecycleEvents(message: Json): Array<AgentEvent> {
     return [];
   }
   if (message.state === "started") {
-    return [{ type: "accepted", id: message.command_uuid }];
+    return [{ id: message.command_uuid, type: "accepted" }];
   }
   if (message.state === "cancelled") {
-    return [{ type: "cancelled", id: message.command_uuid }];
+    return [{ id: message.command_uuid, type: "cancelled" }];
   }
   return [];
 }
@@ -245,9 +247,9 @@ function systemEvents(message: Json, tasks: Map<string, string>): Array<AgentEve
   if (message.subtype === "init") {
     return [
       {
-        type: "init",
-        sessionId: text(message.session_id),
         plugins: objects(message.plugins).map((plugin) => text(plugin.name)),
+        sessionId: text(message.session_id),
+        type: "init",
         // Printed as `null` when every plugin loaded.
         pluginErrors: objects(message.plugin_errors).map(
           (error) => text(error.message) || text(error.type) || "unknown error",
@@ -273,15 +275,15 @@ function systemEvents(message: Json, tasks: Map<string, string>): Array<AgentEve
           task.ambient !== true,
       )
       .map((task) => tasks.get(text(task.task_id)) ?? text(task.task_id));
-    return [{ type: "background", tools }];
+    return [{ tools, type: "background" }];
   }
   if (message.subtype === "api_retry") {
     return [
       {
-        type: "retry",
         attempt: typeof message.attempt === "number" ? message.attempt : 0,
         delayMs: typeof message.retry_delay_ms === "number" ? message.retry_delay_ms : 0,
         error: text(message.error) || "unknown",
+        type: "retry",
       },
     ];
   }
@@ -309,14 +311,14 @@ function resultEvent(message: Json): AgentEvent {
     errors.push(message.result);
   }
   const denials = objects(message.permission_denials).map((denial): Denial => ({
-    tool: text(denial.tool_name),
     input: isObject(denial.tool_input) ? denial.tool_input : {},
+    tool: text(denial.tool_name),
   }));
   return {
-    type: "result",
-    ok,
-    errors,
     denials,
+    errors,
+    ok,
+    type: "result",
     // An interrupt ends the turn this way, with only diagnostics in its errors.
     interrupted: message.terminal_reason === "aborted_streaming",
   };

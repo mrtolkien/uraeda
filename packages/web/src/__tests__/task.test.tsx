@@ -31,7 +31,7 @@ test("a line without a draft opens its task view (US3 1)", async () => {
   expect(window.location.pathname).toBe(
     atRepo("/priorities/claude-code-runner-triggered-manually"),
   );
-  expect(await screen.findByRole("radio", { name: "Next", checked: true })).toBeTruthy();
+  expect(await screen.findByRole("radio", { checked: true, name: "Next" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Draft" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Delete" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Move up" })).toBeNull();
@@ -82,7 +82,7 @@ test("the section moves the line (US3 4)", async () => {
       "  - with a cache\n- Claude Code runner (triggered manually)\n\n## Blocked",
     ),
   );
-  expect(await screen.findByRole("radio", { name: "Later", checked: true })).toBeTruthy();
+  expect(await screen.findByRole("radio", { checked: true, name: "Later" })).toBeTruthy();
 });
 
 test("Next › walks the section, disabled on the last (US3 6)", async () => {

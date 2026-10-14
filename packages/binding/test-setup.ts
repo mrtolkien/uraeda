@@ -15,5 +15,5 @@ afterAll(() => {
   } else {
     process.env.TMPDIR = previous;
   }
-  rmSync(directory, { recursive: true, force: true });
+  rmSync(directory, { force: true, recursive: true });
 });

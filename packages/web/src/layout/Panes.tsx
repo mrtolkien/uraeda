@@ -8,29 +8,29 @@ import { useRestorePaneScroll } from "../routes.tsx";
 import { useWidthClass } from "./useWidthClass.ts";
 
 const styles = stylex.create({
-  panes: {
-    display: "grid",
-    gridTemplateColumns: "minmax(0, 1fr) minmax(var(--size-pane-min), 40%)",
-    alignItems: "start",
+  close: {
+    paddingBlockStart: spacingVars["--spacing-2"],
+    paddingInline: spacingVars["--spacing-2"],
+  },
+  detail: {
+    // The detail stays in view beside the list, which scrolls with the page, and scrolls on its
+    // own. As tall as the window, so its edge runs the whole height beside the list.
+    borderInlineStartColor: colorVars["--color-border"],
+    borderInlineStartStyle: "solid",
+    borderInlineStartWidth: borderVars["--border-width"],
+    boxSizing: "border-box",
+    height: "var(--size-viewport-height)",
+    overflowY: "auto",
+    position: "sticky",
+    top: 0,
   },
   list: {
     minWidth: 0,
   },
-  // The detail stays in view beside the list, which scrolls with the page, and scrolls on its own.
-  // As tall as the window, so its edge runs the whole height beside the list.
-  detail: {
-    position: "sticky",
-    top: 0,
-    boxSizing: "border-box",
-    height: "var(--size-viewport-height)",
-    overflowY: "auto",
-    borderInlineStartWidth: borderVars["--border-width"],
-    borderInlineStartStyle: "solid",
-    borderInlineStartColor: colorVars["--color-border"],
-  },
-  close: {
-    paddingBlockStart: spacingVars["--spacing-2"],
-    paddingInline: spacingVars["--spacing-2"],
+  panes: {
+    alignItems: "start",
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr) minmax(var(--size-pane-min), 40%)",
   },
 });
 
@@ -40,12 +40,12 @@ const styles = stylex.create({
  * there is one, else the list.
  */
 export function Panes({
-  list,
   detail,
+  list,
   onCloseDetail,
 }: {
-  list: ReactNode;
   detail: ReactNode | undefined;
+  list: ReactNode;
   onCloseDetail: () => void;
 }) {
   const wide = useWidthClass() === "wide";
@@ -65,11 +65,11 @@ export function Panes({
         <div {...stylex.props(styles.close)}>
           <HStack justify="end">
             <Button
-              variant="ghost"
-              label="Close"
-              isIconOnly
               icon={<Icon icon="close" />}
+              isIconOnly
+              label="Close"
               onClick={onCloseDetail}
+              variant="ghost"
             />
           </HStack>
         </div>

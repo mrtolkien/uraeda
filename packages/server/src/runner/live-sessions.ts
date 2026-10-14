@@ -13,13 +13,13 @@ export class LiveSessions {
     let live = this.#live.get(row.id);
     if (!live) {
       live = {
-        id: row.id,
-        repo: row.repo,
-        folder: row.folder,
-        queue: [],
-        messages: new Map(),
-        lock: Promise.resolve(),
         calls: 0,
+        folder: row.folder,
+        id: row.id,
+        lock: Promise.resolve(),
+        messages: new Map(),
+        queue: [],
+        repo: row.repo,
       };
       this.#live.set(row.id, live);
     }

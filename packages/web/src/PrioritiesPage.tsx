@@ -41,7 +41,7 @@ import { useLocalPath, useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { plain } from "./Spans.tsx";
 import { PrioritiesView } from "./views.ts";
 
-type Spot = { section: string; index: number };
+type Spot = { index: number; section: string };
 
 /**
  * Where a line dropped above another goes, as the core counts it: among the lines once the
@@ -72,7 +72,7 @@ function spotOf(order: Order, key: string): Spot | undefined {
   for (const [section, keys] of Object.entries(order)) {
     const index = keys.indexOf(key);
     if (index >= 0) {
-      return { section, index };
+      return { index, section };
     }
   }
   return undefined;
@@ -92,135 +92,136 @@ export function dropMove(before: Order, after: Order, key: string) {
   const next = after[to.section][to.index + 1];
   const above = next === undefined ? undefined : spotOf(before, next);
   return {
-    section: to.section,
     index: above ? dropIndex(from, above) : Number.MAX_SAFE_INTEGER,
+    section: to.section,
   };
 }
 
 const styles = stylex.create({
-  // A line lifts while it is dragged; the long press on a phone does not open the link's menu.
-  line: {
-    // oxlint-disable-next-line stylex/valid-styles -- WebKit's own property, missing from StyleX's list: a long press that starts a drag must not open the link's menu
-    WebkitTouchCallout: "none",
-    userSelect: "none",
+  add: {
+    paddingBlock: spacingVars["--spacing-2"],
+    paddingInlineStart: spacingVars["--spacing-2"],
   },
-  lifted: {
-    position: "relative",
-    zIndex: 1,
-    backgroundColor: colorVars["--color-background-card"],
-    boxShadow: shadowVars["--shadow-med"],
-  },
-  // Now, the section worked on, stands out.
-  now: {
-    fontSize: typeScaleVars["--text-heading-1-size"],
-    lineHeight: typeScaleVars["--text-heading-1-leading"],
+  bar: {
+    // The bar stays at the bottom of the screen while there is something to commit.
+    backgroundColor: colorVars["--color-background-body"],
+    borderBlockStartColor: colorVars["--color-border"],
+    borderBlockStartStyle: "solid",
+    borderBlockStartWidth: borderVars["--border-width"],
+    bottom: 0,
+    marginBlockStart: spacingVars["--spacing-4"],
+    paddingBlock: spacingVars["--spacing-2"],
+    position: "sticky",
+    zIndex: 2,
   },
   count: {
     color: colorVars["--color-text-secondary"],
     fontWeight: "normal",
   },
+  lifted: {
+    // A line lifts while it is dragged.
+    backgroundColor: colorVars["--color-background-card"],
+    boxShadow: shadowVars["--shadow-med"],
+    position: "relative",
+    zIndex: 1,
+  },
+  line: {
+    // The long press on a phone does not open the link's menu.
+    userSelect: "none",
+    // oxlint-disable-next-line stylex/valid-styles -- WebKit's own property, missing from StyleX's list: a long press that starts a drag must not open the link's menu
+    WebkitTouchCallout: "none",
+  },
+  now: {
+    // Now, the section worked on, stands out.
+    fontSize: typeScaleVars["--text-heading-1-size"],
+    lineHeight: typeScaleVars["--text-heading-1-leading"],
+  },
   section: {
     paddingBlockStart: spacingVars["--spacing-4"],
-  },
-  add: {
-    paddingBlock: spacingVars["--spacing-2"],
-    paddingInlineStart: spacingVars["--spacing-2"],
-  },
-  // The bar stays at the bottom of the screen while there is something to commit.
-  bar: {
-    position: "sticky",
-    bottom: 0,
-    zIndex: 2,
-    marginBlockStart: spacingVars["--spacing-4"],
-    paddingBlock: spacingVars["--spacing-2"],
-    backgroundColor: colorVars["--color-background-body"],
-    borderBlockStartWidth: borderVars["--border-width"],
-    borderBlockStartStyle: "solid",
-    borderBlockStartColor: colorVars["--color-border"],
   },
 });
 
 const TITLES: Record<string, string> = {
-  now: "Now",
-  next: "Next",
-  later: "Later",
   blocked: "Blocked",
+  later: "Later",
+  next: "Next",
+  now: "Now",
 };
 
 /** One line: tapped, it opens its task view; dragged by its handle, or held on a touch screen. */
 function Line({
   entry,
   index,
-  section,
-  isSelected,
   isReduced,
+  isSelected,
+  section,
 }: {
   entry: EntryItem;
   index: number;
-  section: string;
-  isSelected: boolean;
   isReduced: boolean;
+  isSelected: boolean;
+  section: string;
 }) {
   const here = useRepoPath();
-  const { ref, handleRef, isDragging } = useSortable({
-    id: entry.key,
-    index,
-    group: section,
-    type: "line",
+  const { handleRef, isDragging, ref } = useSortable({
     accept: "line",
     data: { text: plain(entry.spans) },
+    group: section,
+    id: entry.key,
+    index,
+    type: "line",
     // With reduced motion, the lines jump to their places instead of sliding.
     transition: isReduced ? null : undefined,
   });
   const text = plain(entry.spans);
   return (
     <ListItem
-      ref={ref}
-      href={here(`/priorities/${entry.key}`)}
-      isSelected={isSelected}
-      xstyle={[styles.line, isDragging && styles.lifted]}
-      startContent={
-        <Button
-          ref={handleRef}
-          variant="ghost"
-          size="sm"
-          isIconOnly
-          label={`Move ${text}`}
-          icon={<span aria-hidden="true">⠿</span>}
-        />
-      }
-      label={<>{text}</>}
       description={
         entry.nestedSpans.length > 0 ? (
           <>
             {entry.nestedSpans.map((spans, line) => (
-              <Text key={line} display="block" color="secondary">
+              <Text color="secondary" display="block" key={line}>
                 {plain(spans)}
               </Text>
             ))}
           </>
         ) : undefined
       }
+      href={here(`/priorities/${entry.key}`)}
+      isSelected={isSelected}
+      label={<>{text}</>}
+      ref={ref}
+      startContent={
+        <Button
+          icon={<span aria-hidden="true">⠿</span>}
+          isIconOnly
+          label={`Move ${text}`}
+          ref={handleRef}
+          size="sm"
+          variant="ghost"
+        />
+      }
+      xstyle={[styles.line, isDragging && styles.lifted]}
     />
   );
 }
 
 /** A section's lines, a drop target even when empty, ended by its Add row. */
 function Section({
-  section,
-  count,
   children,
+  count,
   onAdd,
+  section,
 }: {
-  section: string;
-  count: number;
   children: ReactNode;
+  count: number;
   onAdd: (text: string) => Promise<string | undefined>;
+  section: string;
 }) {
   const { ref } = useDroppable({
+    accept: "line",
     id: section,
     type: "section",
-    accept: "line",
     // The lines in it win over the section itself.
     collisionPriority: 1,
   });
@@ -237,16 +238,16 @@ function Section({
       </List>
       <div {...stylex.props(styles.add)}>
         <EditableLine
-          value=""
-          label={`Add to ${title}`}
           display={
             <>
               <span aria-hidden="true">＋ </span>
               Add to {title}
             </>
           }
-          stayOpen
+          label={`Add to ${title}`}
           onSave={onAdd}
+          stayOpen
+          value=""
         />
       </div>
     </section>
@@ -265,17 +266,17 @@ function announcer(order: () => Order) {
     return `${text}, ${spot.index + 1} of ${count} in ${TITLES[spot.section] ?? spot.section}`;
   };
   return {
-    dragstart: (event: DragStartEvent, manager: DragDropManager) =>
-      event.operation.source
-        ? `Picked up ${place(manager, event.operation.source.id)}.`
-        : undefined,
-    dragover: (event: DragOverEvent, manager: DragDropManager) =>
-      event.operation.source ? `Moved: ${place(manager, event.operation.source.id)}.` : undefined,
     dragend: (event: DragEndEvent, manager: DragDropManager) =>
       event.operation.source
         ? event.canceled
           ? `Move cancelled: ${place(manager, event.operation.source.id)}.`
           : `Dropped: ${place(manager, event.operation.source.id)}.`
+        : undefined,
+    dragover: (event: DragOverEvent, manager: DragDropManager) =>
+      event.operation.source ? `Moved: ${place(manager, event.operation.source.id)}.` : undefined,
+    dragstart: (event: DragStartEvent, manager: DragDropManager) =>
+      event.operation.source
+        ? `Picked up ${place(manager, event.operation.source.id)}.`
         : undefined,
   };
 }
@@ -299,7 +300,7 @@ export function PrioritiesPage() {
   // The priorities as the drag found them, held until its move is written.
   const [held, setHeld] = useState<Priorities>();
   const [dragged, setDragged] = useState<Order>();
-  const before = useRef<{ priorities: Priorities; order: Order }>(undefined);
+  const before = useRef<{ order: Order; priorities: Priorities }>(undefined);
   const after = useRef<Order>(undefined);
   const priorities = held ?? live;
   if (!priorities) {
@@ -329,7 +330,7 @@ export function PrioritiesPage() {
 
   const add = (section: string) => (text: string) =>
     run(() =>
-      fate.mutations.priorities.add({ input: { section, text, hash }, view: PrioritiesView }),
+      fate.mutations.priorities.add({ input: { hash, section, text }, view: PrioritiesView }),
     );
 
   const release = () => {
@@ -374,23 +375,23 @@ export function PrioritiesPage() {
       </TopBarSlot>
       <VStack gap={2}>
         <Heading level={1}>Priorities</Heading>
-        {message && <Banner status="error" title={message} collapsible={false} />}
+        {message && <Banner collapsible={false} status="error" title={message} />}
         <DragDropProvider
-          sensors={[
-            PointerSensor.configure({
-              // The whole line on a touch screen, after a press of half a second; the handle alone
-              // with a mouse or a pen, at once.
-              activatorElements: (source) => [source.element],
-              activationConstraints: (event) =>
-                event.pointerType === "touch"
-                  ? [new PointerActivationConstraints.Delay({ value: 500, tolerance: 5 })]
-                  : undefined,
-              preventActivation: (event, source) =>
-                event.pointerType !== "touch" &&
-                !(event.target instanceof Node && source.handle?.contains(event.target)),
-            }),
-            KeyboardSensor,
-          ]}
+          onDragEnd={(event) => void drop(event)}
+          onDragOver={(event) => {
+            if (!after.current) {
+              return;
+            }
+            after.current = move(after.current, event);
+            setDragged(after.current);
+          }}
+          onDragStart={() => {
+            const found = orderOf(live ?? priorities);
+            before.current = { order: found, priorities: live ?? priorities };
+            after.current = found;
+            setHeld(live ?? priorities);
+            setDragged(found);
+          }}
           plugins={(defaults) => [
             ...defaults.filter((plugin) => plugin !== Accessibility),
             Accessibility.configure({
@@ -401,39 +402,39 @@ export function PrioritiesPage() {
               },
             }),
           ]}
-          onDragStart={() => {
-            const found = orderOf(live ?? priorities);
-            before.current = { priorities: live ?? priorities, order: found };
-            after.current = found;
-            setHeld(live ?? priorities);
-            setDragged(found);
-          }}
-          onDragOver={(event) => {
-            if (!after.current) {
-              return;
-            }
-            after.current = move(after.current, event);
-            setDragged(after.current);
-          }}
-          onDragEnd={(event) => void drop(event)}
+          sensors={[
+            PointerSensor.configure({
+              // The whole line on a touch screen, after a press of half a second; the handle alone
+              // with a mouse or a pen, at once.
+              activationConstraints: (event) =>
+                event.pointerType === "touch"
+                  ? [new PointerActivationConstraints.Delay({ tolerance: 5, value: 500 })]
+                  : undefined,
+              activatorElements: (source) => [source.element],
+              preventActivation: (event, source) =>
+                event.pointerType !== "touch" &&
+                !(event.target instanceof Node && source.handle?.contains(event.target)),
+            }),
+            KeyboardSensor,
+          ]}
         >
           {priorities.sections.map((section) => (
             <Section
-              key={section.section}
-              section={section.section}
               count={order[section.section]?.length ?? 0}
+              key={section.section}
               onAdd={add(section.section)}
+              section={section.section}
             >
               {(order[section.section] ?? []).map((key, index) => {
                 const entry = byKey.get(key);
                 return entry ? (
                   <Line
-                    key={key}
                     entry={entry}
                     index={index}
-                    section={section.section}
-                    isSelected={pathname === `/priorities/${key}`}
                     isReduced={isReduced}
+                    isSelected={pathname === `/priorities/${key}`}
+                    key={key}
+                    section={section.section}
                   />
                 ) : null;
               })}
@@ -442,7 +443,7 @@ export function PrioritiesPage() {
         </DragDropProvider>
         {changes > 0 && (
           <div {...stylex.props(styles.bar)}>
-            <HStack gap={2} align="center" wrap="wrap">
+            <HStack align="center" gap={2} wrap="wrap">
               <Text>
                 {changes} {changes === 1 ? "change" : "changes"} to commit
               </Text>
@@ -451,8 +452,6 @@ export function PrioritiesPage() {
                   <>
                     <Button label="Keep them" onClick={() => setConfirm(false)} />
                     <Button
-                      variant="destructive"
-                      label="Discard them"
                       clickAction={async () => {
                         setConfirm(false);
                         const failed = await run(() =>
@@ -464,14 +463,14 @@ export function PrioritiesPage() {
                           closeUndoToasts();
                         }
                       }}
+                      label="Discard them"
+                      variant="destructive"
                     />
                   </>
                 ) : (
                   <>
-                    <Button variant="ghost" label="Discard" onClick={() => setConfirm(true)} />
+                    <Button label="Discard" onClick={() => setConfirm(true)} variant="ghost" />
                     <Button
-                      variant="primary"
-                      label="Commit"
                       clickAction={async () => {
                         const failed = await run(() =>
                           fate.mutations.priorities.commit({ input: {}, view: PrioritiesView }),
@@ -482,6 +481,8 @@ export function PrioritiesPage() {
                           closeUndoToasts();
                         }
                       }}
+                      label="Commit"
+                      variant="primary"
                     />
                   </>
                 )}

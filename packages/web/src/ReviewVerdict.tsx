@@ -23,7 +23,7 @@ export type Refusals = ReturnType<typeof useRefusals>;
  */
 export function useRefusals() {
   const [error, setError] = useState<Refusal>();
-  const [message, setMessage] = useState<{ text: string; ok: boolean }>();
+  const [message, setMessage] = useState<{ ok: boolean; text: string }>();
   const run = async (call: () => Promise<{ error?: unknown }>) => {
     setError(undefined);
     setMessage(undefined);
@@ -33,7 +33,7 @@ export function useRefusals() {
       if (failed.kind === "hook") {
         setError(failed);
       } else {
-        setMessage({ text: failed.message, ok: false });
+        setMessage({ ok: false, text: failed.message });
       }
       return false;
     }
@@ -47,13 +47,13 @@ export function useRefusals() {
  * commits and may hand the feature over to the agent.
  */
 export function ReviewVerdict({
-  file,
   comments,
+  file,
   refusals: { error, message, run },
 }: {
-  file: File;
   /** How many comments are pending. */
   comments: number;
+  file: File;
   refusals: Refusals;
 }) {
   const fate = useFateClient();
@@ -69,7 +69,7 @@ export function ReviewVerdict({
   const proceed = (trigger: "approval" | "changes") => handOver(file.folder, trigger, file.name);
 
   const verdict = async (approve: boolean, next: boolean) => {
-    const input = { folder: file.folder, file: file.name, summary: summary || undefined };
+    const input = { file: file.name, folder: file.folder, summary: summary || undefined };
     const trigger = approve ? "approval" : "changes";
     continues.current = next ? trigger : undefined;
     const done = await run(() =>
@@ -97,36 +97,35 @@ export function ReviewVerdict({
     <>
       <GrowingTextArea
         label="Summary"
-        value={summary}
         onChange={setSummary}
         placeholder="Optional"
+        value={summary}
       />
       {isSpec && (
         <>
           <SegmentedControl
             label="Risk tier"
-            value={tier}
             onChange={(value: string) => setTier(value)}
+            value={tier}
           >
             {spec?.tiers.map((choice) => (
-              <SegmentedControlItem key={choice.value} value={choice.value} label={choice.value} />
+              <SegmentedControlItem key={choice.value} label={choice.value} value={choice.value} />
             ))}
           </SegmentedControl>
           <Switch
             label="The plan waits for your review"
-            value={plannedReview}
             onChange={(checked: boolean) => setPlanReview(checked)}
+            value={plannedReview}
           />
         </>
       )}
       {error && (
         <HookRefusal
           error={error}
-          what="Your review is saved, not committed."
           onRetry={async () => {
             const done = await run(() =>
               fate.mutations.commit.retry({
-                input: { folder: file.folder, file: file.name },
+                input: { file: file.name, folder: file.folder },
                 view: FileView,
               }),
             );
@@ -134,6 +133,7 @@ export function ReviewVerdict({
               proceed(continues.current);
             }
           }}
+          what="Your review is saved, not committed."
         />
       )}
 
@@ -144,20 +144,20 @@ export function ReviewVerdict({
         </span>
       )}
       <CommitActions
-        label="Request changes"
-        variant="destructive"
         continueLabel="Request changes and start the agent"
-        onlyLabel="Request changes only"
         isDisabled={comments === 0 || file.committed != null}
-        tooltip={comments === 0 ? "Add a comment first" : undefined}
+        label="Request changes"
         onCommit={(next) => verdict(false, next)}
+        onlyLabel="Request changes only"
+        tooltip={comments === 0 ? "Add a comment first" : undefined}
+        variant="destructive"
       />
       <CommitActions
-        label="Approve"
         continueLabel="Approve and start the agent"
-        onlyLabel="Approve only"
         isDisabled={file.committed != null}
+        label="Approve"
         onCommit={(next) => verdict(true, next)}
+        onlyLabel="Approve only"
       />
       {message && (
         <span {...stylex.props(message.ok ? statusStyles.saved : statusStyles.error)}>
@@ -165,7 +165,7 @@ export function ReviewVerdict({
         </span>
       )}
       {comments === 0 && (
-        <Text type="supporting" color="secondary">
+        <Text color="secondary" type="supporting">
           Request changes: Add a comment first
         </Text>
       )}

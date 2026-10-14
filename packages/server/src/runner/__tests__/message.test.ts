@@ -10,14 +10,14 @@ import {
 
 test.each<[Parameters<typeof triggerSentence>[0], string]>([
   [
-    { trigger: "answers", file: "clarifications-01.md" },
+    { file: "clarifications-01.md", trigger: "answers" },
     "The human answered clarifications-01.md of the questions.",
   ],
-  [{ trigger: "approval", file: "spec.md" }, "The human approved the spec."],
-  [{ trigger: "approval", file: "assessment.md" }, "The human approved the assessment."],
-  [{ trigger: "changes", file: "plan.md" }, "The human requested changes on the plan."],
-  [{ trigger: "proposal", file: "proposal.md" }, "The human committed the proposal."],
-  [{ trigger: "proposal", file: "report.md" }, "The human committed the bug report."],
+  [{ file: "spec.md", trigger: "approval" }, "The human approved the spec."],
+  [{ file: "assessment.md", trigger: "approval" }, "The human approved the assessment."],
+  [{ file: "plan.md", trigger: "changes" }, "The human requested changes on the plan."],
+  [{ file: "proposal.md", trigger: "proposal" }, "The human committed the proposal."],
+  [{ file: "report.md", trigger: "proposal" }, "The human committed the bug report."],
   [{ trigger: "start" }, "The human started the feature."],
   [{ trigger: "manual" }, "The human asked you to continue."],
 ])("the sentence of %o", (detail, sentence) => expect(triggerSentence(detail)).toBe(sentence));
@@ -25,16 +25,16 @@ test.each<[Parameters<typeof triggerSentence>[0], string]>([
 test.each<[string, Record<string, unknown>, string | undefined]>([
   ["Bash", { command: "vp run ready", description: "Run the checks" }, "vp run ready"],
   ["Read", { file_path: "/w/a.ts" }, "/w/a.ts"],
-  ["WebFetch", { url: "https://example.com", prompt: "x" }, "https://example.com"],
-  ["Grep", { pattern: "TODO", path: "src" }, "TODO"],
+  ["WebFetch", { prompt: "x", url: "https://example.com" }, "https://example.com"],
+  ["Grep", { path: "src", pattern: "TODO" }, "TODO"],
   ["Glob", { path: "src" }, "src"],
   ["TodoWrite", { todos: [] }, undefined],
 ])("the target of %s %o", (name, input, target) => expect(toolTarget(name, input)).toBe(target));
 
 test.each<[string, Record<string, unknown>, string | undefined]>([
   ["Read", { file_path: "/repo/specs/a.md" }, "specs/a.md"],
-  ["Glob", { pattern: "**/*.md", path: "/repo/specs" }, "**/*.md"],
-  ["Grep", { pattern: "TODO", path: "/repo/src" }, "TODO"],
+  ["Glob", { path: "/repo/specs", pattern: "**/*.md" }, "**/*.md"],
+  ["Grep", { path: "/repo/src", pattern: "TODO" }, "TODO"],
   ["LS", { path: "/repo/src" }, "src"],
   ["Read", { file_path: "/elsewhere/b.md" }, "/elsewhere/b.md"],
   ["Read", { file_path: "/repository/c.md" }, "/repository/c.md"],
@@ -46,10 +46,10 @@ test.each<[string, Record<string, unknown>, string | undefined]>([
 test("the message names the skill, the step, its reference, and the trigger", () => {
   expect(
     runMessage({
-      folder: "2026-10-12-cli-tuis",
       branch: "2026-10-12-cli-tuis",
-      step: "plan",
+      folder: "2026-10-12-cli-tuis",
       reference: "skills/uraeda/references/plan.md",
+      step: "plan",
       trigger: "manual",
     }),
   ).toBe(
@@ -62,13 +62,13 @@ test("the message names the skill, the step, its reference, and the trigger", ()
 test("a bug's message names its folder under specs/bugs/", () => {
   expect(
     runMessage({
-      folder: "2026-10-14-lost-undo",
       branch: "fix/2026-10-14-lost-undo",
       bug: true,
-      step: "assess",
-      reference: "skills/uraeda/references/bug.md",
-      trigger: "proposal",
       file: "report.md",
+      folder: "2026-10-14-lost-undo",
+      reference: "skills/uraeda/references/bug.md",
+      step: "assess",
+      trigger: "proposal",
     }),
   ).toMatch(
     /^\/uraeda:uraeda Continue the bug specs\/bugs\/2026-10-14-lost-undo\/, on branch fix\/2026-10-14-lost-undo\.\nThe human committed the bug report\.\n/,
@@ -78,12 +78,12 @@ test("a bug's message names its folder under specs/bugs/", () => {
 test("the message of answered questions is three lines", () => {
   expect(
     runMessage({
-      folder: "2026-10-13-chat",
       branch: "2026-10-13-chat",
-      step: "spec",
-      reference: "skills/uraeda/references/spec.md",
-      trigger: "answers",
       file: "clarifications-01.md",
+      folder: "2026-10-13-chat",
+      reference: "skills/uraeda/references/spec.md",
+      step: "spec",
+      trigger: "answers",
     }),
   ).toBe(
     "/uraeda:uraeda Continue the feature specs/2026-10-13-chat/, on branch 2026-10-13-chat.\n" +
@@ -93,14 +93,14 @@ test("the message of answered questions is three lines", () => {
 });
 
 test("the chat's opening line", () => {
-  expect(chatOpening({ folder: "2026-10-13-chat", branch: "2026-10-13-chat" })).toBe(
+  expect(chatOpening({ branch: "2026-10-13-chat", folder: "2026-10-13-chat" })).toBe(
     "A human is chatting with you about the feature specs/2026-10-13-chat/, on branch " +
       "2026-10-13-chat: answer, and change files, commit, or move the workflow only when they ask.",
   );
 });
 
 test("the retry message names the allowed action", () => {
-  expect(retryMessage({ tool: "Bash", target: "git push origin HEAD" })).toBe(
+  expect(retryMessage({ target: "git push origin HEAD", tool: "Bash" })).toBe(
     "Try the blocked action again, now allowed: Bash git push origin HEAD",
   );
   expect(retryMessage({ tool: "mcp__x__y" })).toBe(

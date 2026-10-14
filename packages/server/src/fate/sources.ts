@@ -86,33 +86,33 @@ export function repositoriesRecord(ctx: Context, added: string | null = null): R
 /** The record of a file its feature does not have: marked missing, its other fields empty. */
 function missingFile(id: string, folder: string, name: string): FileRecord {
   return {
-    id,
+    current: { document: { blocks: [], hash: "" }, items: {}, text: "" },
     folder,
+    id,
+    kind: "",
+    missing: true,
     name,
     path: "",
-    kind: "",
-    current: { text: "", document: { blocks: [], hash: "" }, items: {} },
     reviewStale: false,
-    missing: true,
   };
 }
 
 /** The record of a folder that is not a feature's: marked missing, its other fields empty. */
 function missingFeature(folder: string): FeatureRecord {
   return {
+    files: [],
+    folder,
     id: folder,
     kind: "",
-    folder,
-    slug: "",
-    title: "",
-    source: "",
-    uncommitted: false,
-    files: [],
+    missing: true,
     mockups: [],
-    step: { name: "none", waitsOn: "nobody" },
     problems: [],
     session: null,
-    missing: true,
+    slug: "",
+    source: "",
+    step: { name: "none", waitsOn: "nobody" },
+    title: "",
+    uncommitted: false,
   };
 }
 
@@ -257,7 +257,7 @@ export const sources = createSources<Context>([
   fileSource(proposalHintsDataView, {
     byIds: async ({ binding }, ids) =>
       ids.includes(PROPOSAL_HINTS_ID)
-        ? [{ id: PROPOSAL_HINTS_ID, hints: await binding.proposalHints() }]
+        ? [{ hints: await binding.proposalHints(), id: PROPOSAL_HINTS_ID }]
         : [],
   }),
 ]);

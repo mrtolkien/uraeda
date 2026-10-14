@@ -17,7 +17,7 @@ export const WATCHDOG_MS = 30 * 60_000;
  */
 export const TERMINATE_AFTER_MS = 10_000;
 /** A tool's output is cut to this many characters. */
-export const OUTPUT_LIMIT = 4_000;
+export const OUTPUT_LIMIT = 4000;
 
 export const REFUSALS = {
   /** A write on a feature, or a session another server holds, while its agent works. */
@@ -27,6 +27,7 @@ export const REFUSALS = {
   noBranch: "This feature has no branch yet: commit its proposal first.",
   /** A take-back of a message the agent read. */
   read: "The agent already read it.",
+  /** A message with no text. */
   blank: "The message is empty.",
   /** An allow of a blocked action no rule matches alone, as a command with a `*`. */
   noRule: "No allow rule can match only this action.",
@@ -42,83 +43,83 @@ export const RESUMED = "The agent went on by itself: a background task reported 
 /** What changed: the agent's availability, or a session, with the turn and its new state. */
 export type SessionChange =
   | { agent: true }
-  | { repo: string; session: string; folder: string | null; turn?: number; state?: TurnState };
+  | { folder: string | null; repo: string; session: string; state?: TurnState; turn?: number };
 
 export type Timer = ReturnType<typeof setTimeout>;
 export type Message = Extract<Item, { kind: "message" }>;
 export type Tool = Extract<Item, { kind: "tool" }>;
 
 /** How a turn ends: its state, and why. */
-export type TurnEnd = { state: TurnState; reason?: string };
+export type TurnEnd = { reason?: string; state: TurnState };
 
 /** A session's open process. */
 export type Proc = {
   agent: AgentProcess;
-  cwd: string;
-  /** Closed by the idle timer, a plugin error, or "Allow and retry": no message goes to it. */
-  closing: boolean;
-  /** Resolves once its events are read to its exit. */
-  done: Promise<void>;
-  /** SIGTERM, then SIGKILL, for a closed process that does not exit. */
-  terminate: Array<Timer>;
   /**
    * The tool calls of its background sub-agents still running: a turn does not end before they
    * report back.
    */
   background: Set<string>;
+  /** Closed by the idle timer, a plugin error, or "Allow and retry": no message goes to it. */
+  closing: boolean;
+  cwd: string;
+  /** Resolves once its events are read to its exit. */
+  done: Promise<void>;
   /**
    * The turn that last ended on it, which reopens when the agent goes on by itself after it ended:
    * a background shell or sub-agent reported back.
    */
-  ended?: { id: number; first: string };
+  ended?: { first: string; id: number };
+  /** SIGTERM, then SIGKILL, for a closed process that does not exit. */
+  terminate: Array<Timer>;
 };
 
 /** The turn running on a session's process. */
 export type Running = {
-  id: number;
-  /** How the turn ends once it was halted: by Stop, the watchdog, its plugin, or the server. */
-  stop?: TurnEnd;
+  /** What it does now, which the line at its end says, and since when nothing new showed. */
+  activity: TurnActivity;
   /** The ID of the message that started it. */
   first: string;
+  id: number;
+  /** Its reply ended, and it waits for its background sub-agents to report back. */
+  replied?: boolean;
+  skipped?: { count: number; seq: number };
+  /** How the turn ends once it was halted: by Stop, the watchdog, its plugin, or the server. */
+  stop?: TurnEnd;
+  terminate: Array<Timer>;
+  /** The text block being streamed. */
+  text?: { seq: number; text: string };
   /**
    * Its tool calls not ended, or whose background sub-agent still runs: `ended` holds their
    * result until it ends.
    */
   tools: Map<
     string,
-    { seq: number; item: Tool; at: number; ended?: { isError: boolean; output: string } }
+    { at: number; ended?: { isError: boolean; output: string }; item: Tool; seq: number }
   >;
-  /** The text block being streamed. */
-  text?: { seq: number; text: string };
-  /** What it does now, which the line at its end says, and since when nothing new showed. */
-  activity: TurnActivity;
-  /** Its reply ended, and it waits for its background sub-agents to report back. */
-  replied?: boolean;
-  skipped?: { seq: number; count: number };
   watchdog?: Timer;
-  terminate: Array<Timer>;
 };
 
 /** A turn waiting for the running one to end: its message is written when it starts. */
 export type Queued = { id: number; message: Outgoing };
 
 /** A message this server sent, or will send, and where its item is. */
-export type Sent = { turn: number; seq: number; item: Message; written: boolean };
+export type Sent = { item: Message; seq: number; turn: number; written: boolean };
 
 /** What this server keeps of a session while it is used. */
 export type Live = {
-  id: string;
-  repo: string;
+  /** The sends and turn starts waiting or running, which keep it in memory. */
+  calls: number;
   folder: string | null;
-  proc?: Proc;
-  turn?: Running;
-  queue: Array<Queued>;
-  messages: Map<string, Sent>;
+  id: string;
   idle?: Timer;
   /** Sends and turn starts, one after another. */
   lock: Promise<unknown>;
-  /** The sends and turn starts waiting or running, which keep it in memory. */
-  calls: number;
+  messages: Map<string, Sent>;
+  proc?: Proc;
+  queue: Array<Queued>;
+  repo: string;
+  turn?: Running;
 };
 
 /**
@@ -127,18 +128,18 @@ export type Live = {
  */
 export type SessionContext = {
   adapter: Adapter;
-  cache: SessionCache;
   binding: Binding;
+  cache: SessionCache;
   /** Reports a change of the session, with its turn and that turn's new state. */
   changed: (live: Live, turn?: number, state?: TurnState) => void;
   /** The sessions kept in memory. */
   live: LiveSessions;
   /** Their processes: opened, closed, and read. */
   processes: Processes;
-  /** Their turns: started, queued, halted, and ended. */
-  turns: Turns;
   /** Their events, recorded as items. */
   transcript: Transcript;
+  /** Their turns: started, queued, halted, and ended. */
+  turns: Turns;
 };
 
 export const refused = (text: string) => new Error(`refused: ${text}`);

@@ -16,7 +16,7 @@ const STDERR_LINES = 20;
 /** The characters of stderr kept while a process runs, enough for its last lines. */
 const STDERR_KEPT = 64_000;
 /** `claude --version` gives up after this long. */
-const VERSION_TIMEOUT_MS = 5_000;
+const VERSION_TIMEOUT_MS = 5000;
 
 /** What signals each open process's group, until its output closes. */
 const groups = new Set<(signal: NodeJS.Signals) => void>();
@@ -106,11 +106,11 @@ export class ClaudeAdapter implements Adapter {
   readonly name = "Claude Code";
   /** Taking back is `cancel_async_message`, which `validate-claude.ts` checks (R5). */
   readonly capabilities: Capabilities = {
-    steer: true,
-    queue: true,
-    takeBack: true,
     approvals: false,
+    queue: true,
+    steer: true,
     subagents: true,
+    takeBack: true,
   };
   #command: string;
   #configDir: string;
@@ -131,7 +131,7 @@ export class ClaudeAdapter implements Adapter {
       execFile(
         this.#command,
         ["--version"],
-        { timeout: VERSION_TIMEOUT_MS, encoding: "utf8" },
+        { encoding: "utf8", timeout: VERSION_TIMEOUT_MS },
         (error, stdout) => {
           const first = stdout.split("\n")[0]?.trim();
           resolve(error || !first ? undefined : first);
@@ -163,8 +163,8 @@ export class ClaudeAdapter implements Adapter {
     const grouped = process.platform !== "win32";
     const child = spawn(this.#command, claudeArgs(options, this.#pluginDir), {
       cwd: options.cwd,
-      stdio: ["pipe", "pipe", "pipe"],
       detached: grouped,
+      stdio: ["pipe", "pipe", "pipe"],
     });
     // Until its output closes, a process of the group holds it: the group's ID is not reused.
     let running = child.pid !== undefined;
@@ -203,23 +203,23 @@ export class ClaudeAdapter implements Adapter {
         // Node says ENOENT for a missing directory as for a missing command.
         if (error.code === "ENOENT" && !existsSync(options.cwd)) {
           resolve({
-            type: "exit",
             code: null,
             stderr: `The session's directory is gone: ${options.cwd}`,
+            type: "exit",
           });
           return;
         }
         resolve({
-          type: "exit",
           code: null,
           stderr: error.message,
+          type: "exit",
           ...(error.code === "ENOENT" ? { missing: true } : {}),
         });
       });
       // After stdout and stderr have closed, so nothing printed is lost.
       child.on("close", (code) => {
         const tail = stderr.trimEnd().split("\n").slice(-STDERR_LINES).join("\n");
-        resolve({ type: "exit", code, stderr: tail });
+        resolve({ code, stderr: tail, type: "exit" });
       });
     });
 
@@ -248,24 +248,24 @@ export class ClaudeAdapter implements Adapter {
       }
     };
     const control = (request: Record<string, unknown>) =>
-      write({ type: "control_request", request_id: randomUUID(), request });
+      write({ request, request_id: randomUUID(), type: "control_request" });
 
     return {
-      events,
-      send: ({ id, text, when }) => {
-        write({
-          type: "user",
-          message: { role: "user", content: text },
-          uuid: id,
-          priority: when === "steer" ? "next" : "later",
-        });
-      },
-      takeBack: (id) => control({ subtype: "cancel_async_message", message_uuid: id }),
-      interrupt: () => control({ subtype: "interrupt" }),
       close: () => {
         child.stdin.end();
       },
+      events,
+      interrupt: () => control({ subtype: "interrupt" }),
       kill: signal,
+      send: ({ id, text, when }) => {
+        write({
+          message: { content: text, role: "user" },
+          priority: when === "steer" ? "next" : "later",
+          type: "user",
+          uuid: id,
+        });
+      },
+      takeBack: (id) => control({ message_uuid: id, subtype: "cancel_async_message" }),
     };
   }
 }

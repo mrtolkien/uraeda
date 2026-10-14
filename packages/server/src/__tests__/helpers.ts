@@ -37,7 +37,7 @@ const names = new WeakMap<App, string>();
  */
 export async function testHosts(
   repos: Array<string>,
-  { installed = true, binding: using = binding }: { installed?: boolean; binding?: Binding } = {},
+  { binding: using = binding, installed = true }: { binding?: Binding; installed?: boolean } = {},
 ) {
   const dataDir = temporaryFolder("uraeda-data");
   const added = [];
@@ -45,25 +45,25 @@ export async function testHosts(
     added.push((await binding.addRepository(dataDir, repo)).repository.name);
   }
   let hosts: Hosts | undefined;
-  const { sessions, adapter } = fakeSessions({ installed, hosts: () => hosts });
+  const { adapter, sessions } = fakeSessions({ hosts: () => hosts, installed });
   managers.push(sessions);
   hosts = await Hosts.open({ binding: using, dataDir, sessions });
   opened.push(hosts);
-  return { hosts, sessions, adapter, dataDir, names: added };
+  return { adapter, dataDir, hosts, names: added, sessions };
 }
 
 function app(
   allowedHosts: Array<string>,
-  { hosts, sessions, dataDir, names: [name] }: Awaited<ReturnType<typeof testHosts>>,
+  { dataDir, hosts, names: [name], sessions }: Awaited<ReturnType<typeof testHosts>>,
 ) {
   const created = createApp({
-    port,
     allowedHosts,
     allowOrigins: ["http://localhost:5173"],
     binding,
-    sessions,
-    hosts,
     dataDir,
+    hosts,
+    port,
+    sessions,
   });
   names.set(created, name);
   return created;
@@ -96,15 +96,15 @@ export async function fateAt(
 ) {
   const base = name === null ? "" : `/r/${name}`;
   const response = await app.request(`http://127.0.0.1:${port}${base}/fate`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
     body: JSON.stringify({
       operations: operations.map((operation, index) => ({ id: String(index), ...operation })),
       version: 1,
     }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
   });
   const body = (await response.json()) as {
-    results: Array<{ ok: boolean; data?: any; error?: { code: string; message: string } }>;
+    results: Array<{ data?: any; error?: { code: string; message: string }; ok: boolean }>;
   };
   return body.results;
 }
@@ -122,7 +122,7 @@ export async function byIdAt(
   ids: Array<string>,
   select: Array<string>,
 ) {
-  const [result] = await fateAt(app, name, [{ kind: "byId", type, ids, select }]);
+  const [result] = await fateAt(app, name, [{ ids, kind: "byId", select, type }]);
   if (!result.ok) {
     throw new Error(result.error?.message);
   }
@@ -136,7 +136,7 @@ export async function byId(app: App, type: string, ids: Array<string>, select: A
 
 /** Runs a mutation, and returns its result. */
 export async function mutate(app: App, name: string, input: unknown, select: Array<string>) {
-  const [result] = await fate(app, [{ kind: "mutation", name, input, select }]);
+  const [result] = await fate(app, [{ input, kind: "mutation", name, select }]);
   return result;
 }
 
@@ -150,26 +150,26 @@ export function searchCache(sessions = 500, items = 100_000) {
   let needle = "";
   for (let n = 0; n < sessions; n++) {
     const session = cache.createSession({
-      repo: "/repo",
-      folder: null,
       agent: "fake",
+      folder: null,
       nativeId: `native-${n}`,
+      repo: "/repo",
       title: `Chat ${n}`,
     });
     const turn = cache.addTurn({
-      sessionId: session.id,
-      kind: "chat",
-      trigger: null,
-      step: null,
       allowed: null,
+      kind: "chat",
+      sessionId: session.id,
       state: "running",
+      step: null,
+      trigger: null,
     });
     cache.appendItem(turn, {
-      kind: "message",
       id: `message-${n}`,
-      text: `Question ${n} about the cache`,
+      kind: "message",
       origin: "human",
       state: "read",
+      text: `Question ${n} about the cache`,
     });
     for (let seq = 1; seq < perSession; seq++) {
       const last = n === sessions / 2 && seq === perSession - 1;
@@ -178,8 +178,8 @@ export function searchCache(sessions = 500, items = 100_000) {
       }
       cache.appendItem(turn, {
         kind: last || seq % 2 === 0 ? "text" : "system",
-        text: last ? "Found the needle in the runner" : `Reply ${seq} of chat ${n}, about WAL mode`,
         streaming: false,
+        text: last ? "Found the needle in the runner" : `Reply ${seq} of chat ${n}, about WAL mode`,
       } as Parameters<SessionCache["appendItem"]>[1]);
     }
   }

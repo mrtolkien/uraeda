@@ -32,15 +32,15 @@ function touch(type: string, target: EventTarget, x: number, y: number) {
   target.dispatchEvent(
     new PointerEvent(type, {
       bubbles: true,
-      cancelable: true,
-      composed: true,
-      pointerId: 1,
-      pointerType: "touch",
-      isPrimary: true,
       button: type === "pointermove" ? -1 : 0,
       buttons: type === "pointerup" ? 0 : 1,
+      cancelable: true,
       clientX: x,
       clientY: y,
+      composed: true,
+      isPrimary: true,
+      pointerId: 1,
+      pointerType: "touch",
     }),
   );
 }

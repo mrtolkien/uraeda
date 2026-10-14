@@ -32,19 +32,20 @@ import { plain } from "./Spans.tsx";
 import { DraftView, FeatureView, PrioritiesView } from "./views.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
 
-const SECTIONS: Record<string, string> = {
-  now: "Now",
-  next: "Next",
-  later: "Later",
-  blocked: "Blocked",
-};
+/** Each section's title, in the order the page shows them: a map, which the lint does not sort. */
+const SECTIONS = new Map([
+  ["now", "Now"],
+  ["next", "Next"],
+  ["later", "Later"],
+  ["blocked", "Blocked"],
+]);
 
 const styles = stylex.create({
-  // The line, the view's title.
   line: {
+    // The line, the view's title.
     fontSize: typeScaleVars["--text-heading-2-size"],
-    lineHeight: typeScaleVars["--text-heading-2-leading"],
     fontWeight: fontWeightVars["--font-weight-semibold"],
+    lineHeight: typeScaleVars["--text-heading-2-leading"],
   },
 });
 
@@ -96,21 +97,21 @@ function DraftPart({ path }: { path: string }) {
   };
   return (
     <VStack gap={3}>
-      <Text type="supporting" color="secondary">
+      <Text color="secondary" type="supporting">
         {path.replace(/^specs\//, "")} · {draft.committed ? "committed" : "not committed"}
       </Text>
       <Blocks document={draft.document} ids={ids} />
       <TextInput
-        label="Slug"
         description="Two words at most: it names the folder and the branch."
-        value={slug}
+        label="Slug"
         onChange={(value: string) => setSlug(value)}
+        value={slug}
       />
       <HStack gap={2}>
         <Button label="Edit" onClick={() => navigate(here(`/edit/${path}`))} />
-        <Button variant="primary" label="Start the feature" clickAction={start} />
+        <Button clickAction={start} label="Start the feature" variant="primary" />
       </HStack>
-      {message && <Banner status="error" title={message} collapsible={false} />}
+      {message && <Banner collapsible={false} status="error" title={message} />}
     </VStack>
   );
 }
@@ -123,7 +124,7 @@ export function TaskView({ entryKey }: { entryKey: string }) {
   const fate = useFateClient();
   // The line's place while it is renamed: its key changes before its address does.
   const [renaming, setRenaming] = useState<string>();
-  const { priorities, found } = usePriority(entryKey, renaming);
+  const { found, priorities } = usePriority(entryKey, renaming);
   const toast = useUndoToast();
   const here = useRepoPath();
   const repo = useRepository();
@@ -137,19 +138,19 @@ export function TaskView({ entryKey }: { entryKey: string }) {
     return (
       <Page>
         <Banner
-          status="error"
-          title="This line is no longer in PRIORITIES.md."
           collapsible={false}
           description={
-            <Link href={here("/priorities")} hasUnderline>
+            <Link hasUnderline href={here("/priorities")}>
               Open the priorities
             </Link>
           }
+          status="error"
+          title="This line is no longer in PRIORITIES.md."
         />
       </Page>
     );
   }
-  const { entry, section, index } = found;
+  const { entry, index, section } = found;
   const hash = priorities.hash;
   const text = plain(entry.spans);
   const link = linkOf(entry.spans);
@@ -175,7 +176,7 @@ export function TaskView({ entryKey }: { entryKey: string }) {
   const rename = async (next: string) => {
     setRenaming(entry.id);
     const result = await fate.mutations.priorities.edit({
-      input: { entry: entry.id, text: next, hash },
+      input: { entry: entry.id, hash, text: next },
       view: PrioritiesView,
     });
     if (result.error) {
@@ -194,14 +195,14 @@ export function TaskView({ entryKey }: { entryKey: string }) {
   const move = (to: string) =>
     run(() =>
       fate.mutations.priorities.move({
-        input: { entry: entry.id, section: to, index: Number.MAX_SAFE_INTEGER, hash },
+        input: { entry: entry.id, hash, index: Number.MAX_SAFE_INTEGER, section: to },
         view: PrioritiesView,
       }),
     );
 
   const draft = async () => {
     const result = await run(() =>
-      fate.mutations.draft.create({ input: { line: entry.id, hash }, view: DraftView }),
+      fate.mutations.draft.create({ input: { hash, line: entry.id }, view: DraftView }),
     );
     const path = (result as { result?: { path?: unknown } }).result?.path;
     if (!result.error && typeof path === "string") {
@@ -212,7 +213,7 @@ export function TaskView({ entryKey }: { entryKey: string }) {
   const remove = async () => {
     // What Undo writes back: the line's lines, nested ones included, exactly as they were.
     const lines = entry.lines;
-    const at = { section: section.section, index };
+    const at = { index, section: section.section };
     const result = await run(() =>
       fate.mutations.priorities.remove({ input: { entry: entry.id, hash }, view: PrioritiesView }),
     );
@@ -225,7 +226,7 @@ export function TaskView({ entryKey }: { entryKey: string }) {
         // Over the file as it is now: the line goes back to its place, or its section's end.
         const now = await readPrioritiesHash(fate);
         const restored = await fate.mutations.priorities.insert({
-          input: { ...at, lines, hash: now },
+          input: { ...at, hash: now, lines },
           view: PrioritiesView,
         });
         return restored.error ? failed : undefined;
@@ -242,22 +243,22 @@ export function TaskView({ entryKey }: { entryKey: string }) {
   return (
     <Page>
       <VStack gap={4}>
-        <Text type="supporting" color="secondary">
+        <Text color="secondary" type="supporting">
           {section.title} · {index + 1} of {entries.length}
         </Text>
         <div {...stylex.props(styles.line)}>
-          <EditableLine value={entry.text} label="Line" onSave={rename} display={text} />
+          <EditableLine display={text} label="Line" onSave={rename} value={entry.text} />
         </div>
         <SegmentedControl
           label="Section"
-          value={section.section}
           onChange={(to: string) => void move(to)}
+          value={section.section}
         >
-          {Object.entries(SECTIONS).map(([id, title]) => (
-            <SegmentedControlItem key={id} value={id} label={title} />
+          {[...SECTIONS].map(([id, title]) => (
+            <SegmentedControlItem key={id} label={title} value={id} />
           ))}
         </SegmentedControl>
-        {message && <Banner status="error" title={message} collapsible={false} />}
+        {message && <Banner collapsible={false} status="error" title={message} />}
         <Divider />
         {link && isDraft(link) ? (
           <Suspense fallback={<Spinner label="Loading the draft" />}>
@@ -265,7 +266,7 @@ export function TaskView({ entryKey }: { entryKey: string }) {
           </Suspense>
         ) : link ? (
           <Paragraph>
-            <Link href={pathLink(link, repo).href} hasUnderline>
+            <Link hasUnderline href={pathLink(link, repo).href}>
               Open {link.replace(/^specs\//, "")}
             </Link>
           </Paragraph>
@@ -273,19 +274,19 @@ export function TaskView({ entryKey }: { entryKey: string }) {
           <VStack gap={2}>
             <Paragraph color="secondary">No draft yet.</Paragraph>
             <HStack gap={2}>
-              <Button variant="primary" label="Draft" clickAction={draft} />
+              <Button clickAction={draft} label="Draft" variant="primary" />
             </HStack>
           </VStack>
         )}
         <HStack gap={2}>
-          <Button variant="destructive" label="Delete" clickAction={remove} />
+          <Button clickAction={remove} label="Delete" variant="destructive" />
         </HStack>
         <Divider />
-        <HStack justify="between" gap={2}>
-          <Button label="‹ Previous" isDisabled={index === 0} onClick={() => step(index - 1)} />
+        <HStack gap={2} justify="between">
+          <Button isDisabled={index === 0} label="‹ Previous" onClick={() => step(index - 1)} />
           <Button
-            label="Next ›"
             isDisabled={index === entries.length - 1}
+            label="Next ›"
             onClick={() => step(index + 1)}
           />
         </HStack>

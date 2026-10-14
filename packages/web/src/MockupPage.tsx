@@ -17,22 +17,22 @@ import { useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { FileView } from "./views.ts";
 
 const styles = stylex.create({
-  // The page's full width, under its header.
+  frame: {
+    // The mockup as tall as the screen, the page's full width.
+    backgroundColor: colorVars["--color-background-surface"],
+    borderBlockStartColor: colorVars["--color-border"],
+    borderBlockStartStyle: "solid",
+    borderBlockStartWidth: borderVars["--border-width"],
+    borderWidth: 0,
+    boxSizing: "border-box",
+    display: "block",
+    height: "var(--size-viewport-height)",
+    width: "100%",
+  },
   header: {
+    // The page's full width, under its header.
     paddingBlock: spacingVars["--spacing-3"],
     paddingInline: spacingVars["--spacing-4"],
-  },
-  // The mockup as tall as the screen, the page's full width.
-  frame: {
-    display: "block",
-    boxSizing: "border-box",
-    width: "100%",
-    height: "var(--size-viewport-height)",
-    borderWidth: 0,
-    borderBlockStartWidth: borderVars["--border-width"],
-    borderBlockStartStyle: "solid",
-    borderBlockStartColor: colorVars["--color-border"],
-    backgroundColor: colorVars["--color-background-surface"],
   },
 });
 
@@ -71,10 +71,10 @@ export function MockupPage({ folder, name }: { folder: string; name: string }) {
   const send = async (text: string) => {
     const result = await fate.mutations.review.comment({
       input: {
-        folder,
         file: "spec.md",
+        folder,
         ...(line
-          ? { text, startLine: line.startLine, endLine: line.endLine }
+          ? { endLine: line.endLine, startLine: line.startLine, text }
           : { text: `Mockup ${name}: ${text}` }),
       },
       view: FileView,
@@ -89,26 +89,26 @@ export function MockupPage({ folder, name }: { folder: string; name: string }) {
   return (
     <>
       <div {...stylex.props(styles.header)}>
-        <Crumbs folder={folder} current={name} />
-        <HStack gap={2} wrap="wrap" align="center">
-          <Link href={source} target="_blank" hasUnderline>
+        <Crumbs current={name} folder={folder} />
+        <HStack align="center" gap={2} wrap="wrap">
+          <Link hasUnderline href={source} target="_blank">
             Open in a new tab
           </Link>
           {reviewing && <Button label="Comment" onClick={() => setOpen(true)} />}
         </HStack>
       </div>
-      <iframe title={name} src={source} sandbox="allow-scripts" {...stylex.props(styles.frame)} />
+      <iframe sandbox="allow-scripts" src={source} title={name} {...stylex.props(styles.frame)} />
       {reviewing && (
-        <Overlay label="Comment" isOpen={open} onClose={() => setOpen(false)}>
+        <Overlay isOpen={open} label="Comment" onClose={() => setOpen(false)}>
           <CommentForm
             anchor={
               line
-                ? anchor({ start: line.startLine, end: line.endLine, heading: line.heading ?? "" })
+                ? anchor({ end: line.endLine, heading: line.heading ?? "", start: line.startLine })
                 : `General, on ${name}`
             }
-            quote={line && document ? quoteOf(textOf(document, line)) : undefined}
-            onSubmit={send}
             onCancel={() => setOpen(false)}
+            onSubmit={send}
+            quote={line && document ? quoteOf(textOf(document, line)) : undefined}
           />
         </Overlay>
       )}

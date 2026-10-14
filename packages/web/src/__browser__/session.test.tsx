@@ -28,8 +28,8 @@ function inView(element: Element) {
 /** Lines of the agent's text, numbered. */
 function lines(count: number, prefix: string) {
   return Array.from({ length: count }, (_, index) => ({
-    type: "text" as const,
     text: `${prefix} ${index + 1}.`,
+    type: "text" as const,
   }));
 }
 
@@ -57,7 +57,7 @@ test("a working session: beside the feature page or a page, following its end (U
   const box = scroller();
   box.scrollTo(0, box.scrollHeight);
   await drawn();
-  await agent.agentEmit([{ type: "text", text: "The newest line." }]);
+  await agent.agentEmit([{ text: "The newest line.", type: "text" }]);
   const newest = await within(log).findByText("The newest line.", undefined, LIVE);
   await expect.poll(() => inView(newest), LIVE).toBe(true);
 
@@ -90,34 +90,34 @@ test("a working session, with a sub-agent and a steered message, in dark (SC-004
   window.localStorage.setItem("uraeda.theme", "dark");
   await show(`/f/${CLI}/session`, "CLI TUIs");
   await startTurn("Plan the CLI.", [
-    { type: "text", text: "Reading **the answers**." },
+    { text: "Reading **the answers**.", type: "text" },
     {
-      type: "toolStart",
       id: "a",
-      name: "Read",
-      kind: "read",
       input: { file_path: "spec.md" },
+      kind: "read",
+      name: "Read",
       target: "specs/2026-10-12-cli-tuis/spec.md",
-    },
-    { type: "toolEnd", id: "a", isError: false, output: "# Spec" },
-    {
       type: "toolStart",
+    },
+    { id: "a", isError: false, output: "# Spec", type: "toolEnd" },
+    {
       id: "task",
-      name: "Task",
-      kind: "other",
       input: {},
+      kind: "other",
+      name: "Task",
       subagent: { description: "Map the runner code" },
+      type: "toolStart",
     },
     {
-      type: "toolStart",
       id: "b",
-      name: "Grep",
-      kind: "search",
       input: {},
-      target: '"sessions" packages/server/src/runner/',
+      kind: "search",
+      name: "Grep",
       parent: "task",
+      target: '"sessions" packages/server/src/runner/',
+      type: "toolStart",
     },
-    { type: "textDelta", text: "The runner already keeps one cache per repository." },
+    { text: "The runner already keeps one cache per repository.", type: "textDelta" },
   ]);
   const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
   await within(log).findByText(/keeps one cache/, undefined, LIVE);
@@ -152,7 +152,7 @@ test("Back from a session view returns to its position, following the end only f
   await show(`/f/${CLI}/session`, "CLI TUIs");
   await startTurn("Plan the CLI.", [
     ...lines(20, "Line"),
-    { type: "text", text: `As [the proposal](/f/${CLI}/proposal.md) asks.` },
+    { text: `As [the proposal](/f/${CLI}/proposal.md) asks.`, type: "text" },
     ...lines(20, "Next line"),
   ]);
   const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
@@ -173,18 +173,18 @@ test("Back from a session view returns to its position, following the end only f
   await followAndComeBack(proposal, `/f/${CLI}/proposal.md`);
   box = scroller();
   await expect.poll(() => Math.round(box.scrollTop), LIVE).toBe(position);
-  await agent.agentEmit([{ type: "text", text: "A line while scrolled up." }]);
+  await agent.agentEmit([{ text: "A line while scrolled up.", type: "text" }]);
   await screen.findByText("A line while scrolled up.", undefined, LIVE);
   await drawn();
   expect(Math.round(box.scrollTop)).toBe(position);
 
   // At the end: Back returns to the end, and the view follows it again.
-  await agent.agentEmit([{ type: "text", text: `Then [the spec](/f/${CLI}/spec.md).` }]);
+  await agent.agentEmit([{ text: `Then [the spec](/f/${CLI}/spec.md).`, type: "text" }]);
   const spec = await screen.findByRole("link", { name: "the spec" }, LIVE);
   box.scrollTo(0, box.scrollHeight);
   await drawn();
   await followAndComeBack(spec, `/f/${CLI}/spec.md`);
-  await agent.agentEmit([{ type: "text", text: "A line after coming back." }]);
+  await agent.agentEmit([{ text: "A line after coming back.", type: "text" }]);
   const newest = await screen.findByText("A line after coming back.", undefined, LIVE);
   await expect.poll(() => inView(newest), LIVE).toBe(true);
 });

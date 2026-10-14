@@ -4,7 +4,7 @@ import { renderPage } from "./helpers.tsx";
 
 /** US6.7 */
 test("the theme switch picks dark, kept by the browser, and back to the system", async () => {
-  const { unmount, repo } = await renderPage();
+  const { repo, unmount } = await renderPage();
 
   fireEvent.click(await screen.findByRole("radio", { name: "Dark" }));
   expect(document.querySelector('[data-theme="dark"]')).toBeTruthy();

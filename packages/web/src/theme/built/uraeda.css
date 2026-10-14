@@ -325,15 +325,15 @@
     --astryx-theme-neutral-color-on-tint-overlay-pressed: light-dark(#fafafa33, #0a0a0a33);
     --astryx-theme-neutral-color-destructive-overlay-hover: light-dark(#ff7f770D, #ee736c0D);
     --astryx-theme-neutral-color-destructive-overlay-pressed: light-dark(#ff7f771A, #ee736c1A);
-    --text-reading-size: 17px;
     --text-reading-line: 1.5;
+    --text-reading-size: 17px;
     --size-reading-measure: 90ch;
     --size-page-max: 720px;
     --size-pane-min: 400px;
     --size-viewport-height: 100dvh;
     --size-round-index: 240px;
-    --size-menu: 360px;
     --size-form: 560px;
+    --size-menu: 360px;
     --color-selection: var(--color-background-yellow);
     --color-selection-edge: var(--color-border-yellow);
   }
@@ -657,13 +657,13 @@
   }
 
   .astryx-chat-tool-calls {
-    min-width: 0;
     max-width: 100%;
+    min-width: 0;
   }
 
   .astryx-chat-tool-calls:is(*) span {
-    white-space: normal;
     overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .astryx-chat-tool-calls:is(*) span:nth-child(2) {
@@ -677,8 +677,8 @@
   }
 
   .astryx-side-nav-item:is(*) span {
-    white-space: normal;
     overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .astryx-text[data-color="primary"] { color: var(--color-text-primary); }
@@ -808,11 +808,11 @@
     --spacing-12: 57.6px;
     --spacing-0-5: 2.4px;
     --spacing-1-5: 7.2px;
-    --size-element-sm: 33.6px;
-    --size-element-md: 38.4px;
     --size-element-lg: 43.2px;
-    --text-reading-size: 19px;
+    --size-element-md: 38.4px;
+    --size-element-sm: 33.6px;
     --size-page-max: 1200px;
+    --text-reading-size: 19px;
   }
   }
 }
@@ -820,9 +820,9 @@
 @media (pointer: coarse) {
   @scope ([data-astryx-theme="uraeda"]) to ([data-astryx-theme]) {
     :scope {
-    --size-element-sm: 44px;
-    --size-element-md: 44px;
     --size-element-lg: 44px;
+    --size-element-md: 44px;
+    --size-element-sm: 44px;
   }
 
     .astryx-item {
@@ -847,16 +847,16 @@
     min-width: var(--size-element-md);
   }
 
-    .astryx-segmented-control-item[data-size="sm"] {
-    height: var(--size-element-sm);
+    .astryx-segmented-control-item[data-size="lg"] {
+    height: var(--size-element-lg);
   }
 
     .astryx-segmented-control-item[data-size="md"] {
     height: var(--size-element-md);
   }
 
-    .astryx-segmented-control-item[data-size="lg"] {
-    height: var(--size-element-lg);
+    .astryx-segmented-control-item[data-size="sm"] {
+    height: var(--size-element-sm);
   }
   }
 }

@@ -23,9 +23,9 @@ export type WorkspaceRecord = Record_<WorkspaceView> & {
 /** A feature, or `missing` alone when no feature has its folder. */
 export type FeatureRecord = Record_<FeatureView> & {
   id: string;
+  missing?: boolean;
   /** Its session's ID, null before its first message. */
   session: string | null;
-  missing?: boolean;
 };
 /** A workflow file, or `missing` alone when its feature has no such file. */
 export type FileRecord = Record_<FileView> & { missing?: boolean };
@@ -35,77 +35,77 @@ export type FileRecord = Record_<FileView> & { missing?: boolean };
  * field an answer leaves out, so a review removed or a version committed would stay on screen.
  */
 export function sentFile(record: FileRecord): FileRecord {
-  const cleared = { status: null, tip: null, committed: null, review: null, missing: null };
+  const cleared = { committed: null, missing: null, review: null, status: null, tip: null };
   return { ...cleared, ...record } as unknown as FileRecord;
 }
 export type PrioritiesRecord = Record_<Priorities> & { id: string };
 export type DraftRecord = Record_<DraftView> & { id: string };
 /** The proposal template's guidance, by heading, which the editor shows in empty sections. */
-export type ProposalHintsRecord = { id: string; hints: Array<Record_<ProposalHint>> };
+export type ProposalHintsRecord = { hints: Array<Record_<ProposalHint>>; id: string };
 
 /** The agent sessions run on, and what it can do: one record, `agent`. */
 export type AgentRecord = {
+  available: boolean;
+  /** What the UI may offer, and nothing more. */
+  capabilities: Capabilities;
   id: string;
   /** Its kind, stored with its sessions: `claude`. */
   kind: string;
   /** Its name, for people: "Claude Code". */
   name: string;
-  available: boolean;
   version: string | null;
-  /** What the UI may offer, and nothing more. */
-  capabilities: Capabilities;
 };
 
 /** A sub-agent working in a session's running turn. */
-export type SubagentRecord = { id: string; description: string };
+export type SubagentRecord = { description: string; id: string };
 
 /** A session, without its turns' items. */
 export type SessionRecord = {
-  id: string;
-  /** The feature's folder, null for a chat. */
-  folder: string | null;
   /** The agent's kind. */
   agent: string;
-  /** A chat's title, "New chat" before its first message, or its feature's title. */
-  title: string;
+  archived: boolean;
+  /** The feature's folder, null for a chat. */
+  folder: string | null;
+  id: string;
+  /** Where it works: "branch <branch>", or "main checkout, branch <branch>" for a chat. */
+  place: string;
   status: SessionStatus;
   /** "Working", "Needs you", "Failed", "New reply", "Idle", or "Stopped". */
   statusLabel: string;
   /** Why it needs you: a blocked action, or the feature's step. */
   statusReason: "blocked" | "step" | null;
+  /** The sub-agents of its running turn that have not ended. */
+  subagents: Array<SubagentRecord>;
+  /** A chat's title, "New chat" before its first message, or its feature's title. */
+  title: string;
+  /** Its turns' IDs, oldest first. */
+  turns: Array<string>;
   /**
    * Whether its latest turn ended after the human last saw it, whatever its status: the view
    * records it seen.
    */
   unseen: boolean;
-  /** Where it works: "branch <branch>", or "main checkout, branch <branch>" for a chat. */
-  place: string;
-  /** Its turns' IDs, oldest first. */
-  turns: Array<string>;
-  archived: boolean;
-  /** The sub-agents of its running turn that have not ended. */
-  subagents: Array<SubagentRecord>;
 };
 
 /** A turn of a session, without its items. */
 export type TurnRecord = {
-  id: string;
-  session: string;
-  kind: TurnKind;
-  trigger: Trigger | null;
-  /** A workflow turn's step when it started. */
-  step: string | null;
-  /** An allow turn's rule. */
-  allowed: string | null;
-  state: TurnState;
-  /** Why it failed or stopped. */
-  reason: string | null;
-  startedAt: string | null;
-  endedAt: string | null;
-  /** The count of its item pages, of 100 items each. */
-  pages: number;
   /** What it does now while it runs, "Thinking" or "Writing spec.md", and since when. */
   activity: TurnActivity | null;
+  /** An allow turn's rule. */
+  allowed: string | null;
+  endedAt: string | null;
+  id: string;
+  kind: TurnKind;
+  /** The count of its item pages, of 100 items each. */
+  pages: number;
+  /** Why it failed or stopped. */
+  reason: string | null;
+  session: string;
+  startedAt: string | null;
+  state: TurnState;
+  /** A workflow turn's step when it started. */
+  step: string | null;
+  trigger: Trigger | null;
 };
 
 /**
@@ -114,22 +114,22 @@ export type TurnRecord = {
  */
 export type TurnLogRecord = {
   id: string;
-  turn: string;
-  page: number;
   items: Array<Item & { seq: number }>;
+  page: number;
+  turn: string;
 };
 
 /** A session's row in the sidebar. */
 export type SessionRowRecord = {
-  id: string;
+  archived: boolean;
   folder: string | null;
-  title: string;
+  id: string;
   status: SessionStatus;
   statusLabel: string;
-  archived: boolean;
+  subagents: Array<SubagentRecord>;
+  title: string;
   /** The last turn's start or end. */
   updatedAt: string;
-  subagents: Array<SubagentRecord>;
 };
 
 /** The sidebar's sessions, what needs the human first: one record, `all`, kept live. */
@@ -144,22 +144,22 @@ export type SessionSearchRecord = { id: string; rows: Array<SessionRowRecord> };
  */
 export type WorkflowMessageRecord = {
   id: string;
-  text: string;
+  refusal: string | null;
   /** The step the message starts. */
   step: string;
-  refusal: string | null;
+  text: string;
 };
 
 /** A listed repository, as the menu shows it. */
 export type RepositoryRow = {
-  /** Its name in the list, the `<name>` of its `/r/<name>/` URLs. */
-  name: string;
-  /** Its main checkout, absolute. */
-  path: string;
   /** `path` with the home folder written `~`. */
   home: string;
   /** Its folder no longer holds a git repository. */
   missing: boolean;
+  /** Its name in the list, the `<name>` of its `/r/<name>/` URLs. */
+  name: string;
+  /** Its main checkout, absolute. */
+  path: string;
 };
 
 /**
@@ -167,142 +167,142 @@ export type RepositoryRow = {
  * from every endpoint.
  */
 export type RepositoriesRecord = {
-  id: string;
-  rows: Array<RepositoryRow>;
-  /** Why `repositories.json` could not be read at its last change: the rows are the last read. */
-  problem: string | null;
   /**
    * The repository `repositories.add` added or found listed, in that mutation's answer only: null
    * in every other answer.
    */
   added: string | null;
+  id: string;
+  /** Why `repositories.json` could not be read at its last change: the rows are the last read. */
+  problem: string | null;
+  rows: Array<RepositoryRow>;
 };
 
 /** A folder the add form suggests, `path` as typed and ending with `/`. */
-export type FolderSuggestionRecord = { path: string; git: boolean };
+export type FolderSuggestionRecord = { git: boolean; path: string };
 
 /** The folders the add form suggests for a typed text, which is its ID: not live. */
 export type FolderSuggestionsRecord = { id: string; rows: Array<FolderSuggestionRecord> };
 
 export const workspaceDataView = dataView<WorkspaceRecord>("Workspace")({
-  id: true,
-  root: true,
-  defaultBranch: true,
   currentBranch: true,
+  defaultBranch: true,
+  drafts: true,
   features: true,
+  id: true,
+  noSpecs: true,
   priorities: true,
   prioritiesHash: true,
-  drafts: true,
-  noSpecs: true,
+  root: true,
   running: true,
 });
 
 export const featureDataView = dataView<FeatureRecord>("Feature")({
+  behind: true,
+  branch: true,
+  files: true,
+  folder: true,
   id: true,
   kind: true,
-  folder: true,
-  slug: true,
-  title: true,
-  branch: true,
-  source: true,
-  worktree: true,
-  uncommitted: true,
-  behind: true,
-  files: true,
-  mockups: true,
-  step: true,
-  problems: true,
-  leftWorktree: true,
   leftBranch: true,
-  session: true,
+  leftWorktree: true,
   missing: true,
+  mockups: true,
+  problems: true,
+  session: true,
+  slug: true,
+  source: true,
+  step: true,
+  title: true,
+  uncommitted: true,
+  worktree: true,
 });
 
 export const fileDataView = dataView<FileRecord>("WorkflowFile")({
-  id: true,
+  committed: true,
+  current: true,
   folder: true,
+  id: true,
+  kind: true,
+  missing: true,
   name: true,
   path: true,
-  kind: true,
-  status: true,
-  current: true,
-  tip: true,
-  committed: true,
   review: true,
   reviewStale: true,
-  missing: true,
+  status: true,
+  tip: true,
 });
 
 export const prioritiesDataView = dataView<PrioritiesRecord>("Priorities")({
-  id: true,
-  hash: true,
-  sections: true,
   changes: true,
+  hash: true,
+  id: true,
+  sections: true,
 });
 
 export const draftDataView = dataView<DraftRecord>("Draft")({
-  id: true,
-  path: true,
-  title: true,
-  text: true,
-  hash: true,
-  document: true,
   committed: true,
-  entry: true,
-  priorityChanges: true,
-  kind: true,
-  folder: true,
-  slug: true,
   discovery: true,
   discoveryLevels: true,
-  written: true,
+  document: true,
   emptySections: true,
+  entry: true,
+  folder: true,
+  hash: true,
+  id: true,
+  kind: true,
+  path: true,
+  priorityChanges: true,
+  slug: true,
+  text: true,
+  title: true,
+  written: true,
 });
 
 export const agentDataView = dataView<AgentRecord>("Agent")({
+  available: true,
+  capabilities: true,
   id: true,
   kind: true,
   name: true,
-  available: true,
   version: true,
-  capabilities: true,
 });
 
 export const sessionDataView = dataView<SessionRecord>("Session")({
-  id: true,
-  folder: true,
   agent: true,
-  title: true,
+  archived: true,
+  folder: true,
+  id: true,
+  place: true,
   status: true,
   statusLabel: true,
   statusReason: true,
-  unseen: true,
-  place: true,
-  turns: true,
-  archived: true,
   subagents: true,
+  title: true,
+  turns: true,
+  unseen: true,
 });
 
 export const turnDataView = dataView<TurnRecord>("Turn")({
-  id: true,
-  session: true,
-  kind: true,
-  trigger: true,
-  step: true,
-  allowed: true,
-  state: true,
-  reason: true,
-  startedAt: true,
-  endedAt: true,
-  pages: true,
   activity: true,
+  allowed: true,
+  endedAt: true,
+  id: true,
+  kind: true,
+  pages: true,
+  reason: true,
+  session: true,
+  startedAt: true,
+  state: true,
+  step: true,
+  trigger: true,
 });
 
 export const turnLogDataView = dataView<TurnLogRecord>("TurnLog")({
   id: true,
-  turn: true,
-  page: true,
   items: true,
+  page: true,
+  turn: true,
 });
 
 export const sessionListDataView = dataView<SessionListRecord>("SessionList")({
@@ -317,21 +317,21 @@ export const sessionSearchDataView = dataView<SessionSearchRecord>("SessionSearc
 
 export const workflowMessageDataView = dataView<WorkflowMessageRecord>("WorkflowMessage")({
   id: true,
-  text: true,
-  step: true,
   refusal: true,
+  step: true,
+  text: true,
 });
 
 export const proposalHintsDataView = dataView<ProposalHintsRecord>("ProposalHints")({
-  id: true,
   hints: true,
+  id: true,
 });
 
 export const repositoriesDataView = dataView<RepositoriesRecord>("Repositories")({
-  id: true,
-  rows: true,
-  problem: true,
   added: true,
+  id: true,
+  problem: true,
+  rows: true,
 });
 
 export const folderSuggestionsDataView = dataView<FolderSuggestionsRecord>("FolderSuggestions")({
@@ -349,19 +349,19 @@ export const REPOSITORIES_ID = "repositories";
 
 /** The roots: one list per type, so every type is read by id. */
 export const Root = {
-  workspaces: list(workspaceDataView),
-  features: list(featureDataView),
-  workflowFiles: list(fileDataView),
-  prioritiesList: list(prioritiesDataView),
-  drafts: list(draftDataView),
   agents: list(agentDataView),
-  sessions: list(sessionDataView),
-  turns: list(turnDataView),
-  turnLogs: list(turnLogDataView),
-  sessionLists: list(sessionListDataView),
-  sessionSearches: list(sessionSearchDataView),
-  workflowMessages: list(workflowMessageDataView),
+  drafts: list(draftDataView),
+  features: list(featureDataView),
+  folderSuggestionsList: list(folderSuggestionsDataView),
+  prioritiesList: list(prioritiesDataView),
   proposalHintsList: list(proposalHintsDataView),
   repositoriesList: list(repositoriesDataView),
-  folderSuggestionsList: list(folderSuggestionsDataView),
+  sessionLists: list(sessionListDataView),
+  sessions: list(sessionDataView),
+  sessionSearches: list(sessionSearchDataView),
+  turnLogs: list(turnLogDataView),
+  turns: list(turnDataView),
+  workflowFiles: list(fileDataView),
+  workflowMessages: list(workflowMessageDataView),
+  workspaces: list(workspaceDataView),
 };

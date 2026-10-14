@@ -5,7 +5,7 @@ import { show } from "./helpers.tsx";
 
 test("text and controls follow the width (US6 1, 2)", async () => {
   await show("/priorities", "Git listener process");
-  const paragraph = parseFloat(
+  const paragraph = Number.parseFloat(
     getComputedStyle(document.body).getPropertyValue("--text-reading-size"),
   );
   const button = screen.getAllByRole("button")[0]!.getBoundingClientRect().height;

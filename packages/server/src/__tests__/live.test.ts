@@ -23,16 +23,16 @@ async function connect(app: App, name: string, connectionId: string) {
   const decoder = new TextDecoder();
   let received = "";
   /** The length of the stream after each chunk, and when that chunk was read. */
-  const chunks: Array<{ length: number; at: number }> = [];
+  const chunks: Array<{ at: number; length: number }> = [];
   const waiting = new Set<() => void>();
   void (async () => {
     for (;;) {
-      const { value, done } = await reader.read().catch(() => ({ value: undefined, done: true }));
+      const { done, value } = await reader.read().catch(() => ({ done: true, value: undefined }));
       if (done) {
         return;
       }
       received += decoder.decode(value, { stream: true });
-      chunks.push({ length: received.length, at: performance.now() });
+      chunks.push({ at: performance.now(), length: received.length });
       for (const wake of waiting) {
         wake();
       }
@@ -63,9 +63,9 @@ async function connect(app: App, name: string, connectionId: string) {
         wake();
       });
     },
+    close: () => reader.cancel(),
     /** How much of the stream came so far: what a later `arrival` can start after. */
     mark: () => received.length,
-    close: () => reader.cancel(),
   };
 }
 
@@ -74,16 +74,16 @@ async function subscribe(
   app: App,
   name: string,
   connectionId: string,
-  entity: { type: string; entityId: string; select: Array<string> },
+  entity: { entityId: string; select: Array<string>; type: string },
 ) {
   const response = await app.request(`http://127.0.0.1:${port}/r/${name}/fate/live`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      version: 1,
       connectionId,
       operations: [{ id: "s1", kind: "subscribe", ...entity }],
+      version: 1,
     }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
   });
   expect(((await response.json()) as { results: Array<{ ok: boolean }> }).results[0].ok).toBe(true);
 }
@@ -94,13 +94,13 @@ async function subscribe(
  * machine running the other test projects at the same time.
  */
 test("a commit on a branch is sent to a live subscription within 2 seconds", async () => {
-  const { app, name, repo, hosts } = await testApp();
+  const { app, hosts, name, repo } = await testApp();
   const stream = await connect(app, name, "c1");
   expect(await stream.arrival("connected", 5000)).toBeDefined();
   await subscribe(app, name, "c1", {
-    type: "Feature",
     entityId: "2026-10-12-cli-tuis",
     select: ["id", "files"],
+    type: "Feature",
   });
   // The subscription is sent the feature as it is first: the commit's update comes after it.
   expect(await stream.arrival('"kind":"next"', 5000)).toBeDefined();
@@ -132,9 +132,9 @@ test("a subscription is sent its entity's data once it starts", async () => {
   const stream = await connect(app, name, "c3");
   expect(await stream.arrival("connected", 5000)).toBeDefined();
   await subscribe(app, name, "c3", {
-    type: "Feature",
     entityId: "2026-10-12-cli-tuis",
     select: ["id", "files"],
+    type: "Feature",
   });
 
   const arrived = await stream.arrival("proposal.md", 5000);
@@ -157,7 +157,7 @@ test("a repository is watched once, until it leaves the list", async () => {
       return binding.watch(...args);
     },
   };
-  const { hosts, dataDir, names } = await testHosts([repo], { binding: counting });
+  const { dataDir, hosts, names } = await testHosts([repo], { binding: counting });
 
   await hosts.reload();
   expect(watches).toBe(1);
@@ -183,7 +183,7 @@ test("a feature's change through git is published to its session and the list", 
       return binding.watch(path, () => {});
     },
   };
-  const { sessions, hosts, names } = await testHosts([repo], { binding: capturing });
+  const { hosts, names, sessions } = await testHosts([repo], { binding: capturing });
   const session = await sessions.featureSession(repo, "2026-10-12-cli-tuis");
   const sent = published(hosts.get(names[0])!.live);
 
@@ -210,22 +210,22 @@ test("a feature's change through git is published to its session and the list", 
 function sessionWithItems(items: number) {
   const cache = SessionCache.open(":memory:");
   const session = cache.createSession({
-    repo: "/repo",
-    folder: "2026-10-12-cli-tuis",
     agent: "fake",
+    folder: "2026-10-12-cli-tuis",
     nativeId: "n",
+    repo: "/repo",
     title: null,
   });
   const turn = cache.addTurn({
-    sessionId: session.id,
-    kind: "chat",
-    trigger: null,
-    step: null,
     allowed: null,
+    kind: "chat",
+    sessionId: session.id,
     state: "running",
+    step: null,
+    trigger: null,
   });
   for (let n = 0; n < items; n++) {
-    cache.appendItem(turn, { kind: "text", text: `Line ${n}`, streaming: false });
+    cache.appendItem(turn, { kind: "text", streaming: false, text: `Line ${n}` });
   }
   return { cache, session: session.id, turn };
 }
@@ -239,15 +239,15 @@ function published(bus: LiveBus) {
 /** A host of the repository at `path`, with its own bus, outside any list. */
 function hostAt(path: string, name = "repo"): Host {
   const { fateServer, live } = createFate();
-  return { name, path, missing: false, fate: fateServer, live };
+  return { fate: fateServer, live, missing: false, name, path };
 }
 
 /** Hosts holding `listed`, as the session publisher reads them. */
 const hostsOf =
   (...listed: Array<Host>) =>
   () => ({
-    byPath: (path: string) => listed.find((host) => host.path === path),
     all: () => listed,
+    byPath: (path: string) => listed.find((host) => host.path === path),
   });
 
 afterEach(() => {
@@ -261,7 +261,7 @@ test("a session's status change is published at once, with the list, its feature
   const sent = published(host.live);
   const publish = sessionPublisher(cache, hostsOf(host));
 
-  publish({ repo: "/repo", session, folder: "2026-10-12-cli-tuis", turn, state: "done" });
+  publish({ folder: "2026-10-12-cli-tuis", repo: "/repo", session, state: "done", turn });
 
   expect(sent()).toEqual([
     `Session ${session}`,
@@ -275,7 +275,7 @@ test("a session's status change is published at once, with the list, its feature
 });
 
 test("two changes published in one millisecond have different event IDs", () => {
-  vi.spyOn(Date, "now").mockReturnValue(1_000);
+  vi.spyOn(Date, "now").mockReturnValue(1000);
   const host = hostAt("/repo");
   const update = vi.spyOn(host.live, "update");
   const changes = { features: [], files: [], priorities: false, workspace: true };
@@ -294,7 +294,7 @@ test("a chat's change is published without a feature, and the agent's on its own
   const sent = published(host.live);
   const publish = sessionPublisher(cache, hostsOf(host));
 
-  publish({ repo: "/repo", session, folder: null });
+  publish({ folder: null, repo: "/repo", session });
   publish({ agent: true });
 
   expect(sent()).toEqual([
@@ -311,7 +311,7 @@ test("SC-002: items are published at most every 250 ms", () => {
   const host = hostAt("/repo");
   const sent = published(host.live);
   const publish = sessionPublisher(cache, hostsOf(host));
-  const item = { repo: "/repo", session, folder: "2026-10-12-cli-tuis", turn };
+  const item = { folder: "2026-10-12-cli-tuis", repo: "/repo", session, turn };
   const once = [`Session ${session}`, `Turn ${turn}`, `TurnLog ${turn}:0`];
 
   publish(item);
@@ -347,28 +347,28 @@ test("US3.4: a sub-agent that starts or ends is published to the list", () => {
   const host = hostAt("/repo");
   const sent = published(host.live);
   const publish = sessionPublisher(cache, hostsOf(host));
-  const item = { repo: "/repo", session, folder: null, turn };
+  const item = { folder: null, repo: "/repo", session, turn };
 
   publish(item);
   const seq = cache.appendItem(turn, {
-    kind: "tool",
     id: "task-1",
+    kind: "tool",
     name: "Task",
-    toolKind: "other",
     status: "in_progress",
     subagent: { description: "Map the runner code" },
+    toolKind: "other",
   });
   vi.advanceTimersByTime(SESSION_UPDATE_MS);
   publish(item);
   expect(sent().filter((each) => each === "SessionList all")).toHaveLength(1);
 
   cache.updateItem(turn, seq, {
-    kind: "tool",
     id: "task-1",
+    kind: "tool",
     name: "Task",
-    toolKind: "other",
     status: "completed",
     subagent: { description: "Map the runner code" },
+    toolKind: "other",
   });
   vi.advanceTimersByTime(SESSION_UPDATE_MS);
   publish(item);
@@ -377,7 +377,7 @@ test("US3.4: a sub-agent that starts or ends is published to the list", () => {
 
 /** Review focus 3: the same session open in two tabs. */
 test("a take-back is published to every reader", async () => {
-  const { app, adapter, sessions, repo, hosts, name } = await testServer();
+  const { adapter, app, hosts, name, repo, sessions } = await testServer();
   const sent = await mutate(
     app,
     "session.send",
@@ -390,8 +390,8 @@ test("a take-back is published to every reader", async () => {
   await new Promise((resolve) => setTimeout(resolve, SESSION_UPDATE_MS));
   const updates = published(hosts.get(name)!.live);
 
-  const taken = await mutate(app, "session.takeBack", { session: id, message }, ["id"]);
-  adapter.emit({ type: "cancelled", id: message });
+  const taken = await mutate(app, "session.takeBack", { message, session: id }, ["id"]);
+  adapter.emit({ id: message, type: "cancelled" });
   await new Promise((resolve) => setImmediate(resolve));
 
   expect(taken.ok).toBe(true);
@@ -408,13 +408,13 @@ test("a take-back is published to every reader", async () => {
  * rest of the second is the margin for a loaded machine.
  */
 test("SC-002: a session's status change reaches a subscribed SessionList within a second", async () => {
-  const { app, adapter, sessions, name } = await testServer();
+  const { adapter, app, name, sessions } = await testServer();
   const stream = await connect(app, name, "c2");
   expect(await stream.arrival("connected", 5000)).toBeDefined();
   await subscribe(app, name, "c2", {
-    type: "SessionList",
     entityId: "all",
     select: ["id", "rows"],
+    type: "SessionList",
   });
   const sent = await mutate(
     app,
@@ -426,7 +426,7 @@ test("SC-002: a session's status change reaches a subscribed SessionList within 
   const before = stream.mark();
 
   const emitted = performance.now();
-  adapter.emit({ type: "result", ok: true, errors: [], denials: [], interrupted: false });
+  adapter.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
   const arrived = await stream.arrival('"New reply"', 10_000, before);
   await stream.close();
   await sessions.settled(Number(turns[0]));
@@ -456,7 +456,7 @@ test("a session's change goes to its repository's bus", () => {
   const [sent, elsewhere, global] = [published(mine.live), published(other.live), published(live)];
   const publish = sessionPublisher(cache, hostsOf(mine, other));
 
-  publish({ repo: "/repo", session, folder: null });
+  publish({ folder: null, repo: "/repo", session });
 
   expect(sent()).toContain(`Session ${session}`);
   expect([elsewhere(), global()]).toEqual([[], []]);
@@ -469,7 +469,7 @@ test("a session's change in a removed repository is dropped", () => {
   const other = hostAt("/other", "other");
   const [elsewhere, global] = [published(other.live), published(live)];
   const publish = sessionPublisher(cache, hostsOf(other));
-  const item = { repo: "/repo", session, folder: "2026-10-12-cli-tuis", turn };
+  const item = { folder: "2026-10-12-cli-tuis", repo: "/repo", session, turn };
 
   publish(item);
   publish(item);

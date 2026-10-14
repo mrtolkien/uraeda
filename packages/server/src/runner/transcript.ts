@@ -41,7 +41,7 @@ export class Transcript {
 
   /** Records an event of the session's process, other than its exit. */
   record(live: Live, proc: Proc, event: Exclude<AgentEvent, { type: "exit" }>) {
-    const { cache, adapter, turns, changed } = this.#context;
+    const { adapter, cache, changed, turns } = this.#context;
     const turn = live.turn ?? (RESUMES.has(event.type) ? turns.resume(live, proc) : undefined);
     if (turn && !turn.stop) {
       turns.watch(live, turn);
@@ -61,8 +61,8 @@ export class Transcript {
               : `the plugins loaded were ${event.plugins.join(", ") || "none"}`;
           if (turn) {
             turns.halt(live, turn, {
-              state: "failed",
               reason: `The Uraeda skill did not load: ${why}`,
+              state: "failed",
             });
           }
           this.#context.processes.close(proc);
@@ -133,24 +133,24 @@ export class Transcript {
       case "textDelta":
         if (turn.text) {
           turn.text.text += event.text;
-          update(turn.text.seq, { kind: "text", text: turn.text.text, streaming: true });
+          update(turn.text.seq, { kind: "text", streaming: true, text: turn.text.text });
         } else {
-          const item = { kind: "text" as const, text: event.text, streaming: true };
+          const item = { kind: "text" as const, streaming: true, text: event.text };
           turn.text = { seq: append(item), text: event.text };
         }
         return;
       case "text":
         if (turn.text) {
-          update(turn.text.seq, { kind: "text", text: event.text, streaming: false });
+          update(turn.text.seq, { kind: "text", streaming: false, text: event.text });
           turn.text = undefined;
         } else {
-          append({ kind: "text", text: event.text, streaming: false });
+          append({ kind: "text", streaming: false, text: event.text });
         }
         return;
       case "toolStart": {
         const item: Tool = {
-          kind: "tool",
           id: event.id,
+          kind: "tool",
           name: event.name,
           toolKind: event.kind,
           ...(event.target === undefined ? {} : { target: event.target }),
@@ -158,7 +158,7 @@ export class Transcript {
           ...(event.parent === undefined ? {} : { parent: event.parent }),
           ...(event.subagent === undefined ? {} : { subagent: event.subagent }),
         };
-        turn.tools.set(event.id, { seq: append(item), item, at: Date.now() });
+        turn.tools.set(event.id, { at: Date.now(), item, seq: append(item) });
         return;
       }
       case "toolEnd": {
@@ -180,7 +180,7 @@ export class Transcript {
           update(turn.skipped.seq, { kind: "system", text });
           turn.skipped.count = count;
         } else {
-          turn.skipped = { seq: append({ kind: "system", text }), count };
+          turn.skipped = { count, seq: append({ kind: "system", text }) };
         }
         return;
       }
@@ -214,9 +214,9 @@ export class Transcript {
     turn.tools.delete(id);
     cache.updateItem(turn.id, tool.seq, {
       ...tool.item,
-      status: end.isError ? "failed" : "completed",
       durationMs: Date.now() - tool.at,
       output: end.output.slice(0, OUTPUT_LIMIT),
+      status: end.isError ? "failed" : "completed",
     });
     changed(live, turn.id);
   }
@@ -267,8 +267,8 @@ export class Transcript {
         : result.ok
           ? { state: "done" as const }
           : {
-              state: "failed" as const,
               reason: result.errors.join("\n") || `${adapter.name} ended the turn with an error.`,
+              state: "failed" as const,
             });
     turns.end(live, turn.id, end);
     turns.next(live);

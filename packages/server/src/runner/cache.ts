@@ -6,44 +6,44 @@ import type { Item, Trigger, TurnKind, TurnState } from "./events.ts";
 
 /** A session, as the cache keeps it. */
 export type SessionRow = {
-  /** Uraeda's own ID, a UUID. */
-  id: string;
-  /** The repository's main checkout. */
-  repo: string;
-  /** The feature's folder, null for a chat. */
-  folder: string | null;
   /** The agent's kind: `claude`. */
   agent: string;
+  archivedAt: string | null;
+  createdAt: string;
+  /** The feature's folder, null for a chat. */
+  folder: string | null;
+  /** Uraeda's own ID, a UUID. */
+  id: string;
   /** The agent's own session ID. */
   nativeId: string;
-  /** Null for a feature's session: its feature's name shows. */
-  title: string | null;
-  createdAt: string;
-  /** The last turn's start or end. */
-  updatedAt: string;
-  /** When the human last saw it ended. */
-  seenAt: string | null;
-  archivedAt: string | null;
   /** The server process that holds the session's agent process, null when closed. */
   pid: number | null;
+  /** The repository's main checkout. */
+  repo: string;
+  /** When the human last saw it ended. */
+  seenAt: string | null;
+  /** Null for a feature's session: its feature's name shows. */
+  title: string | null;
+  /** The last turn's start or end. */
+  updatedAt: string;
 };
 
 /** A turn, as the cache keeps it: one message until the agent settles. */
 export type TurnRow = {
-  id: number;
-  sessionId: string;
-  kind: TurnKind;
-  /** Workflow turns: what started it. */
-  trigger: Trigger | null;
-  /** Workflow turns: the core's step when it started. */
-  step: string | null;
   /** Allow turns: the allow rule. */
   allowed: string | null;
-  state: TurnState;
+  endedAt: string | null;
+  id: number;
+  kind: TurnKind;
   /** Why it failed or stopped, in the UI's words. */
   reason: string | null;
+  sessionId: string;
   startedAt: string | null;
-  endedAt: string | null;
+  state: TurnState;
+  /** Workflow turns: the core's step when it started. */
+  step: string | null;
+  /** Workflow turns: what started it. */
+  trigger: Trigger | null;
 };
 
 /** A step of the schema: its SQL, or a function for a step that computes in TypeScript. */
@@ -208,30 +208,30 @@ function alive(pid: number): boolean {
 type Row = Record<string, string | number | null>;
 
 const toSession = (row: Row): SessionRow => ({
-  id: String(row.id),
-  repo: String(row.repo),
-  folder: row.folder as string | null,
   agent: String(row.agent),
-  nativeId: String(row.native_id),
-  title: row.title as string | null,
-  createdAt: String(row.created_at),
-  updatedAt: String(row.updated_at),
-  seenAt: row.seen_at as string | null,
   archivedAt: row.archived_at as string | null,
+  createdAt: String(row.created_at),
+  folder: row.folder as string | null,
+  id: String(row.id),
+  nativeId: String(row.native_id),
   pid: row.pid as number | null,
+  repo: String(row.repo),
+  seenAt: row.seen_at as string | null,
+  title: row.title as string | null,
+  updatedAt: String(row.updated_at),
 });
 
 const toTurn = (row: Row): TurnRow => ({
-  id: Number(row.id),
-  sessionId: String(row.session_id),
-  kind: row.kind as TurnKind,
-  trigger: row.trigger as Trigger | null,
-  step: row.step as string | null,
   allowed: row.allowed as string | null,
-  state: row.state as TurnState,
-  reason: row.reason as string | null,
-  startedAt: row.started_at as string | null,
   endedAt: row.ended_at as string | null,
+  id: Number(row.id),
+  kind: row.kind as TurnKind,
+  reason: row.reason as string | null,
+  sessionId: String(row.session_id),
+  startedAt: row.started_at as string | null,
+  state: row.state as TurnState,
+  step: row.step as string | null,
+  trigger: row.trigger as Trigger | null,
 });
 
 const now = () => new Date().toISOString();
@@ -243,17 +243,17 @@ function stored(item: Item): [string, string] {
 }
 
 /** A `LIKE` pattern that matches the text anywhere, literally: `%`, `_`, and `\` escaped. */
-const contains = (text: string) => `%${text.replace(/[\\%_]/g, "\\$&")}%`;
+const contains = (text: string) => `%${text.replaceAll(/[\\%_]/g, String.raw`\$&`)}%`;
 
 /** How many sessions a list gives, by default. */
 const SESSIONS_LIMIT = 50;
 
 /** The session columns a write may change, by their field. */
 const sessionColumns = {
-  nativeId: "native_id",
-  title: "title",
-  seenAt: "seen_at",
   archivedAt: "archived_at",
+  nativeId: "native_id",
+  seenAt: "seen_at",
+  title: "title",
 } as const;
 
 /**
@@ -315,10 +315,10 @@ export class SessionCache {
 
   /** Records a new session, with a new ID. Throws when the feature has one already. */
   createSession(row: {
-    repo: string;
-    folder: string | null;
     agent: string;
+    folder: string | null;
     nativeId: string;
+    repo: string;
     title: string | null;
   }): SessionRow {
     const created = now();
@@ -401,7 +401,7 @@ export class SessionCache {
    */
   sessions(
     repo: string,
-    { query, limit = SESSIONS_LIMIT }: { query?: string; limit?: number } = {},
+    { limit = SESSIONS_LIMIT, query }: { limit?: number; query?: string } = {},
   ): Array<SessionRow> {
     const rows = query
       ? (this.#db
@@ -426,12 +426,12 @@ export class SessionCache {
 
   /** Adds a turn to the session, and returns its ID. A running turn starts now. */
   addTurn(row: {
-    sessionId: string;
-    kind: TurnKind;
-    trigger: Trigger | null;
-    step: string | null;
     allowed: string | null;
+    kind: TurnKind;
+    sessionId: string;
     state: "queued" | "running";
+    step: string | null;
+    trigger: Trigger | null;
   }): number {
     return transaction(this.#db, () => {
       const at = now();
@@ -485,7 +485,7 @@ export class SessionCache {
   }
 
   /** Ends a turn. */
-  endTurn(id: number, end: { state: TurnState; reason?: string }): void {
+  endTurn(id: number, end: { reason?: string; state: TurnState }): void {
     transaction(this.#db, () => {
       const at = now();
       const row = this.#db
@@ -534,9 +534,9 @@ export class SessionCache {
   items(turnId: number, offset: number, limit: number): Array<Item & { seq: number }> {
     const rows = this.#db
       .prepare("SELECT seq, kind, data FROM items WHERE turn_id = ? ORDER BY seq LIMIT ? OFFSET ?")
-      .all(turnId, limit, offset) as Array<{ seq: number; kind: string; data: string }>;
+      .all(turnId, limit, offset) as Array<{ data: string; kind: string; seq: number }>;
     return rows.map(
-      ({ seq, kind, data }) => ({ seq, kind, ...JSON.parse(data) }) as Item & { seq: number },
+      ({ data, kind, seq }) => ({ kind, seq, ...JSON.parse(data) }) as Item & { seq: number },
     );
   }
 
@@ -547,10 +547,10 @@ export class SessionCache {
   ): Array<Extract<Item, { kind: K }> & { seq: number }> {
     const rows = this.#db
       .prepare("SELECT seq, data FROM items WHERE turn_id = ? AND kind = ? ORDER BY seq")
-      .all(turnId, kind) as Array<{ seq: number; data: string }>;
+      .all(turnId, kind) as Array<{ data: string; seq: number }>;
     return rows.map(
-      ({ seq, data }) =>
-        ({ seq, kind, ...JSON.parse(data) }) as Extract<Item, { kind: K }> & { seq: number },
+      ({ data, seq }) =>
+        ({ kind, seq, ...JSON.parse(data) }) as Extract<Item, { kind: K }> & { seq: number },
     );
   }
 

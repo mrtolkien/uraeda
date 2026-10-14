@@ -62,5 +62,5 @@ export function createSources<Context>(entries: Array<Entry<Context>>) {
   ) =>
     // The plan keeps the selected fields of the record: the client's view types what it reads.
     createSourcePlan({ ctx, select, source: getSource(view) }).resolve(record) as Promise<Item>;
-  return { getSource, registry, masked };
+  return { getSource, masked, registry };
 }

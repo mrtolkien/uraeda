@@ -5,11 +5,11 @@ export type SessionStatus = "working" | "needs-you" | "failed" | "unread" | "idl
 
 /** The order of statuses within a sidebar group: what needs the human first. */
 export const STATUS_ORDER: Record<SessionStatus, number> = {
-  "needs-you": 0,
   failed: 1,
+  idle: 4,
+  "needs-you": 0,
   unread: 2,
   working: 3,
-  idle: 4,
 };
 
 /**
@@ -18,27 +18,27 @@ export const STATUS_ORDER: Record<SessionStatus, number> = {
  * after the human last saw the session, and otherwise idle, or stopped.
  */
 export function sessionStatus(input: {
+  blocked: boolean;
   latest?: Pick<TurnRow, "state" | "endedAt">;
   queued: boolean;
-  blocked: boolean;
-  waitsOnHuman: boolean;
   seenAt: string | null;
-}): { status: SessionStatus; label: string; reason?: "blocked" | "step" } {
-  const { latest, queued, blocked, waitsOnHuman, seenAt } = input;
+  waitsOnHuman: boolean;
+}): { label: string; reason?: "blocked" | "step"; status: SessionStatus } {
+  const { blocked, latest, queued, seenAt, waitsOnHuman } = input;
   if (queued || latest?.state === "running" || latest?.state === "queued") {
-    return { status: "working", label: "Working" };
+    return { label: "Working", status: "working" };
   }
   if (blocked) {
-    return { status: "needs-you", label: "Needs you", reason: "blocked" };
+    return { label: "Needs you", reason: "blocked", status: "needs-you" };
   }
   if (waitsOnHuman) {
-    return { status: "needs-you", label: "Needs you", reason: "step" };
+    return { label: "Needs you", reason: "step", status: "needs-you" };
   }
   if (latest?.state === "failed") {
-    return { status: "failed", label: "Failed" };
+    return { label: "Failed", status: "failed" };
   }
   if (latest?.endedAt && (seenAt === null || Date.parse(latest.endedAt) > Date.parse(seenAt))) {
-    return { status: "unread", label: "New reply" };
+    return { label: "New reply", status: "unread" };
   }
-  return { status: "idle", label: latest?.state === "stopped" ? "Stopped" : "Idle" };
+  return { label: latest?.state === "stopped" ? "Stopped" : "Idle", status: "idle" };
 }

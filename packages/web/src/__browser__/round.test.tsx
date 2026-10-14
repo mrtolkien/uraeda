@@ -18,7 +18,8 @@ beforeEach(() => {
 function offset(id: string) {
   const section = document.getElementById(id)!;
   return Math.abs(
-    section.getBoundingClientRect().top - parseFloat(getComputedStyle(section).scrollMarginTop),
+    section.getBoundingClientRect().top -
+      Number.parseFloat(getComputedStyle(section).scrollMarginTop),
   );
 }
 

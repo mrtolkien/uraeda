@@ -19,16 +19,16 @@ export function FilePage({ folder, name }: { folder: string; name: string }) {
     return (
       <Page>
         <VStack gap={3}>
-          <Crumbs folder={folder} current={name} />
+          <Crumbs current={name} folder={folder} />
           <Banner
-            status="error"
-            title={`No file ${name} in ${folder}.`}
             collapsible={false}
             description={
-              <Link href={here(`/f/${folder}`)} hasUnderline>
+              <Link hasUnderline href={here(`/f/${folder}`)}>
                 Open the feature
               </Link>
             }
+            status="error"
+            title={`No file ${name} in ${folder}.`}
           />
         </VStack>
       </Page>

@@ -45,29 +45,29 @@ function useReplyStatus(agentName: string, working: boolean): string {
  * `blocked` disables it, with why, as when the agent is not on this machine.
  */
 export function Composer({
-  session,
-  folder,
-  working = false,
-  value,
-  onChange,
-  workflow,
-  notice,
   blocked,
+  folder,
+  notice,
+  onChange,
   onSent,
+  session,
+  value,
+  workflow,
+  working = false,
 }: {
-  session?: string;
-  folder?: string;
-  /** Whether the session has a turn going: Stop shows, and Send steers into the turn. */
-  working?: boolean;
-  value: string;
-  onChange: (value: string) => void;
-  /** The workflow's trigger, while the composer holds its message. */
-  workflow?: { trigger: Trigger; file?: string };
-  /** Why the page cannot do what it was opened for, shown under the composer. */
-  notice?: string;
   /** Why nothing can be sent here, like a feature with no branch yet: the composer is disabled. */
   blocked?: string;
+  folder?: string;
+  /** Why the page cannot do what it was opened for, shown under the composer. */
+  notice?: string;
+  onChange: (value: string) => void;
   onSent?: (session: string) => void;
+  session?: string;
+  value: string;
+  /** The workflow's trigger, while the composer holds its message. */
+  workflow?: { file?: string; trigger: Trigger };
+  /** Whether the session has a turn going: Stop shows, and Send steers into the turn. */
+  working?: boolean;
 }) {
   const fate = useFateClient();
   const agent = useAgent();
@@ -123,14 +123,13 @@ export function Composer({
   return (
     <>
       <ChatComposer
-        value={value}
-        onChange={onChange}
-        onSubmit={submit}
-        onStop={stop}
-        isStopShown={working && !workflow}
-        placeholder={placeholder}
+        input={<ChatComposerInput handleRef={input} label={placeholder} onKeyDown={onKeyDown} />}
         isDisabled={Boolean(disabled)}
-        input={<ChatComposerInput label={placeholder} handleRef={input} onKeyDown={onKeyDown} />}
+        isStopShown={working && !workflow}
+        onChange={onChange}
+        onStop={stop}
+        onSubmit={submit}
+        placeholder={placeholder}
         sendActions={
           // During a turn, Send steers the message into it, beside Stop.
           working && canSend && !workflow ? <ChatSendButton isStopShown={false} /> : undefined
@@ -138,22 +137,23 @@ export function Composer({
         sendButton={
           workflow ? (
             <Button
-              variant="primary"
-              label={working ? "Start once this turn ends" : "Start the agent"}
-              isDisabled={!canSend || refused}
               clickAction={() => submit(value.trim())}
+              isDisabled={!canSend || refused}
+              label={working ? "Start once this turn ends" : "Start the agent"}
+              variant="primary"
             />
           ) : undefined
         }
         status={
           error
-            ? { type: "error", message: error }
+            ? { message: error, type: "error" }
             : notice
-              ? { type: "error", message: notice }
+              ? { message: notice, type: "error" }
               : disabled
-                ? { type: "warning", message: disabled }
+                ? { message: disabled, type: "warning" }
                 : undefined
         }
+        value={value}
       />
       <VisuallyHidden as="div" role="status">
         {status}

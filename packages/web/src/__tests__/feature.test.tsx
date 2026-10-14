@@ -70,7 +70,7 @@ test("a merged feature shows its record and what is left", async () => {
 
   await renderPage("/f/2026-10-09-dark-mode", repo);
 
-  expect(await screen.findByRole("heading", { name: "Dark mode", level: 1 })).toBeTruthy();
+  expect(await screen.findByRole("heading", { level: 1, name: "Dark mode" })).toBeTruthy();
   expect(screen.getByText("Merged into the default branch")).toBeTruthy();
   expect(screen.getByText("Worktree and branch left")).toBeTruthy();
   expect(screen.getByText(".worktrees/2026-10-09-dark-mode")).toBeTruthy();

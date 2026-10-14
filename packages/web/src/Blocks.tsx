@@ -21,98 +21,114 @@ import { Spans } from "./Spans.tsx";
  * that draws it, and what follows a block.
  */
 type Selection = {
+  after?: (block: Block) => ReactNode;
   isSelected: (block: Block) => boolean;
   onTap: (block: Block, element: HTMLElement) => void;
-  after?: (block: Block) => ReactNode;
 };
 
 const SIGNS: Record<string, string> = {
-  pro: "+",
-  con: "−",
-  question: "?",
-  important: "!",
-  warning: "⚠",
   ask: "?",
+  con: "−",
+  important: "!",
   note: "&",
+  pro: "+",
+  question: "?",
+  warning: "⚠",
 };
 
 const CALLOUT_TITLES: Record<string, string> = {
-  note: "Note",
-  tip: "Tip",
-  important: "Important",
-  warning: "Warning",
   caution: "Caution",
+  important: "Important",
+  note: "Note",
   question: "Question",
+  tip: "Tip",
+  warning: "Warning",
 };
 
 const styles = stylex.create({
-  // Reading text: its own size, about 120 characters at most, left-aligned, its lines balanced.
-  doc: {
-    maxWidth: "var(--size-reading-measure)",
-    fontSize: "var(--text-reading-size)",
-    lineHeight: "var(--text-reading-line)",
-    textAlign: "start",
-    textWrap: "pretty",
-    // The page's inset, which a list's rows take back, so their text lines up with the paragraphs'.
-    "--container-padding-inline-start": spacingVars["--spacing-4"],
+  above: {
+    // The block's text, above its toggle, so its links stay links.
+    position: "relative",
   },
-  heading: {
-    marginBlockStart: { default: spacingVars["--spacing-6"], ":first-child": 0 },
-    marginBlockEnd: spacingVars["--spacing-2"],
+  after: {
+    // What follows a block, like its comments: no box of its own.
+    display: "contents",
   },
-  paragraph: {
-    marginBlockStart: 0,
+  block: {
     marginBlockEnd: spacingVars["--spacing-3"],
   },
-  // A list item's text, at the reading size, which Astryx's rows set smaller.
-  item: {
-    fontSize: "var(--text-reading-size)",
-    lineHeight: "var(--text-reading-line)",
-    whiteSpace: "normal",
-  },
-  // A list's margin, but last in its item or callout, which end with it.
-  list: {
-    marginBlockEnd: { default: spacingVars["--spacing-3"], ":last-child": 0 },
-  },
-  // A list's row, as tall as its text: a touch screen's 44 px rows (`theme.ts`) are for controls,
-  // and would push a one-line item's text below its marker.
-  row: {
-    minHeight: 0,
-  },
-  sign: {
-    fontWeight: fontWeightVars["--font-weight-bold"],
-    minWidth: spacingVars["--spacing-4"],
-  },
-  pro: { color: colorVars["--color-success"] },
-  con: { color: colorVars["--color-error"] },
-  important: { color: colorVars["--color-warning"] },
-  warning: { color: colorVars["--color-warning"] },
-  // A callout: a bar down its side, coloured by its kind, its title above its text.
   callout: {
+    // A callout: a bar down its side, coloured by its kind, its title above its text.
+    borderInlineStartColor: colorVars["--color-accent"],
+    borderInlineStartStyle: "solid",
+    borderInlineStartWidth: spacingVars["--spacing-1"],
     marginBlockEnd: spacingVars["--spacing-4"],
     paddingInlineStart: spacingVars["--spacing-3"],
-    borderInlineStartWidth: spacingVars["--spacing-1"],
-    borderInlineStartStyle: "solid",
-    borderInlineStartColor: colorVars["--color-accent"],
   },
   calloutImportant: { borderInlineStartColor: colorVars["--color-border-purple"] },
-  calloutWarning: { borderInlineStartColor: colorVars["--color-warning"] },
   calloutTip: { borderInlineStartColor: colorVars["--color-success"] },
   calloutTitle: {
     display: "block",
     fontWeight: fontWeightVars["--font-weight-bold"],
   },
-  block: {
-    marginBlockEnd: spacingVars["--spacing-3"],
-  },
-  // A block a review can select: tapped as a whole, tinted with a bar once selected.
-  selectable: {
+  calloutWarning: { borderInlineStartColor: colorVars["--color-warning"] },
+  cell: {
     position: "relative",
+  },
+  center: { textAlign: "center" },
+  con: { color: colorVars["--color-error"] },
+  doc: {
+    // Reading text: its own size, about 120 characters at most, left-aligned, its lines balanced.
+    fontSize: "var(--text-reading-size)",
+    lineHeight: "var(--text-reading-line)",
+    maxWidth: "var(--size-reading-measure)",
+    textAlign: "start",
+    textWrap: "pretty",
+    // The page's inset, which a list's rows take back, so their text lines up with the paragraphs'.
+    "--container-padding-inline-start": spacingVars["--spacing-4"],
+  },
+  headerCell: {
+    // A header cell wraps its text, as a body cell does, instead of cutting it.
+    maxWidth: "none",
+    overflow: "visible",
+    overflowWrap: "break-word",
+    textOverflow: "clip",
+    whiteSpace: "normal",
+  },
+  heading: {
+    marginBlockEnd: spacingVars["--spacing-2"],
+    marginBlockStart: { ":first-child": 0, default: spacingVars["--spacing-6"] },
+  },
+  important: { color: colorVars["--color-warning"] },
+  item: {
+    // A list item's text, at the reading size, which Astryx's rows set smaller.
+    fontSize: "var(--text-reading-size)",
+    lineHeight: "var(--text-reading-line)",
+    whiteSpace: "normal",
+  },
+  list: {
+    // A list's margin, but last in its item or callout, which end with it.
+    marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-3"] },
+  },
+  paragraph: {
+    marginBlockEnd: spacingVars["--spacing-3"],
+    marginBlockStart: 0,
+  },
+  pro: { color: colorVars["--color-success"] },
+  right: { textAlign: "end" },
+  row: {
+    // A list's row, as tall as its text: a touch screen's 44 px rows (`theme.ts`) are for controls,
+    // and would push a one-line item's text below its marker.
+    minHeight: 0,
+  },
+  selectable: {
+    // A block a review can select: tapped as a whole, tinted with a bar once selected.
+    borderInlineStartColor: "transparent",
+    borderInlineStartStyle: "solid",
+    borderInlineStartWidth: spacingVars["--spacing-1"],
     cursor: "pointer",
     paddingInlineStart: spacingVars["--spacing-1"],
-    borderInlineStartWidth: spacingVars["--spacing-1"],
-    borderInlineStartStyle: "solid",
-    borderInlineStartColor: "transparent",
+    position: "relative",
   },
   selected: {
     backgroundColor: "var(--color-selection)",
@@ -121,44 +137,28 @@ const styles = stylex.create({
   selectedRow: {
     backgroundColor: "var(--color-selection)",
   },
-  // The block's toggle, for the keyboard and screen readers: under the block's text, as large as
-  // the block (as its first cell, for a table row), its ring around it when focused by the keyboard.
+  sign: {
+    fontWeight: fontWeightVars["--font-weight-bold"],
+    minWidth: spacingVars["--spacing-4"],
+  },
   toggle: {
-    position: "absolute",
-    inset: 0,
-    width: "100%",
-    height: "100%",
-    margin: 0,
-    padding: 0,
-    borderWidth: 0,
+    // The block's toggle, for the keyboard and screen readers: under the block's text, as large as
+    // the block (as its first cell, for a table row), its ring around it when focused by the keyboard.
     backgroundColor: "transparent",
+    borderWidth: 0,
     cursor: "pointer",
+    height: "100%",
+    inset: 0,
+    margin: 0,
     outlineColor: focusVars["--focus-outline-color"],
-    outlineStyle: { default: "none", ":focus-visible": focusVars["--focus-outline-style"] },
-    outlineWidth: focusVars["--focus-outline-width"],
     outlineOffset: 0,
+    outlineStyle: { ":focus-visible": focusVars["--focus-outline-style"], default: "none" },
+    outlineWidth: focusVars["--focus-outline-width"],
+    padding: 0,
+    position: "absolute",
+    width: "100%",
   },
-  // The block's text, above its toggle, so its links stay links.
-  above: {
-    position: "relative",
-  },
-  cell: {
-    position: "relative",
-  },
-  // What follows a block, like its comments: no box of its own.
-  after: {
-    display: "contents",
-  },
-  // A header cell wraps its text, as a body cell does, instead of cutting it.
-  headerCell: {
-    maxWidth: "none",
-    overflow: "visible",
-    overflowWrap: "break-word",
-    textOverflow: "clip",
-    whiteSpace: "normal",
-  },
-  center: { textAlign: "center" },
-  right: { textAlign: "end" },
+  warning: { color: colorVars["--color-warning"] },
 });
 
 /** A table column's alignment, from its separator row. */
@@ -168,16 +168,16 @@ const ALIGN_STYLES: Record<string, stylex.StyleXStyles> = {
 };
 
 const CALLOUT_STYLES: Record<string, stylex.StyleXStyles> = {
-  important: styles.calloutImportant,
-  warning: styles.calloutWarning,
   caution: styles.calloutWarning,
+  important: styles.calloutImportant,
   tip: styles.calloutTip,
+  warning: styles.calloutWarning,
 };
 
 const SIGN_STYLES: Record<string, stylex.StyleXStyles> = {
-  pro: styles.pro,
   con: styles.con,
   important: styles.important,
+  pro: styles.pro,
   warning: styles.warning,
 };
 
@@ -196,9 +196,9 @@ function useChildren(document: Document) {
 
 type Context = {
   children: Map<number | undefined, Array<Block>>;
-  selection?: Selection;
   /** Draws a block its own way, when it returns something. */
   override?: (block: Block) => ReactNode | undefined;
+  selection?: Selection;
 };
 
 /**
@@ -224,8 +224,6 @@ function useSelect(block: Block, context: Context) {
   }
   const pressed = selection.isSelected(block);
   return {
-    pressed,
-    textId,
     block: {
       "data-lines": `${block.startLine}-${block.endLine}`,
       onClick: (event: React.MouseEvent<HTMLElement>) => {
@@ -245,11 +243,13 @@ function useSelect(block: Block, context: Context) {
         selection.onTap(block, event.currentTarget);
       },
     },
+    pressed,
+    textId,
     toggle: (
       // oxlint-disable-next-line react/forbid-elements -- the review's selectable block, a toggle as large as a block of document text, which no Astryx component draws (an Astryx gap, see the plan)
       <button
-        type="button"
         aria-pressed={pressed}
+        type="button"
         // A rule has no text: its lines name it.
         {...(block.kind === "rule"
           ? { "aria-label": `Line ${block.startLine}` }
@@ -272,12 +272,12 @@ function After({ children }: { children: ReactNode }) {
 /** A block a review can tap, around its drawing, with what follows it. */
 function Selectable({
   block,
-  context,
   children,
+  context,
 }: {
   block: Block;
-  context: Context;
   children: ReactNode;
+  context: Context;
 }) {
   const select = useSelect(block, context);
   if (!select) {
@@ -301,7 +301,7 @@ function Selectable({
 
 function Children({ block, context }: { block: Block; context: Context }) {
   return (context.children.get(block.id) ?? []).map((child) => (
-    <BlockNode key={child.id} block={child} context={context} />
+    <BlockNode block={child} context={context} key={child.id} />
   ));
 }
 
@@ -320,10 +320,10 @@ function ListNode({ block, context }: { block: Block; context: Context }) {
   const signed = items.length > 0 && items.every((item) => signOf(item) !== undefined);
   return (
     <List
-      listStyle={block.ordered ? "decimal" : signed ? "none" : "disc"}
-      start={block.ordered ? (block.start ?? 1) : undefined}
       density="compact"
       edgeCompensation="inline"
+      listStyle={block.ordered ? "decimal" : signed ? "none" : "disc"}
+      start={block.ordered ? (block.start ?? 1) : undefined}
       xstyle={styles.list}
     >
       {items.map((item) => {
@@ -332,14 +332,6 @@ function ListNode({ block, context }: { block: Block; context: Context }) {
         return (
           <ListItem
             key={item.id}
-            xstyle={styles.row}
-            startContent={
-              sign && (
-                <span aria-hidden="true" {...stylex.props(styles.sign, SIGN_STYLES[marker])}>
-                  {sign}
-                </span>
-              )
-            }
             label={
               <Selectable block={item} context={context}>
                 <div {...stylex.props(styles.item)}>
@@ -348,6 +340,14 @@ function ListNode({ block, context }: { block: Block; context: Context }) {
                 </div>
               </Selectable>
             }
+            startContent={
+              sign && (
+                <span aria-hidden="true" {...stylex.props(styles.sign, SIGN_STYLES[marker])}>
+                  {sign}
+                </span>
+              )
+            }
+            xstyle={styles.row}
           />
         );
       })}
@@ -356,7 +356,7 @@ function ListNode({ block, context }: { block: Block; context: Context }) {
 }
 
 /** A table row, tapped in place, its comments following it as a row of their own. */
-function RowNode({ row, context }: { row: Block; context: Context }) {
+function RowNode({ context, row }: { context: Context; row: Block }) {
   const cells = context.children.get(row.id) ?? [];
   const select = useSelect(row, context);
   const after = select && context.selection?.after?.(row);
@@ -402,7 +402,7 @@ function TableNode({ block, context }: { block: Block; context: Context }) {
       <Table dividers="rows" textOverflow="wrap" verticalAlign="top">
         <TableBody>
           {rows.map((row) => (
-            <RowNode key={row.id} row={row} context={context} />
+            <RowNode context={context} key={row.id} row={row} />
           ))}
         </TableBody>
       </Table>
@@ -421,8 +421,8 @@ function BlockNode({ block, context }: { block: Block; context: Context }): Reac
     case "heading":
       node = (
         <Heading
-          level={Math.min(Math.max(block.level ?? 2, 1), 6) as 1 | 2 | 3 | 4 | 5 | 6}
           id={block.anchor}
+          level={Math.min(Math.max(block.level ?? 2, 1), 6) as 1 | 2 | 3 | 4 | 5 | 6}
           xstyle={styles.heading}
         >
           {spans}
@@ -431,7 +431,7 @@ function BlockNode({ block, context }: { block: Block; context: Context }): Reac
       break;
     case "paragraph":
       node = (
-        <Text as="p" type="inherit" display="block" xstyle={styles.paragraph}>
+        <Text as="p" display="block" type="inherit" xstyle={styles.paragraph}>
           {spans}
         </Text>
       );
@@ -482,8 +482,8 @@ function BlockNode({ block, context }: { block: Block; context: Context }): Reac
         <div {...stylex.props(styles.block)}>
           <CodeBlock
             code={block.text ?? ""}
-            hasLanguageLabel={false}
             hasCopyButton={false}
+            hasLanguageLabel={false}
             width="100%"
           />
         </div>
@@ -504,23 +504,23 @@ function BlockNode({ block, context }: { block: Block; context: Context }): Reac
 export function Blocks({
   document,
   ids,
-  selection,
   override,
+  selection,
 }: {
   document: Document;
   ids?: ReadonlyArray<number>;
-  selection?: Selection;
   override?: (block: Block) => ReactNode | undefined;
+  selection?: Selection;
 }) {
   const children = useChildren(document);
-  const context = { children, selection, override };
+  const context = { children, override, selection };
   const blocks = ids
     ? ids.map((id) => document.blocks[id]).filter(Boolean)
     : (children.get(undefined) ?? []);
   return (
     <div {...stylex.props(styles.doc)}>
       {blocks.map((block) => (
-        <BlockNode key={block.id} block={block} context={context} />
+        <BlockNode block={block} context={context} key={block.id} />
       ))}
     </div>
   );

@@ -66,7 +66,7 @@ export function sessionPublisher(
   /** The sessions whose items change: when each was last sent, and its pending update. */
   const sessions = new Map<
     string,
-    { last: number; timer?: Timer; turns: Set<number>; subagents: string; repo: string }
+    { last: number; repo: string; subagents: string; timer?: Timer; turns: Set<number> }
   >();
   const sender = (bus: LiveBus) => (type: string, id: string) =>
     bus.update(type, id, { eventId: eventId(`${type}:${id}`) });
@@ -91,7 +91,7 @@ export function sessionPublisher(
   const busOf = (repo: string) => hosts()?.byPath(repo)?.live;
   const send = (
     session: string,
-    entry: { last: number; turns: Set<number>; subagents: string; repo: string },
+    entry: { last: number; repo: string; subagents: string; turns: Set<number> },
   ) => {
     entry.last = Date.now();
     const bus = busOf(entry.repo);
@@ -141,7 +141,7 @@ export function sessionPublisher(
     }
     let entry = sessions.get(session);
     if (!entry) {
-      entry = { last: -Infinity, turns: new Set(), subagents: "", repo: change.repo };
+      entry = { last: -Infinity, repo: change.repo, subagents: "", turns: new Set() };
       sessions.set(session, entry);
     }
     entry.turns.add(change.turn);
@@ -164,8 +164,8 @@ export function sessionPublisher(
 /** A session manager whose changes are sent as live updates, to the hosts of their repositories. */
 export function createSessions(options: {
   adapter: Adapter;
-  cache: SessionCache;
   binding: Binding;
+  cache: SessionCache;
   hosts: HostsOf;
 }): Sessions {
   return new Sessions({ ...options, onChange: sessionPublisher(options.cache, options.hosts) });

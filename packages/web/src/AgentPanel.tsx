@@ -17,10 +17,10 @@ import { SessionView } from "./views.ts";
 
 /** What the panel needs of the feature: its step, its branch, and its session. */
 type Feature = {
-  folder: string;
   branch?: string | null;
-  step: { name: string; waitsOn: string };
+  folder: string;
   session: string | null;
+  step: { name: string; waitsOn: string };
 };
 
 /** How long a turn ran, or has run so far: `4 min`, or `40 s` under a minute. */
@@ -33,7 +33,7 @@ function turnTime(startedAt: string, endedAt: string | null, now = Date.now()) {
 function Line({ parts }: { parts: Array<string | undefined> }) {
   const shown = parts.filter((part): part is string => Boolean(part));
   return shown.length > 0 ? (
-    <Text type="supporting" color="secondary">
+    <Text color="secondary" type="supporting">
       {shown.join(" · ")}
     </Text>
   ) : null;
@@ -54,7 +54,7 @@ type Latest = {
  * The session's latest turn, the step it ran or a chat, how it ended when it went wrong, and how
  * long it ran; then `children`, told how it went.
  */
-function LatestTurn({ id, children }: { id: string; children: (latest: Latest) => ReactNode }) {
+function LatestTurn({ children, id }: { children: (latest: Latest) => ReactNode; id: string }) {
   const turn = useTurn(id);
   const what = !turn
     ? undefined
@@ -80,7 +80,7 @@ function LatestTurn({ id, children }: { id: string; children: (latest: Latest) =
  * The session's status, its latest turn, Stop while it works, with why when it is refused,
  * and the panel's buttons.
  */
-function Summary({ id, actions }: { id: string; actions: (latest: Latest) => ReactNode }) {
+function Summary({ actions, id }: { actions: (latest: Latest) => ReactNode; id: string }) {
   const fate = useFateClient();
   const session = useSession(id);
   const [error, setError] = useState<string>();
@@ -101,7 +101,7 @@ function Summary({ id, actions }: { id: string; actions: (latest: Latest) => Rea
       {session.status === "working" && (
         <>
           <HStack gap={2}>
-            <Button variant="destructive" label="Stop" clickAction={stop} />
+            <Button clickAction={stop} label="Stop" variant="destructive" />
           </HStack>
           {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
         </>
@@ -111,7 +111,7 @@ function Summary({ id, actions }: { id: string; actions: (latest: Latest) => Rea
   );
   return (
     <>
-      <SessionStatus status={session.status} label={session.statusLabel} />
+      <SessionStatus label={session.statusLabel} status={session.status} />
       {latest === undefined ? (
         rest({ endedBadly: false, runsStep: false })
       ) : (
@@ -142,24 +142,24 @@ export function AgentPanel({ feature }: { feature: Feature }) {
   const actions = ({ endedBadly, runsStep }: Latest) => (
     <HStack gap={2} wrap="wrap">
       <Button
-        variant={canStart ? "secondary" : "primary"}
-        label="Open the session"
         href={here(sessionPath(feature.folder))}
+        label="Open the session"
+        variant={canStart ? "secondary" : "primary"}
       />
       {canStart && !runsStep && (
         <Button
-          variant="primary"
-          label={endedBadly ? "Review and try again" : "Review and start the agent"}
           clickAction={start}
+          label={endedBadly ? "Review and try again" : "Review and start the agent"}
+          variant="primary"
         />
       )}
     </HStack>
   );
   return (
-    <VStack as="section" gap={3} aria-label="Agent">
+    <VStack aria-label="Agent" as="section" gap={3}>
       <Heading level={2}>Agent</Heading>
       {feature.session ? (
-        <Summary id={feature.session} actions={actions} />
+        <Summary actions={actions} id={feature.session} />
       ) : (
         actions({ endedBadly: false, runsStep: false })
       )}

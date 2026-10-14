@@ -74,21 +74,20 @@ async function listChanged(ctx: Context, select: Array<string>, added: string | 
   return sources.masked(repositoriesDataView, ctx, repositoriesRecord(ctx, added), select);
 }
 
-type FileInput = { folder: string; file: string };
+type FileInput = { file: string; folder: string };
 
 const repositoryMutations = {
   "answer.save": {
-    type: "WorkflowFile",
     resolve: async ({
       ctx,
       input,
       select,
     }: Resolver<{
-      folder: string;
-      question: string;
-      letters: Array<string>;
       comment: string;
+      folder: string;
+      letters: Array<string>;
       previous: string;
+      question: string;
     }>) => {
       await writable(ctx, input);
       return file(
@@ -106,9 +105,47 @@ const repositoryMutations = {
         select,
       );
     },
+    type: "WorkflowFile",
+  },
+  "answers.submit": {
+    resolve: async ({ ctx, input, select }: Resolver<{ file?: string; folder: string }>) => {
+      await writable(ctx, input);
+      return file(
+        ctx,
+        await refusable(() => ctx.binding.submitAnswers(ctx.repo, input.folder, input.file)),
+        select,
+      );
+    },
+    type: "WorkflowFile",
+  },
+  "commit.retry": {
+    resolve: async ({ ctx, input, select }: Resolver<FileInput>) => {
+      await writable(ctx, input);
+      await refusable(() => ctx.binding.retryCommit(ctx.repo, input.folder, input.file));
+      return file(ctx, await ctx.binding.readFile(ctx.repo, input.folder, input.file), select);
+    },
+    type: "WorkflowFile",
+  },
+  "draft.create": {
+    resolve: async ({ ctx, input, select }: Resolver<{ hash: string; line: string }>) =>
+      draft(
+        ctx,
+        await refusable(() => ctx.binding.createDraft(ctx.repo, input.line, input.hash)),
+        select,
+      ),
+    type: "Draft",
+  },
+  "feature.start": {
+    resolve: async ({ ctx, input, select }: Resolver<{ draft: string; slug?: string }>) => {
+      const started = await refusable(() =>
+        ctx.binding.startFeature(ctx.repo, input.draft, input.slug),
+      );
+      const feature = await ctx.binding.readFeature(ctx.repo, started.folder);
+      return sources.masked(featureDataView, ctx, await featureRecord(ctx, feature), select);
+    },
+    type: "Feature",
   },
   "notes.save": {
-    type: "WorkflowFile",
     resolve: async ({
       ctx,
       input,
@@ -123,98 +160,93 @@ const repositoryMutations = {
         select,
       );
     },
-  },
-  "answers.submit": {
     type: "WorkflowFile",
-    resolve: async ({ ctx, input, select }: Resolver<{ folder: string; file?: string }>) => {
-      await writable(ctx, input);
-      return file(
-        ctx,
-        await refusable(() => ctx.binding.submitAnswers(ctx.repo, input.folder, input.file)),
-        select,
-      );
-    },
   },
-  "commit.retry": {
-    type: "WorkflowFile",
-    resolve: async ({ ctx, input, select }: Resolver<FileInput>) => {
-      await writable(ctx, input);
-      await refusable(() => ctx.binding.retryCommit(ctx.repo, input.folder, input.file));
-      return file(ctx, await ctx.binding.readFile(ctx.repo, input.folder, input.file), select);
-    },
-  },
-  "review.comment": {
-    type: "WorkflowFile",
+  "priorities.add": {
     resolve: async ({
       ctx,
       input,
       select,
-    }: Resolver<FileInput & { startLine?: number; endLine?: number; text: string }>) => {
-      await writable(ctx, input);
-      return file(
+    }: Resolver<{ hash: string; section: string; text: string }>) =>
+      priorities(
         ctx,
         await refusable(() =>
-          ctx.binding.addComment(
-            ctx.repo,
-            input.folder,
-            input.file,
-            input.startLine,
-            input.endLine,
-            input.text,
-          ),
+          ctx.binding.addPriority(ctx.repo, input.section, input.text, input.hash),
         ),
         select,
-      );
-    },
+      ),
+    type: "Priorities",
   },
-  "review.edit": {
-    type: "WorkflowFile",
+  "priorities.commit": {
+    resolve: async ({ ctx, select }: Resolver<Record<string, never>>) =>
+      priorities(ctx, await refusable(() => ctx.binding.commitPriorities(ctx.repo)), select),
+    type: "Priorities",
+  },
+  "priorities.discard": {
+    resolve: async ({ ctx, select }: Resolver<Record<string, never>>) =>
+      priorities(ctx, await refusable(() => ctx.binding.discardPriorities(ctx.repo)), select),
+    type: "Priorities",
+  },
+  "priorities.edit": {
     resolve: async ({
       ctx,
       input,
       select,
-    }: Resolver<FileInput & { number: number; text: string }>) => {
-      await writable(ctx, input);
-      return file(
+    }: Resolver<{ entry: string; hash: string; text: string }>) =>
+      priorities(
         ctx,
         await refusable(() =>
-          ctx.binding.editComment(ctx.repo, input.folder, input.file, input.number, input.text),
+          ctx.binding.editPriority(ctx.repo, input.entry, input.text, input.hash),
         ),
         select,
-      );
-    },
+      ),
+    type: "Priorities",
   },
-  "review.remove": {
-    type: "WorkflowFile",
-    resolve: async ({ ctx, input, select }: Resolver<FileInput & { number: number }>) => {
-      await writable(ctx, input);
-      return file(
+  "priorities.insert": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ hash: string; index: number; lines: Array<string>; section: string }>) =>
+      priorities(
         ctx,
         await refusable(() =>
-          ctx.binding.removeComment(ctx.repo, input.folder, input.file, input.number),
+          ctx.binding.insertPriority(ctx.repo, input.section, input.index, input.lines, input.hash),
         ),
         select,
-      );
-    },
+      ),
+    type: "Priorities",
   },
-  "review.startOver": {
-    type: "WorkflowFile",
-    resolve: async ({ ctx, input, select }: Resolver<FileInput>) => {
-      await writable(ctx, input);
-      return file(
+  "priorities.move": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ entry: string; hash: string; index: number; section: string }>) =>
+      priorities(
         ctx,
-        await refusable(() => ctx.binding.startOver(ctx.repo, input.folder, input.file)),
+        await refusable(() =>
+          ctx.binding.movePriority(ctx.repo, input.entry, input.section, input.index, input.hash),
+        ),
         select,
-      );
-    },
+      ),
+    type: "Priorities",
+  },
+  "priorities.remove": {
+    resolve: async ({ ctx, input, select }: Resolver<{ entry: string; hash: string }>) =>
+      priorities(
+        ctx,
+        await refusable(() => ctx.binding.removePriority(ctx.repo, input.entry, input.hash)),
+        select,
+      ),
+    type: "Priorities",
   },
   "review.approve": {
-    type: "WorkflowFile",
     resolve: async ({
       ctx,
       input,
       select,
-    }: Resolver<FileInput & { summary?: string; tier?: string; planReview?: boolean }>) => {
+    }: Resolver<FileInput & { planReview?: boolean; summary?: string; tier?: string }>) => {
       await writable(ctx, input);
       return file(
         ctx,
@@ -231,9 +263,63 @@ const repositoryMutations = {
         select,
       );
     },
+    type: "WorkflowFile",
+  },
+  "review.comment": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<FileInput & { endLine?: number; startLine?: number; text: string }>) => {
+      await writable(ctx, input);
+      return file(
+        ctx,
+        await refusable(() =>
+          ctx.binding.addComment(
+            ctx.repo,
+            input.folder,
+            input.file,
+            input.startLine,
+            input.endLine,
+            input.text,
+          ),
+        ),
+        select,
+      );
+    },
+    type: "WorkflowFile",
+  },
+  "review.edit": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<FileInput & { number: number; text: string }>) => {
+      await writable(ctx, input);
+      return file(
+        ctx,
+        await refusable(() =>
+          ctx.binding.editComment(ctx.repo, input.folder, input.file, input.number, input.text),
+        ),
+        select,
+      );
+    },
+    type: "WorkflowFile",
+  },
+  "review.remove": {
+    resolve: async ({ ctx, input, select }: Resolver<FileInput & { number: number }>) => {
+      await writable(ctx, input);
+      return file(
+        ctx,
+        await refusable(() =>
+          ctx.binding.removeComment(ctx.repo, input.folder, input.file, input.number),
+        ),
+        select,
+      );
+    },
+    type: "WorkflowFile",
   },
   "review.requestChanges": {
-    type: "WorkflowFile",
     resolve: async ({ ctx, input, select }: Resolver<FileInput & { summary?: string }>) => {
       await writable(ctx, input);
       return file(
@@ -244,156 +330,71 @@ const repositoryMutations = {
         select,
       );
     },
+    type: "WorkflowFile",
   },
-  "draft.create": {
-    type: "Draft",
-    resolve: async ({ ctx, input, select }: Resolver<{ line: string; hash: string }>) =>
-      draft(
-        ctx,
-        await refusable(() => ctx.binding.createDraft(ctx.repo, input.line, input.hash)),
-        select,
-      ),
-  },
-  "text.save": {
-    type: "Draft",
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{ path: string; text: string; hash: string }>) => {
+  "review.startOver": {
+    resolve: async ({ ctx, input, select }: Resolver<FileInput>) => {
       await writable(ctx, input);
-      await refusable(() => ctx.binding.saveText(ctx.repo, input.path, input.text, input.hash));
-      return draft(ctx, await ctx.binding.readText(ctx.repo, input.path), select);
-    },
-  },
-  "text.discovery": {
-    type: "Draft",
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{ path: string; level: string; hash: string }>) => {
-      await writable(ctx, input);
-      return draft(
+      return file(
         ctx,
-        await refusable(() =>
-          ctx.binding.setDiscovery(ctx.repo, input.path, input.level, input.hash),
-        ),
+        await refusable(() => ctx.binding.startOver(ctx.repo, input.folder, input.file)),
         select,
       );
     },
+    type: "WorkflowFile",
   },
-  "text.commit": {
-    type: "Draft",
-    resolve: async ({ ctx, input, select }: Resolver<{ path: string }>) => {
-      await writable(ctx, input);
-      await refusable(() => ctx.binding.commitText(ctx.repo, input.path));
-      return draft(ctx, await ctx.binding.readText(ctx.repo, input.path), select);
-    },
-  },
-  "feature.start": {
-    type: "Feature",
-    resolve: async ({ ctx, input, select }: Resolver<{ draft: string; slug?: string }>) => {
-      const started = await refusable(() =>
-        ctx.binding.startFeature(ctx.repo, input.draft, input.slug),
+  "session.allow": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ seq: number; session: string; turn: string }>) => {
+      await refusedOn(() =>
+        ctx.sessions.allow(ctx.repo, input.session, Number(input.turn), input.seq),
       );
-      const feature = await ctx.binding.readFeature(ctx.repo, started.folder);
-      return sources.masked(featureDataView, ctx, await featureRecord(ctx, feature), select);
+      return session(ctx, input.session, select);
     },
+    type: "Session",
   },
-  "priorities.add": {
-    type: "Priorities",
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{ section: string; text: string; hash: string }>) =>
-      priorities(
-        ctx,
-        await refusable(() =>
-          ctx.binding.addPriority(ctx.repo, input.section, input.text, input.hash),
-        ),
-        select,
-      ),
+  "session.archive": {
+    resolve: async ({ ctx, input, select }: Resolver<{ archived: boolean; session: string }>) => {
+      await onSession(ctx, () => ctx.sessions.archive(ctx.repo, input.session, input.archived));
+      return session(ctx, input.session, select);
+    },
+    type: "Session",
   },
-  "priorities.insert": {
-    type: "Priorities",
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{ section: string; index: number; lines: Array<string>; hash: string }>) =>
-      priorities(
-        ctx,
-        await refusable(() =>
-          ctx.binding.insertPriority(ctx.repo, input.section, input.index, input.lines, input.hash),
-        ),
-        select,
-      ),
-  },
-  "priorities.move": {
-    type: "Priorities",
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{ entry: string; section: string; index: number; hash: string }>) =>
-      priorities(
-        ctx,
-        await refusable(() =>
-          ctx.binding.movePriority(ctx.repo, input.entry, input.section, input.index, input.hash),
-        ),
-        select,
-      ),
-  },
-  "priorities.edit": {
-    type: "Priorities",
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{ entry: string; text: string; hash: string }>) =>
-      priorities(
-        ctx,
-        await refusable(() =>
-          ctx.binding.editPriority(ctx.repo, input.entry, input.text, input.hash),
-        ),
-        select,
-      ),
-  },
-  "priorities.remove": {
-    type: "Priorities",
-    resolve: async ({ ctx, input, select }: Resolver<{ entry: string; hash: string }>) =>
-      priorities(
-        ctx,
-        await refusable(() => ctx.binding.removePriority(ctx.repo, input.entry, input.hash)),
-        select,
-      ),
-  },
-  "priorities.commit": {
-    type: "Priorities",
+  "session.newChat": {
     resolve: async ({ ctx, select }: Resolver<Record<string, never>>) =>
-      priorities(ctx, await refusable(() => ctx.binding.commitPriorities(ctx.repo)), select),
+      session(ctx, (await refusedOn(() => ctx.sessions.newChat(ctx.repo))).id, select),
+    type: "Session",
   },
-  "priorities.discard": {
-    type: "Priorities",
-    resolve: async ({ ctx, select }: Resolver<Record<string, never>>) =>
-      priorities(ctx, await refusable(() => ctx.binding.discardPriorities(ctx.repo)), select),
+  "session.rename": {
+    resolve: async ({ ctx, input, select }: Resolver<{ session: string; title: string }>) => {
+      await onSession(ctx, () => ctx.sessions.rename(ctx.repo, input.session, input.title));
+      return session(ctx, input.session, select);
+    },
+    type: "Session",
+  },
+  "session.seen": {
+    resolve: async ({ ctx, input, select }: Resolver<{ session: string }>) => {
+      await onSession(ctx, () => ctx.sessions.seen(ctx.repo, input.session));
+      return session(ctx, input.session, select);
+    },
+    type: "Session",
   },
   "session.send": {
-    type: "Session",
     resolve: async ({
       ctx,
       input,
       select,
     }: Resolver<{
-      /** The session to send to. */
-      session?: string;
       /** Or the feature, whose session is created with its first message. */
       folder?: string;
+      /** The session to send to. */
+      session?: string;
       text: string;
       /** The workflow's message, which starts the feature's step. */
-      workflow?: { trigger: Trigger; file?: string };
+      workflow?: { file?: string; trigger: Trigger };
     }>) => {
       const { workflow } = input;
       if (workflow && !TRIGGERS.includes(workflow.trigger)) {
@@ -428,74 +429,79 @@ const repositoryMutations = {
       );
       return session(ctx, id, select);
     },
-  },
-  "session.newChat": {
     type: "Session",
-    resolve: async ({ ctx, select }: Resolver<Record<string, never>>) =>
-      session(ctx, (await refusedOn(() => ctx.sessions.newChat(ctx.repo))).id, select),
-  },
-  "session.takeBack": {
-    type: "Session",
-    resolve: async ({ ctx, input, select }: Resolver<{ session: string; message: string }>) => {
-      await onSession(ctx, () => ctx.sessions.takeBack(ctx.repo, input.session, input.message));
-      return session(ctx, input.session, select);
-    },
   },
   "session.stop": {
-    type: "Session",
     resolve: async ({ ctx, input, select }: Resolver<{ session: string }>) => {
       await onSession(ctx, () => ctx.sessions.stop(ctx.repo, input.session));
       return session(ctx, input.session, select);
     },
-  },
-  "session.allow": {
     type: "Session",
+  },
+  "session.takeBack": {
+    resolve: async ({ ctx, input, select }: Resolver<{ message: string; session: string }>) => {
+      await onSession(ctx, () => ctx.sessions.takeBack(ctx.repo, input.session, input.message));
+      return session(ctx, input.session, select);
+    },
+    type: "Session",
+  },
+  "text.commit": {
+    resolve: async ({ ctx, input, select }: Resolver<{ path: string }>) => {
+      await writable(ctx, input);
+      await refusable(() => ctx.binding.commitText(ctx.repo, input.path));
+      return draft(ctx, await ctx.binding.readText(ctx.repo, input.path), select);
+    },
+    type: "Draft",
+  },
+  "text.discovery": {
     resolve: async ({
       ctx,
       input,
       select,
-    }: Resolver<{ session: string; turn: string; seq: number }>) => {
-      await refusedOn(() =>
-        ctx.sessions.allow(ctx.repo, input.session, Number(input.turn), input.seq),
+    }: Resolver<{ hash: string; level: string; path: string }>) => {
+      await writable(ctx, input);
+      return draft(
+        ctx,
+        await refusable(() =>
+          ctx.binding.setDiscovery(ctx.repo, input.path, input.level, input.hash),
+        ),
+        select,
       );
-      return session(ctx, input.session, select);
     },
+    type: "Draft",
   },
-  "session.rename": {
-    type: "Session",
-    resolve: async ({ ctx, input, select }: Resolver<{ session: string; title: string }>) => {
-      await onSession(ctx, () => ctx.sessions.rename(ctx.repo, input.session, input.title));
-      return session(ctx, input.session, select);
+  "text.save": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ hash: string; path: string; text: string }>) => {
+      await writable(ctx, input);
+      await refusable(() => ctx.binding.saveText(ctx.repo, input.path, input.text, input.hash));
+      return draft(ctx, await ctx.binding.readText(ctx.repo, input.path), select);
     },
-  },
-  "session.archive": {
-    type: "Session",
-    resolve: async ({ ctx, input, select }: Resolver<{ session: string; archived: boolean }>) => {
-      await onSession(ctx, () => ctx.sessions.archive(ctx.repo, input.session, input.archived));
-      return session(ctx, input.session, select);
-    },
-  },
-  "session.seen": {
-    type: "Session",
-    resolve: async ({ ctx, input, select }: Resolver<{ session: string }>) => {
-      await onSession(ctx, () => ctx.sessions.seen(ctx.repo, input.session));
-      return session(ctx, input.session, select);
-    },
+    type: "Draft",
   },
 };
 
 /** The list's mutations, served by every endpoint, the global one too. */
 const listMutations = {
   "repositories.add": {
-    type: "Repositories",
     resolve: async ({ ctx, input, select }: ListResolver<{ folder: string }>) => {
       const folder = await refusedOn(() => typedFolder(input.folder, homedir()));
       const { repository } = await refusable(() => ctx.binding.addRepository(ctx.dataDir, folder));
       return listChanged(ctx, select, repository.name);
     },
+    type: "Repositories",
+  },
+  "repositories.open": {
+    resolve: async ({ ctx, input, select }: ListResolver<{ name: string }>) => {
+      await refusable(() => ctx.binding.openRepository(ctx.dataDir, input.name));
+      return listChanged(ctx, select);
+    },
+    type: "Repositories",
   },
   "repositories.remove": {
-    type: "Repositories",
     resolve: async ({ ctx, input, select }: ListResolver<{ name: string }>) => {
       const host = ctx.hosts.get(input.name);
       if (host && ctx.sessions.busy(host.path)) {
@@ -504,13 +510,7 @@ const listMutations = {
       await refusable(() => ctx.binding.removeRepository(ctx.dataDir, input.name));
       return listChanged(ctx, select);
     },
-  },
-  "repositories.open": {
     type: "Repositories",
-    resolve: async ({ ctx, input, select }: ListResolver<{ name: string }>) => {
-      await refusable(() => ctx.binding.openRepository(ctx.dataDir, input.name));
-      return listChanged(ctx, select);
-    },
   },
 };
 
@@ -522,23 +522,23 @@ type RepositoryMutations = typeof repositoryMutations;
  */
 function repositoryOnly(definitions: RepositoryMutations) {
   return Object.fromEntries(
-    Object.entries(definitions).map(([name, { type, resolve }]) => [
+    Object.entries(definitions).map(([name, { resolve, type }]) => [
       name,
       {
-        type,
         resolve: (args: ListResolver<unknown>) =>
           (resolve as (args: Resolver<unknown>) => unknown)({
             ...args,
             ctx: inRepository(args.ctx),
           }),
+        type,
       },
     ]),
   ) as {
     [Name in keyof RepositoryMutations]: {
-      type: RepositoryMutations[Name]["type"];
       resolve: (
         args: Omit<Parameters<RepositoryMutations[Name]["resolve"]>[0], "ctx"> & { ctx: Context },
       ) => ReturnType<RepositoryMutations[Name]["resolve"]>;
+      type: RepositoryMutations[Name]["type"];
     };
   };
 }

@@ -26,33 +26,33 @@ import { currentEntry, updateEntry } from "./routes.tsx";
 import { SessionView } from "./views.ts";
 
 const styles = stylex.create({
-  // Astryx centres a system line, as a chat's date separators are; the UI layout decision keeps
-  // text left-aligned.
+  message: {
+    // A message keeps its line breaks, and a long path wraps instead of running off screen.
+    overflowWrap: "anywhere",
+    whiteSpace: "pre-wrap",
+  },
   notice: {
+    // Astryx centres a system line, as a chat's date separators are; the UI layout decision keeps
+    // text left-aligned.
     justifyContent: "flex-start",
     textAlign: "start",
   },
-  // A turn's lines, spaced as the list spaces them, in a box the address's anchor scrolls to.
+  opening: {
+    // The chat's opening line, muted above the human's text.
+    color: colorVars["--color-text-secondary"],
+    display: "block",
+    marginBlockEnd: spacingVars["--spacing-2"],
+    whiteSpace: "pre-wrap",
+  },
+  pending: {
+    // A message the agent has not read yet.
+    color: colorVars["--color-text-secondary"],
+  },
   turn: {
+    // A turn's lines, spaced as the list spaces them, in a box the address's anchor scrolls to.
     display: "flex",
     flexDirection: "column",
     gap: spacingVars["--spacing-3"],
-  },
-  // A message keeps its line breaks, and a long path wraps instead of running off screen.
-  message: {
-    whiteSpace: "pre-wrap",
-    overflowWrap: "anywhere",
-  },
-  // The chat's opening line, muted above the human's text.
-  opening: {
-    display: "block",
-    whiteSpace: "pre-wrap",
-    color: colorVars["--color-text-secondary"],
-    marginBlockEnd: spacingVars["--spacing-2"],
-  },
-  // A message the agent has not read yet.
-  pending: {
-    color: colorVars["--color-text-secondary"],
   },
 });
 
@@ -71,11 +71,11 @@ export function duration(ms: number) {
 const UNFINISHED = "Not finished: the turn ended.";
 
 const STATUS = {
-  pending: "pending",
-  in_progress: "running",
+  cancelled: "error",
   completed: "complete",
   failed: "error",
-  cancelled: "error",
+  in_progress: "running",
+  pending: "pending",
 } as const;
 
 function toolCalls(tools: Array<ToolItem>, ended: boolean) {
@@ -85,26 +85,26 @@ function toolCalls(tools: Array<ToolItem>, ended: boolean) {
     const output = unfinished ? UNFINISHED : tool.output;
     const status = unfinished ? ("error" as const) : STATUS[tool.status];
     return {
-      key: tool.id,
-      name: tool.name,
-      status,
-      target: tool.subagent?.description ?? tool.target,
       duration: tool.durationMs === undefined ? undefined : duration(tool.durationMs),
       errorMessage:
         status === "error"
           ? (output ?? (tool.status === "cancelled" ? "Cancelled" : undefined))
           : undefined,
+      key: tool.id,
+      name: tool.name,
       resultDetail: output ? (
-        <CodeBlock code={output} size="sm" isWrapped width="100%" />
+        <CodeBlock code={output} isWrapped size="sm" width="100%" />
       ) : undefined,
+      status,
+      target: tool.subagent?.description ?? tool.target,
     };
   });
 }
 
 /** The groups of tool calls opened, by their turn and first call, and how to open or close one. */
 type OpenGroups = {
-  open: ReadonlyArray<string>;
   onOpenChange: (key: string, isOpen: boolean) => void;
+  open: ReadonlyArray<string>;
 };
 
 /** The groups of tool calls opened in the transcript, kept in the history entry for Back and reloads. */
@@ -114,7 +114,6 @@ export function useOpenGroups(): OpenGroups {
   // into the next one's entry.
   const [id] = useState(() => currentEntry().id);
   return {
-    open,
     onOpenChange: (key, isOpen) => {
       const next = isOpen ? [...open.filter((k) => k !== key), key] : open.filter((k) => k !== key);
       setOpen(next);
@@ -122,6 +121,7 @@ export function useOpenGroups(): OpenGroups {
         updateEntry({ open: next });
       }
     },
+    open,
   };
 }
 
@@ -147,7 +147,7 @@ function scroller(element: HTMLElement): HTMLElement | undefined {
 export function useOpenAtEnd(ref: RefObject<HTMLElement | null>) {
   useLayoutEffect(() => {
     const element = ref.current;
-    const { scroll, pane } = currentEntry();
+    const { pane, scroll } = currentEntry();
     if (!element || scroll !== undefined || pane !== undefined) {
       return;
     }
@@ -208,16 +208,16 @@ export function useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolea
 
 /** What the transcript does with a message or a blocked action, from the session's view. */
 export type Actions = {
-  session: string;
-  /** Whether a message not read yet can be taken back. */
-  canTakeBack: boolean;
-  /** Called with a message's text once it is taken back. */
-  onTakenBack?: (text: string) => void;
-  /** Allows a blocked action. */
-  onAllow?: (turn: string, seq: number) => Promise<void>;
   /** Whether a blocked action can be allowed now: not while the session works. */
   canAllow: boolean;
+  /** Whether a message not read yet can be taken back. */
+  canTakeBack: boolean;
   groups?: OpenGroups;
+  /** Allows a blocked action. */
+  onAllow?: (turn: string, seq: number) => Promise<void>;
+  /** Called with a message's text once it is taken back. */
+  onTakenBack?: (text: string) => void;
+  session: string;
 };
 
 /** When a message was sent: its time today, else its date too, as `Oct 12, 14:05`. */
@@ -228,8 +228,8 @@ export function sentAt(iso: string, now = new Date()): string {
     return time;
   }
   const date = at.toLocaleDateString(undefined, {
-    month: "short",
     day: "numeric",
+    month: "short",
     ...(at.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }),
   });
   return `${date}, ${time}`;
@@ -240,13 +240,13 @@ export function sentAt(iso: string, now = new Date()): string {
  * it was sent.
  */
 function Message({
-  item,
-  canTakeBack,
   actions,
+  canTakeBack,
+  item,
 }: {
-  item: MessageItem;
-  canTakeBack: boolean;
   actions: Actions;
+  canTakeBack: boolean;
+  item: MessageItem;
 }) {
   const fate = useFateClient();
   const [error, setError] = useState<string>();
@@ -254,7 +254,7 @@ function Message({
   const takeBack = async () => {
     setError(undefined);
     const result = await fate.mutations.session.takeBack({
-      input: { session: actions.session, message: item.id },
+      input: { message: item.id, session: actions.session },
       view: SessionView,
     });
     if (result.error) {
@@ -265,34 +265,34 @@ function Message({
   };
   return (
     <ChatMessage
-      sender="user"
       metadata={
         item.at || pending || error ? (
-          <HStack gap={2} align="center" justify="end">
+          <HStack align="center" gap={2} justify="end">
             {item.at && (
-              <Text type="supporting" color="secondary">
+              <Text color="secondary" type="supporting">
                 <time dateTime={item.at}>{sentAt(item.at)}</time>
               </Text>
             )}
             {pending && (
-              <Text type="supporting" color="secondary">
+              <Text color="secondary" type="supporting">
                 Not read yet
               </Text>
             )}
             {pending && canTakeBack && (
               <Button
-                variant="ghost"
-                size="sm"
-                label="Take back"
-                isIconOnly
-                icon={<Icon icon="close" />}
                 clickAction={takeBack}
+                icon={<Icon icon="close" />}
+                isIconOnly
+                label="Take back"
+                size="sm"
+                variant="ghost"
               />
             )}
             {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
           </HStack>
         ) : undefined
       }
+      sender="user"
     >
       <ChatMessageBubble variant={pending ? "ghost" : "filled"}>
         {item.opening && <span {...stylex.props(styles.opening)}>{item.opening}</span>}
@@ -307,12 +307,10 @@ function Message({
  * reopens the process. An action no allow rule can match alone, like a command with a `*`, says so
  * instead.
  */
-function Denial({ item, turn, actions }: { item: DenialItem; turn: string; actions: Actions }) {
-  const { onAllow, canAllow } = actions;
+function Denial({ actions, item, turn }: { actions: Actions; item: DenialItem; turn: string }) {
+  const { canAllow, onAllow } = actions;
   return (
     <Banner
-      status="warning"
-      title={`Blocked by auto mode: ${item.target ? `${item.tool} ${item.target}` : item.tool}`}
       collapsible={false}
       description={
         item.allowed
@@ -324,12 +322,14 @@ function Denial({ item, turn, actions }: { item: DenialItem; turn: string; actio
       endContent={
         !item.allowed && item.rule !== undefined && onAllow ? (
           <Button
-            label="Allow and retry"
-            isDisabled={!canAllow}
             clickAction={() => onAllow(turn, item.seq)}
+            isDisabled={!canAllow}
+            label="Allow and retry"
           />
         ) : undefined
       }
+      status="warning"
+      title={`Blocked by auto mode: ${item.target ? `${item.tool} ${item.target}` : item.tool}`}
     />
   );
 }
@@ -340,20 +340,20 @@ function Denial({ item, turn, actions }: { item: DenialItem; turn: string; actio
  * lines and blocked actions as notices.
  */
 function TranscriptItems({
-  items,
-  turn,
+  actions,
   ended,
   firstMessage,
+  items,
   queued,
-  actions,
+  turn,
 }: {
-  items: ReadonlyArray<TranscriptItem>;
-  turn: string;
+  actions: Actions;
   ended: boolean;
   /** The turn's own first message, which started it: taken back only while queued. */
   firstMessage: string | undefined;
+  items: ReadonlyArray<TranscriptItem>;
   queued: boolean;
-  actions: Actions;
+  turn: string;
 }) {
   const { groups } = actions;
   // Each slot holds a group of tools, or one of the other lines.
@@ -398,7 +398,7 @@ function TranscriptItems({
     if (item.kind === "message") {
       const canTakeBack = actions.canTakeBack && (item.id !== firstMessage || queued);
       shown.push(
-        <Message key={item.seq} item={item} canTakeBack={canTakeBack} actions={actions} />,
+        <Message actions={actions} canTakeBack={canTakeBack} item={item} key={item.seq} />,
       );
     } else if (item.kind === "text") {
       shown.push(
@@ -417,7 +417,7 @@ function TranscriptItems({
         </ChatSystemMessage>,
       );
     } else {
-      shown.push(<Denial key={item.seq} item={item} turn={turn} actions={actions} />);
+      shown.push(<Denial actions={actions} item={item} key={item.seq} turn={turn} />);
     }
   }
   return (
@@ -431,8 +431,8 @@ function TranscriptItems({
           <ChatMessage key={`tools-${key}`} sender="assistant">
             <ChatToolCalls
               calls={toolCalls(tools, ended)}
-              label={label}
               isExpanded={groups ? groups.open.includes(key) : undefined}
+              label={label}
               onExpandedChange={
                 groups ? (open: boolean) => groups.onOpenChange(key, open) : undefined
               }
@@ -445,34 +445,34 @@ function TranscriptItems({
 }
 
 function TurnPage({
-  id,
-  turn,
+  actions,
   ended,
   firstPage,
+  id,
   latest,
   queued,
-  actions,
+  turn,
 }: {
-  id: string;
-  turn: string;
+  actions: Actions;
   ended: boolean;
   firstPage: boolean;
+  id: string;
   /** The latest page of the session's latest turn, which may still grow. */
   latest: boolean;
   queued: boolean;
-  actions: Actions;
+  turn: string;
 }) {
   const page = useTurnLog(id, latest);
   // The turn's first message, which started it, is the first of its first page.
   const first = firstPage ? page?.items.find((item) => item.kind === "message") : undefined;
   return page ? (
     <TranscriptItems
-      items={page.items}
-      turn={turn}
+      actions={actions}
       ended={ended}
       firstMessage={first?.kind === "message" ? first.id : undefined}
+      items={page.items}
       queued={queued}
-      actions={actions}
+      turn={turn}
     />
   ) : null;
 }
@@ -507,9 +507,9 @@ function Activity({ label, since }: { label: string; since: string }) {
   const lasted = now - Date.parse(since);
   return (
     <ChatSystemMessage xstyle={styles.notice}>
-      <HStack gap={2} align="center">
-        <StatusMark status="working" label={label} small />
-        <Text color="secondary" aria-hidden>
+      <HStack align="center" gap={2}>
+        <StatusMark label={label} small status="working" />
+        <Text aria-hidden color="secondary">
           {lasted >= SHOW_ELAPSED_MS ? `${label} · ${elapsed(lasted)}` : `${label}…`}
         </Text>
       </HStack>
@@ -532,7 +532,7 @@ function ending(state: string, reason: string | null): string | undefined {
  * A turn: a workflow turn opened by its step, its items, and how it ended when it went wrong.
  * `latest` for the session's latest turn, which may still go on.
  */
-function Turn({ id, latest, actions }: { id: string; latest: boolean; actions: Actions }) {
+function Turn({ actions, id, latest }: { actions: Actions; id: string; latest: boolean }) {
   const turn = useTurn(id, latest);
   if (!turn) {
     return null;
@@ -546,14 +546,14 @@ function Turn({ id, latest, actions }: { id: string; latest: boolean; actions: A
       )}
       {Array.from({ length: turn.pages }, (_, page) => (
         <TurnPage
-          key={page}
-          id={`${turn.id}:${page}`}
-          turn={turn.id}
+          actions={actions}
           ended={ended}
           firstPage={page === 0}
+          id={`${turn.id}:${page}`}
+          key={page}
           latest={latest && page === turn.pages - 1}
           queued={turn.state === "queued"}
-          actions={actions}
+          turn={turn.id}
         />
       ))}
       {turn.state === "running" && turn.activity && (
@@ -574,17 +574,17 @@ function Turn({ id, latest, actions }: { id: string; latest: boolean; actions: A
  * `canAllow`.
  */
 export function Transcript({
-  session,
-  onAllow,
   canAllow = true,
-  onTakenBack,
   groups,
+  onAllow,
+  onTakenBack,
+  session,
 }: {
-  session: { id: string; turns: ReadonlyArray<string> };
-  onAllow?: (turn: string, seq: number) => Promise<void>;
   canAllow?: boolean;
-  onTakenBack?: (text: string) => void;
   groups?: OpenGroups;
+  onAllow?: (turn: string, seq: number) => Promise<void>;
+  onTakenBack?: (text: string) => void;
+  session: { id: string; turns: ReadonlyArray<string> };
 }) {
   const agent = useAgent();
   useEffect(() => {
@@ -594,17 +594,17 @@ export function Transcript({
     }
   }, []);
   const actions: Actions = {
-    session: session.id,
-    canTakeBack: Boolean(agent?.capabilities.takeBack),
-    onTakenBack,
-    onAllow,
     canAllow,
+    canTakeBack: Boolean(agent?.capabilities.takeBack),
     groups,
+    onAllow,
+    onTakenBack,
+    session: session.id,
   };
   return (
-    <ChatMessageList align="top" density="compact" aria-label="Conversation">
+    <ChatMessageList align="top" aria-label="Conversation" density="compact">
       {session.turns.map((id, index) => (
-        <Turn key={id} id={id} latest={index === session.turns.length - 1} actions={actions} />
+        <Turn actions={actions} id={id} key={id} latest={index === session.turns.length - 1} />
       ))}
     </ChatMessageList>
   );

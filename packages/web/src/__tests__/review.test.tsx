@@ -58,7 +58,7 @@ async function scenario(phrase: string) {
     const block = [...document.querySelectorAll<HTMLElement>("button[aria-pressed]")].find(
       (toggle) => {
         const label = document.getElementById(toggle.getAttribute("aria-labelledby") ?? "");
-        return label?.textContent?.replace(/\s+/g, " ").includes(phrase);
+        return label?.textContent?.replaceAll(/\s+/g, " ").includes(phrase);
       },
     );
     expect(block).toBeTruthy();
@@ -212,7 +212,7 @@ test("a new version under pending comments is said", async () => {
 /** Review focus 4: a spec without stories still renders, and its blocks take comments. */
 test("a spec without stories still takes comments", async () => {
   const r = fixtureRepo();
-  commitSpec(r, (text) => text.replace(/### US\d+:.*\n/g, "Story removed.\n"));
+  commitSpec(r, (text) => text.replaceAll(/### US\d+:.*\n/g, "Story removed.\n"));
 
   await renderPage(PAGE, r);
 

@@ -141,10 +141,10 @@ export async function renderPage(
   repo = fixtureRepo(),
   options: {
     agent?: boolean | Fake;
-    fetch?: typeof globalThis.fetch;
-    reload?: boolean;
-    raw?: boolean;
     dataDir?: string;
+    fetch?: typeof globalThis.fetch;
+    raw?: boolean;
+    reload?: boolean;
   } = {},
 ) {
   const fake =
@@ -163,9 +163,9 @@ export async function renderPage(
   }
   // The page suspends while fate loads: an awaited act lets React render the data.
   const rendered = await act(async () =>
-    render(<App clientFor={fateClients({ origin, fetch })} />),
+    render(<App clientFor={fateClients({ fetch, origin })} />),
   );
-  return { ...rendered, repo, name: current, agent: fake.adapter, sessions: fake.sessions };
+  return { ...rendered, agent: fake.adapter, name: current, repo, sessions: fake.sessions };
 }
 
 /** The hosts of the tests' apps, whose watches are closed after each test. */
@@ -202,13 +202,13 @@ export function serverFetch(
   opened.push(hosts);
   const created = hosts.then((hosts) =>
     createApp({
-      port,
       allowedHosts: [],
       allowOrigins: [],
       binding,
-      sessions,
-      hosts,
       dataDir,
+      hosts,
+      port,
+      sessions,
     }),
   );
   const fetch: typeof globalThis.fetch = async (input, init) => {
@@ -216,15 +216,15 @@ export function serverFetch(
     const url = input instanceof Request ? input.url : input.toString();
     sent.push(typeof init?.body === "string" ? init.body : url);
     const response = await app.request(url, {
-      method: init?.method,
       body: init?.body as string,
       headers: { "content-type": "application/json" },
+      method: init?.method,
     });
     const text = await response.text();
     answers.push(typeof init?.body === "string" ? init.body : url);
     return new Response(text, {
-      status: response.status,
       headers: { "content-type": "application/json" },
+      status: response.status,
     });
   };
   names.set(fetch, added);
@@ -240,12 +240,12 @@ export function listOf(repositories: Array<[name: string, path: string]>): strin
   writeFileSync(
     join(dataDir, "repositories.json"),
     JSON.stringify({
-      version: 1,
       repositories: repositories.map(([name, path], index) => ({
         name,
-        path,
         openedAt: `2000-01-01T10:${String(59 - index).padStart(2, "0")}:00Z`,
+        path,
       })),
+      version: 1,
     }),
   );
   return dataDir;

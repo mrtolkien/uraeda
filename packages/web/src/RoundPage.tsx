@@ -32,54 +32,54 @@ import { Paragraph } from "./layout/Paragraph.tsx";
 type File = NonNullable<ReturnType<typeof useFile>>;
 
 const styles = stylex.create({
-  output: {
-    margin: 0,
-    whiteSpace: "pre-wrap",
-    fontFamily: typographyVars["--font-family-code"],
-    fontSize: typeScaleVars["--text-code-size"],
+  band: {
+    // A band between sibling questions; on the phone, to the screen's edges.
+    backgroundColor: colorVars["--color-background-muted"],
+    height: spacingVars["--spacing-2"],
+    marginBlock: spacingVars["--spacing-5"],
   },
-  // On wide screens, the questions and the index beside them, side by side in the middle.
+  bandBleed: {
+    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+  },
   columns: {
+    // On wide screens, the questions and the index beside them, side by side in the middle.
+    alignItems: "flex-start",
     display: "flex",
     justifyContent: "center",
-    alignItems: "flex-start",
+  },
+  output: {
+    fontFamily: typographyVars["--font-family-code"],
+    fontSize: typeScaleVars["--text-code-size"],
+    margin: 0,
+    whiteSpace: "pre-wrap",
   },
   questions: {
     flexGrow: 1,
     flexShrink: 1,
-    minWidth: 0,
     maxWidth: "var(--size-page-max)",
+    minWidth: 0,
   },
   title: {
     marginBlockEnd: spacingVars["--spacing-3"],
-  },
-  // A band between sibling questions; on the phone, to the screen's edges.
-  band: {
-    height: spacingVars["--spacing-2"],
-    marginBlock: spacingVars["--spacing-5"],
-    backgroundColor: colorVars["--color-background-muted"],
-  },
-  bandBleed: {
-    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
   },
 });
 
 /** A hook's refusal: the answers are saved, the commit is not, and it can be tried again. */
 export function HookRefusal({
   error,
-  what,
   onRetry,
+  what,
 }: {
   error: Refusal;
-  what: string;
   onRetry: () => Promise<void>;
+  what: string;
 }) {
   return (
     <Banner
+      collapsible={false}
+      endContent={<Button clickAction={onRetry} label="Try again" />}
       status="error"
       title={`The pre-commit hook refused the commit. ${what}`}
-      endContent={<Button label="Try again" clickAction={onRetry} />}
-      collapsible={false}
     >
       <Collapsible trigger="Hook output">
         <pre {...stylex.props(styles.output)}>{error.output ?? error.message}</pre>
@@ -109,11 +109,11 @@ export function RoundPage({ file }: { file: File }) {
       view: FileView,
     });
     if (result.error) {
-      return { ok: false, message: refusal(result.error).message };
+      return { message: refusal(result.error).message, ok: false };
     }
     return { ok: true, saved: result.result?.current.items.clarifications?.notes ?? value };
   }, round?.notes ?? "");
-  const { settle, idle } = notesSave;
+  const { idle, settle } = notesSave;
   const shownNotes = useRef(notes);
   shownNotes.current = notes;
   // Notes changed elsewhere replace these when nothing of them waits to be saved.
@@ -136,10 +136,10 @@ export function RoundPage({ file }: { file: File }) {
     .filter((q) => !q.parent)
     .flatMap((q) => [q, ...questions.filter((f) => f.parent === q.id && f.asked)])
     .map((q) => ({
-      id: q.id,
-      title: q.title,
-      level: q.parent ? 2 : 1,
       answered: q.answer.trim() !== "",
+      id: q.id,
+      level: q.parent ? 2 : 1,
+      title: q.title,
     }));
   useRoundPosition(file.folder, file.name, nav);
   if (!round) {
@@ -151,7 +151,7 @@ export function RoundPage({ file }: { file: File }) {
     const behavior = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
       ? "auto"
       : "smooth";
-    end.current?.scrollIntoView?.({ block: "end", behavior });
+    end.current?.scrollIntoView?.({ behavior, block: "end" });
     end.current
       ?.querySelector<HTMLButtonElement>("button:not([disabled])")
       ?.focus({ preventScroll: true });
@@ -177,7 +177,7 @@ export function RoundPage({ file }: { file: File }) {
       return;
     }
     const result = await fate.mutations.answers.submit({
-      input: { folder: file.folder, file: file.name },
+      input: { file: file.name, folder: file.folder },
       view: FileView,
     });
     if (result.error) {
@@ -188,7 +188,7 @@ export function RoundPage({ file }: { file: File }) {
   };
   const retry = async () => {
     const result = await fate.mutations.commit.retry({
-      input: { folder: file.folder, file: file.name },
+      input: { file: file.name, folder: file.folder },
       view: FileView,
     });
     setError(result.error ? refusal(result.error) : undefined);
@@ -199,7 +199,7 @@ export function RoundPage({ file }: { file: File }) {
 
   const content = (
     <>
-      <Crumbs folder={file.folder} current={file.name} />
+      <Crumbs current={file.name} folder={file.folder} />
       {title && (
         <Heading level={1} xstyle={styles.title}>
           {plain(title.spans)}
@@ -213,10 +213,10 @@ export function RoundPage({ file }: { file: File }) {
           <div key={question.id}>
             <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />
             <Question
-              folder={file.folder}
-              question={question}
-              followUps={questions.filter((q) => q.parent === question.id && q.asked)}
               document={document}
+              folder={file.folder}
+              followUps={questions.filter((q) => q.parent === question.id && q.asked)}
+              question={question}
               readOnly={readOnly}
               {...(agent?.available ? { onAsk: ask } : {})}
             />
@@ -241,11 +241,11 @@ export function RoundPage({ file }: { file: File }) {
         <VStack gap={3} ref={end}>
           <GrowingTextArea
             label="Notes"
-            value={notes}
             onChange={(value) => {
               setNotes(value);
               notesSave.schedule(value);
             }}
+            value={notes}
           />
           {notesSave.state.kind === "error" && (
             <span {...stylex.props(statusStyles.error)}>Not saved: {notesSave.state.message}</span>
@@ -278,13 +278,13 @@ export function RoundPage({ file }: { file: File }) {
           {error?.kind === "hook" ? (
             <HookRefusal
               error={error}
-              what="Your answers are saved, not committed."
               onRetry={retry}
+              what="Your answers are saved, not committed."
             />
           ) : (
             error && <span {...stylex.props(statusStyles.error)}>{error.message}</span>
           )}
-          <CommitActions label="Submit answers" isDisabled={blank.length > 0} onCommit={submit} />
+          <CommitActions isDisabled={blank.length > 0} label="Submit answers" onCommit={submit} />
         </VStack>
       )}
     </>
@@ -299,7 +299,7 @@ export function RoundPage({ file }: { file: File }) {
           <div {...stylex.props(styles.questions)}>
             <Page>{content}</Page>
           </div>
-          <RoundNav questions={nav} onSubmit={toEnd} />
+          <RoundNav onSubmit={toEnd} questions={nav} />
         </div>
       )}
     </PendingSaves>

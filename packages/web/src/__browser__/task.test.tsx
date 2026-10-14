@@ -15,7 +15,7 @@ test("on a wide screen, the task view opens beside home (US3 5)", async () => {
   await expect
     .poll(() => window.location.pathname)
     .toBe(atRepo("/priorities/claude-code-runner-triggered-manually"));
-  expect(await screen.findByRole("radio", { name: "Next", checked: true })).toBeTruthy();
+  expect(await screen.findByRole("radio", { checked: true, name: "Next" })).toBeTruthy();
   // Home stays beside it.
   expect(screen.getByRole("link", { name: /Git listener process/ })).toBeTruthy();
   await act(async () => window.history.back());
@@ -29,7 +29,7 @@ test("on a wide screen, a second line tapped in home's list keeps home beside it
   }
   await show("/", "Claude Code runner");
   await userEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
-  expect(await screen.findByRole("radio", { name: "Next", checked: true })).toBeTruthy();
+  expect(await screen.findByRole("radio", { checked: true, name: "Next" })).toBeTruthy();
 
   await userEvent.click(screen.getByRole("link", { name: /Git listener process/ }));
 

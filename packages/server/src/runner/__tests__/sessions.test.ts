@@ -23,11 +23,11 @@ const opening = (folder: string) =>
   "and change files, commit, or move the workflow only when they ask.";
 
 const done = (extra: Partial<Extract<AgentEvent, { type: "result" }>> = {}): AgentEvent => ({
-  type: "result",
-  ok: true,
-  errors: [],
   denials: [],
+  errors: [],
   interrupted: false,
+  ok: true,
+  type: "result",
   ...extra,
 });
 
@@ -36,9 +36,9 @@ afterEach(() => {
 });
 
 test("US1.1: a chat message on a feature waiting on the human goes with the opening line", async () => {
-  const { sessions, adapter, cache, repo, changes } = await testSessions();
+  const { adapter, cache, changes, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, HUMAN);
-  adapter.script([{ type: "text", text: "Because A keeps one process." }]);
+  adapter.script([{ text: "Because A keeps one process.", type: "text" }]);
 
   const { turn } = await sessions.send(repo, session.id, {
     text: "Why did you recommend A in Q6?",
@@ -55,31 +55,31 @@ test("US1.1: a chat message on a feature waiting on the human goes with the open
   expect(cache.turn(turn)).toMatchObject({ kind: "chat", state: "done", trigger: null });
   expect(cache.items(turn, 0, 10)).toEqual([
     {
-      seq: 0,
-      kind: "message",
-      id: adapter.sent[0]?.id,
-      text: "Why did you recommend A in Q6?",
-      origin: "human",
-      opening: opening(HUMAN),
-      state: "read",
       at: expect.any(String),
+      id: adapter.sent[0]?.id,
+      kind: "message",
+      opening: opening(HUMAN),
+      origin: "human",
+      seq: 0,
+      state: "read",
+      text: "Why did you recommend A in Q6?",
     },
-    { seq: 1, kind: "text", text: "Because A keeps one process.", streaming: false },
+    { kind: "text", seq: 1, streaming: false, text: "Because A keeps one process." },
   ]);
   expect((await binding.nextStep(repo, HUMAN)).step.waitsOn).toBe("human");
   expect(changes).toContainEqual({
+    folder: HUMAN,
     repo,
     session: session.id,
-    folder: HUMAN,
-    turn,
     state: "running",
+    turn,
   });
-  expect(changes).toContainEqual({ repo, session: session.id, folder: HUMAN, turn, state: "done" });
-  expect(changes).toContainEqual({ repo, session: session.id, folder: HUMAN, turn });
+  expect(changes).toContainEqual({ folder: HUMAN, repo, session: session.id, state: "done", turn });
+  expect(changes).toContainEqual({ folder: HUMAN, repo, session: session.id, turn });
 });
 
 test("US1.2: a second message goes without the opening line, on the same process", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, HUMAN);
   adapter.script([]);
   adapter.script([]);
@@ -92,11 +92,11 @@ test("US1.2: a second message goes without the opening line, on the same process
   expect(adapter.sent[1]?.text).toBe("Second");
   const [message] = cache.items(turn, 0, 1);
   expect(message).not.toHaveProperty("opening");
-  expect(message).toMatchObject({ kind: "message", text: "Second", state: "read" });
+  expect(message).toMatchObject({ kind: "message", state: "read", text: "Second" });
 });
 
 test("US1.3: a message sent during a turn is steered into it", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
 
   const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
@@ -107,8 +107,8 @@ test("US1.3: a message sent during a turn is steered into it", async () => {
   const item = () => cache.items(turn, 0, 10).find((each) => each.seq === 1);
   expect(item()).toMatchObject({ kind: "message", state: "pending" });
 
-  adapter.emit({ type: "accepted", id: adapter.sent[0]!.id });
-  adapter.emit({ type: "accepted", id: adapter.sent[1]!.id });
+  adapter.emit({ id: adapter.sent[0]!.id, type: "accepted" });
+  adapter.emit({ id: adapter.sent[1]!.id, type: "accepted" });
   await flush();
   expect(item()).toMatchObject({ kind: "message", state: "read" });
 
@@ -119,7 +119,7 @@ test("US1.3: a message sent during a turn is steered into it", async () => {
 });
 
 test("US1.4: a pending message can be taken back", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
   await sessions.send(repo, session.id, { text: "Never mind" });
@@ -127,7 +127,7 @@ test("US1.4: a pending message can be taken back", async () => {
 
   sessions.takeBack(repo, session.id, message);
   expect(adapter.takenBack).toEqual([message]);
-  adapter.emit({ type: "cancelled", id: message });
+  adapter.emit({ id: message, type: "cancelled" });
   await flush();
   expect(cache.itemsOf(turn, "message").find((each) => each.id === message)?.state).toBe(
     "taken-back",
@@ -135,7 +135,7 @@ test("US1.4: a pending message can be taken back", async () => {
 
   await sessions.send(repo, session.id, { text: "Use the helper" });
   const read = adapter.sent[2]!.id;
-  adapter.emit({ type: "accepted", id: read });
+  adapter.emit({ id: read, type: "accepted" });
   await flush();
   expect(() => sessions.takeBack(repo, session.id, read)).toThrow(
     "refused: The agent already read it.",
@@ -144,16 +144,16 @@ test("US1.4: a pending message can be taken back", async () => {
 });
 
 test("a turn that fails takes back the message steered into it, which no turn would record", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
   await sessions.send(repo, session.id, { text: "Use the helper" });
   const steered = adapter.sent[1]!.id;
 
-  adapter.emit(done({ ok: false, errors: ["API error"] }));
+  adapter.emit(done({ errors: ["API error"], ok: false }));
   await sessions.settled(turn);
 
-  expect(cache.turn(turn)).toMatchObject({ state: "failed", reason: "API error" });
+  expect(cache.turn(turn)).toMatchObject({ reason: "API error", state: "failed" });
   expect(adapter.takenBack).toEqual([steered]);
   expect(cache.itemsOf(turn, "message").find((each) => each.id === steered)?.state).toBe(
     "taken-back",
@@ -161,12 +161,12 @@ test("a turn that fails takes back the message steered into it, which no turn wo
 });
 
 test("a turn's messages are forgotten once it ended and none waits to be read", async () => {
-  const { sessions, adapter, repo } = await testSessions();
+  const { adapter, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   const first = await sessions.send(repo, session.id, { text: "Plan it" });
   await sessions.send(repo, session.id, { text: "Use the helper" });
-  adapter.emit({ type: "accepted", id: adapter.sent[0]!.id });
-  adapter.emit({ type: "accepted", id: adapter.sent[1]!.id });
+  adapter.emit({ id: adapter.sent[0]!.id, type: "accepted" });
+  adapter.emit({ id: adapter.sent[1]!.id, type: "accepted" });
   adapter.emit(done());
   await sessions.settled(first.turn);
   expect(sessions.tracked(session.id)).toBe(0);
@@ -176,22 +176,22 @@ test("a turn's messages are forgotten once it ended and none waits to be read", 
   await sessions.send(repo, session.id, { text: "Never mind" });
   adapter.ignoreInterrupt = true;
   sessions.stop(repo, session.id);
-  adapter.emit(done({ ok: false, interrupted: true }));
+  adapter.emit(done({ interrupted: true, ok: false }));
   await sessions.settled(second.turn);
   expect(sessions.tracked(session.id)).toBe(1);
-  adapter.emit({ type: "cancelled", id: adapter.sent[3]!.id });
+  adapter.emit({ id: adapter.sent[3]!.id, type: "cancelled" });
   await flush();
   expect(sessions.tracked(session.id)).toBe(0);
 });
 
 test("a message of a turn that ended is refused as read, from a tab that still shows it pending", async () => {
-  const { sessions, adapter, repo } = await testSessions();
+  const { adapter, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
   await sessions.send(repo, session.id, { text: "Use the helper" });
   const steered = adapter.sent[1]!.id;
-  adapter.emit({ type: "accepted", id: adapter.sent[0]!.id });
-  adapter.emit({ type: "accepted", id: steered });
+  adapter.emit({ id: adapter.sent[0]!.id, type: "accepted" });
+  adapter.emit({ id: steered, type: "accepted" });
   adapter.emit(done());
   await sessions.settled(turn);
 
@@ -201,7 +201,7 @@ test("a message of a turn that ended is refused as read, from a tab that still s
 });
 
 test("US1.5: Stop interrupts the turn and keeps the process", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   const first = await sessions.send(repo, session.id, { text: "Plan it" });
 
@@ -226,7 +226,7 @@ test("US1.5: Stop interrupts the turn and keeps the process", async () => {
 });
 
 test("US1.6: a feature's writes are refused while its turn runs", async () => {
-  const { sessions, adapter, repo } = await testSessions();
+  const { adapter, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
 
   const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
@@ -238,7 +238,7 @@ test("US1.6: a feature's writes are refused while its turn runs", async () => {
 });
 
 test("US1.7 and C1: an idle process closes after 15 minutes, and the next message resumes the same session", async () => {
-  const { sessions, adapter, repo } = await testSessions();
+  const { adapter, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   adapter.script([]);
   await sessions.settled((await sessions.send(repo, session.id, { text: "Plan it" })).turn);
@@ -252,26 +252,26 @@ test("US1.7 and C1: an idle process closes after 15 minutes, and the next messag
   adapter.script([]);
   await sessions.settled((await sessions.send(repo, session.id, { text: "And now?" })).turn);
   expect(adapter.opens).toHaveLength(2);
-  expect(adapter.opens[1]).toMatchObject({ resume: true, nativeId: adapter.opens[0]!.nativeId });
+  expect(adapter.opens[1]).toMatchObject({ nativeId: adapter.opens[0]!.nativeId, resume: true });
 });
 
 test("a turn reopens when its agent goes on by itself after it ended, and its process stays open", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   const { turn } = await sessions.send(repo, session.id, { text: "Implement it" });
   // A background shell does not hold the turn: shells and watchers may never end.
-  adapter.emit({ type: "toolStart", id: "bash-1", name: "Bash", kind: "execute", input: {} });
-  adapter.emit({ type: "toolEnd", id: "bash-1", isError: false, output: "Running in background." });
-  adapter.emit({ type: "text", text: "The baseline runs." });
+  adapter.emit({ id: "bash-1", input: {}, kind: "execute", name: "Bash", type: "toolStart" });
+  adapter.emit({ id: "bash-1", isError: false, output: "Running in background.", type: "toolEnd" });
+  adapter.emit({ text: "The baseline runs.", type: "text" });
   adapter.emit(done());
   await sessions.settled(turn);
   expect(cache.turn(turn)).toMatchObject({ state: "done" });
 
   // The shell reports back: the agent goes on, in the same turn.
   vi.advanceTimersByTime(IDLE_CLOSE_MS - 1);
-  adapter.emit({ type: "text", text: "The baseline passed." });
+  adapter.emit({ text: "The baseline passed.", type: "text" });
   await flush();
-  expect(cache.turn(turn)).toMatchObject({ state: "running", endedAt: null });
+  expect(cache.turn(turn)).toMatchObject({ endedAt: null, state: "running" });
   expect(sessions.working(repo)).toEqual([AGENT]);
   expect(cache.items(turn, 0, 10).slice(-2)).toMatchObject([
     { kind: "system", text: RESUMED },
@@ -288,7 +288,7 @@ test("a turn reopens when its agent goes on by itself after it ended, and its pr
 });
 
 test("a closed process that keeps running gets SIGTERM, so the next message does not wait on it forever", async () => {
-  const { sessions, adapter, repo } = await testSessions();
+  const { adapter, repo, sessions } = await testSessions();
   adapter.ignoreClose = true;
   const session = await sessions.featureSession(repo, AGENT);
   adapter.script([]);
@@ -312,7 +312,7 @@ test("a closed process that keeps running gets SIGTERM, so the next message does
 });
 
 test("the server's stop kills a process that ignores its close and SIGTERM", async () => {
-  const { sessions, adapter, repo } = await testSessions();
+  const { adapter, repo, sessions } = await testSessions();
   adapter.ignoreClose = true;
   adapter.ignoreTerm = true;
   const session = await sessions.featureSession(repo, AGENT);
@@ -330,7 +330,7 @@ test("the server's stop kills a process that ignores its close and SIGTERM", asy
 });
 
 test("a session is forgotten once its process exited with nothing left to run", async () => {
-  const { sessions, adapter, repo } = await testSessions();
+  const { adapter, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   adapter.script([]);
   await sessions.settled((await sessions.send(repo, session.id, { text: "Plan it" })).turn);
@@ -346,7 +346,7 @@ test("a session is forgotten once its process exited with nothing left to run", 
 });
 
 test("US2.2: a workflow message starts a workflow turn", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   adapter.script([]);
   const text = "/uraeda:uraeda Continue the feature.\nKeep the plan short.";
@@ -360,17 +360,17 @@ test("US2.2: a workflow message starts a workflow turn", async () => {
   expect(adapter.sent[0]?.text).toBe(text);
   expect(cache.turn(turn)).toMatchObject({
     kind: "workflow",
-    trigger: "manual",
-    step: "plan",
     state: "done",
+    step: "plan",
+    trigger: "manual",
   });
   const [message] = cache.items(turn, 0, 1);
-  expect(message).toMatchObject({ kind: "message", text, origin: "workflow" });
+  expect(message).toMatchObject({ kind: "message", origin: "workflow", text });
   expect(message).not.toHaveProperty("opening");
 });
 
 test("US2.4: a workflow message on a feature waiting on the human is refused", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, HUMAN);
 
   await expect(
@@ -381,7 +381,7 @@ test("US2.4: a workflow message on a feature waiting on the human is refused", a
 });
 
 test("US2.5: a workflow message during a chat turn is queued, and starts after it", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   const chat = await sessions.send(repo, session.id, { text: "What is left?" });
 
@@ -407,9 +407,9 @@ test("US2.5: a workflow message during a chat turn is queued, and starts after i
 });
 
 test("US4.1: a new chat works in the main checkout, without an opening line, and is titled by its first line", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const chat = await sessions.newChat(repo);
-  expect(chat).toMatchObject({ repo, folder: null, title: null, agent: "fake" });
+  expect(chat).toMatchObject({ agent: "fake", folder: null, repo, title: null });
   adapter.script([]);
 
   const { turn } = await sessions.send(repo, chat.id, { text: "List the open draft files" });
@@ -422,7 +422,7 @@ test("US4.1: a new chat works in the main checkout, without an opening line, and
 });
 
 test("US4.3: sending to an archived chat brings it back", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const chat = await sessions.newChat(repo);
   adapter.script([]);
   adapter.script([]);
@@ -438,7 +438,7 @@ test("US4.3: sending to an archived chat brings it back", async () => {
 });
 
 test("US4.4: no agent: sends are refused", async () => {
-  const { sessions, adapter, repo } = await testSessions();
+  const { adapter, repo, sessions } = await testSessions();
   adapter.installed = false;
   await sessions.check();
   const chat = await sessions.newChat(repo);
@@ -453,24 +453,24 @@ test("US4.4: no agent: sends are refused", async () => {
 /** A feature's session whose first turn ended with `git push` blocked. */
 async function blockedPush() {
   const setup = await testSessions();
-  const { sessions, adapter, cache, repo } = setup;
+  const { adapter, cache, repo, sessions } = setup;
   const session = await sessions.featureSession(repo, AGENT);
   adapter.script([
-    done({ denials: [{ tool: "Bash", input: { command: "git push origin HEAD" } }] }),
+    done({ denials: [{ input: { command: "git push origin HEAD" }, tool: "Bash" }] }),
   ]);
   const { turn } = await sessions.send(repo, session.id, { text: "Push it" });
   await sessions.settled(turn);
   const [denial] = cache.itemsOf(turn, "denial");
-  return { ...setup, session, turn, denial: denial! };
+  return { ...setup, denial: denial!, session, turn };
 }
 
 test("US5.2: Allow and retry reopens the process with the rule and sends the retry message", async () => {
-  const { sessions, adapter, cache, repo, session, turn, denial } = await blockedPush();
+  const { adapter, cache, denial, repo, session, sessions, turn } = await blockedPush();
   expect(denial).toMatchObject({
-    tool: "Bash",
-    target: "git push origin HEAD",
-    rule: "Bash(git push origin HEAD)",
     allowed: false,
+    rule: "Bash(git push origin HEAD)",
+    target: "git push origin HEAD",
+    tool: "Bash",
   });
   adapter.script([]);
 
@@ -481,16 +481,16 @@ test("US5.2: Allow and retry reopens the process with the rule and sends the ret
   expect(adapter.opens).toHaveLength(2);
   expect(adapter.opens[1]).toMatchObject({
     allowed: "Bash(git push origin HEAD)",
-    resume: true,
     nativeId: adapter.opens[0]!.nativeId,
+    resume: true,
   });
   expect(adapter.sent.at(-1)?.text).toBe(
     "Try the blocked action again, now allowed: Bash git push origin HEAD",
   );
   expect(cache.itemsOf(turn, "denial")[0]?.allowed).toBe(true);
   expect(cache.turn(allowed.turn)).toMatchObject({
-    kind: "allow",
     allowed: "Bash(git push origin HEAD)",
+    kind: "allow",
     state: "done",
   });
   expect(cache.items(allowed.turn, 0, 1)[0]).toMatchObject({
@@ -501,14 +501,14 @@ test("US5.2: Allow and retry reopens the process with the rule and sends the ret
 });
 
 test("a blocked command with a `*` is shown without a rule, and allowing it is refused", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
-  adapter.script([done({ denials: [{ tool: "Bash", input: { command: "rm -rf build/*" } }] })]);
+  adapter.script([done({ denials: [{ input: { command: "rm -rf build/*" }, tool: "Bash" }] })]);
   const { turn } = await sessions.send(repo, session.id, { text: "Clean" });
   await sessions.settled(turn);
   const [denial] = cache.itemsOf(turn, "denial");
 
-  expect(denial).toMatchObject({ tool: "Bash", target: "rm -rf build/*", allowed: false });
+  expect(denial).toMatchObject({ allowed: false, target: "rm -rf build/*", tool: "Bash" });
   expect(denial).not.toHaveProperty("rule");
   await expect(sessions.allow(repo, session.id, turn, denial!.seq)).rejects.toThrow(
     "refused: No allow rule can match only this action.",
@@ -517,7 +517,7 @@ test("a blocked command with a `*` is shown without a rule, and allowing it is r
 });
 
 test("US5.3: the rule ends with its process", async () => {
-  const { sessions, adapter, repo, session, turn, denial } = await blockedPush();
+  const { adapter, denial, repo, session, sessions, turn } = await blockedPush();
   adapter.script([]);
   await sessions.settled((await sessions.allow(repo, session.id, turn, denial.seq)).turn);
 
@@ -532,7 +532,7 @@ test("US5.3: the rule ends with its process", async () => {
 });
 
 test("a gone transcript starts a new session, which says so", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   adapter.script([]);
   await sessions.settled((await sessions.send(repo, session.id, { text: "Hello" })).turn);
@@ -548,33 +548,33 @@ test("a gone transcript starts a new session, which says so", async () => {
   expect(adapter.opens[1]?.nativeId).not.toBe(adapter.opens[0]?.nativeId);
   expect(cache.session(session.id)?.nativeId).toBe(adapter.opens[1]?.nativeId);
   expect(cache.items(turn, 0, 1)).toEqual([
-    { seq: 0, kind: "system", text: "Started a new session: the previous one is gone." },
+    { kind: "system", seq: 0, text: "Started a new session: the previous one is gone." },
   ]);
 });
 
 test("the process exits during a turn: it fails with its stderr", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
 
   const first = await sessions.send(repo, session.id, { text: "Plan it" });
   adapter.exit(1, "starting\nout of memory\n");
   await sessions.settled(first.turn);
   expect(cache.turn(first.turn)).toMatchObject({
-    state: "failed",
     reason: "starting\nout of memory",
+    state: "failed",
   });
 
   const second = await sessions.send(repo, session.id, { text: "Again" });
   adapter.exit(2);
   await sessions.settled(second.turn);
   expect(cache.turn(second.turn)).toMatchObject({
-    state: "failed",
     reason: "Claude Code exited with code 2.",
+    state: "failed",
   });
 });
 
 test("the process exits between turns: the next message resumes it", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   adapter.script([]);
   await sessions.settled((await sessions.send(repo, session.id, { text: "Hello" })).turn);
@@ -586,27 +586,27 @@ test("the process exits between turns: the next message resumes it", async () =>
   await sessions.settled(turn);
 
   expect(adapter.opens).toHaveLength(2);
-  expect(adapter.opens[1]).toMatchObject({ resume: true, nativeId: adapter.opens[0]!.nativeId });
+  expect(adapter.opens[1]).toMatchObject({ nativeId: adapter.opens[0]!.nativeId, resume: true });
   expect(cache.turn(turn)?.state).toBe("done");
 });
 
 test("an interrupted result with no text ends the turn as stopped", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
 
-  adapter.emit(done({ ok: false, errors: ["[ede_diagnostic] aborted"], interrupted: true }));
+  adapter.emit(done({ errors: ["[ede_diagnostic] aborted"], interrupted: true, ok: false }));
   await sessions.settled(turn);
 
-  expect(cache.turn(turn)).toMatchObject({ state: "stopped", reason: null });
+  expect(cache.turn(turn)).toMatchObject({ reason: null, state: "stopped" });
 });
 
 test("an init with a new session ID updates the native ID", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   await sessions.send(repo, session.id, { text: "/clear" });
 
-  adapter.emit({ type: "init", sessionId: "cleared-1", plugins: ["uraeda"], pluginErrors: [] });
+  adapter.emit({ pluginErrors: [], plugins: ["uraeda"], sessionId: "cleared-1", type: "init" });
   await flush();
 
   expect(cache.session(session.id)?.nativeId).toBe("cleared-1");
@@ -617,7 +617,7 @@ test("a feature with no branch refuses with 'This feature has no branch yet: com
   const folder = "2026-10-20-draft";
   mkdirSync(join(repo, "specs", folder));
   writeFileSync(join(repo, "specs", folder, "proposal.md"), "# Draft\n\n## What\n\nA draft.\n");
-  const { sessions, adapter } = await testSessions(repo);
+  const { adapter, sessions } = await testSessions(repo);
   expect((await binding.nextStep(repo, folder)).branch).toBeUndefined();
   const session = await sessions.featureSession(repo, folder);
 
@@ -628,68 +628,68 @@ test("a feature with no branch refuses with 'This feature has no branch yet: com
 });
 
 test("the watchdog fails a silent turn after 30 minutes with 'No output for 30 minutes.'", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
 
   // Output keeps it going.
   vi.advanceTimersByTime(WATCHDOG_MS - 1);
-  adapter.emit({ type: "textDelta", text: "Thinking" });
+  adapter.emit({ text: "Thinking", type: "textDelta" });
   await flush();
   vi.advanceTimersByTime(WATCHDOG_MS - 1);
   expect(cache.turn(turn)?.state).toBe("running");
 
   vi.advanceTimersByTime(1);
   await sessions.settled(turn);
-  expect(cache.turn(turn)).toMatchObject({ state: "failed", reason: "No output for 30 minutes." });
+  expect(cache.turn(turn)).toMatchObject({ reason: "No output for 30 minutes.", state: "failed" });
 });
 
 test("a plugin that does not load fails the turn with 'The Uraeda skill did not load: <error>'", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   adapter.autoInit = false;
   const session = await sessions.featureSession(repo, AGENT);
   const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
 
   adapter.emit({
-    type: "init",
-    sessionId: session.nativeId,
-    plugins: [],
     pluginErrors: ["no manifest", "bad skill"],
+    plugins: [],
+    sessionId: session.nativeId,
+    type: "init",
   });
   await sessions.settled(turn);
   await flush();
 
   expect(cache.turn(turn)).toMatchObject({
-    state: "failed",
     reason: "The Uraeda skill did not load: no manifest; bad skill",
+    state: "failed",
   });
   expect(adapter.closes).toBe(1);
 });
 
 test("a process whose plugins leave out uraeda, with no error, fails the turn too", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   adapter.autoInit = false;
   const session = await sessions.featureSession(repo, AGENT);
   const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
 
   adapter.emit({
-    type: "init",
-    sessionId: session.nativeId,
-    plugins: ["cc-plugin-telemetry"],
     pluginErrors: [],
+    plugins: ["cc-plugin-telemetry"],
+    sessionId: session.nativeId,
+    type: "init",
   });
   await sessions.settled(turn);
   await flush();
 
   expect(cache.turn(turn)).toMatchObject({
-    state: "failed",
     reason: "The Uraeda skill did not load: the plugins loaded were cc-plugin-telemetry",
+    state: "failed",
   });
   expect(adapter.closes).toBe(1);
 });
 
 test("review focus 1: a message sent before the process's init is sent once", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   adapter.autoInit = false;
   const session = await sessions.featureSession(repo, AGENT);
 
@@ -699,10 +699,10 @@ test("review focus 1: a message sent before the process's init is sent once", as
     sessions.send(repo, session.id, { text: "Keep it short" }),
   ]);
   adapter.emit({
-    type: "init",
-    sessionId: session.nativeId,
-    plugins: ["uraeda"],
     pluginErrors: [],
+    plugins: ["uraeda"],
+    sessionId: session.nativeId,
+    type: "init",
   });
   await flush();
 
@@ -719,7 +719,7 @@ test("review focus 1: a message sent before the process's init is sent once", as
 });
 
 test("review focus 2: a queued turn starts on a reopened process when the process died", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   const chat = await sessions.send(repo, session.id, { text: "What is left?" });
   const workflow = await sessions.send(repo, session.id, {
@@ -732,10 +732,10 @@ test("review focus 2: a queued turn starts on a reopened process when the proces
   await sessions.settled(chat.turn);
   await sessions.settled(workflow.turn);
 
-  expect(cache.turn(chat.turn)).toMatchObject({ state: "failed", reason: "crashed" });
+  expect(cache.turn(chat.turn)).toMatchObject({ reason: "crashed", state: "failed" });
   expect(cache.turn(workflow.turn)?.state).toBe("done");
   expect(adapter.opens).toHaveLength(2);
-  expect(adapter.opens[1]).toMatchObject({ resume: true, nativeId: adapter.opens[0]!.nativeId });
+  expect(adapter.opens[1]).toMatchObject({ nativeId: adapter.opens[0]!.nativeId, resume: true });
   expect(adapter.sent.map(({ text }) => text)).toEqual([
     `${opening(AGENT)}\nWhat is left?`,
     "Continue the feature.",
@@ -749,7 +749,7 @@ test.each(["stop", "take back"])(
     let reads = 0;
     let release = () => {};
     const held = new Promise<void>((resolve) => (release = resolve));
-    const { sessions, adapter, cache, repo } = await testSessions(undefined, {
+    const { adapter, cache, repo, sessions } = await testSessions(undefined, {
       binding: {
         ...binding,
         workDir: async (...args: Parameters<typeof binding.workDir>) => {
@@ -788,7 +788,7 @@ test.each(["stop", "take back"])(
 );
 
 test("review focus 5: a chat title is cut at 80 characters, from the first line that is not blank", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const chat = await sessions.newChat(repo);
   adapter.script([]);
 
@@ -801,7 +801,7 @@ test("review focus 5: a chat title is cut at 80 characters, from the first line 
 });
 
 test("a chat renamed keeps the first line that is not blank, cut at 80 characters", async () => {
-  const { sessions, cache, repo } = await testSessions();
+  const { cache, repo, sessions } = await testSessions();
   const chat = await sessions.newChat(repo);
 
   sessions.rename(repo, chat.id, `  \n ${"y".repeat(100)} \nmore`);
@@ -811,28 +811,28 @@ test("a chat renamed keeps the first line that is not blank, cut at 80 character
 });
 
 test("a sub-agent's tools carry its parent", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   adapter.script([
     {
-      type: "toolStart",
       id: "task-1",
-      name: "Task",
-      kind: "other",
       input: {},
+      kind: "other",
+      name: "Task",
       subagent: { description: "Map the runner code" },
+      type: "toolStart",
     },
     {
-      type: "toolStart",
       id: "read-1",
-      name: "Read",
-      kind: "read",
       input: {},
-      target: "src/runner.ts",
+      kind: "read",
+      name: "Read",
       parent: "task-1",
+      target: "src/runner.ts",
+      type: "toolStart",
     },
-    { type: "toolEnd", id: "read-1", isError: false, output: "x".repeat(OUTPUT_LIMIT + 10) },
-    { type: "toolEnd", id: "task-1", isError: true, output: "gave up" },
+    { id: "read-1", isError: false, output: "x".repeat(OUTPUT_LIMIT + 10), type: "toolEnd" },
+    { id: "task-1", isError: true, output: "gave up", type: "toolEnd" },
   ]);
 
   const { turn } = await sessions.send(repo, session.id, { text: "Map it" });
@@ -842,48 +842,48 @@ test("a sub-agent's tools carry its parent", async () => {
   expect(task).toMatchObject({
     id: "task-1",
     name: "Task",
-    toolKind: "other",
+    output: "gave up",
     status: "failed",
     subagent: { description: "Map the runner code" },
-    output: "gave up",
+    toolKind: "other",
   });
   expect(task).not.toHaveProperty("parent");
   expect(read).toMatchObject({
     id: "read-1",
-    toolKind: "read",
-    target: "src/runner.ts",
-    status: "completed",
     parent: "task-1",
+    status: "completed",
+    target: "src/runner.ts",
+    toolKind: "read",
   });
   expect(read?.output).toHaveLength(OUTPUT_LIMIT);
   expect(typeof read?.durationMs).toBe("number");
 });
 
 test("deltas update one text item until its block ends", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   const { turn } = await sessions.send(repo, session.id, { text: "Say hello" });
 
   for (const text of ["Hel", "lo, ", "wor"]) {
-    adapter.emit({ type: "textDelta", text });
+    adapter.emit({ text, type: "textDelta" });
   }
   await flush();
   expect(cache.itemsOf(turn, "text")).toEqual([
-    { seq: 1, kind: "text", text: "Hello, wor", streaming: true },
+    { kind: "text", seq: 1, streaming: true, text: "Hello, wor" },
   ]);
 
-  adapter.emit({ type: "text", text: "Hello, world." });
-  adapter.emit({ type: "text", text: "Bye." });
+  adapter.emit({ text: "Hello, world.", type: "text" });
+  adapter.emit({ text: "Bye.", type: "text" });
   adapter.emit(done());
   await sessions.settled(turn);
   expect(cache.itemsOf(turn, "text")).toEqual([
-    { seq: 1, kind: "text", text: "Hello, world.", streaming: false },
-    { seq: 2, kind: "text", text: "Bye.", streaming: false },
+    { kind: "text", seq: 1, streaming: false, text: "Hello, world." },
+    { kind: "text", seq: 2, streaming: false, text: "Bye." },
   ]);
 });
 
 test("a session of another repository is refused", async () => {
-  const { sessions, adapter, repo } = await testSessions();
+  const { adapter, repo, sessions } = await testSessions();
   const other = fixtureRepo();
   const session = await sessions.featureSession(other, AGENT);
   await sessions.mainRoot(repo);

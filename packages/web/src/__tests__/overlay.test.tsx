@@ -9,7 +9,7 @@ import "./helpers.tsx";
 function OpenOverlay({ label }: { label: string }) {
   const [open, setOpen] = useState(true);
   return (
-    <Overlay label={label} isOpen={open} onClose={() => setOpen(false)}>
+    <Overlay isOpen={open} label={label} onClose={() => setOpen(false)}>
       <p>A short form.</p>
     </Overlay>
   );

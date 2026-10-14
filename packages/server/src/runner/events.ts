@@ -1,56 +1,56 @@
 /** An action `auto` mode blocked, from a result's `permission_denials`. */
-export type Denial = { tool: string; input: Record<string, unknown> };
+export type Denial = { input: Record<string, unknown>; tool: string };
 
 /** What an adapter reads from its agent's output, whatever the agent. */
 export type AgentEvent =
   /** The agent's session, at the start of each turn. */
-  | { type: "init"; sessionId: string; plugins: Array<string>; pluginErrors: Array<string> }
+  | { pluginErrors: Array<string>; plugins: Array<string>; sessionId: string; type: "init" }
   /** A piece of the text being written. */
-  | { type: "textDelta"; text: string }
+  | { text: string; type: "textDelta" }
   /** A text block, whole. */
-  | { type: "text"; text: string }
+  | { text: string; type: "text" }
   /**
    * What the agent writes that shows nothing yet: its thinking, or a tool call whose input
    * streams, with its target once the input names it.
    */
-  | { type: "activity"; activity: Activity }
+  | { activity: Activity; type: "activity" }
   | {
-      type: "toolStart";
       id: string;
-      name: string;
-      kind: ToolKind;
       input: Record<string, unknown>;
-      /** The command, the path relative to the session's directory, the URL, or the pattern. */
-      target?: string;
+      kind: ToolKind;
+      name: string;
       /** The tool call of the sub-agent that runs it. */
       parent?: string;
       /** Set when the tool starts a sub-agent. */
       subagent?: { description: string };
+      /** The command, the path relative to the session's directory, the URL, or the pattern. */
+      target?: string;
+      type: "toolStart";
     }
-  | { type: "toolEnd"; id: string; isError: boolean; output: string }
+  | { id: string; isError: boolean; output: string; type: "toolEnd" }
   /** The agent read a message sent to it. */
-  | { type: "accepted"; id: string }
+  | { id: string; type: "accepted" }
   /** A message was taken back before the agent read it. */
-  | { type: "cancelled"; id: string }
-  | { type: "retry"; attempt: number; delayMs: number; error: string }
+  | { id: string; type: "cancelled" }
+  | { attempt: number; delayMs: number; error: string; type: "retry" }
   /**
    * The tool calls of the agent's background sub-agents still running, after one started or
    * ended. The agent goes on by itself when one reports back.
    */
-  | { type: "background"; tools: Array<string> }
+  | { tools: Array<string>; type: "background" }
   /** The agent ended its reply. */
   | {
-      type: "result";
-      ok: boolean;
-      errors: Array<string>;
       denials: Array<Denial>;
+      errors: Array<string>;
       /** Ended by an interrupt: a stop, not an error. */
       interrupted: boolean;
+      ok: boolean;
+      type: "result";
     }
   /** A line the adapter does not read: not JSON, or of an unknown type. */
   | { type: "skipped" }
   /** The process ended. `missing` when its command could not be found. */
-  | { type: "exit"; code: number | null; stderr: string; missing?: boolean };
+  | { code: number | null; missing?: boolean; stderr: string; type: "exit" };
 
 /** What the main agent writes before anything of it shows. */
 export type Activity = { kind: "thinking" } | { kind: "tool"; name: string; target?: string };
@@ -77,36 +77,36 @@ export type ToolStatus = "pending" | "in_progress" | "completed" | "failed" | "c
 export type Item =
   /** A message sent to the agent: the human's, or the workflow's. */
   | {
-      kind: "message";
-      id: string;
-      text: string;
-      origin: "human" | "workflow";
-      /** The chat's opening line, shown muted above the human's text. */
-      opening?: string;
-      /** Pending until the agent reads it, or taken back before. */
-      state: "pending" | "read" | "taken-back";
       /** When it was sent, in ISO 8601: missing from messages cached before it was kept. */
       at?: string;
+      id: string;
+      kind: "message";
+      /** The chat's opening line, shown muted above the human's text. */
+      opening?: string;
+      origin: "human" | "workflow";
+      /** Pending until the agent reads it, or taken back before. */
+      state: "pending" | "read" | "taken-back";
+      text: string;
     }
   /** An assistant text block, streaming until the block ends. */
-  | { kind: "text"; text: string; streaming: boolean }
+  | { kind: "text"; streaming: boolean; text: string }
   | {
-      kind: "tool";
+      durationMs?: number;
       /** The tool call's ID. */
       id: string;
+      kind: "tool";
       /** `Bash`, `Read`, ... */
       name: string;
-      toolKind: ToolKind;
-      /** The command, the path relative to the session's directory, the URL, or the pattern. */
-      target?: string;
-      status: ToolStatus;
-      durationMs?: number;
       /** The result's text, cut to its first 4,000 characters. */
       output?: string;
       /** The sub-agent that runs it. */
       parent?: string;
+      status: ToolStatus;
       /** Set when the tool is a sub-agent. */
       subagent?: { description: string };
+      /** The command, the path relative to the session's directory, the URL, or the pattern. */
+      target?: string;
+      toolKind: ToolKind;
     }
   /** A resumed or replaced session, a retry, skipped lines, an error. */
   | { kind: "system"; text: string }
@@ -114,7 +114,7 @@ export type Item =
    * An action `auto` mode blocked, and whether the human allowed it since. Without a rule, when
    * none allows that action alone, it cannot be allowed.
    */
-  | { kind: "denial"; tool: string; target?: string; rule?: string; allowed: boolean };
+  | { allowed: boolean; kind: "denial"; rule?: string; target?: string; tool: string };
 
 /** Why a turn runs: a workflow step, the human's message, or a blocked action allowed. */
 export type TurnKind = "workflow" | "chat" | "allow";
