@@ -217,8 +217,8 @@ Existing guarantees to preserve:
 - [Stack](../decisions/stack.md): the notes' split lives in the core, task 1; the UI reads
   `settledPoints` and `settledComments`, never the markdown.
 - [UI components](../decisions/ui-components.md) and [UI layout](../decisions/ui-layout.md): Astryx
-  `TextArea`, `AlertDialog`, `Banner`; forms under their block on wide screens and in sheets on the
-  phone, tasks 5 and 7.
+  `TextArea`, `Dialog` and `BottomSheet` through `Overlay`, `Banner`; forms under their block on
+  wide screens and in sheets on the phone, tasks 5 and 7.
 - [UI checks](../decisions/ui-checks.md): browser checks and screenshots, tasks 11 and 13.
 - [Attachments](../decisions/attachments.md): images still save their field at once, tasks 4, 6, 8.
 
@@ -512,8 +512,10 @@ git commit -m "build(text-inputs): React Compiler compiles the web UI"
     Astryx `TextArea` with `rows` 20, 12, 7, or 3, and Ctrl+Enter or Cmd+Enter calling `onSubmit`.
   - `fields/Confirm.tsx`:
     `useConfirm(): (options: { title: string; body: string; confirm: string; cancel: string }) => Promise<boolean>`
-    and its host, `ConfirmHost`, wrapping the pages once in `App.tsx`, on Astryx's `AlertDialog`;
-    `false` for the cancel button, Escape, or a newer question.
+    and its host, `ConfirmHost`, wrapping the pages once in `App.tsx`, on the app's `Overlay`, a
+    dialog on wide screens and a sheet on the phone, with Close and Back closing it (R9); `false`
+    for the cancel button, Close, Escape, Back, or a newer question, given once the overlay's
+    history entry is gone.
   - `fields/RestoreNotice.tsx`: `RestoreNotice({ restored, onDiscard, changed, answered? })`, texts
     from the global constraints; `changed` is the sentence shown when `restored.changed`, like "The
     notes changed since: saving replaces them." (`NOTES_CHANGED` in `RoundNotes.tsx`).
