@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
@@ -216,6 +224,41 @@ test("the list is read from every endpoint, each path also from the home folder"
 
   expect(global).toEqual({ id: "repositories", rows: [row], problem: null, added: null });
   expect(hosted).toEqual(global);
+});
+
+/** US5.4, US5.5: a folder moved away while the server runs, then put back. */
+test("the list says a folder moved away is missing, and found again once back", async () => {
+  const opened = await testApp();
+  const away = `${opened.repo}-away`;
+  const missing = async () =>
+    (await list(opened.app, null)).rows.map((row: { missing: boolean }) => row.missing);
+
+  renameSync(opened.repo, away);
+  expect(await missing()).toEqual([true]);
+  expect(opened.hosts.get(opened.name)?.missing).toBe(true);
+
+  renameSync(away, opened.repo);
+  expect(await missing()).toEqual([false]);
+  expect(opened.hosts.get(opened.name)?.missing).toBe(false);
+});
+
+/** US5.5: the repository's own endpoint finds the folder gone, then back, without a list read. */
+test("a repository's endpoint finds its folder moved away, and back", async () => {
+  const opened = await testApp();
+  const away = `${opened.repo}-away`;
+  const workspace = () =>
+    fateAt(opened.app, opened.name, [
+      { kind: "byId", type: "Workspace", ids: ["workspace"], select: ["root"] },
+    ]);
+
+  renameSync(opened.repo, away);
+  await workspace();
+  expect(opened.hosts.get(opened.name)?.missing).toBe(true);
+
+  renameSync(away, opened.repo);
+  const [result] = await workspace();
+  expect(opened.hosts.get(opened.name)?.missing).toBe(false);
+  expect(result.ok).toBe(true);
 });
 
 /** US2.2, US2.4 */

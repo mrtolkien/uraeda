@@ -1,4 +1,4 @@
-import { type FSWatcher, mkdirSync, watch } from "node:fs";
+import { existsSync, type FSWatcher, mkdirSync, watch } from "node:fs";
 import type { Repository, WatchHandle } from "uraeda-binding";
 import type { Binding } from "./fate/context.ts";
 import { REPOSITORIES_ID } from "./fate/views.ts";
@@ -91,6 +91,19 @@ export class Hosts {
 
   get(name: string): Host | undefined {
     return this.#entries.get(name)?.host;
+  }
+
+  /**
+   * The host of a name, its folder looked at now: a folder gone, or back, since the list was last
+   * read reads it again, the core saying whether the folder is missing.
+   */
+  async current(name: string): Promise<Host | undefined> {
+    const host = this.get(name);
+    if (host && host.missing === existsSync(host.path)) {
+      await this.reload();
+      return this.get(name);
+    }
+    return host;
   }
 
   /** The host of a main checkout. */

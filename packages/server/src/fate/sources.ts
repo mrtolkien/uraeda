@@ -241,7 +241,14 @@ export const sources = createSources<Context>([
     }),
   ),
   fileSource(repositoriesDataView, {
-    byIds: async (ctx, ids) => (ids.includes(REPOSITORIES_ID) ? [repositoriesRecord(ctx)] : []),
+    // Read again on each read, so a folder moved away or back since shows as it is now.
+    byIds: async (ctx, ids) => {
+      if (!ids.includes(REPOSITORIES_ID)) {
+        return [];
+      }
+      await ctx.hosts.reload();
+      return [repositoriesRecord(ctx)];
+    },
   }),
   fileSource(folderSuggestionsDataView, {
     byIds: async (_, ids) =>
