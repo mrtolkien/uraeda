@@ -506,3 +506,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: `capped` for every sheet, as built in task 5.
 - **If wrong**: one prop in [`Confirm.tsx`](/packages/web/src/fields/Confirm.tsx).
 - **Where**: task 13, from the review of its screenshots.
+
+## R31: "Ctrl+Enter saves" beside a multi-line field's Save, on wide screens
+
+- **Decision**: a question's comment, the notes, and the editor show "Ctrl+Enter saves" after their
+  status, on wide screens only, through `fields/SaveKeys.tsx`, as a line shows "Enter saves · Escape
+  cancels" (R24). Comment forms, whose Ctrl+Enter is not wired, show none.
+- **Rationale**: the screenshots lacked the hint the mockup's sections 1 and 6 draw beside "Save
+  comment" and the editor's Save; the phone's sections draw none, and a phone has no such key.
+- **Alternatives considered**: "Cmd+Enter" on a Mac, which the mockup does not draw, and both keys
+  save; the hint in `SaveStatus`, which a line's status also uses, with keys of its own.
+- **If wrong**: one component, drawn in three places.
+- **Where**: task 13, from the review of its screenshots.
