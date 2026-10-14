@@ -11,6 +11,7 @@ rust-version.workspace = true
 napi = ["dep:napi", "dep:napi-derive"]
 
 [dependencies]
+gif.workspace = true
 gix.workspace = true
 image.workspace = true
 include_dir.workspace = true
