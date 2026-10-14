@@ -1,12 +1,21 @@
 ---
 status: approved
-revision: 1
-clarifications: 1
+revision: 2
+clarifications: 2
 risk-tier: high
 plan-review: false
 ---
 
 # Spec: Multi-repo server
+
+> [!NOTE]
+>
+> Revision 2, approved on 2026-10-14.
+>
+> - Constitution 1.3.0 came in from the default branch: `ura add` makes the release `ura` 36 KB
+>   larger, an exception to principle VI you accepted in
+>   [round 02](clarifications-02.md#q1-do-you-accept-the-ura-binary-growing-by-36-kb-for-ura-add),
+>   recorded in the plan.
 
 > [!NOTE]
 >
@@ -410,14 +419,14 @@ Relied on:
 
 ## Constitution check
 
-| Principle                            | Complies | Notes                                                                            |
-| ------------------------------------ | -------- | -------------------------------------------------------------------------------- |
-| I. Humans stay in control            | yes      | The human adds and removes repositories; nothing is added without them           |
-| II. Git and plain text first         | yes      | No workflow state moves: the list is machine data, plain JSON, editable by hand  |
-| III. Asynchronous by default         | yes      | Every workflow step still ends with a commit; losing the list costs adding again |
-| IV. Review effort matches impact     | yes      | Questions came with recommendations; settled points are listed above             |
-| V. Tools are optional                | yes      | The workflow is unchanged; the list only serves the UI and `ura add`             |
-| VI. Code is checked against the spec | yes      | Every scenario has a test; the per-repository hosts are justified in the plan    |
+| Principle                                  | Complies               | Notes                                                                                                                                                                                               |
+| ------------------------------------------ | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I. Humans stay in control                  | yes                    | The human adds and removes repositories; nothing is added without them                                                                                                                              |
+| II. Git and plain text first               | yes                    | No workflow state moves: the list is machine data, plain JSON, editable by hand                                                                                                                     |
+| III. Asynchronous by default               | yes                    | Every workflow step still ends with a commit; losing the list costs adding again                                                                                                                    |
+| IV. Review effort matches impact           | yes                    | Questions came with recommendations; settled points are listed above                                                                                                                                |
+| V. Tools are optional                      | yes                    | The workflow is unchanged; the list only serves the UI and `ura add`                                                                                                                                |
+| VI. Code is checked and stays maintainable | yes, with an exception | Every scenario has a test; the hosts are justified in the plan; the CLI's 36 KB growth is approved in [round 02](clarifications-02.md#q1-do-you-accept-the-ura-binary-growing-by-36-kb-for-ura-add) |
 
 ## Risk tier
 
