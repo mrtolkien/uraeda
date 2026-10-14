@@ -160,15 +160,15 @@ type Handing = {
   workflow?: { file?: string; trigger: Trigger };
 };
 
-/** A session's actions that answer with an error: a chat's rename and archive, and Allow. */
-function useSessionActions(
-  id: string,
-  session: { archived: boolean; folder: string | null } | null,
-  setError: (error: string | undefined) => void,
-) {
+/**
+ * What the human does on a session besides writing to it: allow a tool, and, for a chat, rename
+ * and archive it. The last refusal shows under the transcript.
+ */
+function useSessionControls(id: string, session: ReturnType<typeof useSession>) {
   const fate = useFateClient();
+  const [error, setError] = useState<string>();
   const chat: ChatControls | undefined =
-    session?.folder === null
+    session && session.folder === null
       ? {
           archived: session.archived,
           field: `session#${id}:title`,
@@ -201,7 +201,7 @@ function useSessionActions(
       setError(refusal(result.error).message);
     }
   };
-  return { allow, chat };
+  return { allow, chat, error };
 }
 
 /** A session's header, transcript, and errors, or why there is no session `id`. */
@@ -209,10 +209,9 @@ function SessionLog({ draft, id }: { draft: Draft; id: string }) {
   const fate = useFateClient();
   const here = useRepoPath();
   const session = useSession(id);
+  const { allow, chat, error } = useSessionControls(id, session);
   const groups = useOpenKeys();
   const log = useRef<HTMLDivElement>(null);
-  const [error, setError] = useState<string>();
-  const { allow, chat } = useSessionActions(id, session, setError);
   const working = session?.status === "working";
   useOpenAtEnd(log);
   useFollowEnd(log, working);

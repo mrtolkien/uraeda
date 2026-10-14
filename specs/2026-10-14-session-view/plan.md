@@ -826,7 +826,7 @@ git commit -m "feat(session-view): the sidebar by slug, with each feature's prog
 - Produces: `/f/<folder>/session` draws `SessionPage` alone at every width, with crumbs and a
   level-1 heading. `Panes` stays for `TaskRoute` only.
 
-- [ ] **Step 1: Restructure `Session` in `SessionPage.tsx`, and commit**
+- [x] **Step 1: Restructure `Session` in `SessionPage.tsx`, and commit**
 
 Split it as its `max-lines-per-function` marker says: the chat controls in a hook. Remove the
 marker. Behaviour does not change: `vp check && vp test --project uraeda-web` passes with no test
