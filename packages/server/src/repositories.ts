@@ -12,11 +12,11 @@ import type { Sessions } from "./runner/sessions.ts";
  * receive its updates only.
  */
 export type Host = {
-  name: string;
-  path: string;
-  missing: boolean;
   fate: FateServer;
   live: LiveBus;
+  missing: boolean;
+  name: string;
+  path: string;
 };
 
 /**
@@ -80,12 +80,14 @@ export class Hosts {
         }
       });
       this.#watch.on("error", (error) => {
-        console.error(`uraeda-server: ${error.message}; the list is read again on its next change`);
+        process.stderr.write(
+          `uraeda-server: ${error.message}; the list is read again on its next change\n`,
+        );
       });
     } catch (error) {
       // The server still serves the list: its own changes read it again.
-      console.error(
-        `uraeda-server: ${(error as Error).message}; changes to repositories.json made elsewhere show after a restart`,
+      process.stderr.write(
+        `uraeda-server: ${(error as Error).message}; changes to repositories.json made elsewhere show after a restart\n`,
       );
     }
   }
@@ -157,7 +159,7 @@ export class Hosts {
         "",
       );
       if (problem !== this.problem) {
-        console.error(`uraeda-server: ${problem}`);
+        process.stderr.write(`uraeda-server: ${problem}\n`);
       }
       this.problem = problem;
       this.#announce(before, this.all());
@@ -200,9 +202,9 @@ export class Hosts {
     }
   }
 
-  #start({ name, path, missing }: Repository): void {
+  #start({ missing, name, path }: Repository): void {
     const { fateServer, live } = createFate();
-    const entry: Entry = { host: { name, path, missing, fate: fateServer, live } };
+    const entry: Entry = { host: { fate: fateServer, live, missing, name, path } };
     if (!missing) {
       try {
         entry.watch = this.#options.binding.watch(path, (changes) =>
@@ -210,7 +212,9 @@ export class Hosts {
         );
       } catch (error) {
         // The host still serves its files: its pages read them again when shown.
-        console.error(`uraeda-server: ${(error as Error).message}; pages refresh when shown again`);
+        process.stderr.write(
+          `uraeda-server: ${(error as Error).message}; pages refresh when shown again\n`,
+        );
       }
     }
     this.#entries.set(name, entry);

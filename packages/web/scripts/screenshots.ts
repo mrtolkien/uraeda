@@ -1,3 +1,4 @@
+// oxlint-disable max-lines -- over the limit before the code quality decision: each group of views' shots in a module of its own
 /**
  * Screenshots of the UI's views for review, as the UI checks decision asks before handing a UI
  * change over: each view at a phone's size (402 × 874, with a touch screen) and a desktop's

@@ -7,11 +7,11 @@ import { dataDir } from "uraeda-binding";
 export type Env = {
   /** Host names accepted besides 127.0.0.1 and localhost, like `mac.tail1234.ts.net`. */
   allowedHosts: Array<string>;
+  /** Whether `URAEDA_REPO` named the repository, which must then be in git. */
+  given: boolean;
   port: number;
   /** The repository to open first: `URAEDA_REPO`, or else the folder the server starts in. */
   repo: string;
-  /** Whether `URAEDA_REPO` named the repository, which must then be in git. */
-  given: boolean;
 };
 
 export const DEFAULT_PORT = 4310;
@@ -27,9 +27,9 @@ export function loadEnv(root: string, environment: NodeJS.ProcessEnv = process.e
       .split(",")
       .map((host) => host.trim())
       .filter(Boolean),
+    given: Boolean(repo),
     port: port ? Number(port) : DEFAULT_PORT,
     repo: resolve(root, repo || "."),
-    given: Boolean(repo),
   };
 }
 

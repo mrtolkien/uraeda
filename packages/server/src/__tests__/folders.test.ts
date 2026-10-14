@@ -29,16 +29,16 @@ afterEach(() => {
 /** US2.1 */
 test("suggestions list matching folders, git ones marked, hidden ones left out", async () => {
   const home = tree({
-    "dev/todo-app/.git/": "",
-    "dev/tools/": "",
     "dev/.cache/": "",
-    "dev/todo.txt": "x",
     "dev/other/": "",
+    "dev/todo-app/.git/": "",
+    "dev/todo.txt": "x",
+    "dev/tools/": "",
   });
 
   expect(await suggest("~/dev/to", home)).toEqual([
-    { path: "~/dev/todo-app/", git: true },
-    { path: "~/dev/tools/", git: false },
+    { git: true, path: "~/dev/todo-app/" },
+    { git: false, path: "~/dev/tools/" },
   ]);
 });
 
@@ -46,21 +46,21 @@ test("matching ignores case, and an absolute path keeps its form", async () => {
   const home = tree({ "dev/Todo-App/": "", "dev/tools/": "" });
 
   expect(await suggest(`${home}/dev/TO`, home)).toEqual([
-    { path: `${home}/dev/Todo-App/`, git: false },
-    { path: `${home}/dev/tools/`, git: false },
+    { git: false, path: `${home}/dev/Todo-App/` },
+    { git: false, path: `${home}/dev/tools/` },
   ]);
 });
 
 test("a dot shows hidden folders", async () => {
   const home = tree({ "dev/.cache/": "", "dev/.config/": "", "dev/cache/": "" });
 
-  expect(await suggest("~/dev/.ca", home)).toEqual([{ path: "~/dev/.cache/", git: false }]);
+  expect(await suggest("~/dev/.ca", home)).toEqual([{ git: false, path: "~/dev/.cache/" }]);
 });
 
 test("a git file, as in a worktree, marks the folder git", async () => {
   const home = tree({ "dev/feature/.git": "gitdir: /elsewhere\n" });
 
-  expect(await suggest("~/dev/", home)).toEqual([{ path: "~/dev/feature/", git: true }]);
+  expect(await suggest("~/dev/", home)).toEqual([{ git: true, path: "~/dev/feature/" }]);
 });
 
 test("at most 20, sorted by name", async () => {

@@ -20,12 +20,12 @@ test.each([
   ["/r/uraeda", { repo: "uraeda", route: { page: "home" } }],
   [
     "/r/uraeda/f/2026-10-14-dark-mode",
-    { repo: "uraeda", route: { page: "feature", folder: "2026-10-14-dark-mode" } },
+    { repo: "uraeda", route: { folder: "2026-10-14-dark-mode", page: "feature" } },
   ],
   ["/r/my%20app/priorities", { repo: "my app", route: { page: "priorities" } }],
   [
     "/f/2026-10-14-dark-mode",
-    { repo: null, route: { page: "feature", folder: "2026-10-14-dark-mode" } },
+    { repo: null, route: { folder: "2026-10-14-dark-mode", page: "feature" } },
   ],
   ["/", { repo: null, route: { page: "home" } }],
 ])("parseLocation(%s)", (path, expected) => expect(parseLocation(path)).toEqual(expected));

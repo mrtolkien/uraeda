@@ -1,3 +1,4 @@
+// oxlint-disable max-lines -- over the limit before the code quality decision: the list's mutations and their helpers in a module of their own
 import type { Trigger } from "../runner/events.ts";
 import { REFUSALS } from "../runner/sessions.ts";
 import { type Context, inRepository, type RepoContext } from "./context.ts";

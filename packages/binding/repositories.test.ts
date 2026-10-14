@@ -20,10 +20,10 @@ test("a repository added through the binding is read back", async () => {
 
   expect(await readRepositories(data)).toEqual([
     {
-      name: basename(repo),
-      path: realpathSync(repo),
-      openedAt: expect.any(String),
       missing: false,
+      name: basename(repo),
+      openedAt: expect.any(String),
+      path: realpathSync(repo),
     },
   ]);
 });

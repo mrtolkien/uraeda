@@ -24,7 +24,7 @@ async function openMenu() {
   const bar = narrow()
     ? page.getByRole("banner")
     : page.getByRole("navigation", { name: "Side navigation" });
-  await userEvent.click(bar.getByRole("button", { name: `Uraeda ${repository()}`, exact: true }));
+  await userEvent.click(bar.getByRole("button", { exact: true, name: `Uraeda ${repository()}` }));
   const menu = await screen.findByRole("dialog", { name: "Repositories" });
   await within(menu).findByRole("list", { name: "Repositories" });
   await drawn();
@@ -83,18 +83,20 @@ test.each(MODES)(
   },
 );
 
+/** Opens the add form from the repository menu, and returns it once drawn. */
+async function openForm() {
+  const menu = await openMenu();
+  await userEvent.click(within(menu).getByText("Add a repository…"));
+  const form = await screen.findByRole("dialog", { name: "Add a repository" });
+  await drawn();
+  return form;
+}
+
 test.each(MODES)(
   "the add form is a dialog on wide screens and a sheet on narrow ones, with Close, in %s (US2)",
   async (mode) => {
     window.localStorage.setItem("uraeda.theme", mode);
     await show("/", "Waiting on you");
-    const openForm = async () => {
-      const menu = await openMenu();
-      await userEvent.click(within(menu).getByText("Add a repository…"));
-      const form = await screen.findByRole("dialog", { name: "Add a repository" });
-      await drawn();
-      return form;
-    };
 
     let form = await openForm();
     await expect.poll(() => screen.queryByRole("dialog", { name: "Repositories" })).toBeNull();
@@ -141,7 +143,7 @@ test.each(MODES)(
     // The test server's list is never empty: the first run's page, on the global client, as `App`
     // draws it while the list is.
     render(
-      <Theme theme={uraedaTheme} mode={mode}>
+      <Theme mode={mode} theme={uraedaTheme}>
         <FateClient client={fateClients()(null)}>
           <Suspense fallback={null}>
             <FirstRun />

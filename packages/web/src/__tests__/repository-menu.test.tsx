@@ -4,7 +4,6 @@ import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import * as binding from "uraeda-binding";
 import {
   click,
   fakeAgent,
@@ -16,6 +15,9 @@ import {
   temporaryHome,
   type,
 } from "./helpers.tsx";
+
+/** The core's binding, as one object: the server takes it whole. */
+const binding = await import("uraeda-binding");
 
 const home = temporaryHome();
 
@@ -142,9 +144,11 @@ test("opening a repository moves it first", async () => {
   await waitFor(() => expect(rows(menu)[0]).toBe("todo-app~/dev/todo-app"));
 });
 
+/** The requests that marked a repository opened, sent so far. */
+const opens = () => sent.filter((body) => body.includes('"repositories.open"'));
+
 /** US1.4, back to a repository opened before in the tab */
 test("going back to a repository moves it first again", async () => {
-  const opens = () => sent.filter((body) => body.includes('"repositories.open"'));
   await renderPage("/r/todo-app/", undefined, { dataDir: twoRepositories(), raw: true });
   await waitFor(() => expect(opens()).toHaveLength(1));
   await click((await openMenu("todo-app")).getByRole("button", { name: /^uraeda/ }));
@@ -200,9 +204,9 @@ test("removing while an agent works shows the refusal in the menu", async () => 
   const { turn } = await fake.sessions.send(todo, session.id, { text: "Why A?" });
   // The agent takes the message, and works until stopped.
   await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
-  fake.adapter.emit({ type: "accepted", id: fake.adapter.sent[0].id });
+  fake.adapter.emit({ id: fake.adapter.sent[0].id, type: "accepted" });
   await waitFor(() => expect(fake.sessions.working(todo)).not.toEqual([]));
-  await renderPage("/r/uraeda/", undefined, { dataDir, raw: true, agent: fake });
+  await renderPage("/r/uraeda/", undefined, { agent: fake, dataDir, raw: true });
   const menu = await openMenu();
 
   await remove(menu, "todo-app");
