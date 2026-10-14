@@ -6,6 +6,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::SystemTime;
 
+mod status;
+
 pub use gix::ObjectId;
 
 /// Failing to read or write git.
@@ -547,16 +549,7 @@ impl Git {
         if !others.is_empty() {
             return Err(GitError::OtherStagedFiles(others));
         }
-        // A deletion already staged, after a refused commit, is not a path git can add again: a
-        // file, or a folder whose files the index no longer holds.
-        let mut addable: Vec<&str> = Vec::new();
-        for path in paths {
-            let staged_under =
-                others_staged(&staged, std::slice::from_ref(path)).len() < staged.len();
-            if self.root.join(path).exists() || !staged_under || self.in_index(path)? {
-                addable.push(path);
-            }
-        }
+        let addable = self.addable(paths, &staged)?;
         if !addable.is_empty() {
             let mut add = vec!["add", "--all", "--"];
             add.extend(addable);
@@ -574,42 +567,6 @@ impl Git {
             commit.extend(["--message", body]);
         }
         self.run("commit", &commit)
-    }
-
-    /// Whether the files at or under `path` differ between `HEAD` and the working tree, as
-    /// `git add --all` would stage them: ignored files left out, symbolic links compared as links,
-    /// and a new file staged then deleted from disk, `AD`, no change.
-    pub fn differs_from_head(&self, path: &str) -> Result<bool, GitError> {
-        let output = self.output(
-            "status",
-            &[
-                "--no-optional-locks",
-                "status",
-                "--porcelain=v1",
-                "-z",
-                "--untracked-files=all",
-                "--no-renames",
-                "--",
-                path,
-            ],
-        )?;
-        Ok(output
-            .split('\0')
-            .filter(|entry| entry.len() > 3)
-            .any(|entry| !entry.starts_with("AD ")))
-    }
-
-    /// Whether the index holds `path`, or files under it.
-    pub(crate) fn in_index(&self, path: &str) -> Result<bool, GitError> {
-        let index = self
-            .repo
-            .index_or_empty()
-            .map_err(read_error("the index"))?;
-        let folder = format!("{}/", path.trim_end_matches('/'));
-        Ok(index.entries().iter().any(|entry| {
-            let entry = entry.path(&index);
-            entry == path.as_bytes() || entry.starts_with(folder.as_bytes())
-        }))
     }
 
     fn run(&self, subcommand: &str, args: &[&str]) -> Result<(), GitError> {

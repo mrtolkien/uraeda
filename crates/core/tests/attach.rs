@@ -48,8 +48,7 @@ fn on_feature(repo: &TestRepo, path: &str) -> PathBuf {
 }
 
 #[test]
-#[allow(non_snake_case)]
-fn US1_1_a_dropped_image_is_saved_next_to_the_proposal() {
+fn us1_1_a_dropped_image_is_saved_next_to_the_proposal() {
     let repo = repo();
 
     let attached = api::attach_image(
@@ -76,8 +75,7 @@ fn US1_1_a_dropped_image_is_saved_next_to_the_proposal() {
 }
 
 #[test]
-#[allow(non_snake_case)]
-fn US1_2_a_pasted_image_is_named_by_the_time() {
+fn us1_2_a_pasted_image_is_named_by_the_time() {
     let repo = repo();
 
     let attached = api::attach_image(repo.path(), PROPOSAL, &image("still.gif"), None).unwrap();
@@ -133,8 +131,7 @@ fn names_are_lowercase_dashed_and_never_overwrite() {
 }
 
 #[test]
-#[allow(non_snake_case)]
-fn US1_6_a_single_file_draft_becomes_a_folder() {
+fn us1_6_a_single_file_draft_becomes_a_folder() {
     let repo = repo();
 
     let attached =

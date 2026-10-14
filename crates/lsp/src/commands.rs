@@ -11,8 +11,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uraeda_core::actions::review::review_name;
 use uraeda_core::api::{self, ApiError};
-use uraeda_core::files::document::hash;
-use uraeda_core::files::priorities;
 use uraeda_core::gates::{Gate, awaits_human, gate_of};
 use uraeda_core::target;
 use uraeda_core::view::FileView;
@@ -20,6 +18,9 @@ use uraeda_core::workspace::FileKind;
 
 use crate::documents::Documents;
 use crate::requests::{WorkflowFile, api_error, refused, workflow_file};
+
+mod attach;
+mod draft;
 
 /// Every command the server runs.
 pub(crate) const COMMANDS: [&str; 9] = [
@@ -44,15 +45,14 @@ pub(crate) struct Outcome {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub opened: Option<String>,
     pub written: Vec<String>,
-    /// The markdown linking an attached image, to insert.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub link: Option<String>,
 }
 
 /// A command done: its outcome, and the message its progress ends with.
 pub(crate) struct Done {
     pub outcome: Outcome,
     pub message: Option<String>,
+    /// The markdown linking an attached image, to insert, sent with the outcome.
+    pub link: Option<String>,
 }
 
 impl From<Outcome> for Done {
@@ -60,6 +60,7 @@ impl From<Outcome> for Done {
         Done {
             outcome,
             message: None,
+            link: None,
         }
     }
 }
@@ -67,13 +68,6 @@ impl From<Outcome> for Done {
 #[derive(Deserialize)]
 pub(crate) struct FileArgs {
     uri: Uri,
-}
-
-#[derive(Deserialize)]
-struct DraftArgs {
-    uri: Uri,
-    /// 1-based.
-    line: u32,
 }
 
 #[derive(Deserialize)]
@@ -99,15 +93,6 @@ struct ApproveArgs {
     summary: Option<String>,
     risk_tier: Option<String>,
     plan_review: Option<bool>,
-}
-
-#[derive(Deserialize)]
-struct AttachImageArgs {
-    uri: Uri,
-    /// The image file to attach, absolute: a temporary file for the clipboard's image.
-    path: PathBuf,
-    /// The image's file name, `None` for a pasted image.
-    name: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -142,12 +127,7 @@ pub(crate) fn title(documents: &Documents, command: &str, args: &Value) -> Strin
         "uraeda.approve" => format!("Approving {}…", file()),
         "uraeda.requestChanges" => format!("Requesting changes on {}…", file()),
         "uraeda.submit" => format!("Submitting {}…", file()),
-        "uraeda.attachImage" => format!(
-            "Adding {}…",
-            args.get("name")
-                .and_then(Value::as_str)
-                .unwrap_or("pasted image")
-        ),
+        "uraeda.attachImage" => attach::title(args),
         _ => format!("Committing {}…", file()),
     }
 }
@@ -159,7 +139,7 @@ pub(crate) fn run(
     args: Value,
 ) -> Result<Done, ResponseError> {
     match command {
-        "uraeda.draft" => draft(documents, parse(args)?).map(Done::from),
+        "uraeda.draft" => draft::draft(documents, parse(args)?).map(Done::from),
         "uraeda.start" => start(documents, parse(args)?),
         "uraeda.comment" => comment(documents, parse(args)?).map(Done::from),
         "uraeda.editComment" => edit_comment(documents, parse(args)?).map(Done::from),
@@ -167,7 +147,7 @@ pub(crate) fn run(
         "uraeda.requestChanges" => request_changes(documents, parse(args)?).map(Done::from),
         "uraeda.submit" => submit(documents, parse(args)?).map(Done::from),
         "uraeda.commit" => commit(documents, parse(args)?).map(Done::from),
-        "uraeda.attachImage" => attach_image(documents, parse(args)?),
+        "uraeda.attachImage" => attach::attach_image(documents, parse(args)?),
         command => Err(crate::server::error(
             lsp_server::ErrorCode::InvalidParams,
             format!("unknown command {command}"),
@@ -231,48 +211,6 @@ fn relative(documents: &Documents, uri: &Uri) -> Option<String> {
     Some(relative.to_string_lossy().replace('\\', "/"))
 }
 
-/// `uraeda.draft { uri, line }`: drafts the priorities entry whose lines hold `line`, over the open
-/// text, or opens the draft it already links.
-fn draft(documents: &Documents, args: DraftArgs) -> Result<Outcome, ResponseError> {
-    let root = &documents.root;
-    if relative(documents, &args.uri).as_deref() != Some(priorities_path()) {
-        return Err(refused(NOT_AN_ENTRY));
-    }
-    let text = documents
-        .read(&root.join(priorities_path()))
-        .ok_or_else(|| refused(NOT_AN_ENTRY))?;
-    core(api::on_default_branch(root, priorities_path(), &text))?;
-    let entry = priorities::read(&text, None)
-        .sections
-        .into_iter()
-        .flat_map(|section| section.entries)
-        .find(|entry| {
-            // The entry's own lines: its first, and those its text wraps on, not its sub-items.
-            let lines = (entry.lines.len() - entry.nested.len()) as u32;
-            (entry.start_line..entry.start_line + lines).contains(&args.line)
-        })
-        .ok_or_else(|| refused(NOT_AN_ENTRY))?;
-    let linked = core(api::priority_links(root, &text))?
-        .into_iter()
-        .find(|link| link.line == entry.start_line)
-        .and_then(|link| link.draft);
-    let default = core(api::default_root(root))?;
-    if let Some(linked) = linked {
-        return Ok(Outcome {
-            opened: Some(absolute(default.join(linked))),
-            written: Vec::new(),
-            link: None,
-        });
-    }
-    let drafted = core(api::create_draft(root, &entry.id, &hash(&text)))?;
-    let opened = absolute(default.join(&drafted.path));
-    Ok(Outcome {
-        opened: Some(opened.clone()),
-        written: vec![opened, absolute(default.join(priorities_path()))],
-        link: None,
-    })
-}
-
 fn priorities_path() -> &'static str {
     "specs/PRIORITIES.md"
 }
@@ -310,9 +248,9 @@ fn start(documents: &Documents, args: FileArgs) -> Result<Done, ResponseError> {
         outcome: Outcome {
             opened: Some(absolute(proposal)),
             written,
-            link: None,
         },
         message: Some(format!("Started {}", started.folder)),
+        link: None,
     })
 }
 
@@ -440,7 +378,6 @@ fn comment(documents: &Documents, args: CommentArgs) -> Result<Outcome, Response
     Ok(Outcome {
         opened: None,
         written: in_checkout(documents, &folder, &view, &[review_name(&file.name)])?,
-        link: None,
     })
 }
 
@@ -463,7 +400,6 @@ fn edit_comment(documents: &Documents, args: EditCommentArgs) -> Result<Outcome,
     Ok(Outcome {
         opened: None,
         written: in_checkout(documents, &folder, &view, &[review_name(&file.name)])?,
-        link: None,
     })
 }
 
@@ -486,7 +422,6 @@ fn approve(documents: &Documents, args: ApproveArgs) -> Result<Outcome, Response
     Ok(Outcome {
         opened: None,
         written: in_checkout(documents, &folder, &view, &names)?,
-        link: None,
     })
 }
 
@@ -514,7 +449,6 @@ fn request_changes(
     Ok(Outcome {
         opened: None,
         written: in_checkout(documents, &folder, &view, &names)?,
-        link: None,
     })
 }
 
@@ -539,7 +473,6 @@ fn submit(documents: &Documents, args: FileArgs) -> Result<Outcome, ResponseErro
     Ok(Outcome {
         opened: None,
         written: in_checkout(documents, &folder, &view, std::slice::from_ref(&view.name))?,
-        link: None,
     })
 }
 
@@ -564,58 +497,4 @@ fn commit(documents: &Documents, args: FileArgs) -> Result<Outcome, ResponseErro
         return Err(refused(ONLY));
     }
     Ok(Outcome::default())
-}
-
-/// `uraeda.attachImage { uri, path, name? }`: saves the image file at `path` next to the file, a
-/// single-file draft becoming a folder first, and returns its link, to insert where the editor's
-/// cursor was. Writes the file only when a draft moves; commits nothing.
-fn attach_image(documents: &Documents, args: AttachImageArgs) -> Result<Done, ResponseError> {
-    let root = &documents.root;
-    let path = relative(documents, &args.uri).ok_or_else(|| refused(NOT_WORKFLOW))?;
-    // The feature's or the bug's folder, None for a draft; checked without writing anything.
-    let folder = if path.starts_with("specs/drafts/") || path.starts_with("specs/backlog/") {
-        on_default_branch(documents, file_name(&path))?;
-        None
-    } else {
-        let folder = path
-            .strip_prefix("specs/")
-            .map(|rest| rest.strip_prefix("bugs/").unwrap_or(rest))
-            .and_then(|rest| rest.split_once('/'))
-            .filter(|(_, name)| !name.contains('/'))
-            .map(|(folder, _)| folder)
-            .ok_or_else(|| {
-                refused(format!(
-                    "{path} is not a markdown file of a feature, a bug, or a draft"
-                ))
-            })?;
-        Some(folder)
-    };
-    // Read before any checkout is reached, which may add a worktree. The OS's error code is left
-    // out: "No such file or directory", not "... (os error 2)".
-    let bytes = std::fs::read(&args.path).map_err(|error| {
-        let error = error.to_string();
-        let error = error.split(" (os error ").next().unwrap_or_default();
-        refused(format!(
-            "{} could not be read: {error}.",
-            args.path.display()
-        ))
-    })?;
-    let attached = core(api::attach_image(root, &path, &bytes, args.name.as_deref()))?;
-    // The checkout the core wrote in: the default branch's for a draft, else the feature's or the
-    // bug's, reached by now.
-    let checkout = match folder {
-        None => core(api::default_root(root))?,
-        Some(folder) => PathBuf::from(core(api::work_dir(root, folder))?),
-    };
-    let mut written = vec![absolute(checkout.join(&attached.path))];
-    let opened = attached.moved.map(|moved| absolute(checkout.join(moved)));
-    if let Some(opened) = &opened {
-        written.push(opened.clone());
-        written.push(absolute(checkout.join(priorities_path())));
-    }
-    Ok(Done::from(Outcome {
-        opened,
-        written,
-        link: Some(attached.link),
-    }))
 }
