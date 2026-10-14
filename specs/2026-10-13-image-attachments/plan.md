@@ -917,35 +917,40 @@ git commit -m "feat(image-attachments): attach images in the editor"
 **Files:**
 
 - Create: `packages/web/src/ImageView.tsx` (the image and its lightbox, Back closing it)
-- Modify: `packages/web/src/Spans.tsx`
+- Create: `packages/web/src/layout/useBackCloses.ts` (`Overlay`'s history entry, shared)
+- Modify: `packages/web/src/Spans.tsx`, `Blocks.tsx` (a paragraph holding an image is a `div`),
+  `layout/Overlay.tsx`
 - Test: `packages/web/src/__tests__/document.test.tsx` (or the existing document page test file)
 
 **Interfaces:**
 
 - Consumes: `Span.image` (task 5), `/images/<path>` (task 6).
-- Produces: `ImageView({ src, alt })`, used by spans and by chat messages (task 10).
+- Produces: `ImageView({ src, alt })`, used by spans and by chat messages (task 10): the image as a
+  link to its own address, opening the lightbox in place, and "Image missing" in its place when it
+  fails to load ([R48](rulings.md#r48-an-image-is-a-link-to-itself-in-a-box-of-its-own)).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `US1.4: a proposal's image shows with its alt text, and opens full screen`:
   `getByRole("img", { name: "Login" })` with `src` `/images/specs/.../login.webp`; clicking it opens
   a dialog; Back closes it.
 - `an image outside specs, or a URL, is a link`.
+- `a missing image shows "Image missing"`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/document.test.tsx`
 - Expected: FAIL, `Unable to find role="img" and name "Login"`.
 
-- [ ] **Step 3: Implement** `ImageView` with Astryx's `useLightbox`, the history entry copied from
-      `layout/Overlay.tsx`, and StyleX `maxWidth: "100%"`.
+- [x] **Step 3: Implement** `ImageView` with Astryx's `useLightbox`, the history entry taken out of
+      `layout/Overlay.tsx` into `useBackCloses`, and StyleX `maxInlineSize: "100%"`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web

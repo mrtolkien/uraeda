@@ -1,7 +1,8 @@
 import { Code } from "@astryxdesign/core/Code";
 import { Link } from "@astryxdesign/core/Link";
 import type { Span } from "uraeda-binding";
-import { pathLink, useRepository } from "./routes.tsx";
+import { ImageView } from "./ImageView.tsx";
+import { pathLink, repoPath, useRepository } from "./routes.tsx";
 
 function Marked({ span }: { span: Span }) {
   let node: React.ReactNode = span.text;
@@ -54,10 +55,31 @@ function SpanLink({ span }: { span: Span }) {
   );
 }
 
-/** The spans of a block's text, with their marks and links. */
+/**
+ * An image of the document: a file under `specs/` draws in place, from the repository's
+ * `/r/<name>/images/`;
+ * any other file, or the web, is a link to it with the alt text, never loaded in the page.
+ */
+function SpanImage({ span }: { span: Span }) {
+  const image = span.image!;
+  const repo = useRepository();
+  if (image.path?.startsWith("specs/")) {
+    const file = image.path.split("/").map(encodeURIComponent).join("/");
+    return <ImageView alt={span.text} src={repoPath(repo, `/images/${file}`)} />;
+  }
+  return <SpanLink span={{ ...span, image: undefined, link: { ...image, wiki: false } }} />;
+}
+
+/** The spans of a block's text, with their marks, links, and images. */
 export function Spans({ spans }: { spans: ReadonlyArray<Span> }) {
   return spans.map((span, index) =>
-    span.link ? <SpanLink key={index} span={span} /> : <Marked key={index} span={span} />,
+    span.image ? (
+      <SpanImage key={index} span={span} />
+    ) : span.link ? (
+      <SpanLink key={index} span={span} />
+    ) : (
+      <Marked key={index} span={span} />
+    ),
   );
 }
 
