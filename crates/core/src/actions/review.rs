@@ -9,6 +9,7 @@ use crate::git::{Git, ObjectId};
 use crate::today::Date;
 use crate::workspace::Feature;
 
+use super::images::{images_folder, linked_images};
 use super::place::Place;
 use super::{ActionError, Change};
 
@@ -233,7 +234,8 @@ pub struct Tier {
 }
 
 /// Approves a file: `status: approved`, its block recorded, its pending review kept with the
-/// verdict, or an older review deleted.
+/// verdict, or an older review deleted; with the images the feature's folder links, the others
+/// deleted.
 pub fn approve(
     place: &Place,
     feature: &Feature,
@@ -307,6 +309,7 @@ pub fn approve(
         None => {}
     }
     fs::write(place.root.join(&path), edited)?;
+    paths.extend(linked_images(place, &feature.path)?);
     paths.sort();
     Ok(Change {
         paths,
@@ -316,7 +319,8 @@ pub fn approve(
 }
 
 /// Requests changes on a file: `status: changes-requested`, its block recorded with the summary,
-/// and its pending review, which needs a comment, with the verdict.
+/// and its pending review, which needs a comment, with the verdict; with the images the feature's
+/// folder links, the others deleted.
 pub fn request_changes(
     place: &Place,
     feature: &Feature,
@@ -353,6 +357,7 @@ pub fn request_changes(
     )?;
     fs::write(place.root.join(&path), edited)?;
     let mut paths = vec![path, review_path];
+    paths.extend(linked_images(place, &feature.path)?);
     paths.sort();
     Ok(Change {
         paths,
@@ -425,11 +430,13 @@ pub fn start_over(place: &Place, feature: &Feature, file: &str) -> Result<(), Ac
     Ok(())
 }
 
-/// The files a verdict writes, checked against the staged files before anything is written.
-fn verdict_paths(feature: &Feature, file: &str) -> [String; 2] {
+/// The files a verdict writes, its images included, checked against the staged files before
+/// anything is written.
+fn verdict_paths(feature: &Feature, file: &str) -> [String; 3] {
     [
         format!("{}/{file}", feature.path),
         format!("{}/{}", feature.path, review_name(file)),
+        images_folder(&feature.path),
     ]
 }
 

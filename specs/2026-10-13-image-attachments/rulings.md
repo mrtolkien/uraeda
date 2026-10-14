@@ -320,3 +320,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the `links.file` message in `crates/core/src/check/links.rs`, and
   `a_missing_image_into_specs_is_a_problem`.
 - **Where**: task 3.
+
+## R25: A retried commit skips a folder already deleted
+
+- **Decision**: `Git::commit` leaves out of `git add` a path that no longer exists, has files staged
+  at or under it, and has none left in the index: an `images/` folder whose deletion a hook-refused
+  commit already staged. A path with nothing staged under it is passed to `git add` as before.
+- **Rationale**: `retry_commit` passes `<folder>/images` while `HEAD` tracks files under it, as
+  Review focus 1 says; once the refused commit staged their deletion, `git add` fails on the
+  pathspec, which matches nothing. The previous rule covered files only, comparing the path itself
+  with the staged ones.
+- **Alternatives considered**: leaving the folder out of `retry_commit`'s paths when its files'
+  deletions are staged (the same rule, in one caller only); `git add --ignore-missing` (only with
+  `--dry-run`).
+- **If wrong**: the `addable` loop and `in_index` in `crates/core/src/git.rs`, and
+  `try_again_commits_a_deleted_image`.
+- **Where**: task 4.

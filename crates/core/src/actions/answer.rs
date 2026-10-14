@@ -8,6 +8,7 @@ use crate::gates;
 use crate::today::Date;
 use crate::workspace::{Feature, FileKind};
 
+use super::images::{images_folder, linked_images};
 use super::place::Place;
 use super::{ActionError, Change, list};
 
@@ -105,7 +106,7 @@ pub fn subject(slug: &str, round: u32) -> String {
 }
 
 /// Submits the latest round: every applicable question answered, `status: answered`, and the
-/// block turned into its record.
+/// block turned into its record; with the images the feature's folder links, the others deleted.
 pub fn submit(place: &Place, feature: &Feature, today: Date) -> Result<Change, ActionError> {
     let (name, round) = latest_round(feature)?;
     let file = format!("{}/{name}", feature.path);
@@ -124,8 +125,10 @@ pub fn submit(place: &Place, feature: &Feature, today: Date) -> Result<Change, A
     let recorded =
         markdown::record_block(&answered, &format!("Answered on {today}.")).unwrap_or(answered);
     fs::write(&path, recorded)?;
+    let mut paths = vec![file];
+    paths.extend(linked_images(place, &feature.path)?);
     Ok(Change {
-        paths: vec![file],
+        paths,
         subject: subject(&feature.slug, round),
         body: None,
     })
@@ -186,7 +189,7 @@ pub fn submit_and_commit(
     today: Date,
 ) -> Result<super::Committed, ActionError> {
     let path = round_path(feature)?;
-    super::place::ensure_only_staged(place, &[path])?;
+    super::place::ensure_only_staged(place, &[path, images_folder(&feature.path)])?;
     let change = submit(place, feature, today)?;
     super::commit::commit(place, &change)
 }

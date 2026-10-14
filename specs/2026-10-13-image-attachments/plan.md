@@ -531,8 +531,11 @@ git commit -m "feat(image-attachments): images in documents, checks, and the ski
 - Create: `crates/core/src/actions/images.rs` (the `linked_images` helper)
 - Modify: `crates/core/src/actions/text.rs` (`change`), `review.rs` (`approve`, `request_changes`,
   `verdict_paths`), `answer.rs` (`submit`), `crates/core/src/api.rs` (`retry_commit`),
+  `crates/core/src/git.rs` (`commit`, see
+  [R25](rulings.md#r25-a-retried-commit-skips-a-folder-already-deleted)),
   `crates/cli/src/review.rs`, `crates/cli/src/answer.rs`
-- Test: `crates/core/tests/actions.rs`, `crates/cli/tests/` (the `--no-commit` outputs)
+- Test: `crates/core/tests/actions.rs`, `crates/core/tests/api.rs` (`retry_commit`),
+  `crates/cli/tests/` (the `--no-commit` outputs)
 
 **Interfaces:**
 
@@ -547,7 +550,7 @@ git commit -m "feat(image-attachments): images in documents, checks, and the ski
     `specs/<drafts|backlog>/<slug>.md` is tracked at HEAD and gone adds that path, with the subject
     "chore: edit the draft <title>" or "chore: edit <title> in the backlog".
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `crates/core/tests/actions.rs`:
 
@@ -568,24 +571,29 @@ In `crates/core/tests/actions.rs`:
 - `images_alone_are_a_change_to_commit`: adding only an image to a committed draft's folder is not
   "no change to commit".
 
-Update the CLI tests whose `--no-commit` output lists paths, to the new lists.
+Update the CLI tests whose `--no-commit` output lists paths, to the new lists: `ura review` lists
+every path, "commit a, b, and c", and `ura answer --submit --no-commit` reads "commit it with
+<folder>/images." when the round links images.
 
-- [ ] **Step 2: Run them to check they fail**
+In `crates/core/tests/api.rs`, `try_again_commits_a_deleted_image`: an approval refused by a hook
+after deleting the folder's last image is committed again by `retry_commit`.
+
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test actions`
 - Expected: FAIL, `US1_5_...`: the commit holds `proposal.md` only.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Add `linked_images` to every human commit listed above, and to `retry_commit`'s paths. Links come
 from `files::markdown`'s `document.links`. `ensure_only_staged` receives the same paths.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core crates/cli
