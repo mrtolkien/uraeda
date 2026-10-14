@@ -81,3 +81,38 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the watcher test keeps a 100 ms total of sleeps, outside SC-005's letter; replacing
   them with a write sequence the watcher acknowledges is local to `watch.rs`.
 - **Where**: task 2.
+
+## R7: The binding is marked as built on every run, by an uncached `binding:touch`
+
+- **Decision**: `binding:touch` (`cache: false`) runs `touch -c` on `packages/binding/*.node` after
+  `binding:build`, hit or miss, and `ts:test`, the browser tasks and `bench` depend on it. The
+  toolchain test's `untracked` skips a task that only touches files, as it skips the groups.
+- **Rationale**: a hit restores the `.node` file with the time it was built at. A binding source
+  saved since with the same content, by `git stash` and `pop` or a checkout there and back, is newer
+  than that, so the web configs' `checkBinding` refused a current binding: `ts:test` failed with
+  "the native binding is older than the Rust core", and the build its message names was undone by
+  the next hit. The cache matches the binding to its sources' content, so marking it as built now is
+  true. Review focus 3's fallback, `binding:build` without outputs, keeps the old time too, and
+  would not put back a deleted `.node` file, which the spec's edge case asks for.
+- **Alternatives considered**: skipping `checkBinding` under Vitest: `vp dev` after `ready` would
+  still refuse the restored binding; comparing the file's change time: `main.test.ts` sets the times
+  it tests with `utimesSync`, which moves the change time to now.
+- **If wrong**: a task in the graph that checks nothing; removing it brings the refusal back, and a
+  `checkBinding` that compares content would make it unneeded.
+- **Where**: task 3.
+
+## R8: `GIT_DIR` is kept from the tests only in a cached run
+
+- **Decision**: the edge case of an exported `GIT_DIR` is checked with
+  `GIT_DIR=/nonexistent vp run ready` after `vp cache clean`, as the spec's Testing says, instead of
+  `vp run --no-cache ready:rust`.
+- **Rationale**: Vite Task passes the whole environment to a task run without its cache, with
+  `--no-cache` or `cache: false`: `vp run --no-cache ready:rust` failed 21 tests before nextest
+  stopped, with "fatal: not a git repository: '/nonexistent'", and a cached run passes. CI, which
+  runs `--no-cache`, exports no `GIT_*` variable, and `test:nvim`, uncached, gets them cleared by
+  `minimal_init.lua` in task 7 (R2).
+- **Alternatives considered**: unsetting the `GIT_*` variables in each test task's command: a longer
+  command for a case only a hook calling `vp run --no-cache` reaches.
+- **If wrong**: a hook that runs `vp run --no-cache` fails the git tests; prefixing the test
+  commands with `env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_COMMON_DIR` fixes it.
+- **Where**: task 3.
