@@ -2,7 +2,7 @@
 // for review, on the spec's line that links them, or as a general comment.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
 import { addMockup, atRepo, click, fixtureRepo, git, renderPage, today, type } from "./helpers.tsx";
@@ -50,6 +50,21 @@ test("a mockup shows in the UI, and a comment lands on the line that links it (C
     ),
   );
   expect(review(repo)).toContain("\nThe menu needs a Never option\n");
+});
+
+/** The spec's Ctrl+Enter, which saves every multi-line field. */
+test("Ctrl+Enter in a mockup's comment adds it", async () => {
+  const repo = specWithMockup();
+  await renderPage(`/f/${FOLDER}/mockups/repeat.html`, repo);
+  await click(await screen.findByRole("button", { name: "Comment" }));
+  const field = await screen.findByRole("textbox", { name: "Comment text" });
+  await type(field, "The menu needs a Never option");
+
+  await act(async () => {
+    fireEvent.keyDown(field, { ctrlKey: true, key: "Enter" });
+  });
+
+  await waitFor(() => expect(review(repo)).toContain("\nThe menu needs a Never option\n"));
 });
 
 /** Review focus 5 */
