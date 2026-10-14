@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "no
 import { dirname, join } from "node:path";
 import type { Frame, Page } from "playwright";
 import { addRepository, removeRepository } from "uraeda-binding";
-import { addPlan, ELEVEN, fixture, fixtureRepo } from "uraeda-binding/test-utils";
+import { addPlan, commitOnBranch, ELEVEN, fixture, fixtureRepo } from "uraeda-binding/test-utils";
 import { reloadRepositories } from "uraeda-server/dev";
 import { FakeAdapter } from "uraeda-server/testing";
 import { playwright } from "vite-plus/test/browser-playwright";
@@ -130,6 +130,10 @@ const commands = {
   addPlan(_context: unknown, folder: string) {
     addPlan(repoFolder(), folder, ELEVEN);
   },
+  /** Commits files, by path, on a feature's branch. */
+  commitOnBranch(_context: unknown, folder: string, files: Record<string, string>) {
+    commitOnBranch(repoFolder(), folder, files);
+  },
   /** The messages sent to the agent during the test, in order. */
   agentSent() {
     return agent.sent.map(({ id, images, text, when }) => ({
@@ -194,6 +198,7 @@ export type RepoCommands = {
   agentSent: () => Promise<
     Array<{ id: string; images: Array<string>; text: string; when: string }>
   >;
+  commitOnBranch: (folder: string, files: Record<string, string>) => Promise<void>;
   fixtureImage: (name: string) => Promise<string>;
   mouse: (
     steps: Array<{ ms?: number; type: "move" | "down" | "up" | "wait"; x?: number; y?: number }>,

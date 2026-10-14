@@ -38,7 +38,7 @@ import {
   takeFolds,
   wait,
 } from "./shots.ts";
-import { AGENT, takeSessions } from "./sessionShots.ts";
+import { AGENT, takeImplementation, takeSessions } from "./sessionShots.ts";
 
 const web = fileURLToPath(new URL("..", import.meta.url));
 const root = fileURLToPath(new URL("../../..", import.meta.url));
@@ -194,6 +194,8 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
     await page.unroute("**/fate**");
     writeFileSync(join(repo, "specs/PRIORITIES.md"), original);
   });
+
+  await takeImplementation(each, adapter, repo);
 }
 
 /** Home, a task, and the priorities, dragged and added to. */
