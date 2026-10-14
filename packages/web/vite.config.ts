@@ -104,7 +104,8 @@ export default defineConfig({
       "src/__tests__/setup.ts",
     ],
     // The browser project checks the layout; its tests run in WebKit, from the root's config.
-    exclude: ["src/__browser__/**", "**/node_modules/**"],
+    // The lint fixtures are files to lint, not tests: `only-test.test.tsx` holds a `test.only`.
+    exclude: ["src/__browser__/**", "src/__lint__/**", "**/node_modules/**"],
     // Each test builds a git repository and reads it through the binding.
     testTimeout: 20_000,
   },
