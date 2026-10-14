@@ -137,6 +137,11 @@ export function addPlan(
   tasks: Array<PlanTask>,
   status = "auto-approved",
 ) {
+  commitOnBranch(repo, folder, { [`specs/${folder}/plan.md`]: planText(tasks, status) });
+}
+
+/** A plan's text, for spec revision 1, with its tasks' steps written `- [x] **Step N: Do**`. */
+export function planText(tasks: Array<PlanTask>, status = "auto-approved") {
   let text = `---\nstatus: ${status}\nspec-revision: 1\n---\n\n# Plan: Feature\n`;
   for (const [index, [title, done, total]] of tasks.entries()) {
     text += `\n## Task ${index + 1}: ${title}\n\n`;
@@ -144,5 +149,5 @@ export function addPlan(
       text += `- [${step < done ? "x" : " "}] **Step ${step + 1}: Do**\n`;
     }
   }
-  commitOnBranch(repo, folder, { [`specs/${folder}/plan.md`]: text });
+  return text;
 }

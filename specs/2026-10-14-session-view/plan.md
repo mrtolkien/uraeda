@@ -1339,18 +1339,18 @@ git commit -m "feat(session-view): announce turns and tasks, not every word"
 **Files:**
 
 - Modify: `packages/web/src/__browser__/layout.test.tsx` (the page cases)
-- Modify: `packages/web/src/__browser__/helpers.tsx` (`startTurn`'s comment, and the `addPlan`
-  command)
-- Modify: `packages/web/vite.browser.config.ts` (an `addPlan` test command over
-  `uraeda-binding/test-utils`)
-- Modify: `packages/web/scripts/screenshots.ts` (the views below)
+- Modify: `packages/web/vite.browser.config.ts` (a `commitOnBranch` test command over
+  `uraeda-binding/test-utils`; `addPlan` came with Task 8)
+- Modify: `packages/binding/test-utils.ts` (`planText()`, out of `addPlan`)
+- Modify: `packages/web/scripts/screenshots.ts`, and create `packages/web/scripts/sessionShots.ts`
+  (the views below, after a commit that splits `take()` under the size limit)
 - Create: `specs/2026-10-14-session-view/screenshots/*.png`
 
 **Interfaces:**
 
 - Consumes: everything above.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `layout.test.tsx`, run `checkLayout()` in light and dark, at both sizes, on:
 
@@ -1363,17 +1363,18 @@ In `layout.test.tsx`, run `checkLayout()` in light and dark, at both sizes, on:
   the session (the phone-only branch at lines 260–265 goes);
 - "a session at 1024 px with the sidebar and the column open": no sideways scroll.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web-browser packages/web/src/__browser__/layout.test.tsx`
-- Expected: FAIL, `unknown command addPlan`.
+- Expected: FAIL. `addPlan` existed already (R25): they failed on the column's long paths and on
+  axe-core's label in name, on the sidebar's progress row.
 
-- [ ] **Step 3: Implement the command, then fix what the checks find**
+- [x] **Step 3: Implement the command, then fix what the checks find**
 
-Add the `addPlan` command. Fix any cut text, insets, sizes, or axe findings in the new components,
-within the UI decisions.
+Add the `commitOnBranch` command. Fix any cut text, insets, sizes, or axe findings in the new
+components, within the UI decisions.
 
-- [ ] **Step 4: Run all tests, then take and review the screenshots**
+- [x] **Step 4: Run all tests, then take and review the screenshots**
 
 - Run: `vp run ready`
 - Expected: PASS.
@@ -1384,7 +1385,7 @@ within the UI decisions.
   [mockups](mockups/session-view.html) and the UI decisions, then fix what they show, and run
   `vp run ready` again.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src/__browser__ packages/web/vite.browser.config.ts packages/web/scripts/screenshots.ts \
