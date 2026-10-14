@@ -494,3 +494,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   deleting.
 - **If wrong**: one option, `destructive`, in `DISCARD_CHANGES` and `DISCARD_COMMENT`.
 - **Where**: [`Confirm.tsx`](/packages/web/src/fields/Confirm.tsx), the fix before task 13.
+
+## R30: A confirmation's sheet is as tall as its question
+
+- **Decision**: on the phone, `ConfirmHost` draws its sheet with Astryx's `hug` height, as tall as
+  its title, body, and buttons; `Overlay` takes `hug` beside `tall` and `capped`. The comment sheets
+  keep `capped`.
+- **Rationale**: the screenshots showed "Leave page?" and "Discard your comment?" over 62% of the
+  screen, most of it empty under the buttons, where the mockup's section 4 draws a sheet that ends
+  under them. A comment sheet holds a 7-row field and a keyboard, which the fixed height suits.
+- **Alternatives considered**: `capped` for every sheet, as built in task 5.
+- **If wrong**: one prop in [`Confirm.tsx`](/packages/web/src/fields/Confirm.tsx).
+- **Where**: task 13, from the review of its screenshots.

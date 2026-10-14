@@ -1,5 +1,5 @@
 // The UI layout decision: short forms are bottom sheets on narrow screens, dialogs on wide ones.
-import "./helpers.tsx";
+import { drawn } from "./helpers.tsx";
 import { Theme } from "@astryxdesign/core/theme";
 import { Button } from "@astryxdesign/core/Button";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -147,4 +147,25 @@ test("a confirmation answers once the browser went back over its entry", async (
   screen.getByRole("button", { name: "Discard" }).click();
   // A page the answer opens is not undone by the Back that closes the confirmation.
   await waitFor(() => expect(entries).toEqual([undefined]));
+});
+
+// The mockup's section 4: a confirmation is as tall as its question and its buttons, on the phone's
+// sheet as in the desktop's dialog, with no empty sheet under them.
+test("a confirmation is as tall as what it asks", async () => {
+  render(
+    <Theme mode="light" theme={uraedaTheme}>
+      <ConfirmHost>
+        <Asker entries={[]} />
+      </ConfirmHost>
+    </Theme>,
+  );
+  screen.getByRole("button", { name: "Cancel" }).click();
+  const dialog = await screen.findByRole("dialog", { name: "Discard your comment?" });
+  const discard = screen.getByRole("button", { name: "Discard" });
+  // Once its entrance ends, the space under its buttons is its padding, not a part of the screen:
+  // the phone's sheet runs to the screen's bottom edge.
+  const bottom = () =>
+    window.innerWidth < 768 ? window.innerHeight : dialog.getBoundingClientRect().bottom;
+  await drawn();
+  expect(bottom() - discard.getBoundingClientRect().bottom).toBeLessThan(64);
 });

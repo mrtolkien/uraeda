@@ -27,8 +27,11 @@ export function Overlay({
   isOpen: boolean;
   label: string;
   onClose: () => void;
-  /** On narrow screens, the sheet's height: Astryx's `tall` (92%) or `capped` (62%). */
-  sheetHeight?: "tall" | "capped";
+  /**
+   * On narrow screens, the sheet's height: Astryx's `tall` (92%), `capped` (62%), or `hug`, as tall
+   * as its content, up to 92%.
+   */
+  sheetHeight?: "tall" | "capped" | "hug";
   /** On narrow screens, the sheet's panel, as drawn on screen. */
   sheetRef?: RefObject<HTMLDivElement | null>;
 }) {
