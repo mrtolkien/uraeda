@@ -108,6 +108,47 @@ function useSettledWrites(file: File, onWritten: () => void) {
   return { add, edit, remove, removeError };
 }
 
+/**
+ * Saves the settled comments typed and not saved, as Submit does before it submits: each comment
+ * edited, then each new one, whose text the store keeps, open or not, unless it is blank. Resolves
+ * with whether every one was written, stopping at the first refused.
+ */
+export function useSaveSettled(file: File) {
+  const repo = useRepositoryPath();
+  const writes = useSettledWrites(file, () => undefined);
+  /** The text kept for a field, unless it is blank. */
+  const typed = (field: string) => {
+    const key = unsavedKey(repo, field);
+    const text = readUnsaved(key)?.text;
+    return text?.trim() ? { key, text } : undefined;
+  };
+  return async () => {
+    const round = file.current.items.clarifications;
+    const saves = [
+      ...(round?.settledComments ?? []).map((comment) => ({
+        kept: typed(editKey(file.path, comment.number)),
+        write: (text: string) => writes.edit(comment, text),
+      })),
+      // A subject used twice is one field, for its first point.
+      ...[...new Set((round?.settledPoints ?? []).map((point) => point.subject))].map(
+        (subject) => ({
+          kept: typed(newKey(file.path, subject)),
+          write: (text: string) => writes.add(subject, text),
+        }),
+      ),
+    ];
+    for (const { kept, write } of saves) {
+      if (kept) {
+        if ((await write(kept.text)) !== undefined) {
+          return false;
+        }
+        dropUnsaved(kept.key);
+      }
+    }
+    return true;
+  };
+}
+
 /** The comment form open on a point, keyed by what it writes: a new comment, or an edit. */
 function SettledForm({
   onClose,

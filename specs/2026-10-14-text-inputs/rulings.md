@@ -173,3 +173,50 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   saving alone.
 - **If wrong**: two exports move between two files.
 - **Where**: task 6, step 1.
+
+## R12: Submit saves the settled comments the store keeps
+
+- **Decision**: Submit saves the settled points' comments through `useSaveSettled`, in
+  [`SettledPoints.tsx`](/packages/web/src/SettledPoints.tsx), after the questions' saves and the
+  notes, not through `PendingSaves`: for each comment of the round, then each settled subject, it
+  reads the text the store keeps for its field, skips it when there is none or it is blank, writes
+  it with `settled.edit`, whose `previous` is the comment as read, or `settled.comment`, and drops
+  the entry once written. A refusal stops the submit with "Some answers were not saved: nothing was
+  submitted. Check them, then submit again.".
+- **Rationale**: a settled form keeps its text only in the store, one form is open at a time, and
+  its text stays when it closes (R10): an entry in `PendingSaves` registered by the open form would
+  miss the text of a form closed, or of one a tap on another point replaced. Edits come first, as
+  adding a comment never renumbers the others.
+- **Alternatives considered**: each form registering its save in `PendingSaves`, as the plan said,
+  which saves the open form only.
+- **If wrong**: one hook, called from `useRoundSubmit`.
+- **Where**: task 6.
+
+## R13: A quick tap after a comment's save follows it
+
+- **Decision**: "quick saves of one answer follow each other" types "first", presses "Save comment",
+  then taps B at once, and still expects `**Answer:** B: first` and no error.
+- **Rationale**: it typed "first" and tapped B, which saved the comment typed with the letter; US2 1
+  now has a tap save the comment as saved, not as typed. What it checks stays: a save of the answer
+  that follows another before it returns is not taken for a change made elsewhere.
+- **Alternatives considered**: deleting it, which leaves the queue of an answer's saves untested.
+- **If wrong**: one line in [`round.test.tsx`](/packages/web/src/__tests__/round.test.tsx).
+- **Where**: task 6.
+
+## R14: How a question's comment behaves
+
+- **Decision**: a tap takes the comment as last saved or read when its save runs, after the saves
+  before it, so a tap right after "Save comment" keeps the comment just saved. The letters follow
+  the file whenever nothing of the answer waits to be saved, a comment being typed or not: the
+  comment, in the store, is never replaced. "Does not apply" discards the comment typed, as it
+  replaced it before. A restored comment shows the restore notice, with "The comment changed since:
+  saving replaces it." (`COMMENT_CHANGED`); a round answered while a comment is unsaved shows its
+  comment as the file holds it, with the notice saying the round was answered, and Discard.
+- **Rationale**: the comment as it was when tapped would undo a "Save comment" still running; the
+  letters were held back only so a comment being typed was not replaced, which the store now
+  ensures. The spec's edge case asks the notice of a round answered for every open comment.
+- **Alternatives considered**: the tap carrying the comment last handed to a save, which carries a
+  refused one again.
+- **If wrong**: `useAnswer.ts` and `AnswerComment` in
+  [`QuestionComment.tsx`](/packages/web/src/QuestionComment.tsx).
+- **Where**: task 6.

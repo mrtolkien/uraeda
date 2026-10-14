@@ -17,9 +17,7 @@ import { StaticImages } from "./ImageView.tsx";
 import { Spans } from "./Spans.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { useAnswer } from "./useAnswer.ts";
-import type { SaveState } from "./useSave.ts";
-import { Paragraph } from "./layout/Paragraph.tsx";
-import { CommentField } from "./QuestionComment.tsx";
+import { AnswerComment } from "./QuestionComment.tsx";
 
 const styles = stylex.create({
   belowBar: {
@@ -154,23 +152,6 @@ export const statusStyles = stylex.create({
   saved: { color: colorVars["--color-success"] },
 });
 
-function Status({ state }: { state: SaveState }) {
-  switch (state.kind) {
-    case "saving":
-      return (
-        <Text color="secondary" type="supporting">
-          saving…
-        </Text>
-      );
-    case "saved":
-      return <span {...stylex.props(statusStyles.saved)}>saved ✓</span>;
-    case "error":
-      return <span {...stylex.props(statusStyles.error)}>Not saved: {state.message}</span>;
-    default:
-      return null;
-  }
-}
-
 function Option({
   choice,
   disabled,
@@ -244,8 +225,8 @@ export function Question({
   question: QuestionItem;
   readOnly: boolean;
 }) {
-  const answer = useAnswer(question, folder);
-  const { comment, dirty, letters } = answer;
+  const answer = useAnswer(question, folder, path);
+  const { letters } = answer;
   const unclear = question.applies === "unclear";
   const parent = question.parent;
   const wide = useWidthClass() === "wide";
@@ -294,23 +275,13 @@ export function Question({
           <Button label="Does not apply" onClick={answer.notApplying} />
         </HStack>
       )}
-      {readOnly ? (
-        comment && <Paragraph xstyle={styles.spaced}>{comment}</Paragraph>
-      ) : (
-        <div {...stylex.props(styles.spaced)}>
-          <CommentField
-            comment={comment}
-            id={question.id}
-            onChange={answer.setComment}
-            onImages={answer.onImages}
-            onSettled={answer.onSettled}
-            path={path}
-          >
-            <Button isDisabled={!dirty} label="Save comment" onClick={answer.saveComment} />
-            {(!dirty || answer.state.kind === "error") && <Status state={answer.state} />}
-          </CommentField>
-        </div>
-      )}
+      <AnswerComment
+        answer={answer}
+        id={question.id}
+        path={path}
+        readOnly={readOnly}
+        saved={question.comment}
+      />
       {followUps.map((followUp) => (
         <Question
           document={document}
