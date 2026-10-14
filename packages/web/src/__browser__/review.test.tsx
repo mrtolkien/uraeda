@@ -4,7 +4,7 @@
 import { act, screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
-import { drawn, show } from "./helpers.tsx";
+import { atRepo, drawn, show } from "./helpers.tsx";
 
 /**
  * The toggle of the first block a review can select whose text holds a phrase: its name is the
@@ -105,9 +105,9 @@ test("open folds survive Back (US1 4)", async () => {
 
   // A real click: WebKit skips, on Back, an entry that added another without a user's gesture.
   await userEvent.click(screen.getAllByRole("link", { name: "Recurring tasks" })[0]!);
-  await expect.poll(() => window.location.pathname).toBe("/f/2026-10-06-recurring-tasks");
+  await expect.poll(() => window.location.pathname).toBe(atRepo("/f/2026-10-06-recurring-tasks"));
   await act(async () => window.history.back());
-  await expect.poll(() => window.location.pathname).toBe(SPEC);
+  await expect.poll(() => window.location.pathname).toBe(atRepo(SPEC));
 
   await expect.poll(() => fold("Scenarios (4)")?.getAttribute("aria-expanded")).toBe("true");
   expect(fold("Details").getAttribute("aria-expanded")).toBe("true");
@@ -136,11 +136,11 @@ test("Back keeps closed a fold a link opened (US1 4, 5)", async () => {
   expect(fold("Details").getAttribute("aria-expanded")).toBe("false");
 
   await userEvent.click(screen.getAllByRole("link", { name: "Recurring tasks" })[0]!);
-  await expect.poll(() => window.location.pathname).toBe("/f/2026-10-06-recurring-tasks");
+  await expect.poll(() => window.location.pathname).toBe(atRepo("/f/2026-10-06-recurring-tasks"));
   // The feature's page drawn, the spec's gone.
   await expect.poll(() => screen.queryAllByRole("button", { name: "Details" }).length).toBe(0);
   await act(async () => window.history.back());
-  await expect.poll(() => window.location.pathname).toBe(SPEC);
+  await expect.poll(() => window.location.pathname).toBe(atRepo(SPEC));
 
   await expect.poll(() => fold("Scenarios (4)")?.getAttribute("aria-expanded")).toBe("false");
   await drawn();
