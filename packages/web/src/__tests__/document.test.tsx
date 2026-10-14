@@ -1,6 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { atRepo, fixtureRepo, git, renderPage } from "./helpers.tsx";
 
@@ -68,4 +69,77 @@ test("an approved spec shows the same folds", async () => {
   fireEvent.click(details);
   await waitFor(() => expect(details.getAttribute("aria-expanded")).toBe("true"));
   expect(screen.getByRole("heading", { name: "Data" })).toBeTruthy();
+});
+
+const IMAGES = `# Login banner
+
+The banner covers the login button:
+
+![Login](images/login.webp)
+
+See ![Logo](/crates/logo.png), ![Banner](https://example.com/banner.png), and ![[shot.png]].
+`;
+
+/** A repository whose web UI proposal holds IMAGES, on the checkout. */
+function imagesRepo() {
+  const repo = fixtureRepo();
+  git(repo, "switch", "--quiet", "2026-10-11-web-ui");
+  writeFileSync(join(repo, "specs/2026-10-11-web-ui/proposal.md"), IMAGES);
+  return repo;
+}
+
+test("US1.4: a proposal's image shows with its alt text, and opens full screen", async () => {
+  await renderPage("/f/2026-10-11-web-ui/proposal.md", imagesRepo());
+
+  const image = await screen.findByRole("img", { name: "Login" });
+  expect(image.getAttribute("src")).toBe("/images/specs/2026-10-11-web-ui/images/login.webp");
+  // Its lightbox is a dialog, which a paragraph cannot hold.
+  expect(image.closest("p")).toBeNull();
+  expect(screen.queryByRole("dialog")).toBeNull();
+  // The image is a link to itself, which opens it in place. happy-dom follows a link clicked
+  // through its child before React sees the click, which a browser does not: the click goes to
+  // the link that holds the image.
+  const link = screen.getByRole("link", { name: "Login" });
+  expect(link.contains(image)).toBe(true);
+  await act(async () => {
+    fireEvent.click(link);
+  });
+  const dialog = screen.getByRole("dialog", { name: "Login" });
+  expect(within(dialog).getByRole("img", { name: "Login" })).toBeTruthy();
+  expect(within(dialog).getByRole("button", { name: "Close" })).toBeTruthy();
+  expect(window.location.pathname).toBe("/f/2026-10-11-web-ui/proposal.md");
+
+  await act(async () => window.history.back());
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect(window.location.pathname).toBe("/f/2026-10-11-web-ui/proposal.md");
+});
+
+test("an image outside specs, or a URL, is a link", async () => {
+  await renderPage("/f/2026-10-11-web-ui/proposal.md", imagesRepo());
+
+  const logo = await screen.findByRole("link", { name: "Logo" });
+  expect(logo.getAttribute("href")).toBe("/raw/crates/logo.png");
+  const banner = screen.getByRole("link", { name: "Banner" });
+  expect(banner.getAttribute("href")).toBe("https://example.com/banner.png");
+  expect(banner.getAttribute("target")).toBe("_blank");
+  expect(screen.queryByRole("img", { name: "Logo" })).toBeNull();
+  expect(screen.queryByRole("img", { name: "Banner" })).toBeNull();
+  // Obsidian's embed is text, as wikilinks are.
+  expect(screen.getByText(/shot\.png/)).toBeTruthy();
+  // The lightbox, closed, holds its own copy of each image drawn.
+  const images = [...document.querySelectorAll("img")]
+    .filter((image) => !image.closest("dialog"))
+    .map((image) => image.getAttribute("alt"));
+  expect(images).toEqual(["Login"]);
+});
+
+test('a missing image shows "Image missing"', async () => {
+  await renderPage("/f/2026-10-11-web-ui/proposal.md", imagesRepo());
+
+  const image = await screen.findByRole("img", { name: "Login" });
+  await act(async () => {
+    fireEvent.error(image);
+  });
+  expect(screen.getByText("Image missing")).toBeTruthy();
+  expect(screen.queryByRole("img", { name: "Login" })).toBeNull();
 });
