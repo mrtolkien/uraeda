@@ -1151,3 +1151,37 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   spec names).
 - **If wrong**: `CommentForm` in `packages/web/src/CommentForm.tsx`.
 - **Where**: task 11, review.
+
+## R76: `:Uraeda image` inserts the link exactly at the cursor, under `<leader>ai`
+
+- **Decision**: the link goes at the cursor's line and column, tracked by an extmark while the
+  server works, with no blank lines added around it; on a moved draft, at the same line and column
+  of the reopened buffer. The action's key is `i` under the prefix, `<leader>ai`. Its messages,
+  errors and the core's refusals alike, start with "uraeda: ", as the spec writes them, and a saved
+  image says "uraeda: added images/<name>", with "; the draft is now a folder" when it moved, as the
+  mockup shows; other actions keep their messages as they are.
+- **Rationale**: the spec says "at the cursor", and a Neovim user places the cursor on the line the
+  link takes, as the mockup's line 6 shows; the web's paragraph rule (R43) guesses a place a field
+  never focused lacks, which Neovim always has. Every action has a key (the keys test), and `i` is
+  free, outside LazyVim's AI keys.
+- **Alternatives considered**: R43's blank lines (two lines to remove by hand on an empty line); a
+  line below the cursor, as img-clip.nvim does (not "at the cursor"); no key (the keys test requires
+  one).
+- **If wrong**: `M.image` and `M.list` in `editors/nvim/lua/uraeda/actions.lua`.
+- **Where**: task 12.
+
+## R77: A clipboard command's output is an image only by its first bytes
+
+- **Decision**: the output of `vim.g.uraeda.clipboard`, of `pngpaste`, and the file PowerShell
+  writes count as an image only when they start as a PNG, a JPEG, a GIF, or a WebP file does; else
+  Neovim says "uraeda: the clipboard holds no image" and sends nothing. `wl-paste` and `xclip` list
+  the clipboard's types first, and take the first of `image/png`, `image/jpeg`, `image/gif`, and
+  `image/webp`.
+- **Rationale**: US5.4 wants "the clipboard holds no image" for text, and a configured command, like
+  the tests' `echo text`, says nothing of its type. The core checks the bytes again and encodes
+  them: the plugin neither names nor encodes the image, as the attachments decision requires.
+- **Alternatives considered**: sending any output to the core (text refused as "Only PNG, JPEG, GIF,
+  and WebP images can be added: pasted image is not one.", not the spec's message); a type option
+  next to the command (one more option for every user).
+- **If wrong**: `is_image` in `editors/nvim/lua/uraeda/clipboard.lua`.
+- **Where**: task 12.

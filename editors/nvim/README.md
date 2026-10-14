@@ -1,7 +1,8 @@
 # uraeda.nvim
 
 Uraeda's workflow files in Neovim: answer questions, comment on a spec, approve it or request
-changes, draft a line of `PRIORITIES.md`, start a draft, and commit, without leaving the editor.
+changes, draft a line of `PRIORITIES.md`, start a draft, paste an image, and commit, without leaving
+the editor.
 
 The plugin holds no workflow rules. It runs the `uraeda` language server, `ura lsp`, which gives
 diagnostics as you type, completion and code actions for frontmatter values, document symbols, and
@@ -15,6 +16,8 @@ run only when you ask.
   current
 - `git`
 - Optional: [snacks.nvim](https://github.com/folke/snacks.nvim), for the waiting picker's preview
+- Optional, for `:Uraeda image` to read the clipboard: `wl-paste` (wl-clipboard) on Wayland, `xclip`
+  on X11, `pngpaste` on macOS, or PowerShell on Windows and WSL
 
 `:checkhealth uraeda` checks them.
 
@@ -35,6 +38,7 @@ vim.g.uraeda = {
   lsp = true,           -- false: the plugin does not enable the language server
   cmd = { "ura", "lsp" },
   inline_comments = true,
+  clipboard = nil,      -- the command writing the clipboard's image to its output; nil finds it
 }
 ```
 
@@ -48,6 +52,7 @@ folder that holds `PRIORITIES.md`. `<leader>aw` works from any buffer.
 | `<leader>an` | `:Uraeda draft`    | Draft the `PRIORITIES.md` line under the cursor         |
 | `<leader>ap` | `:Uraeda start`    | Start the draft or backlog file as a feature            |
 | `<leader>ag` | `:Uraeda commit`   | Commit the draft, backlog file, proposal, or priorities |
+| `<leader>ai` | `:Uraeda image`    | Add the clipboard's image, or a file's, at the cursor   |
 | `<leader>am` | `:Uraeda comment`  | Comment on the line, or the visual selection            |
 | `<leader>ae` | `:Uraeda field`    | Set a frontmatter field                                 |
 | `<leader>av` | `:Uraeda verdict`  | Approve, request changes, or submit answers, and commit |

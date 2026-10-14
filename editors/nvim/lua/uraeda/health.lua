@@ -1,4 +1,5 @@
--- `:checkhealth uraeda`: Neovim's version, `ura` and `git` on the path, and an `ura` with `lsp`.
+-- `:checkhealth uraeda`: Neovim's version, `ura` and `git` on the path, an `ura` with `lsp`, and the
+-- tool reading the clipboard's images.
 local M = {}
 
 local older = "ura is older than the plugin: run ura upgrade."
@@ -52,6 +53,14 @@ function M.check()
     vim.health.ok("git at " .. vim.fn.exepath("git"))
   else
     vim.health.error("git not found on PATH")
+  end
+
+  local clipboard = require("uraeda.clipboard")
+  local tool = clipboard.tool()
+  if tool then
+    vim.health.ok("clipboard images: " .. tool.name)
+  else
+    vim.health.warn((clipboard.no_tool:gsub("^uraeda: ", "")))
   end
 end
 

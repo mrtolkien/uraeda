@@ -3,19 +3,26 @@ local eq = MiniTest.expect.equality
 
 -- The day a start writes, read by the server from its environment, inherited from the child.
 vim.env.URA_TODAY = "2026-10-14"
+-- The time a pasted image is named after, read the same way.
+vim.env.URA_NOW = "20261014-104733"
 
 local child = helpers.new_child()
+--- (Re)starts the child with `config`, keeping every notification in `_G.notes`, as
+--- { message, level }.
+local function setup(config)
+  child.setup(config)
+  child.lua([[
+    _G.notes = {}
+    vim.notify = function(message, level)
+      table.insert(_G.notes, { message, level })
+    end
+  ]])
+end
+
 local T = MiniTest.new_set({
   hooks = {
     pre_case = function()
-      child.setup()
-      -- Every notification, as { message, level }.
-      child.lua([[
-        _G.notes = {}
-        vim.notify = function(message, level)
-          table.insert(_G.notes, { message, level })
-        end
-      ]])
+      setup()
     end,
     post_once = child.stop,
   },
@@ -216,6 +223,152 @@ T["a buffer closed while a command runs"] = function()
     {}
   )
   eq(child.lua_get("vim.v.errmsg"), "")
+end
+
+local images = vim.fs.joinpath(helpers.root, "fixtures", "images")
+local desktop = vim.fs.joinpath(images, "desktop.png")
+local folder = "2026-10-14-login-banner"
+local banner = "# Login banner\n\n## What\n\nThe banner covers the login button:\n\n## Why\n"
+local pasted = "![pasted image](images/pasted-20261014-104733.webp)"
+
+--- A repository whose feature `2026-10-14-login-banner` has its proposal in its worktree. Returns
+--- the repository and the proposal's path.
+local function with_proposal()
+  local repo = helpers.repo({ ["specs/PRIORITIES.md"] = later }, {
+    [folder] = { [("specs/%s/proposal.md"):format(folder)] = banner },
+  })
+  return repo, ("%s/.worktrees/%s/specs/%s/proposal.md"):format(repo, folder, folder)
+end
+
+--- Waits up to 5 s for line `line` of the child's current buffer to be `text`, and returns it.
+local function wait_line(line, text)
+  return child.lua(
+    [[local line, text = ...
+      vim.wait(5000, function()
+        return vim.api.nvim_buf_get_lines(0, line - 1, line, false)[1] == text
+      end, 20)
+      return vim.api.nvim_buf_get_lines(0, line - 1, line, false)[1] ]],
+    { line, text }
+  )
+end
+
+local function exists(path)
+  return vim.uv.fs_stat(path) ~= nil
+end
+
+T["US5.1: the clipboard's image is linked at the cursor, in one undo step"] = function()
+  setup({ clipboard = { "cat", desktop } })
+  local _, proposal = with_proposal()
+  open(proposal, 6)
+
+  child.cmd("Uraeda image")
+
+  eq(wait_line(6, pasted), pasted)
+  local saved = vim.fs.joinpath(vim.fs.dirname(proposal), "images/pasted-20261014-104733.webp")
+  eq(read(saved):sub(9, 12), "WEBP")
+  local notes = child.lua_get("_G.notes")
+  eq(notes[#notes], { "uraeda: added images/pasted-20261014-104733.webp", vim.log.levels.INFO })
+  child.type_keys("u")
+  eq(
+    child.lua_get("vim.api.nvim_buf_get_lines(0, 0, -1, false)"),
+    vim.split(banner:sub(1, -2), "\n")
+  )
+end
+
+T["US5.2: a file named after the command is linked"] = function()
+  local _, proposal = with_proposal()
+  open(proposal, 6)
+
+  child.cmd("Uraeda image " .. vim.fn.fnameescape(desktop))
+
+  local link = "![desktop](images/desktop.webp)"
+  eq(wait_line(6, link), link)
+  eq(exists(vim.fs.joinpath(vim.fs.dirname(proposal), "images/desktop.webp")), true)
+end
+
+T["US5.3: a single-file draft becomes a folder, reopened with the link"] = function()
+  setup({ clipboard = { "cat", desktop } })
+  local repo = helpers.repo({
+    ["specs/PRIORITIES.md"] = later:gsub(
+      "%- Codex runtime",
+      "- [Login banner](drafts/login-banner.md)"
+    ),
+    ["specs/drafts/login-banner.md"] = banner,
+  })
+  local draft = repo .. "/specs/drafts/login-banner.md"
+  open(draft, 6)
+
+  child.cmd("Uraeda image")
+
+  local moved = repo .. "/specs/drafts/login-banner/proposal.md"
+  eq(wait_buffer(moved), true)
+  eq(wait_line(6, pasted), pasted)
+  eq(exists(draft), false)
+  eq(child.lua_get("vim.fn.bufexists(...)", { draft }), 0)
+  local notes = child.lua_get("_G.notes")
+  eq(notes[#notes], {
+    "uraeda: added images/pasted-20261014-104733.webp; the draft is now a folder",
+    vim.log.levels.INFO,
+  })
+  eq(exists(repo .. "/specs/drafts/login-banner/images/pasted-20261014-104733.webp"), true)
+end
+
+T["US5.4: a clipboard holding text saves nothing"] = function()
+  setup({ clipboard = { "echo", "text" } })
+  local _, proposal = with_proposal()
+  open(proposal, 6)
+
+  child.cmd("Uraeda image")
+
+  eq(errors(), { { "uraeda: the clipboard holds no image", ERROR } })
+  eq(exists(vim.fs.joinpath(vim.fs.dirname(proposal), "images")), false)
+  eq(child.lua_get("vim.bo.modified"), false)
+end
+
+T["the core's refusals are prefixed"] = function()
+  local _, proposal = with_proposal()
+  open(proposal, 6)
+
+  child.cmd("Uraeda image " .. vim.fn.fnameescape(vim.fs.joinpath(images, "drawing.svg")))
+
+  eq(errors(), {
+    { "uraeda: Only PNG, JPEG, GIF, and WebP images can be added: drawing.svg is not one.", ERROR },
+  })
+  eq(exists(vim.fs.joinpath(vim.fs.dirname(proposal), "images")), false)
+end
+
+T["a missing clipboard tool is named"] = function()
+  local _, proposal = with_proposal()
+  open(proposal, 6)
+  -- A Wayland session whose PATH has neither wl-paste nor xclip.
+  local dir = vim.fn.tempname()
+  vim.fn.mkdir(dir, "p")
+  child.lua(
+    "vim.env.PATH, vim.env.WAYLAND_DISPLAY, vim.env.DISPLAY = ..., 'wayland-1', nil",
+    { dir }
+  )
+
+  child.cmd("Uraeda image")
+
+  eq(errors(), {
+    { "uraeda: no clipboard tool found: install wl-clipboard, xclip, or pngpaste", ERROR },
+  })
+end
+
+T["a buffer edited while the command runs gets the link at the cursor's place"] = function()
+  local _, proposal = with_proposal()
+  open(proposal, 6)
+
+  -- The edit lands before the server answers: both run before the child reads its messages.
+  child.lua(
+    [[vim.cmd("Uraeda image " .. vim.fn.fnameescape(...))
+      vim.api.nvim_buf_set_lines(0, 0, 0, false, { "Above" })]],
+    { desktop }
+  )
+
+  local link = "![desktop](images/desktop.webp)"
+  eq(wait_line(7, link), link)
+  eq(child.lua_get("vim.api.nvim_buf_get_lines(0, 0, 1, false)"), { "Above" })
 end
 
 return T

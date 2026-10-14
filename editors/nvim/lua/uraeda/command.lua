@@ -1,4 +1,5 @@
--- `:Uraeda <name>`: runs an action of `actions.list`, its names completed.
+-- `:Uraeda <name>`: runs an action of `actions.list`, its names completed, and the files after
+-- `:Uraeda image`.
 local M = {}
 
 --- The names of the actions starting with `lead`.
@@ -36,12 +37,15 @@ end
 --- Creates `:Uraeda`.
 function M.create()
   vim.api.nvim_create_user_command("Uraeda", M.run, {
-    nargs = "?",
+    nargs = "*",
     range = true,
     desc = "Uraeda: run an action",
     complete = function(lead, line)
-      -- Only the first argument names an action.
-      if line:match("^%s*%S+%s+%S+%s") then
+      -- Only the first argument names an action; `image` takes a file after it.
+      local action = line:match("^%s*%S+%s+(%S+)%s")
+      if action == "image" then
+        return vim.fn.getcompletion(lead, "file")
+      elseif action then
         return {}
       end
       return M.complete(lead)

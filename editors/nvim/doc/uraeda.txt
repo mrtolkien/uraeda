@@ -42,7 +42,7 @@ Actions that write another file or commit run only when you ask, with
 |:Uraeda|, a |<Plug>| mapping, or a key. Before an action that reads the
 buffer, the plugin saves it; after, it reloads the files written and opens the
 file produced. Errors are notifications titled "Uraeda", with the core's
-message as it is.
+message as it is; those of |:Uraeda-image| start with "uraeda: ".
 
 ==============================================================================
 2. Requirements                                          *uraeda-requirements*
@@ -53,6 +53,9 @@ message as it is.
 - `git` on your `PATH`.
 - Optional: snacks.nvim, for the waiting picker with a file preview. Without
   it, every picker goes through |vim.ui.select()|.
+- Optional, for |:Uraeda-image| to read the clipboard: `wl-paste` of
+  wl-clipboard on Wayland, `xclip` on X11, `pngpaste` on macOS, or
+  PowerShell on Windows and WSL; or |vim.g.uraeda.clipboard|.
 
 Run |:checkhealth| `uraeda` to check them, see |uraeda-health|.
 
@@ -81,6 +84,7 @@ validated when the plugin starts. The defaults: >lua
       lsp = true,
       cmd = { "ura", "lsp" },
       inline_comments = true,
+      clipboard = nil,
     }
 <
 `prefix`                                                 *vim.g.uraeda.prefix*
@@ -100,6 +104,11 @@ validated when the plugin starts. The defaults: >lua
     Boolean. Whether the comments of a pending review are drawn under their
     lines when a file opens. `false` hides them until |:Uraeda-comments|
     shows them in that buffer.
+
+`clipboard`                                           *vim.g.uraeda.clipboard*
+    List of strings, or `nil`. The command writing the clipboard's image to
+    its output, for |:Uraeda-image|, like `{ "pngpaste", "-" }`. `nil`, the
+    default, finds the tool of your system, see |uraeda-requirements|.
 
 ==============================================================================
 5. Commands                                                  *uraeda-commands*
@@ -122,6 +131,22 @@ validated when the plugin starts. The defaults: >lua
 :Uraeda commit                                                *:Uraeda-commit*
     Commits the current draft, backlog file, proposal, or `PRIORITIES.md`.
     Your git hooks run: a failing hook shows its output.
+
+:Uraeda image [{file}]                                         *:Uraeda-image*
+    In a draft, a backlog file, or a markdown file of a feature's or a bug's
+    folder: saves the image on the clipboard, or {file}, in the `images/`
+    folder next to the file, and inserts its link where the cursor was, in
+    one undo step, without committing. The commit of the file takes the
+    image with it. {file} is completed with <Tab>.
+
+    Only PNG, JPEG, GIF, and WebP images are taken, re-encoded as WebP by
+    `ura`. A single-file draft, `specs/drafts/<name>.md`, becomes the folder
+    `specs/drafts/<name>/proposal.md` first: its buffer reopens at the new
+    path, without its undo history unless 'undofile' is set.
+
+    Says "uraeda: the clipboard holds no image" when it holds text, and
+    names the tools to install when none is found, see
+    |vim.g.uraeda.clipboard|.
 
 :[range]Uraeda comment                                       *:Uraeda-comment*
     Opens the comment window over the lines of [range], else of the visual
@@ -171,6 +196,9 @@ normal mode, `<Plug>(uraeda-comment)` in visual mode too. For example: >lua
 <Plug>(uraeda-commit)                                  *<Plug>(uraeda-commit)*
     |:Uraeda-commit|.
 
+<Plug>(uraeda-image)                                    *<Plug>(uraeda-image)*
+    |:Uraeda-image|, from the clipboard.
+
 <Plug>(uraeda-comment)                                *<Plug>(uraeda-comment)*
     |:Uraeda-comment|, over the visual selection in visual mode.
 
@@ -205,6 +233,7 @@ Key            Mode     Action ~
 `<leader>an`     n        |:Uraeda-draft|
 `<leader>ap`     n        |:Uraeda-start|
 `<leader>ag`     n        |:Uraeda-commit|
+`<leader>ai`     n        |:Uraeda-image|, from the clipboard
 `<leader>am`     n, x     |:Uraeda-comment|
 `<leader>ae`     n        |:Uraeda-field|
 `<leader>av`     n        |:Uraeda-verdict|
@@ -278,7 +307,8 @@ a Uraeda workflow file."
 
 `:checkhealth uraeda` checks Neovim's version, the options, the `ura` of
 |vim.g.uraeda.cmd| on your `PATH` with its version, that it runs the language
-server, and `git` on your `PATH`.
+server, `git` on your `PATH`, and the tool |:Uraeda-image| reads the
+clipboard with, warning when there is none.
 
 ==============================================================================
 12. Developing the plugin                                     *uraeda-develop*

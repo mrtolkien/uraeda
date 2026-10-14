@@ -64,4 +64,37 @@ T["reports an ura without lsp"] = function()
   eq(found[1]:find("ura is older than the plugin: run ura upgrade.", 1, true) ~= nil, true)
 end
 
+--- The lines of `:checkhealth uraeda` naming the clipboard tool.
+local function clipboard(lines)
+  return vim.tbl_filter(function(line)
+    return line:find("clipboard") ~= nil
+  end, lines)
+end
+
+T["names the clipboard tool found"] = function()
+  local dir = bin("wl-paste", "exit 0")
+  child.lua(
+    "vim.env.PATH, vim.env.WAYLAND_DISPLAY = ..., 'wayland-1'",
+    { dir .. ":" .. vim.env.PATH }
+  )
+  eq(clipboard(health()), { "- ✅ OK clipboard images: wl-paste" })
+end
+
+T["names the configured clipboard command"] = function()
+  child.setup({ clipboard = { "cat", "/tmp/shot.png" } })
+  eq(clipboard(health()), { "- ✅ OK clipboard images: cat /tmp/shot.png" })
+end
+
+T["warns when no clipboard tool is found"] = function()
+  local git = vim.fn.exepath("git")
+  local dir = bin("git", ('exec "%s" "$@"'):format(git))
+  child.lua(
+    "vim.env.PATH, vim.env.WAYLAND_DISPLAY, vim.env.DISPLAY = ..., 'wayland-1', nil",
+    { dir }
+  )
+  eq(clipboard(health()), {
+    "- ⚠️ WARNING no clipboard tool found: install wl-clipboard, xclip, or pngpaste",
+  })
+end
+
 return T

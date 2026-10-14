@@ -1101,8 +1101,9 @@ git commit -m "feat(image-attachments): images in reviews, answers, and notes"
 
 - Modify: `crates/lsp/src/commands.rs`, `crates/lsp/src/server.rs` (if registration needs it)
 - Create: `editors/nvim/lua/uraeda/clipboard.lua`
-- Modify: `editors/nvim/lua/uraeda/actions.lua`, `command.lua` (`nargs = "*"`, file completion for
-  `image`), `init.lua` (option `clipboard`), `health.lua`, `doc/uraeda.txt`
+- Modify: `editors/nvim/lua/uraeda/actions.lua` (the action, under the key `i`, R76), `command.lua`
+  (`nargs = "*"`, file completion for `image`), `client.lua` (the `uraeda: ` prefix of its errors),
+  `init.lua` (option `clipboard`), `health.lua`, `doc/uraeda.txt`, `README.md`
 - Test: `crates/lsp/tests/commands.rs`, `editors/nvim/tests/test_actions.lua`,
   `tests/test_health.lua`
 
@@ -1115,7 +1116,7 @@ git commit -m "feat(image-attachments): images in reviews, answers, and notes"
   - `vim.g.uraeda.clipboard`: `nil` to detect the tool, or a list command writing the clipboard's
     image to stdout.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - LSP: `an_image_is_attached_to_the_open_proposal` (the `link`, `written` holding the image);
   `a_draft_moved_into_a_folder_is_opened`.
@@ -1128,26 +1129,28 @@ git commit -m "feat(image-attachments): images in reviews, answers, and notes"
   - `US5.4`: with `clipboard = { "echo", "text" }`, "uraeda: the clipboard holds no image".
   - `a missing clipboard tool is named`, and `:checkhealth uraeda` names the tool found.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-lsp --test commands && vp run test:nvim`
 - Expected: FAIL, `unknown command uraeda.attachImage`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 The command reads the file at `path`, calls `api::attach_image` with the buffer's file, deletes
 nothing, and returns the link. `clipboard.lua` picks `wl-paste --type <type>` on Wayland,
 `xclip -selection clipboard -t <type> -o` on X11, `pngpaste -` on macOS, or PowerShell on Windows,
 after listing the clipboard's types and taking the first of PNG, JPEG, GIF, and WebP; it writes the
 bytes to `vim.fn.tempname()`. The action sets a mark at the cursor, saves, runs the command, and
-inserts the link at the mark in the buffer `opened` or the current one, as one undo step.
+inserts the link at the mark in the buffer `opened` or the current one, as one undo step, exactly at
+the cursor (R76). A command of `vim.g.uraeda.clipboard`, or a tool that lists no types, gives an
+image only when its first bytes are a PNG's, a JPEG's, a GIF's, or a WebP's (R77).
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/lsp editors/nvim
