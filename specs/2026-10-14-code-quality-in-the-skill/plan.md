@@ -886,9 +886,11 @@ git commit -m "feat(code-quality-in-the-skill): the web UI folds a spec's scenar
 
 **Files:**
 
+- Create: `packages/web/src/ReviewMockups.tsx`
 - Modify: `crates/core/src/files/items.rs` (`SpecItems`), `crates/core/src/files/spec.rs` (`items`),
   `packages/binding/index.d.ts` (generated), `packages/web/src/views.ts`,
-  `packages/web/src/ReviewPage.tsx`, `packages/web/src/MockupPage.tsx` (`links()` removed)
+  `packages/web/src/ReviewPage.tsx`, `packages/web/src/MockupPage.tsx` (`links()` removed),
+  `packages/web/scripts/screenshots.ts` (the `spec-mockups` view)
 - Test: `crates/core/tests/items.rs`, `packages/web/src/__tests__/review.test.tsx`,
   `packages/web/src/__tests__/mockup.test.tsx`
 
@@ -898,10 +900,11 @@ git commit -m "feat(code-quality-in-the-skill): the web UI folds a spec's scenar
   - `SpecItems.mockups: Vec<MockupLink>`, where
     `MockupLink { path: String, label: String, block: u32 }`.
   - Each entry is a link of the `## Mockups` section whose target starts with `mockups/`, in order:
-    its target, its text, and the selectable block holding it.
+    its target, without `./` or a `#` fragment, its text, all its spans', and the selectable block
+    holding it ([R18](rulings.md#r18-the-mockups-region-in-its-own-file-above-the-reviews-hint)).
   - In TypeScript: `spec.mockups`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - **Core `items.rs`.** The example's `mockups` is
   `[{ path: "mockups/repeat.html", label: "Repeat", block: <the list item's id> }]`. A spec without
@@ -916,26 +919,28 @@ git commit -m "feat(code-quality-in-the-skill): the web UI folds a spec's scenar
 The break this catches: taking every link in the spec, which would also list a mockup linked from a
 story.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test items`
 - Expected: FAIL to compile: `no field mockups on type SpecItems`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 - The core finds the links of the section.
-- `ReviewPage` draws, before the blocks, a region with an Astryx `Button` of the large size per
-  mockup, linking to its page. See
-  [R2](rulings.md#r2-one-button-per-mockup-at-the-top-of-the-review).
+- `ReviewPage` draws, before the blocks, `ReviewMockups`: a region with an Astryx `Button` of the
+  large size per mockup, linking to its page, after the stale banner and before the "Tap a block"
+  hint. See [R2](rulings.md#r2-one-button-per-mockup-at-the-top-of-the-review) and
+  [R18](rulings.md#r18-the-mockups-region-in-its-own-file-above-the-reviews-hint).
 - `MockupPage` finds its block through `spec.mockups` instead of `links()`.
 
-- [ ] **Step 4: Run all tests, then take the screenshots**
+- [x] **Step 4: Run all tests, then take the screenshots**
 
 - Run: `cargo test && vp run --filter uraeda-binding build && vp check && vp test`
 - Expected: PASS.
-- Screenshots of the review page's top, at both sizes and both themes, in `screenshots/`.
+- Screenshots of the review page's top, the view `spec-mockups`, at both sizes and both themes, in
+  `screenshots/`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core packages specs/2026-10-14-code-quality-in-the-skill/screenshots

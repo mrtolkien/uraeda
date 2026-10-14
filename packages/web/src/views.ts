@@ -41,6 +41,7 @@ const ItemsSelection = {
   spec: {
     criteria: true,
     details: true,
+    mockups: true,
     planReview: true,
     riskTier: true,
     stories: true,
