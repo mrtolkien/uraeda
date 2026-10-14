@@ -181,10 +181,9 @@ fn generated_images_are_checked_and_reencoded() {
     );
 }
 
-/// A JPEG, a GIF, and a WebP declaring more than 40 million pixels are refused from their headers,
-/// fast, as `bomb.png` is.
-#[test]
-fn bombs_of_every_type_are_refused_from_their_headers() {
+/// A JPEG, a GIF, and a WebP declaring more than 40 million pixels, each with its name and the
+/// refusal it gets.
+fn bombs() -> [(&'static str, Vec<u8>, &'static str); 3] {
     // photo.jpg, whose frame header declares 20000×20000
     let mut jpeg = read("photo.jpg");
     let mut at = 2;
@@ -213,7 +212,7 @@ fn bombs_of_every_type_are_refused_from_their_headers() {
     let size = u32::try_from(webp.len() - 8).unwrap();
     webp[4..8].copy_from_slice(&size.to_le_bytes());
 
-    let rows = [
+    [
         (
             "bomb.jpg",
             jpeg,
@@ -229,16 +228,28 @@ fn bombs_of_every_type_are_refused_from_their_headers() {
             webp,
             "This image is too large: bomb.webp is 16383×16383 pixels.",
         ),
-    ];
-    for (name, bytes, text) in rows {
-        let start = Instant::now();
+    ]
+}
+
+/// The bombs are refused from their headers, as `bomb.png` is.
+#[test]
+fn bombs_of_every_type_are_refused_from_their_headers() {
+    for (name, bytes, text) in bombs() {
         let error = images::encode(&bytes, name).unwrap_err();
         assert_eq!(error.to_string(), text, "{name}");
-        assert!(
-            start.elapsed() < Duration::from_secs(1),
-            "{name}: {:?}",
-            start.elapsed()
-        );
+    }
+}
+
+/// The bombs are refused fast, each under a second: run by `vp run bench`.
+#[test]
+#[ignore = "benchmark"]
+fn bench_bombs_are_refused_fast() {
+    for (name, bytes, text) in bombs() {
+        let start = Instant::now();
+        let error = images::encode(&bytes, name).unwrap_err();
+        let elapsed = start.elapsed();
+        assert_eq!(error.to_string(), text, "{name}");
+        assert!(elapsed < Duration::from_secs(1), "{name}: {elapsed:?}");
     }
 }
 

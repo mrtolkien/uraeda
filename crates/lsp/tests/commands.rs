@@ -11,12 +11,20 @@ const NVIM: &str = "specs/2026-10-13-nvim-plugin";
 const BRANCH: &str = "2026-10-13-nvim-plugin";
 const PRIORITIES: &str = "specs/PRIORITIES.md";
 
-/// Today for every test of this file, set once before any server runs: the core reads it from the
-/// process's environment, which every test shares.
+/// Today for every test of this file, set once before any git or server runs: the core reads it
+/// from the process's environment, which every test shares.
 fn on_2026_10_14() {
     static TODAY: Once = Once::new();
-    // SAFETY: every test calls this first, so no other thread reads the environment while it is set.
+    // SAFETY: every test calls this through `new_repo` or `start` before it spawns git or a server,
+    // and `call_once` makes the other threads wait until the variable is set, so no thread reads the
+    // environment while it is written.
     TODAY.call_once(|| unsafe { std::env::set_var("URA_TODAY", "2026-10-14") });
+}
+
+/// A new repository, today set first, since creating it spawns git.
+fn new_repo() -> TestRepo {
+    on_2026_10_14();
+    TestRepo::new()
 }
 
 fn start(root: &Path) -> Session {
@@ -34,7 +42,7 @@ fn abs(path: &Path) -> String {
 
 /// A repository on `main` with `specs/` and the priorities `priorities`, committed.
 fn with_priorities(priorities: &str) -> TestRepo {
-    let repo = TestRepo::new();
+    let repo = new_repo();
     repo.write("specs/README.md", "# Specs\n");
     repo.write(PRIORITIES, priorities);
     repo.commit("chore: specs");
@@ -256,7 +264,7 @@ fn feature(status: &str) -> (TestRepo, PathBuf) {
 }
 
 fn feature_with(status: &str, files: &[(&str, &str)]) -> (TestRepo, PathBuf) {
-    let repo = TestRepo::new();
+    let repo = new_repo();
     write_example(&repo);
     repo.commit("chore: specs");
     repo.switch_new(BRANCH);
@@ -855,21 +863,38 @@ fn a_refusal_lists_no_files() {
     assert_eq!(error.data, Some(json!({ "code": "refused" })));
 }
 
+/// Creates the file `go` when dropped, which the hook of
+/// `requests_are_answered_while_a_command_runs` waits for: dropped on a failed assertion too, so the
+/// hook never outlives the test.
+struct Go(PathBuf);
+
+impl Drop for Go {
+    fn drop(&mut self) {
+        std::fs::write(&self.0, "").unwrap();
+    }
+}
+
 /// Edge case: the loop answers requests while a command runs.
 #[test]
 fn requests_are_answered_while_a_command_runs() {
     let repo = with_draft(false);
-    repo.set_hook("sleep 1\necho run >> \"$(git rev-parse --git-common-dir)/hook-runs\"");
+    repo.set_hook(
+        "until [ -e \"$(git rev-parse --git-common-dir)/go\" ]; do sleep 0.01; done\n\
+         echo run >> \"$(git rev-parse --git-common-dir)/hook-runs\"",
+    );
     let draft = repo.path().join("specs/drafts/codex-runtime.md");
     let mut session = start(repo.path());
+    let go = Go(repo.path().join(".git/go"));
 
     let command = session.start_command("uraeda.commit", json!({ "uri": uri(&draft) }));
     let fields = session.raw("uraeda/fields", json!({ "uri": uri(&draft) }));
 
     assert!(fields.is_ok());
     assert!(!session.answered(&command), "the command still runs");
+    drop(go);
     session.response(&command).unwrap();
     assert_eq!(repo.subjects("main")[0], "chore: draft Codex runtime");
+    assert_eq!(repo.hook_runs(), 1);
 }
 
 #[test]

@@ -134,15 +134,43 @@ fn a_worktree_is_its_own_root() {
     );
 }
 
-/// SC-001
-#[test]
-fn diagnostics_arrive_within_300_ms() {
+/// The example's spec, open in a session with no diagnostics; returns it and the spec's path and
+/// text.
+fn example_spec_open() -> (Session, std::path::PathBuf, String) {
     let root = example();
     let path = root.join(FEATURE).join("spec.md");
     let text = std::fs::read_to_string(&path).unwrap();
     let mut session = Session::start(&root);
     session.open(&path, &text);
     assert_eq!(session.diagnostics(&path), []);
+    (session, path, text)
+}
+
+/// SC-001's behaviour, its 300 ms measured by `bench_diagnostics_arrive_within_300_ms`: a changed
+/// `risk-tier` gives exactly one diagnostic.
+#[test]
+fn a_changed_risk_tier_gives_one_diagnostic() {
+    let (mut session, path, text) = example_spec_open();
+
+    session.change(
+        &path,
+        &text.replace("risk-tier: high", "risk-tier: extreme"),
+    );
+
+    assert_eq!(
+        messages(&session.diagnostics(&path)),
+        [(
+            4,
+            "risk-tier \"extreme\" is not one of low, medium, high".to_string()
+        )]
+    );
+}
+
+/// SC-001: run by `vp run bench`.
+#[test]
+#[ignore = "benchmark"]
+fn bench_diagnostics_arrive_within_300_ms() {
+    let (mut session, path, text) = example_spec_open();
 
     let start = Instant::now();
     session.change(

@@ -66,3 +66,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a slow image pipeline goes unnoticed until someone times it; the server's encoding
   time stays covered by `bench_bombs_are_refused_fast` and the core's image tests.
 - **Where**: task 6.
+
+## R6: The search for sleeps and clocks finds the session's deadlines and the watcher's spacing
+
+- **Decision**: task 2's search expects the LSP session's deadlines, the 10 ms spacing between the
+  writes of `a_burst_of_writes_is_reported_together`, and the timing lines inside the benchmarks,
+  instead of "the watcher tests' deadlines and the iCCP child's process measure", which the search
+  does not match.
+- **Rationale**: the session's deadlines bound waits for a message and assert no duration; the
+  watcher's spacing builds the burst the debounce is tested on, so without it the test could pass
+  without a debounce; `grep -v bench_` drops lines, not functions, so the benchmarks' bodies show.
+- **Alternatives considered**: removing the watcher's spacing: the operating system may then merge
+  the writes itself, and the test would no longer show the debounce at work.
+- **If wrong**: the watcher test keeps a 100 ms total of sleeps, outside SC-005's letter; replacing
+  them with a write sequence the watcher acknowledges is local to `watch.rs`.
+- **Where**: task 2.
