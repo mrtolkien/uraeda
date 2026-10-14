@@ -13,6 +13,7 @@
 
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Setup with agent (checks project and creates relevant files)
+- Make sure agents are resumable!
 
 - [Run the web UI with npx](drafts/run-the-web-ui-with-npx.md)
 
@@ -24,6 +25,8 @@
 
 - Benchmarks (harness, model, ...): blocked until the harness and the Claude Code integration are
   ready, see [backlog](backlog/benchmarks/proposal.md), with a discovery round and partial answers.
+  - Speed up the process: iteration speed is too slow atm
+  - This only doable once we have a good benchmark!
 - Auth and login for basic security
 
 - [Testing review](drafts/testing-review.md)
@@ -76,3 +79,8 @@
 - Fix " ├╴ Link to non-existent document '/specs/2026-10-13-image-attachments/proposal.md' Marksman
   (2)"
   - Happens when there's a feature in a worktree: this is not the right type of link!
+- Draft to proposal on mobile went 404
+- We need a home icon/logo that goes back to the project root
+- For UI work we need a few mock environments with fixed content. Once the environments exist, they
+  can be used for reviews.
+- We'll need a model selector for each step
