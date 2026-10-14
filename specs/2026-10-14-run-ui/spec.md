@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Run the UI easily
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Approved on 2026-10-14.
 >
 > - One new decision, [distribution](../decisions/distribution.md): the npm package `uraeda` on the
 >   user's Node 24, four platform packages for the binding, no install scripts, and releases
