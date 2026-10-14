@@ -1074,26 +1074,30 @@ git commit -m "docs(text-inputs): comments on settled points in the skill and it
 
 - Modify: `packages/web/src/__browser__/layout.test.tsx` (the round page with a settled comment
   open, the dialogs)
-- Create: `specs/2026-10-14-text-inputs/screenshots/`
+- Create: `specs/2026-10-14-text-inputs/screenshots/`, `packages/web/scripts/text-input-shots.ts`
+  (the views of text inputs, called from `scripts/screenshots.ts`)
 
-- [ ] **Step 1: Add the changed views to the layout checks**: the round page with a comment under a
+- [x] **Step 1: Add the changed views to the layout checks**: the round page with a comment under a
       settled point and a form open, the restore notice, the "Leave page?" and "Discard your
       comment?" dialogs, at both sizes, light and dark.
 
-- [ ] **Step 2: Run them**
+- [x] **Step 2: Run them**
 
 - Run: `vp test --project uraeda-web-browser layout`
 - Expected: PASS
 
-- [ ] **Step 3: Take and review screenshots** of every changed view at both sizes and themes, with
+- [x] **Step 3: Take and review screenshots** of every changed view at both sizes and themes, with
       `vp run --filter uraeda-web screenshots`, against the mockups; fix what differs.
 
 - [ ] **Step 4: Run the full validation**
 
 - Run: `vp run ready`
 - Expected: PASS
+- Ran: every step passed but `vp check`'s format check, which fails on `AGENTS.md` alone, a change
+  outside this feature not committed; the steps after it, run with the format check of every other
+  file, passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-14-text-inputs/screenshots
