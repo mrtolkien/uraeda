@@ -31,7 +31,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: git's `A...B` diffs from the merge base in one call, and the core already runs git
   for `unmerged_commits`.
 - **Alternatives considered**: gix's `merge_base` and its tree diff, with no line counts built in.
-- **If wrong**: `Git::numstat` is the only caller to change.
+- **If wrong**: `numstat` in `changes.rs` is the only caller to change.
 - **Where**: Task 2.
 
 ## R4: Tests reach the implementation through a committed plan, not a new fixture branch
@@ -53,3 +53,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a field of `FeatureView`, with one request less.
 - **If wrong**: moving the field costs one view and one source.
 - **Where**: Task 4.
+
+## R6: The plan follows the code quality decision merged meanwhile
+
+- **Decision**: the branch caught up with the default branch before the first task, which brought
+  the [code quality](../decisions/code-quality.md) decision. The plan now:
+  - puts the branch's changes in a new `changes.rs`, since `api.rs` and `git.rs` are over 500 lines
+    and may only shrink;
+  - keeps the shared task parser in `plan.rs`, since `items.rs` is at 499 lines;
+  - splits the marked `Sessions`, `Session`, `Composer`, and `Transcript.tsx` first, each in a
+    commit that only restructures it.
+- **Rationale**: the decision's rules bind every feature that changes code. It does not conflict
+  with the spec, which names no file.
+- **Alternatives considered**: building on the old base and rebasing at the end, against a refactor
+  of the same files.
+- **If wrong**: the structural commits are behaviour-neutral, and can be reverted on their own.
+- **Where**: Tasks 1, 2, 5, 6, 9, and 10.
