@@ -13,11 +13,12 @@ import {
   Suspense,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
-import { useFateClient } from "react-fate";
-import type { ChatImage, SessionStatus as Status, Trigger } from "uraeda-server/fate";
+import { useFateClient, useView } from "react-fate";
+import type { ChatImage, Session, SessionStatus as Status, Trigger } from "uraeda-server/fate";
 import { type DraftImage, draftImage, forgetPreviews } from "./attach/chatImages.ts";
 import { Composer } from "./Composer.tsx";
 import { Crumbs } from "./Crumbs.tsx";
@@ -196,21 +197,8 @@ function useSessionActions(
   return { allow, chat };
 }
 
-/** A session that exists: its header, its transcript, and its composer. */
-function Session({
-  blocked,
-  crumbs,
-  draft,
-  handing = {},
-  id,
-}: {
-  /** Why nothing can be sent to it, which disables the composer. */
-  blocked?: string;
-  crumbs?: string;
-  draft: Draft;
-  handing?: Handing;
-  id: string;
-}) {
+/** A session's header, transcript, and errors, or why there is no session `id`. */
+function SessionLog({ draft, id }: { draft: Draft; id: string }) {
   const fate = useFateClient();
   const here = useRepoPath();
   const session = useSession(id);
@@ -231,64 +219,66 @@ function Session({
   }, [fate, id, unseen]);
   if (!session) {
     return (
-      <Page>
-        <Banner
-          collapsible={false}
-          description={
-            <Link hasUnderline href={here("/")}>
-              Open home
-            </Link>
-          }
-          status="error"
-          title={`No session ${id}.`}
-        />
-      </Page>
+      <Banner
+        collapsible={false}
+        description={
+          <Link hasUnderline href={here("/")}>
+            Open home
+          </Link>
+        }
+        status="error"
+        title={`No session ${id}.`}
+      />
     );
   }
   return (
-    <Page>
-      {crumbs !== undefined && <Crumbs current="Session" folder={crumbs} />}
-      <VStack gap={3}>
-        <Header
-          place={session.place}
-          status={{ label: session.statusLabel, status: session.status }}
-          title={session.title}
-          {...(chat ? { chat } : {})}
-        />
-        <div ref={log}>
-          <Transcript
-            canAllow={!working}
-            groups={groups}
-            onAllow={allow}
-            onTakenBack={takeBackInto(draft)}
-            session={session}
-          />
-        </div>
-        {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
-      </VStack>
-      <div {...stylex.props(styles.composer)}>
-        <Composer
-          {...composerDraft(draft)}
-          session={id}
-          working={working}
-          {...handing}
-          {...(blocked === undefined ? {} : { blocked })}
+    <VStack gap={3}>
+      <Header
+        place={session.place}
+        status={{ label: session.statusLabel, status: session.status }}
+        title={session.title}
+        {...(chat ? { chat } : {})}
+      />
+      <div ref={log}>
+        <Transcript
+          canAllow={!working}
+          groups={groups}
+          onAllow={allow}
+          onTakenBack={takeBackInto(draft)}
+          session={session}
         />
       </div>
-    </Page>
+      {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
+    </VStack>
   );
 }
 
 /**
- * A session before its first message: a feature's, created by it, or a new chat, which opens at
- * its own address once sent.
+ * The session `id` names, as read by its view, or `undefined` before it exists, or `null` when
+ * there is none.
  */
-function NoSession({
+function useSessionRecord(id: string | undefined) {
+  const fate = useFateClient();
+  // The reference's identity is the view's subscription: one per session.
+  const ref = useMemo(
+    () => (id === undefined ? undefined : fate.ref<Session>("Session", id, SessionView)),
+    [fate, id],
+  );
+  return useView(SessionView, ref);
+}
+
+/**
+ * A session's pane: its header, transcript, and composer, or, before its first message creates
+ * it, the title and the composer alone. A feature's or a new chat's first message creates the
+ * session under the same composer, which keeps the field typed in, its focus, and its text.
+ */
+function SessionPane({
   blocked,
   crumbs,
   draft,
   folder,
   handing = {},
+  id,
   onSent,
   title,
 }: {
@@ -298,25 +288,43 @@ function NoSession({
   draft: Draft;
   folder?: string;
   handing?: Handing;
-  onSent: (session: string) => void;
-  title: string;
+  /** The session, once it exists. */
+  id?: string;
+  /** Called with the session a message created, before it exists. */
+  onSent?: (session: string) => void;
+  /** The title before the session exists. */
+  title?: string;
 }) {
+  const session = useSessionRecord(id);
+  if (session === null) {
+    return (
+      <Page>
+        <SessionLog draft={draft} id={id!} />
+      </Page>
+    );
+  }
   return (
     <Page>
       {crumbs !== undefined && <Crumbs current="Session" folder={crumbs} />}
-      <VStack gap={3}>
-        <Header title={title} />
-        <Transcript session={{ id: "", turns: [] }} />
-      </VStack>
+      {id === undefined ? (
+        <VStack gap={3}>
+          <Header title={title ?? ""} />
+          <Transcript session={{ id: "", turns: [] }} />
+        </VStack>
+      ) : (
+        <SessionLog draft={draft} id={id} />
+      )}
       <div {...stylex.props(styles.composer)}>
         <Composer
           {...(folder === undefined ? {} : { folder })}
           {...composerDraft(draft)}
+          {...(id === undefined ? {} : { session: id })}
+          working={session?.status === "working"}
           {...handing}
           {...(blocked === undefined ? {} : { blocked })}
-          onSent={(session) => {
-            onSent(session);
-            handing.onSent?.(session);
+          onSent={(created) => {
+            onSent?.(created);
+            handing.onSent?.(created);
           }}
         />
       </div>
@@ -435,25 +443,16 @@ function FeatureSession({ folder }: { folder: string }) {
           <WorkflowMessage folder={folder} key={search} onRead={read} workflow={workflow} />
         </Suspense>
       )}
-      {id === undefined ? (
-        <NoSession
-          crumbs={crumbs}
-          draft={draft}
-          folder={folder}
-          handing={handing}
-          title={feature.title}
-          {...(blocked === undefined ? {} : { blocked })}
-          onSent={setCreated}
-        />
-      ) : (
-        <Session
-          crumbs={crumbs}
-          draft={draft}
-          handing={handing}
-          id={id}
-          {...(blocked === undefined ? {} : { blocked })}
-        />
-      )}
+      <SessionPane
+        crumbs={crumbs}
+        draft={draft}
+        folder={folder}
+        handing={handing}
+        title={feature.title}
+        {...(id === undefined ? {} : { id })}
+        {...(blocked === undefined ? {} : { blocked })}
+        onSent={setCreated}
+      />
     </>
   );
 }
@@ -471,9 +470,9 @@ export function SessionPage(props: { folder: string } | { id: string } | { newCh
     return <FeatureSession folder={props.folder} />;
   }
   if ("id" in props) {
-    return <Session draft={draft} id={props.id} />;
+    return <SessionPane draft={draft} id={props.id} />;
   }
   return (
-    <NoSession draft={draft} onSent={(id) => navigate(here(`/chats/${id}`))} title="New chat" />
+    <SessionPane draft={draft} onSent={(id) => navigate(here(`/chats/${id}`))} title="New chat" />
   );
 }

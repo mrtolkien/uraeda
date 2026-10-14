@@ -140,6 +140,21 @@ test("US1.3: without the agent's take-back, a message not read has no Take back"
   expect(log().queryByRole("button", { name: "Take back" })).toBeNull();
 });
 
+test("the composer typed in stays as the first message creates the session", async () => {
+  const fake = await fakeAgent();
+  await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: fake });
+  const box = await composer();
+  await openTurn(fake);
+  await refreshUntil(() => expect(log().getByText("Why did you recommend A in Q6?")).toBeTruthy());
+
+  // The field typed in is the one the session shows: text typed as the session lands is kept.
+  expect(await composer()).toBe(box);
+  await type(box, "Use the existing helper");
+  await click(await screen.findByRole("button", { name: "Send" }));
+  await waitFor(() => expect(fake.adapter.sent).toHaveLength(2));
+  expect(fake.adapter.sent[1].text).toBe("Use the existing helper");
+});
+
 test("US1.4: Take back removes the message and puts its text back in the composer", async () => {
   const fake = await fakeAgent();
   await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: fake });

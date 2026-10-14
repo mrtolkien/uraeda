@@ -65,3 +65,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: none; the plan did not name the change.
 - **If wrong**: one comparison in `answer.rs`.
 - **Where**: task 2.
+
+## R6: A session's composer stays as its first message creates the session
+
+- **Decision**: a feature's session page and a new chat draw one `SessionPane`, whose composer stays
+  mounted when the first message creates the session: only the header and transcript above it
+  change. The pane reads the session's status for the composer through `useView` on a reference to
+  the session, `undefined` before it exists.
+- **Rationale**: the page drew `NoSession` until the session existed, then `Session`, two trees, so
+  the composer was replaced as the session landed: a key typed at that moment was lost, and the
+  field lost the focus. React Compiler, task 3, made the tests type faster than the session lands,
+  which turned the race into a failure of about half the web test runs; it failed without the
+  compiler too.
+- **Alternatives considered**: waiting in the tests for the session before typing, which hides a bug
+  a human meets; the session's view sending its status up to the page in an effect, which draws
+  twice for each change.
+- **If wrong**: `SessionPane` splits back into its two branches.
+- **Where**: [`SessionPage.tsx`](/packages/web/src/SessionPage.tsx), before task 3's commit.
