@@ -8,7 +8,10 @@ export type Unsaved = {
   base: string;
   /** A review comment's lines, and the commit they were on. */
   extra?: { commit: string; end: number; heading: string; start: number };
-  /** A settled comment's subject, for an edit: its number changes as comments before it go. */
+  /**
+   * The comment an edit is of, as its number changes when comments before it go: a settled
+   * comment's subject, or a review comment's lines.
+   */
   subject?: string;
   /** What the field shows. */
   text: string;
@@ -139,6 +142,21 @@ export function savedUnsaved(key: string, value: string): boolean {
     writeUnsaved(key, { ...now, base: value });
   }
   return false;
+}
+
+/**
+ * Once item `number` of `count` is removed, the entries of the items after it, by their keys
+ * `keyOf(number)`, follow their new numbers, one less; its own goes with it.
+ */
+export function renumberUnsaved(keyOf: (number: number) => string, number: number, count: number) {
+  dropUnsaved(keyOf(number));
+  for (let after = number + 1; after <= count; after += 1) {
+    const entry = readUnsaved(keyOf(after));
+    if (entry) {
+      writeUnsaved(keyOf(after - 1), entry);
+      dropUnsaved(keyOf(after));
+    }
+  }
 }
 
 /** Whether any field whose key starts with `prefix` holds unsaved text: any field, by default. */

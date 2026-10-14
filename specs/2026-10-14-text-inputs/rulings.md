@@ -606,3 +606,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `writing` and `useSettledWrites` in
   [`SettledPoints.tsx`](/packages/web/src/SettledPoints.tsx).
 - **Where**: the second review.
+
+## R36: A review comment's edit is bound to where the comment points, and follows a removal
+
+- **Decision**: R33's last sentence no longer holds: the review's edits,
+  `<path>#review-edit:<number>`, are bound to their comment as the settled ones are. An edit's entry
+  keeps where its comment points, `general` or its lines, as its `subject`. As the review is drawn,
+  an edit kept for a number whose comment now points elsewhere does not open: its text stays in the
+  browser. Remove, once done, drops the removed comment's edit and moves the edits of the comments
+  after it to their new numbers, through `renumberUnsaved`, which the settled comments use too; an
+  edit open on one of them follows it, and an edit open on the removed comment closes. Entries kept
+  before, without a `subject`, open as they did.
+- **Rationale**: an edit kept for C2 while C1 was removed opened, after a reload, on the comment
+  that took number 2, under "Editing C2", and its Save wrote it over that comment: the notice "The
+  comment changed since: saving replaces it." did not say it was another comment. The lines tell the
+  comment apart, as its subject does for a settled comment, without changing the spec's keys.
+- **Alternatives considered**: the comment's text as its identity, which a change made elsewhere to
+  the same comment would also refuse, where the notice says it changed; a check in the core's
+  `review.edit`, which takes no previous text today.
+- **If wrong**: `placeOf` and `restoredComment` in
+  [`reviewField.ts`](/packages/web/src/reviewField.ts), `remove` in
+  [`useReviewActions.ts`](/packages/web/src/useReviewActions.ts), and `removed` in
+  [`useCommentDraft.ts`](/packages/web/src/useCommentDraft.ts).
+- **Where**: the second review.

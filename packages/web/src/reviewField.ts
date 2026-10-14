@@ -21,6 +21,13 @@ export function holderOf(tree: Document, line: number) {
 export const linesOf = ({ end, start }: { end: number; start: number }) =>
   start === end ? `line ${start}` : `lines ${start}–${end}`;
 
+/**
+ * Where a review comment points, kept with its edit as the comment it is of: `general`, or its
+ * lines. Its number changes as comments before it go.
+ */
+export const placeOf = (comment: CommentItem) =>
+  comment.general ? "general" : linesOf({ end: comment.endLine, start: comment.startLine });
+
 /** The comment that held unsaved text when the review was drawn, opened again to restore it. */
 export type Restored = {
   draft: CommentDraft;
@@ -34,7 +41,8 @@ export type Restored = {
 /**
  * The comment a review opens as it is drawn: the one last typed of those whose text the store
  * keeps, a new one or an edit of a pending comment. A new one on lines of the reviewed commit
- * opens on them; on lines of an older one, it becomes a general comment, `stale`.
+ * opens on them; on lines of an older one, it becomes a general comment, `stale`. An edit kept for
+ * a number now another comment's, pointing elsewhere, does not open: its text stays in the browser.
  */
 export function restoredComment(
   repo: string,
@@ -44,15 +52,21 @@ export function restoredComment(
   tree: Document,
 ): Restored | undefined {
   const kept = [
-    { draft: { kind: "lines" } as CommentDraft, key: unsavedKey(repo, reviewKey(path)) },
+    {
+      draft: { kind: "lines" } as CommentDraft,
+      key: unsavedKey(repo, reviewKey(path)),
+      place: undefined,
+    },
     ...comments.map((comment) => ({
       draft: { kind: "edit", number: comment.number } as CommentDraft,
       key: unsavedKey(repo, reviewEditKey(path, comment.number)),
+      place: placeOf(comment),
     })),
   ]
-    .flatMap(({ draft, key }) => {
+    .flatMap(({ draft, key, place }) => {
       const entry = readUnsaved(key);
-      return entry ? [{ draft, entry, key }] : [];
+      const ofIt = entry?.subject === undefined || entry.subject === place;
+      return entry && ofIt ? [{ draft, entry, key }] : [];
     })
     .sort((a, b) => b.entry.at.localeCompare(a.entry.at))[0];
   if (!kept) {

@@ -2,6 +2,9 @@ import { startTransition, useOptimistic } from "react";
 import { useFateClient } from "react-fate";
 import type { useFile } from "./data.ts";
 import { refusal } from "./errors.ts";
+import { renumberUnsaved, unsavedKey } from "./fields/unsaved.ts";
+import { reviewEditKey } from "./reviewField.ts";
+import { useRepositoryPath } from "./routes.tsx";
 import type { useRefusals } from "./ReviewVerdict.tsx";
 import { askAbout, quoted } from "./sessions.ts";
 import type { Range, useCommentDraft } from "./useCommentDraft.ts";
@@ -23,10 +26,11 @@ export type Adding = { range?: Range; text: string };
  */
 export function useReviewActions(
   file: File,
-  { close, draft, selection }: Draft,
+  { close, draft, removed, selection }: Draft,
   { run }: Refusals,
 ) {
   const fate = useFateClient();
+  const repo = useRepositoryPath();
   // Shown from "Add comment" until the comment is written, in a transition of its own.
   const [adding, setAdding] = useOptimistic<Adding | undefined>(undefined);
   const input = { file: file.name, folder: file.folder };
@@ -69,8 +73,16 @@ export function useReviewActions(
       range.start === range.end ? `line ${range.start}` : `lines ${range.start}–${range.end}`;
     askAbout(file.folder, quoted(`About ${file.path}, ${where}:`, lines));
   };
-  const remove = (number: number) =>
-    void run(() => fate.mutations.review.remove({ input: { ...input, number }, view: FileView }));
+  /** Removes comment `number`: the edits kept for the comments after it follow their numbers. */
+  const remove = async (number: number) => {
+    const count = file.review?.review?.comments.length ?? 0;
+    if (
+      await run(() => fate.mutations.review.remove({ input: { ...input, number }, view: FileView }))
+    ) {
+      renumberUnsaved((n) => unsavedKey(repo, reviewEditKey(file.path, n)), number, count);
+      removed(number);
+    }
+  };
   const startOver = async () => {
     await run(() => fate.mutations.review.startOver({ input, view: FileView }));
   };
