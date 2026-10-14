@@ -158,8 +158,9 @@ export function SessionAnnouncer({
 
   return (
     <>
-      {/* A new node for each announcement, so the same words said again are heard again. */}
-      <VisuallyHidden aria-label="Agent updates" as="div" role="status">
+      {/* A new node for each announcement, so the same words said again are heard again. Not
+          atomic, unlike `status`'s default: only the new node is read, not those kept. */}
+      <VisuallyHidden aria-atomic="false" aria-label="Agent updates" as="div" role="status">
         {said.map(({ key, text }) => (
           <p key={key}>{text}</p>
         ))}
