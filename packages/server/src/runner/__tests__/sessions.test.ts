@@ -62,6 +62,7 @@ test("US1.1: a chat message on a feature waiting on the human goes with the open
       origin: "human",
       opening: opening(HUMAN),
       state: "read",
+      at: expect.any(String),
     },
     { seq: 1, kind: "text", text: "Because A keeps one process.", streaming: false },
   ]);

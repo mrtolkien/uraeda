@@ -220,7 +220,25 @@ export type Actions = {
   groups?: OpenGroups;
 };
 
-/** A message sent to the agent: on the right, its opening line muted, greyed until read. */
+/** When a message was sent: its time today, else its date too, as `Oct 12, 14:05`. */
+export function sentAt(iso: string, now = new Date()): string {
+  const at = new Date(iso);
+  const time = at.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  if (at.toDateString() === now.toDateString()) {
+    return time;
+  }
+  const date = at.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    ...(at.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }),
+  });
+  return `${date}, ${time}`;
+}
+
+/**
+ * A message sent to the agent: on the right, its opening line muted, greyed until read, with when
+ * it was sent.
+ */
 function Message({
   item,
   canTakeBack,
@@ -249,8 +267,13 @@ function Message({
     <ChatMessage
       sender="user"
       metadata={
-        pending || error ? (
+        item.at || pending || error ? (
           <HStack gap={2} align="center" justify="end">
+            {item.at && (
+              <Text type="supporting" color="secondary">
+                <time dateTime={item.at}>{sentAt(item.at)}</time>
+              </Text>
+            )}
             {pending && (
               <Text type="supporting" color="secondary">
                 Not read yet

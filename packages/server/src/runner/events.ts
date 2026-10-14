@@ -85,6 +85,8 @@ export type Item =
       opening?: string;
       /** Pending until the agent reads it, or taken back before. */
       state: "pending" | "read" | "taken-back";
+      /** When it was sent, in ISO 8601: missing from messages cached before it was kept. */
+      at?: string;
     }
   /** An assistant text block, streaming until the block ends. */
   | { kind: "text"; text: string; streaming: boolean }

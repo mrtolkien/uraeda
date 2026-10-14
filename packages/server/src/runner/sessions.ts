@@ -237,7 +237,7 @@ export class Sessions {
 
     // During a turn, a human message joins it, when the agent can steer and the turn is not ending.
     if (live.turn && !live.turn.stop && !workflow && adapter.capabilities.steer) {
-      const item: Message = { kind: "message", id, text, origin, state: "pending" };
+      const item: Message = { kind: "message", id, text, origin, state: "pending", at: now() };
       const seq = cache.appendItem(live.turn.id, item);
       live.messages.set(id, { turn: live.turn.id, seq, item, written: true });
       changed(live, live.turn.id);
@@ -261,6 +261,7 @@ export class Sessions {
       origin,
       ...(opening === undefined ? {} : { opening }),
       state: "pending",
+      at: now(),
     };
     const message: Outgoing = {
       id,
