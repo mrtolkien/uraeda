@@ -1,5 +1,7 @@
 //! The skill's tables of steps, as a function of a feature's files.
 
+#[cfg(feature = "napi")]
+use napi_derive::napi;
 use serde::Serialize;
 
 use crate::files::plan;
@@ -88,7 +90,21 @@ pub struct Step {
     pub file: Option<String>,
     /// The first unchecked task, for implementation.
     pub task: Option<String>,
+    /// Where the implementation is in the plan's tasks, for implementation.
+    pub progress: Option<TaskProgress>,
     pub pull_request: Option<PullRequest>,
+}
+
+/// The first task with an unchecked step: its place among the plan's tasks, and its title.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskProgress {
+    /// From 1, its index among the plan's tasks, whatever its heading's number.
+    pub position: u32,
+    /// How many tasks the plan has.
+    pub total: u32,
+    pub title: String,
 }
 
 impl Step {
@@ -99,6 +115,7 @@ impl Step {
             reference: None,
             file: None,
             task: None,
+            progress: None,
             pull_request: None,
         }
     }
@@ -218,12 +235,19 @@ fn feature_step(feature: &Feature, pull_request: PullRequest) -> Step {
         Some("approved" | "auto-approved") => {}
         _ => return Step::none(),
     }
-    if let Some(task) = plan::tasks(plan_text)
-        .into_iter()
-        .find(|task| task.done < task.total)
+    let tasks = plan::tasks(plan_text, &feature.path);
+    if let Some((index, task)) = tasks
+        .iter()
+        .enumerate()
+        .find(|(_, task)| task.done < task.total)
     {
         return Step {
             task: Some(format!("Task {}: {}", task.number, task.title)),
+            progress: Some(TaskProgress {
+                position: index as u32 + 1,
+                total: tasks.len() as u32,
+                title: task.title.clone(),
+            }),
             ..Step::agent(StepName::Implementation, "implementation")
         };
     }

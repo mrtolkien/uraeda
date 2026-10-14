@@ -3,7 +3,7 @@ mod common;
 use std::collections::BTreeMap;
 
 use common::texts::*;
-use uraeda_core::steps::{PullRequest, StepName, WaitsOn};
+use uraeda_core::steps::{PullRequest, StepName, TaskProgress, WaitsOn};
 use uraeda_core::workspace::{Feature, Kind};
 
 /// A feature's files: names and texts.
@@ -220,6 +220,94 @@ fn implementation_names_the_first_unchecked_task() {
     );
 
     assert_eq!(feature.step.task.as_deref(), Some("Task 2: Repeat menu"));
+}
+
+/// A plan's text with tasks numbered as given, each with its steps done out of total.
+fn numbered_plan(tasks: &[(u32, &str, usize, usize)], after: &str) -> String {
+    let mut text =
+        "---\nstatus: auto-approved\nspec-revision: 1\n---\n\n# Plan: Feature\n".to_string();
+    for (number, title, done, total) in tasks {
+        text.push_str(&format!("\n## Task {number}: {title}\n\n"));
+        for step in 0..*total {
+            let mark = if step < *done { "x" } else { " " };
+            text.push_str(&format!("- [{mark}] **Step {}: Do**\n", step + 1));
+        }
+    }
+    text + after
+}
+
+#[test]
+fn implementation_progress() {
+    let mut eleven: Vec<(String, usize, usize)> = (1..=11)
+        .map(|n| (format!("Task title {n}"), usize::from(n <= 6) * 2, 2))
+        .collect();
+    eleven[6].0 = "Session column".to_string();
+    eleven[6].1 = 1;
+    let eleven: Vec<(&str, usize, usize)> = eleven
+        .iter()
+        .map(|(title, done, total)| (title.as_str(), *done, *total))
+        .collect();
+    let rows: Vec<(&str, String, Option<&str>, Option<TaskProgress>)> = vec![
+        (
+            "11 tasks, the first 6 done",
+            plan("auto-approved", 1, &eleven),
+            Some("Task 7: Session column"),
+            Some(TaskProgress {
+                position: 7,
+                total: 11,
+                title: "Session column".to_string(),
+            }),
+        ),
+        (
+            "tasks numbered 1, 3, 3",
+            numbered_plan(
+                &[(1, "One", 1, 1), (3, "Second", 0, 1), (3, "Third", 0, 1)],
+                "",
+            ),
+            Some("Task 3: Second"),
+            Some(TaskProgress {
+                position: 2,
+                total: 3,
+                title: "Second".to_string(),
+            }),
+        ),
+        (
+            "every box checked",
+            plan("auto-approved", 1, &[("One", 2, 2), ("Two", 1, 1)]),
+            None,
+            None,
+        ),
+        ("no task heading", plan("auto-approved", 1, &[]), None, None),
+        (
+            "plan waiting for the human",
+            plan("awaiting-human", 1, &[("One", 0, 1)]),
+            None,
+            None,
+        ),
+        (
+            "unchecked boxes after the last task's section",
+            numbered_plan(
+                &[(1, "One", 1, 1), (2, "Two", 1, 1)],
+                "\n## Notes\n\n- [ ] Not a step\n- [ ] Nor this\n",
+            ),
+            None,
+            None,
+        ),
+    ];
+    for (name, plan_text, task, progress) in rows {
+        let feature = feature(
+            Kind::Feature,
+            &[
+                ("proposal.md", proposal()),
+                ("clarifications-01.md", answered()),
+                ("spec.md", spec("approved", 1, 1)),
+                ("plan.md", plan_text),
+            ],
+        );
+
+        assert_eq!(feature.step.task.as_deref(), task, "{name}");
+        assert_eq!(feature.step.progress, progress, "{name}");
+    }
 }
 
 fn assessment(status: &str, done: usize, total: usize) -> String {

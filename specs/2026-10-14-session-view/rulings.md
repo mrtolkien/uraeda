@@ -81,3 +81,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   for no change of behaviour.
 - **If wrong**: the old order is one commit away in git.
 - **Where**: before Task 1.
+
+## R8: The binding test asserts an absent progress with `toBeUndefined`
+
+- **Decision**: `index.test.ts` checks `expect(next.step.progress).toBeUndefined()`, instead of
+  `progress: undefined` in the step's `toMatchObject`.
+- **Rationale**: napi-rs leaves a `None` field's key out of the object, and `toMatchObject` fails on
+  a missing key it expects as `undefined`. Both forms state that a feature before its implementation
+  has no progress.
+- **Alternatives considered**: sending `null` from the binding, which would change every optional
+  field's shape; the server fills `null` itself in Task 4.
+- **If wrong**: one assertion to rewrite.
+- **Where**: Task 1.
