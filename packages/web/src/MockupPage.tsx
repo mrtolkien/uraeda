@@ -3,8 +3,9 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Link } from "@astryxdesign/core/Link";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useState } from "react";
+import { type ComponentProps, useState } from "react";
 import { useFateClient } from "react-fate";
+import { useImageText } from "./attach/useImageText.ts";
 import { CommentForm, quoteOf } from "./CommentForm.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { useFile } from "./data.ts";
@@ -33,6 +34,28 @@ const styles = stylex.create({
     paddingInline: spacingVars["--spacing-4"],
   },
 });
+
+/**
+ * The comment form of a mockup, drawn while open: its text takes images pasted or picked. A drop
+ * on the mockup lands in its frame, another page, and never reaches this one.
+ */
+function MockupComment({
+  path,
+  ...props
+}: { path: string } & Omit<
+  ComponentProps<typeof CommentForm>,
+  "text" | "onTextChange" | "images"
+>) {
+  const [text, setText] = useState("");
+  const images = useImageText({
+    path,
+    text,
+    label: "the comment",
+    priority: 1,
+    onText: setText,
+  });
+  return <CommentForm {...props} text={text} onTextChange={setText} images={images} />;
+}
 
 /**
  * A mockup of a feature, inside the UI: its file in a sandboxed frame, a link to open it in a tab of
@@ -85,7 +108,8 @@ export function MockupPage({ folder, name }: { folder: string; name: string }) {
       <iframe sandbox="allow-scripts" src={source} title={name} {...stylex.props(styles.frame)} />
       {reviewing && (
         <Overlay isOpen={open} label="Comment" onClose={() => setOpen(false)}>
-          <CommentForm
+          <MockupComment
+            path={spec.path}
             anchor={
               line
                 ? anchor({ end: line.endLine, heading: line.heading ?? "", start: line.startLine })

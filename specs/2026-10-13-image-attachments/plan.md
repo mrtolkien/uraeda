@@ -1057,32 +1057,38 @@ git commit -m "feat(image-attachments): images in chats"
 
 - Consumes: task 8's hooks and button: `useImageText` for each field, with `AttachStatus` under it
   and `DropHint` around it, and `AttachButton`.
+- Produces: `useImageText` returns `settled()`, resolving once no image waits or uploads;
+  `CommentForm` takes `images`, a `useImageText`'s result, and `notice`; `Question` takes the
+  round's `path`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `US3.1: a drop on the review page opens a general comment holding its link`.
 - `US3.2: a pasted image goes to the open line comment at its cursor`.
 - `US4.1: a pasted image goes into the focused answer's comment`.
 - `US4.2: a drop with no field focused goes to the end of the notes`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__browser__/attach.test.tsx`
 - Expected: FAIL, `Unable to find role="form" and name "Comment"`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `CommentForm` takes paste, drop, and an "Add image" button before its submit button. The review page
 registers a target that opens a general comment when none is open; the round page registers the
 notes as its main field, and each answer's comment while focused. The mockup page's comment form
-takes paste and the button; drops on its iframe never reach the window, which is accepted.
+takes paste and the button; drops on its iframe never reach the window, which is accepted. Review
+focus 11 (R64): a verdict is refused while the open comment holds images, or one uploads; an image
+added to an answer saves it at once, and Submit waits for the images under way, through
+`useImageText`'s `settled`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web

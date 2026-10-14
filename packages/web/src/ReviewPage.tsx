@@ -28,6 +28,7 @@ import { plain } from "./Spans.tsx";
 import { type Range, useCommentDraft } from "./useCommentDraft.ts";
 import { useSpecFolds } from "./useOpenKeys.ts";
 import { useReviewActions } from "./useReviewActions.ts";
+import { useReviewImages } from "./useReviewImages.ts";
 import { StaleBanner, YourReview } from "./YourReview.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
@@ -87,10 +88,12 @@ function shownFolds(tree: Document, placed: ReadonlyMap<number, unknown>, select
 function ReviewForm({
   actions: { ask, send },
   draft: { close, draft, selection, setText, text },
+  images,
   tree,
 }: {
   actions: ReturnType<typeof useReviewActions>;
   draft: Draft;
+  images: ReturnType<typeof useReviewImages>;
   tree: Document;
 }) {
   const agent = useAgent();
@@ -117,7 +120,9 @@ function ReviewForm({
             ? `Editing C${draft.number}`
             : "General"
       }
+      images={images.images}
       key={draft.kind === "edit" ? `edit-${draft.number}` : draft.kind}
+      notice={images.notice}
       onCancel={close}
       onSubmit={send}
       onTextChange={setText}
@@ -140,14 +145,25 @@ export function ReviewPage({ file }: { file: File }) {
   const tree = version.document;
   const review = file.review?.review;
   const comments = useMemo(() => (review?.verdict === "pending" ? review.comments : []), [review]);
-  const commentDraft = useCommentDraft(wide);
-  const { close, draft, last, selection, sheet, start, tap } = commentDraft;
+  const typed = useCommentDraft(wide);
   const refusals = useRefusals();
+  const images = useReviewImages(file, typed, refusals, wide);
+  // A comment closed takes its images' refusals with it.
+  const commentDraft = {
+    ...typed,
+    close: () => {
+      images.onClose();
+      typed.close();
+    },
+  };
+  const { close, draft, last, selection, sheet, start, tap } = commentDraft;
   const actions = useReviewActions(file, commentDraft, refusals);
   const placed = usePlacedComments(comments, tree);
   const folds = useSpecFolds(version.items.spec, shownFolds(tree, placed, selection));
 
-  const form = <ReviewForm actions={actions} draft={commentDraft} tree={tree} />;
+  const form = (
+    <ReviewForm actions={actions} draft={commentDraft} images={images} tree={tree} />
+  );
   /** The comment field, in the page on wide screens: on the phone, it is in the sheet. */
   const inPage = (shown: boolean) =>
     wide && shown && <div {...stylex.props(styles.inline)}>{form}</div>;
@@ -159,7 +175,10 @@ export function ReviewPage({ file }: { file: File }) {
       <PendingComment
         comment={comment}
         key={comment.number}
-        onEdit={() => start({ kind: "edit", number: comment.number, text: comment.text })}
+        onEdit={() => {
+          images.onEdit();
+          start({ kind: "edit", number: comment.number, text: comment.text });
+        }}
         onRemove={() => actions.remove(comment.number)}
       />
     );
@@ -200,7 +219,7 @@ export function ReviewPage({ file }: { file: File }) {
           general={inPage(draft?.kind === "general")}
           onGeneral={() => start({ kind: "general" })}
           pendingNote={pendingNote}
-          refusals={refusals}
+          refusals={{ ...refusals, hides: images.hides, hold: images.hold }}
           wide={wide}
         />
       </VStack>

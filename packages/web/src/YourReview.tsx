@@ -10,7 +10,7 @@ import type { useFile } from "./data.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { where } from "./ReviewComments.tsx";
 import { Band } from "./ReviewHeadings.tsx";
-import { ReviewVerdict, type useRefusals } from "./ReviewVerdict.tsx";
+import { type Refusals, ReviewVerdict } from "./ReviewVerdict.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -53,7 +53,7 @@ export function YourReview({
   general: ReactNode;
   onGeneral: () => void;
   pendingNote: (comment: CommentItem) => ReactNode;
-  refusals: ReturnType<typeof useRefusals>;
+  refusals: Refusals;
   wide: boolean;
 }) {
   return (
