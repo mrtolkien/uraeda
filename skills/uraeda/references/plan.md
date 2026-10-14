@@ -287,7 +287,7 @@ simpler private design from what the code shows:
 - **A code step**: the responsibility, the files it belongs in, the specific values the spec pins,
   and exact signatures where callers or other tasks rely on them. Do not prescribe private helpers
   or function bodies unless a particular algorithm is needed for correctness, like date arithmetic.
-- **A commit step**: the files to add, and the message, following [Commits](../SKILL.md#commits).
+- **A commit step**: the files to add, and the message, following [Commits](conventions.md#commits).
 - **A reference to another task**: that task's Interfaces block says what to use. The plan does not
   repeat that task's code.
 

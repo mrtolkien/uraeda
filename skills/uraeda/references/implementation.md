@@ -226,6 +226,6 @@ stays `approved`: the human asked for the change.
 
 ## Commit
 
-One commit per task, with the plan's message, following [Commits](../SKILL.md#commits): its code,
+One commit per task, with the plan's message, following [Commits](conventions.md#commits): its code,
 its tests, and its checked boxes in `plan.md`. Fixes from reviews are separate commits with the same
 scope.

@@ -38,3 +38,15 @@ fn every_command_is_named_in_the_skill() {
         );
     }
 }
+
+// US7.1, SC-004.
+#[test]
+fn the_skill_entry_point_stays_lean() {
+    let skill = repository().join("skills/uraeda/SKILL.md");
+    let length = fs::read_to_string(&skill).unwrap().chars().count();
+    assert!(
+        length <= 20_000,
+        "SKILL.md has {length} characters, over 20,000: move what most steps do not need to a \
+         reference, and link it"
+    );
+}
