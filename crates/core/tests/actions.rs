@@ -264,9 +264,9 @@ fn pending_comments_are_edited_and_removed() {
     assert!(!place.root.join(REVIEW).exists());
 }
 
-/// US3.4
+/// US6.1
 #[test]
-fn approving_with_a_higher_tier_turns_the_plan_review_on() {
+fn approving_with_a_higher_tier_leaves_the_plan_review_off() {
     let repo = spec_repo();
     let (feature, place) = reach(&repo);
     let tier = Tier {
@@ -279,7 +279,7 @@ fn approving_with_a_higher_tier_turns_the_plan_review_on() {
     let text = read(&place, SPEC);
     assert!(text.contains("status: approved\n"));
     assert!(text.contains("risk-tier: high\n"));
-    assert!(text.contains("plan-review: true\n"));
+    assert!(text.contains("plan-review: false\n"));
     assert_eq!(repo.subjects(FOLDER)[0], "spec(web-ui): approve");
     assert_eq!(repo.current_branch(), "main");
 }

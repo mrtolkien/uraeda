@@ -161,7 +161,7 @@ Workflow files track their state in frontmatter fields.
 | `spec.md`              | `revision`       | `1`, then `+1` at every change        | `+1` when editing it              |
 | `spec.md`              | `clarifications` | the last round it includes: `2`       |                                   |
 | `spec.md`              | `risk-tier`      | `low`, `medium`, or `high`            | may change it on approval         |
-| `spec.md`              | `plan-review`    | `true` for `high`, else `false`       | may change it on approval         |
+| `spec.md`              | `plan-review`    | `false`                               | may change it on approval         |
 | `plan.md`              | `status`         | `awaiting-human` or `auto-approved`   | `approved` or `changes-requested` |
 | `plan.md`              | `spec-revision`  | the spec `revision` it implements     |                                   |
 | `decisions/*.md`       | `status`         | `proposed`, then `active` on approval | `active`                          |
@@ -173,9 +173,9 @@ The bug flow is an agent-authored draft that needs human review: see [Bug](refer
 Only set a human status when the human expressly asks you to in the session, for example "the spec
 is approved". Commit with the message `ura` would write, `spec(recurring-tasks): approve`, and say
 so in its body: "Approved by the human in chat." When the human changes a spec's `risk-tier` on
-approval without naming `plan-review`, set `plan-review` to the new tier's default. With `ura`, pass
-`--no-commit` to `ura answer` or `ura review`, and commit with that message and body. With
-`changes-requested`, the human's feedback is in the file's [review file](#review-files).
+approval without naming `plan-review`, set `plan-review` to `false`. With `ura`, pass `--no-commit`
+to `ura answer` or `ura review`, and commit with that message and body. With `changes-requested`,
+the human's feedback is in the file's [review file](#review-files).
 
 ### Review files
 

@@ -293,9 +293,11 @@ in the spec. They add to it:
   `skills/uraeda/references/spec.md` (frontmatter line 141, tier table lines 294 to 305),
   `references/plan.md` (line 388), `references/approval.md` (lines 39 to 41), templates
   `specs/YYYY-MM-DD-feature-slug/spec.md` (line 6) and `specs/README.md` (line 52)
+- Modify: `README.md` ("Review scales with risk")
 - Test: `crates/core/tests/proposal.rs`, `crates/core/tests/actions.rs`,
-  `crates/cli/tests/review.rs`, `crates/lsp/tests/reads.rs`,
-  `packages/web/src/__tests__/review.test.tsx`, `editors/nvim/tests/test_verdict.lua`
+  `crates/cli/tests/review.rs`, `packages/web/src/__tests__/review.test.tsx`,
+  `editors/nvim/tests/test_verdict.lua`; `crates/lsp/tests/reads.rs` unchanged
+  ([R4](rulings.md#r4-the-lsp-verdict-test-keeps-its-tiers))
 
 **Interfaces:**
 
@@ -304,7 +306,7 @@ in the spec. They add to it:
   - `tier_choices` gives `plan_review: false` for every tier the spec does not propose.
   - The signatures are unchanged.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/proposal.rs: US6. The plan never waits by default; the spec's own value holds
@@ -328,21 +330,26 @@ Change every other expectation of `true` for `high` to `false`:
   - lines 155 to 170, renamed `approve_with_a_high_risk_tier_leaves_the_plan_review_off`, expects
     `plan-review: false`;
   - the rows of lines 213 to 252;
-- `lsp/tests/reads.rs` lines 120 to 150: tiers `[low:false, medium:false, high:false]`, with a
-  proposed `high` and `plan-review: true` still read as `planReview: true`;
+- `lsp/tests/reads.rs` lines 120 to 150: unchanged. Its spec proposes `high` with
+  `plan-review: true`, so its tiers stay `[low:false, medium:false, high:true]`: the spec's own
+  value holds at the tier it proposes (US6.3,
+  [R4](rulings.md#r4-the-lsp-verdict-test-keeps-its-tiers));
 - the web test at line 147, renamed "approving with a higher tier leaves the plan's review off"
   (US6.1): it starts from medium and `false`, picks `high`, approves, and expects
   `plan-review: false` in the committed spec;
-- `test_verdict.lua` lines 170 to 204: Tab to `high` shows `Plan review < false >`.
+- `test_verdict.lua` lines 170 to 204: the spec proposes `medium` with `plan-review: false` (US6.1).
+  Tab to `high` shows `Plan review < false >`, and the approved spec has `risk-tier: high` and
+  `plan-review: false`.
 
 The break these catch: putting back `chosen == Some("high")` as the default makes each of them fail.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test proposal`
-- Expected: FAIL, `(Some("high"), None, Some("high"))`: `left: true, right: false`.
+- Expected: FAIL, `Some("medium") Some(false) Some("high")`, the table's first row that changes:
+  `left: true, right: false`.
 
-- [ ] **Step 3: Implement the default, and its text everywhere it is written**
+- [x] **Step 3: Implement the default, and its text everywhere it is written**
 
 - Remove `REVIEWED_TIER`. The default is `false` whatever the tier.
 - Every skill and help text that says "true for high" says the plan waits only when the human turns
@@ -351,15 +358,15 @@ The break these catch: putting back `chosen == Some("high")` as the default make
 - The tier table of `references/spec.md` keeps its tiers and typical features, and drops the plan
   review column.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo test && vp test packages/web/src/__tests__/review.test.tsx && vp run test:nvim`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add crates skills packages/web/src/__tests__/review.test.tsx editors/nvim/tests
+git add crates skills README.md packages/web/src/__tests__/review.test.tsx editors/nvim/tests
 git commit -m "feat(code-quality-in-the-skill): plan review is off by default for every tier"
 ```
 

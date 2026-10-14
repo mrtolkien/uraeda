@@ -152,8 +152,9 @@ fn approve_deletes_an_old_review() {
     );
 }
 
+/// US6.2
 #[test]
-fn approve_with_a_high_risk_tier_reviews_the_plan() {
+fn approve_with_a_high_risk_tier_leaves_the_plan_review_off() {
     let repo = waiting();
 
     ura(
@@ -163,12 +164,13 @@ fn approve_with_a_high_risk_tier_reviews_the_plan() {
 
     assert!(
         repo.read(SPEC)
-            .contains("risk-tier: high\nplan-review: true\n"),
+            .contains("risk-tier: high\nplan-review: false\n"),
         "{}",
         repo.read(SPEC)
     );
 }
 
+/// US6.3
 #[test]
 fn approve_keeps_the_proposed_plan_review() {
     let repo = waiting();
@@ -241,12 +243,12 @@ fn approve_sets_the_plan_review_for_any_tier() {
         (
             spec_with("high", "\"yes\""),
             &[],
-            "risk-tier: high\nplan-review: true\n",
+            "risk-tier: high\nplan-review: false\n",
         ),
         (
             long_spec().replace("risk-tier: low", "risk-tier: high"),
             &[],
-            "risk-tier: high\nplan-review: true\n",
+            "risk-tier: high\nplan-review: false\n",
         ),
     ] {
         let spec = approved(&text, flags);
