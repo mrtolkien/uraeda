@@ -63,3 +63,15 @@ test("the data folder comes from .env, then the environment, then the system's d
   expect(loadDataDir(root(), {})).toBe(dataDir());
   expect(loadDataDir(root("URAEDA_DATA_DIR=\n"), {})).toBe(dataDir());
 });
+
+test("a relative data folder is resolved from the root, as Claude Code runs in another folder", () => {
+  const dir = root("URAEDA_DATA_DIR=.uraeda\n");
+
+  expect(loadDataDir(dir, {}, "linux", "/home/me")).toBe(join(dir, ".uraeda"));
+  expect(loadDataDir(dir, { URAEDA_DATA_DIR: "data/uraeda" }, "linux", "/home/me")).toBe(
+    join(dir, "data/uraeda"),
+  );
+  expect(loadDataDir(root(), { XDG_DATA_HOME: "xdg" }, "linux", "/home/me")).toMatch(
+    /^\/.*\/xdg\/uraeda$/,
+  );
+});

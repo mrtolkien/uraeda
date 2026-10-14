@@ -496,18 +496,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `ChatImages`, and refuses one with no file with "This image is gone: add it again."; it passes
   `SentImage`s, `ChatImage & { path }`, to `Sessions.send`, which checks the count and the
   capability, keeps the IDs and sizes on the item, and gives the paths to the adapter. A message of
-  images alone is sent with an empty text.
+  images alone is sent with an empty text. A size is refused unless it is one the core could have
+  given: positive integers, at most 2576 pixels on each edge for a WebP, and for a GIF, which the
+  core keeps as it came when animated, at most 65535 on each edge and 40 million pixels in all.
 - **Rationale**: the item holds each image's size, which the server cannot learn from an ID: the
   data folder keeps no sizes, and only the core reads an image's header, so a TypeScript header
   reader would reimplement it. The sizes come from the core through the upload; a wrong size only
-  misdraws the sender's own transcript. The session manager has no data folder: the request's
-  context does.
+  misdraws the sender's own transcript, but an unbounded one could make the transcript lay out a
+  huge box, and the bounds are the core's own. A flat 2576 cap would refuse a wide animated GIF the
+  core accepted. The session manager has no data folder: the request's context does.
 - **Alternatives considered**: IDs alone, with the sizes read back from the WebP header in
   TypeScript (the core's parsing, reimplemented), re-encoded through `encodeImage` at each send (up
   to a second per image), or kept in a side file or table per image (one more thing to clean).
-- **If wrong**: `sentImages` in `packages/server/src/fate/mutations.ts`, `SendInput` and `SentImage`
-  in `packages/server/src/runner/sessions.ts`, and task 10's `sendMessage`.
-- **Where**: task 7.
+- **If wrong**: `sentImages` in `packages/server/src/fate/mutations.ts`, `chatImageSize` in
+  `packages/server/src/runner/images.ts`, `SendInput` and `SentImage` in
+  `packages/server/src/runner/sessions.ts`, and task 10's `sendMessage`. The bounds copy the core's
+  `MAX_EDGE` and `MAX_PIXELS`: a change there changes them here.
+- **Where**: task 7, review.
 
 ## R36: A write without an `Origin` is refused when the browser says another site sent it
 
@@ -553,3 +558,70 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `ChatImages.save` in `packages/server/src/runner/images.ts`, and `imageHeaders` and
   the `/chat-images` route in `packages/server/src/files.ts`.
 - **Where**: task 6, review.
+
+## R39: The data folder is absolute
+
+- **Decision**: `loadDataDir` resolves `URAEDA_DATA_DIR`, and the operating system's default, from
+  the root the server starts in, the folder of its `.env`. `ChatImages` makes its folder absolute
+  too, for any other caller.
+- **Rationale**: Claude Code runs in the repository or the feature's worktree, not in the server's
+  folder: a relative `--add-dir .uraeda/images` would name another folder there, which Claude Code
+  refuses, failing every session, and the `[Image: …]` lines would point at nothing. A `.env` path
+  is read relative to its file, as `URAEDA_REPO` already is.
+- **Alternatives considered**: refusing a relative `URAEDA_DATA_DIR` at startup (a working `.uraeda`
+  setting would stop the server); resolving from the repository opened (the data folder every
+  repository's server shares would move with each).
+- **If wrong**: `loadDataDir` in `packages/server/src/env.ts`, and the constructor of `ChatImages`.
+- **Where**: task 7, review.
+
+## R40: A failed cleanup never stops the server
+
+- **Decision**: the startup cleanup of chat images skips each file it cannot read or delete, and
+  `startSessions` logs a cleanup that fails as a whole, then starts.
+- **Rationale**: the cleanup only frees disk space. A file another user owns, or a folder named like
+  an image, must not keep every repository's server from starting; it is tried again at the next
+  start.
+- **Alternatives considered**: refusing to start with the system's error (the human must clean the
+  data folder by hand before any chat works); deleting a folder named like an image recursively (it
+  was not written by the server).
+- **If wrong**: `ChatImages.clean` in `packages/server/src/runner/images.ts`, and `startSessions` in
+  `packages/server/src/live.ts`.
+- **Where**: task 7, review.
+
+## R41: The image read check runs in the `default` permission mode, with a control
+
+- **Decision**: check 7 of `validate-claude.ts` keeps its data folder under `uraeda data`, a name
+  with a space, and runs through a wrapper that swaps the runner's `--permission-mode auto` for
+  `default`. It passes only when the image in the added folder is read, and the same image copied to
+  a folder outside every working folder is refused. Check 8 compares paths through `realpathSync`.
+- **Rationale**: the check must fail without `--add-dir`. Check 6's wrapper passes a rule through
+  `--settings`, but no rule can block reads outside the project and not in the images folder: the
+  images folder is outside the project too, and a deny or ask rule wins over `--add-dir`. The
+  `default` mode is what blocks such reads for users who have not allowed them, and print mode,
+  which cannot ask, refuses them. The control shows the mode blocks reads on this version, so a pass
+  is due to the added folder. A space in the path is what macOS's `Application Support` holds.
+- **Alternatives considered**: an ask or deny rule on the temporary folder (it blocks the images
+  folder too); no control run (a Claude Code that allows every read would pass without `--add-dir`).
+- **If wrong**: check 7 in `packages/server/scripts/validate-claude.ts`. The check was not run with
+  this change: it runs the real agent, by hand.
+- **Where**: task 7, review.
+
+## R42: A message's images are checked before any session work
+
+- **Decision**: `session.send` refuses, before it creates a feature's session or reads the
+  repository: an `images` element that is not an object; a size the core could not have given (R35);
+  more than 10 images; images to an agent that does not declare them; and images with the workflow's
+  message, "The workflow's message takes no images.". An image given twice in one message is kept
+  once, at its first place. `Sessions.send` checks the count, the capability, and the workflow
+  again, for its other callers.
+- **Rationale**: a refused message must leave nothing behind, such as a feature's empty session in
+  the sidebar. The workflow's message is the workflow's own text, which the agent follows as the
+  skill says; a picture for it belongs in a workflow file, attached there, or in a chat. A duplicate
+  is the same file sent twice: the agent would read it twice for nothing.
+- **Alternatives considered**: refusing duplicates (the composer would need to explain a refusal of
+  a harmless paste); sending the workflow's images as a chat message after it (two turns for one
+  send).
+- **If wrong**: `sentImages` in `packages/server/src/fate/mutations.ts`, and `Sessions.checkImages`
+  in `packages/server/src/runner/sessions.ts`. Task 10's composer keeps images out of the workflow's
+  message, or shows this refusal.
+- **Where**: task 7, review.

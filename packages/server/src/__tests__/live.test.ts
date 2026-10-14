@@ -19,7 +19,7 @@ import {
 } from "../live.ts";
 import { SessionCache } from "../runner/cache.ts";
 import { FakeAdapter } from "../runner/fake.ts";
-import { UNSENT_KEPT_MS } from "../runner/images.ts";
+import { ChatImages, UNSENT_KEPT_MS } from "../runner/images.ts";
 import {
   byId,
   fixtureRepo,
@@ -546,4 +546,21 @@ test("review focus 10: the server's start cleans chat images no session uses, ol
   await stop();
 
   expect(readdirSync(images.dir).sort()).toEqual([held.id, recent.id].sort());
+});
+
+test("review focus 10: a cleanup that fails is logged, and the server starts all the same", async () => {
+  const dataDir = testDataDir();
+  const clean = vi.spyOn(ChatImages.prototype, "clean").mockRejectedValueOnce(new Error("EACCES"));
+  const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+
+  try {
+    const { stop } = await startSessions({ adapter: new FakeAdapter(), binding, dataDir });
+    await stop();
+
+    expect(clean).toHaveBeenCalledOnce();
+    expect(logged).toHaveBeenCalledWith(expect.stringContaining("EACCES"));
+  } finally {
+    clean.mockRestore();
+    logged.mockRestore();
+  }
 });

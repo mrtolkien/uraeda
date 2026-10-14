@@ -29,8 +29,12 @@ export async function startSessions(options: {
   const cache = SessionCache.open(join(options.dataDir, "runner.sqlite"));
   cache.interrupted("Stopped: the server stopped while it ran.");
   // Every repository shares the data folder: an image a composer holds, not sent yet, is kept for
-  // a day (R5).
-  await chatImages(options.dataDir).clean(cache.imagesInUse(), Date.now());
+  // a day (R5). A cleanup that fails never stops the server (R40).
+  try {
+    await chatImages(options.dataDir).clean(cache.imagesInUse(), Date.now());
+  } catch (error) {
+    process.stderr.write(`uraeda: the chat images were not cleaned: ${(error as Error).message}\n`);
+  }
   const sessions = createSessions({ ...options, cache });
   await sessions.check();
   const timer = setInterval(() => void sessions.check(), CHECK_EVERY_MS);

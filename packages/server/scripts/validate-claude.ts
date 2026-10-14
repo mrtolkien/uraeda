@@ -3,8 +3,9 @@
  * Checks the Claude Code integration against this machine's `claude`, signed in: its version, a
  * first run with the Uraeda skill loaded as a plugin, its session's transcript, a resumed run, an
  * interrupted run followed by a resumed one, and the allow rule of a blocked write outside the
- * project, a chat image the agent reads by its path, and an image a proposal links, which the agent
- * opens as the skill says. Then the messages a session writes to one process with its stdin kept open, with
+ * project, a chat image the agent reads by its path, in a data folder whose path holds a space,
+ * only because the images folder is added, and an image a proposal links, which the agent opens as
+ * the skill says. Then the messages a session writes to one process with its stdin kept open, with
  * `--model haiku` in an empty temporary folder: two turns, partial text, a steered and a queued
  * message, their lifecycle events, taking a queued message back, an interrupt, a sub-agent, and a
  * resume after stdin closes.
@@ -21,6 +22,7 @@ import { type ChildProcessByStdio, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import {
   chmodSync,
+  copyFileSync,
   existsSync,
   mkdtempSync,
   readdirSync,
@@ -46,12 +48,17 @@ const RUN_TIMEOUT_MS = 180_000;
 const INTERRUPT_MS = 10_000;
 
 const configDir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude");
-/** A data folder for the chat images, as the server's, in a temporary folder. */
-const dataDir = realpathSync(mkdtempSync(join(tmpdir(), "uraeda-data-")));
+/** A temporary folder around the data folder. */
+const dataRoot = realpathSync(mkdtempSync(join(tmpdir(), "uraeda-data-")));
+/**
+ * A data folder for the chat images, as the server's, whose path holds a space, as macOS's
+ * `Application Support` does: the images' paths and `--add-dir` must keep it.
+ */
+const dataDir = join(dataRoot, "uraeda data");
 const images = new ChatImages(join(dataDir, "images"));
 const adapter = new ClaudeAdapter({ configDir, pluginDir: PLUGIN_DIR, imagesDir: images.dir });
 const cwd = fixtureRepo();
-/** A folder outside the project, for the sixth check. */
+/** A folder outside the project, for the sixth and seventh checks, and their wrappers. */
 const outside = mkdtempSync(join(tmpdir(), "uraeda-outside-"));
 /** An empty folder for the stdin checks. */
 const stdinDir = mkdtempSync(join(tmpdir(), "uraeda-stdin-"));
@@ -108,12 +115,76 @@ async function run(
 const find = <T extends AgentEvent["type"]>(events: Array<AgentEvent>, type: T) =>
   events.find((event): event is Extract<AgentEvent, { type: T }> => event.type === type);
 
-/** Whether a run read the file at `path` with its Read tool. */
+/**
+ * Whether two paths name the same file, through symbolic links: the agent may give the path it was
+ * sent, or one through another link, as macOS's `/tmp` and `/private/tmp`.
+ */
+function samePath(a: unknown, b: string): boolean {
+  if (typeof a !== "string") {
+    return false;
+  }
+  const real = (path: string) => {
+    try {
+      return realpathSync(path);
+    } catch {
+      return path;
+    }
+  };
+  return a === b || real(a) === real(b);
+}
+
+/** Whether a run read the file at `path` with its Read tool, and the read did not fail. */
 const readFile = (events: Array<AgentEvent>, path: string) =>
   events.some(
     (event) =>
-      event.type === "toolStart" && event.name === "Read" && event.input.file_path === path,
+      event.type === "toolStart" &&
+      event.name === "Read" &&
+      samePath(event.input.file_path, path) &&
+      events.some((end) => end.type === "toolEnd" && end.id === event.id && !end.isError),
   );
+
+/** Whether a run's reads of the file at `path` were refused. */
+const readDenied = (events: Array<AgentEvent>, path: string) =>
+  (find(events, "result")?.denials ?? []).some(
+    (denial) => denial.tool === "Read" && samePath(denial.input.file_path, path),
+  );
+
+/**
+ * Claude Code through a wrapper script in `outside`: with `--settings <file>` when `settings` is
+ * given, and with the `default` permission mode in place of the runner's `auto` when `strict` is,
+ * so that a read outside the working folders is refused in print mode, which cannot ask.
+ */
+function wrappedAdapter(
+  name: string,
+  { settings, strict = false }: { settings?: string; strict?: boolean },
+) {
+  const wrapper = join(outside, name);
+  const prefix = settings === undefined ? "" : ` --settings '${settings}'`;
+  writeFileSync(
+    wrapper,
+    strict
+      ? [
+          "#!/bin/sh",
+          "prev=",
+          'for arg in "$@"; do',
+          "  shift",
+          '  if [ "$prev" = --permission-mode ]; then next=default; else next=$arg; fi',
+          "  prev=$arg",
+          '  set -- "$@" "$next"',
+          "done",
+          `exec claude${prefix} "$@"`,
+          "",
+        ].join("\n")
+      : `#!/bin/sh\nexec claude${prefix} "$@"\n`,
+  );
+  chmodSync(wrapper, 0o755);
+  return new ClaudeAdapter({
+    configDir,
+    command: wrapper,
+    pluginDir: PLUGIN_DIR,
+    imagesDir: images.dir,
+  });
+}
 
 /** The tools a run called, and their inputs, when a check fails. */
 const tools = (events: Array<AgentEvent>) =>
@@ -578,20 +649,12 @@ try {
     const rule = allowRule({ input: { file_path: target }, tool: "Write" });
     const settings = join(outside, "settings.json");
     writeFileSync(settings, JSON.stringify({ permissions: { ask: [rule] } }));
-    const wrapper = join(outside, "claude-with-settings");
-    writeFileSync(wrapper, `#!/bin/sh\nexec claude --settings '${settings}' "$@"\n`);
-    chmodSync(wrapper, 0o755);
     const blocked = await run(
       `Use the Write tool to create the file ${target} containing the word hi. Do nothing else, and do not use Bash.`,
       randomUUID(),
       false,
       undefined,
-      new ClaudeAdapter({
-        configDir,
-        command: wrapper,
-        pluginDir: PLUGIN_DIR,
-        imagesDir: images.dir,
-      }),
+      wrappedAdapter("claude-with-settings", { settings }),
     );
     const denials = find(blocked, "result")?.denials ?? [];
     report(
@@ -602,22 +665,30 @@ try {
     );
 
     // 7. A chat image, saved in the data folder as the server saves it, is read by its path, with
-    // no permission prompt (US6.2).
+    // no permission prompt (US6.2), only because its folder is added: in the `default` permission
+    // mode, the same image copied outside the working folders is refused. No rule can block reads
+    // outside the project but not in the images folder, which is outside it too (R41).
     const screenshot = readFileSync(fixture("images/desktop.png"));
     const chatImage = await images.save(await binding.encodeImage(screenshot, "desktop.png"));
     const chatPath = join(images.dir, chatImage.id);
-    const chat = await run(
-      "What does this screenshot show? Answer in one sentence.",
-      randomUUID(),
-      false,
-      undefined,
-      adapter,
-      [chatPath],
-    );
+    const elsewhere = join(outside, chatImage.id);
+    copyFileSync(chatPath, elsewhere);
+    const strict = wrappedAdapter("claude-default-mode", { strict: true });
+    const describe = "What does this screenshot show? Answer in one sentence.";
+    const chat = await run(describe, randomUUID(), false, undefined, strict, [chatPath]);
+    const control = await run(describe, randomUUID(), false, undefined, strict, [elsewhere]);
     report(
-      "a chat image is read by its path",
-      readFile(chat, chatPath) && find(chat, "result")?.ok === true,
-      { tools: tools(chat), result: find(chat, "result") },
+      "a chat image is read by its path, in a folder with a space, because its folder is added",
+      readFile(chat, chatPath) &&
+        !readDenied(chat, chatPath) &&
+        find(chat, "result")?.ok === true &&
+        readDenied(control, elsewhere) &&
+        !readFile(control, elsewhere),
+      {
+        tools: tools(chat),
+        result: find(chat, "result"),
+        control: { tools: tools(control), result: find(control, "result") },
+      },
     );
 
     // 8. An image a proposal links is opened by an agent asked about the proposal, as the skill
@@ -646,7 +717,7 @@ try {
   rmSync(cwd, { force: true, recursive: true });
   rmSync(outside, { force: true, recursive: true });
   rmSync(stdinDir, { force: true, recursive: true });
-  rmSync(dataDir, { force: true, recursive: true });
+  rmSync(dataRoot, { force: true, recursive: true });
 }
 
 process.exit(failed ? 1 : 0);

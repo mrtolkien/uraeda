@@ -381,7 +381,7 @@ const repositoryMutations = {
       if (workflow && !TRIGGERS.includes(workflow.trigger)) {
         throw callSiteError(`refused: no trigger ${workflow.trigger}`);
       }
-      const images = sentImages(ctx, input.images);
+      const images = await sentImages(ctx, input.images, workflow !== undefined);
       const id = await onSession(ctx, async () => {
         if (input.session !== undefined) {
           return input.session;

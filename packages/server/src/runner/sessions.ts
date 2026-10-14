@@ -6,7 +6,7 @@ import type { Trigger, TurnActivity, TurnKind } from "./events.ts";
 import { LiveSessions } from "./live-sessions.ts";
 import { chatOpening, chatTitle, retryMessage } from "./message.ts";
 import { Processes } from "./processes.ts";
-import { checkSend, type SendInput } from "./send-input.ts";
+import { checkImages, checkSend, type SendInput } from "./send-input.ts";
 import {
   type Live,
   type Message,
@@ -190,13 +190,22 @@ export class Sessions {
    * Sends a message to the session, and returns its turn. Idle, it starts a turn, opening the
    * process when it is closed. During a turn, the human's message is steered into it, and the
    * workflow's is queued after it. A workflow message is refused unless the feature waits on the
-   * agent. A message may be images alone, at most 10, to an agent that declares images.
+   * agent. A message may be images alone, at most 10, to an agent that declares images; the
+   * workflow's message takes none.
    */
   async send(repo: string, session: string, input: SendInput): Promise<{ turn: number }> {
     const message = checkSend(input, this.adapter.capabilities);
     this.#available();
     const live = this.#context.live.of(await this.#own(repo, session));
     return this.#context.live.serial(live, () => this.#send(live, message));
+  }
+
+  /**
+   * Refuses a message's images before any session work: more than 10, to an agent that does not
+   * declare images, or with the workflow's message.
+   */
+  checkImages(images: Array<unknown>, workflow: boolean): void {
+    checkImages(images, workflow, this.adapter.capabilities);
   }
 
   async #send(
