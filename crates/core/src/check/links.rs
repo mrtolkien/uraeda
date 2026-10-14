@@ -1,4 +1,4 @@
-//! `links.*`: links to markdown files and into `specs/` resolve to a file, and their anchor to a
+//! `links.*`: links and images to markdown files and into `specs/` resolve to a file, and their
 //! heading of it; wikilinks name a file of the `specs/` folder.
 
 use std::fs;

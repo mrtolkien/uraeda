@@ -53,10 +53,11 @@ Do these only when a human asks.
      `.worktrees/YYYY-MM-DD-feature-slug/`, unless the human asks to switch their checkout to it. On
      it, create `specs/YYYY-MM-DD-feature-slug/`, and move the draft or backlog file into it as
      `proposal.md`, unchanged: the proposal is the human's words, never rewritten. When the entry is
-     a folder, a feature postponed earlier, move all its files into it, unchanged. Commit with
-     `chore(<slug>): proposal`. When the entry has no file, write `proposal.md` from the template
-     with only what the human said, and do not commit it: the human writes it out, and commits it
-     once it is ready. Until then, the feature waits at a gate on `proposal.md`, and no step runs.
+     a folder, a feature postponed earlier or a draft with images, move all its files into it,
+     unchanged. Commit with `chore(<slug>): proposal`. When the entry has no file, write
+     `proposal.md` from the template with only what the human said, and do not commit it: the human
+     writes it out, and commits it once it is ready. Until then, the feature waits at a gate on
+     `proposal.md`, and no step runs.
   3. Then run the next step in the same session when you can: [Discovery](discovery.md), round 01,
      for a proposal alone, or the first matching row of
      [the table](../SKILL.md#finding-the-next-step) for a folder. A round left waiting for answers

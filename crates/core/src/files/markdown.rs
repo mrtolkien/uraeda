@@ -12,11 +12,13 @@ pub struct Heading {
     pub line: usize,
 }
 
-/// A link: a markdown link's destination, or a wikilink's target.
+/// A link: a markdown link's or image's destination, or a wikilink's target.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Link {
     pub target: String,
     pub wiki: bool,
+    /// Whether it is an image, `![alt](images/name.webp)`.
+    pub image: bool,
     pub line: usize,
 }
 
@@ -107,6 +109,18 @@ impl Document {
                 }) => links.push(Link {
                     target: dest_url.to_string(),
                     wiki: matches!(link_type, LinkType::WikiLink { .. }),
+                    image: false,
+                    line: lines.of(range.start),
+                }),
+                // An Obsidian embed, `![[shot.png]]`, is not checked.
+                Event::Start(Tag::Image {
+                    link_type,
+                    dest_url,
+                    ..
+                }) if !matches!(link_type, LinkType::WikiLink { .. }) => links.push(Link {
+                    target: dest_url.to_string(),
+                    wiki: false,
+                    image: true,
                     line: lines.of(range.start),
                 }),
                 Event::Start(Tag::BlockQuote(kind)) => {

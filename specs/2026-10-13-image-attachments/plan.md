@@ -478,25 +478,27 @@ git commit -m "feat(image-attachments): attach images to workflow files"
 
 - Produces:
   - `Span` gains `image: Option<SpanImage>`, `SpanImage { target: String, path: Option<String> }`,
-    `path` resolved like a link's; the span's `text` is the alt text. Generated into `index.d.ts` in
-    task 5.
+    `path` resolved like a link's; the span's `text` is the alt text. Generated into `index.d.ts` by
+    this task's binding build.
   - `Link` gains `image: bool`; image links are in `document.links`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `an_image_is_a_span_with_its_alt_text_and_path`: `![Login](images/login.webp)` in
   `specs/2026-10-14-x/proposal.md` gives one span with `text = "Login"`,
   `image.path = Some("specs/2026-10-14-x/images/login.webp")`; `![x](https://e.com/a.png)` gives
   `path = None`; `![[shot.png]]` stays text.
 - In `check.rs`: `a_missing_image_into_specs_is_a_problem`: `links.file`, "no file
-  specs/2026-10-14-x/images/gone.webp", on its line; an existing image is not.
+  images/gone.webp", the target as written, like every missing file
+  ([R24](rulings.md#r24-a-missing-image-is-named-as-its-link-writes-it)), on its line; an existing
+  image is not.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test document --test check`
 - Expected: FAIL, `no field image on type Span`.
 
-- [ ] **Step 3: Implement, then write the skill**
+- [x] **Step 3: Implement, then write the skill**
 
 Handle `Tag::Image` like `Tag::Link`, the alt text becoming the span's text. Collect image links in
 `markdown.rs`. In the skill:
@@ -508,14 +510,14 @@ Handle `Tag::Image` like `Tag::Link`, the alt text becoming the span's text. Col
   is a folder; and that `ura check` checks image links.
 - `SKILL.md`, Rules for agents, one short line: "When a human's file links an image, open it."
 - `finish.md`: images go with the folder; the record links none.
-- The specs README template and this repository's `specs/README.md`: `images/`.
+- The specs README template and this repository's `specs/README.md`, a link to it: `images/`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS, `ura check` included.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core skills specs/README.md README.md
