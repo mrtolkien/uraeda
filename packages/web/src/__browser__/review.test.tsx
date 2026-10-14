@@ -4,6 +4,7 @@
 import { act, screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
+import { navigate } from "../routes.tsx";
 import { atRepo, drawn, show } from "./helpers.tsx";
 
 /**
@@ -146,5 +147,23 @@ test("Back keeps closed a fold a link opened (US1 4, 5)", async () => {
 
   await expect.poll(() => fold("Scenarios (4)")?.getAttribute("aria-expanded")).toBe("false");
   await drawn();
+  expect(fold("Details").getAttribute("aria-expanded")).toBe("false");
+});
+
+test("a link followed again opens its fold again (US1 5)", async () => {
+  await show(`${SPEC}#data`, "Complete a repeating task");
+  await expect.poll(() => fold("Details")?.getAttribute("aria-expanded")).toBe("true");
+  await userEvent.click(fold("Details"));
+  expect(fold("Details").getAttribute("aria-expanded")).toBe("false");
+
+  // The same address again, from a link on the page: a new visit, not Back.
+  await act(async () => navigate(atRepo(`${SPEC}#data`)));
+
+  await expect.poll(() => fold("Details").getAttribute("aria-expanded")).toBe("true");
+});
+
+test("a hash that is not a valid escape leaves the page drawn", async () => {
+  await show(`${SPEC}#100%`, "Complete a repeating task");
+
   expect(fold("Details").getAttribute("aria-expanded")).toBe("false");
 });

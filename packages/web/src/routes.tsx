@@ -318,6 +318,14 @@ export function useHash(): string {
   return useSyncExternalStore(subscribe, () => window.location.hash);
 }
 
+/**
+ * The current history entry's id: a new visit of the page's own address, through a link, changes it
+ * though the location does not.
+ */
+export function useEntryId(): string | undefined {
+  return useSyncExternalStore(subscribe, () => entry().id);
+}
+
 /** The location's query, `?…`, or "": a page reads its options from it, like the session's message. */
 export function useSearch(): string {
   return useSyncExternalStore(subscribe, () => window.location.search);
