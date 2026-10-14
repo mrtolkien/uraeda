@@ -29,3 +29,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   clearing the notes, which would discard a long text with one key.
 - **If wrong**: one title in `fields/Confirm.tsx`'s callers.
 - **Where**: tasks 4 and 9.
+
+## R3: `section` stays in `items.rs`, and `choices` moves with the round
+
+- **Decision**: task 1's split moves `round()`, `named_section`, `leading_strong`, and `choices`
+  into `files/items/round.rs`, and `round_name` with the answer functions into `api/answers.rs`;
+  `section` stays in `items.rs`.
+- **Rationale**: `section` is also used by the spec's and the rulings' items, while `choices` and
+  `round_name` serve the round alone.
+- **Alternatives considered**: moving `section` as the plan said, and re-exporting it for its other
+  callers, which puts a shared helper in the round's module.
+- **If wrong**: a function moves between two files of the same module.
+- **Where**: task 1, step 1.
