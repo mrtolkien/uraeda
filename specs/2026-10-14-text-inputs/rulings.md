@@ -41,3 +41,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   callers, which puts a shared helper in the round's module.
 - **If wrong**: a function moves between two files of the same module.
 - **Where**: task 1, step 1.
+
+## R4: The workflow file's mutations and binding functions move out before they grow
+
+- **Decision**: before task 2 adds its three functions, the mutations that change a workflow file,
+  answers, notes, and reviews, move from `mutations.ts` into `fate/file-mutations.ts`, with the
+  `Resolver` type moving into `fate/context.ts`, and the same functions of the binding move from
+  `lib.rs` into `file_writes.rs`, each in a commit that only restructures.
+- **Rationale**: `mutations.ts` had 499 lines and the binding's `lib.rs` 484: the three new
+  functions push both past the 500 lines of the code quality decision.
+- **Alternatives considered**: a module for the settled comments alone, which splits the round's
+  writes over two files.
+- **If wrong**: the functions move back once the limit allows.
+- **Where**: task 2.
+
+## R5: `save_notes` compares `previous` with the free notes
+
+- **Decision**: `save_notes` refuses when the file's free notes, not its whole notes, differ from
+  `previous`, and writes through `set_notes`, which keeps the comments.
+- **Rationale**: the spec's Data says `previous` is the free notes last read, and since task 1 the
+  UI reads the free notes only: comparing with the whole notes refused every save of a round with a
+  comment.
+- **Alternatives considered**: none; the plan did not name the change.
+- **If wrong**: one comparison in `answer.rs`.
+- **Where**: task 2.

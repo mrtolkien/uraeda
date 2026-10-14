@@ -341,11 +341,15 @@ git commit -m "feat(text-inputs): the core splits the notes from the comments on
 
 **Files:**
 
+- Create, in two commits that only restructure (R4): `packages/server/src/fate/file-mutations.ts`,
+  the mutations of a workflow file out of `mutations.ts`, at 499 lines, and
+  `crates/binding/src/file_writes.rs`, the same functions out of `lib.rs`, at 484
 - Modify: `crates/core/src/actions/answer.rs`, `crates/core/src/api/answers.rs`,
-  `crates/binding/src/lib.rs`, `packages/server/src/fate/mutations.ts`, `packages/web/src/views.ts`
-  (select `settledPoints`, `settledComments`)
-- Test: `crates/core/tests/` (actions), `packages/server/src/` mutation test if the package has one
-  for `notes.save`, else covered by task 5's UI tests
+  `crates/core/src/files/clarifications.rs` (`round_notes`, `set_notes`),
+  `crates/binding/src/file_writes.rs`, `packages/server/src/fate/file-mutations.ts`,
+  `packages/web/src/views.ts` (select `settledPoints`, `settledComments`)
+- Test: `crates/core/tests/` (actions), `packages/server/src/__tests__/fate.test.ts`
+  (`settled.comment`)
 
 **Interfaces:**
 
@@ -362,7 +366,7 @@ git commit -m "feat(text-inputs): the core splits the notes from the comments on
     `{folder, number, text, previous}`, `settled.remove` `{folder, number, previous}`, each
     `type: "WorkflowFile"`, returning the file as `notes.save` does.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - Adding to a round whose notes are "Overall fine." appends
   `- **Undoing a completion**: Keep the undo.` after a blank line (US4 1).
@@ -372,26 +376,30 @@ git commit -m "feat(text-inputs): the core splits the notes from the comments on
 - Removing comment 1 leaves the free notes and the other comments.
 - Adding on an unknown subject is refused with "That point is no longer in the round.".
 - Adding a comment with a line starting `#` is refused with the structure error.
+- Saving the free notes "Overall fine, icon bigger." over `previous` "Overall fine." keeps the
+  comment's bullet: `save_notes` compares `previous` with the free notes, as the spec's Data says
+  (R5).
 
 The break each test catches: appending inside the free notes; an edit that ignores `previous`; a
-remove that renumbers into the wrong bullet; a refusal that writes anyway.
+remove that renumbers into the wrong bullet; a refusal that writes anyway; `save_notes` comparing
+`previous` with the whole notes, comments included.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core settled`
 - Expected: FAIL, `cannot find function add_settled_comment`
 
-- [ ] **Step 3: Implement** the three actions in `answer.rs` on top of `split_notes`/`join_notes`
+- [x] **Step 3: Implement** the three actions in `answer.rs` on top of `split_notes`/`join_notes`
       and `set_answer`'s structure check, the api functions with `write_lock` and `file_view` like
       `save_notes`, the binding functions, and the three mutations.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run:
   `cargo test && vp run --filter uraeda-binding build && vp check && vp test --project uraeda-server`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages/binding packages/server packages/web/src/views.ts

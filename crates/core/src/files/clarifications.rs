@@ -300,10 +300,8 @@ pub enum AnswerError {
     Structure,
 }
 
-/// Writes an answer after a question's `**Answer:**` marker, replacing the earlier one. The id
-/// `notes` writes after the `**Notes:**` marker.
-pub fn set_answer(text: &str, id: &str, answer: &str) -> Result<String, AnswerError> {
-    let answer = answer.replace("\r\n", "\n");
+/// Refuses an answer with a line that would end it: a heading, or another marker.
+fn check_lines(answer: &str) -> Result<(), AnswerError> {
     if answer.lines().any(|line| {
         let line = line.trim_start();
         line.starts_with('#')
@@ -312,62 +310,119 @@ pub fn set_answer(text: &str, id: &str, answer: &str) -> Result<String, AnswerEr
     }) {
         return Err(AnswerError::Structure);
     }
-    super::with_unix_newlines(text, |text| {
-        let mut answer = answer.trim().to_string();
-        let (marker_line, marker) = if id == "notes" {
-            let (line, notes) = notes(text).ok_or(AnswerError::NoNotesLine)?;
-            // The comments on settled points stay after the free notes written.
-            let document = super::document::parse(text, "");
-            let subjects: Vec<String> = super::items::settled_points(&document, line)
-                .into_iter()
-                .map(|point| point.subject)
-                .collect();
-            let (_, comments) = split_notes(&notes, &subjects);
-            let joined = join_notes(&answer, &comments);
-            // Notes starting with a comment start on the line after the marker, as a list.
-            answer = if answer.is_empty() && !comments.is_empty() {
-                format!("\n\n{joined}")
-            } else {
-                joined
-            };
-            (line, NOTES[0])
-        } else {
-            let question = parse(text)
-                .into_iter()
-                .find(|question| question.id == id)
-                .ok_or_else(|| AnswerError::UnknownQuestion(id.to_string()))?;
-            if question.answer_line == 0 {
-                return Err(AnswerError::NoAnswerLine(id.to_string()));
-            }
-            (question.answer_line, ANSWER)
-        };
-        let mut lines: Vec<&str> = text.split('\n').collect();
-        let start = marker_line - 1;
-        let mut end = start + 1;
-        let mut in_code = false;
-        while end < lines.len() {
-            let line = lines[end];
-            if super::is_fence(line) {
-                in_code = !in_code;
-            }
-            if !in_code && line.starts_with('#') {
-                break;
-            }
-            end += 1;
-        }
-        let first = if answer.is_empty() {
-            marker.to_string()
-        } else if answer.starts_with('\n') {
-            format!("{marker}{answer}")
-        } else {
-            format!("{marker} {answer}")
-        };
-        // A blank line before the next heading, or the file's last newline.
-        let replacement: Vec<&str> = first.split('\n').chain([""]).collect();
-        lines.splice(start..end, replacement);
-        let joined = lines.join("\n");
-        Ok(joined)
+    Ok(())
+}
+
+/// A round's notes: the `**Notes:**` line, the free notes, the comments on settled points as
+/// `(subject, text)`, and the subjects of the settled points, which take comments.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RoundNotes {
+    pub line: usize,
+    pub free: String,
+    pub comments: Vec<(String, String)>,
+    pub subjects: Vec<String>,
+}
+
+/// The notes of a round, split, when the file has a `**Notes:**` line.
+pub fn round_notes(text: &str) -> Option<RoundNotes> {
+    let (line, notes) = notes(text)?;
+    let document = super::document::parse(text, "");
+    let subjects: Vec<String> = super::items::settled_points(&document, line)
+        .into_iter()
+        .map(|point| point.subject)
+        .collect();
+    let (free, comments) = split_notes(&notes, &subjects);
+    Some(RoundNotes {
+        line,
+        free,
+        comments,
+        subjects,
     })
+}
+
+/// Writes the notes as the free notes, then the comments on settled points, as `join_notes` does.
+pub fn set_notes(
+    text: &str,
+    free: &str,
+    comments: &[(String, String)],
+) -> Result<String, AnswerError> {
+    let free = free.replace("\r\n", "\n");
+    check_lines(&free)?;
+    for (_, comment) in comments {
+        check_lines(comment)?;
+    }
+    super::with_unix_newlines(text, |text| {
+        let (line, _) = notes(text).ok_or(AnswerError::NoNotesLine)?;
+        let comments: Vec<(String, String)> = comments
+            .iter()
+            .map(|(subject, comment)| (subject.clone(), comment.replace("\r\n", "\n")))
+            .collect();
+        let joined = join_notes(&free, &comments);
+        // Notes starting with a comment start on the line after the marker, as a list.
+        let notes = if free.trim().is_empty() && !comments.is_empty() {
+            format!("\n\n{joined}")
+        } else {
+            joined
+        };
+        Ok(replace_after(text, line, NOTES[0], &notes))
+    })
+}
+
+/// Writes an answer after a question's `**Answer:**` marker, replacing the earlier one. The id
+/// `notes` writes the free notes after the `**Notes:**` marker, keeping the comments on settled
+/// points after them.
+pub fn set_answer(text: &str, id: &str, answer: &str) -> Result<String, AnswerError> {
+    let answer = answer.replace("\r\n", "\n");
+    check_lines(&answer)?;
+    super::with_unix_newlines(text, |text| {
+        if id == "notes" {
+            let notes = round_notes(text).ok_or(AnswerError::NoNotesLine)?;
+            return set_notes(text, &answer, &notes.comments);
+        }
+        let question = parse(text)
+            .into_iter()
+            .find(|question| question.id == id)
+            .ok_or_else(|| AnswerError::UnknownQuestion(id.to_string()))?;
+        if question.answer_line == 0 {
+            return Err(AnswerError::NoAnswerLine(id.to_string()));
+        }
+        Ok(replace_after(
+            text,
+            question.answer_line,
+            ANSWER,
+            answer.trim(),
+        ))
+    })
+}
+
+/// The text with the marker on line `marker_line` followed by `answer`, in place of the marker's
+/// line and the lines after it, up to the next heading.
+fn replace_after(text: &str, marker_line: usize, marker: &str, answer: &str) -> String {
+    let mut lines: Vec<&str> = text.split('\n').collect();
+    let start = marker_line - 1;
+    let mut end = start + 1;
+    let mut in_code = false;
+    while end < lines.len() {
+        let line = lines[end];
+        if super::is_fence(line) {
+            in_code = !in_code;
+        }
+        if !in_code && line.starts_with('#') {
+            break;
+        }
+        end += 1;
+    }
+    let first = if answer.is_empty() {
+        marker.to_string()
+    } else if answer.starts_with('\n') {
+        format!("{marker}{answer}")
+    } else {
+        format!("{marker} {answer}")
+    };
+    // A blank line before the next heading, or the file's last newline.
+    let replacement: Vec<&str> = first.split('\n').chain([""]).collect();
+    lines.splice(start..end, replacement);
+    lines.join("\n")
 }
 
 /// An answer from the letters picked and a comment, as the web UI composes it: `A`, `B and C`,

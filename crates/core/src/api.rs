@@ -28,7 +28,7 @@ mod files;
 mod priority_edits;
 mod repository_list;
 
-pub use answers::{save_answer, save_notes, submit_answers};
+pub use answers::*;
 pub use files::{attach_image, encode_image, read_image, read_raw};
 
 pub use priority_edits::{

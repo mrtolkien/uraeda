@@ -181,4 +181,61 @@ export const fileMutations = {
     },
     type: "WorkflowFile",
   },
+  "settled.comment": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ folder: string; subject: string; text: string }>) => {
+      await writable(ctx, input);
+      return file(
+        ctx,
+        await refusable(() =>
+          ctx.binding.addSettledComment(ctx.repo, input.folder, input.subject, input.text),
+        ),
+        select,
+      );
+    },
+    type: "WorkflowFile",
+  },
+  "settled.edit": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ folder: string; number: number; previous: string; text: string }>) => {
+      await writable(ctx, input);
+      return file(
+        ctx,
+        await refusable(() =>
+          ctx.binding.editSettledComment(
+            ctx.repo,
+            input.folder,
+            input.number,
+            input.text,
+            input.previous,
+          ),
+        ),
+        select,
+      );
+    },
+    type: "WorkflowFile",
+  },
+  "settled.remove": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ folder: string; number: number; previous: string }>) => {
+      await writable(ctx, input);
+      return file(
+        ctx,
+        await refusable(() =>
+          ctx.binding.removeSettledComment(ctx.repo, input.folder, input.number, input.previous),
+        ),
+        select,
+      );
+    },
+    type: "WorkflowFile",
+  },
 };
