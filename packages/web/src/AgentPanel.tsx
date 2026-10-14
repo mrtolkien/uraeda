@@ -42,17 +42,19 @@ function Line({ parts }: { parts: Array<string | undefined> }) {
 /** How a turn that did not end well ended, for the panel's line. */
 const ENDINGS: Partial<Record<string, string>> = { failed: "Failed", stopped: "Stopped" };
 
+/** What the panel's buttons are told of the latest turn. */
+type Latest = {
+  /** It failed or was stopped. */
+  endedBadly: boolean;
+  /** It runs the workflow's step, or waits to: starting the agent again would run it twice. */
+  runsStep: boolean;
+};
+
 /**
  * The session's latest turn, the step it ran or a chat, how it ended when it went wrong, and how
- * long it ran; then `children`, told whether the turn failed or was stopped.
+ * long it ran; then `children`, told how it went.
  */
-function LatestTurn({
-  id,
-  children,
-}: {
-  id: string;
-  children: (endedBadly: boolean) => ReactNode;
-}) {
+function LatestTurn({ id, children }: { id: string; children: (latest: Latest) => ReactNode }) {
   const turn = useTurn(id);
   const what = !turn
     ? undefined
@@ -66,7 +68,10 @@ function LatestTurn({
   return (
     <>
       <Line parts={[what, ending, time]} />
-      {children(ending !== undefined)}
+      {children({
+        endedBadly: ending !== undefined,
+        runsStep: turn?.kind === "workflow" && ["queued", "running"].includes(turn.state),
+      })}
     </>
   );
 }
@@ -75,12 +80,12 @@ function LatestTurn({
  * The session's status, its latest turn, Stop while it works, with why when it is refused,
  * and the panel's buttons.
  */
-function Summary({ id, actions }: { id: string; actions: (endedBadly: boolean) => ReactNode }) {
+function Summary({ id, actions }: { id: string; actions: (latest: Latest) => ReactNode }) {
   const fate = useFateClient();
   const session = useSession(id);
   const [error, setError] = useState<string>();
   if (!session) {
-    return actions(false);
+    return actions({ endedBadly: false, runsStep: false });
   }
   const stop = async () => {
     setError(undefined);
@@ -91,7 +96,7 @@ function Summary({ id, actions }: { id: string; actions: (endedBadly: boolean) =
     }
   };
   const latest = session.turns.at(-1);
-  const rest = (endedBadly: boolean) => (
+  const rest = (latest: Latest) => (
     <>
       {session.status === "working" && (
         <>
@@ -101,21 +106,26 @@ function Summary({ id, actions }: { id: string; actions: (endedBadly: boolean) =
           {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
         </>
       )}
-      {actions(endedBadly || session.status === "failed")}
+      {actions({ ...latest, endedBadly: latest.endedBadly || session.status === "failed" })}
     </>
   );
   return (
     <>
       <SessionStatus status={session.status} label={session.statusLabel} />
-      {latest === undefined ? rest(false) : <LatestTurn id={latest}>{rest}</LatestTurn>}
+      {latest === undefined ? (
+        rest({ endedBadly: false, runsStep: false })
+      ) : (
+        <LatestTurn id={latest}>{rest}</LatestTurn>
+      )}
     </>
   );
 }
 
 /**
  * A feature's agent: its session's status, its latest turn, Stop while it works, "Open
- * the session", and, when the feature waits on an agent, "Start the agent" or "Try again", which
- * open the session with the workflow's message in the composer, unsent. Nothing shows without a
+ * the session", and, when the feature waits on an agent, "Review and start the agent" or "Review and
+ * try again", which open the session with the workflow's message in the composer, unsent: never
+ * while the agent runs the step, or waits to. Nothing shows without a
  * session when the agent is not on this machine, or when the feature has no branch.
  */
 export function AgentPanel({ feature }: { feature: Feature }) {
@@ -129,17 +139,17 @@ export function AgentPanel({ feature }: { feature: Feature }) {
     return null;
   }
   const start = () => handOver(feature.folder, "manual");
-  const actions = (endedBadly: boolean) => (
+  const actions = ({ endedBadly, runsStep }: Latest) => (
     <HStack gap={2} wrap="wrap">
       <Button
         variant={canStart ? "secondary" : "primary"}
         label="Open the session"
         href={here(sessionPath(feature.folder))}
       />
-      {canStart && (
+      {canStart && !runsStep && (
         <Button
           variant="primary"
-          label={endedBadly ? "Try again" : "Start the agent"}
+          label={endedBadly ? "Review and try again" : "Review and start the agent"}
           clickAction={start}
         />
       )}
@@ -148,7 +158,11 @@ export function AgentPanel({ feature }: { feature: Feature }) {
   return (
     <VStack as="section" gap={3} aria-label="Agent">
       <Heading level={2}>Agent</Heading>
-      {feature.session ? <Summary id={feature.session} actions={actions} /> : actions(false)}
+      {feature.session ? (
+        <Summary id={feature.session} actions={actions} />
+      ) : (
+        actions({ endedBadly: false, runsStep: false })
+      )}
     </VStack>
   );
 }

@@ -1,6 +1,6 @@
 // The feature page's agent: its session's status, its latest turn, Stop, "Open the session", and
-// "Start the agent" or "Try again", which open the session with the workflow's message (US2). The
-// transcript's tool calls, its long turns, and a blocked action (US5) are checked on the session.
+// "Review and start the agent" or "Review and try again", which open the session with the workflow's
+// message (US2). The transcript's tool calls, its long turns, and a blocked action (US5) are checked on the session.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
@@ -35,7 +35,7 @@ today("2026-10-12");
 
 type Steps = Parameters<Fake["adapter"]["script"]>[0];
 
-/** Sends the workflow's message to a feature's session, as "Start the agent" does: its turn. */
+/** Sends the workflow's message to a feature's session, as the composer's "Start the agent" does. */
 async function startTurn(fake: Fake, repo: string, folder: string) {
   const session = await fake.sessions.featureSession(repo, folder);
   const { turn } = await fake.sessions.send(repo, session.id, {
@@ -45,7 +45,7 @@ async function startTurn(fake: Fake, repo: string, folder: string) {
   return turn;
 }
 
-/** Scripts a turn of the fake agent, starts it as "Start the agent" does, and waits for its end. */
+/** Scripts a turn of the fake agent, starts it as the composer does, and waits for its end. */
 async function seedRun(fake: Fake, repo: string, folder: string, steps: Steps) {
   fake.adapter.script(steps);
   const id = await startTurn(fake, repo, folder);
@@ -138,18 +138,20 @@ test("a feature waiting on you, with no session yet, opens its session to chat",
   expect(await screen.findByRole("link", { name: "Open the session" })).toBeTruthy();
 });
 
-test("Stop stops the turn, and Try again opens the session with the message", async () => {
+test("Stop stops the turn, and Review and try again opens the session with the message", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   await liveRun(fake, repo);
   const { agent } = await renderPage(`/f/${CLI}`, repo, { agent: fake });
   await waitFor(() => expect(panel().getByText("Working")).toBeTruthy());
+  // The agent runs the step: starting it again would run it twice.
+  expect(panel().queryByRole("button", { name: "Review and start the agent" })).toBeNull();
 
   await click(panel().getByRole("button", { name: "Stop" }));
 
   await waitFor(() => expect(agent.interrupts).toBe(1));
   await refreshUntil(() => expect(panel().getByText(/Run: Plan · Stopped/)).toBeTruthy());
-  await click(panel().getByRole("button", { name: "Try again" }));
+  await click(panel().getByRole("button", { name: "Review and try again" }));
 
   await opensWith(CLI, MANUAL);
   expect(agent.sent).toHaveLength(1);
@@ -195,10 +197,10 @@ test("Home shows a working agent", async () => {
 });
 
 /** US2 */
-test("Start the agent opens the session with the message, unsent", async () => {
+test("Review and start the agent opens the session with the message, unsent", async () => {
   const { agent } = await renderPage(`/f/${CLI}`, fixtureRepo(), { agent: true });
 
-  await click(await screen.findByRole("button", { name: "Start the agent" }));
+  await click(await screen.findByRole("button", { name: "Review and start the agent" }));
 
   await opensWith(CLI, MANUAL);
   expect(window.location.search).toBe("?continue=manual");
@@ -206,7 +208,7 @@ test("Start the agent opens the session with the message, unsent", async () => {
 });
 
 /** US2.5 */
-test("US2.5: during a chat turn, Start the agent queues the workflow's message after it", async () => {
+test("US2.5: during a chat turn, the agent's start queues the workflow's message after it", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   const session = await fake.sessions.featureSession(repo, CLI);
@@ -216,12 +218,9 @@ test("US2.5: during a chat turn, Start the agent queues the workflow's message a
   await renderPage(`/f/${CLI}`, repo, { agent: fake });
   await waitFor(() => expect(panel().getByText("Working")).toBeTruthy());
 
-  await click(panel().getByRole("button", { name: "Start the agent" }));
+  await click(panel().getByRole("button", { name: "Review and start the agent" }));
   await opensWith(CLI, MANUAL);
-  const composer = screen
-    .getAllByRole("button", { name: "Start the agent" })
-    .find((button) => !screen.queryByRole("region", { name: "Agent" })?.contains(button))!;
-  await click(composer);
+  await click(await screen.findByRole("button", { name: "Start once this turn ends" }));
 
   // Queued below the chat turn, unsent while it works.
   await refreshUntil(() =>
@@ -236,7 +235,7 @@ test("US2.5: during a chat turn, Start the agent queues the workflow's message a
   expect(fake.adapter.sent[1].text).toBe(MANUAL);
 });
 
-test("Try again after a failure opens the session with the message", async () => {
+test("Review and try again after a failure opens the session with the message", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   await seedRun(fake, repo, CLI, [
@@ -245,20 +244,20 @@ test("Try again after a failure opens the session with the message", async () =>
   const { agent } = await renderPage(`/f/${CLI}`, repo, { agent: fake });
   await waitFor(() => expect(panel().getByText("Failed")).toBeTruthy());
 
-  await click(panel().getByRole("button", { name: "Try again" }));
+  await click(panel().getByRole("button", { name: "Review and try again" }));
 
   await opensWith(CLI, MANUAL);
   expect(agent.sent).toHaveLength(1);
 });
 
-test("a feature waiting on you has no Start the agent", async () => {
+test("a feature waiting on you has no Review and start the agent", async () => {
   await renderPage(`/f/${WEB_UI}`, fixtureRepo(), { agent: true });
 
   expect(await screen.findByText("Answer questions")).toBeTruthy();
   // The agent section is drawn, with its way into the session: it offers no start.
   const section = await screen.findByRole("region", { name: "Agent" });
   expect(within(section).getByRole("link", { name: "Open the session" })).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Start the agent" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Review and start the agent" })).toBeNull();
 });
 
 test("without claude, a feature waiting on an agent has no panel", async () => {
@@ -267,7 +266,7 @@ test("without claude, a feature waiting on an agent has no panel", async () => {
   expect(await screen.findByText("CLI TUIs", { selector: "h1" })).toBeTruthy();
   await answered("Agent");
   expect(screen.queryByRole("region", { name: "Agent" })).toBeNull();
-  expect(screen.queryByRole("button", { name: "Start the agent" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Review and start the agent" })).toBeNull();
 });
 
 /** US2.3 */
@@ -289,7 +288,7 @@ test("US2.3: a run ending at a gate shows its closing text last, and Needs you",
   expect(text.trimEnd().endsWith(closing.textContent ?? "")).toBe(true);
   expect(sidebarStatus("Web UI for the workflow files")).toBe("Needs you");
   expect(panel().getByText("Needs you")).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Start the agent" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Review and start the agent" })).toBeNull();
 });
 
 /** US5.1, US5.2 */
@@ -446,8 +445,8 @@ test("a merged feature shows its session, and no button that starts the agent", 
 
   expect(await screen.findByRole("link", { name: "Open the session" })).toBeTruthy();
   expect(screen.queryByRole("list", { name: "Runs" })).toBeNull();
-  expect(screen.queryByRole("button", { name: "Start the agent" })).toBeNull();
-  expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Review and start the agent" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Review and try again" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Stop" })).toBeNull();
 });
 

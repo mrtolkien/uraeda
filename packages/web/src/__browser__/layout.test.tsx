@@ -51,8 +51,8 @@ const PAGES: Array<[name: string, path: string, text: string, insets: string | n
   ["a plan under review", "/f/2026-10-13-plan-review/plan.md", "Task 5", null],
   ["a task view", TASK, "Claude Code runner", null],
   ["the priorities", "/priorities", "Git listener process", null],
-  // Its agent panel offers "Start the agent": the test server's agent is the fake one.
-  ["a feature waiting on an agent", "/f/2026-10-12-cli-tuis", "Start the agent", null],
+  // Its agent panel offers "Review and start the agent": the test server's agent is the fake one.
+  ["a feature waiting on an agent", "/f/2026-10-12-cli-tuis", "Review and start the agent", null],
   // A feature's session before its first message, and an empty chat.
   ["a feature's new session", "/f/2026-10-12-cli-tuis/session", "CLI TUIs", null],
   ["a new chat", "/chats/new", "New chat", null],
