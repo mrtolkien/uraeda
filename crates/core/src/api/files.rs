@@ -58,6 +58,8 @@ fn raw_bytes(git: &Git, workspace: &Workspace, path: &str) -> Option<Vec<u8>> {
 /// Attaches an image to a draft, a proposal, a report, or another markdown file of a feature's or
 /// a bug's folder: re-encoded, saved in the `images/` folder next to it, a single-file draft
 /// becoming a folder first. `name` is the image's original file name, `None` for a pasted image.
+/// The image is checked and encoded before the write lock is taken: encoding a large photo takes
+/// seconds, which no other write waits for.
 pub fn attach_image(
     repo: &Path,
     path: &str,
@@ -69,9 +71,10 @@ pub fn attach_image(
             "{path} is not a markdown file of a feature, a bug, or a draft"
         )));
     }
+    let encoded = encode_image(bytes, name.unwrap_or("pasted image"))?;
     let _lock = write_lock();
     let place = text_place(repo, path)?;
-    let attached = attach::attach(&place, path, bytes, name, today::stamp)?;
+    let attached = attach::attach(&place, path, &encoded, name, today::stamp)?;
     Ok(AttachedView {
         path: attached.path,
         link: attached.link,
@@ -79,7 +82,7 @@ pub fn attach_image(
     })
 }
 
-/// Checks and re-encodes an image, for a chat message. `name` is its file name, for refusals.
+/// Checks and re-encodes an image, for a chat message or [`attach_image`]. `name` is its file name, for refusals.
 pub fn encode_image(bytes: &[u8], name: &str) -> Result<Encoded> {
     images::encode(bytes, name).map_err(|error| refused(error.to_string()))
 }

@@ -470,8 +470,10 @@ const PROPOSAL: &str = "specs/2026-10-11-web-ui/proposal.md";
 const IMAGES: &str = "specs/2026-10-11-web-ui/images";
 
 /// A small still GIF, re-encoded by `attach`.
-fn image() -> Vec<u8> {
-    std::fs::read(common::fixture("images/still.gif")).unwrap()
+/// A still GIF, encoded as `attach` takes it.
+fn image() -> uraeda_core::images::Encoded {
+    let bytes = std::fs::read(common::fixture("images/still.gif")).unwrap();
+    uraeda_core::images::encode(&bytes, "still.gif").unwrap()
 }
 
 fn stamp() -> String {
