@@ -18,7 +18,6 @@
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Setup with agent (checks project and creates relevant files)
 - [Chats, proposals, and reviews should accept images (drag and drop in the page, still show a dedicated button)](/specs/2026-10-13-image-attachments/proposal.md)
-- [Clean server code that can open any folder on the host + be run easily with node -> make the tool multi-repos](/specs/2026-10-13-multi-repo-server/proposal.md)
 - [Run the web UI with npx](drafts/run-the-web-ui-with-npx.md)
 - [Code quality and maintainability through the skill](/specs/2026-10-14-code-quality-in-the-skill/proposal.md)
 
