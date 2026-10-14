@@ -14,8 +14,8 @@ use napi_derive::napi;
 use uraeda_core::api::{self, ApiError};
 use uraeda_core::files::priorities::Priorities;
 use uraeda_core::view::{
-    AddedView, AttachedView, CommitView, DraftView, FeatureView, FileView, NextView,
-    ProposalHint, RepositoryView, StartedView, WorkspaceView,
+    AddedView, AttachedView, CommitView, DraftView, FeatureView, FileView, NextView, ProposalHint,
+    RepositoryView, StartedView, WorkspaceView,
 };
 use uraeda_core::watch::{self, Changes};
 

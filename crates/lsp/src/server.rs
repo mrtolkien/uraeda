@@ -125,8 +125,12 @@ fn worker(sender: Sender<Message>, progress: bool) -> (Sender<Job>, JoinHandle<(
                 message: done.as_ref().ok().and_then(|done| done.message.clone()),
             }));
             let result = done.and_then(|done| {
-                serde_json::to_value(done.outcome)
-                    .map_err(|e| error(ErrorCode::InternalError, e.to_string()))
+                let mut value = serde_json::to_value(done.outcome)
+                    .map_err(|e| error(ErrorCode::InternalError, e.to_string()))?;
+                if let Some(link) = done.link {
+                    value["link"] = link.into();
+                }
+                Ok(value)
             });
             send(
                 Response {

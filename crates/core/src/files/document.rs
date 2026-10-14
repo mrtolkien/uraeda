@@ -13,7 +13,10 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use super::markdown::{Lines, options, slug};
-use crate::workspace::resolve;
+
+mod inline;
+
+use inline::Marks;
 
 /// Lines of a file, 1-based and inclusive.
 #[cfg_attr(feature = "napi", napi(object))]
@@ -223,18 +226,6 @@ fn block(id: u32, parent: Option<u32>, kind: BlockKind, start: u32, end: u32) ->
     }
 }
 
-/// The marks in effect while reading inline text.
-#[derive(Default, Clone)]
-struct Marks {
-    strong: u32,
-    emphasis: u32,
-    strike: u32,
-    link: Option<SpanLink>,
-    /// How many images are open: inside one, their alt text is read into the outer image's span,
-    /// the last one, and an inner image is only text.
-    image: u32,
-}
-
 struct Builder<'a> {
     text: &'a str,
     dir: &'a str,
@@ -277,79 +268,6 @@ impl Builder<'_> {
 
     fn close(&mut self) {
         self.open.pop();
-    }
-
-    fn span(&mut self, text: &str, code: bool) {
-        let Some(target) = self.target else {
-            return;
-        };
-        let marks = self.marks.clone();
-        let spans = &mut self.blocks[target as usize].spans;
-        if marks.image > 0
-            && let Some(last) = spans.last_mut()
-        {
-            last.text.push_str(text);
-            return;
-        }
-        if let Some(last) = spans.last_mut()
-            && last.image.is_none()
-            && !code
-            && !last.code
-            && last.strong == (marks.strong > 0)
-            && last.emphasis == (marks.emphasis > 0)
-            && last.strike == (marks.strike > 0)
-            && last.link == marks.link
-        {
-            last.text.push_str(text);
-            return;
-        }
-        spans.push(Span {
-            text: text.to_string(),
-            strong: marks.strong > 0,
-            emphasis: marks.emphasis > 0,
-            code,
-            strike: marks.strike > 0,
-            link: marks.link,
-            image: None,
-        });
-    }
-
-    /// Starts an image's span, which its alt text then fills, or reads a nested image's alt text
-    /// into the outer one's.
-    fn image(&mut self, target: &str) {
-        self.marks.image += 1;
-        if self.marks.image > 1 {
-            return;
-        }
-        let Some(block) = self.target else {
-            return;
-        };
-        let marks = self.marks.clone();
-        self.blocks[block as usize].spans.push(Span {
-            text: String::new(),
-            strong: marks.strong > 0,
-            emphasis: marks.emphasis > 0,
-            code: false,
-            strike: marks.strike > 0,
-            link: marks.link,
-            image: Some(SpanImage {
-                target: target.to_string(),
-                path: resolve(self.dir, target),
-            }),
-        });
-    }
-
-    fn link(&self, target: &str, wiki: bool) -> SpanLink {
-        let path = if wiki || target.starts_with('#') {
-            None
-        } else {
-            resolve(self.dir, target)
-        };
-        SpanLink {
-            target: target.to_string(),
-            wiki,
-            path,
-        }
     }
 }
 
