@@ -375,7 +375,7 @@ test.each(
   if (query) {
     await userEvent.fill(within(nav as HTMLElement).getByRole("searchbox"), query);
     await within(nav as HTMLElement).findByText(
-      query === "zzz" ? "No session matches “zzz”." : "CLI TUIs",
+      query === "zzz" ? "No session matches “zzz”." : "cli-tuis",
       undefined,
       LIVE,
     );

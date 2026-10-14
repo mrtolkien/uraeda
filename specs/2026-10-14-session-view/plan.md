@@ -666,7 +666,8 @@ git commit -m "feat(session-view): progress and branch changes on the server"
 - Modify: `packages/web/src/SessionNav.tsx` (`Item`, `FeatureRow`, a new `ProgressRow`, `Sessions`)
 - Modify: `packages/web/src/views.ts` (`FeatureView.step` gains `progress: true`)
 - Test: `packages/web/src/__tests__/shell.test.tsx`,
-  `packages/web/src/__tests__/agent-panel.test.tsx` (`sidebarStatus` by slug)
+  `packages/web/src/__tests__/agent-panel.test.tsx` (`sidebarStatus` by slug), and
+  `packages/web/src/__browser__/layout.test.tsx` (the search for "CLI" waits for `cli-tuis`)
 
 **Interfaces:**
 
@@ -675,7 +676,7 @@ git commit -m "feat(session-view): progress and branch changes on the server"
   `aria-hidden` SVG ring filled to `position / total`, in StyleX with theme tokens. Tasks 7 and 8
   use it.
 
-- [ ] **Step 1: Restructure `Sessions` in `SessionNav.tsx`, and commit**
+- [x] **Step 1: Restructure `Sessions` in `SessionNav.tsx`, and commit**
 
 Split it as its `max-lines-per-function` marker says: the search's filter in a function, and each
 group in a component. Remove the marker. Behaviour does not change:
@@ -684,7 +685,7 @@ group in a component. Remove the marker. Behaviour does not change:
 `refactor(session-view): the sidebar's search and groups in their own parts`. The code quality
 decision asks for this commit before the feature touches the function.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 In `shell.test.tsx`, `row(name)` finds a row by its accessible name's start, which is now the slug.
 Existing tests move from titles to slugs: `row("cli-tuis")`, `row("web-ui")`, and
@@ -778,32 +779,36 @@ test("the folded sidebar hides progress rows", async () => {
 
 US2.6's and the folded test's arrangement reuses the existing sub-agent and folded tests' setup.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/shell.test.tsx`
 - Expected: FAIL, US2.1 with `Unable to find a row "cli-tuis"`.
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 - **Rows.** Feature rows show `feature.slug`, with `aria-label` "`<slug>, <title>, <status>`".
 - **The progress row.** `ProgressRow` is a nested `SideNavItem`, styled like `Subagents`, shown when
-  `step.name === "implementation"` and `step.progress` is set, and hidden when the sidebar is
-  folded. Its icon is `ProgressRing`, its label "`<position>/<total> · <title>`", its accessible
-  name "`Task <position> of <total>: <title>`", and it links to `sessionPath(folder)`.
+  `step.progress` is set, which the core does during the implementation only
+  ([R14](rulings.md#r14-the-sidebars-progress-row-shows-whenever-the-step-has-a-progress)), and
+  hidden when the sidebar is folded. Its icon is `ProgressRing`, its label
+  "`<position>/<total> · <title>`", its accessible name "`Task <position> of <total>: <title>`", and
+  it links to `sessionPath(folder)`.
 - **Selection.** The progress row is selected on the session's path, and the feature's row is not
-  selected there while it has a progress row ([review focus 4](#review-focus)).
+  selected there while its progress row shows ([review focus 4](#review-focus)).
 - **Search.** The client-side filter matches the title or the slug.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run: `vp check && vp test --project uraeda-web`
 - Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web/src/ProgressRing.tsx packages/web/src/SessionNav.tsx packages/web/src/views.ts \
-  packages/web/src/__tests__/shell.test.tsx packages/web/src/__tests__/agent-panel.test.tsx
+  packages/web/src/__tests__/shell.test.tsx packages/web/src/__tests__/agent-panel.test.tsx \
+  packages/web/src/__browser__/layout.test.tsx specs/2026-10-14-session-view/plan.md \
+  specs/2026-10-14-session-view/rulings.md
 git commit -m "feat(session-view): the sidebar by slug, with each feature's progress"
 ```
 

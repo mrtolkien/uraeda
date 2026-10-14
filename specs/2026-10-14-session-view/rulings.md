@@ -163,3 +163,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: answering it as failed, which logs every stale page's request.
 - **If wrong**: the `isMissing` branch of `branchChanges` in `sources.ts`.
 - **Where**: Task 4, after its review.
+
+## R14: The sidebar's progress row shows whenever the step has a progress
+
+- **Decision**: the progress row shows when `step.progress` is set, without also checking that
+  `step.name` is `"implementation"`. While it shows, unfolded, the feature's row is not selected on
+  the session's page; folded, the feature's row is selected there again, as the progress row is
+  hidden. The ring fills in `--color-icon-accent`, the spec's accent, over a
+  `--color-border-emphasized` track, at a status dot's size. The browser layout test searching for
+  "CLI" waits for the row's slug, `cli-tuis`, instead of its title.
+- **Rationale**: the core sets `progress` during the implementation only (`feature_step`), so the
+  step's name would repeat a core rule in the UI, against the [stack](../decisions/stack.md)
+  decision. A folded sidebar with no row selected on the session's page would lose the human's
+  place. The search test's wait asserted the title the spec replaces with the slug.
+- **Alternatives considered**: the plan's two checks, which agree today and would disagree only if
+  the core changed its rule; the mockup's blue, which the spec's text names as the accent.
+- **If wrong**: the `progress` checks in `ProgressRow` and `FeatureRow` of `SessionNav.tsx`, and the
+  `fill` style of `ProgressRing.tsx`.
+- **Where**: Task 5.
