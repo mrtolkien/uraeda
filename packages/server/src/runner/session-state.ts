@@ -36,6 +36,8 @@ export const REFUSALS = {
   /** Images sent to an agent that does not declare them. */
   noImages: "This agent cannot read images.",
   tooManyImages: `A message takes at most ${MAX_IMAGES} images.`,
+  /** The workflow's message is the workflow's own text: the human sends images in a chat. */
+  workflowImages: "The workflow's message takes no images.",
   /** An image ID with no file in the data folder: removed, or never uploaded. */
   imageGone: "This image is gone: add it again.",
   unavailable: (name: string) => `${name} is not available on this machine.`,

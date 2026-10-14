@@ -1024,3 +1024,81 @@ test("refuses images to an agent without them", async () => {
   await sessions.settled((await sessions.send(repo, chat.id, { text: "Hello" })).turn);
   expect(adapter.sent).toHaveLength(1);
 });
+
+test("US2.5: a message queued while a turn runs keeps its images for its later write", async () => {
+  const { sessions, adapter, cache, repo } = await testSessions();
+  adapter.capabilities = { ...adapter.capabilities, steer: false };
+  const chat = await sessions.newChat(repo);
+  const first = await sessions.send(repo, chat.id, { text: "Plan it" });
+
+  const queued = await sessions.send(repo, chat.id, { text: "Look", images: [image("a")] });
+  expect(queued.turn).not.toBe(first.turn);
+  expect(cache.turn(queued.turn)?.state).toBe("queued");
+  expect(adapter.sent).toHaveLength(1);
+  adapter.script([]);
+  adapter.emit({ type: "accepted", id: adapter.sent[0]!.id });
+  adapter.emit(done());
+  await sessions.settled(queued.turn);
+
+  expect(adapter.sent[1]).toMatchObject({
+    text: "Look",
+    when: "queue",
+    images: [{ path: "/data/images/a.webp" }],
+  });
+  expect(cache.itemsOf(queued.turn, "message")[0]).toMatchObject({
+    text: "Look",
+    state: "read",
+    images: [{ id: "a.webp", width: 1440, height: 900 }],
+  });
+});
+
+test("US2.5: a queued turn's message with an image, taken back, keeps its images on its item", async () => {
+  const { sessions, adapter, cache, repo } = await testSessions();
+  adapter.capabilities = { ...adapter.capabilities, steer: false };
+  const chat = await sessions.newChat(repo);
+  await sessions.send(repo, chat.id, { text: "Plan it" });
+  const queued = await sessions.send(repo, chat.id, { text: "Look", images: [image("a")] });
+  const [message] = cache.itemsOf(queued.turn, "message");
+
+  sessions.takeBack(repo, chat.id, message!.id);
+
+  expect(cache.turn(queued.turn)?.state).toBe("stopped");
+  expect(cache.itemsOf(queued.turn, "message")[0]).toMatchObject({
+    text: "Look",
+    state: "taken-back",
+    images: [{ id: "a.webp", width: 1440, height: 900 }],
+  });
+  expect(adapter.sent).toHaveLength(1);
+});
+
+test("a failed turn takes back an unread steered message with images, and keeps them", async () => {
+  const { sessions, adapter, cache, repo } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
+  await sessions.send(repo, session.id, { text: "Look", images: [image("a")] });
+  const steered = adapter.sent[1]!.id;
+
+  adapter.emit(done({ ok: false, errors: ["API error"] }));
+  await sessions.settled(turn);
+
+  expect(adapter.takenBack).toEqual([steered]);
+  expect(cache.itemsOf(turn, "message").find((each) => each.id === steered)).toMatchObject({
+    text: "Look",
+    state: "taken-back",
+    images: [{ id: "a.webp", width: 1440, height: 900 }],
+  });
+});
+
+test("refuses images with a workflow message", async () => {
+  const { sessions, adapter, repo } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+
+  await expect(
+    sessions.send(repo, session.id, {
+      text: "Continue the feature.",
+      images: [image("a")],
+      workflow: { trigger: "manual" },
+    }),
+  ).rejects.toThrow("refused: The workflow's message takes no images.");
+  expect(adapter.opens).toEqual([]);
+});

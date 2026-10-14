@@ -14,8 +14,7 @@ export type SendInput = {
 };
 
 /**
- * A message checked before any session work: text, or images alone, at most 10, to an agent that
- * declares images. Its item keeps the images' IDs and sizes, `held`; the agent gets their paths.
+ * A message checked before any session work: text, or images alone, as `checkImages` allows them. Its item keeps the images' IDs and sizes, `held`; the agent gets their paths.
  */
 export function checkSend(input: SendInput, capabilities: Capabilities) {
   const images = input.images ?? [];
@@ -23,12 +22,7 @@ export function checkSend(input: SendInput, capabilities: Capabilities) {
   if (blank && images.length === 0) {
     throw refused(REFUSALS.blank);
   }
-  if (images.length > MAX_IMAGES) {
-    throw refused(REFUSALS.tooManyImages);
-  }
-  if (images.length > 0 && !capabilities.images) {
-    throw refused(REFUSALS.noImages);
-  }
+  checkImages(images, input.workflow !== undefined, capabilities);
   const held: { images?: Array<ChatImage> } =
     images.length === 0
       ? {}
@@ -39,4 +33,27 @@ export function checkSend(input: SendInput, capabilities: Capabilities) {
     text: blank ? "" : input.text,
     workflow: input.workflow,
   };
+}
+
+/**
+ * Refuses a message's images: more than 10, to an agent that does not declare images, or with the
+ * workflow's message, which is the workflow's own text.
+ */
+export function checkImages(
+  images: Array<unknown>,
+  workflow: boolean,
+  capabilities: Capabilities,
+): void {
+  if (images.length === 0) {
+    return;
+  }
+  if (workflow) {
+    throw refused(REFUSALS.workflowImages);
+  }
+  if (images.length > MAX_IMAGES) {
+    throw refused(REFUSALS.tooManyImages);
+  }
+  if (!capabilities.images) {
+    throw refused(REFUSALS.noImages);
+  }
 }

@@ -7,6 +7,7 @@ import { fixture, temporaryFolder } from "uraeda-binding/test-utils";
 import { allowRule, type Blocks, lines, parseLine } from "../claude-events.ts";
 import { ClaudeAdapter, claudeArgs, PLUGIN_DIR } from "../claude.ts";
 import type { AgentEvent, Denial } from "../events.ts";
+import { chatOpening } from "../message.ts";
 
 const SESSION = "06e0f968-6806-4810-b91e-df3ca38e0f25";
 const open = { cwd: "/w", nativeId: "id" };
@@ -805,6 +806,41 @@ test("US2.2: a message with images is its text, a blank line, then one line per 
       message: { role: "user", content: `[Image: ${a}]` },
       uuid: "m2",
       priority: "next",
+    },
+  ]);
+});
+
+test("US2.4: a feature chat's first message is its opening line, its text, then its images", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  const command = script(`cat > "${join(dir, "stdin")}"`);
+  const imagesDir = images();
+  const agent = new ClaudeAdapter({ command, pluginDir: "/p", imagesDir }).open({
+    ...open,
+    cwd: dir,
+    resume: false,
+  });
+  const opening = chatOpening({
+    folder: "2026-10-12-cli-tuis",
+    branch: "2026-10-12-cli-tuis",
+    bug: false,
+  });
+  const a = join(imagesDir, "a.webp");
+  // The session manager joins the opening line and the text; the adapter adds the images.
+  agent.send({
+    id: "m1",
+    text: `${opening}\nWhat is wrong here?`,
+    when: "queue",
+    images: [{ path: a }],
+  });
+  agent.close();
+  await collect(agent.events);
+
+  expect(written(join(dir, "stdin"))).toEqual([
+    {
+      type: "user",
+      message: { role: "user", content: `${opening}\nWhat is wrong here?\n\n[Image: ${a}]` },
+      uuid: "m1",
+      priority: "later",
     },
   ]);
 });

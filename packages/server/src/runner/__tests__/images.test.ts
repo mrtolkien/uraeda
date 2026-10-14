@@ -1,6 +1,14 @@
-import { mkdtempSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { afterEach, expect, test } from "vite-plus/test";
 import { ChatImages, UNSENT_KEPT_MS } from "../images.ts";
 
@@ -78,4 +86,28 @@ test("the images folder and its files are the owner's only", async () => {
 
   expect(statSync(store.dir).mode & 0o777).toBe(0o700);
   expect(statSync(join(store.dir, id)).mode & 0o777).toBe(0o600);
+});
+
+test("a relative images folder is made absolute: the agent runs in another folder", () => {
+  const store = new ChatImages(join(".uraeda", "images"));
+
+  expect(isAbsolute(store.dir)).toBe(true);
+  expect(store.dir).toBe(join(process.cwd(), ".uraeda", "images"));
+});
+
+test("an image that cannot be deleted is skipped, and the others are cleaned", async () => {
+  const store = images();
+  const now = Date.now();
+  const old = await store.save(encoded("webp"));
+  // A folder named like an image: removing it fails.
+  const stuck = "0b9f9c4e-6a4f-4f3e-9d1e-2a7c1f0e5b3a.webp";
+  mkdirSync(join(store.dir, stuck));
+  const dayAgo = (now - UNSENT_KEPT_MS - 1000) / 1000;
+  for (const id of [old.id, stuck]) {
+    utimesSync(join(store.dir, id), dayAgo, dayAgo);
+  }
+
+  await expect(store.clean(new Set(), now)).resolves.toBeUndefined();
+
+  expect(readdirSync(store.dir)).toEqual([stuck]);
 });
