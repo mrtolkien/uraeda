@@ -1,6 +1,6 @@
 ---
 status: auto-approved
-spec-revision: 1
+spec-revision: 2
 ---
 
 # Plan: Code quality and maintainability through the skill
@@ -34,7 +34,7 @@ spec-revision: 1
   - `SKILL.md` becomes an entry point, its conventions, project setup, and commands moved to three
     references.
 
-See the [spec's design](spec.md#design).
+See the [spec's architecture](spec.md#architecture).
 
 The limits apply from task 2 on: every later task that grows a marked unit restructures it first, in
 its own commit, as the decision's consequences say.

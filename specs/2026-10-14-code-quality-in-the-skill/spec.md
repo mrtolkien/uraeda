@@ -1,6 +1,6 @@
 ---
 status: approved
-revision: 1
+revision: 2
 clarifications: 1
 risk-tier: medium
 plan-review: false
@@ -240,9 +240,7 @@ Acceptance scenarios:
 - **SC-005**: Every rule of the code-quality decision names its check, and every lint rule it adds
   has a fixture that makes it fire.
 
-## Design
-
-### Approach
+## Architecture
 
 The work falls in four parts.
 
@@ -268,6 +266,113 @@ links to the part it needs: one home per rule, as the concepts themselves ask.
 - A structural test holds Rust files to 500 lines.
 
 **The plan-review default.** `false` for every tier, in the core only.
+
+## Mockups
+
+- [Spec folds](mockups/spec-folds.html): a spec under review on the phone, with one story's
+  scenarios open and a pending comment, and on a desktop, with Details opened from a link.
+
+## Assumptions
+
+Settled in the [clarifications](clarifications-01.md#settled-without-the-human):
+
+- **Superseded by the answers.** `design.md`, and the agreement checks between it and the spec, are
+  replaced by the single file that Q2 chose.
+- **Mockups and decisions stay in the human part of the spec.**
+- **`data-model.md` and `contracts/`** stay optional.
+- **One home per rule, extract don't grow, rules enforced by tools, and lint messages that say the
+  fix** go into the skill as settled.
+- **Test rules.** No fixed sleeps or wall-clock assertions in unit tests, and changing or deleting a
+  test needs a ruling. The five fixed waits found today are left to the maintenance flow.
+- **UI stories run end to end** in the project's browser runner.
+- **The task reviewer gives two verdicts.** The final review leaves a place for a second reviewer.
+- **Features in flight** rebase onto whichever lands first.
+
+Settled while writing this spec:
+
+- **The fate answer.** "Follow the fate stack's rules" is read as extending `@nkzw/oxlint-config`,
+  since fate has no size limits and that config is the stack's shared lint setup
+  ([Q7.A](clarifications-01.md#q7a-what-limits)).
+- **No budget on the spec's length**, as you answered
+  ([Q4](clarifications-01.md#q4-how-long-may-the-spec-be)). The reference still asks for stories of
+  one or two sentences.
+- **Fold labels.** "Scenarios (N)" for a story and "Details" for the section, both closed by
+  default, in the web UI only. Neovim and GitHub show the plain file, Details last.
+- **Markers in place, not a suppressions file**, the same way in Rust and TypeScript. Oxlint's
+  suppressions file is not confirmed to pass through `vp lint`.
+- **Rust file sizes** are held by a structural test, since clippy has no file-length lint.
+- **Nesting of 4 levels** counts inside a function body. The plan calibrates clippy's
+  `excessive_nesting` threshold to that.
+- **Being asked once.** The discovery question about a code-quality decision is asked once: a "no"
+  is recorded as a decision with a date to revisit.
+- **Old specs are not migrated by a tool.** Specs in the old layout fail `ura check` until revised;
+  records in `specs/done/` are not checked against the template.
+- **A shared concepts file.** `references/code-quality.md` holds the concepts once, and the steps
+  link to it, rather than each step repeating them.
+- **The constitution template** gets the amended principle as its third principle, after the two
+  placeholders. The example's constitution is left as it is.
+
+## Decisions
+
+New, applied when this spec is approved:
+
+- [Code quality](../decisions/code-quality.md): size and nesting limits in clippy and Oxlint, a
+  file-size test for Rust, `@nkzw/oxlint-config`, and today's offenders marked in place with a
+  reason. Each rule says how it is checked.
+
+Relied on:
+
+- [Stack](../decisions/stack.md): the folds are computed in the core and sent with the spec's items.
+  The web UI parses nothing.
+- [UI components](../decisions/ui-components.md): the toggles are Astryx's `Collapsible`.
+- [UI behaviour](../decisions/ui-behaviour.md): Back keeps the open folds.
+- [UI layout](../decisions/ui-layout.md): the mockups show both widths, and the toggles are 44 px
+  tall under a coarse pointer.
+- [UI checks](../decisions/ui-checks.md): browser tests drive the folds as a user does.
+- [Toolchain](../decisions/toolchain.md): the new checks run in `vp run ready`, and the new dev
+  dependency is pinned.
+- [CLI](../decisions/cli.md): every rule `ura check` enforces is written in the skill, and every
+  command stays named in it.
+
+## Constitution check
+
+| Principle                        | Complies | Notes                                                                 |
+| -------------------------------- | -------- | --------------------------------------------------------------------- |
+| I. Humans stay in control        | yes      | You apply the amendment yourself; the new decision waits for approval |
+| II. Git and plain text first     | yes      | Folds are a view; the spec stays one markdown file                    |
+| III. Asynchronous by default     | yes      | No change to how steps end                                            |
+| IV. Review effort matches impact | yes      | The human part comes first, the build details fold                    |
+| V. Tools are optional            | yes      | Checks live in each project's own linters; `ura` measures nothing     |
+| VI. Code is checked against spec | yes      | Extended by the amendment below                                       |
+
+The amendment, which you commit once you approve, replaces principle VI of
+[`CONSTITUTION.md`](../CONSTITUTION.md). It also bumps the version to 1.3.0, and sets **Last
+Amended** to the day you commit it
+([Q9](clarifications-01.md#q9-where-do-the-two-rules-go-in-the-constitution),
+[Q10](clarifications-01.md#q10-who-applies-the-constitution-change)):
+
+```markdown
+### VI. Code is checked and stays maintainable
+
+- Implementations MUST include tests covering the spec's acceptance scenarios.
+- Code SHOULD stay explicit and simple. New abstractions MUST be justified in the plan's complexity
+  tracking.
+- Each rule MUST live in one place. A copy in another layer or language MUST be justified in the
+  plan's complexity tracking.
+- Warnings, size, complexity, and duplication measured by the project's checks MUST NOT go up. An
+  exception MUST be approved by a human in the plan.
+
+Rationale: "high-quality code" cannot be checked, but acceptance tests, justified complexity, and
+checks that never go back can. Agents grow and copy code feature after feature unless something
+measured stops them.
+```
+
+## Risk tier
+
+**Medium**: no user data changes, but every later spec, every plan default, and the checks of every
+later change are affected, and `ura check` fails on specs in the old layout.
+
+## Details
 
 ### Data
 
@@ -382,11 +487,6 @@ so links to `#data`, `#error-handling`, and the mockup page keep working.
   - the fate config's autofixes applied in one structural commit;
   - its remaining violations either fixed or marked.
 
-### Mockups
-
-- [Spec folds](mockups/spec-folds.html): a spec under review on the phone, with one story's
-  scenarios open and a pending comment, and on a desktop, with Details opened from a link.
-
 ### Error handling
 
 - **A spec without the folds' structure**, such as an old layout or a hand-written file, gets empty
@@ -426,103 +526,3 @@ so links to `#data`, `#error-handling`, and the mockup page keep working.
 | US6.1                                       | Web: approving at `high` keeps the switch off                                                                               |
 | US6.2, US6.3                                | Core `proposal.rs` table, cli `review.rs`, lsp `reads.rs`, nvim `test_verdict.lua`                                          |
 | US7.1, SC-004, US7.2                        | cli `skill.rs`: the character limit, and every command named                                                                |
-
-## Assumptions
-
-Settled in the [clarifications](clarifications-01.md#settled-without-the-human):
-
-- **Superseded by the answers.** `design.md`, and the agreement checks between it and the spec, are
-  replaced by the single file that Q2 chose.
-- **Mockups and decisions stay in the human part of the spec.**
-- **`data-model.md` and `contracts/`** stay optional.
-- **One home per rule, extract don't grow, rules enforced by tools, and lint messages that say the
-  fix** go into the skill as settled.
-- **Test rules.** No fixed sleeps or wall-clock assertions in unit tests, and changing or deleting a
-  test needs a ruling. The five fixed waits found today are left to the maintenance flow.
-- **UI stories run end to end** in the project's browser runner.
-- **The task reviewer gives two verdicts.** The final review leaves a place for a second reviewer.
-- **Features in flight** rebase onto whichever lands first.
-
-Settled while writing this spec:
-
-- **The fate answer.** "Follow the fate stack's rules" is read as extending `@nkzw/oxlint-config`,
-  since fate has no size limits and that config is the stack's shared lint setup
-  ([Q7.A](clarifications-01.md#q7a-what-limits)).
-- **No budget on the spec's length**, as you answered
-  ([Q4](clarifications-01.md#q4-how-long-may-the-spec-be)). The reference still asks for stories of
-  one or two sentences.
-- **Fold labels.** "Scenarios (N)" for a story and "Details" for the section, both closed by
-  default, in the web UI only. Neovim and GitHub show the plain file, Details last.
-- **Markers in place, not a suppressions file**, the same way in Rust and TypeScript. Oxlint's
-  suppressions file is not confirmed to pass through `vp lint`.
-- **Rust file sizes** are held by a structural test, since clippy has no file-length lint.
-- **Nesting of 4 levels** counts inside a function body. The plan calibrates clippy's
-  `excessive_nesting` threshold to that.
-- **Being asked once.** The discovery question about a code-quality decision is asked once: a "no"
-  is recorded as a decision with a date to revisit.
-- **Old specs are not migrated by a tool.** Specs in the old layout fail `ura check` until revised;
-  records in `specs/done/` are not checked against the template.
-- **A shared concepts file.** `references/code-quality.md` holds the concepts once, and the steps
-  link to it, rather than each step repeating them.
-- **The constitution template** gets the amended principle as its third principle, after the two
-  placeholders. The example's constitution is left as it is.
-
-## Decisions
-
-New, applied when this spec is approved:
-
-- [Code quality](../decisions/code-quality.md): size and nesting limits in clippy and Oxlint, a
-  file-size test for Rust, `@nkzw/oxlint-config`, and today's offenders marked in place with a
-  reason. Each rule says how it is checked.
-
-Relied on:
-
-- [Stack](../decisions/stack.md): the folds are computed in the core and sent with the spec's items.
-  The web UI parses nothing.
-- [UI components](../decisions/ui-components.md): the toggles are Astryx's `Collapsible`.
-- [UI behaviour](../decisions/ui-behaviour.md): Back keeps the open folds.
-- [UI layout](../decisions/ui-layout.md): the mockups show both widths, and the toggles are 44 px
-  tall under a coarse pointer.
-- [UI checks](../decisions/ui-checks.md): browser tests drive the folds as a user does.
-- [Toolchain](../decisions/toolchain.md): the new checks run in `vp run ready`, and the new dev
-  dependency is pinned.
-- [CLI](../decisions/cli.md): every rule `ura check` enforces is written in the skill, and every
-  command stays named in it.
-
-## Constitution check
-
-| Principle                        | Complies | Notes                                                                 |
-| -------------------------------- | -------- | --------------------------------------------------------------------- |
-| I. Humans stay in control        | yes      | You apply the amendment yourself; the new decision waits for approval |
-| II. Git and plain text first     | yes      | Folds are a view; the spec stays one markdown file                    |
-| III. Asynchronous by default     | yes      | No change to how steps end                                            |
-| IV. Review effort matches impact | yes      | The human part comes first, the build details fold                    |
-| V. Tools are optional            | yes      | Checks live in each project's own linters; `ura` measures nothing     |
-| VI. Code is checked against spec | yes      | Extended by the amendment below                                       |
-
-The amendment, which you commit once you approve, replaces principle VI of
-[`CONSTITUTION.md`](../CONSTITUTION.md). It also bumps the version to 1.3.0, and sets **Last
-Amended** to the day you commit it
-([Q9](clarifications-01.md#q9-where-do-the-two-rules-go-in-the-constitution),
-[Q10](clarifications-01.md#q10-who-applies-the-constitution-change)):
-
-```markdown
-### VI. Code is checked and stays maintainable
-
-- Implementations MUST include tests covering the spec's acceptance scenarios.
-- Code SHOULD stay explicit and simple. New abstractions MUST be justified in the plan's complexity
-  tracking.
-- Each rule MUST live in one place. A copy in another layer or language MUST be justified in the
-  plan's complexity tracking.
-- Warnings, size, complexity, and duplication measured by the project's checks MUST NOT go up. An
-  exception MUST be approved by a human in the plan.
-
-Rationale: "high-quality code" cannot be checked, but acceptance tests, justified complexity, and
-checks that never go back can. Agents grow and copy code feature after feature unless something
-measured stops them.
-```
-
-## Risk tier
-
-**Medium**: no user data changes, but every later spec, every plan default, and the checks of every
-later change are affected, and `ura check` fails on specs in the old layout.
