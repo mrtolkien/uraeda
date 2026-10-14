@@ -11,6 +11,7 @@ import type { useFile } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { SaveStatus } from "./fields/SaveStatus.tsx";
+import { SaveKeys } from "./fields/SaveKeys.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
 import { useSave } from "./useSave.ts";
@@ -126,6 +127,7 @@ export function NotesField({
         />
         <Button isDisabled={!field.dirty} label="Save notes" onClick={saveNow} />
         <SaveStatus dirty={field.dirty} state={save.state} />
+        <SaveKeys />
       </HStack>
     </VStack>
   );
