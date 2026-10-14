@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 2
 clarifications: 1
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: true
 
 # Spec: Text inputs and comments
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 5 minutes: text areas no longer grow.
+> Changes requested on 2026-10-14: 1 comment in spec-review.md.
 >
 > - C1: done. Every multi-line field has a fixed height by what it holds, and scrolls past it: the
 >   proposal editor 20 rows, the notes 12, every comment and the review summary 7, quick add 3. The
