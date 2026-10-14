@@ -4,7 +4,17 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
-import { atWidth, click, fixture, fixtureRepo, git, renderPage, today, type } from "./helpers.tsx";
+import {
+  atWidth,
+  click,
+  fixture,
+  fixtureRepo,
+  git,
+  renderPage,
+  serverFetch,
+  today,
+  type,
+} from "./helpers.tsx";
 
 const FOLDER = "2026-10-11-web-ui";
 const PAGE = `/f/${FOLDER}/clarifications-01.md`;
@@ -144,6 +154,38 @@ test.each([
   });
 
   await waitFor(() => expect(notesOnDisk(repo)).toBe(`- **${UNDO}**: ${COMMENT}`));
+});
+
+/** Second review: Ctrl+Enter while Add comment's write is under way sends nothing again. */
+test("Ctrl+Enter during Add comment adds the comment once", async () => {
+  const repo = round({});
+  const server = serverFetch(repo);
+  const sent: Array<string> = [];
+  const waiting: Array<() => void> = [];
+  const fetch = (async (input, init) => {
+    const body = typeof init?.body === "string" ? init.body : "";
+    if (body.includes(`"text":"${COMMENT}"`)) {
+      sent.push(body);
+      if (sent.length === 1) {
+        await new Promise<void>((resolve) => waiting.push(resolve));
+      }
+    }
+    return server(input, init);
+  }) as typeof globalThis.fetch;
+  await renderPage(PAGE, repo, { fetch });
+  await click(await point(UNDO));
+  await type(commentField(), COMMENT);
+  await click(formButton("Add comment"));
+  await waitFor(() => expect(waiting).toHaveLength(1));
+
+  await act(async () => {
+    fireEvent.keyDown(commentField(), { ctrlKey: true, key: "Enter" });
+  });
+  await act(async () => waiting.shift()!());
+
+  await waitFor(() => expect(commentsOn(UNDO)).toHaveLength(1));
+  expect(sent).toHaveLength(1);
+  expect(notesOnDisk(repo)).toBe(`- **${UNDO}**: ${COMMENT}`);
 });
 
 /** US4 5 */

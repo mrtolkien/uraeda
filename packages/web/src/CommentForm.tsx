@@ -4,7 +4,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
@@ -147,16 +147,24 @@ function CommentFields({
 }) {
   const [error, setError] = useState<string>();
   const canSubmit = text.trim() !== "" && !images?.busy && dirty;
-  const submit = async () => setError(await onSubmit(text));
-  // Ctrl+Enter, or Cmd+Enter, sends the comment as its button does, once: not again while it is
-  // being sent, nor when the button is disabled.
+  // The button and Ctrl+Enter, or Cmd+Enter, send the comment once: not again while it is being
+  // sent, by either, nor when the button is disabled.
   const [sending, setSending] = useState(false);
-  const submitKey = () => {
-    if (canSubmit && !sending) {
-      setSending(true);
-      void submit().finally(() => setSending(false));
+  const inFlight = useRef(false);
+  const submit = async () => {
+    if (!canSubmit || inFlight.current) {
+      return;
+    }
+    inFlight.current = true;
+    setSending(true);
+    try {
+      setError(await onSubmit(text));
+    } finally {
+      inFlight.current = false;
+      setSending(false);
     }
   };
+  const submitKey = () => void submit();
   return (
     <form
       aria-label="Comment"
