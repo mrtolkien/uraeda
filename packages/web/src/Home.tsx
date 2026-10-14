@@ -83,7 +83,10 @@ export function Home() {
     (f) => f.step.waitsOn === "agent" && f.step.name !== "none" && !f.problems.length,
   );
   const invalid = features.filter((f) => f.problems.length && f.step.name !== "done");
-  const done = features.filter((f) => f.step.name === "done");
+  // Latest first: a folder's name starts with its date.
+  const done = features
+    .filter((f) => f.step.name === "done")
+    .sort((a, b) => b.folder.localeCompare(a.folder));
   const priorities = workspace.priorities.filter(
     (entry) => (entry.section === "now" || entry.section === "next") && !entry.feature,
   );

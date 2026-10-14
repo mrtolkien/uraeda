@@ -47,6 +47,19 @@ test("lists merged features as done", async () => {
   expect(within(await row("Stack decision")).getByText("Merged")).toBeTruthy();
 });
 
+test("lists done features latest first, by their folder", async () => {
+  await renderPage();
+
+  await row("CLI core features");
+  const merged = (await main())
+    .getAllByRole("listitem")
+    .filter((item) => within(item).queryByText("Merged") !== null)
+    .map((item) => item.textContent);
+  // 2026-10-10-stack-decision sorts after 2026-10-10-cli-core.
+  expect(merged[0]).toContain("Stack decision");
+  expect(merged[1]).toContain("CLI core features");
+});
+
 /** US1.4, and US3: each Now and Next line not started opens its task view. */
 test("lists Now and Next lines not started, each opening its task view", async () => {
   await renderPage();
