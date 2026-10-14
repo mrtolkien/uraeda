@@ -1050,18 +1050,18 @@ git commit -m "feat(text-inputs): every multi-line field has a fixed height"
   in its notes)
 - Test: `cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs`
 
-- [ ] **Step 1: Write**: the human may comment on a settled point with a bullet at the end of the
+- [x] **Step 1: Write**: the human may comment on a settled point with a bullet at the end of the
       notes, `- **<the point's bold subject>**: <comment>`; the spec step reads it as the human's
       answer to that point. The example's notes get
       `- **Repeating tasks show a repeat icon**: Yes, the same icon as in the menu.`, which its spec
       already agrees with.
 
-- [ ] **Step 2: Run the check**
+- [x] **Step 2: Run the check**
 
 - Run: `cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs && vp check`
 - Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add skills
