@@ -5,12 +5,14 @@ import { useRef, useState } from "react";
 import type { QuestionItem } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { Crumbs } from "./Crumbs.tsx";
+import { unsavedKey, useUnsavedOf } from "./fields/unsaved.ts";
 import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { Question } from "./Question.tsx";
 import { type NavQuestion, RoundNav } from "./RoundNav.tsx";
 import { useRoundNotes } from "./RoundNotes.tsx";
 import { RoundEnd } from "./RoundSubmit.tsx";
+import { useRepositoryPath } from "./routes.tsx";
 import { askAbout, quoted } from "./sessions.ts";
 import { plain } from "./Spans.tsx";
 import { SettledPoints } from "./SettledPoints.tsx";
@@ -64,9 +66,13 @@ export function RoundPage({ file }: { file: File }) {
   // Submit's buttons, which the bar's Submit focuses.
   const submitRow = useRef<HTMLDivElement>(null);
   const questions = round?.questions ?? [];
-  // The questions the round asks now, as the core says: a follow-up once its parent's answer
-  // makes it apply.
-  const blank = questions.filter((q) => q.asked && !q.answer.trim());
+  // The questions the round asks now, as the core says, a follow-up once its parent's answer
+  // makes it apply, with no answer on disk and no comment typed, which Submit saves first: over a
+  // blank answer, only text that is not blank is unsaved.
+  const repo = useRepositoryPath();
+  const keyOf = (q: QuestionItem) => unsavedKey(repo, `${file.path}#${q.id}`);
+  const typed = useUnsavedOf(questions.map(keyOf));
+  const blank = questions.filter((q) => q.asked && !q.answer.trim() && !typed.has(keyOf(q)));
   const title = document.blocks.find((b) => b.kind === "heading" && b.level === 1);
   const nav = navOf(questions);
   useRoundPosition(file.folder, file.name, nav);

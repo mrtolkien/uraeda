@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 
 /** A field's text typed and not saved, as the store keeps it. */
 export type Unsaved = {
@@ -211,6 +211,22 @@ export function useUnsaved(key: string): Unsaved | undefined {
   );
 }
 
+/** Listens to every key of the store. */
+function subscribeAny(listener: () => void) {
+  anyListeners.add(listener);
+  return () => {
+    anyListeners.delete(listener);
+  };
+}
+
+/** Which of `keys` hold unsaved text, drawn again as any entry changes. */
+export function useUnsavedOf(keys: ReadonlyArray<string>): ReadonlySet<string> {
+  const held = useSyncExternalStore(subscribeAny, () =>
+    keys.filter((key) => readUnsaved(key)).join("\n"),
+  );
+  return useMemo(() => new Set(held ? held.split("\n") : []), [held]);
+}
+
 /**
  * The fields drawn now, each with its key and its saved text: only their unsaved text is on the
  * page. An entry whose field is not drawn, like a sheet's comment once the sheet closed, is kept
@@ -242,8 +258,5 @@ export function hasDrawnUnsaved(): boolean {
 
 /** Whether a field drawn now holds unsaved text, drawn again as it changes. */
 export function useHasDrawnUnsaved(): boolean {
-  return useSyncExternalStore((listener) => {
-    anyListeners.add(listener);
-    return () => anyListeners.delete(listener);
-  }, hasDrawnUnsaved);
+  return useSyncExternalStore(subscribeAny, hasDrawnUnsaved);
 }
