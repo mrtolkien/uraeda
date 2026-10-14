@@ -691,3 +691,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   hand-edited `built/uraeda.js` (rebuilt and checked by `theme --check`).
 - **If wrong**: the `imports` field of `packages/web/package.json`, and `theme.ts`.
 - **Where**: task 8.
+
+## R48: An image is a link to itself, in a box of its own
+
+- **Decision**: `ImageView` draws the `<img>` inside an Astryx `Link` to the image's own address; a
+  click opens the lightbox in place, and a click with a modifier key, or a middle click, opens the
+  address as a browser does. A paragraph holding an image is drawn as a `div`, not a `p`. The
+  history entry that lets Back close an overlay moves from `layout/Overlay.tsx` into
+  `layout/useBackCloses.ts`, which both use.
+- **Rationale**: a link is reachable by keyboard and named by the image's alt text, without taking
+  the image's `img` role away, as `useLightbox`'s trigger props (`role="button"`) would. The
+  lightbox is a `<dialog>`, which a `<p>` cannot hold: React reports it, and a browser may move it
+  out. One hook keeps Back's behaviour the same for both overlays. happy-dom follows a link clicked
+  through its child before React sees the click, which a browser does not, so the UI test clicks the
+  link that holds the image; the screenshots click the image itself.
+- **Alternatives considered**: the image with `useLightbox`'s trigger props (a button, no longer an
+  image); a lightbox portalled to `body` (outside Astryx's theme); the history code copied.
+- **If wrong**: `packages/web/src/ImageView.tsx`, the paragraph case of `BlockNode` in
+  `packages/web/src/Blocks.tsx`.
+- **Where**: task 9; task 10 draws chat images with the same `ImageView`.

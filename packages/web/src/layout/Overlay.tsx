@@ -4,12 +4,9 @@ import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
-import { type ReactNode, type RefObject, useEffect, useRef } from "react";
+import type { ReactNode, RefObject } from "react";
+import { overlayOf, useBackCloses } from "./useBackCloses.ts";
 import { useWidthClass } from "./useWidthClass.ts";
-
-function overlayOf(state: unknown): string | undefined {
-  return (state as { overlay?: string } | null)?.overlay;
-}
 
 /**
  * A short form over the page: a dialog on wide screens, a bottom sheet on narrow ones, tall unless
@@ -36,45 +33,7 @@ export function Overlay({
   sheetRef?: RefObject<HTMLDivElement | null>;
 }) {
   const wide = useWidthClass() === "wide";
-  const pushed = useRef(false);
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      // Closed by its owner, after a form's success: its history entry goes too.
-      if (pushed.current) {
-        pushed.current = false;
-        if (overlayOf(window.history.state) === label) {
-          window.history.back();
-        }
-      }
-      return;
-    }
-    if (overlayOf(window.history.state) !== label) {
-      window.history.pushState({ overlay: label }, "");
-    }
-    pushed.current = true;
-    const onPop = () => {
-      if (overlayOf(window.history.state) !== label) {
-        pushed.current = false;
-        onCloseRef.current();
-      }
-    };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, [isOpen, label]);
-
-  // Closing goes back over the overlay's own entry, which closes it.
-  const close = () => {
-    if (overlayOf(window.history.state) === label) {
-      window.history.back();
-    } else {
-      onClose();
-    }
-  };
+  const close = useBackCloses(label, isOpen, onClose);
   const onOpenChange = (open: boolean) => {
     if (!open) {
       close();

@@ -272,8 +272,14 @@ function BlockNode({ block, context }: { block: Block; context: Context }): Reac
       );
       break;
     case "paragraph":
+      // A paragraph holding an image is a box: its lightbox, a dialog, cannot sit in a `<p>`.
       node = (
-        <Text as="p" display="block" type="inherit" xstyle={styles.paragraph}>
+        <Text
+          as={block.spans.some((span) => span.image) ? "div" : "p"}
+          display="block"
+          type="inherit"
+          xstyle={styles.paragraph}
+        >
           {spans}
         </Text>
       );
