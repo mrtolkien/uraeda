@@ -23,7 +23,8 @@ import { refusal } from "./errors.ts";
 import { stepLabel } from "./labels.ts";
 import { statusStyles } from "./Question.tsx";
 import { StatusMark } from "./StatusMark.tsx";
-import { currentEntry, updateEntry } from "./routes.tsx";
+import { currentEntry } from "./routes.tsx";
+import type { OpenKeys } from "./useOpenKeys.ts";
 import { SessionView } from "./views.ts";
 
 const styles = stylex.create({
@@ -100,30 +101,6 @@ function toolCalls(tools: Array<ToolItem>, ended: boolean) {
       target: tool.subagent?.description ?? tool.target,
     };
   });
-}
-
-/** The groups of tool calls opened, by their turn and first call, and how to open or close one. */
-type OpenGroups = {
-  onOpenChange: (key: string, isOpen: boolean) => void;
-  open: ReadonlyArray<string>;
-};
-
-/** The groups of tool calls opened in the transcript, kept in the history entry for Back and reloads. */
-export function useOpenGroups(): OpenGroups {
-  const [open, setOpen] = useState<ReadonlyArray<string>>(() => currentEntry().open ?? []);
-  // The entry this view was opened on: still shown while the next page loads, it must not write
-  // into the next one's entry.
-  const [id] = useState(() => currentEntry().id);
-  return {
-    onOpenChange: (key, isOpen) => {
-      const next = isOpen ? [...open.filter((k) => k !== key), key] : open.filter((k) => k !== key);
-      setOpen(next);
-      if (currentEntry().id === id) {
-        updateEntry({ open: next });
-      }
-    },
-    open,
-  };
 }
 
 /** How close to its end, in pixels, the transcript still counts as read to the end. */
@@ -213,7 +190,7 @@ export type Actions = {
   canAllow: boolean;
   /** Whether a message not read yet can be taken back. */
   canTakeBack: boolean;
-  groups?: OpenGroups;
+  groups?: OpenKeys;
   /** Allows a blocked action. */
   onAllow?: (turn: string, seq: number) => Promise<void>;
   /** Called with a message's text once it is taken back. */
@@ -583,7 +560,7 @@ export function Transcript({
   session,
 }: {
   canAllow?: boolean;
-  groups?: OpenGroups;
+  groups?: OpenKeys;
   onAllow?: (turn: string, seq: number) => Promise<void>;
   onTakenBack?: (text: string) => void;
   session: { id: string; turns: ReadonlyArray<string> };
