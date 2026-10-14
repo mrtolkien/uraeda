@@ -26,6 +26,11 @@ async function collect<T>(items: AsyncIterable<T>): Promise<Array<T>> {
   return all;
 }
 
+/** An images folder in a temporary folder, not created yet: opening a process creates it. */
+function images(): string {
+  return join(mkdtempSync(join(tmpdir(), "uraeda-data-")), "images");
+}
+
 async function* chunks(...parts: Array<Buffer>) {
   for (const part of parts) {
     yield part;
@@ -33,7 +38,7 @@ async function* chunks(...parts: Array<Buffer>) {
 }
 
 test("SC-006: a new session's arguments", () => {
-  expect(claudeArgs({ ...open, resume: false }, "/plugin")).toEqual([
+  expect(claudeArgs({ ...open, resume: false }, "/plugin", "/data/images")).toEqual([
     "-p",
     "--input-format",
     "stream-json",
@@ -45,6 +50,8 @@ test("SC-006: a new session's arguments", () => {
     "auto",
     "--plugin-dir",
     "/plugin",
+    "--add-dir",
+    "/data/images",
     "--session-id",
     "id",
   ]);
@@ -55,6 +62,11 @@ test("a resumed session with an allow rule", () => {
     claudeArgs({ ...open, allowed: "Bash(gh pr create --draft)", resume: true }, "/plugin").slice(
       11,
     ),
+    claudeArgs(
+      { ...open, resume: true, allowed: "Bash(gh pr create --draft)" },
+      "/plugin",
+      "/data/images",
+    ).slice(13),
   ).toEqual(["--resume", "id", "--allowedTools", "Bash(gh pr create --draft)"]);
 });
 
@@ -62,6 +74,12 @@ test("no argument skips permissions or sets a model", () => {
   for (const args of [
     claudeArgs({ ...open, resume: false }, "/plugin"),
     claudeArgs({ ...open, allowed: "Bash(gh pr create --draft)", resume: true }, "/plugin"),
+    claudeArgs({ ...open, resume: false }, "/plugin", "/data/images"),
+    claudeArgs(
+      { ...open, resume: true, allowed: "Bash(gh pr create --draft)" },
+      "/plugin",
+      "/data/images",
+    ),
   ]) {
     for (const forbidden of [
       "bypassPermissions",
@@ -75,7 +93,7 @@ test("no argument skips permissions or sets a model", () => {
 });
 
 test("Claude Code declares what it can do", () => {
-  const adapter = new ClaudeAdapter({ pluginDir: "/plugin" });
+  const adapter = new ClaudeAdapter({ pluginDir: "/plugin", imagesDir: "/data/images" });
   expect([adapter.kind, adapter.name]).toEqual(["claude", "Claude Code"]);
   expect(adapter.capabilities).toEqual({
     approvals: false,
@@ -83,6 +101,7 @@ test("Claude Code declares what it can do", () => {
     steer: true,
     subagents: true,
     takeBack: true,
+    images: true,
   });
 });
 
@@ -238,11 +257,15 @@ test("a session exists when its transcript is found", () => {
   const configDir = temporaryFolder("uraeda-claude");
   mkdirSync(join(configDir, "projects", "-w"), { recursive: true });
   writeFileSync(join(configDir, "projects", "-w", "3f2c.jsonl"), "");
-  const adapter = new ClaudeAdapter({ configDir, pluginDir: "/p" });
+  const adapter = new ClaudeAdapter({ configDir, pluginDir: "/p", imagesDir: images() });
   expect(adapter.hasSession("3f2c")).toBe(true);
   expect(adapter.hasSession("9a9a")).toBe(false);
   expect(
-    new ClaudeAdapter({ configDir: join(configDir, "none"), pluginDir: "/p" }).hasSession("3f2c"),
+    new ClaudeAdapter({
+      configDir: join(configDir, "none"),
+      pluginDir: "/p",
+      imagesDir: images(),
+    }).hasSession("3f2c"),
   ).toBe(false);
 });
 
@@ -606,7 +629,9 @@ test.each<[Denial, string]>([
   [{ input: { file_path: "#a.ts" }, tool: "Edit" }, String.raw`Edit(\#a.ts)`],
 ])("the allow rule of %o", (denial, rule) => {
   expect(allowRule(denial)).toBe(rule);
-  expect(new ClaudeAdapter({ pluginDir: "/plugin" }).allowRule(denial)).toBe(rule);
+  expect(
+    new ClaudeAdapter({ pluginDir: "/plugin", imagesDir: "/data/images" }).allowRule(denial),
+  ).toBe(rule);
 });
 
 test("a command with a `*` has no allow rule: Claude Code would read it as a wildcard", () => {
@@ -616,7 +641,11 @@ test("a command with a `*` has no allow rule: Claude Code would read it as a wil
 });
 
 test("review focus 5: a missing command exits as missing", async () => {
-  const agent = new ClaudeAdapter({ command: "/nonexistent/claude", pluginDir: "/p" }).open({
+  const agent = new ClaudeAdapter({
+    command: "/nonexistent/claude",
+    pluginDir: "/p",
+    imagesDir: images(),
+  }).open({
     ...open,
     cwd: tmpdir(),
     resume: false,
@@ -624,7 +653,7 @@ test("review focus 5: a missing command exits as missing", async () => {
   const events = await collect(agent.events);
   expect(events.at(-1)).toMatchObject({ missing: true, type: "exit" });
   // Writing to a process that is gone does nothing.
-  agent.send({ id: "m1", text: "hi", when: "steer" });
+  agent.send({ id: "m1", text: "hi", when: "steer", images: [] });
   agent.interrupt();
   agent.close();
 });
@@ -646,7 +675,11 @@ test("a missing directory exits with why, not as a missing command", async () =>
 
 test("version() is undefined without the command", async () => {
   expect(
-    await new ClaudeAdapter({ command: "/nonexistent/claude", pluginDir: "/p" }).version(),
+    await new ClaudeAdapter({
+      command: "/nonexistent/claude",
+      pluginDir: "/p",
+      imagesDir: images(),
+    }).version(),
   ).toBeUndefined();
 });
 
@@ -668,7 +701,7 @@ const written = (path: string) =>
 
 test("version() is the command's first line", async () => {
   const command = script('echo "2.1.296 (Claude Code)"; echo more');
-  expect(await new ClaudeAdapter({ command, pluginDir: "/p" }).version()).toBe(
+  expect(await new ClaudeAdapter({ command, pluginDir: "/p", imagesDir: images() }).version()).toBe(
     "2.1.296 (Claude Code)",
   );
 });
@@ -684,7 +717,8 @@ test("an open process streams its events, and exits with its stderr", async () =
       "exit 3",
     ].join("\n"),
   );
-  const agent = new ClaudeAdapter({ command, pluginDir: "/plugin" }).open({
+  const imagesDir = images();
+  const agent = new ClaudeAdapter({ command, pluginDir: "/plugin", imagesDir }).open({
     ...open,
     cwd: dir,
     resume: false,
@@ -692,7 +726,7 @@ test("an open process streams its events, and exits with its stderr", async () =
   const events = await collect(agent.events);
 
   expect(readFileSync(join(dir, "args"), "utf8").trim()).toBe(
-    claudeArgs({ ...open, cwd: dir, resume: false }, "/plugin").join(" "),
+    claudeArgs({ ...open, cwd: dir, resume: false }, "/plugin", imagesDir).join(" "),
   );
   expect(events.map((event) => event.type)).toEqual(["toolStart", "toolEnd", "skipped", "exit"]);
   const exit = events.at(-1) as Extract<AgentEvent, { type: "exit" }>;
@@ -704,13 +738,13 @@ test("an open process streams its events, and exits with its stderr", async () =
 test("send writes a user message with its uuid and priority", async () => {
   const dir = temporaryFolder("uraeda-claude");
   const command = script(`cat > "${join(dir, "stdin")}"`);
-  const agent = new ClaudeAdapter({ command, pluginDir: "/p" }).open({
+  const agent = new ClaudeAdapter({ command, pluginDir: "/p", imagesDir: images() }).open({
     ...open,
     cwd: dir,
     resume: false,
   });
-  agent.send({ id: "m1", text: "hi", when: "steer" });
-  agent.send({ id: "m2", text: "then this", when: "queue" });
+  agent.send({ id: "m1", text: "hi", when: "steer", images: [] });
+  agent.send({ id: "m2", text: "then this", when: "queue", images: [] });
   agent.takeBack("m2");
   agent.close();
   const events = await collect(agent.events);
@@ -736,10 +770,88 @@ test("send writes a user message with its uuid and priority", async () => {
   expect(takeBack!.request_id).toEqual(expect.any(String));
 });
 
+test("US2.2: a message with images is its text, a blank line, then one line per image", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  const command = script(`cat > "${join(dir, "stdin")}"`);
+  const imagesDir = images();
+  const agent = new ClaudeAdapter({ command, pluginDir: "/p", imagesDir }).open({
+    ...open,
+    cwd: dir,
+    resume: false,
+  });
+  const [a, b] = [join(imagesDir, "a.webp"), join(imagesDir, "b.webp")];
+  agent.send({
+    id: "m1",
+    text: "What is wrong here?",
+    when: "queue",
+    images: [{ path: a }, { path: b }],
+  });
+  agent.send({ id: "m2", text: "", when: "steer", images: [{ path: a }] });
+  agent.close();
+  await collect(agent.events);
+
+  expect(written(join(dir, "stdin"))).toEqual([
+    {
+      type: "user",
+      message: {
+        role: "user",
+        content: `What is wrong here?\n\n[Image: ${a}]\n[Image: ${b}]`,
+      },
+      uuid: "m1",
+      priority: "later",
+    },
+    {
+      type: "user",
+      message: { role: "user", content: `[Image: ${a}]` },
+      uuid: "m2",
+      priority: "next",
+    },
+  ]);
+});
+
+test("US6.2: the images folder exists before the process starts, which --add-dir needs", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  const imagesDir = images();
+  const command = script(`[ -d "${imagesDir}" ] && echo found > "${join(dir, "found")}"`);
+  const agent = new ClaudeAdapter({ command, pluginDir: "/p", imagesDir }).open({
+    ...open,
+    cwd: dir,
+    resume: false,
+  });
+  await collect(agent.events);
+
+  expect(readFileSync(join(dir, "found"), "utf8")).toBe("found\n");
+});
+
+test("an image the agent read stays out of its tool's output", () => {
+  const base64 = "UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAQAcJaQAA3AA/v3AgAA=";
+  const line = JSON.stringify({
+    type: "user",
+    message: {
+      role: "user",
+      content: [
+        {
+          type: "tool_result",
+          tool_use_id: "toolu_1",
+          content: [
+            { type: "image", source: { type: "base64", media_type: "image/webp", data: base64 } },
+          ],
+        },
+      ],
+    },
+    tool_use_result: {
+      type: "image",
+      file: { base64, type: "image/webp", originalSize: 40 },
+    },
+  });
+
+  expect(parseLine(line)).toEqual([{ type: "toolEnd", id: "toolu_1", isError: false, output: "" }]);
+});
+
 test("interrupt writes the interrupt control request, and close ends stdin", async () => {
   const dir = temporaryFolder("uraeda-claude");
   const command = script(`cat > "${join(dir, "stdin")}"\necho closed >&2`);
-  const agent = new ClaudeAdapter({ command, pluginDir: "/p" }).open({
+  const agent = new ClaudeAdapter({ command, pluginDir: "/p", imagesDir: images() }).open({
     ...open,
     cwd: dir,
     resume: false,
@@ -764,7 +876,7 @@ test("kill sends its signal to the process", async () => {
   const command = script(
     `trap 'echo interrupted >&2; exit 130' INT\necho not json\nwhile true; do sleep 0.1; done`,
   );
-  const agent = new ClaudeAdapter({ command, pluginDir: "/p" }).open({
+  const agent = new ClaudeAdapter({ command, pluginDir: "/p", imagesDir: images() }).open({
     ...open,
     cwd: dir,
     resume: false,

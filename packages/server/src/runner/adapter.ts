@@ -12,6 +12,8 @@ export type Capabilities = {
   subagents: boolean;
   /** A message not read yet can be taken back. */
   takeBack: boolean;
+  /** The agent opens the images sent with a message, by their paths. */
+  images: boolean;
 };
 
 /** How to open a session's process. */
@@ -26,8 +28,16 @@ export type OpenOptions = {
   resume: boolean;
 };
 
-/** A message sent to an agent: steered into its turn, or queued after it. */
-export type Outgoing = { id: string; text: string; when: "steer" | "queue" };
+/**
+ * A message sent to an agent: steered into its turn, or queued after it, with the paths of its chat
+ * images, which the adapter writes to its agent in the agent's own way.
+ */
+export type Outgoing = {
+  id: string;
+  text: string;
+  when: "steer" | "queue";
+  images: Array<{ path: string }>;
+};
 
 /** A session's open process, which takes messages until it is closed. */
 export interface AgentProcess {

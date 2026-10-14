@@ -75,13 +75,19 @@ export function retryMessage(denial: { target?: string; tool: string }): string 
 
 const TITLE_LENGTH = 80;
 
-/** A chat's title: its first message's first non-blank line, cut at 80 characters. */
-export function chatTitle(text: string): string {
+/**
+ * A chat's title: its first message's first non-blank line, cut at 80 characters, or "Image" for a
+ * message of images alone.
+ */
+export function chatTitle(text: string, images = false): string {
   const line = text
     .split("\n")
     .map((part) => part.trim())
     .find((part) => part !== "");
-  return line ? line.slice(0, TITLE_LENGTH) : "New chat";
+  if (line) {
+    return line.slice(0, TITLE_LENGTH);
+  }
+  return images ? "Image" : "New chat";
 }
 
 const TARGETS = ["command", "file_path", "url", "pattern", "path"];

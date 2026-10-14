@@ -141,7 +141,14 @@ export const DraftView = view<Draft>()({
 
 export const AgentView = view<Agent>()({
   available: true,
-  capabilities: { approvals: true, queue: true, steer: true, subagents: true, takeBack: true },
+  capabilities: {
+    approvals: true,
+    images: true,
+    queue: true,
+    steer: true,
+    subagents: true,
+    takeBack: true,
+  },
   id: true,
   kind: true,
   name: true,

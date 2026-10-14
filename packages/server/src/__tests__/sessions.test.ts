@@ -1,4 +1,6 @@
+import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
+import { chatImages } from "../attach.ts";
 import type { AgentEvent } from "../runner/events.ts";
 import { byId, type Data, mutate, testServer } from "./helpers.ts";
 
@@ -610,6 +612,14 @@ test("Agent reads the agent's name, availability, version, and capabilities", as
     kind: "fake",
     name: "Claude Code",
     version: "0.0.0 (fake agent)",
+    capabilities: {
+      steer: true,
+      queue: true,
+      takeBack: true,
+      approvals: false,
+      subagents: true,
+      images: true,
+    },
   });
 });
 
@@ -623,4 +633,66 @@ test("US4.4: without the agent, Agent reads unavailable and a send is refused", 
 
   expect(agent).toEqual({ available: false, id: "agent", version: null });
   expect(refused.error?.message).toBe("refused: Claude Code is not available on this machine.");
+});
+
+/** A chat image saved in the server's data folder, as `POST /attach` saves it. */
+const saved = (server: Server) =>
+  chatImages(server.dataDir).save({
+    bytes: Buffer.from("RIFF....WEBP"),
+    extension: "webp",
+    width: 1440,
+    height: 900,
+  });
+
+test("US2.2: session.send passes the images' paths in the data folder, and the item holds them", async () => {
+  const server = await testServer();
+  const [a, b] = [await saved(server), await saved(server)];
+  const chat = await mutate(server.app, "session.newChat", {}, ["id"]);
+  server.adapter.script([]);
+
+  const session = await send(server, {
+    session: chat.data.id,
+    text: "What is wrong here?",
+    images: [a, b],
+  });
+  await settle(server, session);
+
+  expect(server.adapter.sent[0]).toMatchObject({
+    text: "What is wrong here?",
+    images: [
+      { path: join(server.dataDir, "images", a!.id) },
+      { path: join(server.dataDir, "images", b!.id) },
+    ],
+  });
+  const [log] = await byId(server.app, "TurnLog", [`${session.turns[0]}:0`], ["id", "items"]);
+  expect(log.items[0]).toMatchObject({ kind: "message", images: [a, b] });
+  expect(server.sessions.cache.imagesInUse()).toEqual(new Set([a!.id, b!.id]));
+});
+
+test('US2.4: session.send takes an image alone, and titles the chat "Image"', async () => {
+  const server = await testServer();
+  const image = await saved(server);
+  const chat = await mutate(server.app, "session.newChat", {}, ["id"]);
+  server.adapter.script([]);
+
+  const session = await send(server, { session: chat.data.id, text: "", images: [image] });
+  await settle(server, session);
+
+  expect(session.title).toBe("Image");
+});
+
+test("session.send refuses an image that is not in the data folder", async () => {
+  const server = await testServer();
+  const chat = await mutate(server.app, "session.newChat", {}, ["id"]);
+
+  for (const id of ["0b9f9c4e-6a4f-4f3e-9d1e-2a7c1f0e5b3a.webp", "../runner.sqlite"]) {
+    const refused = await mutate(
+      server.app,
+      "session.send",
+      { session: chat.data.id, text: "Look", images: [{ id, width: 1, height: 1 }] },
+      ["id"],
+    );
+    expect(refused.error?.message).toBe("refused: This image is gone: add it again.");
+  }
+  expect(server.adapter.sent).toEqual([]);
 });

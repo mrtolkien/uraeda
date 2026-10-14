@@ -486,3 +486,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `megabytes` and the `bodyLimit` handler in `packages/server/src/attach.ts`, kept in
   step with `megabytes` in `crates/core/src/images.rs`.
 - **Where**: task 6.
+
+## R35: `session.send` takes the images as the upload returned them
+
+- **Decision**: `session.send` takes `images?: ChatImage[]`, the `{ id, width, height }` that
+  `POST /attach` returned, not bare IDs. The mutation resolves each ID to its file through
+  `ChatImages`, and refuses one with no file with "This image is gone: add it again."; it passes
+  `SentImage`s, `ChatImage & { path }`, to `Sessions.send`, which checks the count and the
+  capability, keeps the IDs and sizes on the item, and gives the paths to the adapter. A message of
+  images alone is sent with an empty text.
+- **Rationale**: the item holds each image's size, which the server cannot learn from an ID: the
+  data folder keeps no sizes, and only the core reads an image's header, so a TypeScript header
+  reader would reimplement it. The sizes come from the core through the upload; a wrong size only
+  misdraws the sender's own transcript. The session manager has no data folder: the request's
+  context does.
+- **Alternatives considered**: IDs alone, with the sizes read back from the WebP header in
+  TypeScript (the core's parsing, reimplemented), re-encoded through `encodeImage` at each send (up
+  to a second per image), or kept in a side file or table per image (one more thing to clean).
+- **If wrong**: `sentImages` in `packages/server/src/fate/mutations.ts`, `SendInput` and `SentImage`
+  in `packages/server/src/runner/sessions.ts`, and task 10's `sendMessage`.
+- **Where**: task 7.

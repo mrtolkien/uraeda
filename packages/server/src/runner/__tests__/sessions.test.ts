@@ -895,3 +895,132 @@ test("a session of another repository is refused", async () => {
   expect(() => sessions.stop(repo, session.id)).toThrow(`no session ${session.id}`);
   expect(adapter.opens).toEqual([]);
 });
+
+/** Chat images as the server resolved them: their IDs and sizes, and their paths. */
+const image = (name: string) => ({
+  id: `${name}.webp`,
+  width: 1440,
+  height: 900,
+  path: `/data/images/${name}.webp`,
+});
+
+test("US2.2: the agent receives the text, then the images' paths, and the item holds the images", async () => {
+  const { sessions, adapter, cache, repo } = await testSessions();
+  const chat = await sessions.newChat(repo);
+  adapter.script([]);
+
+  const { turn } = await sessions.send(repo, chat.id, {
+    text: "What is wrong here?",
+    images: [image("a"), image("b")],
+  });
+  await sessions.settled(turn);
+
+  expect(adapter.sent[0]).toMatchObject({
+    text: "What is wrong here?",
+    images: [{ path: "/data/images/a.webp" }, { path: "/data/images/b.webp" }],
+    when: "queue",
+  });
+  expect(cache.items(turn, 0, 1)[0]).toEqual({
+    seq: 0,
+    kind: "message",
+    id: adapter.sent[0]?.id,
+    text: "What is wrong here?",
+    origin: "human",
+    state: "read",
+    images: [
+      { id: "a.webp", width: 1440, height: 900 },
+      { id: "b.webp", width: 1440, height: 900 },
+    ],
+  });
+});
+
+test("US2.2: a message without images sends none, and its item has none", async () => {
+  const { sessions, adapter, cache, repo } = await testSessions();
+  const chat = await sessions.newChat(repo);
+  adapter.script([]);
+
+  const { turn } = await sessions.send(repo, chat.id, { text: "Hello" });
+  await sessions.settled(turn);
+
+  expect(adapter.sent[0]?.images).toEqual([]);
+  expect(cache.items(turn, 0, 1)[0]).not.toHaveProperty("images");
+});
+
+test('US2.4: a message of an image alone is sent, and its chat is titled "Image"', async () => {
+  const { sessions, adapter, cache, repo } = await testSessions();
+  const chat = await sessions.newChat(repo);
+  adapter.script([]);
+
+  const { turn } = await sessions.send(repo, chat.id, { text: " \n", images: [image("a")] });
+  await sessions.settled(turn);
+
+  expect(adapter.sent[0]).toMatchObject({ text: "", images: [{ path: "/data/images/a.webp" }] });
+  expect(cache.session(chat.id)?.title).toBe("Image");
+  await expect(sessions.send(repo, chat.id, { text: "  ", images: [] })).rejects.toThrow(
+    "refused: The message is empty.",
+  );
+});
+
+test("US2.4: an image alone on a feature goes with the opening line only", async () => {
+  const { sessions, adapter, repo } = await testSessions();
+  const session = await sessions.featureSession(repo, HUMAN);
+  adapter.script([]);
+
+  await sessions.settled(
+    (await sessions.send(repo, session.id, { text: "", images: [image("a")] })).turn,
+  );
+
+  expect(adapter.sent[0]).toMatchObject({
+    text: opening(HUMAN),
+    images: [{ path: "/data/images/a.webp" }],
+  });
+});
+
+test("US2.5: a steered message with an image, taken back, keeps its images on its item", async () => {
+  const { sessions, adapter, cache, repo } = await testSessions();
+  const session = await sessions.featureSession(repo, AGENT);
+  const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
+  await sessions.send(repo, session.id, { text: "Look", images: [image("a")] });
+  const message = adapter.sent[1]!;
+  expect(message).toMatchObject({ when: "steer", images: [{ path: "/data/images/a.webp" }] });
+
+  sessions.takeBack(repo, session.id, message.id);
+  adapter.emit({ type: "cancelled", id: message.id });
+  await flush();
+
+  expect(cache.itemsOf(turn, "message").find((each) => each.id === message.id)).toMatchObject({
+    text: "Look",
+    state: "taken-back",
+    images: [{ id: "a.webp", width: 1440, height: 900 }],
+  });
+});
+
+test("refuses an eleventh image", async () => {
+  const { sessions, adapter, repo } = await testSessions();
+  const chat = await sessions.newChat(repo);
+  const images = Array.from({ length: 11 }, (_, n) => image(`i${n}`));
+
+  await expect(sessions.send(repo, chat.id, { text: "Many", images })).rejects.toThrow(
+    "refused: A message takes at most 10 images.",
+  );
+  expect(adapter.opens).toEqual([]);
+  adapter.script([]);
+  await sessions.settled(
+    (await sessions.send(repo, chat.id, { text: "Ten", images: images.slice(0, 10) })).turn,
+  );
+  expect(adapter.sent[0]?.images).toHaveLength(10);
+});
+
+test("refuses images to an agent without them", async () => {
+  const { sessions, adapter, repo } = await testSessions();
+  adapter.capabilities = { ...adapter.capabilities, images: false };
+  const chat = await sessions.newChat(repo);
+
+  await expect(
+    sessions.send(repo, chat.id, { text: "Look", images: [image("a")] }),
+  ).rejects.toThrow("refused: This agent cannot read images.");
+  expect(adapter.opens).toEqual([]);
+  adapter.script([]);
+  await sessions.settled((await sessions.send(repo, chat.id, { text: "Hello" })).turn);
+  expect(adapter.sent).toHaveLength(1);
+});

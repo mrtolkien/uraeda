@@ -1,6 +1,6 @@
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -37,8 +37,17 @@ function endWithServer() {
   }
 }
 
-/** The arguments of a session's process: print mode, stream-json both ways, `auto` mode, and the skill. */
-export function claudeArgs(options: OpenOptions, pluginDir: string): Array<string> {
+/**
+ * The arguments of a session's process: print mode, stream-json both ways, `auto` mode, the skill,
+ * and the chat images' folder, which the agent reads even when the user blocks reads outside the
+ * working directory. Only that folder is added, never the whole data folder: `auto` mode lets the
+ * agent write to added folders.
+ */
+export function claudeArgs(
+  options: OpenOptions,
+  pluginDir: string,
+  imagesDir: string,
+): Array<string> {
   return [
     "-p",
     "--input-format",
@@ -51,6 +60,8 @@ export function claudeArgs(options: OpenOptions, pluginDir: string): Array<strin
     "auto",
     "--plugin-dir",
     pluginDir,
+    "--add-dir",
+    imagesDir,
     options.resume ? "--resume" : "--session-id",
     options.nativeId,
     ...(options.allowed === undefined ? [] : ["--allowedTools", options.allowed]),
@@ -95,7 +106,21 @@ export type ClaudeAdapterOptions = {
   configDir?: string;
   /** The plugin folder that holds the Uraeda skill, `PLUGIN_DIR` in the server. */
   pluginDir: string;
+  /** The chat images' folder, `<data folder>/images`, created as a process opens. */
+  imagesDir: string;
 };
+
+/**
+ * A message as Claude Code reads it: its text, then a blank line and one `[Image: <path>]` line per
+ * image, which the agent opens with its Read tool.
+ */
+export function messageContent(text: string, images: Array<{ path: string }>): string {
+  const lines = images.map(({ path }) => `[Image: ${path}]`).join("\n");
+  if (lines === "") {
+    return text;
+  }
+  return text === "" ? lines : `${text}\n\n${lines}`;
+}
 
 /**
  * Claude Code, run through its installed `claude` command, in print mode, its stdin kept open for
@@ -110,20 +135,24 @@ export class ClaudeAdapter implements Adapter {
     queue: true,
     steer: true,
     subagents: true,
+    images: true,
     takeBack: true,
   };
   #command: string;
   #configDir: string;
   #pluginDir: string;
+  #imagesDir: string;
 
   constructor({
     command = "claude",
     configDir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude"),
     pluginDir,
+    imagesDir,
   }: ClaudeAdapterOptions) {
     this.#command = command;
     this.#configDir = configDir;
     this.#pluginDir = pluginDir;
+    this.#imagesDir = imagesDir;
   }
 
   version(): Promise<string | undefined> {
@@ -162,7 +191,9 @@ export class ClaudeAdapter implements Adapter {
     // it. The terminal's Ctrl-C no longer reaches it, so the server ends it as it exits. Windows
     // has no process groups to signal: there, the process alone is.
     const grouped = process.platform !== "win32";
-    const child = spawn(this.#command, claudeArgs(options, this.#pluginDir), {
+    // `--add-dir` refuses a folder that does not exist.
+    mkdirSync(this.#imagesDir, { recursive: true });
+    const child = spawn(this.#command, claudeArgs(options, this.#pluginDir, this.#imagesDir), {
       cwd: options.cwd,
       detached: grouped,
       stdio: ["pipe", "pipe", "pipe"],
@@ -258,9 +289,9 @@ export class ClaudeAdapter implements Adapter {
       events,
       interrupt: () => control({ subtype: "interrupt" }),
       kill: signal,
-      send: ({ id, text, when }) => {
+      send: ({ id, images, text, when }) => {
         write({
-          message: { content: text, role: "user" },
+          message: { content: messageContent(text, images), role: "user" },
           priority: when === "steer" ? "next" : "later",
           type: "user",
           uuid: id,

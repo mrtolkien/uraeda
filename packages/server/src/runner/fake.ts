@@ -131,6 +131,7 @@ export class FakeAdapter implements Adapter {
     queue: true,
     steer: true,
     subagents: true,
+    images: true,
     takeBack: true,
   };
   opens: Array<OpenOptions> = [];
