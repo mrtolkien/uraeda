@@ -77,11 +77,12 @@ The rules become:
   ask when nothing is unsaved.
 - The unsaved text of every field MUST be kept in the browser until it is saved or discarded, and
   restored when the field shows again, with a notice saying so and a Discard button.
-- Every multi-line text field MUST use the app's one text area, with a fixed height set by what it
-  holds, a little larger than its usual text, and the same wherever that kind of field appears: 20
-  rows for the editor of drafts and proposals, 12 for notes, 7 for every comment and summary, and 3
-  for a line that may wrap. A field MUST NOT grow or shrink with its text: past its height, it
-  scrolls. It MAY keep the browser's resize handle.
+- Every multi-line text field MUST have a fixed height, set by what it holds, a little larger than
+  its usual text, and the same wherever that kind of field appears: 20 rows for the editor of drafts
+  and proposals, 12 for notes, 7 for every comment and summary, 4 for the chat composer, and 3 for a
+  line that may wrap. A field MUST NOT grow or shrink with its text: past its height, it scrolls. It
+  MAY keep the browser's resize handle, for the human to drag it taller. Every multi-line field
+  except the chat composer MUST use the app's one text area.
 - A modal sheet or dialog MUST be used only to confirm an irreversible action or to fill a short
   form, like adding a line. Everything else happens in the page.
 - Every sheet and dialog MUST have a visible close button, and Back MUST close it.
