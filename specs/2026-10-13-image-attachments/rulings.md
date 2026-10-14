@@ -336,3 +336,50 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the `addable` loop and `in_index` in `crates/core/src/git.rs`, and
   `try_again_commits_a_deleted_image`.
 - **Where**: task 4.
+
+## R26: A target with a URI scheme is not a repository path
+
+- **Decision**: `workspace::resolve` returns no path for a target starting with a URI scheme,
+  `[A-Za-z][A-Za-z0-9+.-]*:` (`https:`, `data:`, `file:`, `mailto:`), or with `//`, a
+  protocol-relative URL. Such links and images are not checked, not kept by a commit's image pass,
+  and have no `path` in the document tree.
+- **Rationale**: `data:image/png;base64,…` was read as a file next to the linking one, and
+  `ura check` reported it missing. The repository has no Windows target, so `C:` is never a drive; a
+  relative path whose first part holds a `:` before any `/` is the only case lost, and the
+  attachment code never writes one.
+- **Alternatives considered**: listing the schemes (`https`, `data`, `mailto`, …): one more list to
+  keep, and any other scheme is still read as a path.
+- **If wrong**: `has_scheme` in `crates/core/src/workspace.rs`, and
+  `a_uri_scheme_is_not_a_repository_path`.
+- **Where**: task 3, review.
+
+## R27: A percent-encoded target is decoded
+
+- **Decision**: `workspace::resolve` decodes the `%XX` sequences of a target's path, after its
+  `#anchor` is split off, as UTF-8: `images/my%20shot.webp` is `images/my shot.webp`. A `%` not
+  followed by two hexadecimal digits stays as it is, and the whole path stays as written when the
+  decoded bytes are not UTF-8. Problems still name the target as written (R24).
+- **Rationale**: Obsidian and GitHub write a space in a link as `%20`, and both read it decoded;
+  undecoded, `ura check` reported the image missing and a commit deleted it as unlinked. Every
+  caller of `resolve` gets the same rule, so links, images, and `PRIORITIES.md` entries agree.
+- **Alternatives considered**: the `percent-encoding` crate (already built, as a transitive
+  dependency, but a direct one for ten lines); decoding invalid UTF-8 lossily (a path that exists
+  under no name).
+- **If wrong**: `percent_decode` in `crates/core/src/workspace.rs`, and
+  `a_percent_encoded_target_is_decoded`.
+- **Where**: task 3, review.
+
+## R28: A nested image is text of the outer image
+
+- **Decision**: in the document tree, an image inside another image's alt text,
+  `![a ![b](b.png) c](o.png)`, adds its alt text to the outer image's span, `a b c`, as CommonMark's
+  alt text reads it; an Obsidian embed inside alt text does the same. The link list `ura check` and
+  the commit's image pass read holds only the outer image. An image's alt text never makes its list
+  item a typed bullet or a list callout: `- ![! warn](w.png)` is a plain item.
+- **Rationale**: the inner image is never shown, since an alt text is plain text, so it neither
+  needs to exist nor keeps its file.
+- **Alternatives considered**: a span per inner image (cut the outer alt text short, and showed an
+  image no other renderer shows).
+- **If wrong**: `Marks::image` and the `Tag::Image` arms in `crates/core/src/files/document.rs`,
+  `image_depth` in `crates/core/src/files/markdown.rs`, and their tests.
+- **Where**: task 3, review.

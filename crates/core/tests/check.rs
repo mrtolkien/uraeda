@@ -450,6 +450,35 @@ fn a_missing_image_into_specs_is_a_problem() {
     );
 }
 
+#[test]
+fn embeds_web_images_and_images_outside_specs_are_not_checked() {
+    let example = Example::new();
+    let proposal = format!("{FEATURE}/proposal.md");
+    let text = example.read(&proposal);
+    example.write(
+        &proposal,
+        &format!(
+            "{text}\n![[gone.png]]\n\n![u](https://e.com/x.png)\n\n![o](/docs/missing.png)\n\n![d](data:image/png;base64,AAAA)\n"
+        ),
+    );
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+}
+
+#[test]
+fn a_percent_encoded_image_is_found() {
+    let example = Example::new();
+    let proposal = format!("{FEATURE}/proposal.md");
+    example.write(&format!("{FEATURE}/images/my shot.webp"), "RIFF");
+    let text = example.read(&proposal);
+    example.write(
+        &proposal,
+        &format!("{text}\n![Shot](images/my%20shot.webp)\n"),
+    );
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+}
+
 /// Review focus 1
 #[test]
 fn files_of_done_that_are_not_markdown_are_ignored() {
