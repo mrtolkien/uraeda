@@ -106,7 +106,8 @@ export function CommentHost({
   tree: Document;
   wide: boolean;
 }) {
-  const text = useTextField(field.key, field.saved, field.extra);
+  // The form's own field says whether it is drawn: a comment left in the closed sheet is not.
+  const text = useTextField(field.key, field.saved, { drawn: false, extra: field.extra });
   const images = useReviewImages(file, draft, refusals, wide, text);
   return (
     <ReviewImagesContext value={images}>
