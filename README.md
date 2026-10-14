@@ -29,10 +29,10 @@ once in a file, and you answer in a few words when you have time.
   decision files that every later feature must follow. An agent cannot work around one: when a new
   feature needs to change it, the agent proposes the change in that feature's spec, and it only
   takes effect when you approve the spec.
-- **Review scales with risk.** The agent proposes a risk tier in each spec, with its reason, and
-  whether the plan waits for your review: by default, only for high risk, like a change to every
-  saved record. When you approve the spec, you decide, whatever the tier. When the plan does not
-  wait for you, the approved spec goes to a pull request without you.
+- **Review scales with risk.** The agent proposes a risk tier in each spec, with its reason. By
+  default, the plan does not wait for your review, whatever the tier: when you approve the spec, you
+  can turn plan review on. When the plan does not wait for you, the approved spec goes to a pull
+  request without you.
 - **Plain text in git, no service.** Markdown in a `specs/` folder, readable on GitHub or in
   Obsidian, with each file's state in its frontmatter. No Jira, no Linear.
 

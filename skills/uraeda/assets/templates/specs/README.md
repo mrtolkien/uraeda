@@ -49,7 +49,7 @@ A proposal's `discovery`, `low`, `medium`, or `high` by default, tells how far t
 before asking its questions.
 
 A spec's `risk-tier`, `low`, `medium`, or `high`, tells how much the feature can break. Its
-`plan-review`, `true` by default for `high` only, says whether its plan waits for a human, who
+`plan-review`, `false` by default whatever the tier, says whether its plan waits for a human, who
 decides it when approving the spec.
 
 Decisions are `proposed` or `active`. A change to an active decision is proposed in a

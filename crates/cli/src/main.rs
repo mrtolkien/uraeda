@@ -98,7 +98,7 @@ enum Command {
         ))]
         risk_tier: Option<String>,
         /// Whether the plan waits for your review: true or false; by default, the spec's value, or
-        /// with a new --risk-tier, that tier's default (true for high)
+        /// false with a new --risk-tier, whatever the tier
         #[arg(long)]
         plan_review: Option<bool>,
         /// Leave the files for you to commit

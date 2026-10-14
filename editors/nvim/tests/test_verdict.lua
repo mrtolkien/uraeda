@@ -152,7 +152,11 @@ local function last_subject(repo)
 end
 
 T["approving a spec with a new tier"] = function() -- US6.1
-  local repo, worktree = with_feature({ ["spec.md"] = waiting_spec() })
+  -- Proposed at medium, without a plan review: approving at high leaves it off.
+  local proposed = waiting_spec()
+    :gsub("risk%-tier: high", "risk-tier: medium", 1)
+    :gsub("plan%-review: true", "plan-review: false", 1)
+  local repo, worktree = with_feature({ ["spec.md"] = proposed })
   local spec = worktree .. "/" .. feature .. "spec.md"
   open(spec)
   comment_c1()
@@ -171,8 +175,8 @@ T["approving a spec with a new tier"] = function() -- US6.1
   eq(vim.list_slice(shown.lines, 1, 4), {
     "Commits  spec(nvim-plugin): approve",
     "Comments 1, kept with the verdict",
-    "Risk tier    < high >",
-    "Plan review  < true >",
+    "Risk tier    < medium >",
+    "Plan review  < false >",
   })
   eq(#shown.lines[5] > 0 and (shown.lines[5]:gsub("─", "")) == "", true)
   eq(
@@ -180,12 +184,10 @@ T["approving a spec with a new tier"] = function() -- US6.1
     "DiagnosticWarn"
   )
 
-  -- Tab on the risk tier's line: high → low → medium, plan review following the tier's default.
+  -- Tab on the risk tier's line: medium → high, plan review off by default for every tier.
   child.api.nvim_win_set_cursor(0, { 3, 0 })
   child.type_keys("<Tab>")
-  eq(vim.list_slice(window().lines, 3, 4), { "Risk tier    < low >", "Plan review  < false >" })
-  child.type_keys("<Tab>")
-  eq(vim.list_slice(window().lines, 3, 4), { "Risk tier    < medium >", "Plan review  < false >" })
+  eq(vim.list_slice(window().lines, 3, 4), { "Risk tier    < high >", "Plan review  < false >" })
   -- Tab on the plan review's line toggles it, twice back to false.
   child.api.nvim_win_set_cursor(0, { 4, 0 })
   child.type_keys("<Tab>")
@@ -200,7 +202,7 @@ T["approving a spec with a new tier"] = function() -- US6.1
   eq(last_subject(repo), "spec(nvim-plugin): approve")
   local approved = read(spec)
   eq(approved:find("status: approved\n", 1, true) ~= nil, true)
-  eq(approved:find("risk-tier: medium\n", 1, true) ~= nil, true)
+  eq(approved:find("risk-tier: high\n", 1, true) ~= nil, true)
   eq(approved:find("plan-review: false\n", 1, true) ~= nil, true)
   eq(approved:find("Approved on 2026-10-14.", 1, true) ~= nil, true)
   local review = read(worktree .. "/" .. feature .. "spec-review.md")

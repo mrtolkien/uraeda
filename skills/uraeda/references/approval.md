@@ -38,8 +38,9 @@ the review instead.
 
 Read the `plan-review` in the spec's frontmatter. The human decided it when approving, whatever the
 risk tier: the plan step uses it as it is now, not as you proposed it. If the human changed the
-`risk-tier` but left `plan-review` as you proposed it, set `plan-review` to the new tier's default,
-as `ura review` does.
+`risk-tier` but left `plan-review` as you proposed it, set `plan-review` to `false`, as `ura review`
+does: the plan waits only when the human turns plan review on, or when it lists a constitution
+exception.
 
 ## Commit
 

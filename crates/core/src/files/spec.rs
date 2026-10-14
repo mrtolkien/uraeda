@@ -5,28 +5,20 @@ use super::items::{Criterion, Scenario, SpecItems, Story, TierChoice, headings, 
 use crate::check::allowed_values;
 use crate::workspace::FileKind;
 
-/// The risk tier whose plan waits for the human's review unless the spec says otherwise.
-const REVIEWED_TIER: &str = "high";
-
 /// The risk tiers a spec may have, from the least risk to the most.
 pub fn risk_tiers() -> &'static [&'static str] {
     allowed_values(FileKind::Spec, "risk-tier")
 }
 
 /// Whether the plan waits for the human's review once the spec is approved at the tier `chosen`:
-/// the spec's own `plan-review` while the tier stays the one it proposes, else the tier's default,
-/// true for `high` only.
+/// the spec's own `plan-review` while the tier stays the one it proposes, else false, whatever the
+/// tier.
 pub fn plan_review_default(
     proposed: Option<&str>,
     current: Option<bool>,
     chosen: Option<&str>,
 ) -> bool {
-    let tier_default = chosen == Some(REVIEWED_TIER);
-    if chosen == proposed {
-        current.unwrap_or(tier_default)
-    } else {
-        tier_default
-    }
+    chosen == proposed && current.unwrap_or(false)
 }
 
 /// Each risk tier an approval may pick, with the plan review it gives by default.

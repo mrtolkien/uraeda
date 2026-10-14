@@ -1,19 +1,20 @@
 use uraeda_core::files::items::{TierChoice, items};
 use uraeda_core::files::{document, frontmatter, proposal, spec};
 
-/// US3.4: the plan waits for a review by default at a high tier, and the spec's own value holds
-/// while the tier stays the one it proposes.
+/// US6: the plan never waits by default; the spec's own value holds while the tier stays the one it
+/// proposes.
 #[test]
-fn the_plan_review_follows_the_tier_unless_the_spec_says_otherwise() {
+fn the_plan_review_is_off_unless_the_spec_says_otherwise() {
     assert_eq!(spec::risk_tiers(), ["low", "medium", "high"]);
     for (proposed, current, chosen, expected) in [
         (Some("low"), None, Some("low"), false),
-        (Some("low"), None, Some("high"), true),
-        (Some("high"), None, Some("high"), true),
-        (Some("low"), Some(true), Some("low"), true),
+        (Some("medium"), Some(false), Some("high"), false), // US6.1, US6.2
+        (Some("high"), None, Some("high"), false),
+        (None, None, Some("high"), false),
+        (Some("medium"), Some(true), Some("medium"), true), // US6.3
+        (Some("low"), Some(true), Some("high"), false),
         (Some("low"), Some(true), Some("medium"), false),
         (Some("high"), Some(false), Some("high"), false),
-        (None, None, Some("high"), true),
     ] {
         assert_eq!(
             spec::plan_review_default(proposed, current, chosen),
@@ -40,7 +41,7 @@ fn a_spec_lists_its_tiers_with_their_plan_review() {
         [
             choice("low", true),
             choice("medium", false),
-            choice("high", true)
+            choice("high", false)
         ]
     );
 }
