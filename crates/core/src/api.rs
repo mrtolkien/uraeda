@@ -244,10 +244,11 @@ fn find<'a>(workspace: &'a Workspace, folder: &str) -> Result<&'a Feature> {
         .ok_or_else(|| refused(format!("no feature {folder}")))
 }
 
-/// Whether a path from the top level is plain: relative, without `.`, `..`, or hidden parts.
+/// Whether a path from the top level is plain: relative, without `.`, `..`, or hidden parts, and
+/// without `\\` or `:`, which Windows reads as separators.
 fn plain(path: &str) -> bool {
     path.split('/')
-        .all(|part| !part.is_empty() && !part.starts_with('.'))
+        .all(|part| !part.is_empty() && !part.starts_with('.') && !part.contains(['\\', ':']))
 }
 
 /// Refuses any path but a draft's: a file or a postponed folder of `specs/drafts/` or
@@ -941,9 +942,14 @@ pub fn attach_image(
     bytes: &[u8],
     name: Option<&str>,
 ) -> Result<AttachedView> {
+    if !plain(path) {
+        return Err(refused(format!(
+            "{path} is not a markdown file of a feature, a bug, or a draft"
+        )));
+    }
     let _lock = write_lock();
     let place = text_place(repo, path)?;
-    let attached = attach::attach(&place, path, bytes, name, &today::stamp())?;
+    let attached = attach::attach(&place, path, bytes, name, today::stamp)?;
     Ok(AttachedView {
         path: attached.path,
         link: attached.link,

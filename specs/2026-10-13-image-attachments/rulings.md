@@ -97,16 +97,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: one provider to remove.
 - **Where**: task 8.
 
-## R8: A draft's priorities entry keeps its text when it becomes a folder
+## R8: A draft's priorities links keep their text when it becomes a folder
 
-- **Decision**: only the link target of the entry that links the draft changes, from
-  `drafts/<slug>.md` to `drafts/<slug>/proposal.md`.
+- **Decision**: every link destination of `PRIORITIES.md` that resolves to the draft has its path
+  changed from `<prefix><slug>.md` to `<prefix><slug>/proposal.md`: inline links, with or without
+  `<…>`, a title, or an anchor, in any entry, sub-item, or position, and the destinations of
+  reference definitions (`[r]: drafts/<slug>.md`). Each destination is found with pulldown-cmark's
+  offsets, and only its path changes: its `<…>`, anchor, title, and the rest of the text stay as
+  written.
 - **Rationale**: `priorities::link` rewrites the whole entry from its plain text, which would drop
-  the human's inline markdown.
-- **Alternatives considered**: reusing `priorities::link`.
-- **If wrong**: an entry with the same link twice would get both replaced; entries link a draft
-  once.
-- **Where**: task 2.
+  the human's inline markdown. Replacing `](drafts/<slug>.md)` in the entry's first link missed
+  `<…>`, titles, sub-items, later links, and reference links.
+- **Alternatives considered**: reusing `priorities::link`; a text replacement in the entry linking
+  the draft (the first version, found incomplete in review).
+- **If wrong**: one function, `priorities::retarget`. A destination written with escapes, like
+  `login\-banner.md`, is left as written.
+- **Where**: task 2, review.
 
 ## R9: Sizes are counted in MiB
 
@@ -243,3 +249,61 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   to 1 GiB, about 1 MiB on disk, since deflate shrinks zeros at most about 1000 times.
 - **If wrong**: the test is skipped on other systems; its threshold is one number.
 - **Where**: task 1, review.
+
+## R20: A draft becomes a folder in an order that can be undone
+
+- **Decision**: attaching to a single-file draft claims the new folder with `create_dir`, the next
+  free number on `AlreadyExists`, saves the image in its `images/`, moves the draft into it, then
+  edits `PRIORITIES.md`. A failure after the claim moves the draft back, writes the priorities' text
+  back, and removes the folder, which happens only once the draft is back in its place. Every disk
+  error of these steps is "The image could not be saved: <the system's error>."
+- **Rationale**: the image is the step most likely to fail, so it goes first, while undoing it costs
+  one folder; `create_dir` claims a name even when another process claims one at the same time,
+  where checking `exists` first did not.
+- **Alternatives considered**: moving the draft first, as the first version did (a failed image left
+  a moved draft and edited priorities); a lock file.
+- **If wrong**: `into_folder` in `crates/core/src/actions/attach.rs`.
+- **Where**: task 2, review.
+
+## R21: Images are never written or read through a symbolic link
+
+- **Decision**: `attach_image` refuses when the folder's `images/` resolves elsewhere than
+  `<root>/<folder>/images`, with "The image could not be saved: <folder>/images goes through a
+  symbolic link."; an image name taken by a link gets the next number, since `create_new` never
+  follows one. `read_image` serves a file only when no link leads to it from the working tree's
+  root. `read_raw` reads as before.
+- **Rationale**: a link committed by anyone could make the app write or serve a file outside the
+  repository. Comparing canonical paths covers a linked `images/`, a linked file, and a linked
+  parent in one check.
+- **Alternatives considered**: refusing only a linked `images/` (misses a linked image or parent);
+  the same check in `read_raw` (changes what `/raw` serves for linked files like `CLAUDE.md`,
+  outside this feature).
+- **If wrong**: `save` in `crates/core/src/actions/attach.rs`, and `read_unlinked` in
+  `crates/core/src/api.rs`.
+- **Where**: task 2, review.
+
+## R22: A file name loses its last extension, whatever it is
+
+- **Decision**: an image's name and alt text come from its original file name without its last
+  `.<extension>`, whatever the extension: `login.png` is `login`, `v1.2` is `v1`, and `.png` is
+  empty, so it is named `image.webp` with the alt text `image`, never `pasted-…`. Every run of
+  spaces and line breaks in the alt text becomes one space.
+- **Rationale**: the spec's "the original file name without its extension", read literally; a
+  dropped or picked file nearly always has an image extension, so a list of accepted extensions adds
+  a rule for a rare case. A name is given, so the image is not pasted. A line break in the alt text
+  ends the link's paragraph.
+- **Alternatives considered**: stripping only `.png`, `.jpg`, `.jpeg`, `.gif`, and `.webp` (keeps
+  `v1-2`, but one more list to keep in sync with the accepted types).
+- **If wrong**: `stem` and `alt` in `crates/core/src/actions/attach.rs`, and their test rows.
+- **Where**: task 2, review.
+
+## R23: Attaching needs an existing file, and a plain path
+
+- **Decision**: `attach_image` refuses a markdown file that does not exist, with "<path>: no such
+  file", as `read_raw` words it ("no draft <path>" for a single-file draft, as before). A plain
+  path's parts never hold `\` or `:`, which Windows reads as separators, so `read_image`, the
+  drafts' actions, and `attach_image` refuse them.
+- **Rationale**: an image saved next to a file that does not exist is linked from nothing, and the
+  next commit deletes it.
+- **If wrong**: the existence check in `attach`, and `plain` in `crates/core/src/api.rs`.
+- **Where**: task 2, review.
