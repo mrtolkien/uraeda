@@ -309,6 +309,23 @@ test.each([402, 1440])(
   },
 );
 
+test("US5.1: at 1440 px, a chat is a page of its own, with a level-1 heading", async () => {
+  atWidth(1440);
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const chat = await fake.sessions.newChat(repo);
+  fake.adapter.script([{ text: "Done.", type: "text" }]);
+  const { turn } = await fake.sessions.send(repo, chat.id, { text: "List the open draft files" });
+  await fake.sessions.settled(turn);
+
+  await renderPage(`/chats/${chat.id}`, repo, { agent: fake });
+
+  await screen.findByRole("log", { name: "Conversation" });
+  expect(
+    await screen.findByRole("heading", { level: 1, name: "List the open draft files" }),
+  ).toBeTruthy();
+});
+
 test("US1.8: Open the session replaces the feature page, and Back returns to it", async () => {
   await renderPage(`/f/${WEB_UI}`, fixtureRepo(), { agent: await fakeAgent() });
   await screen.findByRole("list", { name: "Files" });
