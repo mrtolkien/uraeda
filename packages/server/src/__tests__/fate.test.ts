@@ -2,7 +2,16 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
 import { refusable } from "../fate/errors.ts";
-import { byId, fixtureRepo, mutate, testApp } from "./helpers.ts";
+import {
+  addPlan,
+  binding,
+  byId,
+  commitOnBranch,
+  ELEVEN,
+  fixtureRepo,
+  mutate,
+  testApp,
+} from "./helpers.ts";
 
 const ROUND = "2026-10-11-web-ui/clarifications-01.md";
 
@@ -176,4 +185,75 @@ test("a file without a review is sent with none, so a removed review leaves the 
     ["review"],
   );
   expect(read).toHaveProperty("review", null);
+});
+
+const CLI = "2026-10-12-cli-tuis";
+
+test("a feature at its implementation sends its progress, and null once every box is checked", async () => {
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  const { app } = await testApp(repo);
+
+  const [feature] = await byId(app, "Feature", [CLI], ["id", "step"]);
+  expect(feature.step.progress).toEqual({ position: 7, title: "Session column", total: 11 });
+
+  addPlan(
+    repo,
+    CLI,
+    ELEVEN.map(([title]) => [title, 5, 5]),
+  );
+  const [done] = await byId(app, "Feature", [CLI], ["id", "step"]);
+  // Sent as null, not left out: the client keeps a field an answer leaves out.
+  expect(done.step).toHaveProperty("progress", null);
+});
+
+test("a feature that is no feature's folder is sent with no progress", async () => {
+  const [missing] = await byId((await testApp()).app, "Feature", ["2026-01-01-none"], ["step"]);
+
+  expect(missing.step).toHaveProperty("progress", null);
+});
+
+test("a feature's branch changes, and none for a feature without a branch", async () => {
+  const repo = fixtureRepo();
+  commitOnBranch(repo, CLI, { "src/cli.rs": "fn main() {}\n" });
+  const { app } = await testApp(repo);
+
+  const [changes] = await byId(app, "BranchChanges", [CLI], ["id", "changes", "failed"]);
+  expect(changes).toEqual({
+    changes: {
+      added: 1,
+      count: 1,
+      files: [{ added: 1, path: "src/cli.rs", removed: 0 }],
+      removed: 0,
+    },
+    failed: false,
+    id: CLI,
+  });
+  const [onMain] = await byId(app, "BranchChanges", ["2026-10-10-cli-core"], ["changes"]);
+  expect(onMain).toHaveProperty("changes", null);
+});
+
+test("a binary file is sent with null lines, not without them", async () => {
+  const repo = fixtureRepo();
+  commitOnBranch(repo, CLI, { "logo.png": "\0PNG\0" });
+  const { app } = await testApp(repo);
+
+  const [changes] = await byId(app, "BranchChanges", [CLI], ["changes"]);
+  expect(changes.changes.files).toEqual([{ added: null, path: "logo.png", removed: null }]);
+});
+
+test("a branch whose changes cannot be read is answered as failed, and logged", async () => {
+  const logged = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  const { app } = await testApp(fixtureRepo(), {
+    binding: {
+      ...binding,
+      branchChanges: () => Promise.reject(new Error("git: not found\nsecond line")),
+    },
+  });
+
+  const [changes] = await byId(app, "BranchChanges", [CLI], ["changes", "failed"]);
+  expect(changes).toEqual({ changes: null, failed: true, id: CLI });
+  expect(logged.mock.calls.flat().join(" ")).toContain("git: not found");
+  expect(logged.mock.calls.flat().join(" ")).not.toContain("second line");
+  logged.mockRestore();
 });

@@ -133,3 +133,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   folder files.
 - **If wrong**: the `own` closure in `changes.rs`.
 - **Where**: Task 2, after its review.
+
+## R12: The test helpers commit through one exported `commitOnBranch`
+
+- **Decision**: `commitOnBranch(repo, branch, files)` is exported from
+  `packages/binding/test-utils.ts`, and `addPlan` writes its plan through it, rather than a local
+  helper of `fate.test.ts` beside an `addPlan` with its own git calls. The `BranchChanges` source
+  logs through `process.stderr.write`, not `console.error`. `testApp` takes its options as one
+  object, `{ allowedHosts, binding }`, so `guard.test.ts` passes `{ allowedHosts }`.
+- **Rationale**: one helper switches to a branch, commits, and switches back to `main`, so the
+  checkout is left on `main` in both, and the web tests can commit code on a branch too. The server
+  logs every other failure on `process.stderr`.
+- **Alternatives considered**: the plan's local helper, which would repeat the switch and commit.
+- **If wrong**: the helper moves into `fate.test.ts`, and `addPlan` calls git itself.
+- **Where**: Task 4.
