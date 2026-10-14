@@ -1,12 +1,24 @@
 ---
-status: changes-requested
-revision: 2
+status: awaiting-human
+revision: 3
 clarifications: 1
 risk-tier: high
 plan-review: true
 ---
 
 # Spec: Text inputs and comments
+
+> [!IMPORTANT]
+>
+> Spec to review, about 5 minutes: every multi-line field has a fixed height, everywhere.
+>
+> - C1: done. No multi-line field grows or shrinks with its text: each has a fixed height, and
+>   scrolls when its text is longer. The lines you commented on are in the oldest record below,
+>   which still describes revision 1's growing text areas; that design was replaced in revision 2.
+> - Each field keeps the browser's resize handle, so you can still drag a field taller by hand.
+> - The chat composer gets a fixed height too, 4 rows: today it grows from 1 to 8 rows as you type.
+> - Heights by kind of field: the proposal editor 20 rows, the notes 12, every comment and the
+>   review summary 7, the chat composer 4, quick add 3.
 
 > [!NOTE]
 >
@@ -192,13 +204,14 @@ Acceptance scenarios:
 10. **Given** a review comment form open with text, **When** the human presses Approve, **Then** the
     verdict is not recorded, and "Add or cancel your comment first." shows next to the verdict.
 
-### US6: Text areas sized for what they hold (P3)
+### US6: Fixed-height text fields (P3)
 
-Every multi-line field has a fixed height, set by what it holds and the same wherever that kind of
-field appears, a little larger than its usual text: the proposal editor 20 rows, the round's notes
-12, every comment and the review summary 7, quick add 3. Typing never changes the page's layout:
-past its height, the field scrolls. The browser's resize handle stays, to give a field more room by
-hand.
+Every multi-line field, everywhere in the UI, has a fixed height: it never grows or shrinks with its
+text, and scrolls when its text is longer. The browser's resize handle stays, to drag a field taller
+by hand. The height depends on what the field holds, a little larger than its usual text, and is the
+same wherever that kind of field appears: the proposal editor 20 rows, the round's notes 12, every
+comment and the review summary 7, the chat composer 4, quick add 3. Typing never changes the page's
+layout.
 
 Why this priority: the human's note and review; it makes fields coherent, without changing what is
 saved.
@@ -213,6 +226,10 @@ Acceptance scenarios:
 4. **Given** the round's notes field, empty or full, **Then** it is 12 rows tall.
 5. **Given** the proposal editor, **Then** it is 20 rows tall, whatever its text.
 6. **Given** quick add, **Then** its field is 3 rows tall.
+7. **Given** the chat composer, empty or holding 10 lines, **Then** it is 4 rows tall, and scrolls
+   when it holds more.
+8. **Given** a comment field 7 rows tall, **When** the human drags its resize handle down, **Then**
+   it becomes taller, and keeps that height while they type.
 
 ## Edge cases
 
@@ -241,8 +258,9 @@ Acceptance scenarios:
   comment, its text starting with what it was on, like "On lines 40–52 of the previous version:".
 - **IME composition**: the field never receives text from outside while it has the focus, so a
   composition is never broken.
-- **Search and filter fields, and the chat composer**: unchanged. They save nothing to a file, and
-  the composer already keeps its draft with its session.
+- **Search and filter fields, and the chat composer**: their saving is unchanged. They save nothing
+  to a file, and the composer already keeps its draft with its session. The composer's height is
+  fixed, as US6 says.
 
 ## Success criteria
 
@@ -254,7 +272,7 @@ Acceptance scenarios:
 - **SC-003**: A field never loses a character typed: typing "a b c" with 2-second pauses after each
   space, while the file changes on disk, leaves "a b c" in the field.
 - **SC-004**: Unsaved text in each kind of field is restored after a reload, in one test per kind.
-- **SC-005**: Every multi-line field is the height of its kind, 20, 12, 7, or 3 rows, empty and
+- **SC-005**: Every multi-line field is the height of its kind, 20, 12, 7, 4, or 3 rows, empty and
   after 30 lines are typed into it, at 402 × 874 and 1440 × 900 in WebKit.
 - **SC-006**: A comment on a settled point reads back from the file as the comment written, for
   one-line, multi-line, and hand-written bullets.
@@ -372,9 +390,12 @@ and dropped when older than 30 days.
   button, as the [UI layout](../decisions/ui-layout.md) decision requires.
 - **Text area** (`packages/web/src/fields/TextField.tsx`, replacing `GrowingTextArea` in
   [`Question.tsx`](/packages/web/src/Question.tsx)): Astryx `TextArea`, whose `kind` sets its fixed
-  `rows`: `"editor"` 20, `"notes"` 12, `"comment"` 7, `"line"` 3. Its height never follows its text.
-  Ctrl+Enter or Cmd+Enter calls its `onSubmit`. Every multi-line field uses it, quick add and the
-  editor included.
+  `rows`: `"editor"` 20, `"notes"` 12, `"comment"` 7, `"line"` 3. Its height never follows its text;
+  Astryx's resize handle stays. Ctrl+Enter or Cmd+Enter calls its `onSubmit`. Every multi-line field
+  uses it, quick add and the editor included.
+- **Chat composer** ([`Composer.tsx`](/packages/web/src/Composer.tsx)): `ChatComposerInput` gets
+  `maxRows={4}` and a fixed height of 4 rows through its `xstyle`, so it no longer grows from one
+  row. Its sending and its draft are unchanged.
 - **Restore notice** (`packages/web/src/fields/RestoreNotice.tsx`, new): the notice above a restored
   field, with Discard.
 - **Round page** ([`RoundPage.tsx`](/packages/web/src/RoundPage.tsx)): split into a notes field with
@@ -495,8 +516,10 @@ Settled while writing this spec:
   gather several points; 7 for every comment and the review summary, as the human asked; and 3 for
   quick add, a priority line that may wrap. They are the same at both widths, in rows, so they grow
   with the text size the [UI layout](../decisions/ui-layout.md) decision sets.
-- Astryx's `TextArea` keeps its vertical resize handle, so the fixed height is a starting size, not
-  a limit ([Astryx 0.6.8](discovery-01.md#astryx-068)).
+- Astryx's `TextArea` keeps its vertical resize handle, so the human can drag a field taller by
+  hand; the text never resizes it ([Astryx 0.6.8](discovery-01.md#astryx-068)).
+- The chat composer is fixed at 4 rows, a short message with room to spare; it is the one multi-line
+  field that is not an Astryx `TextArea`.
 - No CLI command adds a settled comment: a human writes the bullet in an editor.
 
 ## Decisions
