@@ -155,6 +155,23 @@ fn a_code_commit_on_a_feature_branch_is_reported() {
     );
 }
 
+/// US4.5: a feature's changes are counted from its merge base with the default branch, so a commit
+/// on the default branch, which may move that base, reports the feature too.
+#[test]
+fn a_commit_on_the_default_branch_reports_the_features_with_a_branch() {
+    let repo = repo();
+    let (_watcher, receiver) = watching(&repo);
+
+    repo.write("README.md", "# Read me\n");
+    repo.commit("docs: read me");
+
+    let changes = next(&receiver);
+    assert!(
+        changes.features.contains(&FOLDER.to_string()),
+        "{changes:?}"
+    );
+}
+
 /// Writes the priorities, and returns every report up to the one that saw the write: the
 /// snapshot that saw it was read after everything done before the write.
 fn until_priorities(
