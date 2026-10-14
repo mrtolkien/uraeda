@@ -556,7 +556,7 @@ impl Git {
     }
 
     /// Runs `git`, and returns its stdout.
-    fn output(&self, subcommand: &str, args: &[&str]) -> Result<String, GitError> {
+    pub(crate) fn output(&self, subcommand: &str, args: &[&str]) -> Result<String, GitError> {
         let output = Command::new("git")
             .args(args)
             .current_dir(&self.root)

@@ -406,11 +406,14 @@ git commit -m "feat(session-view): the plan's progress in the step"
   - `changes::BranchChanges { files: Vec<ChangedFile>, count: u32, added: u32, removed: u32 }`;
   - `changes::ChangedFile { path: String, added: Option<u32>, removed: Option<u32> }`;
   - in TypeScript, `branchChanges(repo: string, folder: string): Promise<BranchChanges | null>`.
+    napi-rs declares `ChangedFile`'s `added` and `removed` optional: a binary file's are absent, not
+    `null`, as for `progress`
+    ([R8](rulings.md#r8-the-binding-test-asserts-an-absent-progress-with-tobeundefined)).
 
   It returns `None` when the feature has no branch, is merged, or the default branch is unknown. It
   refuses "no feature <folder>" through `find`. A failing git call becomes the usual `GitError`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `crates/core/tests/branch_changes.rs`, one table-driven test over `TestRepo` repositories. Each
 row commits on `main`, then on the feature's branch, and calls `branch_changes`:
@@ -435,24 +438,25 @@ Add `#[ignore] fn branch_changes_takes_under_100_ms()`, for SC-005: a branch of 
 timed with `Instant`, asserting under 100 ms, run by hand with
 `cargo test --release -p uraeda-core --test branch_changes -- --ignored`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test branch_changes`
 - Expected: FAIL to compile, `could not find changes in uraeda_core`.
 
-- [ ] **Step 3: Implement `branch_changes`**
+- [x] **Step 3: Implement `branch_changes`**
 
 - **The git call.** A private `numstat(git: &Git, base: &str, tip: &str)` in `changes.rs` runs
-  `git diff --numstat -z -M <base>...<tip>` through `output`. The three dots start the diff at the
-  merge base. It parses the NUL-separated records: `added\tremoved\tpath`, or, for a rename,
-  `added\tremoved\t` followed by the old and new paths. `-` counts mean a binary file.
-- **The refs.** `base` is `default_branch()`. `tip` is the ref `Git::tip(branch)` found, either
-  `refs/heads/<branch>` or `refs/remotes/origin/<branch>`, passed as one argument.
+  `git diff --numstat -z -M --no-ext-diff <base>...<tip>` through `output`. The three dots start the
+  diff at the merge base. It parses the NUL-separated records: `added\tremoved\tpath`, or, for a
+  rename, `added\tremoved\t` followed by the old and new paths. `-` counts mean a binary file.
+- **The refs.** `base` and `tip` are the commits `Git::tip` resolves for `default_branch()` and the
+  feature's branch, local first, then `origin`'s, passed as hashes in one `<base>...<tip>` argument
+  ([R10](rulings.md#r10-the-diff-names-commits-not-branches)).
 - **The result.** `branch_changes` drops paths under `specs/<folder>/` (or `specs/bugs/<folder>/`
   for a bug), sorts by path, counts and sums all, and keeps the first 50.
 - **The binding.** `crates/binding/src/lib.rs` exposes it like `read_raw`.
 
-- [ ] **Step 4: Run all tests, and regenerate the binding**
+- [x] **Step 4: Run all tests, and regenerate the binding**
 
 - Run:
   `cargo test && cargo clippy --workspace --all-targets -- -D warnings && vp run --filter uraeda-binding build`

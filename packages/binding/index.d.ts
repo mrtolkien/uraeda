@@ -40,6 +40,12 @@ export declare function approve(repo: string, folder: string, file: string, summ
  */
 export declare function attachImage(repo: string, path: string, bytes: Buffer, name?: string | undefined | null): Promise<AttachedView>
 
+/**
+ * The files a feature's branch changed outside its folder, from the default branch's merge base,
+ * or `null` when it has no branch, is merged, or the default branch is unknown.
+ */
+export declare function branchChanges(repo: string, folder: string): Promise<BranchChanges | null>
+
 /** Commits the priorities alone. */
 export declare function commitPriorities(repo: string): Promise<Priorities>
 
@@ -246,7 +252,26 @@ export interface Block {
 
 export type BlockKind = 'heading' | 'paragraph' | 'list' | 'item' | 'callout' | 'quote' | 'table' | 'row' | 'cell' | 'code' | 'rule' | 'html'
 
+/** The changes of a feature's branch, outside the feature's own folder. */
+export interface BranchChanges {
+  /** The first 50 files, sorted by path, outside `specs/<folder>/`. */
+  files: Array<ChangedFile>
+  /** Every changed file outside the feature's folder, listed or not. */
+  count: number
+  added: number
+  removed: number
+}
+
 export type CalloutKind = 'note' | 'tip' | 'important' | 'warning' | 'caution' | 'question'
+
+/** A file changed on a feature's branch, from the default branch's merge base to its tip. */
+export interface ChangedFile {
+  /** From the repository's top level; the new path of a renamed file. */
+  path: string
+  /** Lines added and removed; `None` for a binary file. */
+  added?: number
+  removed?: number
+}
 
 /** What changed since the last report. */
 export interface Changes {

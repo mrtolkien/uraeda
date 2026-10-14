@@ -12,6 +12,7 @@ use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{Env, Status, Task};
 use napi_derive::napi;
 use uraeda_core::api::{self, ApiError};
+use uraeda_core::changes::{self, BranchChanges};
 use uraeda_core::files::priorities::Priorities;
 use uraeda_core::view::{
     AddedView, AttachedView, CommitView, DraftView, FeatureView, FileView, NextView, ProposalHint,
@@ -98,6 +99,13 @@ pub fn read_text(repo: String, path: String) -> AsyncTask<Job<DraftView>> {
 #[napi(ts_return_type = "Promise<string>")]
 pub fn read_raw(repo: String, path: String) -> AsyncTask<Job<String>> {
     job(move || api::read_raw(Path::new(&repo), &path))
+}
+
+/// The files a feature's branch changed outside its folder, from the default branch's merge base,
+/// or `null` when it has no branch, is merged, or the default branch is unknown.
+#[napi(ts_return_type = "Promise<BranchChanges | null>")]
+pub fn branch_changes(repo: String, folder: String) -> AsyncTask<Job<Option<BranchChanges>>> {
+    job(move || changes::branch_changes(Path::new(&repo), &folder))
 }
 
 /// A feature's next step, with its branch and the main checkout's path, for an agent's run.
