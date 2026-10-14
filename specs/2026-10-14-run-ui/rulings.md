@@ -83,3 +83,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   serve as the UI.
 - **If wrong**: the tests start the server with another way to name the web folder.
 - **Where**: Task 3.
+
+## R8: A list the running server cannot change answers 400
+
+- **Decision**: `POST /open` answers 400 with the core's message, without `refused: `, when adding
+  the repository fails, as it does for a given folder outside git.
+- **Rationale**: the spec names only the folder outside git; a 400's `error` is printed by the
+  second start, which exits 1, so the human reads why the running server could not open the
+  repository instead of the "used by another program" message.
+- **Alternatives considered**: 500, which the second start treats as another program on the port.
+- **If wrong**: the route's `catch` changes alone.
+- **Where**: Task 5.
