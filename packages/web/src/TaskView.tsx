@@ -120,6 +120,7 @@ function DraftPart({ path }: { path: string }) {
  * One line of `PRIORITIES.md`, by its key: its text edited in place, its section, its draft drawn
  * or a Draft button, Delete with Undo, and the lines before and after it in its section.
  */
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the rename, move, draft, and remove actions in a hook
 export function TaskView({ entryKey }: { entryKey: string }) {
   const fate = useFateClient();
   // The line's place while it is renamed: its key changes before its address does.

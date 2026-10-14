@@ -32,6 +32,7 @@ function statusVariant(status?: string) {
 }
 
 /** A feature: what waits on the human, its branch, its files in workflow order, its problems. */
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the gate and the file list in components
 export function FeaturePage({ folder }: { folder: string }) {
   const feature = useFeature(folder);
   const here = useRepoPath();

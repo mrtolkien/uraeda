@@ -136,6 +136,7 @@ async function save(shot: Shot, view: string) {
 }
 
 /** Every view, each at both sizes and in both themes, or on one size when only it shows it. */
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: each view's shots in a function of their own
 async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: string) {
   prefix = at;
   /** A page's path within the repository, from the page's URL. */

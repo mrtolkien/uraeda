@@ -1,3 +1,4 @@
+// oxlint-disable max-lines -- over the limit before the code quality decision: the migrations in a module of their own
 import { randomUUID } from "node:crypto";
 import { mkdirSync, rmSync } from "node:fs";
 import { dirname } from "node:path";

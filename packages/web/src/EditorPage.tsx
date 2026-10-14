@@ -38,6 +38,7 @@ function levelLabel(level: string) {
  * guidance for each empty section; saved as typed over the version it was read at, committed, and,
  * for a draft, started as a feature.
  */
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the commit, start, and discovery actions in a hook, and the form in components
 export function EditorPage({ path }: { path: string }) {
   const fate = useFateClient();
   const here = useRepoPath();

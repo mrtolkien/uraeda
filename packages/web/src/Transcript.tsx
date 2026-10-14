@@ -1,3 +1,4 @@
+// oxlint-disable max-lines -- over the limit before the code quality decision: the tool groups in a module of their own
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import {
@@ -339,6 +340,7 @@ function Denial({ actions, item, turn }: { actions: Actions; item: DenialItem; t
  * of tool calls in one group, a sub-agent and its tools in a group of their own, and the system
  * lines and blocked actions as notices.
  */
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the tool grouping in a function
 function TranscriptItems({
   actions,
   ended,

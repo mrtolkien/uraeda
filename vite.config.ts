@@ -162,8 +162,20 @@ export default {
           ],
         },
       },
+      {
+        // The code quality decision exempts tests from the file length limit.
+        files: ["**/__tests__/**", "**/__browser__/**", "**/*.test.ts", "**/*.test.tsx"],
+        rules: { "max-lines": "off" },
+      },
     ],
-    rules: { "vite-plus/prefer-vite-plus-imports": "error" },
+    rules: {
+      // The code quality decision's limits (see `specs/decisions/code-quality.md`).
+      "max-depth": ["error", { max: 4 }],
+      "max-lines": ["error", { max: 500 }],
+      "max-lines-per-function": ["error", { max: 100 }],
+      "max-params": ["error", { max: 7 }],
+      "vite-plus/prefer-vite-plus-imports": "error",
+    },
     // A disable directive left on code that no longer breaks its rule fails, so markers go once
     // their code is fixed (see `specs/decisions/code-quality.md`).
     options: { reportUnusedDisableDirectives: "error", typeAware: true, typeCheck: true },

@@ -92,6 +92,7 @@ export function HookRefusal({
  * A round of questions on one page: its context, every question in full with its follow-ups, the
  * points settled without the human, the notes, and Submit.
  */
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the notes' saving and the submit in hooks
 export function RoundPage({ file }: { file: File }) {
   const fate = useFateClient();
   const agent = useAgent();

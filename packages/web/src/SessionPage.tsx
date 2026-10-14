@@ -107,6 +107,7 @@ type Handing = {
 };
 
 /** A session that exists: its header, its transcript, and its composer. */
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the chat controls in a hook
 function Session({
   blocked,
   crumbs,

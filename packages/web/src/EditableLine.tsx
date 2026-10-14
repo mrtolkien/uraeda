@@ -23,6 +23,7 @@ const styles = stylex.create({
  * shows, the value by default. With `stayOpen`, as an Add row, a saved field empties and stays open
  * for the next line, and leaving it empty closes it.
  */
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the save in a hook, and the field in a component
 export function EditableLine({
   display,
   label,

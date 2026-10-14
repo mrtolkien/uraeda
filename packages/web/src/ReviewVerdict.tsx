@@ -46,6 +46,7 @@ export function useRefusals() {
  * The end of a review: its summary, a spec's risk tier and plan review, and the verdict, which
  * commits and may hand the feature over to the agent.
  */
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the tier and plan review choices in a component
 export function ReviewVerdict({
   comments,
   file,

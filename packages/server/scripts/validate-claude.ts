@@ -1,3 +1,4 @@
+// oxlint-disable max-lines -- over the limit before the code quality decision: the stdin checks in a module of their own
 /**
  * Checks the Claude Code integration against this machine's `claude`, signed in: its version, a
  * first run with the Uraeda skill loaded as a plugin, its session's transcript, a resumed run, an
@@ -280,6 +281,7 @@ const TAKE_BACKS: Array<[string, (uuid: string) => Record<string, unknown>]> = [
  * The nine checks of the messages a session writes to one process, its stdin kept open. They run
  * one after another in one process, then resume its session in a second one.
  */
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: each numbered check in a function of its own
 async function stdinChecks() {
   const session = new StdinSession(stdinDir, ["--include-partial-messages"]);
   try {

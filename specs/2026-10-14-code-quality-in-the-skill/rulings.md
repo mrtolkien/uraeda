@@ -173,3 +173,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the files change back in one line each, if a decision allows the namespace.
 - **Where**: task 3, `packages/server/src/testing.ts`, the server's and the web UI's test helpers,
   `vite.config.ts`.
+
+## R11: TypeScript files are marked at their top
+
+- **Decision**: a file over `max-lines` is marked with
+  `// oxlint-disable max-lines -- over the limit before the code quality decision: <what to split>`
+  on its first line. Functions keep the plan's `oxlint-disable-next-line` marker. Task 4 marks 19
+  functions and 5 files, as `vp lint` reported them once task 3's autofixes had moved lines, not the
+  16 functions and 3 files the spec and plan counted before.
+- **Rationale**: Oxlint reports `max-lines` at the file's last character, so a next-line marker
+  would sit above the closing line of the file's last function, far from what it explains. A disable
+  comment for one rule at the top is still a marker in place with its reason, and Oxlint reports it
+  as unused once the file is under 500 lines, as the decision requires.
+- **Alternatives considered**: a next-line marker above the file's last line; turning `max-lines`
+  off per file in `vite.config.ts`, which keeps the reason away from the code.
+- **If wrong**: each file marker moves in one line.
+- **Where**: task 4, `packages/web/src/{Blocks,PrioritiesPage,Transcript}.tsx`,
+  `packages/server/src/runner/cache.ts`, `packages/server/scripts/validate-claude.ts`.

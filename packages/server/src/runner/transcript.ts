@@ -40,6 +40,7 @@ export class Transcript {
   }
 
   /** Records an event of the session's process, other than its exit. */
+  // oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: each event kind's handling in a method of its own
   record(live: Live, proc: Proc, event: Exclude<AgentEvent, { type: "exit" }>) {
     const { adapter, cache, changed, turns } = this.#context;
     const turn = live.turn ?? (RESUMES.has(event.type) ? turns.resume(live, proc) : undefined);
