@@ -328,7 +328,7 @@ git commit -m "build(testing-review): Rust tests run with cargo-nextest"
   each `#[ignore = "benchmark"]`, which task 3's `bench` task runs with
   `cargo nextest run --run-ignored only -E 'test(/^bench_/)'`.
 
-- [ ] **Step 1: Make the LSP tests set `URA_TODAY` before any git runs**
+- [x] **Step 1: Make the LSP tests set `URA_TODAY` before any git runs**
 
 Every helper of `commands.rs` that creates a `TestRepo` (`with_priorities`, `feature`, `with_draft`,
 and any other) calls `on_2026_10_14()` first, so every thread has passed the `Once` before it spawns
@@ -337,7 +337,7 @@ git. Its SAFETY comment says so.
 The break it prevents: under `cargo test`, a thread spawning git while another sets the variable,
 reading a torn environment.
 
-- [ ] **Step 2: Rewrite `requests_are_answered_while_a_command_runs` without the sleep**
+- [x] **Step 2: Rewrite `requests_are_answered_while_a_command_runs` without the sleep**
 
 The hook waits for a file to exist
 (`until [ -e "$(git rev-parse --git-common-dir)/go" ]; do sleep 0.01; done`); the test asserts the
@@ -347,7 +347,7 @@ response.
 The break it catches: a server whose loop blocks on a running command, which never answers
 `uraeda/fields` while the hook waits.
 
-- [ ] **Step 3: Turn the timing checks into benchmarks**
+- [x] **Step 3: Turn the timing checks into benchmarks**
 
 - `diagnostics_arrive_within_300_ms` becomes `bench_diagnostics_arrive_within_300_ms`, ignored as a
   benchmark; a new test keeps its behaviour without the clock: the changed `risk-tier` gives exactly
@@ -358,22 +358,23 @@ The break it catches: a server whose loop blocks on a running command, which nev
 - The bombs' test keeps its refusal messages, without the duration; the durations move to
   `bench_bombs_are_refused_fast`.
 
-- [ ] **Step 4: Drop the repository's `specs/` from `every_example_and_specs_file_parses`**
+- [x] **Step 4: Drop the repository's `specs/` from `every_example_and_specs_file_parses`**
 
 It becomes `every_example_file_parses`, reading the example's specs only, since `specs:check` parses
 `specs/` in `ready`. Its doc comment says so.
 
-- [ ] **Step 5: Run the Rust tests, then the benchmarks**
+- [x] **Step 5: Run the Rust tests, then the benchmarks**
 
 - Run: `nix develop -c cargo nextest run`
 - Expected: PASS, with 3 more skipped (the benchmarks).
 - Run: `nix develop -c cargo nextest run --run-ignored only -E 'test(/^bench_/)'`
 - Expected: PASS, the 3 benchmarks.
 - Run: `grep -rnE 'Instant::now|thread::sleep' crates/*/tests | grep -v bench_`
-- Expected: only the watcher tests' deadlines and the iCCP child's process measure, which are waits
-  for a condition and a memory bound, not durations asserted.
+- Expected: only the LSP session's deadlines, which wait for a message, the watcher burst's 10 ms
+  spacing between writes, which makes the burst the debounce must merge, and the lines inside the
+  three benchmarks, which the filter does not hide (R6).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/lsp/tests crates/cli/tests/performance.rs crates/core/tests/images.rs crates/core/tests/document.rs
