@@ -1,4 +1,5 @@
 // The UI behaviour decision: every sheet and dialog has a visible close button, and Back closes it.
+import { Button } from "@astryxdesign/core/Button";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { expect, test } from "vite-plus/test";
@@ -32,4 +33,28 @@ test("the overlay has a visible Close", async () => {
   render(<OpenOverlay label="New priority" />);
   await click(screen.getByRole("button", { name: "Close" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+});
+
+const overlayEntry = () => (window.history.state as { overlay?: string } | null)?.overlay;
+
+/** An overlay its page renames while open, as a new title does. */
+function OwnedOverlay() {
+  const [open, setOpen] = useState(true);
+  const [label, setLabel] = useState("New priority");
+  return (
+    <Overlay label={label} isOpen={open} onClose={() => setOpen(false)}>
+      <Button label="Rename" onClick={() => setLabel("Edit priority")} />
+    </Overlay>
+  );
+}
+
+test("an overlay renamed while open keeps one history entry, which Back takes", async () => {
+  render(<OwnedOverlay />);
+  await click(screen.getByRole("button", { name: "Rename" }));
+  expect(screen.getByRole("dialog", { name: "Edit priority" })).toBeTruthy();
+
+  await act(async () => window.history.back());
+
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect(overlayEntry()).toBeUndefined();
 });

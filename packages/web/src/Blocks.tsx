@@ -10,8 +10,9 @@ import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useMemo } from "react";
 import type { Block, Document } from "uraeda-binding";
 import { type Fold, FoldNode, type Folds, useHashFold } from "./Folds.tsx";
+import { useStaticImages } from "./ImageView.tsx";
 import { After, Selectable, type Selection, useSelect } from "./Selection.tsx";
-import { Spans } from "./Spans.tsx";
+import { opensImage, Spans } from "./Spans.tsx";
 
 const SIGNS: Record<string, string> = {
   ask: "?",
@@ -143,6 +144,8 @@ type Context = {
   /** Draws a block its own way, when it returns something. */
   override?: (block: Block) => ReactNode | undefined;
   selection?: Selection;
+  /** Whether images are drawn alone, inside a control: no lightbox, so no dialog to hold. */
+  staticImages: boolean;
 };
 
 function Children({ block, context }: { block: Block; context: Context }) {
@@ -275,7 +278,7 @@ function BlockNode({ block, context }: { block: Block; context: Context }): Reac
       // A paragraph holding an image is a box: its lightbox, a dialog, cannot sit in a `<p>`.
       node = (
         <Text
-          as={block.spans.some((span) => span.image) ? "div" : "p"}
+          as={!context.staticImages && block.spans.some(opensImage) ? "div" : "p"}
           display="block"
           type="inherit"
           xstyle={styles.paragraph}
@@ -365,7 +368,7 @@ export function Blocks({
 }) {
   const children = useChildren(document);
   useHashFold(document, folds);
-  const context = { children, document, override, selection };
+  const context = { children, document, override, selection, staticImages: useStaticImages() };
   const blocks = ids
     ? ids.map((id) => document.blocks[id]).filter(Boolean)
     : (children.get(undefined) ?? []);

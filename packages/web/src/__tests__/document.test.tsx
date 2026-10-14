@@ -4,6 +4,11 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { atRepo, fixtureRepo, git, renderPage } from "./helpers.tsx";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { expect, test } from "vite-plus/test";
+import { ImageView } from "../ImageView.tsx";
+import { navigate } from "../routes.tsx";
+import { fixtureRepo, git, renderPage } from "./helpers.tsx";
 
 const TEXT = `# Web UI
 
@@ -140,6 +145,113 @@ test('a missing image shows "Image missing"', async () => {
   await act(async () => {
     fireEvent.error(image);
   });
-  expect(screen.getByText("Image missing")).toBeTruthy();
+  // The alt text says which image is missing.
+  expect(screen.getByText("Image missing: Login")).toBeTruthy();
   expect(screen.queryByRole("img", { name: "Login" })).toBeNull();
+});
+
+/** A repository whose web UI proposal holds a text, on the checkout. */
+function holding(text: string) {
+  const repo = fixtureRepo();
+  git(repo, "switch", "--quiet", "2026-10-11-web-ui");
+  writeFileSync(join(repo, "specs/2026-10-11-web-ui/proposal.md"), text);
+  return repo;
+}
+
+const PROPOSAL = "/f/2026-10-11-web-ui/proposal.md";
+
+/** Opens the proposal from its feature's page, so Back has a page to go back to. */
+async function openProposal(text = IMAGES) {
+  await renderPage("/f/2026-10-11-web-ui", holding(text));
+  await act(async () => navigate(PROPOSAL));
+  await screen.findByRole("img", { name: "Login" });
+}
+
+const overlayEntry = () => (window.history.state as { overlay?: string } | null)?.overlay;
+
+test.each([
+  [
+    "Close",
+    (dialog: HTMLElement) => fireEvent.click(within(dialog).getByRole("button", { name: "Close" })),
+  ],
+  ["Escape", (dialog: HTMLElement) => fireEvent.keyDown(dialog, { key: "Escape" })],
+])(
+  "the UI behaviour decision: %s closes the image, takes its history entry back, and focuses its link",
+  async (_, close) => {
+    await openProposal();
+    const link = screen.getByRole("link", { name: "Login" });
+    await act(async () => {
+      fireEvent.click(link);
+    });
+    const dialog = screen.getByRole("dialog", { name: "Login" });
+    expect(overlayEntry()).toBeDefined();
+
+    await act(async () => close(dialog));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(overlayEntry()).toBeUndefined());
+    expect(window.location.pathname).toBe(PROPOSAL);
+    expect(document.activeElement).toBe(link);
+    // The next Back leaves the proposal, not an image already closed.
+    await act(async () => window.history.back());
+    await waitFor(() => expect(window.location.pathname).toBe("/f/2026-10-11-web-ui"));
+  },
+);
+
+test("an image's path is encoded part by part in its address", async () => {
+  await renderPage(
+    PROPOSAL,
+    holding("# Login banner\n\n![Login](images/my%20shot%20%231%20100%25.webp)\n"),
+  );
+
+  const image = await screen.findByRole("img", { name: "Login" });
+  expect(image.getAttribute("src")).toBe(
+    "/images/specs/2026-10-11-web-ui/images/my%20shot%20%231%20100%25.webp",
+  );
+});
+
+test("an image whose address changes after it failed shows again", async () => {
+  // The editor's preview redraws an image as its link is typed.
+  const { rerender } = render(<ImageView src="/images/specs/x/images/a" alt="Login" />);
+  await act(async () => {
+    fireEvent.error(screen.getByRole("img", { name: "Login" }));
+  });
+  expect(screen.getByText("Image missing: Login")).toBeTruthy();
+
+  rerender(<ImageView src="/images/specs/x/images/a.webp" alt="Login" />);
+
+  expect(screen.getByRole("img", { name: "Login" }).getAttribute("src")).toBe(
+    "/images/specs/x/images/a.webp",
+  );
+  expect(screen.queryByText(/Image missing/)).toBeNull();
+});
+
+test('an image without alt text is a link named "Image", and "Image missing" when it fails', async () => {
+  await renderPage(PROPOSAL, holding("# Login banner\n\n![](images/login.webp)\n"));
+
+  const link = await screen.findByRole("link", { name: "Image" });
+  await act(async () => {
+    fireEvent.error(link.querySelector("img")!);
+  });
+  expect(screen.getByText("Image missing")).toBeTruthy();
+});
+
+test("an image inside a link is drawn in the link, which it does not open", async () => {
+  await renderPage(
+    PROPOSAL,
+    holding(
+      "# Login banner\n\n[![build](images/build.webp)](https://ci.example.com) and [![badge](https://e.com/b.png)](https://ci.example.com/b)\n",
+    ),
+  );
+
+  const build = await screen.findByRole("link", { name: "build" });
+  expect(build.getAttribute("href")).toBe("https://ci.example.com");
+  expect(within(build).getByRole("img", { name: "build" }).getAttribute("src")).toBe(
+    "/images/specs/2026-10-11-web-ui/images/build.webp",
+  );
+  expect(build.getAttribute("aria-haspopup")).toBeNull();
+  // An image off the web is its alt text, in the link.
+  const badge = screen.getByRole("link", { name: "badge" });
+  expect(badge.getAttribute("href")).toBe("https://ci.example.com/b");
+  expect(within(badge).queryByRole("img")).toBeNull();
 });

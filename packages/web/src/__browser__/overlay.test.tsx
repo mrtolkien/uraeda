@@ -1,8 +1,10 @@
 // The UI layout decision: short forms are bottom sheets on narrow screens, dialogs on wide ones.
 import "./helpers.tsx";
 import { Theme } from "@astryxdesign/core/theme";
-import { render, screen } from "@testing-library/react";
+import { Button } from "@astryxdesign/core/Button";
+import { render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
+import { flushSync } from "react-dom";
 import { expect, test } from "vite-plus/test";
 import { Overlay } from "../layout/Overlay.tsx";
 import { uraedaTheme } from "../theme/built/uraeda.js";
@@ -33,4 +35,37 @@ test("a sheet on the phone, a dialog on the desktop", async () => {
             box.width < window.innerWidth / 2;
     })
     .toBe(true);
+});
+
+/** An overlay its page closes, as a form's success does, and opens again. */
+function OwnedOverlay() {
+  const [open, setOpen] = useState(true);
+  return (
+    <Theme theme={uraedaTheme} mode="light">
+      <Overlay label="New priority" isOpen={open} onClose={() => setOpen(false)}>
+        <Button
+          label="Done, then open again"
+          onClick={() => {
+            // Closed, and opened again before the browser went back over its entry.
+            flushSync(() => setOpen(false));
+            setOpen(true);
+          }}
+        />
+      </Overlay>
+    </Theme>
+  );
+}
+
+const overlayEntry = () => (window.history.state as { overlay?: string } | null)?.overlay;
+
+test("an overlay opened again while its closing goes back stays open, and Back closes it", async () => {
+  render(<OwnedOverlay />);
+  screen.getByRole("button", { name: "Done, then open again" }).click();
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  expect(screen.getByRole("dialog", { name: "New priority" })).toBeTruthy();
+  expect(overlayEntry()).toBe("New priority");
+  window.history.back();
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect(overlayEntry()).toBeUndefined();
 });
