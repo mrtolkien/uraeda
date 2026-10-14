@@ -56,9 +56,11 @@ The decisions this plan relies on, and where it follows them:
 ## Complexity tracking
 
 [Every new abstraction: a type, module, layer, wrapper, or helper shared by several parts, tests
-included, even when the spec's architecture or details introduced it. Every constitution exception
-the human accepted. Name the callers, shared rule, or approved variation that needs each
-abstraction, and the simpler alternative rejected. "None." otherwise.]
+included, even when the spec's architecture or details introduced it. Every function or file a task
+grows past the project's limits, or leaves over them. Every constitution exception: one the human
+accepted in the questions, or a new marker on code over a limit, for the plan's review to approve.
+Name the callers, shared rule, or approved variation that needs each one, and the simpler
+alternative rejected. "None." otherwise.]
 
 | Abstraction or exception | Why it is needed | Simpler alternative rejected because |
 | ------------------------ | ---------------- | ------------------------------------ |
@@ -84,7 +86,20 @@ task that carries it out. State which spec clause it supersedes when it explicit
 - Produces: [what callers or later tasks rely on: exact names, parameters, return types, and
   behaviour. Private helpers and internal decomposition remain implementation choices.]
 
-- [ ] **Step 1: Write the failing tests, and the helpers they use**
+- [ ] **Step 1: [Only when the task touches a unit over the project's limit.] Split `[unit]` before
+      it changes**
+
+[How to restructure the unit without changing what it does, and its marker to remove.]
+
+- Run: `[the tests and the check of the limits]`, before and after the split
+- Expected: PASS both times, [with no unused marker]
+
+```bash
+git add [the restructured files]
+git commit -m "refactor([number]): [the restructuring]"
+```
+
+- [ ] **Step 2: Write the failing tests, and the helpers they use**
 
 ```ts
 // tests/exact/path
@@ -95,23 +110,27 @@ test("[the scenario, in words]", async () => {
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+The break each test catches:
+
+- [The test, in a few words]: [the realistic mistake that makes it fail].
+
+- [ ] **Step 3: Run them to check they fail**
 
 - Run: `[command]`
 - Expected: FAIL, [the first failure the run will hit].
 
-- [ ] **Step 3: Implement**
+- [ ] **Step 4: Implement**
 
 [Responsibilities, files, the values the spec pins, and exact signatures for public and cross-task
 contracts. Explain an algorithm when correctness depends on it; leave private implementation choices
 to the implementer.]
 
-- [ ] **Step 4: Run all tests[, and the benchmark]**
+- [ ] **Step 5: Run all tests[, and the benchmark]**
 
 - Run: `[command]`
 - Expected: PASS[, and no benchmark slower than its baseline beyond the tolerance the spec sets].
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add [the files of this task]
