@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Dedicated session view
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 6 questions on the session's page and the plan's progress, about 20 minutes.
+> Answered on 2026-10-14.
 >
 > - **A choice that lasts.** Giving the session a page of its own on a desktop changes the
 >   [UI layout](../decisions/ui-layout.md) decision. That decision opens every detail in a pane
@@ -72,7 +72,7 @@ changes, which only you can decide.
   - [con] following an agent takes an extra click every time, and a maximized pane is a page in all
     but name.
 
-**Answer:**
+**Answer:** A
 
 ### Q1.A: What sits beside the transcript?
 
@@ -94,7 +94,7 @@ column can fold away, like the sidebar. More in [discovery](discovery-01.md#the-
   - [con] the server needs a git diff summary per feature, kept live, and the full diff view would
     still be missing.
 
-**Answer:**
+**Answer:** B: Only add B if it’s not too hard
 
 ## Q2: How does the current task show in the sidebar?
 
@@ -120,7 +120,10 @@ whether it leads straight to the session.
   - [pro] the count shows even when the nested row is cut.
   - [con] the count shows twice.
 
-**Answer:**
+**Answer:** A: Use icons to make it as short as possible, should be small and visual more than
+textual
+
+And btw do the same for the feature name, use the slug
 
 ## Q3: Should the UI show that an agent it did not start is working?
 
@@ -146,7 +149,7 @@ for one agent's private files.
   - [con] Claude Code only, a parser of its private files that changes between versions, and a
     second kind of session.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: Should the progress move within a task?
 
@@ -168,7 +171,7 @@ implementation reference, its template, and the example must change together.
   - [pro] finer progress, from the plan alone, for any agent.
   - [con] a change to the skill, and the steps are mostly test, run, implement, run, commit.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: What else ships with the session's page?
 
@@ -196,7 +199,7 @@ Why it matters: it sets the feature's scope. B and C need more work, and C chang
   - [pro] the checklist always shows.
   - [con] it changes how the agent works, which the agents decision forbids.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
