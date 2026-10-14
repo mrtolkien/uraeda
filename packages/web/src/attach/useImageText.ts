@@ -48,16 +48,16 @@ function usePlaces(ref: RefObject<HTMLTextAreaElement | null>, text: string) {
   return { places, seen };
 }
 
+/** An alt text to select, and the text holding it. */
+export type Pending = { range: [number, number]; text: string };
+
 /**
- * The alt text to select once the text with the links is drawn; a field not drawn, as while the
- * preview shows, drops the selection, which would take the focus later.
+ * The alt text to select once the field shows the text holding it: a draw before then, as for the
+ * upload's status, keeps it waiting. A field not drawn, as while the preview shows, drops the
+ * selection, which would take the focus later.
  */
-function useSelectAfterDraw(
-  ref: RefObject<HTMLTextAreaElement | null>,
-  latest: RefObject<string>,
-  initial?: [number, number],
-) {
-  const selection = useRef<[number, number] | undefined>(initial);
+export function useSelectAfterDraw(ref: RefObject<HTMLTextAreaElement | null>, initial?: Pending) {
+  const selection = useRef<Pending | undefined>(initial);
   useLayoutEffect(() => {
     const field = ref.current;
     if (!selection.current) {
@@ -65,9 +65,9 @@ function useSelectAfterDraw(
     }
     if (!field) {
       selection.current = undefined;
-    } else if (field.value === latest.current) {
+    } else if (field.value === selection.current.text) {
       field.focus();
-      field.setSelectionRange(...selection.current);
+      field.setSelectionRange(...selection.current.range);
       selection.current = undefined;
     }
   });
@@ -112,7 +112,7 @@ type Field = {
   places: RefObject<Set<{ at: number }>>;
   ref: RefObject<HTMLTextAreaElement | null>;
   seen: RefObject<string>;
-  selection: RefObject<[number, number] | undefined>;
+  selection: RefObject<Pending | undefined>;
 };
 
 /** Inserts a batch's links at its place, moving the batches after it at the same place. */
@@ -129,7 +129,7 @@ function insertBatch(field: Field, place: { at: number }, links: Array<string>, 
   field.latest.current = linked.text;
   run.added = true;
   run.selection = linked.selection;
-  field.selection.current = linked.selection;
+  field.selection.current = { range: linked.selection, text: linked.text };
   return linked.text;
 }
 
@@ -277,7 +277,7 @@ export function useImageText(options: ImageTextOptions) {
     callbacks.current = options;
   });
   const attaching = useAttach({ path }, initialStatus);
-  const selection = useSelectAfterDraw(ref, latest, initialSelection);
+  const selection = useSelectAfterDraw(ref, initialSelection && { range: initialSelection, text });
   const { places, seen } = usePlaces(ref, text);
   const field = { callbacks, focused, latest, places, ref, seen, selection };
   const { addFiles, busy, settled } = useRuns(field, attaching);
