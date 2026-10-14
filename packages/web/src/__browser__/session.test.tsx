@@ -70,8 +70,10 @@ test("a working session: a page of its own, following its end (US1)", async () =
   expect(box.scrollTop).toBe(position);
 });
 
+// A session opened from a task view still opens at its end: the task view's pane keeps its own
+// position in its history entry, which must not hold the session's page back.
 test("a session opened from a task view's pane opens at its end", async () => {
-  // Only the wide layout shows the task view in a pane, whose position its entry keeps.
+  // Only the wide layout shows the task view in a pane.
   if (window.innerWidth < 768) {
     return;
   }
@@ -93,6 +95,7 @@ test("a session opened from a task view's pane opens at its end", async () => {
     LIVE,
   );
   await show("/priorities/claude-code-runner-triggered-manually", "Claude Code runner");
+  // Scrolled, the pane has a position of its own for the task view's entry to keep.
   const pane = screen.getByRole("region", { name: "Detail" });
   pane.scrollTo(0, pane.scrollHeight);
   await drawn();
@@ -183,18 +186,16 @@ test("Back from a session view returns to its position, following the end only f
   await drawn();
 
   // Scrolled up to a link in the reply: Back returns there, and nothing moves as the turn grows.
-  let box = scroller();
+  const box = scroller();
   const proposal = within(log).getByRole("link", { name: "the proposal" });
-  const top = box === document.scrollingElement ? 0 : box.getBoundingClientRect().top;
   box.scrollTo(
     0,
-    Math.round(box.scrollTop + proposal.getBoundingClientRect().top - top - box.clientHeight / 2),
+    Math.round(box.scrollTop + proposal.getBoundingClientRect().top - box.clientHeight / 2),
   );
   await drawn();
   const position = Math.round(box.scrollTop);
   expect(position).toBeGreaterThan(0);
   await followAndComeBack(proposal, `/f/${CLI}/proposal.md`);
-  box = scroller();
   await expect.poll(() => Math.round(box.scrollTop), LIVE).toBe(position);
   await agent.agentEmit([{ text: "A line while scrolled up.", type: "text" }]);
   await screen.findByText("A line while scrolled up.", undefined, LIVE);
