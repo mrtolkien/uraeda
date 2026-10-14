@@ -117,7 +117,7 @@ pub(crate) fn write_lock() -> std::sync::MutexGuard<'static, ()> {
         .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
-fn open(repo: &Path) -> Result<(Git, Workspace)> {
+pub(crate) fn open(repo: &Path) -> Result<(Git, Workspace)> {
     let git = Git::discover(repo)?;
     let workspace = Workspace::read(&git).map_err(|error| refused(error.to_string()))?;
     Ok((git, workspace))
@@ -241,7 +241,7 @@ pub fn priority_links(repo: &Path, text: &str) -> Result<Vec<PriorityLink>> {
         .collect())
 }
 
-fn find<'a>(workspace: &'a Workspace, folder: &str) -> Result<&'a Feature> {
+pub(crate) fn find<'a>(workspace: &'a Workspace, folder: &str) -> Result<&'a Feature> {
     workspace
         .feature(folder)
         .ok_or_else(|| refused(format!("no feature {folder}")))
