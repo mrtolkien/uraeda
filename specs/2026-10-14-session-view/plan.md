@@ -9,7 +9,8 @@ spec-revision: 1
 the feature's progress and changed files, and the sidebar shows each feature by its slug, with its
 current task.
 
-**Architecture:** see the [spec's design](spec.md#design). Ownership and boundaries:
+**Architecture:** see the [spec's architecture](spec.md#architecture) and
+[details](spec.md#details). Ownership and boundaries:
 
 - **The core owns every rule.** It computes the plan's progress, from the same parse the plan's
   review uses, and the branch's changes, by running git. The UI only draws what the binding sends

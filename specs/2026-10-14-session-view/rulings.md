@@ -69,3 +69,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   of the same files.
 - **If wrong**: the structural commits are behaviour-neutral, and can be reverted on their own.
 - **Where**: Tasks 1, 2, 5, 6, 9, and 10.
+
+## R7: The approved spec takes the new template's sections, unchanged in content
+
+- **Decision**: the spec's `## Design` became `## Architecture`, `## Mockups`, and `## Details`, in
+  the order of the template the code quality feature merged meanwhile. Not a word of its content
+  changed, so its `revision` stays 1, and the plan still implements it.
+- **Rationale**: `ura check specs`, in `vp run ready`, refuses the old sections, and the
+  implementation cannot pass its validation otherwise.
+- **Alternatives considered**: a new spec revision, which would send the plan back for a revision
+  for no change of behaviour.
+- **If wrong**: the old order is one commit away in git.
+- **Where**: before Task 1.
