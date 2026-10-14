@@ -122,7 +122,10 @@ function NotesField({
       </DropHint>
       <AttachStatus status={images.status} />
       <HStack gap={2}>
-        <AttachButton onFiles={(files) => void images.addFiles(files)} />
+        <AttachButton
+          name="Add image to the notes"
+          onFiles={(files) => void images.addFiles(files)}
+        />
       </HStack>
     </VStack>
   );
@@ -171,6 +174,8 @@ export function RoundPage({ file }: { file: File }) {
   }, [round?.notes, idle, settle]);
   const wide = useWidthClass() === "wide";
   const end = useRef<HTMLDivElement>(null);
+  // Submit's buttons, which the bar's Submit focuses.
+  const submitRow = useRef<HTMLDivElement>(null);
   const questions = round?.questions ?? [];
   // The questions the round asks now, as the core says: a follow-up once its parent's answer
   // makes it apply.
@@ -196,7 +201,7 @@ export function RoundPage({ file }: { file: File }) {
       ? "auto"
       : "smooth";
     end.current?.scrollIntoView?.({ behavior, block: "end" });
-    end.current
+    submitRow.current
       ?.querySelector<HTMLButtonElement>("button:not([disabled])")
       ?.focus({ preventScroll: true });
   };
@@ -339,7 +344,9 @@ export function RoundPage({ file }: { file: File }) {
           ) : (
             error && <span {...stylex.props(statusStyles.error)}>{error.message}</span>
           )}
-          <CommitActions isDisabled={blank.length > 0} label="Submit answers" onCommit={submit} />
+          <div ref={submitRow}>
+            <CommitActions isDisabled={blank.length > 0} label="Submit answers" onCommit={submit} />
+          </div>
         </VStack>
       )}
     </>

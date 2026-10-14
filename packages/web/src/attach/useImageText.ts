@@ -60,8 +60,11 @@ export function useImageText({
   onStart?: () => Promise<boolean>;
   /** Takes the text with links while more files wait: shown, not saved yet. */
   onLinks?: (text: string) => void;
-  /** Takes the text once a run ended, with its links when `added`. */
-  onText: (text: string, added: boolean) => void;
+  /**
+   * Takes the text once a run ended, with its links when `added`. `false` says the field did not
+   * take it, as a comment closed during the run: the alt text is not selected then.
+   */
+  onText: (text: string, added: boolean) => boolean | void;
   /** Takes the text with the links once a run ended with the file moved, and the last status. */
   onMoved?: (moved: string, linked: Linked, status?: AttachStatus) => void;
 }) {
@@ -179,7 +182,9 @@ export function useImageText({
       );
       return;
     }
-    onText(now, ended.added);
+    if (onText(now, ended.added) === false) {
+      selection.current = undefined;
+    }
   }, [lastStatus]);
 
   const addFiles = useCallback(

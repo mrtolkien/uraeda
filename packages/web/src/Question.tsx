@@ -318,7 +318,10 @@ function CommentField({
       </DropHint>
       <AttachStatus status={images.status} />
       <HStack gap={2} align="center" wrap="wrap" xstyle={styles.actions}>
-        <AttachButton onFiles={(files) => void images.addFiles(files)} />
+        <AttachButton
+          name={`Add image to ${id}'s comment`}
+          onFiles={(files) => void images.addFiles(files)}
+        />
         {children}
       </HStack>
     </>
@@ -394,9 +397,14 @@ export function Question({
     }
     settle(question.answer);
   }, [question.answer, question.letters, question.comment, idle, settle]);
+  // The comment last handed to a save: Submit does not save it again while that save runs.
+  const committed = useRef(question.comment);
   /** Saves the answer at once, with the comment as typed. */
   const commit = useCallback(
-    (value: { comment: string; letters: ReadonlyArray<string> }) => schedule(value, true),
+    (value: { comment: string; letters: ReadonlyArray<string> }) => {
+      committed.current = value.comment;
+      schedule(value, true);
+    },
     [schedule],
   );
   // The images being added to the comment, which a submit waits for.
@@ -417,7 +425,7 @@ export function Question({
   useEffect(() => {
     const before = async () => {
       await settled.current();
-      if (local.current.dirty) {
+      if (local.current.dirty && local.current.comment !== committed.current) {
         commit({ comment: local.current.comment, letters: local.current.letters });
       }
       return flush();
@@ -425,6 +433,14 @@ export function Question({
     pending.add(before);
     return () => {
       pending.delete(before);
+      // A follow-up that stops applying during an upload still saves the image's link once it is
+      // added: Submit waits for it, or the commit would delete the image (R74).
+      const after = async () => {
+        await settled.current();
+        return flush();
+      };
+      pending.add(after);
+      void after().finally(() => pending.delete(after));
     };
   }, [pending, flush, commit]);
 
