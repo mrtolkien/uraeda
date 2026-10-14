@@ -322,3 +322,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   page loaded, keeps the fold closed, and a tap opens it. The check is one line in `useHashFold`, in
   `packages/web/src/Folds.tsx`.
 - **Where**: `packages/web/src/Folds.tsx`, `packages/web/src/__browser__/review.test.tsx`.
+
+## R20: The skill's entry point keeps the rule on active decisions
+
+- **Decision**: `SKILL.md` drops from 34,325 to under 16,000 characters. The three new references
+  hold the moved sections whole, each opening with one sentence saying what it holds. Two choices
+  inside the plan's lists:
+  - The paragraph "An active decision is never edited before approval", the last of "Review files",
+    stays in `SKILL.md`, after the paragraph on decisions, instead of moving to `conventions.md`.
+  - `conventions.md` orders its sections markdown, status, review files, branches, commits, as the
+    plan's interface lists them, and `projects.md` puts setup first.
+- **Rationale**: the rule on active decisions binds every step that writes a decision, not only a
+  review, and it is two lines. The plan's expected count, 34,339, was measured before task 1
+  shortened the status text; the run failed with 34,325, and the plan now says so.
+- **Alternatives considered**: moving the paragraph with its section. An agent writing a spec would
+  then need `conventions.md` to know it.
+- **If wrong**: the paragraph moves to `conventions.md` in one cut.
+- **Where**: task 9, `skills/uraeda/SKILL.md`,
+  `skills/uraeda/references/{conventions,projects,cli}.md`.

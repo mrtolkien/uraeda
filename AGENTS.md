@@ -33,9 +33,9 @@ editing it.
 
 - `skills/uraeda/`: the Uraeda skill, harness-agnostic, following the
   [Agent Skills format](https://agentskills.io/specification)
-  - `SKILL.md`: the workflow conventions and the entry point that finds the current workflow step
-    and stops at human gates
-  - `references/`: one file per workflow step
+  - `SKILL.md`: the entry point that finds the current workflow step and stops at human gates
+  - `references/`: one file per workflow step, and one each for the conventions, setting up and
+    starting features, and the `ura` CLI
   - `assets/templates/specs/`: artifact skeletons, at the same paths as in a user's `specs/` folder
   - `assets/example/specs/`: a filled-in example project (todo app), at the same paths
 - `specs/`: Uraeda's own workflow files. Not the templates installed in users' projects.
