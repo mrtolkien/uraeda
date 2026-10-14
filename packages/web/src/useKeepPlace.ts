@@ -94,10 +94,15 @@ export function useKeepPlace(content: RefObject<HTMLElement | null>) {
     }
     drawn.current = width;
     const kept = place.current;
-    if (kept === "end") {
-      window.scrollTo(0, document.documentElement.scrollHeight);
-    } else if (kept?.element.isConnected) {
-      window.scrollBy(0, kept.element.getBoundingClientRect().top - kept.top);
-    }
+    // Put back before the frame is drawn, once every component drawn for the width has committed:
+    // each media query's listener commits on its own, and the shell's navigation may follow this.
+    const frame = requestAnimationFrame(() => {
+      if (kept === "end") {
+        window.scrollTo(0, document.documentElement.scrollHeight);
+      } else if (kept?.element.isConnected) {
+        window.scrollBy(0, kept.element.getBoundingClientRect().top - kept.top);
+      }
+    });
+    return () => cancelAnimationFrame(frame);
   }, [width]);
 }
