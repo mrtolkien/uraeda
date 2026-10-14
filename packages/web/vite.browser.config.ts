@@ -4,9 +4,9 @@
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Frame, Page } from "playwright";
-import { addRepository } from "uraeda-binding";
+import { addRepository, removeRepository } from "uraeda-binding";
 import { fixtureRepo } from "uraeda-binding/test-utils";
-import { forgetRepo } from "uraeda-server/dev";
+import { reloadRepositories } from "uraeda-server/dev";
 import { FakeAdapter } from "uraeda-server/testing";
 import { playwright } from "vite-plus/test/browser-playwright";
 import { defineConfig, type PluginOption } from "vite-plus";
@@ -17,17 +17,23 @@ const plugins = (base.plugins ?? []).filter(
 );
 
 /**
- * The tests take the repository in turn, both sizes included, each on a fresh copy of the fixture
- * (see `src/__browser__/helpers.tsx`): the server reads `URAEDA_REPO` at each request. Each turn
- * has its own token, so a test only ever ends its own turn.
+ * Each test has a repository of its own, a fresh copy of the fixture listed under its own name, its
+ * pages under `/r/<name>/` (see `src/__browser__/helpers.tsx`). The tests still take their turn,
+ * both sizes included, for the one fake agent, whose messages each test resets. Each turn has its
+ * own token, so a test only ever ends its own turn.
  */
 const shared = globalThis as {
   uraedaRepoTurn?: Promise<void>;
   uraedaRepoHolder?: { token: number; release: () => void };
   uraedaRepoTokens?: number;
-  /** TEMPORARY (task 9): the name of the test's repository in the test server's list. */
-  uraedaRepoName?: string;
+  /** The test's repository: its folder, and its name in the test server's list. */
+  uraedaRepo?: { path: string; name: string };
 };
+
+/** The folder of the test's repository. */
+function repoFolder(): string {
+  return shared.uraedaRepo!.path;
+}
 
 type Context = { page: Page; frame: () => Promise<Frame> };
 
@@ -36,7 +42,10 @@ const agent = new FakeAdapter();
 type AgentEvent = Parameters<FakeAdapter["emit"]>[0];
 
 const commands = {
-  /** Waits for the repository, then gives the test a fresh copy of the fixture, and its token. */
+  /**
+   * Waits for the turn, then gives the test a fresh copy of the fixture, added to the test server's
+   * list and served, with the turn's token and the repository's name.
+   */
   async takeRepo() {
     const previous = shared.uraedaRepoTurn ?? Promise.resolve();
     let release = () => {};
@@ -44,20 +53,21 @@ const commands = {
     await previous;
     const token = (shared.uraedaRepoTokens = (shared.uraedaRepoTokens ?? 0) + 1);
     shared.uraedaRepoHolder = { token, release };
-    process.env.URAEDA_REPO = fixtureRepo();
-    // TEMPORARY (task 9): listed now, so the test knows its name, `/r/<name>/`.
-    const { repository } = await addRepository(
-      process.env.URAEDA_DATA_DIR!,
-      process.env.URAEDA_REPO,
-    );
-    shared.uraedaRepoName = repository.name;
+    const path = fixtureRepo();
+    const { repository } = await addRepository(process.env.URAEDA_DATA_DIR!, path);
+    // Served at once, without waiting for the server's watch of the list.
+    await reloadRepositories();
+    shared.uraedaRepo = { path, name: repository.name };
     agent.sent = [];
     // A turn whose test gave up waiting for it is never released by that test: it ends once longer
     // than any test and its hooks, so one stuck test does not hold up every one after it.
     setTimeout(() => void commands.releaseRepo(undefined, token), 120_000).unref();
-    return token;
+    return { token, name: repository.name };
   },
-  /** Ends a test's turn: its copy is forgotten, and the next test takes the repository. */
+  /**
+   * Ends a test's turn: its repository leaves the list, which closes its watch, its copy is
+   * deleted, and the next test takes its turn.
+   */
   async releaseRepo(_context: unknown, token: number) {
     const holder = shared.uraedaRepoHolder;
     if (holder?.token !== token) {
@@ -65,22 +75,23 @@ const commands = {
     }
     // The agent's process ends with the test: the next test's session opens one of its own.
     agent.exit(1, "ended by the test");
-    const repo = process.env.URAEDA_REPO!;
-    await forgetRepo(repo);
-    rmSync(repo, { recursive: true, force: true });
-    shared.uraedaRepoHolder = undefined;
-    holder.release();
-  },
-  /** TEMPORARY (task 9): the name of the test's repository, which its pages' paths start with. */
-  repoName() {
-    return shared.uraedaRepoName!;
+    const { path, name } = shared.uraedaRepo!;
+    try {
+      await removeRepository(process.env.URAEDA_DATA_DIR!, name);
+      await reloadRepositories();
+    } finally {
+      rmSync(path, { recursive: true, force: true });
+      shared.uraedaRepo = undefined;
+      shared.uraedaRepoHolder = undefined;
+      holder.release();
+    }
   },
   /** A file of the repository, `PRIORITIES.md` by default. */
   readRepo(_context: unknown, path = "specs/PRIORITIES.md") {
-    return readFileSync(join(process.env.URAEDA_REPO!, path), "utf8");
+    return readFileSync(join(repoFolder(), path), "utf8");
   },
   writeRepo(_context: unknown, text: string, path = "specs/PRIORITIES.md") {
-    writeFileSync(join(process.env.URAEDA_REPO!, path), text);
+    writeFileSync(join(repoFolder(), path), text);
   },
   /** The messages sent to the agent during the test, in order. */
   agentSent() {
@@ -134,9 +145,8 @@ const commands = {
 };
 
 export type RepoCommands = {
-  takeRepo: () => Promise<number>;
+  takeRepo: () => Promise<{ token: number; name: string }>;
   releaseRepo: (token: number) => Promise<void>;
-  repoName: () => Promise<string>;
   readRepo: (path?: string) => Promise<string>;
   writeRepo: (text: string, path?: string) => Promise<void>;
   agentSent: () => Promise<Array<{ id: string; text: string; when: string }>>;
@@ -162,7 +172,7 @@ export default defineConfig({
     include: ["src/__browser__/**/*.test.tsx"],
     globalSetup: ["src/__browser__/setup.ts"],
     testTimeout: 30_000,
-    // A test's turn at the repository waits for the other size's test, up to its own timeout.
+    // A test's turn waits for the other size's test, up to its own timeout.
     hookTimeout: 60_000,
     // Test files run in frames of one page, whose history they share: one file's Back would move
     // another's. One file at a time, in each browser.

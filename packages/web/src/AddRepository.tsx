@@ -21,6 +21,10 @@ const styles = stylex.create({
   inline: {
     maxWidth: "var(--size-form)",
   },
+  // A path wraps anywhere rather than be cut: the UI checks decision cuts no text.
+  path: {
+    overflowWrap: "anywhere",
+  },
 });
 
 /** Where the field starts: the home folder, whose folders the human goes on from. */
@@ -37,7 +41,7 @@ function Suggestions({ text, onPick }: { text: string; onPick: (path: string) =>
       {rows.map((row) => (
         <ListItem
           key={row.path}
-          label={row.path}
+          label={<span {...stylex.props(styles.path)}>{row.path}</span>}
           endContent={row.git ? <Badge variant="neutral" label="git" /> : undefined}
           onClick={() => onPick(row.path)}
         />

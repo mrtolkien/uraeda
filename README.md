@@ -194,6 +194,7 @@ ura install --user --agents --claude       # the skill, for your agents and Clau
 ura status                                 # every feature and bug, and who it waits on
 ura next                                   # the next step for an agent, from the skill's table
 ura check                                  # every workflow file against the skill's rules
+ura add                                    # this repository, to the web UI's list
 ura draft "listener"                       # a line of PRIORITIES.md becomes a draft
 ura start git-listener-process             # a draft becomes a started feature
 ura answer cli-core Q3 "B, simpler"        # one answer; --submit sends the round
@@ -232,15 +233,19 @@ find their WebKit browser:
 vp install         # dependencies
 vp run --filter uraeda-binding build  # the Rust core for Node: again after every pull
 vp run ready       # every check and test, as CI runs them
-vp dev             # the web UI on http://127.0.0.1:4310, for this repository
+vp dev             # the web UI on http://127.0.0.1:4310, opening this repository first
 cargo run -p uraeda-cli -- status
 ```
 
-`vp dev` reads `.env` at the root, from [`.env.example`](.env.example): `URAEDA_REPO` opens another
-repository, `URAEDA_PORT` changes the port, and `URAEDA_ALLOWED_HOSTS` lists the host names it
-accepts besides 127.0.0.1, like your machine's full name on your tailnet, `mac.tail1234.ts.net`. The
-server listens on 127.0.0.1 only: `tailscale serve --bg 4310` reaches it from your phone, at
-`https://mac.tail1234.ts.net/`.
+One server serves every repository in Uraeda's list, kept in your data folder: the menu at the top
+left of the web UI switches between them, adds one by its folder, and removes one, and `ura add`
+adds the repository of the folder you are in. Each repository's pages are under `/r/<name>/`.
+
+`vp dev` reads `.env` at the root, from [`.env.example`](.env.example): `URAEDA_REPO` names the
+repository opened first, and adds it to the list, `URAEDA_PORT` changes the port, and
+`URAEDA_ALLOWED_HOSTS` lists the host names it accepts besides 127.0.0.1, like your machine's full
+name on your tailnet, `mac.tail1234.ts.net`. The server listens on 127.0.0.1 only:
+`tailscale serve --bg 4310` reaches it from your phone, at `https://mac.tail1234.ts.net/`.
 
 Sessions need `claude` installed and signed in on the machine. Each feature has one session, in its
 worktree, where the workflow's runs and your chat follow each other; "New chat" opens one without a

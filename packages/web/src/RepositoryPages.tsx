@@ -7,6 +7,8 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
+import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import { AddRepository } from "./AddRepository.tsx";
@@ -16,6 +18,14 @@ import { Paragraph } from "./layout/Paragraph.tsx";
 import { navigate, repoPath, useRestoreScroll } from "./routes.tsx";
 import { BareShell } from "./Shell.tsx";
 import { RepositoriesView } from "./views.ts";
+
+const styles = stylex.create({
+  // The page's surface, which the shell paints on the other pages: the first run has none.
+  surface: {
+    minHeight: "var(--size-viewport-height)",
+    backgroundColor: colorVars["--color-background-surface"],
+  },
+});
 
 /** A URL naming no repository of the list, with a link to the most recently opened one. */
 export function UnknownRepository({ name, mostRecent }: { name: string; mostRecent?: string }) {
@@ -93,14 +103,16 @@ export function MissingFolder({ name, path }: { name: string; path: string }) {
 export function FirstRun() {
   useRestoreScroll(true);
   return (
-    <Page>
-      <VStack gap={3}>
-        <Heading level={1}>Add your first repository</Heading>
-        <Paragraph color="secondary">
-          Uraeda shows the specs and runs agents in git repositories on this machine.
-        </Paragraph>
-        <AddRepository inline />
-      </VStack>
-    </Page>
+    <div {...stylex.props(styles.surface)}>
+      <Page>
+        <VStack gap={3}>
+          <Heading level={1}>Add your first repository</Heading>
+          <Paragraph color="secondary">
+            Uraeda shows the specs and runs agents in git repositories on this machine.
+          </Paragraph>
+          <AddRepository inline />
+        </VStack>
+      </Page>
+    </div>
   );
 }

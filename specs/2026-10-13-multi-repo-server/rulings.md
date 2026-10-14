@@ -153,3 +153,36 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the menu and the field are each one component, `RepositoryMenu.tsx` and
   `AddRepository.tsx`, behind the same tests.
 - **Where**: task 8
+
+## R10: The browser tests list their repository, and the dev server reloads its hosts at once
+
+- **Decision**: `takeRepo` adds its fixture with `binding.addRepository`, then calls `dev.ts`'s
+  `reloadRepositories()`, which reloads the hosts of every started server before it resolves;
+  `releaseRepo` removes the entry with `binding.removeRepository` and reloads them the same way.
+  `devHandler` reads the settings, `URAEDA_REPO` among them, when its server starts with the first
+  request, as it already read the data folder, so the browser tests' setup, which runs after Vite's
+  server is made, names the repository opened first, a fixture outside the checkout.
+- **Rationale**: a test that waits for the hosts' 100 ms debounced watch, by polling, is slower and
+  can race the next test's list change; a reload is the call the watch makes. Without the later
+  read, the setup's `URAEDA_REPO` was never seen, and the test server opened and listed the checkout
+  running the tests.
+- **Alternatives considered**: polling the global list or `/r/<name>/fate` until the name is served;
+  dropping the setup's `URAEDA_REPO` and leaving the checkout as the starting repository.
+- **If wrong**: `reloadRepositories` has one caller, the browser tests' config; reading the settings
+  at creation again is one line in `devHandler`.
+- **Where**: task 9
+
+## R11: Paths in the menu and the suggestions wrap, and the first run paints its surface
+
+- **Decision**: a repository's path in the menu, and a suggested folder in the add form, wrap
+  anywhere instead of ending in an ellipsis. The first run, drawn without the shell, paints the
+  page's surface colour itself, the full height of the screen.
+- **Rationale**: task 9's browser tests found both: the [UI checks](../decisions/ui-checks.md)
+  decision cuts no text, which wins over the mockup's ellipsis, and in dark mode the first run's
+  text sat on the browser's own background, which axe-core reads as white and the theme does not
+  set.
+- **Alternatives considered**: a tooltip with the full path, which a touch screen cannot show; the
+  first run in an `AppShell` without navigation, a shell for its background alone.
+- **If wrong**: each is one style, in `RepositoryMenu.tsx`, `AddRepository.tsx`, and
+  `RepositoryPages.tsx`.
+- **Where**: task 9
