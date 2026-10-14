@@ -288,3 +288,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   comment still listed under "Your review". A reload opens it again.
 - **Where**: task 7, `packages/web/src/{useOpenKeys.ts,ReviewPage.tsx,DocumentPage.tsx,Blocks.tsx}`,
   `packages/web/src/__tests__/review.test.tsx`.
+
+## R18: The mockups region in its own file, above the review's hint
+
+- **Decision**: the region of [R2](#r2-one-button-per-mockup-at-the-top-of-the-review) is
+  `ReviewMockups`, in `ReviewMockups.tsx`. `ReviewPage` draws it after the stale comments' banner,
+  before the "Tap a block" hint. Its buttons are primary, and the phone's width on a narrow screen.
+  - A link whose text has several marks, like `[**Big** board](mockups/b.html)`, is one mockup, its
+    label the whole text.
+  - The mockup page's comment lands on the Mockups section's line only. A mockup linked from nowhere
+    else in the spec gets a general comment naming it, as one linked from nowhere did.
+- **Rationale**: `ReviewPage` is near the 100-line limit for a function. The banner says the review
+  is out of date, which matters before anything is opened. A full-width button on the phone reads as
+  the "big 'open mockups'" the human asked for ([C2](spec-review.md#c2-lines-387388-under-mockups)).
+- **Alternatives considered**: the region inside `ReviewPage`, pushing it over the limit; the region
+  above the banner, hiding the warning below the fold on a spec with several mockups.
+- **If wrong**: the region moves, or its buttons change size, in `ReviewMockups.tsx` alone.
+- **Where**: task 8, `packages/web/src/{ReviewMockups,ReviewPage,MockupPage}.tsx`,
+  `crates/core/src/files/spec.rs`.

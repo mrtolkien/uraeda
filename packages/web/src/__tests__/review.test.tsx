@@ -224,6 +224,27 @@ test("closing a fold keeps the draft", async () => {
   expect(field.value).toBe("Twice?");
 });
 
+/** Review C2: the mockups, the easiest part of a spec to check, open from the top of its review. */
+test("the mockups are first on a spec under review", async () => {
+  await renderPage(PAGE, repo());
+
+  const mockups = await screen.findByRole("region", { name: "Mockups" });
+  const story = screen.getByRole("heading", { name: "User stories" });
+  expect(mockups.compareDocumentPosition(story) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  await click(within(mockups).getByRole("button", { name: "Open the mockup: Repeat" }));
+  expect(window.location.pathname).toBe(`/f/${FOLDER}/mockups/repeat.html`);
+});
+
+/** Review C2: a spec without mockups has no place for them. */
+test("a spec without mockups has no mockups region", async () => {
+  const r = fixtureRepo();
+  commitSpec(r, (text) => text.replace(/## Mockups\n[\s\S]*?(?=## Assumptions)/, ""));
+  await renderPage(PAGE, r);
+
+  await screen.findByRole("heading", { name: "User stories" });
+  expect(screen.queryByRole("region", { name: "Mockups" })).toBeNull();
+});
+
 /** US3.1 */
 test("a tapped block takes a comment on its lines", async () => {
   const r = repo();

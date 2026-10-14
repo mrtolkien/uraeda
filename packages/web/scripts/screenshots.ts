@@ -168,10 +168,11 @@ const APPROVED = "/f/2026-10-13-plan-review/spec.md";
 const story = (page: Page) => page.getByText(/^US1( ·|:)/).first();
 
 /**
- * A spec's folds: under review, closed, with US2's scenarios open, and with Details opened from a
+ * A spec under review at its top, its mockups first. A spec's folds: under review, closed, with US2's scenarios open, and with Details opened from a
  * link to its Data; an approved spec's, closed, then with Details open.
  */
 async function takeFolds(each: Each) {
+  await each("spec-mockups", ({ page }) => show(page, SPEC, "Open the mockup: Repeat"));
   await each("spec-folded", async ({ page }) => {
     await show(page, SPEC, "Complete a repeating task");
     await scrollToTop(page, story(page));
