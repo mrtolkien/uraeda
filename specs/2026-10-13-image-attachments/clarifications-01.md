@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Image attachments
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 8 questions on image attachments, about 30 minutes.
+> Answered on 2026-10-14.
 >
 > - One choice lasts beyond this feature: committing images to the repository, next to the files
 >   they illustrate. The constitution asks for plain text in git, so it becomes a decision. Its
@@ -66,7 +66,7 @@ and GitHub, and how the repository grows.
   - [con] every clone and CI needs LFS installed and an LFS server; without it, the images are
     missing.
 
-**Answer:**
+**Answer:** A
 
 ### Q1.A: Where in the repository do images go, and what happens to them when the feature finishes?
 
@@ -102,7 +102,7 @@ it decides whether the default branch keeps growing with every feature's screens
   - [con] far from the files that link to them, a new top-level folder in `specs/`, and the default
     branch keeps every image.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How does a chat image reach the agent, and where is it kept?
 
@@ -131,7 +131,7 @@ the transcript.
   - [pro] they survive a lost cache.
   - [con] the repository fills with images of conversations nobody reads again.
 
-**Answer:**
+**Answer:** B
 
 ## Q3: Which texts take images?
 
@@ -155,7 +155,7 @@ texts out makes the feature feel uneven.
   - [pro] exactly the proposal.
   - [con] the editor accepts images for proposals but not for the drafts that become them.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: Do images also come from the clipboard?
 
@@ -173,7 +173,7 @@ Why it matters: without paste, a screenshot must first be saved as a file, then 
   - [pro] exactly the proposal.
   - [con] screenshots copied to the clipboard need saving first.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: Where on the page can an image be dropped?
 
@@ -195,7 +195,7 @@ mean.
   - [pro] never ambiguous.
   - [con] a smaller target, and the proposal asks for "in the page".
 
-**Answer:**
+**Answer:** A
 
 ## Q6: Are images changed before they are saved or sent?
 
@@ -219,7 +219,9 @@ Why it matters: it trades repository size and privacy against a new dependency.
   - [pro] no metadata, no dependency.
   - [con] screenshots may grow as PNG or blur as JPEG, and animated GIFs lose their animation.
 
-**Answer:**
+**Answer:** B: Also use a better format, like webp or jpeg-xl. Since the files will live forever in
+the git history, we need to use an efficient, highly compressed format, that still works well for
+screenshots.
 
 ## Q7: Do agents open the images linked in the files they read?
 
@@ -238,7 +240,8 @@ Why it matters: a screenshot the agent never opens is a screenshot the human att
   - [pro] no change to the skill.
   - [con] the agent may skip an image that answers its question.
 
-**Answer:**
+**Answer:** A: The text should be short though, the overwhelming majority of proposals will not have
+images attached
 
 ## Settled without the human
 
@@ -289,4 +292,6 @@ Why it matters: a screenshot the agent never opens is a screenshot the human att
   or editors (which have their own paste tools), and scanning screenshots for secrets. See
   [discovery](discovery-01.md#needs-no-choice).
 
-**Notes:**
+**Notes:** - I also would want a neovim command to insert an image from the clipboard in a
+draft/proposal if it's not too complex and does not bloat the CLI too much. If it's problematic,
+outline it in the spec.
