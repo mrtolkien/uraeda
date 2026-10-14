@@ -15,6 +15,11 @@ can break.
 `vp run ready` is the check every change runs, and slow or wasted tests cost time on every change,
 for the human and for agents.
 
+The full tests are also flaky on github and often fail. It is important that:
+
+- Each test pulls its weight and is meaningful
+- Failing tests means ACTUAL bugs
+
 ## Notes
 
 What a first look at the Neovim tests found, on 2026-10-14:
@@ -43,3 +48,8 @@ What a first look at the Neovim tests found, on 2026-10-14:
 Still to review the same way: the Rust tests (`crates/core/tests`, `crates/cli/tests`,
 `crates/lsp/tests`) and the TypeScript tests (`packages/server`, `packages/web`'s unit and browser
 tests, `packages/binding`), and the rest of `ready`'s steps, which run one after the other.
+
+You also need to review:
+
+- How much of the testing we can parallelize, with tools like nextest for Rust
+- How robust are the tests and their fixtures (development environment, cleanup, ...)
