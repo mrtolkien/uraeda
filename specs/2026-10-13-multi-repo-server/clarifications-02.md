@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 02: Multi-repo server
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 1 question on the CLI binary's size, about 3 minutes.
+> Answered on 2026-10-14.
 >
 > - The constitution you amended today says measured size must not go up without your approval in
 >   the plan: `ura add` makes the release `ura` 36 KB larger, 0.6%.
@@ -41,7 +41,7 @@ Why it matters: the constitution makes each growth your call, recorded in the pl
   - [pro] no exception.
   - [con] unrelated work in this feature, with no known place to save it.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
