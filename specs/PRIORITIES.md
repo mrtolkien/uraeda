@@ -16,6 +16,7 @@
 - Make sure agents are resumable!
 
 - [Run the web UI with npx](drafts/run-the-web-ui-with-npx.md)
+- [Testing review](/specs/2026-10-14-testing-review/proposal.md)
 
 ## Next
 
@@ -28,8 +29,6 @@
   - Speed up the process: iteration speed is too slow atm
   - This only doable once we have a good benchmark!
 - Auth and login for basic security
-
-- [Testing review](drafts/testing-review.md)
 
 - CLI auto-expand in fish and ?zsh?
 - Ping user when input is needed
@@ -72,13 +71,14 @@
 
 ## Scratchpad
 
-- Only true uraeda flows should show up in the UI -> `review-findings` is in the UI despite not
+- Only true uraeda flows should show up in the UI -> `review-findings` was in the UI despite not
   having used the flow
 - We can likely drop the nvim plugin and LSP... The WebUI is turning out just as good and working
   with worktrees in nvim is pretty hard. I like it for writing proposals though.
 - Fix " ├╴ Link to non-existent document '/specs/2026-10-13-image-attachments/proposal.md' Marksman
   (2)"
-  - Happens when there's a feature in a worktree: this is not the right type of link!
+  - Happens when there's a feature in a worktree: we should not link from main to worktree-only
+    files
 - Draft to proposal on mobile went 404
 - We need a home icon/logo that goes back to the project root
 - For UI work we need a few mock environments with fixed content. Once the environments exist, they
