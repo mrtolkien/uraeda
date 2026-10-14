@@ -414,6 +414,35 @@ test("Submit stops when an answer could not be saved", async () => {
   );
 });
 
+/** Final review: a comment whose save was refused is saved by Submit once the page read again. */
+test("Submit saves a comment whose save was refused, once the page read the file again", async () => {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  await renderPage(PAGE, repo);
+  await screen.findByText("How does your iPhone reach the server?");
+  const path = join(repo, ".worktrees", FOLDER, ROUND);
+  writeFileSync(path, readFileSync(path, "utf8").replace("**Answer:** A", "**Answer:** A: theirs"));
+
+  await type(comment("Q1"), "mine");
+  await tap(saveButton("Q1"));
+  expect(await within(question("Q1")).findByText(/Not saved/)).toBeTruthy();
+  const from = answersSoFar();
+  await act(async () => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await readAnswered("WorkflowFile", from);
+  expect((comment("Q1") as HTMLTextAreaElement).value).toBe("mine");
+  expect(within(question("Q1")).getByText("Unsaved changes")).toBeTruthy();
+
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+
+  await waitFor(() =>
+    expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(
+      "discovery(web-ui): answer round 01",
+    ),
+  );
+  expect(git(repo, "show", `${FOLDER}:${ROUND}`)).toContain("**Answer:** A: mine");
+});
+
 /**
  * The key under which this browser keeps the round's position in a repository: the list's name of
  * a copy of the fixture is its folder's.
