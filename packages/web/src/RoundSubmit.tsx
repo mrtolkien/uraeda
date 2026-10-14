@@ -17,6 +17,7 @@ import { statusStyles } from "./Question.tsx";
 import { jumpTo } from "./RoundNav.tsx";
 import { NOTES_CHANGED, NotesField, type useRoundNotes } from "./RoundNotes.tsx";
 import { handOver } from "./sessions.ts";
+import { useSaveSettled } from "./SettledPoints.tsx";
 import { FileView } from "./views.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
@@ -56,12 +57,14 @@ export function HookRefusal({
 }
 
 /**
- * A round's submit: what is still being typed is saved first, the notes and every save in
- * `pending`, and nothing is submitted unless it all is. `next` hands the feature over to the agent
- * once the round is committed; a hook's refusal is tried again with `retry`.
+ * A round's submit: what is still being typed is saved first, the notes, every save in `pending`,
+ * then the settled points' comments, and nothing is submitted unless it all is. `next` hands the
+ * feature over to the agent once the round is committed; a hook's refusal is tried again with
+ * `retry`.
  */
 export function useRoundSubmit(file: File, notes: Notes, pending: Set<() => Promise<boolean>>) {
   const fate = useFateClient();
+  const saveSettled = useSaveSettled(file);
   const [error, setError] = useState<Refusal>();
   // Whether the last commit asked to start the agent, for its Try again.
   const continues = useRef(false);
@@ -72,7 +75,7 @@ export function useRoundSubmit(file: File, notes: Notes, pending: Set<() => Prom
     setError(undefined);
     continues.current = next;
     const saved = await Promise.all([...[...pending].map((flush) => flush()), notes.flush()]);
-    if (!saved.every(Boolean)) {
+    if (!saved.every(Boolean) || !(await saveSettled())) {
       setError({
         kind: "refused",
         message:

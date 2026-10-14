@@ -664,13 +664,20 @@ git commit -m "feat(text-inputs): comments on the points settled without the hum
 
 **Files:**
 
-- Modify: `packages/web/src/Question.tsx`, `QuestionComment.tsx`, the round's submit from task 4
+- Create: `packages/web/src/useAnswer.ts`
+- Modify: `packages/web/src/Question.tsx`, `QuestionComment.tsx`, `RoundPage.tsx`,
+  `SettledPoints.tsx`, `CommentForm.tsx`, the round's submit from task 4 (`RoundSubmit.tsx`)
 - Test: `packages/web/src/__tests__/round.test.tsx`
 
 **Interfaces:**
 
 - Consumes: task 4's `useTextField`, task 5's settled forms.
-- Produces: `PendingSaves` entries also come from open settled-point forms holding text.
+- Produces: `useSaveSettled(file)` in `SettledPoints.tsx`, which `useRoundSubmit` calls after the
+  pending saves and the notes: it saves every settled comment whose text the store keeps, not blank,
+  open or not, edits then new ones, and resolves with whether all were written (R12).
+  `useAnswer(question, folder, path)` in `useAnswer.ts`, with `PendingSaves` and `composed`;
+  `useCommentSaves({ commit, flush, pending, unsaved })` and `AnswerComment`, the comment with its
+  notices, in `QuestionComment.tsx`; `COMMENT_CHANGED` exported from `CommentForm.tsx` (R14).
 
 - [x] **Step 1: Split `Question` before it changes**
 
@@ -687,7 +694,7 @@ git add packages/web/src/Question.tsx packages/web/src/useAnswer.ts packages/web
 git commit -m "refactor(text-inputs): a question's saving in a hook"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 - US2 1: Q2 saved with "Fine", the field changed to "Fine, but daily only", tap B: the answer line
   reads `**Answer:** B: Fine`, the field keeps its text and "Unsaved changes".
@@ -696,29 +703,36 @@ git commit -m "refactor(text-inputs): a question's saving in a hook"
   answers": all three saved, then the round submitted.
 - Review focus 5: an open settled-point form with blank text; Submit adds no comment, and submits.
 - A Q3 comment typed, the page remounted: restored with the notice.
+- The spec's edge case: a Q3 comment unsaved, then the round answered on disk: the notice says the
+  round was answered, the unsaved text is not shown as the answer, and Discard drops it.
+
+Change "quick saves of one answer follow each other" to press "Save comment" before the tap (R13).
 
 The break each test catches: a tap saving the typed comment (US2 1); Submit skipping the settled
-form (US5 9); Submit adding an empty bullet (focus 5).
+form (US5 9); Submit adding an empty bullet (focus 5), with an edit cleared, whose blank text the
+store keeps; no restore notice (reload); the unsaved text shown as the answer (answered).
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web round`
 - Expected: FAIL, `expected '**Answer:** B: Fine, but daily only' to be '**Answer:** B: Fine'`
 
-- [ ] **Step 4: Implement**: the comment through `useTextField(\`${path}#${id}\`,
-      savedComment)`;     a tap commits `{letters, comment: savedComment}`; "Save comment" and
-      Ctrl+Enter commit the typed text; an image run commits the typed text with its links, as
-      today. Submit's pending set also saves each open settled-point form with text.
+- [x] **Step 4: Implement**
 
-- [ ] **Step 5: Run all tests**
+The comment through ``useTextField(`${path}#${id}`, question.comment)``; a tap commits its letters
+with the comment as last saved or read, taken when its save runs, after the saves before it; "Save
+comment" and Ctrl+Enter commit the typed text; an image run commits the typed text with its links,
+as today. Submit saves the settled comments the store keeps, through `useSaveSettled` (R12).
+
+- [x] **Step 5: Run all tests**
 
 - Run: `vp check && vp test --project uraeda-web`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add packages/web
+git add packages/web specs/2026-10-14-text-inputs
 git commit -m "feat(text-inputs): a tap saves the letters, and a comment saves with its button"
 ```
 
@@ -749,7 +763,7 @@ git add packages/web/src/ReviewVerdict.tsx packages/web/src/ReviewChoices.tsx
 git commit -m "refactor(text-inputs): the verdict's tier and plan review choices in a component"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 - US3 1 and SC-002: a spec of 300 blocks (a generated fixture), a comment form open on line 40, type
   "a" with React's `Profiler` around the document's `Blocks`: the profiler's `onRender` is not
@@ -771,7 +785,7 @@ The break each test catches: the text back in page state (US3 1); a form remount
 (US3 2); a verdict ignoring a form with text but no image (US5 10); a restore that keeps stale line
 numbers (focus 6).
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web review mockup`
 - Expected: FAIL, `expected "spy" to not be called`
@@ -817,7 +831,7 @@ git add packages/web/src/EditorPage.tsx packages/web/src/useEditorActions.ts
 git commit -m "refactor(text-inputs): the editor's actions in a hook"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 - US2 3: change the text, wait for another file's change to be read (`refreshUntil`): the file is
   unchanged, "Unsaved changes" next to "Save".
@@ -830,7 +844,7 @@ git commit -m "refactor(text-inputs): the editor's actions in a hook"
 The break each test catches: a leftover timer saving (US2 3); Commit committing the old text (US2
 4).
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web editor`
 - Expected: FAIL, `expected file to equal the committed text`
@@ -874,11 +888,11 @@ git add packages/web/src/EditableLine.tsx packages/web/src/useLineSave.ts
 git commit -m "refactor(text-inputs): a line's save in a hook"
 ```
 
-- [ ] **Step 2: Write the failing tests**: US2 5, 6, and 7 with "Run the web UI with npx" and ", and
+- [x] **Step 2: Write the failing tests**: US2 5, 6, and 7 with "Run the web UI with npx" and ", and
       a version check"; Save and Cancel buttons; quick add's text kept after the overlay is closed
       with "Keep editing", restored after a remount. The break: a blur still saving (US2 5).
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web priorities task`
 - Expected: FAIL, `expected PRIORITIES.md to be unchanged`
