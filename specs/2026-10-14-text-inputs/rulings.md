@@ -647,3 +647,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   [`clarifications.rs`](/crates/core/src/files/clarifications.rs), and `join_notes` in
   [`notes.rs`](/crates/core/src/files/clarifications/notes.rs).
 - **Where**: the second review.
+
+## R38: Quick add's height test clicks the page's ＋
+
+- **Decision**: the browser test "quick add's field is 3 rows (US6 6)" clicks the page's "Add a
+  priority" button, not the navigation's, which the phone may still hold while its drawer closes.
+- **Rationale**: a loaded run found two buttons with that name and failed on the ambiguity, not on
+  the height it checks; the assertions are unchanged.
+- **Alternatives considered**: waiting for the drawer to close, which ties the test to the drawer's
+  timing.
+- **If wrong**: the test clicks the navigation's button, which opens the same overlay.
+- **Where**: `packages/web/src/__browser__/fields.test.tsx`.
