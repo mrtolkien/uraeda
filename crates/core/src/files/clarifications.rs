@@ -127,11 +127,24 @@ fn option_letter(line: &str) -> Option<char> {
     (rest.starts_with(". ") || rest.starts_with(" (recommended).")).then_some(letter)
 }
 
-/// Every question and follow-up of a clarifications file, in order.
+/// Every question and follow-up of a clarifications file, in order. An answer keeps its code blocks
+/// as written; a line of code is no heading, marker, or option.
 pub fn parse(text: &str) -> Vec<Question> {
     let mut questions: Vec<Question> = Vec::new();
     let mut in_answer = false;
-    for (number, line) in super::lines_outside_code(text) {
+    let mut in_code = false;
+    for (index, line) in text.lines().enumerate() {
+        let number = index + 1;
+        let fence = super::is_fence(line);
+        let code = in_code || fence;
+        in_code ^= fence;
+        if code {
+            if let Some(question) = questions.last_mut().filter(|_| in_answer) {
+                question.answer.push('\n');
+                question.answer.push_str(line);
+            }
+            continue;
+        }
         if line.starts_with('#') {
             in_answer = false;
             if let Some((id, parent, title)) = heading(line) {
@@ -286,7 +299,8 @@ fn replace_after(text: &str, marker_line: usize, marker: &str, answer: &str) -> 
 }
 
 /// An answer from the letters picked and a comment, as the web UI composes it: `A`, `B and C`,
-/// `A, B and C`, then `: <comment>`; a comment alone is written as it is.
+/// `A, B and C`, then `: <comment>`; a comment alone is written as it is. A comment starting with
+/// a code block starts on the line after the letters, after a blank line.
 pub fn compose_answer(letters: &[String], comment: &str) -> String {
     let mut letters: Vec<&str> = letters.iter().map(String::as_str).collect();
     letters.sort_unstable();
@@ -299,6 +313,9 @@ pub fn compose_answer(letters: &[String], comment: &str) -> String {
     };
     if comment.is_empty() {
         picked
+    } else if comment.lines().next().is_some_and(super::is_fence) {
+        // A fence is one only at the start of its line: a code block starts below the letters.
+        format!("{picked}:\n\n{comment}")
     } else {
         format!("{picked}: {comment}")
     }
@@ -355,7 +372,7 @@ pub fn option_heading(strong: &str) -> Option<(char, bool, &str)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{AnswerError, set_answer};
+    use super::{AnswerError, compose_answer, parse, set_answer, split_answer};
 
     #[test]
     fn blank_notes_keep_their_comments_as_a_list() {
@@ -384,6 +401,31 @@ mod tests {
                 Err(AnswerError::Structure)
             };
             assert_eq!(written, expected, "{notes:?}");
+        }
+    }
+
+    #[test]
+    fn code_blocks_in_a_question_answer_are_kept_as_written() {
+        let text = "## Q1: Which?\n\n- **A. One**\n- **B. Two**\n\n**Answer:**\n\n## Q2: Next?\n\n**Answer:**\n";
+        let options = ['A', 'B'];
+        let comments = [
+            "See:\n\n```sh\n# a shell comment\n**Answer:** quoted\n```\n\nThen.",
+            "```\n## Not a heading\n```",
+        ];
+        for comment in comments {
+            for letters in [vec![], vec!["A".to_string()]] {
+                let written = set_answer(text, "Q1", &compose_answer(&letters, comment)).unwrap();
+                let questions = parse(&written);
+                assert_eq!(questions.len(), 2, "{written:?}");
+                let answer = &questions[0].answer;
+                assert_eq!(
+                    split_answer(answer, &options),
+                    (letters.clone(), comment.to_string()),
+                    "{written:?}"
+                );
+                // Saving the answer read keeps the file as it is.
+                assert_eq!(set_answer(&written, "Q1", answer).unwrap(), written);
+            }
         }
     }
 }
