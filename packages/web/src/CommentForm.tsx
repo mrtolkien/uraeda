@@ -68,8 +68,9 @@ type Shared = {
  * the button that sends it. Its text is a field of the unsaved store, `field` its key, over
  * `saved`, the comment's text as the file holds it, empty for a new one, with `extra`, a review
  * comment's lines: it survives the form moving and a reload, restored with a notice; "Unsaved
- * changes" shows while it differs from `saved`, its button waits for a change, and Cancel asks
- * "Discard your comment?" first. Shared by the review, the mockup page, and the settled points.
+ * changes" shows while it differs from `saved`, its button waits for a change, Ctrl+Enter or
+ * Cmd+Enter sends it as its button does, and Cancel asks "Discard your comment?" first. Shared by
+ * the review, the mockup page, and the settled points.
  */
 export function CommentForm({
   extra,
@@ -137,6 +138,17 @@ function CommentFields({
   text: string;
 }) {
   const [error, setError] = useState<string>();
+  const canSubmit = text.trim() !== "" && !images?.busy && dirty;
+  const submit = async () => setError(await onSubmit(text));
+  // Ctrl+Enter, or Cmd+Enter, sends the comment as its button does, once: not again while it is
+  // being sent, nor when the button is disabled.
+  const [sending, setSending] = useState(false);
+  const submitKey = () => {
+    if (canSubmit && !sending) {
+      setSending(true);
+      void submit().finally(() => setSending(false));
+    }
+  };
   return (
     <form
       aria-label="Comment"
@@ -159,12 +171,19 @@ function CommentFields({
               kind="comment"
               label="Comment text"
               onChange={onChange}
+              onSubmit={submitKey}
               value={text}
               {...images.fieldProps}
             />
           </DropHint>
         ) : (
-          <TextField kind="comment" label="Comment text" onChange={onChange} value={text} />
+          <TextField
+            kind="comment"
+            label="Comment text"
+            onChange={onChange}
+            onSubmit={submitKey}
+            value={text}
+          />
         )}
         {images && <AttachStatus status={images.status} />}
         {(error ?? notice) && <span {...stylex.props(statusStyles.error)}>{error ?? notice}</span>}
@@ -178,8 +197,8 @@ function CommentFields({
           {action}
           <Button label="Cancel" onClick={onCancel} />
           <Button
-            clickAction={async () => setError(await onSubmit(text))}
-            isDisabled={!text.trim() || images?.busy || !dirty}
+            clickAction={submit}
+            isDisabled={!canSubmit || sending}
             label={submitLabel}
             variant="primary"
           />
