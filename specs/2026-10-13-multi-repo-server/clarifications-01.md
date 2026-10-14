@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Multi-repo server
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 9 questions on scope, shipping, and the repository selector, about 35 minutes.
+> Answered on 2026-10-14.
 >
 > - The proposal holds three pieces of work: the recommendation keeps the selector and adding
 >   folders here, and moves npm publishing to its own feature, right after this one.
@@ -59,7 +59,7 @@ Why it matters: it decides the size of this review, and when "easy to run" arriv
   - [pro] the smallest commitment.
   - [con] the proposal's third request waits without a date.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How should people run the UI outside Uraeda's checkout?
 
@@ -92,7 +92,8 @@ Why it matters: it becomes a decision on how Uraeda reaches users, and every rel
   - [con] repositories mounted into the container, and `claude` and its login inside it for agents
     to run.
 
-**Answer:**
+**Answer:** Let's focus on the server code in TS for this feature and leave packaging for a separate
+feature. Create the draft with the info you found during your discovery.
 
 ## Q3: Which folders can be added?
 
@@ -122,7 +123,7 @@ C and D can come on top of A or B.
   - [pro] the first-run flow ends with a working project, without a terminal.
   - [con] overlaps the onboarding pass in the priorities, which plans a setup with an agent.
 
-**Answer:**
+**Answer:** B: Add git init and pull in the "later" part
 
 ## Q4: How do you name a folder from the browser?
 
@@ -152,7 +153,10 @@ machine's folders.
   - [pro] the server never lists folders.
   - [con] not what the proposal asks.
 
-**Answer:**
+**Answer:** A: I'd like another way if it's possible: `ura add` from the CLI would add the local
+folder to the uraeda web UI
+
+This is doable if the web UI data is in a predictable place on the machine (it should be, right?)
 
 ## Q5: Where is the selector, and what does it hold?
 
@@ -177,7 +181,7 @@ Why it matters: it is the control the human uses every time they change project.
   - [pro] the fastest on a keyboard.
   - [con] nothing on the phone, and hidden for new users.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: How do URLs name the repository?
 
@@ -200,7 +204,7 @@ Why it matters: every link to a page, shared or bookmarked, follows this.
   - [pro] nothing to store to resolve it.
   - [con] long links that show the machine's paths, and break when the folder moves.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: Which repository opens when the server starts?
 
@@ -224,7 +228,7 @@ mentions.
   - [pro] predictable.
   - [con] one more click at every start.
 
-**Answer:**
+**Answer:** A
 
 ## Q8: Where does the server keep the list of repositories?
 
@@ -249,7 +253,8 @@ Why it matters: it becomes part of a decision on where Uraeda keeps what is not 
   - [pro] no new file.
   - [con] not editable by hand, and the cache can be lost, which the agents decision allows.
 
-**Answer:**
+**Answer:** A: Repositories are not config but data. I think a repositories.json is nice and this
+way it can easily be edited by a human or coding agent.
 
 ## Q9: Who may add folders and run agents in them?
 
@@ -277,7 +282,7 @@ Why it matters: it sets what a client of the server can reach on the machine.
   - [pro] the phone cannot widen what the server reaches.
   - [con] adding a project from the phone is impossible.
 
-**Answer:**
+**Answer:** A: I've added security as a "Next" feature, it'll come once the core feature are down
 
 ## Settled without the human
 
