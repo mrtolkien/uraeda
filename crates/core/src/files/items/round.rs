@@ -1,7 +1,7 @@
 //! A clarifications round's items: its questions and their options, its context, the points
 //! settled without the human, and the notes.
 
-use super::{Choice, QuestionItem, RoundItems, headings, section};
+use super::{Choice, QuestionItem, RoundItems, SettledComment, SettledPoint, headings, section};
 use crate::files::clarifications::{self, Applicability};
 use crate::files::document::{Block, BlockKind, Document, ItemMarker, plain};
 use crate::files::frontmatter;
@@ -13,6 +13,55 @@ fn named_section(doc: &Document, title: &str) -> Vec<u32> {
         .find(|(_, level, text)| *level == 2 && text == title)
         .map(|(index, _, _)| section(doc, index, 2))
         .unwrap_or_default()
+}
+
+/// The top-level blocks of the points settled without the human, before the `**Notes:**` line.
+fn settled_section(doc: &Document, notes_line: usize) -> Vec<u32> {
+    named_section(doc, "Settled without the human")
+        .into_iter()
+        .filter(|&id| {
+            doc.blocks
+                .iter()
+                .any(|b| b.id == id && (b.start_line as usize) < notes_line)
+        })
+        .collect()
+}
+
+/// The settled points that start in bold, in order: the items of the settled section's lists.
+pub(crate) fn settled_points(doc: &Document, notes_line: usize) -> Vec<SettledPoint> {
+    let mut points = Vec::new();
+    for id in settled_section(doc, notes_line) {
+        for item in doc.children(id) {
+            if let Some(subject) = leading_strong(item) {
+                points.push(SettledPoint {
+                    block: item.id,
+                    subject: subject.trim().to_string(),
+                });
+            }
+        }
+    }
+    points
+}
+
+/// The notes split into the free notes and the comments on the settled points, each pointing at
+/// the first point with its subject.
+fn split(notes: &str, points: &[SettledPoint]) -> (String, Vec<SettledComment>) {
+    let subjects: Vec<String> = points.iter().map(|p| p.subject.clone()).collect();
+    let (free, comments) = clarifications::split_notes(notes, &subjects);
+    let comments = comments
+        .into_iter()
+        .zip(1..)
+        .filter_map(|((subject, text), number)| {
+            let point = points.iter().find(|p| p.subject == subject)?.block;
+            Some(SettledComment {
+                number,
+                subject,
+                point,
+                text,
+            })
+        })
+        .collect();
+    (free, comments)
 }
 
 /// The first strong span of an item, when the item's text starts with it.
@@ -105,14 +154,22 @@ pub(super) fn round(text: &str, doc: &Document) -> RoundItems {
         });
     }
     let notes = clarifications::notes(text);
+    let notes_line = notes.as_ref().map_or(usize::MAX, |(line, _)| *line);
+    let settled_points = settled_points(doc, notes_line);
+    let (free, settled_comments) = notes
+        .as_ref()
+        .map(|(_, notes)| split(notes, &settled_points))
+        .unzip();
     RoundItems {
         status,
         block,
         context: named_section(doc, "Context"),
         questions,
-        settled: named_section(doc, "Settled without the human"),
-        notes: notes.as_ref().map(|(_, notes)| notes.clone()),
+        settled: settled_section(doc, notes_line),
+        settled_points,
+        notes: free,
         notes_line: notes.map(|(line, _)| line as u32),
+        settled_comments: settled_comments.unwrap_or_default(),
     }
 }
 

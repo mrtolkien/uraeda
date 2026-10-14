@@ -293,3 +293,62 @@ fn a_comment_is_edited_and_removed() {
     let one = remove_comment(&removed, 1).unwrap();
     assert_eq!(one, None);
 }
+
+#[test]
+fn the_settled_section_ends_at_the_notes_and_takes_comments() {
+    let text =
+        std::fs::read_to_string(common::fixture("settled-comments/clarifications-01.md")).unwrap();
+    let doc = document::parse(&text, "specs/2026-10-06-recurring-tasks");
+    let round = items("clarifications-01.md", &text, &doc)
+        .clarifications
+        .unwrap();
+    let notes_line = round.notes_line.unwrap();
+
+    // The section's blocks stop before the **Notes:** line.
+    assert!(!round.settled.is_empty());
+    for &id in &round.settled {
+        let block = doc.blocks.iter().find(|block| block.id == id).unwrap();
+        assert!(block.start_line < notes_line, "{}", doc.text(id));
+    }
+    // Each point with a bold start, the one without left out.
+    let subjects: Vec<&str> = round
+        .settled_points
+        .iter()
+        .map(|point| point.subject.as_str())
+        .collect();
+    assert_eq!(
+        subjects,
+        [
+            "Undoing a completion",
+            "Deleting a repeating task",
+            "Undoing a completion"
+        ]
+    );
+    assert_eq!(
+        round.notes.as_deref(),
+        Some("Overall fine.\n\n- **Nothing matches**: stays in the free notes.")
+    );
+    let comments: Vec<(u32, &str, u32, &str)> = round
+        .settled_comments
+        .iter()
+        .map(|c| (c.number, c.subject.as_str(), c.point, c.text.as_str()))
+        .collect();
+    let points = &round.settled_points;
+    assert_eq!(
+        comments,
+        [
+            (
+                1,
+                "Undoing a completion",
+                points[0].block,
+                "Keep the undo.\nAlso for deletes."
+            ),
+            (
+                2,
+                "Deleting a repeating task",
+                points[1].block,
+                "Ask first."
+            ),
+        ]
+    );
+}

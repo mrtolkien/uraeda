@@ -562,10 +562,15 @@ export interface RoundItems {
   /** The blocks of the round's context section. */
   context: Array<number>
   questions: Array<QuestionItem>
-  /** The blocks of the points settled without the human. */
+  /** The blocks of the points settled without the human, up to the `**Notes:**` line. */
   settled: Array<number>
+  /** The settled points that start in bold, which take comments. */
+  settledPoints: Array<SettledPoint>
+  /** The free notes, trimmed, without the comments on settled points. */
   notes?: string
   notesLine?: number
+  /** The comments on settled points, written at the end of the notes. */
+  settledComments: Array<SettledComment>
 }
 
 export interface Ruling {
@@ -586,6 +591,25 @@ export interface SectionItems {
   section: string
   title: string
   entries: Array<EntryItem>
+}
+
+/** A comment on a settled point: a bullet of the notes, `- **<subject>**: <text>`. */
+export interface SettledComment {
+  /** 1-based, in the notes' order. */
+  number: number
+  subject: string
+  /** The block of the first settled point with that subject. */
+  point: number
+  /** Its text, without the bullet, the subject, or the indentation. */
+  text: string
+}
+
+/** A point settled without the human, by its bold start. */
+export interface SettledPoint {
+  /** Its list item's block. */
+  block: number
+  /** Its bold start, trimmed. */
+  subject: string
 }
 
 /** A run of text with the same marks. An image's span holds its alt text. */
