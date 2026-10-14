@@ -193,14 +193,32 @@ pub enum AnswerError {
     Structure,
 }
 
-/// Refuses an answer with a line that would end it: a heading, or another marker.
+/// Refuses an answer with a line that would end it: a heading, or another marker. A line of a code
+/// block is code, which ends nothing; a fence left open is not one, as the file's next headings
+/// would read as code.
 fn check_lines(answer: &str) -> Result<(), AnswerError> {
-    if answer.lines().any(|line| {
+    let lines: Vec<&str> = answer.lines().collect();
+    let mut code = vec![false; lines.len()];
+    let mut open = None;
+    for (index, line) in lines.iter().enumerate() {
+        if super::is_fence(line) {
+            match open.take() {
+                Some(start) => code[start..=index].fill(true),
+                None => open = Some(index),
+            }
+        }
+    }
+    let ends = |line: &str| {
         let line = line.trim_start();
         line.starts_with('#')
             || line.starts_with(ANSWER)
             || NOTES.iter().any(|m| line.starts_with(m))
-    }) {
+    };
+    if lines
+        .iter()
+        .zip(&code)
+        .any(|(line, &code)| !code && ends(line))
+    {
         return Err(AnswerError::Structure);
     }
     Ok(())
@@ -333,7 +351,7 @@ pub fn option_heading(strong: &str) -> Option<(char, bool, &str)> {
 
 #[cfg(test)]
 mod tests {
-    use super::set_answer;
+    use super::{AnswerError, set_answer};
 
     #[test]
     fn blank_notes_keep_their_comments_as_a_list() {
@@ -343,5 +361,25 @@ mod tests {
             set_answer(text, "notes", "").unwrap(),
             "## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n\n- **A point**: Keep it.\n"
         );
+    }
+
+    #[test]
+    fn a_heading_in_a_closed_code_block_ends_nothing() {
+        let text = "## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n";
+        let rows: [(&str, bool); 4] = [
+            ("```sh\n# a shell comment\n```", true),
+            ("~~~\n**Answer:** quoted\n~~~", true),
+            ("```\n# left open", false),
+            ("# a heading", false),
+        ];
+        for (notes, kept) in rows {
+            let written = set_answer(text, "notes", notes).map(|_| ());
+            let expected = if kept {
+                Ok(())
+            } else {
+                Err(AnswerError::Structure)
+            };
+            assert_eq!(written, expected, "{notes:?}");
+        }
     }
 }

@@ -2,27 +2,45 @@
 
 use super::{AnswerError, NOTES, check_lines, replace_after};
 
-/// The `**Notes:**` line and its text, when the file has one.
+/// The `**Notes:**` line and its text, when the file has one. Its code blocks are kept as written:
+/// a heading in one does not end the notes.
 pub fn notes(text: &str) -> Option<(usize, String)> {
     let mut found: Option<(usize, String)> = None;
-    for (number, line) in crate::files::lines_outside_code(text) {
-        if line.starts_with('#') {
+    let mut in_code = false;
+    for (index, line) in text.lines().enumerate() {
+        let fence = crate::files::is_fence(line);
+        let code = in_code || fence;
+        in_code ^= fence;
+        if !code && line.starts_with('#') {
             if found.is_some() {
                 break;
             }
             continue;
         }
-        if let Some((_, rest)) = NOTES
-            .iter()
-            .find_map(|marker| line.strip_prefix(marker).map(|rest| (marker, rest)))
-        {
-            found = Some((number, rest.trim().to_string()));
+        let marker = (!code)
+            .then(|| NOTES.iter().find_map(|marker| line.strip_prefix(marker)))
+            .flatten();
+        if let Some(rest) = marker {
+            found = Some((index + 1, rest.trim().to_string()));
         } else if let Some((_, notes)) = found.as_mut() {
             notes.push('\n');
             notes.push_str(line);
         }
     }
     found.map(|(line, notes)| (line, notes.trim().to_string()))
+}
+
+/// The fence a text leaves open, `` ``` `` or `~~~`, if any.
+fn open_fence(text: &str) -> Option<&'static str> {
+    let mut open = None;
+    for line in text.lines().filter(|line| crate::files::is_fence(line)) {
+        open = match open {
+            Some(_) => None,
+            None if line.trim_start().starts_with('~') => Some("~~~"),
+            None => Some("```"),
+        };
+    }
+    open
 }
 
 /// The bold subject a top-level bullet starts with, `- **<subject>**`, trimmed, and the text after
@@ -106,6 +124,15 @@ pub fn join_notes(free: &str, comments: &[(String, String)]) -> String {
         })
         .collect();
     let free = free.trim();
+    // A fence the free notes leave open is closed before the comments, which it would hide.
+    let closed;
+    let free = match open_fence(free) {
+        Some(fence) if !bullets.is_empty() => {
+            closed = format!("{free}\n{fence}");
+            closed.as_str()
+        }
+        _ => free,
+    };
     match (free.is_empty(), bullets.is_empty()) {
         (_, true) => free.to_string(),
         (true, false) => bullets.join("\n"),
@@ -170,7 +197,8 @@ pub fn set_notes(
 
 #[cfg(test)]
 mod tests {
-    use super::{join_notes, split_notes};
+    use super::{join_notes, round_notes, set_notes, split_notes};
+    use crate::files::clarifications::set_answer;
 
     /// A notes text, its free notes, and its comments as `(subject, text)`.
     type Row<'a> = (&'a str, &'a str, &'a [(&'a str, &'a str)]);
@@ -215,6 +243,71 @@ mod tests {
                 (free.to_string(), comments),
                 "{joined:?}"
             );
+        }
+    }
+
+    /// Free notes and comments written, then the free notes and comments they read back as.
+    type Written<'a> = (
+        &'a str,
+        &'a [(&'a str, &'a str)],
+        &'a str,
+        &'a [(&'a str, &'a str)],
+    );
+
+    fn owned(comments: &[(&str, &str)]) -> Vec<(String, String)> {
+        comments
+            .iter()
+            .map(|(subject, text)| (subject.to_string(), text.to_string()))
+            .collect()
+    }
+
+    #[test]
+    fn code_blocks_in_the_notes_are_kept_as_written() {
+        let round = "## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n";
+        let code = "See:\n\n```\n## Not a heading\n- **A point**: not a comment\n```\n\nAfter.";
+        let rows: [Written; 5] = [
+            // Code in the free notes, a heading and a bullet in it, with no comment.
+            (code, &[], code, &[]),
+            // Code in the free notes, then a comment.
+            (
+                code,
+                &[("A point", "Keep it.")],
+                code,
+                &[("A point", "Keep it.")],
+            ),
+            // Code in a comment.
+            (
+                "Fine.",
+                &[(
+                    "A point",
+                    "Try:\n\n```\nlet x = 1;\n\n  indented\n```\n\nThen.",
+                )],
+                "Fine.",
+                &[(
+                    "A point",
+                    "Try:\n\n```\nlet x = 1;\n\n  indented\n```\n\nThen.",
+                )],
+            ),
+            // An unclosed fence in the free notes is closed before the comments, which it hid.
+            (
+                "See:\n\n~~~\ncode",
+                &[("A point", "Keep it.")],
+                "See:\n\n~~~\ncode\n~~~",
+                &[("A point", "Keep it.")],
+            ),
+            // An unclosed fence with no comment after it stays as written.
+            ("See:\n\n```\ncode", &[], "See:\n\n```\ncode", &[]),
+        ];
+        for (free, comments, read_free, read_comments) in rows {
+            let written = set_notes(round, free, &owned(comments)).unwrap();
+            let read = round_notes(&written).unwrap();
+            assert_eq!(
+                (read.free.as_str(), read.comments),
+                (read_free, owned(read_comments)),
+                "{written:?}"
+            );
+            // Saving the free notes read keeps the file as it is.
+            assert_eq!(set_answer(&written, "notes", read_free).unwrap(), written);
         }
     }
 }
