@@ -67,29 +67,16 @@ function OnListClient({ children }: { children: ReactNode }) {
   return client ? <FateClient client={client}>{children}</FateClient> : children;
 }
 
-/** The repositories each global client has opened: once per repository and tab. */
-const opened = new WeakMap<object, Set<string>>();
-
 /**
- * Opens a repository the first time its page shows in the tab, which moves it first in the list,
- * through the client in context, the global one. Nothing for null.
+ * Opens a repository each time the tab switches to it, which moves it first in the list, through
+ * the client in context, the global one: once per switch, not on each render. Nothing for null.
  */
 export function useOpenRepository(name: string | null) {
   const fate = useFateClient();
   useEffect(() => {
-    if (name === null) {
-      return;
+    if (name !== null) {
+      void fate.mutations.repositories.open({ input: { name }, view: RepositoriesView });
     }
-    let names = opened.get(fate);
-    if (!names) {
-      names = new Set();
-      opened.set(fate, names);
-    }
-    if (names.has(name)) {
-      return;
-    }
-    names.add(name);
-    void fate.mutations.repositories.open({ input: { name }, view: RepositoriesView });
   }, [fate, name]);
 }
 

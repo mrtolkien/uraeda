@@ -142,6 +142,24 @@ test("opening a repository moves it first", async () => {
   await waitFor(() => expect(rows(menu)[0]).toBe("todo-app~/dev/todo-app"));
 });
 
+/** US1.4, back to a repository opened before in the tab */
+test("going back to a repository moves it first again", async () => {
+  const opens = () => sent.filter((body) => body.includes('"repositories.open"'));
+  await renderPage("/r/todo-app/", undefined, { dataDir: twoRepositories(), raw: true });
+  await waitFor(() => expect(opens()).toHaveLength(1));
+  await click((await openMenu("todo-app")).getByRole("button", { name: /^uraeda/ }));
+  await waitFor(() => expect(window.location.pathname).toBe("/r/uraeda/"));
+  await waitFor(() => expect(opens()).toHaveLength(2));
+
+  await click((await openMenu("uraeda")).getByRole("button", { name: /^todo-app/ }));
+  await waitFor(() => expect(window.location.pathname).toBe("/r/todo-app/"));
+
+  // Opened at the same second as uraeda, todo-app still comes first by its name.
+  await waitFor(() => expect(opens()).toHaveLength(3));
+  const menu = await openMenu("todo-app");
+  await waitFor(() => expect(rows(menu)[0]).toBe("todo-app~/dev/todo-app"));
+});
+
 /** US5.1 */
 test("removing from the menu leaves the list", async () => {
   const dataDir = twoRepositories();
