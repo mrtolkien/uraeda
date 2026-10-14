@@ -2,6 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
+import { forgetUnsaved } from "../fields/unsaved.ts";
 import {
   atRepo,
   answered as readAnswered,
@@ -10,6 +11,7 @@ import {
   fixture,
   fixtureRepo,
   git,
+  refreshUntil,
   renderPage,
   serverFetch,
   today,
@@ -227,12 +229,13 @@ test("every question and option shows in full", async () => {
   expect(screen.queryByText("more")).toBeNull();
 });
 
-/** Review focus 5: a comment, then a tap before its save returns, is not a conflict. */
+/** Review focus 5: a comment saved, then a tap before its save returns, is not a conflict. */
 test("quick saves of one answer follow each other", async () => {
   const { repo } = await renderPage(PAGE);
   await screen.findByText("How does your iPhone reach the server?");
 
   await type(comment("Q2"), "first");
+  await tap(saveButton("Q2"));
   await tap(option("Q2", "B"));
 
   // Its state shows once the save's answer comes back, after the file is written.
@@ -753,4 +756,124 @@ test("the bar's Submit focuses Submit answers", async () => {
   await tap(screen.getByRole("button", { name: "Submit" }));
 
   expect(document.activeElement).toBe(screen.getByRole("button", { name: "Submit answers" }));
+});
+
+/** US2 1 and 2 */
+test("a tap saves the letters with the comment as saved, and Save comment the comment typed", async () => {
+  const repo = answered({ Q2: "Fine" });
+  await renderPage(PAGE, repo);
+  await screen.findByText("How does your iPhone reach the server?");
+
+  await type(comment("Q2"), "Fine, but daily only");
+  await tap(option("Q2", "B"));
+
+  await waitFor(() => expect(answerLine(repo, "Q2")).toBe("**Answer:** B: Fine"));
+  expect(await within(question("Q2")).findByText("Unsaved changes")).toBeTruthy();
+  expect((comment("Q2") as HTMLTextAreaElement).value).toBe("Fine, but daily only");
+
+  await tap(saveButton("Q2"));
+
+  await waitFor(() => expect(answerLine(repo, "Q2")).toBe("**Answer:** B: Fine, but daily only"));
+  await waitFor(() => expect(within(question("Q2")).queryByText("Unsaved changes")).toBeNull());
+});
+
+/** The first point the fixture's round settled without the human, and the second. */
+const COMMITS = "The actions' commits move into the core";
+const WRITTEN = "An answer is written";
+
+/** A settled point's toggle, named by its text, which starts with its bold subject. */
+const settledPoint = (subject: string) =>
+  screen.findByRole("button", { name: new RegExp(`^${subject}`) });
+
+/** The comment field of the settled point's form open. */
+const settledField = () => screen.getByLabelText("Comment text") as HTMLTextAreaElement;
+
+/** US5 9 */
+test("Submit saves a comment, the notes, and a settled point's comment typed, then submits", async () => {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  await renderPage(PAGE, repo);
+  await screen.findByText("Which repositories does the UI open now?");
+  await type(comment("Q3"), "keep it simple");
+  await type(screen.getByLabelText("Notes"), "LGTM");
+  await tap(await settledPoint(COMMITS));
+  await type(settledField(), "Good.");
+
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+
+  await waitFor(() => expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(SUBMITTED));
+  const committed = git(repo, "show", `${FOLDER}:${ROUND}`);
+  expect(committed).toContain("**Answer:** A: keep it simple");
+  expect(committed.trimEnd()).toMatch(
+    /\*\*Notes:\*\* LGTM\n\n- \*\*The actions' commits move into the core\*\*: Good\.$/,
+  );
+});
+
+/** Review focus 5 */
+test("Submit adds no comment for a settled point's form left blank", async () => {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  const path = join(repo, ".worktrees", FOLDER, ROUND);
+  writeFileSync(
+    path,
+    readFileSync(path, "utf8").replace(
+      /\*\*Notes:\*\*\n?$/,
+      `**Notes:**\n\n- **${WRITTEN}**: Clear.\n`,
+    ),
+  );
+  await renderPage(PAGE, repo);
+  await tap(await settledPoint(COMMITS));
+  await type(settledField(), "   ");
+  // An edit cleared: the store keeps its blank text, unsaved.
+  const shown = screen.getByRole("group", { name: `Your comment on "${WRITTEN}"` });
+  await tap(within(shown).getByRole("button", { name: "Edit" }));
+  await type(settledField(), "");
+
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+
+  await waitFor(() => expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(SUBMITTED));
+  const committed = git(repo, "show", `${FOLDER}:${ROUND}`);
+  expect(committed.trimEnd()).toMatch(/\*\*Notes:\*\*\n\n- \*\*An answer is written\*\*: Clear\.$/);
+});
+
+/** US5 1, on a question's comment */
+test("a question's comment typed is restored after a reload", async () => {
+  const repo = answered({});
+  await renderPage(PAGE, repo);
+  await screen.findByText("Which repositories does the UI open now?");
+  await type(comment("Q3"), "Half typed");
+
+  forgetUnsaved();
+  await renderPage(PAGE, repo, { reload: true });
+
+  await screen.findByText("Which repositories does the UI open now?");
+  expect((comment("Q3") as HTMLTextAreaElement).value).toBe("Half typed");
+  expect(
+    within(question("Q3")).getByText("Unsaved text restored from", { exact: false }),
+  ).toBeTruthy();
+  expect(within(question("Q3")).getByText("Unsaved changes")).toBeTruthy();
+});
+
+/** The spec's edge case: the round answered elsewhere while a comment is unsaved. */
+test("an unsaved comment of a round answered elsewhere stays, with the notice", async () => {
+  const repo = answered({});
+  await renderPage(PAGE, repo);
+  await screen.findByText("Which repositories does the UI open now?");
+  await type(comment("Q3"), "Too late");
+
+  const path = join(repo, ".worktrees", FOLDER, ROUND);
+  writeFileSync(
+    path,
+    readFileSync(path, "utf8").replace("status: awaiting-human", "status: answered"),
+  );
+  await refreshUntil(() =>
+    expect(screen.queryByRole("button", { name: "Submit answers" })).toBeNull(),
+  );
+
+  expect(
+    within(question("Q3")).getByText("The round was answered.", { exact: false }),
+  ).toBeTruthy();
+  expect(within(question("Q3")).queryByText("Too late")).toBeNull();
+  await tap(within(question("Q3")).getByRole("button", { name: "Discard" }));
+  expect(
+    within(question("Q3")).queryByText("The round was answered.", { exact: false }),
+  ).toBeNull();
 });

@@ -42,7 +42,7 @@ export const DISCARD_COMMENT = {
 };
 
 /** What the restore notice adds when the comment changed since its unsaved text was typed. */
-const COMMENT_CHANGED = "The comment changed since: saving replaces it.";
+export const COMMENT_CHANGED = "The comment changed since: saving replaces it.";
 
 /** What every comment form takes, wherever its text is kept. */
 type Shared = {
