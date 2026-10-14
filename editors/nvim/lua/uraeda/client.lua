@@ -218,30 +218,38 @@ end
 --- first when `opts.save`, shows the server's progress, reloads the buffers of `written`, redraws
 --- the inline comments next to them, edits `opened` in the current window, then calls
 --- `cb(result)`. Errors are notified, after `opts.prefix` when given, after reloading the files
---- they list in `data.written`, and `cb` is not called.
+--- they list in `data.written`, and `cb` is not called. `opts.finally()` runs last on every
+--- outcome: success, error, no client, or a request that could not be sent.
 --- @param bufnr integer?
 --- @param name string
 --- @param args table?
---- @param opts { save?: boolean, prefix?: string }?
+--- @param opts { save?: boolean, prefix?: string, finally?: fun() }?
 --- @param cb fun(result: { opened?: string, written: string[], link?: string })?
 function M.command(bufnr, name, args, opts, cb)
   bufnr = resolve(bufnr)
   opts = opts or {}
+  local finally = opts.finally or function() end
   local client = M.get(bufnr)
   if client == nil then
-    return no_client()
+    no_client()
+    return finally()
   end
   if opts.save then
-    vim.api.nvim_buf_call(bufnr, function()
+    local saved, message = pcall(vim.api.nvim_buf_call, bufnr, function()
       vim.cmd("silent update")
     end)
+    if not saved then
+      notify_error(message)
+      return finally()
+    end
   end
   args = vim.tbl_extend("keep", args or {}, { uri = vim.uri_from_bufnr(bufnr) })
   tokens = tokens + 1
   local token = ("uraeda/nvim/%d"):format(tokens)
   local stop = show_progress(client, token)
   local params = { command = name, arguments = { args }, workDoneToken = token }
-  local sent = client:request("workspace/executeCommand", params, function(err, result)
+  --- The answer: reloads, notifies, opens, and calls `cb`.
+  local function handle(err, result)
     -- The progress notifications come before the answer; any left are dropped once handled.
     vim.schedule(stop)
     -- A command a hook refused leaves the files it wrote, listed in the error's `written`.
@@ -266,10 +274,18 @@ function M.command(bufnr, name, args, opts, cb)
     if cb then
       cb(result)
     end
+  end
+  local sent = client:request("workspace/executeCommand", params, function(err, result)
+    local ok, message = pcall(handle, err, result)
+    finally()
+    if not ok then
+      error(message, 0)
+    end
   end, bufnr)
   if not sent then
     stop()
     no_client()
+    finally()
   end
 end
 

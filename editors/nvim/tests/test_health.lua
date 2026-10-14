@@ -97,4 +97,11 @@ T["warns when no clipboard tool is found"] = function()
   })
 end
 
+T["warns when the configured clipboard command is missing"] = function()
+  child.setup({ clipboard = { "no-such-clipboard-tool" } })
+  eq(clipboard(health()), {
+    "- ⚠️ WARNING clipboard command not found: no-such-clipboard-tool",
+  })
+end
+
 return T

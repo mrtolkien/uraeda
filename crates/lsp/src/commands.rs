@@ -572,11 +572,10 @@ fn commit(documents: &Documents, args: FileArgs) -> Result<Outcome, ResponseErro
 fn attach_image(documents: &Documents, args: AttachImageArgs) -> Result<Done, ResponseError> {
     let root = &documents.root;
     let path = relative(documents, &args.uri).ok_or_else(|| refused(NOT_WORKFLOW))?;
-    // The checkout the core writes in, found first: the default branch's for a draft, else the
-    // feature's or the bug's.
-    let checkout = if path.starts_with("specs/drafts/") || path.starts_with("specs/backlog/") {
+    // The feature's or the bug's folder, None for a draft; checked without writing anything.
+    let folder = if path.starts_with("specs/drafts/") || path.starts_with("specs/backlog/") {
         on_default_branch(documents, file_name(&path))?;
-        core(api::default_root(root))?
+        None
     } else {
         let folder = path
             .strip_prefix("specs/")
@@ -589,15 +588,25 @@ fn attach_image(documents: &Documents, args: AttachImageArgs) -> Result<Done, Re
                     "{path} is not a markdown file of a feature, a bug, or a draft"
                 ))
             })?;
-        PathBuf::from(core(api::work_dir(root, folder))?)
+        Some(folder)
     };
+    // Read before any checkout is reached, which may add a worktree. The OS's error code is left
+    // out: "No such file or directory", not "... (os error 2)".
     let bytes = std::fs::read(&args.path).map_err(|error| {
+        let error = error.to_string();
+        let error = error.split(" (os error ").next().unwrap_or_default();
         refused(format!(
             "{} could not be read: {error}.",
             args.path.display()
         ))
     })?;
     let attached = core(api::attach_image(root, &path, &bytes, args.name.as_deref()))?;
+    // The checkout the core wrote in: the default branch's for a draft, else the feature's or the
+    // bug's, reached by now.
+    let checkout = match folder {
+        None => core(api::default_root(root))?,
+        Some(folder) => PathBuf::from(core(api::work_dir(root, folder))?),
+    };
     let mut written = vec![absolute(checkout.join(&attached.path))];
     let opened = attached.moved.map(|moved| absolute(checkout.join(moved)));
     if let Some(opened) = &opened {

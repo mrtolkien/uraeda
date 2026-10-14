@@ -1141,9 +1141,10 @@ nothing, and returns the link. `clipboard.lua` picks `wl-paste --type <type>` on
 `xclip -selection clipboard -t <type> -o` on X11, `pngpaste -` on macOS, or PowerShell on Windows,
 after listing the clipboard's types and taking the first of PNG, JPEG, GIF, and WebP; it writes the
 bytes to `vim.fn.tempname()`. The action sets a mark at the cursor, saves, runs the command, and
-inserts the link at the mark in the buffer `opened` or the current one, as one undo step, exactly at
-the cursor (R76). A command of `vim.g.uraeda.clipboard`, or a tool that lists no types, gives an
-image only when its first bytes are a PNG's, a JPEG's, a GIF's, or a WebP's (R77).
+inserts the link at the mark in the buffer `opened` or the current one, as one undo step, after the
+cursor's character, as `p` does (R76). A command of `vim.g.uraeda.clipboard`, or a tool that lists
+no types, gives an image only when its first bytes are a PNG's, a JPEG's, a GIF's, or a WebP's
+(R77).
 
 - [x] **Step 4: Run all tests**
 
