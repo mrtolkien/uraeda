@@ -6,19 +6,27 @@ discovery: medium # low, medium, or high: how far the agent researches before as
 
 ## What
 
-Testing review: a review of the Rust, TypeScript, and Neovim tests, for what each one tests, whether
-it pulls its weight, and how long it takes, and a `vp run ready` that runs only the tests a change
-can break.
+Testing setup review:
+
+- It would be great to have a way to only run tests relevant to code changes and not a multi-minutes
+  test suite on every change (`vp run ready` was 2 minutes locally last time I ran it)
+  - We're super early in the project and the test suite will only grow
+  - In github, the CI action is already taking up to 15 minutes. This is not sustainable.
+- We need to parallelize what can be (using cargo nextest or similar, running Rust + JS/TS + Lua in
+  parallel, ...)
+- We need to make sure tests are properly isolated and reproducible: currently, they are flaky on
+  github, they fail ~50% of the time
+  - This is CRITICAL, a CI failure MUST mean that there is an IMPORTANT bug to fix
+- We should setup coverage for all the code base
+- We need to make sure all tests, particularly flaky ones, pull their weight
+  - We could isolate "non-critical" tests against a feature flag maybe?
 
 ## Why
 
-`vp run ready` is the check every change runs, and slow or wasted tests cost time on every change,
-for the human and for agents.
+`vp run ready` is run at _every task_ of the implemention plan, which can easily add 1+ hour of
+runtime when building a feature.
 
-The full tests are also flaky on github and often fail. It is important that:
-
-- Each test pulls its weight and is meaningful
-- Failing tests means ACTUAL bugs
+It's important to make the testing useful AND fast AND accurate.
 
 ## Notes
 
