@@ -107,6 +107,54 @@ test("the content below a comment does not move as 12 lines are typed (US6 3)", 
   expect({ below: from(below), height: field.clientHeight, save: from(save) }).toEqual(empty);
 });
 
+// A comment form's "Unsaved changes" has its line kept too: on the phone, it wraps over the
+// form's buttons (R28). A settled point's form and a review's, with its Add image.
+test.each([
+  [
+    "a settled point's",
+    async () => {
+      await show(ROUND, QUESTION);
+      const point = await screen.findByRole("button", { name: new RegExp(`^${SETTLED}`) });
+      await userEvent.click(point, { force: true });
+      return (await screen.findAllByLabelText("Comment text"))[0] as HTMLTextAreaElement;
+    },
+  ],
+  [
+    "a review's",
+    async () => {
+      await show(SPEC, "Complete a repeating task");
+      return commentOn("a repeat menu offers");
+    },
+  ],
+])(
+  "%s comment form keeps its buttons and its end in place at the first letter (US6 3)",
+  async (_, open) => {
+    const field = await open();
+    const form = field.closest("form")!;
+    const buttons = within(form).getAllByRole("button");
+    // Where each button, and the form's end, are from the field's top left corner.
+    const at = () => {
+      const corner = field.getBoundingClientRect();
+      return {
+        buttons: buttons.map((button) => {
+          const box = button.getBoundingClientRect();
+          return [box.left - corner.left, box.top - corner.top];
+        }),
+        end: form.getBoundingClientRect().bottom - corner.top,
+      };
+    };
+    await drawn();
+    const empty = at();
+
+    await userEvent.click(field);
+    await userEvent.keyboard("L");
+    await drawn();
+
+    expect(within(form).getByText("Unsaved changes")).toBeTruthy();
+    expect(at()).toEqual(empty);
+  },
+);
+
 test("a review's comment and its summary are 7 rows, empty or full (US6 1, 2)", async () => {
   await show(SPEC, "Complete a repeating task");
   await checkRows(await commentOn("a repeat menu offers"), 7);

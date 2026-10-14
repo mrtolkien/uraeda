@@ -11,6 +11,7 @@ import { DropHint } from "./attach/DropHint.tsx";
 import type { useImageText } from "./attach/useImageText.ts";
 import { type ConfirmOptions, useConfirm } from "./fields/Confirm.tsx";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
+import { SaveStatus } from "./fields/SaveStatus.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import type { Unsaved } from "./fields/unsaved.ts";
 import { useTextField } from "./fields/useTextField.ts";
@@ -33,6 +34,12 @@ const styles = stylex.create({
     paddingInlineStart: spacingVars["--spacing-3"],
   },
 });
+
+/**
+ * A comment form's status: "Unsaved changes" alone, in the room `SaveStatus` keeps for it, so the
+ * first letter typed moves none of the form's buttons; the form says its error itself.
+ */
+const IDLE = { kind: "idle" } as const;
 
 /** What Cancel asks on a comment whose text changed. */
 export const DISCARD_COMMENT: ConfirmOptions = {
@@ -188,11 +195,7 @@ function CommentFields({
         {images && <AttachStatus status={images.status} />}
         {(error ?? notice) && <span {...stylex.props(statusStyles.error)}>{error ?? notice}</span>}
         <HStack align="center" gap={2} justify="end" wrap="wrap">
-          {dirty && (
-            <Text color="secondary" type="supporting">
-              Unsaved changes
-            </Text>
-          )}
+          <SaveStatus dirty={dirty} state={IDLE} />
           {images && <AttachButton onFiles={(files) => void images.addFiles(files)} />}
           {action}
           <Button label="Cancel" onClick={onCancel} />
