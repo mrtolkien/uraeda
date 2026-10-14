@@ -138,6 +138,8 @@ export function parseRoute(pathname: string): Route {
  * whether the phone's progress line of a session is open (see `ProgressLine.tsx`).
  */
 type Entry = {
+  /** A chat its first message just created, on the page it left: its first turn is news. */
+  created?: boolean;
   from?: string;
   id?: string;
   open?: Array<string>;
@@ -205,7 +207,7 @@ let left: string | undefined;
  * Opens a page of the UI: the positions on the current one are saved first, for Back. A page that
  * holds unsaved text asks first, and stays if the human does.
  */
-export function navigate(path: string, state?: { from?: string }) {
+export function navigate(path: string, state?: { created?: boolean; from?: string }) {
   const asking = guard?.();
   if (asking) {
     void asking.then((leave) => {
@@ -218,7 +220,7 @@ export function navigate(path: string, state?: { from?: string }) {
   openPage(path, state);
 }
 
-function openPage(path: string, state?: { from?: string }) {
+function openPage(path: string, state?: { created?: boolean; from?: string }) {
   const opener = window.scrollY;
   saveScroll();
   left = entry().id;
