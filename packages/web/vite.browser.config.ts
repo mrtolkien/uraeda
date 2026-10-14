@@ -1,11 +1,11 @@
 // The layout's checks, in WebKit at an iPhone 17's size and at a desktop's, against the server
 // mounted in the test server (see `vite.config.ts`), on the fake agent: the tests `vp run ready`
 // runs never start Claude Code. The root's config lists this project next to the others.
-import { readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import type { Frame, Page } from "playwright";
 import { addRepository, removeRepository } from "uraeda-binding";
-import { fixtureRepo } from "uraeda-binding/test-utils";
+import { fixture, fixtureRepo } from "uraeda-binding/test-utils";
 import { reloadRepositories } from "uraeda-server/dev";
 import { FakeAdapter } from "uraeda-server/testing";
 import { playwright } from "vite-plus/test/browser-playwright";
@@ -91,7 +91,18 @@ const commands = {
     return readFileSync(join(repoFolder(), path), "utf8");
   },
   writeRepo(_context: unknown, text: string, path = "specs/PRIORITIES.md") {
-    writeFileSync(join(repoFolder(), path), text);
+    const file = join(repoFolder(), path);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, text);
+  },
+  /** The size of a file of the repository in bytes, or -1 when it does not exist. */
+  repoFileSize(_context: unknown, path: string) {
+    const file = join(repoFolder(), path);
+    return existsSync(file) ? statSync(file).size : -1;
+  },
+  /** A file of `fixtures/images/`, in base64: the tests drop and paste it as the human would. */
+  fixtureImage(_context: unknown, name: string) {
+    return readFileSync(join(fixture("images"), name)).toString("base64");
   },
   /** The messages sent to the agent during the test, in order. */
   agentSent() {
@@ -145,6 +156,7 @@ const commands = {
 };
 
 export type RepoCommands = {
+  fixtureImage: (name: string) => Promise<string>;
   agentAccept: (index?: number) => Promise<void>;
   agentEmit: (events: Array<AgentEvent>) => Promise<void>;
   agentFinish: (code?: number, stderr?: string) => Promise<void>;
@@ -154,6 +166,7 @@ export type RepoCommands = {
   ) => Promise<void>;
   readRepo: (path?: string) => Promise<string>;
   releaseRepo: (token: number) => Promise<void>;
+  repoFileSize: (path: string) => Promise<number>;
   takeRepo: () => Promise<{ name: string; token: number }>;
   writeRepo: (text: string, path?: string) => Promise<void>;
 };

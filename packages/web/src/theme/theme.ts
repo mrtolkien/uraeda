@@ -2,6 +2,9 @@
 // `vp run --filter uraeda-web theme`: edit this file, then rebuild, and commit both.
 import { defineTheme } from "@astryxdesign/core/theme";
 import { neutralTheme } from "@astryxdesign/theme-neutral";
+// A package import, `package.json`'s `imports`: the theme's build copies the specifier into
+// `built/uraeda.js` as it is written, where a relative path would not resolve.
+import { uraedaIcons } from "#theme-icons";
 
 /** From 1024 px wide, text, controls, and spacing grow as at the browser's 120% zoom. */
 const WIDE = 1.2;
@@ -120,6 +123,8 @@ export const uraedaTheme = defineTheme({
     },
   },
   extends: neutralTheme,
+  // The neutral theme's icons, and the app's own (R6: the paperclip).
+  icons: uraedaIcons,
   localTokens: {
     // Reading text: paragraphs of documents, questions, and stories.
     "--text-reading-line": "1.5",
