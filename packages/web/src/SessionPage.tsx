@@ -7,25 +7,16 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import {
-  type Dispatch,
-  type SetStateAction,
-  Suspense,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFateClient, useView } from "react-fate";
-import type { ChatImage, Session, SessionStatus as Status, Trigger } from "uraeda-server/fate";
-import { type DraftImage, draftImage, forgetPreviews } from "./attach/chatImages.ts";
+import type { Session, SessionStatus as Status, Trigger } from "uraeda-server/fate";
 import { Composer } from "./Composer.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { useAgent, useFeature, useSession, useWorkflowMessage } from "./data.ts";
+import { composerDraft, type Draft, takeBackInto, useDraft } from "./useDraft.ts";
 import { EditableLine } from "./EditableLine.tsx";
-import { useFollowEnd, useOpenAtEnd } from "./following.ts";
 import { JumpToLatest } from "./JumpToLatest.tsx";
+import { useFollowEnd, useOpenAtEnd } from "./following.ts";
 import { type AsideShown, AsideToggle, useAsideShown, WithAside } from "./SessionAside.tsx";
 import { SessionAnnouncer, useCreatedHere } from "./SessionAnnouncer.tsx";
 import { Page } from "./layout/Page.tsx";
@@ -105,46 +96,6 @@ function Header({
       </HStack>
     </VStack>
   );
-}
-
-/**
- * The composer's text and images, kept by the view while its session is created under it: a new
- * chat's or a feature's first message draws a new composer once sent.
- */
-type Draft = {
-  images: ReadonlyArray<DraftImage>;
-  setImages: Dispatch<SetStateAction<ReadonlyArray<DraftImage>>>;
-  setText: Dispatch<SetStateAction<string>>;
-  text: string;
-};
-
-/** The composer's text and images, held by the draft. */
-function composerDraft({ images, setImages, setText, text }: Draft) {
-  return { images, onChange: setText, onImagesChange: setImages, value: text };
-}
-
-/** Puts a taken-back message's text and images back in the draft, before what it holds. */
-function takeBackInto({ setImages, setText }: Draft) {
-  return (back: string, images: ReadonlyArray<ChatImage>) => {
-    if (back.trim()) {
-      setText((now) => (now.trim() ? `${back}\n${now}` : back));
-    }
-    if (images.length > 0) {
-      setImages((now) => [...images.map(draftImage), ...now]);
-    }
-  };
-}
-
-function useDraft(): Draft {
-  const [text, setText] = useState("");
-  const [images, setImages] = useState<ReadonlyArray<DraftImage>>([]);
-  // The previews of images still being saved go with the page.
-  const kept = useRef(images);
-  useLayoutEffect(() => {
-    kept.current = images;
-  });
-  useEffect(() => () => forgetPreviews(kept.current), []);
-  return { images, setImages, setText, text };
 }
 
 /**
@@ -252,9 +203,10 @@ function useSessionRecord(id: string | undefined) {
 }
 
 /**
- * A session's pane: its header, transcript, and composer, or, before its first message creates
- * it, the title and the composer alone. A feature's or a new chat's first message creates the
- * session under the same composer, which keeps the field typed in, its focus, and its text.
+ * A session's pane: its header, transcript, and composer, and a feature's column, or, before its
+ * first message creates it, the title and the composer alone. A feature's or a new chat's first
+ * message creates the session under the same composer, which keeps the field typed in, its focus,
+ * and its text.
  */
 function SessionPane({
   aside,
