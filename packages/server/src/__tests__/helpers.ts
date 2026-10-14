@@ -87,9 +87,17 @@ export async function testServer(repo = fixtureRepo(), { installed = true } = {}
   return { ...opened, app: app(repo, [], opened), name: opened.names[0], repo };
 }
 
-/** Sends native fate operations to a repository's endpoint, and returns their results in order. */
-export async function fateAt(app: App, name: string, operations: Array<Record<string, unknown>>) {
-  const response = await app.request(`http://127.0.0.1:${port}/r/${name}/fate`, {
+/**
+ * Sends native fate operations to a repository's endpoint, or the global one for a null name, and
+ * returns their results in order.
+ */
+export async function fateAt(
+  app: App,
+  name: string | null,
+  operations: Array<Record<string, unknown>>,
+) {
+  const base = name === null ? "" : `/r/${name}`;
+  const response = await app.request(`http://127.0.0.1:${port}${base}/fate`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
@@ -111,7 +119,7 @@ export async function fate(app: App, operations: Array<Record<string, unknown>>)
 /** Reads records of a type by id, with the given fields, from a repository's endpoint. */
 export async function byIdAt(
   app: App,
-  name: string,
+  name: string | null,
   type: string,
   ids: Array<string>,
   select: Array<string>,

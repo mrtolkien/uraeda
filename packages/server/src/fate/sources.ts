@@ -1,3 +1,5 @@
+import { homedir } from "node:os";
+import { homePath, suggest } from "../folders.ts";
 import type { Context } from "./context.ts";
 import {
   agentRecord,
@@ -17,10 +19,14 @@ import {
   draftDataView,
   featureDataView,
   fileDataView,
+  folderSuggestionsDataView,
   PRIORITIES_ID,
   prioritiesDataView,
   PROPOSAL_HINTS_ID,
   proposalHintsDataView,
+  REPOSITORIES_ID,
+  repositoriesDataView,
+  type RepositoriesRecord,
   type FeatureRecord,
   type FileRecord,
   sentFile,
@@ -55,6 +61,25 @@ async function workspace(ctx: Context): Promise<WorkspaceRecord> {
     id: WORKSPACE_ID,
     ...(await ctx.binding.readWorkspace(ctx.repo)),
     running: await working(ctx),
+  };
+}
+
+/**
+ * The list as the hosts last read it, and the read error of the file's last change. `added` is the
+ * name `repositories.add` answers with.
+ */
+export function repositoriesRecord(ctx: Context, added: string | null = null): RepositoriesRecord {
+  const home = homedir();
+  return {
+    id: REPOSITORIES_ID,
+    rows: ctx.hosts.rows().map(({ name, path, missing }) => ({
+      name,
+      path,
+      home: homePath(path, home),
+      missing,
+    })),
+    problem: ctx.hosts.problem,
+    added,
   };
 }
 
@@ -168,6 +193,13 @@ export const sources = createSources<Context>([
   }),
   fileSource(workflowMessageDataView, {
     byIds: async (ctx, ids) => found(ids, (id) => readWorkflowMessage(ctx, id)),
+  }),
+  fileSource(repositoriesDataView, {
+    byIds: async (ctx, ids) => (ids.includes(REPOSITORIES_ID) ? [repositoriesRecord(ctx)] : []),
+  }),
+  fileSource(folderSuggestionsDataView, {
+    byIds: async (_, ids) =>
+      Promise.all(ids.map(async (text) => ({ id: text, rows: await suggest(text, homedir()) }))),
   }),
   fileSource(proposalHintsDataView, {
     byIds: async ({ binding }, ids) =>

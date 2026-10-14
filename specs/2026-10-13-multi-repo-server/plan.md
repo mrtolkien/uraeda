@@ -604,22 +604,30 @@ git commit -m "feat(multi-repo-server): a fate endpoint and live updates per rep
 
 - Consumes: `Hosts` (task 4), the binding's list functions (task 3).
 - Produces:
-  - Views:
-    `Repositories { id, rows: Array<{ name; path; home; missing }>, problem: string | null }`,
-    `home` the path with the home folder written `~`;
-    `FolderSuggestions { id, rows: Array<{ path; git }> }`, id the typed text.
+  - Views, exported from `fate.ts` with their types `Repositories` and `FolderSuggestions`, roots
+    `repositoriesList` and `folderSuggestionsList`:
+    `Repositories { id, rows: Array<{ name; path; home; missing }>, problem: string | null, added: string | null }`,
+    id `REPOSITORIES_ID = "repositories"`, `home` the path with the home folder written `~`, `added`
+    null except in `repositories.add`'s answer
+    ([R6](rulings.md#r6-repositoriesadd-answers-the-list-with-the-added-name));
+    `FolderSuggestions { id, rows: Array<{ path; git }> }`, id the typed text, not live.
   - `folders.ts`:
-    `suggest(text: string, home: string): Promise<Array<{ path: string; git: boolean }>>` and
-    `typedFolder(text: string, home: string): string`, which expands `~` and throws
-    `Type an absolute path, starting with / or ~.` for any other start.
-  - Mutations: `repositories.add({ folder }) → Repository record` (the typed text, expanded by
+    `suggest(text: string, home: string): Promise<Array<{ path: string; git: boolean }>>`,
+    `typedFolder(text: string, home: string): string`, which expands `~`, drops a trailing `/`, and
+    throws `Type an absolute path, starting with / or ~.` for any other start, and
+    `homePath(path: string, home: string): string`.
+  - Mutations, on every endpoint: `repositories.add({ folder })` (the typed text, expanded by
     `typedFolder`), `repositories.remove({ name })`, `repositories.open({ name })`; each answers
-    with the list's new `Repositories` record, and a change sends a `Repositories` update on every
-    host's bus and the global one.
-  - `Hosts` watches the data folder with `node:fs` `watch`, filtered on `repositories.json`,
-    debounced 100 ms, and calls `reload`.
+    with the list's new `Repositories` record, `added` set to the added or already listed
+    repository's name by `repositories.add`. Errors are refusals: `refused: <the core's message>`,
+    `refused: Type an absolute path, starting with / or ~.`, and
+    `refused: An agent is working in <name>: stop it first.`
+  - `Hosts` watches the data folder (created when missing) with `node:fs` `watch`, filtered on
+    `repositories.json` and its `.tmp`, debounced 100 ms (`LIST_QUIET_MS`), and calls `reload`;
+    `close()` closes it. `reload` sends a `Repositories` update on the global bus and on every
+    host's, the removed ones' too, when the list or its problem changed.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/server/src/__tests__/folders.test.ts
@@ -674,24 +682,24 @@ test("an invalid list keeps the hosts and reports the problem", async () => {
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/__tests__/folders.test.ts`
 - Expected: FAIL, `Cannot find module '../folders.ts'`.
 
-- [ ] **Step 3: Implement the views, sources, mutations, and the file watch**
+- [x] **Step 3: Implement the views, sources, mutations, and the file watch**
 
 `suggest` splits the text at its last `/`: the folder before it is read with `readdir`
 (`withFileTypes`), folders only, whose names start with the rest, case-insensitively; names starting
 with `.` only when the rest does; `git` when the folder holds a `.git` entry. Paths keep the prefix
 as typed. `repositories.remove` refuses when `sessions.working(host.path)` is not empty.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/
@@ -886,7 +894,9 @@ git commit -m "feat(multi-repo-server): every page and link under its repository
 
 - Consumes: `useRepositories`, `useRepoPath`, `navigate` (task 7); the mutations of task 5.
 - Produces: `RepositoryMenu` in the heading, wide and folded; `AddRepository({ inline?: boolean })`,
-  in an overlay from the menu and inline on the first run; `useFolderSuggestions(text: string)`.
+  in an overlay from the menu and inline on the first run; `useFolderSuggestions(text: string)`. The
+  form opens `repoPath(result.added, "/")` from `repositories.add`'s answer, selecting `added`
+  ([R6](rulings.md#r6-repositoriesadd-answers-the-list-with-the-added-name)).
 
 - [ ] **Step 1: Write the failing tests**
 

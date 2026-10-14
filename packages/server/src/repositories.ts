@@ -1,6 +1,8 @@
+import { type FSWatcher, mkdirSync, watch } from "node:fs";
 import type { Repository, WatchHandle } from "uraeda-binding";
 import type { Binding } from "./fate/context.ts";
-import { createFate, type FateServer, type LiveBus } from "./fate.ts";
+import { REPOSITORIES_ID } from "./fate/views.ts";
+import { createFate, type FateServer, live as globalLive, type LiveBus } from "./fate.ts";
 import { publish } from "./live.ts";
 import type { Sessions } from "./runner/sessions.ts";
 
@@ -15,6 +17,13 @@ export type Host = {
   fate: FateServer;
   live: LiveBus;
 };
+
+/** The list's file in the data folder, and the temporary file a write renames over it. */
+const FILES = new Set(["repositories.json", "repositories.json.tmp"]);
+/** A change of the list's file is read this long after the last one, so a write is read once. */
+export const LIST_QUIET_MS = 100;
+
+let announced = 0;
 
 /** A host, and the watch of its files: none for a missing folder, or a watch that failed. */
 type Entry = { host: Host; watch?: WatchHandle };
@@ -31,20 +40,50 @@ export class Hosts {
   #reloading: Promise<void> = Promise.resolve();
   /** Why the list could not be read at the last reload, or null when it was. */
   problem: string | null = null;
+  /** The watch of the data folder, which reloads the list when its file changes. */
+  #watch?: FSWatcher;
+  #timer?: ReturnType<typeof setTimeout>;
+  #closed = false;
 
   private constructor(options: { binding: Binding; dataDir: string; sessions: Sessions }) {
     this.#options = options;
   }
 
-  /** The hosts of the list in the data folder, each watched unless its folder is missing. */
+  /**
+   * The hosts of the list in the data folder, each watched unless its folder is missing. The data
+   * folder, created when it does not exist, is watched too: a change of the list's file, by
+   * `ura add` or by hand, reloads it.
+   */
   static async open(options: {
     binding: Binding;
     dataDir: string;
     sessions: Sessions;
   }): Promise<Hosts> {
     const hosts = new Hosts(options);
+    hosts.#watchList();
     await hosts.reload();
     return hosts;
+  }
+
+  #watchList(): void {
+    const { dataDir } = this.#options;
+    try {
+      mkdirSync(dataDir, { recursive: true });
+      this.#watch = watch(dataDir, (_, file) => {
+        if (file === null || FILES.has(String(file))) {
+          clearTimeout(this.#timer);
+          this.#timer = setTimeout(() => void this.reload(), LIST_QUIET_MS);
+        }
+      });
+      this.#watch.on("error", (error) => {
+        console.error(`uraeda-server: ${error.message}; the list is read again on its next change`);
+      });
+    } catch (error) {
+      // The server still serves the list: its own changes read it again.
+      console.error(
+        `uraeda-server: ${(error as Error).message}; changes to repositories.json made elsewhere show after a restart`,
+      );
+    }
   }
 
   get(name: string): Host | undefined {
@@ -85,7 +124,11 @@ export class Hosts {
   }
 
   async #reload(): Promise<void> {
+    if (this.#closed) {
+      return;
+    }
     const { binding, dataDir } = this.#options;
+    const before = JSON.stringify([this.#rows, this.problem]);
     let rows: Array<Repository>;
     try {
       rows = await binding.readRepositories(dataDir);
@@ -98,8 +141,14 @@ export class Hosts {
         console.error(`uraeda-server: ${problem}`);
       }
       this.problem = problem;
+      this.#announce(before, this.all());
       return;
     }
+    if (this.#closed) {
+      return;
+    }
+    // A removed repository's views hear the change too.
+    const heard = this.all();
     this.problem = null;
     this.#rows = rows;
     const listed = new Map(rows.map((row) => [row.name, row]));
@@ -113,6 +162,22 @@ export class Hosts {
       if (!this.#entries.has(row.name)) {
         this.#start(row);
       }
+    }
+    this.#announce(before, [...heard, ...this.all()]);
+  }
+
+  /**
+   * Sends a `Repositories` update on the global bus and the hosts' when the list or its problem
+   * changed since `before`.
+   */
+  #announce(before: string, hosts: Array<Host>): void {
+    if (JSON.stringify([this.#rows, this.problem]) === before) {
+      return;
+    }
+    for (const bus of new Set([globalLive, ...hosts.map((host) => host.live)])) {
+      bus.update("Repositories", REPOSITORIES_ID, {
+        eventId: `repositories:${Date.now()}:${announced++}`,
+      });
     }
   }
 
@@ -137,8 +202,11 @@ export class Hosts {
     this.#entries.delete(name);
   }
 
-  /** Closes every watch, as the server stops. */
+  /** Closes every watch, the data folder's too, as the server stops. */
   close(): void {
+    this.#closed = true;
+    clearTimeout(this.#timer);
+    this.#watch?.close();
     for (const { watch } of this.#entries.values()) {
       watch?.close();
     }
