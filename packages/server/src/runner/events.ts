@@ -1,3 +1,5 @@
+import type { ChatImage } from "./images.ts";
+
 /** An action `auto` mode blocked, from a result's `permission_denials`. */
 export type Denial = { input: Record<string, unknown>; tool: string };
 
@@ -87,6 +89,8 @@ export type Item =
       /** Pending until the agent reads it, or taken back before. */
       state: "pending" | "read" | "taken-back";
       text: string;
+      /** The chat images sent with it; older messages have none. */
+      images?: Array<ChatImage>;
     }
   /** An assistant text block, streaming until the block ends. */
   | { kind: "text"; streaming: boolean; text: string }

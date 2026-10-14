@@ -6,6 +6,11 @@ import { fixtureRepo, git, port, testApp, testHosts } from "./helpers.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { attachImage } from "uraeda-binding";
+import { expect, test } from "vite-plus/test";
+import { fixture, fixtureRepo, git, port, testApp } from "./helpers.ts";
 
 test("serves a mockup sandboxed, with its type", async () => {
   const repo = fixtureRepo();
@@ -68,4 +73,44 @@ test("a file that cannot be read for another reason than its absence is a server
   expect([raw.status, mockup.status]).toEqual([500, 500]);
   expect(log).toHaveBeenCalledTimes(2);
   log.mockRestore();
+test("serves an image with its type, nosniff, and default-src 'none'", async () => {
+  const repo = fixtureRepo();
+  const { path } = await attachImage(
+    repo,
+    "specs/2026-10-12-cli-tuis/proposal.md",
+    readFileSync(fixture("images/desktop.png")),
+    "desktop.png",
+  );
+
+  const response = await testApp(repo).request(`http://127.0.0.1:${port}/images/${path}`);
+
+  expect(response.status).toBe(200);
+  expect(response.headers.get("content-type")).toBe("image/webp");
+  expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+  expect(response.headers.get("content-security-policy")).toBe("default-src 'none'");
+  expect(
+    Buffer.from(await response.arrayBuffer())
+      .subarray(8, 12)
+      .toString("latin1"),
+  ).toBe("WEBP");
+});
+
+test("does not serve a markdown file or a path outside specs as an image", async () => {
+  const repo = fixtureRepo();
+  // HTML named as a PNG, in a feature's images: refused by its first bytes.
+  git(repo, "switch", "--quiet", "2026-10-11-web-ui");
+  mkdirSync(join(repo, "specs/2026-10-11-web-ui/images"));
+  writeFileSync(join(repo, "specs/2026-10-11-web-ui/images/page.png"), "<html><script></script>");
+  const app = testApp(repo);
+
+  for (const path of [
+    "specs/drafts/git-listener.md",
+    "specs/2026-10-11-web-ui/images/page.png",
+    "..%2F..%2Fetc%2Fpasswd",
+    "specs/..%2F..%2Fetc%2Fpasswd",
+    "fixtures/images/desktop.png",
+  ]) {
+    const response = await app.request(`http://127.0.0.1:${port}/images/${path}`);
+    expect(response.status, path).toBe(404);
+  }
 });

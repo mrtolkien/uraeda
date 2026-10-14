@@ -470,3 +470,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `Git::differs_from_head`, and `nested_images_are_kept_while_linked`,
   `files_git_would_not_add_are_no_change`.
 - **Where**: task 4, review.
+
+## R34: The server writes the over-limit refusal
+
+- **Decision**: `POST /attach` refuses a body over 21 MiB with the core's text, "This image is over
+  20 MB: <name> is <size> MB.", written in `attach.ts`: `<size>` is the body's `content-length` in
+  MiB, rounded up to one decimal as the core rounds ([R9](#r9-sizes-are-counted-in-mib)), and
+  `<name>` the query's `name`, or "pasted image" as the core names an image without one. A body sent
+  without a `content-length`, which browsers do not do, is said to be 21 MB.
+- **Rationale**: the body limit answers before reading the body, so the core never sees it; the UI
+  shows one text for every image over 20 MB. The size counts the multipart around the file, a few
+  hundred bytes.
+- **Alternatives considered**: reading the body to pass it to the core (an unbounded upload held in
+  memory); a separate text for the route (two texts for one refusal).
+- **If wrong**: `megabytes` and the `bodyLimit` handler in `packages/server/src/attach.ts`, kept in
+  step with `megabytes` in `crates/core/src/images.rs`.
+- **Where**: task 6.

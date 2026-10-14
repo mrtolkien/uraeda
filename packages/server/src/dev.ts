@@ -21,7 +21,7 @@ export function devServer(env: Env) {
 }
 
 /** The paths the server answers, a repository's and the global ones; Vite serves everything else. */
-const SERVER_PATHS = /^\/(r\/[^/?]+\/)?(fate|raw|mockups)(\/|\?|$)/;
+const SERVER_PATHS = /^\/(r\/[^/?]+\/)?(fate|raw|mockups|attach|images|chat-images)(\/|\?|$)/;
 
 type Listener = (req: IncomingMessage, res: ServerResponse) => Promise<void>;
 
