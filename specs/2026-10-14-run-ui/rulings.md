@@ -181,3 +181,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `napi artifacts` does in the publish job.
 - **If wrong**: the smoke job copies its binary itself.
 - **Where**: Task 9.
+
+## R16: The publish job runs in a protected environment, on pinned actions
+
+- **Decision**: the `publish` job runs in the GitHub environment `npm`, which only version tags may
+  deploy to, and which the trusted publisher names. Its actions are pinned to commit SHAs, and it
+  installs no npm: it checks that Node 24's own npm is 11.5.1 or later.
+- **Rationale**: the final review found that trusted publishing matches only the repository and the
+  workflow's file, so a branch that edits `npm.yml` could publish versions that can never be
+  replaced, and that the job ran actions on moving tags and a floating npm while holding the
+  publishing token. The distribution decision wants publishing from the version tag only.
+- **Alternatives considered**: relying on the `if:` that skips pull requests, which a branch can
+  edit; pinning every job's actions, which adds churn where no token is held.
+- **If wrong**: the environment's rule or the trusted publisher's environment name changes, in the
+  guide's step 3 and 4.
+- **Where**: Task 9, `.github/workflows/npm.yml`, and the release guide.

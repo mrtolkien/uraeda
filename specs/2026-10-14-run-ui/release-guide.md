@@ -2,7 +2,7 @@
 
 What you do, once, so that CI can publish `uraeda` and its four platform packages from a version
 tag, through npm's trusted publishing, with no npm token in the repository. Each step names the npm
-page it was checked against, on 2026-10-15. After this first release, a release is step 5 alone.
+page it was checked against, on 2026-10-15. After this first release, a release is step 6 alone.
 
 The five names, all free on npm today:
 
@@ -62,9 +62,28 @@ published twice, even after `npm unpublish`: `0.0.0` stays the placeholder for g
 Checked against: [npm publish](https://docs.npmjs.com/cli/v11/commands/npm-publish): "`access`
 Default: 'public' for new packages", "`tag` Default: 'latest'".
 
-## 3. Add a trusted publisher to each package
+## 3. Create the `npm` environment on GitHub
 
-Do this at most 2 days before step 5: "A newly created trusted publisher configuration must complete
+The workflow's `publish` job runs in a GitHub environment named `npm`, and the trusted publisher
+names it: only a version tag may deploy to it, so a branch that edits `npm.yml` cannot publish. In
+the repository's Settings, then Environments, then "New environment": name it `npm`, then under
+"Deployment branches and tags" pick "Selected branches and tags" and add a tag rule `v*`. Or:
+
+```sh
+gh api -X PUT repos/mrtolkien/uraeda/environments/npm \
+  -F 'deployment_branch_policy[protected_branches]=false' \
+  -F 'deployment_branch_policy[custom_branch_policies]=true'
+gh api -X POST repos/mrtolkien/uraeda/environments/npm/deployment-branch-policies \
+  -f name='v*' -f type=tag
+```
+
+Checked against: GitHub's
+[deployment branch policies](https://docs.github.com/en/rest/deployments/branch-policies): the
+environment's `custom_branch_policies` must be `true` first, and `type=tag` targets tags.
+
+## 4. Add a trusted publisher to each package
+
+Do this at most 2 days before step 6: "A newly created trusted publisher configuration must complete
 its first successful publish within 2 days", or it expires and can no longer be used or edited.
 
 From the terminal, still outside the checkout:
@@ -72,7 +91,7 @@ From the terminal, still outside the checkout:
 ```bash
 for name in uraeda-binding-linux-x64-gnu uraeda-binding-linux-arm64-gnu \
   uraeda-binding-darwin-x64 uraeda-binding-darwin-arm64 uraeda; do
-  npm trust github "$name" --file npm.yml --repo mrtolkien/uraeda --allow-publish
+  npm trust github "$name" --file npm.yml --repo mrtolkien/uraeda --env npm --allow-publish
 done
 ```
 
@@ -85,7 +104,7 @@ Or on npmjs.com, for each package: Settings, then "Trusted Publisher", then GitH
 - Organization or user: `mrtolkien`
 - Repository: `uraeda`
 - Workflow filename: `npm.yml`
-- Environment name: empty
+- Environment name: `npm`
 - Allowed actions: allow `npm publish`
 
 Every package's `repository.url` is already `git+https://github.com/mrtolkien/uraeda.git`, which
@@ -94,9 +113,9 @@ trusted publishing requires to match the repository exactly.
 Checked against: [trusted publishers](https://docs.npmjs.com/trusted-publishers),
 [npm trust](https://docs.npmjs.com/cli/v11/commands/npm-trust): "npm@11.15.0 or above is required",
 "The package you're configuring must already exist on the npm registry", and at least one of
-`--allow-publish` or `--allow-stage-publish`.
+`--allow-publish` or `--allow-stage-publish`; `--env` names the CI environment.
 
-## 4. Deprecate the placeholders
+## 5. Deprecate the placeholders
 
 ```sh
 npm deprecate uraeda@0.0.0 "Placeholder: install the latest version"
@@ -109,7 +128,7 @@ npm deprecate uraeda-binding-darwin-arm64@0.0.0 "Placeholder: install the latest
 Checked against: [npm deprecate](https://docs.npmjs.com/cli/v11/commands/npm-deprecate):
 `npm deprecate <package-spec> <message>`, for a single version or a range.
 
-## 5. Release: bump the version, tag it, push the tag
+## 6. Release: bump the version, tag it, push the tag
 
 Once the pull request is merged, on `main`, the way `v0.4.0` was released: set the version in
 `Cargo.toml`'s `[workspace.package]`, here `0.5.0`, then:
@@ -127,10 +146,10 @@ runs the smoke test on Linux x64 and macOS arm64, then publishes the four platfo
 `next` dist-tag, never `latest`.
 
 Checked against: [trusted publishers](https://docs.npmjs.com/trusted-publishers): npm 11.5.1 or
-later and Node 22.14.0 or later in CI (the workflow installs npm 11.5.1 or later on Node 24), and
-the `id-token: write` permission (the `publish` job has it).
+later and Node 22.14.0 or later in CI (the workflow checks that Node 24's npm is 11.5.1 or later),
+and the `id-token: write` permission (the `publish` job has it).
 
-## 6. Check it on a clean machine
+## 7. Check it on a clean machine
 
 ```sh
 npx uraeda@latest --version          # prints 0.5.0
@@ -139,18 +158,20 @@ cd path/to/a/repository && npx uraeda
 
 The browser opens the repository. On npmjs.com, each package's version shows its provenance.
 
-## 7. If the workflow stopped part way
+## 8. If the workflow stopped part way
 
-Never tag a new version for it. Run `npm.yml` again with the same tag: in the repository's Actions
-tab, the "npm" workflow, "Run workflow", with `v0.5.0` as the tag. Or:
+Never tag a new version for it. Re-run the failed jobs of the tag's run, from its page in the
+Actions tab. Or run `npm.yml` again on the tag itself, so the `npm` environment accepts it: in the
+Actions tab, the "npm" workflow, "Run workflow", with `v0.5.0` picked under "Use workflow from" and
+typed as the tag. Or:
 
 ```sh
-gh workflow run npm.yml -f tag=v0.5.0
+gh workflow run npm.yml --ref v0.5.0 -f tag=v0.5.0
 ```
 
 It skips each package npm already has at that version, and publishes the rest, platforms first.
 
-## 8. Optional, once it works: disallow tokens
+## 9. Optional, once it works: disallow tokens
 
 On npmjs.com, for each package: Settings, then "Publishing access", then "Require two-factor
 authentication and disallow tokens". Trusted publishing keeps working: the setting only affects
