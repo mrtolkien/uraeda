@@ -16,6 +16,12 @@ GitHub Flavored Markdown, plus these extensions, which stay readable where they 
 - **Links**: markdown links, with a relative path (`[spec](spec.md)`) or a path from the repository
   root (`[auth](/src/auth.ts)`). Humans may write wikilinks (`[[due-dates]]`): read them, but do not
   write them. Link to what a file relies on: decisions, discovery, code.
+- **Images**: `![alt](images/name.webp)`, saved in the `images/` folder next to the file, and
+  committed with it. Each is re-encoded once, from PNG, JPEG, GIF, or WebP, as WebP with no metadata
+  and at most 2576 pixels on its long edge: JPEG and lossy WebP lossy at quality 80, the rest
+  near-lossless at level 60 and quality 75, and an animated GIF may stay as it is. A draft that gets
+  an image becomes a folder, `drafts/<slug>/proposal.md`. A commit of a human's file deletes the
+  images of its folder that no file there links to.
 
 Templates are strict where tools and agents need to find things, and free elsewhere:
 
@@ -39,8 +45,8 @@ at most its last round, and a plan's `spec-revision` at most the spec's `revisio
 title, sections, and order, and no level-2 section the template does not have; the structured items
 above; an answer for every question that applies once a round is `answered`; the `> [!IMPORTANT]`
 block of a file waiting for the human; a record's name, `YYYY-MM-DD-<slug>.md`, its `finished` date,
-its numbered rounds and questions, and its opening `> [!NOTE]` block; links to markdown files and
-into `specs/` that resolve, anchors included; and the [review files](#review-files) rules.
+its numbered rounds and questions, and its opening `> [!NOTE]` block; links and images to markdown
+files and into `specs/` that resolve, anchors included; and the [review files](#review-files) rules.
 
 ## Workflow status
 

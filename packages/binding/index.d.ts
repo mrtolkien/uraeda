@@ -552,7 +552,7 @@ export interface SectionItems {
   entries: Array<EntryItem>
 }
 
-/** A run of text with the same marks. */
+/** A run of text with the same marks. An image's span holds its alt text. */
 export interface Span {
   text: string
   strong: boolean
@@ -560,6 +560,14 @@ export interface Span {
   code: boolean
   strike: boolean
   link?: SpanLink
+  image?: SpanImage
+}
+
+/** An image of a span: its target as written, and the file it shows in the repository. */
+export interface SpanImage {
+  target: string
+  /** The file from the repository's top level, `None` for a web image. */
+  path?: string
 }
 
 /** A link of a span: its target as written, and the file it points to in the repository. */
