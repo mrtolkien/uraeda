@@ -17,6 +17,7 @@ import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import {
   dropUnsaved,
   readUnsaved,
+  savedUnsaved,
   type Unsaved,
   unsavedKey,
   useUnsaved,
@@ -96,10 +97,17 @@ function renumberEdits(repo: string, path: string, number: number, count: number
 }
 
 /**
+ * The settled comments being written, by a form or by Submit: Submit waits for them before it
+ * reads what is still unsaved, which a write in progress has not dropped yet.
+ */
+const writing = new Set<Promise<unknown>>();
+
+/**
  * The writes of a round's settled comments: `add` and `edit` resolve with nothing once written,
- * after `onWritten`, or with the error to show; a removal's error shows under its comment. An edit
- * and a removal name the comment's subject, refused when its number is now another's; a removal
- * done, the edits kept for the comments after it follow their new numbers, then `onRemoved`.
+ * their field's entry gone unless typed in since, after `onWritten`, or with the error to show; a
+ * removal's error shows under its comment. An edit and a removal name the comment's subject,
+ * refused when its number is now another's; a removal done, the edits kept for the comments after
+ * it follow their new numbers, then `onRemoved`.
  */
 function useSettledWrites(
   file: File,
@@ -109,24 +117,32 @@ function useSettledWrites(
   const fate = useFateClient();
   const repo = useRepositoryPath();
   const [removal, setRemoval] = useState<{ message: string; number: number }>();
-  const written = (result: { error?: unknown }) => {
-    if (result.error) {
-      return refusal(result.error).message;
-    }
-    onWritten();
-    return undefined;
+  /** Writes `text` from a field, `write` the mutation, known to Submit while it runs. */
+  const written = (field: string, text: string, write: () => Promise<{ error?: unknown }>) => {
+    const run = write().then((result) => {
+      if (result.error) {
+        return refusal(result.error).message;
+      }
+      savedUnsaved(unsavedKey(repo, field), text);
+      onWritten();
+      return undefined;
+    });
+    const done = () => writing.delete(run);
+    writing.add(run);
+    run.then(done, done);
+    return run;
   };
-  const add = async (subject: string, text: string) =>
-    written(
-      await fate.mutations.settled.comment({
+  const add = (subject: string, text: string) =>
+    written(newKey(file.path, subject), text, () =>
+      fate.mutations.settled.comment({
         input: { folder: file.folder, subject, text },
         view: FileView,
       }),
     );
   /** Writes a comment's text over `previous`, its text as read, unless told otherwise. */
-  const edit = async (comment: SettledComment, text: string, previous = comment.text) =>
-    written(
-      await fate.mutations.settled.edit({
+  const edit = (comment: SettledComment, text: string, previous = comment.text) =>
+    written(editKey(file.path, comment.number), text, () =>
+      fate.mutations.settled.edit({
         input: {
           folder: file.folder,
           number: comment.number,
@@ -162,22 +178,23 @@ function useSettledWrites(
 }
 
 /**
- * Saves the settled comments typed and not saved, as Submit does before it submits: each comment
- * edited, then each new one, whose text the store keeps, open or not, unless it is blank. An edit
- * kept for a comment of another subject is not saved, and an edit is written over the comment's
- * text when it began, refused when it changed since. Resolves with whether every one was
- * written, stopping at the first refused.
+ * Saves the settled comments typed and not saved, as Submit does before it submits, once the
+ * writes in progress are done: each comment edited, then each new one, whose text the store keeps,
+ * open or not, unless it is blank. An edit kept for a comment of another subject is not saved, and
+ * an edit is written over the comment's text when it began, refused when it changed since. Text
+ * typed while it is saved stays unsaved. Resolves with whether every one was written, stopping at
+ * the first refused.
  */
 export function useSaveSettled(file: File) {
   const repo = useRepositoryPath();
   const writes = useSettledWrites(file, () => undefined);
   /** The entry kept for a field, unless its text is blank. */
   const typed = (field: string) => {
-    const key = unsavedKey(repo, field);
-    const entry = readUnsaved(key);
-    return entry?.text.trim() ? { ...entry, key } : undefined;
+    const entry = readUnsaved(unsavedKey(repo, field));
+    return entry?.text.trim() ? entry : undefined;
   };
   return async () => {
+    await Promise.allSettled(writing);
     const round = file.current.items.clarifications;
     const saves = [
       ...(round?.settledComments ?? []).map((comment) => {
@@ -196,11 +213,8 @@ export function useSaveSettled(file: File) {
       ),
     ];
     for (const { kept, write } of saves) {
-      if (kept) {
-        if ((await write(kept.text)) !== undefined) {
-          return false;
-        }
-        dropUnsaved(kept.key);
+      if (kept && (await write(kept.text)) !== undefined) {
+        return false;
       }
     }
     return true;

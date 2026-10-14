@@ -5,6 +5,7 @@ import {
   drawField,
   dropUnsaved,
   readUnsaved,
+  savedUnsaved,
   type Unsaved,
   unsavedKey,
   useUnsaved,
@@ -94,13 +95,9 @@ export function useTextField(
 
   const markSaved = (value: string) => {
     setTyped({ over: saved, text: value });
-    const now = readUnsaved(key);
-    if (now?.text === value) {
+    // Text typed during the save stays unsaved, over the text just saved.
+    if (savedUnsaved(key, value)) {
       droppedHere.current = true;
-      dropUnsaved(key);
-    } else if (now) {
-      // Typed during the save: still unsaved, over the text just saved.
-      writeUnsaved(key, { ...now, base: value });
     }
   };
 
