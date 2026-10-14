@@ -58,7 +58,7 @@ Obsidian do not read JPEG XL, and Claude does not read AVIF. On 97 screenshots, 
 took 25 % of the PNG size, while lossy WebP took more, and blurred coloured text. Encoding in the
 core gives one implementation for the server, the CLI, and `ura lsp`; libwebp gives the same bytes
 as sharp, while the pure Rust encoder makes files twice as large
-([spec](../2026-10-13-image-attachments/spec.md#approach)).
+([spec](../2026-10-13-image-attachments/spec.md#architecture)).
 
 ## Alternatives considered
 

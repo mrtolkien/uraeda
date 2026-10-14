@@ -16,7 +16,7 @@ by the server through the binding and by `ura lsp` directly. The server owns tra
 image store: an upload route, two image routes, and the data folder's `images/`. The sessions own a
 message's images, and the Claude Code adapter owns how they are written to the agent. The web UI
 owns where a file lands (page drop, paste, button) and inserting the returned link; it never names,
-checks, or encodes an image. See the [spec's design](spec.md#design) and the
+checks, or encodes an image. See the [spec's design](spec.md#architecture) and the
 [attachments](../decisions/attachments.md) decision.
 
 **Spec:** [spec.md](spec.md): the plan argues from the spec, so the implementer reads both.
@@ -232,14 +232,14 @@ Existing guarantees to keep:
 
 ## Constitution check
 
-| Principle                            | Complies | Notes                                                   |
-| ------------------------------------ | -------- | ------------------------------------------------------- |
-| I. Humans stay in control            | yes      | Within the approved spec and decision                   |
-| II. Git and plain text first         | yes      | Images in git, as the attachments decision justifies    |
-| III. Asynchronous by default         | yes      | Workflow files' images are committed with them          |
-| IV. Review effort matches impact     | yes      | Agents open the images; the skill says so               |
-| V. Tools are optional                | yes      | Task 3 writes the manual rules in the skill             |
-| VI. Code is checked against the spec | yes      | Every scenario has its test; new abstractions are below |
+| Principle                                  | Complies | Notes                                                                                                                                   |
+| ------------------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| I. Humans stay in control                  | yes      | Within the approved spec and decision                                                                                                   |
+| II. Git and plain text first               | yes      | Images in git, as the attachments decision justifies                                                                                    |
+| III. Asynchronous by default               | yes      | Workflow files' images are committed with them                                                                                          |
+| IV. Review effort matches impact           | yes      | Agents open the images; the skill says so                                                                                               |
+| V. Tools are optional                      | yes      | Task 3 writes the manual rules in the skill                                                                                             |
+| VI. Code is checked and stays maintainable | yes      | Every scenario has its test; new abstractions and copies of a rule are below; no limit is marked, and no measured size grows (R86, R87) |
 
 ## Decisions
 
@@ -260,23 +260,26 @@ The decisions this plan relies on, and where it follows them:
 
 ## Complexity tracking
 
-| Abstraction or exception                                           | Why it is needed                                                              | Simpler alternative rejected because                      |
-| ------------------------------------------------------------------ | ----------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `images` module and its libwebp wrapper (core)                     | One encoder for the server and `ura lsp`, as the decision requires            | sharp in the server: out of reach of `ura lsp`            |
-| `attach` action (core)                                             | Places, names, and moves drafts for both callers                              | Doing it in each caller would duplicate the rules         |
-| `linked_images` helper (core)                                      | One rule for which images the text, review, and answer commits hold           | Three copies of the rule would drift                      |
-| `URA_NOW` and `today::stamp()` (core)                              | Pasted names need local time, tests need a fixed one                          | Passing a time through every caller and the binding       |
-| `/attach`, `/images/*`, `/chat-images/*` routes (server)           | Uploads as multipart, and serving bytes; fate is JSON only                    | Base64 through fate: a third larger, through fate's cache |
-| Chat image store (server)                                          | Writes, resolves, and cleans the data folder's images for sessions and routes | Inlining it in each route and in the sessions             |
-| `ServerFetch` context (web)                                        | `useAttach` must reach the in-process server in happy-dom tests, as fate does | Stubbing global `fetch` per test                          |
-| `useImageDrop`, `useAttach`, `AttachButton`, `insertLink` (web)    | Shared by the editor, comments, answers, notes, and the composer              | One copy per page                                         |
-| `useImageText` (web)                                               | One text field taking images, shared by the editor, comments, answers, notes  | The same cursor tracking copied into four fields          |
-| Astryx gap: page-wide drop on `window`                             | No Astryx component makes a page a drop target                                | A dropzone per field misses the proposal's "in the page"  |
-| Astryx gap: hidden `<input type="file">`                           | `FileInput` is a visible field, not a picker behind an icon button            | A visible field in the composer and toolbars              |
-| Astryx gap: a custom send button and Enter for image-only messages | Astryx refuses to submit empty text                                           | Requiring text with every image, against US2.4            |
-| `uraeda:attach` icon, registered with Astryx                       | Astryx has no paperclip                                                       | `lucide-react` as a new dependency for one icon           |
-| Astryx gap: a thumbnail's remove button of our own                 | Astryx's sits in the thumbnail's corner, 20 px tall under a touch pointer too | A 44 px button in a 64 px thumbnail's corner hides it     |
-| Astryx gap: a scrim under the lightbox's Close, in the theme       | Astryx's Close has no background: it vanishes over a light screenshot         | A lightbox of our own, for one button                     |
+| Abstraction or exception                                                                                | Why it is needed                                                                                                                                                                                                             | Simpler alternative rejected because                             |
+| ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `images` module and its libwebp wrapper (core)                                                          | One encoder for the server and `ura lsp`, as the decision requires                                                                                                                                                           | sharp in the server: out of reach of `ura lsp`                   |
+| `attach` action (core)                                                                                  | Places, names, and moves drafts for both callers                                                                                                                                                                             | Doing it in each caller would duplicate the rules                |
+| `linked_images` helper (core)                                                                           | One rule for which images the text, review, and answer commits hold                                                                                                                                                          | Three copies of the rule would drift                             |
+| `URA_NOW` and `today::stamp()` (core)                                                                   | Pasted names need local time, tests need a fixed one                                                                                                                                                                         | Passing a time through every caller and the binding              |
+| `/attach`, `/images/*`, `/chat-images/*` routes (server)                                                | Uploads as multipart, and serving bytes; fate is JSON only                                                                                                                                                                   | Base64 through fate: a third larger, through fate's cache        |
+| Chat image store (server)                                                                               | Writes, resolves, and cleans the data folder's images for sessions and routes                                                                                                                                                | Inlining it in each route and in the sessions                    |
+| `ServerFetch` context (web)                                                                             | `useAttach` must reach the in-process server in happy-dom tests, as fate does                                                                                                                                                | Stubbing global `fetch` per test                                 |
+| `useImageDrop`, `useAttach`, `AttachButton`, `insertLink` (web)                                         | Shared by the editor, comments, answers, notes, and the composer                                                                                                                                                             | One copy per page                                                |
+| `useImageText` (web)                                                                                    | One text field taking images, shared by the editor, comments, answers, notes                                                                                                                                                 | The same cursor tracking copied into four fields                 |
+| Astryx gap: page-wide drop on `window`                                                                  | No Astryx component makes a page a drop target                                                                                                                                                                               | A dropzone per field misses the proposal's "in the page"         |
+| Astryx gap: hidden `<input type="file">`                                                                | `FileInput` is a visible field, not a picker behind an icon button                                                                                                                                                           | A visible field in the composer and toolbars                     |
+| Astryx gap: a custom send button and Enter for image-only messages                                      | Astryx refuses to submit empty text                                                                                                                                                                                          | Requiring text with every image, against US2.4                   |
+| `uraeda:attach` icon, registered with Astryx                                                            | Astryx has no paperclip                                                                                                                                                                                                      | `lucide-react` as a new dependency for one icon                  |
+| Astryx gap: a thumbnail's remove button of our own                                                      | Astryx's sits in the thumbnail's corner, 20 px tall under a touch pointer too                                                                                                                                                | A 44 px button in a 64 px thumbnail's corner hides it            |
+| Astryx gap: a scrim under the lightbox's Close, in the theme                                            | Astryx's Close has no background: it vanishes over a light screenshot                                                                                                                                                        | A lightbox of our own, for one button                            |
+| Copy: the over-20 MB refusal and its rounding to MiB, in TypeScript                                     | The route refuses a body over the limit unread, and the UI before uploading: neither reaches the core, and both must say what it says (R34, R52, R87). One module, `limits.ts`, serves both; tests pin it to the core's text | Reading the body to pass it to the core; the binding in the UI   |
+| Copy: the first bytes of PNG, JPEG, GIF, and WebP, in Lua                                               | Only decides "the clipboard holds no image" before a request is sent; the core checks the bytes again (R77, R87)                                                                                                             | The core mapping a nameless image's type refusal to that message |
+| Copy: the four accepted types' MIME names, in the picker, the clipboard tools, and the chat image route | The picker and `wl-paste` or `xclip` choose files by type before any byte is read; a chat image is served with the type of the extension the core gave it (R37, R87)                                                         | Reading every chat image's first bytes as it is served           |
 
 ## Review comments
 
