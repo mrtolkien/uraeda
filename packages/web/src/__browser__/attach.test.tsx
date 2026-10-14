@@ -11,54 +11,9 @@ import type { RepoCommands } from "../../vite.browser.config.ts";
 import { createFateClient } from "react-fate/client";
 import type { ChatImage } from "uraeda-server/fate";
 import { sendMessage } from "../sessions.ts";
-import { agent, drawn, LIVE, show, startTurn } from "./helpers.tsx";
+import { agent, carrying, drawn, drop, image, LIVE, paste, show, startTurn } from "./helpers.tsx";
 
 const commands = browserCommands as unknown as RepoCommands;
-
-const TYPES: Record<string, string> = {
-  png: "image/png",
-  jpg: "image/jpeg",
-  gif: "image/gif",
-  webp: "image/webp",
-  svg: "image/svg+xml",
-};
-
-/** A fixture image as the file the human gives, under a name of their own. */
-async function image(fixture: string, name = fixture) {
-  const bytes = Uint8Array.from(atob(await commands.fixtureImage(fixture)), (c) => c.charCodeAt(0));
-  return new File([bytes], name, { type: TYPES[name.split(".").at(-1)!] ?? "" });
-}
-
-/** Files carried by a drag or a paste. */
-function carrying(files: File[]) {
-  const data = new DataTransfer();
-  for (const file of files) {
-    data.items.add(file);
-  }
-  return data;
-}
-
-/** Drags files over the page and drops them on an element: returns the drop's event. */
-function drop(files: File[], on: Element = document.body) {
-  const dataTransfer = carrying(files);
-  const init = { bubbles: true, cancelable: true, dataTransfer };
-  on.dispatchEvent(new DragEvent("dragenter", init));
-  on.dispatchEvent(new DragEvent("dragover", init));
-  const event = new DragEvent("drop", init);
-  on.dispatchEvent(event);
-  return event;
-}
-
-/** Pastes files into an element, as from the clipboard. */
-function paste(files: File[], on: Element) {
-  on.dispatchEvent(
-    new ClipboardEvent("paste", {
-      bubbles: true,
-      cancelable: true,
-      clipboardData: carrying(files),
-    }),
-  );
-}
 
 /** The elements showing a text on the page, not in the screen reader's announcements. */
 function shown(text: string) {

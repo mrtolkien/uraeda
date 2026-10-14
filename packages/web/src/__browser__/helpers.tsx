@@ -466,3 +466,73 @@ export async function startTurn(text: string, events: Parameters<RepoCommands["a
   // The composer's Stop, and the agent section's beside it on a wide screen.
   await screen.findAllByRole("button", { name: "Stop" }, LIVE);
 }
+
+const TYPES: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  svg: "image/svg+xml",
+};
+
+/** A fixture image as the file the human gives, under a name of their own. */
+export async function image(fixture: string, name = fixture) {
+  const bytes = Uint8Array.from(atob(await commands.fixtureImage(fixture)), (c) => c.charCodeAt(0));
+  return new File([bytes], name, { type: TYPES[name.split(".").at(-1)!] ?? "" });
+}
+
+/** Files carried by a drag or a paste. */
+export function carrying(files: File[]) {
+  const data = new DataTransfer();
+  for (const file of files) {
+    data.items.add(file);
+  }
+  return data;
+}
+
+/** Drags files over the page and drops them on an element: returns the drop's event. */
+export function drop(files: File[], on: Element = document.body) {
+  const dataTransfer = carrying(files);
+  const init = { bubbles: true, cancelable: true, dataTransfer };
+  on.dispatchEvent(new DragEvent("dragenter", init));
+  on.dispatchEvent(new DragEvent("dragover", init));
+  const event = new DragEvent("drop", init);
+  on.dispatchEvent(event);
+  return event;
+}
+
+/** Pastes files into an element, as from the clipboard. */
+export function paste(files: File[], on: Element) {
+  on.dispatchEvent(
+    new ClipboardEvent("paste", {
+      bubbles: true,
+      cancelable: true,
+      clipboardData: carrying(files),
+    }),
+  );
+}
+
+/** Drags files over an element and holds them there, as before a drop: the drop hint shows. */
+export function dragOver(files: File[], on: Element = document.body) {
+  const init = { bubbles: true, cancelable: true, dataTransfer: carrying(files) };
+  on.dispatchEvent(new DragEvent("dragenter", init));
+  on.dispatchEvent(new DragEvent("dragover", init));
+}
+
+/** Ends a drag held over the page, as a drag cancelled by Escape. */
+export function dragEnd() {
+  window.dispatchEvent(new DragEvent("dragend", { bubbles: true }));
+}
+
+/** Saves an image next to a markdown file of the repository, as "Add image" does: its link. */
+export async function attached(path: string, file: File) {
+  const body = new FormData();
+  body.append("file", file);
+  const query = `path=${encodeURIComponent(path)}&name=${encodeURIComponent(file.name)}`;
+  const response = await fetch(`/attach?${query}`, { method: "POST", body });
+  const answer = (await response.json()) as { link?: string; error?: string };
+  if (!answer.link) {
+    throw new Error(answer.error ?? `HTTP ${response.status}`);
+  }
+  return answer.link;
+}

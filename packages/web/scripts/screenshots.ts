@@ -23,6 +23,7 @@ import { fixtureRepo, git } from "uraeda-binding/test-utils";
 import { FakeAdapter } from "uraeda-server/testing";
 import { createServer, type PluginOption } from "vite-plus";
 import base, { uraedaServer } from "../vite.config.ts";
+import { takeImages } from "./image-shots.ts";
 import {
   here,
   setPrefix,
@@ -109,7 +110,9 @@ async function main() {
         shots.push({ context, mode, page: await context.newPage(), size });
       }
     }
-    await take(shots, adapter, repo, `/r/${encodeURIComponent(listed.name)}`);
+    const at = `/r/${encodeURIComponent(listed.name)}`;
+    await take(shots, adapter, repo, at);
+    await takeImages(shooter(shots, out, views), shots[0]!.page, adapter, repo, `${url}${at}`);
   } finally {
     await browser?.close();
     await server.close();
