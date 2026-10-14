@@ -42,8 +42,9 @@ ruthlessly: every part of the design serves a user story or an answer.
 ## Read the answers
 
 Read every round's questions, answers, settled points, and **Notes:**, the latest last: later
-answers win. A settled point the human objected to in an answer or a note follows them. An answer
-can be:
+answers win. A settled point the human objected to in an answer or a note follows them. A bullet of
+the notes starting with a settled point's bold subject, `- **<subject>**: <comment>`, is the human's
+answer to that point. An answer can be:
 
 - **One or more option letters.** Letters from options that exclude each other, when the question
   does not say they combine, are ambiguous: ask again in a new round.
