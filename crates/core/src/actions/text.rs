@@ -5,6 +5,7 @@ use std::fs;
 
 use crate::files::document::hash;
 use crate::files::markdown::Document;
+use crate::files::priorities;
 use crate::git::Git;
 use crate::workspace::folder_slug;
 
@@ -49,25 +50,84 @@ fn folder(path: &str) -> Option<&str> {
     (!matches!(folder, "specs/drafts" | "specs/backlog")).then_some(folder)
 }
 
-/// The single-file draft a folder draft was, `specs/drafts/<slug>.md` for
-/// `specs/drafts/<slug>/proposal.md`.
-fn single_file(path: &str) -> Option<String> {
-    let rest = path
-        .strip_prefix("specs/drafts/")
-        .map(|rest| ("specs/drafts", rest))
-        .or_else(|| {
-            path.strip_prefix("specs/backlog/")
-                .map(|rest| ("specs/backlog", rest))
-        })?;
-    let slug = rest.1.strip_suffix("/proposal.md")?;
-    (!slug.contains('/')).then(|| format!("{}/{slug}.md", rest.0))
+/// The single-file drafts a folder draft may have been: `specs/drafts/<slug>.md` for
+/// `specs/drafts/<slug>/proposal.md`, and `specs/drafts/<base>.md` too for `<base>-<N>/`, the
+/// folder `attach` numbers when `<slug>/` is taken. The same for `specs/backlog/`.
+fn single_files(path: &str) -> Vec<String> {
+    let found = ["specs/drafts", "specs/backlog"]
+        .into_iter()
+        .find_map(|parent| {
+            let slug = path
+                .strip_prefix(parent)?
+                .strip_prefix('/')?
+                .strip_suffix("/proposal.md")?;
+            (!slug.contains('/')).then_some((parent, slug))
+        });
+    let Some((parent, slug)) = found else {
+        return Vec::new();
+    };
+    let mut files = vec![format!("{parent}/{slug}.md")];
+    if let Some((base, number)) = slug.rsplit_once('-')
+        && !base.is_empty()
+        && number.bytes().all(|byte| byte.is_ascii_digit())
+        && number.parse::<u32>().is_ok_and(|number| number >= 2)
+    {
+        files.push(format!("{parent}/{base}.md"));
+    }
+    files
+}
+
+/// The level-1 heading of a markdown text.
+fn title_of(text: &str) -> Option<String> {
+    Document::parse(text)
+        .headings
+        .into_iter()
+        .find(|h| h.level == 1)
+        .map(|h| h.text)
+}
+
+/// The single-file draft `attach` moved into the folder draft `path`: one of [`single_files`],
+/// committed at `HEAD` and gone from disk, whose move shows in `PRIORITIES.md`, where the line
+/// linking it at `HEAD` now links `path`, as `attach` retargets it, or in the title, the same at
+/// `HEAD` as now. A draft deleted on purpose next to an unrelated folder draft shows neither.
+fn moved_from(place: &Place, git: &Git, path: &str, text: &str) -> Option<String> {
+    let head = git.head()?;
+    let committed = |path: &str| {
+        git.read_file(head, path)
+            .ok()
+            .flatten()
+            .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+    };
+    let priorities_now = read(place, PRIORITIES);
+    let retargeted = |old: &str| {
+        let Some(before) = committed(PRIORITIES) else {
+            return false;
+        };
+        let after = priorities::retarget(&before, old, path);
+        let changed: Vec<&str> = after
+            .lines()
+            .filter(|line| !before.lines().any(|was| was == *line))
+            .collect();
+        !changed.is_empty()
+            && changed
+                .iter()
+                .all(|line| priorities_now.lines().any(|now| now == *line))
+    };
+    let title = title_of(text);
+    single_files(path).into_iter().find(|old| {
+        let Some(before) = committed(old) else {
+            return false;
+        };
+        !place.root.join(old).exists()
+            && (retargeted(old) || (title.is_some() && title_of(&before) == title))
+    })
 }
 
 /// Every path a file's commit may hold, for the check of the staged files before any write.
 fn candidates(path: &str) -> Vec<String> {
     let mut paths = vec![path.to_string(), PRIORITIES.to_string()];
     paths.extend(folder(path).map(images::images_folder));
-    paths.extend(single_file(path));
+    paths.extend(single_files(path));
     paths
 }
 
@@ -85,12 +145,7 @@ pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
             .and_then(|head| git.read_file(head, path).ok().flatten())
     };
     let text = read(place, path);
-    let title = Document::parse(&text)
-        .headings
-        .into_iter()
-        .find(|h| h.level == 1)
-        .map(|h| h.text)
-        .unwrap_or_else(|| path.to_string());
+    let title = title_of(&text).unwrap_or_else(|| path.to_string());
     let mut paths = vec![path.to_string()];
     let subject = if path.starts_with("specs/drafts/") || path.starts_with("specs/backlog/") {
         let priorities = read(place, PRIORITIES);
@@ -98,8 +153,7 @@ pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
             paths.push(PRIORITIES.to_string());
         }
         // A draft committed as one file, then made a folder by an image.
-        let moved = single_file(path)
-            .filter(|old| committed(old).is_some() && !place.root.join(old).exists());
+        let moved = moved_from(place, &git, path, &text);
         let edit = committed(path).is_some() || moved.is_some();
         paths.extend(moved);
         match (edit, path.starts_with("specs/backlog/")) {

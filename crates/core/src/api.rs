@@ -493,6 +493,10 @@ pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView>
         }
         _ => return Err(refused(format!("{name} has nothing to commit again"))),
     };
+    // The staged files are checked before any image is deleted, as the first try did.
+    let mut candidates = paths.clone();
+    candidates.push(crate::actions::images::images_folder(&feature.path));
+    crate::actions::place::ensure_only_staged(&place, &candidates)?;
     paths.extend(crate::actions::images::linked_images(
         &place,
         &feature.path,

@@ -17,20 +17,91 @@ pub fn images_folder(folder: &str) -> String {
     format!("{folder}/images")
 }
 
-/// The files of the folder's markdown files link, by an image or a plain link, from the top level.
-fn linked(root: &Path, folder: &str) -> BTreeSet<String> {
-    let Ok(entries) = fs::read_dir(root.join(folder)) else {
-        return BTreeSet::new();
+/// Every markdown file of `dir` and of its subfolders, never through a symbolic link.
+fn markdown_files(root: &Path, dir: &str, files: &mut Vec<String>) {
+    let Ok(entries) = fs::read_dir(root.join(dir)) else {
+        return;
     };
-    entries
-        .flatten()
-        .filter(|entry| entry.file_type().is_ok_and(|t| t.is_file()))
-        .filter(|entry| entry.file_name().to_string_lossy().ends_with(".md"))
-        .filter_map(|entry| fs::read_to_string(entry.path()).ok())
-        .flat_map(|text| Document::parse(&text).links)
-        .filter(|link| !link.wiki)
-        .filter_map(|link| resolve(folder, &link.target))
-        .collect()
+    for entry in entries.flatten() {
+        let Ok(kind) = entry.file_type() else {
+            continue;
+        };
+        let name = entry.file_name().to_string_lossy().into_owned();
+        let path = format!("{dir}/{name}");
+        if kind.is_dir() {
+            markdown_files(root, &path, files);
+        } else if kind.is_file() && name.ends_with(".md") {
+            files.push(path);
+        }
+    }
+}
+
+/// What the markdown files of a folder link: the paths of their links and images, and the
+/// targets of their wikilinks and Obsidian embeds, which Obsidian matches by the end of a path.
+#[derive(Default)]
+struct Linked {
+    paths: BTreeSet<String>,
+    wiki: Vec<String>,
+}
+
+impl Linked {
+    fn read(root: &Path, folder: &str) -> Linked {
+        let mut files = Vec::new();
+        markdown_files(root, folder, &mut files);
+        let mut linked = Linked::default();
+        for file in files {
+            let Ok(text) = fs::read_to_string(root.join(&file)) else {
+                continue;
+            };
+            let dir = file.rsplit_once('/').map_or("", |(dir, _)| dir);
+            let document = Document::parse(&text);
+            for link in document.links {
+                if link.wiki {
+                    linked.wiki.push(link.target);
+                } else {
+                    linked.paths.extend(resolve(dir, &link.target));
+                }
+            }
+            linked.wiki.extend(document.embeds);
+        }
+        linked.wiki = linked
+            .wiki
+            .iter()
+            .filter_map(|target| target.split(['#', '|']).next())
+            .map(|target| target.trim().trim_start_matches('/').to_string())
+            .filter(|target| !target.is_empty())
+            .collect();
+        linked
+    }
+
+    /// Whether a file, from the top level, is linked: `![[shot.webp]]` links every
+    /// `…/shot.webp`, and `![[images/shot.webp]]` every `…/images/shot.webp`.
+    fn contains(&self, path: &str) -> bool {
+        self.paths.contains(path)
+            || self
+                .wiki
+                .iter()
+                .any(|target| path == target || path.ends_with(&format!("/{target}")))
+    }
+}
+
+/// Deletes every file under `dir` that is not linked, then `dir` once empty, never following a
+/// symbolic link: a link is deleted as a file.
+fn prune(root: &Path, dir: &str, linked: &Linked) -> std::io::Result<()> {
+    for entry in fs::read_dir(root.join(dir))?.flatten() {
+        let Ok(kind) = entry.file_type() else {
+            continue;
+        };
+        let path = format!("{dir}/{}", entry.file_name().to_string_lossy());
+        if kind.is_dir() {
+            prune(root, &path, linked)?;
+        } else if !linked.contains(&path) {
+            fs::remove_file(entry.path())?;
+        }
+    }
+    // Fails while the folder holds anything, as it should.
+    let _ = fs::remove_dir(root.join(dir));
+    Ok(())
 }
 
 /// Whether `<folder>/images` is that folder itself, not reached through a symbolic link: files are
@@ -43,74 +114,31 @@ fn in_place(root: &Path, images: &str) -> bool {
     found == root.join(images)
 }
 
-/// Deletes every file of `<folder>/images/` that no markdown file directly in `<folder>` links, by
-/// an image or a plain link, and the folder once empty. Returns `["<folder>/images"]`, the
-/// pathspec of the commit, when that folder exists or `HEAD` tracks files under it, else nothing:
-/// git refuses a pathspec that matches no file.
+/// Deletes every file under `<folder>/images/` that no markdown file of `<folder>` or of its
+/// subfolders links, by an image, a link, a wikilink, or an embed, and the folders left empty.
+/// Returns `["<folder>/images"]`, the pathspec of the commit, when that folder exists, or the
+/// index or `HEAD` holds files under it, else nothing: git refuses a pathspec that matches no
+/// file, and a file a refused commit staged must be unstaged with the others.
 pub fn linked_images(place: &Place, folder: &str) -> Result<Vec<String>, ActionError> {
     let images = images_folder(folder);
     let dir = place.root.join(&images);
     if dir.is_dir() && in_place(&place.root, &images) {
-        let linked = linked(&place.root, folder);
-        for entry in fs::read_dir(&dir)?.flatten() {
-            let Ok(kind) = entry.file_type() else {
-                continue;
-            };
-            let path = format!("{images}/{}", entry.file_name().to_string_lossy());
-            if !kind.is_dir() && !linked.contains(&path) {
-                fs::remove_file(entry.path())?;
-            }
-        }
-        // Fails while the folder holds anything, as it should.
-        let _ = fs::remove_dir(&dir);
+        prune(&place.root, &images, &Linked::read(&place.root, folder))?;
     }
-    let tracked = || {
-        let git = Git::open(&place.root)?;
-        Ok::<bool, ActionError>(match git.head() {
-            Some(head) => !git.list_files(head, &images)?.is_empty(),
-            None => false,
-        })
+    let git = Git::open(&place.root)?;
+    let tracked = match git.head() {
+        Some(head) => !git.list_files(head, &images)?.is_empty(),
+        None => false,
     };
-    if fs::symlink_metadata(&dir).is_ok() || tracked()? {
+    if fs::symlink_metadata(&dir).is_ok() || tracked || git.in_index(&images)? {
         Ok(vec![images])
     } else {
         Ok(Vec::new())
     }
 }
 
-/// Whether the files of `<folder>/images/` differ from those `HEAD` tracks there.
+/// Whether the files under `<folder>/images/` differ from those `HEAD` tracks there, as the
+/// commit would stage them: ignored files left out, and symbolic links compared as links.
 pub fn images_changed(place: &Place, folder: &str) -> Result<bool, ActionError> {
-    let images = images_folder(folder);
-    let git = Git::open(&place.root)?;
-    let committed = match git.head() {
-        Some(head) => git.list_files(head, &images)?,
-        None => Vec::new(),
-    };
-    // Files directly in the folder, as on disk.
-    let committed: Vec<String> = committed
-        .into_iter()
-        .filter(|path| !path[images.len() + 1..].contains('/'))
-        .collect();
-    let mut on_disk = Vec::new();
-    if let Ok(entries) = fs::read_dir(place.root.join(&images)) {
-        for entry in entries.flatten() {
-            if entry.file_type().is_ok_and(|t| !t.is_dir()) {
-                on_disk.push(format!("{images}/{}", entry.file_name().to_string_lossy()));
-            }
-        }
-    }
-    on_disk.sort();
-    if on_disk != committed {
-        return Ok(true);
-    }
-    let Some(head) = git.head() else {
-        return Ok(false);
-    };
-    for path in &on_disk {
-        let bytes = fs::read(place.root.join(path)).ok();
-        if bytes != git.read_file(head, path)? {
-            return Ok(true);
-        }
-    }
-    Ok(false)
+    Ok(Git::open(&place.root)?.differs_from_head(&images_folder(folder))?)
 }
