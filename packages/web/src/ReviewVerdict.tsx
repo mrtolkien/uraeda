@@ -14,8 +14,14 @@ import { FileView } from "./views.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
-/** What a review's last write left to show: a hook's refusal, or a message. */
-export type Refusals = ReturnType<typeof useRefusals>;
+/**
+ * What a review's last write left to show: a hook's refusal, or a message; and, from its comment's
+ * images, what holds a verdict and which message goes once they are in.
+ */
+export type Refusals = ReturnType<typeof useRefusals> & {
+  hides?: (message: { text: string }) => boolean;
+  hold?: () => boolean;
+};
 
 /**
  * Runs a review's writes, one result shown at a time: a hook's refusal, with its output, or any
@@ -39,7 +45,7 @@ export function useRefusals() {
     }
     return true;
   };
-  return { error, message, run };
+  return { error, message, run, setMessage };
 }
 
 /**
@@ -50,7 +56,7 @@ export function useRefusals() {
 export function ReviewVerdict({
   comments,
   file,
-  refusals: { error, message, run },
+  refusals: { error, hides, hold, message, run },
 }: {
   /** How many comments are pending. */
   comments: number;
@@ -70,6 +76,9 @@ export function ReviewVerdict({
   const proceed = (trigger: "approval" | "changes") => handOver(file.folder, trigger, file.name);
 
   const verdict = async (approve: boolean, next: boolean) => {
+    if (hold?.()) {
+      return;
+    }
     const input = { file: file.name, folder: file.folder, summary: summary || undefined };
     const trigger = approve ? "approval" : "changes";
     continues.current = next ? trigger : undefined;
@@ -160,7 +169,7 @@ export function ReviewVerdict({
         onCommit={(next) => verdict(true, next)}
         onlyLabel="Approve only"
       />
-      {message && (
+      {message && !hides?.(message) && (
         <span {...stylex.props(message.ok ? statusStyles.saved : statusStyles.error)}>
           {message.text}
         </span>

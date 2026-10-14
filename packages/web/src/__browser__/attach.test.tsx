@@ -1,8 +1,10 @@
 // US1 scenarios 1 to 3 and 8, the edge cases of drops, and SC-002: images dropped anywhere on the
 // editor's page, pasted, or picked with "Add image", saved by the core, and linked at the cursor.
 // US2 scenario 1 and the page's drop on a session: images pasted or dropped join the message.
+// US3 scenarios 1 and 2, US4 scenarios 1 and 2, and Review focus 11: review comments, answers, and
+// notes take images too, and a verdict never deletes the image of a comment not added yet.
 // Files come from `fixtures/images/`, dropped and pasted through an in-page `DataTransfer`.
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
@@ -480,4 +482,115 @@ test("a file dropped anywhere on a session's page joins the message", async () =
 
   expect(event.defaultPrevented).toBe(true);
   await thumbnails(1);
+});
+
+const REVIEWED = "2026-10-06-recurring-tasks";
+/** The reviewed feature's folder, in the worktree its review writes to. */
+const REVIEW_FOLDER = `.worktrees/${REVIEWED}/specs/${REVIEWED}`;
+
+/** The spec of the recurring tasks, under review. */
+async function reviewSpec() {
+  await show(`/f/${REVIEWED}/spec.md`, "Complete a repeating task");
+}
+
+/** The comment form's text field, wherever the page shows it. */
+async function commentField() {
+  const form = await screen.findByRole("form", { name: "Comment" });
+  return within(form).getByRole("textbox", { name: "Comment text" }) as HTMLTextAreaElement;
+}
+
+test("US3.1: a drop on the review page opens a general comment holding its link", async () => {
+  await reviewSpec();
+
+  drop([await image("phone.png", "shot.png")]);
+
+  const field = await commentField();
+  await expect.poll(() => field.value).toBe("![shot](images/shot.webp)\n");
+  expect(screen.getByText("General")).toBeTruthy();
+  expect(selected(field)).toBe("shot");
+  expect(await commands.repoFileSize(`${REVIEW_FOLDER}/images/shot.webp`)).toBeGreaterThan(0);
+  expect(screen.getByRole("button", { name: "Add image" })).toBeTruthy();
+});
+
+test("US3.2: a pasted image goes to the open line comment at its cursor", async () => {
+  await reviewSpec();
+  const block = screen
+    .getAllByRole("button", { name: (name) => name.includes("Given a weekly task") })
+    .find((b) => b.hasAttribute("aria-pressed")) as HTMLElement;
+  await userEvent.click(block, { force: true });
+  const field = await commentField();
+  await userEvent.fill(field, "Before after");
+  cursorAt(field, "Before".length);
+
+  paste([await image("phone.png", "image.png")], field);
+
+  await expect
+    .poll(() => field.value)
+    .toMatch(/^Before\n\n!\[pasted image\]\(images\/pasted-\d{8}-\d{6}\.webp\)\n\n after$/);
+  expect(selected(field)).toBe("pasted image");
+  expect(screen.getByText(/^Lines? \d+/)).toBeTruthy();
+});
+
+/** Review focus 11: a verdict deletes the images no file links, as a comment not added yet. */
+test("a verdict waits for a comment holding an image to be added or cancelled", async () => {
+  await reviewSpec();
+  drop([await image("phone.png", "shot.png")]);
+  const field = await commentField();
+  await expect.poll(() => field.value).toContain("![shot](images/shot.webp)");
+
+  // By keyboard: on the phone, the comment's sheet lies over the page's end.
+  screen.getByRole("button", { name: "Approve only" }).focus();
+  await userEvent.keyboard("{Enter}");
+
+  expect(
+    (
+      await screen.findAllByText(
+        "Add or cancel your comment first: its images are not in the review yet.",
+      )
+    ).length,
+  ).toBeGreaterThan(0);
+  expect(await commands.repoFileSize(`${REVIEW_FOLDER}/images/shot.webp`)).toBeGreaterThan(0);
+  expect(await commands.readRepo(`${REVIEW_FOLDER}/spec.md`)).toMatch(
+    /^---\nstatus: awaiting-human/,
+  );
+});
+
+const ROUND = "2026-10-11-web-ui";
+const ROUND_FILE = `.worktrees/${ROUND}/specs/${ROUND}/clarifications-01.md`;
+
+/** The web UI's round of questions, awaiting answers. */
+async function showRound() {
+  await show(`/f/${ROUND}/clarifications-01.md`, "How does your iPhone reach the server?");
+}
+
+test("US4.1: a pasted image goes into the focused answer's comment", async () => {
+  await showRound();
+  const q3 = document.getElementById("Q3")!;
+  const field = within(q3).getByRole("textbox", { name: "Comment" }) as HTMLTextAreaElement;
+  await userEvent.click(field);
+
+  paste([await image("phone.png", "image.png")], field);
+
+  await expect
+    .poll(() => field.value)
+    .toMatch(/^!\[pasted image\]\(images\/pasted-\d{8}-\d{6}\.webp\)\n$/);
+  // The answer holds its link at once, as an image added to a file does.
+  await expect
+    .poll(() => commands.readRepo(ROUND_FILE), { timeout: 10_000 })
+    .toMatch(/## Q3[\s\S]*\*\*Answer:\*\* !\[pasted image\]\(images\/pasted-\d{8}-\d{6}\.webp\)/);
+});
+
+test("US4.2: a drop with no field focused goes to the end of the notes", async () => {
+  await showRound();
+  const notes = screen.getByRole("textbox", { name: "Notes" }) as HTMLTextAreaElement;
+
+  drop([await image("phone.png", "shot.png")]);
+
+  await expect.poll(() => notes.value).toBe("![shot](images/shot.webp)\n");
+  expect(
+    await commands.repoFileSize(`.worktrees/${ROUND}/specs/${ROUND}/images/shot.webp`),
+  ).toBeGreaterThan(0);
+  await expect
+    .poll(() => commands.readRepo(ROUND_FILE), { timeout: 10_000 })
+    .toContain("![shot](images/shot.webp)");
 });

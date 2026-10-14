@@ -5,7 +5,14 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
+import { AttachButton } from "./attach/AttachButton.tsx";
+import { AttachStatus } from "./attach/AttachStatus.tsx";
+import { DropHint } from "./attach/DropHint.tsx";
+import type { useImageText } from "./attach/useImageText.ts";
 import { GrowingTextArea, statusStyles } from "./Question.tsx";
+
+/** A comment field's images: the `useImageText` of the text the form holds. */
+export type CommentImages = ReturnType<typeof useImageText>;
 
 const styles = stylex.create({
   form: {
@@ -26,13 +33,16 @@ const styles = stylex.create({
  * A comment being written: where it goes, the start of what it comments on, its text, Cancel, and
  * the button that sends it. `onSubmit` resolves with nothing once the comment is written, or with
  * the error to show, the text kept. `text` and `onTextChange` hold the text outside the form, so
- * it survives the form moving. `action` goes before Cancel. Shared by the review and the mockup
- * page.
+ * it survives the form moving. `action` goes before Cancel. With `images`, the text takes images,
+ * pasted, dropped, or picked with "Add image", the first button. Shared by the review and the
+ * mockup page.
  */
 export function CommentForm({
   action,
   anchor,
+  images,
   initial = "",
+  notice,
   onCancel,
   onSubmit,
   onTextChange,
@@ -42,7 +52,10 @@ export function CommentForm({
 }: {
   action?: ReactNode;
   anchor: string;
+  images?: CommentImages;
   initial?: string;
+  /** An error about the comment from outside it, like a verdict refused while it is open. */
+  notice?: string;
   onCancel: () => void;
   onSubmit: (text: string) => Promise<string | undefined>;
   onTextChange?: (text: string) => void;
@@ -69,14 +82,27 @@ export function CommentForm({
             <Text type="supporting">{quote}</Text>
           </div>
         )}
-        <GrowingTextArea label="Comment text" onChange={setText} value={text} />
-        {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
+        {images ? (
+          <DropHint hint={images.hint}>
+            <GrowingTextArea
+              label="Comment text"
+              onChange={setText}
+              value={text}
+              {...images.fieldProps}
+            />
+          </DropHint>
+        ) : (
+          <GrowingTextArea label="Comment text" onChange={setText} value={text} />
+        )}
+        {images && <AttachStatus status={images.status} />}
+        {(error ?? notice) && <span {...stylex.props(statusStyles.error)}>{error ?? notice}</span>}
         <HStack gap={2} justify="end" wrap="wrap">
+          {images && <AttachButton onFiles={(files) => void images.addFiles(files)} />}
           {action}
           <Button label="Cancel" onClick={onCancel} />
           <Button
             clickAction={async () => setError(await onSubmit(text))}
-            isDisabled={!text.trim()}
+            isDisabled={!text.trim() || images?.busy}
             label={submitLabel}
             variant="primary"
           />

@@ -2,6 +2,7 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { Heading } from "@astryxdesign/core/Heading";
+import { HStack } from "@astryxdesign/core/HStack";
 import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
 import {
@@ -13,6 +14,10 @@ import {
 import * as stylex from "@stylexjs/stylex";
 import { useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
+import { AttachButton } from "./attach/AttachButton.tsx";
+import { AttachStatus } from "./attach/AttachStatus.tsx";
+import { DropHint } from "./attach/DropHint.tsx";
+import { useImageText } from "./attach/useImageText.ts";
 import { Blocks } from "./Blocks.tsx";
 import { CommitActions } from "./CommitActions.tsx";
 import { Crumbs } from "./Crumbs.tsx";
@@ -89,6 +94,41 @@ export function HookRefusal({
 }
 
 /**
+ * The round's notes as they are written: the page's main field, which takes the images dropped
+ * with no field focused, as well as those pasted or picked. `onText` takes the text once they are
+ * added, to save at once; `onSettled` takes how to wait for the images under way, as a submit does.
+ */
+function NotesField({
+  path,
+  notes,
+  onChange,
+  onText,
+  onSettled,
+}: {
+  path: string;
+  notes: string;
+  onChange: (notes: string) => void;
+  onText: (notes: string, added: boolean) => void;
+  onSettled: (settled: () => Promise<void>) => void;
+}) {
+  const images = useImageText({ path, text: notes, label: "the notes", priority: 1, onText });
+  useEffect(() => {
+    onSettled(images.settled);
+  }, [onSettled, images.settled]);
+  return (
+    <VStack gap={2}>
+      <DropHint hint={images.hint}>
+        <GrowingTextArea label="Notes" value={notes} onChange={onChange} {...images.fieldProps} />
+      </DropHint>
+      <AttachStatus status={images.status} />
+      <HStack gap={2}>
+        <AttachButton onFiles={(files) => void images.addFiles(files)} />
+      </HStack>
+    </VStack>
+  );
+}
+
+/**
  * A round of questions on one page: its context, every question in full with its follow-ups, the
  * points settled without the human, the notes, and Submit.
  */
@@ -105,6 +145,8 @@ export function RoundPage({ file }: { file: File }) {
   const continues = useRef(false);
   // oxlint-disable-next-line react/refs -- before the code quality decision: a set made once, kept for the page's life
   const pending = useRef(new Set<() => Promise<boolean>>()).current;
+  // The images being added to the notes, which a submit waits for.
+  const notesSettled = useRef<() => Promise<void>>(async () => {});
   const notesSave = useSave<string>(async (value, previous) => {
     const result = await fate.mutations.notes.save({
       input: { folder: file.folder, notes: value, previous },
@@ -169,7 +211,10 @@ export function RoundPage({ file }: { file: File }) {
     setError(undefined);
     continues.current = next;
     // What is still being typed is saved first, and nothing is submitted unless it all is.
-    const saved = await Promise.all([...[...pending].map((flush) => flush()), notesSave.flush()]);
+    const saved = await Promise.all([
+      ...[...pending].map((flush) => flush()),
+      notesSettled.current().then(() => notesSave.flush()),
+    ]);
     if (!saved.every(Boolean)) {
       setError({
         kind: "refused",
@@ -218,6 +263,7 @@ export function RoundPage({ file }: { file: File }) {
               document={document}
               folder={file.folder}
               followUps={questions.filter((q) => q.parent === question.id && q.asked)}
+              path={file.path}
               question={question}
               readOnly={readOnly}
               {...(agent?.available ? { onAsk: ask } : {})}
@@ -241,13 +287,20 @@ export function RoundPage({ file }: { file: File }) {
         )
       ) : (
         <VStack gap={3} ref={end}>
-          <GrowingTextArea
-            label="Notes"
+          <NotesField
+            notes={notes}
             onChange={(value) => {
               setNotes(value);
               notesSave.schedule(value);
             }}
-            value={notes}
+            onSettled={(wait) => {
+              notesSettled.current = wait;
+            }}
+            onText={(value, added) => {
+              setNotes(value);
+              notesSave.schedule(value, added);
+            }}
+            path={file.path}
           />
           {notesSave.state.kind === "error" && (
             <span {...stylex.props(statusStyles.error)}>Not saved: {notesSave.state.message}</span>
