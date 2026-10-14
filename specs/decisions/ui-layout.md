@@ -60,18 +60,17 @@ is at its worst on a phone's narrow lines
 [justified text](../done/2026-10-12-ui-improvements.md)).
 
 Following an agent is one of the main things the UI is for, and the session's pane, about 480 px of
-a 1440 px window, was too small for it ([proposal](../2026-10-14-session-view/proposal.md)). The
-pane came from the old run view, and was never chosen for sessions
-([layout on wide screens](../2026-10-14-session-view/discovery-01.md#session-layout-on-wide-screens)).
+a 1440 px window, was too small for it ([proposal](../done/2026-10-14-session-view.md)). The pane
+came from the old run view, and was never chosen for sessions
+([layout on wide screens](../done/2026-10-14-session-view.md#q1-where-does-a-features-session-open-on-a-desktop)).
 The human chose a page of its own with a column for the feature's progress, like the full-page
 sessions of Claude Code's desktop app, Devin, and Codex
-([Q1](../2026-10-14-session-view/clarifications-01.md#q1-where-does-a-features-session-open-on-a-desktop)),
-and a sidebar that is "small and visual more than textual", with features by their slug
-([Q2](../2026-10-14-session-view/clarifications-01.md#q2-how-does-the-current-task-show-in-the-sidebar)).
+([Q1](../done/2026-10-14-session-view.md#q1-where-does-a-features-session-open-on-a-desktop)), and a
+sidebar that is "small and visual more than textual", with features by their slug
+([Q2](../done/2026-10-14-session-view.md#q2-how-does-the-current-task-show-in-the-sidebar)).
 Approving it, they asked for this decision to rest on concepts more than hard rules: "Goal #1 is
 always readability and clarity for the user. Some features will live well in a pane, others in a
-dedicated page" (C1 of the
-[spec's review](../2026-10-14-session-view/spec-review.md#c1-lines-1517-under-spec-dedicated-session-view)).
+dedicated page" (C1 of the [spec's review](../done/2026-10-14-session-view.md)).
 
 ## Alternatives considered
 
