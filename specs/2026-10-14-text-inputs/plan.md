@@ -751,7 +751,7 @@ git commit -m "feat(text-inputs): a tap saves the letters, and a comment saves w
 - Produces: the review comment's text in the store under `${path}#review` or
   `${path}#review-edit:<number>`, with `extra` holding the selection and the reviewed commit.
 
-- [ ] **Step 1: Split `ReviewVerdict` before it changes**
+- [x] **Step 1: Split `ReviewVerdict` before it changes**
 
 Move the tier and plan review choices into a component, removing its marker.
 
@@ -763,7 +763,7 @@ git add packages/web/src/ReviewVerdict.tsx packages/web/src/ReviewChoices.tsx
 git commit -m "refactor(text-inputs): the verdict's tier and plan review choices in a component"
 ```
 
-- [x] **Step 2: Write the failing tests**
+- [ ] **Step 2: Write the failing tests**
 
 - US3 1 and SC-002: a spec of 300 blocks (a generated fixture), a comment form open on line 40, type
   "a" with React's `Profiler` around the document's `Blocks`: the profiler's `onRender` is not
@@ -785,7 +785,7 @@ The break each test catches: the text back in page state (US3 1); a form remount
 (US3 2); a verdict ignoring a form with text but no image (US5 10); a restore that keeps stale line
 numbers (focus 6).
 
-- [x] **Step 3: Run them to check they fail**
+- [ ] **Step 3: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web review mockup`
 - Expected: FAIL, `expected "spy" to not be called`
@@ -831,7 +831,7 @@ git add packages/web/src/EditorPage.tsx packages/web/src/useEditorActions.ts
 git commit -m "refactor(text-inputs): the editor's actions in a hook"
 ```
 
-- [x] **Step 2: Write the failing tests**
+- [ ] **Step 2: Write the failing tests**
 
 - US2 3: change the text, wait for another file's change to be read (`refreshUntil`): the file is
   unchanged, "Unsaved changes" next to "Save".
@@ -844,7 +844,7 @@ git commit -m "refactor(text-inputs): the editor's actions in a hook"
 The break each test catches: a leftover timer saving (US2 3); Commit committing the old text (US2
 4).
 
-- [x] **Step 3: Run them to check they fail**
+- [ ] **Step 3: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web editor`
 - Expected: FAIL, `expected file to equal the committed text`
@@ -888,11 +888,11 @@ git add packages/web/src/EditableLine.tsx packages/web/src/useLineSave.ts
 git commit -m "refactor(text-inputs): a line's save in a hook"
 ```
 
-- [x] **Step 2: Write the failing tests**: US2 5, 6, and 7 with "Run the web UI with npx" and ", and
+- [ ] **Step 2: Write the failing tests**: US2 5, 6, and 7 with "Run the web UI with npx" and ", and
       a version check"; Save and Cancel buttons; quick add's text kept after the overlay is closed
       with "Keep editing", restored after a remount. The break: a blur still saving (US2 5).
 
-- [x] **Step 3: Run them to check they fail**
+- [ ] **Step 3: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web priorities task`
 - Expected: FAIL, `expected PRIORITIES.md to be unchanged`

@@ -1,5 +1,3 @@
-import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
-import { Switch } from "@astryxdesign/core/Switch";
 import { Text } from "@astryxdesign/core/Text";
 import * as stylex from "@stylexjs/stylex";
 import { useRef, useState } from "react";
@@ -9,6 +7,7 @@ import type { useFile } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
 import { TextField } from "./fields/TextField.tsx";
 import { statusStyles } from "./Question.tsx";
+import { approveChoices, initialChoices, ReviewChoices } from "./ReviewChoices.tsx";
 import { HookRefusal } from "./RoundSubmit.tsx";
 import { handOver } from "./sessions.ts";
 import { FileView } from "./views.ts";
@@ -53,7 +52,6 @@ export function useRefusals() {
  * The end of a review: its summary, a spec's risk tier and plan review, and the verdict, which
  * commits and may hand the feature over to the agent.
  */
-// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the tier and plan review choices in a component
 export function ReviewVerdict({
   comments,
   file,
@@ -67,9 +65,9 @@ export function ReviewVerdict({
   const fate = useFateClient();
   const spec = (file.committed ?? file.current).items.spec;
   const isSpec = file.kind === "spec";
+  const where = { file: file.name, folder: file.folder };
   const [summary, setSummary] = useState("");
-  const [tier, setTier] = useState(spec?.riskTier ?? spec?.tiers[0]?.value ?? "");
-  const [planReview, setPlanReview] = useState<boolean>();
+  const [choices, setChoices] = useState(() => initialChoices(spec));
   // The verdict last committed to start the agent, for its Try again.
   const continues = useRef<"approval" | "changes">(undefined);
 
@@ -77,17 +75,13 @@ export function ReviewVerdict({
   const proceed = (trigger: "approval" | "changes") => handOver(file.folder, trigger, file.name);
 
   const verdict = async (approve: boolean, next: boolean) => {
-    const input = { file: file.name, folder: file.folder, summary: summary || undefined };
+    const input = { ...where, summary: summary || undefined };
     const trigger = approve ? "approval" : "changes";
     continues.current = next ? trigger : undefined;
     const done = await run(() =>
       approve
         ? fate.mutations.review.approve({
-            input: {
-              ...input,
-              ...(isSpec && tier !== spec?.riskTier ? { tier } : {}),
-              ...(isSpec && planReview !== undefined ? { planReview } : {}),
-            },
+            input: { ...input, ...(isSpec ? approveChoices(spec, choices) : {}) },
             view: FileView,
           })
         : fate.mutations.review.requestChanges({ input, view: FileView }),
@@ -96,10 +90,6 @@ export function ReviewVerdict({
       proceed(trigger);
     }
   };
-
-  // The plan review the core gives the tier picked, unless the human set it.
-  const plannedReview =
-    planReview ?? spec?.tiers.find((choice) => choice.value === tier)?.planReview ?? false;
 
   return (
     <>
@@ -110,33 +100,13 @@ export function ReviewVerdict({
         placeholder="Optional"
         value={summary}
       />
-      {isSpec && (
-        <>
-          <SegmentedControl
-            label="Risk tier"
-            onChange={(value: string) => setTier(value)}
-            value={tier}
-          >
-            {spec?.tiers.map((choice) => (
-              <SegmentedControlItem key={choice.value} label={choice.value} value={choice.value} />
-            ))}
-          </SegmentedControl>
-          <Switch
-            label="The plan waits for your review"
-            onChange={(checked: boolean) => setPlanReview(checked)}
-            value={plannedReview}
-          />
-        </>
-      )}
+      {isSpec && <ReviewChoices choices={choices} onChange={setChoices} spec={spec} />}
       {error && (
         <HookRefusal
           error={error}
           onRetry={async () => {
             const done = await run(() =>
-              fate.mutations.commit.retry({
-                input: { file: file.name, folder: file.folder },
-                view: FileView,
-              }),
+              fate.mutations.commit.retry({ input: where, view: FileView }),
             );
             if (done && continues.current) {
               proceed(continues.current);
