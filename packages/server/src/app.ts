@@ -1,5 +1,6 @@
 import { serveStatic } from "@hono/node-server/serve-static";
 import { type Context as HonoContext, Hono, type Next } from "hono";
+import { attach } from "./attach.ts";
 import type { Binding } from "./fate/context.ts";
 import { type FateServer, type FateVariables, fateServer } from "./fate.ts";
 import { withWholeFields } from "./fate/select.ts";
@@ -63,6 +64,9 @@ export function createApp(
     "/r/:name/fate/live",
     "/r/:name/raw/*",
     "/r/:name/mockups/*",
+    "/r/:name/attach",
+    "/r/:name/images/*",
+    "/r/:name/chat-images/*",
   ]) {
     app.use(path, hosted);
   }
@@ -92,6 +96,7 @@ export function createApp(
   app.get("/raw/*", moved);
   app.get("/mockups/*", moved);
   app.route("/r/:name", files());
+  app.route("/r/:name", attach());
   if (options.webRoot) {
     app.use("/*", serveStatic({ root: options.webRoot }));
     app.get("/*", serveStatic({ path: "index.html", root: options.webRoot }));

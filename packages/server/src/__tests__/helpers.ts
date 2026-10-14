@@ -1,3 +1,6 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach } from "vite-plus/test";
 import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
 import { createApp } from "../app.ts";
@@ -72,6 +75,7 @@ function app(
     hosts,
     port,
     sessions,
+    dataDir,
   });
   names.set(created, name);
   return created;

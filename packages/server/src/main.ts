@@ -12,7 +12,7 @@ async function main(argv: Array<string>) {
     ...options,
     adapter: new ClaudeAdapter({ pluginDir: PLUGIN_DIR }),
     binding,
-    dataDir: loadDataDir(process.cwd()),
+    dataDir,
   });
   // The sessions end with the server: their turns are interrupted, their processes closed, then
   // the server exits.

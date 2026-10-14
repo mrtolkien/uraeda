@@ -1,5 +1,8 @@
+import { readFile } from "node:fs/promises";
 import { Hono } from "hono";
+import { chatImages } from "./attach.ts";
 import type { FateVariables } from "./fate.ts";
+import { chatImageType } from "./runner/images.ts";
 
 const types: Record<string, string> = {
   css: "text/css; charset=utf-8",
@@ -8,6 +11,13 @@ const types: Record<string, string> = {
   json: "application/json",
   svg: "image/svg+xml",
 };
+
+/** The headers of an image: its detected type, never sniffed, and nothing it could load or run. */
+const imageHeaders = (type: string) => ({
+  "content-type": type,
+  "x-content-type-options": "nosniff",
+  "content-security-policy": "default-src 'none'",
+});
 
 /**
  * The core's refusal of a file it did not find, or does not serve: a path outside the repository,
@@ -44,8 +54,10 @@ const failed = (status: 404 | 500) => (status === 404 ? "Not found" : "The file 
 
 /**
  * Files of the repository, read through the binding: `/raw/<path>` as text, for links to code,
- * and `/mockups/<path>` with their own type, sandboxed so their scripts run outside the UI's
- * origin. Mounted at `/r/:name`, whose prefix is left out of the file's path.
+ * `/mockups/<path>` with their own type, sandboxed so their scripts run outside the UI's origin,
+ * and `/images/<path>` as images. And the chat images of the data folder, `/chat-images/<id>`,
+ * deleted by `DELETE` while no message holds them. Mounted at `/r/:name`, whose prefix is left out
+ * of the file's path.
  */
 export function files() {
   const app = new Hono<{ Variables: FateVariables }>();
@@ -66,6 +78,40 @@ export function files() {
       "content-security-policy": "sandbox allow-scripts",
       "content-type": types[extension] ?? "text/plain; charset=utf-8",
     });
+  });
+  app.get("/images/*", async (context) => {
+    const { binding, repo } = context.get("fate");
+    const path = rest(context, "images");
+    if (repo === null) {
+      return context.text("Not found", 404);
+    }
+    try {
+      const image = await binding.readImage(repo, decodeURIComponent(path));
+      return context.body(new Uint8Array(image.bytes), 200, imageHeaders(image.type));
+    } catch {
+      return context.text("Not found", 404);
+    }
+  });
+  app.get("/chat-images/:id", async (context) => {
+    const id = context.req.param("id");
+    const path = chatImages(context.get("fate").dataDir).path(id);
+    const bytes = path === undefined ? undefined : await readFile(path).catch(() => undefined);
+    return bytes === undefined
+      ? context.text("Not found", 404)
+      : context.body(new Uint8Array(bytes), 200, imageHeaders(chatImageType(id)));
+  });
+  app.delete("/chat-images/:id", async (context) => {
+    const { dataDir, sessions } = context.get("fate");
+    const id = context.req.param("id");
+    const images = chatImages(dataDir);
+    if (images.path(id) === undefined) {
+      return context.text("Not found", 404);
+    }
+    if (sessions.cache.imagesInUse().has(id)) {
+      return context.json({ error: `refused: ${id} is in a sent message.` }, 400);
+    }
+    await images.remove(id);
+    return context.body(null, 204);
   });
   return app;
 }

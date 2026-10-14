@@ -660,28 +660,36 @@ git commit -m "feat(image-attachments): image functions in the binding"
 
 - Create: `packages/server/src/attach.ts`, `packages/server/src/runner/images.ts`
 - Modify: `packages/server/src/app.ts`, `packages/server/src/files.ts`, `packages/server/src/dev.ts`
-  (`SERVER_PATHS`), `packages/server/src/main.ts`, `packages/server/src/live.ts`,
-  `packages/server/src/fate/context.ts`, `packages/server/src/__tests__/helpers.ts`,
-  `packages/server/src/testing.ts`
-- Test: `packages/server/src/__tests__/attach.test.ts`, `files.test.ts`
+  (`SERVER_PATHS`), `packages/server/src/main.ts`, `packages/server/src/fate/context.ts`,
+  `packages/server/src/runner/cache.ts` (`imagesInUse`), `packages/server/src/runner/events.ts` (the
+  message item's optional `images`), `packages/server/src/__tests__/helpers.ts`,
+  `packages/web/src/__tests__/helpers.tsx` (`serverFetch` passes a temporary data folder)
+- Test: `packages/server/src/__tests__/attach.test.ts`, `files.test.ts`,
+  `packages/server/src/runner/__tests__/images.test.ts`
 
 **Interfaces:**
 
 - Consumes: `attachImage`, `encodeImage`, `readImage` (task 5).
 - Produces:
-  - `Context` gains `dataDir: string`; `createApp` takes it; test helpers pass a temporary folder.
-  - `class ChatImages { constructor(dir: string); save(encoded: EncodedImage): Promise<ChatImage>; path(id: string): string | undefined; remove(id: string): Promise<void>; clean(inUse: Set<string>, now: number): Promise<void> }`
+  - `Context` gains `dataDir: string`; `createApp` takes it; test helpers pass a temporary folder
+    (`testDataDir()` in the server's helpers; `testServer` returns its `dataDir`).
+  - `class ChatImages { readonly dir: string; constructor(dir: string); save(encoded: EncodedImage): Promise<ChatImage>; path(id: string): string | undefined; remove(id: string): Promise<void>; clean(inUse: Set<string>, now: number): Promise<void> }`
     in `runner/images.ts`, with `ChatImage = { id: string; width: number; height: number }`, `id`
-    being `<uuid>.<extension>`, files in `<dataDir>/images/`.
+    being `<uuid>.<extension>`, `dir` the images folder itself, `<dataDir>/images/`, which
+    `chatImages(dataDir)` in `attach.ts` builds. `clean` keeps images written in the last 24 hours
+    ([R5](rulings.md#r5-chat-image-cleanup-waits-a-day)); task 7 calls it at startup.
+  - `SessionCache.imagesInUse(): Set<string>`, the image ids every repository's message items hold,
+    and the message item's `images?: ChatImage[]` type, used by `DELETE` here and filled by task 7.
   - `POST /attach?name=<file name>&path=<markdown path>` or `?name=...&chat=1`, a multipart body
     with one `file` field, limited to 21 MB. Answers `200` with `AttachedView` or `ChatImage` as
     JSON, or `400` with `{ error: "refused: <text>" }`. Over the limit, it answers without reading
     the body: `refused: This image is over 20 MB: <name> is <size> MB.`, the size from
-    `content-length`.
-  - `GET /images/<path>`, `GET /chat-images/<id>`, `DELETE /chat-images/<id>` (refused when a
-    message references it).
+    `content-length` ([R34](rulings.md#r34-the-server-writes-the-over-limit-refusal)).
+  - `GET /images/<path>`, `GET /chat-images/<id>`, `DELETE /chat-images/<id>`: `204`, `404` for an
+    unknown id, `400` with `{ error: "refused: <id> is in a sent message." }` when a message holds
+    it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `US1_1: an uploaded image is saved next to the proposal` (POST with `FormData`, the JSON link).
 - `refuses an upload while the feature's agent works` ("refused: An agent is working on this
@@ -694,12 +702,12 @@ git commit -m "feat(image-attachments): image functions in the binding"
 - `a chat image is saved in the data folder, never in the repository`, then served from
   `/chat-images/<id>`, then deleted by `DELETE`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/__tests__/attach.test.ts`
 - Expected: FAIL, `404` for `POST /attach`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 The route lives in `attach.ts` as `attach()`, mounted next to `files()`, before static files, behind
 the existing guard. It calls `writable(ctx, { path })` for a path, then the binding, mapping a
@@ -707,15 +715,15 @@ rejection's message into `{ error }`. Use `bodyLimit` from `hono/body-limit`. Ad
 `images`, and `chat-images` to `SERVER_PATHS`. `main.ts` and `dev.ts` pass the data folder to the
 app.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/server
+git add packages/server packages/web/src/__tests__/helpers.tsx specs/2026-10-13-image-attachments
 git commit -m "feat(image-attachments): upload and image routes"
 ```
 
@@ -724,7 +732,7 @@ git commit -m "feat(image-attachments): upload and image routes"
 **Files:**
 
 - Modify: `packages/server/src/runner/adapter.ts`, `events.ts`, `sessions.ts`, `message.ts`,
-  `claude.ts`, `fake.ts`, `cache.ts` (an images-in-use query), `live.ts` (cleanup at startup),
+  `claude.ts`, `fake.ts`, `live.ts` (cleanup at startup, with task 6's `cache.imagesInUse()`),
   `packages/server/src/fate/mutations.ts` (`session.send`), `fate/views.ts` (capabilities),
   `packages/server/scripts/validate-claude.ts`
 - Test: `packages/server/src/runner/__tests__/sessions.test.ts`, `claude.test.ts`, `cache.test.ts`,
