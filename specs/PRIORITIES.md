@@ -7,7 +7,6 @@
 > Features for v1.0.0
 
 - [Look and feel pass](drafts/look-and-feel.md)
-- [Dedicated session view](drafts/session-view.md)
 - [Text inputs and comments](drafts/text-inputs.md)
 
 - [Add a bugfixing/low impact change flow](drafts/add-a-bugfixing-low-impact-change-flow.md)
