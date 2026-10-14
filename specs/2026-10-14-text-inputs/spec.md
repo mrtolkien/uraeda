@@ -1,12 +1,23 @@
 ---
-status: changes-requested
-revision: 1
+status: awaiting-human
+revision: 2
 clarifications: 1
 risk-tier: high
 plan-review: true
 ---
 
 # Spec: Text inputs and comments
+
+> [!IMPORTANT]
+>
+> Spec to review, about 5 minutes: text areas no longer grow.
+>
+> - C1: done. Every multi-line field has a fixed height by what it holds, and scrolls past it: the
+>   proposal editor 20 rows, the notes 12, every comment and the review summary 7, quick add 3. The
+>   [UI behaviour](../decisions/ui-behaviour.md#proposed-change-2026-10-14-text-inputs) change, US6,
+>   SC-005, the components, the assumptions, and the mockup's last section follow.
+> - Each field keeps the browser's resize handle, so a long text can still be given more room by
+>   hand.
 
 > [!NOTE]
 >
@@ -181,25 +192,27 @@ Acceptance scenarios:
 10. **Given** a review comment form open with text, **When** the human presses Approve, **Then** the
     verdict is not recorded, and "Add or cancel your comment first." shows next to the verdict.
 
-### US6: Text areas as tall as their text (P3)
+### US6: Text areas sized for what they hold (P3)
 
-Every multi-line field grows the same way: two rows when empty or short, then one row per line of
-text as it wraps at the field's width, and no empty row ahead. Past half the window, it scrolls. The
-editor grows without that limit.
+Every multi-line field has a fixed height, set by what it holds and the same wherever that kind of
+field appears, a little larger than its usual text: the proposal editor 20 rows, the round's notes
+12, every comment and the review summary 7, quick add 3. Typing never changes the page's layout:
+past its height, the field scrolls. The browser's resize handle stays, to give a field more room by
+hand.
 
-Why this priority: the human's note; it makes fields coherent, without changing what is saved.
+Why this priority: the human's note and review; it makes fields coherent, without changing what is
+saved.
 
 Acceptance scenarios:
 
-1. **Given** an empty comment field, **Then** it is two rows tall.
-2. **Given** a comment field on the desktop holding one line of 80 characters, which fits one row,
-   **Then** it is two rows tall, not three.
-3. **Given** a comment field holding 6 lines, **Then** it is 6 rows tall, with no empty row below
-   the last.
-4. **Given** a comment field holding 60 lines in a 900 px tall window, **Then** it is 450 px tall at
-   most, and scrolls.
-5. **Given** the proposal editor holding 60 lines, **Then** it is 60 rows tall, and the page
-   scrolls.
+1. **Given** an empty comment field, on a question, a review, or a settled point, **Then** it is 7
+   rows tall.
+2. **Given** a comment field holding 1 line, **Then** it is still 7 rows tall.
+3. **Given** a comment field holding 12 lines, **Then** it is 7 rows tall, scrolls, and the content
+   below it on the page has not moved since it was empty.
+4. **Given** the round's notes field, empty or full, **Then** it is 12 rows tall.
+5. **Given** the proposal editor, **Then** it is 20 rows tall, whatever its text.
+6. **Given** quick add, **Then** its field is 3 rows tall.
 
 ## Edge cases
 
@@ -241,8 +254,8 @@ Acceptance scenarios:
 - **SC-003**: A field never loses a character typed: typing "a b c" with 2-second pauses after each
   space, while the file changes on disk, leaves "a b c" in the field.
 - **SC-004**: Unsaved text in each kind of field is restored after a reload, in one test per kind.
-- **SC-005**: Every multi-line field is as tall as its text, from 2 rows, with no empty row beyond
-  the minimum, at 402 × 874 and 1440 × 900 in WebKit.
+- **SC-005**: Every multi-line field is the height of its kind, 20, 12, 7, or 3 rows, empty and
+  after 30 lines are typed into it, at 402 × 874 and 1440 × 900 in WebKit.
 - **SC-006**: A comment on a settled point reads back from the file as the comment written, for
   one-line, multi-line, and hand-written bullets.
 
@@ -357,11 +370,11 @@ and dropped when older than 30 days.
 - **Confirmation dialog** (`packages/web/src/fields/Confirm.tsx`, new): the "Leave page?" and
   "Discard …?" dialogs, an Astryx dialog on wide screens and a sheet on the phone, with a close
   button, as the [UI layout](../decisions/ui-layout.md) decision requires.
-- **Growing text area** (`packages/web/src/fields/GrowingTextArea.tsx`, moved from
-  [`Question.tsx`](/packages/web/src/Question.tsx)): Astryx `TextArea`, with `rows` measured from
-  the native element's `scrollHeight` at each change and width change, between 2 rows (or the
-  caller's minimum) and half the window, or without the upper limit for the editor. Ctrl+Enter or
-  Cmd+Enter calls its `onSubmit`. Every multi-line field uses it, quick add and the editor included.
+- **Text area** (`packages/web/src/fields/TextField.tsx`, replacing `GrowingTextArea` in
+  [`Question.tsx`](/packages/web/src/Question.tsx)): Astryx `TextArea`, whose `kind` sets its fixed
+  `rows`: `"editor"` 20, `"notes"` 12, `"comment"` 7, `"line"` 3. Its height never follows its text.
+  Ctrl+Enter or Cmd+Enter calls its `onSubmit`. Every multi-line field uses it, quick add and the
+  editor included.
 - **Restore notice** (`packages/web/src/fields/RestoreNotice.tsx`, new): the notice above a restored
   field, with Discard.
 - **Round page** ([`RoundPage.tsx`](/packages/web/src/RoundPage.tsx)): split into a notes field with
@@ -410,7 +423,7 @@ and dropped when older than 30 days.
   4. The "Leave page?" and "Discard your comment?" dialogs.
   5. A line edited in place, with Save and Cancel.
   6. The proposal editor with Save, and Commit.
-  7. A text area measured to its text, against today's guessed rows.
+  7. The fixed heights of each kind of text area, empty and full.
 
 ### Error handling
 
@@ -442,7 +455,7 @@ Rust, on fixture files.
 | US3, scenarios 1–3; SC-002                           | Integration tests on the review page, with React's `Profiler` on the blocks  |
 | US4, scenarios 1–8                                   | Integration tests on the round page, reading the notes from the file         |
 | US5, scenarios 1–10; SC-004                          | Integration tests, a reload simulated by unmounting and mounting the app     |
-| US6, scenarios 1–5; SC-005                           | Browser tests at both sizes, measuring the field against its line height     |
+| US6, scenarios 1–6; SC-005                           | Browser tests at both sizes, measuring each field against its line height    |
 | SC-006, the notes' split and writing, the edge cases | One table-driven Rust test: one row per notes text and expected parts        |
 | Settled section ending at the notes                  | Rust test on a fixture round with notes                                      |
 | Core refusals for the three settled comment actions  | Rust tests, one per refusal                                                  |
@@ -478,11 +491,12 @@ Settled while writing this spec:
 - Every field that saves text keeps its unsaved text, lines and slugs included; search fields and
   the chat composer do not.
 - Lines edited in place get Save and Cancel buttons, since a phone has no Escape key.
-- The editor grows without a height limit, the page scrolling, since an inner scroll in a long
-  proposal hides its start.
-- Text areas are measured with the native element's `scrollHeight`, since Astryx's `xstyle` reaches
-  only the field's wrapper, not the native element that CSS `field-sizing` would need
-  ([Astryx 0.6.8](discovery-01.md#astryx-068)).
+- The fixed heights are 20 rows for the proposal editor, a page of text; 12 for the notes, which
+  gather several points; 7 for every comment and the review summary, as the human asked; and 3 for
+  quick add, a priority line that may wrap. They are the same at both widths, in rows, so they grow
+  with the text size the [UI layout](../decisions/ui-layout.md) decision sets.
+- Astryx's `TextArea` keeps its vertical resize handle, so the fixed height is a starting size, not
+  a limit ([Astryx 0.6.8](discovery-01.md#astryx-068)).
 - No CLI command adds a settled comment: a human writes the bullet in an editor.
 
 ## Decisions
@@ -491,7 +505,7 @@ Changed, applied when this spec is approved:
 
 - [UI behaviour](../decisions/ui-behaviour.md#proposed-change-2026-10-14-text-inputs): text saves
   only on a button or the field's own key, lines no longer save on blur, unsaved text is kept in the
-  browser and leaving asks first, and every multi-line field grows the same way.
+  browser and leaving asks first, and every multi-line field has a fixed height by what it holds.
 - [Toolchain](../decisions/toolchain.md#proposed-change-2026-10-14-text-inputs): the web UI is
   compiled with React Compiler through Babel, and new code does not memoize by hand for speed.
 
