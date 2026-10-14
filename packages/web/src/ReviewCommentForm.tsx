@@ -26,8 +26,16 @@ type File = NonNullable<ReturnType<typeof useFile>>;
 type Draft = ReturnType<typeof useCommentDraft>;
 type Images = ReturnType<typeof useReviewImages>;
 
-/** The comment's field: its key in the unsaved store, its text as saved, and its lines. */
-export type ReviewField = { extra?: Unsaved["extra"]; key: string; saved: string };
+/**
+ * The comment's field: its key in the unsaved store, its text as saved, and its lines, or, for an
+ * edit, where the comment edited points.
+ */
+export type ReviewField = {
+  extra?: Unsaved["extra"];
+  key: string;
+  saved: string;
+  subject?: string;
+};
 
 const styles = stylex.create({
   inline: {
@@ -107,7 +115,11 @@ export function CommentHost({
   wide: boolean;
 }) {
   // The form's own field says whether it is drawn: a comment left in the closed sheet is not.
-  const text = useTextField(field.key, field.saved, { drawn: false, extra: field.extra });
+  const text = useTextField(field.key, field.saved, {
+    drawn: false,
+    extra: field.extra,
+    subject: field.subject,
+  });
   const images = useReviewImages(file, draft, refusals, wide, text);
   return (
     <ReviewImagesContext value={images}>
@@ -168,6 +180,7 @@ function ReviewForm({
       onSubmit={send}
       quote={draft.kind === "lines" && first ? quoteOf(textOf(tree, first)) : undefined}
       saved={field.saved}
+      subject={field.subject}
       submitLabel={draft.kind === "edit" ? "Save comment" : "Add comment"}
     />
   );

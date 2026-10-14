@@ -16,6 +16,7 @@ import { PendingComment, usePlacedComments } from "./ReviewComments.tsx";
 import {
   holderOf,
   reanchor,
+  placeOf,
   restoredComment,
   reviewEditKey,
   reviewKey,
@@ -158,8 +159,12 @@ function fieldOf(
   { draft, selection }: Pick<ReturnType<typeof useCommentDraft>, "draft" | "selection">,
 ): ReviewField {
   if (draft?.kind === "edit") {
-    const saved = comments.find((comment) => comment.number === draft.number)?.text ?? "";
-    return { key: reviewEditKey(file.path, draft.number), saved };
+    const comment = comments.find((c) => c.number === draft.number);
+    return {
+      key: reviewEditKey(file.path, draft.number),
+      saved: comment?.text ?? "",
+      subject: comment && placeOf(comment),
+    };
   }
   const extra =
     draft?.kind === "lines" && selection ? { ...selection, commit: file.tip ?? "" } : undefined;
@@ -204,7 +209,7 @@ export function ReviewPage({ file }: { file: File }) {
         comment={comment}
         key={comment.number}
         onEdit={() => start({ kind: "edit", number: comment.number })}
-        onRemove={() => actions.remove(comment.number)}
+        onRemove={() => void actions.remove(comment.number)}
       />
     );
 

@@ -17,11 +17,11 @@ import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import {
   dropUnsaved,
   readUnsaved,
+  renumberUnsaved,
   savedUnsaved,
   type Unsaved,
   unsavedKey,
   useUnsaved,
-  writeUnsaved,
 } from "./fields/unsaved.ts";
 import { Overlay } from "./layout/Overlay.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
@@ -78,22 +78,6 @@ function restoredForm(
   }
   const point = points.find((p) => kept(newKey(path, p.subject)) !== undefined);
   return point && { kind: "new", point };
-}
-
-/**
- * Once comment `number` of `count` is removed, the edits kept for the comments after it follow
- * their new numbers, one less; its own goes with it.
- */
-function renumberEdits(repo: string, path: string, number: number, count: number) {
-  dropUnsaved(unsavedKey(repo, editKey(path, number)));
-  for (let after = number + 1; after <= count; after += 1) {
-    const from = unsavedKey(repo, editKey(path, after));
-    const entry = readUnsaved(from);
-    if (entry) {
-      writeUnsaved(unsavedKey(repo, editKey(path, after - 1)), entry);
-      dropUnsaved(from);
-    }
-  }
 }
 
 /**
@@ -169,7 +153,11 @@ function useSettledWrites(
       setRemoval({ message: refusal(result.error).message, number: comment.number });
       return;
     }
-    renumberEdits(repo, file.path, comment.number, count);
+    renumberUnsaved(
+      (number) => unsavedKey(repo, editKey(file.path, number)),
+      comment.number,
+      count,
+    );
     onRemoved(comment.number);
   };
   const removeError = (comment: SettledComment) =>
