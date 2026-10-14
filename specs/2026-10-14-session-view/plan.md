@@ -1247,7 +1247,7 @@ git commit -m "feat(session-view): jump to the latest"
 - Produces: `SessionAnnouncer({ session, feature }: { session?: string; feature?: string })`, a
   visually hidden `role="status"` region.
 
-- [ ] **Step 1: Restructure `Composer` in `Composer.tsx`, and commit**
+- [x] **Step 1: Restructure `Composer` in `Composer.tsx`, and commit**
 
 Split it as its `max-lines-per-function` marker says: the send and stop actions in a hook. Remove
 the marker. Behaviour does not change: `vp check && vp test --project uraeda-web` passes with no
