@@ -881,3 +881,71 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `packages/web/src/theme/theme.ts`, the image style in
   `packages/web/src/ImageView.tsx`.
 - **Where**: task 9, review.
+
+## R60: The workflow's message has no paperclip
+
+- **Decision**: while the composer holds the workflow's message, it has no attach button, and an
+  image pasted or dropped on it is refused under it with the sessions' text, "The workflow's message
+  takes no images.". An agent that cannot read images has no attach button either, and a paste or a
+  drop says "This agent cannot read images.". The image limits and refusals the composer checks
+  first, 10 images and these texts, move to `uraeda-server/limits`, which the sessions import.
+- **Rationale**: the server refuses images with the workflow's message (R42); a button the human can
+  press only to be refused at Send would lose the images and the text's moment. The texts stay the
+  server's, written once, as R52 does for the size refusal.
+- **Alternatives considered**: the button disabled (a control that does nothing, with its reason
+  nowhere); images accepted and refused at Send (the refusal comes late, after the uploads).
+- **If wrong**: `useChatImages` and the `footerActions` of `packages/web/src/Composer.tsx`;
+  `packages/server/src/limits.ts`.
+- **Where**: task 10.
+
+## R61: Send and Enter are the composer's own
+
+- **Decision**: the composer draws Astryx's `ChatSendButton` with its own `onSend` and `isDisabled`,
+  and handles Enter in its `onKeyDown` on wide screens, sending the text, the images, or both. Send
+  and Enter wait until every image is saved. The attach button sits in the composer's footer, left
+  of Send, as the mockup draws it.
+- **Rationale**: Astryx's composer, its Send, and its Enter send text only, and clear the field
+  before the page could refuse; `ChatSendButton` takes the page's own send and state, which keeps
+  its look and its "Send" name (an Astryx gap, listed in the plan). An image still being saved has
+  no ID to send. The spec names `headerActions`, above the text; the mockup, the visual reference,
+  puts the paperclip in the bar with Send, where a thumb reaches it on the phone.
+- **Alternatives considered**: a `Button` of our own (another look than Astryx's send); the images
+  sent once saved, after Send (a message whose images arrive later, or fail after it went).
+- **If wrong**: `submit`, `onKeyDown`, and `send` in `packages/web/src/Composer.tsx`.
+- **Where**: task 10.
+
+## R62: The page keeps the message's images with its text
+
+- **Decision**: the session page keeps a draft of the text and the images, which the composer draws,
+  so they survive the composer drawn again when a first message creates the session. Each image is
+  saved as soon as it comes, one after the other, and shows as a thumbnail labelled with its file's
+  name, dimmed and showing the file itself while saved. A removed thumbnail deletes its image, once
+  saved if it is being saved. A taken-back message puts its images back before the draft's, as its
+  text goes before the text typed since. When more images come than the message has room for, the
+  first ones are taken, and "A message takes at most 10 images." shows once they are saved.
+- **Rationale**: the spec's thumbnails are removable and sent with the message; the chat's uploads
+  are the same queue as the fields' (R49). A refusal shown before the uploads' statuses would be
+  replaced by them at once. A taken-back message's images stay in its item (US2.5), so removing one
+  from the composer again is refused by the server and the file is kept, which the cleanup also
+  keeps while the item holds it.
+- **Alternatives considered**: the images uploaded at Send (a slow send, and no early refusal); the
+  whole batch refused past 10 (the human picks again).
+- **If wrong**: `useChatImages` in `packages/web/src/Composer.tsx`, `useDraft` in
+  `packages/web/src/SessionPage.tsx`.
+- **Where**: task 10.
+
+## R63: A chat image is a preview in its message
+
+- **Decision**: a message's images show above its text, side by side while they fit, each at most
+  the theme's `--size-message-image`, 120 px, tall, and open full screen with `ImageView`'s
+  lightbox. They have no alt text: their link is named "Image", and a missing one shows "Image
+  missing".
+- **Rationale**: the mockup shows the images as small previews above the text; 120 px keeps a
+  desktop screenshot and a phone screenshot side by side in a bubble beside a feature page, and
+  wraps them on the phone. A chat image has no alt text to give: its name is a UUID.
+- **Alternatives considered**: Astryx's `Thumbnail` with `onClick` (a square crop, and its own
+  placeholder in place of the spec's "Image missing"); the column-wide images of documents (two
+  screenshots fill the screen).
+- **If wrong**: `Message` in `packages/web/src/Transcript.tsx`, `size` in
+  `packages/web/src/ImageView.tsx`, `packages/web/src/theme/theme.ts`.
+- **Where**: task 10.

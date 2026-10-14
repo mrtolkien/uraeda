@@ -1,8 +1,8 @@
 // Sending to an agent's session, the same way from every page.
 import type { useFateClient } from "react-fate";
-import type { Trigger } from "uraeda-server/fate";
+import type { ChatImage, Trigger } from "uraeda-server/fate";
 import { refusal } from "./errors.ts";
-import { navigateHere } from "./routes.tsx";
+import { navigateHere, repoPath } from "./routes.tsx";
 import { SessionView } from "./views.ts";
 
 type Fate = ReturnType<typeof useFateClient>;
@@ -12,8 +12,8 @@ export type Sent = { ok: true; session: string } | { message: string; ok: false 
 
 /**
  * Sends a message: to a session, to a feature's session, created with its first message, or, with
- * neither, to a new chat. `workflow` makes it the workflow's message, which starts the feature's
- * step.
+ * neither, to a new chat. `images` are the chat images `POST /attach` saved, passed as it returned
+ * them. `workflow` makes it the workflow's message, which starts the feature's step.
  */
 export async function sendMessage(
   fate: Fate,
@@ -21,6 +21,7 @@ export async function sendMessage(
     folder?: string;
     session?: string;
     text: string;
+    images?: ReadonlyArray<ChatImage>;
     workflow?: { file?: string; trigger: Trigger };
   },
 ): Promise<Sent> {
@@ -39,6 +40,7 @@ export async function sendMessage(
     input: {
       ...(session === undefined ? { folder: input.folder } : { session }),
       text: input.text,
+      ...(input.images?.length ? { images: [...input.images] } : {}),
       ...(input.workflow === undefined ? {} : { workflow: input.workflow }),
     },
     view: SessionView,
@@ -50,6 +52,11 @@ export async function sendMessage(
   return id === undefined
     ? { message: "The message was not sent.", ok: false }
     : { ok: true, session: id };
+}
+
+/** The address of a chat image, within the session's repository, served from the data folder. */
+export function chatImageSrc(repo: string, image: ChatImage): string {
+  return repoPath(repo, `/chat-images/${encodeURIComponent(image.id)}`);
 }
 
 /** The address of a feature's session, within its repository. */

@@ -977,9 +977,14 @@ git commit -m "feat(image-attachments): draw images in documents"
 
 **Files:**
 
-- Modify: `packages/web/src/Composer.tsx`, `SessionPage.tsx` (the draft holds images with the text),
-  `Transcript.tsx`, `sessions.ts` (`sendMessage` takes `images`, the `ChatImage`s the upload
-  returned, passed to `session.send` as they are)
+- Modify: `packages/web/src/Composer.tsx` (`useChatImages`, the drawer, Send and Enter),
+  `SessionPage.tsx` (the draft holds images with the text), `Transcript.tsx`, `ImageView.tsx` (the
+  message's preview size), `theme/theme.ts` and `theme/built/` (`--size-message-image`),
+  `sessions.ts` (`sendMessage` takes `images`, the `ChatImage`s the upload returned, passed to
+  `session.send` as they are; `chatImageSrc`), `packages/web/vite.browser.config.ts` (`agentSent`
+  gives the images' paths), `packages/server/src/limits.ts` and `runner/sessions.ts` (the image
+  limit and refusals, shared with the UI,
+  [R60](rulings.md#r60-the-workflows-message-has-no-paperclip))
 - Test: `packages/web/src/__tests__/session.test.tsx`,
   `packages/web/src/__browser__/attach.test.tsx`
 
@@ -987,43 +992,56 @@ git commit -m "feat(image-attachments): draw images in documents"
 
 - Consumes: `useAttach({ chat: true })`, `AttachButton`, `useImageDrop` (task 8), `ImageView` (task
   9), `Capabilities.images` and the message item's `images` (task 7).
-- Produces: `onTakenBack?: (text: string, images: ChatImage[]) => void`.
+- Produces: `onTakenBack?: (text: string, images: ReadonlyArray<ChatImage>) => void`;
+  `DraftImage = { key, name, preview?, image?: ChatImage }` and `draftImage(image)` in
+  `Composer.tsx`; `Composer`'s `images` and `onImagesChange`; `chatImageSrc(image)` in
+  `sessions.ts`; `IMAGE_REFUSALS` and `MAX_IMAGES` in `uraeda-server/limits`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `US2.1: two pasted images show as removable thumbnails` (two `Remove …` buttons, "Add images").
 - `US2.2: a message with images shows them above its text`, and `fake.adapter.sent[0].images` has
   two paths.
 - `US2.3: a removed thumbnail is not sent`, and the image is deleted.
 - `US2.4: an image alone is sent`, the chat titled "Image".
-- `US2.5: a taken-back message returns its images to the composer`.
+- `an image alone is sent with Enter on a wide screen`, and
+  `an image is not sent while it is being saved`
+  ([R61](rulings.md#r61-send-and-enter-are-the-composers-own)).
+- `US2.5: a taken-back message returns its images to the composer`
+  ([R62](rulings.md#r62-the-page-keeps-the-messages-images-with-its-text)).
 - `US2.6: a sent image opens full screen`.
 - `US2.7: an agent without images has no attach button`, and a drop shows "This agent cannot read
   images.".
+- `an image dropped anywhere on the session page joins the message`.
 - `an eleventh image is refused`: "A message takes at most 10 images.".
-- `a missing chat image shows "Image missing"`.
+- `a missing chat image shows "Image missing"`
+  ([R63](rulings.md#r63-a-chat-image-is-a-preview-in-its-message)).
+- `the workflow's message takes no images` (R60).
+- Browser tests: `US2.1: two images pasted in the composer are thumbnails, sent with the message`,
+  and `a file dropped anywhere on a session's page joins the message`, in WebKit.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/session.test.tsx`
 - Expected: FAIL, `Unable to find role="button" and name "Add images"`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `ChatComposerInput.onFiles` takes pasted and dropped files; the page drop registers the composer as
-the session page's main field. Thumbnails sit in a `ChatComposerDrawer`, dimmed while saving. The
-send button and Enter accept a message with images and no text: a custom `sendButton`, as the
-workflow one is, and the Enter handling in `onKeyDown` (Astryx gap).
+the session page's main field. Thumbnails sit in a `ChatComposerDrawer`, dimmed while saving, the
+attach button in the composer's footer beside Send, as the mockup draws it (R61). The send button
+and Enter accept a message with images and no text: Astryx's `ChatSendButton` with the composer's
+own `onSend` and `isDisabled`, and the Enter handling in `onKeyDown` (Astryx gap).
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/web
+git add packages/web packages/server specs/2026-10-13-image-attachments
 git commit -m "feat(image-attachments): images in chats"
 ```
 
