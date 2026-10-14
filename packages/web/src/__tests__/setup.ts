@@ -18,3 +18,14 @@ nodeConsole.error = (...data: Array<unknown>) => {
   }
   error(...data);
 };
+
+/**
+ * happy-dom has no Popover API, and no browser's own rule hiding a popover until it is shown:
+ * Astryx's layers then show and hide themselves by their `display`, and a closed one, never shown,
+ * would be on the page. The browsers' rule, written here, hides it. Lint's tests have no page.
+ */
+if (typeof document !== "undefined") {
+  const popovers = document.createElement("style");
+  popovers.textContent = "[popover] { display: none; }";
+  document.head.append(popovers);
+}

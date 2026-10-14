@@ -4,7 +4,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { startTransition, useEffect, useState } from "react";
+import { type ReactNode, startTransition, useEffect, useState } from "react";
 import type { SessionStatus } from "uraeda-server/fate";
 import { type useNavigation, useSessionSearch } from "./data.ts";
 import { navigate, useRepoPath } from "./routes.tsx";
@@ -93,18 +93,23 @@ function Item({
   to,
   pathname,
   status,
+  foldedIcon,
 }: {
   label: string;
   to: string;
   pathname: string;
   status?: Status;
+  /** Its icon in the folded navigation, which shows only rows with one. */
+  foldedIcon?: ReactNode;
 }) {
   const here = useRepoPath();
+  const { isCollapsed } = useSideNavCollapse();
   return (
     <SideNavItem
       label={label}
       href={here(to)}
       isSelected={pathname === to || (to !== "/" && pathname.startsWith(`${to}/`))}
+      {...(foldedIcon && isCollapsed && !status ? { icon: foldedIcon } : {})}
       {...(status
         ? {
             icon: <StatusMark status={status.status} label={status.label} />,
@@ -249,7 +254,14 @@ function Sessions({
   }
   return (
     <>
-      {!found && <Item label="Home" to="/" pathname={pathname} />}
+      {!found && (
+        <Item
+          label="Home"
+          to="/"
+          pathname={pathname}
+          foldedIcon={<span aria-hidden="true">⌂</span>}
+        />
+      )}
       {!found && <Item label="Priorities" to="/priorities" pathname={pathname} />}
       {groups.slice(0, 2).map(group)}
       {(!found || chats.length > 0) && (

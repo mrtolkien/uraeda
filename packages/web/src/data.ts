@@ -8,6 +8,7 @@ import {
   DraftView,
   FeatureView,
   FileView,
+  FolderSuggestionsView,
   PrioritiesView,
   ProposalHintsView,
   RepositoriesView,
@@ -239,4 +240,15 @@ export function useRepositories() {
   const { repositories } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(RepositoriesView, repositories);
+}
+
+/**
+ * The folders whose path starts with a typed text, `~/dev/to` for one, those in git marked: read
+ * once per text, so at most one request is in flight for it, and kept for the form's life.
+ */
+export function useFolderSuggestions(text: string) {
+  const { folderSuggestions } = useRequest({
+    folderSuggestions: { id: text, view: FolderSuggestionsView },
+  });
+  return useView(FolderSuggestionsView, folderSuggestions)?.rows ?? [];
 }
