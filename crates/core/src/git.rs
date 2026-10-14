@@ -547,12 +547,16 @@ impl Git {
         if !others.is_empty() {
             return Err(GitError::OtherStagedFiles(others));
         }
-        // A deletion already staged, after a refused commit, is not a path git can add again.
-        let addable: Vec<&str> = paths
-            .iter()
-            .filter(|path| self.root.join(path).exists() || !staged.contains(path))
-            .map(String::as_str)
-            .collect();
+        // A deletion already staged, after a refused commit, is not a path git can add again: a
+        // file, or a folder whose files the index no longer holds.
+        let mut addable: Vec<&str> = Vec::new();
+        for path in paths {
+            let staged_under =
+                others_staged(&staged, std::slice::from_ref(path)).len() < staged.len();
+            if self.root.join(path).exists() || !staged_under || self.in_index(path)? {
+                addable.push(path);
+            }
+        }
         if !addable.is_empty() {
             let mut add = vec!["add", "--all", "--"];
             add.extend(addable);
@@ -570,6 +574,19 @@ impl Git {
             commit.extend(["--message", body]);
         }
         self.run("commit", &commit)
+    }
+
+    /// Whether the index holds `path`, or files under it.
+    fn in_index(&self, path: &str) -> Result<bool, GitError> {
+        let index = self
+            .repo
+            .index_or_empty()
+            .map_err(read_error("the index"))?;
+        let folder = format!("{}/", path.trim_end_matches('/'));
+        Ok(index.entries().iter().any(|entry| {
+            let entry = entry.path(&index);
+            entry == path.as_bytes() || entry.starts_with(folder.as_bytes())
+        }))
     }
 
     fn run(&self, subcommand: &str, args: &[&str]) -> Result<(), GitError> {

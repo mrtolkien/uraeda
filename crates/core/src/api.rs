@@ -456,7 +456,8 @@ pub fn submit_answers(repo: &Path, folder: &str, round: Option<&str>) -> Result<
 }
 
 /// Commits again what a hook refused to commit, its files left written: a submitted round, or a
-/// verdict on a spec, a plan, or an assessment, with its review file.
+/// verdict on a spec, a plan, or an assessment, with its review file; with the images the
+/// feature's folder links.
 pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView> {
     let _lock = write_lock();
     let (_, feature, place) = reach(repo, folder)?;
@@ -492,6 +493,10 @@ pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView>
         }
         _ => return Err(refused(format!("{name} has nothing to commit again"))),
     };
+    paths.extend(crate::actions::images::linked_images(
+        &place,
+        &feature.path,
+    )?);
     paths.sort();
     let change = crate::actions::Change {
         paths,

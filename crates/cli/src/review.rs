@@ -2,8 +2,8 @@
 
 use std::process::ExitCode;
 
-use uraeda_core::actions::place;
 use uraeda_core::actions::review::{self, Tier};
+use uraeda_core::actions::{list, place};
 use uraeda_core::files::review::Anchor;
 use uraeda_core::target::{Purpose, Target};
 use uraeda_core::today;
@@ -103,7 +103,7 @@ pub fn run(options: Options) -> Result<ExitCode, String> {
         }
         .map_err(|e| refused(e.to_string()))?;
         output::say_place(&git, &place);
-        println!("{done}: commit {}.", change.paths.join(" and "));
+        println!("{done}: commit {}.", list(&change.paths));
     } else {
         let committed = if options.approve {
             review::approve_and_commit(&place, feature, &file, summary, &options.tier, today)

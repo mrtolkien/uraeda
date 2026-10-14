@@ -411,3 +411,29 @@ fn comments_add_up() {
     assert!(review.contains("## C1: Line 41"));
     assert!(review.contains("## C2: General\n\nTwo\n"));
 }
+
+#[test]
+fn no_commit_names_the_images_to_commit() {
+    let repo = waiting();
+    ura(
+        &repo,
+        &[
+            "review",
+            "cli-core",
+            "--comment",
+            "general",
+            "As ![shot](images/shot.webp) shows",
+        ],
+    );
+    repo.write("specs/2026-10-10-cli-core/images/shot.webp", "shot");
+
+    let output = ura(&repo, &["review", "cli-core", "--approve", "--no-commit"]);
+
+    assert_eq!(
+        output.stdout,
+        format!(
+            "spec.md approved: commit specs/2026-10-10-cli-core/images, {REVIEW}, and {SPEC}.\n"
+        )
+    );
+    assert_eq!(repo.subjects("HEAD").len(), 3);
+}
