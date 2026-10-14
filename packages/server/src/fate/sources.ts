@@ -33,6 +33,7 @@ import {
   type FileRecord,
   sentChanges,
   sentFile,
+  sentStep,
   SESSION_LIST_ID,
   sessionDataView,
   sessionListDataView,
@@ -60,9 +61,11 @@ async function found<T>(
 }
 
 async function workspace(ctx: RepoContext): Promise<WorkspaceRecord> {
+  const read = await ctx.binding.readWorkspace(ctx.repo);
   return {
     id: WORKSPACE_ID,
-    ...(await ctx.binding.readWorkspace(ctx.repo)),
+    ...read,
+    features: read.features.map((feature) => ({ ...feature, step: sentStep(feature.step) })),
     running: await working(ctx),
   };
 }
@@ -120,8 +123,9 @@ function missingFeature(folder: string): FeatureRecord {
 }
 
 /**
- * A feature's branch changes. Changes that cannot be read, git missing or the diff failing, are
- * answered as failed, so the page says so, and logged with the error's first line.
+ * A feature's branch changes. A folder that is no feature's has none. Changes that cannot be read,
+ * git missing or the diff failing, are answered as failed, so the page says so, and logged with
+ * the error's first line.
  */
 async function branchChanges(
   { binding, repo }: RepoContext,
@@ -130,6 +134,9 @@ async function branchChanges(
   try {
     return { changes: sentChanges(await binding.branchChanges(repo, id)), failed: false, id };
   } catch (error) {
+    if (isMissing(error)) {
+      return { changes: null, failed: false, id };
+    }
     const [line] = (error instanceof Error ? error.message : String(error)).split("\n");
     process.stderr.write(`uraeda-server: the changes of ${id} could not be read: ${line}\n`);
     return { changes: null, failed: true, id };

@@ -89,20 +89,22 @@ export function fixtureRepo(name = "repo"): string {
 }
 
 /**
- * Commits files on a branch of a fixture repository, their paths from its top level, and leaves
- * the checkout on `main`.
+ * Commits files on a branch of a fixture repository, their paths from its top level, in a
+ * temporary worktree: the main checkout, its files, and its uncommitted changes are left as they
+ * are, so a watcher of the repository never sees the branch's files there.
  */
 export function commitOnBranch(repo: string, branch: string, files: Record<string, string>) {
-  git(repo, "switch", "--quiet", branch);
+  const worktree = join(temporaryFolder("uraeda-branch"), "worktree");
+  git(repo, "worktree", "add", "--quiet", worktree, branch);
   try {
     for (const [path, text] of Object.entries(files)) {
-      mkdirSync(dirname(join(repo, path)), { recursive: true });
-      writeFileSync(join(repo, path), text);
+      mkdirSync(dirname(join(worktree, path)), { recursive: true });
+      writeFileSync(join(worktree, path), text);
     }
-    git(repo, "add", "--all");
-    git(repo, "commit", "--quiet", "--no-verify", "--message", `work on ${branch}`);
+    git(worktree, "add", "--", ...Object.keys(files));
+    git(worktree, "commit", "--quiet", "--no-verify", "--message", `work on ${branch}`);
   } finally {
-    git(repo, "switch", "--quiet", "main");
+    git(repo, "worktree", "remove", "--force", worktree);
   }
 }
 
@@ -126,7 +128,7 @@ export const ELEVEN: Array<PlanTask> = [
 
 /**
  * Commits `specs/<folder>/plan.md` on the folder's branch, for spec revision 1, with its tasks'
- * steps written `- [x] **Step N: Do**`, and leaves the checkout on `main`. Called again, it
+ * steps written `- [x] **Step N: Do**`, without touching the main checkout. Called again, it
  * commits the plan's new text.
  */
 export function addPlan(
