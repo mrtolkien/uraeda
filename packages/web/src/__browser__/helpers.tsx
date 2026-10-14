@@ -463,8 +463,8 @@ export async function startTurn(text: string, events: Parameters<RepoCommands["a
   await sendMessage(text);
   await commands.agentAccept();
   await commands.agentEmit(events);
-  // The composer's Stop, and the agent section's beside it on a wide screen.
-  await screen.findAllByRole("button", { name: "Stop" }, LIVE);
+  // The composer's Stop.
+  await screen.findByRole("button", { name: "Stop" }, LIVE);
 }
 
 const TYPES: Record<string, string> = {

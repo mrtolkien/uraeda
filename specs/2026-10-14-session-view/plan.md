@@ -818,8 +818,11 @@ git commit -m "feat(session-view): the sidebar by slug, with each feature's prog
 
 - Modify: `packages/web/src/App.tsx` (`SessionRoute`)
 - Modify: `packages/web/src/SessionPage.tsx` (`Header`, `FeatureSession`)
+- Modify: `packages/web/src/Transcript.tsx` (`useOpenAtEnd` no longer reads the entry's `pane`)
 - Test: `packages/web/src/__tests__/session.test.tsx`,
-  `packages/web/src/__tests__/agent-panel.test.tsx`, `packages/web/src/__browser__/session.test.tsx`
+  `packages/web/src/__tests__/agent-panel.test.tsx`,
+  `packages/web/src/__browser__/session.test.tsx`, `packages/web/src/__browser__/layout.test.tsx`,
+  `packages/web/src/__browser__/helpers.tsx`
 
 **Interfaces:**
 
@@ -833,7 +836,7 @@ marker. Behaviour does not change: `vp check && vp test --project uraeda-web` pa
 changed. Commit `packages/web/src/SessionPage.tsx` and any new file alone:
 `refactor(session-view): the chat controls in a hook`.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 In `__tests__/session.test.tsx`, replace "on a wide screen, the session is beside the feature page"
 and "on the phone, the session is a page of its own, with crumbs" with one test over both widths:
@@ -870,12 +873,13 @@ test("US1.8: Open the session replaces the feature page, and Back returns to it"
 });
 
 test("US1.9: Ask the agent opens the session with the quote, and Back returns to the review", async () => {
-  // Arrange and act as review.test.tsx's Ask the agent test, on lines 12–14 of spec.md.
+  // The fixture's recurring-tasks spec, its paragraph on lines 26–29 tapped, then Ask the agent.
   await screen.findByRole("log", { name: "Conversation" });
-  expect(composerText()).toContain("lines 12–14");
+  await waitFor(() => expect(composerText()).toContain(`spec.md, lines 26–29:`));
   await act(async () => window.history.back());
 
-  expect(await screen.findByRole("button", { name: "Approve" })).toBeTruthy();
+  // With the agent available, Approve reads "Approve and start the agent".
+  expect(await screen.findByRole("button", { name: "Approve and start the agent" })).toBeTruthy();
 });
 ```
 
@@ -883,7 +887,7 @@ test("US1.9: Ask the agent opens the session with the quote, and Back returns to
 test helpers if they read it inline. Keep "an old run's address opens the session at that turn"
 (US1.10) as it is. Drop the `atWidth(402)` workarounds at lines 156–157 and 173: a wide screen no
 longer shows the feature page's Stop. Move `agent-panel.test.tsx`'s two tests at lines 282 and 307
-to read the panel on `/f/<folder>`, its own page.
+to read the panel on `/f/<folder>`, its own page, opened from the session's crumbs.
 
 In `__browser__/session.test.tsx`:
 
@@ -892,31 +896,39 @@ In `__browser__/session.test.tsx`:
   own, following its end (US1)", expecting no "Files" list at either size;
 - the Close part goes;
 - add one case, opening the session from a task view's entry, which still opens at its end
-  ([review focus 6](#review-focus)).
+  ([review focus 6](#review-focus)): on a wide screen, from the task view's pane, through the
+  sidebar's sub-agent row.
 
-- [ ] **Step 3: Run them to check they fail**
+In `__browser__/layout.test.tsx`, the feature page's agent section is checked at both sizes, no
+longer only on the phone, and `startTurn` in `__browser__/helpers.tsx` waits for the one Stop.
+
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/session.test.tsx`
-- Expected: FAIL, US1.1 at 1440 with `Unable to find role "heading" with level 1`.
+- Expected: FAIL, US1.1 at 1440 on the crumbs' link (the feature page beside the pane has its own
+  level-1 heading), and US1.8 with the "Files" list still shown.
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 - **The route.** `SessionRoute` returns `<SessionPage folder={folder} />` alone, without
   `useListPosition`.
 - **The page.** The heading is level 1 at every width, and `FeatureSession` passes its crumbs at
   every width. Remove the comments about the pane beside the feature page.
+- **Opening at the end.** `useOpenAtEnd` skips only on a saved `scroll` or a `#turn-` address: a
+  session is never in a pane, so the entry's `pane` is not its own.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run: `vp check && vp test`
 - Expected: PASS, the browser project included.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add packages/web/src/App.tsx packages/web/src/SessionPage.tsx \
+git add packages/web/src/App.tsx packages/web/src/SessionPage.tsx packages/web/src/Transcript.tsx \
   packages/web/src/__tests__/session.test.tsx packages/web/src/__tests__/agent-panel.test.tsx \
-  packages/web/src/__browser__/session.test.tsx
+  packages/web/src/__browser__/session.test.tsx packages/web/src/__browser__/layout.test.tsx \
+  packages/web/src/__browser__/helpers.tsx
 git commit -m "feat(session-view): the session's own page at every width"
 ```
 
