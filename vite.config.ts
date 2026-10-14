@@ -112,8 +112,12 @@ const testEnv = [
   "MINI_TEST",
 ];
 
-/** A test ignores the host's git configuration: the tests' repositories get git's defaults. */
-const isolatedGit = "GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1";
+/**
+ * A test ignores the host's git: its configuration, so the tests' repositories get git's defaults,
+ * and the repository variables a git hook exports, which `--no-cache` and uncached tasks pass on.
+ */
+const isolatedGit =
+  "env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_COMMON_DIR GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1";
 
 /** What the Rust crates are built from: the skill is compiled into the core. */
 const rustSources = [

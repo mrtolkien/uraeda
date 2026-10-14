@@ -110,3 +110,17 @@ test("without a checkout, no .env is read", () => {
     process.chdir(previous);
   }
 });
+
+/** US1.3 of the testing review: the web configs' tests read the environment only. */
+test("without .env, the settings come from the environment only", () => {
+  const dir = root("URAEDA_DATA_DIR=/tmp/elsewhere\nURAEDA_PORT=9999\nURAEDA_REPO=../todo\n");
+
+  expect(loadEnv(dir, {}, { file: false })).toEqual({
+    allowedHosts: [],
+    given: false,
+    port: 4310,
+    repo: dir,
+  });
+  expect(loadEnv(dir, { URAEDA_PORT: "5000" }, { file: false }).port).toBe(5000);
+  expect(loadDataDir(dir, core, {}, { file: false })).toBe(dataDir());
+});

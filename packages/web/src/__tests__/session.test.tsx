@@ -53,11 +53,16 @@ async function send(text: string) {
   await click(await screen.findByRole("button", { name: "Send" }));
 }
 
-/** Sends a message to a feature's session that the agent reads, and leaves its turn going. */
+/**
+ * Sends a message to a feature's session that the agent reads, and leaves its turn going. The
+ * session's own view replaces the empty one, with a composer of its own, once the send answers:
+ * the message in its transcript says it is drawn, so the test's next typing reaches its composer.
+ */
 async function openTurn(fake: Fake, text = "Why did you recommend A in Q6?") {
   await send(text);
   await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
   fake.adapter.emit({ id: fake.adapter.sent[0].id, type: "accepted" });
+  await waitFor(() => expect(log().getByText(text)).toBeTruthy());
 }
 
 test("US1.1: a message shows under its opening line, and the reply below it", async () => {
@@ -580,17 +585,21 @@ async function dropImages(files: Array<File>) {
 /** Astryx's spinner, named "Loading", over a thumbnail being saved. */
 const SPINNER = '[role="status"][aria-label]';
 
-/** The thumbnails' remove buttons, once every image is saved. */
-async function thumbnails(count: number) {
-  await waitFor(() => {
-    expect(screen.getAllByRole("button", { name: /^Remove / })).toHaveLength(count);
+/**
+ * The thumbnails' remove buttons, once every image is saved: those the wait saw, as a page that
+ * suspends while it reads hides them until it draws again.
+ */
+function thumbnails(count: number) {
+  return waitFor(() => {
+    const buttons = screen.getAllByRole("button", { name: /^Remove / });
+    expect(buttons).toHaveLength(count);
     expect(screen.queryByText(/^Adding /, { ignore: "[data-astryx-live-region] *" })).toBeNull();
     // No thumbnail's spinner: each image is saved.
-    for (const remove of screen.getAllByRole("button", { name: /^Remove / })) {
+    for (const remove of buttons) {
       expect(remove.closest('[role="group"]')?.querySelector(SPINNER)).toBeNull();
     }
+    return buttons;
   });
-  return screen.getAllByRole("button", { name: /^Remove / });
 }
 
 /**
@@ -873,7 +882,8 @@ test("a hand-over sends the workflow's message alone, and keeps the draft's imag
 
   await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
   expect(fake.adapter.sent[0].images).toHaveLength(0);
-  // The page draws the session its message created, with the draft it kept.
+  // The page draws the session its message created, with the draft it kept, at its own address.
+  await waitFor(() => expect(window.location.search).toBe(""));
   await refreshUntil(() =>
     expect(screen.getAllByRole("button", { name: /^Remove / })).toHaveLength(1),
   );

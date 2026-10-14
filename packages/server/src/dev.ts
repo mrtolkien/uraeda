@@ -4,7 +4,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { getRequestListener } from "@hono/node-server";
 import { chatImages } from "./attach.ts";
 import { checkBinding, loadBinding } from "./binding.ts";
-import { type Env, loadDataDir, loadEnv } from "./env.ts";
+import { type Env, loadDataDir, loadEnv, type Sources } from "./env.ts";
 import type { Adapter } from "./runner/adapter.ts";
 import { layout } from "./paths.ts";
 import { ClaudeAdapter } from "./runner/claude.ts";
@@ -67,18 +67,21 @@ export async function reloadRepositories(): Promise<void> {
 /**
  * A Connect middleware serving the server's routes, on the server `startServer` starts with the
  * first request to its port, in the repository of the settings read then, on Claude Code unless
- * `adapter` says otherwise. A start that fails answers 500 with its reason, and the next request
- * tries again.
+ * `adapter` says otherwise, from `.env` too unless `file` is false. A start that fails answers 500
+ * with its reason, and the next request tries again.
  */
-export function devHandler(root: string | null, { adapter }: { adapter?: Adapter } = {}) {
-  const env = loadEnv(root);
+export function devHandler(
+  root: string | null,
+  { adapter, ...sources }: { adapter?: Adapter } & Sources = {},
+) {
+  const env = loadEnv(root, process.env, sources);
   const start = async (port: number): Promise<Started> => {
     const binding = await loadBinding();
-    const dataDir = loadDataDir(root, binding);
+    const dataDir = loadDataDir(root, binding, process.env, sources);
     // Read with the first request, as the data folder is: the browser tests' setup sets them after
     // Vite's server is made.
     const server = await startServer({
-      ...loadEnv(root),
+      ...loadEnv(root, process.env, sources),
       adapter:
         adapter ??
         new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: layout().plugin }),
