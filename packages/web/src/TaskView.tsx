@@ -245,7 +245,13 @@ export function TaskView({ entryKey }: { entryKey: string }) {
           {section.title} · {index + 1} of {entries.length}
         </Text>
         <div {...stylex.props(styles.line)}>
-          <EditableLine display={text} label="Line" onSave={rename} value={entry.text} />
+          <EditableLine
+            display={text}
+            field={`priorities#${entry.key}`}
+            label="Line"
+            onSave={rename}
+            value={entry.text}
+          />
         </div>
         <SegmentedControl
           label="Section"

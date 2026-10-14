@@ -889,15 +889,21 @@ git commit -m "feat(text-inputs): the editor saves with its button"
 
 **Files:**
 
+- Create: `packages/web/src/useLineSave.ts`
 - Modify: `packages/web/src/EditableLine.tsx` (split first), `PrioritiesPage.tsx`, `TaskView.tsx`,
-  `SessionPage.tsx` (their keys), `QuickAdd.tsx`
-- Test: `packages/web/src/__tests__/priorities.test.tsx`, `__tests__/task.test.tsx`
+  `SessionPage.tsx` (their keys), `QuickAdd.tsx`, `SlugField.tsx` (Escape asks),
+  `fields/Confirm.tsx` (`DISCARD_CHANGES`)
+- Test: `packages/web/src/__tests__/priorities.test.tsx`, `__tests__/task.test.tsx` (one test
+  confirms its Escape, R23)
 
 **Interfaces:**
 
 - Produces: `EditableLine` takes `field: string`, its unsaved key: `priorities#<entry key>` for a
   line, `priorities#add:<section>` for an add row, `session#<id>:title` for a chat title; `QuickAdd`
-  uses `quick-add` and `TextField kind="line"`.
+  uses `quick-add` and `TextField kind="line"`, with a Cancel button, its overlay closed keeping the
+  text (R25). `useLineSave({ field, onSave, stayOpen, value })` holds the line's text in the store
+  (R24). `DISCARD_CHANGES` in `fields/Confirm.tsx`: "Discard your changes?", "The text you typed is
+  deleted.", "Keep editing", "Discard" (R2), also asked by Escape on a changed slug.
 
 - [x] **Step 1: Split `EditableLine` before it changes**: the save in a hook, removing its marker.
 
@@ -909,26 +915,29 @@ git add packages/web/src/EditableLine.tsx packages/web/src/useLineSave.ts
 git commit -m "refactor(text-inputs): a line's save in a hook"
 ```
 
-- [ ] **Step 2: Write the failing tests**: US2 5, 6, and 7 with "Run the web UI with npx" and ", and
+- [x] **Step 2: Write the failing tests**: US2 5, 6, and 7 with "Run the web UI with npx" and ", and
       a version check"; Save and Cancel buttons; quick add's text kept after the overlay is closed
-      with "Keep editing", restored after a remount. The break: a blur still saving (US2 5).
+      with "Keep editing", restored after a remount. The break: a blur still saving (US2 5). Also:
+      Enter during a composition, an Add row left and cancelled, a line restored after a remount,
+      and Escape on a changed slug.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web priorities task`
-- Expected: FAIL, `expected PRIORITIES.md to be unchanged`
+- Expected: FAIL: for US2 5, `expected [ Array(1) ] to deeply equal []`, the line's edit sent on
+  blur, PRIORITIES.md about to change; the others on the Save and Cancel buttons and the dialog
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run: `vp check && vp test --project uraeda-web`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add packages/web
+git add packages/web specs/2026-10-14-text-inputs
 git commit -m "feat(text-inputs): lines save with Enter or Save, never on blur"
 ```
 

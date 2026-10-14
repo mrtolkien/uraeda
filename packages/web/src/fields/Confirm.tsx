@@ -8,6 +8,14 @@ import { afterOverlayCloses, Overlay } from "../layout/Overlay.tsx";
 /** What a confirmation asks: its title, its body, and its two buttons. */
 export type ConfirmOptions = { body: string; cancel: string; confirm: string; title: string };
 
+/** What Escape or Cancel asks on a changed line, quick add, or slug: fields that are not comments. */
+export const DISCARD_CHANGES: ConfirmOptions = {
+  body: "The text you typed is deleted.",
+  cancel: "Keep editing",
+  confirm: "Discard",
+  title: "Discard your changes?",
+};
+
 type Ask = (options: ConfirmOptions) => Promise<boolean>;
 
 /** Outside a host, nothing asks, and nothing is confirmed. */

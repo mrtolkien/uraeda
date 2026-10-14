@@ -372,3 +372,50 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `adopt` in [`useEditorImages.ts`](/packages/web/src/attach/useEditorImages.ts), and `save` in
   [`useSave.ts`](/packages/web/src/useSave.ts).
 - **Where**: task 8.
+
+## R23: Escape on a changed line confirms in the task view's test
+
+- **Decision**: in [`task.test.tsx`](/packages/web/src/__tests__/task.test.tsx), "Escape keeps the
+  text, and an empty line is refused" answers "Discard" to "Discard your changes?" after its Escape,
+  then checks the same: the line closed, its text as before, the file unchanged.
+- **Rationale**: US2 7 and R2 make Escape on a changed line ask first; the test typed "Something
+  else", then pressed Escape, which closed the line at once. What it checks stays.
+- **Alternatives considered**: deleting it, since the US2 7 tests cover Escape; it also covers the
+  empty line refused, which they do not.
+- **If wrong**: one line in the test.
+- **Where**: task 9.
+
+## R24: How a line edited in place behaves
+
+- **Decision**: `useLineSave(field, onSave, stayOpen, value)` holds the line's text in the unsaved
+  store; a line whose key holds unsaved text opens as it is drawn, with the restore notice, whose
+  sentence for a line changed since is "The line changed since: saving replaces it.", and whose
+  Discard closes the line. Save is disabled while the text is unchanged, with "Unsaved changes"
+  beside it, and Enter or Save on an unchanged line closes it, as before. A line's status is
+  `SaveStatus`, "saving…" or "saved ✓", which replaces "Saving…" and "Saved"; an error stays under
+  the field, as before. "Enter saves · Escape cancels" shows on wide screens only, as the mockup
+  draws it. An empty Add row no longer closes when left: leaving a field does nothing, and its
+  Cancel closes it without asking.
+- **Rationale**: the spec names neither a line's notice sentence nor its status texts; the
+  [UI behaviour](../decisions/ui-behaviour.md) decision asks every field's status to say saving or
+  saved, as the other fields do, and leaving a field to keep it open. A line holding unsaved text
+  that opened closed would hide it until tapped.
+- **Alternatives considered**: keeping "Saved"; closing an empty Add row on blur, which the decision
+  does not tell apart from a field with text.
+- **If wrong**: [`EditableLine.tsx`](/packages/web/src/EditableLine.tsx) and
+  [`useLineSave.ts`](/packages/web/src/useLineSave.ts).
+- **Where**: task 9.
+
+## R25: Quick add keeps its text as its overlay closes
+
+- **Decision**: quick add's text is the store's `quick-add`. Its overlay gets a Cancel button beside
+  Add, which asks "Discard your changes?" when it holds text; closing the overlay with Close, Back,
+  or Escape keeps the text unsaved, without asking, and ＋ opens it again with the text and the
+  restore notice, as R10 and R19 do for comment sheets. Ctrl+Enter or Cmd+Enter adds, as Add.
+- **Rationale**: R2 asks Cancel or Escape on changed quick add text to confirm; Escape in the
+  overlay closes it, as it closes every sheet and dialog, and closing loses nothing, so it does not
+  ask, as R10 and R19 decided for the other sheets. The overlay had no Cancel, only its Close.
+- **Alternatives considered**: Escape in the field asking first, which would make Escape behave
+  differently in this overlay than in every other one.
+- **If wrong**: [`QuickAdd.tsx`](/packages/web/src/QuickAdd.tsx)'s `AddForm`.
+- **Where**: task 9.

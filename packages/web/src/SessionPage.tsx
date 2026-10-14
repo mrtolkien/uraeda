@@ -58,6 +58,8 @@ export function SessionStatus({ label, status }: { label: string; status: Status
 /** A chat's title, renamed in place, and Archive, which hides it under "Archived" in the sidebar. */
 type ChatControls = {
   archived: boolean;
+  /** The title's key in the unsaved store. */
+  field: string;
   onArchive: () => Promise<void>;
   onRename: (title: string) => Promise<string | undefined>;
 };
@@ -84,7 +86,11 @@ function Header({
     <VStack gap={1}>
       {/* Beside the feature page on wide screens, whose title is the page's heading. */}
       <Heading level={wide ? 2 : 1}>
-        {chat ? <EditableLine label="Title" onSave={chat.onRename} value={title} /> : title}
+        {chat ? (
+          <EditableLine field={chat.field} label="Title" onSave={chat.onRename} value={title} />
+        ) : (
+          title
+        )}
       </Heading>
       <HStack align="center" gap={2} wrap="wrap">
         {status && <SessionStatus label={status.label} status={status.status} />}
@@ -165,6 +171,7 @@ function useSessionActions(
     session?.folder === null
       ? {
           archived: session.archived,
+          field: `session#${id}:title`,
           onArchive: async () => {
             setError(undefined);
             const result = await fate.mutations.session.archive({
