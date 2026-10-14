@@ -31,12 +31,18 @@ in the way.]
 
 ### Important reads
 
-- [File or folder](/path): [what it showed]
+- [File or folder](/path): [what it showed, and what is in the way: a function or file over the
+  project's limits, a responsibility tangled with another]
 
 ### The proposal's path and existing actions
 
 - [Each step of the proposal's user path, and each existing action that meets the feature (undo,
   delete, uncheck, edit, empty fields): what happens today, and what changes with the feature]
+
+### Rules and their owners
+
+- [Optional, when the feature touches a rule of the code: each rule, the code that owns it, with a
+  link, and every place that copies it]
 
 ### Likely changes
 

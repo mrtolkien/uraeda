@@ -202,6 +202,8 @@ within that range, and what the code has today.]
 
 ### The proposal's path and existing actions
 
+### Rules and their owners
+
 ### Likely changes
 
 ## The proposal
@@ -223,9 +225,10 @@ What goes in each section:
 - **How other products do it**: one section per product, each fact with its source. Then **What they
   have in common**: the capabilities users may expect, whether or not the proposal mentions them.
 - **Standards and libraries**: what matters for this feature, and the pitfalls, with versions.
-- **The code**: the important reads, each with what it showed; the proposal's path and the existing
-  actions that meet the feature; the overlaps with other features in flight; and the likely changes,
-  each with the options it depends on.
+- **The code**: the important reads, each with what it showed and what is in the way; the proposal's
+  path and the existing actions that meet the feature; the overlaps with other features in flight;
+  each rule the feature touches, with the code that owns it and every copy, when it touches one; and
+  the likely changes, each with the options it depends on.
 - **The proposal**: one section per constraint that cannot be met as written, ambiguity, or gap.
 - **Approaches**: one section per topic the feature has to settle. Each says what the topic is about
   in one sentence, links to the knowledge above it relies on, and compares its options against the

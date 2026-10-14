@@ -112,8 +112,8 @@ model.
   longer breaks its limit fails the checks: clippy's `-D warnings` on an unfulfilled `expect`, a
   report of unused disable directives as errors. The numbers can only go down.
 - **A limit no linter has**, like the length of a Rust file, is a small structural test with a list
-  of today's offenders. It fails on a new one, and on a listed one now under the limit, saying how
-  to fix each.
+  of today's offenders and their lengths. It fails on a new one, on a listed one that grew, and on a
+  listed one now under the limit, saying how to fix each.
 - **A project that wants no limits** gets the decision anyway: it says so, with a date in its
   **Revisit when**. Discovery does not ask again before that date.
 

@@ -245,6 +245,10 @@ test("a weekly task completed on its due date moves a week later", async () => {
 });
 ```
 
+The break each test catches:
+
+- On its due date: a completion that marks the task done instead of moving it.
+
 - [ ] **Step 2: Run them to check they fail**
 
 - Run: `npx vitest run tests/exact/path/to/feature.test.ts`

@@ -104,7 +104,8 @@ dedicated settings screen to be usable.
 
 - [Task store](/src/store/tasks.ts): tasks are `{ id, title, done, dueDate }`, with `dueDate` a
   timestamp at local midnight. `createTask` and `completeTask` each open their own IndexedDB
-  transaction.
+  transaction. `updateTask` is over the 80-line limit of
+  [code quality](../decisions/code-quality.md), marked: a task that changes it splits it first.
 - [Store upgrades](/src/store/upgrades.ts): the database is at version 1, with no upgrade yet.
 - [Edit panel](/src/components/EditPanel.tsx): title and due date fields, built with the project's
   [`Select`](/src/components/Select.tsx) and date input. `Select` is a menu: one click to open it,
@@ -129,6 +130,14 @@ dedicated settings screen to be usable.
 - **Deleting a repeating task**: today it deletes that task only. Whether the repetition stops
   depends on how occurrences are stored.
 - **Editing the title or due date of one occurrence**: today it edits that task only.
+
+### Rules and their owners
+
+- **A due date is local midnight**: [`createTask` and `updateTask`](/src/store/tasks.ts) write it.
+  [`TaskRow`](/src/components/TaskRow.tsx) and [`EditPanel`](/src/components/EditPanel.tsx) each
+  turn it back into a `Date` to show it, a copy of the same rule.
+- **Completing a task marks it done**: [`completeTask`](/src/store/tasks.ts) alone, which the task
+  row's checkbox calls.
 
 ### Likely changes
 
