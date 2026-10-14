@@ -80,8 +80,8 @@ test("a round's comments are 7 rows and its notes 12, empty or full (US6 1, 2, 4
   await checkRows((await screen.findAllByLabelText("Comment text"))[0] as HTMLTextAreaElement, 7);
 });
 
-// The "Unsaved changes" status shows at the first letter typed, and on the phone wraps under the
-// field's buttons: the content further down is measured from then (R28).
+// The "Unsaved changes" status shows at the first letter typed: its line is kept for it, so the
+// content further down, the next question, stays where it was with the field empty (R28).
 test("the content below a comment does not move as 12 lines are typed (US6 3)", async () => {
   await show(ROUND, QUESTION);
   const field = questionComment();
@@ -89,12 +89,14 @@ test("the content below a comment does not move as 12 lines are typed (US6 3)", 
   const below = document.getElementById("Q2")!;
   const from = (element: Element) =>
     element.getBoundingClientRect().top - field.getBoundingClientRect().top;
-  const empty = { height: field.clientHeight, save: from(save) };
+  const empty = { below: from(below), height: field.clientHeight, save: from(save) };
 
   await userEvent.click(field);
-  await userEvent.keyboard("Line 1{Enter}");
+  await userEvent.keyboard("L");
   await drawn();
-  const typed = from(below);
+  expect(screen.getByText("Unsaved changes")).toBeTruthy();
+  expect(from(below)).toBe(empty.below);
+  await userEvent.keyboard("ine 1{Enter}");
   for (const line of lines(12).split("\n").slice(1)) {
     await userEvent.keyboard(`${line}{Enter}`);
   }
@@ -102,8 +104,7 @@ test("the content below a comment does not move as 12 lines are typed (US6 3)", 
 
   expect(field.value.split("\n")).toHaveLength(13);
   expect(field.scrollHeight).toBeGreaterThan(field.clientHeight);
-  expect({ height: field.clientHeight, save: from(save) }).toEqual(empty);
-  expect(from(below)).toBe(typed);
+  expect({ below: from(below), height: field.clientHeight, save: from(save) }).toEqual(empty);
 });
 
 test("a review's comment and its summary are 7 rows, empty or full (US6 1, 2)", async () => {
