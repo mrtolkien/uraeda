@@ -265,7 +265,8 @@ mod tests {
     fn code_blocks_in_the_notes_are_kept_as_written() {
         let round = "## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n";
         let code = "See:\n\n```\n## Not a heading\n- **A point**: not a comment\n```\n\nAfter.";
-        let rows: [Written; 5] = [
+        let fenced = "```sh\n# a shell comment\n```\n\nAfter.";
+        let rows: [Written; 7] = [
             // Code in the free notes, a heading and a bullet in it, with no comment.
             (code, &[], code, &[]),
             // Code in the free notes, then a comment.
@@ -297,6 +298,14 @@ mod tests {
             ),
             // An unclosed fence with no comment after it stays as written.
             ("See:\n\n```\ncode", &[], "See:\n\n```\ncode", &[]),
+            // Notes starting with a code block, which starts on the line after the marker.
+            (fenced, &[], fenced, &[]),
+            (
+                fenced,
+                &[("A point", "Keep it.")],
+                fenced,
+                &[("A point", "Keep it.")],
+            ),
         ];
         for (free, comments, read_free, read_comments) in rows {
             let written = set_notes(round, free, &owned(comments)).unwrap();
