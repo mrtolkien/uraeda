@@ -511,7 +511,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: a question's comment, the notes, and the editor show "Ctrl+Enter saves" after their
   status, on wide screens only, through `fields/SaveKeys.tsx`, as a line shows "Enter saves · Escape
-  cancels" (R24). Comment forms, whose Ctrl+Enter is not wired, show none.
+  cancels" (R24). Comment forms show none, as the mockup's section 2 draws none, though Ctrl+Enter
+  or Cmd+Enter sends their comment as their button does, since the final review.
 - **Rationale**: the screenshots lacked the hint the mockup's sections 1 and 6 draw beside "Save
   comment" and the editor's Save; the phone's sections draw none, and a phone has no such key.
 - **Alternatives considered**: "Cmd+Enter" on a Mac, which the mockup does not draw, and both keys

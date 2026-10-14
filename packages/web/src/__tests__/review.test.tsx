@@ -1007,6 +1007,26 @@ test("a comment refused as it is added comes back in its form, with the error", 
   expect(existsSync(join(r, WORKTREE, REVIEW))).toBe(false);
 });
 
+/** The spec's Ctrl+Enter, which saves every multi-line field: not while the comment is empty. */
+test("Ctrl+Enter in a review comment adds it, and does nothing while it is empty", async () => {
+  const r = longSpec();
+  await renderPage(PAGE, r);
+  await click(await scenario(LINE_40));
+  const field = await screen.findByLabelText("Comment text");
+  const ctrlEnter = () =>
+    act(async () => {
+      fireEvent.keyDown(field, { ctrlKey: true, key: "Enter" });
+    });
+  await ctrlEnter();
+  expect(existsSync(join(r, WORKTREE, REVIEW))).toBe(false);
+  await typeComment("Too vague");
+
+  await ctrlEnter();
+
+  await saved("C1 · line 40", "Too vague");
+  expect(read(r, REVIEW)).toContain("\nToo vague\n");
+});
+
 /** US5 7: Cancel on a comment typed asks first. */
 test("Cancel on a review comment typed asks first (US5 7)", async () => {
   await renderPage(PAGE, longSpec());

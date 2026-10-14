@@ -1,7 +1,7 @@
 // US4: comments on the points a round settled without the human, written at the end of its notes.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
 import { atWidth, click, fixture, fixtureRepo, git, renderPage, today, type } from "./helpers.tsx";
@@ -127,6 +127,23 @@ test("a comment edited is saved with Save comment", async () => {
   await waitFor(() => expect(notesOnDisk(repo)).toBe(`- **${UNDO}**: Keep the undo.`));
   await waitFor(() => expect(screen.queryByLabelText("Comment text")).toBeNull());
   await waitFor(() => expect(within(commentsOn(UNDO)[0]).getByText("Keep the undo.")).toBeTruthy());
+});
+
+/** The spec's Ctrl+Enter, or Cmd+Enter, which saves every multi-line field. */
+test.each([
+  ["Ctrl", { ctrlKey: true }],
+  ["Cmd", { metaKey: true }],
+])("%s+Enter in a settled point's comment adds it", async (_, keys) => {
+  const repo = round({});
+  await renderPage(PAGE, repo);
+  await click(await point(UNDO));
+  await type(commentField(), COMMENT);
+
+  await act(async () => {
+    fireEvent.keyDown(commentField(), { ...keys, key: "Enter" });
+  });
+
+  await waitFor(() => expect(notesOnDisk(repo)).toBe(`- **${UNDO}**: ${COMMENT}`));
 });
 
 /** US4 5 */
