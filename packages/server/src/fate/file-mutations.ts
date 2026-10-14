@@ -203,7 +203,13 @@ export const fileMutations = {
       ctx,
       input,
       select,
-    }: Resolver<{ folder: string; number: number; previous: string; text: string }>) => {
+    }: Resolver<{
+      folder: string;
+      number: number;
+      previous: string;
+      subject: string;
+      text: string;
+    }>) => {
       await writable(ctx, input);
       return file(
         ctx,
@@ -212,6 +218,7 @@ export const fileMutations = {
             ctx.repo,
             input.folder,
             input.number,
+            input.subject,
             input.text,
             input.previous,
           ),
@@ -226,12 +233,18 @@ export const fileMutations = {
       ctx,
       input,
       select,
-    }: Resolver<{ folder: string; number: number; previous: string }>) => {
+    }: Resolver<{ folder: string; number: number; previous: string; subject: string }>) => {
       await writable(ctx, input);
       return file(
         ctx,
         await refusable(() =>
-          ctx.binding.removeSettledComment(ctx.repo, input.folder, input.number, input.previous),
+          ctx.binding.removeSettledComment(
+            ctx.repo,
+            input.folder,
+            input.number,
+            input.subject,
+            input.previous,
+          ),
         ),
         select,
       );

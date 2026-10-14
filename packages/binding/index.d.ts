@@ -64,8 +64,8 @@ export declare function editComment(repo: string, folder: string, file: string, 
 /** Replaces a priority line's text. */
 export declare function editPriority(repo: string, id: string, text: string, previous: string): Promise<Priorities>
 
-/** Writes comment `number` on a settled point over its text last read. */
-export declare function editSettledComment(repo: string, folder: string, number: number, text: string, previous: string): Promise<FileView>
+/** Writes comment `number` on the settled point `subject` over its text last read. */
+export declare function editSettledComment(repo: string, folder: string, number: number, subject: string, text: string, previous: string): Promise<FileView>
 
 /**
  * An image checked and re-encoded by the core, for a chat message. Declared here, not in the core,
@@ -150,8 +150,8 @@ export declare function removePriority(repo: string, id: string, previous: strin
 /** Takes a repository off the list, leaving its folder and sessions as they are. */
 export declare function removeRepository(dataDir: string, name: string): Promise<void>
 
-/** Removes comment `number` on a settled point, over its text last read. */
-export declare function removeSettledComment(repo: string, folder: string, number: number, previous: string): Promise<FileView>
+/** Removes comment `number` on the settled point `subject`, over its text last read. */
+export declare function removeSettledComment(repo: string, folder: string, number: number, subject: string, previous: string): Promise<FileView>
 
 /** Requests changes on a spec, a plan, or an assessment, and commits it. */
 export declare function requestChanges(repo: string, folder: string, file: string, summary?: string | undefined | null): Promise<FileView>

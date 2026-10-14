@@ -863,6 +863,100 @@ test("Submit adds no comment for a settled point's form left blank", async () =>
   expect(committed.trimEnd()).toMatch(/\*\*Notes:\*\*\n\n- \*\*An answer is written\*\*: Clear\.$/);
 });
 
+/** A round answered, whose notes hold a comment on each settled point. */
+function withTwoComments() {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  const path = join(repo, ".worktrees", FOLDER, ROUND);
+  writeFileSync(
+    path,
+    readFileSync(path, "utf8").replace(
+      /\*\*Notes:\*\*\n?$/,
+      `**Notes:**\n\n- **${COMMITS}**: Undo comment.\n- **${WRITTEN}**: Delete comment.\n`,
+    ),
+  );
+  return { path, repo };
+}
+
+/** A settled point's comment shown, by its subject. */
+const settledComment = (subject: string) =>
+  screen.getByRole("group", { name: `Your comment on "${subject}"` });
+
+/** Edits a settled point's comment, then taps the other point: the edit stays unsaved. */
+async function editThenLeave(subject: string, text: string, other: string) {
+  await tap(
+    within(await waitFor(() => settledComment(subject))).getByRole("button", { name: "Edit" }),
+  );
+  await type(settledField(), text);
+  await tap(await settledPoint(other));
+}
+
+/** The round's notes as committed by Submit. */
+async function submittedNotes(repo: string) {
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+  await waitFor(() => expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(SUBMITTED));
+  const committed = git(repo, "show", `${FOLDER}:${ROUND}`);
+  return committed.slice(committed.indexOf("**Notes:**")).trimEnd();
+}
+
+/** Final review: an edit of a comment removed goes with it, never into the comment renumbered. */
+test("Submit does not write the edit of a comment removed into the next one", async () => {
+  const { repo } = withTwoComments();
+  await renderPage(PAGE, repo);
+  await editThenLeave(COMMITS, "Edited undo comment.", WRITTEN);
+
+  await tap(within(settledComment(COMMITS)).getByRole("button", { name: "Remove" }));
+  await waitFor(() =>
+    expect(screen.queryByRole("group", { name: `Your comment on "${COMMITS}"` })).toBeNull(),
+  );
+
+  expect(await submittedNotes(repo)).toBe(`**Notes:**\n\n- **${WRITTEN}**: Delete comment.`);
+});
+
+/** Final review: an edit pending on a later comment follows it as a removal renumbers it. */
+test("Submit writes the edit of a comment renumbered by a removal into that comment", async () => {
+  const { repo } = withTwoComments();
+  await renderPage(PAGE, repo);
+  await editThenLeave(WRITTEN, "Edited delete comment.", COMMITS);
+
+  await tap(within(settledComment(COMMITS)).getByRole("button", { name: "Remove" }));
+  await waitFor(() =>
+    expect(screen.queryByRole("group", { name: `Your comment on "${COMMITS}"` })).toBeNull(),
+  );
+
+  expect(await submittedNotes(repo)).toBe(`**Notes:**\n\n- **${WRITTEN}**: Edited delete comment.`);
+});
+
+/** Final review: a comment removed elsewhere renumbers the others: its edit is not written. */
+test("Submit does not write an edit into another comment after a removal made elsewhere", async () => {
+  const { path, repo } = withTwoComments();
+  await renderPage(PAGE, repo);
+  await editThenLeave(COMMITS, "Edited undo comment.", WRITTEN);
+
+  writeFileSync(path, readFileSync(path, "utf8").replace(`- **${COMMITS}**: Undo comment.\n`, ""));
+  await refreshUntil(() =>
+    expect(screen.queryByRole("group", { name: `Your comment on "${COMMITS}"` })).toBeNull(),
+  );
+
+  expect(await submittedNotes(repo)).toBe(`**Notes:**\n\n- **${WRITTEN}**: Delete comment.`);
+});
+
+/** Final review: an edit kept for a comment changed elsewhere since is not written over it. */
+test("Submit stops at the edit of a comment changed elsewhere since it began", async () => {
+  const { path, repo } = withTwoComments();
+  await renderPage(PAGE, repo);
+  await editThenLeave(COMMITS, "Edited undo comment.", WRITTEN);
+
+  writeFileSync(path, readFileSync(path, "utf8").replace("Undo comment.", "Theirs."));
+  await refreshUntil(() =>
+    expect(within(settledComment(COMMITS)).getByText("Theirs.")).toBeTruthy(),
+  );
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+
+  expect(await screen.findByText(/Some answers were not saved/)).toBeTruthy();
+  expect(readFileSync(path, "utf8")).toContain(`- **${COMMITS}**: Theirs.`);
+  expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).not.toBe(SUBMITTED);
+});
+
 /** US5 1, on a question's comment */
 test("a question's comment typed is restored after a reload", async () => {
   const repo = answered({});

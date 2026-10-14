@@ -53,27 +53,38 @@ pub fn add_settled_comment(
     job(move || api::add_settled_comment(Path::new(&repo), &folder, &subject, &text))
 }
 
-/// Writes comment `number` on a settled point over its text last read.
+/// Writes comment `number` on the settled point `subject` over its text last read.
 #[napi(ts_return_type = "Promise<FileView>")]
 pub fn edit_settled_comment(
     repo: String,
     folder: String,
     number: u32,
+    subject: String,
     text: String,
     previous: String,
 ) -> AsyncTask<Job<FileView>> {
-    job(move || api::edit_settled_comment(Path::new(&repo), &folder, number, &text, &previous))
+    job(move || {
+        api::edit_settled_comment(
+            Path::new(&repo),
+            &folder,
+            number,
+            &subject,
+            &text,
+            &previous,
+        )
+    })
 }
 
-/// Removes comment `number` on a settled point, over its text last read.
+/// Removes comment `number` on the settled point `subject`, over its text last read.
 #[napi(ts_return_type = "Promise<FileView>")]
 pub fn remove_settled_comment(
     repo: String,
     folder: String,
     number: u32,
+    subject: String,
     previous: String,
 ) -> AsyncTask<Job<FileView>> {
-    job(move || api::remove_settled_comment(Path::new(&repo), &folder, number, &previous))
+    job(move || api::remove_settled_comment(Path::new(&repo), &folder, number, &subject, &previous))
 }
 
 /// Submits the latest round of questions, and commits it; refused when `name`, the round

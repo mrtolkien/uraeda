@@ -51,30 +51,32 @@ pub fn add_settled_comment(
     file_view(&git, &feature, &round_name(&feature)?, Some(written.text))
 }
 
-/// Writes comment `number` on a settled point over its text last read.
+/// Writes comment `number` on the settled point `subject` over its text last read.
 pub fn edit_settled_comment(
     repo: &Path,
     folder: &str,
     number: u32,
+    subject: &str,
     text: &str,
     previous: &str,
 ) -> Result<FileView> {
     let _lock = write_lock();
     let (git, feature, place) = reach(repo, folder)?;
-    let written = answer::edit_settled_comment(&place, &feature, number, text, previous)?;
+    let written = answer::edit_settled_comment(&place, &feature, number, subject, text, previous)?;
     file_view(&git, &feature, &round_name(&feature)?, Some(written.text))
 }
 
-/// Removes comment `number` on a settled point, over its text last read.
+/// Removes comment `number` on the settled point `subject`, over its text last read.
 pub fn remove_settled_comment(
     repo: &Path,
     folder: &str,
     number: u32,
+    subject: &str,
     previous: &str,
 ) -> Result<FileView> {
     let _lock = write_lock();
     let (git, feature, place) = reach(repo, folder)?;
-    let written = answer::remove_settled_comment(&place, &feature, number, previous)?;
+    let written = answer::remove_settled_comment(&place, &feature, number, subject, previous)?;
     file_view(&git, &feature, &round_name(&feature)?, Some(written.text))
 }
 

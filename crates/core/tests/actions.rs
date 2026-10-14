@@ -233,6 +233,7 @@ fn notes_text(place: &Place) -> String {
 }
 
 const UNDO: &str = "Undoing a completion";
+const DELETE: &str = "Deleting a repeating task";
 
 /// US4.1
 #[test]
@@ -272,12 +273,20 @@ fn a_settled_comment_is_edited_over_its_text_last_read() {
     let repo = repo_with(&settled_round(notes));
     let (feature, place) = reach(&repo);
 
-    let error = answer::edit_settled_comment(&place, &feature, 1, "Drop it.", "Other").unwrap_err();
+    let error =
+        answer::edit_settled_comment(&place, &feature, 1, UNDO, "Drop it.", "Other").unwrap_err();
     assert!(matches!(error, ActionError::Changed { .. }), "{error}");
     assert_eq!(notes_text(&place), format!(" {notes}\n"));
 
-    answer::edit_settled_comment(&place, &feature, 1, "Keep it, say so.", "Keep the undo.")
-        .unwrap();
+    answer::edit_settled_comment(
+        &place,
+        &feature,
+        1,
+        UNDO,
+        "Keep it, say so.",
+        "Keep the undo.",
+    )
+    .unwrap();
     assert_eq!(
         notes_text(&place),
         " Overall fine.\n\n- **Undoing a completion**: Keep it, say so.\n- **Deleting a repeating task**: Ask first.\n"
@@ -291,7 +300,7 @@ fn a_settled_comment_is_removed_and_the_rest_kept() {
     let repo = repo_with(&settled_round(notes));
     let (feature, place) = reach(&repo);
 
-    answer::remove_settled_comment(&place, &feature, 1, "Keep the undo.").unwrap();
+    answer::remove_settled_comment(&place, &feature, 1, UNDO, "Keep the undo.").unwrap();
 
     assert_eq!(
         notes_text(&place),
@@ -349,6 +358,27 @@ fn settled_comments_stay_when_the_free_notes_are_saved() {
     );
 }
 
+/// A comment removed elsewhere renumbers the ones after it: an edit or a removal of comment 1 on
+/// one subject is refused when comment 1 is now on another, even with the same text.
+#[test]
+fn a_settled_comment_now_on_another_point_is_neither_edited_nor_removed() {
+    let notes = "- **Undoing a completion**: Agreed.\n- **Deleting a repeating task**: Agreed.";
+    let repo = repo_with(&settled_round(notes));
+    let (feature, place) = reach(&repo);
+    let before = read(&place, ROUND);
+
+    let refusals = [
+        answer::edit_settled_comment(&place, &feature, 1, DELETE, "Mine.", "Agreed."),
+        answer::remove_settled_comment(&place, &feature, 1, DELETE, "Agreed."),
+    ];
+
+    for refusal in refusals {
+        let error = refusal.unwrap_err();
+        assert!(matches!(error, ActionError::Changed { .. }), "{error}");
+    }
+    assert_eq!(read(&place, ROUND), before);
+}
+
 /// The free notes saved over notes changed since they were read are refused, the file kept.
 #[test]
 fn free_notes_saved_over_notes_changed_elsewhere_are_refused() {
@@ -372,7 +402,8 @@ fn a_settled_comment_changed_elsewhere_is_not_removed() {
     let (feature, place) = reach(&repo);
     let before = read(&place, ROUND);
 
-    let error = answer::remove_settled_comment(&place, &feature, 1, "Keep the undo.").unwrap_err();
+    let error =
+        answer::remove_settled_comment(&place, &feature, 1, UNDO, "Keep the undo.").unwrap_err();
 
     assert!(matches!(error, ActionError::Changed { .. }), "{error}");
     assert_eq!(read(&place, ROUND), before);
@@ -391,8 +422,8 @@ fn a_submitted_rounds_notes_and_settled_comments_are_refused() {
     let refusals = [
         answer::save_notes(&place, &feature, "Mine.", "Overall fine."),
         answer::add_settled_comment(&place, &feature, UNDO, "Text."),
-        answer::edit_settled_comment(&place, &feature, 1, "Drop it.", "Keep the undo."),
-        answer::remove_settled_comment(&place, &feature, 1, "Keep the undo."),
+        answer::edit_settled_comment(&place, &feature, 1, UNDO, "Drop it.", "Keep the undo."),
+        answer::remove_settled_comment(&place, &feature, 1, UNDO, "Keep the undo."),
     ];
 
     for refusal in refusals {
