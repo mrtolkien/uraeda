@@ -194,14 +194,14 @@ end
 
 T["priorities show their hints"] = function() -- C1
   -- The bug on its own branch, as a feature in progress is.
-  local files, bug = helpers.example(), "specs/bugs/2026-10-14-completed-tasks-reappear/"
+  local files, bug = helpers.example(), "specs/bugs/2026-10-14-tasks-reappear/"
   local on_branch = {}
   for name, text in pairs(files) do
     if vim.startswith(name, bug) then
       on_branch[name], files[name] = text, nil
     end
   end
-  local repo = helpers.repo(files, { ["2026-10-14-completed-tasks-reappear"] = on_branch })
+  local repo = helpers.repo(files, { ["2026-10-14-tasks-reappear"] = on_branch })
   open(repo .. "/specs/PRIORITIES.md")
 
   local hints = child.lua([[

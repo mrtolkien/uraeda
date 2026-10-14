@@ -301,7 +301,12 @@ export function EditorPage({ path }: { path: string }) {
         {isDraft && (
           <>
             <Divider />
-            <TextInput label="Slug" value={slug} onChange={(value: string) => setSlug(value)} />
+            <TextInput
+              label="Slug"
+              description="Two words at most: it names the folder and the branch."
+              value={slug}
+              onChange={(value: string) => setSlug(value)}
+            />
             <CommitActions
               label="Start the feature"
               continueLabel="Start the feature and the agent"

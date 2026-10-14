@@ -390,7 +390,7 @@ fn a_record_keeps_the_anchors_of_its_questions() {
 fn a_bug_record_needs_no_questions() {
     let example = Example::new();
     example.write(
-        "specs/done/2026-10-14-completed-tasks-reappear.md",
+        "specs/done/2026-10-14-tasks-reappear.md",
         &record("bug", "Completed tasks reappear"),
     );
 

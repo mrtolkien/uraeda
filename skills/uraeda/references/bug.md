@@ -20,9 +20,10 @@ that reproduces the bug.
 
 ## Starting a bug
 
-Only when a human asks. Name the bug with today's date and a short slug of its title,
-`YYYY-MM-DD-<slug>`, and create the branch `fix/YYYY-MM-DD-<slug>` from the default branch. On it,
-put the human's report in `specs/bugs/YYYY-MM-DD-<slug>/report.md`, from
+Only when a human asks. Name the bug with today's date and a slug of two words at most,
+`YYYY-MM-DD-<slug>`: propose one from its title and ask the human for theirs. Then create the branch
+`fix/YYYY-MM-DD-<slug>` from the default branch. On it, put the human's report in
+`specs/bugs/YYYY-MM-DD-<slug>/report.md`, from
 [the template](../assets/templates/specs/bugs/YYYY-MM-DD-bug-slug/report.md) if they wrote it
 elsewhere, and add the bug to the **Now** section of `PRIORITIES.md`, or where the human says.
 Commit with `chore(<slug>): start <bug title>`.

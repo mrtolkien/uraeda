@@ -217,7 +217,7 @@ impl<'a> Start<'a> {
         let files = draft_files(self.root, draft)?;
         let text = fs::read_to_string(self.root.join(&proposal_source))
             .map_err(|_| StartError::Refused(format!("{proposal_source}: no such draft")))?;
-        let slug = slug.unwrap_or_else(|| draft_name(draft)).to_string();
+        let slug = slug.map_or_else(|| crate::slug::short(draft_name(draft)), str::to_string);
         let folder = self.free_folder(&slug, today)?;
         let worktree = place::worktree_path(self.git, &folder);
         if !self.switch && worktree.exists() {

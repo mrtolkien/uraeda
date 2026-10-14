@@ -708,7 +708,8 @@ fn text_view(
         priority_changes: 0,
         kind: kind.to_string(),
         folder,
-        slug: target::draft_to_start(path).map(|draft| target::draft_name(&draft).to_string()),
+        slug: target::draft_to_start(path)
+            .map(|draft| crate::slug::short(target::draft_name(&draft))),
         discovery: (!report).then(|| proposal::discovery(&text).to_string()),
         discovery_levels: if report {
             Vec::new()

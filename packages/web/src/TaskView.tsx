@@ -6,6 +6,7 @@ import { Link } from "@astryxdesign/core/Link";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
+import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { fontWeightVars, typeScaleVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -65,12 +66,13 @@ function origin() {
   return currentEntry().from === "/" ? "/" : "/priorities";
 }
 
-/** A line's draft, drawn, with Edit and Start the feature. */
+/** A line's draft, drawn, with Edit, and Start the feature under the slug the human chose. */
 function DraftPart({ path }: { path: string }) {
   const fate = useFateClient();
   const draft = useDraft(path);
   const here = useRepoPath();
   const [message, setMessage] = useState<string>();
+  const [slug, setSlug] = useState(draft?.slug ?? "");
   if (!draft) {
     return <Paragraph>No draft {path}.</Paragraph>;
   }
@@ -82,7 +84,6 @@ function DraftPart({ path }: { path: string }) {
     .map((block) => block.id);
   const start = async () => {
     setMessage(undefined);
-    const slug = (path.split("/").at(-1) ?? "").replace(/\.md$/, "");
     const result = await fate.mutations.feature.start({
       input: { draft: path, slug },
       view: FeatureView,
@@ -99,6 +100,12 @@ function DraftPart({ path }: { path: string }) {
         {path.replace(/^specs\//, "")} · {draft.committed ? "committed" : "not committed"}
       </Text>
       <Blocks document={draft.document} ids={ids} />
+      <TextInput
+        label="Slug"
+        description="Two words at most: it names the folder and the branch."
+        value={slug}
+        onChange={(value: string) => setSlug(value)}
+      />
       <HStack gap={2}>
         <Button label="Edit" onClick={() => navigate(here(`/edit/${path}`))} />
         <Button variant="primary" label="Start the feature" clickAction={start} />
