@@ -111,8 +111,9 @@ pub(crate) fn encode_rgba(
         return Err(picture.0.error_code);
     }
     let written = &writer.0;
-    if written.mem.is_null() {
-        return Ok(Vec::new());
+    // A successful encode always writes a RIFF header: no buffer means nothing was written.
+    if written.mem.is_null() || written.size == 0 {
+        return Err(WebPEncodingError::VP8_ENC_ERROR_BAD_WRITE);
     }
     // SAFETY: libwebp's memory writer holds `size` initialized bytes at `mem`, which stay valid
     // until `WebPMemoryWriterClear`, run by `Writer`'s drop after this copy.

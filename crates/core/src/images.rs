@@ -1,13 +1,13 @@
 //! Attached images: checked, decoded, turned upright, downscaled, and re-encoded as WebP, as the
 //! attachments decision says. The only image code of Uraeda; callers pass the bytes they received.
 
+mod animated;
 mod webp;
 
 use std::io::Cursor;
 
-use image::codecs::gif::GifDecoder;
 use image::imageops::FilterType;
-use image::{AnimationDecoder, DynamicImage, ImageDecoder, ImageFormat, ImageReader, Limits};
+use image::{DynamicImage, ImageDecoder, ImageFormat, ImageReader, Limits};
 
 use webp::Settings;
 
@@ -19,6 +19,10 @@ pub const MAX_PIXELS: u64 = 40_000_000;
 
 /// The longest edge of an output, in pixels: larger inputs are downscaled to it.
 pub const MAX_EDGE: u32 = 2576;
+
+/// The most memory a decoder may allocate besides the pixels: for reading headers, and the chunks
+/// they inflate, such as a PNG's colour profile, which is dropped anyway.
+const HEADER_ALLOC: u64 = 16 * 1024 * 1024;
 
 /// Photos: lossy WebP.
 const PHOTO: Settings = Settings::Lossy {
@@ -33,7 +37,7 @@ const SCREENSHOT: Settings = Settings::NearLossless {
     method: 4,
 };
 
-/// An image ready to save: a WebP file, or an animated GIF kept as it was.
+/// An image ready to save: a WebP file, or an animated GIF holding only its frames.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Encoded {
     pub bytes: Vec<u8>,
@@ -72,12 +76,15 @@ pub fn encode(bytes: &[u8], name: &str) -> Result<Encoded, ImageError> {
             bytes: bytes.len(),
         });
     }
-    let unreadable = |_| ImageError::Unreadable { name: name.into() };
+    let unreadable = || ImageError::Unreadable { name: name.into() };
 
-    let (width, height) = reader(bytes, format, Limits::no_limits())
+    // Reading the header can inflate chunks before the pixels, such as a PNG's colour profile:
+    // bounded, so a small file cannot make it allocate gigabytes.
+    let (width, height) = reader(bytes, format, alloc(0))
         .into_dimensions()
-        .map_err(unreadable)?;
-    if u64::from(width) * u64::from(height) > MAX_PIXELS {
+        .map_err(|_| unreadable())?;
+    let pixels = u64::from(width) * u64::from(height);
+    if pixels > MAX_PIXELS {
         return Err(ImageError::Pixels {
             name: name.into(),
             width,
@@ -85,28 +92,33 @@ pub fn encode(bytes: &[u8], name: &str) -> Result<Encoded, ImageError> {
         });
     }
 
-    if format == ImageFormat::Gif && animated(bytes).map_err(unreadable)? {
+    if format == ImageFormat::Gif
+        && let Some(bytes) = animated::strip_gif(bytes).map_err(|_| unreadable())?
+    {
         return Ok(Encoded {
-            bytes: bytes.to_vec(),
+            bytes,
             extension: "gif",
             width,
             height,
         });
     }
 
-    let mut decoder = reader(bytes, format, limits())
+    // Enough for every pixel at 16 bits per channel, with alpha.
+    let mut decoder = reader(bytes, format, alloc(pixels * 8))
         .into_decoder()
-        .map_err(unreadable)?;
+        .map_err(|_| unreadable())?;
     // A broken orientation tag leaves the image as stored, rather than refusing it.
     let orientation = decoder
         .orientation()
         .unwrap_or(image::metadata::Orientation::NoTransforms);
-    let mut image = DynamicImage::from_decoder(decoder).map_err(unreadable)?;
-    image.apply_orientation(orientation);
+    // Downscaled before it is turned: a square bound fits the image either way, and only the
+    // smaller copy is rotated.
+    let image = DynamicImage::from_decoder(decoder).map_err(|_| unreadable())?;
     let mut image = DynamicImage::ImageRgba8(image.into_rgba8());
     if image.width().max(image.height()) > MAX_EDGE {
         image = image.resize(MAX_EDGE, MAX_EDGE, FilterType::Lanczos3);
     }
+    image.apply_orientation(orientation);
     let image = image.into_rgba8();
 
     let settings = if format == ImageFormat::Jpeg || lossy_webp(bytes) {
@@ -115,8 +127,8 @@ pub fn encode(bytes: &[u8], name: &str) -> Result<Encoded, ImageError> {
         SCREENSHOT
     };
     let (width, height) = image.dimensions();
-    let bytes = webp::encode_rgba(image.as_raw(), width, height, settings)
-        .map_err(|_| ImageError::Unreadable { name: name.into() })?;
+    let bytes =
+        webp::encode_rgba(image.as_raw(), width, height, settings).map_err(|_| unreadable())?;
     Ok(Encoded {
         bytes,
         extension: "webp",
@@ -156,20 +168,11 @@ fn reader(bytes: &[u8], format: ImageFormat, limits: Limits) -> ImageReader<Curs
     reader
 }
 
-/// The decoder's limits: enough for `MAX_PIXELS` at 16 bits per channel, with alpha.
-fn limits() -> Limits {
+/// A decoder's limits: `pixels` bytes for the image, and `HEADER_ALLOC` for the rest.
+fn alloc(pixels: u64) -> Limits {
     let mut limits = Limits::default();
-    limits.max_alloc = Some(MAX_PIXELS * 8);
+    limits.max_alloc = Some(pixels + HEADER_ALLOC);
     limits
-}
-
-/// Whether a GIF holds more than one frame.
-fn animated(bytes: &[u8]) -> Result<bool, image::ImageError> {
-    let mut decoder = GifDecoder::new(Cursor::new(bytes))?;
-    decoder.set_limits(limits())?;
-    let mut frames = decoder.into_frames().take(2);
-    frames.next().transpose()?;
-    Ok(frames.next().transpose()?.is_some())
 }
 
 /// Whether a WebP file holds lossy image data, a `VP8 ` chunk, rather than only `VP8L`.
@@ -191,8 +194,12 @@ fn lossy_webp(bytes: &[u8]) -> bool {
     false
 }
 
-/// A size in MB of 1,048,576 bytes, to one decimal, without a trailing `.0`.
+/// A size in MB of 1,048,576 bytes, rounded up to one decimal, without a trailing `.0`: a file
+/// over 20 MB never reads as 20 MB.
 fn megabytes(bytes: usize) -> String {
-    let text = format!("{:.1}", bytes as f64 / (1024.0 * 1024.0));
-    text.strip_suffix(".0").map(str::to_owned).unwrap_or(text)
+    let tenths = bytes.saturating_mul(10).div_ceil(1024 * 1024);
+    match tenths % 10 {
+        0 => format!("{}", tenths / 10),
+        tenth => format!("{}.{tenth}", tenths / 10),
+    }
 }
