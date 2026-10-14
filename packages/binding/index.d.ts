@@ -465,6 +465,8 @@ export interface NextStepView {
   file?: string
   /** The first unchecked task, for implementation. */
   task?: string
+  /** Where the implementation is in the plan's tasks, for implementation. */
+  progress?: TaskProgress
   /** `open`, `draft`, `changes-requested`, `none`, or `unknown`, when the step depends on it. */
   pullRequest?: string
 }
@@ -691,6 +693,8 @@ export interface StepView {
   file?: string
   /** The first unchecked task, for implementation. */
   task?: string
+  /** Where the implementation is in the plan's tasks, for implementation. */
+  progress?: TaskProgress
 }
 
 export interface Story {
@@ -716,6 +720,15 @@ export interface TaskItem {
   steps: Array<StepItem>
   done: number
   total: number
+}
+
+/** The first task with an unchecked step: its place among the plan's tasks, and its title. */
+export interface TaskProgress {
+  /** From 1, its index among the plan's tasks, whatever its heading's number. */
+  position: number
+  /** How many tasks the plan has. */
+  total: number
+  title: string
 }
 
 /**

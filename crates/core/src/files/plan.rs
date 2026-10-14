@@ -1,46 +1,11 @@
 //! The tasks of a plan, and how many of their steps are checked.
 
-/// A plan's `## Task N: title`, with its checkboxes.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Task {
-    pub number: u32,
-    pub title: String,
-    pub done: usize,
-    pub total: usize,
-}
+use super::items::TaskItem;
 
-/// Every task of a plan, in order.
-pub fn tasks(text: &str) -> Vec<Task> {
-    let mut tasks: Vec<Task> = Vec::new();
-    for (_, line) in super::lines_outside_code(text) {
-        if let Some(rest) = line.strip_prefix("## Task ") {
-            if let Some((number, title)) = rest.split_once(':')
-                && let Ok(number) = number.trim().parse()
-            {
-                tasks.push(Task {
-                    number,
-                    title: title.trim().to_string(),
-                    done: 0,
-                    total: 0,
-                });
-            }
-            continue;
-        }
-        if line.starts_with("## ") {
-            continue;
-        }
-        let Some(task) = tasks.last_mut() else {
-            continue;
-        };
-        let item = line.trim_start();
-        if item.starts_with("- [ ]") {
-            task.total += 1;
-        } else if item.starts_with("- [x]") || item.starts_with("- [X]") {
-            task.total += 1;
-            task.done += 1;
-        }
-    }
-    tasks
+/// Every task of a plan, `## Task N: title`, in order, with its checkbox steps: the same parse the
+/// plan's review reads. `dir` is the folder holding the plan, from the repository's top level.
+pub fn tasks(text: &str, dir: &str) -> Vec<TaskItem> {
+    super::items::tasks(&super::document::parse(text, dir))
 }
 
 /// How many checkboxes of a file are checked, out of all of them, outside code blocks.

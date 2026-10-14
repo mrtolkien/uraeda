@@ -330,7 +330,7 @@ The decisions this plan relies on, and where it follows them:
   - `plan::tasks(text: &str, dir: &str) -> Vec<TaskItem>`, in place of the line-based count.
   - `Step.task` keeps its text. `plan::Task` is removed.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `crates/core/tests/steps.rs`, one table-driven test, `implementation_progress`, over plans built
 with `texts::plan("auto-approved", 1, ...)` and an approved spec at revision 1:
@@ -349,16 +349,18 @@ The last row pins the end of a task at the next level-2 heading.
 In `crates/core/tests/files.rs`, rewrite `plan_tasks_count_checkboxes` and
 `plan_first_unchecked_task` over `plan::tasks(text, "specs/x")`, with the same assertions.
 
-In `packages/binding/index.test.ts`, extend the step shape assertion at line 93 with
-`progress: undefined` for a feature that is not at its implementation.
+In `packages/binding/index.test.ts`, after the step shape assertion at line 93, assert
+`expect(next.step.progress).toBeUndefined()` for a feature that is not at its implementation:
+napi-rs leaves a `None` field's key out, so `toMatchObject({ progress: undefined })` cannot pass
+(R8).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test steps --test files`
 - Expected: FAIL to compile, `no field progress on type Step` and
-  `this function takes 2 arguments but 1 argument was supplied`.
+  `this function takes 1 argument but 2 arguments were supplied`.
 
-- [ ] **Step 3: Implement the progress**
+- [x] **Step 3: Implement the progress**
 
 `plan::tasks` parses the text with `document::parse` and returns `items::tasks(&doc)`, the same
 `TaskItem`s the review reads. `feature_step` calls it with the feature's `path`, and finds the first
@@ -366,14 +368,14 @@ task with `done < total`. `position` is its index plus one, `total` is the numbe
 `task` is built from the same task's `number` and `title`. Both step views copy `progress`. Remove
 `plan::Task`.
 
-- [ ] **Step 4: Run all tests, and regenerate the binding**
+- [x] **Step 4: Run all tests, and regenerate the binding**
 
 - Run:
   `cargo test && cargo clippy --workspace --all-targets -- -D warnings && vp run --filter uraeda-binding build && vp test --project uraeda-binding`
 - Expected: PASS. `crates/cli/tests/next.rs` still expects "2026-10-06-recurring-tasks:
   implementation, Task 3: Repeat menu".
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core/src/steps.rs crates/core/src/files/items.rs crates/core/src/files/plan.rs \

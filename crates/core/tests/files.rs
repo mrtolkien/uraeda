@@ -336,7 +336,7 @@ fn plan_tasks_count_checkboxes() {
     let text =
         repository_file("skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/plan.md");
 
-    let tasks = plan::tasks(&text);
+    let tasks = plan::tasks(&text, "specs/x");
 
     assert!(tasks.len() >= 3);
     assert_eq!(tasks[0].number, 1);
@@ -351,7 +351,7 @@ fn plan_tasks_count_checkboxes() {
 fn plan_first_unchecked_task() {
     let text = "# Plan\n\n## Task 1: One\n\n- [x] **Step 1**\n\n## Task 2: Two\n\n- [x] **Step 1**\n- [ ] **Step 2**\n";
 
-    let tasks = plan::tasks(text);
+    let tasks = plan::tasks(text, "specs/x");
 
     assert_eq!(
         tasks.iter().map(|t| (t.done, t.total)).collect::<Vec<_>>(),
