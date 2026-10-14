@@ -5,8 +5,9 @@
  * feature's `screenshots/` folder.
  *
  * Run it with `vp run --filter uraeda-web screenshots <folder>`, inside `nix develop` for WebKit. It serves
- * the UI with Vite over a fresh copy of `fixtures/repo`, its server in process on the fake agent,
- * as the browser tests do, and drives WebKit with Playwright. Its output is for people to look
+ * the UI with Vite over a fresh copy of `fixtures/repo`, the repository it opens first, listed in a
+ * fresh data folder, its server in process on the fake agent, as the browser tests do, and drives
+ * WebKit with Playwright. Its output is for people to look
  * at: no test compares it.
  *
  * It saves into the feature's folder it is given: `vp run --filter uraeda-web screenshots <folder>`;
@@ -17,6 +18,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type Browser, type BrowserContext, type Page, webkit } from "playwright";
+import { addRepository } from "uraeda-binding";
 import { fixtureRepo, git } from "uraeda-binding/test-utils";
 import { FakeAdapter } from "uraeda-server/testing";
 import { createServer, type PluginOption } from "vite-plus";
@@ -65,6 +67,8 @@ async function main() {
   const data = mkdtempSync(join(tmpdir(), "uraeda-data-"));
   process.env.URAEDA_REPO = repo;
   process.env.URAEDA_DATA_DIR = data;
+  // Listed now, as the server lists it when it starts: its pages are under `/r/<name>/`.
+  const { repository: listed } = await addRepository(data, repo);
   const adapter = new FakeAdapter();
   const plugins = (base.plugins ?? []).filter(
     (plugin: PluginOption) => !(plugin && "name" in plugin && plugin.name === "uraeda-server"),
@@ -100,7 +104,7 @@ async function main() {
         shots.push({ size, mode, context, page: await context.newPage() });
       }
     }
-    await take(shots, adapter, repo);
+    await take(shots, adapter, repo, `/r/${encodeURIComponent(listed.name)}`);
   } finally {
     await browser?.close();
     await server.close();
@@ -109,9 +113,12 @@ async function main() {
   }
 }
 
-/** Opens a page of the UI, and waits for a text and for the page to settle. */
+/** The repository's prefix, `/r/<name>`, which every page's path starts with. */
+let prefix = "";
+
+/** Opens a page of the repository, and waits for a text and for the page to settle. */
 async function show(page: Page, path: string, text: string | RegExp) {
-  await page.goto(path);
+  await page.goto(`${prefix}${path}`);
   await page.getByText(text).first().waitFor({ timeout: 20_000 });
   await settle(page);
 }
@@ -129,7 +136,10 @@ async function save(shot: Shot, view: string) {
 }
 
 /** Every view, each at both sizes and in both themes, or on one size when only it shows it. */
-async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string) {
+async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: string) {
+  prefix = at;
+  /** A page's path within the repository, from the page's URL. */
+  const here = (page: Page) => new URL(page.url()).pathname.slice(prefix.length);
   const each = async (
     view: string,
     act: (shot: Shot) => Promise<void>,
@@ -286,7 +296,7 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string) {
   await show(first, "/priorities/claude-code-runner-triggered-manually", "Claude Code runner");
   await first.getByRole("button", { name: "Draft" }).click();
   await first.waitForURL(/\/edit\//);
-  const editor = new URL(first.url()).pathname;
+  const editor = here(first);
   await each("editor-hints", ({ page }) => show(page, editor, "To write in the empty sections:"));
 
   // The workflow's message in the composer of a feature waiting on the agent, unsent.
@@ -353,7 +363,7 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string) {
     denials: [{ tool: "Bash", input: { command: "git push origin v0.3.0" } }],
   });
   await first.waitForURL(/\/chats\/(?!new)/);
-  const chat = new URL(first.url()).pathname;
+  const chat = here(first);
   await each("chat-blocked", ({ page }) => show(page, chat, "Allow and retry"));
   await each("chat-new", ({ page }) => show(page, "/chats/new", "New chat"));
 
@@ -422,6 +432,25 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string) {
     await settle(page);
   };
   await each("sidebar", ({ page, size }) => sidebar(page, size));
+
+  /** The repository menu, from its trigger in the navigation's heading or the phone's top bar. */
+  const repositories = async (page: Page) => {
+    await show(page, "/", "Waiting on you");
+    await page
+      .getByRole("button", { name: /^Uraeda / })
+      .first()
+      .click();
+    await page.getByRole("dialog", { name: "Repositories" }).waitFor();
+    await settle(page);
+  };
+  await each("repositories", ({ page }) => repositories(page));
+  await each("repositories-add", async ({ page }) => {
+    await repositories(page);
+    await page.getByText("Add a repository…").click();
+    await page.getByRole("textbox", { name: "Folder" }).fill("/");
+    await page.getByRole("list", { name: "Folders" }).waitFor();
+    await settle(page);
+  });
   await each("sidebar-no-match", async ({ page, size }) => {
     await sidebar(page, size);
     await page.getByRole("searchbox", { name: "Search sessions" }).fill("zzz");

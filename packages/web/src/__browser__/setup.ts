@@ -4,8 +4,9 @@ import { join } from "node:path";
 import { fixtureRepo } from "uraeda-binding/test-utils";
 
 /**
- * The repository the server mounted in the test server reads, the fixture's, built with git, and
- * its runner's data folder, a temporary one: the tests never touch the user's own cache.
+ * The repository the server mounted in the test server opens first, the fixture's, built with git,
+ * and its data folder, a temporary one: the tests never touch the user's own list or cache. Each
+ * test adds a repository of its own to that list (see `vite.browser.config.ts`).
  */
 export default function setup() {
   const repo = fixtureRepo();
