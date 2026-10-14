@@ -560,3 +560,28 @@ test("without the agent, a question offers no Ask the agent", async () => {
 
   expect(screen.queryByRole("button", { name: "Ask the agent" })).toBeNull();
 });
+
+/** US1.4 in an option: its image shows, and a tap on it toggles the option, as on its text. */
+test("an option's image is part of the option's toggle", async () => {
+  const repo = answered({});
+  const path = join(repo, ".worktrees", FOLDER, ROUND);
+  writeFileSync(
+    path,
+    readFileSync(path, "utf8").replace(
+      "still cannot reach the server.",
+      "still cannot reach the server. ![Login](images/login.webp)",
+    ),
+  );
+  await renderPage(PAGE, repo);
+  await screen.findByText("How does your iPhone reach the server?");
+  const a = option("Q2", "A");
+  const image = within(a).getByRole("img", { name: "Login" });
+  // A toggle holds no link: the image does not open on its own.
+  expect(within(a).queryByRole("link")).toBeNull();
+
+  await tap(image);
+
+  expect(option("Q2", "A").getAttribute("aria-pressed")).toBe("true");
+  expect(screen.queryByRole("dialog", { name: "Login" })).toBeNull();
+  await waitFor(() => expect(answerLine(repo, "Q2")).toBe("**Answer:** A"));
+});

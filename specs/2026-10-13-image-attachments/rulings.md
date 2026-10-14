@@ -701,10 +701,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `layout/useBackCloses.ts`, which both use.
 - **Rationale**: a link is reachable by keyboard and named by the image's alt text, without taking
   the image's `img` role away, as `useLightbox`'s trigger props (`role="button"`) would. The
-  lightbox is a `<dialog>`, which a `<p>` cannot hold: React reports it, and a browser may move it
-  out. One hook keeps Back's behaviour the same for both overlays. happy-dom follows a link clicked
-  through its child before React sees the click, which a browser does not, so the UI test clicks the
-  link that holds the image; the screenshots click the image itself.
+  lightbox is a `<dialog>`, flow content, and HTML lets a `<p>` hold phrasing content only: React's
+  DOM nesting check reports a `<dialog>` inside a `<p>` as an error, in development and in the
+  tests. One hook keeps Back's behaviour the same for both overlays. happy-dom follows a link
+  clicked through its child before React sees the click, which a browser does not, so the UI test
+  clicks the link that holds the image; the screenshots click the image itself.
 - **Alternatives considered**: the image with `useLightbox`'s trigger props (a button, no longer an
   image); a lightbox portalled to `body` (outside Astryx's theme); the history code copied.
 - **If wrong**: `packages/web/src/ImageView.tsx`, the paragraph case of `BlockNode` in
@@ -805,3 +806,78 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   a dropped file); `import.meta.hot.dispose` (the package's types do not include Vite's).
 - **If wrong**: `useDropGuard` in `packages/web/src/attach/useImageDrop.ts`.
 - **Where**: task 8, review.
+
+## R55: An image inside a control or a link is drawn alone
+
+- **Decision**: `ImageView` takes `isStatic`, and `StaticImages` makes every image of its content
+  static: the `<img>` alone, with its alt text, no link and no lightbox. A question's option, a
+  toggle `<button>`, draws its content inside `StaticImages`, and its paragraphs stay `<p>`. An
+  image inside a link, like a CI badge, `[![build](images/build.webp)](https://ci)`, is drawn inside
+  that link, which keeps its target: the image when it is under `specs/`, else its alt text.
+- **Rationale**: a link inside a `<button>`, or inside another link, is invalid HTML, and a click on
+  it would both toggle the option and open the image. In an option, a tap anywhere is the toggle's,
+  as on its text. A badge's link is what its author meant to open, not the image.
+- **Alternatives considered**: the alt text alone in an option (the image is part of the option's
+  argument, and an `<img>` is valid in a button); the lightbox opened from an option with the
+  toggle's click stopped (two actions on one tap target).
+- **If wrong**: `StaticImages` and `isStatic` in `packages/web/src/ImageView.tsx`, `SpanImage` in
+  `packages/web/src/Spans.tsx`, `Option` in `packages/web/src/Question.tsx`.
+- **Where**: task 9, review.
+
+## R56: The lightbox keeps its clicks, not its keys
+
+- **Decision**: the lightbox stops the propagation of its clicks, through `useLightbox`'s `onClick`,
+  and lets its keys bubble.
+- **Rationale**: the lightbox is drawn where its image is, so React passes its clicks up its tree:
+  in a review, a click on the backdrop, the image, or Close reached the block's `onClick`, which
+  selected the block and opened a comment. Astryx closes the lightbox on an Escape heard by a
+  listener on `document`: a stopped `keydown` never reaches it. No ancestor of an image handles
+  keys, and Enter or Space on Close arrives as a click.
+- **Alternatives considered**: keys stopped too (Escape no longer closes it); the review's `onClick`
+  ignoring targets inside a `dialog` (every other ancestor with a click would need the same).
+- **If wrong**: `useLightbox`'s options in `packages/web/src/ImageView.tsx`.
+- **Where**: task 9, review.
+
+## R57: "Image missing" names its alt text, and an image without one is "Image"
+
+- **Decision**: an image that fails to load shows "Image missing: <alt>", or "Image missing" when
+  its alt text is empty, as a chat image's is. A link holding an image without alt text is named
+  "Image". The failure is tied to the address that failed: an image whose address changes loads
+  again.
+- **Rationale**: a document may hold several images; the alt text says which one is gone. The spec's
+  "Image missing" stays the whole text for a chat image, which has no alt text. "Image" is the chat
+  title of a message of images alone. The editor's preview redraws an image as its link is typed:
+  the first, incomplete address fails, and the finished one must show.
+- **Alternatives considered**: the file name as the name (a chat image's is a UUID); the failure
+  kept by the component (spans are keyed by their index, and a preview reuses them).
+- **If wrong**: `ImageView` in `packages/web/src/ImageView.tsx`.
+- **Where**: task 9, review; task 10's chat images.
+
+## R58: An overlay's history entry is pushed once per opening
+
+- **Decision**: `useBackCloses` pushes its entry when the overlay opens, under the label it has
+  then, and keeps that entry while the label changes. An overlay opened again while the Back of its
+  last closing has not landed waits for it, then pushes a new entry.
+- **Rationale**: a label change while open pushed a second entry, which a Back left behind. The
+  browser's Back is asynchronous: an overlay closed by its owner and opened again at once read the
+  old entry as its own, then closed when the late `popstate` arrived. happy-dom goes back at once,
+  so the race is tested in the browser tests.
+- **Alternatives considered**: replacing the entry's state on a label change (a Back then lands on a
+  state the next page reads); ignoring the race (a form opened just after another one closed
+  vanished).
+- **If wrong**: `packages/web/src/layout/useBackCloses.ts`.
+- **Where**: task 9, review.
+
+## R59: An image is at most 80 % of the window's height
+
+- **Decision**: a drawn image is at most the column's width and the theme's
+  `--size-image-max-height`, `80dvh`, kept in proportion with `object-fit: contain`; it loads lazily
+  and decodes asynchronously.
+- **Rationale**: a phone screenshot, 2576 pixels tall, filled several screens of a proposal or a
+  chat. The UI components decision puts sizes in the theme; StyleX's lint accepts no `vh` in a
+  component. A long document of images, or a long chat, loads only what is shown.
+- **Alternatives considered**: no cap (a tall screenshot pushes the text away); a fixed pixel height
+  (too small on a desktop, too large on a phone).
+- **If wrong**: `packages/web/src/theme/theme.ts`, the image style in
+  `packages/web/src/ImageView.tsx`.
+- **Where**: task 9, review.
