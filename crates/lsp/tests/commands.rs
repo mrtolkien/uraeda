@@ -881,3 +881,114 @@ fn an_unknown_command_is_refused() {
 
     assert_eq!(error.message, "unknown command uraeda.dance");
 }
+
+/// A fixture image's path.
+fn fixture_image(name: &str) -> String {
+    abs(&repository().join("fixtures/images").join(name))
+}
+
+/// US5.2: the file is re-encoded next to the proposal, and its link returned; nothing is committed.
+#[test]
+fn an_image_is_attached_to_the_open_proposal() {
+    let (repo, _) = feature("awaiting-human");
+    let path = repo.path().join(NVIM).join("proposal.md");
+    let mut session = start(repo.path());
+    session.open(&path, &std::fs::read_to_string(&path).unwrap());
+
+    let result = session
+        .command(
+            "uraeda.attachImage",
+            json!({ "uri": uri(&path), "path": fixture_image("desktop.png"), "name": "desktop.png" }),
+        )
+        .unwrap();
+
+    let image = repo.path().join(NVIM).join("images/desktop.webp");
+    assert_eq!(
+        result,
+        json!({ "written": [abs(&image)], "link": "![desktop](images/desktop.webp)" })
+    );
+    assert_eq!(&std::fs::read(&image).unwrap()[8..12], b"WEBP");
+    assert_eq!(repo.subjects(BRANCH)[0], "spec(nvim-plugin): spec");
+    assert_eq!(repo.hook_runs(), 0);
+}
+
+/// US5.3: a single-file draft becomes a folder, which the editor opens.
+#[test]
+fn a_draft_moved_into_a_folder_is_opened() {
+    let repo = with_draft(false);
+    let draft = repo.path().join("specs/drafts/codex-runtime.md");
+    let mut session = start(repo.path());
+    session.open(&draft, &std::fs::read_to_string(&draft).unwrap());
+
+    let result = session
+        .command(
+            "uraeda.attachImage",
+            json!({ "uri": uri(&draft), "path": fixture_image("still.gif"), "name": "login.png" }),
+        )
+        .unwrap();
+
+    let proposal = repo.path().join("specs/drafts/codex-runtime/proposal.md");
+    let image = repo
+        .path()
+        .join("specs/drafts/codex-runtime/images/login.webp");
+    assert_eq!(
+        result,
+        json!({
+            "opened": abs(&proposal),
+            "written": [abs(&image), abs(&proposal), abs(&repo.path().join(PRIORITIES))],
+            "link": "![login](images/login.webp)",
+        })
+    );
+    assert!(!draft.exists());
+    assert!(image.exists());
+    assert!(
+        repo.read(PRIORITIES)
+            .contains("(drafts/codex-runtime/proposal.md)")
+    );
+}
+
+/// The core's refusals pass as they are, and nothing is written.
+#[test]
+fn an_attached_file_that_is_no_image_is_refused() {
+    let (repo, _) = feature("awaiting-human");
+    let path = repo.path().join(NVIM).join("proposal.md");
+    let mut session = start(repo.path());
+
+    let error = session
+        .command(
+            "uraeda.attachImage",
+            json!({ "uri": uri(&path), "path": fixture_image("drawing.svg"), "name": "drawing.svg" }),
+        )
+        .unwrap_err();
+
+    assert_eq!(
+        error.message,
+        "Only PNG, JPEG, GIF, and WebP images can be added: drawing.svg is not one."
+    );
+    assert!(!repo.exists(&format!("{NVIM}/images")));
+}
+
+/// A path that cannot be read is said, and nothing is written.
+#[test]
+fn a_missing_image_file_is_refused() {
+    let (repo, _) = feature("awaiting-human");
+    let path = repo.path().join(NVIM).join("proposal.md");
+    let mut session = start(repo.path());
+    let missing = repo.path().join("missing.png");
+
+    let error = session
+        .command(
+            "uraeda.attachImage",
+            json!({ "uri": uri(&path), "path": abs(&missing), "name": "missing.png" }),
+        )
+        .unwrap_err();
+
+    assert!(
+        error
+            .message
+            .starts_with(&format!("{} could not be read: ", abs(&missing))),
+        "{}",
+        error.message
+    );
+    assert!(!repo.exists(&format!("{NVIM}/images")));
+}
