@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { expect, test } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
 import { atRepo, fixtureRepo, git, renderPage, today } from "./helpers.tsx";
 
 const FOLDER = "2026-10-06-recurring-tasks";
@@ -243,8 +243,16 @@ test("the mockups are first on a spec under review", async () => {
   const mockups = await screen.findByRole("region", { name: "Mockups" });
   const story = screen.getByRole("heading", { name: "User stories" });
   expect(mockups.compareDocumentPosition(story) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  const push = vi.spyOn(window.history, "pushState");
   await click(within(mockups).getByRole("button", { name: "Open the mockup: Repeat" }));
-  expect(window.location.pathname).toBe(`/f/${FOLDER}/mockups/repeat.html`);
+  // Opened in the page's own repository, not through the most recently opened one's redirect.
+  expect(push).toHaveBeenCalledWith(
+    expect.anything(),
+    "",
+    atRepo(`/f/${FOLDER}/mockups/repeat.html`),
+  );
+  expect(window.location.pathname).toBe(atRepo(`/f/${FOLDER}/mockups/repeat.html`));
+  push.mockRestore();
 });
 
 /** Review C2: a spec without mockups has no place for them. */
