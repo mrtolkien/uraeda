@@ -9,6 +9,11 @@ export type AgentEvent =
   | { type: "textDelta"; text: string }
   /** A text block, whole. */
   | { type: "text"; text: string }
+  /**
+   * What the agent writes that shows nothing yet: its thinking, or a tool call whose input
+   * streams, with its target once the input names it.
+   */
+  | { type: "activity"; activity: Activity }
   | {
       type: "toolStart";
       id: string;
@@ -46,6 +51,12 @@ export type AgentEvent =
   | { type: "skipped" }
   /** The process ended. `missing` when its command could not be found. */
   | { type: "exit"; code: number | null; stderr: string; missing?: boolean };
+
+/** What the main agent writes before anything of it shows. */
+export type Activity = { kind: "thinking" } | { kind: "tool"; name: string; target?: string };
+
+/** What a running turn does now, for the line at its end: "Thinking", and since when. */
+export type TurnActivity = { label: string; since: string };
 
 /** What a tool call does, in the Agent Client Protocol's words. */
 export type ToolKind =

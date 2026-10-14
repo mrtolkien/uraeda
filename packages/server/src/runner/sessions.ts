@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Binding } from "../fate/context.ts";
 import type { Adapter, Outgoing } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
-import type { Trigger, TurnKind } from "./events.ts";
+import type { Trigger, TurnActivity, TurnKind } from "./events.ts";
 import { LiveSessions } from "./live-sessions.ts";
 import { chatOpening, chatTitle, retryMessage } from "./message.ts";
 import { Processes } from "./processes.ts";
@@ -123,6 +123,16 @@ export class Sessions {
       .filter((live) => live.repo === root && live.folder !== null)
       .filter((live) => live.turn !== undefined || live.queue.length > 0)
       .map((live) => live.folder as string);
+  }
+
+  /** What the turn does now, while it runs on this server's process. */
+  activity(turn: number): TurnActivity | undefined {
+    for (const live of this.#context.live.values()) {
+      if (live.turn?.id === turn) {
+        return { ...live.turn.activity };
+      }
+    }
+    return undefined;
   }
 
   /** The feature's one session, created when it has none. */

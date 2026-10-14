@@ -1,7 +1,7 @@
 import type { Binding } from "../fate/context.ts";
 import type { Adapter, AgentProcess, Outgoing } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
-import type { Item, TurnState } from "./events.ts";
+import type { Item, TurnActivity, TurnState } from "./events.ts";
 import type { LiveSessions } from "./live-sessions.ts";
 import type { Processes } from "./processes.ts";
 import type { Transcript } from "./transcript.ts";
@@ -82,6 +82,10 @@ export type Running = {
   >;
   /** The text block being streamed. */
   text?: { seq: number; text: string };
+  /** What it does now, which the line at its end says, and since when nothing new showed. */
+  activity: TurnActivity;
+  /** Its reply ended, and it waits for its background sub-agents to report back. */
+  replied?: boolean;
   skipped?: { seq: number; count: number };
   watchdog?: Timer;
   terminate: Array<Timer>;

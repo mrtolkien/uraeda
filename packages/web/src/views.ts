@@ -165,6 +165,7 @@ export const TurnView = view<Turn>()({
   startedAt: true,
   endedAt: true,
   pages: true,
+  activity: { label: true, since: true },
 });
 
 export const TurnLogView = view<TurnLog>()({

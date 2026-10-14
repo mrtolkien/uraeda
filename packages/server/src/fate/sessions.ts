@@ -191,6 +191,7 @@ export async function readTurn(ctx: Context, id: string): Promise<TurnRecord | u
     startedAt: turn.startedAt,
     endedAt: turn.endedAt,
     pages: pages(ctx.sessions.cache, turn.id),
+    activity: (turn.state === "running" && ctx.sessions.activity(turn.id)) || null,
   };
 }
 

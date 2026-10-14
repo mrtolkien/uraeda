@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { fixture, temporaryFolder } from "uraeda-binding/test-utils";
-import { allowRule, lines, parseLine } from "../claude-events.ts";
+import { allowRule, type Blocks, lines, parseLine } from "../claude-events.ts";
 import { ClaudeAdapter, claudeArgs, PLUGIN_DIR } from "../claude.ts";
 import type { AgentEvent, Denial } from "../events.ts";
 
@@ -503,6 +503,52 @@ test.each<[string, Array<string>, Array<Partial<AgentEvent>>]>([
   if (events.length > 0 && events[0]!.type === "toolStart") {
     expect(parsed[0]).toEqual(events[0]);
   }
+});
+
+test("the main agent's thinking and tool calls being written are activities; a sub-agent's are not", () => {
+  const blocks: Blocks = new Map();
+  const parse = (event: Record<string, unknown>, parent: string | null = null) =>
+    parseLine(
+      line({ type: "stream_event", event, parent_tool_use_id: parent }),
+      "/w",
+      new Map(),
+      blocks,
+    );
+  const start = (index: number, block: Record<string, unknown>) =>
+    parse({ type: "content_block_start", index, content_block: block });
+  const input = (index: number, partial_json: string) =>
+    parse({
+      type: "content_block_delta",
+      index,
+      delta: { type: "input_json_delta", partial_json },
+    });
+
+  expect(start(0, { type: "thinking", thinking: "" })).toEqual([
+    { type: "activity", activity: { kind: "thinking" } },
+  ]);
+  expect(start(1, { type: "tool_use", id: "toolu_1", name: "Write", input: {} })).toEqual([
+    { type: "activity", activity: { kind: "tool", name: "Write" } },
+  ]);
+  // The path is named once it is whole, made relative to the session's folder, and only once.
+  expect(input(1, '{"file_path": "/w/specs/a/sp')).toEqual([]);
+  expect(input(1, 'ec.md", "content": "# Spec')).toEqual([
+    { type: "activity", activity: { kind: "tool", name: "Write", target: "specs/a/spec.md" } },
+  ]);
+  expect(input(1, '\\n\\nMore", "file_path": "/w/b.md"}')).toEqual([]);
+  parse({ type: "content_block_stop", index: 1 });
+  expect(blocks.size).toBe(0);
+  // An escaped quote stays in the path.
+  start(2, { type: "tool_use", id: "toolu_2", name: "Edit", input: {} });
+  expect(input(2, '{"file_path": "/w/a \\"b\\".md"}')).toEqual([
+    { type: "activity", activity: { kind: "tool", name: "Edit", target: 'a "b".md' } },
+  ]);
+  // A sub-agent's blocks are its own: its thinking and tools show as its tool calls end.
+  expect(
+    parse(
+      { type: "content_block_start", index: 0, content_block: { type: "thinking" } },
+      "toolu_9",
+    ),
+  ).toEqual([]);
 });
 
 test("background sub-agents are reported by their tool calls; shells and watchers are not", () => {

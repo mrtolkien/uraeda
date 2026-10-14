@@ -10,7 +10,7 @@ import type {
   WorkspaceView,
 } from "uraeda-binding";
 import type { Capabilities } from "../runner/adapter.ts";
-import type { Item, Trigger, TurnKind, TurnState } from "../runner/events.ts";
+import type { Item, Trigger, TurnActivity, TurnKind, TurnState } from "../runner/events.ts";
 import type { SessionStatus } from "../runner/status.ts";
 
 type Record_<T> = { [Key in keyof T]: T[Key] };
@@ -104,6 +104,8 @@ export type TurnRecord = {
   endedAt: string | null;
   /** The count of its item pages, of 100 items each. */
   pages: number;
+  /** What it does now while it runs, "Thinking" or "Writing spec.md", and since when. */
+  activity: TurnActivity | null;
 };
 
 /**
@@ -259,6 +261,7 @@ export const turnDataView = dataView<TurnRecord>("Turn")({
   startedAt: true,
   endedAt: true,
   pages: true,
+  activity: true,
 });
 
 export const turnLogDataView = dataView<TurnLogRecord>("TurnLog")({
