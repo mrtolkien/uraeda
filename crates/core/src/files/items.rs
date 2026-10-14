@@ -98,6 +98,8 @@ pub struct Story {
     /// Its "Why this priority" paragraph.
     pub why: Option<u32>,
     pub scenarios: Vec<Scenario>,
+    /// The blocks the web UI folds: its scenarios' intro paragraph and their list, or none.
+    pub details: Vec<u32>,
 }
 
 #[cfg_attr(feature = "napi", napi(object))]
@@ -120,6 +122,9 @@ pub struct SpecItems {
     pub plan_review: Option<bool>,
     /// The risk tiers an approval may pick, from the least risk to the most.
     pub tiers: Vec<TierChoice>,
+    /// The blocks the web UI folds: the `## Details` heading and every top-level block after it,
+    /// up to the next level-1 or level-2 heading, or none.
+    pub details: Vec<u32>,
 }
 
 /// A risk tier an approval may pick, and whether the plan then waits for the human's review,

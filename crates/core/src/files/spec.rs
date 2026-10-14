@@ -67,9 +67,14 @@ pub fn items(doc: &Document) -> SpecItems {
         let intro = blocks
             .iter()
             .position(|&id| doc.text(id).trim_end().ends_with("scenarios:"));
-        let scenarios = intro
+        let list = intro
             .and_then(|intro| blocks[intro + 1..].first().copied())
-            .filter(|&list| doc.blocks[list as usize].kind == BlockKind::List)
+            .filter(|&list| doc.blocks[list as usize].kind == BlockKind::List);
+        let details = intro
+            .zip(list)
+            .map(|(intro, list)| vec![blocks[intro], list])
+            .unwrap_or_default();
+        let scenarios = list
             .map(|list| {
                 let start = doc.blocks[list as usize].start.unwrap_or(1);
                 doc.children(list)
@@ -89,6 +94,7 @@ pub fn items(doc: &Document) -> SpecItems {
             blocks,
             why,
             scenarios,
+            details,
         });
     }
     let criteria = doc
@@ -111,5 +117,27 @@ pub fn items(doc: &Document) -> SpecItems {
         risk_tier: None,
         plan_review: None,
         tiers: Vec::new(),
+        details: details(doc),
     }
+}
+
+/// The `## Details` heading and the top-level blocks after it, its subheadings included, up to the
+/// next level-1 or level-2 heading.
+fn details(doc: &Document) -> Vec<u32> {
+    let all = headings(doc);
+    let Some(position) = all
+        .iter()
+        .position(|(_, level, text)| *level == 2 && text == "Details")
+    else {
+        return Vec::new();
+    };
+    let end = all[position + 1..]
+        .iter()
+        .find(|(_, level, _)| *level <= 2)
+        .map_or(doc.blocks.len(), |(index, _, _)| *index);
+    doc.blocks[all[position].0..end]
+        .iter()
+        .filter(|b| b.parent.is_none())
+        .map(|b| b.id)
+        .collect()
 }

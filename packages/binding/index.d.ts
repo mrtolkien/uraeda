@@ -558,6 +558,11 @@ export interface SpecItems {
   planReview?: boolean
   /** The risk tiers an approval may pick, from the least risk to the most. */
   tiers: Array<TierChoice>
+  /**
+   * The blocks the web UI folds: the `## Details` heading and every top-level block after it,
+   * up to the next level-1 or level-2 heading, or none.
+   */
+  details: Array<number>
 }
 
 /** A feature started. */
@@ -595,6 +600,8 @@ export interface Story {
   /** Its "Why this priority" paragraph. */
   why?: number
   scenarios: Array<Scenario>
+  /** The blocks the web UI folds: its scenarios' intro paragraph and their list, or none. */
+  details: Array<number>
 }
 
 export interface TaskItem {

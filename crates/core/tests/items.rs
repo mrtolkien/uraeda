@@ -152,6 +152,57 @@ fn a_spec_without_stories_has_none() {
     );
 }
 
+/// The first lines of US2's details, and the first and last lines of the spec's details.
+type Folds = (Vec<u32>, Option<(u32, u32)>);
+
+fn folds(text: &str) -> Folds {
+    let doc = document::parse(text, "specs/x");
+    let spec = items("spec.md", text, &doc).spec.unwrap();
+    let line = |id: &u32| doc.blocks[*id as usize].start_line;
+    let story = spec.stories.iter().find(|s| s.id == "US2").unwrap();
+    let details = spec
+        .details
+        .first()
+        .zip(spec.details.last())
+        .map(|(first, last)| (line(first), line(last)));
+    (story.details.iter().map(line).collect(), details)
+}
+
+/// US1.1 and review focus 3: the folds are a story's scenarios with their intro, and the
+/// `## Details` section up to the next level-2 heading.
+#[test]
+fn a_spec_has_its_folds() {
+    let example = common::repository_file(&format!("{EXAMPLE}/spec.md"));
+    let story = "# Spec: X\n\n## User stories\n\n### US2: Y (P1)\n\nText.\n\n";
+    let scenario = "1. **Given** a, **When** b, **Then** c.\n";
+    let cases: [(&str, String, Folds); 5] = [
+        ("the example", example, (vec![56, 58], Some((193, 249)))),
+        (
+            "a story with no scenarios",
+            format!("{story}Acceptance scenarios:\n\nNone yet.\n"),
+            (vec![], None),
+        ),
+        (
+            "a list with no scenarios intro",
+            format!("{story}{scenario}"),
+            (vec![], None),
+        ),
+        (
+            "details before another section",
+            format!("{story}## Details\n\n### Data\n\nA table.\n\n## Appendix\n\nMore.\n"),
+            (vec![], Some((9, 13))),
+        ),
+        (
+            "a spec without details",
+            format!("{story}Acceptance scenarios:\n\n{scenario}\n## Risk tier\n\nLow.\n"),
+            (vec![9, 11], None),
+        ),
+    ];
+    for (case, text, expected) in cases {
+        assert_eq!(folds(&text), expected, "{case}");
+    }
+}
+
 #[test]
 fn a_plan_has_its_tasks_and_steps() {
     let (_, items, _) = example("plan.md");
