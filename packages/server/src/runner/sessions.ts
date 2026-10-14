@@ -118,11 +118,21 @@ export class Sessions {
 
   /** The folders of the repository whose session has a turn running, or queued. */
   working(repo: string): Array<string> {
-    const root = this.#roots.get(repo) ?? repo;
-    return [...this.#context.live.values()]
-      .filter((live) => live.repo === root && live.folder !== null)
-      .filter((live) => live.turn !== undefined || live.queue.length > 0)
+    return this.#busy(repo)
+      .filter((live) => live.folder !== null)
       .map((live) => live.folder as string);
+  }
+
+  /** Whether any session of the repository, a feature's or a chat, has a turn running or queued. */
+  busy(repo: string): boolean {
+    return this.#busy(repo).length > 0;
+  }
+
+  #busy(repo: string) {
+    const root = this.#roots.get(repo) ?? repo;
+    return [...this.#context.live.values()].filter(
+      (live) => live.repo === root && (live.turn !== undefined || live.queue.length > 0),
+    );
   }
 
   /** What the turn does now, while it runs on this server's process. */

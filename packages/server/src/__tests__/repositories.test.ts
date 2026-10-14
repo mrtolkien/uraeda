@@ -322,6 +322,29 @@ test("removing while an agent works is refused", async () => {
   await server.sessions.settled(Number(sent.data.turns.at(-1)));
 });
 
+/** US5.3, for a chat, which has no feature folder */
+test("removing while an agent works in a chat is refused", async () => {
+  const server = await testServer();
+  const chat = await mutate(server.app, "session.newChat", {}, ["id"]);
+  const sent = await mutate(
+    server.app,
+    "session.send",
+    { session: chat.data.id, text: "List the open draft files" },
+    ["id", "turns"],
+  );
+  expect(sent.error).toBeUndefined();
+
+  const result = await mutate(server.app, "repositories.remove", { name: server.name }, LIST);
+
+  expect(result.error).toEqual({
+    code: "BAD_REQUEST",
+    message: `refused: An agent is working in ${server.name}: stop it first.`,
+  });
+  expect(server.hosts.get(server.name)).toBeDefined();
+  server.sessions.stop(server.repo, sent.data.id);
+  await server.sessions.settled(Number(sent.data.turns.at(-1)));
+});
+
 test("removing an unknown name is refused", async () => {
   const opened = await testApp();
 
