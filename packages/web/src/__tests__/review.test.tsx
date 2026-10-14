@@ -144,8 +144,8 @@ test("a pending comment is edited, then removed with its review file", async () 
   expect(existsSync(join(r, WORKTREE, REVIEW))).toBe(false);
 });
 
-/** US3.4 */
-test("approving with a higher tier turns the plan's review on", async () => {
+/** US6.1 */
+test("approving with a higher tier leaves the plan's review off", async () => {
   const r = repo();
   await renderPage(PAGE, r);
 
@@ -160,7 +160,7 @@ test("approving with a higher tier turns the plan's review on", async () => {
   const spec = read(r, SPEC);
   expect(spec).toContain("status: approved\n");
   expect(spec).toContain("risk-tier: high\n");
-  expect(spec).toContain("plan-review: true\n");
+  expect(spec).toContain("plan-review: false\n");
 });
 
 /** US3.5 */

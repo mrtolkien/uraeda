@@ -138,7 +138,7 @@ status: awaiting-human
 revision: 1
 clarifications: [the latest round included]
 risk-tier: [low | medium | high]
-plan-review: [true for high, false otherwise]
+plan-review: false
 ---
 
 # Spec: [Feature name]
@@ -291,18 +291,20 @@ mapping every acceptance scenario, edge case, and success criterion to its test.
 
 ## Risk tier
 
-The tier tells the human how much the feature can break, and sets the default for `plan-review`:
-whether the plan waits for the human's review before the implementation. Propose both in the
-frontmatter, with a one-line reason for the tier in the spec. The human decides both when approving
-the spec, whatever the tier.
+The tier tells the human how much the feature can break. Propose it in the frontmatter, with a
+one-line reason for it in the spec. The human decides it when approving the spec.
 
-| Tier     | Default `plan-review` | Typical features                                          |
-| -------- | --------------------- | --------------------------------------------------------- |
-| `low`    | `false`               | No data format change, no new table, no new interface     |
-| `medium` | `false`               | Small data format changes, minimal UI, low impact         |
-| `high`   | `true`                | Security changes, new complex data structures or services |
+| Tier     | Typical features                                          |
+| -------- | --------------------------------------------------------- |
+| `low`    | No data format change, no new table, no new interface     |
+| `medium` | Small data format changes, minimal UI, low impact         |
+| `high`   | Security changes, new complex data structures or services |
 
-- Propose the default for the tier. A spec with no `plan-review` takes its tier's default.
+`plan-review` says whether the plan waits for the human's review before the implementation. It is
+`false` by default, whatever the tier: propose `false`. The plan waits only when the human turns
+plan review on when approving the spec, or when the plan lists a constitution exception. A spec with
+no `plan-review` has `false`.
+
 - When unsure between two tiers, propose the higher one. A change to the format of data users
   already have is at least `medium`; converting every saved record is `high`.
 

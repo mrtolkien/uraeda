@@ -3,7 +3,7 @@ status: awaiting-human
 revision: 1
 clarifications: [latest round included: 1]
 risk-tier: [low | medium | high]
-plan-review: [true for high, false otherwise]
+plan-review: false
 ---
 
 # Spec: [Feature name]

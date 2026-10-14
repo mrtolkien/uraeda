@@ -385,7 +385,8 @@ rejected. A plan with an exception always waits for the human's review, whatever
 | `plan-review: true`                     | `awaiting-human` | Human gate                          |
 | `plan-review: false`                    | `auto-approved`  | [Implementation](implementation.md) |
 
-A spec with no `plan-review` takes its tier's default: `true` for `high`, `false` otherwise.
+A spec with no `plan-review` has `false`, whatever its tier: the plan waits only when the human
+turned plan review on when approving the spec, or when it lists a constitution exception.
 
 When the plan waits for a review, open it with the `> [!IMPORTANT]` block described in
 [Coming back to the human](../SKILL.md#coming-back-to-the-human). What most needs attention is where
