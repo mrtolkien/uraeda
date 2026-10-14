@@ -1,10 +1,12 @@
 // US1 and its edge case "Back from a session view": a feature's session opens as a page of its own
 // at both sizes, its transcript follows its end while the human is at the end, and Back returns to
-// the same position. The session view passes the layout checks at both sizes, in light and dark
+// the same position. US3 and its edge case "Width changing across 768 px": the phone's progress
+// line keeps its open state and position across Back, and the column turns into it and back as the
+// width changes. The session view passes the layout checks at both sizes, in light and dark
 // (SC-004).
 import { act, screen, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
-import { userEvent } from "vite-plus/test/browser";
+import { page, userEvent } from "vite-plus/test/browser";
 import { atRepo, agent, checkLayout, drawn, LIVE, show, startTurn } from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
@@ -211,4 +213,94 @@ test("Back from a session view returns to its position, following the end only f
   await agent.agentEmit([{ text: "A line after coming back.", type: "text" }]);
   const newest = await screen.findByText("A line after coming back.", undefined, LIVE);
   await expect.poll(() => inView(newest), LIVE).toBe(true);
+});
+
+/** The line of the transcript a third down the window: where the human reads. */
+function readLine(log: HTMLElement) {
+  const third = window.innerHeight / 3;
+  return within(log)
+    .getAllByText(/^Line \d+\.$/)
+    .find((element) => element.getBoundingClientRect().bottom >= third)!;
+}
+
+/** The phone's progress line of `CLI` at Task 7 of 11. */
+const LINE = "Implementation · 7/11 · Session column";
+
+test("US3.3: the open progress line survives a file link and Back", async () => {
+  if (window.innerWidth >= 768) {
+    return;
+  }
+  await agent.addPlan(CLI);
+  await show(`/f/${CLI}/session`, "CLI TUIs");
+  await startTurn("Plan the CLI.", lines(40, "Line"));
+  const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
+  await within(log).findByText("Line 40.", undefined, LIVE);
+  await drawn();
+
+  const line = screen.getByRole("button", { name: LINE });
+  await userEvent.click(line);
+  expect(line.getAttribute("aria-expanded")).toBe("true");
+  const plan = await screen.findByRole("link", { name: "plan.md" }, LIVE);
+  await drawn();
+  // Scrolled to the plan's link, in the column's open content.
+  const box = scroller();
+  box.scrollTo(
+    0,
+    Math.round(box.scrollTop + plan.getBoundingClientRect().top - box.clientHeight / 2),
+  );
+  await drawn();
+  const position = Math.round(box.scrollTop);
+  expect(position).toBeGreaterThan(0);
+
+  await followAndComeBack(plan, `/f/${CLI}/plan.md`);
+
+  const back = await screen.findByRole("button", { name: LINE }, LIVE);
+  expect(back.getAttribute("aria-expanded")).toBe("true");
+  expect(screen.getByRole("link", { name: "plan.md" })).toBeTruthy();
+  await expect.poll(() => Math.round(box.scrollTop), LIVE).toBe(position);
+});
+
+test("the column turns into the collapsed progress line across 768 px, at the same position", async () => {
+  if (window.innerWidth < 768) {
+    return;
+  }
+  try {
+    await agent.addPlan(CLI);
+    await show(`/f/${CLI}/session`, "CLI TUIs");
+    await startTurn("Plan the CLI.", lines(60, "Line"));
+    const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
+    await within(log).findByText("Line 60.", undefined, LIVE);
+    await screen.findByRole("complementary", { name: "Progress" }, LIVE);
+    await drawn();
+    const box = scroller();
+    box.scrollTo(0, Math.round((box.scrollHeight - box.clientHeight) / 2));
+    await drawn();
+    expect(box.scrollTop).toBeGreaterThan(0);
+    // The line the human reads, a third down the window.
+    const read = readLine(log);
+    const top = read.getBoundingClientRect().top;
+
+    await page.viewport(402, 874);
+    await expect.poll(() => window.innerWidth).toBe(402);
+    const line = await screen.findByRole("button", { name: LINE }, LIVE);
+    expect(line.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("complementary", { name: "Progress" })).toBeNull();
+    await drawn();
+    // The same page, not a new one: its transcript stays, the line read where it was.
+    expect(log.isConnected).toBe(true);
+    expect(Math.abs(read.getBoundingClientRect().top - top)).toBeLessThan(2);
+    // The window is shorter: the line read a third down it is another one.
+    const readNarrow = readLine(log);
+    const topNarrow = readNarrow.getBoundingClientRect().top;
+
+    await page.viewport(1440, 900);
+    await expect.poll(() => window.innerWidth).toBe(1440);
+    await screen.findByRole("complementary", { name: "Progress" }, LIVE);
+    expect(screen.queryByRole("button", { name: LINE })).toBeNull();
+    await drawn();
+    expect(log.isConnected).toBe(true);
+    expect(Math.abs(readNarrow.getBoundingClientRect().top - topNarrow)).toBeLessThan(2);
+  } finally {
+    await page.viewport(1440, 900);
+  }
 });
