@@ -39,6 +39,10 @@ import { SessionView } from "./views.ts";
  */
 export type DraftImage = { key: string; name: string; preview?: string; image?: ChatImage };
 
+/** Why the draft's images stay in the composer while it holds the workflow's message. */
+const WORKFLOW_KEEPS_IMAGES =
+  "The workflow's message takes no images: they stay here for your next message.";
+
 /** Each draft image's key, unique across the composers a page draws in turn. */
 let nextKey = 0;
 
@@ -67,10 +71,24 @@ function forget(preview: string | undefined) {
   }
 }
 
+/** Frees the previews of images still being saved, as their page goes. */
+export function forgetPreviews(images: ReadonlyArray<DraftImage>) {
+  for (const image of images) {
+    forget(image.preview);
+  }
+}
+
+/**
+ * The keys of the images removed while being saved, whose file is deleted once saved. Kept here,
+ * not by a composer: the page draws a new composer once its session is created, and the upload
+ * of the old one ends after.
+ */
+const discarded = new Set<string>();
+
 /**
  * The composer's images, kept by the page with its text: added by the picker, a paste, or a drop,
  * saved one after the other to the data folder, and removed with their files. Refuses images to an
- * agent that cannot read them, to the workflow's message, and past 10.
+ * agent not available or that cannot read them, to the workflow's message, and past 10.
  */
 function useChatImages({
   images,
@@ -92,28 +110,39 @@ function useChatImages({
   // Whether the status is shown: a sent message takes the last "Added" away with it.
   const [shown, setShown] = useState(true);
 
-  const remove = (key: string) => {
+  const deleteImage = (image: ChatImage) => {
+    void fetch(chatImageSrc(image), { method: "DELETE" }).catch(() => undefined);
+  };
+
+  /** Takes an image out of the draft, and returns it. */
+  const drop = (key: string) => {
     const gone = current.current.find((image) => image.key === key);
     current.current = current.current.filter((image) => image.key !== key);
     onImagesChange((now) => now.filter((image) => image.key !== key));
     forget(gone?.preview);
-    // An image still being saved is deleted once saved.
+    return gone;
+  };
+
+  const remove = (key: string) => {
+    const gone = drop(key);
     if (gone?.image) {
-      void fetch(chatImageSrc(gone.image), { method: "DELETE" }).catch(() => undefined);
+      deleteImage(gone.image);
+    } else if (gone) {
+      // Still being saved: deleted once saved.
+      discarded.add(key);
     }
   };
 
   const settle = (added: DraftImage, result: AttachResult) => {
     forget(added.preview);
-    const kept = current.current.some((image) => image.key === added.key);
+    const removed = discarded.delete(added.key);
     if (!result.ok) {
-      remove(added.key);
+      drop(added.key);
       return;
     }
     const image = result.value as ChatImage;
-    if (!kept) {
-      // Removed while it was saved.
-      void fetch(chatImageSrc(image), { method: "DELETE" }).catch(() => undefined);
+    if (removed) {
+      deleteImage(image);
       return;
     }
     const saved = { key: added.key, name: added.name, image };
@@ -139,17 +168,32 @@ function useChatImages({
     });
     current.current = [...current.current, ...added];
     onImagesChange((now) => [...now, ...added]);
-    taken.forEach((file, index) => {
+    // The batch in one run, as a field's: its refusal stays shown over the images added after it.
+    if (taken.length > 0) {
       queue.current = queue.current.then(async () => {
-        const [result] = await attach.attach([file]);
-        settle(added[index], result);
+        await attach.attach(taken, undefined, (result, index) => settle(added[index], result));
       });
-    });
+    }
     if (taken.length < files.length) {
       // Shown once the images taken are saved, so their statuses do not hide it.
       queue.current = queue.current.then(() => attach.show(IMAGE_REFUSALS.tooManyImages, true));
     }
   };
+
+  // A taken-back message's images go before the draft's: past 10, the draft's last ones go.
+  const over = images.length > MAX_IMAGES;
+  useEffect(() => {
+    if (!over) {
+      return;
+    }
+    for (const image of current.current.slice(MAX_IMAGES)) {
+      remove(image.key);
+    }
+    setShown(true);
+    attach.show(IMAGE_REFUSALS.tooManyImages, true);
+    // Once per time the draft goes past 10.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [over]);
 
   return {
     addFiles,
@@ -188,7 +232,8 @@ function useReplyStatus(agentName: string, working: boolean): string {
  * next send, as a refused Stop does.
  * Images come by the paperclip, a paste, or a drop anywhere on the page, and show as thumbnails
  * above the text, dimmed while saved; Send waits for them, and takes a message of images alone. An
- * agent that cannot read images has no paperclip, and the workflow's message takes none (R60).
+ * agent that cannot read images has no paperclip, and the workflow's message takes none (R60):
+ * images already in the draft stay there for the next message (R67).
  * `notice` is the page's own reason under it, like the workflow's refusal to continue: with the
  * workflow's message, "Start the agent" stays, disabled, so the message never goes as a chat.
  * `blocked` disables it, with why, as when the agent is not on this machine.
@@ -236,16 +281,43 @@ export function Composer({
   const unavailable = agent?.available ? blocked : `${name} is not available on this machine.`;
   const refused = workflow !== undefined && notice !== undefined;
   // An agent that cannot read images has no attach button; the workflow's message takes none (R42).
+  // An agent not read yet refuses nothing: the server checks the message at Send.
   const readsImages = Boolean(agent?.capabilities.images);
+  const refusedWith = !agent
+    ? undefined
+    : unavailable
+      ? unavailable
+      : !readsImages
+        ? IMAGE_REFUSALS.noImages
+        : workflow
+          ? IMAGE_REFUSALS.workflowImages
+          : undefined;
   const attaching = useChatImages({
     images,
     onImagesChange,
-    ...(!readsImages
-      ? { refusedWith: IMAGE_REFUSALS.noImages }
-      : workflow
-        ? { refusedWith: IMAGE_REFUSALS.workflowImages }
-        : {}),
+    ...(refusedWith === undefined ? {} : { refusedWith }),
   });
+  // The thumbnail whose remove button takes the focus once one is removed: the next, else the
+  // last; with none left, the text.
+  const focusAt = useRef<number>(undefined);
+  useEffect(() => {
+    const at = focusAt.current;
+    if (at === undefined) {
+      return;
+    }
+    focusAt.current = undefined;
+    const buttons = [
+      ...(box.current?.querySelectorAll<HTMLElement>(
+        '[role="group"] button[aria-label^="Remove "]',
+      ) ?? []),
+    ];
+    const next = buttons[Math.min(at, buttons.length - 1)];
+    if (next) {
+      next.focus();
+    } else {
+      input.current?.focus();
+    }
+  }, [images]);
   // The session page's one field: a file dropped anywhere on it joins the message.
   const drop = useImageDrop({
     ref: box,
@@ -253,18 +325,23 @@ export function Composer({
     onFiles: attaching.addFiles,
     label: "the message",
   });
-  const saving = images.some((image) => !image.image);
-  const canSend = (value.trim() !== "" || images.length > 0) && !saving && !unavailable;
+  // The workflow's message goes alone: the draft's images stay for the next one (R67).
+  const withImages = workflow === undefined;
+  const saving = withImages && images.some((image) => !image.image);
+  const hasContent = value.trim() !== "" || (withImages && images.length > 0);
+  const canSend = hasContent && !saving && !unavailable;
 
   const submit = (text: string) => {
     if (refused || !canSend) {
       return;
     }
-    const sending = images;
+    const sending = withImages ? images : [];
     setError(undefined);
     onChange("");
-    onImagesChange([]);
-    attaching.sent();
+    if (withImages) {
+      onImagesChange([]);
+      attaching.sent();
+    }
     void sendMessage(fate, {
       ...(session === undefined ? (folder === undefined ? {} : { folder }) : { session }),
       text,
@@ -275,7 +352,9 @@ export function Composer({
         onSent?.(sent.session);
       } else {
         onChange(text);
-        onImagesChange((now) => [...sending, ...now]);
+        if (sending.length > 0) {
+          onImagesChange((now) => [...sending, ...now]);
+        }
         setError(sent.message);
       }
     });
@@ -332,14 +411,19 @@ export function Composer({
             images.length > 0 ? (
               <ChatComposerDrawer label="Images">
                 <HStack gap={2} wrap="wrap">
-                  {images.map((image) => (
+                  {images.map((image, index, all) => (
                     <Thumbnail
                       key={image.key}
                       src={image.image ? chatImageSrc(repo, image.image) : image.preview}
                       label={image.name}
+                      // Told apart by their place, as pasted images share their name.
+                      {...(all.length > 1 ? { alt: `image ${index + 1} of ${all.length}` } : {})}
                       isLoading={!image.image}
                       showRemoveOn="always"
-                      onRemove={() => attaching.remove(image.key)}
+                      onRemove={() => {
+                        attaching.remove(image.key);
+                        focusAt.current = index;
+                      }}
                     />
                   ))}
                 </HStack>
@@ -365,8 +449,9 @@ export function Composer({
             ) : undefined
           }
           sendActions={
-            // During a turn, Send steers the message into it, beside Stop.
-            working && canSend && !workflow ? send : undefined
+            // During a turn, Send steers the message into it, beside Stop: shown, disabled, while
+            // its images are saved.
+            working && hasContent && !workflow ? send : undefined
           }
           sendButton={
             workflow ? (
@@ -387,7 +472,9 @@ export function Composer({
                 ? { type: "error", message: notice }
                 : unavailable
                   ? { type: "warning", message: unavailable }
-                  : undefined
+                  : workflow && images.length > 0
+                    ? { type: "warning", message: WORKFLOW_KEEPS_IMAGES }
+                    : undefined
           }
         />
       </DropHint>

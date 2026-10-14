@@ -36,6 +36,12 @@ const styles = stylex.create({
   message: {
     maxBlockSize: "var(--size-message-image)",
   },
+  // An image of a known size: its box, in its proportions and at most its own height, is drawn
+  // before it loads.
+  sized: (ratio: string, blockSize: string) => ({
+    aspectRatio: ratio,
+    blockSize,
+  }),
   zoom: {
     cursor: "zoom-in",
   },
@@ -90,17 +96,25 @@ function Missing({ alt }: { alt: string }) {
  * click opens it full screen in a lightbox, which Back closes; an image that fails to load shows
  * "Image missing" in its place. `isStatic`, or a `StaticImages` around it, draws the image alone,
  * as inside a link or a control. `size="message"` draws a chat message's image as a preview.
+ * `width` and `height`, when known, as a chat image's are, keep its place while it loads. `label`
+ * names an image without alt text, "Image" by default.
  */
 export function ImageView({
   src,
   alt,
   isStatic = false,
   size = "column",
+  width,
+  height,
+  label = "Image",
 }: {
   src: string;
   alt: string;
   isStatic?: boolean;
   size?: "column" | "message";
+  width?: number;
+  height?: number;
+  label?: string;
 }) {
   // The address that failed: an image whose address changes, as in a preview while its link is
   // typed, loads again.
@@ -117,16 +131,21 @@ export function ImageView({
   if (failed === src) {
     return <Missing alt={alt} />;
   }
+  const known = width !== undefined && height !== undefined && width > 0 && height > 0;
+  const cap = size === "message" ? "var(--size-message-image)" : "var(--size-image-max-height)";
   const image = (zoom: boolean, inline: boolean) => (
     <img
       src={src}
       alt={alt}
+      // Its box is drawn before it loads: a transcript opened at its end stays there.
+      {...(known ? { width, height } : {})}
       loading="lazy"
       decoding="async"
       onError={() => setFailed(src)}
       {...stylex.props(
         styles.image,
         size === "message" && styles.message,
+        known && styles.sized(`${width} / ${height}`, `min(${height}px, ${cap})`),
         zoom && styles.zoom,
         inline && styles.inline,
       )}
@@ -152,7 +171,7 @@ export function ImageView({
         onClick={onClick}
         aria-haspopup="dialog"
         // An image without alt text is not named by it.
-        {...(alt ? {} : { "aria-label": "Image" })}
+        {...(alt ? {} : { "aria-label": label })}
         xstyle={styles.link}
       >
         {image(true, false)}
