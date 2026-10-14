@@ -119,3 +119,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `refs/remotes/origin/<branch>`, which would need `Git::tip` to return which one it found.
 - **If wrong**: `numstat`'s two arguments in `changes.rs`.
 - **Where**: Task 2.
+
+## R11: A finished feature's own files are its record and its folder
+
+- **Decision**: `branch_changes` leaves out what `Feature::owns` gives the feature, and the paths
+  under its folder. On the branch of a finished feature, not yet merged, that is its record
+  `specs/done/<folder>.md` and its folder's deleted files, while other files of `specs/done/` are
+  listed.
+- **Rationale**: the spec leaves out the feature's own folder, which the column links to. Once the
+  folder becomes a record, the record plays that part, and the folder's deletions are not code. The
+  prefix of the feature's `path`, `specs/done` for a finished feature, left out every record.
+- **Alternatives considered**: `Feature::owns` alone, which lists a finished feature's deleted
+  folder files.
+- **If wrong**: the `own` closure in `changes.rs`.
+- **Where**: Task 2, after its review.

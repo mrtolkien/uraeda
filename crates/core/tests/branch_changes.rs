@@ -5,7 +5,7 @@ mod common;
 use std::time::{Duration, Instant};
 
 use common::repo::TestRepo;
-use common::texts::proposal;
+use common::texts::{proposal, record};
 use uraeda_core::changes::{BranchChanges, ChangedFile, branch_changes};
 
 const FOLDER: &str = "2026-10-14-session-view";
@@ -70,6 +70,8 @@ enum Expected {
     Changes(BranchChanges),
     Nothing,
     Refused(&'static str),
+    /// Refused with git's own message.
+    GitFailed,
 }
 
 /// Each case builds on [`repo`], and returns the folder asked for.
@@ -192,6 +194,92 @@ fn unknown_folder(_: &TestRepo) -> &'static str {
     "2026-10-14-nope"
 }
 
+/// The feature finished on its branch: its folder replaced by its record, and another record of
+/// `specs/done/` changed beside it.
+fn finished(repo: &TestRepo) -> &'static str {
+    repo.switch(FOLDER);
+    // `git rm`, unlike removing the file, also removes its folder from the disk.
+    let proposal = format!("specs/{FOLDER}/proposal.md");
+    repo.git(&["rm", "--quiet", &proposal]);
+    repo.write(
+        &format!("specs/done/{FOLDER}.md"),
+        &record("feature", "Session view"),
+    );
+    repo.write("specs/done/2026-10-01-other.md", "# Other\n");
+    repo.write("src/a.rs", "fn a() {}\n");
+    repo.commit("finish");
+    repo.switch("main");
+    FOLDER
+}
+
+/// A file of the feature's folder at the merge base, moved to `src/` on the branch. `main` drops
+/// the folder afterwards, so the feature is not merged.
+fn moved_out(repo: &TestRepo) -> &'static str {
+    let notes = format!("specs/{FOLDER}/notes.txt");
+    repo.write(&notes, &lines(10, "note"));
+    repo.commit("notes");
+    repo.switch(FOLDER);
+    repo.git(&["merge", "--quiet", "main"]);
+    std::fs::create_dir_all(repo.path().join("src")).unwrap();
+    repo.git(&["mv", &notes, "src/notes.txt"]);
+    repo.commit("move out");
+    repo.switch("main");
+    repo.git(&["rm", "--quiet", "-r", &format!("specs/{FOLDER}")]);
+    repo.commit("drop the folder");
+    FOLDER
+}
+
+/// A file of `main` moved into the feature's folder.
+fn moved_in(repo: &TestRepo) -> &'static str {
+    repo.write("src/old.txt", &lines(10, "old"));
+    repo.commit("old");
+    repo.switch(FOLDER);
+    repo.git(&["merge", "--quiet", "main"]);
+    repo.git(&["mv", "src/old.txt", &format!("specs/{FOLDER}/old.txt")]);
+    repo.commit("move in");
+    repo.switch("main");
+    FOLDER
+}
+
+/// A feature branch with no history in common with `main`: git finds no merge base.
+fn orphan(repo: &TestRepo) -> &'static str {
+    repo.git(&["switch", "--quiet", "--orphan", "2026-10-14-orphan"]);
+    repo.write("specs/2026-10-14-orphan/proposal.md", &proposal());
+    repo.commit("orphan");
+    repo.switch("main");
+    "2026-10-14-orphan"
+}
+
+/// The cases of what the feature's own files are.
+fn own_files_cases() -> Vec<(&'static str, Setup, Expected)> {
+    vec![
+        (
+            "the feature finished on its branch",
+            finished,
+            changes(
+                vec![
+                    file("specs/done/2026-10-01-other.md", Some(1), Some(0)),
+                    file("src/a.rs", Some(1), Some(0)),
+                ],
+                2,
+                2,
+                0,
+            ),
+        ),
+        (
+            "a file moved out of the feature's folder",
+            moved_out,
+            changes(vec![file("src/notes.txt", Some(0), Some(0))], 1, 0, 0),
+        ),
+        (
+            "a file moved into the feature's folder",
+            moved_in,
+            changes(vec![], 0, 0, 0),
+        ),
+        ("no merge base", orphan, Expected::GitFailed),
+    ]
+}
+
 fn cases() -> Vec<(&'static str, Setup, Expected)> {
     let a = || vec![file("src/a.rs", Some(1), Some(0))];
     vec![
@@ -272,7 +360,7 @@ fn cases() -> Vec<(&'static str, Setup, Expected)> {
 
 #[test]
 fn branch_changes_lists_the_files_changed_outside_the_feature() {
-    for (name, setup, expected) in cases() {
+    for (name, setup, expected) in cases().into_iter().chain(own_files_cases()) {
         let repo = repo();
         let folder = setup(&repo);
         let found = branch_changes(repo.path(), folder);
@@ -285,6 +373,14 @@ fn branch_changes_lists_the_files_changed_outside_the_feature() {
                     (error.code, error.message.as_str()),
                     ("refused", message),
                     "{name}"
+                );
+            }
+            Expected::GitFailed => {
+                let error = found.expect_err(name);
+                assert_eq!(error.code, "refused", "{name}");
+                assert!(
+                    error.message.starts_with("git diff failed: "),
+                    "{name}: {error}"
                 );
             }
         }
