@@ -74,3 +74,5 @@
 - Add an "open priorities" shortcut to the nvim plugin
 - In a "done" feature, we should have a nice view of all its info, not just a dirty link to the
   report
+- Only true uraeda flows should show up in the UI -> `review-findings` is in the UI despite not
+  having used the flow

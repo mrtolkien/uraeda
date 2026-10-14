@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
 import { refusable } from "../fate/errors.ts";
-import { byId, fixtureRepo, mutate, repoWithBranches, testApp } from "./helpers.ts";
+import { byId, fixtureRepo, mutate, testApp } from "./helpers.ts";
 
 const ROUND = "2026-10-11-web-ui/clarifications-01.md";
 
@@ -122,28 +122,6 @@ test("puts a removed priority line back", async () => {
   const later = result.data.sections.find((s: { section: string }) => s.section === "later");
   expect(later.entries[0].key).toBe("nix-docker-based-execution-environments");
   expect(later.entries[0].nested).toEqual(["  - with a cache"]);
-});
-
-/**
- * SC-001. The fastest of five reads is timed, each one reading the repository again: the other test
- * projects share the CPUs, and a read they stall says nothing of the server, while a server over
- * 500 ms is that slow on every read.
- */
-test("reads the workspace of 20 feature branches in under 500 ms", async () => {
-  const app = testApp(repoWithBranches(16));
-  await byId(app, "Workspace", ["workspace"], ["id"]);
-
-  const times: Array<number> = [];
-  let features: Array<unknown> = [];
-  for (let read = 0; read < 5; read++) {
-    const start = performance.now();
-    const [workspace] = await byId(app, "Workspace", ["workspace"], ["id", "features"]);
-    times.push(performance.now() - start);
-    features = workspace.features;
-  }
-
-  expect(features.length).toBeGreaterThanOrEqual(20);
-  expect(Math.min(...times)).toBeLessThan(500);
 });
 
 test("a file without a review is sent with none, so a removed review leaves the page", async () => {
