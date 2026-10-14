@@ -9,6 +9,8 @@
 - Look and feel pass: components style, logo, favicon, ...
   - Generally, the happy path should look good: parsed frontmatter should not appear in the edit
     box, we should have color and hierarchy for specs and plans, ...
+  - For example specs are very hard to read at the moment, there's no clear user stories UI, it's a
+    sea of bullet points, ...
 
 - Add a bugfixing/low impact change flow
 - Add a "scratchpad" concept: quick notes about the system, small issues, ...
@@ -82,3 +84,10 @@
 - Text fields still behave poorly: in the clarifications the "Notes" still sometimes "eats" some of
   my letters + the text is also shown in the "body" of the page which makes no sense. All text input
   fields should be align to only save with a button.
+  - And the comments in the spec feel super laggy too...
+- There should be a _dedicated_ session view, not just a sidebar, even on desktop. Also it has
+  "start the agent" even while the agent is running...
+- Done features should be latest first, not last
+- Slug for drafts/features should be 3 words max: ask the human
+- We can likely drop the nvim plugin and LSP... The WebUI is turning out just as good and working
+  with worktrees in nvim is pretty hard. I like it for writing proposals though.
