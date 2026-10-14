@@ -30,6 +30,24 @@ export function useSave<T>(
   const runRef = useRef(run);
   runRef.current = run;
 
+  /** Queues a write after the saves before it, over the text the last one wrote. */
+  const enqueue = useCallback((write: (previous: string) => Promise<SaveResult>) => {
+    running.current += 1;
+    queue.current = queue.current.then(async () => {
+      setState({ kind: "saving" });
+      const result = await write(previous.current).finally(() => {
+        running.current -= 1;
+      });
+      saved.current = result.ok;
+      if (result.ok) {
+        previous.current = result.saved;
+        setState({ kind: "saved" });
+      } else {
+        setState({ kind: "error", message: result.message });
+      }
+    });
+  }, []);
+
   /** Saves what waits at once; resolves with whether the value shown is saved. */
   const flush = useCallback(() => {
     clearTimeout(timer.current);
@@ -37,23 +55,24 @@ export function useSave<T>(
     const value = latest.current;
     latest.current = undefined;
     if (value !== undefined) {
-      running.current += 1;
-      queue.current = queue.current.then(async () => {
-        setState({ kind: "saving" });
-        const result = await runRef.current(value, previous.current).finally(() => {
-          running.current -= 1;
-        });
-        saved.current = result.ok;
-        if (result.ok) {
-          previous.current = result.saved;
-          setState({ kind: "saved" });
-        } else {
-          setState({ kind: "error", message: result.message });
-        }
-      });
+      enqueue((previous) => runRef.current(value, previous));
     }
     return queue.current.then(() => saved.current);
-  }, []);
+  }, [enqueue]);
+
+  /**
+   * Writes the file another way than saving the value, such as setting one field, in the same
+   * queue: after what waits is saved, and before any save or flush that comes later. Resolves with
+   * whether it wrote.
+   */
+  const write = useCallback(
+    (change: (previous: string) => Promise<SaveResult>) => {
+      void flush();
+      enqueue(change);
+      return queue.current.then(() => saved.current);
+    },
+    [enqueue, flush],
+  );
 
   const schedule = useCallback(
     (value: T, immediately = false) => {
@@ -83,8 +102,5 @@ export function useSave<T>(
     }
   }, []);
 
-  /** What the last save wrote, or the file's text last settled on. */
-  const last = useCallback(() => previous.current, []);
-
-  return { state, schedule, flush, settle, idle, last };
+  return { state, schedule, flush, write, settle, idle };
 }

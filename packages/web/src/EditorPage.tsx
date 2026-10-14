@@ -64,7 +64,7 @@ export function EditorPage({ path }: { path: string }) {
     }
     return { ok: true, saved: result.result?.hash ?? previous };
   }, draft?.hash ?? "");
-  const { settle, idle, last } = save;
+  const { settle, idle } = save;
   const shown = useRef(text);
   shown.current = text;
   // A text changed elsewhere replaces this one when nothing of it waits to be saved.
@@ -131,29 +131,38 @@ export function EditorPage({ path }: { path: string }) {
       }
     }
   };
-  /** Sets the discovery effort in the frontmatter, once the text shown is saved. */
+  /**
+   * Sets the discovery effort in the frontmatter, in the save queue: after the text shown is saved,
+   * and before a later save, commit, or start.
+   */
   const setDiscovery = async (level: string) => {
     setMessage(undefined);
-    if (!(await save.flush())) {
-      setMessage({ text: "Your text is not saved: the discovery effort was not set.", ok: false });
-      return;
-    }
-    const result = await fate.mutations.text.discovery({
-      input: { path, level, hash: last() },
-      view: DraftView,
-    });
-    if (result.error) {
-      const failed = refusal(result.error);
-      if (failed.kind === "conflict") {
-        setConflict(failed.message);
-      } else {
-        setMessage({ text: failed.message, ok: false });
+    let refused: string | undefined;
+    const wrote = await save.write(async (previous) => {
+      const result = await fate.mutations.text.discovery({
+        input: { path, level, hash: previous },
+        view: DraftView,
+      });
+      if (result.error) {
+        const failed = refusal(result.error);
+        if (failed.kind === "conflict") {
+          setConflict(failed.message);
+        } else {
+          refused = failed.message;
+        }
+        return { ok: false, message: failed.message };
       }
-      return;
-    }
-    if (result.result) {
-      setText(result.result.text);
-      settle(result.result.hash);
+      if (result.result) {
+        setText(result.result.text);
+        return { ok: true, saved: result.result.hash };
+      }
+      return { ok: true, saved: previous };
+    });
+    if (!wrote) {
+      setMessage({
+        text: refused ?? "Your text is not saved: the discovery effort was not set.",
+        ok: false,
+      });
     }
   };
   /** Reads the file again, and puts its text in place of the one that was not saved. */
