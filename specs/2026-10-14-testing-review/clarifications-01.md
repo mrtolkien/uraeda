@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Testing review
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 8 questions on the testing review, about 30 minutes.
+> Answered on 2026-10-14.
 >
 > - Three choices change active decisions: splitting CI into parallel jobs and switching Rust to
 >   cargo-nextest change the toolchain decision, and a tier of tests left out of `ready` would
@@ -64,7 +64,10 @@ Why it matters: it sets the size of this feature, and what waits for a later one
   - [pro] the smallest feature, done soonest.
   - [con] the proposal's coverage goal waits.
 
-**Answer:**
+**Answer:** A: Lua tests can be skipped by default tbh, it's extremely secondary and rarely touched.
+Not worth 46 seconds.
+
+Create a "Later" line in priorities for Cargo mutants
 
 ### Q1.A: What does coverage do once it is measured?
 
@@ -87,7 +90,7 @@ service receiving the project's coverage. More in [discovery](discovery-01.md#co
   - [pro] coverage of the change shown on the pull request, merged across languages.
   - [con] an outside service, a token in CI, and the project's coverage published there.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: What happens when a test fails without a bug?
 
@@ -120,7 +123,7 @@ Why it matters: it decides whether a red CI always means "look at the code", as 
   - [pro] merges are unblocked, and the flakes stay visible.
   - [con] a list to keep, and a bug in a quarantined area goes unnoticed until the deadline.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Should some tests leave the default run?
 
@@ -147,7 +150,7 @@ Why it matters: a tier that does not run on every change is where failures are f
   - [pro] the fastest runs.
   - [con] tests that never run rot, and someone has to say which tests are non-critical.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: How does a task skip the work its change cannot affect?
 
@@ -179,7 +182,7 @@ Why it matters: this is the proposal's hour lost per feature.
     does not see.
   - [con] a second home for the dependency map, wrong as soon as a test reads a new file.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: How should CI run the checks?
 
@@ -212,7 +215,7 @@ These options combine: D can come on top of A or B.
   - [pro] skips unchanged work on CI with no map to keep.
   - [con] experimental in Vite+, and its download can cost more than it saves.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: Should Rust tests run with cargo-nextest?
 
@@ -234,7 +237,7 @@ Why it matters: it decides how Rust tests are isolated and timed out from now on
   - [pro] no new tool, no decision change.
   - [con] the next test that sets the environment or hangs repeats the problem.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: Should every browser test run at both sizes?
 
@@ -256,7 +259,9 @@ Why it matters: the browser tests set CI's time, whatever the answer to Q5.
   - [pro] nothing is checked less.
   - [con] the browser tests stay the critical path.
 
-**Answer:**
+**Answer:** A: I'm honestly not sure of the relevance of all those UI tests. The UI is already very
+bad and clunky, so I'm not convinced they are pulling their weight compared to the run time,
+complexity, and maintenance burden. Are those tests really _useful_?
 
 ## Settled without the human
 
