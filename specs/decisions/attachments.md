@@ -42,23 +42,23 @@ files.
 
 The human wanted screenshots in proposals, reviews, and answers, readable wherever the workflow is
 read, and recoverable from git, as the constitution asks
-([Q1](../2026-10-13-image-attachments/clarifications-01.md#q1-where-are-images-attached-to-proposals-reviews-and-answers-stored),
-[storing images](../2026-10-13-image-attachments/discovery-01.md#storing-images-of-workflow-files)).
+([Q1](../done/2026-10-13-image-attachments.md#q1-where-are-images-attached-to-proposals-reviews-and-answers-stored),
+[storing images](../done/2026-10-13-image-attachments.md#q1-where-are-images-attached-to-proposals-reviews-and-answers-stored)).
 Binary files in git are an exception to the plain-text principle, which this decision justifies.
 Images stay next to the files they explain, and go with the folder when the feature finishes
-([Q1.A](../2026-10-13-image-attachments/clarifications-01.md#q1a-where-in-the-repository-do-images-go-and-what-happens-to-them-when-the-feature-finishes)).
+([Q1.A](../done/2026-10-13-image-attachments.md#q1a-where-in-the-repository-do-images-go-and-what-happens-to-them-when-the-feature-finishes)).
 Chats are not workflow state, so their images stay out of git, and the agent opens them by path
-([Q2](../2026-10-13-image-attachments/clarifications-01.md#q2-how-does-a-chat-image-reach-the-agent-and-where-is-it-kept)).
+([Q2](../done/2026-10-13-image-attachments.md#q2-how-does-a-chat-image-reach-the-agent-and-where-is-it-kept)).
 
 Since images live in git history forever, the human asked for an efficient format that works for
 screenshots
-([Q6](../2026-10-13-image-attachments/clarifications-01.md#q6-are-images-changed-before-they-are-saved-or-sent)).
+([Q6](../done/2026-10-13-image-attachments.md#q6-are-images-changed-before-they-are-saved-or-sent)).
 WebP is the only modern format that browsers, GitHub, Obsidian, and Claude all read: Claude and
 Obsidian do not read JPEG XL, and Claude does not read AVIF. On 97 screenshots, near-lossless WebP
 took 25 % of the PNG size, while lossy WebP took more, and blurred coloured text. Encoding in the
 core gives one implementation for the server, the CLI, and `ura lsp`; libwebp gives the same bytes
 as sharp, while the pure Rust encoder makes files twice as large
-([spec](../2026-10-13-image-attachments/spec.md#architecture)).
+([spec](../done/2026-10-13-image-attachments.md)).
 
 ## Alternatives considered
 
