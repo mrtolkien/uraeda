@@ -106,6 +106,8 @@ test("open folds survive Back (US1 4)", async () => {
   // A real click: WebKit skips, on Back, an entry that added another without a user's gesture.
   await userEvent.click(screen.getAllByRole("link", { name: "Recurring tasks" })[0]!);
   await expect.poll(() => window.location.pathname).toBe(atRepo("/f/2026-10-06-recurring-tasks"));
+  // The spec page gone, so Back mounts its folds again from the history entry.
+  await expect.poll(() => screen.queryAllByRole("button", { name: "Details" }).length).toBe(0);
   await act(async () => window.history.back());
   await expect.poll(() => window.location.pathname).toBe(atRepo(SPEC));
 
