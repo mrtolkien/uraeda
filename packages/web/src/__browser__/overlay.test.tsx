@@ -58,13 +58,24 @@ function OwnedOverlay() {
 
 const overlayEntry = () => (window.history.state as { overlay?: string } | null)?.overlay;
 
+/** Whether a `popstate` came since it was called: the Back of a closing landed. */
+function backLanded() {
+  let landed = false;
+  window.addEventListener("popstate", () => (landed = true), { once: true });
+  return () => landed;
+}
+
 test("an overlay opened again while its closing goes back stays open, and Back closes it", async () => {
   render(<OwnedOverlay />);
+  const landed = backLanded();
   screen.getByRole("button", { name: "Done, then open again" }).click();
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  // The closing's Back lands, then the overlay, opened again, pushes its entry anew.
+  await waitFor(() => {
+    expect(landed()).toBe(true);
+    expect(overlayEntry()).toBe("New priority");
+  });
 
   expect(screen.getByRole("dialog", { name: "New priority" })).toBeTruthy();
-  expect(overlayEntry()).toBe("New priority");
   window.history.back();
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(overlayEntry()).toBeUndefined();
@@ -95,10 +106,10 @@ function OverlaysInTurn() {
 test("an overlay opened while another's closing goes back stays open, and Back closes it", async () => {
   render(<OverlaysInTurn />);
   screen.getByRole("button", { name: "Done, then the second" }).click();
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  // The second's entry is pushed only once the first's Back landed.
+  await waitFor(() => expect(overlayEntry()).toBe("Second"));
 
   expect(screen.getByRole("dialog", { name: "Second" })).toBeTruthy();
-  expect(overlayEntry()).toBe("Second");
   window.history.back();
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(overlayEntry()).toBeUndefined();
