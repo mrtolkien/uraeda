@@ -28,6 +28,7 @@
 
 - Benchmarks (harness, model, ...): blocked until the harness and the Claude Code integration are
   ready, see [backlog](backlog/benchmarks/proposal.md), with a discovery round and partial answers.
+- Auth and login for basic security
 
 - CLI auto-expand in fish and ?zsh?
 - Ping user when input is needed
@@ -76,3 +77,6 @@
   report
 - Only true uraeda flows should show up in the UI -> `review-findings` is in the UI despite not
   having used the flow
+- Text fields still behave poorly: in the clarifications the "Notes" still sometimes "eats" some of
+  my letters + the text is also shown in the "body" of the page which makes no sense. All text input
+  fields should be align to only save with a button.
