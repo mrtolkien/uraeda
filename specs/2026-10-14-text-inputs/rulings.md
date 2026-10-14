@@ -466,7 +466,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   to its first letter and to 12 lines. [`SaveStatus`](/packages/web/src/fields/SaveStatus.tsx)
   always takes the room of "Unsaved changes", drawn hidden by its style while another status or none
   shows: the status that appears at the first letter typed, which on the phone wraps under the
-  field's buttons, has its line kept, so nothing below moves.
+  field's buttons, has its line kept, so nothing below moves. Comment forms draw their "Unsaved
+  changes" through it too, since the final review: on the phone, the review's form moved its Cancel
+  to the next line at the first letter.
 - **Rationale**: the drag was tried at both sizes, with real mouse moves, presses, and waits, at the
   handle's corner: the events reach the text area, which never resizes. US6 says typing never
   changes the page's layout: "Unsaved changes" showing at the first letter moved the page 28 px on
