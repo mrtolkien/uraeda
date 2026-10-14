@@ -196,3 +196,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the environment's rule or the trusted publisher's environment name changes, in the
   guide's step 3 and 4.
 - **Where**: Task 9, `.github/workflows/npm.yml`, and the release guide.
+
+## R17: The Linux arm64 binary's C code compiles with clang
+
+- **Decision**: the `aarch64-unknown-linux-gnu` build sets `TARGET_CC=clang` and
+  `TARGET_CFLAGS=--target=aarch64-unknown-linux-gnu`. napi-rs keeps a clang compiler and adds its
+  toolchain's glibc 2.17 sysroot and GCC toolchain to the flags; Rust still links with the
+  toolchain's GCC.
+- **Rationale**: the first run of `npm.yml` on the pull request failed there: `libwebp-sys` builds
+  its vendored C code with NEON intrinsics, like `vdupq_laneq_u8`, which the toolchain's GCC 4.8.5
+  does not have. clang ships its own `arm_neon.h`, and the sysroot keeps the glibc 2.17 floor of
+  SC-003.
+- **Alternatives considered**: building on a GitHub arm64 runner, which links against its newer
+  glibc; zig through `--cross-compile`, whose glibc floor napi-rs's docs give as 2.28; turning NEON
+  off, which Rust's aarch64 target does not allow soundly.
+- **If wrong**: the job's two variables go, and the arm64 build moves to another toolchain.
+- **Where**: `.github/workflows/npm.yml`, the `binaries` job.
