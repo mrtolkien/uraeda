@@ -207,6 +207,7 @@ test("the notes are saved as the last line", async () => {
   await screen.findByText("Settled without you");
 
   await type(screen.getByLabelText("Notes"), "LGTM");
+  await tap(screen.getByRole("button", { name: "Save notes" }));
 
   await waitFor(() => expect(text(repo).trimEnd().endsWith("**Notes:** LGTM")).toBe(true));
 });
@@ -387,6 +388,7 @@ test("notes changed elsewhere show when the page reads again", async () => {
 
   await waitFor(() => expect(notes.value).toBe("theirs"));
   await type(notes, "theirs, and mine");
+  await tap(screen.getByRole("button", { name: "Save notes" }));
   await waitFor(() =>
     expect(text(repo).trimEnd().endsWith("**Notes:** theirs, and mine")).toBe(true),
   );

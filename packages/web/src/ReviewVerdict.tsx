@@ -7,7 +7,8 @@ import { useFateClient } from "react-fate";
 import { CommitActions } from "./CommitActions.tsx";
 import type { useFile } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
-import { GrowingTextArea, statusStyles } from "./Question.tsx";
+import { TextField } from "./fields/TextField.tsx";
+import { statusStyles } from "./Question.tsx";
 import { HookRefusal } from "./RoundSubmit.tsx";
 import { handOver } from "./sessions.ts";
 import { FileView } from "./views.ts";
@@ -102,7 +103,8 @@ export function ReviewVerdict({
 
   return (
     <>
-      <GrowingTextArea
+      <TextField
+        kind="comment"
         label="Summary"
         onChange={setSummary}
         placeholder="Optional"
