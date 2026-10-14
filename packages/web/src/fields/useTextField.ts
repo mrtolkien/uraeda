@@ -17,8 +17,8 @@ import {
  * into the store. The file never writes into the field while it holds unsaved text.
  *
  * - `dirty`: the text differs from `saved`, its ends trimmed.
- * - `change`: keeps the text typed, with `extra`, like a review comment's lines; text equal to
- *   `saved`, trimmed, leaves no entry.
+ * - `change`: keeps the text typed, with `extra`, like a review comment's lines, and `subject`, a
+ *   settled comment's; text equal to `saved`, trimmed, leaves no entry.
  * - `discard`: forgets the unsaved text, and shows `saved` again.
  * - `saved(text)`: says `text` was saved: its entry goes, unless the field changed since.
  * - `restored`: the unsaved text the field had when drawn, while it is still unsaved: when it was
@@ -26,7 +26,12 @@ import {
  * - `entry`: the unsaved text now, and `unsavedNow()` as the store holds it when called, for code
  *   that runs after waiting, like a submit.
  */
-export function useTextField(field: string, saved: string, extra?: Unsaved["extra"]) {
+export function useTextField(
+  field: string,
+  saved: string,
+  extra?: Unsaved["extra"],
+  subject?: string,
+) {
   const key = unsavedKey(useRepositoryPath(), field);
   const entry = useUnsaved(key);
   // The unsaved text the field had when drawn, forgotten once it is gone, discarded or saved: what
@@ -78,6 +83,7 @@ export function useTextField(field: string, saved: string, extra?: Unsaved["extr
       base: before?.base ?? saved,
       text: value,
       ...(extra ? { extra } : {}),
+      ...(subject === undefined ? {} : { subject }),
     });
   };
 

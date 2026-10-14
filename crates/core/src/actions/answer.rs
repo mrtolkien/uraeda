@@ -222,20 +222,22 @@ pub fn add_settled_comment(
     })
 }
 
-/// Changes comment `number`, counted from 1 in the notes' order, with `change`, over its text the
-/// UI last read, `previous`: another text, or no such comment, means the notes changed elsewhere.
+/// Changes comment `number`, counted from 1 in the notes' order, with `change`, over its subject
+/// and its text the UI last read, `previous`: another subject or text, or no such comment, means
+/// the notes changed elsewhere, as a comment removed renumbers the ones after it.
 fn change_settled_comment(
     place: &Place,
     feature: &Feature,
     number: u32,
-    previous: &str,
+    (subject, previous): (&str, &str),
     change: impl FnOnce(&mut Vec<(String, String)>, usize),
 ) -> Result<Written, ActionError> {
     edit(place, feature, |file, text| {
         let mut notes = round_notes(text)?;
         let index = (number as usize).wrapping_sub(1);
         match notes.comments.get(index) {
-            Some((_, current)) if current.trim() == previous.trim() => {}
+            Some((on, current))
+                if on.trim() == subject.trim() && current.trim() == previous.trim() => {}
             _ => return Err(ActionError::changed(file)),
         }
         change(&mut notes.comments, index);
@@ -247,29 +249,45 @@ fn change_settled_comment(
     })
 }
 
-/// Writes comment `number` on a settled point over its text last read. Commits nothing.
+/// Writes comment `number` on the settled point `subject` over its text last read. Commits
+/// nothing.
 pub fn edit_settled_comment(
     place: &Place,
     feature: &Feature,
     number: u32,
+    subject: &str,
     text: &str,
     previous: &str,
 ) -> Result<Written, ActionError> {
-    change_settled_comment(place, feature, number, previous, |comments, index| {
-        comments[index].1 = text.to_string();
-    })
+    change_settled_comment(
+        place,
+        feature,
+        number,
+        (subject, previous),
+        |comments, index| {
+            comments[index].1 = text.to_string();
+        },
+    )
 }
 
-/// Removes comment `number` on a settled point, over its text last read. Commits nothing.
+/// Removes comment `number` on the settled point `subject`, over its text last read. Commits
+/// nothing.
 pub fn remove_settled_comment(
     place: &Place,
     feature: &Feature,
     number: u32,
+    subject: &str,
     previous: &str,
 ) -> Result<Written, ActionError> {
-    change_settled_comment(place, feature, number, previous, |comments, index| {
-        comments.remove(index);
-    })
+    change_settled_comment(
+        place,
+        feature,
+        number,
+        (subject, previous),
+        |comments, index| {
+            comments.remove(index);
+        },
+    )
 }
 
 /// Submits the latest round and commits it, refused before anything is written when other files
