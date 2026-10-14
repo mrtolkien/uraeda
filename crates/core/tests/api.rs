@@ -165,6 +165,24 @@ fn try_again_commits_a_deleted_review_file() {
     );
 }
 
+/// A refused approval that deleted the folder's last image, unlinked, is committed again: the
+/// deletion, staged by the refused commit, is not added again.
+#[test]
+fn try_again_commits_a_deleted_image() {
+    let repo = repo();
+    let image = "specs/2026-10-11-web-ui/images/old.webp";
+    repo.add_on_branch(FOLDER, image, "old");
+    repo.set_hook("exit 1");
+    let refused = api::approve(repo.path(), FOLDER, "spec.md", None, None, None).unwrap_err();
+    assert_eq!(refused.code, "hook");
+    repo.set_hook("exit 0");
+
+    let committed = api::retry_commit(repo.path(), FOLDER, "spec.md").unwrap();
+
+    assert_eq!(committed.subject, "spec(web-ui): approve");
+    assert_eq!(repo.changed_in(FOLDER), [image, SPEC]);
+}
+
 /// M2: raw files are the repository's tracked ones only.
 #[test]
 fn raw_files_are_tracked_files_only() {

@@ -2,7 +2,7 @@
 
 use std::process::ExitCode;
 
-use uraeda_core::actions::{answer, place};
+use uraeda_core::actions::{answer, list, place};
 use uraeda_core::target::{Purpose, Target};
 use uraeda_core::today;
 
@@ -71,7 +71,14 @@ pub fn run(arguments: Vec<String>, submit: bool, no_commit: bool) -> Result<Exit
                 .map_err(|e| refused(e.to_string()))?;
             output::say_place(&git, &place);
             let round = round(&change.subject);
-            println!("Round {round} answered in {}: commit it.", change.paths[0]);
+            match change.paths.as_slice() {
+                [file] => println!("Round {round} answered in {file}: commit it."),
+                [file, images @ ..] => println!(
+                    "Round {round} answered in {file}: commit it with {}.",
+                    list(images)
+                ),
+                [] => {}
+            }
         } else {
             let committed = answer::submit_and_commit(&place, feature, today::today())
                 .map_err(|e| refused(output::action_error(e)))?;

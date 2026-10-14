@@ -6,6 +6,7 @@ pub mod attach;
 pub mod clean;
 pub mod commit;
 pub mod draft;
+pub mod images;
 pub mod init;
 pub mod install;
 pub mod place;
@@ -68,7 +69,7 @@ impl From<std::io::Error> for ActionError {
 }
 
 /// `Q7`, `Q7 and Q9`, `Q1, Q7, and Q9`.
-pub(crate) fn list(items: &[String]) -> String {
+pub fn list(items: &[String]) -> String {
     match items {
         [] => String::new(),
         [one] => one.clone(),

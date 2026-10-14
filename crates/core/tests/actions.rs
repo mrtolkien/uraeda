@@ -465,3 +465,293 @@ fn start_accepts_a_draft_with_placeholders_or_empty_sections() {
         assert!(started.is_ok(), "{}", started.err().unwrap());
     }
 }
+
+const PROPOSAL: &str = "specs/2026-10-11-web-ui/proposal.md";
+const IMAGES: &str = "specs/2026-10-11-web-ui/images";
+
+/// A small still GIF, re-encoded by `attach`.
+fn image() -> Vec<u8> {
+    std::fs::read(common::fixture("images/still.gif")).unwrap()
+}
+
+fn stamp() -> String {
+    "20261014-103512".to_string()
+}
+
+/// Writes a file in a working tree, its folders created.
+fn put(place: &Place, path: &str, bytes: &[u8]) {
+    let file = place.root.join(path);
+    std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+    std::fs::write(file, bytes).unwrap();
+}
+
+/// Appends a line to a file of a working tree.
+fn append(place: &Place, path: &str, line: &str) {
+    let text = read(place, path);
+    std::fs::write(place.root.join(path), format!("{text}\n{line}\n")).unwrap();
+}
+
+/// The files a branch's tip tracks under a folder.
+fn tracked(repo: &TestRepo, branch: &str, folder: &str) -> Vec<String> {
+    repo.git(&["ls-tree", "-r", "--name-only", branch, "--", folder])
+        .lines()
+        .map(String::from)
+        .collect()
+}
+
+/// US1.5, and Review focus 1: a never-committed, unlinked image is deleted, never staged.
+#[test]
+#[allow(non_snake_case)]
+fn US1_5_a_proposal_commits_its_images_and_drops_the_unlinked() {
+    let repo = repo_with(&round("", "", ""));
+    let (_, place) = reach(&repo);
+    let attached =
+        uraeda_core::actions::attach::attach(&place, PROPOSAL, &image(), Some("login.png"), stamp)
+            .unwrap();
+    append(&place, PROPOSAL, &attached.link);
+    put(&place, &format!("{IMAGES}/old.webp"), b"old");
+
+    let committed = text::commit(&place, PROPOSAL).unwrap();
+
+    assert_eq!(committed.change.subject, "chore(web-ui): edit the proposal");
+    assert_eq!(
+        repo.changed_in(FOLDER),
+        [format!("{IMAGES}/login.webp"), PROPOSAL.to_string()]
+    );
+    assert!(!place.root.join(IMAGES).join("old.webp").exists());
+    assert!(place.root.join(IMAGES).join("login.webp").exists());
+}
+
+/// Review focus 1: the folder's only image, unlinked and never committed, leaves no pathspec.
+#[test]
+fn an_unlinked_image_never_committed_is_deleted_without_a_trace() {
+    let repo = repo_with(&round("", "", ""));
+    let (_, place) = reach(&repo);
+    append(&place, PROPOSAL, "More.");
+    put(&place, &format!("{IMAGES}/old.webp"), b"old");
+
+    text::commit(&place, PROPOSAL).unwrap();
+
+    assert_eq!(repo.changed_in(FOLDER), [PROPOSAL]);
+    assert!(!place.root.join(IMAGES).exists());
+}
+
+#[test]
+fn an_image_unlinked_after_its_commit_is_deleted_by_the_next() {
+    let repo = repo_with(&round("", "", ""));
+    let (_, place) = reach(&repo);
+    let before = read(&place, PROPOSAL);
+    append(&place, PROPOSAL, "![login](images/login.webp)");
+    put(&place, &format!("{IMAGES}/login.webp"), b"login");
+    text::commit(&place, PROPOSAL).unwrap();
+    assert_eq!(
+        tracked(&repo, FOLDER, IMAGES),
+        [format!("{IMAGES}/login.webp")]
+    );
+
+    std::fs::write(place.root.join(PROPOSAL), format!("{before}Without it.\n")).unwrap();
+    text::commit(&place, PROPOSAL).unwrap();
+
+    assert_eq!(
+        repo.changed_in(FOLDER),
+        [format!("{IMAGES}/login.webp"), PROPOSAL.to_string()]
+    );
+    assert!(tracked(&repo, FOLDER, IMAGES).is_empty());
+    assert!(!place.root.join(IMAGES).exists());
+}
+
+#[test]
+fn images_alone_are_a_change_to_commit() {
+    let repo = repo_with(&round("", "", ""));
+    let (_, place) = reach(&repo);
+    append(&place, PROPOSAL, "![login](images/login.webp)");
+    common::repo::run_git(
+        &place.root,
+        &["commit", "--quiet", "--no-verify", "-am", "link"],
+    );
+    put(&place, &format!("{IMAGES}/login.webp"), b"login");
+
+    let committed = text::commit(&place, PROPOSAL).unwrap();
+
+    assert_eq!(committed.change.subject, "chore(web-ui): edit the proposal");
+    assert_eq!(repo.changed_in(FOLDER), [format!("{IMAGES}/login.webp")]);
+    let error = text::commit(&place, PROPOSAL).unwrap_err();
+    assert_eq!(
+        error.to_string(),
+        format!("{PROPOSAL} has no change to commit")
+    );
+}
+
+const DRAFT: &str = "specs/drafts/login-banner.md";
+const DRAFT_FOLDER: &str = "specs/drafts/login-banner";
+
+/// `main` with the committed single-file draft "Login banner", linked from the priorities.
+fn draft_repo() -> TestRepo {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write(
+        "specs/PRIORITIES.md",
+        "# Priorities\n\n## Now\n\n## Next\n\n- [Login banner](drafts/login-banner.md)\n\n## Later\n\n## Blocked\n",
+    );
+    repo.write(DRAFT, "# Login banner\n\n## What\n\nA banner.\n");
+    repo.commit("chore: draft Login banner");
+    repo
+}
+
+/// The draft given an image, as `attach` makes it a folder, its link written in it.
+fn draft_with_image(repo: &TestRepo) -> (Place, String) {
+    let git = Git::discover(repo.path()).unwrap();
+    let main = place::reach(&git, "main").unwrap();
+    let attached =
+        uraeda_core::actions::attach::attach(&main, DRAFT, &image(), Some("login.png"), stamp)
+            .unwrap();
+    let moved = attached.moved.unwrap();
+    append(&main, &moved, &attached.link);
+    (main, moved)
+}
+
+/// Review focus 2
+#[test]
+fn a_committed_draft_moved_into_a_folder_commits_the_move() {
+    let repo = draft_repo();
+    let (main, moved) = draft_with_image(&repo);
+
+    let committed = text::commit(&main, &moved).unwrap();
+
+    assert_eq!(
+        committed.change.subject,
+        "chore: edit the draft Login banner"
+    );
+    assert_eq!(
+        repo.changed_in("main"),
+        [
+            "specs/PRIORITIES.md".to_string(),
+            DRAFT.to_string(),
+            format!("{DRAFT_FOLDER}/images/login.webp"),
+            format!("{DRAFT_FOLDER}/proposal.md"),
+        ]
+    );
+    assert_eq!(repo.porcelain(), "");
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn US1_7_a_draft_folder_starts_with_its_images() {
+    let repo = draft_repo();
+    let (main, moved) = draft_with_image(&repo);
+    text::commit(&main, &moved).unwrap();
+    let git = Git::discover(repo.path()).unwrap();
+    let workspace = Workspace::read(&git).unwrap();
+
+    let started = start::run(&git, &workspace, DRAFT_FOLDER, None, today(), false).unwrap();
+
+    let folder = format!("specs/{}", started.branch);
+    let worktree = repo.path().join(".worktrees").join(&started.branch);
+    let proposal = std::fs::read_to_string(worktree.join(&folder).join("proposal.md")).unwrap();
+    assert!(
+        proposal.contains("![login](images/login.webp)"),
+        "{proposal}"
+    );
+    assert!(worktree.join(&folder).join("images/login.webp").exists());
+    assert_eq!(
+        tracked(&repo, &started.branch, &folder),
+        [
+            format!("{folder}/images/login.webp"),
+            format!("{folder}/proposal.md")
+        ]
+    );
+}
+
+/// US3.3
+#[test]
+#[allow(non_snake_case)]
+fn US3_3_a_verdict_commits_the_review_images() {
+    let repo = spec_repo();
+    let git = Git::discover(repo.path()).unwrap();
+    let (feature, place) = reach(&repo);
+    review::comment(
+        &git,
+        &place,
+        &feature,
+        "spec.md",
+        None,
+        "As here: ![shot](images/shot.webp)",
+    )
+    .unwrap();
+    put(&place, &format!("{IMAGES}/shot.webp"), b"shot");
+
+    review::approve_and_commit(&place, &feature, "spec.md", None, &Tier::default(), today())
+        .unwrap();
+
+    assert_eq!(
+        repo.changed_in(FOLDER),
+        [
+            format!("{IMAGES}/shot.webp"),
+            REVIEW.to_string(),
+            SPEC.to_string()
+        ]
+    );
+}
+
+#[test]
+fn a_replaced_review_keeps_images_another_file_links() {
+    let repo = spec_repo();
+    repo.switch(FOLDER);
+    repo.write(
+        PROPOSAL,
+        &format!("{}\n![shot](images/shot.webp)\n", proposal()),
+    );
+    repo.write(&format!("{IMAGES}/shot.webp"), "shot");
+    repo.commit("chore(web-ui): edit the proposal");
+    repo.switch("main");
+    let git = Git::discover(repo.path()).unwrap();
+    let (feature, place) = reach(&repo);
+    review::comment(
+        &git,
+        &place,
+        &feature,
+        "spec.md",
+        None,
+        "![shot](images/shot.webp)",
+    )
+    .unwrap();
+    append(&place, SPEC, "A new version.");
+    common::repo::run_git(
+        &place.root,
+        &["commit", "--quiet", "--no-verify", "-am", "spec"],
+    );
+    let git = Git::discover(repo.path()).unwrap();
+    let replaced = review::comment(&git, &place, &feature, "spec.md", None, "Fine.").unwrap();
+    assert!(replaced.replaced);
+
+    review::approve_and_commit(&place, &feature, "spec.md", None, &Tier::default(), today())
+        .unwrap();
+
+    assert_eq!(repo.changed_in(FOLDER), [REVIEW, SPEC]);
+    assert!(place.root.join(IMAGES).join("shot.webp").exists());
+}
+
+/// US4.3
+#[test]
+#[allow(non_snake_case)]
+fn US4_3_submitted_answers_commit_their_images() {
+    let repo = repo_with(&round(
+        "B",
+        "A",
+        "A, as ![one](images/one.webp) and ![two](images/two.webp) show",
+    ));
+    let (feature, place) = reach(&repo);
+    put(&place, &format!("{IMAGES}/one.webp"), b"one");
+    put(&place, &format!("{IMAGES}/two.webp"), b"two");
+
+    answer::submit_and_commit(&place, &feature, today()).unwrap();
+
+    assert_eq!(
+        repo.changed_in(FOLDER),
+        [
+            ROUND.to_string(),
+            format!("{IMAGES}/one.webp"),
+            format!("{IMAGES}/two.webp")
+        ]
+    );
+}

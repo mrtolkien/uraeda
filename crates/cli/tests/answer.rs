@@ -225,3 +225,22 @@ fn no_commit_leaves_the_files() {
     );
     assert_eq!(repo.subjects("HEAD").len(), 3);
 }
+
+#[test]
+fn no_commit_names_the_images_to_commit() {
+    let repo = waiting(&["A", "B", ""]);
+    repo.switch("2026-10-10-cli-core");
+    ura(
+        &repo,
+        &["answer", "Q3", "A, as ![one](images/one.webp) shows"],
+    );
+    repo.write("specs/2026-10-10-cli-core/images/one.webp", "one");
+
+    let output = ura(&repo, &["answer", "--submit", "--no-commit"]);
+
+    assert_eq!(
+        output.stdout,
+        format!("Round 01 answered in {FILE}: commit it with specs/2026-10-10-cli-core/images.\n")
+    );
+    assert_eq!(repo.subjects("HEAD").len(), 3);
+}
