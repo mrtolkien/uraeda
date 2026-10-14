@@ -1,17 +1,13 @@
 // US1: a feature's session, its transcript and its composer, at both widths. The log following its
 // end and Back's position are in the browser tests.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { screen, waitFor, within } from "@testing-library/react";
-import { expect, test, vi } from "vite-plus/test";
-import {
-  atRepo,
-import { readFileSync } from "node:fs";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test, vi } from "vite-plus/test";
 import { navigate } from "../routes.tsx";
 import {
   answered,
+  atRepo,
   atWidth,
   click,
   type Fake,
@@ -347,6 +343,8 @@ test("an activity's time reads in seconds, then minutes", () => {
   expect(elapsed(65_000)).toBe("1 min 5 s");
   expect(elapsed(120_000)).toBe("2 min");
   expect(elapsed(754_000)).toBe("12 min");
+});
+
 // US2: images in a chat, through the composer's picker, paste, and the page's drop.
 
 /** The address a request goes to. */
@@ -358,7 +356,7 @@ const png = (name = "login.png") =>
   new File([readFileSync(fixture("images/phone.png"))], name, { type: "image/png" });
 
 /** Picks files with "Add images", as the system's picker gives them. */
-async function pick(files: File[]) {
+async function pick(files: Array<File>) {
   const input = await screen.findByLabelText("Add images", { selector: "input" });
   await act(async () => {
     fireEvent.change(input, { target: { files } });
@@ -366,17 +364,17 @@ async function pick(files: File[]) {
 }
 
 /** Pastes files into the composer, as from the clipboard. */
-async function pasteImages(files: File[]) {
+async function pasteImages(files: Array<File>) {
   const box = await composer();
   await act(async () => {
     fireEvent.paste(box, {
-      clipboardData: { files, types: ["Files"], getData: () => "" },
+      clipboardData: { files, getData: () => "", types: ["Files"] },
     });
   });
 }
 
 /** Drops files anywhere on the page. */
-async function dropImages(files: File[]) {
+async function dropImages(files: Array<File>) {
   await act(async () => {
     fireEvent.drop(document.body, { dataTransfer: { files, types: ["Files"] } });
   });
@@ -407,7 +405,7 @@ function recording(repo: string, fake: Fake) {
   const saved: Array<string> = [];
   const fetch: typeof globalThis.fetch = async (input, init) => {
     const response = await server(input, init);
-    if (urlOf(input).startsWith("/attach") && response.ok) {
+    if (urlOf(input).includes("/attach?") && response.ok) {
       saved.push(((await response.clone().json()) as { id: string }).id);
     }
     return response;
@@ -462,7 +460,7 @@ test("US2.3: a removed thumbnail is not sent, and its image is deleted", async (
   await click(first);
 
   await thumbnails(1);
-  await waitFor(async () => expect((await server(`/chat-images/${saved[0]}`)).status).toBe(404));
+  await waitFor(async () => expect((await server(atRepo(`/chat-images/${saved[0]}`))).status).toBe(404));
   await send("Only the second");
   await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
   expect(fake.adapter.sent[0].images).toHaveLength(1);
@@ -479,7 +477,7 @@ test('US2.4: an image alone is sent, and its chat is titled "Image"', async () =
 
   await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
   expect(fake.adapter.sent[0].images).toHaveLength(1);
-  await waitFor(() => expect(window.location.pathname).toMatch(/^\/chats\/[^/]+$/));
+  await waitFor(() => expect(window.location.pathname).toMatch(/\/chats\/[^/]+$/));
   expect(await screen.findByRole("heading", { name: "Image" })).toBeTruthy();
 });
 
@@ -503,7 +501,7 @@ test("an image is not sent while it is being saved", async () => {
   const server = serverFetch(repo, fake.sessions);
   const waiting: Array<() => void> = [];
   const fetch: typeof globalThis.fetch = async (input, init) => {
-    if (urlOf(input).startsWith("/attach")) {
+    if (urlOf(input).includes("/attach?")) {
       await new Promise<void>((resolve) => waiting.push(resolve));
     }
     return server(input, init);
@@ -622,7 +620,7 @@ function holding(repo: string, fake: Fake) {
   const waiting: Array<() => void> = [];
   let hold = true;
   const fetch: typeof globalThis.fetch = async (input, init) => {
-    if (hold && urlOf(input).startsWith("/attach")) {
+    if (hold && urlOf(input).includes("/attach?")) {
       await new Promise<void>((resolve) => waiting.push(resolve));
     }
     return server(input, init);
@@ -670,7 +668,7 @@ test("a hand-over sends the workflow's message alone, and keeps the draft's imag
   await pick([png()]);
   await thumbnails(1);
 
-  await act(async () => navigate(`/f/${CLI}/session?continue=manual`));
+  await act(async () => navigate(atRepo(`/f/${CLI}/session?continue=manual`)));
   await waitFor(async () => expect((await composer()).textContent).not.toBe(""));
   await click(screen.getByRole("button", { name: "Start the agent" }));
 
@@ -740,9 +738,9 @@ test("a taken-back message's images leave the draft at most 10, and say why", as
   await thumbnails(10);
   expect(shownText("A message takes at most 10 images.").length).toBeGreaterThan(0);
   // The draft's last two are gone, with their files.
-  await waitFor(async () => expect((await server(`/chat-images/${saved[10]}`)).status).toBe(404));
-  expect((await server(`/chat-images/${saved[11]}`)).status).toBe(404);
-  expect((await server(`/chat-images/${saved[9]}`)).status).toBe(200);
+  await waitFor(async () => expect((await server(atRepo(`/chat-images/${saved[10]}`))).status).toBe(404));
+  expect((await server(atRepo(`/chat-images/${saved[11]}`))).status).toBe(404);
+  expect((await server(atRepo(`/chat-images/${saved[9]}`))).status).toBe(200);
 });
 
 test("Send shows, disabled, while an image is saved during a turn", async () => {
@@ -827,7 +825,7 @@ test("a thumbnail removed while it is saved has its image deleted once saved", a
 
   await waitFor(() => expect(uploads.saved).toHaveLength(1));
   await waitFor(async () =>
-    expect((await uploads.server(`/chat-images/${uploads.saved[0]}`)).status).toBe(404),
+    expect((await uploads.server(atRepo(`/chat-images/${uploads.saved[0]}`))).status).toBe(404),
   );
   expect(screen.queryAllByRole("button", { name: /^Remove / })).toHaveLength(0);
 });
@@ -859,6 +857,6 @@ test("a thumbnail shows its file, dimmed, while it is saved", async () => {
   expect(thumbnail.querySelector(SPINNER)).toBeTruthy();
   await uploads.releaseAll();
   await waitFor(() =>
-    expect(thumbnail.querySelector("img")?.getAttribute("src")).toMatch(/^\/chat-images\//),
+    expect(thumbnail.querySelector("img")?.getAttribute("src")).toMatch(/^\/r\/[^/]+\/chat-images\//),
   );
 });

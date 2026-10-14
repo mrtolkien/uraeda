@@ -2,9 +2,16 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test, vi } from "vite-plus/test";
-import { atRepo, fixtureRepo, git, renderPage, today } from "./helpers.tsx";
-import { expect, test } from "vite-plus/test";
-import { atWidth, fixture, fixtureRepo, git, renderPage, serverFetch, today } from "./helpers.tsx";
+import {
+  atRepo,
+  atWidth,
+  fixture,
+  fixtureRepo,
+  git,
+  renderPage,
+  serverFetch,
+  today,
+} from "./helpers.tsx";
 
 const FOLDER = "2026-10-06-recurring-tasks";
 const PAGE = `/f/${FOLDER}/spec.md`;
@@ -603,7 +610,7 @@ const png = (name: string) =>
   new File([readFileSync(fixture("images/phone.png"))], name, { type: "image/png" });
 
 /** Picks files with the comment's "Add image", as the system's picker gives them. */
-async function pick(files: File[]) {
+async function pick(files: Array<File>) {
   const input = await screen.findByLabelText("Add image", { selector: "input" });
   await act(async () => {
     fireEvent.change(input, { target: { files } });
@@ -615,13 +622,13 @@ function holdUploads(repo: string) {
   const fetch = serverFetch(repo);
   const waiting: Array<() => void> = [];
   return {
-    waiting,
     fetch: (async (input, init) => {
-      if (urlOf(input).startsWith("/attach")) {
+      if (urlOf(input).includes("/attach?")) {
         await new Promise<void>((resolve) => waiting.push(resolve));
       }
       return fetch(input, init);
     }) as typeof globalThis.fetch,
+    waiting,
     /** Lets the next upload through, once it waits. */
     async release() {
       await waitFor(() => expect(waiting.length).toBeGreaterThan(0));

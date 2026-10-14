@@ -99,26 +99,26 @@ export function HookRefusal({
  * added, to save at once; `onSettled` takes how to wait for the images under way, as a submit does.
  */
 function NotesField({
-  path,
   notes,
   onChange,
-  onText,
   onSettled,
+  onText,
+  path,
 }: {
-  path: string;
   notes: string;
   onChange: (notes: string) => void;
-  onText: (notes: string, added: boolean) => void;
   onSettled: (settled: () => Promise<void>) => void;
+  onText: (notes: string, added: boolean) => void;
+  path: string;
 }) {
-  const images = useImageText({ path, text: notes, label: "the notes", priority: 1, onText });
+  const images = useImageText({ label: "the notes", onText, path, priority: 1, text: notes });
   useEffect(() => {
     onSettled(images.settled);
   }, [onSettled, images.settled]);
   return (
     <VStack gap={2}>
       <DropHint hint={images.hint} isLabelled>
-        <GrowingTextArea label="Notes" value={notes} onChange={onChange} {...images.fieldProps} />
+        <GrowingTextArea label="Notes" onChange={onChange} value={notes} {...images.fieldProps} />
       </DropHint>
       <AttachStatus status={images.status} />
       <HStack gap={2}>

@@ -468,11 +468,11 @@ export async function startTurn(text: string, events: Parameters<RepoCommands["a
 }
 
 const TYPES: Record<string, string> = {
-  png: "image/png",
-  jpg: "image/jpeg",
   gif: "image/gif",
-  webp: "image/webp",
+  jpg: "image/jpeg",
+  png: "image/png",
   svg: "image/svg+xml",
+  webp: "image/webp",
 };
 
 /** A fixture image as the file the human gives, under a name of their own. */
@@ -482,7 +482,7 @@ export async function image(fixture: string, name = fixture) {
 }
 
 /** Files carried by a drag or a paste. */
-export function carrying(files: File[]) {
+export function carrying(files: Array<File>) {
   const data = new DataTransfer();
   for (const file of files) {
     data.items.add(file);
@@ -491,7 +491,7 @@ export function carrying(files: File[]) {
 }
 
 /** Drags files over the page and drops them on an element: returns the drop's event. */
-export function drop(files: File[], on: Element = document.body) {
+export function drop(files: Array<File>, on: Element = document.body) {
   const dataTransfer = carrying(files);
   const init = { bubbles: true, cancelable: true, dataTransfer };
   on.dispatchEvent(new DragEvent("dragenter", init));
@@ -502,7 +502,7 @@ export function drop(files: File[], on: Element = document.body) {
 }
 
 /** Pastes files into an element, as from the clipboard. */
-export function paste(files: File[], on: Element) {
+export function paste(files: Array<File>, on: Element) {
   on.dispatchEvent(
     new ClipboardEvent("paste", {
       bubbles: true,
@@ -513,7 +513,7 @@ export function paste(files: File[], on: Element) {
 }
 
 /** Drags files over an element and holds them there, as before a drop: the drop hint shows. */
-export function dragOver(files: File[], on: Element = document.body) {
+export function dragOver(files: Array<File>, on: Element = document.body) {
   const init = { bubbles: true, cancelable: true, dataTransfer: carrying(files) };
   on.dispatchEvent(new DragEvent("dragenter", init));
   on.dispatchEvent(new DragEvent("dragover", init));
@@ -529,8 +529,8 @@ export async function attached(path: string, file: File) {
   const body = new FormData();
   body.append("file", file);
   const query = `path=${encodeURIComponent(path)}&name=${encodeURIComponent(file.name)}`;
-  const response = await fetch(`/attach?${query}`, { method: "POST", body });
-  const answer = (await response.json()) as { link?: string; error?: string };
+  const response = await fetch(atRepo(`/attach?${query}`), { body, method: "POST" });
+  const answer = (await response.json()) as { error?: string; link?: string };
   if (!answer.link) {
     throw new Error(answer.error ?? `HTTP ${response.status}`);
   }

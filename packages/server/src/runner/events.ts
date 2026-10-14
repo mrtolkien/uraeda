@@ -82,6 +82,8 @@ export type Item =
       /** When it was sent, in ISO 8601: missing from messages cached before it was kept. */
       at?: string;
       id: string;
+      /** The chat images sent with it; older messages have none. */
+      images?: Array<ChatImage>;
       kind: "message";
       /** The chat's opening line, shown muted above the human's text. */
       opening?: string;
@@ -89,8 +91,6 @@ export type Item =
       /** Pending until the agent reads it, or taken back before. */
       state: "pending" | "read" | "taken-back";
       text: string;
-      /** The chat images sent with it; older messages have none. */
-      images?: Array<ChatImage>;
     }
   /** An assistant text block, streaming until the block ends. */
   | { kind: "text"; streaming: boolean; text: string }

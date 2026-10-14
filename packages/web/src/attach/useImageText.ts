@@ -7,10 +7,10 @@ import { type AttachStatus, useAttach } from "./useAttach.ts";
 import { useImageDrop } from "./useImageDrop.ts";
 
 /** A text with links inserted, and its first link's alt text, to select. */
-export type Linked = { text: string; selection: [number, number] };
+export type Linked = { selection: [number, number]; text: string };
 
 /** The run of uploads under way: the path they go to, and what they inserted so far. */
-type Run = { path: string; added: boolean; selection?: [number, number] };
+type Run = { added: boolean; path: string; selection?: [number, number] };
 
 /** Moves places by an edit, as `followEdit` says. */
 function shift(places: Iterable<{ at: number }>, edit: Edit, after = false) {
@@ -33,40 +33,40 @@ const NOT_SAVED = "Your text is not saved: the image was not added.";
  * become a folder, whose later files went to its new path.
  */
 export function useImageText({
-  path,
-  text,
-  label,
-  priority,
   initialSelection,
   initialStatus,
-  onStart,
+  label,
   onLinks,
-  onText,
   onMoved,
+  onStart,
+  onText,
+  path,
+  priority,
+  text,
 }: {
-  /** The markdown file the images are attached to. */
-  path: string;
-  /** The field's text now. */
-  text: string;
-  /** The drop hint's name for the field, "Drop to add to <label>". */
-  label: string;
-  /** The field's rank among its page's drop targets when none holds the focus. */
-  priority: number;
   /** A selection to make once the field is drawn, as a moved draft's new editor does. */
   initialSelection?: [number, number];
   /** A status to show first, as a moved draft's new editor shows the one its old page left. */
   initialStatus?: AttachStatus;
-  /** Runs before a run's first upload, like saving what was typed: `false` stops that upload. */
-  onStart?: () => Promise<boolean>;
+  /** The drop hint's name for the field, "Drop to add to <label>". */
+  label: string;
   /** Takes the text with links while more files wait: shown, not saved yet. */
   onLinks?: (text: string) => void;
+  /** Takes the text with the links once a run ended with the file moved, and the last status. */
+  onMoved?: (moved: string, linked: Linked, status?: AttachStatus) => void;
+  /** Runs before a run's first upload, like saving what was typed: `false` stops that upload. */
+  onStart?: () => Promise<boolean>;
   /**
    * Takes the text once a run ended, with its links when `added`. `false` says the field did not
    * take it, as a comment closed during the run: the alt text is not selected then.
    */
   onText: (text: string, added: boolean) => boolean | void;
-  /** Takes the text with the links once a run ended with the file moved, and the last status. */
-  onMoved?: (moved: string, linked: Linked, status?: AttachStatus) => void;
+  /** The markdown file the images are attached to. */
+  path: string;
+  /** The field's rank among its page's drop targets when none holds the focus. */
+  priority: number;
+  /** The field's text now. */
+  text: string;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   // The element last focused: a field never focused since it was drawn has no cursor the human
@@ -74,7 +74,7 @@ export function useImageText({
   const focused = useRef<HTMLTextAreaElement | null>(null);
   const latest = useRef(text);
   latest.current = text;
-  const { attach, status, show, lastStatus } = useAttach({ path }, initialStatus);
+  const { attach, lastStatus, show, status } = useAttach({ path }, initialStatus);
   const selection = useRef<[number, number] | undefined>(initialSelection);
   // Where the links of each batch waiting or uploading go: the cursor when it came, moved by each
   // edit since.
@@ -85,8 +85,8 @@ export function useImageText({
   const pending = useRef(0);
   const run = useRef<Run | undefined>(undefined);
   const [busy, setBusy] = useState(false);
-  const callbacks = useRef({ onStart, onLinks, onText, onMoved, path });
-  callbacks.current = { onStart, onLinks, onText, onMoved, path };
+  const callbacks = useRef({ onLinks, onMoved, onStart, onText, path });
+  callbacks.current = { onLinks, onMoved, onStart, onText, path };
 
   // Each edit moves the places after it, placed by the field's caret once it was typed.
   useLayoutEffect(() => {
@@ -123,14 +123,14 @@ export function useImageText({
 
   /** Uploads a batch in its turn, and inserts its links at its place. */
   const upload = useCallback(
-    async (files: File[], place: { at: number }) => {
+    async (files: Array<File>, place: { at: number }) => {
       if (!run.current) {
         const { onStart } = callbacks.current;
         if (onStart && !(await onStart())) {
           show(NOT_SAVED, true);
           return;
         }
-        run.current = { path: callbacks.current.path, added: false };
+        run.current = { added: false, path: callbacks.current.path };
       }
       const current = run.current;
       const results = await attach(files, current.path);
@@ -149,7 +149,7 @@ export function useImageText({
       // The batches after this one, at the same place, go after its links.
       shift(
         places.current,
-        { start: place.at, removed: 0, inserted: linked.text.length - now.length },
+        { inserted: linked.text.length - now.length, removed: 0, start: place.at },
         true,
       );
       seen.current = linked.text;
@@ -177,7 +177,7 @@ export function useImageText({
     if (ended.path !== path && onMoved) {
       onMoved(
         ended.path,
-        { text: now, selection: ended.selection ?? [now.length, now.length] },
+        { selection: ended.selection ?? [now.length, now.length], text: now },
         lastStatus(),
       );
       return;
@@ -188,7 +188,7 @@ export function useImageText({
   }, [lastStatus]);
 
   const addFiles = useCallback(
-    (files: File[]) => {
+    (files: Array<File>) => {
       const field = ref.current;
       const place = {
         at: field && focused.current === field ? field.selectionStart : latest.current.length,
@@ -223,11 +223,11 @@ export function useImageText({
     } while (current !== queue.current);
   }, []);
 
-  const { isTarget, hint } = useImageDrop({
-    ref,
-    priority,
+  const { hint, isTarget } = useImageDrop({
     label,
     onFiles: (files) => void addFiles(files),
+    priority,
+    ref,
   });
 
   /**
@@ -252,11 +252,11 @@ export function useImageText({
      * target.
      */
     fieldProps: {
-      ref,
-      onPaste,
       onFocus: () => {
         focused.current = ref.current;
       },
+      onPaste,
+      ref,
       xstyle: isTarget ? dropStyles.target : undefined,
     },
     /** Attaches files given another way, like the picker's. */

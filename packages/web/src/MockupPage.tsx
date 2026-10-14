@@ -48,13 +48,13 @@ function MockupComment({
 >) {
   const [text, setText] = useState("");
   const images = useImageText({
-    path,
-    text,
     label: "the comment",
-    priority: 1,
     onText: setText,
+    path,
+    priority: 1,
+    text,
   });
-  return <CommentForm {...props} text={text} onTextChange={setText} images={images} />;
+  return <CommentForm {...props} images={images} onTextChange={setText} text={text} />;
 }
 
 /**
@@ -109,7 +109,6 @@ export function MockupPage({ folder, name }: { folder: string; name: string }) {
       {reviewing && (
         <Overlay isOpen={open} label="Comment" onClose={() => setOpen(false)}>
           <MockupComment
-            path={spec.path}
             anchor={
               line
                 ? anchor({ end: line.endLine, heading: line.heading ?? "", start: line.startLine })
@@ -117,6 +116,7 @@ export function MockupPage({ folder, name }: { folder: string; name: string }) {
             }
             onCancel={() => setOpen(false)}
             onSubmit={send}
+            path={spec.path}
             quote={line && document ? quoteOf(textOf(document, line)) : undefined}
           />
         </Overlay>

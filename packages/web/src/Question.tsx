@@ -279,29 +279,29 @@ function Option({
  * `onSettled` takes how to wait for the images under way, as a submit does.
  */
 function CommentField({
-  path,
-  id,
+  children,
   comment,
+  id,
   onChange,
   onImages,
   onSettled,
-  children,
+  path,
 }: {
-  path: string;
-  id: string;
+  children: ReactNode;
   comment: string;
+  id: string;
   onChange: (comment: string) => void;
   onImages: (comment: string, added: boolean) => void;
   onSettled: (settled: () => Promise<void>) => void;
-  children: ReactNode;
+  path: string;
 }) {
   const images = useImageText({
+    label: `${id}'s comment`,
     path,
     text: comment,
-    label: `${id}'s comment`,
     // The notes take a drop with no field focused: a comment takes it only while focused.
-    priority: 0,
     onText: onImages,
+    priority: 0,
   });
   useEffect(() => {
     onSettled(images.settled);
@@ -311,13 +311,13 @@ function CommentField({
       <DropHint hint={images.hint} isLabelled>
         <GrowingTextArea
           label="Comment"
-          value={comment}
           onChange={onChange}
+          value={comment}
           {...images.fieldProps}
         />
       </DropHint>
       <AttachStatus status={images.status} />
-      <HStack gap={2} align="center" wrap="wrap" xstyle={styles.actions}>
+      <HStack align="center" gap={2} wrap="wrap" xstyle={styles.actions}>
         <AttachButton
           name={`Add image to ${id}'s comment`}
           onFiles={(files) => void images.addFiles(files)}
@@ -415,7 +415,7 @@ export function Question({
       setComment(value);
       local.current = { ...local.current, comment: value };
       if (added) {
-        commit({ letters: local.current.letters, comment: value });
+        commit({ comment: value, letters: local.current.letters });
       }
     },
     [commit],

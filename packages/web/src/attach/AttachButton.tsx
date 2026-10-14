@@ -12,17 +12,17 @@ const ACCEPT = "image/png,image/jpeg,image/gif,image/webp";
  * "Add image to the notes": it starts with what the button shows, which stays "Add image".
  */
 export function AttachButton({
-  multiple = false,
-  onFiles,
-  name,
-  isIconOnly = false,
   isDisabled = false,
+  isIconOnly = false,
+  multiple = false,
+  name,
+  onFiles,
 }: {
-  multiple?: boolean;
-  onFiles: (files: File[]) => void;
-  name?: string;
-  isIconOnly?: boolean;
   isDisabled?: boolean;
+  isIconOnly?: boolean;
+  multiple?: boolean;
+  name?: string;
+  onFiles: (files: Array<File>) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const shown = multiple ? "Add images" : "Add image";
@@ -30,12 +30,10 @@ export function AttachButton({
   const picker = (
     // oxlint-disable-next-line react/forbid-elements -- the system's file picker behind a button: Astryx's FileInput is a visible field (an Astryx gap, see the plan)
     <input
-      ref={input}
-      type="file"
       accept={ACCEPT}
-      multiple={multiple}
-      hidden
       aria-label={label}
+      hidden
+      multiple={multiple}
       onChange={(event) => {
         const files = [...(event.currentTarget.files ?? [])];
         // The same file may be picked again.
@@ -44,16 +42,18 @@ export function AttachButton({
           onFiles(files);
         }
       }}
+      ref={input}
+      type="file"
     />
   );
   return (
     <>
       {/* A label other than the text shown is the button's accessible name, its `aria-label`. */}
       <Button
-        label={label}
         icon={<Icon icon="uraeda:attach" />}
-        isIconOnly={isIconOnly}
         isDisabled={isDisabled}
+        isIconOnly={isIconOnly}
+        label={label}
         onClick={() => input.current?.click()}
       >
         {isIconOnly ? undefined : shown}

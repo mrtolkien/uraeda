@@ -26,7 +26,7 @@ function Marked({ span }: { span: Span }) {
  * A link of the document: a workflow file or a draft in the UI, other files and the web in a new
  * tab. It shows its text, or `children`, like an image it holds.
  */
-function SpanLink({ span, children }: { span: Span; children?: ReactNode }) {
+function SpanLink({ children, span }: { children?: ReactNode; span: Span }) {
   const link = span.link!;
   const repo = useRepository();
   const text = children ?? <Marked span={span} />;

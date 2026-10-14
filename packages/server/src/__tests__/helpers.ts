@@ -1,6 +1,3 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { afterEach } from "vite-plus/test";
 import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
 import { createApp } from "../app.ts";
@@ -36,6 +33,9 @@ type App = ReturnType<typeof createApp>;
 /** A value of fate's JSON results, which the tests read field by field. */
 // oxlint-disable-next-line typescript/no-explicit-any -- before the code quality decision: the tests read untyped fate results by path; typing them means a type per view
 export type Data = any;
+
+/** A data folder for a test's server, in a temporary folder removed as the tests exit. */
+export const testDataDir = () => temporaryFolder("uraeda-data");
 
 /** The name each test app's `fate` calls go to: its first repository's. */
 const names = new WeakMap<App, string>();
@@ -75,7 +75,6 @@ function app(
     hosts,
     port,
     sessions,
-    dataDir,
   });
   names.set(created, name);
   return created;

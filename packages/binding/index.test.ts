@@ -130,7 +130,7 @@ test("attaches an image to a proposal and reads it back", async () => {
 test("encodes a chat image without writing it", async () => {
   const encoded = await encodeImage(readFileSync(fixture("images/desktop.png")), "desktop.png");
 
-  expect(encoded).toMatchObject({ extension: "webp", width: 1440, height: 900 });
+  expect(encoded).toMatchObject({ extension: "webp", height: 900, width: 1440 });
   expect(encoded.bytes.subarray(8, 12).toString("latin1")).toBe("WEBP");
 });
 

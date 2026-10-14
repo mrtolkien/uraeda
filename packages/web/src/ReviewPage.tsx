@@ -161,9 +161,7 @@ export function ReviewPage({ file }: { file: File }) {
   const placed = usePlacedComments(comments, tree);
   const folds = useSpecFolds(version.items.spec, shownFolds(tree, placed, selection));
 
-  const form = (
-    <ReviewForm actions={actions} draft={commentDraft} images={images} tree={tree} />
-  );
+  const form = <ReviewForm actions={actions} draft={commentDraft} images={images} tree={tree} />;
   /** The comment field, in the page on wide screens: on the phone, it is in the sheet. */
   const inPage = (shown: boolean) =>
     wide && shown && <div {...stylex.props(styles.inline)}>{form}</div>;

@@ -18,7 +18,7 @@ export function AttachStatus({ status }: { status?: Status }) {
       {status.text}
     </Text>
   ) : (
-    <Text type="supporting" color="secondary">
+    <Text color="secondary" type="supporting">
       {status.text}
     </Text>
   );

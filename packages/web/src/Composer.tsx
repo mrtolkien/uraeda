@@ -39,7 +39,7 @@ import { SessionView } from "./views.ts";
  * An image of the composer's message: being saved, with the file's own preview, then saved, with
  * the chat image `POST /attach` returned. `name` labels its thumbnail.
  */
-export type DraftImage = { key: string; name: string; preview?: string; image?: ChatImage };
+export type DraftImage = { image?: ChatImage; key: string; name: string; preview?: string };
 
 /** Why the draft's images stay in the composer while it holds the workflow's message. */
 const WORKFLOW_KEEPS_IMAGES =
@@ -51,7 +51,7 @@ let nextKey = 0;
 /** A chat image back in the composer, like a taken-back message's. */
 export function draftImage(image: ChatImage): DraftImage {
   nextKey += 1;
-  return { key: `image-${nextKey}`, name: "Image", image };
+  return { image, key: `image-${nextKey}`, name: "Image" };
 }
 
 /** A file's own image, shown while it is saved, or nothing where the browser makes none. */
@@ -103,6 +103,7 @@ function useChatImages({
   refusedWith?: string;
 }) {
   const fetch = useServerFetch();
+  const repo = useRepository();
   const attach = useAttach({ chat: true });
   // The images as last set, read by files added before React draws the ones added just before.
   const current = useRef(images);
@@ -113,7 +114,7 @@ function useChatImages({
   const [shown, setShown] = useState(true);
 
   const deleteImage = (image: ChatImage) => {
-    void fetch(chatImageSrc(image), { method: "DELETE" }).catch(() => undefined);
+    void fetch(chatImageSrc(repo, image), { method: "DELETE" }).catch(() => undefined);
   };
 
   /** Takes an image out of the draft, and returns it. */
@@ -147,12 +148,12 @@ function useChatImages({
       deleteImage(image);
       return;
     }
-    const saved = { key: added.key, name: added.name, image };
+    const saved = { image, key: added.key, name: added.name };
     current.current = current.current.map((one) => (one.key === added.key ? saved : one));
     onImagesChange((now) => now.map((one) => (one.key === added.key ? saved : one)));
   };
 
-  const addFiles = (files: File[]) => {
+  const addFiles = (files: Array<File>) => {
     setShown(true);
     if (refusedWith !== undefined) {
       attach.show(refusedWith, true);
@@ -242,33 +243,33 @@ function useReplyStatus(agentName: string, working: boolean): string {
  */
 export function Composer({
   blocked,
-  session,
   folder,
-  working = false,
-  value,
-  onChange,
   images,
-  onImagesChange,
-  workflow,
   notice,
+  onChange,
+  onImagesChange,
   onSent,
+  session,
+  value,
+  workflow,
+  working = false,
 }: {
   /** Why nothing can be sent here, like a feature with no branch yet: the composer is disabled. */
   blocked?: string;
-  session?: string;
   folder?: string;
-  /** Whether the session has a turn going: Stop shows, and Send steers into the turn. */
-  working?: boolean;
-  value: string;
-  onChange: (value: string) => void;
   /** The message's images, kept by the page with its text. */
   images: ReadonlyArray<DraftImage>;
-  onImagesChange: Dispatch<SetStateAction<ReadonlyArray<DraftImage>>>;
-  /** The workflow's trigger, while the composer holds its message. */
-  workflow?: { file?: string; trigger: Trigger };
   /** Why the page cannot do what it was opened for, shown under the composer. */
   notice?: string;
+  onChange: (value: string) => void;
+  onImagesChange: Dispatch<SetStateAction<ReadonlyArray<DraftImage>>>;
   onSent?: (session: string) => void;
+  session?: string;
+  value: string;
+  /** The workflow's trigger, while the composer holds its message. */
+  workflow?: { file?: string; trigger: Trigger };
+  /** Whether the session has a turn going: Stop shows, and Send steers into the turn. */
+  working?: boolean;
 }) {
   const fate = useFateClient();
   const repo = useRepository();
@@ -322,10 +323,10 @@ export function Composer({
   }, [images]);
   // The session page's one field: a file dropped anywhere on it joins the message.
   const drop = useImageDrop({
-    ref: box,
-    priority: 1,
-    onFiles: attaching.addFiles,
     label: "the message",
+    onFiles: attaching.addFiles,
+    priority: 1,
+    ref: box,
   });
   // The workflow's message goes alone: the draft's images stay for the next one (R67).
   const withImages = workflow === undefined;
@@ -346,8 +347,8 @@ export function Composer({
     }
     void sendMessage(fate, {
       ...(session === undefined ? (folder === undefined ? {} : { folder }) : { session }),
-      text,
       images: sending.flatMap((image) => (image.image ? [image.image] : [])),
+      text,
       ...(workflow === undefined ? {} : { workflow }),
     }).then((sent) => {
       if (sent.ok) {
@@ -390,8 +391,8 @@ export function Composer({
   // Astryx's Send takes text alone: this one takes a message of images too (an Astryx gap).
   const send = (
     <ChatSendButton
-      isStopShown={false}
       isDisabled={!canSend || refused}
+      isStopShown={false}
       onSend={() => submit(value.trim())}
     />
   );
@@ -400,15 +401,6 @@ export function Composer({
     <>
       <DropHint hint={drop.hint}>
         <ChatComposer
-          ref={box}
-          value={value}
-          onChange={onChange}
-          onSubmit={submit}
-          onStop={stop}
-          isStopShown={working && !workflow}
-          placeholder={placeholder}
-          isDisabled={Boolean(unavailable)}
-          xstyle={drop.isTarget ? dropStyles.target : undefined}
           drawer={
             images.length > 0 ? (
               <ChatComposerDrawer label="Images">
@@ -419,23 +411,23 @@ export function Composer({
                     return (
                       // Remove under the thumbnail, tall enough for a finger: Astryx's own, in
                       // its corner, is 20 px whatever the pointer (an Astryx gap, see the plan).
-                      <VStack key={image.key} role="group" gap={1} hAlign="center">
+                      <VStack gap={1} hAlign="center" key={image.key} role="group">
                         <Thumbnail
-                          src={image.image ? chatImageSrc(repo, image.image) : image.preview}
                           label={image.name}
+                          src={image.image ? chatImageSrc(repo, image.image) : image.preview}
                           {...(alt ? { alt } : {})}
                           isLoading={!image.image}
                         />
                         <Button
-                          label={`Remove ${image.name}${alt ? ` — ${alt}` : ""}`}
                           icon={<Icon icon="close" />}
                           isIconOnly
-                          variant="ghost"
-                          size="sm"
+                          label={`Remove ${image.name}${alt ? ` — ${alt}` : ""}`}
                           onClick={() => {
                             attaching.remove(image.key);
                             focusAt.current = index;
                           }}
+                          size="sm"
+                          variant="ghost"
                         />
                       </VStack>
                     );
@@ -444,24 +436,31 @@ export function Composer({
               </ChatComposerDrawer>
             ) : undefined
           }
-          input={
-            <ChatComposerInput
-              label={placeholder}
-              handleRef={input}
-              onKeyDown={onKeyDown}
-              onFiles={attaching.addFiles}
-            />
-          }
           footerActions={
             readsImages && !workflow ? (
               <AttachButton
-                multiple
-                isIconOnly
                 isDisabled={Boolean(unavailable)}
+                isIconOnly
+                multiple
                 onFiles={attaching.addFiles}
               />
             ) : undefined
           }
+          input={
+            <ChatComposerInput
+              handleRef={input}
+              label={placeholder}
+              onFiles={attaching.addFiles}
+              onKeyDown={onKeyDown}
+            />
+          }
+          isDisabled={Boolean(unavailable)}
+          isStopShown={working && !workflow}
+          onChange={onChange}
+          onStop={stop}
+          onSubmit={submit}
+          placeholder={placeholder}
+          ref={box}
           sendActions={
             // During a turn, Send steers the message into it, beside Stop: shown, disabled, while
             // its images are saved.
@@ -470,10 +469,10 @@ export function Composer({
           sendButton={
             workflow ? (
               <Button
-                variant="primary"
-                label={working ? "Start once this turn ends" : "Start the agent"}
-                isDisabled={!canSend || refused}
                 clickAction={() => submit(value.trim())}
+                isDisabled={!canSend || refused}
+                label={working ? "Start once this turn ends" : "Start the agent"}
+                variant="primary"
               />
             ) : working ? undefined : (
               send
@@ -481,15 +480,17 @@ export function Composer({
           }
           status={
             error
-              ? { type: "error", message: error }
+              ? { message: error, type: "error" }
               : notice
-                ? { type: "error", message: notice }
+                ? { message: notice, type: "error" }
                 : unavailable
-                  ? { type: "warning", message: unavailable }
+                  ? { message: unavailable, type: "warning" }
                   : workflow && images.length > 0
-                    ? { type: "warning", message: WORKFLOW_KEEPS_IMAGES }
+                    ? { message: WORKFLOW_KEEPS_IMAGES, type: "warning" }
                     : undefined
           }
+          value={value}
+          xstyle={drop.isTarget ? dropStyles.target : undefined}
         />
       </DropHint>
       <AttachStatus status={attaching.status} />

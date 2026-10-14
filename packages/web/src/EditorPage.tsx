@@ -20,7 +20,14 @@ import { CommitActions } from "./CommitActions.tsx";
 import { useDraft, useProposalHints } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
-import { navigate, redirect, repoPath, useRepoPath, useRepository, useRestoreScroll } from "./routes.tsx";
+import {
+  navigate,
+  redirect,
+  repoPath,
+  useRepoPath,
+  useRepository,
+  useRestoreScroll,
+} from "./routes.tsx";
 import { handOver } from "./sessions.ts";
 import { useSave } from "./useSave.ts";
 import { DraftView, FeatureView } from "./views.ts";
@@ -49,7 +56,7 @@ const movedTexts = new Map<string, Linked & { status?: Status }>();
  * A file's text as its field holds it: a text field's value has LF line breaks, whatever the file
  * has, and the cursor's positions count them so (R50).
  */
-const asTyped = (text: string) => text.replace(/\r\n?/g, "\n");
+const asTyped = (text: string) => text.replaceAll(/\r\n?/g, "\n");
 
 /** Reads a draft's text and hash from the server, past what the page holds. */
 async function readDraft(fate: ReturnType<typeof useFateClient>, path: string) {
@@ -62,7 +69,7 @@ async function readDraft(fate: ReturnType<typeof useFateClient>, path: string) {
   }
   // fate does not infer the view's type through `readView`: these are its fields.
   const fresh = (await fate.readView(DraftView, ref)) as unknown as {
-    data: { text: string; hash: string };
+    data: { hash: string; text: string };
   };
   return fresh.data;
 }
@@ -144,12 +151,31 @@ export function EditorPage({ path }: { path: string }) {
     settle(current.hash);
   }, [idle, settle]);
   const images = useImageText({
-    path,
-    text,
-    label: path.split("/").at(-1) ?? path,
-    priority: 1,
     initialSelection: moved?.selection,
     initialStatus: moved?.status,
+    label: path.split("/").at(-1) ?? path,
+    onLinks: setText,
+    onMoved: useCallback(
+      (next: string, linked: Linked, status?: Status) => {
+        holding.current = false;
+        if (mounted.current) {
+          movedTexts.set(next, { ...linked, status });
+          redirect(repoPath(repo, `/edit/${next}`));
+          return;
+        }
+        // The human left: the text with its links is saved at the new path, over its version now.
+        void (async () => {
+          const moved = await readDraft(fate, next);
+          if (moved) {
+            await fate.mutations.text.save({
+              input: { hash: moved.hash, path: next, text: linked.text },
+              view: DraftView,
+            });
+          }
+        })();
+      },
+      [fate, repo],
+    ),
     onStart: useCallback(async () => {
       holding.current = true;
       started.current = shown.current;
@@ -160,7 +186,6 @@ export function EditorPage({ path }: { path: string }) {
       holding.current = false;
       return false;
     }, [flush]),
-    onLinks: setText,
     onText: useCallback(
       (value: string, added: boolean) => {
         holding.current = false;
@@ -175,27 +200,9 @@ export function EditorPage({ path }: { path: string }) {
       },
       [adopt, schedule],
     ),
-    onMoved: useCallback(
-      (next: string, linked: Linked, status?: Status) => {
-        holding.current = false;
-        if (mounted.current) {
-          movedTexts.set(next, { ...linked, status });
-          redirect(repoPath(repo, `/edit/${next}`));
-          return;
-        }
-        // The human left: the text with its links is saved at the new path, over its version now.
-        void (async () => {
-          const moved = await readDraft(fate, next);
-          if (moved) {
-            await fate.mutations.text.save({
-              input: { path: next, text: linked.text, hash: moved.hash },
-              view: DraftView,
-            });
-          }
-        })();
-      },
-      [fate, repo],
-    ),
+    path,
+    priority: 1,
+    text,
   });
   // A text changed elsewhere replaces this one when nothing of it waits to be saved, nor is held
   // during an upload.

@@ -109,12 +109,12 @@ export function useReviewImages(
     },
     images,
     /** The comment closed: its images' refusals go with it. */
+    notice: notice === STILL_ADDING && !images.busy ? undefined : notice,
     onClose: () => {
       next();
       setNotice(undefined);
       setMessage((shown) => (forImages(shown) ? undefined : shown));
     },
     onEdit: next,
-    notice: notice === STILL_ADDING && !images.busy ? undefined : notice,
   };
 }
