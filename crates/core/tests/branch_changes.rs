@@ -182,6 +182,9 @@ fn uncommitted(repo: &TestRepo) -> &'static str {
 fn default_unknown(repo: &TestRepo) -> &'static str {
     code(repo);
     repo.git(&["branch", "--quiet", "-m", "main", "trunk"]);
+    // The core reads the user's global git config, where `init.defaultBranch` could name `trunk`:
+    // the repository's own value, naming no branch, overrides it.
+    repo.git(&["config", "init.defaultBranch", "none"]);
     FOLDER
 }
 
