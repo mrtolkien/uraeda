@@ -24,6 +24,7 @@ import { Composer } from "./Composer.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { useAgent, useFeature, useSession, useWorkflowMessage } from "./data.ts";
 import { EditableLine } from "./EditableLine.tsx";
+import { useFollowEnd, useOpenAtEnd } from "./following.ts";
 import { type AsideShown, AsideToggle, useAsideShown, WithAside } from "./SessionAside.tsx";
 import { Page } from "./layout/Page.tsx";
 import { ProgressLine } from "./ProgressLine.tsx";
@@ -32,7 +33,7 @@ import { navigate, redirect, useRepoPath, useRestoreScroll, useSearch } from "./
 import { sessionPath } from "./sessions.ts";
 import { type ChatControls, useSessionControls } from "./useSessionControls.ts";
 import { StatusMark } from "./StatusMark.tsx";
-import { Transcript, useFollowEnd, useOpenAtEnd } from "./Transcript.tsx";
+import { Transcript } from "./Transcript.tsx";
 import { useKeepPlace } from "./useKeepPlace.ts";
 import { useOpenKeys } from "./useOpenKeys.ts";
 import { SessionView } from "./views.ts";
