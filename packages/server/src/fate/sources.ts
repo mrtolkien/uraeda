@@ -16,6 +16,8 @@ import { createSources, fileSource, type FileSourceReaders } from "./source.ts";
 import {
   AGENT_ID,
   agentDataView,
+  type BranchChangesRecord,
+  branchChangesDataView,
   draftDataView,
   featureDataView,
   fileDataView,
@@ -29,6 +31,7 @@ import {
   type RepositoriesRecord,
   type FeatureRecord,
   type FileRecord,
+  sentChanges,
   sentFile,
   SESSION_LIST_ID,
   sessionDataView,
@@ -110,10 +113,27 @@ function missingFeature(folder: string): FeatureRecord {
     session: null,
     slug: "",
     source: "",
-    step: { name: "none", waitsOn: "nobody" },
+    step: { name: "none", progress: null, waitsOn: "nobody" },
     title: "",
     uncommitted: false,
   };
+}
+
+/**
+ * A feature's branch changes. Changes that cannot be read, git missing or the diff failing, are
+ * answered as failed, so the page says so, and logged with the error's first line.
+ */
+async function branchChanges(
+  { binding, repo }: RepoContext,
+  id: string,
+): Promise<BranchChangesRecord> {
+  try {
+    return { changes: sentChanges(await binding.branchChanges(repo, id)), failed: false, id };
+  } catch (error) {
+    const [line] = (error instanceof Error ? error.message : String(error)).split("\n");
+    process.stderr.write(`uraeda-server: the changes of ${id} could not be read: ${line}\n`);
+    return { changes: null, failed: true, id };
+  }
 }
 
 /** Whether the core refused a read for a file or a folder that is not there. */
@@ -182,6 +202,12 @@ export const sources = createSources<Context>([
             throw error;
           }
         }),
+    }),
+  ),
+  fileSource(
+    branchChangesDataView,
+    repository({
+      byIds: async (ctx, ids) => Promise.all(ids.map((id) => branchChanges(ctx, id))),
     }),
   ),
   fileSource(

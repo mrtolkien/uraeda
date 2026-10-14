@@ -1,7 +1,16 @@
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readdirSync, realpathSync, rmSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 const fixtures = join(import.meta.dirname, "../../fixtures");
 
@@ -77,4 +86,61 @@ export function fixtureRepo(name = "repo"): string {
     git(repo, "switch", "--quiet", "main");
   }
   return repo;
+}
+
+/**
+ * Commits files on a branch of a fixture repository, their paths from its top level, and leaves
+ * the checkout on `main`.
+ */
+export function commitOnBranch(repo: string, branch: string, files: Record<string, string>) {
+  git(repo, "switch", "--quiet", branch);
+  try {
+    for (const [path, text] of Object.entries(files)) {
+      mkdirSync(dirname(join(repo, path)), { recursive: true });
+      writeFileSync(join(repo, path), text);
+    }
+    git(repo, "add", "--all");
+    git(repo, "commit", "--quiet", "--no-verify", "--message", `work on ${branch}`);
+  } finally {
+    git(repo, "switch", "--quiet", "main");
+  }
+}
+
+/** A plan's task: its title, its checked steps, and its steps. */
+export type PlanTask = [title: string, done: number, total: number];
+
+/** A plan of 11 tasks of 5 steps, the first 6 done: the 7th, "Session column", is current. */
+export const ELEVEN: Array<PlanTask> = [
+  "Plan progress in the core",
+  "One parser for plan tasks",
+  "Branch changes in the core",
+  "Branch changes on the server",
+  "Sidebar slugs and progress",
+  "The session's own page",
+  "Session column",
+  "Jump to the latest",
+  "The phone's progress line",
+  "Announcements",
+  "Layout decision checks",
+].map((title, index) => [title, index < 6 ? 5 : 0, 5]);
+
+/**
+ * Commits `specs/<folder>/plan.md` on the folder's branch, for spec revision 1, with its tasks'
+ * steps written `- [x] **Step N: Do**`, and leaves the checkout on `main`. Called again, it
+ * commits the plan's new text.
+ */
+export function addPlan(
+  repo: string,
+  folder: string,
+  tasks: Array<PlanTask>,
+  status = "auto-approved",
+) {
+  let text = `---\nstatus: ${status}\nspec-revision: 1\n---\n\n# Plan: Feature\n`;
+  for (const [index, [title, done, total]] of tasks.entries()) {
+    text += `\n## Task ${index + 1}: ${title}\n\n`;
+    for (let step = 0; step < total; step++) {
+      text += `- [${step < done ? "x" : " "}] **Step ${step + 1}: Do**\n`;
+    }
+  }
+  commitOnBranch(repo, folder, { [`specs/${folder}/plan.md`]: text });
 }
