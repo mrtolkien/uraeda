@@ -362,20 +362,23 @@ test("a column's read that fails leaves the session and the rest of the column",
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   const server = serverFetch(repo, fake.sessions);
-  let refused = false;
-  const fetch: typeof globalThis.fetch = async (input, init) => {
+  let refused: Promise<Response> | undefined;
+  const fetch: typeof globalThis.fetch = (input, init) => {
     if (typeof init?.body === "string" && init.body.includes("plan.md")) {
-      refused = true;
-      throw new Error("The server went away.");
+      refused = Promise.reject(new Error("The server went away."));
+      return refused;
     }
     return server(input, init);
   };
   await renderPage(`/f/${CLI}/session`, repo, { agent: fake, fetch });
-  await waitFor(() => expect(refused).toBe(true));
-  await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+  await waitFor(() => expect(refused).toBeDefined());
+  // The refusal reaches the page, which React draws again.
+  await act(async () => {
+    await refused!.catch(() => undefined);
+  });
 
-  expect(screen.getByRole("log", { name: "Conversation" })).toBeTruthy();
-  expect(aside().getByRole("link", { name: "Feature page" })).toBeTruthy();
+  expect(await screen.findByRole("log", { name: "Conversation" })).toBeTruthy();
+  expect(await (await findAside()).findByRole("link", { name: "Feature page" })).toBeTruthy();
 });
 
 test("US5.1: a chat has no column", async () => {
