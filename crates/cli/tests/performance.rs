@@ -1,6 +1,7 @@
 //! SC-001 of the CLI core: `ura status` and `ura next` complete in under 1 second on a repository
-//! with 20 feature branches. The tests run the debug build, on machines of any speed, so the bound
-//! is five times that; the release build on Linux x64 is the one the criterion names.
+//! with 20 feature branches. The test checks what they print; the benchmark, run by `vp run bench`,
+//! their time. It runs the debug build, on machines of any speed, so the bound is five times the
+//! criterion's; the release build on Linux x64 is the one the criterion names.
 
 mod common;
 
@@ -32,26 +33,48 @@ fn twenty_features() -> TestRepo {
     repo
 }
 
-/// Runs `ura` with `args`, asserting it succeeds within the bound.
-fn timed(repo: &TestRepo, args: &[&str]) -> Output {
-    let start = Instant::now();
+/// Runs `ura` with `args`, asserting it succeeds.
+fn run(repo: &TestRepo, args: &[&str]) -> Output {
     let output = ura(repo, args);
-    let elapsed = start.elapsed();
     assert_eq!(output.code, 0, "{args:?}: {}", output.stderr);
-    assert!(elapsed < BOUND, "ura {args:?} took {elapsed:?}");
     output
 }
 
-#[test]
-fn status_and_next_stay_fast_with_twenty_feature_branches() {
-    let repo = twenty_features();
-
-    let status = timed(&repo, &["status"]);
-    timed(&repo, &["next"]);
-
+/// Asserts that `ura status` lists every one of the 20 features.
+fn assert_twenty_listed(status: &Output) {
     let listed = status
         .stdout
         .lines()
         .filter(|line| line.contains("-feature-"));
     assert_eq!(listed.count(), 20, "{}", status.stdout);
+}
+
+#[test]
+fn status_and_next_list_twenty_feature_branches() {
+    let repo = twenty_features();
+
+    let status = run(&repo, &["status"]);
+    run(&repo, &["next"]);
+
+    assert_twenty_listed(&status);
+}
+
+/// Runs `ura` with `args`, asserting it succeeds within the bound.
+fn timed(repo: &TestRepo, args: &[&str]) -> Output {
+    let start = Instant::now();
+    let output = run(repo, args);
+    let elapsed = start.elapsed();
+    assert!(elapsed < BOUND, "ura {args:?} took {elapsed:?}");
+    output
+}
+
+#[test]
+#[ignore = "benchmark"]
+fn bench_status_and_next_stay_fast_with_twenty_feature_branches() {
+    let repo = twenty_features();
+
+    let status = timed(&repo, &["status"]);
+    timed(&repo, &["next"]);
+
+    assert_twenty_listed(&status);
 }
