@@ -12,7 +12,9 @@ napi = ["dep:napi", "dep:napi-derive"]
 
 [dependencies]
 gix.workspace = true
+image.workspace = true
 include_dir.workspace = true
+libwebp-sys.workspace = true
 napi = { workspace = true, optional = true }
 napi-derive = { workspace = true, optional = true }
 notify.workspace = true

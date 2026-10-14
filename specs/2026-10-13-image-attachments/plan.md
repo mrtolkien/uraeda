@@ -299,9 +299,10 @@ The decisions this plan relies on, and where it follows them:
     only in messages.
   - `pub enum ImageError` whose `Display` is the spec's exact refusal text: `Type { name }`,
     `Size { name, bytes }`, `Pixels { name, width, height }`, `Unreadable { name }`.
-  - `pub const MAX_BYTES: usize = 20 * 1024 * 1024`, `pub const MAX_PIXELS: u64 = 40_000_000`.
+  - `pub const MAX_BYTES: usize = 20 * 1024 * 1024`, `pub const MAX_PIXELS: u64 = 40_000_000`,
+    `pub const MAX_EDGE: u32 = 2576`.
 
-- [ ] **Step 1: Write the failing tests, and the fixtures they use**
+- [x] **Step 1: Write the failing tests, and the fixtures they use**
 
 Create `fixtures/images/`, small files only (under 600 KiB in all), each named after what it holds:
 `desktop.png` and `phone.png` (two 1x screenshots from
@@ -318,7 +319,7 @@ fn attached_images_are_checked_and_reencoded() {
     // fixture, expected extension or refusal text, expected size
     let rows = [
         ("desktop.png", Ok(("webp", 1440, 900))),
-        ("photo.jpg", Ok(("webp", 1728, 2576))), // rotated, then downscaled
+        ("photo.jpg", Ok(("webp", 1717, 2576))), // rotated, then downscaled: R13
         ("animated.gif", Ok(("gif", ..))),        // bytes unchanged
         ("still.gif", Ok(("webp", ..))),
         ("lossy.webp", Ok(("webp", ..))),
@@ -335,38 +336,42 @@ Also: `an_image_over_20_mb_is_refused_before_decoding` (21 MiB of zeros after a 
 image is over 20 MB: big.png is 21 MB."); `reencoded_images_hold_no_metadata` (SC-004: the photo's
 output holds none of `Exif\0`, `EXIF`, `XMP `, nor the camera model string);
 `photos_are_lossy_and_screenshots_near_lossless` (the JPEG's output has a `VP8 ` chunk, the PNG's a
-`VP8L` chunk); and an `#[ignore]`d `the_screenshot_corpus_shrinks_to_2400_kib` (SC-001, see
+`VP8L` chunk); `an_unknown_type_is_refused_before_its_size` (see
+[R11](rulings.md#r11-the-type-is-checked-before-the-size)); `photos_are_turned_upright`; and an
+`#[ignore]`d `the_screenshot_corpus_shrinks_to_2400_kib` (SC-001, see
 [R2](rulings.md#r2-the-screenshot-corpus-stays-in-git-history)), reading the 94 screenshots with
 `git show` from the commits listed in the test, and asserting their total is at most 2400 KiB.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-core --test images`
 - Expected: FAIL, `unresolved import uraeda_core::images`.
 
-- [ ] **Step 3: Implement `images::encode`**
+- [x] **Step 3: Implement `images::encode`**
 
-In order: refuse over `MAX_BYTES`; detect the type from the first bytes (PNG signature, JPEG
-`FF D8 FF`, `GIF87a`/`GIF89a`, `RIFF....WEBP`), refusing anything else; read the dimensions from the
-header with `image::ImageReader` and refuse over `MAX_PIXELS`, before decoding, with `image::Limits`
-set to the same bound; keep a GIF with more than one frame unchanged; otherwise decode, apply the
-EXIF orientation (`ImageDecoder::orientation`, `DynamicImage::apply_orientation`), downscale with
-Lanczos 3 when the long edge exceeds 2576, and encode with libwebp: lossy quality 80, method 4, for
-JPEG and for WebP holding a `VP8 ` chunk; near-lossless (`lossless = 1`, `near_lossless = 60`,
-quality 75, method 4) for everything else. Sizes in messages are in MB of 1,048,576 bytes, rounded
-to one decimal, with `.0` dropped. `images/webp.rs` holds the only `unsafe` code: `WebPConfigInit`,
+In the spec's order of refusals: detect the type from the first bytes (PNG signature, JPEG
+`FF D8 FF`, `GIF87a`/`GIF89a`, `RIFF....WEBP`), refusing anything else; refuse over `MAX_BYTES`;
+read the dimensions from the header with `image::ImageReader` and refuse over `MAX_PIXELS`, before
+decoding, then decode with `image::Limits` allowing `MAX_PIXELS` at 8 bytes a pixel; keep a GIF with
+more than one frame unchanged; otherwise decode, apply the EXIF orientation
+(`ImageDecoder::orientation`, `DynamicImage::apply_orientation`), downscale with Lanczos 3 when the
+long edge exceeds 2576, and encode with libwebp: lossy quality 80, method 4, for JPEG and for WebP
+holding a `VP8 ` chunk; near-lossless (`lossless = 1`, `near_lossless = 60`, quality 75, method 4)
+for everything else. Sizes in messages are in MB of 1,048,576 bytes, rounded to one decimal, with
+`.0` dropped. `images/webp.rs` holds the only `unsafe` code: `WebPConfigInit`,
 `WebPPictureImportRGBA`, a memory writer, `WebPEncode`, and the frees, behind
-`fn encode_rgba(pixels: &[u8], width: u32, height: u32, settings: Settings) -> Result<Vec<u8>, ImageError>`,
-each `unsafe` block with a `// SAFETY:` comment.
+`fn encode_rgba(pixels: &[u8], width: u32, height: u32, settings: Settings) -> Result<Vec<u8>, WebPEncodingError>`,
+each `unsafe` block with a `// SAFETY:` comment; `encode` turns libwebp's error into `Unreadable`
+(see [R12](rulings.md#r12-the-libwebp-wrapper-returns-libwebps-error)).
 
-- [ ] **Step 4: Measure the binary, and run all tests**
+- [x] **Step 4: Measure the binary, and run all tests**
 
 - Run: `cargo build --release -p uraeda-cli` before and after the change, `ls -l target/release/ura`
 - Expected: at most 1 MB larger (SC-003); write both sizes in the commit body.
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Cargo.toml Cargo.lock crates/core fixtures/images

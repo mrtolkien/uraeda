@@ -20,7 +20,9 @@ rust-version = "1.96"
 clap = { version = "4.6.7", features = ["derive"] }
 crossbeam-channel = "0.5.15"
 gix = { version = "0.89", default-features = false, features = ["sha1", "revision", "status"] }
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "gif", "webp"] }
 include_dir = "0.7.4"
+libwebp-sys = "0.14.4"
 lsp-server = "0.10.0"
 lsp-types = "0.97.0"
 napi = { version = "3.14.2", default-features = false, features = ["napi4"] }
