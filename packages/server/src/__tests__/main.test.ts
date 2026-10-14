@@ -302,10 +302,19 @@ test("a second start during the first's start waits for it", async () => {
   expect(second.code).toBe(0);
 });
 
-test("explains a binding that is not built", async () => {
-  await expect(loadBinding(missingBinding, () => {})).rejects.toThrow(
+test("explains a binding that is not built, in a checkout", async () => {
+  await expect(loadBinding(missingBinding, temporaryFolder("uraeda-checkout"))).rejects.toThrow(
     "the native binding is not built; run vp run ready",
   );
+});
+
+test("shows the loader's error when the package has no binding", async () => {
+  const loader = "Cannot find native binding. npm has a bug related to optional dependencies.";
+  const error = await loadBinding(() => Promise.reject(new Error(loader)), null).catch(
+    (error: unknown) => error,
+  );
+  expect(error).toBeInstanceOf(Error);
+  expect((error as Error).message).toBe(loader);
 });
 
 /** A checkout with a binding built at `built` and a core changed at `changed`, in seconds. */

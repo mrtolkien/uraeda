@@ -270,7 +270,9 @@ function commands(install: Install) {
     const missing = run(install, ["--version"]);
     expect(
       "missing binding",
-      missing.code === 1 && missing.stderr.startsWith("uraeda: "),
+      missing.code === 1 &&
+        missing.stderr.startsWith("uraeda: ") &&
+        !missing.stderr.includes("vp run"),
       `exit ${missing.code}: ${missing.stderr.trim()}`,
     );
   }
