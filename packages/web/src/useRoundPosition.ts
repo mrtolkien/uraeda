@@ -23,8 +23,8 @@ function write(key: string, value: string) {
  * Where a round opens, and where it is kept on this browser, for its repository: the id of the
  * question at the top, saved in `localStorage` at most once a second while the page scrolls.
  * Opened anew, not by Back or a reload (whose history entry holds its own position), the round
- * goes to the saved question when it still applies, else to the first blank question, else stays
- * at its top.
+ * goes to the saved question when it still applies, else to the first blank question once one is
+ * answered, else stays at its top: a round not started opens on its intro.
  */
 export function useRoundPosition(
   folder: string,
@@ -36,7 +36,9 @@ export function useRoundPosition(
   const ids = useRef<ReadonlyArray<string>>([]);
   ids.current = questions.map((q) => q.id);
   const firstBlank = useRef<string>(undefined);
-  firstBlank.current = questions.find((q) => !q.answered)?.id;
+  firstBlank.current = questions.some((q) => q.answered)
+    ? questions.find((q) => !q.answered)?.id
+    : undefined;
 
   // Once per round, when it is drawn.
   useLayoutEffect(() => {

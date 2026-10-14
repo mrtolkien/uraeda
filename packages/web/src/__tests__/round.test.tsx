@@ -491,6 +491,12 @@ test("a position saved in another repository does not apply", async () => {
   expect(focused()).toContain("How does your iPhone reach the server?");
 });
 
+test("a new browser opens a round not started at its top, on its intro", async () => {
+  await renderPage(PAGE, answered({}));
+  await screen.findByText("How does your iPhone reach the server?");
+  expect(focused()).toBe("");
+});
+
 /** Edge case: a position saved on a question that no longer applies. */
 test("a saved position on a question that no longer applies falls back", async () => {
   const repo = answered({ Q1: "A" });
