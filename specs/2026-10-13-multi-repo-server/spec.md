@@ -1,16 +1,16 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: high
-plan-review: true
+plan-review: false
 ---
 
 # Spec: Multi-repo server
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 30 minutes.
+> Approved on 2026-10-14.
 >
 > - One new decision, [repositories](../decisions/repositories.md): the list lives in
 >   `repositories.json` in Uraeda's data folder, owned by the Rust core, and every repository's
