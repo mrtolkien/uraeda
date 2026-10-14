@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 1
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: true
 
 # Spec: Text inputs and comments
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 30 minutes.
+> Changes requested on 2026-10-14: 1 comment in spec-review.md.
 >
 > - Two changed decisions:
 >   [UI behaviour](../decisions/ui-behaviour.md#proposed-change-2026-10-14-text-inputs) gains the
