@@ -218,9 +218,7 @@ Acceptance scenarios:
 - **SC-005**: Reading the changed files of a branch of 60 changed files takes under 100 ms on the
   development machine.
 
-## Design
-
-### Approach
+## Architecture
 
 The session's route draws the session's page alone, at every width, as chats already are. The
 [UI layout](../decisions/ui-layout.md) decision changes to say so
@@ -242,6 +240,104 @@ Everything the column and the sidebar show comes from the repository, read by th
 Nothing reads an agent's own files, so an agent started from a terminal gets the same progress as
 one started from the UI
 ([Q3](clarifications-01.md#q3-should-the-ui-show-that-an-agent-it-did-not-start-is-working)).
+
+## Mockups
+
+- [Session view](mockups/session-view.html):
+  1. a feature's session at 1440 px, working at Task 7 of 11, with the column, and the sidebar with
+     slugs, progress rows, and a sub-agent;
+  2. the column folded at 1024 px, scrolled up, with "Jump to the latest";
+  3. the phone, with the progress line closed and open;
+  4. the sidebar open and folded, with what screen readers read;
+  5. the column before a plan, with every box checked, with more than 50 files, and with no session;
+  6. a chat at 1440 px, without the column.
+
+## Assumptions
+
+Settled in the [clarifications](clarifications-01.md#settled-without-the-human):
+
+- "Sidebar" in the proposal is the session's pane, and, for the task, the left navigation.
+- "7/11" is the position of the first task with an unchecked step among the plan's tasks, and the
+  number of tasks, computed in the core and sent with the feature's step.
+- The progress shows only during the implementation, and is recomputed from the plan as it is now.
+- The core uses one parser for the plan's tasks: the one the plan's review uses.
+- On the phone, the session stays a page, and the column's content becomes a line under the header
+  that opens in place.
+- The column folds away, its state kept in the browser. Chats use the same page without the column.
+- The addresses stay the same: `/f/<folder>/session`, `?continue=`, `?ask=`, and old run links. The
+  session shows crumbs and a level-1 heading at every width, and the feature page keeps its Agent
+  section.
+- Notifications, a diff view, model-written activity summaries, and two sessions side by side are
+  left for later.
+- This feature builds on image attachments once it is merged, or rebases on it. New parts go in new
+  files under the coming 500-line limit.
+
+Settled while writing this spec:
+
+- **The changed files are listed, not linked.** The server serves code files from the main checkout
+  only ([`read_raw`](/crates/core/src/api.rs)), and serving a branch's files is the diff view's job.
+- **The changed files are the committed ones.** The watcher sees code commits through the branch's
+  tip, not edits in the worktree outside `specs/`. Agents commit each task.
+- **The feature's own folder is left out of the changed files**, since the column links to its
+  workflow files already.
+- **At most 50 files are listed**, so a large branch keeps the column short.
+- **The sidebar's progress row reads "7/11 · <title>"**, with a ring. That is my reading of "as
+  short as possible" in [Q2](clarifications-01.md#q2-how-does-the-current-task-show-in-the-sidebar):
+  the count and the title, without the word "Task".
+- **Every feature row shows its slug**, done ones and bugs included, with the title in its
+  accessible name. Search matches both.
+- **On the session's page, the progress row is the selected row**, not the feature's, so one row is
+  selected.
+- **"Jump to the latest" shows whenever the page is not following the end**, working or not, and
+  uses the same 24 px measure as `useFollowEnd`.
+- **The transcript stops announcing what streams.** The status region announces turns and tasks
+  instead, as the [streaming chat pattern](discovery-01.md#live-regions-and-progress-in-wai-aria)
+  advises.
+- **The phone's open progress line is kept in the history entry**, as open tool groups are, not in
+  the URL: it is a disclosure within the page, not a detail.
+- **The column is 320 px wide**, a new theme size, `--size-session-aside`.
+
+## Decisions
+
+Changed, applied when this spec is approved:
+
+- [UI layout](../decisions/ui-layout.md): a session opens as a page of its own at both widths, with
+  a column beside its transcript that the human can fold away. The sidebar's rows stay short:
+  features by their slug, progress and status as icons and counts, with full words for screen
+  readers. Applied, in its [rules](../decisions/ui-layout.md#rules).
+
+Relied on:
+
+- [Stack](../decisions/stack.md): progress and changed files are computed in the Rust core and reach
+  the UI through the binding and fate. The UI never parses `plan.md`.
+- [Agents](../decisions/agents.md): no agent setting changes. The agent's own checklist tools stay
+  off, and to-do calls stay plain tool rows
+  ([Q5](clarifications-01.md#q5-what-else-ships-with-the-sessions-page)).
+- [UI components](../decisions/ui-components.md): `Layout`, `LayoutPanel`, `ProgressBar`,
+  `SideNavItem`, `Button`, and `List` from Astryx. The ring is an SVG in StyleX with theme tokens,
+  since Astryx has no ring.
+- [UI behaviour](../decisions/ui-behaviour.md): rows are tappable as a whole, nothing works only on
+  hover, the error stays on screen, and Back keeps the scroll position and open items.
+- [UI checks](../decisions/ui-checks.md): layout and axe checks on the new page at both sizes and
+  themes, and screenshots before the handover.
+
+## Constitution check
+
+| Principle                                  | Complies | Notes                                                                                                   |
+| ------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------- |
+| I. Humans stay in control                  | yes      | The UI layout change waits for the spec's approval. Nothing new acts on the human's behalf.             |
+| II. Git and plain text first               | yes      | Progress and changes are read from `plan.md` and git. Only the column's folded state is in the browser. |
+| III. Asynchronous by default               | yes      | Everything shown is recomputed from the repository. An agent started anywhere shows the same progress.  |
+| IV. Review effort matches impact           | yes      | One click from the sidebar to a working agent. The plan does not wait for a review, at `medium`.        |
+| V. Tools are optional                      | yes      | The plan's checkboxes stay the source. The workflow and the skill do not change.                        |
+| VI. Code is checked and stays maintainable | yes      | One parser for plan tasks instead of two. New parts go in new files, and every scenario has a test.     |
+
+## Risk tier
+
+**Medium**: one new core function and git call, two additive fields in the binding, and a watcher
+change that publishes features more often. No stored data or workflow format changes.
+
+## Details
 
 ### Data
 
@@ -350,17 +446,6 @@ Back keeps it.
   `role="status"` that announces a turn's start, end, and failure, and a change of task. The
   transcript's log stops announcing what streams.
 
-### Mockups
-
-- [Session view](mockups/session-view.html):
-  1. a feature's session at 1440 px, working at Task 7 of 11, with the column, and the sidebar with
-     slugs, progress rows, and a sub-agent;
-  2. the column folded at 1024 px, scrolled up, with "Jump to the latest";
-  3. the phone, with the progress line closed and open;
-  4. the sidebar open and folded, with what screen readers read;
-  5. the column before a plan, with every box checked, with more than 50 files, and with no session;
-  6. a chat at 1440 px, without the column.
-
 ### Error handling
 
 - **The changed files cannot be read**, because git is missing or the diff fails: the section shows
@@ -397,88 +482,3 @@ labels, and text. WebKit browser tests check layout, following, and axe-core at 
 | SC-001, SC-004, edge case: 768–1024 px                                                                                                           | `__browser__/layout.test.tsx`: the session's page, column shown and hidden, and a chat                                         |
 | SC-003                                                                                                                                           | `__tests__/shell.test.tsx`: the progress row opens the session                                                                 |
 | SC-005                                                                                                                                           | core benchmark test on a generated branch of 60 files, run in `cargo test --release` by hand                                   |
-
-## Assumptions
-
-Settled in the [clarifications](clarifications-01.md#settled-without-the-human):
-
-- "Sidebar" in the proposal is the session's pane, and, for the task, the left navigation.
-- "7/11" is the position of the first task with an unchecked step among the plan's tasks, and the
-  number of tasks, computed in the core and sent with the feature's step.
-- The progress shows only during the implementation, and is recomputed from the plan as it is now.
-- The core uses one parser for the plan's tasks: the one the plan's review uses.
-- On the phone, the session stays a page, and the column's content becomes a line under the header
-  that opens in place.
-- The column folds away, its state kept in the browser. Chats use the same page without the column.
-- The addresses stay the same: `/f/<folder>/session`, `?continue=`, `?ask=`, and old run links. The
-  session shows crumbs and a level-1 heading at every width, and the feature page keeps its Agent
-  section.
-- Notifications, a diff view, model-written activity summaries, and two sessions side by side are
-  left for later.
-- This feature builds on image attachments once it is merged, or rebases on it. New parts go in new
-  files under the coming 500-line limit.
-
-Settled while writing this spec:
-
-- **The changed files are listed, not linked.** The server serves code files from the main checkout
-  only ([`read_raw`](/crates/core/src/api.rs)), and serving a branch's files is the diff view's job.
-- **The changed files are the committed ones.** The watcher sees code commits through the branch's
-  tip, not edits in the worktree outside `specs/`. Agents commit each task.
-- **The feature's own folder is left out of the changed files**, since the column links to its
-  workflow files already.
-- **At most 50 files are listed**, so a large branch keeps the column short.
-- **The sidebar's progress row reads "7/11 · <title>"**, with a ring. That is my reading of "as
-  short as possible" in [Q2](clarifications-01.md#q2-how-does-the-current-task-show-in-the-sidebar):
-  the count and the title, without the word "Task".
-- **Every feature row shows its slug**, done ones and bugs included, with the title in its
-  accessible name. Search matches both.
-- **On the session's page, the progress row is the selected row**, not the feature's, so one row is
-  selected.
-- **"Jump to the latest" shows whenever the page is not following the end**, working or not, and
-  uses the same 24 px measure as `useFollowEnd`.
-- **The transcript stops announcing what streams.** The status region announces turns and tasks
-  instead, as the [streaming chat pattern](discovery-01.md#live-regions-and-progress-in-wai-aria)
-  advises.
-- **The phone's open progress line is kept in the history entry**, as open tool groups are, not in
-  the URL: it is a disclosure within the page, not a detail.
-- **The column is 320 px wide**, a new theme size, `--size-session-aside`.
-
-## Decisions
-
-Changed, applied when this spec is approved:
-
-- [UI layout](../decisions/ui-layout.md): a session opens as a page of its own at both widths, with
-  a column beside its transcript that the human can fold away. The sidebar's rows stay short:
-  features by their slug, progress and status as icons and counts, with full words for screen
-  readers. Applied, in its [rules](../decisions/ui-layout.md#rules).
-
-Relied on:
-
-- [Stack](../decisions/stack.md): progress and changed files are computed in the Rust core and reach
-  the UI through the binding and fate. The UI never parses `plan.md`.
-- [Agents](../decisions/agents.md): no agent setting changes. The agent's own checklist tools stay
-  off, and to-do calls stay plain tool rows
-  ([Q5](clarifications-01.md#q5-what-else-ships-with-the-sessions-page)).
-- [UI components](../decisions/ui-components.md): `Layout`, `LayoutPanel`, `ProgressBar`,
-  `SideNavItem`, `Button`, and `List` from Astryx. The ring is an SVG in StyleX with theme tokens,
-  since Astryx has no ring.
-- [UI behaviour](../decisions/ui-behaviour.md): rows are tappable as a whole, nothing works only on
-  hover, the error stays on screen, and Back keeps the scroll position and open items.
-- [UI checks](../decisions/ui-checks.md): layout and axe checks on the new page at both sizes and
-  themes, and screenshots before the handover.
-
-## Constitution check
-
-| Principle                                  | Complies | Notes                                                                                                   |
-| ------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------- |
-| I. Humans stay in control                  | yes      | The UI layout change waits for the spec's approval. Nothing new acts on the human's behalf.             |
-| II. Git and plain text first               | yes      | Progress and changes are read from `plan.md` and git. Only the column's folded state is in the browser. |
-| III. Asynchronous by default               | yes      | Everything shown is recomputed from the repository. An agent started anywhere shows the same progress.  |
-| IV. Review effort matches impact           | yes      | One click from the sidebar to a working agent. The plan does not wait for a review, at `medium`.        |
-| V. Tools are optional                      | yes      | The plan's checkboxes stay the source. The workflow and the skill do not change.                        |
-| VI. Code is checked and stays maintainable | yes      | One parser for plan tasks instead of two. New parts go in new files, and every scenario has a test.     |
-
-## Risk tier
-
-**Medium**: one new core function and git call, two additive fields in the binding, and a watcher
-change that publishes features more often. No stored data or workflow format changes.
