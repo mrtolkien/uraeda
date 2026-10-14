@@ -1,33 +1,20 @@
-import { Banner } from "@astryxdesign/core/Banner";
-import { Button } from "@astryxdesign/core/Button";
-import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { Heading } from "@astryxdesign/core/Heading";
-import { Link } from "@astryxdesign/core/Link";
-import { VStack } from "@astryxdesign/core/VStack";
-import {
-  colorVars,
-  spacingVars,
-  typeScaleVars,
-  typographyVars,
-} from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useRef, useState } from "react";
-import { useFateClient } from "react-fate";
+import type { QuestionItem } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
-import { CommitActions } from "./CommitActions.tsx";
 import { Crumbs } from "./Crumbs.tsx";
-import { type Refusal, refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
-import { PendingSaves, Question, statusStyles } from "./Question.tsx";
-import { jumpTo, type NavQuestion, RoundNav } from "./RoundNav.tsx";
-import { NotesField, useRoundNotes } from "./RoundNotes.tsx";
-import { askAbout, handOver, quoted } from "./sessions.ts";
+import { PendingSaves, Question } from "./Question.tsx";
+import { type NavQuestion, RoundNav } from "./RoundNav.tsx";
+import { useRoundNotes } from "./RoundNotes.tsx";
+import { RoundEnd } from "./RoundSubmit.tsx";
+import { askAbout, quoted } from "./sessions.ts";
 import { plain } from "./Spans.tsx";
 import { useRoundPosition } from "./useRoundPosition.ts";
-import { FileView } from "./views.ts";
 import { type useFile, useAgent } from "./data.ts";
-import { Paragraph } from "./layout/Paragraph.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -47,12 +34,6 @@ const styles = stylex.create({
     display: "flex",
     justifyContent: "center",
   },
-  output: {
-    fontFamily: typographyVars["--font-family-code"],
-    fontSize: typeScaleVars["--text-code-size"],
-    margin: 0,
-    whiteSpace: "pre-wrap",
-  },
   questions: {
     flexGrow: 1,
     flexShrink: 1,
@@ -64,46 +45,17 @@ const styles = stylex.create({
   },
 });
 
-/** A hook's refusal: the answers are saved, the commit is not, and it can be tried again. */
-export function HookRefusal({
-  error,
-  onRetry,
-  what,
-}: {
-  error: Refusal;
-  onRetry: () => Promise<void>;
-  what: string;
-}) {
-  return (
-    <Banner
-      collapsible={false}
-      endContent={<Button clickAction={onRetry} label="Try again" />}
-      status="error"
-      title={`The pre-commit hook refused the commit. ${what}`}
-    >
-      <Collapsible trigger="Hook output">
-        <pre {...stylex.props(styles.output)}>{error.output ?? error.message}</pre>
-      </Collapsible>
-    </Banner>
-  );
-}
-
 /**
  * A round of questions on one page: its context, every question in full with its follow-ups, the
  * points settled without the human, the notes, and Submit.
  */
-// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the notes' saving and the submit in hooks
 export function RoundPage({ file }: { file: File }) {
-  const fate = useFateClient();
   const agent = useAgent();
   const round = file.current.items.clarifications;
   const document = file.current.document;
   const readOnly = file.status !== "awaiting-human";
-  const [error, setError] = useState<Refusal>();
-  // Whether the last commit asked to start the agent, for its Try again.
-  const continues = useRef(false);
-  // oxlint-disable-next-line react/refs -- before the code quality decision: a set made once, kept for the page's life
-  const pending = useRef(new Set<() => Promise<boolean>>()).current;
+  // What questions still have to save, which Submit saves first: one set for the page's life.
+  const pending = useState(() => new Set<() => Promise<boolean>>())[0];
   const notes = useRoundNotes(file);
   const wide = useWidthClass() === "wide";
   const end = useRef<HTMLDivElement>(null);
@@ -114,15 +66,7 @@ export function RoundPage({ file }: { file: File }) {
   // makes it apply.
   const blank = questions.filter((q) => q.asked && !q.answer.trim());
   const title = document.blocks.find((b) => b.kind === "heading" && b.level === 1);
-  // The applicable questions in the page's order, each follow-up after its parent.
-  const nav: Array<NavQuestion> = questions
-    .flatMap((q) => (q.parent ? [] : [q, ...questions.filter((f) => f.parent === q.id && f.asked)]))
-    .map((q) => ({
-      answered: q.answer.trim() !== "",
-      id: q.id,
-      level: q.parent ? 2 : 1,
-      title: q.title,
-    }));
+  const nav = navOf(questions);
   useRoundPosition(file.folder, file.name, nav);
   if (!round) {
     return null;
@@ -142,42 +86,6 @@ export function RoundPage({ file }: { file: File }) {
   /** Opens the feature's session with a question's title quoted. */
   const ask = (question: { id: string; title: string }) =>
     askAbout(file.folder, quoted(`About ${question.id} of ${file.path}:`, [question.title]));
-
-  /** Hands the feature over to the agent, once the round is committed. */
-  const proceed = () => handOver(file.folder, "answers", file.name);
-  const submit = async (next: boolean) => {
-    setError(undefined);
-    continues.current = next;
-    // What is still being typed is saved first, and nothing is submitted unless it all is.
-    const saved = await Promise.all([...[...pending].map((flush) => flush()), notes.flush()]);
-    if (!saved.every(Boolean)) {
-      setError({
-        kind: "refused",
-        message:
-          "Some answers were not saved: nothing was submitted. Check them, then submit again.",
-      });
-      return;
-    }
-    const result = await fate.mutations.answers.submit({
-      input: { file: file.name, folder: file.folder },
-      view: FileView,
-    });
-    if (result.error) {
-      setError(refusal(result.error));
-    } else if (next) {
-      proceed();
-    }
-  };
-  const retry = async () => {
-    const result = await fate.mutations.commit.retry({
-      input: { file: file.name, folder: file.folder },
-      view: FileView,
-    });
-    setError(result.error ? refusal(result.error) : undefined);
-    if (!result.error && continues.current) {
-      proceed();
-    }
-  };
 
   const content = (
     <>
@@ -214,54 +122,15 @@ export function RoundPage({ file }: { file: File }) {
           <Blocks document={document} ids={round.settled} />
         </>
       )}
-      {readOnly ? (
-        notes.text && (
-          <Paragraph>
-            <strong>Notes:</strong> {notes.text}
-          </Paragraph>
-        )
-      ) : (
-        <VStack gap={3} ref={end}>
-          <NotesField notes={notes} path={file.path} />
-          {blank.length > 0 && (
-            <Banner
-              status="error"
-              title={
-                <>
-                  {blank.length} {blank.length === 1 ? "question" : "questions"} left:{" "}
-                  {blank.map((q, index) => (
-                    <span key={q.id}>
-                      {index > 0 && ", "}
-                      <Link
-                        hasUnderline
-                        href={`#${q.id}`}
-                        onClick={(event: React.MouseEvent) => {
-                          event.preventDefault();
-                          jumpTo(q.id);
-                        }}
-                      >
-                        {q.id}
-                      </Link>
-                    </span>
-                  ))}
-                </>
-              }
-            />
-          )}
-          {error?.kind === "hook" ? (
-            <HookRefusal
-              error={error}
-              onRetry={retry}
-              what="Your answers are saved, not committed."
-            />
-          ) : (
-            error && <span {...stylex.props(statusStyles.error)}>{error.message}</span>
-          )}
-          <div ref={submitRow}>
-            <CommitActions isDisabled={blank.length > 0} label="Submit answers" onCommit={submit} />
-          </div>
-        </VStack>
-      )}
+      <RoundEnd
+        blank={blank}
+        end={end}
+        file={file}
+        notes={notes}
+        pending={pending}
+        readOnly={readOnly}
+        submitRow={submitRow}
+      />
     </>
   );
 
@@ -279,4 +148,16 @@ export function RoundPage({ file }: { file: File }) {
       )}
     </PendingSaves>
   );
+}
+
+/** The applicable questions in the page's order, each follow-up after its parent. */
+function navOf(questions: ReadonlyArray<QuestionItem>): Array<NavQuestion> {
+  return questions
+    .flatMap((q) => (q.parent ? [] : [q, ...questions.filter((f) => f.parent === q.id && f.asked)]))
+    .map((q) => ({
+      answered: q.answer.trim() !== "",
+      id: q.id,
+      level: q.parent ? 2 : 1,
+      title: q.title,
+    }));
 }
