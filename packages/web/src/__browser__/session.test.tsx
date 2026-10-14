@@ -1,8 +1,8 @@
-// US1 and its edge case "Back from a session view": a feature's session opens beside its feature
-// page on a wide screen and as a page of its own on a narrow one, its transcript follows its end
-// while the human is at the end, and Back returns to the same position. The session view passes the
-// layout checks at both sizes, in light and dark (SC-004).
-import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+// US1 and its edge case "Back from a session view": a feature's session opens as a page of its own
+// at both sizes, its transcript follows its end while the human is at the end, and Back returns to
+// the same position. The session view passes the layout checks at both sizes, in light and dark
+// (SC-004).
+import { act, screen, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 import { atRepo, agent, checkLayout, drawn, LIVE, show, startTurn } from "./helpers.tsx";
@@ -13,10 +13,9 @@ afterEach(() => {
   window.localStorage.removeItem("uraeda.theme");
 });
 
-/** What scrolls the transcript: the pane beside the feature page, or the window. */
+/** What scrolls the transcript: the window, the session being a page of its own. */
 function scroller() {
-  const pane = document.querySelector<HTMLElement>('section[aria-label="Detail"]');
-  return pane ?? document.scrollingElement!;
+  return document.scrollingElement!;
 }
 
 /** Whether an element's bottom shows above the composer, which stays at the bottom. */
@@ -45,12 +44,9 @@ async function openWorkingSession() {
   return log;
 }
 
-test("a working session: beside the feature page or a page, following its end (US1)", async () => {
+test("a working session: a page of its own, following its end (US1)", async () => {
   const log = await openWorkingSession();
-  const wide = window.innerWidth >= 768;
-  // On a wide screen, the feature page stays beside the session, usable; on a narrow one, the
-  // session is the page.
-  expect(Boolean(screen.queryByRole("list", { name: "Files" }))).toBe(wide);
+  expect(screen.queryByRole("list", { name: "Files" })).toBeNull();
   await checkLayout();
 
   // At the end, a new line comes into view.
@@ -72,18 +68,45 @@ test("a working session: beside the feature page or a page, following its end (U
   await drawn();
   expect(log.isConnected).toBe(true);
   expect(box.scrollTop).toBe(position);
+});
 
-  if (wide) {
-    await act(async () => {
-      fireEvent.click(
-        within(screen.getByRole("region", { name: "Detail" })).getByRole("button", {
-          name: "Close",
-        }),
-      );
-    });
-    await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/f/${CLI}`)));
-    expect(screen.queryByRole("log", { name: "Conversation" })).toBeNull();
+test("a session opened from a task view's pane opens at its end", async () => {
+  // Only the wide layout shows the task view in a pane, whose position its entry keeps.
+  if (window.innerWidth < 768) {
+    return;
   }
+  await show(`/f/${CLI}/session`, "CLI TUIs");
+  await startTurn("Plan the CLI.", [
+    {
+      id: "task",
+      input: {},
+      kind: "other",
+      name: "Task",
+      subagent: { description: "Map the runner code" },
+      type: "toolStart",
+    },
+    ...lines(40, "Line"),
+  ]);
+  await within(await screen.findByRole("log", { name: "Conversation" }, LIVE)).findByText(
+    "Line 40.",
+    undefined,
+    LIVE,
+  );
+  await show("/priorities/claude-code-runner-triggered-manually", "Claude Code runner");
+  const pane = screen.getByRole("region", { name: "Detail" });
+  pane.scrollTo(0, pane.scrollHeight);
+  await drawn();
+
+  await userEvent.click(
+    await screen.findByRole("link", { name: "Map the runner code, Working" }, LIVE),
+  );
+
+  await expect.poll(() => window.location.pathname).toBe(atRepo(`/f/${CLI}/session`));
+  const last = await within(
+    await screen.findByRole("log", { name: "Conversation" }, LIVE),
+  ).findByText("Line 40.", undefined, LIVE);
+  await drawn();
+  await expect.poll(() => inView(last), LIVE).toBe(true);
 });
 
 test("a working session, with a sub-agent and a steered message, in dark (SC-004)", async () => {

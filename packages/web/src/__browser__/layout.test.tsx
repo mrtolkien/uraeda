@@ -265,8 +265,7 @@ const LONG_TURN = [
 ];
 
 // A feature's session with long paths and commands, working, then failed with an action blocked,
-// and the feature page's agent section beside it or on its own page: the same checks as the
-// pages', in both themes.
+// and the feature page's agent section: the same checks as the pages', in both themes.
 test.each(
   (["working", "failed"] as const).flatMap((state) =>
     (["light", "dark"] as const).map((mode) => ({ mode, state })),
@@ -290,12 +289,10 @@ test.each(
   }
   await drawn();
   await checkLayout();
-  // The feature page's agent section: beside the session on a wide screen, a page on the phone.
-  if (window.innerWidth < 768) {
-    await show(`/f/${CLI}`, "Open the session");
-    await screen.findAllByText(state === "working" ? "Working" : /Failed/, undefined, LIVE);
-    await checkLayout();
-  }
+  // The feature page's agent section, on its own page.
+  await show(`/f/${CLI}`, "Open the session");
+  await screen.findAllByText(state === "working" ? "Working" : /Failed/, undefined, LIVE);
+  await checkLayout();
 });
 
 /** Starts a chat with a turn whose action auto mode blocked. */
