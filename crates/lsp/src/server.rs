@@ -178,7 +178,7 @@ fn initialize_result() -> InitializeResult {
 
 /// The server's root: the first workspace folder, else `rootUri`, else the current folder.
 fn root(params: &InitializeParams) -> PathBuf {
-    #[allow(deprecated)]
+    #[allow(deprecated, reason = "older clients send only `rootUri`")]
     let root_uri = params.root_uri.as_ref();
     params
         .workspace_folders

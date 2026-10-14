@@ -1,4 +1,8 @@
-#![allow(dead_code, unused_imports)]
+#![allow(
+    dead_code,
+    unused_imports,
+    reason = "each test binary uses only part of the shared helpers"
+)]
 
 #[path = "../../../core/tests/common/repo.rs"]
 pub mod repo;
