@@ -52,19 +52,18 @@ export function checkBinding(root: string): void {
 }
 
 /**
- * Loads the native binding, with a message that says how to build it when it is missing or older
- * than the Rust core. Only a checkout has the Rust to compare it to.
+ * Loads the native binding. In a checkout, it refuses a binding older than the Rust core, and says
+ * how to build a missing one. In the package, which has no Rust to build from, a missing binding
+ * shows the loader's own error, which names the platform package to install.
  */
 export async function loadBinding(
   load: () => Promise<Binding> = () => import("uraeda-binding"),
-  check: () => void = () => {
-    const { checkout } = layout();
-    if (checkout !== null) {
-      checkBinding(checkout);
-    }
-  },
+  checkout: string | null = layout().checkout,
 ): Promise<Binding> {
-  check();
+  if (checkout === null) {
+    return load();
+  }
+  checkBinding(checkout);
   try {
     return await load();
   } catch {
