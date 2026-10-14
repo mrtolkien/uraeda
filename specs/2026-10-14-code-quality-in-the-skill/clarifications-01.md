@@ -1,13 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Code quality and maintainability through the skill
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 13 questions on the scope, the spec split, the quality checks, and the constitution, about 45
-> minutes.
+> Answered on 2026-10-14.
 >
 > - **Scope.** The proposal holds three independent pieces. The recommendation leaves the
 >   maintenance flow for its own feature, and the rest of the questions assume it.
@@ -81,7 +80,7 @@ Why it matters: it sets the size of this feature's plan, and the order in which 
   - [con] the first two rewrite the same lines of `references/spec.md` and `references/plan.md` on
     two branches.
 
-**Answer:**
+**Answer:** A
 
 ### Q1.B: What triggers an audit?
 
@@ -140,7 +139,14 @@ made.
   - [con] the file stays as long as today on GitHub and in the web UI, which is what the proposal
     complains about.
 
-**Answer:**
+**Answer:** C: There's no reason is stays as long as today in the Web UI, we're allowed to parse it
+and show whatever we want :)
+
+I think it's good to have a single file with all the info and a well defined structure. The "agent
+part" can be hidden behind a toggle for example, and called "Details" or something.
+
+I like the idea of keeping it all in one file as the subsequent steps need to read all the
+information anyways anyways.
 
 ## Q3: What stays in the spec you read?
 
@@ -174,7 +180,12 @@ Why it matters: what you do not read, the agent decides alone, within the approv
   - [pro] the smallest change to the workflow.
   - [con] about 20% shorter, which may not change how the spec feels to read.
 
-**Answer:**
+**Answer:** A: The user stories for the user should be made shorter, with extra "comments" or
+"details". It can be in the user stories paragraph but just showed in a compact form in the UI, with
+a toggle "See user stories details" or something.
+
+It IS relevant to C in the previous selection: this rework of the flow is about what the human SEES,
+not what EXISTS in the system.
 
 ## Q4: How long may the spec be?
 
@@ -198,7 +209,7 @@ Why it matters: without a budget, specs tend to grow back.
   - [pro] nothing to follow.
   - [con] nothing stops the spec from growing again.
 
-**Answer:**
+**Answer:** C: Simpler to not impose gates at the moment, we'll review if it is enough after usage.
 
 ## Q5: What happens to plan review?
 
@@ -220,7 +231,7 @@ Why it matters: it decides whether any agent-written file waits for you after th
   - [pro] the simplest workflow.
   - [con] no way to review a risky plan, and the core, the web, and the LSP lose a feature.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: How does the skill keep quality from going down, in any project?
 
@@ -253,7 +264,7 @@ Why it matters: this is the rule every project using Uraeda would follow, and it
   - [pro] no configuration.
   - [con] decay is reported, not stopped, which is what the research says does not work.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: Which checks does this repository adopt now?
 
@@ -282,7 +293,10 @@ Why it matters: these limits apply to every later feature here, and a new tool i
   - [pro] a smaller feature.
   - [con] the concepts ship without the checks the proposal says must back them.
 
-**Answer:**
+**Answer:** A: What matters though is that projects using uraeda are pushed to do that setup to.
+
+Uraeda (the skill and workflow) should push the user towards setting up good guidelines to guarantee
+code quality.
 
 ### Q7.A: What limits?
 
@@ -311,7 +325,9 @@ More in [discovery](discovery-01.md#oxlint-through-vite).
   - [pro] the smallest units.
   - [con] a long baseline, and many structural commits in the next features.
 
-**Answer:**
+**Answer:** A: Check what the rules are for the fate stack: https://fate.technology/
+
+If they have rules for typescript code quality, follow them
 
 ## Q8: How is a test shown to catch a break?
 
@@ -338,7 +354,7 @@ Why it matters: it sets how much each task and each final review cost.
   - [pro] covers more code.
   - [con] a second tool, and the browser tests stay uncovered.
 
-**Answer:**
+**Answer:** A
 
 ## Q9: Where do the two rules go in the constitution?
 
@@ -370,7 +386,7 @@ Why it matters: the place sets which principle wins when two conflict.
   - [pro] quality wins over tooling concerns.
   - [con] a limit could then override "tools are optional", for example by requiring `ura`.
 
-**Answer:**
+**Answer:** A
 
 ## Q10: Who applies the constitution change?
 
@@ -393,7 +409,7 @@ Why it matters: it decides whether approving a spec can change the constitution.
   - [con] an exception to "only a human amends it", which you would accept here, and which AGENTS.md
     would then need to describe.
 
-**Answer:**
+**Answer:** A
 
 ## Q11: How much of the skill moves out of `SKILL.md`?
 
@@ -423,7 +439,12 @@ costs more without helping.
   - [pro] the leanest skill.
   - [con] a large rewrite of the text every step relies on, in a feature that is already large.
 
-**Answer:**
+**Answer:** C: The skill should be only the entry point to uraeda. The actual content is in the
+reference files, templates, ...
+
+So let's try keeping it as lean as possible. It would matter for example if the skill is installed
+but not relevant and a coding agent decides to read it by mistake. We don't want to pollute its
+context.
 
 ## Settled without the human
 
