@@ -512,17 +512,18 @@ git commit -m "build(text-inputs): React Compiler compiles the web UI"
   - `fields/RestoreNotice.tsx`: `RestoreNotice({ restored, onDiscard, answered? })`, texts from the
     global constraints.
 
-- [ ] **Step 1: Split `RoundPage` before it changes**
+- [x] **Step 1: Split `RoundPage` before it changes**
 
 Move the submit into `useRoundSubmit(file, notes, pending)` and the end of the page (notes,
 questions left, error, Submit) into a component, so `RoundPage` is under 100 lines; replace the
-`pending` ref with `useState(() => new Set())[0]`, removing both markers.
+`pending` ref with `useState(() => new Set())[0]`, removing both markers. `HookRefusal`, which the
+end of the page and `ReviewVerdict` draw, moves with it into `RoundSubmit.tsx`.
 
 - Run: `vp check && vp test --project uraeda-web round`, before and after
 - Expected: PASS both times, no unused marker
 
 ```bash
-git add packages/web/src/RoundPage.tsx packages/web/src/RoundSubmit.tsx
+git add packages/web/src/RoundPage.tsx packages/web/src/RoundSubmit.tsx packages/web/src/ReviewVerdict.tsx
 git commit -m "refactor(text-inputs): the round's submit and its end of page out of RoundPage"
 ```
 
