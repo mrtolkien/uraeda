@@ -1,6 +1,6 @@
 //! A round's notes: its free notes, and the comments on its settled points, written at their end.
 
-use super::{AnswerError, NOTES, check_lines, replace_after};
+use super::{AnswerError, NOTES, check_lines, closed, replace_after};
 
 /// The `**Notes:**` line and its text, when the file has one. Its code blocks are kept as written:
 /// a heading in one does not end the notes.
@@ -28,19 +28,6 @@ pub fn notes(text: &str) -> Option<(usize, String)> {
         }
     }
     found.map(|(line, notes)| (line, notes.trim().to_string()))
-}
-
-/// The fence a text leaves open, `` ``` `` or `~~~`, if any.
-fn open_fence(text: &str) -> Option<&'static str> {
-    let mut open = None;
-    for line in text.lines().filter(|line| crate::files::is_fence(line)) {
-        open = match open {
-            Some(_) => None,
-            None if line.trim_start().starts_with('~') => Some("~~~"),
-            None => Some("```"),
-        };
-    }
-    open
 }
 
 /// The bold subject a top-level bullet starts with, `- **<subject>**`, trimmed, and the text after
@@ -114,27 +101,19 @@ pub fn split_notes(notes: &str, subjects: &[String]) -> (String, Vec<(String, St
 
 /// The notes from the free notes and the comments on settled points: the free notes, a blank line,
 /// then one bullet per comment, `- **<subject>**: <text>`, its further lines indented by two
-/// spaces.
+/// spaces. A fence the free notes or a comment leave open is closed at their end, so the comments
+/// and the sections after the notes are not code.
 pub fn join_notes(free: &str, comments: &[(String, String)]) -> String {
     let bullets: Vec<String> = comments
         .iter()
         .map(|(subject, text)| {
-            let text = text.trim().replace('\n', "\n  ");
+            let text = closed(text.trim()).replace('\n', "\n  ");
             format!("- **{subject}**: {text}")
         })
         .collect();
-    let free = free.trim();
-    // A fence the free notes leave open is closed before the comments, which it would hide.
-    let closed;
-    let free = match open_fence(free) {
-        Some(fence) if !bullets.is_empty() => {
-            closed = format!("{free}\n{fence}");
-            closed.as_str()
-        }
-        _ => free,
-    };
+    let free = closed(free.trim());
     match (free.is_empty(), bullets.is_empty()) {
-        (_, true) => free.to_string(),
+        (_, true) => free,
         (true, false) => bullets.join("\n"),
         (false, false) => format!("{free}\n\n{}", bullets.join("\n")),
     }
@@ -296,8 +275,8 @@ mod tests {
                 "See:\n\n~~~\ncode\n~~~",
                 &[("A point", "Keep it.")],
             ),
-            // An unclosed fence with no comment after it stays as written.
-            ("See:\n\n```\ncode", &[], "See:\n\n```\ncode", &[]),
+            // An unclosed fence with no comment after it is closed too: a section may follow.
+            ("See:\n\n```\ncode", &[], "See:\n\n```\ncode\n```", &[]),
             // Notes starting with a code block, which starts on the line after the marker.
             (fenced, &[], fenced, &[]),
             (
@@ -317,6 +296,41 @@ mod tests {
             );
             // Saving the free notes read keeps the file as it is.
             assert_eq!(set_answer(&written, "notes", read_free).unwrap(), written);
+        }
+    }
+
+    #[test]
+    fn a_fence_left_open_in_the_notes_is_closed_before_what_follows() {
+        let round = "## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n\n## Later\n\nKept.\n";
+        let rows: [Written; 3] = [
+            ("See:\n\n```\ncode", &[], "See:\n\n```\ncode\n```", &[]),
+            (
+                "Fine.",
+                &[("A point", "Try:\n\n~~~\ncode")],
+                "Fine.",
+                &[("A point", "Try:\n\n~~~\ncode\n~~~")],
+            ),
+            (
+                "```\ncode",
+                &[("A point", "Try:\n\n```\nmore")],
+                "```\ncode\n```",
+                &[("A point", "Try:\n\n```\nmore\n```")],
+            ),
+        ];
+        for (free, comments, read_free, read_comments) in rows {
+            let written = set_notes(round, free, &owned(comments)).unwrap();
+            assert!(written.ends_with("\n\n## Later\n\nKept.\n"), "{written:?}");
+            let read = round_notes(&written).unwrap();
+            assert_eq!(
+                (read.free.as_str(), read.comments.clone()),
+                (read_free, owned(read_comments)),
+                "{written:?}"
+            );
+            // Saving the notes read keeps the file as it is, the section after them too.
+            assert_eq!(
+                set_notes(&written, &read.free, &read.comments).unwrap(),
+                written
+            );
         }
     }
 }
