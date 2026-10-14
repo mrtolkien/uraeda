@@ -20,7 +20,8 @@ const cases: Array<[string, string, Record<string, string>, number, string?]> = 
 ];
 
 test.each(cases)("a request to %s", async (_, host, headers, status, body) => {
-  const response = await testApp(undefined, [tailnet]).request(`http://${host}/fate`, {
+  const { app } = await testApp(undefined, [tailnet]);
+  const response = await app.request(`http://${host}/fate`, {
     method: "POST",
     headers: { "content-type": "application/json", ...headers },
     body: JSON.stringify({ operations: [], version: 1 }),

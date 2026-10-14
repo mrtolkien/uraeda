@@ -69,32 +69,53 @@ export type FateVariables = { fate: Context };
 
 export const Root = Views;
 
-const bus = createLiveEventBus();
+/** A live bus: the updates one fate server sends to the views subscribed to it. */
+export type LiveBus = ReturnType<typeof createLiveEventBus>;
 
 /**
  * Live updates: the core's watcher marks what changed, and fate sends it to the views. A view reads
  * its data, then subscribes: each subscription is sent the current data once, so a change made
  * between the two is not missed until the next one.
  */
-export const live: typeof bus = {
-  ...bus,
-  listen(type, id, handler, options) {
-    const stop = bus.listen!(type, id, handler, options);
-    setTimeout(() => {
-      if (!options?.signal?.aborted) {
-        handler({ id, type: "update" });
-      }
-    });
-    return stop;
-  },
-};
+function liveBus(): LiveBus {
+  const bus = createLiveEventBus();
+  return {
+    ...bus,
+    listen(type, id, handler, options) {
+      const stop = bus.listen!(type, id, handler, options);
+      setTimeout(() => {
+        if (!options?.signal?.aborted) {
+          handler({ id, type: "update" });
+        }
+      });
+      return stop;
+    },
+  };
+}
 
-/** One fate server for every app: each request brings its app's context, set by `createApp`. */
-export const fateServer = createFateServer({
-  context: ({ adapterContext }: { adapterContext?: HonoContext<{ Variables: FateVariables }> }) =>
-    adapterContext!.get("fate"),
-  live,
-  mutations,
-  roots: Root,
-  sources,
-});
+/**
+ * A fate server with its own live bus: one per repository, so a change in one repository sends no
+ * update to the views of another. Each request brings its context, set by `createApp`.
+ */
+export function createFate() {
+  const live = liveBus();
+  const fateServer = createFateServer({
+    context: ({ adapterContext }: { adapterContext?: HonoContext<{ Variables: FateVariables }> }) =>
+      adapterContext!.get("fate"),
+    live,
+    mutations,
+    roots: Root,
+    sources,
+  });
+  return { fateServer, live };
+}
+
+export type FateServer = ReturnType<typeof createFate>["fateServer"];
+
+const global = createFate();
+
+/** The global endpoint's live bus, `/fate/live`. */
+export const live: LiveBus = global.live;
+
+/** The global endpoint's fate server, `/fate`, whose type fate's Vite plugin reads for the UI. */
+export const fateServer = global.fateServer;

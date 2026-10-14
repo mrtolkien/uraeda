@@ -4,8 +4,8 @@ import { act, cleanup, configure, fireEvent, render, waitFor } from "@testing-li
 import { createFateClient } from "react-fate/client";
 import { afterAll, afterEach, beforeAll, beforeEach } from "vite-plus/test";
 import * as binding from "uraeda-binding";
-import { fixture, fixtureRepo, git } from "uraeda-binding/test-utils";
-import { createApp } from "uraeda-server";
+import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
+import { createApp, Hosts } from "uraeda-server";
 import { fakeSessions } from "uraeda-server/testing";
 import { App } from "../App.tsx";
 import { forgetUndoToasts } from "../layout/useUndoToast.ts";
@@ -147,14 +147,41 @@ export async function renderPage(
   return { ...rendered, repo, agent: fake.adapter, sessions: fake.sessions };
 }
 
-/** The server's app in process, as a `fetch`, on sessions whose agent is not installed by default. */
+/** The hosts of the tests' apps, whose watches are closed after each test. */
+const opened: Array<Promise<Hosts>> = [];
+
+afterEach(async () => {
+  for (const hosts of opened.splice(0)) {
+    (await hosts).close();
+  }
+});
+
+/**
+ * The server's app in process, as a `fetch`, on sessions whose agent is not installed by default.
+ * The pages use the global endpoint, on `repo`, with a list of repositories empty for now.
+ */
 export function serverFetch(repo: string, sessions?: Fake["sessions"]): typeof globalThis.fetch {
   if (!sessions) {
     sessions = fakeSessions({ installed: false }).sessions;
     managers.push(sessions);
   }
-  const app = createApp({ repo, port, allowedHosts: [], allowOrigins: [], binding, sessions });
+  const dataDir = temporaryFolder("uraeda-data");
+  const hosts = Hosts.open({ binding, dataDir, sessions });
+  opened.push(hosts);
+  const created = hosts.then((hosts) =>
+    createApp({
+      repo,
+      port,
+      allowedHosts: [],
+      allowOrigins: [],
+      binding,
+      sessions,
+      hosts,
+      dataDir,
+    }),
+  );
   return async (input, init) => {
+    const app = await created;
     const url = input instanceof Request ? input.url : input.toString();
     sent.push(typeof init?.body === "string" ? init.body : url);
     const response = await app.request(url, {

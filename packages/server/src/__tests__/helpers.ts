@@ -1,7 +1,9 @@
 import { afterEach } from "vite-plus/test";
 import * as binding from "uraeda-binding";
-import { fixture, fixtureRepo, git } from "uraeda-binding/test-utils";
+import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
 import { createApp } from "../app.ts";
+import type { Binding } from "../fate/context.ts";
+import { Hosts } from "../repositories.ts";
 import { SessionCache } from "../runner/cache.ts";
 import type { Sessions } from "../runner/sessions.ts";
 import { fakeSessions } from "../testing.ts";
@@ -12,44 +14,82 @@ export const port = 4310;
 
 /** The session managers of a test, whose timers are cleared after it. */
 const managers: Array<Sessions> = [];
+/** The hosts of a test, whose watches are closed after it. */
+const opened: Array<Hosts> = [];
 
 afterEach(() => {
   for (const sessions of managers.splice(0)) {
     sessions.close();
   }
+  for (const hosts of opened.splice(0)) {
+    hosts.close();
+  }
 });
 
-/** The server's app, called in process, on a repository, with sessions that have no agent. */
-export function testApp(repo = fixtureRepo(), allowedHosts: Array<string> = []) {
-  const { sessions } = fakeSessions({ installed: false });
+type App = ReturnType<typeof createApp>;
+
+/** The name each test app's `fate` calls go to: its first repository's. */
+const names = new WeakMap<App, string>();
+
+/**
+ * Hosts on a temporary data folder holding the repositories, added through the binding in order,
+ * with a fake session manager whose changes reach them. Closed after the test.
+ */
+export async function testHosts(
+  repos: Array<string>,
+  { installed = true, binding: using = binding }: { installed?: boolean; binding?: Binding } = {},
+) {
+  const dataDir = temporaryFolder("uraeda-data");
+  const added = [];
+  for (const repo of repos) {
+    added.push((await binding.addRepository(dataDir, repo)).repository.name);
+  }
+  let hosts: Hosts | undefined;
+  const { sessions, adapter } = fakeSessions({ installed, hosts: () => hosts });
   managers.push(sessions);
-  return app(repo, allowedHosts, sessions);
+  hosts = await Hosts.open({ binding: using, dataDir, sessions });
+  opened.push(hosts);
+  return { hosts, sessions, adapter, dataDir, names: added };
 }
 
-function app(repo: string, allowedHosts: Array<string>, sessions: Sessions) {
-  return createApp({
+function app(
+  repo: string,
+  allowedHosts: Array<string>,
+  { hosts, sessions, dataDir, names: [name] }: Awaited<ReturnType<typeof testHosts>>,
+) {
+  const created = createApp({
     repo,
     port,
     allowedHosts,
     allowOrigins: ["http://localhost:5173"],
     binding,
     sessions,
+    hosts,
+    dataDir,
   });
+  names.set(created, name);
+  return created;
+}
+
+/**
+ * The server's app, called in process, on a repository added to a temporary list, with sessions
+ * that have no agent. `name` is the repository's in the list.
+ */
+export async function testApp(repo = fixtureRepo(), allowedHosts: Array<string> = []) {
+  const opened = await testHosts([repo], { installed: false });
+  return { ...opened, app: app(repo, allowedHosts, opened), name: opened.names[0], repo };
 }
 
 /** The server's app with sessions on the fake adapter, checked once. */
 export async function testServer(repo = fixtureRepo(), { installed = true } = {}) {
-  const { sessions, adapter } = fakeSessions({ installed });
-  managers.push(sessions);
-  await sessions.check();
-  return { app: app(repo, [], sessions), adapter, sessions, repo };
+  const opened = await testHosts([repo], { installed });
+  await opened.sessions.check();
+  return { ...opened, app: app(repo, [], opened), name: opened.names[0], repo };
 }
 
-type App = ReturnType<typeof testApp>;
-
-/** Sends native fate operations, and returns their results in order. */
-export async function fate(app: App, operations: Array<Record<string, unknown>>) {
-  const response = await app.request(`http://127.0.0.1:${port}/fate`, {
+/** Sends native fate operations to a repository's endpoint, and returns their results in order. */
+export async function fateAt(app: App, name: string, operations: Array<Record<string, unknown>>) {
+  const response = await app.request(`http://127.0.0.1:${port}/r/${name}/fate`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
@@ -63,13 +103,29 @@ export async function fate(app: App, operations: Array<Record<string, unknown>>)
   return body.results;
 }
 
-/** Reads records of a type by id, with the given fields. */
-export async function byId(app: App, type: string, ids: Array<string>, select: Array<string>) {
-  const [result] = await fate(app, [{ kind: "byId", type, ids, select }]);
+/** Sends native fate operations to the app's repository, and returns their results in order. */
+export async function fate(app: App, operations: Array<Record<string, unknown>>) {
+  return fateAt(app, names.get(app)!, operations);
+}
+
+/** Reads records of a type by id, with the given fields, from a repository's endpoint. */
+export async function byIdAt(
+  app: App,
+  name: string,
+  type: string,
+  ids: Array<string>,
+  select: Array<string>,
+) {
+  const [result] = await fateAt(app, name, [{ kind: "byId", type, ids, select }]);
   if (!result.ok) {
     throw new Error(result.error?.message);
   }
   return result.data as Array<Record<string, any>>;
+}
+
+/** Reads records of a type by id, with the given fields. */
+export async function byId(app: App, type: string, ids: Array<string>, select: Array<string>) {
+  return byIdAt(app, names.get(app)!, type, ids, select);
 }
 
 /** Runs a mutation, and returns its result. */

@@ -2,8 +2,9 @@ import { serve } from "@hono/node-server";
 import { createApp } from "./app.ts";
 import { loadBinding } from "./binding.ts";
 import { loadDataDir, loadEnv } from "./env.ts";
-import { startLive, startSessions } from "./live.ts";
+import { startSessions } from "./live.ts";
 import { parseOptions } from "./options.ts";
+import { Hosts } from "./repositories.ts";
 import { ClaudeAdapter, PLUGIN_DIR } from "./runner/claude.ts";
 
 async function main(argv: Array<string>) {
@@ -15,11 +16,26 @@ async function main(argv: Array<string>) {
       throw new Error(`${options.repo} is not a git repository`);
     }
   });
-  const { sessions, stop } = await startSessions({
+  const dataDir = loadDataDir(process.cwd());
+  let hosts: Hosts | undefined;
+  const started = await startSessions({
     adapter: new ClaudeAdapter({ pluginDir: PLUGIN_DIR }),
     binding,
-    dataDir: loadDataDir(process.cwd()),
+    dataDir,
+    hosts: () => hosts,
   });
+  const { sessions } = started;
+  // The starting repository is listed: its host serves the global endpoint, and its live updates.
+  // A list that cannot be written leaves the global endpoint without live updates.
+  await binding.addRepository(dataDir, options.repo).catch((error: Error) => {
+    console.error(`uraeda-server: ${error.message.replace(/^refused: /, "")}`);
+  });
+  const opened = await Hosts.open({ binding, dataDir, sessions });
+  hosts = opened;
+  const stop = async () => {
+    opened.close();
+    await started.stop();
+  };
   // The sessions end with the server: their turns are interrupted, their processes closed, then
   // the server exits.
   for (const signal of ["SIGINT", "SIGTERM"] as const) {
@@ -27,12 +43,7 @@ async function main(argv: Array<string>) {
       void stop().finally(() => process.exit(0));
     });
   }
-  const app = createApp({ ...options, binding, sessions });
-  try {
-    startLive(binding, options.repo, sessions);
-  } catch (error) {
-    console.error(`uraeda-server: ${(error as Error).message}; pages refresh when shown again`);
-  }
+  const app = createApp({ ...options, binding, sessions, hosts: opened, dataDir });
   serve({ fetch: app.fetch, hostname: "127.0.0.1", port: options.port }, () => {
     console.log(`Uraeda server on http://127.0.0.1:${options.port}`);
   });

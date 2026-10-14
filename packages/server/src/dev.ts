@@ -6,7 +6,9 @@ import { getRequestListener } from "@hono/node-server";
 import { createApp } from "./app.ts";
 import { checkBinding, loadBinding } from "./binding.ts";
 import { type Env, loadDataDir, loadEnv } from "./env.ts";
-import { startLive, startSessions, stopLive } from "./live.ts";
+import type { Binding } from "./fate/context.ts";
+import { startSessions } from "./live.ts";
+import { Hosts } from "./repositories.ts";
 import type { Adapter } from "./runner/adapter.ts";
 import { ClaudeAdapter, PLUGIN_DIR } from "./runner/claude.ts";
 import type { Sessions } from "./runner/sessions.ts";
@@ -23,22 +25,51 @@ export function devServer(env: Env) {
   };
 }
 
-/** The paths the server answers; Vite serves everything else. */
-const SERVER_PATHS = /^\/(fate|raw|mockups)(\/|\?|$)/;
+/** The paths the server answers, a repository's and the global ones; Vite serves everything else. */
+const SERVER_PATHS = /^\/(r\/[^/?]+\/)?(fate|raw|mockups)(\/|\?|$)/;
+
+/** The process's session manager and hosts, shared by the dev server's apps. */
+type Shared = {
+  binding: Binding;
+  dataDir: string;
+  sessions: Sessions;
+  hosts: Hosts;
+  stop: () => Promise<void>;
+};
 
 /**
- * The process's one session manager, shared by the dev server's apps, started with the first
- * request.
+ * The process's one session manager and its hosts, on the list in the data folder, shared by the
+ * dev server's apps, started with the first request.
  */
-let shared: Promise<{ sessions: Sessions; stop: () => Promise<void> }> | undefined;
+let shared: Promise<Shared> | undefined;
+
+async function start(root: string, adapter: Adapter): Promise<Shared> {
+  const binding = await loadBinding();
+  const dataDir = loadDataDir(root);
+  let hosts: Hosts | undefined;
+  const started = await startSessions({ adapter, binding, dataDir, hosts: () => hosts });
+  const opened = await Hosts.open({ binding, dataDir, sessions: started.sessions });
+  hosts = opened;
+  return {
+    binding,
+    dataDir,
+    sessions: started.sessions,
+    hosts: opened,
+    stop: async () => {
+      opened.close();
+      await started.stop();
+    },
+  };
+}
 
 /**
- * Stops the turns of the dev server's sessions and closes their processes, as Vite's server
- * closes. A server Vite starts again starts a new session manager.
+ * Stops the turns of the dev server's sessions and closes their processes and watches, as Vite's
+ * server closes. A server Vite starts again starts a new session manager.
  */
 export async function stopDevRuns(): Promise<void> {
   const stopping = shared;
   shared = undefined;
+  apps.clear();
   await (await stopping)?.stop();
 }
 
@@ -46,23 +77,29 @@ export async function stopDevRuns(): Promise<void> {
 const apps = new Map<string, (req: IncomingMessage, res: ServerResponse) => Promise<void>>();
 
 /**
- * Forgets a repository the tests are done with: its apps, and the watch of its files, which would
- * otherwise go on for as long as the server runs.
+ * Forgets a repository the tests are done with: its apps, and its entry in the list, whose host
+ * closes the watch of its files, which would otherwise go on for as long as the server runs.
  */
-export function forgetRepo(repo: string): void {
+export async function forgetRepo(repo: string): Promise<void> {
   for (const key of apps.keys()) {
     if (key.endsWith(` ${repo}`)) {
       apps.delete(key);
     }
   }
-  stopLive(repo);
+  const started = await shared;
+  const host = started?.hosts.byPath(repo);
+  if (started && host) {
+    await started.binding.removeRepository(started.dataDir, host.name);
+    await started.hosts.reload();
+  }
 }
 
 /**
  * A Connect middleware serving the server's routes for the repository of the settings, or of
  * `URAEDA_REPO` when it is set in the environment later, as tests do. The guard takes the port the
- * request came in on, Vite's own. The core's watcher starts with the first request to each
- * repository, and the session manager with the first request, on Claude Code unless `adapter` says otherwise.
+ * request came in on, Vite's own. The repository is added to the list with the first request to
+ * it, which starts its host and its watch, and the session manager with the first request, on
+ * Claude Code unless `adapter` says otherwise.
  */
 export function devHandler(root: string, { adapter }: { adapter?: Adapter } = {}) {
   const env = loadEnv(root);
@@ -70,20 +107,17 @@ export function devHandler(root: string, { adapter }: { adapter?: Adapter } = {}
     const key = `${port} ${repo}`;
     let app = apps.get(key);
     if (!app) {
-      const binding = await loadBinding();
-      shared ??= startSessions({
-        adapter: adapter ?? new ClaudeAdapter({ pluginDir: PLUGIN_DIR }),
-        binding,
-        dataDir: loadDataDir(root),
-      });
-      const { sessions } = await shared;
+      shared ??= start(root, adapter ?? new ClaudeAdapter({ pluginDir: PLUGIN_DIR }));
+      const { binding, dataDir, sessions, hosts } = await shared;
       try {
-        startLive(binding, repo, sessions);
+        await binding.addRepository(dataDir, repo);
+        await hosts.reload();
       } catch (error) {
-        console.error(`uraeda: ${(error as Error).message}; pages refresh when shown again`);
+        console.error(`uraeda: ${(error as Error).message.replace(/^refused: /, "")}`);
       }
       app = getRequestListener(
-        createApp({ ...env, port, repo, allowOrigins: [], binding, sessions }).fetch,
+        createApp({ ...env, port, repo, allowOrigins: [], binding, sessions, hosts, dataDir })
+          .fetch,
       );
       apps.set(key, app);
     }

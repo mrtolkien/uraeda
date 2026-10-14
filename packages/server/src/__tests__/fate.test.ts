@@ -8,7 +8,7 @@ const ROUND = "2026-10-11-web-ui/clarifications-01.md";
 
 test("reads the workspace by its id", async () => {
   const [workspace] = await byId(
-    testApp(),
+    (await testApp()).app,
     "Workspace",
     ["workspace"],
     ["id", "features", "priorities"],
@@ -21,7 +21,7 @@ test("reads the workspace by its id", async () => {
 });
 
 test("reads a file's document and items, masked to the selection", async () => {
-  const [file] = await byId(testApp(), "WorkflowFile", [ROUND], ["id", "current"]);
+  const [file] = await byId((await testApp()).app, "WorkflowFile", [ROUND], ["id", "current"]);
 
   expect(Object.keys(file).sort()).toEqual(["current", "id"]);
   expect(file.current.items.clarifications.questions[0].id).toBe("Q1");
@@ -32,7 +32,7 @@ test("saves an answer, and returns the file", async () => {
   const repo = fixtureRepo();
 
   const result = await mutate(
-    testApp(repo),
+    (await testApp(repo)).app,
     "answer.save",
     { folder: "2026-10-11-web-ui", question: "Q2", letters: ["A"], comment: "", previous: "" },
     ["id", "current"],
@@ -45,7 +45,7 @@ test("saves an answer, and returns the file", async () => {
 });
 
 test("refuses a stale answer at the call site, with its code", async () => {
-  const app = testApp();
+  const { app } = await testApp();
   const input = { folder: "2026-10-11-web-ui", question: "Q2", comment: "", previous: "" };
   await mutate(app, "answer.save", { ...input, letters: ["A"] }, ["id"]);
 
@@ -83,7 +83,7 @@ test("a binding call's refusal is a bad request, and any other error an internal
 });
 
 test("adds a priority line", async () => {
-  const app = testApp();
+  const { app } = await testApp();
   const [priorities] = await byId(app, "Priorities", ["priorities"], ["id", "hash"]);
 
   const result = await mutate(
@@ -99,7 +99,7 @@ test("adds a priority line", async () => {
 });
 
 test("puts a removed priority line back", async () => {
-  const app = testApp();
+  const { app } = await testApp();
   const [read] = await byId(app, "Priorities", ["priorities"], ["id", "hash"]);
   const removed = await mutate(app, "priorities.remove", { entry: "later-1", hash: read.hash }, [
     "id",
@@ -125,7 +125,7 @@ test("puts a removed priority line back", async () => {
 });
 
 test("a file without a review is sent with none, so a removed review leaves the page", async () => {
-  const app = testApp();
+  const { app } = await testApp();
   const file = { folder: "2026-10-06-recurring-tasks", file: "spec.md" };
 
   const commented = await mutate(app, "review.comment", { ...file, text: "Why?" }, [

@@ -482,8 +482,10 @@ git commit -m "feat(multi-repo-server): the repository list in the binding"
 
 - Create: `packages/server/src/repositories.ts`
 - Modify: `packages/server/src/fate.ts` (`createFate`), `fate/context.ts`, `live.ts` (`publish`,
-  `sessionPublisher`, the watches move to hosts), `app.ts`, `files.ts`,
-  `packages/server/src/__tests__/helpers.ts`
+  `sessionPublisher`, the watches move to hosts), `app.ts`, `files.ts`, `testing.ts`, `main.ts` and
+  `dev.ts` (the hosts, R5), `packages/server/src/__tests__/helpers.ts`,
+  `packages/web/src/__tests__/helpers.tsx` (`createApp`'s new options),
+  `packages/web/vite.browser.config.ts` (`forgetRepo` awaited)
 - Test: `packages/server/src/__tests__/repositories.test.ts`, `live.test.ts`
 
 **Interfaces:**
@@ -498,22 +500,28 @@ git commit -m "feat(multi-repo-server): the repository list in the binding"
     `static async open(options: { binding: Binding; dataDir: string; sessions: Sessions }): Promise<Hosts>`,
     `get(name: string): Host | undefined`, `byPath(path: string): Host | undefined`,
     `rows(): Array<Repository>` (the binding's order), `problem: string | null`,
-    `mostRecent(): Host | undefined`, `reload(): Promise<void>`, and `close(): void`, which closes
-    every watch. A missing repository's host has no watch.
+    `mostRecent(): Host | undefined`, `all(): Array<Host>`, `reload(): Promise<void>`, and
+    `close(): void`, which closes every watch. A missing repository's host has no watch.
   - `Context` becomes
     `{ binding: Binding; sessions: Sessions; hosts: Hosts; dataDir: string; repo: string }`.
   - `publish(changes, host: Host, sessions?: Sessions)` sends on `host.live`;
-    `sessionPublisher(cache, hosts: Hosts)` sends each change on `hosts.byPath(change.repo)?.live`,
-    dropping it when there is none; the `Agent` update goes on every bus.
+    `sessionPublisher(cache, hosts: HostsOf)` sends each change on
+    `hosts()?.byPath(change.repo)?.live`, dropping it when there is none; the `Agent` update goes on
+    every bus, the global one too. `HostsOf` is `() => Pick<Hosts, "byPath" | "all"> | undefined`,
+    the hosts once open; `createSessions`, `startSessions`, and `fakeSessions` take it as `hosts`
+    ([R5](rulings.md#r5-the-session-manager-reaches-the-hosts-once-they-open-and-the-global-endpoint-is-the-starting-repositorys-host)).
   - `createApp(options: Options & { binding; sessions; hosts: Hosts; dataDir: string; repo: string })`:
     `/r/:name/fate`, `/r/:name/fate/live`, `/r/:name/raw/*`, `/r/:name/mockups/*` with the host's
     context and server; unknown name: 404, text `No repository named “<name>”`. `/fate`, `/raw/*`,
-    and `/mockups/*` stay bound to `options.repo` until task 7.
+    and `/mockups/*` stay bound to `options.repo` until task 7, `/fate` on the fate server of its
+    host when it is listed (R5).
   - Test helpers: `testApp(repo?)` and `testServer(repo?)` build a temporary data folder with the
     repository added, and return the app with `name`; `fate(app, operations)` posts to
     `/r/<name>/fate`, so existing tests keep their calls.
+    `testHosts(repos, { installed?, binding? })` gives hosts on a new list of `repos`, and `fateAt`
+    and `byIdAt` take the name.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/server/src/__tests__/repositories.test.ts
@@ -558,27 +566,27 @@ test("a session's change in a removed repository is dropped", async () => {
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/__tests__/repositories.test.ts`
 - Expected: FAIL, `Cannot find module '../repositories.ts'`.
 
-- [ ] **Step 3: Implement the hosts, the factory, and the routes**
+- [x] **Step 3: Implement the hosts, the factory, and the routes**
 
 `Hosts.open` reads the list, and creates one host per entry with `createFate()`, starting its watch
 through `binding.watch` unless missing; a watch that fails to start is logged, as `main.ts` does
 today, and the host serves without live updates. `reload` diffs the list by name: new hosts start,
 removed hosts close their watch and leave. Contexts are built per request from the host.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/server/src/
+git add packages/server/src/ packages/web/src/__tests__/helpers.tsx packages/web/vite.browser.config.ts specs/2026-10-13-multi-repo-server/
 git commit -m "feat(multi-repo-server): a fate endpoint and live updates per repository"
 ```
 
@@ -701,15 +709,16 @@ git commit -m "feat(multi-repo-server): add, remove, and complete repositories t
 
 **Interfaces:**
 
-- Consumes: `Hosts` (tasks 4, 5), `startSessions`.
+- Consumes: `Hosts` (tasks 4, 5), `startSessions`, which takes the hosts as `hosts: HostsOf` (R5).
 - Produces:
   - `startServer(options: Options & { binding: Binding; dataDir: string; adapter: Adapter; given: boolean }): Promise<{ app: Hono; hosts: Hosts; sessions: Sessions; stop(): Promise<void> }>`:
     when `options.repo` is in git, adds it (which touches it); otherwise throws
     `<repo> is not a git repository` when `given`, else logs
     `uraeda-server: <repo> is not in a git repository: add one from the web UI`.
   - `Options.given: boolean`, true when `--repo` or `URAEDA_REPO` named the repository.
-  - `devHandler(root, { adapter? })` keeps one app per port, built by `startServer`; `forgetRepo` is
-    removed, replaced in tests by removing the repository from the list.
+  - `devHandler(root, { adapter? })` keeps one app per port, built by `startServer`; `forgetRepo`,
+    which since task 4 removes the repository from the list, is removed, replaced in tests by
+    removing it from the list.
 
 - [ ] **Step 1: Write the failing tests**
 
