@@ -29,15 +29,29 @@ export function insertLinks(
   return { text: `${before}${lead}${links.join("\n")}${tail}${after}`, selection };
 }
 
+/** An edit of a text: `removed` characters at `start` replaced by `inserted` ones. */
+export type Edit = { start: number; removed: number; inserted: number };
+
 /**
- * Where a position of a text is once the text was edited: moved by what was typed or removed before
- * it, and kept where it was by what changed after it, or at it.
+ * The edit that made `after` from `before`. `caret`, the field's cursor once it was typed, places
+ * it: a typed edit ends at the caret, which a diff of the two texts cannot tell next to a repeated
+ * character (`hel|lo`, an `l` typed at 2, reads as one typed at 4). Without a caret, or one the
+ * texts disagree with, as after a text replaced from elsewhere, the edit is what lies between the
+ * texts' common start and common end.
  */
-export function followEdits(before: string, after: string, at: number) {
+export function editBetween(before: string, after: string, caret?: number): Edit {
   let prefix = 0;
   const shortest = Math.min(before.length, after.length);
   while (prefix < shortest && before[prefix] === after[prefix]) {
     prefix += 1;
+  }
+  if (caret !== undefined && caret >= 0 && caret <= after.length) {
+    // Where the edit ends in `before`: what follows the caret is what followed the edit.
+    const end = caret - (after.length - before.length);
+    if (end >= 0 && end <= before.length && before.slice(end) === after.slice(caret)) {
+      const start = Math.min(prefix, caret, end);
+      return { start, removed: end - start, inserted: caret - start };
+    }
   }
   let suffix = 0;
   while (
@@ -46,9 +60,30 @@ export function followEdits(before: string, after: string, at: number) {
   ) {
     suffix += 1;
   }
-  // The edit replaced `before[prefix, before.length - suffix)`.
-  if (before.length - suffix <= at && prefix < at) {
-    return at + after.length - before.length;
+  return {
+    start: prefix,
+    removed: before.length - suffix - prefix,
+    inserted: after.length - suffix - prefix,
+  };
+}
+
+/**
+ * Where a position of a text is once an edit was made: moved by what was typed or removed before
+ * it, and kept where it was by what changed after it, or at it (R44), unless `after`, as for links
+ * an earlier batch inserted there, which the later batch's follow. A replaced span around it puts
+ * it after the replacement.
+ */
+export function followEdit(at: number, { start, removed, inserted }: Edit, after = false) {
+  if (start > at || (start === at && !(after && removed === 0))) {
+    return at;
   }
-  return Math.min(at, prefix + (after.length - suffix - prefix));
+  if (start + removed <= at) {
+    return at + inserted - removed;
+  }
+  return start + inserted;
+}
+
+/** Where a position is once `before` became `after`, as `editBetween` and `followEdit` say. */
+export function followEdits(before: string, after: string, at: number, caret?: number) {
+  return followEdit(at, editBetween(before, after, caret));
 }

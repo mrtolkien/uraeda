@@ -44,40 +44,40 @@ function update(next: { current: DropField } | undefined) {
 const carriesFiles = (event: DragEvent) => event.dataTransfer?.types.includes("Files") ?? false;
 
 /**
- * Listens on the window for files dragged over the page and dropped. The browser's default of a
- * file drop, opening the file in place of the app, is cancelled on every page, with or without a
- * field. Native events: no Astryx component makes a page a drop target, an Astryx gap the plan
- * lists.
+ * Listens on the window for files dragged over the page and dropped, until the returned function
+ * stops it. The browser's default of a file drop, opening the file in place of the app, is
+ * cancelled on every page, with or without a field. Native events: no Astryx component makes a page
+ * a drop target, an Astryx gap the plan lists.
  */
 function listen() {
-  window.addEventListener("dragenter", (event) => {
+  const onEnter = (event: DragEvent) => {
     if (carriesFiles(event)) {
       event.preventDefault();
       depth += 1;
       update(pick());
     }
-  });
-  window.addEventListener("dragover", (event) => {
+  };
+  const onOver = (event: DragEvent) => {
     if (carriesFiles(event)) {
       event.preventDefault();
       if (event.dataTransfer) {
         event.dataTransfer.dropEffect = target ? "copy" : "none";
       }
     }
-  });
-  window.addEventListener("dragleave", (event) => {
+  };
+  const onLeave = (event: DragEvent) => {
     if (carriesFiles(event)) {
       depth = Math.max(0, depth - 1);
       if (depth === 0) {
         update(undefined);
       }
     }
-  });
-  window.addEventListener("dragend", () => {
+  };
+  const onEnd = () => {
     depth = 0;
     update(undefined);
-  });
-  window.addEventListener("drop", (event) => {
+  };
+  const onDrop = (event: DragEvent) => {
     if (!carriesFiles(event)) {
       return;
     }
@@ -91,11 +91,47 @@ function listen() {
     if (!handled && field && files.length > 0) {
       field.current.onFiles(files);
     }
-  });
+  };
+  const events = [
+    ["dragenter", onEnter],
+    ["dragover", onOver],
+    ["dragleave", onLeave],
+    ["dragend", onEnd],
+    ["drop", onDrop],
+  ] as const;
+  for (const [type, listener] of events) {
+    window.addEventListener(type, listener);
+  }
+  return () => {
+    for (const [type, listener] of events) {
+      window.removeEventListener(type, listener);
+    }
+  };
 }
 
-if (typeof window !== "undefined") {
-  listen();
+/** How many mounted guards want the window's listeners, and how to stop them once none does. */
+let guards = 0;
+let stop: (() => void) | undefined;
+
+/**
+ * Keeps the window's drag and drop listeners while mounted: the first guard adds them, the last one
+ * removes them, so a module replaced while the app runs, as in development, leaves none behind. The
+ * app mounts one for as long as it runs: a drop outside every field never leaves the app.
+ */
+export function useDropGuard() {
+  useEffect(() => {
+    guards += 1;
+    if (guards === 1) {
+      stop = listen();
+    }
+    return () => {
+      guards -= 1;
+      if (guards === 0) {
+        stop?.();
+        stop = undefined;
+      }
+    };
+  }, []);
 }
 
 function subscribe(listener: () => void) {

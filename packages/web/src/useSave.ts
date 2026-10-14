@@ -96,12 +96,31 @@ export function useSave<T>(
     [],
   );
 
-  /** Takes the file's text as the last one written, when nothing waits to be saved. */
+  /**
+   * Takes the file's text as the last one written, when nothing waits to be saved: the caller
+   * shows the file's text then, which is saved, even after a save that failed.
+   */
   const settle = useCallback((text: string) => {
     if (latest.current === undefined && timer.current === undefined) {
       previous.current = text;
+      if (running.current === 0) {
+        saved.current = true;
+      }
     }
   }, []);
 
-  return { flush, idle, schedule, settle, state, write };
+  /**
+   * Takes a file read again as the one shown, as after a conflict: nothing waits to be saved, and
+   * its text is the last one written.
+   */
+  const load = useCallback((text: string) => {
+    clearTimeout(timer.current);
+    timer.current = undefined;
+    latest.current = undefined;
+    previous.current = text;
+    saved.current = true;
+    setState({ kind: "idle" });
+  }, []);
+
+  return { flush, idle, load, schedule, settle, state, write };
 }

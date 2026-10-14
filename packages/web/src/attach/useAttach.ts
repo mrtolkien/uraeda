@@ -1,7 +1,8 @@
 import { useAnnounce } from "@astryxdesign/core/hooks";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { AttachedView } from "uraeda-binding";
 import type { ChatImage } from "uraeda-server/fate";
+import { IMAGE_LIMIT, overLimit } from "uraeda-server/limits";
 import { refusal } from "../errors.ts";
 import { useServerFetch } from "./ServerFetch.tsx";
 
@@ -13,17 +14,8 @@ export type AttachResult =
 /** The last upload's status, shown under its field: adding, added, or the refusal. */
 export type AttachStatus = { text: string; error: boolean };
 
-const MIB = 1024 * 1024;
-/** The core's limit, 20 MB counted in MiB. */
-const LIMIT = 20 * MIB;
 /** The name in texts of an image without one, as the core names it. */
 const PASTED = "pasted image";
-
-/** A size in MB, rounded up to one decimal, as the core writes it in its refusals. */
-function megabytes(bytes: number) {
-  const tenths = Math.ceil((bytes * 10) / MIB);
-  return tenths % 10 === 0 ? String(tenths / 10) : (tenths / 10).toFixed(1);
-}
 
 /** The name a file is told by: a pasted image has none. */
 const nameOf = (file: File) => file.name || PASTED;
@@ -33,17 +25,21 @@ const nameOf = (file: File) => file.name || PASTED;
  * chat, and returns their results in order. Each is announced, "Adding <name>…", then "Added
  * <name>" or the core's refusal, and the last status shows under the field. A file over the core's
  * limit is refused before it is uploaded: a slow upload over it may end in a network error first.
+ * `initial` is the status to show first, as a moved draft's page shows the one its old page left.
  */
-export function useAttach(target: { path: string } | { chat: true }) {
+export function useAttach(target: { path: string } | { chat: true }, initial?: AttachStatus) {
   const fetch = useServerFetch();
   const announce = useAnnounce();
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState<AttachStatus>();
+  const [status, setStatus] = useState<AttachStatus | undefined>(initial);
+  // The status last set, which a caller reads before React draws it.
+  const last = useRef(initial);
   const path = "path" in target ? target.path : undefined;
 
   const show = useCallback(
     (text: string, error = false) => {
-      setStatus({ text, error });
+      last.current = { text, error };
+      setStatus(last.current);
       announce(text, error ? "assertive" : "polite");
     },
     [announce],
@@ -52,11 +48,8 @@ export function useAttach(target: { path: string } | { chat: true }) {
   const upload = useCallback(
     async (file: File, path: string | undefined): Promise<AttachResult> => {
       const name = nameOf(file);
-      if (file.size > LIMIT) {
-        return {
-          ok: false,
-          message: `This image is over 20 MB: ${name} is ${megabytes(file.size)} MB.`,
-        };
+      if (file.size > IMAGE_LIMIT) {
+        return { ok: false, message: overLimit(name, file.size) };
       }
       const query = new URLSearchParams(path === undefined ? { chat: "1" } : { path });
       if (file.name) {
@@ -64,18 +57,31 @@ export function useAttach(target: { path: string } | { chat: true }) {
       }
       const body = new FormData();
       body.append("file", file);
+      let response: Response;
       let text: string;
       try {
-        text = await (await fetch(`/attach?${query}`, { method: "POST", body })).text();
+        response = await fetch(`/attach?${query}`, { method: "POST", body });
+        text = await response.text();
       } catch {
         return { ok: false, message: "Could not reach the Uraeda server." };
+      }
+      // Not the route's answer: the guard's refusal, like "Forbidden site", is plain text, worth
+      // showing; a proxy's error page is not.
+      const unknown = {
+        ok: false,
+        message: `The image could not be added (HTTP ${response.status}).`,
+      } as const;
+      const type = response.headers.get("content-type") ?? "";
+      if (!type.startsWith("application/json")) {
+        return type.startsWith("text/plain") && text.trim()
+          ? { ok: false, message: text }
+          : unknown;
       }
       let answer: AttachedView | ChatImage | { error: string };
       try {
         answer = JSON.parse(text);
       } catch {
-        // Not the route's answer, like the guard's refusal of another site.
-        return { ok: false, message: text };
+        return unknown;
       }
       return "error" in answer
         ? { ok: false, message: refusal(answer.error).message }
@@ -84,12 +90,14 @@ export function useAttach(target: { path: string } | { chat: true }) {
     [fetch],
   );
 
+  /**
+   * Uploads files in order, to the file at `at`, the target's path by default. A draft that became
+   * a folder with the first image takes the next ones at its new path.
+   */
   const attach = useCallback(
-    async (files: File[]) => {
+    async (files: File[], at = path) => {
       setBusy(true);
       const results: AttachResult[] = [];
-      // A draft that became a folder with the first image takes the next ones at its new path.
-      let at = path;
       try {
         for (const file of files) {
           show(`Adding ${nameOf(file)}…`);
@@ -112,12 +120,16 @@ export function useAttach(target: { path: string } | { chat: true }) {
       // A refusal stays shown, over the images added after it.
       const refused = results.findLast((result) => !result.ok);
       if (refused && !refused.ok) {
-        setStatus({ text: refused.message, error: true });
+        last.current = { text: refused.message, error: true };
+        setStatus(last.current);
       }
       return results;
     },
     [path, show, upload],
   );
 
-  return { attach, busy, status };
+  /** The status last set, drawn or not yet. */
+  const lastStatus = useCallback(() => last.current, []);
+
+  return { attach, busy, status, show, lastStatus };
 }
