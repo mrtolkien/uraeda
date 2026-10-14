@@ -395,14 +395,14 @@ git commit -m "test(testing-review): Rust tests without environment races or tim
   `packages/server/src/binding.ts`.
 - Produces: the tasks of the spec's [Data](spec.md#data) table, run with `vp run <task>`; the groups
   `ready:rust`, `ready:typescript`, `ready:browser-phone`, `ready:browser-desktop`, which task 9's
-  CI jobs run; `toolchain.test.ts`'s pure checks
-  `untracked(tasks: Record<string, Task>): Array<string>`,
-  `notInCi(tasks: Record<string, Task>, ci: string): Array<string>`,
+  CI jobs run; `binding:touch`, which the test tasks and `bench` depend on (R7);
+  `toolchain.test.ts`'s pure checks `untracked(tasks: Record<string, Task>): Array<string>`,
   `retried(files: Record<string, string>): Array<string>` and
   `withDoctests(manifests: Record<string, string>): Array<string>`, each returning the messages of
-  the global constraints, extended by task 9.
+  the global constraints, and its `readyTasks()`; task 9 adds
+  `notInCi(tasks: Record<string, Task>, ci: string): Array<string>`.
 
-- [ ] **Step 1: Write the failing toolchain test**
+- [x] **Step 1: Write the failing toolchain test**
 
 Table-driven, one row per check: each check on a fixture that breaks it gives its exact message, and
 on the repository's own files gives `[]`.
@@ -437,22 +437,24 @@ test("the repository's toolchain follows the decision", () => {
 });
 ```
 
-`readyTasks()` imports the root `vite.config.ts` and returns every task `ready` depends on,
-transitively; `runnerConfigs()` reads `.config/nextest.toml` and the four Vitest configs;
-`libraryManifests()` reads the `Cargo.toml` of each crate with a library target, the binding
-included.
+Two more rows: a Vitest config setting `retry`, and an uncached check next to a group (command
+`true`) and a task that only touches files, of which only the check is reported. `untracked` skips
+the groups and the touch, which read nothing (R7). `readyTasks()` imports the root `vite.config.ts`
+and returns every task `ready` depends on, transitively; `runnerConfigs()` reads
+`.config/nextest.toml`, the root's Vitest config and the four packages' ones; `libraryManifests()`
+reads the `Cargo.toml` of each crate with a `src/lib.rs`, the binding included.
 
 The break each test catches: a check that reports nothing, or the wrong text; a task added to
 `ready` without inputs.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run:
   `nix develop -c vp test --project uraeda-server packages/server/src/__tests__/toolchain.test.ts`
 - Expected: FAIL, on the repository's row: `ready` is not a task yet, so `readyTasks()` throws "no
   `ready` task in vite.config.ts".
 
-- [ ] **Step 3: Write the task graph**
+- [x] **Step 3: Write the task graph**
 
 In `vite.config.ts`'s `run.tasks`, every task of the spec's Data table, with its command, its
 `dependsOn`, its inputs (`binding:build`'s from `SOURCES`, plus `packages/binding/package.json`),
@@ -468,13 +470,24 @@ through `cache.untrackedEnv`, so CI picks `ci`. `ts:test` runs
 `package.json` loses `ready` and `test:nvim`. The README's line says
 `vp run ready       # every check and test; CI also runs the Neovim tests`.
 
-- [ ] **Step 4: Run the toolchain test**
+As built: Vite Task adds only the root's `node_modules/.bin` to `PATH` and runs a plain command
+without a shell, so without expanding globs. `binding:build` runs `node_modules/.bin/napi build …`
+with `cwd: "packages/binding"` (the package's `build` script, which a nested `vp run` would run
+uncached), `web:theme` runs `node_modules/.bin/astryx theme build …` and `web:build` runs
+`vp build`, both with `cwd: "packages/web"`; inputs and outputs stay relative to the root. The check
+and test tasks declare `output: []` too; `web:build` restores `packages/web/dist/**`.
+`binding:touch` (`cache: false`, `sh -c 'touch -c packages/binding/*.node'`) runs after
+`binding:build`, and `ts:test`, the browser tasks and `bench` depend on it (R7). `test:nvim` runs
+from `cwd: "editors/nvim"`; `bench` runs the Rust benchmarks, then `vp test bench --run`, both with
+git's configuration ignored (`--project` matches no project in bench mode).
+
+- [x] **Step 4: Run the toolchain test**
 
 - Run:
   `nix develop -c vp test --project uraeda-server packages/server/src/__tests__/toolchain.test.ts`
 - Expected: PASS.
 
-- [ ] **Step 5: Check the cache behaviour of US2, one change at a time**
+- [x] **Step 5: Check the cache behaviour of US2, one change at a time**
 
 - Run: `nix develop -c vp run -v ready` twice. Expected: the first run passes; the second has every
   task as a cache hit and ends in under 15 seconds (US2.1, SC-003). Record its time in the commit.
@@ -488,15 +501,19 @@ through `cache.untrackedEnv`, so CI picks `ci`. `ts:test` runs
 - Review focus 3: `rm packages/binding/*.node`, then `vp run ready`. Expected: `binding:build` is a
   hit that restores the file, and the web projects start without `checkBinding`'s error. If the
   restored file's time trips the check, `binding:build` lists no outputs and runs whenever its
-  sources change instead, with a ruling.
-- Edge, exported `GIT_DIR`: `GIT_DIR=/nonexistent vp run --no-cache ready:rust`. Expected: PASS.
+  sources change instead, with a ruling. As run: the restore keeps the build's time, which a source
+  saved since with the same content is newer than, so `binding:touch` marks the binding as built now
+  (R7); then the web and desktop projects start without the error.
+- Edge, exported `GIT_DIR`: `vp cache clean`, then `GIT_DIR=/nonexistent vp run ready`, so the tasks
+  run cached and miss. Expected: PASS. `--no-cache` passes the whole environment, `GIT_DIR` included
+  (R8).
 - Edge, a missing input: remove `fixtures/**` from `ts:test`'s inputs, edit a fixture, and run
   `vp run -v ready`. Expected: `ts:test` is a hit (the stale result the edge case names), and
   `vp run --no-cache ts:test` runs it. Put the input back.
 - Edge, a fresh start: `vp cache clean`, then `vp run -v ready`. Expected: every task misses, and
   the run passes.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add vite.config.ts package.json README.md packages/server/src/__tests__/toolchain.test.ts
@@ -814,7 +831,7 @@ git commit -m "build(testing-review): vp run coverage reports the Rust and TypeS
 
 **Interfaces:**
 
-- Consumes: task 3's groups and `notInCi`; task 7's `test:nvim`; task 8's `coverage`.
+- Consumes: task 3's groups and `readyTasks()`; task 7's `test:nvim`; task 8's `coverage`.
 
 - [ ] **Step 1: Add the failing CI rows to the toolchain test (US3.3)**
 

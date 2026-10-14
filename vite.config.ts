@@ -1,4 +1,7 @@
+import { statSync } from "node:fs";
+import { join } from "node:path";
 import nkzw from "@nkzw/oxlint-config";
+import { SOURCES } from "./packages/server/src/binding.ts";
 
 /**
  * The UI components decision's values (see `specs/decisions/ui-components.md`): colours, spacing,
@@ -96,6 +99,196 @@ const forbiddenElements = [
   ["dialog", "use Astryx Dialog or BottomSheet"],
 ].map(([element, message]) => ({ element, message }));
 
+/**
+ * The dev shell's variables the tests need, which Vite Task does not pass to a task unless listed:
+ * the browsers, their fonts and EGL driver, and mini.test. Not part of a result, so not fingerprinted.
+ */
+const testEnv = [
+  "PLAYWRIGHT_BROWSERS_PATH",
+  "PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS",
+  "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD",
+  "FONTCONFIG_FILE",
+  "__EGL_VENDOR_LIBRARY_DIRS",
+  "MINI_TEST",
+];
+
+/** A test ignores the host's git configuration: the tests' repositories get git's defaults. */
+const isolatedGit = "GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1";
+
+/** What the Rust crates are built from: the skill is compiled into the core. */
+const rustSources = [
+  "crates/**",
+  "Cargo.toml",
+  "Cargo.lock",
+  "clippy.toml",
+  "rust-toolchain.toml",
+  "skills/uraeda/**",
+];
+
+/** What the TypeScript tests read: the packages, the fixtures, and the skill the core embeds. */
+const tsTestInputs = [
+  "packages/**",
+  "fixtures/**",
+  "skills/uraeda/**",
+  "vite.config.ts",
+  "pnpm-lock.yaml",
+  "!**/node_modules/**",
+  "!**/dist/**",
+  "!**/.vitest/**",
+];
+
+/** The binding's sources, from `binding.ts`'s list, a folder standing for every file under it. */
+const bindingInputs = SOURCES.map((source) =>
+  statSync(join(import.meta.dirname, source)).isDirectory() ? `${source}/**` : source,
+);
+
+/**
+ * The checks of `vp run ready`, as a graph of cached tasks (see `specs/decisions/toolchain.md`):
+ * each lists the files it reads in `cache.input`, so a change reruns only the checks it can break.
+ * The `ready:*` groups, which run nothing themselves, are the units CI's jobs run, uncached.
+ */
+const tasks = {
+  // The benchmarks of the specs' success criteria: they measure time, so are never replayed.
+  bench: {
+    cache: false,
+    command: [
+      `${isolatedGit} cargo nextest run --run-ignored only -E 'test(/^bench_/)'`,
+      `${isolatedGit} vp test bench --run`,
+    ],
+    dependsOn: ["binding:touch"],
+  },
+  // A hit restores the built binding, and its generated files, which are committed.
+  "binding:build": {
+    cache: {
+      input: [...bindingInputs, "packages/binding/package.json"],
+      output: [
+        "packages/binding/*.node",
+        "packages/binding/index.js",
+        "packages/binding/index.d.ts",
+      ],
+    },
+    command:
+      "node_modules/.bin/napi build --platform --esm --no-const-enum --manifest-path ../../crates/binding/Cargo.toml --output-dir .",
+    cwd: "packages/binding",
+  },
+  // A hit restores the binding with the time it was built at, which a source saved since with the
+  // same content is newer than: the web configs' `checkBinding` would refuse it. The binding is
+  // built from its sources as they are, so it is marked as built now, on every run.
+  "binding:touch": {
+    cache: false,
+    // In a shell: Vite Task runs a plain command without expanding its globs.
+    command: "sh -c 'touch -c packages/binding/*.node'",
+    dependsOn: ["binding:build"],
+  },
+  "browser:desktop": {
+    cache: { input: tsTestInputs, output: [], untrackedEnv: testEnv },
+    command: `${isolatedGit} vp test --project desktop`,
+    dependsOn: ["binding:touch"],
+  },
+  "browser:phone": {
+    cache: { input: tsTestInputs, output: [], untrackedEnv: testEnv },
+    command: `${isolatedGit} vp test --project phone`,
+    dependsOn: ["binding:touch"],
+  },
+  "lua:fmt": {
+    cache: { input: ["editors/nvim/**"], output: [] },
+    command: "stylua --check editors/nvim",
+  },
+  ready: {
+    command: "true",
+    dependsOn: ["ready:rust", "ready:typescript", "ready:browser-phone", "ready:browser-desktop"],
+  },
+  "ready:browser-desktop": { command: "true", dependsOn: ["browser:desktop"] },
+  "ready:browser-phone": { command: "true", dependsOn: ["browser:phone"] },
+  "ready:rust": {
+    command: "true",
+    dependsOn: ["rust:fmt", "rust:clippy", "rust:test", "rust:features", "specs:check"],
+  },
+  "ready:typescript": {
+    command: "true",
+    dependsOn: ["binding:build", "web:theme", "lua:fmt", "ts:check", "ts:test", "web:build"],
+  },
+  "rust:clippy": {
+    cache: { input: rustSources, output: [] },
+    command: "cargo clippy --workspace --all-targets -- -D warnings",
+  },
+  // `ura` never builds napi: a binding built into the other crates' tests would not link.
+  "rust:features": {
+    cache: { input: ["crates/*/Cargo.toml", "Cargo.toml", "Cargo.lock"], output: [] },
+    command: "! cargo tree -p uraeda-cli -e features --prefix none | grep -qE '^napi(-derive)? v'",
+  },
+  "rust:fmt": {
+    cache: { input: ["crates/**", "rustfmt.toml"], output: [] },
+    command: "cargo fmt --check",
+  },
+  "rust:test": {
+    // CI sets NEXTEST_PROFILE=ci, to report every failure at once.
+    cache: {
+      input: [...rustSources, "fixtures/**", ".config/nextest.toml"],
+      output: [],
+      untrackedEnv: [...testEnv, "NEXTEST_PROFILE"],
+    },
+    command: `${isolatedGit} cargo nextest run`,
+  },
+  "specs:check": {
+    cache: { input: [...rustSources, "specs/**"], output: [] },
+    command: [
+      "cargo run -q -p uraeda-cli -- check specs",
+      "cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs",
+    ],
+  },
+  // CI only (see the toolchain decision): the Neovim plugin's tests, on the `ura` they build.
+  "test:nvim": {
+    cache: false,
+    command: [
+      "cargo build -q -p uraeda-cli",
+      `${isolatedGit} nvim --headless --noplugin -u tests/minimal_init.lua -c 'lua MiniTest.run()'`,
+    ],
+    cwd: "editors/nvim",
+  },
+  // Every file `vp check` formats or lints, by extension: a Rust or Lua change does not rerun it.
+  "ts:check": {
+    cache: {
+      input: [
+        "**/*.{ts,tsx,js,mjs,cjs,json,jsonc,md,toml,yml,yaml,html,css}",
+        "!**/node_modules/**",
+        "!target/**",
+        "!**/dist/**",
+        "!fixtures/**",
+      ],
+      output: [],
+    },
+    command: "vp check",
+  },
+  "ts:test": {
+    cache: { input: tsTestInputs, output: [], untrackedEnv: testEnv },
+    command: `${isolatedGit} vp test --project uraeda-binding --project uraeda-server --project uraeda-web`,
+    dependsOn: ["binding:touch"],
+  },
+  "web:build": {
+    cache: {
+      input: [
+        "packages/web/**",
+        "packages/server/**",
+        "vite.config.ts",
+        "pnpm-lock.yaml",
+        "!**/node_modules/**",
+        "!**/dist/**",
+      ],
+      output: ["packages/web/dist/**"],
+    },
+    command: "vp build",
+    cwd: "packages/web",
+    dependsOn: ["binding:build"],
+  },
+  "web:theme": {
+    cache: { input: ["packages/web/src/theme/**"], output: [] },
+    command:
+      "node_modules/.bin/astryx theme build src/theme/theme.ts --out src/theme/built/uraeda.css --check",
+    cwd: "packages/web",
+  },
+};
+
 export default {
   // `vp dev` at the root runs the web UI, with the server in its process.
   defaultPackage: "./packages/web",
@@ -186,6 +379,7 @@ export default {
     // their code is fixed (see `specs/decisions/code-quality.md`).
     options: { reportUnusedDisableDirectives: "error", typeAware: true, typeCheck: true },
   },
+  run: { tasks },
   staged: {
     "!(*.{rs,lua})": "vp check --fix",
     // StyLua finds `editors/nvim/stylua.toml` from each file's folder.
