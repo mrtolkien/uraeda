@@ -12,6 +12,7 @@ import type { useImageText } from "./attach/useImageText.ts";
 import { useConfirm } from "./fields/Confirm.tsx";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { TextField } from "./fields/TextField.tsx";
+import type { Unsaved } from "./fields/unsaved.ts";
 import { useTextField } from "./fields/useTextField.ts";
 import { statusStyles } from "./Question.tsx";
 
@@ -44,7 +45,7 @@ export const DISCARD_COMMENT = {
 /** What the restore notice adds when the comment changed since its unsaved text was typed. */
 export const COMMENT_CHANGED = "The comment changed since: saving replaces it.";
 
-/** What every comment form takes, wherever its text is kept. */
+/** What every comment form takes. */
 type Shared = {
   /** A button before Cancel. */
   action?: ReactNode;
@@ -61,39 +62,23 @@ type Shared = {
   submitLabel?: string;
 };
 
-/** A form whose text its page holds, `text` and `onTextChange`, or the form itself. */
-type Held = Shared & {
-  field?: undefined;
-  initial?: string;
-  onTextChange?: (text: string) => void;
-  text?: string;
-};
-
-/**
- * A form whose text is a field of the unsaved store, `field` its key, over `saved`, the comment's
- * text as the file holds it, empty for a new one.
- */
-type Stored = Shared & { field: string; saved?: string };
-
 /**
  * A comment being written: where it goes, the start of what it comments on, its text, Cancel, and
- * the button that sends it. With `field`, its text is kept in the unsaved store by that key, so it
- * survives the form moving and a reload, restored with a notice; "Unsaved changes" shows while it
- * differs from `saved`, and Cancel asks "Discard your comment?" first. Without, `text` and
- * `onTextChange` hold the text outside the form, as the review and the mockup page do. Shared by
- * the review, the mockup page, and the settled points.
+ * the button that sends it. Its text is a field of the unsaved store, `field` its key, over
+ * `saved`, the comment's text as the file holds it, empty for a new one, with `extra`, a review
+ * comment's lines: it survives the form moving and a reload, restored with a notice; "Unsaved
+ * changes" shows while it differs from `saved`, its button waits for a change, and Cancel asks
+ * "Discard your comment?" first. Shared by the review, the mockup page, and the settled points.
  */
-export function CommentForm(props: Held | Stored) {
-  return props.field === undefined ? <HeldForm {...props} /> : <StoredForm {...props} />;
-}
-
-function HeldForm({ initial = "", onTextChange, text: held, ...shared }: Held) {
-  const [own, setOwn] = useState(initial);
-  return <CommentFields {...shared} onChange={onTextChange ?? setOwn} text={held ?? own} />;
-}
-
-function StoredForm({ field: key, onCancel, onSubmit, saved = "", ...shared }: Stored) {
-  const field = useTextField(key, saved);
+export function CommentForm({
+  extra,
+  field: key,
+  onCancel,
+  onSubmit,
+  saved = "",
+  ...shared
+}: Shared & { extra?: Unsaved["extra"]; field: string; saved?: string }) {
+  const field = useTextField(key, saved, extra);
   const confirm = useConfirm();
   const cancel = async () => {
     if (field.dirty && !(await confirm(DISCARD_COMMENT))) {
@@ -130,7 +115,7 @@ function StoredForm({ field: key, onCancel, onSubmit, saved = "", ...shared }: S
   );
 }
 
-/** The form itself, on a text it is given; with `dirty`, its button waits for a change. */
+/** The form itself, on the text its field holds: its button waits for a change. */
 function CommentFields({
   action,
   anchor,
@@ -145,7 +130,7 @@ function CommentFields({
   submitLabel = "Add comment",
   text,
 }: Shared & {
-  dirty?: boolean;
+  dirty: boolean;
   onChange: (text: string) => void;
   restored?: ReactNode;
   text: string;
@@ -193,7 +178,7 @@ function CommentFields({
           <Button label="Cancel" onClick={onCancel} />
           <Button
             clickAction={async () => setError(await onSubmit(text))}
-            isDisabled={!text.trim() || images?.busy || dirty === false}
+            isDisabled={!text.trim() || images?.busy || !dirty}
             label={submitLabel}
             variant="primary"
           />

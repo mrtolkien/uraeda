@@ -220,3 +220,99 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `useAnswer.ts` and `AnswerComment` in
   [`QuestionComment.tsx`](/packages/web/src/QuestionComment.tsx).
 - **Where**: task 6.
+
+## R15: The review's and the mockup page's field keys
+
+- **Decision**: a new review comment is `<path>#review`, `<path>` the reviewed file's, like
+  `specs/<folder>/spec.md`: on lines, its entry's `extra` holds them and the reviewed commit; with
+  no `extra`, it is a general comment. A tap moves the entry's lines with the selection, and "Add a
+  general comment" removes them, text or not typed since. An edit is `<path>#review-edit:<number>`,
+  the summary `<path>#summary`, and a mockup's comment `<spec path>#mockup:<mockup file name>`, with
+  no `extra`: the mockup page finds its line itself. As the review is drawn, the comment last typed
+  of those the store keeps for the page opens again, on its lines, under the block holding their
+  last line. On lines of a commit no longer reviewed, it opens as a general comment, its text
+  written again as `On lines 40–52 of the previous version: <text>`, on one line, as a mockup's
+  general comment reads `Mockup <name>: <text>`. The summary has no Save button, so no "Unsaved
+  changes": it shows the restore notice, and its entry goes once a verdict is recorded.
+- **Rationale**: the spec lists `<path>#review` for a new comment, on lines or not, and the lines in
+  `extra`; one key keeps the text of a general comment when a block is tapped, as before. The spec
+  names no key for the mockup page, whose comment goes into the spec's review.
+- **Alternatives considered**: `<path>#review-general` for a general comment, which a tap would have
+  to move to another key; restoring every entry, when one form shows at a time.
+- **If wrong**: [`reviewField.ts`](/packages/web/src/reviewField.ts) and the keys in
+  [`ReviewVerdict.tsx`](/packages/web/src/ReviewVerdict.tsx) and
+  [`MockupPage.tsx`](/packages/web/src/MockupPage.tsx).
+- **Where**: task 7.
+
+## R16: An open comment holding unsaved text holds the verdict
+
+- **Decision**: a verdict is refused while the open comment holds unsaved text, or links images, or
+  its image is uploading, with one message, "Add or cancel your comment first.", which replaces "Add
+  or cancel your comment first: its images are not in the review yet.". An edit opened and left
+  unchanged holds nothing back. In `review.test.tsx`, `UNSENT` takes the new text; "a verdict with
+  an open comment of text alone goes through" becomes "a verdict with an open comment holding text
+  is refused", and "a verdict with an open comment of no text goes through" keeps what it checked of
+  an open form; "a verdict after a comment with an image was cancelled deletes the image" and "the
+  verdict's refusal goes once the comment is cancelled" answer "Discard" after Cancel.
+- **Rationale**: US5 10 and the spec's error handling refuse a verdict with an open comment holding
+  text, which the R64 test of image attachments let through; the plan changes the message. Cancel on
+  changed text now asks first (US5 7), so the two tests that cancel a comment holding an image's
+  link confirm it. An unchanged edit loses nothing to a verdict.
+- **Alternatives considered**: refusing any open form with text, an unchanged edit included, which
+  blocks a verdict for a comment already in the review.
+- **If wrong**: one condition in `hold`, in
+  [`useReviewImages.ts`](/packages/web/src/useReviewImages.ts).
+- **Where**: task 7.
+
+## R17: The review's comment form is drawn apart from the document
+
+- **Decision**: `CommentHost`, in
+  [`ReviewCommentForm.tsx`](/packages/web/src/ReviewCommentForm.tsx), holds the comment's field and
+  images and draws the form through a portal into one element of its own, which a `FormSlot` takes
+  wherever the form shows: under a block, in the review's end, or in the phone's sheet. The page
+  passes its content to `CommentHost` as children, and the verdict reads the images through
+  `ReviewImagesContext`. Which comment the images go to, `writing`, moves into `useCommentDraft`, a
+  new one at each close and edit started, and the page's close clears the verdict's refusal for the
+  comment: `useReviewImages` loses `onClose` and `onEdit`. The US3 1 test wraps every `Blocks` in a
+  `Profiler` through `vi.mock`. `useTextField` takes `extra` as a third argument, written with each
+  change.
+- **Rationale**: a `Profiler` reports any render in its React tree, and a form drawn in a block's
+  `after` is in it, so the document's profiler would be called for the form's own keystrokes;
+  `useImageText` needs the text, for where links go as the human types, so the images move with the
+  field out of the page, and the page stays unrendered by a keystroke. One element, moved, keeps the
+  form mounted as it follows taps, its notice and error included.
+- **Alternatives considered**: relying on React Compiler to keep the document's props equal while
+  the page holds the text, which the US3 1 test could not tell from a form inside the document; a
+  portal straight into each place, which remounts the form at each tap and shows the restore notice
+  again.
+- **If wrong**: the form goes back into `ReviewPage`, and `useReviewImages` back to the page.
+- **Where**: task 7.
+
+## R18: A new review comment shows at once, through `useOptimistic`
+
+- **Decision**: "Add comment" on a new comment shows it under its block, or in the review's end for
+  a general one, in a group named `Lines 40–52 · saving…` (or `Line 40 · saving…`,
+  `General · saving…`), through `useOptimistic` in a transition of its own; its form is hidden, kept
+  mounted, the phone's sheet closed. Refused, the form shows again with its text and the error. An
+  edit waits in its form, as before.
+- **Rationale**: Astryx's `clickAction` runs in a transition, whose state updates wait for it to
+  end, so a plain state did not show until the comment was written; the spec's assumption names a
+  new comment only. A form kept mounted keeps its error, which a new form would lose.
+- **Alternatives considered**: closing the form and opening it again on a refusal, which shows the
+  restore notice for text never left.
+- **If wrong**: `add` in [`useReviewActions.ts`](/packages/web/src/useReviewActions.ts).
+- **Where**: task 7.
+
+## R19: Closing a comment's sheet or overlay keeps its text
+
+- **Decision**: on the phone, closing the review's comment sheet with Close, Back, or Escape keeps
+  its text unsaved, without asking, as R10 does for a settled point; the next comment of that kind
+  opens with it, and the restore notice. The mockup page's overlay does the same; its Cancel asks
+  "Discard your comment?". The mockup page does not open its overlay as it is drawn: Comment opens
+  it with the text kept.
+- **Rationale**: as R10, a sheet closed by Back that asked first would push its entry again; nothing
+  is lost, and the leave guard of task 10 still counts the text. A mockup's overlay hides the
+  mockup, which the human came to see.
+- **Alternatives considered**: asking as the sheet closes; opening the mockup's overlay at once.
+- **If wrong**: the sheets' `onClose`.
+- **Where**: task 7.
