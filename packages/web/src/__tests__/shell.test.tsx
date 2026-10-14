@@ -449,3 +449,28 @@ test("the folded sidebar hides progress rows", async () => {
   expect(screen.queryByRole("link", { name: /^Task / })).toBeNull();
   expect(statusOf(row("cli-tuis"))).toBe("Idle");
 });
+
+test("on the session's page, the folded sidebar selects the feature's row", async () => {
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  await renderPage(`/f/${CLI}/session`, repo, { agent: await fakeAgent() });
+  const progress = await screen.findByRole("link", { name: "Task 7 of 11: Session column" });
+  expect(nav().getByRole("link", { current: "page" })).toBe(progress);
+
+  await click(nav().getByRole("button", { name: "Collapse sidebar" }));
+
+  await waitFor(() => expect(nav().getByRole("button", { name: "Expand sidebar" })).toBeTruthy());
+  expect(nav().getByRole("link", { current: "page" })).toBe(row("cli-tuis"));
+});
+
+test.each([
+  ["page", `/f/${CLI}`],
+  ["file", `/f/${CLI}/spec.md`],
+])("on a feature's %s, its row is selected, not its progress row", async (_, path) => {
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  await renderPage(path, repo, { agent: await fakeAgent() });
+  await screen.findByRole("link", { name: "Task 7 of 11: Session column" });
+
+  expect(nav().getByRole("link", { current: "page" })).toBe(row("cli-tuis"));
+});
