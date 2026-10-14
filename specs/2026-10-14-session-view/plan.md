@@ -1163,8 +1163,9 @@ git commit -m "feat(session-view): the session's progress line on the phone"
 **Files:**
 
 - Create: `packages/web/src/following.ts` (`useOpenAtEnd`, `useFollowEnd`, moved from
-  `Transcript.tsx` in Step 1, with `AT_END`; `useKeepPlace.ts` then imports `AT_END` from it, and
-  its own `atEnd` copy becomes following's one `atEnd`)
+  `Transcript.tsx` in Step 1, with `AT_END`; `useKeepPlace.ts` then imports `atEnd` from it, its own
+  copy becoming following's one `atEnd`)
+- Create: `packages/web/src/JumpToLatest.tsx` (the button, after the review: R22)
 - Create: `packages/web/src/ToolGroups.tsx` (the tool groups, moved from `Transcript.tsx` in Step 1:
   `ToolGroup`, which draws one group, and its calls' statuses and durations)
 - Modify: `packages/web/src/Transcript.tsx` (the moved parts and its `max-lines` marker go)
@@ -1175,8 +1176,9 @@ git commit -m "feat(session-view): the session's progress line on the phone"
 
 - Produces:
   `useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolean): { following: boolean; jumpToLatest: () => void }`.
-  `following` is false once the reader is more than `AT_END` (24 px) from the end, and true again at
-  the end. `jumpToLatest` scrolls to the end and follows again. `useOpenAtEnd(ref)` is unchanged.
+  `following` is false once the reader scrolls more than `AT_END` (24 px) from the end, and true
+  again at the end: growing does not change it (R22). `jumpToLatest` scrolls to the end and follows
+  again. `useOpenAtEnd(ref)` is unchanged.
 
 - [x] **Step 1: Restructure `Transcript.tsx`, and commit**
 
@@ -1197,7 +1199,10 @@ In `__browser__/session.test.tsx`, on the working session at both sizes:
 - US4.3: pressing it scrolls the newest line into view, the button goes, and a further line stays in
   view;
 - US4.4: at the end, no "Jump to the latest" shows;
-- "an ended session scrolled up also offers Jump to the latest".
+- "an ended session scrolled up also offers Jump to the latest";
+- after the review (R22): "idle at the end, send: the reply stays in view and no button shows", the
+  focus on the composer after the jump, by click and by Enter, and the button above the composer
+  without growing the page.
 
 - [x] **Step 3: Run them to check they fail**
 

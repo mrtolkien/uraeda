@@ -320,8 +320,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   working session scrolls to the end. A read while the window's width class differs from the drawn
   one is skipped, as `useKeepPlace` skips it. "Jump to the latest" is an Astryx `Button`, `sm`,
   `secondary`, with a low elevation, absolutely placed above the composer's sticky area and centred,
-  as the mockup's frame 2 draws it. `Transcript.tsx`'s grouping function draws each group with
-  `ToolGroup`, from `ToolGroups.tsx`, and loses its `max-lines-per-function` marker.
+  as the mockup's frame 2 draws it. It keeps Astryx's normal radius for a button rather than the
+  mockup's pill, as every other button of the theme. `Transcript.tsx`'s grouping function draws each
+  group with `ToolGroup`, from `ToolGroups.tsx`, and loses its `max-lines-per-function` marker.
 - **Rationale**: the spec shows the button "whenever the page is not following the end, working or
   not". With the state in React, each scroll of the moment WebKit lays the old layout out at the new
   width rendered the session, and the width test found the line read 420 px from its place:
@@ -331,5 +332,33 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: following's state in a store only the button reads, which keeps the
   session from rendering on scroll but not the clamp's false "at the end"; the button in the flow of
   the sticky area.
-- **If wrong**: `read` in `useFollowEnd`, and `JumpToLatest`'s styles in `SessionPage.tsx`.
+- **If wrong**: `read` in `useFollowEnd`, and `JumpToLatest`'s styles in `JumpToLatest.tsx`.
 - **Where**: Task 9.
+
+## R22: Only a scroll stops following, and the jump hands the focus to the composer
+
+- **Decision**: in `useFollowEnd`, only the human's scroll sets whether the page follows: the
+  transcript growing does not, working or not. When the session starts working while the page
+  follows, it scrolls to the end, and then follows it as it grows. "Jump to the latest" moves the
+  focus to the composer's text field before it goes, and moves to `JumpToLatest.tsx`, which keeps
+  `SessionPage.tsx` under 500 lines. `AT_END` and `scroller` are no longer exported, and
+  `useKeepPlace` imports only `atEnd`. `useKeepPlace` puts the place back in the frame after the
+  width class changes rather than in its layout effect, and the browser test of the opened line
+  waits for the page to stop growing, with a `grown` helper, before it reads the line.
+- **Rationale**: the task's review found that a message sent from the end of an idle session lost
+  the reply: the message grew the transcript while the session was idle, the growth read "not at the
+  end", and nothing followed once the session worked, with "Reply 10." 700–800 px below the window
+  and the button shown. A human who has not scrolled has not left the end, and only a working
+  session scrolls, as R21 rules. Pressed, the button unmounts, and the focus fell to the page's
+  body; the composer is where a human who caught up writes next. The new browser test moved the
+  timing of the width tests: each media query's listener commits on its own, and `useKeepPlace`'s
+  layout effect could run before the shell's navigation had left, putting the place back in a layout
+  130 px wide, 420 px from where the next commit drew it. The opened line's sections draw one by
+  one, after the region shows, and the test could read the line a frame before the hook did.
+- **Alternatives considered**: following the end while idle too, against R21; focusing the
+  transcript's log, with `tabIndex` -1, which leaves the keyboard human one step from the composer
+  rather than in it; one shared media query listener for every `useWidthClass`, which commits the
+  app's components together but before Astryx's shell, and failed every width test.
+- **If wrong**: the two effects of `useFollowEnd`, `JumpToLatest`'s `jump`, and the frame in
+  `useKeepPlace`'s layout effect.
+- **Where**: Task 9, after its review.

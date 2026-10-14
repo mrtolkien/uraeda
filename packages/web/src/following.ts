@@ -5,10 +5,10 @@ import { useWidthClass, widthClassNow } from "./layout/useWidthClass.ts";
 import { currentEntry } from "./routes.tsx";
 
 /** How close to its end, in pixels, the transcript still counts as read to the end. */
-export const AT_END = 24;
+const AT_END = 24;
 
 /** The element that scrolls an element: the nearest that scrolls on its own, or the window. */
-export function scroller(element: HTMLElement): HTMLElement | undefined {
+function scroller(element: HTMLElement): HTMLElement | undefined {
   for (let node = element.parentElement; node; node = node.parentElement) {
     const overflow = getComputedStyle(node).overflowY;
     if (overflow === "auto" || overflow === "scroll") {
@@ -57,12 +57,12 @@ function toEnd(box: HTMLElement | undefined) {
 /**
  * Keeps the end of an element in view as it grows, while `enabled` and while the human is at the
  * end: scrolled up, nothing moves. It scrolls the nearest element that scrolls on its own, or the
- * window. `following` says whether the human is at the end, enabled or not, and `jumpToLatest`
- * brings them back there, following again.
+ * window. `following` says whether the human was at the end when they last scrolled, enabled or
+ * not, and `jumpToLatest` brings them back there, following again.
  */
 export function useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolean) {
   const [following, setFollowing] = useState(true);
-  // Read by the observer between draws: the last position read, at the end or not.
+  // Read by the observer between draws: the last position the human scrolled to, at the end or not.
   const followingNow = useRef(true);
   const box = useRef<HTMLElement | undefined>(undefined);
   const width = useWidthClass();
@@ -71,6 +71,8 @@ export function useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolea
     drawn.current = width;
   }, [width]);
 
+  // Only a scroll sets whether the human follows: growing does not, so a message sent from the end
+  // of an idle session keeps them following once the session works.
   useEffect(() => {
     const element = ref.current;
     if (!element) {
@@ -89,23 +91,24 @@ export function useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolea
     read();
     const target = box.current ?? window;
     target.addEventListener("scroll", read, { passive: true });
-    // Growing does not scroll: the last position read holds until the human scrolls. Only a session
-    // at work follows its end; another reads whether its end moved away.
-    const observer =
-      typeof ResizeObserver === "undefined"
-        ? undefined
-        : new ResizeObserver(() => {
-            if (enabled && followingNow.current) {
-              toEnd(box.current);
-            } else {
-              read();
-            }
-          });
-    observer?.observe(element);
-    return () => {
-      observer?.disconnect();
-      target.removeEventListener("scroll", read);
+    return () => target.removeEventListener("scroll", read);
+  }, [ref]);
+
+  // Only a session at work scrolls: to its end as it starts working, and as it grows.
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || !enabled) {
+      return;
+    }
+    const follow = () => {
+      if (followingNow.current) {
+        toEnd(box.current);
+      }
     };
+    follow();
+    const observer = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(follow);
+    observer?.observe(element);
+    return () => observer?.disconnect();
   }, [ref, enabled]);
 
   const jumpToLatest = useCallback(() => {

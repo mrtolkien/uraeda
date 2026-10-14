@@ -282,6 +282,7 @@ function SessionPane({
   title?: string;
 }) {
   const session = useSessionRecord(id);
+  const composer = useRef<HTMLDivElement>(null);
   const [jump, setJump] = useState<() => void>();
   if (session === null) {
     return (
@@ -313,8 +314,8 @@ function SessionPane({
             />
           </Suspense>
         )}
-        <div {...stylex.props(styles.composer)}>
-          {jump && <JumpToLatest onJump={jump} />}
+        <div ref={composer} {...stylex.props(styles.composer)}>
+          {jump && <JumpToLatest composer={composer} onJump={jump} />}
           <Composer
             {...(folder === undefined ? {} : { folder })}
             {...composerDraft(draft)}
