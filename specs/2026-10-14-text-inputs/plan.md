@@ -1089,13 +1089,13 @@ git commit -m "docs(text-inputs): comments on settled points in the skill and it
 - [x] **Step 3: Take and review screenshots** of every changed view at both sizes and themes, with
       `vp run --filter uraeda-web screenshots`, against the mockups; fix what differs.
 
-- [ ] **Step 4: Run the full validation**
+- [x] **Step 4: Run the full validation**
 
 - Run: `vp run ready`
 - Expected: PASS
-- Ran: every step passed but `vp check`'s format check, which fails on `AGENTS.md` alone, a change
-  outside this feature not committed; the steps after it, run with the format check of every other
-  file, passed.
+- Ran: in a clean checkout of the branch's tip, after the final review's fixes: PASS, 1094 tests. In
+  this worktree, `vp install`'s `vp config` rewrites `AGENTS.md` unformatted, which fails the format
+  check alone.
 
 - [x] **Step 5: Commit**
 
