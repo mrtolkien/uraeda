@@ -18,7 +18,6 @@
 
 - [Chats, proposals, and reviews should accept images (drag and drop in the page, still show a dedicated button)](/specs/2026-10-13-image-attachments/proposal.md)
 - [Run the web UI with npx](drafts/run-the-web-ui-with-npx.md)
-- [Code quality and maintainability through the skill](/specs/2026-10-14-code-quality-in-the-skill/proposal.md)
 
 ## Next
 
