@@ -50,11 +50,12 @@ export async function testHosts(
   for (const repo of repos) {
     added.push((await binding.addRepository(dataDir, repo)).repository.name);
   }
-  // oxlint-disable-next-line prefer-const -- the session manager may read the hosts while they open: undefined until then, where a const would throw
-  let hosts: Hosts | undefined;
-  const { adapter, sessions } = fakeSessions({ hosts: () => hosts, installed });
+  // The session manager may read the hosts while they open: undefined until then.
+  const opening: { hosts?: Hosts } = {};
+  const { adapter, sessions } = fakeSessions({ hosts: () => opening.hosts, installed });
   managers.push(sessions);
-  hosts = await Hosts.open({ binding: using, dataDir, sessions });
+  const hosts = await Hosts.open({ binding: using, dataDir, sessions });
+  opening.hosts = hosts;
   opened.push(hosts);
   return { adapter, dataDir, hosts, names: added, sessions };
 }
