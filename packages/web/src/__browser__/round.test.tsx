@@ -10,7 +10,7 @@ const FOLDER = "2026-10-11-web-ui";
 const PAGE = `/f/${FOLDER}/clarifications-01.md`;
 
 beforeEach(() => {
-  // A browser that never opened the round: it opens at the first blank question, Q1.
+  // A browser that never opened the round: a round not started opens on its intro, at its top.
   window.localStorage.removeItem(`uraeda.round.${repository()}/${FOLDER}/clarifications-01.md`);
 });
 
@@ -33,12 +33,15 @@ test("the index is a column beside the questions, and n and p jump (US1 6, 7)", 
   expect(screen.getByRole("button", { name: "Next" })).toBeTruthy();
   const question = document.getElementById("Q1")!.getBoundingClientRect();
   expect(index.getBoundingClientRect().left).toBeGreaterThanOrEqual(question.right);
-  await expect.poll(() => offset("Q1")).toBeLessThan(3);
+  await drawn();
+  expect(window.scrollY).toBe(0);
 
   // The keys reach the page once it has the focus, as after the human's first click in it.
   await userEvent.click(
     screen.getByRole("heading", { name: "Which human steps does the UI perform?" }),
   );
+  await userEvent.keyboard("n");
+  await expect.poll(() => offset("Q1")).toBeLessThan(3);
   await userEvent.keyboard("n");
   await expect.poll(() => offset("Q2")).toBeLessThan(3);
   // It stays in view while the page scrolls.
@@ -71,6 +74,8 @@ test("Back returns to the question at the top (US1 8)", async () => {
   await userEvent.click(
     screen.getByRole("heading", { name: "Which human steps does the UI perform?" }),
   );
+  await userEvent.keyboard("n");
+  await expect.poll(() => offset("Q1")).toBeLessThan(3);
   await userEvent.keyboard("n");
   await expect.poll(() => offset("Q2")).toBeLessThan(3);
   await scrollStopped();
