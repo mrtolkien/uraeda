@@ -15,8 +15,8 @@ function breaks(text: string, fromEnd: boolean) {
 export function insertLinks(
   text: string,
   at: number,
-  links: string[],
-): { text: string; selection: [number, number] } {
+  links: Array<string>,
+): { selection: [number, number]; text: string } {
   const before = text.slice(0, at);
   const after = text.slice(at);
   const lead = before ? "\n".repeat(2 - breaks(before, true)) : "";
@@ -26,11 +26,11 @@ export function insertLinks(
   // escaped.
   const first = links[0] ?? "";
   const selection: [number, number] = [start + 2, start + first.lastIndexOf("](")];
-  return { text: `${before}${lead}${links.join("\n")}${tail}${after}`, selection };
+  return { selection, text: `${before}${lead}${links.join("\n")}${tail}${after}` };
 }
 
 /** An edit of a text: `removed` characters at `start` replaced by `inserted` ones. */
-export type Edit = { start: number; removed: number; inserted: number };
+export type Edit = { inserted: number; removed: number; start: number };
 
 /**
  * The edit that made `after` from `before`. `caret`, the field's cursor once it was typed, places
@@ -50,7 +50,7 @@ export function editBetween(before: string, after: string, caret?: number): Edit
     const end = caret - (after.length - before.length);
     if (end >= 0 && end <= before.length && before.slice(end) === after.slice(caret)) {
       const start = Math.min(prefix, caret, end);
-      return { start, removed: end - start, inserted: caret - start };
+      return { inserted: caret - start, removed: end - start, start };
     }
   }
   let suffix = 0;
@@ -61,9 +61,9 @@ export function editBetween(before: string, after: string, caret?: number): Edit
     suffix += 1;
   }
   return {
-    start: prefix,
-    removed: before.length - suffix - prefix,
     inserted: after.length - suffix - prefix,
+    removed: before.length - suffix - prefix,
+    start: prefix,
   };
 }
 
@@ -73,7 +73,7 @@ export function editBetween(before: string, after: string, caret?: number): Edit
  * an earlier batch inserted there, which the later batch's follow. A replaced span around it puts
  * it after the replacement.
  */
-export function followEdit(at: number, { start, removed, inserted }: Edit, after = false) {
+export function followEdit(at: number, { inserted, removed, start }: Edit, after = false) {
   if (start > at || (start === at && !(after && removed === 0))) {
     return at;
   }

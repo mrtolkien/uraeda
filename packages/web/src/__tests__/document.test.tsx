@@ -1,14 +1,10 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { expect, test } from "vite-plus/test";
-import { atRepo, fixtureRepo, git, renderPage } from "./helpers.tsx";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { ImageView } from "../ImageView.tsx";
 import { navigate } from "../routes.tsx";
-import { fixtureRepo, git, renderPage } from "./helpers.tsx";
+import { atRepo, fixtureRepo, git, renderPage } from "./helpers.tsx";
 
 const TEXT = `# Web UI
 
@@ -97,7 +93,7 @@ test("US1.4: a proposal's image shows with its alt text, and opens full screen",
   await renderPage("/f/2026-10-11-web-ui/proposal.md", imagesRepo());
 
   const image = await screen.findByRole("img", { name: "Login" });
-  expect(image.getAttribute("src")).toBe("/images/specs/2026-10-11-web-ui/images/login.webp");
+  expect(image.getAttribute("src")).toBe(atRepo("/images/specs/2026-10-11-web-ui/images/login.webp"));
   // Its lightbox is a dialog, which a paragraph cannot hold.
   expect(image.closest("p")).toBeNull();
   expect(screen.queryByRole("dialog")).toBeNull();
@@ -112,18 +108,18 @@ test("US1.4: a proposal's image shows with its alt text, and opens full screen",
   const dialog = screen.getByRole("dialog", { name: "Login" });
   expect(within(dialog).getByRole("img", { name: "Login" })).toBeTruthy();
   expect(within(dialog).getByRole("button", { name: "Close" })).toBeTruthy();
-  expect(window.location.pathname).toBe("/f/2026-10-11-web-ui/proposal.md");
+  expect(window.location.pathname).toBe(atRepo("/f/2026-10-11-web-ui/proposal.md"));
 
   await act(async () => window.history.back());
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(window.location.pathname).toBe("/f/2026-10-11-web-ui/proposal.md");
+  expect(window.location.pathname).toBe(atRepo("/f/2026-10-11-web-ui/proposal.md"));
 });
 
 test("an image outside specs, or a URL, is a link", async () => {
   await renderPage("/f/2026-10-11-web-ui/proposal.md", imagesRepo());
 
   const logo = await screen.findByRole("link", { name: "Logo" });
-  expect(logo.getAttribute("href")).toBe("/raw/crates/logo.png");
+  expect(logo.getAttribute("href")).toBe(atRepo("/raw/crates/logo.png"));
   const banner = screen.getByRole("link", { name: "Banner" });
   expect(banner.getAttribute("href")).toBe("https://example.com/banner.png");
   expect(banner.getAttribute("target")).toBe("_blank");
@@ -190,11 +186,11 @@ test.each([
 
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     await waitFor(() => expect(overlayEntry()).toBeUndefined());
-    expect(window.location.pathname).toBe(PROPOSAL);
+    expect(window.location.pathname).toBe(atRepo(PROPOSAL));
     expect(document.activeElement).toBe(link);
     // The next Back leaves the proposal, not an image already closed.
     await act(async () => window.history.back());
-    await waitFor(() => expect(window.location.pathname).toBe("/f/2026-10-11-web-ui"));
+    await waitFor(() => expect(window.location.pathname).toBe(atRepo("/f/2026-10-11-web-ui")));
   },
 );
 
@@ -206,19 +202,19 @@ test("an image's path is encoded part by part in its address", async () => {
 
   const image = await screen.findByRole("img", { name: "Login" });
   expect(image.getAttribute("src")).toBe(
-    "/images/specs/2026-10-11-web-ui/images/my%20shot%20%231%20100%25.webp",
+    atRepo("/images/specs/2026-10-11-web-ui/images/my%20shot%20%231%20100%25.webp"),
   );
 });
 
 test("an image whose address changes after it failed shows again", async () => {
   // The editor's preview redraws an image as its link is typed.
-  const { rerender } = render(<ImageView src="/images/specs/x/images/a" alt="Login" />);
+  const { rerender } = render(<ImageView alt="Login" src="/images/specs/x/images/a" />);
   await act(async () => {
     fireEvent.error(screen.getByRole("img", { name: "Login" }));
   });
   expect(screen.getByText("Image missing: Login")).toBeTruthy();
 
-  rerender(<ImageView src="/images/specs/x/images/a.webp" alt="Login" />);
+  rerender(<ImageView alt="Login" src="/images/specs/x/images/a.webp" />);
 
   expect(screen.getByRole("img", { name: "Login" }).getAttribute("src")).toBe(
     "/images/specs/x/images/a.webp",
@@ -247,7 +243,7 @@ test("an image inside a link is drawn in the link, which it does not open", asyn
   const build = await screen.findByRole("link", { name: "build" });
   expect(build.getAttribute("href")).toBe("https://ci.example.com");
   expect(within(build).getByRole("img", { name: "build" }).getAttribute("src")).toBe(
-    "/images/specs/2026-10-11-web-ui/images/build.webp",
+    atRepo("/images/specs/2026-10-11-web-ui/images/build.webp"),
   );
   expect(build.getAttribute("aria-haspopup")).toBeNull();
   // An image off the web is its alt text, in the link.

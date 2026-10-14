@@ -42,7 +42,7 @@ function OwnedOverlay() {
   const [open, setOpen] = useState(true);
   const [label, setLabel] = useState("New priority");
   return (
-    <Overlay label={label} isOpen={open} onClose={() => setOpen(false)}>
+    <Overlay isOpen={open} label={label} onClose={() => setOpen(false)}>
       <Button label="Rename" onClick={() => setLabel("Edit priority")} />
     </Overlay>
   );

@@ -99,10 +99,10 @@ function Header({
  * chat's or a feature's first message draws a new composer once sent.
  */
 type Draft = {
-  text: string;
-  setText: Dispatch<SetStateAction<string>>;
   images: ReadonlyArray<DraftImage>;
   setImages: Dispatch<SetStateAction<ReadonlyArray<DraftImage>>>;
+  setText: Dispatch<SetStateAction<string>>;
+  text: string;
 };
 
 function useDraft(): Draft {
@@ -112,7 +112,7 @@ function useDraft(): Draft {
   const kept = useRef(images);
   kept.current = images;
   useEffect(() => () => forgetPreviews(kept.current), []);
-  return { text, setText, images, setImages };
+  return { images, setImages, setText, text };
 }
 
 /**
@@ -146,7 +146,7 @@ function Session({
   const session = useSession(id);
   const groups = useOpenKeys();
   const log = useRef<HTMLDivElement>(null);
-  const { setText, setImages } = draft;
+  const { setImages, setText } = draft;
   const [error, setError] = useState<string>();
   const working = session?.status === "working";
   useOpenAtEnd(log);

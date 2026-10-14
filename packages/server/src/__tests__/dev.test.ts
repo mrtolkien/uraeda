@@ -1,7 +1,6 @@
 import { createServer } from "node:http";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, join } from "node:path";
 import { afterEach, expect, test } from "vite-plus/test";
 import { devHandler, devServer, stopDevRuns } from "../dev.ts";
 import { loadEnv } from "../env.ts";
@@ -87,33 +86,40 @@ test("the server in vp dev reads URAEDA_REPO", async () => {
   expect(await other.text()).toBe("vite");
 });
 
-test("the dev server's apps share the data folder of their session manager", async () => {
-  const [first, second] = [fixtureRepo(), fixtureRepo()];
-  const root = mkdtempSync(join(tmpdir(), "uraeda-dev-"));
-  const [data, later] = [
-    mkdtempSync(join(tmpdir(), "uraeda-data-")),
-    mkdtempSync(join(tmpdir(), "uraeda-data-")),
-  ];
-  process.env.URAEDA_REPO = first;
+test("the dev server serves a repository's image routes, its uploads in the data folder", async () => {
+  const repo = fixtureRepo();
+  const root = temporaryFolder("uraeda-dev");
+  const data = temporaryFolder("uraeda-data");
+  process.env.URAEDA_REPO = repo;
   process.env.URAEDA_DATA_DIR = data;
   const handler = devHandler(root, { adapter: new FakeAdapter() });
   const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const { port } = server.address() as { port: number };
   const url = `http://127.0.0.1:${port}`;
+  // Listed under its folder's name as the server starts in it.
   const started = await fetch(`${url}/raw/specs/drafts/git-listener.md`);
-  // A second repository's app, created after the data folder's setting changed.
-  process.env.URAEDA_REPO = second;
-  process.env.URAEDA_DATA_DIR = later;
-  const body = new FormData();
-  body.set("file", new File([readFileSync(fixture("images/desktop.png"))], "desktop.png"));
+  const name = basename(repo);
+  const upload = () => {
+    const body = new FormData();
+    body.set("file", new File([readFileSync(fixture("images/desktop.png"))], "desktop.png"));
+    return body;
+  };
 
-  const response = await fetch(`${url}/attach?name=desktop.png&chat=1`, { method: "POST", body });
+  const response = await fetch(`${url}/r/${name}/attach?name=desktop.png&chat=1`, {
+    body: upload(),
+    method: "POST",
+  });
+  const outside = await fetch(`${url}/attach?name=desktop.png&chat=1`, {
+    body: upload(),
+    method: "POST",
+  });
   server.close();
   await stopDevRuns();
 
   expect(started.status).toBe(200);
   const { id } = (await response.json()) as { id: string };
   expect(existsSync(join(data, "images", id))).toBe(true);
-  expect(existsSync(join(later, "images"))).toBe(false);
+  // Outside a repository's prefix, the path is Vite's.
+  expect(await outside.text()).toBe("vite");
 });

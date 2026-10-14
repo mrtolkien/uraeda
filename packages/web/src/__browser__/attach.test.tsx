@@ -11,7 +11,7 @@ import type { RepoCommands } from "../../vite.browser.config.ts";
 import { createFateClient } from "react-fate/client";
 import type { ChatImage } from "uraeda-server/fate";
 import { sendMessage } from "../sessions.ts";
-import { agent, carrying, drawn, drop, image, LIVE, paste, show, startTurn } from "./helpers.tsx";
+import { agent, atRepo, carrying, drawn, drop, image, LIVE, paste, show, startTurn } from "./helpers.tsx";
 
 const commands = browserCommands as unknown as RepoCommands;
 
@@ -34,7 +34,7 @@ const realFetch = globalThis.fetch;
 function holdUploads() {
   const waiting: Array<() => void> = [];
   globalThis.fetch = async (input, init) => {
-    if (urlOf(input).startsWith("/attach")) {
+    if (urlOf(input).includes("/attach?")) {
       await new Promise<void>((resolve) => waiting.push(resolve));
     }
     return realFetch(input, init);
@@ -210,7 +210,7 @@ test("several images dropped on a single-file draft all go to its new folder", a
 
   await expect
     .poll(() => window.location.pathname)
-    .toBe("/edit/specs/drafts/git-listener/proposal.md");
+    .toBe(atRepo("/edit/specs/drafts/git-listener/proposal.md"));
   // The page at the new path replaces the one left, field included.
   await expect
     .poll(() => (screen.getByRole("textbox", { name: "Text" }) as HTMLTextAreaElement).value)
@@ -239,7 +239,7 @@ test("a drop outside every field stays in the app", async () => {
 
   // The browser opens a dropped file unless the page cancels the drop.
   expect(event.defaultPrevented).toBe(true);
-  expect(window.location.pathname).toBe("/f/2026-10-06-recurring-tasks");
+  expect(window.location.pathname).toBe(atRepo("/f/2026-10-06-recurring-tasks"));
 });
 
 test("a file dragged over the editor shows it is taken", async () => {
@@ -281,7 +281,7 @@ test("text typed at the cursor during an upload goes after the link, saved once 
   await expect.poll(() => held.waiting.length).toBe(1);
   await userEvent.keyboard("Then");
   // A save would have gone out 400 ms after the typing stopped.
-  await new Promise((resolve) => setTimeout(resolve, 1_000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   expect(await commands.readRepo(PROPOSAL)).toBe(TEXT);
   await held.release();
 
@@ -390,7 +390,7 @@ test("a refusal after a draft moved shows at its new path", async () => {
 
   await expect
     .poll(() => window.location.pathname)
-    .toBe("/edit/specs/drafts/git-listener/proposal.md");
+    .toBe(atRepo("/edit/specs/drafts/git-listener/proposal.md"));
   // The page at the new path, whose field holds the link.
   await expect
     .poll(() => (screen.getByRole("textbox", { name: "Text" }) as HTMLTextAreaElement).value)
@@ -453,7 +453,7 @@ function scroller() {
 }
 
 /** Pastes images in the composer and sends them with a text, once saved. */
-async function sendImages(files: File[], text: string) {
+async function sendImages(files: Array<File>, text: string) {
   const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
   const sent = (await commands.agentSent()).length;
   paste(files, box);
@@ -467,9 +467,9 @@ async function sendImages(files: File[], text: string) {
 async function chatImage(file: File): Promise<ChatImage> {
   const body = new FormData();
   body.append("file", file);
-  const response = await realFetch(`/attach?chat=1&name=${encodeURIComponent(file.name)}`, {
-    method: "POST",
+  const response = await realFetch(atRepo(`/attach?chat=1&name=${encodeURIComponent(file.name)}`), {
     body,
+    method: "POST",
   });
   return (await response.json()) as ChatImage;
 }
@@ -481,13 +481,13 @@ async function chatImage(file: File): Promise<ChatImage> {
  */
 test("a chat whose last message has images opens at its end", async () => {
   await show("/", "Priorities");
-  const fate = createFateClient({ url: "/fate" });
+  const fate = createFateClient({ url: atRepo("/fate") });
   const ended = {
-    type: "result" as const,
-    ok: true,
-    errors: [],
     denials: [],
+    errors: [],
     interrupted: false,
+    ok: true,
+    type: "result" as const,
   };
   const first = await sendMessage(fate, { text: "Plan the CLI." });
   if (!first.ok) {
@@ -496,8 +496,8 @@ test("a chat whose last message has images opens at its end", async () => {
   await agent.agentAccept();
   await agent.agentEmit([
     ...Array.from({ length: 40 }, (_, index) => ({
-      type: "text" as const,
       text: `Line ${index + 1}.`,
+      type: "text" as const,
     })),
     ended,
   ]);
@@ -508,7 +508,7 @@ test("a chat whose last message has images opens at its end", async () => {
   // The turn's end is recorded before the next message goes.
   await expect
     .poll(async () => {
-      const next = await sendMessage(fate, { session: first.session, text: "These two.", images });
+      const next = await sendMessage(fate, { images, session: first.session, text: "These two." });
       return next.ok;
     }, LIVE)
     .toBe(true);
@@ -516,11 +516,11 @@ test("a chat whose last message has images opens at its end", async () => {
   await agent.agentEmit([ended]);
 
   // Over a slow network, its images come after the view opened.
-  await commands.slowChatImages(1_000);
+  await commands.slowChatImages(1000);
   await show(`/chats/${first.session}`, "These two.");
 
   const log = await screen.findByRole("log", { name: "Conversation" });
-  const drawnImages = [...log.querySelectorAll<HTMLImageElement>('a[href^="/chat-images/"] img')];
+  const drawnImages = [...log.querySelectorAll<HTMLImageElement>('a[href*="/chat-images/"] img')];
   expect(drawnImages).toHaveLength(2);
   await expect
     .poll(() => drawnImages.every((one) => one.complete && one.naturalWidth > 0), LIVE)
@@ -532,7 +532,7 @@ test("a chat whose last message has images opens at its end", async () => {
 
 test("a message not read yet has its images dimmed, as its text", async () => {
   await show(SESSION, "Message Claude Code");
-  await startTurn("Plan the CLI.", [{ type: "text", text: "Reading the plan." }]);
+  await startTurn("Plan the CLI.", [{ text: "Reading the plan.", type: "text" }]);
 
   await sendImages([await image("phone.png", "one.png")], "This one.");
 
@@ -572,6 +572,11 @@ test("US3.1: a drop on the review page opens a general comment holding its link"
 
 test("US3.2: a pasted image goes to the open line comment at its cursor", async () => {
   await reviewSpec();
+  // The scenarios are folded: US2's open first.
+  const scenarios = screen
+    .getAllByRole("button", { name: "Scenarios (4)" })
+    .find((b) => b.hasAttribute("aria-expanded")) as HTMLElement;
+  await userEvent.click(scenarios);
   const block = screen
     .getAllByRole("button", { name: (name) => name.includes("Given a weekly task") })
     .find((b) => b.hasAttribute("aria-pressed")) as HTMLElement;

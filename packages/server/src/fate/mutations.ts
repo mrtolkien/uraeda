@@ -369,11 +369,11 @@ const repositoryMutations = {
     }: Resolver<{
       /** Or the feature, whose session is created with its first message. */
       folder?: string;
+      /** The chat images, as `POST /attach` saved them. */
+      images?: Array<ChatImage>;
       /** The session to send to. */
       session?: string;
       text: string;
-      /** The chat images, as `POST /attach` saved them. */
-      images?: Array<ChatImage>;
       /** The workflow's message, which starts the feature's step. */
       workflow?: { file?: string; trigger: Trigger };
     }>) => {

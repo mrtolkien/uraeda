@@ -23,14 +23,14 @@ test.each([
 test.each([
   // [before, after, caret, the edit]
   // `hel|lo`, an `l` typed at 2: a diff of the texts places it at 4, the caret at 2.
-  ["hello", "helllo", 3, { start: 2, removed: 0, inserted: 1 }],
-  ["hello", "helllo", undefined, { start: 4, removed: 0, inserted: 1 }],
+  ["hello", "helllo", 3, { inserted: 1, removed: 0, start: 2 }],
+  ["hello", "helllo", undefined, { inserted: 1, removed: 0, start: 4 }],
   // A backspace after the second `l`.
-  ["hello", "helo", 3, { start: 3, removed: 1, inserted: 0 }],
+  ["hello", "helo", 3, { inserted: 0, removed: 1, start: 3 }],
   // A selection, `cd`, replaced by `X`.
-  ["abcdef", "abXef", 3, { start: 2, removed: 2, inserted: 1 }],
+  ["abcdef", "abXef", 3, { inserted: 1, removed: 2, start: 2 }],
   // A caret the texts disagree with, as after a text replaced from elsewhere: the diff.
-  ["abc", "abXc", 0, { start: 2, removed: 0, inserted: 1 }],
+  ["abc", "abXc", 0, { inserted: 1, removed: 0, start: 2 }],
 ])("editBetween(%j, %j, %j)", (before, after, caret, edit) => {
   expect(editBetween(before, after, caret)).toEqual(edit);
 });
@@ -38,18 +38,18 @@ test.each([
 test.each([
   // [at, edit, after, the place once edited]
   // Typed before the place: it moves.
-  [5, { start: 0, removed: 0, inserted: 3 }, false, 8],
+  [5, { inserted: 3, removed: 0, start: 0 }, false, 8],
   // Typed at the place itself: the typing goes after the links (R44).
-  [5, { start: 5, removed: 0, inserted: 3 }, false, 5],
+  [5, { inserted: 3, removed: 0, start: 5 }, false, 5],
   // Links an earlier batch inserted at the same place: the later batch's go after them.
-  [5, { start: 5, removed: 0, inserted: 3 }, true, 8],
+  [5, { inserted: 3, removed: 0, start: 5 }, true, 8],
   // Typed after it, or removed after it: it stays.
-  [5, { start: 6, removed: 0, inserted: 3 }, false, 5],
-  [5, { start: 5, removed: 2, inserted: 0 }, false, 5],
+  [5, { inserted: 3, removed: 0, start: 6 }, false, 5],
+  [5, { inserted: 0, removed: 2, start: 5 }, false, 5],
   // A backspace just before it.
-  [5, { start: 4, removed: 1, inserted: 0 }, false, 4],
+  [5, { inserted: 0, removed: 1, start: 4 }, false, 4],
   // A selection around it replaced: it goes after the replacement.
-  [5, { start: 3, removed: 4, inserted: 1 }, false, 4],
+  [5, { inserted: 1, removed: 4, start: 3 }, false, 4],
 ])("followEdit(%i, %j, %j) is %i", (at, edit, after, moved) => {
   expect(followEdit(at, edit, after)).toBe(moved);
 });

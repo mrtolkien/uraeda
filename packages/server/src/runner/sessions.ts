@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Binding } from "../fate/context.ts";
 import type { Adapter, Outgoing } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
-import type { Trigger, TurnActivity, TurnKind } from "./events.ts";
+import type { TurnActivity, TurnKind } from "./events.ts";
 import { LiveSessions } from "./live-sessions.ts";
 import { chatOpening, chatTitle, retryMessage } from "./message.ts";
 import { Processes } from "./processes.ts";
@@ -242,7 +242,15 @@ export class Sessions {
     const origin = workflow ? "workflow" : "human";
     // During a turn, a human message joins it, when the agent can steer and the turn is not ending.
     if (live.turn && !live.turn.stop && !workflow && adapter.capabilities.steer) {
-      const item: Message = { at: now(), id, kind: "message", origin, state: "pending", text, ...held };
+      const item: Message = {
+        at: now(),
+        id,
+        kind: "message",
+        origin,
+        state: "pending",
+        text,
+        ...held,
+      };
       const seq = cache.appendItem(live.turn.id, item);
       live.messages.set(id, { item, seq, turn: live.turn.id, written: true });
       changed(live, live.turn.id);
@@ -271,9 +279,9 @@ export class Sessions {
     };
     const message: Outgoing = {
       id,
+      images: paths,
       text: opening === undefined ? text : text === "" ? opening : `${opening}\n${text}`,
       when: "queue",
-      images: paths,
     };
     const turn = {
       allowed: null,

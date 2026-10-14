@@ -5,9 +5,9 @@ import * as binding from "uraeda-binding";
 import { expect, test } from "vite-plus/test";
 import { navigate } from "../routes.tsx";
 import {
-  atRepo,
   answered,
   answersSoFar,
+  atRepo,
   click,
   fakeAgent,
   fixture,
@@ -298,7 +298,7 @@ test("Load the new version loads it", async () => {
 });
 
 /** Picks files with "Add image", as the system's picker gives them. */
-async function pick(files: File[]) {
+async function pick(files: Array<File>) {
   const input = screen.getByLabelText("Add image", { selector: "input" });
   await act(async () => {
     fireEvent.change(input, { target: { files } });
@@ -315,7 +315,7 @@ test("a draft that gets an image opens at its folder's proposal", async () => {
   await pick([new File([bytes], "login.png", { type: "image/png" })]);
 
   const moved = "specs/drafts/git-listener/proposal.md";
-  await waitFor(() => expect(window.location.pathname).toBe(`/edit/${moved}`));
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/edit/${moved}`)));
   await waitFor(() =>
     expect((screen.getByRole("textbox", { name: "Text" }) as HTMLTextAreaElement).value).toBe(
       "# Git listener process\n\n## What\n\nRun the next step when a branch changes.\n\n## Why\n\nSo agents start without me.\n\n![login](images/login.webp)\n",
@@ -366,13 +366,13 @@ const png = (name: string) =>
 function holdUploads(repo: string, fetch = serverFetch(repo)) {
   const waiting: Array<() => void> = [];
   return {
-    waiting,
     fetch: (async (input, init) => {
-      if (urlOf(input).startsWith("/attach")) {
+      if (urlOf(input).includes("/attach?")) {
         await new Promise<void>((resolve) => waiting.push(resolve));
       }
       return fetch(input, init);
     }) as typeof globalThis.fetch,
+    waiting,
     /** Lets the next upload through, once it waits. */
     async release() {
       await waitFor(() => expect(waiting.length).toBeGreaterThan(0));
@@ -416,7 +416,7 @@ test("images added during an upload to a single-file draft all go to its new fol
   await held.release();
 
   const moved = "specs/drafts/git-listener/proposal.md";
-  await waitFor(() => expect(window.location.pathname).toBe(`/edit/${moved}`));
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/edit/${moved}`)));
   await waitFor(() =>
     expect(read(repo, moved)).toContain("![one](images/one.webp)\n\n![two](images/two.webp)\n"),
   );
@@ -448,7 +448,7 @@ test("the editor keeps its draft while the images upload, though it moved", asyn
   expect(screen.getByRole("textbox", { name: "Text" })).toBeTruthy();
   await held.release();
   await waitFor(() =>
-    expect(window.location.pathname).toBe("/edit/specs/drafts/git-listener/proposal.md"),
+    expect(window.location.pathname).toBe(atRepo("/edit/specs/drafts/git-listener/proposal.md")),
   );
 });
 
@@ -466,7 +466,7 @@ test("an upload that ends after the page was left saves its link, where it moved
 
   const moved = "specs/drafts/git-listener/proposal.md";
   await waitFor(() => expect(read(repo, moved)).toContain("![login](images/login.webp)"));
-  expect(window.location.pathname).toBe("/");
+  expect(window.location.pathname).toBe(atRepo("/"));
 });
 
 /** Review: what is typed during an upload is saved once it ends, and leaving before asks. */
@@ -523,15 +523,15 @@ test.each([
     "an error page",
     () =>
       new Response("<h1>Bad gateway</h1>", {
-        status: 502,
         headers: { "content-type": "text/html" },
+        status: 502,
       }),
     "The image could not be added (HTTP 502).",
   ],
   [
     "the guard's refusal",
     () =>
-      new Response("Forbidden site", { status: 403, headers: { "content-type": "text/plain" } }),
+      new Response("Forbidden site", { headers: { "content-type": "text/plain" }, status: 403 }),
     "Forbidden site",
   ],
   [
@@ -546,7 +546,7 @@ test.each([
   const path = proposal(repo);
   const server = serverFetch(repo);
   const fetch: typeof globalThis.fetch = async (input, init) =>
-    urlOf(input).startsWith("/attach") ? answer() : server(input, init);
+    urlOf(input).includes("/attach?") ? answer() : server(input, init);
   await renderPage(`/edit/${path}`, repo, { fetch });
   const field = (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
   const before = field.value;
@@ -564,7 +564,7 @@ test("an upload the server does not answer in time says so under the field", asy
   const server = serverFetch(repo);
   // What the upload's time limit does: its signal aborts the request, which rejects so.
   const fetch: typeof globalThis.fetch = async (input, init) => {
-    if (!urlOf(input).startsWith("/attach")) {
+    if (!urlOf(input).includes("/attach?")) {
       return server(input, init);
     }
     expect(init?.signal).toBeInstanceOf(AbortSignal);

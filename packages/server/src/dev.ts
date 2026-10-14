@@ -21,8 +21,12 @@ export function devServer(env: Env) {
   };
 }
 
-/** The paths the server answers, a repository's and the global ones; Vite serves everything else. */
-const SERVER_PATHS = /^\/(r\/[^/?]+\/)?(fate|raw|mockups|attach|images|chat-images)(\/|\?|$)/;
+/**
+ * The paths the server answers, a repository's and the global ones; Vite serves everything else.
+ * A repository's images and uploads are only under its prefix.
+ */
+const SERVER_PATHS =
+  /^\/((r\/[^/?]+\/)?(fate|raw|mockups)|r\/[^/?]+\/(attach|images|chat-images))(\/|\?|$)/;
 
 type Listener = (req: IncomingMessage, res: ServerResponse) => Promise<void>;
 
