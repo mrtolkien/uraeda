@@ -3,12 +3,10 @@
  * Checks the Claude Code integration against this machine's `claude`, signed in: its version, a
  * first run with the Uraeda skill loaded as a plugin, its session's transcript, a resumed run, an
  * interrupted run followed by a resumed one, and the allow rule of a blocked write outside the
- * project, a chat image the agent reads by its path, in a data folder whose path holds a space,
- * only because the images folder is added, and an image a proposal links, which the agent opens as
- * the skill says. Then the messages a session writes to one process with its stdin kept open, with
- * `--model haiku` in an empty temporary folder: two turns, partial text, a steered and a queued
- * message, their lifecycle events, taking a queued message back, an interrupt, a sub-agent, and a
- * resume after stdin closes.
+ * project, and the image checks. Then the messages a session writes to one process with its stdin
+ * kept open, with `--model haiku` in an empty temporary folder: two turns, partial text, a steered
+ * and a queued message, their lifecycle events, taking a queued message back, an interrupt, a
+ * sub-agent, and a resume after stdin closes.
  *
  * Run it by hand, with `vp run validate:claude`, after a Claude Code upgrade, or when runs break.
  * It is not part of `vp test` or `vp run ready`: it runs the real `claude`, which costs a few
@@ -20,27 +18,16 @@
  */
 import { type ChildProcessByStdio, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import {
-  chmodSync,
-  copyFileSync,
-  existsSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  realpathSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Readable, Writable } from "node:stream";
-import { attachImage, encodeImage } from "uraeda-binding";
-import { fixture, fixtureRepo } from "uraeda-binding/test-utils";
+import { fixtureRepo } from "uraeda-binding/test-utils";
 import type { AgentProcess } from "../src/runner/adapter.ts";
 import { allowRule, lines } from "../src/runner/claude-events.ts";
 import { ClaudeAdapter, PLUGIN_DIR } from "../src/runner/claude.ts";
 import type { AgentEvent } from "../src/runner/events.ts";
-import { ChatImages } from "../src/runner/images.ts";
+import { imageChecks, imagesFolder, wrappedAdapter } from "./validate-claude-images.ts";
 
 /** A run that has not exited after this long is stopped, and its check fails. */
 const RUN_TIMEOUT_MS = 180_000;
@@ -48,18 +35,14 @@ const RUN_TIMEOUT_MS = 180_000;
 const INTERRUPT_MS = 10_000;
 
 const configDir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude");
-/** A temporary folder around the data folder. */
-const dataRoot = realpathSync(mkdtempSync(join(tmpdir(), "uraeda-data-")));
-/**
- * A data folder for the chat images, as the server's, whose path holds a space, as macOS's
- * `Application Support` does: the images' paths and `--add-dir` must keep it.
- */
-const dataDir = join(dataRoot, "uraeda data");
-const images = new ChatImages(join(dataDir, "images"));
-const adapter = new ClaudeAdapter({ configDir, imagesDir: images.dir, pluginDir: PLUGIN_DIR });
-const cwd = fixtureRepo();
-/** A folder outside the project, for the sixth and seventh checks, and their wrappers. */
+/** A folder outside the project, for the sixth and seventh checks, their wrappers, and images. */
 const outside = mkdtempSync(join(tmpdir(), "uraeda-outside-"));
+const adapter = new ClaudeAdapter({
+  configDir,
+  imagesDir: imagesFolder(outside),
+  pluginDir: PLUGIN_DIR,
+});
+const cwd = fixtureRepo();
 /** An empty folder for the stdin checks. */
 const stdinDir = mkdtempSync(join(tmpdir(), "uraeda-stdin-"));
 /** With `--stdin`, only the stdin checks run. */
@@ -87,17 +70,12 @@ async function run(
   resume: boolean,
   onEvent?: (event: AgentEvent, agent: AgentProcess) => void,
   agentAdapter: ClaudeAdapter = adapter,
-  paths: Array<string> = [],
+  images: Array<{ path: string }> = [],
 ): Promise<Array<AgentEvent>> {
   const agent = agentAdapter.open({ cwd, nativeId: sessionId, resume });
   const timeout = setTimeout(() => agent.kill("SIGTERM"), RUN_TIMEOUT_MS);
   const events: Array<AgentEvent> = [];
-  agent.send({
-    id: randomUUID(),
-    images: paths.map((path) => ({ path })),
-    text: message,
-    when: "queue",
-  });
+  agent.send({ id: randomUUID(), images, text: message, when: "queue" });
   try {
     for await (const event of agent.events) {
       events.push(event);
@@ -114,80 +92,6 @@ async function run(
 
 const find = <T extends AgentEvent["type"]>(events: Array<AgentEvent>, type: T) =>
   events.find((event): event is Extract<AgentEvent, { type: T }> => event.type === type);
-
-/**
- * Whether two paths name the same file, through symbolic links: the agent may give the path it was
- * sent, or one through another link, as macOS's `/tmp` and `/private/tmp`.
- */
-function samePath(a: unknown, b: string): boolean {
-  return typeof a === "string" && (a === b || realPath(a) === realPath(b));
-}
-
-/** A path through its symbolic links, or as it is when it does not exist. */
-function realPath(path: string) {
-  try {
-    return realpathSync(path);
-  } catch {
-    return path;
-  }
-}
-
-/** Whether a run read the file at `path` with its Read tool, and the read did not fail. */
-const readFile = (events: Array<AgentEvent>, path: string) =>
-  events.some(
-    (event) =>
-      event.type === "toolStart" &&
-      event.name === "Read" &&
-      samePath(event.input.file_path, path) &&
-      events.some((end) => end.type === "toolEnd" && end.id === event.id && !end.isError),
-  );
-
-/** Whether a run's reads of the file at `path` were refused. */
-const readDenied = (events: Array<AgentEvent>, path: string) =>
-  (find(events, "result")?.denials ?? []).some(
-    (denial) => denial.tool === "Read" && samePath(denial.input.file_path, path),
-  );
-
-/**
- * Claude Code through a wrapper script in `outside`: with `--settings <file>` when `settings` is
- * given, and with the `default` permission mode in place of the runner's `auto` when `strict` is,
- * so that a read outside the working folders is refused in print mode, which cannot ask.
- */
-function wrappedAdapter(
-  name: string,
-  { settings, strict = false }: { settings?: string; strict?: boolean },
-) {
-  const wrapper = join(outside, name);
-  const prefix = settings === undefined ? "" : ` --settings '${settings}'`;
-  writeFileSync(
-    wrapper,
-    strict
-      ? [
-          "#!/bin/sh",
-          "prev=",
-          'for arg in "$@"; do',
-          "  shift",
-          '  if [ "$prev" = --permission-mode ]; then next=default; else next=$arg; fi',
-          "  prev=$arg",
-          '  set -- "$@" "$next"',
-          "done",
-          `exec claude${prefix} "$@"`,
-          "",
-        ].join("\n")
-      : `#!/bin/sh\nexec claude${prefix} "$@"\n`,
-  );
-  chmodSync(wrapper, 0o755);
-  return new ClaudeAdapter({
-    command: wrapper,
-    configDir,
-    imagesDir: images.dir,
-    pluginDir: PLUGIN_DIR,
-  });
-}
-
-/** The tools a run called, and their inputs, when a check fails. */
-const tools = (events: Array<AgentEvent>) =>
-  events.flatMap((event) => (event.type === "toolStart" ? [[event.name, event.input]] : []));
 
 /** What a run gave, when a check fails: its init, its result, and its exit. */
 const summary = (events: Array<AgentEvent>) =>
@@ -653,7 +557,7 @@ try {
       randomUUID(),
       false,
       undefined,
-      wrappedAdapter("claude-with-settings", { settings }),
+      wrappedAdapter({ configDir, outside }, "claude-with-settings", { settings }),
     );
     const denials = find(blocked, "result")?.denials ?? [];
     report(
@@ -662,61 +566,13 @@ try {
         !existsSync(target),
       { denials, rule, written: existsSync(target) },
     );
-
-    // 7. A chat image, saved in the data folder as the server saves it, is read by its path, with
-    // no permission prompt (US6.2), only because its folder is added: in the `default` permission
-    // mode, the same image copied outside the working folders is refused. No rule can block reads
-    // outside the project but not in the images folder, which is outside it too (R41).
-    const screenshot = readFileSync(fixture("images/desktop.png"));
-    const chatImage = await images.save(await encodeImage(screenshot, "desktop.png"));
-    const chatPath = join(images.dir, chatImage.id);
-    const elsewhere = join(outside, chatImage.id);
-    copyFileSync(chatPath, elsewhere);
-    const strict = wrappedAdapter("claude-default-mode", { strict: true });
-    const describe = "What does this screenshot show? Answer in one sentence.";
-    const chat = await run(describe, randomUUID(), false, undefined, strict, [chatPath]);
-    const control = await run(describe, randomUUID(), false, undefined, strict, [elsewhere]);
-    report(
-      "a chat image is read by its path, in a folder with a space, because its folder is added",
-      readFile(chat, chatPath) &&
-        !readDenied(chat, chatPath) &&
-        find(chat, "result")?.ok === true &&
-        readDenied(control, elsewhere) &&
-        !readFile(control, elsewhere),
-      {
-        control: { result: find(control, "result"), tools: tools(control) },
-        result: find(chat, "result"),
-        tools: tools(chat),
-      },
-    );
-
-    // 8. An image a proposal links is opened by an agent asked about the proposal, as the skill
-    // says (US6.1).
-    const proposal = "specs/2026-10-10-cli-core/proposal.md";
-    const attached = await attachImage(cwd, proposal, screenshot, "login.png");
-    const proposalPath = join(cwd, proposal);
-    writeFileSync(
-      proposalPath,
-      `${readFileSync(proposalPath, "utf8").trimEnd()}\n\n${attached.link}\n`,
-    );
-    const linkedPath = join(cwd, attached.path);
-    const asked = await run(
-      `/uraeda:uraeda Do not continue the workflow, and change no file. What does ${proposal} ask for? Answer in two sentences.`,
-      randomUUID(),
-      false,
-    );
-    report(
-      "an image a proposal links is opened with the proposal",
-      readFile(asked, linkedPath) && find(asked, "result")?.ok === true,
-      { result: find(asked, "result"), tools: tools(asked) },
-    );
+    await imageChecks({ configDir, cwd, outside, report, run });
   }
   await stdinChecks();
 } finally {
   rmSync(cwd, { force: true, recursive: true });
   rmSync(outside, { force: true, recursive: true });
   rmSync(stdinDir, { force: true, recursive: true });
-  rmSync(dataRoot, { force: true, recursive: true });
 }
 
 process.exit(failed ? 1 : 0);

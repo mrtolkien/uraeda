@@ -185,19 +185,23 @@ export class ClaudeAdapter implements Adapter {
     return allowRule(denial);
   }
 
+  /** Starts the process, its images' folder made first: `--add-dir` refuses a missing folder. */
+  #spawn(options: OpenOptions, grouped: boolean) {
+    mkdirSync(this.#imagesDir, { recursive: true });
+    return spawn(this.#command, claudeArgs(options, this.#pluginDir, this.#imagesDir), {
+      cwd: options.cwd,
+      detached: grouped,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+  }
+
   // oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the process's signals, exit, and output in helpers
   open(options: OpenOptions): AgentProcess {
     // In a process group of its own, which its signals reach whole: the tools it started end with
     // it. The terminal's Ctrl-C no longer reaches it, so the server ends it as it exits. Windows
     // has no process groups to signal: there, the process alone is.
     const grouped = process.platform !== "win32";
-    // `--add-dir` refuses a folder that does not exist.
-    mkdirSync(this.#imagesDir, { recursive: true });
-    const child = spawn(this.#command, claudeArgs(options, this.#pluginDir, this.#imagesDir), {
-      cwd: options.cwd,
-      detached: grouped,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    const child = this.#spawn(options, grouped);
     // Until its output closes, a process of the group holds it: the group's ID is not reused.
     let running = child.pid !== undefined;
     const signal = (name: NodeJS.Signals) => {

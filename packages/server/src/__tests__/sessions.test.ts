@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { chatImages } from "../attach.ts";
 import type { AgentEvent } from "../runner/events.ts";
+import { imagesInUse } from "../runner/image-uses.ts";
 import { byId, type Data, mutate, testServer } from "./helpers.ts";
 
 /** Waits on an agent, at step `plan`. */
@@ -665,7 +666,7 @@ test("US2.2: session.send passes the images' paths in the data folder, and the i
   });
   const [log] = await byId(server.app, "TurnLog", [`${session.turns[0]}:0`], ["id", "items"]);
   expect(log.items[0]).toMatchObject({ images: [a, b], kind: "message" });
-  expect(server.sessions.cache.imagesInUse()).toEqual(new Set([a!.id, b!.id]));
+  expect(imagesInUse(server.sessions.cache.db)).toEqual(new Set([a!.id, b!.id]));
 });
 
 test('US2.4: session.send takes an image alone, and titles the chat "Image"', async () => {
