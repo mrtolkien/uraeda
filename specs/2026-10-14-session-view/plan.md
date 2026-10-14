@@ -299,6 +299,7 @@ The decisions this plan relies on, and where it follows them:
 | `following.ts`, moved out of `Transcript.tsx` (Task 9)        | The "Jump to the latest" button needs the follow state, and `Transcript.tsx` is already 611 lines.            | Growing `Transcript.tsx` past the coming 500-line limit.                                    |
 | `SessionAnnouncer` (Task 10)                                  | One status region for turns and tasks, replacing the composer's `useReplyStatus`.                             | Two regions would announce the same turn twice.                                             |
 | `addPlan` test helper (Task 4)                                | Server and web tests need a feature at its implementation, which no fixture has.                              | A new fixture branch would change the sidebar and counts many existing tests assert.        |
+| `useKeepPlace` (Task 8)                                       | Crossing 768 px lays the old layout out at the new width for a moment, which moved the page to its end.       | The browser's own scroll anchoring, which the moment's clamp at the end defeats.            |
 
 ## Review comments
 
@@ -1051,17 +1052,30 @@ git commit -m "feat(session-view): the session's column of progress and changes"
 
 **Files:**
 
-- Modify: `packages/web/src/SessionPage.tsx` (the line under the header on narrow screens)
+- Create: `packages/web/src/ProgressLine.tsx` (`ProgressLine`, the line and its open state)
+- Create: `packages/web/src/useKeepPlace.ts` (`useKeepPlace`, the reading place across widths)
+- Modify: `packages/web/src/SessionPage.tsx` (the line under the header, and `useKeepPlace`)
+- Modify: `packages/web/src/SessionAside.tsx` (`stepTitle` exported)
+- Modify: `packages/web/src/layout/useWidthClass.ts` (`widthClassNow`)
+- Modify: `packages/web/src/Transcript.tsx` (`AT_END` exported, for `useKeepPlace`)
 - Modify: `packages/web/src/routes.tsx` (`Entry` gains `progress?: boolean`)
+- Modify: `packages/web/vite.browser.config.ts` (the `addPlan(folder)` command)
 - Test: `packages/web/src/__tests__/session-aside.test.tsx`,
   `packages/web/src/__browser__/session.test.tsx`
 
 **Interfaces:**
 
 - Consumes: `SessionAside` and `ProgressRing` (Tasks 5, 7).
-- Produces: the history entry's `progress` flag, read and written through `updateEntry`.
+- Produces:
+  - the history entry's `progress` flag, read and written through `updateEntry`;
+  - `ProgressLine({ folder, session })`, drawn by `Session` and `NoSession` for a feature;
+  - `useKeepPlace(ref)`, called by `Session` on its transcript;
+  - `widthClassNow()` in `layout/useWidthClass.ts`;
+  - `stepTitle(feature)`, exported from `SessionAside.tsx`;
+  - the browser tests' `agent.addPlan(folder)`, the fixture's plan of 11 tasks
+    ([R19](rulings.md#r19-the-phones-line-is-astryxs-collapsible-and-the-page-keeps-the-line-read)).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `session-aside.test.tsx`, at 402 px:
 
@@ -1078,11 +1092,11 @@ test("US3.1, US3.2: the progress line opens the column's content in place", asyn
   expect(line.getAttribute("aria-expanded")).toBe("false");
   expect(screen.queryByText("Task 7 of 11")).toBeNull();
 
-  click(line);
+  await click(line);
   expect(line.getAttribute("aria-expanded")).toBe("true");
   expect(screen.getByText("Task 7 of 11")).toBeTruthy();
 
-  click(line);
+  await click(line);
   expect(screen.queryByText("Task 7 of 11")).toBeNull();
 });
 ```
@@ -1092,32 +1106,45 @@ In `__browser__/session.test.tsx`:
 - "US3.3: the open line survives a file link and Back": at the phone size, open the line, scroll to
   320, follow "plan.md", go Back, then the line is expanded at the same `scrollY`;
 - "the column follows the width": at the desktop size, with the column shown and the page scrolled,
-  `page.viewport(402, 874)` shows the collapsed line at the same scroll position, and going back to
-  1440 shows the column.
+  `page.viewport(402, 874)` shows the collapsed line, the transcript's line read a third down the
+  window where it was, and going back to 1440 shows the column, the line read kept again
+  ([R19](rulings.md#r19-the-phones-line-is-astryxs-collapsible-and-the-page-keeps-the-line-read)).
 
-- [ ] **Step 2: Run them to check they fail**
+A second unit test, "a plan in review", checks that the line reads "Review the plan", as the
+column's heading does
+([R18](rulings.md#r18-the-columns-step-reads-as-a-gate-and-its-reads-fail-alone)).
+
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/session-aside.test.tsx`
 - Expected: FAIL, `Unable to find role "button" with name "Implementation · 7/11 · Session column"`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-- **The line.** On narrow screens, a feature's session shows an Astryx `Button` under the header,
-  with `aria-expanded`. It holds the ring and "`<Step> · <position>/<total> · <title>`", or the
-  step's label alone without progress. When open, `SessionAside` shows below it, above the
-  transcript.
+- **The line.** On narrow screens, a feature's session shows an Astryx `Collapsible` under the
+  header, its trigger a button with `aria-expanded`. It holds the ring and
+  "`<Step> · <position>/<total> · <title>`", or the step alone without progress, the step read as
+  the column's heading reads it (`stepTitle`). When open, `SessionAside` shows below it, above the
+  transcript, drawn only while open.
 - **Keeping it.** The open state is kept in the history entry's `progress`, so Back restores it.
+- **Keeping the place.** `useKeepPlace` keeps the transcript's line read a third down the window
+  where it was as the width class changes, or the end in view
+  ([R19](rulings.md#r19-the-phones-line-is-astryxs-collapsible-and-the-page-keeps-the-line-read)).
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check && vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/web/src/SessionPage.tsx packages/web/src/routes.tsx \
-  packages/web/src/__tests__/session-aside.test.tsx packages/web/src/__browser__/session.test.tsx
+git add packages/web/src/ProgressLine.tsx packages/web/src/useKeepPlace.ts \
+  packages/web/src/SessionPage.tsx packages/web/src/SessionAside.tsx packages/web/src/Transcript.tsx \
+  packages/web/src/layout/useWidthClass.ts packages/web/src/routes.tsx \
+  packages/web/vite.browser.config.ts packages/web/src/__tests__/session-aside.test.tsx \
+  packages/web/src/__browser__/session.test.tsx specs/2026-10-14-session-view/plan.md \
+  specs/2026-10-14-session-view/rulings.md
 git commit -m "feat(session-view): the session's progress line on the phone"
 ```
 

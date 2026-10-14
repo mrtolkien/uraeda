@@ -143,7 +143,7 @@ class Section extends Component<{ children: ReactNode }, { failed: boolean }> {
 }
 
 /** What the feature's step is, in words: what a gate asks of the human, or the step's name. */
-function stepTitle(feature: Parameters<typeof waiting>[0] & { step: { waitsOn: string } }) {
+export function stepTitle(feature: Parameters<typeof waiting>[0] & { step: { waitsOn: string } }) {
   return feature.step.waitsOn === "human" ? waiting(feature).title : stepLabel(feature.step.name);
 }
 

@@ -425,3 +425,34 @@ test("an error under the composer stays on screen when the column folds", async 
 
   expect(screen.getByText("The agent did not take the interrupt.")).toBeTruthy();
 });
+
+test("US3.1, US3.2: the progress line opens the column's content in place", async () => {
+  atWidth(402);
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  await renderPage(`/f/${CLI}/session`, repo, { agent: await fakeAgent() });
+
+  const line = await screen.findByRole("button", {
+    name: "Implementation · 7/11 · Session column",
+  });
+  expect(line.getAttribute("aria-expanded")).toBe("false");
+  expect(screen.queryByText("Task 7 of 11")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Hide progress" })).toBeNull();
+
+  await click(line);
+  expect(line.getAttribute("aria-expanded")).toBe("true");
+  expect(await screen.findByText("Task 7 of 11")).toBeTruthy();
+
+  await click(line);
+  expect(line.getAttribute("aria-expanded")).toBe("false");
+  expect(screen.queryByText("Task 7 of 11")).toBeNull();
+});
+
+test("a plan in review: the progress line reads what the gate asks", async () => {
+  atWidth(402);
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN, "awaiting-human");
+  await renderPage(`/f/${CLI}/session`, repo, { agent: await fakeAgent() });
+
+  expect(await screen.findByRole("button", { name: "Review the plan" })).toBeTruthy();
+});

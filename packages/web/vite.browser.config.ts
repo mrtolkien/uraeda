@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "no
 import { dirname, join } from "node:path";
 import type { Frame, Page } from "playwright";
 import { addRepository, removeRepository } from "uraeda-binding";
-import { fixture, fixtureRepo } from "uraeda-binding/test-utils";
+import { addPlan, ELEVEN, fixture, fixtureRepo } from "uraeda-binding/test-utils";
 import { reloadRepositories } from "uraeda-server/dev";
 import { FakeAdapter } from "uraeda-server/testing";
 import { playwright } from "vite-plus/test/browser-playwright";
@@ -126,6 +126,10 @@ const commands = {
   slowChatImages(_context: unknown, ms: number) {
     chatImageDelay = ms;
   },
+  /** Commits a plan of 11 tasks on a feature's branch, the 7th, "Session column", current. */
+  addPlan(_context: unknown, folder: string) {
+    addPlan(repoFolder(), folder, ELEVEN);
+  },
   /** The messages sent to the agent during the test, in order. */
   agentSent() {
     return agent.sent.map(({ id, images, text, when }) => ({
@@ -183,6 +187,7 @@ const commands = {
 };
 
 export type RepoCommands = {
+  addPlan: (folder: string) => Promise<void>;
   agentAccept: (index?: number) => Promise<void>;
   agentEmit: (events: Array<AgentEvent>) => Promise<void>;
   agentFinish: (code?: number, stderr?: string) => Promise<void>;

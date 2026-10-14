@@ -89,7 +89,7 @@ function toolCalls(tools: Array<ToolItem>, ended: boolean) {
 }
 
 /** How close to its end, in pixels, the transcript still counts as read to the end. */
-const AT_END = 24;
+export const AT_END = 24;
 
 /** The element that scrolls an element: the nearest that scrolls on its own, or the window. */
 function scroller(element: HTMLElement): HTMLElement | undefined {

@@ -26,12 +26,14 @@ import { useAgent, useFeature, useSession, useWorkflowMessage } from "./data.ts"
 import { EditableLine } from "./EditableLine.tsx";
 import { type AsideShown, AsideToggle, useAsideShown, WithAside } from "./SessionAside.tsx";
 import { Page } from "./layout/Page.tsx";
+import { ProgressLine } from "./ProgressLine.tsx";
 import { statusStyles } from "./Question.tsx";
 import { navigate, redirect, useRepoPath, useRestoreScroll, useSearch } from "./routes.tsx";
 import { sessionPath } from "./sessions.ts";
 import { type ChatControls, useSessionControls } from "./useSessionControls.ts";
 import { StatusMark } from "./StatusMark.tsx";
 import { Transcript, useFollowEnd, useOpenAtEnd } from "./Transcript.tsx";
+import { useKeepPlace } from "./useKeepPlace.ts";
 import { useOpenKeys } from "./useOpenKeys.ts";
 import { SessionView } from "./views.ts";
 
@@ -155,11 +157,13 @@ type Handing = {
 /** A session's header, transcript, and errors, or why there is no session `id`. */
 function SessionLog({
   aside,
+  crumbs,
   draft,
   id,
 }: {
   /** A feature's column, shown or not. */
   aside?: AsideShown | undefined;
+  crumbs?: string | undefined;
   draft: Draft;
   id: string;
 }) {
@@ -172,6 +176,7 @@ function SessionLog({
   const working = session?.status === "working";
   useOpenAtEnd(log);
   useFollowEnd(log, working);
+  useKeepPlace(log);
   // Shown with its latest turn ended: the human saw the reply, whatever the status shows, as "Needs
   // you" at a gate.
   const unseen = session?.unseen === true;
@@ -203,6 +208,7 @@ function SessionLog({
         title={session.title}
         {...(chat ? { chat } : {})}
       />
+      {crumbs !== undefined && <ProgressLine folder={crumbs} session={id} />}
       <div ref={log}>
         <Transcript
           canAllow={!working}
@@ -277,13 +283,14 @@ function SessionPane({
         {id === undefined ? (
           <VStack gap={3}>
             <Header aside={aside} title={title ?? ""} />
+            {crumbs !== undefined && <ProgressLine folder={crumbs} />}
             <Transcript session={{ id: "", turns: [] }} />
           </VStack>
         ) : (
           // Read once the first message created the session: its title stays, and the composer, as
           // it is read. The transcript waits for it: a page shows one log.
           <Suspense fallback={title === undefined ? null : <Header aside={aside} title={title} />}>
-            <SessionLog aside={aside} draft={draft} id={id} />
+            <SessionLog aside={aside} crumbs={crumbs} draft={draft} id={id} />
           </Suspense>
         )}
         <div {...stylex.props(styles.composer)}>
