@@ -313,7 +313,7 @@ pub(crate) fn task_heading(text: &str) -> Option<(u32, String)> {
 }
 
 /// The tasks of a plan, `## Task N: title`, with their checkbox steps.
-fn tasks(doc: &Document) -> Vec<TaskItem> {
+pub(crate) fn tasks(doc: &Document) -> Vec<TaskItem> {
     let all = headings(doc);
     let mut tasks = Vec::new();
     for (position, (index, level, title)) in all.iter().enumerate() {
