@@ -372,7 +372,7 @@ test("US2.5: a feature at its spec has no progress row", async () => {
   await renderPage("/", fixtureRepo(), { agent: await fakeAgent() });
 
   await findRow("cli-tuis");
-  expect(screen.queryByRole("link", { name: /^Task \d+ of / })).toBeNull();
+  expect(screen.queryByRole("link", { name: /^\d+\/\d+ · / })).toBeNull();
 });
 
 test("US2.6: the progress row comes before a running sub-agent's", async () => {
@@ -435,7 +435,7 @@ test("a feature leaving its implementation loses its progress row", async () => 
     ELEVEN.map(([title]) => [title, 5, 5]),
   );
 
-  await refreshUntil(() => expect(screen.queryByRole("link", { name: /^Task / })).toBeNull());
+  await refreshUntil(() => expect(screen.queryByRole("link", { name: /^\d+\/\d+ · / })).toBeNull());
   expect(row("cli-tuis")).toBeTruthy();
 });
 
@@ -448,7 +448,7 @@ test("the folded sidebar hides progress rows", async () => {
   await click(nav().getByRole("button", { name: "Collapse sidebar" }));
 
   await waitFor(() => expect(nav().getByRole("button", { name: "Expand sidebar" })).toBeTruthy());
-  expect(screen.queryByRole("link", { name: /^Task / })).toBeNull();
+  expect(screen.queryByRole("link", { name: /^\d+\/\d+ · / })).toBeNull();
   expect(statusOf(row("cli-tuis"))).toBe("Idle");
 });
 
