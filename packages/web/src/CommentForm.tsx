@@ -88,7 +88,7 @@ export function CommentForm({
   subject,
   ...shared
 }: Shared & { extra?: Unsaved["extra"]; field: string; saved?: string; subject?: string }) {
-  const field = useTextField(key, saved, extra, subject);
+  const field = useTextField(key, saved, { extra, subject });
   const confirm = useConfirm();
   const cancel = async () => {
     if (field.dirty && !(await confirm(DISCARD_COMMENT))) {
