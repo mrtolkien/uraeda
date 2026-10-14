@@ -461,17 +461,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: in [`fields.test.tsx`](/packages/web/src/__browser__/fields.test.tsx), US6 8 checks
   that a comment field's computed `resize` is `vertical`, then sets the field's height as dragging
   its handle does, and checks typing keeps it: WebKit ignores Playwright's mouse on a text area's
-  resize handle, so the drag itself cannot run in the tests. US6 3 checks that the field's height
-  and its Save button do not move from the field empty to 12 lines, and that the content further
-  down, the next question, does not move from the first line typed to the twelfth: "Unsaved changes"
-  shows at the first letter, a rule of the global constraints, and on the phone wraps under the
-  field's buttons, one line lower.
+  resize handle, so the drag itself cannot run in the tests. US6 3 checks that the field's height,
+  its Save button, and the content further down, the next question, do not move from the field empty
+  to its first letter and to 12 lines. [`SaveStatus`](/packages/web/src/fields/SaveStatus.tsx)
+  always takes the room of "Unsaved changes", drawn hidden by its style while another status or none
+  shows: the status that appears at the first letter typed, which on the phone wraps under the
+  field's buttons, has its line kept, so nothing below moves.
 - **Rationale**: the drag was tried at both sizes, with real mouse moves, presses, and waits, at the
-  handle's corner: the events reach the text area, which never resizes. The status line is not the
-  field's height, which is what US6 fixes; reserving its line would leave an empty line under every
-  field.
-- **Alternatives considered**: a drag through another driver, which the browser tests do not have; a
-  status always taking its line, empty while nothing changed.
-- **If wrong**: the two tests, and `SaveStatus` in
-  [`SaveStatus.tsx`](/packages/web/src/fields/SaveStatus.tsx) reserving its line.
-- **Where**: task 11.
+  handle's corner: the events reach the text area, which never resizes. US6 says typing never
+  changes the page's layout: "Unsaved changes" showing at the first letter moved the page 28 px on
+  the phone, which the test first measured only from that letter on. The room is kept by the style,
+  not by text, so the page reads the status shown only.
+- **Alternatives considered**: a drag through another driver, which the browser tests do not have;
+  measuring the content below from the first letter, which let the status move it; showing the
+  status only once the field loses the focus, which the UI behaviour decision does not allow.
+- **If wrong**: the two tests, and the reserved room in `SaveStatus`, which leaves an empty line
+  under a phone's field while nothing changed.
+- **Where**: task 11, and the fix before task 13.
