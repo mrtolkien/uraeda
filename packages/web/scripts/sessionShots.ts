@@ -3,12 +3,16 @@
  * chat, and a feature's session at work, with its feature's agent section. Each is set up once, on
  * the first shot's page, then taken at every size and theme.
  */
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import type { Page } from "playwright";
+import { ELEVEN, git, planText } from "uraeda-binding/test-utils";
 import type { FakeAdapter } from "uraeda-server/testing";
-import { type Each, here, show, wait } from "./shots.ts";
+import { type Each, here, settle, show, wait } from "./shots.ts";
 
 /** A feature waiting on the agent: the fixture's CLI TUIs. */
 export const AGENT = "/f/2026-10-12-cli-tuis";
+const FOLDER = "2026-10-12-cli-tuis";
 const LONG = "specs/2026-10-12-cli-tuis/clarifications-01.md";
 
 /** A turn's end, its work done. */
@@ -31,6 +35,100 @@ export async function takeSessions(each: Each, first: Page, adapter: FakeAdapter
   await takeWorking(each, first, adapter);
 }
 
+/** The phone's progress line, and the sidebar's progress row, of the feature at Task 7 of 11. */
+const LINE = "Implementation · 7/11 · Session column";
+const PROGRESS = /7\/11 · Session column/;
+
+/** The session's page at its feature's implementation, its column shown. */
+async function implementation(page: Page) {
+  // Shown again, if an earlier view hid it: a page not opened yet has nothing kept.
+  if (page.url().startsWith("http")) {
+    await page.evaluate(() => window.localStorage.removeItem("uraeda.sessionAside"));
+  }
+  await show(page, `${AGENT}/session`, PROGRESS);
+  if (page.viewportSize()!.width >= 768) {
+    await page.getByText("Task 7 of 11").waitFor();
+    await settle(page);
+  }
+}
+
+/** A file of `count` lines, for the branch's changes. */
+const code = (count: number) =>
+  Array.from({ length: count }, (_, index) => `// line ${index + 1}`).join("\n");
+
+/**
+ * The session at work, once its feature has a plan at Task 7 of 11 and files changed on its
+ * branch: its column, the column hidden with the page scrolled up, the phone's progress line
+ * open, and the sidebar's progress row. Taken last: the plan moves the feature on.
+ */
+export async function takeImplementation(each: Each, adapter: FakeAdapter, repo: string) {
+  // Committed in the feature's worktree, which its session made.
+  const worktree = join(repo, ".worktrees", FOLDER);
+  const files: Record<string, string> = {
+    [`specs/${FOLDER}/plan.md`]: planText(ELEVEN),
+    "crates/core/src/files/plan.rs": code(31),
+    "crates/core/src/git.rs": code(38),
+    "packages/web/src/__browser__/layout.test.tsx": code(45),
+    "packages/web/src/SessionAside.tsx": code(148),
+  };
+  for (const [path, text] of Object.entries(files)) {
+    mkdirSync(dirname(join(worktree, path)), { recursive: true });
+    writeFileSync(join(worktree, path), text);
+  }
+  git(worktree, "add", "--all");
+  git(worktree, "commit", "--quiet", "--no-verify", "--message", "Task 7: Session column");
+  for (let step = 1; step <= 14; step++) {
+    adapter.emit({
+      text: `Step ${step} of Task 7: the column beside the transcript reads the plan's tasks and the branch's changed files, and folds away with "Hide progress".`,
+      type: "text",
+    });
+  }
+  adapter.emit({
+    id: "test",
+    input: { command: "vp test session" },
+    kind: "execute",
+    name: "Bash",
+    target: "vp test --project uraeda-web-browser session",
+    type: "toolStart",
+  });
+  await wait(1000);
+  await each("session-implementation", ({ page }) => implementation(page));
+  await each("session-hidden", async ({ page, size }) => {
+    await implementation(page);
+    if (size === "desktop") {
+      await page.getByRole("button", { name: "Hide progress" }).click();
+      await page.getByRole("button", { name: "Show progress" }).waitFor();
+    }
+    // Scrolled up; on the phone, to the top, where its progress line shows closed.
+    await page.evaluate(() =>
+      window.innerWidth < 768 ? window.scrollTo(0, 0) : window.scrollBy(0, -400),
+    );
+    await page.getByRole("button", { name: "Jump to the latest" }).waitFor();
+    await settle(page);
+  });
+  await each(
+    "session-phone-open",
+    async ({ page }) => {
+      await implementation(page);
+      await page.getByRole("button", { name: LINE }).click();
+      await page
+        .getByRole("region", { name: "Progress" })
+        .getByText("Changed on the branch")
+        .waitFor();
+      await settle(page);
+    },
+    "phone",
+  );
+  await each("sidebar-progress", async ({ page, size }) => {
+    await implementation(page);
+    if (size === "phone") {
+      await page.getByRole("button", { name: "Open navigation" }).click();
+      await page.getByRole("link", { name: "7/11 · Session column, Task 7 of 11" }).waitFor();
+    }
+    await settle(page);
+  });
+}
+
 async function takeChats(each: Each, first: Page, adapter: FakeAdapter) {
   // Two chats: one replied to, one whose action auto mode blocked.
   await show(first, "/chats/new", "New chat");
@@ -42,6 +140,8 @@ async function takeChats(each: Each, first: Page, adapter: FakeAdapter) {
   });
   adapter.emit(result);
   await first.waitForURL(/\/chats\/(?!new)/);
+  const replied = here(first);
+  await each("chat", ({ page }) => show(page, replied, "draws without a GPU"));
   await show(first, "/chats/new", "New chat");
   id = await send(adapter, first, "Tag v0.3.0 and push the tag.");
   adapter.emit({ id, type: "accepted" });

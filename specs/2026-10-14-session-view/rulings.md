@@ -408,3 +408,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `turnNews` and `SessionTurns` in `SessionAnnouncer.tsx`, `KEPT`, `useCreatedHere`,
   and the three hooks at the end of `data.ts`.
 - **Where**: Task 10, after its review.
+
+## R25: The progress row's name starts with its visible text, and the layout checks commit files on the branch
+
+- **Decision**: the sidebar's progress row is named "7/11 · Session column, Task 7 of 11", its
+  visible text first, then the task in full words, as the feature rows lead with their slug. This
+  changes US2.2's screen-reader wording, "Task 7 of 11: Session column": the
+  [UI checks](../decisions/ui-checks.md) decision's axe-core rules outrank the spec's exact text,
+  and the pull request flags the change. For the layout checks and the screenshots: the browser
+  tests' `addPlan` command already existed from Task 8, so Step 2 could not fail on it; a
+  `commitOnBranch` command commits files changed on the feature's branch, so the checks measure the
+  column's file list; and `planText()` is taken out of `addPlan` in `uraeda-binding/test-utils`, so
+  the screenshot script commits the plan in the feature's worktree, which its session holds.
+- **Rationale**: axe-core's `label-content-name-mismatch` (WCAG 2.5.3, Label in Name, level A)
+  failed on the row: "Task 7 of 11: Session column" does not contain "7/11 · Session column" as a
+  run of words, and a speech-input user saying what they see would not reach it. Astryx's
+  `SideNavItem` takes its label as a string, so the count cannot be drawn outside the row's text.
+  Without changed files, the checks never saw a long path run under its counts, which they then
+  caught.
+- **Alternatives considered**: the count drawn by the ring alone, which changes the row's visible
+  text the human chose; a constitution exception to the UI checks for this row; the count drawn as
+  CSS generated content, which no test of the visible text can read.
+- **If wrong**: `ProgressRow`'s `aria-label` in `SessionNav.tsx`, and the names in
+  `__tests__/shell.test.tsx` and `scripts/sessionShots.ts`.
+- **Where**: Task 11.

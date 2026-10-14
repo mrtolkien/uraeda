@@ -9,9 +9,12 @@
 // So do the views images were added to (SC-005 of image attachments): the editor with an image's
 // link, a refusal, and the drop hint, its preview and a proposal with the image, the lightbox, the
 // composer's thumbnails and a message's images, a review comment and a round's answer with a link.
-// And the views text inputs changed: a round with a comment under a settled point and the form of
-// another open, the notes restored with their notice, and the "Leave page?" and "Discard your
-// comment?" confirmations.
+// The views text inputs changed pass them too: a round with a comment under a settled point and the
+// form of another open, the notes restored with their notice, and the "Leave page?" and "Discard
+// your comment?" confirmations. So do a feature's session at its implementation, its column shown
+// and hidden, the phone's progress line open, and a chat, the transcript 760 px wide beside the
+// column at 1440 px (SC-001, SC-004 of the session view), and at 1024 px with the sidebar open (its
+// edge case).
 import { act, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
 import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
@@ -33,6 +36,7 @@ import {
   dragOver,
   drawn,
   drop,
+  grown,
   image,
   LIVE,
   paste,
@@ -295,6 +299,112 @@ test.each(
   await checkLayout();
 });
 
+/** The phone's progress line of `CLI` at Task 7 of 11. */
+const LINE = "Implementation · 7/11 · Session column";
+
+/**
+ * The feature's session at its implementation, at Task 7 of 11, working on a turn with long paths:
+ * its column drawn beside it on wide screens, its progress line above it on the phone.
+ */
+async function implementation(mode: "light" | "dark") {
+  window.localStorage.setItem("uraeda.theme", mode);
+  await agent.addPlan(CLI);
+  // Files changed on the branch, their paths as long as a column's line.
+  await agent.commitOnBranch(CLI, {
+    "crates/core/src/files/plan.rs": "// The plan's tasks.\n",
+    "packages/web/src/__browser__/layout.test.tsx": "// The layout checks.\n",
+    "packages/web/src/SessionAside.tsx": "// The session's column.\n",
+  });
+  await show(`/f/${CLI}/session`, "CLI TUIs");
+  await startTurn("Carry on with Task 7.", LONG_TURN);
+  await screen.findByText(/Rate limited/, undefined, LIVE);
+  if (window.innerWidth >= 768) {
+    const column = await screen.findByRole("complementary", { name: "Progress" }, LIVE);
+    await within(column).findByText("Task 7 of 11", undefined, LIVE);
+    await within(column).findByText("3 files · +3 −0", undefined, LIVE);
+  } else {
+    await screen.findByRole("button", { name: LINE }, LIVE);
+  }
+  await grown();
+}
+
+/** The checks on the page's main region, then on the column, which is beside it. */
+async function checkSession() {
+  await checkLayout();
+  const column = screen.queryByRole("complementary", { name: "Progress" });
+  if (column) {
+    await checkLayout(column);
+  }
+}
+
+const MODES = (["light", "dark"] as const).map((mode) => ({ mode }));
+
+// SC-001 and SC-004: a feature's session at its implementation, with its column shown.
+test.each(MODES)(
+  "a feature's session at its implementation, with its column, in $mode",
+  async ({ mode }) => {
+    await implementation(mode);
+    await checkSession();
+    if (window.innerWidth === 1440) {
+      // SC-001: the sidebar at its default 240 px, the column shown, the transcript keeps 760 px.
+      expect(screen.getByRole("complementary", { name: "Progress" })).toBeTruthy();
+      const log = screen.getByRole("log", { name: "Conversation" });
+      expect(log.getBoundingClientRect().width).toBeGreaterThanOrEqual(760);
+    }
+  },
+);
+
+// SC-004: the same session with its column hidden, on wide screens, where the column is.
+test.each(MODES)(
+  "a feature's session at its implementation, with its column hidden, in $mode",
+  async ({ mode }) => {
+    if (window.innerWidth < 768) {
+      return;
+    }
+    await implementation(mode);
+    await userEvent.click(screen.getByRole("button", { name: "Hide progress" }));
+    await expect
+      .poll(() => screen.queryByRole("complementary", { name: "Progress" }), LIVE)
+      .toBeNull();
+    await screen.findByRole("button", { name: "Show progress" });
+    await drawn();
+    await checkSession();
+  },
+);
+
+// SC-004 on the phone: the progress line opened above the transcript.
+test.each(MODES)(
+  "a feature's session at its implementation, its progress line open, in $mode",
+  async ({ mode }) => {
+    if (window.innerWidth >= 768) {
+      return;
+    }
+    await implementation(mode);
+    await userEvent.click(screen.getByRole("button", { name: LINE }));
+    const open = await screen.findByRole("region", { name: "Progress" }, LIVE);
+    await within(open).findByText("3 files · +3 −0", undefined, LIVE);
+    await grown();
+    await checkSession();
+  },
+);
+
+// The edge case "From 768 to 1024 px with the sidebar open": the sidebar, the transcript, and the
+// column share the width, and nothing scrolls sideways.
+test("a session at 1024 px with the sidebar and the column open", async () => {
+  if (window.innerWidth < 768) {
+    return;
+  }
+  try {
+    await page.viewport(1024, 900);
+    await expect.poll(() => window.innerWidth).toBe(1024);
+    await implementation("light");
+    expect(within(nav()).getByRole("button", { name: "Collapse sidebar" })).toBeTruthy();
+    await checkSession();
+  } finally {
+    await page.viewport(1440, 900);
+  }
+});
+
 /** Starts a chat with a turn whose action auto mode blocked. */
 async function blockedChat() {
   await show("/chats/new", "New chat");
@@ -326,6 +436,25 @@ async function blockedChat() {
   await screen.findByRole("button", { name: "Allow and retry" }, LIVE);
   await drawn();
 }
+
+// SC-004: a chat with one reply.
+test.each(MODES)("a chat with one reply, in $mode", async ({ mode }) => {
+  window.localStorage.setItem("uraeda.theme", mode);
+  await show("/chats/new", "New chat");
+  await sendMessage("Why is CI slow on WebKit?");
+  await agent.agentAccept();
+  await agent.agentEmit([
+    { text: "WebKit draws without a GPU on CI: its animations take longer.", type: "text" },
+    { denials: [], errors: [], interrupted: false, ok: true, type: "result" },
+  ]);
+  await expect
+    .poll(() => window.location.pathname, LIVE)
+    .toMatch(new RegExp(`^${atRepo("/chats/")}(?!new)`));
+  await screen.findByText(/draws without a GPU/, undefined, LIVE);
+  await expect.poll(() => screen.queryByRole("button", { name: "Stop" }), LIVE).toBeNull();
+  await drawn();
+  await checkLayout();
+});
 
 // A chat, a new chat, and the sidebar searched: the same checks, the sidebar's on its own region.
 test.each((["light", "dark"] as const).map((mode) => ({ mode })))(
@@ -385,8 +514,6 @@ test.each(
   }
   await checkLayout(nav);
 });
-
-const MODES = (["light", "dark"] as const).map((mode) => ({ mode }));
 
 const DRAFT = "specs/drafts/login-banner/proposal.md";
 const LEAD = "When the password is wrong, the banner covers the login button:";
