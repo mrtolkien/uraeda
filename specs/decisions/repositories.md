@@ -32,19 +32,19 @@ files, and live updates live under its own URL prefix, `/r/<name>/`, so two repo
 ## Why
 
 The human wants Uraeda to manage several repositories from one web UI, and a packaged Uraeda needs a
-way to pick its first repository anyway ([proposal](../2026-10-13-multi-repo-server/proposal.md)).
-They chose a plain `repositories.json` in the data folder, since "repositories are not config but
-data", and a file "can easily be edited by a human or coding agent"
-([Q8](../2026-10-13-multi-repo-server/clarifications-01.md#q8-where-does-the-server-keep-the-list-of-repositories)).
+way to pick its first repository anyway ([proposal](../done/2026-10-13-multi-repo-server.md)). They
+chose a plain `repositories.json` in the data folder, since "repositories are not config but data",
+and a file "can easily be edited by a human or coding agent"
+([Q8](../done/2026-10-13-multi-repo-server.md#q8-where-does-the-server-keep-the-list-of-repositories)).
 They asked for `ura add`, adding the current folder from the CLI, which needs the list in a place
 both tools know
-([Q4](../2026-10-13-multi-repo-server/clarifications-01.md#q4-how-do-you-name-a-folder-from-the-browser)):
-the core owns it, as the [stack](stack.md) decision wants for logic shared by the CLI and the
-server. URLs carry a readable name, not the machine's paths
-([Q6](../2026-10-13-multi-repo-server/clarifications-01.md#q6-how-do-urls-name-the-repository),
-[the repository in the URL](../2026-10-13-multi-repo-server/discovery-01.md#the-repository-in-the-url)).
+([Q4](../done/2026-10-13-multi-repo-server.md#q4-how-do-you-name-a-folder-from-the-browser)): the
+core owns it, as the [stack](stack.md) decision wants for logic shared by the CLI and the server.
+URLs carry a readable name, not the machine's paths
+([Q6](../done/2026-10-13-multi-repo-server.md#q6-how-do-urls-name-the-repository),
+[the repository in the URL](../done/2026-10-13-multi-repo-server.md#q6-how-do-urls-name-the-repository)).
 Only git repositories can be added, since every call into the core needs one
-([Q3](../2026-10-13-multi-repo-server/clarifications-01.md#q3-which-folders-can-be-added)).
+([Q3](../done/2026-10-13-multi-repo-server.md#q3-which-folders-can-be-added)).
 
 ## Alternatives considered
 
