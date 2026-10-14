@@ -55,3 +55,27 @@ test("Back from unsaved text asks, stays, and leaves on Leave page", async () =>
   await waitFor(() => expect(screen.queryByText(QUESTION)).toBeNull());
   expect(leaveDialog()).toBeNull();
 });
+
+/** The colour a theme's token resolves to, as a background. */
+function tokenColour(token: string) {
+  const probe = document.createElement("div");
+  probe.style.backgroundColor = `var(${token})`;
+  document.body.append(probe);
+  const colour = getComputedStyle(probe).backgroundColor;
+  probe.remove();
+  return colour;
+}
+
+// The mockup's section 4: "Leave page" is the dialog's main button, in the accent's colour; leaving
+// loses nothing, the text staying in the browser, so it is not drawn as destructive (R29).
+test("Leave page is the dialog's main button (US5 4)", async () => {
+  await show(FEATURE, "Web UI for the workflow files");
+  await act(async () => navigate(atRepo(PAGE)));
+  await screen.findByText(QUESTION);
+  await userEvent.fill(q3Comment(), "Neither, keep it simple");
+  const dialog = await backAsks();
+  const leave = within(dialog).getByRole("button", { name: "Leave page" });
+  await expect
+    .poll(() => getComputedStyle(leave).backgroundColor)
+    .toBe(tokenColour("--color-accent"));
+});
