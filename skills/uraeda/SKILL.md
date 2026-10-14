@@ -435,6 +435,7 @@ one waiting for that action.
 | `ura clean [feature]`, `--all`, `--dry-run`                           | [Cleans](references/finish.md#after-the-merge) a merged feature             |
 | `ura upgrade`                                                         | Installs `ura`'s latest release, then updates the user's skill              |
 | `ura lsp`                                                             | Serves workflow files to editors: diagnostics, completion, outline, actions |
+| `ura add [folder]`                                                    | Adds the repository holding a folder to the web UI's list                   |
 
 `ura answer --submit` and `ura review` set the human's status, record the block, and commit: a human
 runs them, or an agent the human asked, with `--no-commit`. Every command writes on a branch through

@@ -339,7 +339,7 @@ git commit -m "feat(multi-repo-server): the repository list in the core"
 - Produces: `ura add [FOLDER]`, the current folder by default; a relative folder joins the current
   one.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/cli/tests/add.rs, each with URAEDA_DATA_DIR set to a temporary folder
@@ -367,12 +367,12 @@ fn an_invalid_list_exits_1_and_is_kept() {
 }
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo test -p uraeda-cli --test add`
 - Expected: FAIL, `error: unrecognized subcommand 'add'`.
 
-- [ ] **Step 3: Implement `ura add`**
+- [x] **Step 3: Implement `ura add`**
 
 `add.rs` resolves the folder, calls `repositories::add` with `SystemTime::now()`, and prints the
 spec's messages on stderr. `ListError::NotARepository(path)` prints
@@ -380,12 +380,12 @@ spec's messages on stderr. `ListError::NotARepository(path)` prints
 other errors print their `Display`. Add the row to the skill's `ura` table:
 `| ura add [folder] | Adds the repository holding a folder to the web UI's list |`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo test -p uraeda-cli && cargo run -q -p uraeda-cli -- check specs`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/cli/src/add.rs crates/cli/src/main.rs crates/cli/tests/add.rs skills/uraeda/SKILL.md
