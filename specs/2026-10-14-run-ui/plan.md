@@ -421,8 +421,12 @@ git commit -m "refactor(run-ui): one module for the server's paths"
 - Modify: `packages/server/src/main.ts` (help, version, unknown option, the web UI from the layout)
 - Modify: `packages/server/src/server.ts` (message prefix `uraeda: `)
 - Modify: `packages/server/src/paths.ts` (`requireWeb`)
-- Modify: `package.json` (`start` without `--web-root`)
-- Test: `packages/server/src/__tests__/env.test.ts`, `packages/server/src/__tests__/main.test.ts`
+- Modify: `packages/server/src/env.ts` (`hostNames`; `loadDataDir` takes the binding, R6)
+- Modify: `packages/server/src/app.ts`, `packages/server/src/dev.ts` (`webRoot` and `loadDataDir`)
+- Modify: `package.json` (`start` without `--web-root`; `ready` builds the web UI before `vp test`,
+  R7)
+- Test: `packages/server/src/__tests__/env.test.ts`, `packages/server/src/__tests__/main.test.ts`,
+  `packages/server/src/__tests__/paths.test.ts`, `packages/server/src/__tests__/server.test.ts`
 
 **Interfaces:**
 
@@ -440,11 +444,17 @@ git commit -m "refactor(run-ui): one module for the server's paths"
   export const HELP: string; // the help text of Global constraints, ending with a newline
   ```
 
-  `webRoot` leaves `Options`; `createApp` takes `webRoot` from its caller, which passes
-  `layout().web`. `--allowed-hosts a.ts.net,b.ts.net` sets `allowedHosts`, split and trimmed like
-  `URAEDA_ALLOWED_HOSTS`, replacing the variable's list when given.
+  `webRoot` leaves `Options`; `createApp` and `startServer` take an optional `webRoot` from their
+  caller: `main.ts` passes `layout().web`, `dev.ts` none. `--allowed-hosts a.ts.net,b.ts.net` sets
+  `allowedHosts`, split and trimmed by `hostNames(list)` of `env.ts`, as `URAEDA_ALLOWED_HOSTS` is,
+  replacing the variable's list when given.
 
-- [ ] **Step 1: Write the failing tests**
+- Changes `loadDataDir(root: string | null, core: { dataDir }, environment?)`: the binding's
+  `dataDir` is passed in, so `env.ts` no longer imports `uraeda-binding` and `main.ts` loads the
+  binding only through `loadBinding()`, after `--help` (R6). `main.ts` and `dev.ts` pass the binding
+  `loadBinding()` returned.
+
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // env.test.ts
@@ -496,31 +506,33 @@ Update the existing `main.test.ts` expectations from `uraeda-server: ` to `uraed
 with the variable's hosts instead of replacing them; `parseArgs`'s own error text leaking instead of
 the spec's.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `vp test packages/server/src/__tests__/env.test.ts packages/server/src/__tests__/main.test.ts`
 - Expected: FAIL, first `expected undefined to deeply equal [ 'b.ts.net', 'c.ts.net' ]`
 
-- [ ] **Step 3: Implement the options, `--help`, `--version`, and the unknown option**
+- [x] **Step 3: Implement the options, `--help`, `--version`, and the unknown option**
 
-`main.ts` prints `HELP` for `show: "help"` without loading the binding, and `version()` for
-`show: "version"`. All of `main.ts`'s and `server.ts`'s messages take the prefix `uraeda: `, with
-their text unchanged otherwise. When the layout's `web` folder has no `index.html`, the start fails
-with `uraeda: the web UI is not built; run vp run --filter uraeda-web build`. `--allow-origin`
-stays, out of the help.
+`main.ts` prints `HELP` for `show: "help"` without loading the binding, and the loaded binding's
+`version()` for `show: "version"`. All of `main.ts`'s and `server.ts`'s messages take the prefix
+`uraeda: `, with their text unchanged otherwise. When the layout's `web` folder has no `index.html`,
+the start fails with `uraeda: the web UI is not built; run vp run --filter uraeda-web build`.
+`--allow-origin` stays, out of the help.
 
-- [ ] **Step 4: Add the test of the missing UI, then run all tests**
+- [x] **Step 4: Add the test of the missing UI, then run all tests**
 
 The check lives in `paths.ts` as `requireWeb(web: string): void`, which throws
 `Error("the web UI is not built; run vp run --filter uraeda-web build")` when `<web>/index.html` is
 missing, and `main.ts` prints it with the `uraeda: ` prefix. Add to `paths.test.ts` a test calling
-it on a temporary folder without `index.html`, expecting that message. Then:
+it on a temporary folder without `index.html`, expecting that message. `main.ts` checks it before it
+loads the data folder, so every test starting the server needs the built UI: `vp run ready` builds
+it before `vp test` (R7). Then:
 
 - Run: `vp check && vp test`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server package.json

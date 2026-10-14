@@ -56,3 +56,30 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: cargo-dist's own npm installer, which ships only the Rust binary.
 - **If wrong**: the jobs move to another file.
 - **Where**: Task 9.
+
+## R6: The binding's default data folder is passed to `loadDataDir`
+
+- **Decision**: `loadDataDir(root, core, environment?)` takes the binding's `dataDir` from its
+  caller, and `env.ts` no longer imports `uraeda-binding`.
+- **Rationale**: `env.ts` imported the binding at the module's top, so `main.ts` loaded it before
+  parsing its options: `--help` failed without a built or installed binding, and a missing binding's
+  error escaped the `uraeda: ` prefix. With the binding passed in, `main.ts` loads it only through
+  `loadBinding()`, after `--help`, inside its error handling.
+- **Alternatives considered**: importing `env.ts` dynamically in `main.ts`: `parseOptions` needs
+  `loadEnv` before `--help` is known; loading the binding lazily inside `env.ts`: a synchronous
+  `loadDataDir` cannot await an import.
+- **If wrong**: `loadDataDir` imports the binding again, and `--help` loads it.
+- **Where**: Task 3.
+
+## R7: `vp run ready` builds the web UI before the tests
+
+- **Decision**: in `ready`, `vp run --filter uraeda-web build` moves from the end to just before
+  `vp test`.
+- **Rationale**: the start now fails without `packages/web/dist/index.html`, as the spec requires,
+  and `main.test.ts` starts the server; in CI the UI was built only after the tests, so every start
+  in them would fail with the "not built" message.
+- **Alternatives considered**: keeping `--web-root` for the tests, which the spec removes; writing a
+  placeholder `index.html` into `packages/web/dist` from the tests, which a later `pnpm start` would
+  serve as the UI.
+- **If wrong**: the tests start the server with another way to name the web folder.
+- **Where**: Task 3.

@@ -66,7 +66,13 @@ export type Server = {
  * merely started in is logged, and the list's most recent repository opens first.
  */
 export async function startServer(
-  options: Options & { adapter: Adapter; binding: Binding; dataDir: string },
+  options: Omit<Options, "open" | "show"> & {
+    adapter: Adapter;
+    binding: Binding;
+    dataDir: string;
+    /** The built UI, served as static files when set: `vp dev` leaves it to Vite. */
+    webRoot?: string;
+  },
 ): Promise<Server> {
   const { adapter, binding, dataDir } = options;
   const root = await binding.mainRoot(options.repo).catch(() => null);
@@ -75,12 +81,12 @@ export async function startServer(
   }
   if (root === null) {
     process.stderr.write(
-      `uraeda-server: ${options.repo} is not in a git repository: add one from the web UI\n`,
+      `uraeda: ${options.repo} is not in a git repository: add one from the web UI\n`,
     );
   } else {
     // A list that cannot be written is the hosts' problem to report: the server still starts.
     await binding.addRepository(dataDir, root).catch((error: Error) => {
-      process.stderr.write(`uraeda-server: ${error.message.replace(/^refused: /, "")}\n`);
+      process.stderr.write(`uraeda: ${error.message.replace(/^refused: /, "")}\n`);
     });
   }
   let hosts: Hosts | undefined;

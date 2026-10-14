@@ -1,5 +1,7 @@
 // The one home of where the server finds its plugin, its web UI, and its checkout (the
 // distribution decision): no other module builds these paths.
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Where the server finds what it reads at run time. */
@@ -36,4 +38,11 @@ export function layout(packaged: boolean = PACKAGED, moduleUrl: string = import.
     plugin: path("../plugin"),
     web: path("../../web/dist"),
   };
+}
+
+/** Refuses to start without the built web UI, as in a checkout before its build. */
+export function requireWeb(web: string): void {
+  if (!existsSync(join(web, "index.html"))) {
+    throw new Error("the web UI is not built; run vp run --filter uraeda-web build");
+  }
 }

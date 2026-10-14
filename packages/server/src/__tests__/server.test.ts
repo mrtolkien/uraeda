@@ -88,7 +88,7 @@ test("starting outside git keeps the list's most recent", async () => {
   expect(hosts.mostRecent()?.name).toBe("todo-app");
   expect(hosts.rows()).toHaveLength(1);
   expect(log).toHaveBeenCalledWith(
-    `uraeda-server: ${folder} is not in a git repository: add one from the web UI\n`,
+    `uraeda: ${folder} is not in a git repository: add one from the web UI\n`,
   );
 });
 

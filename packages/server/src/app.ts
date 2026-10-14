@@ -29,11 +29,13 @@ const rewritten = async (request: Request) =>
  * opened repository's.
  */
 export function createApp(
-  options: Omit<Options, "given" | "repo"> & {
+  options: Omit<Options, "given" | "open" | "repo" | "show"> & {
     binding: Binding;
     dataDir: string;
     hosts: Hosts;
     sessions: Sessions;
+    /** The built UI, served as static files when set. */
+    webRoot?: string;
   },
 ) {
   const { binding, dataDir, hosts, sessions } = options;
