@@ -92,6 +92,33 @@ test("the discovery effort is set in the proposal's frontmatter", async () => {
   );
 });
 
+/** Codex review: discovery changes wait for the saves before them, and Commit for them. */
+test("quick discovery changes and Commit all land, in order", async () => {
+  const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
+  const file = join(repo, "specs/drafts/git-listener.md");
+  const field = await edit();
+  await type(field, "# Git listener process\n\n## What\n\nTyped.\n");
+
+  // Each click draws, and none waits for the write before it.
+  for (const control of [
+    screen.getByRole("radio", { name: "Medium" }),
+    screen.getByRole("radio", { name: "Low" }),
+    screen.getByRole("button", { name: "Commit" }),
+  ]) {
+    act(() => control.click());
+  }
+
+  await waitFor(() =>
+    expect(git(repo, "log", "-1", "--format=%s").trim()).toBe(
+      "chore: edit the draft Git listener process",
+    ),
+  );
+  const committed = "---\ndiscovery: low\n---\n\n# Git listener process\n\n## What\n\nTyped.\n";
+  expect(readFileSync(file, "utf8")).toBe(committed);
+  expect(git(repo, "show", "HEAD:specs/drafts/git-listener.md")).toBe(committed);
+  expect(screen.queryByText(/changed/)).toBeNull();
+});
+
 /** US4.3 */
 test("a draft is committed with the priorities it changed", async () => {
   const repo = fixtureRepo();
