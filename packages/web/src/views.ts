@@ -86,7 +86,7 @@ export const FeatureView = view<Feature>()({
   session: true,
   slug: true,
   source: true,
-  step: { file: true, name: true, progress: true, task: true, waitsOn: true },
+  step: { file: true, implemented: true, name: true, progress: true, task: true, waitsOn: true },
   title: true,
   uncommitted: true,
   worktree: true,

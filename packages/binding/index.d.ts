@@ -720,6 +720,8 @@ export interface StepView {
   task?: string
   /** Where the implementation is in the plan's tasks, for implementation. */
   progress?: TaskProgress
+  /** Whether the implementation is over: the final review or after. */
+  implemented: boolean
 }
 
 export interface Story {
