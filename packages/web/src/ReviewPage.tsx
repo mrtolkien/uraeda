@@ -11,9 +11,10 @@ import {
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useMemo } from "react";
 import type { Block, CommentItem, Document } from "uraeda-binding";
-import { Blocks, type Fold } from "./Blocks.tsx";
+import { Blocks } from "./Blocks.tsx";
 import { CommentForm, quoteOf } from "./CommentForm.tsx";
 import { Crumbs } from "./Crumbs.tsx";
+import { type Fold, foldOf } from "./Folds.tsx";
 import { type useFile, useAgent } from "./data.ts";
 import { Overlay } from "./layout/Overlay.tsx";
 import { Page } from "./layout/Page.tsx";
@@ -72,20 +73,14 @@ export function textOf(tree: Document, block: Block) {
  * The folds a review opens: those holding a pending comment's block, or a block of the selection.
  */
 function shownFolds(tree: Document, placed: ReadonlyMap<number, unknown>, selection?: Range) {
-  const top = (id: number) => {
-    let block = tree.blocks[id];
-    while (block?.parent !== undefined) {
-      block = tree.blocks[block.parent];
-    }
-    return block?.id;
-  };
-  const holders = new Set([...placed.keys()].map(top));
   const selected = (block: Block | undefined) =>
     !!block && !!selection && block.startLine <= selection.end && block.endLine >= selection.start;
-  return (folds: ReadonlyArray<Fold>) =>
-    folds
-      .filter((fold) => fold.ids.some((id) => holders.has(id) || selected(tree.blocks[id])))
+  return (folds: ReadonlyArray<Fold>) => {
+    const holders = new Set([...placed.keys()].map((id) => foldOf(tree, folds, tree.blocks[id])));
+    return folds
+      .filter((fold) => holders.has(fold) || fold.ids.some((id) => selected(tree.blocks[id])))
       .map((fold) => fold.key);
+  };
 }
 
 /** The comment field of a review, on the selected lines, the whole file, or a comment edited. */

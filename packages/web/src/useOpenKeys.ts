@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { SpecItems } from "uraeda-binding";
-import { type Fold, type Folds, specFolds } from "./Blocks.tsx";
+import { type Fold, type Folds, specFolds } from "./Folds.tsx";
 import { currentEntry, updateEntry } from "./routes.tsx";
 
 /** The items a view opened, by their keys, and how to open or close one. */
