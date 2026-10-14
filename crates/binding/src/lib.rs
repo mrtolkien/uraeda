@@ -1,9 +1,9 @@
 //! The core's Node binding. Every type it returns is declared in the core, and napi-rs generates
 //! its TypeScript declarations in `packages/binding/index.d.ts`.
 //!
-//! Each function runs on libuv's thread pool and returns a promise. A refusal rejects with a
-//! message prefixed by its code, `refused: `, `conflict: `, or `hook: `, the last followed by the
-//! hook's output after a blank line.
+//! Each function but `version` runs on libuv's thread pool and returns a promise. A refusal rejects
+//! with a message prefixed by its code, `refused: `, `conflict: `, or `hook: `, the last followed by
+//! the hook's output after a blank line.
 
 use std::path::Path;
 
@@ -54,6 +54,12 @@ fn job<T: ToNapiValue + TypeName + Send + 'static>(
     AsyncTask::new(Job {
         work: Some(Box::new(work)),
     })
+}
+
+/// The binding's version, the Cargo workspace's. It reads nothing, so it returns at once.
+#[napi]
+pub fn version() -> String {
+    env!("CARGO_PKG_VERSION").to_owned()
 }
 
 /// Every feature, bug, and priority of the repository at `repo`.

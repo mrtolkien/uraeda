@@ -10,6 +10,7 @@ import {
   readImage,
   readWorkspace,
   saveAnswer,
+  version,
   watch,
   workDir,
   type Changes,
@@ -151,4 +152,11 @@ test("does not read a markdown file as an image", async () => {
   await expect(readImage(fixtureRepo(), "specs/README.md")).rejects.toThrow(
     "refused: specs/README.md: no such file",
   );
+});
+
+test("the binding's version is the Cargo workspace's", () => {
+  const cargo = readFileSync(new URL("../../Cargo.toml", import.meta.url), "utf8");
+  const workspace = /\[workspace\.package\][^[]*?\nversion = "([^"]+)"/.exec(cargo)![1];
+
+  expect(version()).toBe(workspace);
 });
