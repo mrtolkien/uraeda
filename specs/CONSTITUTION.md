@@ -62,7 +62,7 @@ way to follow it.
 - Each rule MUST live in one place. A copy in another layer or language MUST be justified in the
   plan's complexity tracking.
 - Warnings, size, complexity, and duplication measured by the project's checks MUST NOT go up. An
-  exception MUST be approved by a human in the plan.
+  exception MUST be approved by a human in the spec or plan.
 
 Rationale: "high-quality code" cannot be checked, but acceptance tests, justified complexity, and
 checks that never go back can. Agents grow and copy code feature after feature unless something
@@ -76,4 +76,4 @@ measured stops them.
 - Specs and plans MUST include a constitution check. Exceptions MUST be listed in the plan's
   complexity tracking and approved by a human.
 
-**Version**: 1.3.0 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-14
+**Version**: 1.3.1 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-14
