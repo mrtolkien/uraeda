@@ -218,6 +218,22 @@ test("notes typed after a restored text was saved show no notice", async () => {
   expect(screen.queryByText(/Unsaved text restored/)).toBeNull();
 });
 
+/** Final review: the notes changed on disk never write into notes being typed. */
+test("notes typed are kept as the notes change on disk", async () => {
+  const repo = roundWith("Fine");
+  await renderPage(PAGE, repo);
+  await screen.findByLabelText("Notes");
+  await type(notesField(), "Bigger icon");
+
+  setNotes(repo, "theirs");
+  // Q1 answered too, which shows once the page read the file, with the notes changed.
+  answerQ1(repo);
+  await refreshUntil(() => expect(q1A().getAttribute("aria-pressed")).toBe("true"));
+
+  expect(notesField().value).toBe("Bigger icon");
+  expect(screen.getByText("Unsaved changes")).toBeTruthy();
+});
+
 /** US5 3 */
 test("notes restored over notes changed since say so", async () => {
   at1432();
