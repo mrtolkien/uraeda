@@ -280,16 +280,16 @@ No function or file grows past a limit; no marker is added.
   `default`, `ci` and `coverage` (the last one completed in task 8); `llvm-tools-preview` in the
   toolchain.
 
-- [ ] **Step 1: Add `cargo-nextest` and `cargo-llvm-cov` to the dev shell's packages, and
+- [x] **Step 1: Add `cargo-nextest` and `cargo-llvm-cov` to the dev shell's packages, and
       `llvm-tools-preview` to `rust-toolchain.toml`'s components**
 
 - Run: `nix develop -c bash -c 'cargo nextest --version && cargo llvm-cov --version'`
 - Expected: both print a version.
 
-- [ ] **Step 2: Write `.config/nextest.toml` with the profiles `default` and `ci` of the global
+- [x] **Step 2: Write `.config/nextest.toml` with the profiles `default` and `ci` of the global
       constraints, and `doctest = false` in the core's and the LSP's `[lib]`**
 
-- [ ] **Step 3: Check that a hung test is stopped (US1.4)**
+- [x] **Step 3: Check that a hung test is stopped (US1.4)**
 
 Add, temporarily, to `crates/core/tests/slug.rs`:
 `#[test] fn hangs() { std::thread::sleep(std::time::Duration::from_secs(600)); }`.
@@ -298,13 +298,13 @@ Add, temporarily, to `crates/core/tests/slug.rs`:
 - Expected (R1): after 2 minutes, `TIMEOUT` for `slug hangs`, the other slug tests passing, and a
   failed run. Then remove the test.
 
-- [ ] **Step 4: Replace `cargo test` with `cargo nextest run` in `ready`, and run every Rust test**
+- [x] **Step 4: Replace `cargo test` with `cargo nextest run` in `ready`, and run every Rust test**
 
 - Run: `nix develop -c cargo nextest run`
 - Expected: PASS, every test of core, cli and lsp, the binding not built; the same count as
   `cargo test` minus its empty doctest passes (552 tests, 1 skipped as ignored).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .config/nextest.toml flake.nix rust-toolchain.toml crates/core/Cargo.toml crates/lsp/Cargo.toml package.json

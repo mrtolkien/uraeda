@@ -5,7 +5,7 @@
   "scripts": {
     "prepare": "vp config",
     "dev": "node packages/server/scripts/dev.ts",
-    "ready": "cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test && cargo run -q -p uraeda-cli -- check specs && cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs && (! cargo tree -p uraeda-cli -e features --prefix none | grep -qE '^napi(-derive)? v') && vp run --filter uraeda-binding build && vp run --filter uraeda-web theme --check && stylua --check editors/nvim && vp check && vp run --filter uraeda-web build && vp run --filter @uraeda/ui build && node packages/uraeda/scripts/smoke.ts --binding packages/binding && vp test && cargo build -q -p uraeda-cli && vp run test:nvim",
+    "ready": "cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo nextest run && cargo run -q -p uraeda-cli -- check specs && cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs && (! cargo tree -p uraeda-cli -e features --prefix none | grep -qE '^napi(-derive)? v') && vp run --filter uraeda-binding build && vp run --filter uraeda-web theme --check && stylua --check editors/nvim && vp check && vp run --filter uraeda-web build && vp run --filter @uraeda/ui build && node packages/uraeda/scripts/smoke.ts --binding packages/binding && vp test && cargo build -q -p uraeda-cli && vp run test:nvim",
     "start": "vp run --filter uraeda-binding build && vp run --filter uraeda-web build && node packages/server/src/main.ts",
     "test:nvim": "cd editors/nvim && nvim --headless --noplugin -u tests/minimal_init.lua -c 'lua MiniTest.run()'",
     "release": "node packages/uraeda/scripts/bump.ts",
