@@ -5,14 +5,24 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { createContext, type ReactNode, useContext, useRef, useState } from "react";
 import { afterOverlayCloses, Overlay } from "../layout/Overlay.tsx";
 
-/** What a confirmation asks: its title, its body, and its two buttons. */
-export type ConfirmOptions = { body: string; cancel: string; confirm: string; title: string };
+/**
+ * What a confirmation asks: its title, its body, and its two buttons. The confirm button is the
+ * dialog's main one, or a destructive one when it deletes what the human typed.
+ */
+export type ConfirmOptions = {
+  body: string;
+  cancel: string;
+  confirm: string;
+  destructive?: boolean;
+  title: string;
+};
 
 /** What Escape or Cancel asks on a changed line, quick add, or slug: fields that are not comments. */
 export const DISCARD_CHANGES: ConfirmOptions = {
   body: "The text you typed is deleted.",
   cancel: "Keep editing",
   confirm: "Discard",
+  destructive: true,
   title: "Discard your changes?",
 };
 
@@ -71,7 +81,11 @@ export function ConfirmHost({ children }: { children: ReactNode }) {
             <Text>{shown.body}</Text>
             <HStack gap={2} justify="end">
               <Button label={shown.cancel} onClick={() => answer(false)} variant="secondary" />
-              <Button label={shown.confirm} onClick={() => answer(true)} variant="destructive" />
+              <Button
+                label={shown.confirm}
+                onClick={() => answer(true)}
+                variant={shown.destructive ? "destructive" : "primary"}
+              />
             </HStack>
           </VStack>
         </Overlay>
