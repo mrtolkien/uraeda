@@ -498,7 +498,7 @@ const listMutations = {
     type: "Repositories",
     resolve: async ({ ctx, input, select }: ListResolver<{ name: string }>) => {
       const host = ctx.hosts.get(input.name);
-      if (host && ctx.sessions.working(host.path).length > 0) {
+      if (host && ctx.sessions.busy(host.path)) {
         throw callSiteError(`refused: An agent is working in ${input.name}: stop it first.`);
       }
       await refusable(() => ctx.binding.removeRepository(ctx.dataDir, input.name));
