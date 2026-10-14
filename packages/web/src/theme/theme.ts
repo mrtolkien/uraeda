@@ -140,6 +140,8 @@ export const uraedaTheme = defineTheme({
     "--size-viewport-height": "100dvh",
     // An image in a document or a message: a tall screenshot stays shorter than the window.
     "--size-image-max-height": "80dvh",
+    // A chat message's image, a preview the human opens full screen.
+    "--size-message-image": "120px",
     // The round's index, a column beside its questions on wide screens.
     "--size-round-index": "240px",
     // The repository menu's popover on wide screens, and the add form's field in the first run.

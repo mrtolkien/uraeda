@@ -1,7 +1,8 @@
 import type { Capabilities } from "./adapter.ts";
 import type { Trigger } from "./events.ts";
 import type { ChatImage } from "./images.ts";
-import { MAX_IMAGES, REFUSALS, refused } from "./session-state.ts";
+import { MAX_IMAGES } from "../limits.ts";
+import { REFUSALS, refused } from "./session-state.ts";
 
 /** A chat image sent with a message: its ID and size, which its item keeps, and its file's path. */
 export type SentImage = ChatImage & { path: string };

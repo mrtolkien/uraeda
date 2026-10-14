@@ -1,5 +1,6 @@
 // US1 scenarios 1 to 3 and 8, the edge cases of drops, and SC-002: images dropped anywhere on the
 // editor's page, pasted, or picked with "Add image", saved by the core, and linked at the cursor.
+// US2 scenario 1 and the page's drop on a session: images pasted or dropped join the message.
 // Files come from `fixtures/images/`, dropped and pasted through an in-page `DataTransfer`.
 import { screen } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
@@ -438,4 +439,45 @@ test("a refusal after a draft moved shows at its new path", async () => {
   await expect
     .poll(() => commands.readRepo("specs/drafts/git-listener/proposal.md"))
     .toContain("![one](images/one.webp)");
+});
+
+/** Waits for the composer's thumbnails, each saved: Send takes a message of images then. */
+async function thumbnails(count: number) {
+  await expect
+    .poll(() => screen.queryAllByRole("button", { name: /^Remove / }).length, { timeout: 10_000 })
+    .toBe(count);
+  await expect
+    .poll(() => screen.getByRole("button", { name: "Send" }).hasAttribute("disabled"), {
+      timeout: 10_000,
+    })
+    .toBe(false);
+}
+
+test("US2.1: two images pasted in the composer are thumbnails, sent with the message", async () => {
+  await show("/f/2026-10-12-cli-tuis/session", "Message Claude Code");
+  const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
+  const sent = (await commands.agentSent()).length;
+
+  paste([await image("phone.png", "image.png"), await image("desktop.png", "two.png")], box);
+
+  await thumbnails(2);
+  expect(screen.getByRole("button", { name: "Add images" })).toBeTruthy();
+  await userEvent.fill(box, "What is wrong here?");
+  await userEvent.click(screen.getByRole("button", { name: "Send" }));
+  await expect
+    .poll(async () => (await commands.agentSent()).length, { timeout: 10_000 })
+    .toBe(sent + 1);
+  const [message] = (await commands.agentSent()).slice(-1);
+  expect(message.text).toContain("What is wrong here?");
+  expect(message.images).toHaveLength(2);
+});
+
+test("a file dropped anywhere on a session's page joins the message", async () => {
+  await show("/f/2026-10-12-cli-tuis/session", "Message Claude Code");
+  await screen.findByRole("textbox", { name: "Message Claude Code" });
+
+  const event = drop([await image("phone.png", "image.png")]);
+
+  expect(event.defaultPrevented).toBe(true);
+  await thumbnails(1);
 });

@@ -32,6 +32,10 @@ const styles = stylex.create({
     borderColor: colorVars["--color-border"],
     borderRadius: radiusVars["--radius-element"],
   },
+  // In a chat message: a preview, which opens full size.
+  message: {
+    maxBlockSize: "var(--size-message-image)",
+  },
   zoom: {
     cursor: "zoom-in",
   },
@@ -85,16 +89,18 @@ function Missing({ alt }: { alt: string }) {
  * An image of a document or a chat message, at most the column's width, with its alt text. A
  * click opens it full screen in a lightbox, which Back closes; an image that fails to load shows
  * "Image missing" in its place. `isStatic`, or a `StaticImages` around it, draws the image alone,
- * as inside a link or a control.
+ * as inside a link or a control. `size="message"` draws a chat message's image as a preview.
  */
 export function ImageView({
   src,
   alt,
   isStatic = false,
+  size = "column",
 }: {
   src: string;
   alt: string;
   isStatic?: boolean;
+  size?: "column" | "message";
 }) {
   // The address that failed: an image whose address changes, as in a preview while its link is
   // typed, loads again.
@@ -118,7 +124,12 @@ export function ImageView({
       loading="lazy"
       decoding="async"
       onError={() => setFailed(src)}
-      {...stylex.props(styles.image, zoom && styles.zoom, inline && styles.inline)}
+      {...stylex.props(
+        styles.image,
+        size === "message" && styles.message,
+        zoom && styles.zoom,
+        inline && styles.inline,
+      )}
     />
   );
   if (isStatic || inControl) {

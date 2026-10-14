@@ -106,7 +106,12 @@ const commands = {
   },
   /** The messages sent to the agent during the test, in order. */
   agentSent() {
-    return agent.sent.map(({ id, text, when }) => ({ id, text, when }));
+    return agent.sent.map(({ id, text, when, images }) => ({
+      id,
+      text,
+      when,
+      images: images.map(({ path }) => path),
+    }));
   },
   /** The agent reads the latest message sent to it, or the one at `index`. */
   agentAccept(_context: unknown, index = -1) {
@@ -160,7 +165,7 @@ export type RepoCommands = {
   agentAccept: (index?: number) => Promise<void>;
   agentEmit: (events: Array<AgentEvent>) => Promise<void>;
   agentFinish: (code?: number, stderr?: string) => Promise<void>;
-  agentSent: () => Promise<Array<{ id: string; text: string; when: string }>>;
+  agentSent: () => Promise<Array<{ id: string; images: Array<string>; text: string; when: string }>>;
   mouse: (
     steps: Array<{ ms?: number; type: "move" | "down" | "up" | "wait"; x?: number; y?: number }>,
   ) => Promise<void>;
