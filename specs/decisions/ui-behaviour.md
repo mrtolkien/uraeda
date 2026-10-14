@@ -57,7 +57,7 @@ Back on sheets (NN/g), state that survives navigation (Vercel)
 
 Proposed by the [spec](../2026-10-14-text-inputs/spec.md). Text is saved only by a button or the
 field's own key, never as it is typed or on blur; unsaved text is kept in the browser, and leaving
-it asks first; and every multi-line field grows with its text the same way.
+it asks first; and every multi-line field has a fixed height, set by what it holds.
 
 The rules become:
 
@@ -77,9 +77,11 @@ The rules become:
   ask when nothing is unsaved.
 - The unsaved text of every field MUST be kept in the browser until it is saved or discarded, and
   restored when the field shows again, with a notice saying so and a Discard button.
-- Every multi-line text field MUST use the app's one growing text area: as tall as its text, never
-  with an empty row beyond its minimum, and no taller than half the window, past which it scrolls.
-  The editor of drafts and proposals MAY grow without that limit, the page scrolling instead.
+- Every multi-line text field MUST use the app's one text area, with a fixed height set by what it
+  holds, a little larger than its usual text, and the same wherever that kind of field appears: 20
+  rows for the editor of drafts and proposals, 12 for notes, 7 for every comment and summary, and 3
+  for a line that may wrap. A field MUST NOT grow or shrink with its text: past its height, it
+  scrolls. It MAY keep the browser's resize handle.
 - A modal sheet or dialog MUST be used only to confirm an irreversible action or to fill a short
   form, like adding a line. Everything else happens in the page.
 - Every sheet and dialog MUST have a visible close button, and Back MUST close it.
@@ -105,11 +107,15 @@ asked for both a warning before leaving and text kept in the browser, like GitHu
 [unsaved text](../2026-10-14-text-inputs/discovery-01.md#unsaved-text)). Images keep saving their
 field at once, so an image and its link are never apart
 ([Q6](../2026-10-14-text-inputs/clarifications-01.md#q6-should-adding-an-image-still-save-its-field-at-once)).
-The human found text boxes taller than their text, and asked for one coherent behaviour everywhere
-([notes](../2026-10-14-text-inputs/clarifications-01.md#settled-without-the-human)).
+The human found text boxes taller than their text, asked for one coherent behaviour everywhere
+([notes](../2026-10-14-text-inputs/clarifications-01.md#settled-without-the-human)), and then for
+fixed heights by kind of field, since fields that grow move the page's layout as the human types
+(its review of the [spec](../2026-10-14-text-inputs/spec.md)).
 
 Alternatives considered, added:
 
+- Text areas growing with their text, measured, up to half the window: no empty rows, but the page
+  moves under the human as they type.
 - Lines saving on Enter or blur, the earlier rule: a tap elsewhere saved a half-typed line.
 - Notes and the editor saving 400 ms after the last keystroke: the field took the file's trimmed
   text back while the human typed.
