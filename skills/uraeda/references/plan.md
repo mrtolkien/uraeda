@@ -31,8 +31,8 @@ context it needs without prescribing choices the implementer can make from the c
 
 ## Read first
 
-1. `spec.md` in full, especially its **Design**, **Testing**, and **Assumptions**, and the decisions
-   it lists.
+1. `spec.md` in full, especially its **Architecture**, **Assumptions**, and **Details**, with the
+   **Testing** table, and the decisions it lists.
 2. The constitution, and the active decisions that apply to the code you will touch, as they are
    now: a human may have changed one since the spec was approved. If one now conflicts with the
    spec, start a new round of questions, following
@@ -132,7 +132,7 @@ spec-revision: [the spec's revision]
 **Goal:** [One sentence on what this builds]
 
 **Architecture:** [The approach, ownership of changed rules, state, and resources, and the
-boundaries tasks rely on, linking to the spec's design. Scale the detail to the change.]
+boundaries tasks rely on, linking to the spec's architecture. Scale the detail to the change.]
 
 **Spec:** [spec.md](spec.md): the plan argues from the spec, so the implementer reads both.
 
@@ -197,15 +197,15 @@ What goes in each section:
   comment, by its number, and the task that carries it out. The approved spec is not changed for
   them.
 - **Complexity tracking**: every new abstraction, meaning a type, module, layer, wrapper, or helper
-  shared by several parts, tests included, even when the spec's design introduced it; and every
-  constitution exception the human accepted. Each row says why it is needed, and the simpler
-  alternative rejected. Name the callers, shared rule, or approved variation it serves: unspecified
-  future features do not justify an abstraction. "None." when there is none.
+  shared by several parts, tests included, even when the spec's architecture or details introduced
+  it; and every constitution exception the human accepted. Each row says why it is needed, and the
+  simpler alternative rejected. Name the callers, shared rule, or approved variation it serves:
+  unspecified future features do not justify an abstraction. "None." when there is none.
 
 Add `data-model.md` when the feature adds or changes entities beyond a few fields: fields,
-relationships, validation rules, state transitions. Smaller changes stay in the spec's **Data**
-section. Add `contracts/` when the feature exposes an interface to users or other systems: API
-schemas, CLI commands, file formats, written in the format the project already uses for them.
+relationships, validation rules, state transitions. Smaller changes stay in the spec's **Data**,
+under **Details**. Add `contracts/` when the feature exposes an interface to users or other systems:
+API schemas, CLI commands, file formats, written in the format the project already uses for them.
 
 ## Task structure
 

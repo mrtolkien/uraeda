@@ -628,11 +628,12 @@ git commit -m "build(code-quality-in-the-skill): size and nesting limits hold th
   - Behaviour, lines 192 to 210, with stories of one or two sentences;
   - Design, lines 212 to 244, becoming Architecture and Details;
   - self-review and red flags, lines 317 to 345.
-- Modify: `references/plan.md` (lines 34, 134 to 137, 200, 205 to 207, 304 to 306, 358, 366), the
-  plan template (line 18: `spec.md#architecture`), `references/implementation.md` (line 217),
-  `references/finish.md` (lines 58 to 61), `references/bug.md` (lines 53 to 57), the specs README
-  template (line 31), the example's `plan.md` (links to `spec.md#design`), `README.md` (where it
-  describes the spec)
+- Modify: `references/plan.md` (lines 34, 134 to 137, 200, 205 to 207), the plan template (line 18:
+  `spec.md#architecture`), `references/finish.md` (lines 58 to 61), the specs README template (line
+  31), `SKILL.md`'s folder layout, the example's and the plan-review fixture's `plan.md` (links to
+  `spec.md#design`), `README.md` (where it describes the spec). `references/implementation.md` line
+  217 and `references/bug.md` lines 53 to 57 stay: they name the record's sections and the `#tests`
+  anchor ([R12](rulings.md#r12-the-old-layout-test-keeps-details-under-design))
 - Test: `crates/core/tests/check.rs`
 
 **Interfaces:**
@@ -646,40 +647,41 @@ git commit -m "build(code-quality-in-the-skill): size and nesting limits hold th
   - **The template.** `## Mockups` keeps its `[Optional` placeholder; `## Details` and its four
     subsections are required.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```rust
 // crates/core/tests/check.rs: US2.2. A spec in the old layout reports what to move.
 #[test]
 fn a_spec_in_the_old_layout_reports_its_moved_sections() {
     // Arrange: the example spec with `## Architecture` renamed `## Design`, and `## Details`'s
-    // heading removed, so Data, Components, Error handling, and Testing sit as before.
-    // Assert: a `sections.missing` problem `missing section "## Details"`, and a `sections.unknown`
-    // problem for `## Design`.
+    // heading removed, its Data, Components, Error handling, and Testing put back before
+    // `## Assumptions`, as in the old layout.
+    // Assert: `missing section "## Details"`, `unknown section "## Design"`, and
+    // `"## Assumptions" must come before "### Testing"`.
 }
 ```
 
 US2.1 is the existing `the_example_has_no_problems`, which fails as soon as the template changes.
 
-- [ ] **Step 2: Change the template, then run the tests to check they fail**
+- [x] **Step 2: Change the template, then run the tests to check they fail**
 
 - Run: `cargo test -p uraeda-core --test check`
 - Expected: FAIL, `the_example_has_no_problems`: `missing section "## Architecture"`.
 
-- [ ] **Step 3: Move the example and the fixtures to the new layout, then rewrite the references**
+- [x] **Step 3: Move the example and the fixtures to the new layout, then rewrite the references**
 
 - The text of each moved section stays as it is. Only headings and their order change.
 - Every reference line listed above names the new sections.
 - The anchors `references/spec.md#what-is-a-decision` and `#tests` keep their headings.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run:
   `cargo test && cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs && vp test && vp run test:nvim`
 - Expected: PASS. A test still keyed on a line after line 120 of the example spec gets its line
   updated, never its assertion loosened.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add skills fixtures crates/core/tests/check.rs README.md packages crates editors

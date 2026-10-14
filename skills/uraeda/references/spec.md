@@ -22,13 +22,18 @@ pull request without the human, since the plan follows the spec, and only the pl
 to review when approving it wait for them. Anything the spec leaves vague, a later agent decides
 alone.
 
+The spec puts what the human approves first, and what the agents build from last:
+
 - **Behaviour first**: user stories with acceptance scenarios, edge cases, and success criteria.
   They say what users get, with the exact values the tests will check.
-- **Then the design**: the approach, the data, the components, error handling, and testing, scaled
-  to the feature. It says how the feature is built, at the level of components and data:
-  file-by-file changes and implementation steps belong in the plan.
+- **Then the architecture and the mockups**: the approach, the main units, where each new rule
+  lives, and the tradeoffs; and what users will see.
 - **Then what the human must weigh**: the assumptions you made, the decisions the spec proposes or
   relies on, the constitution check, the risk tier, and whether the plan waits for a review.
+- **Last, the details**: the data, the components, error handling, and testing, scaled to the
+  feature. They say how the feature is built, at the level of components and data: file-by-file
+  changes and implementation steps belong in the plan. The web UI folds them, with each story's
+  scenarios, until the human opens them.
 
 Decide the design: do not list possibilities. The questions already settled what needed the human;
 everything else is yours to settle, and to state as an assumption the human can object to. YAGNI
@@ -160,19 +165,9 @@ clarifications.]
 
 ## Success criteria
 
-## Design
+## Architecture
 
-### Approach
-
-### Data
-
-### Components
-
-### Mockups
-
-### Error handling
-
-### Testing
+## Mockups
 
 ## Assumptions
 
@@ -181,7 +176,19 @@ clarifications.]
 ## Constitution check
 
 ## Risk tier
+
+## Details
+
+### Data
+
+### Components
+
+### Error handling
+
+### Testing
 ```
+
+`## Mockups` is left out when the feature has no UI work.
 
 The `> [!IMPORTANT]` block, as described in
 [Coming back to the human](../SKILL.md#coming-back-to-the-human): how long the review takes, then
@@ -195,7 +202,8 @@ and any cost or migration. On a revision, what changed since the last review.
 
 - Each one is a slice of the feature that can be shipped and tested on its own: a user could get
   value from P1 alone.
-- A short description of the user's journey, in plain language, then "Why this priority".
+- A short description of the user's journey, in plain language, in one or two sentences, then "Why
+  this priority". The rest of the story is in its scenarios.
 - Acceptance scenarios written as **Given** / **When** / **Then**, with exact values: "a weekly task
   due Monday the 5th", "it is due Monday the 12th", never "the next week". The plan's tests use them
   as written, and the implementation must test each one.
@@ -209,27 +217,17 @@ discovery's **The proposal's path and existing actions** section is a starting l
 benchmark: "Setting a preset repeat takes two clicks from the open task", not "Setting a repeat is
 easy".
 
-## Design
+## Architecture
 
-Scale each part to the feature: a few sentences when it is straightforward, up to a few hundred
-words when it is nuanced.
-
-- **Approach**: the chosen approach and why, in a few sentences, linking to the decisions and
-  discovery topics behind it.
-- **Data**: what is stored or changes, with exact types, the rules that apply to it, and how it
-  flows between components. Data comes before components, so types are defined before they are used.
-- **Components**: the units the feature adds or changes.
-- **Mockups**: for UI work only, links to the mockups, each with what it shows. See
-  [Mockups](#mockups).
-- **Error handling**: what can fail, and what the user sees, with the exact text when the spec fixes
-  it.
-- **Testing**: see [Tests](#tests).
+The architecture is what the human approves of the build: the chosen approach and why, in a few
+sentences, linking to the decisions and discovery topics behind it; the main units; where each new
+rule lives; and the tradeoffs. It names the units, and the details describe them.
 
 Design for isolation and clarity:
 
 - Break the feature into smaller units that each have one clear purpose, communicate through
   well-defined interfaces, and can be understood and tested independently.
-- For each unit, say what it does, how it is used, and what it depends on.
+- For each unit, the details say what it does, how it is used, and what it depends on.
 - Can someone understand what a unit does without reading its internals? Can its internals change
   without breaking its consumers? If not, the boundaries need work.
 - Smaller, well-bounded units are also easier for agents to work with: they reason better about code
@@ -247,7 +245,7 @@ Working in the existing codebase:
 
 Any UI work requires mockups: a new screen, a new control, or a visible change to an existing one.
 The human approves what users will see, not a description of it, and the implementation follows it.
-Put them in `mockups/`, next to the spec, and link each one from the spec's **Mockups** section.
+Put them in `mockups/`, next to the spec, and link each one from the spec's `## Mockups` section.
 
 The format is yours: use whatever shows the change best, and is quickest for the human to check. For
 example, a static HTML page when layout or interaction matters, an SVG for a single screen or
@@ -257,22 +255,6 @@ is simple to build: a small component in the project's own stack, that the human
 Show every state the user stories name, like an open menu, an empty list, or an error, with the
 exact text the spec fixes. A mockup shows what users see: the spec's text stays the reference for
 behaviour, and wins when the two disagree.
-
-## Tests
-
-Test the feature the way a user or a caller uses it: integration tests, through the real components
-and an in-memory store, with the clock set by the test. They survive refactoring, where unit tests
-of internal functions break, and an agent writes them quickly.
-
-- Tests are part of the codebase: organize them with the same care as the main code. Create the
-  helpers, fixtures, and fakes the tests need (rendering the app, seeding the store, setting the
-  clock), in shared files, so that each test holds no boilerplate.
-- Readability is a key feature of a test: each one is short and readable by a human, Arrange, Act,
-  Assert, in that order, with a name that states the scenario. Test files stay short.
-- Write unit tests only for pure logic with many cases, as one table-driven test: one row per case.
-
-The spec's **Testing** section opens with a sentence on how the integration tests run, then a table
-mapping every acceptance scenario, edge case, and success criterion to its test.
 
 ## What the human weighs
 
@@ -308,6 +290,34 @@ no `plan-review` has `false`.
 - When unsure between two tiers, propose the higher one. A change to the format of data users
   already have is at least `medium`; converting every saved record is `high`.
 
+## Details
+
+The details are what the agents build from. Scale each part to the feature: a few sentences when it
+is straightforward, up to a few hundred words when it is nuanced.
+
+- **Data**: what is stored or changes, with exact types, the rules that apply to it, and how it
+  flows between components. Data comes before components, so types are defined before they are used.
+- **Components**: the units the feature adds or changes, with the exact strings users see.
+- **Error handling**: what can fail, and what the user sees, with the exact text when the spec fixes
+  it.
+- **Testing**: see [Tests](#tests).
+
+## Tests
+
+Test the feature the way a user or a caller uses it: integration tests, through the real components
+and an in-memory store, with the clock set by the test. They survive refactoring, where unit tests
+of internal functions break, and an agent writes them quickly.
+
+- Tests are part of the codebase: organize them with the same care as the main code. Create the
+  helpers, fixtures, and fakes the tests need (rendering the app, seeding the store, setting the
+  clock), in shared files, so that each test holds no boilerplate.
+- Readability is a key feature of a test: each one is short and readable by a human, Arrange, Act,
+  Assert, in that order, with a name that states the scenario. Test files stay short.
+- Write unit tests only for pure logic with many cases, as one table-driven test: one row per case.
+
+The spec's **Testing** section opens with a sentence on how the integration tests run, then a table
+mapping every acceptance scenario, edge case, and success criterion to its test.
+
 ## Spec frontmatter
 
 - `status`: `awaiting-human` when you submit it.
@@ -324,9 +334,10 @@ Before committing, read the spec again with fresh eyes, and fix what you find in
    Open questions go back to [discovery](discovery.md).
 2. **Answers**: every answer and settled point shows up in the spec, the human's own words included,
    and nothing in the spec contradicts one.
-3. **Consistency**: no section contradicts another; every UI change has a mockup; the design
-   delivers every user story; the data supports every edge case, over two consecutive occurrences
-   when it repeats; the Testing table covers every scenario, edge case, and success criterion.
+3. **Consistency**: no section contradicts another; every UI change has a mockup; the architecture
+   and the details deliver every user story; the data supports every edge case, over two consecutive
+   occurrences when it repeats; the Testing table covers every scenario, edge case, and success
+   criterion.
 4. **Scope**: the spec fits a single plan. If it does not, start a new round, following
    [Discovery](discovery.md), with a question proposing the split, the recommended split as option
    A. Answered rounds are never edited.
@@ -344,7 +355,7 @@ Before committing, read the spec again with fresh eyes, and fix what you find in
 | "Next week is close enough for a scenario"                    | Scenarios carry exact values: the tests copy them as written.                                       |
 | "This answer could mean two things, I'll take the likely one" | Pick it only if the readings differ little, and say so in the block. Otherwise, ask in a new round. |
 | "Every important choice deserves a decision"                  | Only what an agent would not guess, that outlives the feature, and that is costly to get wrong.     |
-| "The design section is the plan's job"                        | The design is the spec's job: components and data. Files and steps are the plan's.                  |
+| "The details are the plan's job"                              | The details are the spec's job: components and data. Files and steps are the plan's.                |
 
 ## Revising
 

@@ -119,9 +119,7 @@ Acceptance scenarios:
 - **SC-003**: The title parser recognizes every phrase in its list, and leaves every other title
   unchanged.
 
-## Design
-
-### Approach
+## Architecture
 
 A repeating task stays a normal task with a repeat rule, as the new
 [repeating tasks](../decisions/repeating-tasks.md) decision says: completing it moves its due date.
@@ -130,73 +128,18 @@ so next dates are computed without timezone bugs. Rules are pure data with pure 
 menu, the custom screen, and the title parser all produce the same rule. See the
 [discovery](discovery-01.md#approaches).
 
-### Data
+- **Main units**: the date helpers and the repeat rules, pure functions in `src/lib/`, used by the
+  task store, the edit panel, and the task row.
+- **Where the rules live**: date arithmetic in the date helpers, as the due dates decision requires;
+  repeat rules and the title parser in the repeat rules; completing a task and the upgrade in the
+  task store.
+- **Tradeoffs**: one task whose due date moves keeps no history of completions, as the repeating
+  tasks decision accepts. Due dates are converted once, by an upgrade of every saved task.
 
-A task gets `repeat: RepeatRule | null`, where `RepeatRule` is
-`{ unit: "day" | "week" | "month" | "year", interval: number, weekdays?: number[], from: CalendarDay }`.
-`dueDate` becomes a `YYYY-MM-DD` string or `null`.
-
-- Weekly rules always store their days: "weekly" is every week on the due date's day, "weekdays"
-  every week on Monday to Friday, "weekends" every week on Saturday and Sunday.
-- Setting a repeat on a task without a due date sets it to today. Setting a weekly rule then moves
-  the due date to the first chosen day on or after it.
-- `from` is the date the schedule starts from: the due date when the repeat is set, or when the user
-  moves the due date by hand. The rule's dates are counted from it: every N days, every N months on
-  its day of the month, or the chosen days of every Nth week from its week. Counting from `from`
-  keeps a task due on the 31st on the 31st, after a shorter month.
-- The next due date is the first date of the rule after the previous due date, skipping dates
-  already past.
-
-Completing a repeating task: the task row calls `completeTask`, which computes and saves the next
-due date, and returns the previous one. The row keeps it for 5 seconds, for undo.
-
-### Components
-
-- **Date helpers** (`src/lib/dates.ts`, new): calendar day arithmetic on `YYYY-MM-DD` strings, built
-  on date-fns, and today's date. Used by repeat rules and the store, depends on nothing else in the
-  app.
-- **Repeat rules** (`src/lib/repeat.ts`, new): the `RepeatRule` type, the presets, the label shown
-  in the menu ("Every 2 weeks on Monday"), `nextDueDate(rule, dueDate, today)`, and
-  `parseRepeat(title)`. Pure functions, depending on the date helpers only.
-- **Task store** ([`src/store/tasks.ts`](/src/store/tasks.ts)): `completeTask` moves the due date of
-  a repeating task, and returns the previous one. `restoreDueDate` puts it back. Saving a title runs
-  `parseRepeat`. Setting a repeat aligns the due date, as described in [Data](#data).
-- **Store upgrade 2** ([`src/store/upgrades.ts`](/src/store/upgrades.ts)): converts saved due dates
-  to calendar days, and adds `repeat: null` to saved tasks.
-- **Edit panel** ([`EditPanel.tsx`](/src/components/EditPanel.tsx)): the repeat menu, built on the
-  existing [`Select`](/src/components/Select.tsx), whose "custom" entry opens the custom screen.
-- **Custom repeat screen** (`src/components/RepeatScreen.tsx`, new): interval, unit, and days of the
-  week, built in the project as the [UI components](../decisions/ui-components.md) decision
-  requires. It is the one new screen the constitution allows for this feature.
-- **Task row** ([`TaskRow.tsx`](/src/components/TaskRow.tsx)): the repeat icon, and the confirmation
-  "Next: Monday 12" with its undo button after a completion.
-
-### Mockups
+## Mockups
 
 - [Repeat](mockups/repeat.html): the repeat menu open in the edit panel, the custom repeat screen,
   and a task row just after a completion, with its undo.
-
-### Error handling
-
-- The upgrade meets a saved due date that is not a valid timestamp: it sets it to `null`, logs the
-  raw value, and continues. No task is ever deleted by the upgrade.
-- Saving a moved due date fails: the task keeps its previous date, and the row shows "Could not
-  save".
-- The parser does not recognize a phrase: the title is saved as typed, without a repeat.
-
-### Testing
-
-Integration tests render the app on an in-memory IndexedDB, with today's date set by the test, and
-drive it like a user: open a task, pick "weekly", complete it, read the list.
-
-| What                                              | Test                                                                             |
-| ------------------------------------------------- | -------------------------------------------------------------------------------- |
-| US1 to US4, and the edge cases                    | One integration test per scenario                                                |
-| Upgrade of version 1 data, with invalid due dates | Integration test: the app opened on a database saved by version 1                |
-| "Could not save" after a completion               | Integration test with a store that fails to save                                 |
-| SC-001                                            | Integration test counting clicks from the open task                              |
-| SC-003                                            | Table-driven test of `parseRepeat`: one row per phrase, and per title left alone |
-| SC-002                                            | The existing [list benchmark](/bench/list.bench.ts), before and after            |
 
 ## Assumptions
 
@@ -242,3 +185,68 @@ Relied on:
 ## Risk tier
 
 **High**: it changes the format of every saved due date, in an app with no backup of users' data.
+
+## Details
+
+### Data
+
+A task gets `repeat: RepeatRule | null`, where `RepeatRule` is
+`{ unit: "day" | "week" | "month" | "year", interval: number, weekdays?: number[], from: CalendarDay }`.
+`dueDate` becomes a `YYYY-MM-DD` string or `null`.
+
+- Weekly rules always store their days: "weekly" is every week on the due date's day, "weekdays"
+  every week on Monday to Friday, "weekends" every week on Saturday and Sunday.
+- Setting a repeat on a task without a due date sets it to today. Setting a weekly rule then moves
+  the due date to the first chosen day on or after it.
+- `from` is the date the schedule starts from: the due date when the repeat is set, or when the user
+  moves the due date by hand. The rule's dates are counted from it: every N days, every N months on
+  its day of the month, or the chosen days of every Nth week from its week. Counting from `from`
+  keeps a task due on the 31st on the 31st, after a shorter month.
+- The next due date is the first date of the rule after the previous due date, skipping dates
+  already past.
+
+Completing a repeating task: the task row calls `completeTask`, which computes and saves the next
+due date, and returns the previous one. The row keeps it for 5 seconds, for undo.
+
+### Components
+
+- **Date helpers** (`src/lib/dates.ts`, new): calendar day arithmetic on `YYYY-MM-DD` strings, built
+  on date-fns, and today's date. Used by repeat rules and the store, depends on nothing else in the
+  app.
+- **Repeat rules** (`src/lib/repeat.ts`, new): the `RepeatRule` type, the presets, the label shown
+  in the menu ("Every 2 weeks on Monday"), `nextDueDate(rule, dueDate, today)`, and
+  `parseRepeat(title)`. Pure functions, depending on the date helpers only.
+- **Task store** ([`src/store/tasks.ts`](/src/store/tasks.ts)): `completeTask` moves the due date of
+  a repeating task, and returns the previous one. `restoreDueDate` puts it back. Saving a title runs
+  `parseRepeat`. Setting a repeat aligns the due date, as described in [Data](#data).
+- **Store upgrade 2** ([`src/store/upgrades.ts`](/src/store/upgrades.ts)): converts saved due dates
+  to calendar days, and adds `repeat: null` to saved tasks.
+- **Edit panel** ([`EditPanel.tsx`](/src/components/EditPanel.tsx)): the repeat menu, built on the
+  existing [`Select`](/src/components/Select.tsx), whose "custom" entry opens the custom screen.
+- **Custom repeat screen** (`src/components/RepeatScreen.tsx`, new): interval, unit, and days of the
+  week, built in the project as the [UI components](../decisions/ui-components.md) decision
+  requires. It is the one new screen the constitution allows for this feature.
+- **Task row** ([`TaskRow.tsx`](/src/components/TaskRow.tsx)): the repeat icon, and the confirmation
+  "Next: Monday 12" with its undo button after a completion.
+
+### Error handling
+
+- The upgrade meets a saved due date that is not a valid timestamp: it sets it to `null`, logs the
+  raw value, and continues. No task is ever deleted by the upgrade.
+- Saving a moved due date fails: the task keeps its previous date, and the row shows "Could not
+  save".
+- The parser does not recognize a phrase: the title is saved as typed, without a repeat.
+
+### Testing
+
+Integration tests render the app on an in-memory IndexedDB, with today's date set by the test, and
+drive it like a user: open a task, pick "weekly", complete it, read the list.
+
+| What                                              | Test                                                                             |
+| ------------------------------------------------- | -------------------------------------------------------------------------------- |
+| US1 to US4, and the edge cases                    | One integration test per scenario                                                |
+| Upgrade of version 1 data, with invalid due dates | Integration test: the app opened on a database saved by version 1                |
+| "Could not save" after a completion               | Integration test with a store that fails to save                                 |
+| SC-001                                            | Integration test counting clicks from the open task                              |
+| SC-003                                            | Table-driven test of `parseRepeat`: one row per phrase, and per title left alone |
+| SC-002                                            | The existing [list benchmark](/bench/list.bench.ts), before and after            |
