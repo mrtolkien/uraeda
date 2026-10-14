@@ -295,7 +295,8 @@ git commit -m "feat(run-ui): the binding reports its version"
 - Modify: `packages/server/src/env.ts` (`loadEnv`, `loadDataDir`: the root may be null)
 - Modify: `packages/server/src/main.ts`, `packages/server/src/dev.ts`,
   `packages/server/scripts/dev.ts`, `packages/server/scripts/validate-claude.ts`,
-  `packages/web/vite.config.ts` (take their paths from the layout)
+  `packages/server/scripts/validate-claude-images.ts`, `packages/web/vite.config.ts` (take their
+  paths from the layout)
 - Modify: `packages/server/package.json` (export `./paths`)
 - Test: `packages/server/src/__tests__/paths.test.ts`,
   `packages/server/src/runner/__tests__/claude.test.ts` (line 997),
@@ -317,7 +318,9 @@ git commit -m "feat(run-ui): the binding reports its version"
   ```
 
   `packaged` defaults to whether the build defined `URAEDA_PACKAGE` (declared
-  `declare const URAEDA_PACKAGE: boolean | undefined`, read with `typeof`), and `moduleUrl` to
+  `declare const URAEDA_PACKAGE: boolean | undefined`, read as
+  `typeof URAEDA_PACKAGE === "boolean" && URAEDA_PACKAGE`: the lint's autofix turns
+  `typeof … !== "undefined"` into a bare reference, which throws in the sources), and `moduleUrl` to
   `paths.ts`'s own `import.meta.url`. Checkout, from `<root>/packages/server/src/paths.ts`: `plugin`
   = `<root>/packages/server/plugin`, `web` = `<root>/packages/web/dist`, `checkout` = `<root>`.
   Package, from `<package>/dist/uraeda.mjs`: `<package>/plugin`, `<package>/web`, null.
@@ -330,7 +333,7 @@ git commit -m "feat(run-ui): the binding reports its version"
   default check runs `checkBinding(layout().checkout)` only when `checkout` is set.
 - Produces: `uraeda-server/paths` exporting `layout`, for the web package's Vite config.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/server/src/__tests__/paths.test.ts
@@ -382,13 +385,14 @@ Change the test at line 997 of `claude.test.ts` to read `layout().plugin` instea
 The breaks they catch: a package layout that still points into a checkout; the plugin's path
 computed from the wrong folder after the move; a `.env` read when the root is null.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `vp test packages/server/src/__tests__/paths.test.ts packages/server/src/__tests__/env.test.ts`
-- Expected: FAIL, `Failed to resolve import "../paths.ts"`
+- Expected: FAIL, `Failed to resolve import "../paths.ts"` for `paths.test.ts`, and for the env test
+  `The "paths[0]" argument must be of type string. Received null`
 
-- [ ] **Step 3: Implement `paths.ts`, and move every caller to it**
+- [x] **Step 3: Implement `paths.ts`, and move every caller to it**
 
 `main.ts` calls `loadEnv(layout().checkout, …)` and `loadDataDir(layout().checkout)`; `dev.ts` and
 the web package's Vite config take the checkout's root from `layout().checkout`; `scripts/dev.ts`
@@ -397,12 +401,12 @@ adapter's `pluginDir`. `main.ts` keeps `--web-root` until Task 3. Remove `PLUGIN
 Search the repository for `new URL("../` in `packages/server` and `packages/web/vite.config.ts`
 afterwards: none may build these three paths.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
-- Run: `vp check && vp test`
+- Run: `vp check && vp test packages/server packages/binding`, then `vp test` once
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server packages/web/vite.config.ts

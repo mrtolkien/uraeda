@@ -10,7 +10,8 @@ import { join } from "node:path";
 import { attachImage, encodeImage } from "uraeda-binding";
 import { fixture } from "uraeda-binding/test-utils";
 import type { AgentProcess } from "../src/runner/adapter.ts";
-import { ClaudeAdapter, PLUGIN_DIR } from "../src/runner/claude.ts";
+import { layout } from "../src/paths.ts";
+import { ClaudeAdapter } from "../src/runner/claude.ts";
 import type { AgentEvent } from "../src/runner/events.ts";
 import { ChatImages } from "../src/runner/images.ts";
 
@@ -110,7 +111,7 @@ export function wrappedAdapter(
     command: wrapper,
     configDir,
     imagesDir: imagesFolder(outside),
-    pluginDir: PLUGIN_DIR,
+    pluginDir: layout().plugin,
   });
 }
 

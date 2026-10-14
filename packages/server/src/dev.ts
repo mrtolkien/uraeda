@@ -6,7 +6,8 @@ import { chatImages } from "./attach.ts";
 import { checkBinding, loadBinding } from "./binding.ts";
 import { type Env, loadDataDir, loadEnv } from "./env.ts";
 import type { Adapter } from "./runner/adapter.ts";
-import { ClaudeAdapter, PLUGIN_DIR } from "./runner/claude.ts";
+import { layout } from "./paths.ts";
+import { ClaudeAdapter } from "./runner/claude.ts";
 import { type Server, startServer } from "./server.ts";
 
 export { checkBinding, loadEnv };
@@ -69,7 +70,7 @@ export async function reloadRepositories(): Promise<void> {
  * `adapter` says otherwise. A start that fails answers 500 with its reason, and the next request
  * tries again.
  */
-export function devHandler(root: string, { adapter }: { adapter?: Adapter } = {}) {
+export function devHandler(root: string | null, { adapter }: { adapter?: Adapter } = {}) {
   const env = loadEnv(root);
   const start = async (port: number): Promise<Started> => {
     const binding = await loadBinding();
@@ -79,7 +80,8 @@ export function devHandler(root: string, { adapter }: { adapter?: Adapter } = {}
     const server = await startServer({
       ...loadEnv(root),
       adapter:
-        adapter ?? new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: PLUGIN_DIR }),
+        adapter ??
+        new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: layout().plugin }),
       allowOrigins: [],
       binding,
       dataDir,
