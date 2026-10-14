@@ -1053,3 +1053,101 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `refusedWith`, the `over` effect, and `sendActions` in
   `packages/web/src/Composer.tsx`.
 - **Where**: task 10, review.
+
+## R70: A verdict refused for images says it where the human looks, and leaves other errors
+
+- **Decision**: a verdict refused while the open comment holds an image, or uploads one, says "Add
+  or cancel your comment first: its images are not in the review yet.". A verdict refused while the
+  image of a comment cancelled during its upload is still being added says "An image is still being
+  added: wait for it, then try again.", and that refusal goes once the image is in. Either shows
+  under the verdict's buttons on wide screens, and on the phone in the comment form when one is
+  open, else under the verdict's buttons. Both are announced, assertive. A refusal goes when the
+  comment is added or cancelled. It leaves the page's other errors, like a hook's refusal, on
+  screen.
+- **Rationale**: on the phone, the comment's sheet lies over the page's end, but a comment cancelled
+  has no sheet left: the page's message is the only place left, and it showed nothing. The errors
+  stay on screen until the human deals with them ([ui-behaviour](../decisions/ui-behaviour.md)): an
+  image refusal is about the comment, and a hook's refusal, with its Try again, is not. A message
+  drawn under buttons the human just pressed is not heard by a screen reader on its own.
+- **Alternatives considered**: `role="alert"` on the message (a live region mounted with its text is
+  not reliably announced, as Astryx notes; `useAnnounce` is the app's way, as `useAttach`'s); the
+  cancelled comment's refusal in no place on the phone (a verdict that does nothing, silently);
+  waiting for the upload, then giving the verdict (a commit the human cannot stop, for an image that
+  would be deleted by it anyway).
+- **If wrong**: `verdict`, `close`, and the `STILL_ADDING` effect in
+  `packages/web/src/ReviewPage.tsx`.
+- **Where**: task 11, review.
+
+## R71: An image goes into the comment it was added for
+
+- **Decision**: the review page counts the comments written: each cancel, add, or edit starts a new
+  one. A run of uploads remembers the comment it started for, and its links go into the text only if
+  that comment is still the one being written; else they are dropped, and the alt text is not
+  selected. The image stays on disk, linked by no file, and the next commit deletes it. A general
+  comment that becomes a line comment by a tap is the same comment.
+- **Rationale**: the links are inserted in the text the field holds when the upload ends: an edit
+  opened during the upload took the image picked for the comment before it. A cancelled comment
+  already dropped its images (R64); an edit is the same case.
+- **Alternatives considered**: comparing the draft's kind (a general comment cancelled and opened
+  again would take the image of the cancelled one); the draft's object (a tap turning a general
+  comment into a line comment would drop images of a text it keeps).
+- **If wrong**: `writing`, `runFor`, and `onText` in `packages/web/src/ReviewPage.tsx`; `onText`'s
+  `false` in `packages/web/src/attach/useImageText.ts`.
+- **Where**: task 11, review.
+
+## R72: An upload ends after 2 minutes
+
+- **Decision**: an upload, the server's answer included, is aborted after 120 seconds, refused under
+  its field with "The image could not be added: the server did not answer in time.".
+- **Rationale**: Submit and a run's next files wait for the uploads under way: an upload the server
+  never answers held them forever. 120 seconds leaves a 20 MB photo time over a slow phone
+  connection, about 1.5 Mbit/s, and the core's encoding.
+- **Alternatives considered**: 60 seconds (a 20 MB photo over a slow mobile uplink can take longer,
+  and is refused after its wait); a timeout only on Submit's wait (the field's status stays
+  "Adding…", and the next files never go).
+- **If wrong**: `UPLOAD_TIMEOUT` and `upload` in `packages/web/src/attach/useAttach.ts`.
+- **Where**: task 11, review.
+
+## R73: A round's "Add image" buttons are named for their field
+
+- **Decision**: `AttachButton` takes a `name`, its accessible name, starting with the text it shows,
+  which stays "Add image": "Add image to Q3's comment", "Add image to the notes". The review's and
+  the mockup's comment forms, the editor, and the composer keep "Add image" or "Add images": each
+  page has one.
+- **Rationale**: a round shows a button per question and one for the notes: a screen reader's list
+  of buttons read "Add image" a dozen times. The name starts with the visible text, so a voice
+  command saying what is seen still finds it (WCAG's label in name).
+- **Alternatives considered**: `aria-describedby` to the question (the list of buttons still reads
+  alike); visible names (long buttons, and the question is right above).
+- **If wrong**: `AttachButton` in `packages/web/src/attach/AttachButton.tsx`, `CommentField` in
+  `packages/web/src/Question.tsx`, `NotesField` in `packages/web/src/RoundPage.tsx`.
+- **Where**: task 11, review.
+
+## R74: A follow-up gone during its upload still saves its image, and Submit waits for it
+
+- **Decision**: when a follow-up stops applying while an image uploads to its comment, its question
+  leaves the page, but a wait stays in the page's pending saves until the image is added and the
+  answer saved with its link. Submit waits for it, and commits the image with the round, in the
+  follow-up's answer. A follow-up's comment typed and not saved is not saved by its leaving.
+- **Rationale**: Submit commits the images the round links and deletes the others: a question that
+  left the page took its wait with it, and Submit committed before the image was linked. The answer
+  of a follow-up that no longer applies stays in the file, as an answer saved before it stopped
+  applying does.
+- **Alternatives considered**: dropping the image when its question leaves (the human's picked image
+  lost, with no word); refusing Submit while it uploads (the human waits for a question no longer
+  shown).
+- **If wrong**: the pending saves' cleanup in `Question` in `packages/web/src/Question.tsx`.
+- **Where**: task 11, review.
+
+## R75: The comment form's buttons keep their order, unlike the mockup
+
+- **Decision**: the comment form's buttons are "Add image", "Ask the agent" when offered, Cancel,
+  then "Add comment", the primary action last, at the row's end. The mockup's section 5 shows "Add
+  image", "Add comment", then Cancel.
+- **Rationale**: Cancel then the primary action is the form's order before this feature, which the
+  review and the mockup page share: the mockup drew the new button, not a new order. "Add image"
+  goes first, as in the answers, where it leads the row.
+- **Alternatives considered**: the mockup's order (a change to every comment form, for no gain the
+  spec names).
+- **If wrong**: `CommentForm` in `packages/web/src/CommentForm.tsx`.
+- **Where**: task 11, review.

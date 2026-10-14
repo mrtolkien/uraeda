@@ -557,6 +557,32 @@ test.each([
   expect(field.value).toBe(before);
 });
 
+/** Review: an upload the server never answers ends, with a refusal, instead of holding Submit. */
+test("an upload the server does not answer in time says so under the field", async () => {
+  const repo = fixtureRepo();
+  const path = proposal(repo);
+  const server = serverFetch(repo);
+  // What the upload's time limit does: its signal aborts the request, which rejects so.
+  const fetch: typeof globalThis.fetch = async (input, init) => {
+    if (!urlOf(input).startsWith("/attach")) {
+      return server(input, init);
+    }
+    expect(init?.signal).toBeInstanceOf(AbortSignal);
+    throw new DOMException("The operation timed out.", "TimeoutError");
+  };
+  await renderPage(`/edit/${path}`, repo, { fetch });
+  const field = (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
+  const before = field.value;
+
+  await pick([png("login.png")]);
+
+  expect(
+    (await screen.findAllByText("The image could not be added: the server did not answer in time."))
+      .length,
+  ).toBeGreaterThan(0);
+  expect(field.value).toBe(before);
+});
+
 /** Edge case: an image added while the feature's agent works is refused, as every write. */
 test("an image added while the feature's agent works is refused under the field", async () => {
   const repo = fixtureRepo();

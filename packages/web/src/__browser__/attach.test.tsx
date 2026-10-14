@@ -645,13 +645,11 @@ test("a verdict waits for a comment holding an image to be added or cancelled", 
   screen.getByRole("button", { name: "Approve only" }).focus();
   await userEvent.keyboard("{Enter}");
 
-  expect(
-    (
-      await screen.findAllByText(
-        "Add or cancel your comment first: its images are not in the review yet.",
-      )
-    ).length,
-  ).toBeGreaterThan(0);
+  const refusal = "Add or cancel your comment first: its images are not in the review yet.";
+  await expect.poll(() => shown(refusal).length).toBe(1);
+  // In the comment's sheet on the phone, which lies over the page's end; under the verdict else.
+  const form = screen.getByRole("form", { name: "Comment" });
+  expect(form.contains(shown(refusal)[0]!)).toBe(window.innerWidth < 768);
   expect(await commands.repoFileSize(`${REVIEW_FOLDER}/images/shot.webp`)).toBeGreaterThan(0);
   expect(await commands.readRepo(`${REVIEW_FOLDER}/spec.md`)).toMatch(
     /^---\nstatus: awaiting-human/,
