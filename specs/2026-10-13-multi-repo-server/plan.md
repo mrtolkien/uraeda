@@ -711,24 +711,31 @@ git commit -m "feat(multi-repo-server): add, remove, and complete repositories t
 **Files:**
 
 - Create: `packages/server/src/server.ts`
-- Modify: `main.ts`, `dev.ts`, `live.ts` (`startSessions` moves to `server.ts`), `options.ts`
-  (whether the repository was given), `packages/web/vite.config.ts` if `devHandler`'s options change
-- Test: `packages/server/src/__tests__/server.test.ts`, `main.test.ts`, `dev.test.ts`
+- Modify: `main.ts`, `dev.ts`, `live.ts` (`startSessions` moves to `server.ts`), `options.ts` and
+  `env.ts` (whether the repository was given), `app.ts` (`createApp` does not need it),
+  `packages/web/vite.config.ts` if `devHandler`'s options change
+- Test: `packages/server/src/__tests__/server.test.ts`, `main.test.ts`, `env.test.ts`, `dev.test.ts`
 
 **Interfaces:**
 
 - Consumes: `Hosts` (tasks 4, 5), `startSessions`, which takes the hosts as `hosts: HostsOf` (R5).
 - Produces:
-  - `startServer(options: Options & { binding: Binding; dataDir: string; adapter: Adapter; given: boolean }): Promise<{ app: Hono; hosts: Hosts; sessions: Sessions; stop(): Promise<void> }>`:
-    when `options.repo` is in git, adds it (which touches it); otherwise throws
-    `<repo> is not a git repository` when `given`, else logs
-    `uraeda-server: <repo> is not in a git repository: add one from the web UI`.
-  - `Options.given: boolean`, true when `--repo` or `URAEDA_REPO` named the repository.
-  - `devHandler(root, { adapter? })` keeps one app per port, built by `startServer`; `forgetRepo`,
-    which since task 4 removes the repository from the list, is removed, replaced in tests by
-    removing it from the list.
+  - `startServer(options: Options & { binding: Binding; dataDir: string; adapter: Adapter }): Promise<Server>`,
+    `Server = { app; hosts: Hosts; sessions: Sessions; stop(): Promise<void> }`, `given` coming with
+    `Options`: when `options.repo` is in git, adds its main checkout (which touches it); otherwise
+    throws `<repo> is not a git repository` when `given`, else logs
+    `uraeda-server: <repo> is not in a git repository: add one from the web UI`. Until task 7, the
+    app's global endpoint serves that main checkout, or else the list's most recent repository.
+    `stop()` closes the hosts, then the sessions, once.
+  - `startSessions` and `CHECK_EVERY_MS` move from `live.ts` to `server.ts`.
+  - `Env.given` and `Options.given: boolean`, true when `URAEDA_REPO` or `--repo` named the
+    repository; `createApp` takes `Omit<Options, "given">`.
+  - `devHandler(root, { adapter? })` keeps one server per port, started by `startServer` with the
+    port's first request; a failed start answers 500 and is tried again. `forgetRepo` and the
+    per-request `URAEDA_REPO` stay, marked `TEMPORARY`, for the browser tests until task 9
+    ([R7](rulings.md#r7-the-browser-tests-keep-uraeda_repo-until-task-9)).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/server/src/__tests__/server.test.ts
@@ -750,22 +757,22 @@ test("a busy port exits 1 and names the first server", async () => {
 });
 ```
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/__tests__/server.test.ts`
 - Expected: FAIL, `Cannot find module '../server.ts'`.
 
-- [ ] **Step 3: Implement `server.ts`, and rewrite `main.ts` and `dev.ts` on it**
+- [x] **Step 3: Implement `server.ts`, and rewrite `main.ts` and `dev.ts` on it**
 
 `main.ts` keeps its printed URL and signal handling, and maps `EADDRINUSE` from `serve` to the busy
 port's message. `dev.ts` builds the server on the first request for a port.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src/ packages/web/vite.config.ts
@@ -984,6 +991,7 @@ git commit -m "feat(multi-repo-server): the repository menu, the add form, and t
 **Files:**
 
 - Modify: `packages/web/vite.browser.config.ts` (`takeRepo`, `releaseRepo`),
+  `packages/server/src/dev.ts` (its `TEMPORARY` parts go), `packages/web/scripts/screenshots.ts`,
   `packages/web/src/__browser__/setup.ts`, `helpers.tsx`, `README.md` (the web UI's section)
 - Create: `packages/web/src/__browser__/repositories.test.tsx`
 
@@ -993,6 +1001,14 @@ git commit -m "feat(multi-repo-server): the repository menu, the add form, and t
 - Produces: `takeRepo()` returns `{ token, name }`, the fixture added to the test server's list
   under a unique name; browser tests open `/r/<name>/...`. The turn stays, for the one shared fake
   agent ([R2](rulings.md#r2-browser-tests-keep-their-turn-for-the-shared-agent)).
+  - `dev.ts` loses its `TEMPORARY` parts
+    ([R7](rulings.md#r7-the-browser-tests-keep-uraeda_repo-until-task-9)): `forgetRepo`, the `apps`
+    map, and the reading of `URAEDA_REPO` at each request. `takeRepo` adds its fixture with
+    `binding.addRepository(process.env.URAEDA_DATA_DIR, repo)`, and `releaseRepo` removes it with
+    `binding.removeRepository`; the running server's hosts follow the file through their watch, so a
+    test waits for its name to be served (or `dev.ts` exports a reload of its servers' hosts).
+    `vite.browser.config.ts` and `src/__browser__/setup.ts` stop setting `URAEDA_REPO` per test;
+    `scripts/screenshots.ts` may keep setting it once, as the starting repository.
 
 - [ ] **Step 1: Write the failing tests**
 

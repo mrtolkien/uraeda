@@ -1,4 +1,3 @@
-import { join } from "node:path";
 import type { Changes } from "uraeda-binding";
 import type { Binding } from "./fate/context.ts";
 import { pages } from "./fate/sessions.ts";
@@ -6,13 +5,11 @@ import { AGENT_ID, PRIORITIES_ID, SESSION_LIST_ID, WORKSPACE_ID } from "./fate/v
 import { type LiveBus, live } from "./fate.ts";
 import type { Host, Hosts } from "./repositories.ts";
 import type { Adapter } from "./runner/adapter.ts";
-import { SessionCache } from "./runner/cache.ts";
+import type { SessionCache } from "./runner/cache.ts";
 import { type SessionChange, Sessions } from "./runner/sessions.ts";
 
 /** A session's live updates are sent at most this often while its items change. */
 export const SESSION_UPDATE_MS = 250;
-/** How often the server checks that the agent still works. */
-export const CHECK_EVERY_MS = 60_000;
 
 let sent = 0;
 /** A live update's event ID, unique in this process. */
@@ -172,31 +169,4 @@ export function createSessions(options: {
   hosts: HostsOf;
 }): Sessions {
   return new Sessions({ ...options, onChange: sessionPublisher(options.cache, options.hosts) });
-}
-
-/**
- * The server's session manager: its cache opened in the data folder, the turns a stopped server
- * left marked stopped, and the agent checked now and every 60 seconds. `stop` stops its turns and
- * closes its processes.
- */
-export async function startSessions(options: {
-  adapter: Adapter;
-  binding: Binding;
-  dataDir: string;
-  hosts: HostsOf;
-}): Promise<{ sessions: Sessions; stop: () => Promise<void> }> {
-  const cache = SessionCache.open(join(options.dataDir, "runner.sqlite"));
-  cache.interrupted("Stopped: the server stopped while it ran.");
-  const sessions = createSessions({ ...options, cache });
-  await sessions.check();
-  const timer = setInterval(() => void sessions.check(), CHECK_EVERY_MS);
-  timer.unref();
-  return {
-    sessions,
-    stop: async () => {
-      clearInterval(timer);
-      await sessions.closeAll();
-      sessions.close();
-    },
-  };
 }

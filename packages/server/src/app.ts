@@ -19,7 +19,12 @@ type Context = HonoContext<{ Variables: FateVariables }>;
  * started in (see the plan's R3).
  */
 export function createApp(
-  options: Options & { binding: Binding; sessions: Sessions; hosts: Hosts; dataDir: string },
+  options: Omit<Options, "given"> & {
+    binding: Binding;
+    sessions: Sessions;
+    hosts: Hosts;
+    dataDir: string;
+  },
 ) {
   const { binding, sessions, hosts, dataDir } = options;
   const app = new Hono<{ Variables: FateVariables }>();
