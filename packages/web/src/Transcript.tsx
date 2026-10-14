@@ -12,7 +12,7 @@ import { Markdown } from "@astryxdesign/core/Markdown";
 import { Text } from "@astryxdesign/core/Text";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { ChatImage, Item } from "uraeda-server/fate";
 import { useAgent, useTurn, useTurnLog } from "./data.ts";
@@ -412,6 +412,12 @@ export function Transcript({
   session: { id: string; turns: ReadonlyArray<string> };
 }) {
   const agent = useAgent();
+  const list = useRef<HTMLDivElement>(null);
+  // The log announces nothing: the session's announcer says when a turn starts and ends, not each
+  // word streamed. Astryx's `ChatMessageList` sets `aria-live` after the props it passes on.
+  useEffect(() => {
+    list.current?.setAttribute("aria-live", "off");
+  }, []);
   useEffect(() => {
     const { hash } = window.location;
     if (hash.startsWith("#turn-")) {
@@ -427,7 +433,7 @@ export function Transcript({
     session: session.id,
   };
   return (
-    <ChatMessageList align="top" aria-label="Conversation" density="compact">
+    <ChatMessageList align="top" aria-label="Conversation" density="compact" ref={list}>
       {session.turns.map((id, index) => (
         <Turn actions={actions} id={id} key={id} latest={index === session.turns.length - 1} />
       ))}

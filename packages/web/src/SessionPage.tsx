@@ -27,6 +27,7 @@ import { EditableLine } from "./EditableLine.tsx";
 import { useFollowEnd, useOpenAtEnd } from "./following.ts";
 import { JumpToLatest } from "./JumpToLatest.tsx";
 import { type AsideShown, AsideToggle, useAsideShown, WithAside } from "./SessionAside.tsx";
+import { SessionAnnouncer } from "./SessionAnnouncer.tsx";
 import { Page } from "./layout/Page.tsx";
 import { ProgressLine } from "./ProgressLine.tsx";
 import { statusStyles } from "./Question.tsx";
@@ -455,6 +456,7 @@ function FeatureSession({ folder }: { folder: string }) {
         {...(blocked === undefined ? {} : { blocked })}
         onSent={setCreated}
       />
+      <SessionAnnouncer feature={folder} {...(id === undefined ? {} : { session: id })} />
     </>
   );
 }
@@ -472,7 +474,12 @@ export function SessionPage(props: { folder: string } | { id: string } | { newCh
     return <FeatureSession folder={props.folder} />;
   }
   if ("id" in props) {
-    return <SessionPane draft={draft} id={props.id} />;
+    return (
+      <>
+        <SessionPane draft={draft} id={props.id} />
+        <SessionAnnouncer session={props.id} />
+      </>
+    );
   }
   return (
     <SessionPane draft={draft} onSent={(id) => navigate(here(`/chats/${id}`))} title="New chat" />

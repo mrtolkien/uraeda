@@ -6,14 +6,12 @@ import {
   type ChatComposerInputProps,
   ChatSendButton,
 } from "@astryxdesign/core/Chat";
-import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import * as stylex from "@stylexjs/stylex";
 import {
   type Dispatch,
   type KeyboardEvent,
   type RefObject,
   type SetStateAction,
-  useEffect,
   useRef,
   useState,
 } from "react";
@@ -47,24 +45,6 @@ function ComposerInput(props: Omit<ChatComposerInputProps, "maxRows" | "xstyle">
 /** Why the draft's images stay in the composer while it holds the workflow's message. */
 const WORKFLOW_KEEPS_IMAGES =
   "The workflow's message takes no images: they stay here for your next message.";
-
-/**
- * What the status region says: that the agent replies while the session works, and that the reply
- * is complete once it stops working, never on a session already idle when shown.
- */
-function useReplyStatus(agentName: string, working: boolean): string {
-  const [said, setSaid] = useState(working ? `${agentName} is replying` : "");
-  const was = useRef(working);
-  useEffect(() => {
-    if (working && !was.current) {
-      setSaid(`${agentName} is replying`);
-    } else if (!working && was.current) {
-      setSaid("Reply complete");
-    }
-    was.current = working;
-  }, [agentName, working]);
-  return said;
-}
 
 /** The composer's props. */
 type ComposerProps = {
@@ -224,7 +204,6 @@ export function Composer(props: ComposerProps) {
   const box = useRef<HTMLDivElement>(null);
   const focusAt = useFocusAfterRemove(box, input, images);
   const name = agent?.name ?? "the agent";
-  const status = useReplyStatus(name, working);
   const unavailable = agent?.available ? blocked : `${name} is not available on this machine.`;
   const refused = workflow !== undefined && props.notice !== undefined;
   const refusedWith = imageRefusal(agent, unavailable, workflow);
@@ -309,9 +288,6 @@ export function Composer(props: ComposerProps) {
         />
       </DropHint>
       <AttachStatus status={attaching.status} />
-      <VisuallyHidden as="div" role="status">
-        {status}
-      </VisuallyHidden>
     </>
   );
 }
