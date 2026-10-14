@@ -111,9 +111,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R9: Sizes are counted in MiB
 
 - **Decision**: "20 MB" is 20 × 1,048,576 bytes, and sizes in messages are bytes / 1,048,576,
-  rounded to one decimal, without a trailing `.0`.
-- **Rationale**: the same unit for the limit and the message, so a file said to be "20 MB" is never
-  refused as over 20 MB.
+  rounded up to one decimal, without a trailing `.0`: a file one byte over the limit is "20.1 MB".
+- **Rationale**: the same unit for the limit and the message, and rounding up, so a refused file is
+  never said to be "20 MB", and a file said to be "20 MB" is never refused as over 20 MB.
 - **If wrong**: one constant.
 - **Where**: task 1.
 
@@ -167,3 +167,79 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   serves, outside this task).
 - **If wrong**: one branch in `read_image`.
 - **Where**: task 2.
+
+## R15: Decoders may allocate 16 MiB besides the pixels
+
+- **Decision**: reading an image's header may allocate at most 16 MiB, and decoding it its pixels at
+  16 bits per channel with alpha (8 bytes per pixel) plus the same 16 MiB. A PNG whose colour
+  profile inflates past the limit is read without it, as every profile is dropped anyway
+  (`iccp_bomb.png`).
+- **Rationale**: the header pass had no limit, and a PNG's `iCCP` chunk is inflated while reading
+  the header: 1 MiB of compressed zeros inflated to 1 GiB. A limit sized from the checked dimensions
+  also bounds the decode pass of a small image, which the fixed 320 MB limit did not. An ICC profile
+  is rarely over 1 MiB.
+- **Alternatives considered**: one fixed limit of 320 MB for both passes (lets a 64 KiB PNG allocate
+  320 MB); refusing an image whose profile is too large (the profile is dropped anyway, and `png`
+  reports the failure to no one).
+- **If wrong**: one constant, `HEADER_ALLOC`, in `crates/core/src/images.rs`.
+- **Where**: task 1, review.
+
+## R16: Animated GIFs are rewritten, not kept byte for byte
+
+- **Decision**: an animated GIF is rewritten by the `gif` crate: its logical screen, global palette,
+  loop count, and frames, each with its delay, disposal, transparency, interlacing, and local
+  palette, are copied; its frames' pixels are copied still compressed, never decoded nor
+  re-quantized. Comments, XMP, every other application extension, the background colour index, and
+  the pixel aspect ratio are dropped. A frame reaching past the logical screen makes the GIF
+  unreadable. `gif` 0.14, already built for `image`, becomes a direct dependency of the core.
+- **Rationale**: the spec's encoding table reads "Unchanged", but SC-004 says no attached image
+  holds EXIF, XMP, or GPS data, whatever its input held, and a GIF carries XMP and free text in its
+  extensions: SC-004 wins. Copying the compressed frames keeps the animation exactly as it was, as
+  "unchanged" meant. Frames inside the screen bound the copy by the checked pixel count.
+- **Alternatives considered**: keeping the bytes (fails SC-004); decoding and re-encoding every
+  frame (re-quantizes colours, slow); re-encoding as animated WebP (libwebp's animation encoder is a
+  second wrapper, as the spec's assumptions say).
+- **If wrong**: `crates/core/src/images/animated.rs`; a GIF with frames past its screen could be
+  cropped instead of refused.
+- **Where**: task 1, review.
+
+## R17: Animated WebP and APNG keep their first frame
+
+- **Decision**: an animated WebP or an APNG is re-encoded as a still WebP of its first frame, at the
+  size of its canvas. Whether a WebP is a photo is read from its top-level chunks, so a lossy
+  animated WebP, whose `VP8 ` chunks sit inside `ANMF` frames, is encoded near-lossless.
+- **Rationale**: the decision keeps only animated GIFs; `image` decodes the first frame of both
+  formats. Animated WebP and APNG attachments are rare, and a still frame shows what they hold.
+- **Alternatives considered**: refusing them (a human who drops one gets nothing); reading `ANMF`
+  frames to classify lossy animations (more parsing for a rare input).
+- **If wrong**: a test, `animated_webp_and_apng_keep_their_first_frame`, and one condition in
+  `lossy_webp`.
+- **Where**: task 1, review.
+
+## R18: Colour profiles are dropped, not converted
+
+- **Decision**: an input's ICC colour profile, Display P3 for example, is dropped with the rest of
+  its metadata, and its pixel values are kept: viewers read them as sRGB.
+- **Rationale**: `image` 0.25.10 converts only between CICP colour spaces, not from an arbitrary ICC
+  profile, so a conversion is not a few lines: it needs `moxcms`, which `image` builds already,
+  called directly to parse the profile and transform the pixels, and a parser of untrusted profiles.
+  Screenshots, the main input, are sRGB on most screens; on a wide-gamut Mac, colours turn a little
+  duller.
+- **Alternatives considered**: converting to sRGB with `moxcms` after downscaling (about 15 lines
+  and a direct dependency); keeping the profile in the WebP (metadata the decision forbids).
+- **If wrong**: the conversion goes after the downscale in `images::encode`; images already
+  committed keep their colours.
+- **Where**: task 1, review.
+
+## R19: The image tests measure memory in a child process
+
+- **Decision**: `an_iccp_bomb_is_read_in_bounded_memory` runs itself again as a child process, on
+  Linux, and reads the child's peak resident memory from `/proc/self/status`: under 40 MiB, where
+  inflating the profile whole takes over 64 MiB. The new small inputs are generated by the tests,
+  and only those `image` cannot write are fixtures.
+- **Rationale**: tests run in parallel threads of one process, so its own peak mixes every test's; a
+  counting allocator would need `unsafe` outside the libwebp wrapper.
+- **Alternatives considered**: a global counting allocator in the test binary; a fixture inflating
+  to 1 GiB, about 1 MiB on disk, since deflate shrinks zeros at most about 1000 times.
+- **If wrong**: the test is skipped on other systems; its threshold is one number.
+- **Where**: task 1, review.
