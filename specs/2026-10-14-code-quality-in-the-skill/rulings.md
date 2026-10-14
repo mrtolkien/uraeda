@@ -223,3 +223,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   human to re-approve a spec whose text did not change.
 - **If wrong**: `git diff` of this commit shows only headings moved, and reverting it is one commit.
 - **Where**: after task 5, `spec.md` and `plan.md`'s frontmatter and its link to the architecture.
+
+## R14: The Details fold keeps its subheadings and ends at the next section
+
+- **Decision**: `SpecItems.details` is every top-level block from the `## Details` heading up to the
+  next heading of level 1 or 2, found with `headings`, its `###` subheadings included. It does not
+  use `section`, which leaves headings out. `Story.details` is the intro paragraph and the list,
+  only when both are there. The test adds a row with a `## Details` followed by another section, and
+  its example row checks US2's lines 56 to 65, not 56 to 61 as the plan said.
+- **Rationale**: the web UI hides the whole section behind one toggle, so its Data, Components,
+  Error handling, and Testing headings must be inside the fold. The example spec ends with Details,
+  so only a second section after it catches a fold that runs to the end of the file.
+- **Alternatives considered**: changing `section` to keep headings, which changes the story blocks
+  and the round's context for every other caller.
+- **If wrong**: the fold's ids change in one function, `details` in `crates/core/src/files/spec.rs`.
+- **Where**: task 6, `crates/core/src/files/spec.rs`, `crates/core/tests/items.rs`.
