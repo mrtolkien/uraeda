@@ -209,3 +209,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   names.
 - **If wrong**: the test checks one more problem than planned; dropping its row is one line.
 - **Where**: task 5, `crates/core/tests/check.rs`, the example spec.
+
+## R13: This feature's spec moves to the new layout, its text unchanged
+
+- **Decision**: after task 5, `spec.md` takes the layout it specifies: `## Design` and its
+  `### Approach` become `## Architecture`, `### Mockups` becomes `## Mockups`, and Data, Components,
+  Error handling, and Testing move under a last `## Details`. No other line changes. Its `revision`
+  goes to 2, and the plan's `spec-revision` with it.
+- **Rationale**: `ura check specs`, part of `vp run ready`, reports the old layout as 7 problems,
+  and SC-003 needs `ready` to pass. Only headings move, so the approved behaviour and design stay as
+  the human approved them.
+- **Alternatives considered**: leaving the spec in the old layout, which fails `ready`; asking the
+  human to re-approve a spec whose text did not change.
+- **If wrong**: `git diff` of this commit shows only headings moved, and reverting it is one commit.
+- **Where**: after task 5, `spec.md` and `plan.md`'s frontmatter and its link to the architecture.
