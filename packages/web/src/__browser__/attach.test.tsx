@@ -8,7 +8,10 @@ import { screen, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
-import { show } from "./helpers.tsx";
+import { createFateClient } from "react-fate/client";
+import type { ChatImage } from "uraeda-server/fate";
+import { sendMessage } from "../sessions.ts";
+import { agent, drawn, LIVE, show, startTurn } from "./helpers.tsx";
 
 const commands = browserCommands as unknown as RepoCommands;
 
@@ -482,6 +485,106 @@ test("a file dropped anywhere on a session's page joins the message", async () =
 
   expect(event.defaultPrevented).toBe(true);
   await thumbnails(1);
+});
+
+const SESSION = "/f/2026-10-12-cli-tuis/session";
+
+/** What scrolls the transcript: the pane beside the feature page, or the window. */
+function scroller() {
+  return (
+    document.querySelector<HTMLElement>('section[aria-label="Detail"]') ??
+    document.scrollingElement!
+  );
+}
+
+/** Pastes images in the composer and sends them with a text, once saved. */
+async function sendImages(files: File[], text: string) {
+  const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
+  const sent = (await commands.agentSent()).length;
+  paste(files, box);
+  await thumbnails(files.length);
+  await userEvent.fill(box, text);
+  await userEvent.click(screen.getByRole("button", { name: "Send" }));
+  await expect.poll(async () => (await commands.agentSent()).length, LIVE).toBe(sent + 1);
+}
+
+/** Saves an image for a chat, as the composer does, without showing it on the page. */
+async function chatImage(file: File): Promise<ChatImage> {
+  const body = new FormData();
+  body.append("file", file);
+  const response = await realFetch(`/attach?chat=1&name=${encodeURIComponent(file.name)}`, {
+    method: "POST",
+    body,
+  });
+  return (await response.json()) as ChatImage;
+}
+
+/**
+ * Review: the images of the last message load after the view showed the transcript's end. They
+ * are sent outside the page, and served late: an image this page already loaded, or one loaded
+ * before the view is drawn, is drawn at once, at its size.
+ */
+test("a chat whose last message has images opens at its end", async () => {
+  await show("/", "Priorities");
+  const fate = createFateClient({ url: "/fate" });
+  const ended = {
+    type: "result" as const,
+    ok: true,
+    errors: [],
+    denials: [],
+    interrupted: false,
+  };
+  const first = await sendMessage(fate, { text: "Plan the CLI." });
+  if (!first.ok) {
+    throw new Error(first.message);
+  }
+  await agent.agentAccept();
+  await agent.agentEmit([
+    ...Array.from({ length: 40 }, (_, index) => ({
+      type: "text" as const,
+      text: `Line ${index + 1}.`,
+    })),
+    ended,
+  ]);
+  const images = [
+    await chatImage(await image("phone.png", "one.png")),
+    await chatImage(await image("desktop.png", "two.png")),
+  ];
+  // The turn's end is recorded before the next message goes.
+  await expect
+    .poll(async () => {
+      const next = await sendMessage(fate, { session: first.session, text: "These two.", images });
+      return next.ok;
+    }, LIVE)
+    .toBe(true);
+  await agent.agentAccept();
+  await agent.agentEmit([ended]);
+
+  // Over a slow network, its images come after the view opened.
+  await commands.slowChatImages(1_000);
+  await show(`/chats/${first.session}`, "These two.");
+
+  const log = await screen.findByRole("log", { name: "Conversation" });
+  const drawnImages = [...log.querySelectorAll<HTMLImageElement>('a[href^="/chat-images/"] img')];
+  expect(drawnImages).toHaveLength(2);
+  await expect
+    .poll(() => drawnImages.every((one) => one.complete && one.naturalWidth > 0), LIVE)
+    .toBe(true);
+  await drawn();
+  const box = scroller();
+  expect(box.scrollHeight - box.scrollTop - box.clientHeight).toBeLessThanOrEqual(1);
+});
+
+test("a message not read yet has its images dimmed, as its text", async () => {
+  await show(SESSION, "Message Claude Code");
+  await startTurn("Plan the CLI.", [{ type: "text", text: "Reading the plan." }]);
+
+  await sendImages([await image("phone.png", "one.png")], "This one.");
+
+  const log = await screen.findByRole("log", { name: "Conversation" });
+  await within(log).findByText("Not read yet", undefined, LIVE);
+  const link = within(log).getByRole("link", { name: "Image" });
+  await expect.poll(() => Number(getComputedStyle(link.parentElement!).opacity)).toBeLessThan(1);
 });
 
 const REVIEWED = "2026-10-06-recurring-tasks";

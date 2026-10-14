@@ -9,6 +9,7 @@ import {
 import { readFileSync } from "node:fs";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test, vi } from "vite-plus/test";
+import { navigate } from "../routes.tsx";
 import {
   answered,
   atWidth,
@@ -381,11 +382,18 @@ async function dropImages(files: File[]) {
   });
 }
 
+/** Astryx's spinner, named "Loading", over a thumbnail being saved. */
+const SPINNER = '[role="status"][aria-label]';
+
 /** The thumbnails' remove buttons, once every image is saved. */
 async function thumbnails(count: number) {
   await waitFor(() => {
     expect(screen.getAllByRole("button", { name: /^Remove / })).toHaveLength(count);
     expect(screen.queryByText(/^Adding /, { ignore: "[data-astryx-live-region] *" })).toBeNull();
+    // No thumbnail's spinner: each image is saved.
+    for (const remove of screen.getAllByRole("button", { name: /^Remove / })) {
+      expect(remove.closest('[role="group"]')?.querySelector(SPINNER)).toBeNull();
+    }
   });
   return screen.getAllByRole("button", { name: /^Remove / });
 }
@@ -430,8 +438,12 @@ test("US2.2: a message with images shows them above its text", async () => {
   expect(fake.adapter.sent[0].images).toHaveLength(2);
   expect(fake.adapter.sent[0].images[0].path).toMatch(/\/images\/[0-9a-f-]+\.webp$/);
   await refreshUntil(() => expect(log().getByText("What is wrong here?")).toBeTruthy());
-  const images = log().getAllByRole("link", { name: "Image" });
-  expect(images).toHaveLength(2);
+  // Told apart by their place: one image alone is "Image".
+  const images = log().getAllByRole("link", { name: /^Image \d of 2$/ });
+  expect(images.map((image) => image.getAttribute("aria-label"))).toEqual([
+    "Image 1 of 2",
+    "Image 2 of 2",
+  ]);
   // Above the text, in the same bubble.
   const text = log().getByText("What is wrong here?");
   expect(images[1].compareDocumentPosition(text) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -602,4 +614,251 @@ test("the workflow's message takes no images", async () => {
   expect(
     (await screen.findAllByText("The workflow's message takes no images.")).length,
   ).toBeGreaterThan(0);
+});
+
+/** Holds the page's uploads until the test lets each through, on the server in process. */
+function holding(repo: string, fake: Fake) {
+  const { fetch: server, saved, server: direct } = recording(repo, fake);
+  const waiting: Array<() => void> = [];
+  let hold = true;
+  const fetch: typeof globalThis.fetch = async (input, init) => {
+    if (hold && urlOf(input).startsWith("/attach")) {
+      await new Promise<void>((resolve) => waiting.push(resolve));
+    }
+    return server(input, init);
+  };
+  return {
+    fetch,
+    saved,
+    server: direct,
+    waiting,
+    /** Lets uploads through from now on, and those waiting. */
+    releaseAll: async () => {
+      hold = false;
+      await act(async () => waiting.splice(0).forEach((resolve) => resolve()));
+    },
+  };
+}
+
+/** A file of the fixtures' images, under a name of the human's. */
+const fileOf = (name: string, as: string, type: string) =>
+  new File([readFileSync(fixture(`images/${name}`))], as, { type });
+
+/** The texts shown on the page, not in the screen reader's announcements. */
+const shownText = (text: string) =>
+  screen.queryAllByText(text).filter((element) => !element.closest("[data-astryx-live-region]"));
+
+const SVG_REFUSED = "Only PNG, JPEG, GIF, and WebP images can be added: diagram.svg is not one.";
+
+test("a refused image of a batch stays shown once the others are saved", async () => {
+  const fake = await fakeAgent();
+  await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: fake });
+  await composer();
+
+  await dropImages([fileOf("drawing.svg", "diagram.svg", "image/svg+xml"), png("login.png")]);
+
+  await thumbnails(1);
+  expect(shownText(SVG_REFUSED)).toHaveLength(1);
+  expect(shownText("Added login.png")).toHaveLength(0);
+});
+
+test("a hand-over sends the workflow's message alone, and keeps the draft's images for later", async () => {
+  // The session's page alone: on a wide screen, the feature's page beside it has its own Start.
+  atWidth(402);
+  const fake = await fakeAgent();
+  await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: fake });
+  await pick([png()]);
+  await thumbnails(1);
+
+  await act(async () => navigate(`/f/${CLI}/session?continue=manual`));
+  await waitFor(async () => expect((await composer()).textContent).not.toBe(""));
+  await click(screen.getByRole("button", { name: "Start the agent" }));
+
+  await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
+  expect(fake.adapter.sent[0].images).toHaveLength(0);
+  await thumbnails(1);
+});
+
+test("several thumbnails are told apart by their place", async () => {
+  const fake = await fakeAgent();
+  await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: fake });
+
+  // A browser names every pasted screenshot alike.
+  await pasteImages([png("image.png"), png("image.png")]);
+
+  const buttons = await thumbnails(2);
+  expect(buttons.map((button) => button.getAttribute("aria-label"))).toEqual([
+    "Remove image.png — image 1 of 2",
+    "Remove image.png — image 2 of 2",
+  ]);
+});
+
+test("removing a thumbnail moves the focus to the next one, then to the message", async () => {
+  const fake = await fakeAgent();
+  await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: fake });
+  await pick([png("one.png"), png("two.png")]);
+  const [first] = await thumbnails(2);
+
+  await click(first);
+
+  await thumbnails(1);
+  expect(document.activeElement?.getAttribute("aria-label")).toBe("Remove two.png");
+  await click(document.activeElement as HTMLElement);
+  await waitFor(async () => expect(document.activeElement).toBe(await composer()));
+});
+
+test("an image dropped while the agent is not available is refused with why", async () => {
+  await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), {
+    agent: await fakeAgent({ installed: false }),
+  });
+  await composer();
+
+  await dropImages([png()]);
+
+  // Under the composer, and under the field as an image's refusal.
+  await waitFor(() =>
+    expect(shownText("Claude Code is not available on this machine.")).toHaveLength(2),
+  );
+  expect(screen.queryAllByRole("button", { name: /^Remove / })).toHaveLength(0);
+});
+
+test("a taken-back message's images leave the draft at most 10, and say why", async () => {
+  const fake = await fakeAgent();
+  const repo = fixtureRepo();
+  const { fetch, saved, server } = recording(repo, fake);
+  await renderPage(`/f/${WEB_UI}/session`, repo, { agent: fake, fetch });
+  await openTurn(fake);
+  await pick([png("a.png"), png("b.png"), png("c.png")]);
+  await thumbnails(3);
+  await send("Three");
+  await refreshUntil(() => expect(log().getByText("Not read yet")).toBeTruthy());
+  await pick(Array.from({ length: 9 }, (_, index) => png(`${index}.png`)));
+  await thumbnails(9);
+
+  await click(log().getByRole("button", { name: "Take back" }));
+
+  await thumbnails(10);
+  expect(shownText("A message takes at most 10 images.").length).toBeGreaterThan(0);
+  // The draft's last two are gone, with their files.
+  await waitFor(async () => expect((await server(`/chat-images/${saved[10]}`)).status).toBe(404));
+  expect((await server(`/chat-images/${saved[11]}`)).status).toBe(404);
+  expect((await server(`/chat-images/${saved[9]}`)).status).toBe(200);
+});
+
+test("Send shows, disabled, while an image is saved during a turn", async () => {
+  atWidth(402);
+  const fake = await fakeAgent();
+  const repo = fixtureRepo();
+  const uploads = holding(repo, fake);
+  await renderPage(`/f/${CLI}/session`, repo, { agent: fake, fetch: uploads.fetch });
+  await openTurn(fake, "Look at the plan.");
+  await refreshUntil(() => expect(screen.getByRole("button", { name: "Stop" })).toBeTruthy());
+
+  await pick([png()]);
+
+  await waitFor(() => expect(uploads.waiting).toHaveLength(1));
+  expect(screen.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(true);
+  await uploads.releaseAll();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Send" }).hasAttribute("disabled")).toBe(false),
+  );
+});
+
+test("Enter while an image is saved does not send", async () => {
+  const fake = await fakeAgent();
+  const repo = fixtureRepo();
+  const uploads = holding(repo, fake);
+  await renderPage(`/f/${WEB_UI}/session`, repo, { agent: fake, fetch: uploads.fetch });
+  await pick([png()]);
+  await waitFor(() => expect(uploads.waiting).toHaveLength(1));
+  await type(await composer(), "Look");
+
+  await act(async () => {
+    fireEvent.keyDown(await composer(), { key: "Enter" });
+  });
+
+  await uploads.releaseAll();
+  await thumbnails(1);
+  expect(fake.adapter.sent).toHaveLength(0);
+  expect((await composer()).textContent).toBe("Look");
+});
+
+test("on the phone, Return with images adds a line", async () => {
+  atWidth(402);
+  const fake = await fakeAgent();
+  await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: fake });
+  await pick([png()]);
+  await thumbnails(1);
+  await type(await composer(), "Look");
+
+  await act(async () => {
+    fireEvent.keyDown(await composer(), { key: "Enter" });
+  });
+
+  await waitFor(async () => expect((await composer()).textContent).toBe("Look\n"));
+  expect(fake.adapter.sent).toHaveLength(0);
+});
+
+test("a refused send puts its images back in the composer", async () => {
+  const fake = await fakeAgent();
+  const { sessions } = await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: fake });
+  await pick([png()]);
+  await thumbnails(1);
+  fake.adapter.installed = false;
+  await sessions.check();
+
+  await send("This one");
+
+  expect(await screen.findByText("Claude Code is not available on this machine.")).toBeTruthy();
+  expect(screen.getAllByRole("button", { name: /^Remove / })).toHaveLength(1);
+  expect(fake.adapter.sent).toHaveLength(0);
+});
+
+test("a thumbnail removed while it is saved has its image deleted once saved", async () => {
+  const fake = await fakeAgent();
+  const repo = fixtureRepo();
+  const uploads = holding(repo, fake);
+  await renderPage(`/f/${WEB_UI}/session`, repo, { agent: fake, fetch: uploads.fetch });
+  await pick([png()]);
+  await waitFor(() => expect(uploads.waiting).toHaveLength(1));
+
+  await click(screen.getByRole("button", { name: "Remove login.png" }));
+  await uploads.releaseAll();
+
+  await waitFor(() => expect(uploads.saved).toHaveLength(1));
+  await waitFor(async () =>
+    expect((await uploads.server(`/chat-images/${uploads.saved[0]}`)).status).toBe(404),
+  );
+  expect(screen.queryAllByRole("button", { name: /^Remove / })).toHaveLength(0);
+});
+
+test("an image pasted for an agent without images is refused with why", async () => {
+  const fake = await fakeAgent();
+  fake.adapter.capabilities = { ...fake.adapter.capabilities, images: false };
+  await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: fake });
+  await composer();
+  await answered("Agent");
+
+  await pasteImages([png()]);
+
+  expect((await screen.findAllByText("This agent cannot read images.")).length).toBeGreaterThan(0);
+  expect(screen.queryAllByRole("button", { name: /^Remove / })).toHaveLength(0);
+});
+
+test("a thumbnail shows its file, dimmed, while it is saved", async () => {
+  const fake = await fakeAgent();
+  const repo = fixtureRepo();
+  const uploads = holding(repo, fake);
+  await renderPage(`/f/${WEB_UI}/session`, repo, { agent: fake, fetch: uploads.fetch });
+
+  await pick([png()]);
+
+  await waitFor(() => expect(uploads.waiting).toHaveLength(1));
+  const thumbnail = screen.getByRole("group", { name: "login.png" });
+  expect(thumbnail.querySelector("img")?.getAttribute("src")).toMatch(/^blob:/);
+  expect(thumbnail.querySelector(SPINNER)).toBeTruthy();
+  await uploads.releaseAll();
+  await waitFor(() =>
+    expect(thumbnail.querySelector("img")?.getAttribute("src")).toMatch(/^\/chat-images\//),
+  );
 });

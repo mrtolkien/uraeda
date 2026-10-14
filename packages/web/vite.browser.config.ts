@@ -9,7 +9,7 @@ import { fixture, fixtureRepo } from "uraeda-binding/test-utils";
 import { reloadRepositories } from "uraeda-server/dev";
 import { FakeAdapter } from "uraeda-server/testing";
 import { playwright } from "vite-plus/test/browser-playwright";
-import { defineConfig, type PluginOption } from "vite-plus";
+import { defineConfig, type Plugin, type PluginOption } from "vite-plus";
 import base, { uraedaServer } from "./vite.config.ts";
 
 const plugins = (base.plugins ?? []).filter(
@@ -41,6 +41,23 @@ type Context = { frame: () => Promise<Frame>; page: Page };
 const agent = new FakeAdapter();
 type AgentEvent = Parameters<FakeAdapter["emit"]>[0];
 
+/** How long the server waits before it serves a chat image: a slow network, for a test. */
+let chatImageDelay = 0;
+
+/** Holds the chat images' answers for `chatImageDelay`, before the server answers them. */
+const slowChatImages: Plugin = {
+  name: "slow-chat-images",
+  configureServer(server) {
+    server.middlewares.use((request, _response, next) => {
+      if (chatImageDelay > 0 && /^\/r\/[^/]+\/chat-images\//.test(request.url ?? "")) {
+        setTimeout(next, chatImageDelay);
+      } else {
+        next();
+      }
+    });
+  },
+};
+
 const commands = {
   /**
    * Waits for the turn, then gives the test a fresh copy of the fixture, added to the test server's
@@ -59,6 +76,7 @@ const commands = {
     await reloadRepositories();
     shared.uraedaRepo = { name: repository.name, path };
     agent.sent = [];
+    chatImageDelay = 0;
     // A turn whose test gave up waiting for it is never released by that test: it ends once longer
     // than any test and its hooks, so one stuck test does not hold up every one after it.
     setTimeout(() => void commands.releaseRepo(undefined, token), 120_000).unref();
@@ -103,6 +121,10 @@ const commands = {
   /** A file of `fixtures/images/`, in base64: the tests drop and paste it as the human would. */
   fixtureImage(_context: unknown, name: string) {
     return readFileSync(join(fixture("images"), name)).toString("base64");
+  },
+  /** Serves the chat images `ms` late, until the test ends. */
+  slowChatImages(_context: unknown, ms: number) {
+    chatImageDelay = ms;
   },
   /** The messages sent to the agent during the test, in order. */
   agentSent() {
@@ -172,13 +194,14 @@ export type RepoCommands = {
   readRepo: (path?: string) => Promise<string>;
   releaseRepo: (token: number) => Promise<void>;
   repoFileSize: (path: string) => Promise<number>;
+  slowChatImages: (ms: number) => Promise<void>;
   takeRepo: () => Promise<{ name: string; token: number }>;
   writeRepo: (text: string, path?: string) => Promise<void>;
 };
 
 export default defineConfig({
   ...base,
-  plugins: [...plugins, uraedaServer({ adapter: agent })],
+  plugins: [...plugins, slowChatImages, uraedaServer({ adapter: agent })],
   // The dev server's fixed port is for `vp dev`: the tests take the next free port when another
   // checkout's tests hold theirs.
   server: { ...base.server, strictPort: false },
