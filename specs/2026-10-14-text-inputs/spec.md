@@ -275,9 +275,7 @@ Acceptance scenarios:
 - **SC-006**: A comment on a settled point reads back from the file as the comment written, for
   one-line, multi-line, and hand-written bullets.
 
-## Design
-
-### Approach
+## Architecture
 
 One rule for every field, from the changed [UI behaviour](../decisions/ui-behaviour.md) decision,
 built once: a store of unsaved text, shared by every field, that holds what is typed and not saved,
@@ -300,6 +298,99 @@ This feature is built on main after the image attachments feature merges, as the
 ([Q6](clarifications-01.md#q6-should-adding-an-image-still-save-its-field-at-once)): its notes and
 comment fields are the ones this feature changes, and its rule that an image saves its field at once
 stays.
+
+## Mockups
+
+- [Text inputs](mockups/text-inputs.html), at 402 px and 1440 px:
+  1. A question's comment changed after an option was tapped, with "Unsaved changes".
+  2. Settled points with a comment under one and the form under another, the sheet on the phone, and
+     the notes field holding the free notes only.
+  3. Unsaved notes restored after a reload, with and without the file changed since.
+  4. The "Leave page?" and "Discard your comment?" dialogs.
+  5. A line edited in place, with Save and Cancel.
+  6. The proposal editor with Save, and Commit.
+  7. The fixed heights of each kind of text area, empty and full.
+
+## Assumptions
+
+Settled in the [clarifications](clarifications-01.md#settled-without-the-human):
+
+- The notes field keeps what is typed while it differs from what was last saved.
+- The notes no longer show among the settled points: the core ends the settled section at the notes.
+- A new review comment shows under its block at once, marked "saving…".
+- A settled point takes a comment the way a spec's block does: tapped, one point per comment, the
+  form under it on wide screens and in a sheet on the phone.
+- A comment on a settled point is saved by "Add comment", leaving the notes being typed unsaved.
+- Ctrl+Enter or Cmd+Enter saves a multi-line field, and Enter a line.
+- Cancel or Escape on changed text asks first, "Discard" or "Keep editing".
+- A comment left open with text stops a verdict.
+- Each field says "Unsaved changes" next to its Save button, which is disabled while nothing
+  changed.
+- Toggles, segmented controls, switches, and option taps keep saving at once.
+
+Settled while writing this spec:
+
+- React Compiler runs through Babel, the compiler React ships as stable; the Rust port is marked
+  experimental by `@vitejs/plugin-react` ([React 19.3](discovery-01.md#react-193)).
+- The comment's text also leaves the review page, as option A of Q7 proposed: the compiler cannot
+  skip the document while the page passes the text into it.
+- Comment bullets are hidden from the notes field, and saving the notes keeps them after the free
+  notes, as the answer to Q5 asked.
+- Unsaved text is kept in `localStorage`, not `sessionStorage`, so it survives a closed tab or a
+  crash, as Q3's option C described; it is dropped after 30 days.
+- Every field that saves text keeps its unsaved text, lines and slugs included; search fields and
+  the chat composer do not.
+- Lines edited in place get Save and Cancel buttons, since a phone has no Escape key.
+- The fixed heights are 20 rows for the proposal editor, a page of text; 12 for the notes, which
+  gather several points; 7 for every comment and the review summary, as the human asked; and 3 for
+  quick add, a priority line that may wrap. They are the same at both widths, in rows, so they grow
+  with the text size the [UI layout](../decisions/ui-layout.md) decision sets.
+- Astryx's `TextArea` keeps its vertical resize handle, so the human can drag a field taller by
+  hand; the text never resizes it ([Astryx 0.6.8](discovery-01.md#astryx-068)).
+- The chat composer is fixed at 4 rows, a short message with room to spare; it is the one multi-line
+  field that is not an Astryx `TextArea`.
+- No CLI command adds a settled comment: a human writes the bullet in an editor.
+
+## Decisions
+
+Changed, applied when this spec is approved:
+
+- [UI behaviour](../decisions/ui-behaviour.md): text saves only on a button or the field's own key,
+  lines no longer save on blur, unsaved text is kept in the browser and leaving asks first, and
+  every multi-line field has a fixed height by what it holds.
+- [Toolchain](../decisions/toolchain.md): the web UI is compiled with React Compiler through Babel,
+  and new code does not memoize by hand for speed.
+
+Relied on:
+
+- [Stack](../decisions/stack.md): the core splits the notes and finds settled points; the UI draws
+  what the core sends, and parses no markdown.
+- [UI components](../decisions/ui-components.md): every field is an Astryx `TextArea` or
+  `TextInput`, the dialogs Astryx's, and the new styles StyleX with tokens.
+- [UI layout](../decisions/ui-layout.md): forms under their block on wide screens and in sheets on
+  the phone, dialogs as sheets on the phone, every view mocked up at both widths.
+- [UI checks](../decisions/ui-checks.md): tests by roles and text, browser checks at both sizes,
+  screenshots before handing over.
+- Attachments, from the image attachments feature: an image added to a field saves it at once, and
+  stays the one exception to saving on a button.
+
+## Constitution check
+
+| Principle                         | Complies | Notes                                                                                              |
+| --------------------------------- | -------- | -------------------------------------------------------------------------------------------------- |
+| I. Humans stay in control         | yes      | Two decision changes, proposed for approval                                                        |
+| II. Git and plain text first      | yes      | Comments on settled points are plain bullets in the notes, readable and writable by hand           |
+| III. Asynchronous by default      | yes      | Unsaved text in the browser is not workflow state: nothing reaches the workflow until it is saved  |
+| IV. Review effort matches impact  | yes      | Comments on settled points let the human object to one point without rewriting it in the notes     |
+| V. Tools are optional             | yes      | The bullet format is written in the skill, and works in any editor                                 |
+| VI. Code is checked, maintainable | yes      | One store and one hook for every field, replacing three copies of the same effect; tests per story |
+
+## Risk tier
+
+**High**: React Compiler changes how every component of the web UI renders, and the notes gain a
+format every later spec step reads.
+
+## Details
 
 ### Data
 
@@ -432,18 +523,6 @@ and dropped when older than 30 days.
   [answered round](/skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/clarifications-01.md)
   holds one comment on a settled point that its spec already agrees with.
 
-### Mockups
-
-- [Text inputs](mockups/text-inputs.html), at 402 px and 1440 px:
-  1. A question's comment changed after an option was tapped, with "Unsaved changes".
-  2. Settled points with a comment under one and the form under another, the sheet on the phone, and
-     the notes field holding the free notes only.
-  3. Unsaved notes restored after a reload, with and without the file changed since.
-  4. The "Leave page?" and "Discard your comment?" dialogs.
-  5. A line edited in place, with Save and Cancel.
-  6. The proposal editor with Save, and Commit.
-  7. The fixed heights of each kind of text area, empty and full.
-
 ### Error handling
 
 - A save refused by the core: the field keeps its text and its unsaved entry, and its error shows
@@ -479,82 +558,3 @@ Rust, on fixture files.
 | Settled section ending at the notes                  | Rust test on a fixture round with notes                                      |
 | Core refusals for the three settled comment actions  | Rust tests, one per refusal                                                  |
 | `ura answer notes` keeping the comments              | CLI test on a fixture round                                                  |
-
-## Assumptions
-
-Settled in the [clarifications](clarifications-01.md#settled-without-the-human):
-
-- The notes field keeps what is typed while it differs from what was last saved.
-- The notes no longer show among the settled points: the core ends the settled section at the notes.
-- A new review comment shows under its block at once, marked "saving…".
-- A settled point takes a comment the way a spec's block does: tapped, one point per comment, the
-  form under it on wide screens and in a sheet on the phone.
-- A comment on a settled point is saved by "Add comment", leaving the notes being typed unsaved.
-- Ctrl+Enter or Cmd+Enter saves a multi-line field, and Enter a line.
-- Cancel or Escape on changed text asks first, "Discard" or "Keep editing".
-- A comment left open with text stops a verdict.
-- Each field says "Unsaved changes" next to its Save button, which is disabled while nothing
-  changed.
-- Toggles, segmented controls, switches, and option taps keep saving at once.
-
-Settled while writing this spec:
-
-- React Compiler runs through Babel, the compiler React ships as stable; the Rust port is marked
-  experimental by `@vitejs/plugin-react` ([React 19.3](discovery-01.md#react-193)).
-- The comment's text also leaves the review page, as option A of Q7 proposed: the compiler cannot
-  skip the document while the page passes the text into it.
-- Comment bullets are hidden from the notes field, and saving the notes keeps them after the free
-  notes, as the answer to Q5 asked.
-- Unsaved text is kept in `localStorage`, not `sessionStorage`, so it survives a closed tab or a
-  crash, as Q3's option C described; it is dropped after 30 days.
-- Every field that saves text keeps its unsaved text, lines and slugs included; search fields and
-  the chat composer do not.
-- Lines edited in place get Save and Cancel buttons, since a phone has no Escape key.
-- The fixed heights are 20 rows for the proposal editor, a page of text; 12 for the notes, which
-  gather several points; 7 for every comment and the review summary, as the human asked; and 3 for
-  quick add, a priority line that may wrap. They are the same at both widths, in rows, so they grow
-  with the text size the [UI layout](../decisions/ui-layout.md) decision sets.
-- Astryx's `TextArea` keeps its vertical resize handle, so the human can drag a field taller by
-  hand; the text never resizes it ([Astryx 0.6.8](discovery-01.md#astryx-068)).
-- The chat composer is fixed at 4 rows, a short message with room to spare; it is the one multi-line
-  field that is not an Astryx `TextArea`.
-- No CLI command adds a settled comment: a human writes the bullet in an editor.
-
-## Decisions
-
-Changed, applied when this spec is approved:
-
-- [UI behaviour](../decisions/ui-behaviour.md): text saves only on a button or the field's own key,
-  lines no longer save on blur, unsaved text is kept in the browser and leaving asks first, and
-  every multi-line field has a fixed height by what it holds.
-- [Toolchain](../decisions/toolchain.md): the web UI is compiled with React Compiler through Babel,
-  and new code does not memoize by hand for speed.
-
-Relied on:
-
-- [Stack](../decisions/stack.md): the core splits the notes and finds settled points; the UI draws
-  what the core sends, and parses no markdown.
-- [UI components](../decisions/ui-components.md): every field is an Astryx `TextArea` or
-  `TextInput`, the dialogs Astryx's, and the new styles StyleX with tokens.
-- [UI layout](../decisions/ui-layout.md): forms under their block on wide screens and in sheets on
-  the phone, dialogs as sheets on the phone, every view mocked up at both widths.
-- [UI checks](../decisions/ui-checks.md): tests by roles and text, browser checks at both sizes,
-  screenshots before handing over.
-- Attachments, from the image attachments feature: an image added to a field saves it at once, and
-  stays the one exception to saving on a button.
-
-## Constitution check
-
-| Principle                         | Complies | Notes                                                                                              |
-| --------------------------------- | -------- | -------------------------------------------------------------------------------------------------- |
-| I. Humans stay in control         | yes      | Two decision changes, proposed for approval                                                        |
-| II. Git and plain text first      | yes      | Comments on settled points are plain bullets in the notes, readable and writable by hand           |
-| III. Asynchronous by default      | yes      | Unsaved text in the browser is not workflow state: nothing reaches the workflow until it is saved  |
-| IV. Review effort matches impact  | yes      | Comments on settled points let the human object to one point without rewriting it in the notes     |
-| V. Tools are optional             | yes      | The bullet format is written in the skill, and works in any editor                                 |
-| VI. Code is checked, maintainable | yes      | One store and one hook for every field, replacing three copies of the same effect; tests per story |
-
-## Risk tier
-
-**High**: React Compiler changes how every component of the web UI renders, and the notes gain a
-format every later spec step reads.
