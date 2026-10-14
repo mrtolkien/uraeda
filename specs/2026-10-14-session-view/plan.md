@@ -1244,9 +1244,12 @@ git commit -m "feat(session-view): jump to the latest"
 **Interfaces:**
 
 - Consumes: the session's turns and `step.progress`.
-- Produces: `SessionAnnouncer({ session, feature }: { session?: string; feature?: string })`, a
-  visually hidden `role="status"` region named "Agent updates", drawn by `FeatureSession` around
-  both its states and beside a chat's `Session` (R23).
+- Produces:
+  `SessionAnnouncer({ created, feature, session }: { created?: boolean; feature?: string; session?: string })`,
+  a visually hidden `role="status"` region named "Agent updates", keeping its last three
+  announcements, drawn by `FeatureSession` around both its states and beside a chat's `Session`
+  (R23). It follows every turn not yet ended (R24). `useCreatedHere()` reads a new chat's `created`
+  history entry once.
 
 - [x] **Step 1: Restructure `Composer` in `Composer.tsx`, and commit**
 

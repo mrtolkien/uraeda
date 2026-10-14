@@ -363,20 +363,25 @@ function status() {
   return screen.getByRole("status", { name: "Agent updates" });
 }
 
+/** Waits for the status region to have said `text`, `times` times. */
+async function announced(text: string, times = 1) {
+  await refreshUntil(() => expect(within(status()).getAllByText(text)).toHaveLength(times));
+}
+
 /** A workflow turn of the implementation, written in the cache as the runner starts one. */
-async function runningTurn(fake: Fake, repo: string) {
+async function workflowTurn(fake: Fake, repo: string, state: "queued" | "running" = "running") {
   const session = await fake.sessions.featureSession(repo, CLI);
   return fake.sessions.cache.addTurn({
     allowed: null,
     kind: "workflow",
     sessionId: session.id,
-    state: "running",
+    state,
     step: "implementation",
     trigger: "manual",
   });
 }
 
-test("US4.5: turns are announced as they start, end, and fail", async () => {
+test("US4.5: turns are announced as they start, end, and fail, each time", async () => {
   const fake = await fakeAgent();
   const repo = fixtureRepo();
   addPlan(repo, CLI, ELEVEN);
@@ -385,29 +390,47 @@ test("US4.5: turns are announced as they start, end, and fail", async () => {
   await waitFor(() => expect(start.hasAttribute("disabled")).toBe(false));
   await click(start);
 
-  await refreshUntil(() => expect(status().textContent).toBe("The agent started: Implementation"));
+  await announced("The agent started: Implementation");
   fake.adapter.emit({ id: fake.adapter.sent[0].id, type: "accepted" });
   fake.adapter.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
-  await refreshUntil(() => expect(status().textContent).toBe("The agent finished"));
+  await announced("The agent finished");
 
-  // A second turn, failed with the runner's own reason for a silent agent.
-  const second = await runningTurn(fake, repo);
-  await refreshUntil(() => expect(status().textContent).toBe("The agent started: Implementation"));
+  // A second turn, failed with the runner's own reason for a silent agent: the same words again
+  // are a new announcement.
+  const second = await workflowTurn(fake, repo);
+  await announced("The agent started: Implementation", 2);
   fake.sessions.cache.endTurn(second, { reason: "No output for 30 minutes.", state: "failed" });
-  await refreshUntil(() =>
-    expect(status().textContent).toBe("The agent failed: No output for 30 minutes."),
-  );
+  await announced("The agent failed: No output for 30 minutes.");
+});
+
+test("a running turn's failure is announced with a turn queued behind it, and the queued one's end is not", async () => {
+  const fake = await fakeAgent();
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  const running = await workflowTurn(fake, repo);
+  await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
+  await refreshUntil(() => expect(log().getByText("Run: Implementation")).toBeTruthy());
+
+  const queued = await workflowTurn(fake, repo, "queued");
+  await refreshUntil(() => expect(log().getAllByText("Run: Implementation")).toHaveLength(2));
+  fake.sessions.cache.endTurn(running, { reason: "No output for 30 minutes.", state: "failed" });
+  await announced("The agent failed: No output for 30 minutes.");
+
+  // Taken back before it ran: the agent did not stop.
+  fake.sessions.cache.endTurn(queued, { state: "stopped" });
+  await refreshUntil(() => expect(log().getByText("Stopped")).toBeTruthy());
+  expect(within(status()).queryByText("The agent stopped")).toBeNull();
 });
 
 test("a stopped turn is announced", async () => {
   const fake = await fakeAgent();
   await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: fake });
   await openTurn(fake, "Look at the plan.");
-  await refreshUntil(() => expect(status().textContent).toBe("The agent started"));
+  await announced("The agent started");
 
   await click(screen.getByRole("button", { name: "Stop" }));
 
-  await refreshUntil(() => expect(status().textContent).toBe("The agent stopped"));
+  await announced("The agent stopped");
 });
 
 test("US4.6: a new current task is announced", async () => {
@@ -424,20 +447,57 @@ test("US4.6: a new current task is announced", async () => {
     ELEVEN.map(([title], index) => [title, index < 7 ? 5 : 0, 5]),
   );
 
-  await refreshUntil(() => expect(status().textContent).toBe("Task 8 of 11: Jump to the latest"));
+  await announced("Task 8 of 11: Jump to the latest");
+});
+
+test("a turn ending and the task moving at once are both announced", async () => {
+  const fake = await fakeAgent();
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  const running = await workflowTurn(fake, repo);
+  await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
+  await refreshUntil(() => expect(screen.getByRole("button", { name: "Stop" })).toBeTruthy());
+
+  fake.sessions.cache.endTurn(running, { state: "done" });
+  addPlan(
+    repo,
+    CLI,
+    ELEVEN.map(([title], index) => [title, index < 7 ? 5 : 0, 5]),
+  );
+
+  // One is not said over the other.
+  await refreshUntil(() => {
+    expect(within(status()).getByText("The agent finished")).toBeTruthy();
+    expect(within(status()).getByText("Task 8 of 11: Jump to the latest")).toBeTruthy();
+  });
 });
 
 test("a session already working when opened announces nothing", async () => {
   const fake = await fakeAgent();
   const repo = fixtureRepo();
   addPlan(repo, CLI, ELEVEN);
-  await runningTurn(fake, repo);
+  await workflowTurn(fake, repo);
 
   await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
 
   await refreshUntil(() => expect(screen.getByRole("button", { name: "Stop" })).toBeTruthy());
   expect(log().getByText("Run: Implementation")).toBeTruthy();
   expect(status().textContent).toBe("");
+});
+
+test("a new chat's turn is announced as it starts and ends, and the log stays silent", async () => {
+  const fake = await fakeAgent();
+  await renderPage("/chats/new", fixtureRepo(), { agent: fake });
+
+  await send("List the open draft files");
+
+  await announced("The agent started");
+  fake.adapter.emit({ id: fake.adapter.sent[0].id, type: "accepted" });
+  fake.adapter.emit({ text: "Two drafts.", type: "text" });
+  await refreshUntil(() => expect(log().getByText("Two drafts.")).toBeTruthy());
+  expect(screen.getByRole("log", { name: "Conversation" }).getAttribute("aria-live")).toBe("off");
+  fake.adapter.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
+  await announced("The agent finished");
 });
 
 test("the transcript does not announce what streams", async () => {
