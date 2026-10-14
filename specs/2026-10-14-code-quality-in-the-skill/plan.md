@@ -1030,10 +1030,14 @@ git commit -m "docs(code-quality-in-the-skill): SKILL.md is the entry point, its
     - no fixed sleeps;
     - a ruling to change or delete a test;
     - lines 171 and 184 rewritten;
-  - `references/projects.md`: setup proposes a code-quality decision.
+  - `references/projects.md`: setup proposes a code-quality decision;
+  - `references/conventions.md`: a structural step is a commit of its own
+    ([R21](rulings.md#r21-the-example-gets-a-code-quality-decision-and-a-new-marker-waits-for-the-plans-review)).
 - Modify: the decision template, whose rules each end with how they are checked; the template
   `CONSTITUTION.md`, which gains principle III; the example's `plan.md`, with one structural step
   and named breaks; the example's decisions, each rule saying how it is checked
+- Create: the example's `decisions/code-quality.md`, the limit its plan's structural step answers
+  ([R21](rulings.md#r21-the-example-gets-a-code-quality-decision-and-a-new-marker-waits-for-the-plans-review))
 - Test: `cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs`
 
 **Interfaces:**
@@ -1049,7 +1053,7 @@ git commit -m "docs(code-quality-in-the-skill): SKILL.md is the entry point, its
   "Setting up checks", covers limits in the project's own linters, the stack's shared config if any,
   and markers in place with their reasons. The other references link to these anchors.
 
-- [ ] **Step 1: Write `code-quality.md`, then link each step to it**
+- [x] **Step 1: Write `code-quality.md`, then link each step to it**
 
 Each step's text says what that step does, in a sentence, and links the concept for the why. The
 concepts are not repeated. The skill's wording carries the spec's scenarios:
@@ -1068,7 +1072,7 @@ concepts are not repeated. The skill's wording carries the spec's scenarios:
 The template constitution's principle III is the amended VI of the
 [spec](spec.md#constitution-check), as "### III. Code is checked and stays maintainable".
 
-- [ ] **Step 2: Check the example and the skill**
+- [x] **Step 2: Check the example and the skill**
 
 - Run:
   `cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs && cargo test -p uraeda-cli --test skill`
@@ -1076,14 +1080,14 @@ The template constitution's principle III is the amended VI of the
 - Read each US4 and US5 scenario against the text, and name the line that carries it in the task's
   commit body.
 
-- [ ] **Step 3: Run all checks**
+- [x] **Step 3: Run all checks**
 
 - Run: `vp run ready`
 - Expected: PASS (SC-003).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
-git add skills
+git add skills specs/2026-10-14-code-quality-in-the-skill
 git commit -m "docs(code-quality-in-the-skill): the skill's code-quality concepts, each backed by a check"
 ```

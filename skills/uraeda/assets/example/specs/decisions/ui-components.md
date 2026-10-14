@@ -10,9 +10,11 @@ library. Screens stay light, and the app looks like itself rather than like a fr
 
 ## Rules
 
-- Components MUST be written in the project, in `src/components/`.
-- Styles MUST use CSS modules, with the variables in `src/styles/theme.css`.
-- Code MUST NOT add a UI component library (MUI, Chakra, shadcn/ui, ...) or a CSS framework.
+- Components MUST be written in the project, in `src/components/`. Checked by review.
+- Styles MUST use CSS modules, with the variables in `src/styles/theme.css`. Checked by Stylelint's
+  `color-no-hex` outside `theme.css`.
+- Code MUST NOT add a UI component library (MUI, Chakra, shadcn/ui, ...) or a CSS framework. Checked
+  by review of `package.json`.
 
 ## Why
 

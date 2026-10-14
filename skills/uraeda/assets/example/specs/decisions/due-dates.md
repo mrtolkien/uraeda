@@ -11,9 +11,11 @@ saving time.
 
 ## Rules
 
-- Due dates MUST be stored as `YYYY-MM-DD` strings.
-- Date arithmetic MUST go through `src/lib/dates.ts`.
+- Due dates MUST be stored as `YYYY-MM-DD` strings. Checked by the `CalendarDay` type and the
+  store's upgrade test.
+- Date arithmetic MUST go through `src/lib/dates.ts`. Checked by review.
 - Code MUST NOT convert a due date to a `Date`, except inside `src/lib/dates.ts` and to display it.
+  Checked by review.
 
 ## Why
 

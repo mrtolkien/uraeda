@@ -111,10 +111,11 @@ stay until removed with `git worktree remove`. `ura` does all of this.
 
 ## Commits
 
-One commit per step, and one per task during the implementation, containing only its files. Messages
-follow [Conventional Commits](https://www.conventionalcommits.org/), with one extra type per
-workflow step. The scope is the feature's or the bug's slug, its folder's name without the date. The
-description is the feature name for a first version, and what changed for later commits.
+One commit per step, and one per task during the implementation, plus one for a task's structural
+step, containing only its files. Messages follow
+[Conventional Commits](https://www.conventionalcommits.org/), with one extra type per workflow step.
+The scope is the feature's or the bug's slug, its folder's name without the date. The description is
+the feature name for a first version, and what changed for later commits.
 
 | Type          | Step                                     | Example                                            |
 | ------------- | ---------------------------------------- | -------------------------------------------------- |
