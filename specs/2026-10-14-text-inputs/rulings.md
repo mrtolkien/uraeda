@@ -419,3 +419,39 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   differently in this overlay than in every other one.
 - **If wrong**: [`QuickAdd.tsx`](/packages/web/src/QuickAdd.tsx)'s `AddForm`.
 - **Where**: task 9.
+
+## R26: A page holds unsaved text when a field drawn on it does
+
+- **Decision**: the leave guard asks only when a field drawn now holds unsaved text: `useTextField`
+  registers its key and its saved text while drawn (`drawField` in
+  [`unsaved.ts`](/packages/web/src/fields/unsaved.ts)), and the guard asks when one of those keys
+  has an entry differing from its saved text, trimmed. Entries of fields not drawn, like a blank
+  settled edit left after Submit, review entries the restore did not pick, a sheet's comment once
+  the sheet closed, quick add's text once its overlay closed, or another page's, never ask; they are
+  still restored when their field shows again. Fields in an open overlay count while it is open.
+  Back asks only when it reaches another address: Back over an overlay's entry, a sheet's or a
+  confirmation's, keeps the page's address and never asks. The guard, its Back handling, and the
+  `beforeunload` listener live in [`LeaveGuard.tsx`](/packages/web/src/fields/LeaveGuard.tsx);
+  `navigate` asks through `setLeaveGuard`, whose check returns `undefined` when nothing is lost, so
+  Back can tell at once whether to put the page back. `useHasUnsaved`, which nothing used, is
+  removed.
+- **Rationale**: "a page that holds unsaved text" must be what leaving loses: the store keeps
+  entries for fields that no longer show, and asking for them would ask on pages that show nothing
+  unsaved, with no way to clear the prompt. A key prefix per page cannot tell them apart.
+- **Alternatives considered**: every entry of the repository, by its path prefix, as the plan first
+  said; entries of the page's file, by key, which still counts stale entries of that file.
+- **If wrong**: `hasDrawnUnsaved` in [`unsaved.ts`](/packages/web/src/fields/unsaved.ts) and
+  `guardBack` in [`LeaveGuard.tsx`](/packages/web/src/fields/LeaveGuard.tsx).
+- **Where**: task 10.
+
+## R27: The slug's restore test leaves the editor through the leave dialog
+
+- **Decision**: in [`editor.test.tsx`](/packages/web/src/__tests__/editor.test.tsx), "the slug typed
+  is restored after a reload, and on the line's page" answers "Leave page" to "Leave page?" after
+  its `navigate` to the line's page, then checks the same: the line's page shows the slug typed.
+- **Rationale**: the slug typed is unsaved, so leaving the editor asks first (US5 4); the test
+  navigated away with it, which opened the page at once.
+- **Alternatives considered**: saving the slug first, which would no longer show that the line's
+  page restores the unsaved slug.
+- **If wrong**: one step in the test.
+- **Where**: task 10.

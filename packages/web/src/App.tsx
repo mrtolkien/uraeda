@@ -12,6 +12,7 @@ import { useRepositories } from "./data.ts";
 import { useDropGuard } from "./attach/useImageDrop.ts";
 import { FeaturePage } from "./FeaturePage.tsx";
 import { ConfirmHost } from "./fields/Confirm.tsx";
+import { LeaveGuard } from "./fields/LeaveGuard.tsx";
 import { pruneUnsaved } from "./fields/unsaved.ts";
 import { EditorPage } from "./EditorPage.tsx";
 import { FilePage } from "./FilePage.tsx";
@@ -260,6 +261,7 @@ export function App({ clientFor }: { clientFor: (repo: string | null) => Client 
             <LinkProvider component={RouterAnchor}>
               <LayerProvider toast={{ position: "bottomEnd" }}>
                 <ConfirmHost>
+                  <LeaveGuard />
                   <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
                     <Suspense fallback={<Loading />}>
                       <InRepository clientFor={clientFor} pathname={pathname} repo={repo}>
