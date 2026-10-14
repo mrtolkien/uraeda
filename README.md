@@ -149,6 +149,7 @@ specs/
     clarifications-01.md       # agent: questions; you: answers
     spec.md                    # agent: behaviour, architecture, details; you: approval
     plan.md                    # agent: implementation tasks and tests
+    images/                    # your screenshots, linked from your files
 ```
 
 Each feature lives on a branch named after its folder. You answer and approve on that branch, and a

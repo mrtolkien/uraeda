@@ -36,7 +36,8 @@ says what to do by hand, and names the command that does it, to use when `ura` i
 2. **Work autonomously, in depth.** The workflow is asynchronous so that you have the time to
    research before the human is involved: use it. Read the code, the documentation, and online
    sources, broadly and completely, beyond the project and beyond what you already know. Never ask
-   the human for something you could find out or settle yourself.
+   the human for something you could find out or settle yourself. When a human's file links an
+   image, open it.
 3. **Ask only what only the human can decide**: product direction, tradeoffs between their goals,
    choices that become decisions, and conflicts with the constitution or an active decision. Settle
    everything else within the constitution and active decisions, and record it as an assumption the
@@ -61,10 +62,11 @@ specs/
   PRIORITIES.md             # Now, Next, Later, Blocked
   drafts/                   # upcoming features, human-written, free form
   backlog/                  # nice-to-have features, not scheduled
-                            # in both, a folder is a postponed feature: <slug>/proposal.md, ...
+                            # in both, a folder is a postponed feature, or a draft with images:
+                            # <slug>/proposal.md, images/, ...
   decisions/                # decision ledger, one file per topic: due-dates.md
   done/YYYY-MM-DD-<slug>.md # the record of a merged feature or bug, in place of its folder
-  bugs/YYYY-MM-DD-<slug>/   # report.md (human), assessment.md (agent)
+  bugs/YYYY-MM-DD-<slug>/   # report.md (human), assessment.md (agent), images/
   YYYY-MM-DD-feature-slug/  # one folder per feature, dated the day it starts
     proposal.md             # human: what and why, in their own words
     discovery-01.md         # agent: findings and options, never decisions
@@ -79,6 +81,7 @@ specs/
     data-model.md           # agent, when needed
     contracts/              # agent, when needed
     mockups/                # agent, for any UI work
+    images/                 # images a human attached, linked from their files
 ```
 
 Discovery and questions come in numbered rounds: each round is a new pair of files, and earlier

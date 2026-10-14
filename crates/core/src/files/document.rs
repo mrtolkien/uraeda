@@ -100,7 +100,17 @@ pub struct SpanLink {
     pub path: Option<String>,
 }
 
-/// A run of text with the same marks.
+/// An image of a span: its target as written, and the file it shows in the repository.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpanImage {
+    pub target: String,
+    /// The file from the repository's top level, `None` for a web image.
+    pub path: Option<String>,
+}
+
+/// A run of text with the same marks. An image's span holds its alt text.
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -111,6 +121,7 @@ pub struct Span {
     pub code: bool,
     pub strike: bool,
     pub link: Option<SpanLink>,
+    pub image: Option<SpanImage>,
 }
 
 /// A block, its place in the tree, its lines, and the fields of its kind.
@@ -217,6 +228,8 @@ struct Marks {
     emphasis: u32,
     strike: u32,
     link: Option<SpanLink>,
+    /// Whether the alt text of an image is being read, into the last span.
+    image: bool,
 }
 
 struct Builder<'a> {
@@ -269,7 +282,14 @@ impl Builder<'_> {
         };
         let marks = self.marks.clone();
         let spans = &mut self.blocks[target as usize].spans;
+        if marks.image
+            && let Some(last) = spans.last_mut()
+        {
+            last.text.push_str(text);
+            return;
+        }
         if let Some(last) = spans.last_mut()
+            && last.image.is_none()
             && !code
             && !last.code
             && last.strong == (marks.strong > 0)
@@ -287,7 +307,29 @@ impl Builder<'_> {
             code,
             strike: marks.strike > 0,
             link: marks.link,
+            image: None,
         });
+    }
+
+    /// Starts an image's span, which its alt text then fills.
+    fn image(&mut self, target: &str) {
+        let Some(block) = self.target else {
+            return;
+        };
+        let marks = self.marks.clone();
+        self.blocks[block as usize].spans.push(Span {
+            text: String::new(),
+            strong: marks.strong > 0,
+            emphasis: marks.emphasis > 0,
+            code: false,
+            strike: marks.strike > 0,
+            link: marks.link,
+            image: Some(SpanImage {
+                target: target.to_string(),
+                path: resolve(self.dir, target),
+            }),
+        });
+        self.marks.image = true;
     }
 
     fn link(&self, target: &str, wiki: bool) -> SpanLink {
@@ -530,6 +572,12 @@ impl Builder<'_> {
                 let wiki = matches!(link_type, LinkType::WikiLink { .. });
                 self.marks.link = Some(self.link(&dest_url, wiki));
             }
+            // An Obsidian embed, `![[shot.png]]`, stays text, as wikilinks are not resolved.
+            Tag::Image {
+                link_type,
+                dest_url,
+                ..
+            } if !matches!(link_type, LinkType::WikiLink { .. }) => self.image(&dest_url),
             _ => {}
         }
     }
@@ -571,6 +619,7 @@ impl Builder<'_> {
             TagEnd::Emphasis => self.marks.emphasis -= 1,
             TagEnd::Strikethrough => self.marks.strike -= 1,
             TagEnd::Link => self.marks.link = None,
+            TagEnd::Image => self.marks.image = false,
             _ => {}
         }
     }

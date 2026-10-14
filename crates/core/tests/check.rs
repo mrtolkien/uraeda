@@ -432,6 +432,24 @@ fn a_bug_record_needs_no_questions() {
     assert_eq!(summary(&example.problems()), Vec::<String>::new());
 }
 
+#[test]
+fn a_missing_image_into_specs_is_a_problem() {
+    let example = Example::new();
+    let proposal = format!("{FEATURE}/proposal.md");
+    example.write(&format!("{FEATURE}/images/login.webp"), "RIFF");
+    let text = example.read(&proposal);
+    let line = text.lines().count() + 4;
+    example.write(
+        &proposal,
+        &format!("{text}\n![Login](images/login.webp)\n\n![Gone](images/gone.webp)\n"),
+    );
+
+    assert_eq!(
+        summary(&example.problems()),
+        [format!("{proposal}:{line}: no file images/gone.webp")]
+    );
+}
+
 /// Review focus 1
 #[test]
 fn files_of_done_that_are_not_markdown_are_ignored() {

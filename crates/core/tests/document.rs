@@ -184,6 +184,39 @@ fn spans_carry_their_marks_and_links() {
 }
 
 #[test]
+fn an_image_is_a_span_with_its_alt_text_and_path() {
+    let doc = parse(
+        "See ![Login](images/login.webp) and ![x](https://e.com/a.png), not ![[shot.png]].\n",
+        "specs/2026-10-14-x",
+    );
+
+    let spans = &doc.blocks[0].spans;
+    let images: Vec<_> = spans
+        .iter()
+        .filter_map(|s| s.image.as_ref().map(|image| (s.text.as_str(), image)))
+        .collect();
+    assert_eq!(images.len(), 2, "{spans:?}");
+    assert_eq!(images[0].0, "Login");
+    assert_eq!(images[0].1.target, "images/login.webp");
+    assert_eq!(
+        images[0].1.path.as_deref(),
+        Some("specs/2026-10-14-x/images/login.webp")
+    );
+    assert_eq!(images[1].0, "x");
+    assert_eq!(images[1].1.path, None);
+    assert!(
+        plain(spans).contains("shot.png"),
+        "the embed stays text: {spans:?}"
+    );
+    assert!(
+        spans
+            .iter()
+            .filter(|s| s.text.contains("shot.png"))
+            .all(|s| s.image.is_none() && s.link.is_none())
+    );
+}
+
+#[test]
 fn headings_have_anchors_and_blocks_their_heading() {
     let doc = parse(
         "# Title\n\n## Q2: How does it work?\n\nText\n\n## Notes\n\n## Notes\n",

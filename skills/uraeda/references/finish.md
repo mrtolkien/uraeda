@@ -69,6 +69,9 @@ the plan, the rulings, and the review files.
   approval, and the changes asked on the pull request.
 - **Follow-ups**: the minor findings deferred by the final review, and the work left.
 
+The record links no image: the folder's `images/` is deleted with it, and git keeps them. Describe
+in words what an image showed, when the record needs it.
+
 Write it for a reader who never saw the folder: dense, with no line count to reach or to stay under.
 A section with nothing to say is left out, if the template marks it optional.
 
@@ -88,9 +91,9 @@ reports every link that does not resolve.
 
 ## The finishing commit
 
-In one commit: the record, the deletion of the whole folder, the rewritten links, and the removal of
-the feature's entry from `PRIORITIES.md`, if the branch still has it. Its message:
-`finish(<slug>): <feature name>`. Run `ura check` first, with `ura`.
+In one commit: the record, the deletion of the whole folder, its images included, the rewritten
+links, and the removal of the feature's entry from `PRIORITIES.md`, if the branch still has it. Its
+message: `finish(<slug>): <feature name>`. Run `ura check` first, with `ura`.
 
 ## Mark the pull request ready
 

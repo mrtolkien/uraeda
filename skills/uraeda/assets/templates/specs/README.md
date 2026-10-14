@@ -14,7 +14,8 @@ Without it, the file names and their `status` fields still tell where each featu
 - `drafts/`: upcoming features, written by humans, free form
 - `backlog/`: nice-to-have features, not scheduled
 - In `drafts/` and `backlog/`, a folder is a postponed feature: its proposal, with the discovery
-  rounds and questions it had, kept for when it starts again
+  rounds and questions it had, kept for when it starts again; or a draft with images, its
+  `proposal.md` next to its `images/`
 - `decisions/`: the decision ledger, one file per topic, named after the question it answers:
   high-impact choices made by humans, binding for all work once `active`
 - `done/YYYY-MM-DD-<slug>.md`: the record of a merged feature or bug, written in place of its folder
@@ -22,6 +23,9 @@ Without it, the file names and their `status` fields still tell where each featu
   changes made after approval. The folder's files stay in git: `git log -- specs/<folder>/`
 - `bugs/YYYY-MM-DD-<slug>/`: a bug `report.md` from a human, and its `assessment.md` from an agent,
   on the branch `fix/YYYY-MM-DD-<slug>`, until it is finished into its record
+- `images/`, in a feature's, a bug's, or a draft's folder: the images a human attached, as WebP,
+  linked from the folder's files with `![alt](images/name.webp)`, and deleted with the folder when
+  it is finished
 - `YYYY-MM-DD-feature-slug/`: one folder per feature, dated the day it started, on the branch of the
   same name until it is finished into its record, with these files, in workflow order:
   - `proposal.md`: what and why, written by a human

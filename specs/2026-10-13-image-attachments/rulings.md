@@ -307,3 +307,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   next commit deletes it.
 - **If wrong**: the existence check in `attach`, and `plain` in `crates/core/src/api.rs`.
 - **Where**: task 2, review.
+
+## R24: A missing image is named as its link writes it
+
+- **Decision**: `ura check` reports a missing image as "no file images/gone.webp", the target as the
+  link writes it, not the path from the repository's top level the plan named.
+- **Rationale**: every `links.file` problem names the target as written, "no file missing.md", and
+  the problem already carries the linking file and its line; one wording for links and images keeps
+  one rule.
+- **Alternatives considered**: the path from the top level for images only (two wordings for one
+  rule).
+- **If wrong**: the `links.file` message in `crates/core/src/check/links.rs`, and
+  `a_missing_image_into_specs_is_a_problem`.
+- **Where**: task 3.
