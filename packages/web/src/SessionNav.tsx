@@ -224,7 +224,15 @@ function Sessions({
       "Agents at work",
       sorted(features.filter((f) => f.step.waitsOn === "agent" && f.step.name !== "none")),
     ],
-    ["Done", sorted(features.filter((f) => f.step.name === "done"))],
+    // Latest first within a status: a folder's name starts with its date.
+    [
+      "Done",
+      sorted(
+        features
+          .filter((f) => f.step.name === "done")
+          .sort((a, b) => b.folder.localeCompare(a.folder)),
+      ),
+    ],
   ];
   // The list's order: what needs the human first, then the last updated.
   const chats = all.filter((row) => row.folder === null && (!found || found.has(row.id)));
