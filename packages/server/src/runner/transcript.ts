@@ -1,3 +1,4 @@
+import { activityLabel, WORKING, waitingLabel, working } from "./activity.ts";
 import type { AgentEvent, Item } from "./events.ts";
 import { toolTarget } from "./message.ts";
 import {
@@ -67,6 +68,13 @@ export class Transcript {
             this.#endTool(live, turn, id, tool.ended);
           }
         }
+        if (turn?.replied) {
+          this.#activity(
+            live,
+            turn,
+            event.tools.length > 0 ? waitingLabel(event.tools.length) : WORKING,
+          );
+        }
         return;
       }
       case "accepted":
@@ -90,7 +98,27 @@ export class Transcript {
       cache.updateItem(turn.id, seq, item);
       changed(live, turn.id);
     };
+    // The main agent's output says what it does now, as its sub-agents' does not.
+    if (event.type !== "result" && event.type !== "skipped" && event.type !== "retry") {
+      const parent =
+        event.type === "toolStart"
+          ? event.parent
+          : event.type === "toolEnd"
+            ? turn.tools.get(event.id)?.item.parent
+            : undefined;
+      if (parent === undefined) {
+        turn.replied = undefined;
+        this.#activity(
+          live,
+          turn,
+          event.type === "activity" ? activityLabel(event.activity) : WORKING,
+          event.type === "textDelta",
+        );
+      }
+    }
     switch (event.type) {
+      case "activity":
+        return;
       case "textDelta":
         if (turn.text) {
           turn.text.text += event.text;
@@ -151,6 +179,20 @@ export class Transcript {
     }
   }
 
+  /**
+   * Sets what the turn does now, reported when it changed. Since when restarts with it, and with
+   * each piece of text, which `quiet` leaves to the text's own change to report.
+   */
+  #activity(live: Live, turn: Running, label: string, quiet = false) {
+    if (label === turn.activity.label && !quiet) {
+      return;
+    }
+    turn.activity = working(label);
+    if (!quiet) {
+      this.#context.changed(live, turn.id);
+    }
+  }
+
   /** Records a tool call's end, with its result. */
   #endTool(live: Live, turn: Running, id: string, end: { isError: boolean; output: string }) {
     const { cache, changed } = this.#context;
@@ -193,6 +235,10 @@ export class Transcript {
       (sent) => sent.turn === turn.id && sent.written && sent.item.state === "pending",
     );
     if (result.ok && !turn.stop && (unread || proc.background.size > 0)) {
+      if (!unread) {
+        turn.replied = true;
+        this.#activity(live, turn, waitingLabel(proc.background.size));
+      }
       return;
     }
     // A turn that ends on its own, as one that failed, takes back what the agent did not read:

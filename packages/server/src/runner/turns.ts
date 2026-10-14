@@ -1,3 +1,4 @@
+import { working } from "./activity.ts";
 import type { Outgoing } from "./adapter.ts";
 import type { Trigger, TurnKind, TurnState } from "./events.ts";
 import {
@@ -74,7 +75,7 @@ export class Turns {
   /** Makes the turn the running one, and writes its message. */
   #run(live: Live, id: number, message: Outgoing) {
     clearTimeout(live.idle);
-    live.turn = { id, first: message.id, tools: new Map(), terminate: [] };
+    live.turn = { id, first: message.id, tools: new Map(), terminate: [], activity: working() };
     this.watch(live, live.turn);
     this.#context.changed(live, id, "running");
     live.proc?.agent.send(message);

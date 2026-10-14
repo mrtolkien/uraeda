@@ -1,4 +1,4 @@
-import type { AgentEvent, Denial, ToolKind } from "./events.ts";
+import type { Activity, AgentEvent, Denial, ToolKind } from "./events.ts";
 import { toolTarget } from "./message.ts";
 
 /**
@@ -87,12 +87,14 @@ const text = (value: unknown): string => (typeof value === "string" ? value : ""
 /**
  * The events of one line of Claude Code's stream-json output. `cwd`, the session's directory, makes
  * tool targets under it relative. `tasks`, kept across a process's lines, maps its background
- * tasks to the tool calls that started them.
+ * tasks to the tool calls that started them, and `blocks` the main agent's tool calls being written
+ * to their input so far.
  */
 export function parseLine(
   line: string,
   cwd?: string,
   tasks = new Map<string, string>(),
+  blocks: Blocks = new Map(),
 ): Array<AgentEvent> {
   let message: unknown;
   try {
@@ -110,7 +112,7 @@ export function parseLine(
     case "system":
       return systemEvents(message, tasks);
     case "stream_event":
-      return streamEvents(message.event, parent);
+      return parent === undefined ? streamEvents(message.event, blocks, cwd) : [];
     case "command_lifecycle":
       return lifecycleEvents(message);
     case "assistant":
@@ -168,20 +170,61 @@ function toolStart(
   };
 }
 
-/** The main agent's text deltas, from `--include-partial-messages`. */
-function streamEvents(event: unknown, parent: string | undefined): Array<AgentEvent> {
-  if (
-    parent === undefined &&
-    isObject(event) &&
-    event.type === "content_block_delta" &&
-    isObject(event.delta) &&
-    event.delta.type === "text_delta" &&
-    typeof event.delta.text === "string" &&
-    event.delta.text !== ""
-  ) {
-    return [{ type: "textDelta", text: event.delta.text }];
+/** The main agent's tool calls being written, by their block's index: their name, and input so far. */
+export type Blocks = Map<number, { name: string; input: string; target?: string }>;
+
+/** A file path, whole, in a tool call's input still being written. */
+const FILE_PATH = /"file_path"\s*:\s*("(?:[^"\\]|\\.)*")/;
+
+/**
+ * The main agent's text deltas, from `--include-partial-messages`, and what it writes that shows
+ * nothing yet: a thinking block, or a tool call, named again once its input holds a file path.
+ * Thinking deltas say nothing new.
+ */
+function streamEvents(event: unknown, blocks: Blocks, cwd: string | undefined): Array<AgentEvent> {
+  if (!isObject(event) || typeof event.index !== "number") {
+    return [];
   }
-  return [];
+  const activity = (value: Activity): Array<AgentEvent> => [{ type: "activity", activity: value }];
+  if (event.type === "content_block_start" && isObject(event.content_block)) {
+    const block = event.content_block;
+    if (block.type === "thinking" || block.type === "redacted_thinking") {
+      return activity({ kind: "thinking" });
+    }
+    if (block.type === "tool_use" && typeof block.name === "string") {
+      blocks.set(event.index, { name: block.name, input: "" });
+      return activity({ kind: "tool", name: block.name });
+    }
+    return [];
+  }
+  if (event.type === "content_block_stop") {
+    blocks.delete(event.index);
+    return [];
+  }
+  if (event.type !== "content_block_delta" || !isObject(event.delta)) {
+    return [];
+  }
+  const { delta } = event;
+  if (delta.type === "text_delta" && typeof delta.text === "string" && delta.text !== "") {
+    return [{ type: "textDelta", text: delta.text }];
+  }
+  const tool = blocks.get(event.index);
+  if (delta.type !== "input_json_delta" || typeof delta.partial_json !== "string" || !tool) {
+    return [];
+  }
+  if (tool.target !== undefined) {
+    return [];
+  }
+  tool.input += delta.partial_json;
+  const path = FILE_PATH.exec(tool.input)?.[1];
+  const target =
+    path === undefined ? undefined : toolTarget(tool.name, { file_path: JSON.parse(path) }, cwd);
+  if (target === undefined) {
+    return [];
+  }
+  tool.target = target;
+  tool.input = "";
+  return activity({ kind: "tool", name: tool.name, target });
 }
 
 /** A message the agent read, or one taken back. Queued and completed say nothing new. */

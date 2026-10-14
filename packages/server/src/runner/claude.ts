@@ -5,7 +5,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Adapter, AgentProcess, Capabilities, OpenOptions } from "./adapter.ts";
-import { allowRule, lines, parseLine } from "./claude-events.ts";
+import { allowRule, type Blocks, lines, parseLine } from "./claude-events.ts";
 import type { AgentEvent, Denial } from "./events.ts";
 
 /** The plugin folder around the server's copy of the skill, passed to `--plugin-dir`. */
@@ -227,10 +227,11 @@ export class ClaudeAdapter implements Adapter {
     // when they are read slowly.
     const events = new EventQueue();
     const tasks = new Map<string, string>();
+    const blocks: Blocks = new Map();
     void (async () => {
       try {
         for await (const line of lines(child.stdout)) {
-          for (const event of parseLine(line, options.cwd, tasks)) {
+          for (const event of parseLine(line, options.cwd, tasks, blocks)) {
             events.push(event);
           }
         }

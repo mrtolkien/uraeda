@@ -15,6 +15,7 @@ import {
   today,
   type,
 } from "./helpers.tsx";
+import { elapsed } from "../Transcript.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
 const WEB_UI = "2026-10-11-web-ui";
@@ -279,4 +280,37 @@ test("the status region says when a reply starts and ends", async () => {
   await refreshUntil(() =>
     expect(screen.getByText("Reply complete").closest("[role=status]")).toBeTruthy(),
   );
+});
+
+test("a running turn ends with what the agent does now, gone once it ends", async () => {
+  const fake = await fakeAgent();
+  await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: fake });
+  await openTurn(fake, "Write the spec.");
+
+  await refreshUntil(() => expect(log().getByText("Working…")).toBeTruthy());
+  fake.adapter.emit({ type: "activity", activity: { kind: "thinking" } });
+  await refreshUntil(() => expect(log().getByText("Thinking…")).toBeTruthy());
+  fake.adapter.emit({
+    type: "activity",
+    activity: { kind: "tool", name: "Write", target: "specs/2026-10-12-cli-tuis/spec.md" },
+  });
+  await refreshUntil(() =>
+    expect(log().getByText("Writing specs/2026-10-12-cli-tuis/spec.md…")).toBeTruthy(),
+  );
+  // The dot names the activity, without the time that changes every second.
+  expect(
+    log().getByRole("img", { name: "Writing specs/2026-10-12-cli-tuis/spec.md" }),
+  ).toBeTruthy();
+
+  fake.adapter.emit({ type: "text", text: "Written." });
+  fake.adapter.emit({ type: "result", ok: true, errors: [], denials: [], interrupted: false });
+  await refreshUntil(() => expect(log().getByText("Written.")).toBeTruthy());
+  await refreshUntil(() => expect(log().queryByText(/…$/)).toBeNull());
+});
+
+test("an activity's time reads in seconds, then minutes", () => {
+  expect(elapsed(9_400)).toBe("9 s");
+  expect(elapsed(65_000)).toBe("1 min 5 s");
+  expect(elapsed(120_000)).toBe("2 min");
+  expect(elapsed(754_000)).toBe("12 min");
 });

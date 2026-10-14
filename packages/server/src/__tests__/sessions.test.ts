@@ -438,6 +438,68 @@ test("a turn waits for its background sub-agents to report back, and lists them 
   expect(await state()).toBe("done");
 });
 
+test("a running turn says what its agent does, and since when, until it ends", async () => {
+  const server = await testServer();
+  const session = await send(server, { folder: AGENT, text: "Write the spec" });
+  const activity = async () => {
+    await flush();
+    const [turn] = await byId(server.app, "Turn", session.turns, ["id", "activity"]);
+    return turn!.activity as { label: string; since: string } | null;
+  };
+  expect((await activity())?.label).toBe("Working");
+
+  server.adapter.emit({ type: "activity", activity: { kind: "thinking" } });
+  const thinking = await activity();
+  expect(thinking?.label).toBe("Thinking");
+  // The same activity again keeps its start.
+  server.adapter.emit({ type: "activity", activity: { kind: "thinking" } });
+  expect((await activity())?.since).toBe(thinking?.since);
+
+  server.adapter.emit({ type: "activity", activity: { kind: "tool", name: "Write" } });
+  expect((await activity())?.label).toBe("Writing a file");
+  server.adapter.emit({
+    type: "activity",
+    activity: { kind: "tool", name: "Write", target: "spec.md" },
+  });
+  expect((await activity())?.label).toBe("Writing spec.md");
+  server.adapter.emit({
+    type: "toolStart",
+    id: "agent-1",
+    name: "Agent",
+    kind: "other",
+    input: {},
+    subagent: { description: "Map the code" },
+  });
+  expect((await activity())?.label).toBe("Working");
+
+  // A sub-agent's tools show as their own rows: the main agent's activity stays.
+  server.adapter.emit({ type: "activity", activity: { kind: "thinking" } });
+  server.adapter.emit({
+    type: "toolStart",
+    id: "grep-1",
+    name: "Grep",
+    kind: "search",
+    input: {},
+    parent: "agent-1",
+  });
+  server.adapter.emit({ type: "toolEnd", id: "grep-1", isError: false, output: "" });
+  expect((await activity())?.label).toBe("Thinking");
+
+  // A reply that ended while background sub-agents run waits for them, by count.
+  server.adapter.emit({ type: "background", tools: ["agent-1"] });
+  server.adapter.emit({ type: "toolEnd", id: "agent-1", isError: false, output: "Launched." });
+  server.adapter.emit({ type: "text", text: "Waiting on the map." });
+  server.adapter.emit(result());
+  expect((await activity())?.label).toBe("Waiting for 1 sub-agent");
+  server.adapter.emit({ type: "background", tools: [] });
+  expect((await activity())?.label).toBe("Working");
+
+  server.adapter.emit({ type: "text", text: "Written." });
+  server.adapter.emit(result());
+  await settle(server, session);
+  expect(await activity()).toBeNull();
+});
+
 test("TurnLog reads a turn's items in pages of 100, without taken-back messages", async () => {
   const server = await testServer();
   const texts: Array<AgentEvent> = Array.from({ length: 249 }, (_, n) => ({

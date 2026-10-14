@@ -21,6 +21,7 @@ import { useAgent, useTurn, useTurnLog } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { stepLabel } from "./labels.ts";
 import { statusStyles } from "./Question.tsx";
+import { StatusMark } from "./StatusMark.tsx";
 import { currentEntry, updateEntry } from "./routes.tsx";
 import { SessionView } from "./views.ts";
 
@@ -453,6 +454,46 @@ function TurnPage({
   ) : null;
 }
 
+/** A running turn's activity shows how long it lasted from this long on. */
+const SHOW_ELAPSED_MS = 10_000;
+
+/** How long an activity lasted: `45 s`, `2 min 5 s`, or `12 min` from ten minutes on. */
+export function elapsed(ms: number): string {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  if (minutes === 0) {
+    return `${seconds} s`;
+  }
+  return minutes >= 10 || seconds % 60 === 0
+    ? `${minutes} min`
+    : `${minutes} min ${seconds % 60} s`;
+}
+
+/**
+ * The line at the end of a running turn: what the agent does now, "Thinking" or "Writing
+ * spec.md", and for how long once it lasts, so a quiet agent reads apart from a stuck one. The
+ * conversation is a live region: screen readers hear the dot's label as the activity changes, not
+ * the time, which changes every second.
+ */
+function Activity({ label, since }: { label: string; since: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const lasted = now - Date.parse(since);
+  return (
+    <ChatSystemMessage xstyle={styles.notice}>
+      <HStack gap={2} align="center">
+        <StatusMark status="working" label={label} small />
+        <Text color="secondary" aria-hidden>
+          {lasted >= SHOW_ELAPSED_MS ? `${label} · ${elapsed(lasted)}` : `${label}…`}
+        </Text>
+      </HStack>
+    </ChatSystemMessage>
+  );
+}
+
 /** How a turn that did not end well ended. */
 function ending(state: string, reason: string | null): string | undefined {
   if (state === "stopped") {
@@ -492,6 +533,9 @@ function Turn({ id, latest, actions }: { id: string; latest: boolean; actions: A
           actions={actions}
         />
       ))}
+      {turn.state === "running" && turn.activity && (
+        <Activity label={turn.activity.label} since={turn.activity.since} />
+      )}
       {end && (
         <ChatSystemMessage xstyle={styles.notice}>
           <Text color={turn.state === "failed" ? "error" : "secondary"}>{end}</Text>
