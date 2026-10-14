@@ -393,10 +393,13 @@ pub fn work_dir(repo: &Path, folder: &str) -> Result<String> {
     Ok(place.root.to_string_lossy().into_owned())
 }
 
-/// The main checkout's path, from any of the repository's working trees.
+/// The main checkout's path, from any of the repository's working trees: git alone, so a
+/// repository without `specs/` has one too.
 pub fn main_root(repo: &Path) -> Result<String> {
-    let (git, _) = open(repo)?;
-    Ok(git.main_root().to_string_lossy().into_owned())
+    Ok(Git::discover(repo)?
+        .main_root()
+        .to_string_lossy()
+        .into_owned())
 }
 
 /// Uraeda's data folder: `custom` when set and not empty, else `URAEDA_DATA_DIR` from this

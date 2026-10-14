@@ -115,6 +115,16 @@ fn main_root_of_a_worktree_is_the_main_checkout() {
 }
 
 #[test]
+fn main_root_of_a_repository_without_specs_is_its_checkout() {
+    let repo = TestRepo::new();
+    assert!(!repo.exists("specs"));
+
+    let root = api::main_root(repo.path()).unwrap();
+
+    assert_eq!(Path::new(&root), repo.path());
+}
+
+#[test]
 fn work_dir_of_a_merged_feature_is_refused() {
     let repo = repo_with_answered_round();
     repo.switch(FOLDER);
