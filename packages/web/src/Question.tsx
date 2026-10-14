@@ -12,9 +12,21 @@ import {
   typeScaleVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useFateClient } from "react-fate";
 import type { Choice, Document, QuestionItem } from "uraeda-binding";
+import { AttachButton } from "./attach/AttachButton.tsx";
+import { AttachStatus } from "./attach/AttachStatus.tsx";
+import { DropHint } from "./attach/DropHint.tsx";
+import { useImageText } from "./attach/useImageText.ts";
 import { Blocks } from "./Blocks.tsx";
 import { refusal } from "./errors.ts";
 import { StaticImages } from "./ImageView.tsx";
@@ -262,6 +274,58 @@ function Option({
 }
 
 /**
+ * A question's comment as it is written: it takes images pasted, dropped while it has the focus,
+ * or picked with "Add image". `onImages` takes the text once they are added, to save at once.
+ * `onSettled` takes how to wait for the images under way, as a submit does.
+ */
+function CommentField({
+  path,
+  id,
+  comment,
+  onChange,
+  onImages,
+  onSettled,
+  children,
+}: {
+  path: string;
+  id: string;
+  comment: string;
+  onChange: (comment: string) => void;
+  onImages: (comment: string, added: boolean) => void;
+  onSettled: (settled: () => Promise<void>) => void;
+  children: ReactNode;
+}) {
+  const images = useImageText({
+    path,
+    text: comment,
+    label: `${id}'s comment`,
+    // The notes take a drop with no field focused: a comment takes it only while focused.
+    priority: 0,
+    onText: onImages,
+  });
+  useEffect(() => {
+    onSettled(images.settled);
+  }, [onSettled, images.settled]);
+  return (
+    <>
+      <DropHint hint={images.hint}>
+        <GrowingTextArea
+          label="Comment"
+          value={comment}
+          onChange={onChange}
+          {...images.fieldProps}
+        />
+      </DropHint>
+      <AttachStatus status={images.status} />
+      <HStack gap={2} align="center" wrap="wrap" xstyle={styles.actions}>
+        <AttachButton onFiles={(files) => void images.addFiles(files)} />
+        {children}
+      </HStack>
+    </>
+  );
+}
+
+/**
  * A question in full: its context, every option with its text, pros, cons, and why, and a comment.
  * A tap on an option toggles its letter and saves the answer, with the comment as typed; the comment
  * alone saves with its button, or with Submit. With `onAsk`, it and its follow-ups offer "Ask the
@@ -273,6 +337,7 @@ export function Question({
   folder,
   followUps,
   onAsk,
+  path,
   question,
   readOnly,
 }: {
@@ -280,6 +345,8 @@ export function Question({
   folder: string;
   followUps: ReadonlyArray<QuestionItem>;
   onAsk?: (question: QuestionItem) => void;
+  /** The round's file, which the comments' images are attached to. */
+  path: string;
   question: QuestionItem;
   readOnly: boolean;
 }) {
@@ -332,10 +399,24 @@ export function Question({
     (value: { comment: string; letters: ReadonlyArray<string> }) => schedule(value, true),
     [schedule],
   );
-  // Submit saves a comment still being written first.
+  // The images being added to the comment, which a submit waits for.
+  const settled = useRef<() => Promise<void>>(async () => {});
+  /** Saves the answer at once with the images' links, as a file with images is. */
+  const onImages = useCallback(
+    (value: string, added: boolean) => {
+      setComment(value);
+      local.current = { ...local.current, comment: value };
+      if (added) {
+        commit({ letters: local.current.letters, comment: value });
+      }
+    },
+    [commit],
+  );
+  // Submit saves a comment still being written first, its images added.
   const pending = useContext(PendingSaves);
   useEffect(() => {
-    const before = () => {
+    const before = async () => {
+      await settled.current();
       if (local.current.dirty) {
         commit({ comment: local.current.comment, letters: local.current.letters });
       }
@@ -413,15 +494,23 @@ export function Question({
         comment && <Paragraph xstyle={styles.spaced}>{comment}</Paragraph>
       ) : (
         <div {...stylex.props(styles.spaced)}>
-          <GrowingTextArea label="Comment" onChange={setComment} value={comment} />
-          <HStack align="center" gap={2} wrap="wrap" xstyle={styles.actions}>
+          <CommentField
+            comment={comment}
+            id={question.id}
+            onChange={setComment}
+            onImages={onImages}
+            onSettled={(wait) => {
+              settled.current = wait;
+            }}
+            path={path}
+          >
             <Button
               isDisabled={!dirty}
               label="Save comment"
               onClick={() => commit({ comment, letters })}
             />
             {(!dirty || save.state.kind === "error") && <Status state={save.state} />}
-          </HStack>
+          </CommentField>
         </div>
       )}
       {followUps.map((followUp) => (
@@ -430,6 +519,7 @@ export function Question({
           folder={folder}
           followUps={[]}
           key={followUp.id}
+          path={path}
           question={followUp}
           readOnly={readOnly}
           {...(onAsk ? { onAsk } : {})}

@@ -206,6 +206,18 @@ export function useImageText({
     [end, upload],
   );
 
+  /**
+   * Resolves once no file waits or uploads, and the run's end has handed its text over: what must
+   * hold the links, like a submit, waits for it.
+   */
+  const settled = useCallback(async () => {
+    let current: Promise<void>;
+    do {
+      current = queue.current;
+      await current;
+    } while (current !== queue.current);
+  }, []);
+
   const { isTarget, hint } = useImageDrop({
     ref,
     priority,
@@ -248,6 +260,7 @@ export function useImageText({
     hint,
     /** Whether files wait or upload. */
     busy,
+    settled,
     status,
   };
 }

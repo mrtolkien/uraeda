@@ -949,3 +949,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `Message` in `packages/web/src/Transcript.tsx`, `size` in
   `packages/web/src/ImageView.tsx`, `packages/web/src/theme/theme.ts`.
 - **Where**: task 10.
+
+## R64: A verdict waits for a comment's images, and an answer's images are saved at once
+
+- **Decision**: a verdict, approving or requesting changes, is refused while the open comment holds
+  an image added to it, or an image uploads, with "Add or cancel your comment first: its images are
+  not in the review yet.", under the verdict's buttons on wide screens and in the comment's sheet on
+  the phone. A comment cancelled during an upload stays cancelled. An image added to an answer's
+  comment saves the answer at once, as an image added to a proposal saves its text; the notes save
+  as typed. Submit waits for the images under way in every answer and in the notes, then saves what
+  is still being typed, as before.
+- **Rationale**: a verdict or a submit commits the folder's images that a file links, and deletes
+  the others (Review focus 11). A review comment is a draft until it is added: sending it with the
+  verdict would add a comment the human did not send, and the comment's anchor may still be
+  changing. An answer has no such step: its comment is the answer, and saving it at once keeps the
+  image linked even when the page is left. On the phone, the sheet lies over the page's end.
+- **Alternatives considered**: adding the open comment before the verdict (a comment sent without
+  the human's Add comment); refusing a verdict whenever a comment is open, image or not (a change to
+  how reviews work beyond images); an answer's image link waiting for Save comment (an image deleted
+  by the next commit if the page is left).
+- **If wrong**: `verdict` and `useImageText`'s callbacks in `packages/web/src/ReviewPage.tsx`;
+  `onImages` and the pending save in `packages/web/src/Question.tsx`; `submit` and `NotesField` in
+  `packages/web/src/RoundPage.tsx`; `settled` in `packages/web/src/attach/useImageText.ts`.
+- **Where**: task 11, Review focus 11.
