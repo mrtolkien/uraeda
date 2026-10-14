@@ -1,6 +1,6 @@
 ---
 verdict: approved
-commit: ba8526f
+commit: 4de36e0
 ---
 
 # Review: Spec, Dedicated session view
