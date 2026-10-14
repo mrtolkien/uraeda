@@ -49,7 +49,7 @@
 ## Later
 
 > [!NOTE]
->
+
 > Might get dropped, low prio features
 
 - Use Jev-like model (Clef) for one-shot classification of decisions: "Is this decision relevant to
@@ -93,3 +93,5 @@
   with worktrees in nvim is pretty hard. I like it for writing proposals though.
 - When clicking on a "clarifications" step in the sidebar it skips the intro, which is very
   important.
+- In clarifications step, we should be able to comment like we do for specs in the "settled for you"
+  part. It should be appended as a "Note"
