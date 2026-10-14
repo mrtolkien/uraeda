@@ -46,6 +46,8 @@ pub struct StepView {
     pub task: Option<String>,
     /// Where the implementation is in the plan's tasks, for implementation.
     pub progress: Option<TaskProgress>,
+    /// Whether the implementation is over: the final review or after.
+    pub implemented: bool,
 }
 
 #[cfg_attr(feature = "napi", napi(object))]
@@ -265,6 +267,7 @@ impl From<&Step> for StepView {
             file: step.file.clone(),
             task: step.task.clone(),
             progress: step.progress.clone(),
+            implemented: step.implemented,
         }
     }
 }

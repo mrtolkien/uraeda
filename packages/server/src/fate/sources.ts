@@ -116,7 +116,7 @@ function missingFeature(folder: string): FeatureRecord {
     session: null,
     slug: "",
     source: "",
-    step: { name: "none", progress: null, waitsOn: "nobody" },
+    step: { implemented: false, name: "none", progress: null, waitsOn: "nobody" },
     title: "",
     uncommitted: false,
   };

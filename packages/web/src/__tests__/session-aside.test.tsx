@@ -233,6 +233,26 @@ test("every box checked: the step after the plan, and 11 of 11 tasks done", asyn
   expect(bar.getAttribute("aria-valuenow")).toBe("11");
 });
 
+test("every box checked, and the spec revised since: the plan's revision, without a bar", async () => {
+  const repo = fixtureRepo();
+  addPlan(
+    repo,
+    CLI,
+    ELEVEN.map(([title]) => [title, 5, 5]),
+  );
+  const spec = git(repo, "show", `${CLI}:specs/${CLI}/spec.md`);
+  commitOnBranch(repo, CLI, {
+    [`specs/${CLI}/spec.md`]: spec.replace(/^revision: 1$/m, "revision: 2"),
+  });
+  await renderPage(`/f/${CLI}/session`, repo, { agent: await fakeAgent() });
+
+  const column = await findAside();
+  expect(column.getByRole("heading", { name: "Plan revision" })).toBeTruthy();
+  expect(await column.findByRole("list", { name: "Tasks" })).toBeTruthy();
+  expect(column.queryByRole("progressbar")).toBeNull();
+  expect(column.queryByText(/tasks done$/)).toBeNull();
+});
+
 test("nothing changed outside the feature's folder", async () => {
   await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: await fakeAgent() });
 
