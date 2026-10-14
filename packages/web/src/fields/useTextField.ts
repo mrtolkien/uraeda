@@ -29,7 +29,12 @@ import {
 export function useTextField(field: string, saved: string, extra?: Unsaved["extra"]) {
   const key = unsavedKey(useRepositoryPath(), field);
   const entry = useUnsaved(key);
-  const [atMount] = useState(() => readUnsaved(key));
+  // The unsaved text the field had when drawn, forgotten once it is gone, discarded or saved: what
+  // is typed after is not restored.
+  const [atMount, setAtMount] = useState(() => readUnsaved(key));
+  if (atMount && !entry) {
+    setAtMount(undefined);
+  }
   // The text typed that leaves no entry, like a space after the saved text, shown while `saved`
   // is still the one it was typed over: a save's text, until the file's comes back.
   const [typed, setTyped] = useState<{ over: string; text: string }>();

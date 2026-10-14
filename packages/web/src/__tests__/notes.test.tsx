@@ -186,6 +186,38 @@ test("unsaved notes are restored after a reload, until discarded", async () => {
   expect(screen.queryByText(/Unsaved text restored/)).toBeNull();
 });
 
+/** Final review: a restored text discarded is gone, and what is typed next is not restored. */
+test("notes typed after a restored text was discarded show no notice", async () => {
+  at1432();
+  const repo = roundWith();
+  await renderPage(PAGE, repo);
+  await type(await screen.findByLabelText("Notes"), "Bigger icon");
+  await reload(repo);
+  await click(screen.getByRole("button", { name: "Discard" }));
+
+  await type(notesField(), "Smaller icon");
+
+  expect(screen.getByText("Unsaved changes")).toBeTruthy();
+  expect(screen.queryByText(/Unsaved text restored/)).toBeNull();
+});
+
+/** Final review: a restored text saved is gone, and what is typed next is not restored. */
+test("notes typed after a restored text was saved show no notice", async () => {
+  at1432();
+  const repo = roundWith();
+  await renderPage(PAGE, repo);
+  await type(await screen.findByLabelText("Notes"), "Bigger icon");
+  await reload(repo);
+  await click(saveNotes());
+  await waitFor(() => expect(notesOnDisk(repo)).toBe("Bigger icon"));
+  await waitFor(() => expect(screen.queryByText(/Unsaved text restored/)).toBeNull());
+
+  await type(notesField(), "Bigger icon, and bolder");
+
+  expect(screen.getByText("Unsaved changes")).toBeTruthy();
+  expect(screen.queryByText(/Unsaved text restored/)).toBeNull();
+});
+
 /** US5 3 */
 test("notes restored over notes changed since say so", async () => {
   at1432();
