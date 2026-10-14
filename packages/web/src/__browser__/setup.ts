@@ -14,7 +14,7 @@ export default function setup() {
   const data = mkdtempSync(join(tmpdir(), "uraeda-data-"));
   process.env.URAEDA_DATA_DIR = data;
   return () => {
-    rmSync(repo, { recursive: true, force: true });
-    rmSync(data, { recursive: true, force: true });
+    rmSync(repo, { force: true, recursive: true });
+    rmSync(data, { force: true, recursive: true });
   };
 }

@@ -41,11 +41,11 @@ const REFUSED = {
 };
 
 const result = (extra: Partial<Extract<AgentEvent, { type: "result" }>> = {}): AgentEvent => ({
-  type: "result",
-  ok: true,
-  errors: [],
   denials: [],
+  errors: [],
   interrupted: false,
+  ok: true,
+  type: "result",
   ...extra,
 });
 
@@ -84,26 +84,26 @@ test("session.send on a feature creates its session and returns it with its firs
   const session = await send(server, { folder: HUMAN, text: "Why did you recommend A in Q6?" });
 
   expect(session).toMatchObject({
-    folder: HUMAN,
     agent: "fake",
-    title: "Web UI for the workflow files",
+    archived: false,
+    folder: HUMAN,
+    place: `branch ${HUMAN}`,
     status: "working",
     statusLabel: "Working",
     statusReason: null,
-    unseen: false,
-    place: `branch ${HUMAN}`,
-    archived: false,
     subagents: [],
+    title: "Web UI for the workflow files",
+    unseen: false,
   });
   expect(session.turns).toHaveLength(1);
   const [turn] = await byId(server.app, "Turn", session.turns, TURN_FIELDS);
   expect(turn).toMatchObject({
     id: session.turns[0],
-    session: session.id,
     kind: "chat",
-    trigger: null,
-    state: "running",
     pages: 1,
+    session: session.id,
+    state: "running",
+    trigger: null,
   });
   const [feature] = await byId(server.app, "Feature", [HUMAN], ["id", "session"]);
   expect(feature.session).toBe(session.id);
@@ -121,26 +121,26 @@ test("a session of another repository is not read", async () => {
   // The data folder is shared: another repository's server wrote this session, on the same folder.
   const { cache } = server.sessions;
   const row = cache.createSession({
-    repo: "/elsewhere/repo",
-    folder: AGENT,
     agent: "fake",
+    folder: AGENT,
     nativeId: "3f2c",
+    repo: "/elsewhere/repo",
     title: null,
   });
   const turn = cache.addTurn({
-    sessionId: row.id,
-    kind: "chat",
-    trigger: null,
-    step: null,
     allowed: null,
+    kind: "chat",
+    sessionId: row.id,
     state: "running",
+    step: null,
+    trigger: null,
   });
   cache.appendItem(turn, {
-    kind: "denial",
-    tool: "Bash",
-    target: "ls",
-    rule: "Bash(ls)",
     allowed: false,
+    kind: "denial",
+    rule: "Bash(ls)",
+    target: "ls",
+    tool: "Bash",
   });
 
   expect(await byId(server.app, "Session", [row.id], ["id"])).toEqual([]);
@@ -152,7 +152,7 @@ test("a session of another repository is not read", async () => {
   for (const [name, input] of [
     ["session.send", { session: row.id, text: "Hello" }],
     ["session.stop", { session: row.id }],
-    ["session.allow", { session: row.id, turn: String(turn), seq: 0 }],
+    ["session.allow", { seq: 0, session: row.id, turn: String(turn) }],
     ["session.seen", { session: row.id }],
   ] as const) {
     const refused = await mutate(server.app, name, input, ["id"]);
@@ -166,14 +166,14 @@ test("a session of another repository is not read", async () => {
 
 test("US3.6: SessionList lists features' and chats' sessions with their status, needs you first", async () => {
   const server = await testServer();
-  server.adapter.script([result({ ok: false, errors: ["The plan could not be written."] })]);
+  server.adapter.script([result({ errors: ["The plan could not be written."], ok: false })]);
   const failed = await send(server, { folder: AGENT, text: "Plan it" });
   await settle(server, failed);
   server.adapter.script([]);
   const human = await send(server, { folder: HUMAN, text: "Why A?" });
   await settle(server, human);
   const chat = (await mutate(server.app, "session.newChat", {}, ["id"])).data as { id: string };
-  server.adapter.script([{ type: "text", text: "Three drafts are open." }]);
+  server.adapter.script([{ text: "Three drafts are open.", type: "text" }]);
   const replied = await send(server, { session: chat.id, text: "List the open draft files" });
   await settle(server, replied);
 
@@ -191,22 +191,22 @@ test("US3.4: a running sub-agent shows in its session's row and record", async (
   const server = await testServer();
   const session = await send(server, { folder: AGENT, text: "Plan it" });
   server.adapter.emit({
-    type: "toolStart",
     id: "task-1",
-    name: "Task",
-    kind: "other",
     input: {},
+    kind: "other",
+    name: "Task",
     subagent: { description: "Map the runner code" },
+    type: "toolStart",
   });
   await flush();
 
   const [record] = await byId(server.app, "Session", [session.id], ["id", "subagents"]);
-  expect(record.subagents).toEqual([{ id: "task-1", description: "Map the runner code" }]);
+  expect(record.subagents).toEqual([{ description: "Map the runner code", id: "task-1" }]);
   expect((await list(server))[0].subagents).toEqual([
-    { id: "task-1", description: "Map the runner code" },
+    { description: "Map the runner code", id: "task-1" },
   ]);
 
-  server.adapter.emit({ type: "toolEnd", id: "task-1", isError: false, output: "Mapped." });
+  server.adapter.emit({ id: "task-1", isError: false, output: "Mapped.", type: "toolEnd" });
   await flush();
   const [after] = await byId(server.app, "Session", [session.id], ["id", "subagents"]);
   expect(after.subagents).toEqual([]);
@@ -216,7 +216,7 @@ test("US3.4: a running sub-agent shows in its session's row and record", async (
 test("US3.5: SessionSearch finds a chat by its message text", async () => {
   const server = await testServer();
   const chat = (await mutate(server.app, "session.newChat", {}, ["id"])).data as { id: string };
-  server.adapter.script([{ type: "text", text: "The cache uses WAL mode." }]);
+  server.adapter.script([{ text: "The cache uses WAL mode.", type: "text" }]);
   const replied = await send(server, { session: chat.id, text: "How does the cache lock?" });
   await settle(server, replied);
   server.adapter.script([]);
@@ -227,7 +227,7 @@ test("US3.5: SessionSearch finds a chat by its message text", async () => {
 
   expect(found.id).toBe("wal");
   expect(found.rows.map((row: { id: string }) => row.id)).toEqual([chat.id]);
-  expect(found.rows[0]).toMatchObject({ title: "How does the cache lock?", status: "unread" });
+  expect(found.rows[0]).toMatchObject({ status: "unread", title: "How does the cache lock?" });
   // A feature is found by its title too.
   const [byTitle] = await byId(server.app, "SessionSearch", ["web ui"], ["id", "rows"]);
   expect(byTitle.rows.map((row: { id: string }) => row.id)).toEqual([other.id]);
@@ -255,12 +255,12 @@ test("US2.1: WorkflowMessage gives the message the composer is filled with", asy
 
   expect(message).toEqual({
     id: `${AGENT}:manual`,
+    refusal: null,
+    step: "plan",
     text:
       `/uraeda:uraeda Continue the feature specs/${AGENT}/, on branch ${AGENT}.\n` +
       "The human asked you to continue.\n" +
       "Its next step is plan: follow skills/uraeda/references/plan.md.\n",
-    step: "plan",
-    refusal: null,
   });
 });
 
@@ -276,9 +276,9 @@ test("US2.4: WorkflowMessage on a feature waiting on the human is empty, with th
 
   expect(message).toEqual({
     id: `${HUMAN}:answers:clarifications-01.md`,
-    text: "",
-    step: expect.any(String),
     refusal: "The feature waits on you now: there is nothing to continue.",
+    step: expect.any(String),
+    text: "",
   });
 });
 
@@ -294,7 +294,7 @@ test("US2.2: session.send with the workflow's message starts a workflow turn", a
   await settle(server, session);
 
   const [turn] = await byId(server.app, "Turn", session.turns, TURN_FIELDS);
-  expect(turn).toMatchObject({ kind: "workflow", trigger: "manual", step: "plan", state: "done" });
+  expect(turn).toMatchObject({ kind: "workflow", state: "done", step: "plan", trigger: "manual" });
   const refused = await mutate(
     server.app,
     "session.send",
@@ -345,7 +345,7 @@ test("US1.6: a write on a feature is refused while its turn runs", async () => {
   const refused = await mutate(
     server.app,
     "answer.save",
-    { folder: AGENT, question: "Q1", letters: ["A"], comment: "", previous: "" },
+    { comment: "", folder: AGENT, letters: ["A"], previous: "", question: "Q1" },
     ["id"],
   );
   const committed = await mutate(
@@ -372,13 +372,13 @@ test("drafts, priorities, and other features stay writable during a turn", async
   const added = await mutate(
     server.app,
     "priorities.add",
-    { section: "next", text: "Show the agent's last commit", hash: priorities.hash },
+    { hash: priorities.hash, section: "next", text: "Show the agent's last commit" },
     ["id"],
   );
   const answered = await mutate(
     server.app,
     "answer.save",
-    { folder: HUMAN, question: "Q1", letters: ["A"], comment: "", previous: "" },
+    { comment: "", folder: HUMAN, letters: ["A"], previous: "", question: "Q1" },
     ["id"],
   );
 
@@ -411,28 +411,28 @@ test("a turn waits for its background sub-agents to report back, and lists them 
   const state = async () =>
     (await byId(server.app, "Turn", session.turns, ["id", "state"]))[0]!.state;
   server.adapter.emit({
-    type: "toolStart",
     id: "agent-1",
-    name: "Agent",
-    kind: "other",
     input: {},
+    kind: "other",
+    name: "Agent",
     subagent: { description: "Research the tools" },
+    type: "toolStart",
   });
-  server.adapter.emit({ type: "background", tools: ["agent-1"] });
-  server.adapter.emit({ type: "toolEnd", id: "agent-1", isError: false, output: "Launched." });
-  server.adapter.emit({ type: "text", text: "I'll write the files once it reports back." });
+  server.adapter.emit({ tools: ["agent-1"], type: "background" });
+  server.adapter.emit({ id: "agent-1", isError: false, output: "Launched.", type: "toolEnd" });
+  server.adapter.emit({ text: "I'll write the files once it reports back.", type: "text" });
   server.adapter.emit(result());
   await flush();
 
   expect(await state()).toBe("running");
-  expect(await subagents()).toEqual([{ id: "agent-1", description: "Research the tools" }]);
+  expect(await subagents()).toEqual([{ description: "Research the tools", id: "agent-1" }]);
 
-  server.adapter.emit({ type: "background", tools: [] });
+  server.adapter.emit({ tools: [], type: "background" });
   await flush();
   expect(await subagents()).toEqual([]);
   expect(await state()).toBe("running");
 
-  server.adapter.emit({ type: "text", text: "Written." });
+  server.adapter.emit({ text: "Written.", type: "text" });
   server.adapter.emit(result());
   await settle(server, session);
   expect(await state()).toBe("done");
@@ -448,53 +448,53 @@ test("a running turn says what its agent does, and since when, until it ends", a
   };
   expect((await activity())?.label).toBe("Working");
 
-  server.adapter.emit({ type: "activity", activity: { kind: "thinking" } });
+  server.adapter.emit({ activity: { kind: "thinking" }, type: "activity" });
   const thinking = await activity();
   expect(thinking?.label).toBe("Thinking");
   // The same activity again keeps its start.
-  server.adapter.emit({ type: "activity", activity: { kind: "thinking" } });
+  server.adapter.emit({ activity: { kind: "thinking" }, type: "activity" });
   expect((await activity())?.since).toBe(thinking?.since);
 
-  server.adapter.emit({ type: "activity", activity: { kind: "tool", name: "Write" } });
+  server.adapter.emit({ activity: { kind: "tool", name: "Write" }, type: "activity" });
   expect((await activity())?.label).toBe("Writing a file");
   server.adapter.emit({
-    type: "activity",
     activity: { kind: "tool", name: "Write", target: "spec.md" },
+    type: "activity",
   });
   expect((await activity())?.label).toBe("Writing spec.md");
   server.adapter.emit({
-    type: "toolStart",
     id: "agent-1",
-    name: "Agent",
-    kind: "other",
     input: {},
+    kind: "other",
+    name: "Agent",
     subagent: { description: "Map the code" },
+    type: "toolStart",
   });
   expect((await activity())?.label).toBe("Working");
 
   // A sub-agent's tools show as their own rows: the main agent's activity stays.
-  server.adapter.emit({ type: "activity", activity: { kind: "thinking" } });
+  server.adapter.emit({ activity: { kind: "thinking" }, type: "activity" });
   server.adapter.emit({
-    type: "toolStart",
     id: "grep-1",
-    name: "Grep",
-    kind: "search",
     input: {},
+    kind: "search",
+    name: "Grep",
     parent: "agent-1",
+    type: "toolStart",
   });
-  server.adapter.emit({ type: "toolEnd", id: "grep-1", isError: false, output: "" });
+  server.adapter.emit({ id: "grep-1", isError: false, output: "", type: "toolEnd" });
   expect((await activity())?.label).toBe("Thinking");
 
   // A reply that ended while background sub-agents run waits for them, by count.
-  server.adapter.emit({ type: "background", tools: ["agent-1"] });
-  server.adapter.emit({ type: "toolEnd", id: "agent-1", isError: false, output: "Launched." });
-  server.adapter.emit({ type: "text", text: "Waiting on the map." });
+  server.adapter.emit({ tools: ["agent-1"], type: "background" });
+  server.adapter.emit({ id: "agent-1", isError: false, output: "Launched.", type: "toolEnd" });
+  server.adapter.emit({ text: "Waiting on the map.", type: "text" });
   server.adapter.emit(result());
   expect((await activity())?.label).toBe("Waiting for 1 sub-agent");
-  server.adapter.emit({ type: "background", tools: [] });
+  server.adapter.emit({ tools: [], type: "background" });
   expect((await activity())?.label).toBe("Working");
 
-  server.adapter.emit({ type: "text", text: "Written." });
+  server.adapter.emit({ text: "Written.", type: "text" });
   server.adapter.emit(result());
   await settle(server, session);
   expect(await activity()).toBeNull();
@@ -503,8 +503,8 @@ test("a running turn says what its agent does, and since when, until it ends", a
 test("TurnLog reads a turn's items in pages of 100, without taken-back messages", async () => {
   const server = await testServer();
   const texts: Array<AgentEvent> = Array.from({ length: 249 }, (_, n) => ({
-    type: "text",
     text: `Line ${n}`,
+    type: "text",
   }));
   server.adapter.script([...texts, result()]);
   const session = await send(server, { folder: AGENT, text: "Plan it" });
@@ -525,19 +525,19 @@ test("TurnLog reads a turn's items in pages of 100, without taken-back messages"
     [`${id}:1`, id, 1, 100],
     [`${id}:2`, id, 2, 50],
   ]);
-  expect(pages[0].items[0]).toMatchObject({ seq: 0, kind: "message", text: "Plan it" });
+  expect(pages[0].items[0]).toMatchObject({ kind: "message", seq: 0, text: "Plan it" });
   expect(pages[2].items.at(-1)).toEqual({
-    seq: 249,
     kind: "text",
-    text: "Line 248",
+    seq: 249,
     streaming: false,
+    text: "Line 248",
   });
 });
 
 test("US5.2: session.allow reopens the process with the rule, in a turn of its own", async () => {
   const server = await testServer();
   server.adapter.script([
-    result({ denials: [{ tool: "Bash", input: { command: "git push origin HEAD" } }] }),
+    result({ denials: [{ input: { command: "git push origin HEAD" }, tool: "Bash" }] }),
   ]);
   const session = await send(server, { folder: AGENT, text: "Push it" });
   await settle(server, session);
@@ -555,20 +555,20 @@ test("US5.2: session.allow reopens the process with the rule, in a turn of its o
   const allowed = await mutate(
     server.app,
     "session.allow",
-    { session: session.id, turn: session.turns[0], seq: denial.seq },
+    { seq: denial.seq, session: session.id, turn: session.turns[0] },
     ["id", "turns"],
   );
   await server.sessions.settled(Number(allowed.data.turns.at(-1)));
 
   expect(server.adapter.opens.at(-1)?.allowed).toBe("Bash(git push origin HEAD)");
   const [turn] = await byId(server.app, "Turn", [allowed.data.turns.at(-1)], TURN_FIELDS);
-  expect(turn).toMatchObject({ kind: "allow", allowed: "Bash(git push origin HEAD)" });
+  expect(turn).toMatchObject({ allowed: "Bash(git push origin HEAD)", kind: "allow" });
 });
 
 test("US4.2 and US4.3: a chat is renamed, archived, and brought back by a message", async () => {
   const server = await testServer();
   const chat = (await mutate(server.app, "session.newChat", {}, SESSION_FIELDS)).data;
-  expect(chat).toMatchObject({ folder: null, title: "New chat", turns: [], status: "idle" });
+  expect(chat).toMatchObject({ folder: null, status: "idle", title: "New chat", turns: [] });
   expect(chat.place).toMatch(/^main checkout, branch /);
 
   const renamed = await mutate(
@@ -580,7 +580,7 @@ test("US4.2 and US4.3: a chat is renamed, archived, and brought back by a messag
   const archived = await mutate(
     server.app,
     "session.archive",
-    { session: chat.id, archived: true },
+    { archived: true, session: chat.id },
     ["id", "archived"],
   );
   expect(renamed.data.title).toBe("Drafts");
@@ -590,7 +590,7 @@ test("US4.2 and US4.3: a chat is renamed, archived, and brought back by a messag
   server.adapter.script([]);
   const sent = await send(server, { session: chat.id, text: "Any new draft?" });
   await settle(server, sent);
-  expect(sent).toMatchObject({ title: "Drafts", archived: false });
+  expect(sent).toMatchObject({ archived: false, title: "Drafts" });
 });
 
 test("Agent reads the agent's name, availability, version, and capabilities", async () => {
@@ -604,12 +604,12 @@ test("Agent reads the agent's name, availability, version, and capabilities", as
   );
 
   expect(agent).toEqual({
+    available: true,
+    capabilities: { approvals: false, queue: true, steer: true, subagents: true, takeBack: true },
     id: "agent",
     kind: "fake",
     name: "Claude Code",
-    available: true,
     version: "0.0.0 (fake agent)",
-    capabilities: { steer: true, queue: true, takeBack: true, approvals: false, subagents: true },
   });
 });
 
@@ -621,6 +621,6 @@ test("US4.4: without the agent, Agent reads unavailable and a send is refused", 
     "id",
   ]);
 
-  expect(agent).toEqual({ id: "agent", available: false, version: null });
+  expect(agent).toEqual({ available: false, id: "agent", version: null });
   expect(refused.error?.message).toBe("refused: Claude Code is not available on this machine.");
 });

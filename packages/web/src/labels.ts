@@ -1,21 +1,21 @@
 import type { FeatureView } from "uraeda-binding";
 
 const STEPS: Record<string, string> = {
-  discovery: "Discovery",
-  spec: "Spec",
-  "spec-revision": "Spec revision",
   approval: "Approval",
-  plan: "Plan",
-  "plan-revision": "Plan revision",
-  implementation: "Implementation",
-  "final-review": "Final review",
-  "pull-request-changes": "Pull request changes",
-  "pull-request": "Pull request",
-  finish: "Finish",
   assess: "Assessment",
   "assess-revision": "Assessment revision",
-  fix: "Fix",
+  discovery: "Discovery",
   done: "Done",
+  "final-review": "Final review",
+  finish: "Finish",
+  fix: "Fix",
+  implementation: "Implementation",
+  plan: "Plan",
+  "plan-revision": "Plan revision",
+  "pull-request": "Pull request",
+  "pull-request-changes": "Pull request changes",
+  spec: "Spec",
+  "spec-revision": "Spec revision",
 };
 
 export function stepLabel(name: string) {
@@ -32,12 +32,12 @@ export function waiting(feature: Pick<FeatureView, "folder" | "step" | "files">)
   const kind = summary?.kind;
   const action =
     kind === "clarifications"
-      ? { verb: "Answer", title: "Answer questions" }
+      ? { title: "Answer questions", verb: "Answer" }
       : kind === "spec" || kind === "plan" || kind === "assessment"
-        ? { verb: "Review", title: `Review the ${kind}` }
+        ? { title: `Review the ${kind}`, verb: "Review" }
         : kind === "proposal" || kind === "report"
-          ? { verb: "Write", title: `Write the ${kind}` }
-          : { verb: stepLabel(feature.step.name), title: stepLabel(feature.step.name) };
+          ? { title: `Write the ${kind}`, verb: "Write" }
+          : { title: stepLabel(feature.step.name), verb: stepLabel(feature.step.name) };
   const folder = kind === "report" ? `bugs/${feature.folder}` : feature.folder;
   const href =
     kind === "proposal" || kind === "report"
@@ -45,5 +45,5 @@ export function waiting(feature: Pick<FeatureView, "folder" | "step" | "files">)
       : file
         ? `/f/${feature.folder}/${file}`
         : `/f/${feature.folder}`;
-  return { ...action, line: summary?.waitingLine, href };
+  return { ...action, href, line: summary?.waitingLine };
 }

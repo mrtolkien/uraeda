@@ -6,12 +6,12 @@ import { navigate, parseLocation, parseRoute, repoPath, useRestoreScroll } from 
 import { sessionPath } from "../sessions.ts";
 
 test.each([
-  ["/priorities/git-listener", { page: "task", key: "git-listener" }],
+  ["/priorities/git-listener", { key: "git-listener", page: "task" }],
   [
     "/f/2026-10-06-recurring-tasks/mockups/repeat.html",
-    { page: "mockup", folder: "2026-10-06-recurring-tasks", name: "repeat.html" },
+    { folder: "2026-10-06-recurring-tasks", name: "repeat.html", page: "mockup" },
   ],
-  ["/f/2026-10-12-cli-tuis/runs/7", { page: "run", folder: "2026-10-12-cli-tuis", id: "7" }],
+  ["/f/2026-10-12-cli-tuis/runs/7", { folder: "2026-10-12-cli-tuis", id: "7", page: "run" }],
 ])("parseRoute(%s)", (path, route) => expect(parseRoute(path)).toEqual(route));
 
 /** US6.3: the repository is in the URL, and a path without it is still a page's. */

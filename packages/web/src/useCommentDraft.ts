@@ -2,7 +2,7 @@ import { type RefObject, useEffect, useRef, useState } from "react";
 import type { Block } from "uraeda-binding";
 
 /** Lines of the reviewed file, and the heading above them. */
-export type Range = { start: number; end: number; heading: string };
+export type Range = { end: number; heading: string; start: number };
 
 /** The comment being written: on the selected lines, on the whole file, or an edit of one. */
 export type CommentDraft =
@@ -55,7 +55,7 @@ async function placeAboveSheet(element: HTMLElement, sheet: RefObject<HTMLElemen
   const bar = document.querySelector('[role="banner"]')?.getBoundingClientRect().bottom ?? 0;
   const box = element.getBoundingClientRect();
   const by = box.height > top - bar ? box.top - bar : box.bottom - top;
-  window.scrollBy({ top: by, behavior: reducedMotion() ? "auto" : "smooth" });
+  window.scrollBy({ behavior: reducedMotion() ? "auto" : "smooth", top: by });
 }
 
 /**
@@ -85,11 +85,11 @@ export function useCommentDraft(wide: boolean) {
   const tap = (block: Block, element: HTMLElement) => {
     const next = selection
       ? {
-          start: Math.min(selection.start, block.startLine),
           end: Math.max(selection.end, block.endLine),
           heading: block.startLine < selection.start ? (block.heading ?? "") : selection.heading,
+          start: Math.min(selection.start, block.startLine),
         }
-      : { start: block.startLine, end: block.endLine, heading: block.heading ?? "" };
+      : { end: block.endLine, heading: block.heading ?? "", start: block.startLine };
     setSelection(next);
     setLast(block.id);
     lastElement.current = element;
@@ -118,5 +118,5 @@ export function useCommentDraft(wide: boolean) {
     lastElement.current = null;
   };
 
-  return { selection, draft, text, setText, last, sheet, tap, start, close };
+  return { close, draft, last, selection, setText, sheet, start, tap, text };
 }

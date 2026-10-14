@@ -8,7 +8,7 @@ export type FakeStep = AgentEvent | ((cwd: string) => void);
 type Signal = Parameters<AgentProcess["kill"]>[0];
 
 /** The exit code of a shell process ended by each signal. */
-const EXIT_CODES: Record<Signal, number> = { SIGINT: 130, SIGTERM: 143, SIGKILL: 137 };
+const EXIT_CODES: Record<Signal, number> = { SIGINT: 130, SIGKILL: 137, SIGTERM: 143 };
 
 /** One fake process: its events are pushed, and read in order until its `exit`. */
 class FakeProcess implements AgentProcess {
@@ -68,7 +68,7 @@ class FakeProcess implements AgentProcess {
     if (script === undefined || this.#exited) {
       return;
     }
-    this.push({ type: "accepted", id: message.id });
+    this.push({ id: message.id, type: "accepted" });
     for (const step of script) {
       this.push(step);
     }
@@ -76,7 +76,7 @@ class FakeProcess implements AgentProcess {
       (step) => typeof step !== "function" && (step.type === "result" || step.type === "exit"),
     );
     if (!ends) {
-      this.push({ type: "result", ok: true, errors: [], denials: [], interrupted: false });
+      this.push({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
     }
   }
 
@@ -91,7 +91,7 @@ class FakeProcess implements AgentProcess {
       return;
     }
     this.#steps = [];
-    this.push({ type: "result", ok: false, errors: [], denials: [], interrupted: true });
+    this.push({ denials: [], errors: [], interrupted: true, ok: false, type: "result" });
   }
 
   /** Ends it, unless it ignores its stdin's end. */
@@ -100,7 +100,7 @@ class FakeProcess implements AgentProcess {
     if (this.#adapter.ignoreClose) {
       return;
     }
-    this.push({ type: "exit", code: 0, stderr: "" });
+    this.push({ code: 0, stderr: "", type: "exit" });
   }
 
   /** SIGKILL ends it; SIGTERM too, unless it ignores it; SIGINT too, unless it is stuck. */
@@ -112,7 +112,7 @@ class FakeProcess implements AgentProcess {
     if (signal === "SIGTERM" && this.#adapter.ignoreTerm) {
       return;
     }
-    this.push({ type: "exit", code: EXIT_CODES[signal], stderr: "" });
+    this.push({ code: EXIT_CODES[signal], stderr: "", type: "exit" });
   }
 }
 
@@ -127,11 +127,11 @@ export class FakeAdapter implements Adapter {
   name = "Claude Code";
   /** What the fake declares, which a test may change. */
   capabilities: Capabilities = {
-    steer: true,
-    queue: true,
-    takeBack: true,
     approvals: false,
+    queue: true,
+    steer: true,
     subagents: true,
+    takeBack: true,
   };
   opens: Array<OpenOptions> = [];
   sent: Array<Outgoing> = [];
@@ -187,10 +187,10 @@ export class FakeAdapter implements Adapter {
     this.#current = agent;
     if (this.autoInit) {
       agent.push({
-        type: "init",
-        sessionId: options.nativeId,
-        plugins: ["uraeda"],
         pluginErrors: [],
+        plugins: ["uraeda"],
+        sessionId: options.nativeId,
+        type: "init",
       });
     }
     return agent;
@@ -203,6 +203,6 @@ export class FakeAdapter implements Adapter {
 
   /** Ends the current process. */
   exit(code = 0, stderr = "") {
-    this.#current?.push({ type: "exit", code, stderr });
+    this.#current?.push({ code, stderr, type: "exit" });
   }
 }

@@ -5,13 +5,13 @@ import { createMiddleware } from "hono/factory";
  * an allowed host name, as in DNS rebinding, and any `Origin` but theirs and the allowed ones.
  */
 export function guard({
-  port,
   allowedHosts = [],
   allowOrigins,
+  port,
 }: {
-  port: number;
   allowedHosts?: Array<string>;
   allowOrigins: Array<string>;
+  port: number;
 }) {
   const own = [`127.0.0.1:${port}`, `localhost:${port}`];
   // `tailscale serve` passes the machine's name, without a port behind HTTPS.

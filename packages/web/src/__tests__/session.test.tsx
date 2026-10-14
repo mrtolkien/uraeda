@@ -47,12 +47,12 @@ async function send(text: string) {
 async function openTurn(fake: Fake, text = "Why did you recommend A in Q6?") {
   await send(text);
   await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
-  fake.adapter.emit({ type: "accepted", id: fake.adapter.sent[0].id });
+  fake.adapter.emit({ id: fake.adapter.sent[0].id, type: "accepted" });
 }
 
 test("US1.1: a message shows under its opening line, and the reply below it", async () => {
   const fake = await fakeAgent();
-  fake.adapter.script([{ type: "text", text: "Because A keeps **one** process." }]);
+  fake.adapter.script([{ text: "Because A keeps **one** process.", type: "text" }]);
   await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: fake });
 
   await send("Why did you recommend A in Q6?");
@@ -67,7 +67,7 @@ test("US1.1: a message shows under its opening line, and the reply below it", as
 
 test("a session shown at a gate is recorded as seen once its turn ends, though it needs you", async () => {
   const fake = await fakeAgent();
-  fake.adapter.script([{ type: "text", text: "Because A keeps one process." }]);
+  fake.adapter.script([{ text: "Because A keeps one process.", type: "text" }]);
   const repo = fixtureRepo();
   await renderPage(`/f/${WEB_UI}/session`, repo, { agent: fake });
 
@@ -148,7 +148,7 @@ test("US1.4: Take back removes the message and puts its text back in the compose
   await waitFor(() => expect(fake.adapter.takenBack).toEqual([fake.adapter.sent[1].id]));
   const box = await composer();
   await waitFor(() => expect(box.textContent).toBe("Use the existing helper"));
-  fake.adapter.emit({ type: "cancelled", id: fake.adapter.sent[1].id });
+  fake.adapter.emit({ id: fake.adapter.sent[1].id, type: "cancelled" });
   await refreshUntil(() => expect(log().queryByText("Use the existing helper")).toBeNull());
 });
 
@@ -238,7 +238,7 @@ test("an old run's address opens the session at that turn", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   const session = await fake.sessions.featureSession(repo, CLI);
-  fake.adapter.script([{ type: "text", text: "Planned the tasks." }]);
+  fake.adapter.script([{ text: "Planned the tasks.", type: "text" }]);
   const { turn } = await fake.sessions.send(repo, session.id, { text: "Plan it." });
   await fake.sessions.settled(turn);
 
@@ -257,7 +257,7 @@ test("a workflow turn opens with the step it ran", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   const session = await fake.sessions.featureSession(repo, CLI);
-  fake.adapter.script([{ type: "text", text: "Planned the tasks." }]);
+  fake.adapter.script([{ text: "Planned the tasks.", type: "text" }]);
   const { turn } = await fake.sessions.send(repo, session.id, {
     text: "Continue.",
     workflow: { trigger: "manual" },
@@ -300,8 +300,8 @@ test("the status region says when a reply starts and ends", async () => {
   await refreshUntil(() =>
     expect(screen.getByText("Claude Code is replying").closest("[role=status]")).toBeTruthy(),
   );
-  fake.adapter.emit({ type: "text", text: "Looked." });
-  fake.adapter.emit({ type: "result", ok: true, errors: [], denials: [], interrupted: false });
+  fake.adapter.emit({ text: "Looked.", type: "text" });
+  fake.adapter.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
 
   await refreshUntil(() =>
     expect(screen.getByText("Reply complete").closest("[role=status]")).toBeTruthy(),

@@ -56,8 +56,6 @@ class ServerErrorBoundary extends Component<
     return (
       <PageLayout>
         <Banner
-          status="error"
-          title="Could not reach the Uraeda server."
           endContent={
             <Button
               label="Try again"
@@ -67,6 +65,8 @@ class ServerErrorBoundary extends Component<
               }}
             />
           }
+          status="error"
+          title="Could not reach the Uraeda server."
         />
       </PageLayout>
     );
@@ -94,7 +94,7 @@ function Page({ route }: { route: Route }) {
     case "run":
       return <RunRedirect folder={route.folder} id={route.id} />;
     case "chat":
-      return <SessionPage key={route.id} id={route.id} />;
+      return <SessionPage id={route.id} key={route.id} />;
     case "new-chat":
       return <SessionPage newChat />;
     case "first-run":
@@ -116,8 +116,8 @@ function TaskRoute({ entryKey }: { entryKey: string }) {
   useListPosition();
   return (
     <Panes
-      list={list === "/" ? <Home /> : <PrioritiesPage />}
       detail={<TaskView entryKey={entryKey} />}
+      list={list === "/" ? <Home /> : <PrioritiesPage />}
       onCloseDetail={() => navigate(here(list))}
     />
   );
@@ -148,8 +148,8 @@ function SessionRoute({ folder }: { folder: string }) {
   useListPosition();
   return (
     <Panes
-      list={<FeaturePage folder={folder} />}
       detail={<SessionPage folder={folder} />}
+      list={<FeaturePage folder={folder} />}
       onCloseDetail={() => navigate(here(`/f/${encodeURIComponent(folder)}`))}
     />
   );
@@ -199,15 +199,15 @@ function ToMostRecent({ name, pathname }: { name?: string; pathname: string }) {
  * client, under its name; or why it cannot be shown, without sending it a request.
  */
 function InRepository({
-  repo,
-  pathname,
-  clientFor,
   children,
+  clientFor,
+  pathname,
+  repo,
 }: {
-  repo: string | null;
-  pathname: string;
-  clientFor: (repo: string | null) => Client;
   children: ReactNode;
+  clientFor: (repo: string | null) => Client;
+  pathname: string;
+  repo: string | null;
 }) {
   const rows = useRepositories()?.rows ?? [];
   const mostRecent = rows[0]?.name;
@@ -218,7 +218,7 @@ function InRepository({
     return <ToMostRecent name={mostRecent} pathname={pathname} />;
   }
   if (!row) {
-    return <UnknownRepository name={repo} mostRecent={mostRecent} />;
+    return <UnknownRepository mostRecent={mostRecent} name={repo} />;
   }
   if (row.missing) {
     return <MissingFolder name={row.name} path={row.path} />;
@@ -227,7 +227,7 @@ function InRepository({
   return (
     <ListClientContext value={clientFor(null)}>
       <RepositoryContext value={repo}>
-        <FateClient key={repo} client={clientFor(repo)}>
+        <FateClient client={clientFor(repo)} key={repo}>
           {children}
         </FateClient>
       </RepositoryContext>
@@ -241,18 +241,18 @@ function InRepository({
  * repository.
  */
 export function App({ clientFor }: { clientFor: (repo: string | null) => Client }) {
-  const { repo, route, pathname } = useRoute();
+  const { pathname, repo, route } = useRoute();
   const [attempt, setAttempt] = useState(0);
   return (
     <FateClient client={clientFor(null)}>
       <ThemeModeProvider>
         {(mode) => (
-          <Theme theme={uraedaTheme} mode={mode}>
+          <Theme mode={mode} theme={uraedaTheme}>
             <LinkProvider component={RouterAnchor}>
               <LayerProvider toast={{ position: "bottomEnd" }}>
                 <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
                   <Suspense fallback={<Loading />}>
-                    <InRepository repo={repo} pathname={pathname} clientFor={clientFor}>
+                    <InRepository clientFor={clientFor} pathname={pathname} repo={repo}>
                       <Suspense fallback={<Loading />}>
                         <Shell>
                           <Suspense fallback={<Loading />}>

@@ -25,20 +25,20 @@ import { Transcript, useFollowEnd, useOpenAtEnd, useOpenGroups } from "./Transcr
 import { SessionView } from "./views.ts";
 
 const styles = stylex.create({
-  // The composer stays at the bottom of the pane or the window while the transcript scrolls.
   composer: {
-    position: "sticky",
+    // The composer stays at the bottom of the pane or the window while the transcript scrolls.
+    backgroundColor: colorVars["--color-background-surface"],
     bottom: 0,
     paddingBlock: spacingVars["--spacing-3"],
-    backgroundColor: colorVars["--color-background-surface"],
+    position: "sticky",
   },
 });
 
 /** A session's status: its dot, and its label. */
-export function SessionStatus({ status, label }: { status: Status; label: string }) {
+export function SessionStatus({ label, status }: { label: string; status: Status }) {
   return (
-    <HStack gap={2} align="center">
-      <StatusMark status={status} label={label} />
+    <HStack align="center" gap={2}>
+      <StatusMark label={label} status={status} />
       <Text weight="semibold">{label}</Text>
     </HStack>
   );
@@ -46,9 +46,9 @@ export function SessionStatus({ status, label }: { status: Status; label: string
 
 /** A chat's title, renamed in place, and Archive, which hides it under "Archived" in the sidebar. */
 type ChatControls = {
-  onRename: (title: string) => Promise<string | undefined>;
   archived: boolean;
   onArchive: () => Promise<void>;
+  onRename: (title: string) => Promise<string | undefined>;
 };
 
 /**
@@ -56,15 +56,15 @@ type ChatControls = {
  * title is renamed in place, and the chat archived or brought back.
  */
 function Header({
-  title,
-  status,
-  place,
   chat,
+  place,
+  status,
+  title,
 }: {
-  title: string;
-  status?: { status: Status; label: string };
-  place?: string;
   chat?: ChatControls;
+  place?: string;
+  status?: { label: string; status: Status };
+  title: string;
 }) {
   const agent = useAgent();
   const wide = useWidthClass() === "wide";
@@ -73,19 +73,19 @@ function Header({
     <VStack gap={1}>
       {/* Beside the feature page on wide screens, whose title is the page's heading. */}
       <Heading level={wide ? 2 : 1}>
-        {chat ? <EditableLine value={title} label="Title" onSave={chat.onRename} /> : title}
+        {chat ? <EditableLine label="Title" onSave={chat.onRename} value={title} /> : title}
       </Heading>
-      <HStack gap={2} align="center" wrap="wrap">
-        {status && <SessionStatus status={status.status} label={status.label} />}
-        <Text type="supporting" color="secondary">
+      <HStack align="center" gap={2} wrap="wrap">
+        {status && <SessionStatus label={status.label} status={status.status} />}
+        <Text color="secondary" type="supporting">
           {meta.join(" · ")}
         </Text>
         {chat && (
           <Button
-            variant="secondary"
-            size="sm"
-            label={chat.archived ? "Unarchive" : "Archive"}
             clickAction={chat.onArchive}
+            label={chat.archived ? "Unarchive" : "Archive"}
+            size="sm"
+            variant="secondary"
           />
         )}
       </HStack>
@@ -101,25 +101,25 @@ type Draft = [string, (update: string | ((now: string) => string)) => void];
  * and why it cannot go, when it cannot; and what follows a sent message.
  */
 type Handing = {
-  workflow?: { trigger: Trigger; file?: string };
   notice?: string;
   onSent?: (session: string) => void;
+  workflow?: { file?: string; trigger: Trigger };
 };
 
 /** A session that exists: its header, its transcript, and its composer. */
 function Session({
-  id,
+  blocked,
   crumbs,
   draft,
   handing = {},
-  blocked,
+  id,
 }: {
-  id: string;
+  /** Why nothing can be sent to it, which disables the composer. */
+  blocked?: string;
   crumbs?: string;
   draft: Draft;
   handing?: Handing;
-  /** Why nothing can be sent to it, which disables the composer. */
-  blocked?: string;
+  id: string;
 }) {
   const fate = useFateClient();
   const here = useRepoPath();
@@ -143,14 +143,14 @@ function Session({
     return (
       <Page>
         <Banner
-          status="error"
-          title={`No session ${id}.`}
           collapsible={false}
           description={
-            <Link href={here("/")} hasUnderline>
+            <Link hasUnderline href={here("/")}>
               Open home
             </Link>
           }
+          status="error"
+          title={`No session ${id}.`}
         />
       </Page>
     );
@@ -159,6 +159,16 @@ function Session({
     session.folder === null
       ? {
           archived: session.archived,
+          onArchive: async () => {
+            setError(undefined);
+            const result = await fate.mutations.session.archive({
+              input: { archived: !session.archived, session: id },
+              view: SessionView,
+            });
+            if (result.error) {
+              setError(refusal(result.error).message);
+            }
+          },
           onRename: async (title) => {
             const result = await fate.mutations.session.rename({
               input: { session: id, title },
@@ -166,22 +176,12 @@ function Session({
             });
             return result.error ? refusal(result.error).message : undefined;
           },
-          onArchive: async () => {
-            setError(undefined);
-            const result = await fate.mutations.session.archive({
-              input: { session: id, archived: !session.archived },
-              view: SessionView,
-            });
-            if (result.error) {
-              setError(refusal(result.error).message);
-            }
-          },
         }
       : undefined;
   const allow = async (turn: string, seq: number) => {
     setError(undefined);
     const result = await fate.mutations.session.allow({
-      input: { session: id, turn, seq },
+      input: { seq, session: id, turn },
       view: SessionView,
     });
     if (result.error) {
@@ -190,31 +190,31 @@ function Session({
   };
   return (
     <Page>
-      {crumbs !== undefined && <Crumbs folder={crumbs} current="Session" />}
+      {crumbs !== undefined && <Crumbs current="Session" folder={crumbs} />}
       <VStack gap={3}>
         <Header
-          title={session.title}
-          status={{ status: session.status, label: session.statusLabel }}
           place={session.place}
+          status={{ label: session.statusLabel, status: session.status }}
+          title={session.title}
           {...(chat ? { chat } : {})}
         />
         <div ref={log}>
           <Transcript
-            session={session}
+            canAllow={!working}
             groups={groups}
             onAllow={allow}
-            canAllow={!working}
             onTakenBack={(back) => setText((now) => (now.trim() ? `${back}\n${now}` : back))}
+            session={session}
           />
         </div>
         {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
       </VStack>
       <div {...stylex.props(styles.composer)}>
         <Composer
-          session={id}
-          working={working}
-          value={text}
           onChange={setText}
+          session={id}
+          value={text}
+          working={working}
           {...handing}
           {...(blocked === undefined ? {} : { blocked })}
         />
@@ -228,26 +228,26 @@ function Session({
  * its own address once sent.
  */
 function NoSession({
-  title,
-  folder,
+  blocked,
   crumbs,
   draft: [text, setText],
+  folder,
   handing = {},
-  blocked,
   onSent,
+  title,
 }: {
-  title: string;
-  folder?: string;
-  crumbs?: string;
-  draft: Draft;
-  handing?: Handing;
   /** Why nothing can be sent to it, which disables the composer. */
   blocked?: string;
+  crumbs?: string;
+  draft: Draft;
+  folder?: string;
+  handing?: Handing;
   onSent: (session: string) => void;
+  title: string;
 }) {
   return (
     <Page>
-      {crumbs !== undefined && <Crumbs folder={crumbs} current="Session" />}
+      {crumbs !== undefined && <Crumbs current="Session" folder={crumbs} />}
       <VStack gap={3}>
         <Header title={title} />
         <Transcript session={{ id: "", turns: [] }} />
@@ -255,8 +255,8 @@ function NoSession({
       <div {...stylex.props(styles.composer)}>
         <Composer
           {...(folder === undefined ? {} : { folder })}
-          value={text}
           onChange={setText}
+          value={text}
           {...handing}
           {...(blocked === undefined ? {} : { blocked })}
           onSent={(session) => {
@@ -273,7 +273,7 @@ function NoSession({
 const NO_BRANCH = "This feature has no branch yet: commit its proposal first.";
 
 /** The workflow's message an address asks for: `?continue=<trigger>&file=<file>`. */
-function useHandOver(search: string): { trigger: Trigger; file?: string } | undefined {
+function useHandOver(search: string): { file?: string; trigger: Trigger } | undefined {
   const params = new URLSearchParams(search);
   const trigger = params.get("continue");
   const file = params.get("file");
@@ -283,19 +283,19 @@ function useHandOver(search: string): { trigger: Trigger; file?: string } | unde
 /** Reads the workflow's message for a feature, and gives it, or its refusal, to the page. */
 function WorkflowMessage({
   folder,
-  workflow,
   onRead,
+  workflow,
 }: {
   folder: string;
-  workflow: { trigger: Trigger; file?: string };
-  onRead: (message: { text: string; refusal: string | null }) => void;
+  onRead: (message: { refusal: string | null; text: string }) => void;
+  workflow: { file?: string; trigger: Trigger };
 }) {
   const message = useWorkflowMessage(folder, workflow.trigger, workflow.file);
   const text = message?.text;
   const refusal = message?.refusal;
   useEffect(() => {
     if (text !== undefined && refusal !== undefined) {
-      onRead({ text, refusal });
+      onRead({ refusal, text });
     }
     // Once per message read: `onRead` is a new function at each draw.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
@@ -341,14 +341,14 @@ function FeatureSession({ folder }: { folder: string }) {
     return (
       <Page>
         <Banner
-          status="error"
-          title={`No feature ${folder}.`}
           collapsible={false}
           description={
-            <Link href={here("/")} hasUnderline>
+            <Link hasUnderline href={here("/")}>
               Open home
             </Link>
           }
+          status="error"
+          title={`No feature ${folder}.`}
         />
       </Page>
     );
@@ -358,7 +358,7 @@ function FeatureSession({ folder }: { folder: string }) {
   // refuses every message with the same words.
   const blocked = feature.branch ? undefined : NO_BRANCH;
   const id = feature.session ?? created;
-  const read = (message: { text: string; refusal: string | null }) => {
+  const read = (message: { refusal: string | null; text: string }) => {
     setRefusal(message.refusal === null ? undefined : { search, text: message.refusal });
     if (message.refusal === null && filled.current !== search) {
       filled.current = search;
@@ -377,25 +377,25 @@ function FeatureSession({ folder }: { folder: string }) {
     <>
       {workflow && (
         <Suspense fallback={null}>
-          <WorkflowMessage key={search} folder={folder} workflow={workflow} onRead={read} />
+          <WorkflowMessage folder={folder} key={search} onRead={read} workflow={workflow} />
         </Suspense>
       )}
       {id === undefined ? (
         <NoSession
-          title={feature.title}
-          folder={folder}
           crumbs={crumbs}
           draft={draft}
+          folder={folder}
           handing={handing}
+          title={feature.title}
           {...(blocked === undefined ? {} : { blocked })}
           onSent={setCreated}
         />
       ) : (
         <Session
-          id={id}
           crumbs={crumbs}
           draft={draft}
           handing={handing}
+          id={id}
           {...(blocked === undefined ? {} : { blocked })}
         />
       )}
@@ -416,9 +416,9 @@ export function SessionPage(props: { folder: string } | { id: string } | { newCh
     return <FeatureSession folder={props.folder} />;
   }
   if ("id" in props) {
-    return <Session id={props.id} draft={draft} />;
+    return <Session draft={draft} id={props.id} />;
   }
   return (
-    <NoSession title="New chat" draft={draft} onSent={(id) => navigate(here(`/chats/${id}`))} />
+    <NoSession draft={draft} onSent={(id) => navigate(here(`/chats/${id}`))} title="New chat" />
   );
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /** What a save did: the text now in the file, or the core's refusal. */
-type SaveResult = { ok: true; saved: string } | { ok: false; message: string };
+type SaveResult = { ok: true; saved: string } | { message: string; ok: false };
 
 export type SaveState =
   | { kind: "idle" }
@@ -102,5 +102,5 @@ export function useSave<T>(
     }
   }, []);
 
-  return { state, schedule, flush, write, settle, idle };
+  return { flush, idle, schedule, settle, state, write };
 }

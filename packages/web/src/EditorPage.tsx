@@ -22,10 +22,10 @@ import { DraftView, FeatureView } from "./views.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
 
 const SECTIONS: Record<string, string> = {
-  now: "Now",
-  next: "Next",
-  later: "Later",
   blocked: "Blocked",
+  later: "Later",
+  next: "Next",
+  now: "Now",
 };
 
 /** A discovery effort as the control shows it: `medium` is Medium. */
@@ -49,11 +49,11 @@ export function EditorPage({ path }: { path: string }) {
   // A written proposal opens drawn; one that holds only its title and What opens to be written.
   const [drawn, setDrawn] = useState(() => draft?.written ?? false);
   const [conflict, setConflict] = useState<string>();
-  const [message, setMessage] = useState<{ text: string; ok: boolean }>();
+  const [message, setMessage] = useState<{ ok: boolean; text: string }>();
   const [slug, setSlug] = useState(draft?.slug ?? "");
   const save = useSave<string>(async (value, previous) => {
     const result = await fate.mutations.text.save({
-      input: { path, text: value, hash: previous },
+      input: { hash: previous, path, text: value },
       view: DraftView,
     });
     if (result.error) {
@@ -61,11 +61,11 @@ export function EditorPage({ path }: { path: string }) {
       if (failed.kind === "conflict") {
         setConflict(failed.message);
       }
-      return { ok: false, message: failed.message };
+      return { message: failed.message, ok: false };
     }
     return { ok: true, saved: result.result?.hash ?? previous };
   }, draft?.hash ?? "");
-  const { settle, idle } = save;
+  const { idle, settle } = save;
   const shown = useRef(text);
   shown.current = text;
   // A text changed elsewhere replaces this one when nothing of it waits to be saved.
@@ -96,25 +96,25 @@ export function EditorPage({ path }: { path: string }) {
   const commit = async (continues: boolean) => {
     setMessage(undefined);
     if (!(await save.flush())) {
-      setMessage({ text: "Your text is not saved: nothing was committed.", ok: false });
+      setMessage({ ok: false, text: "Your text is not saved: nothing was committed." });
       return;
     }
     const result = await fate.mutations.text.commit({ input: { path }, view: DraftView });
     if (result.error) {
-      setMessage({ text: refusal(result.error).message, ok: false });
+      setMessage({ ok: false, text: refusal(result.error).message });
       return;
     }
     const folder = draft.folder;
     if (continues && folder) {
       handOver(folder, "proposal", path.split("/").at(-1));
     } else {
-      setMessage({ text: "Committed.", ok: true });
+      setMessage({ ok: true, text: "Committed." });
     }
   };
   const start = async (continues: boolean) => {
     setMessage(undefined);
     if (!(await save.flush())) {
-      setMessage({ text: "Your text is not saved: the feature was not started.", ok: false });
+      setMessage({ ok: false, text: "Your text is not saved: the feature was not started." });
       return;
     }
     const result = await fate.mutations.feature.start({
@@ -122,7 +122,7 @@ export function EditorPage({ path }: { path: string }) {
       view: FeatureView,
     });
     if (result.error) {
-      setMessage({ text: refusal(result.error).message, ok: false });
+      setMessage({ ok: false, text: refusal(result.error).message });
     } else if (typeof result.result?.folder === "string") {
       const folder = result.result.folder;
       if (continues) {
@@ -141,7 +141,7 @@ export function EditorPage({ path }: { path: string }) {
     let refused: string | undefined;
     const wrote = await save.write(async (previous) => {
       const result = await fate.mutations.text.discovery({
-        input: { path, level, hash: previous },
+        input: { hash: previous, level, path },
         view: DraftView,
       });
       if (result.error) {
@@ -151,7 +151,7 @@ export function EditorPage({ path }: { path: string }) {
         } else {
           refused = failed.message;
         }
-        return { ok: false, message: failed.message };
+        return { message: failed.message, ok: false };
       }
       if (result.result) {
         setText(result.result.text);
@@ -161,8 +161,8 @@ export function EditorPage({ path }: { path: string }) {
     });
     if (!wrote) {
       setMessage({
-        text: refused ?? "Your text is not saved: the discovery effort was not set.",
         ok: false,
+        text: refused ?? "Your text is not saved: the discovery effort was not set.",
       });
     }
   };
@@ -176,7 +176,7 @@ export function EditorPage({ path }: { path: string }) {
     if (ref) {
       // fate does not infer the view's type through `readView`: these are its fields.
       const fresh = (await fate.readView(DraftView, ref)) as unknown as {
-        data: { text: string; hash: string };
+        data: { hash: string; text: string };
       };
       setText(fresh.data.text);
       settle(fresh.data.hash);
@@ -202,23 +202,21 @@ export function EditorPage({ path }: { path: string }) {
   return (
     <Page>
       <VStack gap={4}>
-        <HStack justify="between" gap={2} wrap="wrap">
+        <HStack gap={2} justify="between" wrap="wrap">
           <Text type="code">{path.replace(/^specs\//, "")}</Text>
-          <Text type="supporting" color="secondary">
+          <Text color="secondary" type="supporting">
             {status}
           </Text>
         </HStack>
         <Heading level={1}>{draft.title}</Heading>
         {draft.entry && (
-          <Text type="supporting" color="secondary">
+          <Text color="secondary" type="supporting">
             {/* Committed or not shows beside the file's name already. */}
             In Priorities, {SECTIONS[draft.entry.section] ?? draft.entry.section}
           </Text>
         )}
         {conflict && (
           <Banner
-            status="error"
-            title={conflict}
             collapsible={false}
             description={
               <VStack gap={2}>
@@ -226,23 +224,25 @@ export function EditorPage({ path }: { path: string }) {
                   label="Copy my text"
                   onClick={() => void navigator.clipboard?.writeText(text)}
                 />
-                <Button label="Load the new version" clickAction={reload} />
+                <Button clickAction={reload} label="Load the new version" />
               </VStack>
             }
+            status="error"
+            title={conflict}
           />
         )}
         {draft.discovery != null && (
           <VStack gap={1}>
             <SegmentedControl
               label="Discovery effort"
-              value={draft.discovery}
               onChange={(value: string) => void setDiscovery(value)}
+              value={draft.discovery}
             >
               {draft.discoveryLevels.map((level) => (
-                <SegmentedControlItem key={level} value={level} label={levelLabel(level)} />
+                <SegmentedControlItem key={level} label={levelLabel(level)} value={level} />
               ))}
             </SegmentedControl>
-            <Text type="supporting" color="secondary">
+            <Text color="secondary" type="supporting">
               How far the agent researches before asking: low reads the code and its docs, medium
               also compares a few alternatives online, high looks far and wide.
             </Text>
@@ -253,23 +253,23 @@ export function EditorPage({ path }: { path: string }) {
         ) : (
           <VStack gap={2}>
             <TextArea
-              label="Text"
               isLabelHidden
-              value={text}
-              rows={Math.max(16, text.split("\n").length + 2)}
+              label="Text"
               onChange={(value: string) => {
                 setText(value);
                 save.schedule(value);
               }}
+              rows={Math.max(16, text.split("\n").length + 2)}
+              value={text}
             />
             {shownHints.length > 0 && (
               <VStack gap={1}>
-                <Text type="supporting" color="secondary">
+                <Text color="secondary" type="supporting">
                   To write in the empty sections:
                 </Text>
                 {shownHints.map((hint) => (
-                  <Paragraph key={hint.heading} color="secondary">
-                    <Text weight="semibold" color="secondary">
+                  <Paragraph color="secondary" key={hint.heading}>
+                    <Text color="secondary" weight="semibold">
                       {hint.heading}
                     </Text>
                     {" · "}
@@ -281,17 +281,17 @@ export function EditorPage({ path }: { path: string }) {
           </VStack>
         )}
         {save.state.kind === "error" && !conflict && (
-          <Banner status="error" title={`Not saved: ${save.state.message}`} collapsible={false} />
+          <Banner collapsible={false} status="error" title={`Not saved: ${save.state.message}`} />
         )}
         {takesPriorities && (
-          <Text type="supporting" color="secondary">
+          <Text color="secondary" type="supporting">
             {takesPriorities}
           </Text>
         )}
         {isDraft ? (
           <HStack gap={2}>
             <Button label={drawn ? "Edit" : "Preview"} onClick={() => setDrawn(!drawn)} />
-            <Button variant="secondary" label="Commit" clickAction={() => commit(false)} />
+            <Button clickAction={() => commit(false)} label="Commit" variant="secondary" />
           </HStack>
         ) : (
           <CommitActions label="Commit" onCommit={commit}>
@@ -302,27 +302,27 @@ export function EditorPage({ path }: { path: string }) {
           <>
             <Divider />
             <TextInput
-              label="Slug"
               description="Two words at most: it names the folder and the branch."
-              value={slug}
+              label="Slug"
               onChange={(value: string) => setSlug(value)}
+              value={slug}
             />
             <CommitActions
-              label="Start the feature"
               continueLabel="Start the feature and the agent"
-              onlyLabel="Start only"
+              label="Start the feature"
               onCommit={start}
+              onlyLabel="Start only"
             />
-            <Text type="supporting" color="secondary">
+            <Text color="secondary" type="supporting">
               Creates its branch and worktree, and moves the line to Now.
             </Text>
           </>
         )}
         {message && (
           <Banner
+            collapsible={false}
             status={message.ok ? "success" : "error"}
             title={message.text}
-            collapsible={false}
           />
         )}
       </VStack>

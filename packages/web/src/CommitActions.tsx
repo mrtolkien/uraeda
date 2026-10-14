@@ -12,23 +12,23 @@ type Variant = "primary" | "secondary" | "destructive";
  * session opens with the workflow's message. `children` lead the row.
  */
 export function CommitActions({
-  label,
-  variant = "primary",
-  isDisabled,
-  tooltip,
-  continueLabel = "Commit and start the agent",
-  onlyLabel = "Commit only",
-  onCommit,
   children,
+  continueLabel = "Commit and start the agent",
+  isDisabled,
+  label,
+  onCommit,
+  onlyLabel = "Commit only",
+  tooltip,
+  variant = "primary",
 }: {
-  label: string;
-  variant?: Variant;
-  isDisabled?: boolean;
-  tooltip?: string;
-  continueLabel?: string;
-  onlyLabel?: string;
-  onCommit: (continues: boolean) => Promise<void>;
   children?: ReactNode;
+  continueLabel?: string;
+  isDisabled?: boolean;
+  label: string;
+  onCommit: (continues: boolean) => Promise<void>;
+  onlyLabel?: string;
+  tooltip?: string;
+  variant?: Variant;
 }) {
   const agent = useAgent();
   if (!agent?.available) {
@@ -36,11 +36,11 @@ export function CommitActions({
       <HStack gap={2} wrap="wrap">
         {children}
         <Button
-          variant={variant}
-          label={label}
-          isDisabled={isDisabled}
-          tooltip={tooltip}
           clickAction={() => onCommit(false)}
+          isDisabled={isDisabled}
+          label={label}
+          tooltip={tooltip}
+          variant={variant}
         />
       </HStack>
     );
@@ -50,18 +50,18 @@ export function CommitActions({
     <HStack gap={2} wrap="wrap">
       {children}
       <Button
-        variant={variant === "destructive" ? "destructive" : "primary"}
-        label={continueLabel}
-        isDisabled={isDisabled}
-        tooltip={tooltip}
         clickAction={() => onCommit(true)}
+        isDisabled={isDisabled}
+        label={continueLabel}
+        tooltip={tooltip}
+        variant={variant === "destructive" ? "destructive" : "primary"}
       />
       <Button
-        variant="secondary"
-        label={onlyLabel}
-        isDisabled={isDisabled}
-        tooltip={tooltip}
         clickAction={() => onCommit(false)}
+        isDisabled={isDisabled}
+        label={onlyLabel}
+        tooltip={tooltip}
+        variant="secondary"
       />
     </HStack>
   );

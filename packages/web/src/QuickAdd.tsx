@@ -13,12 +13,13 @@ import { Overlay } from "./layout/Overlay.tsx";
 import { useUndoToast } from "./layout/useUndoToast.ts";
 import { PrioritiesView } from "./views.ts";
 
-const TITLES: Record<string, string> = {
-  now: "Now",
-  next: "Next",
-  later: "Later",
-  blocked: "Blocked",
-};
+/** Each section's title, in the order the page shows them: a map, which the lint does not sort. */
+const TITLES = new Map([
+  ["now", "Now"],
+  ["next", "Next"],
+  ["later", "Later"],
+  ["blocked", "Blocked"],
+]);
 
 /** The line ＋ added, as the core wrote it: its key, and its text after its marker. */
 type Added = { key: string; text: string };
@@ -34,7 +35,7 @@ function AddForm({ onAdded }: { onAdded: (section: string, added: Added | undefi
   const add = async () => {
     setMessage(undefined);
     const result = await fate.mutations.priorities.add({
-      input: { section, text, hash: priorities?.hash ?? "" },
+      input: { hash: priorities?.hash ?? "", section, text },
       view: PrioritiesView,
     });
     if (result.error) {
@@ -50,25 +51,25 @@ function AddForm({ onAdded }: { onAdded: (section: string, added: Added | undefi
   return (
     <VStack gap={4}>
       <TextArea
-        label="Priority"
-        isLabelHidden
-        value={text}
         hasAutoFocus
-        rows={3}
+        isLabelHidden
+        label="Priority"
         onChange={(value: string) => setText(value)}
+        rows={3}
+        value={text}
       />
       <SegmentedControl
         label="Section"
-        value={section}
         onChange={(value: string) => setSection(value)}
+        value={section}
       >
-        {Object.entries(TITLES).map(([id, title]) => (
-          <SegmentedControlItem key={id} value={id} label={title} />
+        {[...TITLES].map(([id, title]) => (
+          <SegmentedControlItem key={id} label={title} value={id} />
         ))}
       </SegmentedControl>
       {message && <Banner status="error" title={message} />}
       <HStack justify="end">
-        <Button variant="primary" label="Add" isDisabled={!text.trim()} clickAction={add} />
+        <Button clickAction={add} isDisabled={!text.trim()} label="Add" variant="primary" />
       </HStack>
     </VStack>
   );
@@ -85,7 +86,7 @@ export function QuickAdd() {
 
   const added = (section: string, line: Added | undefined) => {
     setOpen(false);
-    toast(`Added to ${TITLES[section]}, not committed`, async () => {
+    toast(`Added to ${TITLES.get(section)}, not committed`, async () => {
       // Found again in the file as it is now, by its text: the line it added, wherever it is.
       const now = await readPriorities(fate);
       const same = now.sections.flatMap((s) => s.entries).filter((e) => e.text === line?.text);
@@ -104,13 +105,13 @@ export function QuickAdd() {
   return (
     <>
       <Button
-        variant="ghost"
-        label="Add a priority"
-        isIconOnly
         icon={<span aria-hidden="true">＋</span>}
+        isIconOnly
+        label="Add a priority"
         onClick={() => setOpen(true)}
+        variant="ghost"
       />
-      <Overlay label="New priority" isOpen={open} onClose={() => setOpen(false)}>
+      <Overlay isOpen={open} label="New priority" onClose={() => setOpen(false)}>
         <Suspense fallback={<Spinner label="Loading the priorities" />}>
           <AddForm onAdded={added} />
         </Suspense>

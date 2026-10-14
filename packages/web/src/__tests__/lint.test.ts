@@ -47,7 +47,7 @@ test("no stylesheet but Astryx's is imported (SC-001)", () => {
     "./theme/built/uraeda.css",
     "../theme/built/uraeda.css",
   ];
-  const imports: string[] = [];
+  const imports: Array<string> = [];
   for (const entry of readdirSync(src, { recursive: true, withFileTypes: true })) {
     if (entry.isFile() && /\.(ts|tsx)$/.test(entry.name)) {
       const text = readFileSync(join(entry.parentPath, entry.name), "utf8");

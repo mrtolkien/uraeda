@@ -46,30 +46,30 @@ export class Turns {
   begin(
     live: Live,
     turn: {
-      kind: TurnKind;
-      trigger: Trigger | null;
-      step: string | null;
       allowed: string | null;
       item: Message;
+      kind: TurnKind;
       message: Outgoing;
       replaced: boolean;
+      step: string | null;
+      trigger: Trigger | null;
     },
   ): number {
     const { cache } = this.#context;
     const id = cache.addTurn({
-      sessionId: live.id,
-      kind: turn.kind,
-      trigger: turn.trigger,
-      step: turn.step,
       allowed: turn.allowed,
+      kind: turn.kind,
+      sessionId: live.id,
       state: "running",
+      step: turn.step,
+      trigger: turn.trigger,
     });
     this.track(id);
     if (turn.replaced) {
       cache.appendItem(id, { kind: "system", text: REPLACED });
     }
     const seq = cache.appendItem(id, turn.item);
-    live.messages.set(turn.message.id, { turn: id, seq, item: turn.item, written: true });
+    live.messages.set(turn.message.id, { item: turn.item, seq, turn: id, written: true });
     this.#run(live, id, turn.message);
     return id;
   }
@@ -83,7 +83,7 @@ export class Turns {
   /** Makes the turn the running one, started by the message `first`. */
   #open(live: Live, id: number, first: string): Running {
     clearTimeout(live.idle);
-    live.turn = { id, first, tools: new Map(), terminate: [], activity: working() };
+    live.turn = { activity: working(), first, id, terminate: [], tools: new Map() };
     this.watch(live, live.turn);
     this.#context.changed(live, id, "running");
     return live.turn;
@@ -110,7 +110,7 @@ export class Turns {
   watch(live: Live, turn: Running) {
     clearTimeout(turn.watchdog);
     turn.watchdog = setTimeout(
-      () => this.halt(live, turn, { state: "failed", reason: "No output for 30 minutes." }),
+      () => this.halt(live, turn, { reason: "No output for 30 minutes.", state: "failed" }),
       WATCHDOG_MS,
     );
   }
@@ -155,12 +155,12 @@ export class Turns {
   }
 
   /** Records the end of a turn, running or queued. */
-  end(live: Live, id: number, end: { state: TurnState; reason?: string }) {
+  end(live: Live, id: number, end: { reason?: string; state: TurnState }) {
     if (live.turn?.id === id) {
       clearTimeout(live.turn.watchdog);
       live.turn.terminate.forEach(clearTimeout);
       if (live.proc) {
-        live.proc.ended = { id, first: live.turn.first };
+        live.proc.ended = { first: live.turn.first, id };
       }
       live.turn = undefined;
     }
@@ -228,7 +228,7 @@ export class Turns {
       // The turns cannot run: each fails with why.
       const reason = String((error as Error).message ?? error).replace(/^refused: /, "");
       for (const turn of live.queue.splice(0)) {
-        this.end(live, turn.id, { state: "failed", reason });
+        this.end(live, turn.id, { reason, state: "failed" });
       }
       return;
     }

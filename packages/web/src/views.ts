@@ -21,160 +21,160 @@ import type {
 
 const DocumentSelection = {
   blocks: true,
-  frontmatterLines: { start: true, end: true },
+  frontmatterLines: { end: true, start: true },
   hash: true,
 } as const;
 
 const ItemsSelection = {
   clarifications: {
-    status: true,
     block: true,
     context: true,
-    questions: true,
-    settled: true,
     notes: true,
     notesLine: true,
+    questions: true,
+    settled: true,
+    status: true,
   },
-  spec: { stories: true, criteria: true, riskTier: true, planReview: true, tiers: true },
   plan: { tasks: true },
-  review: { verdict: true, commit: true, summary: true, comments: true },
+  review: { comments: true, commit: true, summary: true, verdict: true },
   rulings: true,
+  spec: { criteria: true, planReview: true, riskTier: true, stories: true, tiers: true },
 } as const;
 
 const VersionSelection = {
-  text: true,
   document: DocumentSelection,
   items: ItemsSelection,
+  text: true,
 } as const;
 
 export const WorkspaceView = view<Workspace>()({
-  id: true,
-  root: true,
-  defaultBranch: true,
   currentBranch: true,
+  defaultBranch: true,
+  drafts: true,
   features: true,
+  id: true,
+  noSpecs: true,
   priorities: true,
   prioritiesHash: true,
-  drafts: true,
-  noSpecs: true,
+  root: true,
   running: true,
 });
 
 export const FeatureView = view<Feature>()({
+  behind: true,
+  branch: true,
+  files: true,
+  folder: true,
   id: true,
   kind: true,
-  folder: true,
-  slug: true,
-  title: true,
-  branch: true,
-  source: true,
-  worktree: true,
-  uncommitted: true,
-  behind: true,
-  files: true,
-  mockups: true,
-  step: { name: true, waitsOn: true, file: true, task: true },
-  problems: true,
-  leftWorktree: true,
   leftBranch: true,
-  session: true,
+  leftWorktree: true,
   missing: true,
+  mockups: true,
+  problems: true,
+  session: true,
+  slug: true,
+  source: true,
+  step: { file: true, name: true, task: true, waitsOn: true },
+  title: true,
+  uncommitted: true,
+  worktree: true,
 });
 
 export const FileView = view<WorkflowFile>()({
-  id: true,
+  committed: VersionSelection,
+  current: VersionSelection,
   folder: true,
+  id: true,
+  kind: true,
+  missing: true,
   name: true,
   path: true,
-  kind: true,
-  status: true,
-  current: VersionSelection,
-  tip: true,
-  committed: VersionSelection,
   review: ItemsSelection,
   reviewStale: true,
-  missing: true,
+  status: true,
+  tip: true,
 });
 
 export const PrioritiesView = view<Priorities>()({
-  id: true,
-  hash: true,
-  sections: true,
   changes: true,
+  hash: true,
+  id: true,
+  sections: true,
 });
 
 export const DraftView = view<Draft>()({
-  id: true,
-  path: true,
-  title: true,
-  text: true,
-  hash: true,
-  document: DocumentSelection,
   committed: true,
-  entry: {
-    id: true,
-    key: true,
-    section: true,
-    position: true,
-    text: true,
-    link: true,
-    feature: true,
-    draft: true,
-  },
-  priorityChanges: true,
-  kind: true,
-  folder: true,
-  slug: true,
   discovery: true,
   discoveryLevels: true,
-  written: true,
+  document: DocumentSelection,
   emptySections: true,
+  entry: {
+    draft: true,
+    feature: true,
+    id: true,
+    key: true,
+    link: true,
+    position: true,
+    section: true,
+    text: true,
+  },
+  folder: true,
+  hash: true,
+  id: true,
+  kind: true,
+  path: true,
+  priorityChanges: true,
+  slug: true,
+  text: true,
+  title: true,
+  written: true,
 });
 
 export const AgentView = view<Agent>()({
+  available: true,
+  capabilities: { approvals: true, queue: true, steer: true, subagents: true, takeBack: true },
   id: true,
   kind: true,
   name: true,
-  available: true,
   version: true,
-  capabilities: { steer: true, queue: true, takeBack: true, approvals: true, subagents: true },
 });
 
 export const SessionView = view<Session>()({
-  id: true,
-  folder: true,
   agent: true,
-  title: true,
+  archived: true,
+  folder: true,
+  id: true,
+  place: true,
   status: true,
   statusLabel: true,
   statusReason: true,
-  unseen: true,
-  place: true,
-  turns: true,
-  archived: true,
   subagents: true,
+  title: true,
+  turns: true,
+  unseen: true,
 });
 
 export const TurnView = view<Turn>()({
-  id: true,
-  session: true,
-  kind: true,
-  trigger: true,
-  step: true,
-  allowed: true,
-  state: true,
-  reason: true,
-  startedAt: true,
-  endedAt: true,
-  pages: true,
   activity: { label: true, since: true },
+  allowed: true,
+  endedAt: true,
+  id: true,
+  kind: true,
+  pages: true,
+  reason: true,
+  session: true,
+  startedAt: true,
+  state: true,
+  step: true,
+  trigger: true,
 });
 
 export const TurnLogView = view<TurnLog>()({
   id: true,
-  turn: true,
-  page: true,
   items: true,
+  page: true,
+  turn: true,
 });
 
 export const SessionListView = view<SessionList>()({
@@ -189,22 +189,22 @@ export const SessionSearchView = view<SessionSearch>()({
 
 export const WorkflowMessageView = view<WorkflowMessage>()({
   id: true,
-  text: true,
-  step: true,
   refusal: true,
+  step: true,
+  text: true,
 });
 
 export const ProposalHintsView = view<ProposalHints>()({
-  id: true,
   hints: true,
+  id: true,
 });
 
 /** The list of repositories, which every endpoint serves. */
 export const RepositoriesView = view<Repositories>()({
-  id: true,
-  rows: true,
-  problem: true,
   added: true,
+  id: true,
+  problem: true,
+  rows: true,
 });
 
 /** The folders the add form suggests for a typed text, its id. */

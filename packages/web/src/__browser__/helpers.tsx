@@ -14,7 +14,7 @@ import { App } from "../App.tsx";
 import { fateClients } from "../clients.ts";
 
 // CI's WebKit draws without a GPU: what it shows takes longer to appear than on a desktop.
-configure({ asyncUtilTimeout: 5_000 });
+configure({ asyncUtilTimeout: 5000 });
 
 const commands = browserCommands as unknown as RepoCommands;
 
@@ -111,7 +111,7 @@ export function watchFor(text: string) {
   const observer = new MutationObserver(() => {
     seen ||= document.body.textContent?.includes(text) ?? false;
   });
-  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  observer.observe(document.body, { characterData: true, childList: true, subtree: true });
   return {
     stop() {
       observer.disconnect();
@@ -191,8 +191,8 @@ export function checkPage(root?: Element) {
       range.selectNodeContents(element);
       const inner =
         element.getBoundingClientRect().width -
-        parseFloat(style.paddingLeft) -
-        parseFloat(style.paddingRight);
+        Number.parseFloat(style.paddingLeft) -
+        Number.parseFloat(style.paddingRight);
       expect(range.getBoundingClientRect().width, name).toBeLessThanOrEqual(inner);
     }
     // Nothing reaches past the screen's edge.
@@ -217,7 +217,7 @@ export function checkTextSizes(root?: Element) {
   const size = window.innerWidth >= 1024 ? 19 : 17;
   for (const paragraph of paragraphs(root)) {
     expect(
-      parseFloat(getComputedStyle(paragraph).fontSize),
+      Number.parseFloat(getComputedStyle(paragraph).fontSize),
       paragraph.textContent?.slice(0, 60),
     ).toBe(size);
   }
@@ -235,7 +235,7 @@ const SAMPLE =
 function longestLine(element: Element) {
   // Lines by the block that holds them and their bottom: a toggle's letter or badge beside its text
   // is not part of its text's lines.
-  const lines = new Map<string, { left: number; right: number; block: Element }>();
+  const lines = new Map<string, { block: Element; left: number; right: number }>();
   const blocks = new Map<Element, number>();
   const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
   const range = document.createRange();
@@ -255,15 +255,15 @@ function longestLine(element: Element) {
       const key = `${blocks.get(block)}:${Math.round(rect.bottom)}`;
       const seen = lines.get(key);
       lines.set(key, {
+        block,
         left: Math.min(seen?.left ?? rect.left, rect.left),
         right: Math.max(seen?.right ?? rect.right, rect.right),
-        block,
       });
     }
   }
   return Math.max(
     0,
-    ...[...lines.values()].map(({ left, right, block }) =>
+    ...[...lines.values()].map(({ block, left, right }) =>
       Math.round((right - left) / averageCharacter(block)),
     ),
   );
@@ -368,7 +368,7 @@ export function checkControlHeights() {
   if (!window.matchMedia("(pointer: coarse)").matches) {
     return;
   }
-  const short: string[] = [];
+  const short: Array<string> = [];
   for (const control of document.querySelectorAll(CONTROLS)) {
     const box = control.getBoundingClientRect();
     const style = getComputedStyle(control);

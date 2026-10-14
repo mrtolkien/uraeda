@@ -122,7 +122,7 @@ function statusOf(link: HTMLElement) {
 /** A chat started with its first message, its reply written, and its turn ended. */
 async function seedChat(fake: Fake, repo: string, text: string, reply = "Done.") {
   const chat = await fake.sessions.newChat(repo);
-  fake.adapter.script([{ type: "text", text: reply }]);
+  fake.adapter.script([{ text: reply, type: "text" }]);
   const { turn } = await fake.sessions.send(repo, chat.id, { text });
   await fake.sessions.settled(turn);
   return chat.id;
@@ -139,20 +139,20 @@ async function endedTurn(
   const session = await fake.sessions.featureSession(repo, folder);
   const { cache } = fake.sessions;
   const id = cache.addTurn({
-    sessionId: session.id,
-    kind: "workflow",
-    trigger: "manual",
-    step: "plan",
     allowed: null,
+    kind: "workflow",
+    sessionId: session.id,
     state: "running",
+    step: "plan",
+    trigger: "manual",
   });
   if (blocked) {
     cache.appendItem(id, {
-      kind: "denial",
-      tool: "Bash",
-      target: "git push origin HEAD",
-      rule: "Bash(git push origin HEAD)",
       allowed: false,
+      kind: "denial",
+      rule: "Bash(git push origin HEAD)",
+      target: "git push origin HEAD",
+      tool: "Bash",
     });
   }
   cache.endTurn(id, { state });
@@ -173,9 +173,9 @@ test("US3.2: a working turn shows Working, then New reply", async () => {
   await renderPage("/", repo, { agent: fake });
 
   await waitFor(() => expect(statusOf(row("CLI TUIs"))).toBe("Working"));
-  fake.adapter.emit({ type: "accepted", id: fake.adapter.sent[0].id });
-  fake.adapter.emit({ type: "text", text: "Planned." });
-  fake.adapter.emit({ type: "result", ok: true, errors: [], denials: [], interrupted: false });
+  fake.adapter.emit({ id: fake.adapter.sent[0].id, type: "accepted" });
+  fake.adapter.emit({ text: "Planned.", type: "text" });
+  fake.adapter.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
 
   await refreshUntil(() => expect(statusOf(row("CLI TUIs"))).toBe("New reply"));
 });
@@ -185,20 +185,20 @@ test("US3.4: a running sub-agent shows under its session, then leaves", async ()
   const fake = await fakeAgent();
   const session = await fake.sessions.featureSession(repo, CLI);
   await fake.sessions.send(repo, session.id, { text: "Plan it." });
-  fake.adapter.emit({ type: "accepted", id: fake.adapter.sent[0].id });
+  fake.adapter.emit({ id: fake.adapter.sent[0].id, type: "accepted" });
   fake.adapter.emit({
-    type: "toolStart",
     id: "task-1",
-    name: "Task",
-    kind: "other",
     input: {},
+    kind: "other",
+    name: "Task",
     subagent: { description: "Map the runner code" },
+    type: "toolStart",
   });
   await renderPage("/", repo, { agent: fake });
 
   const sub = await waitFor(() => row("Map the runner code"));
   expect(statusOf(sub)).toBe("Working");
-  fake.adapter.emit({ type: "toolEnd", id: "task-1", isError: false, output: "Mapped." });
+  fake.adapter.emit({ id: "task-1", isError: false, output: "Mapped.", type: "toolEnd" });
 
   await refreshUntil(() =>
     expect(nav().queryByRole("link", { name: /Map the runner code/ })).toBeNull(),
@@ -219,7 +219,7 @@ test("US3.5: search filters features and chats by message text, 200 ms after typ
   // Not at once: the search waits for typing to stop.
   expect(row("CLI TUIs")).toBeTruthy();
   await waitFor(() => expect(nav().queryByRole("link", { name: /^CLI TUIs/ })).toBeNull());
-  expect(row("How does the cache work\\?")).toBeTruthy();
+  expect(row(String.raw`How does the cache work\?`)).toBeTruthy();
   expect(nav().queryByRole("link", { name: /Why is CI slow/ })).toBeNull();
   expect(nav().queryByRole("link", { name: /Web UI for the workflow files/ })).toBeNull();
 
@@ -307,7 +307,7 @@ test("US4.3: an archived chat moves under Archived, and a message brings it back
   const archived = within(nav().getByRole("group", { name: "Archived" }));
   expect(archived.getByRole("link", { name: /List the open draft files/ })).toBeTruthy();
 
-  fake.adapter.script([{ type: "text", text: "Two drafts." }]);
+  fake.adapter.script([{ text: "Two drafts.", type: "text" }]);
   await type(
     await screen.findByRole("textbox", { name: "Message Claude Code" }),
     "And the closed ones?",

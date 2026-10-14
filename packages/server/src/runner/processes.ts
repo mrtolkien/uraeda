@@ -32,7 +32,7 @@ export class Processes {
    * with the rule.
    */
   async open(live: Live, allowed?: string): Promise<{ proc: Proc; replaced: boolean }> {
-    const { cache, adapter, binding } = this.#context;
+    const { adapter, binding, cache } = this.#context;
     if (live.proc && !live.proc.closing && allowed === undefined) {
       return { proc: live.proc, replaced: false };
     }
@@ -62,11 +62,11 @@ export class Processes {
       });
       const proc: Proc = {
         agent,
-        cwd,
+        background: new Set(),
         closing: false,
+        cwd,
         done: Promise.resolve(),
         terminate: [],
-        background: new Set(),
       };
       live.proc = proc;
       proc.done = this.#consume(live, proc);
@@ -109,12 +109,12 @@ export class Processes {
         );
       }
     }
-    this.#exited(live, proc, { type: "exit", code: null, stderr: "" });
+    this.#exited(live, proc, { code: null, stderr: "", type: "exit" });
   }
 
   /** The process exited: its turn ends, and the queued turns start on a new one. */
   #exited(live: Live, proc: Proc, exit: Exit) {
-    const { cache, adapter, turns } = this.#context;
+    const { adapter, cache, turns } = this.#context;
     proc.terminate.forEach(clearTimeout);
     if (live.proc !== proc) {
       return;
@@ -128,10 +128,10 @@ export class Processes {
       const end =
         turn.stop ??
         (exit.missing
-          ? { state: "failed" as const, reason: REFUSALS.unavailable(adapter.name) }
+          ? { reason: REFUSALS.unavailable(adapter.name), state: "failed" as const }
           : {
-              state: "failed" as const,
               reason: stderr || `${adapter.name} exited with code ${exit.code}.`,
+              state: "failed" as const,
             });
       turns.end(live, turn.id, end);
     }

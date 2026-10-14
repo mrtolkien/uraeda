@@ -118,7 +118,7 @@ export function useSession(id: string) {
 }
 
 /** How long a view's live subscription may take to reach the server once asked for. */
-const SUBSCRIBED_MS = 1_000;
+const SUBSCRIBED_MS = 1000;
 
 /**
  * Reads a record again as its view starts listening to its live updates, and once more when the
@@ -171,14 +171,14 @@ export function useTurnLog(id: string, latest = false) {
  */
 export function useNavigation() {
   const request = {
-    workspace: { id: WORKSPACE_ID, view: WorkspaceView },
     sessionList: { id: SESSION_LIST_ID, view: SessionListView },
+    workspace: { id: WORKSPACE_ID, view: WorkspaceView },
   };
-  const { workspace, sessionList } = useRequest(request);
+  const { sessionList, workspace } = useRequest(request);
   useRefreshOnShow(request);
   return {
-    workspace: useLiveView(WorkspaceView, workspace),
     sessionList: useLiveView(SessionListView, sessionList),
+    workspace: useLiveView(WorkspaceView, workspace),
   };
 }
 
@@ -222,13 +222,13 @@ export function usePriority(key: string, id?: string) {
     for (const section of sections) {
       const index = section.entries.findIndex(match);
       if (index >= 0) {
-        return { entry: section.entries[index], section, index };
+        return { entry: section.entries[index], index, section };
       }
     }
     return undefined;
   };
   const found = find((entry) => entry.key === key) ?? (id ? find((e) => e.id === id) : undefined);
-  return { priorities, found };
+  return { found, priorities };
 }
 
 /**

@@ -24,9 +24,8 @@ import { FileView } from "./views.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
 
 const styles = stylex.create({
-  // A jump puts the question at the top, below the phone's top bar, which stays in view.
-  question: {
-    marginBlockStart: 0,
+  actions: {
+    marginBlockStart: spacingVars["--spacing-2"],
   },
   belowBar: {
     scrollMarginTop: `calc(${spacingVars["--spacing-12"]} + ${spacingVars["--spacing-2"]})`,
@@ -34,124 +33,125 @@ const styles = stylex.create({
   belowNothing: {
     scrollMarginTop: spacingVars["--spacing-4"],
   },
-  followUp: {
-    marginBlockStart: spacingVars["--spacing-4"],
-    paddingInlineStart: spacingVars["--spacing-3"],
-    borderInlineStartWidth: spacingVars["--spacing-1"],
-    borderInlineStartStyle: "solid",
-    borderInlineStartColor: colorVars["--color-accent"],
-  },
-  title: {
-    marginBlockStart: spacingVars["--spacing-0-5"],
-    marginBlockEnd: spacingVars["--spacing-2"],
-  },
-  // Options run to the screen's edges on the phone, split by hairlines.
-  options: {
-    marginBlockStart: spacingVars["--spacing-3"],
-    borderBlockStartWidth: borderVars["--border-width"],
-    borderBlockStartStyle: "solid",
-    borderBlockStartColor: colorVars["--color-border"],
-  },
   bleed: {
     marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
   },
   bleedFollowUp: {
-    marginInlineStart: `calc(-1 * ${spacingVars["--spacing-3"]})`,
     marginInlineEnd: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+    marginInlineStart: `calc(-1 * ${spacingVars["--spacing-3"]})`,
+  },
+  con: { color: colorVars["--color-error"] },
+  followUp: {
+    borderInlineStartColor: colorVars["--color-accent"],
+    borderInlineStartStyle: "solid",
+    borderInlineStartWidth: spacingVars["--spacing-1"],
+    marginBlockStart: spacingVars["--spacing-4"],
+    paddingInlineStart: spacingVars["--spacing-3"],
+  },
+  letter: {
+    alignItems: "center",
+    borderColor: colorVars["--color-text-secondary"],
+    borderRadius: radiusVars["--radius-full"],
+    borderStyle: "solid",
+    borderWidth: spacingVars["--spacing-0-5"],
+    boxSizing: "border-box",
+    color: colorVars["--color-text-secondary"],
+    display: "flex",
+    float: "left",
+    fontSize: typeScaleVars["--text-supporting-size"],
+    fontWeight: fontWeightVars["--font-weight-bold"],
+    height: spacingVars["--spacing-7"],
+    justifyContent: "center",
+    marginInlineEnd: spacingVars["--spacing-2"],
+    width: spacingVars["--spacing-7"],
+  },
+  letterOn: {
+    backgroundColor: colorVars["--color-accent"],
+    borderColor: colorVars["--color-accent"],
+    color: colorVars["--color-on-accent"],
   },
   option: {
-    display: "block",
-    width: "100%",
-    boxSizing: "border-box",
-    margin: 0,
-    paddingBlock: spacingVars["--spacing-3"],
-    paddingInlineStart: spacingVars["--spacing-3"],
-    paddingInlineEnd: spacingVars["--spacing-4"],
-    borderWidth: 0,
-    borderBlockEndWidth: borderVars["--border-width"],
-    borderBlockEndStyle: "solid",
-    borderBlockEndColor: colorVars["--color-border"],
-    borderInlineStartWidth: spacingVars["--spacing-1"],
-    borderInlineStartStyle: "solid",
-    borderInlineStartColor: "transparent",
     backgroundColor: "transparent",
+    borderBlockEndColor: colorVars["--color-border"],
+    borderBlockEndStyle: "solid",
+    borderBlockEndWidth: borderVars["--border-width"],
+    borderInlineStartColor: "transparent",
+    borderInlineStartStyle: "solid",
+    borderInlineStartWidth: spacingVars["--spacing-1"],
+    borderWidth: 0,
+    boxSizing: "border-box",
     color: "inherit",
+    cursor: "pointer",
+    display: "block",
     font: "inherit",
     fontSize: "var(--text-reading-size)",
     lineHeight: "var(--text-reading-line)",
+    margin: 0,
+    paddingBlock: spacingVars["--spacing-3"],
+    paddingInlineEnd: spacingVars["--spacing-4"],
+    paddingInlineStart: spacingVars["--spacing-3"],
     textAlign: "start",
     textWrap: "pretty",
-    cursor: "pointer",
-  },
-  optionOn: {
-    borderInlineStartColor: colorVars["--color-accent"],
-    backgroundColor: colorVars["--color-accent-muted"],
+    width: "100%",
   },
   optionOff: {
     cursor: "default",
   },
-  tag: {
-    display: "block",
-    marginBlockEnd: spacingVars["--spacing-1"],
-    fontSize: typeScaleVars["--text-supporting-size"],
-    fontWeight: fontWeightVars["--font-weight-semibold"],
-    color: colorVars["--color-warning"],
+  optionOn: {
+    backgroundColor: colorVars["--color-accent-muted"],
+    borderInlineStartColor: colorVars["--color-accent"],
   },
-  // An option's text keeps the reading measure, its row as wide as the question.
-  summary: {
-    display: "block",
-    maxWidth: "var(--size-reading-measure)",
-    fontWeight: fontWeightVars["--font-weight-semibold"],
+  options: {
+    // Options run to the screen's edges on the phone, split by hairlines.
+    borderBlockStartColor: colorVars["--color-border"],
+    borderBlockStartStyle: "solid",
+    borderBlockStartWidth: borderVars["--border-width"],
+    marginBlockStart: spacingVars["--spacing-3"],
   },
-  letter: {
-    float: "left",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    boxSizing: "border-box",
-    width: spacingVars["--spacing-7"],
-    height: spacingVars["--spacing-7"],
-    marginInlineEnd: spacingVars["--spacing-2"],
-    borderWidth: spacingVars["--spacing-0-5"],
-    borderStyle: "solid",
-    borderColor: colorVars["--color-text-secondary"],
-    borderRadius: radiusVars["--radius-full"],
-    fontSize: typeScaleVars["--text-supporting-size"],
-    fontWeight: fontWeightVars["--font-weight-bold"],
-    color: colorVars["--color-text-secondary"],
-  },
-  letterOn: {
-    borderColor: colorVars["--color-accent"],
-    backgroundColor: colorVars["--color-accent"],
-    color: colorVars["--color-on-accent"],
+  point: {
+    marginBlockStart: spacingVars["--spacing-1"],
+    paddingInlineStart: spacingVars["--spacing-5"],
+    position: "relative",
   },
   points: {
     clear: "left",
-    maxWidth: "var(--size-reading-measure)",
+    listStyle: "none",
     marginBlock: spacingVars["--spacing-1-5"],
     marginInline: 0,
+    maxWidth: "var(--size-reading-measure)",
     padding: 0,
-    listStyle: "none",
-  },
-  point: {
-    position: "relative",
-    marginBlockStart: spacingVars["--spacing-1"],
-    paddingInlineStart: spacingVars["--spacing-5"],
-  },
-  sign: {
-    position: "absolute",
-    insetInlineStart: 0,
-    fontWeight: fontWeightVars["--font-weight-bold"],
   },
   pro: { color: colorVars["--color-success"] },
-  con: { color: colorVars["--color-error"] },
-  why: { color: colorVars["--color-warning"] },
+  question: {
+    // A jump puts the question at the top, below the phone's top bar, which stays in view.
+    marginBlockStart: 0,
+  },
+  sign: {
+    fontWeight: fontWeightVars["--font-weight-bold"],
+    insetInlineStart: 0,
+    position: "absolute",
+  },
   spaced: {
     marginBlockStart: spacingVars["--spacing-3"],
   },
-  actions: {
-    marginBlockStart: spacingVars["--spacing-2"],
+  summary: {
+    // An option's text keeps the reading measure, its row as wide as the question.
+    display: "block",
+    fontWeight: fontWeightVars["--font-weight-semibold"],
+    maxWidth: "var(--size-reading-measure)",
   },
+  tag: {
+    color: colorVars["--color-warning"],
+    display: "block",
+    fontSize: typeScaleVars["--text-supporting-size"],
+    fontWeight: fontWeightVars["--font-weight-semibold"],
+    marginBlockEnd: spacingVars["--spacing-1"],
+  },
+  title: {
+    marginBlockEnd: spacingVars["--spacing-2"],
+    marginBlockStart: spacingVars["--spacing-0-5"],
+  },
+  why: { color: colorVars["--color-warning"] },
 });
 
 /** Where questions put what they still have to save, so Submit saves it first. */
@@ -172,15 +172,15 @@ export function composed(letters: ReadonlyArray<string>, comment: string) {
 }
 
 export const statusStyles = stylex.create({
-  saved: { color: colorVars["--color-success"] },
   error: { color: colorVars["--color-error"] },
+  saved: { color: colorVars["--color-success"] },
 });
 
 function Status({ state }: { state: SaveState }) {
   switch (state.kind) {
     case "saving":
       return (
-        <Text type="supporting" color="secondary">
+        <Text color="secondary" type="supporting">
           saving…
         </Text>
       );
@@ -195,17 +195,17 @@ function Status({ state }: { state: SaveState }) {
 
 /** A text area as tall as its text, about 50 characters a row, two rows at least. */
 export function GrowingTextArea({
+  isReadOnly,
   label,
-  value,
   onChange,
   placeholder,
-  isReadOnly,
+  value,
 }: {
+  isReadOnly?: boolean;
   label: string;
-  value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  isReadOnly?: boolean;
+  value: string;
 }) {
   const rows = Math.max(
     2,
@@ -213,28 +213,28 @@ export function GrowingTextArea({
   );
   return (
     <TextArea
+      isReadOnly={isReadOnly}
       label={label}
-      value={value}
       onChange={onChange}
       placeholder={placeholder}
       rows={rows}
-      isReadOnly={isReadOnly}
+      value={value}
     />
   );
 }
 
 function Option({
   choice,
-  document,
-  selected,
   disabled,
+  document,
   onToggle,
+  selected,
 }: {
   choice: Choice;
-  document: Document;
-  selected: boolean;
   disabled: boolean;
+  document: Document;
   onToggle: () => void;
+  selected: boolean;
 }) {
   const spans = (id: number) => <Spans spans={document.blocks[id]?.spans ?? []} />;
   const point = (id: number, sign: string, tone: stylex.StyleXStyles) => (
@@ -246,10 +246,10 @@ function Option({
   return (
     // oxlint-disable-next-line react/forbid-elements -- a full-width toggle holding paragraphs and lists, which no Astryx component draws (an Astryx gap, see the plan)
     <button
-      type="button"
       aria-pressed={selected}
       disabled={disabled}
       onClick={onToggle}
+      type="button"
       {...stylex.props(styles.option, selected && styles.optionOn, disabled && styles.optionOff)}
     >
       {choice.recommended && <span {...stylex.props(styles.tag)}>Recommended</span>}
@@ -276,39 +276,39 @@ function Option({
  * agent".
  */
 export function Question({
-  folder,
-  question,
-  followUps,
   document,
-  readOnly,
+  folder,
+  followUps,
   onAsk,
+  question,
+  readOnly,
 }: {
-  folder: string;
-  question: QuestionItem;
-  followUps: ReadonlyArray<QuestionItem>;
   document: Document;
-  readOnly: boolean;
+  folder: string;
+  followUps: ReadonlyArray<QuestionItem>;
   onAsk?: (question: QuestionItem) => void;
+  question: QuestionItem;
+  readOnly: boolean;
 }) {
   const fate = useFateClient();
   const [letters, setLetters] = useState<ReadonlyArray<string>>(question.letters);
   const [comment, setComment] = useState(question.comment);
   // The comment as last saved or read: a comment typed since is a draft, which its button saves.
   const [savedComment, setSavedComment] = useState(question.comment);
-  const save = useSave<{ letters: ReadonlyArray<string>; comment: string }>(
+  const save = useSave<{ comment: string; letters: ReadonlyArray<string> }>(
     async (value, previous) => {
       const result = await fate.mutations.answer.save({
         input: {
-          folder,
-          question: question.id,
-          letters: [...value.letters],
           comment: value.comment,
+          folder,
+          letters: [...value.letters],
           previous,
+          question: question.id,
         },
         view: FileView,
       });
       if (result.error) {
-        return { ok: false, message: refusal(result.error).message };
+        return { message: refusal(result.error).message, ok: false };
       }
       const saved = result.result?.current.items.clarifications?.questions.find(
         (q) => q.id === question.id,
@@ -318,10 +318,10 @@ export function Question({
     },
     question.answer,
   );
-  const { settle, idle, flush, schedule } = save;
+  const { flush, idle, schedule, settle } = save;
   const dirty = comment !== savedComment;
-  const local = useRef({ letters, comment, dirty });
-  local.current = { letters, comment, dirty };
+  const local = useRef({ comment, dirty, letters });
+  local.current = { comment, dirty, letters };
   // An answer changed elsewhere replaces this one when nothing of it waits to be saved, and no
   // comment is being written.
   useEffect(() => {
@@ -335,7 +335,7 @@ export function Question({
   }, [question.answer, question.letters, question.comment, idle, settle]);
   /** Saves the answer at once, with the comment as typed. */
   const commit = useCallback(
-    (value: { letters: ReadonlyArray<string>; comment: string }) => schedule(value, true),
+    (value: { comment: string; letters: ReadonlyArray<string> }) => schedule(value, true),
     [schedule],
   );
   // Submit saves a comment still being written first.
@@ -343,7 +343,7 @@ export function Question({
   useEffect(() => {
     const before = () => {
       if (local.current.dirty) {
-        commit({ letters: local.current.letters, comment: local.current.comment });
+        commit({ comment: local.current.comment, letters: local.current.letters });
       }
       return flush();
     };
@@ -358,7 +358,7 @@ export function Question({
       ? letters.filter((l) => l !== letter)
       : [...letters, letter].sort();
     setLetters(next);
-    commit({ letters: next, comment });
+    commit({ comment, letters: next });
   };
   const unclear = question.applies === "unclear";
   const parent = question.parent;
@@ -373,17 +373,17 @@ export function Question({
         parent !== undefined && styles.followUp,
       )}
     >
-      <HStack gap={2} align="center" justify="between" wrap="wrap">
-        <Text type="supporting" color="secondary" weight="semibold">
+      <HStack align="center" gap={2} justify="between" wrap="wrap">
+        <Text color="secondary" type="supporting" weight="semibold">
           {question.id}
           {parent && question.applies === "yes" && ` · because you picked ${question.parentLetter}`}
           {parent && unclear && ` · ${parent} names no option`}
         </Text>
         {onAsk && (
-          <Button variant="ghost" size="sm" label="Ask the agent" onClick={() => onAsk(question)} />
+          <Button label="Ask the agent" onClick={() => onAsk(question)} size="sm" variant="ghost" />
         )}
       </HStack>
-      <Heading level={2} id={`${question.id}-title`} tabIndex={-1} xstyle={styles.title}>
+      <Heading id={`${question.id}-title`} level={2} tabIndex={-1} xstyle={styles.title}>
         {question.title}
       </Heading>
       <Blocks document={document} ids={question.context} />
@@ -393,12 +393,12 @@ export function Question({
         >
           {question.options.map((choice) => (
             <Option
-              key={choice.letter}
               choice={choice}
-              document={document}
-              selected={letters.includes(choice.letter)}
               disabled={readOnly}
+              document={document}
+              key={choice.letter}
               onToggle={() => toggle(choice.letter)}
+              selected={letters.includes(choice.letter)}
             />
           ))}
         </div>
@@ -410,7 +410,7 @@ export function Question({
             onClick={() => {
               setLetters([]);
               setComment("-");
-              commit({ letters: [], comment: "-" });
+              commit({ comment: "-", letters: [] });
             }}
           />
         </HStack>
@@ -419,12 +419,12 @@ export function Question({
         comment && <Paragraph xstyle={styles.spaced}>{comment}</Paragraph>
       ) : (
         <div {...stylex.props(styles.spaced)}>
-          <GrowingTextArea label="Comment" value={comment} onChange={setComment} />
-          <HStack gap={2} align="center" wrap="wrap" xstyle={styles.actions}>
+          <GrowingTextArea label="Comment" onChange={setComment} value={comment} />
+          <HStack align="center" gap={2} wrap="wrap" xstyle={styles.actions}>
             <Button
-              label="Save comment"
               isDisabled={!dirty}
-              onClick={() => commit({ letters, comment })}
+              label="Save comment"
+              onClick={() => commit({ comment, letters })}
             />
             {(!dirty || save.state.kind === "error") && <Status state={save.state} />}
           </HStack>
@@ -432,11 +432,11 @@ export function Question({
       )}
       {followUps.map((followUp) => (
         <Question
-          key={followUp.id}
-          folder={folder}
-          question={followUp}
-          followUps={[]}
           document={document}
+          folder={folder}
+          followUps={[]}
+          key={followUp.id}
+          question={followUp}
           readOnly={readOnly}
           {...(onAsk ? { onAsk } : {})}
         />

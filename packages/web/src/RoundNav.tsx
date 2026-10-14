@@ -13,34 +13,34 @@ import { TopBarSlot } from "./layout/TopBarSlot.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 
 /** An applicable question of a round, in the page's order: follow-ups at level 2. */
-export type NavQuestion = { id: string; title: string; level: 1 | 2; answered: boolean };
+export type NavQuestion = { answered: boolean; id: string; level: 1 | 2; title: string };
 
 const styles = stylex.create({
-  // Beside the questions on wide screens, in view while they scroll, scrolling on its own when
-  // taller than the window.
-  column: {
-    position: "sticky",
-    top: 0,
-    alignSelf: "flex-start",
+  action: {
+    // Next or Submit keeps its width beside the count: its label is never cut.
     flexShrink: 0,
+  },
+  column: {
+    // Beside the questions on wide screens, in view while they scroll, scrolling on its own when
+    // taller than the window.
+    alignSelf: "flex-start",
     boxSizing: "border-box",
-    width: "var(--size-round-index)",
+    flexShrink: 0,
     maxHeight: "var(--size-viewport-height)",
     overflowY: "auto",
     paddingBlock: spacingVars["--spacing-6"],
     paddingInlineEnd: spacingVars["--spacing-4"],
+    position: "sticky",
+    top: 0,
+    width: "var(--size-round-index)",
   },
   followUp: {
     paddingInlineStart: spacingVars["--spacing-4"],
   },
-  // Next or Submit keeps its width beside the count: its label is never cut.
-  action: {
-    flexShrink: 0,
-  },
-  // An index row's text wraps: no title is cut.
   label: {
-    whiteSpace: "normal",
+    // An index row's text wraps: no title is cut.
     overflowWrap: "anywhere",
+    whiteSpace: "normal",
   },
 });
 
@@ -49,7 +49,7 @@ function reducedMotion() {
 }
 
 /** A jump under way: the question it brings to the top, and what ends it. */
-type Jump = { id: string; end: () => void };
+type Jump = { end: () => void; id: string };
 
 /**
  * The jump under way in each document, until its page stops scrolling: a key pressed while the
@@ -92,12 +92,12 @@ export function jumpTo(id: string, instant = false) {
     timer = setTimeout(end, quiet);
   };
   timer = setTimeout(end, 1000);
-  jumps.set(document, { id, end });
+  jumps.set(document, { end, id });
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("scrollend", end);
   section.scrollIntoView?.({
-    block: "start",
     behavior: instant || reducedMotion() ? "auto" : "smooth",
+    block: "start",
   });
   document.getElementById(`${id}-title`)?.focus({ preventScroll: true });
 }
@@ -119,7 +119,7 @@ export function questionAtTop(ids: ReadonlyArray<string>): string | undefined {
     if (!section) {
       continue;
     }
-    const line = parseFloat(getComputedStyle(section).scrollMarginTop) || 0;
+    const line = Number.parseFloat(getComputedStyle(section).scrollMarginTop) || 0;
     if (section.getBoundingClientRect().top <= line + 2) {
       at = id;
     }
@@ -174,25 +174,25 @@ function afterSheetCloses(run: () => void) {
 
 /** Every applicable question with its state, the one at the top marked current. */
 function Index({
-  questions,
   current,
   onPick,
+  questions,
 }: {
-  questions: ReadonlyArray<NavQuestion>;
   current: string | undefined;
   onPick: (id: string) => void;
+  questions: ReadonlyArray<NavQuestion>;
 }) {
   return (
     <List aria-label="Questions" density="compact">
       {questions.map((question) => (
         <ListItem
+          isSelected={question.id === current}
           key={question.id}
           label={
             <span {...stylex.props(styles.label)}>
               {question.answered ? "✓" : "○"} {question.id} {question.title}
             </span>
           }
-          isSelected={question.id === current}
           onClick={() => onPick(question.id)}
           xstyle={question.level === 2 ? styles.followUp : undefined}
         />
@@ -208,11 +208,11 @@ function Index({
  * `onSubmit` takes the page to its end.
  */
 export function RoundNav({
-  questions,
   onSubmit,
+  questions,
 }: {
-  questions: ReadonlyArray<NavQuestion>;
   onSubmit: () => void;
+  questions: ReadonlyArray<NavQuestion>;
 }) {
   const wide = useWidthClass() === "wide";
   const [open, setOpen] = useState(false);
@@ -242,14 +242,14 @@ export function RoundNav({
     }
   };
   useHotkeys([
-    { keys: "n", onPress: () => next(false), isDisabled: !wide },
-    { keys: "p", onPress: previous, isDisabled: !wide },
+    { isDisabled: !wide, keys: "n", onPress: () => next(false) },
+    { isDisabled: !wide, keys: "p", onPress: previous },
   ]);
 
   const action = blank.length ? (
-    <Button variant="primary" label="Next" onClick={() => next(true)} xstyle={styles.action} />
+    <Button label="Next" onClick={() => next(true)} variant="primary" xstyle={styles.action} />
   ) : (
-    <Button variant="primary" label="Submit" onClick={onSubmit} xstyle={styles.action} />
+    <Button label="Submit" onClick={onSubmit} variant="primary" xstyle={styles.action} />
   );
   const count = `${answered} of ${questions.length} answered`;
 
@@ -257,18 +257,18 @@ export function RoundNav({
     return (
       <nav aria-label="Questions" {...stylex.props(styles.column)}>
         <VStack gap={3}>
-          <HStack justify="between" align="center" gap={2}>
+          <HStack align="center" gap={2} justify="between">
             <Text weight="semibold">{count}</Text>
             {action}
           </HStack>
           <ProgressBar
-            value={answered}
-            max={questions.length}
-            label="Questions answered"
             isLabelHidden
+            label="Questions answered"
+            max={questions.length}
+            value={answered}
           />
-          <Index questions={questions} current={current ?? ids[0]} onPick={(id) => jumpTo(id)} />
-          <Text type="supporting" color="secondary">
+          <Index current={current ?? ids[0]} onPick={(id) => jumpTo(id)} questions={questions} />
+          <Text color="secondary" type="supporting">
             n / p: next / previous unanswered
           </Text>
         </VStack>
@@ -278,26 +278,26 @@ export function RoundNav({
   return (
     <>
       <TopBarSlot>
-        <HStack gap={1} align="center">
+        <HStack align="center" gap={1}>
           <Button
-            variant="ghost"
             label={`${answered}/${questions.length}`}
             onClick={() => setOpen(true)}
+            variant="ghost"
           />
           {action}
         </HStack>
       </TopBarSlot>
       {/* No field to type in: the sheet needs no room for a keyboard, and the round shows above. */}
-      <Overlay label="Questions" isOpen={open} onClose={() => setOpen(false)} sheetHeight="capped">
+      <Overlay isOpen={open} label="Questions" onClose={() => setOpen(false)} sheetHeight="capped">
         <VStack gap={2}>
           <Text color="secondary">{count}</Text>
           <Index
-            questions={questions}
             current={questionAtTop(ids) ?? ids[0]}
             onPick={(id) => {
               setOpen(false);
               afterSheetCloses(() => jumpTo(id));
             }}
+            questions={questions}
           />
         </VStack>
       </Overlay>

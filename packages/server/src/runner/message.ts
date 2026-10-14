@@ -14,7 +14,7 @@ function fileName(file = ""): string {
 }
 
 /** The sentence that tells the agent why it runs. */
-export function triggerSentence({ trigger, file }: { trigger: Trigger; file?: string }): string {
+export function triggerSentence({ file, trigger }: { file?: string; trigger: Trigger }): string {
   switch (trigger) {
     case "answers":
       return `The human answered ${file} of the questions.`;
@@ -42,15 +42,15 @@ function subject(folder: string, bug?: boolean): string {
  * the trigger.
  */
 export function runMessage(input: {
-  folder: string;
   branch: string;
   /** A bug lives in `specs/bugs/`. */
   bug?: boolean;
-  step: string;
-  reference: string;
-  trigger: Trigger;
   /** The file the human committed, for the trigger's sentence. */
   file?: string;
+  folder: string;
+  reference: string;
+  step: string;
+  trigger: Trigger;
 }): string {
   return (
     `/uraeda:uraeda Continue the ${subject(input.folder, input.bug)}, on branch ${input.branch}.\n` +
@@ -60,7 +60,7 @@ export function runMessage(input: {
 }
 
 /** The first message of a chat, which tells the agent to wait for the human's requests. */
-export function chatOpening(input: { folder: string; branch: string; bug?: boolean }): string {
+export function chatOpening(input: { branch: string; bug?: boolean; folder: string }): string {
   return (
     `A human is chatting with you about the ${subject(input.folder, input.bug)}, on branch ` +
     `${input.branch}: answer, and change files, commit, or move the workflow only when they ask.`
@@ -68,7 +68,7 @@ export function chatOpening(input: { folder: string; branch: string; bug?: boole
 }
 
 /** The message that asks the agent to retry an action the human allowed. */
-export function retryMessage(denial: { tool: string; target?: string }): string {
+export function retryMessage(denial: { target?: string; tool: string }): string {
   const action = denial.target ? `${denial.tool} ${denial.target}` : denial.tool;
   return `Try the blocked action again, now allowed: ${action}`;
 }

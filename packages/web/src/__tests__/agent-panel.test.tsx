@@ -57,7 +57,7 @@ async function seedRun(fake: Fake, repo: string, folder: string, steps: Steps) {
 async function liveRun(fake: Fake, repo: string, folder = CLI) {
   const id = await startTurn(fake, repo, folder);
   await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
-  fake.adapter.emit({ type: "accepted", id: fake.adapter.sent[0].id });
+  fake.adapter.emit({ id: fake.adapter.sent[0].id, type: "accepted" });
   return id;
 }
 
@@ -71,22 +71,22 @@ async function cachedRun(
   const session = await fake.sessions.featureSession(repo, folder);
   const { cache } = fake.sessions;
   const id = cache.addTurn({
-    sessionId: session.id,
-    kind: "workflow",
-    trigger: "manual",
-    step: end.step,
     allowed: null,
+    kind: "workflow",
+    sessionId: session.id,
     state: "running",
+    step: end.step,
+    trigger: "manual",
   });
   cache.appendItem(id, {
-    kind: "tool",
     id: "toolu_1",
+    kind: "tool",
     name: "Bash",
-    toolKind: "execute",
-    target: "git commit",
     status: "completed",
+    target: "git commit",
+    toolKind: "execute",
   });
-  cache.appendItem(id, { kind: "text", text: end.text, streaming: false });
+  cache.appendItem(id, { kind: "text", streaming: false, text: end.text });
   cache.endTurn(id, { state: end.state });
   return id;
 }
@@ -119,7 +119,7 @@ async function opensWith(folder: string, text: string) {
 test("the feature page shows the session's status and Open the session", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
-  await seedRun(fake, repo, CLI, [{ type: "text", text: "Planned." }]);
+  await seedRun(fake, repo, CLI, [{ text: "Planned.", type: "text" }]);
 
   await renderPage(`/f/${CLI}`, repo, { agent: fake });
 
@@ -214,7 +214,7 @@ test("US2.5: during a chat turn, the agent's start queues the workflow's message
   const session = await fake.sessions.featureSession(repo, CLI);
   await fake.sessions.send(repo, session.id, { text: "Why plan first?" });
   await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
-  fake.adapter.emit({ type: "accepted", id: fake.adapter.sent[0].id });
+  fake.adapter.emit({ id: fake.adapter.sent[0].id, type: "accepted" });
   await renderPage(`/f/${CLI}`, repo, { agent: fake });
   await waitFor(() => expect(panel().getByText("Working")).toBeTruthy());
 
@@ -230,7 +230,7 @@ test("US2.5: during a chat turn, the agent's start queues the workflow's message
   );
   expect(fake.adapter.sent).toHaveLength(1);
   // It starts once that turn ends.
-  fake.adapter.emit({ type: "result", ok: true, errors: [], denials: [], interrupted: false });
+  fake.adapter.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
   await waitFor(() => expect(fake.adapter.sent).toHaveLength(2));
   expect(fake.adapter.sent[1].text).toBe(MANUAL);
 });
@@ -239,7 +239,7 @@ test("Review and try again after a failure opens the session with the message", 
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   await seedRun(fake, repo, CLI, [
-    { type: "result", ok: false, errors: ["Rate limit reached"], denials: [], interrupted: false },
+    { denials: [], errors: ["Rate limit reached"], interrupted: false, ok: false, type: "result" },
   ]);
   const { agent } = await renderPage(`/f/${CLI}`, repo, { agent: fake });
   await waitFor(() => expect(panel().getByText("Failed")).toBeTruthy());
@@ -297,11 +297,11 @@ test("US5.1: a blocked action shows Allow and retry, and Needs you", async () =>
   const fake = await fakeAgent();
   await seedRun(fake, repo, CLI, [
     {
-      type: "result",
-      ok: true,
+      denials: [{ input: { command: "git push origin HEAD" }, tool: "Bash" }],
       errors: [],
-      denials: [{ tool: "Bash", input: { command: "git push origin HEAD" } }],
       interrupted: false,
+      ok: true,
+      type: "result",
     },
   ]);
   const { agent } = await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
@@ -326,11 +326,11 @@ test("Allow and retry is disabled while a turn works, since it reopens the proce
   const fake = await fakeAgent();
   await seedRun(fake, repo, CLI, [
     {
-      type: "result",
-      ok: true,
+      denials: [{ input: { command: "git push origin HEAD" }, tool: "Bash" }],
       errors: [],
-      denials: [{ tool: "Bash", input: { command: "git push origin HEAD" } }],
       interrupted: false,
+      ok: true,
+      type: "result",
     },
   ]);
   const session = await fake.sessions.featureSession(repo, CLI);
@@ -347,11 +347,11 @@ test("a blocked action no allow rule can match alone offers no Allow and retry, 
   const fake = await fakeAgent();
   await seedRun(fake, repo, CLI, [
     {
-      type: "result",
-      ok: true,
+      denials: [{ input: { command: "rm build/*" }, tool: "Bash" }],
       errors: [],
-      denials: [{ tool: "Bash", input: { command: "rm build/*" } }],
       interrupted: false,
+      ok: true,
+      type: "result",
     },
   ]);
   await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
@@ -372,12 +372,12 @@ test("a tool call shows its target, then its duration", async () => {
   const clock = vi.spyOn(Date, "now").mockReturnValue(start);
   try {
     fake.adapter.emit({
-      type: "toolStart",
       id: "toolu_1",
-      name: "Bash",
-      kind: "execute",
       input: { command: "vp run ready" },
+      kind: "execute",
+      name: "Bash",
       target: "vp run ready",
+      type: "toolStart",
     });
     await waitFor(() => expect(fake.sessions.cache.itemCount(id)).toBe(2));
   } finally {
@@ -391,7 +391,7 @@ test("a tool call shows its target, then its duration", async () => {
 
   const end = vi.spyOn(Date, "now").mockReturnValue(start + 2500);
   try {
-    fake.adapter.emit({ type: "toolEnd", id: "toolu_1", isError: false, output: "ok" });
+    fake.adapter.emit({ id: "toolu_1", isError: false, output: "ok", type: "toolEnd" });
     await waitFor(() =>
       expect(fake.sessions.cache.items(id, 1, 1)[0]).toMatchObject({ status: "completed" }),
     );
@@ -416,8 +416,8 @@ test("250 items of a turn show in order", async () => {
     repo,
     CLI,
     Array.from({ length: 250 }, (_, index) => ({
-      type: "text" as const,
       text: `Event ${index + 1}.`,
+      type: "text" as const,
     })),
   );
 

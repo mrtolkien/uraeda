@@ -22,10 +22,10 @@ export async function testSessions(repo = fixtureRepo(), { binding: through = bi
   const changes: Array<SessionChange> = [];
   const sessions = new Sessions({
     adapter,
-    cache,
     binding: through,
+    cache,
     onChange: (change) => changes.push(change),
   });
   await sessions.check();
-  return { sessions, adapter, cache, repo, changes };
+  return { adapter, cache, changes, repo, sessions };
 }

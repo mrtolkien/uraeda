@@ -8,8 +8,8 @@ const styles = stylex.create({
   crumbs: {
     marginBlockEnd: spacingVars["--spacing-3"],
   },
-  // A crumb's link fills its item, which the theme makes a control's height under a touch pointer.
   item: {
+    // A crumb's link fills its item, which the theme makes a control's height under a touch pointer.
     alignItems: "stretch",
   },
 });
@@ -18,7 +18,7 @@ const styles = stylex.create({
  * Where a page sits: Home, its feature, and the page itself when it is inside the feature, like a
  * file. The feature is named by its title, read with the navigation's workspace.
  */
-export function Crumbs({ folder, current }: { folder: string; current?: string }) {
+export function Crumbs({ current, folder }: { current?: string; folder: string }) {
   const workspace = useWorkspace();
   const here = useRepoPath();
   const title = workspace?.features.find((feature) => feature.folder === folder)?.title ?? folder;

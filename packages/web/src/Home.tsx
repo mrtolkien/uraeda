@@ -14,42 +14,42 @@ import { useLocalPath, useRepoPath, useRestoreScroll } from "./routes.tsx";
 
 /** A row that leads somewhere, tapped as a whole. */
 function Row({
-  href,
   badge,
-  title,
-  line,
+  href,
   isSelected,
+  line,
+  title,
 }: {
-  href: string;
   badge?: ReactNode;
-  title: string;
-  line?: ReactNode;
+  href: string;
   isSelected?: boolean;
+  line?: ReactNode;
+  title: string;
 }) {
   return (
     <ListItem
-      href={href}
-      isSelected={isSelected}
-      startContent={badge}
-      // Nodes, not strings, so long titles and lines wrap instead of being cut.
-      label={<>{title}</>}
       description={line === undefined || line === null ? undefined : <>{line}</>}
       endContent={
-        <Text color="secondary" aria-hidden="true">
+        <Text aria-hidden="true" color="secondary">
           ›
         </Text>
       }
+      href={href}
+      isSelected={isSelected}
+      // Nodes, not strings, so long titles and lines wrap instead of being cut.
+      label={<>{title}</>}
+      startContent={badge}
     />
   );
 }
 
 /** A group of rows under its heading. */
-function Group({ title, children }: { title?: string; children: ReactNode }) {
+function Group({ children, title }: { children: ReactNode; title?: string }) {
   return (
     <List
-      header={title ? <Heading level={2}>{title}</Heading> : undefined}
       aria-label={title ? undefined : "More"}
       hasDividers
+      header={title ? <Heading level={2}>{title}</Heading> : undefined}
     >
       {children}
     </List>
@@ -101,14 +101,14 @@ export function Home() {
         {human.length > 0 && (
           <Group title="Waiting on you">
             {human.map((feature) => {
-              const { verb, line, href } = waiting(feature);
+              const { href, line, verb } = waiting(feature);
               return (
                 <Row
-                  key={feature.folder}
+                  badge={<Badge label={verb} variant="warning" />}
                   href={here(href)}
-                  badge={<Badge variant="warning" label={verb} />}
-                  title={feature.title}
+                  key={feature.folder}
                   line={line}
+                  title={feature.title}
                 />
               );
             })}
@@ -118,11 +118,11 @@ export function Home() {
           <Group title="Files to fix">
             {invalid.map((feature) => (
               <Row
-                key={feature.folder}
+                badge={<Badge label="Problems" variant="error" />}
                 href={here(`/f/${feature.folder}`)}
-                badge={<Badge variant="error" label="Problems" />}
-                title={feature.title}
+                key={feature.folder}
                 line={feature.problems[0].message}
+                title={feature.title}
               />
             ))}
           </Group>
@@ -137,17 +137,17 @@ export function Home() {
                 : feature.step.task;
               return (
                 <Row
-                  key={feature.folder}
-                  href={here(`/f/${feature.folder}`)}
                   // A running agent says so; its step moves to the line under the title.
                   badge={
                     <Badge
-                      variant={working ? "success" : "info"}
                       label={working ? "Working" : step}
+                      variant={working ? "success" : "info"}
                     />
                   }
-                  title={feature.title}
+                  href={here(`/f/${feature.folder}`)}
+                  key={feature.folder}
                   line={line || undefined}
+                  title={feature.title}
                 />
               );
             })}
@@ -156,11 +156,11 @@ export function Home() {
         <Group title={priorities.length > 0 ? "Priorities" : undefined}>
           {priorities.map((entry) => (
             <Row
-              key={entry.id}
               href={here(`/priorities/${entry.key}`)}
               isSelected={pathname === `/priorities/${entry.key}`}
-              title={entry.text}
+              key={entry.id}
               line={entry.section === "now" ? "Now" : "Next"}
+              title={entry.text}
             />
           ))}
           <Row href={here("/priorities")} title="All priorities" />
@@ -169,9 +169,9 @@ export function Home() {
           <Group title="Done">
             {done.map((feature) => (
               <Row
-                key={feature.folder}
+                badge={<Badge label="Merged" variant="success" />}
                 href={here(`/f/${feature.folder}`)}
-                badge={<Badge variant="success" label="Merged" />}
+                key={feature.folder}
                 title={feature.title}
               />
             ))}
