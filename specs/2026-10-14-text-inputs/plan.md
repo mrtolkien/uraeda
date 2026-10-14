@@ -15,11 +15,11 @@ round's notes into free notes and comments on settled points, ends the settled s
 ([spec, Data](spec.md#data)). The web UI owns unsaved text: one module-level store,
 `fields/unsaved.ts`, holds what each field shows and has not saved, by key, mirrored to
 `localStorage`; `useTextField` is the only way a field reads and writes it; the leave guard reads
-only "does the store hold unsaved text for this page". A field's saved text always comes from the
-file, through fate, and is never copied into the store: the file never writes into a field being
-edited, which removes both causes of lost letters ([spec, Approach](spec.md#architecture)). Each
-field keeps its own save, through `useSave`'s queue, which loses its timer once no field saves as
-typed. Images keep saving their field at once, through the same `onText(text, added)` contract of
+only "does a field drawn on the page hold unsaved text" (R26). A field's saved text always comes
+from the file, through fate, and is never copied into the store: the file never writes into a field
+being edited, which removes both causes of lost letters ([spec, Approach](spec.md#architecture)).
+Each field keeps its own save, through `useSave`'s queue, which loses its timer once no field saves
+as typed. Images keep saving their field at once, through the same `onText(text, added)` contract of
 `attach/useImageText.ts`, and clear the field's unsaved entry when they do.
 
 **Spec:** [spec.md](spec.md): the plan argues from the spec, so the implementer reads both.
@@ -494,8 +494,8 @@ git commit -m "build(text-inputs): React Compiler compiles the web UI"
     `type Unsaved = { text: string; base: string; at: string; extra?: { start: number; end: number; heading: string; commit: string } }`;
     `unsavedKey(repo: string, field: string): string`; `readUnsaved(key): Unsaved | undefined`;
     `writeUnsaved(key, value: Unsaved)`; `dropUnsaved(key)`; `useUnsaved(key): Unsaved | undefined`
-    (subscribes to one key); `hasUnsaved(prefix?: string): boolean` and
-    `useHasUnsaved(prefix?: string): boolean`; `pruneUnsaved(now: Date)` (drops entries older than
+    (subscribes to one key); `hasUnsaved(prefix?: string): boolean` (task 10 replaced
+    `useHasUnsaved` with the fields drawn, R26); `pruneUnsaved(now: Date)` (drops entries older than
     30 days, called once at start); `forgetUnsaved()` for tests. `localStorage` errors fall back to
     memory.
   - `fields/useTextField.ts`:
@@ -946,46 +946,58 @@ git commit -m "feat(text-inputs): lines save with Enter or Save, never on blur"
 **Files:**
 
 - Create: `packages/web/src/fields/LeaveGuard.tsx`
-- Modify: `packages/web/src/routes.tsx` (`navigate`, `RouterAnchor`, the `popstate` path), `App.tsx`
-- Test: `packages/web/src/__tests__/leave.test.tsx`
+- Modify: `packages/web/src/routes.tsx` (`navigate`, which links go through), `App.tsx`,
+  `fields/unsaved.ts` and `fields/useTextField.ts` (the fields drawn)
+- Test: `packages/web/src/__tests__/leave.test.tsx`, `__browser__/leave.test.tsx` (Back in WebKit),
+  `__tests__/editor.test.tsx` (one test leaves with unsaved text, R27)
 
 **Interfaces:**
 
-- Consumes: task 4's `useHasUnsaved(prefix)`, `useConfirm`.
-- Produces: `setLeaveGuard(check: (() => Promise<boolean>) | undefined)` in `routes.tsx`, consulted
-  by `navigate` and links; `redirect` is never guarded.
+- Consumes: task 4's store and `useTextField`, `useConfirm`.
+- Produces: `setLeaveGuard(check: (() => Promise<boolean> | undefined) | undefined)` in
+  `routes.tsx`, consulted by `navigate`, and so by links: `undefined` when leaving loses nothing,
+  else the question; `redirect` is never guarded. `subscribeLocation(onChange)` exported from
+  `routes.tsx`. In `fields/unsaved.ts`, `drawField(field, key, saved)`, which `useTextField` calls
+  while drawn, `hasDrawnUnsaved()` and `useHasDrawnUnsaved()`: whether a field drawn holds text
+  differing from its saved text, trimmed (R26); `differ(a, b)` moves there from `useTextField`.
+  `LeaveGuard` and `LEAVE_PAGE` in `fields/LeaveGuard.tsx`, which also handles Back.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - US5 4: an unsaved Q3 comment, a link to the feature's page: "Leave page?"; "Stay" keeps the page,
   "Leave page" opens the feature's page.
 - US5 5: Back with an unsaved comment asks the same; "Leave page" goes back.
 - US5 6: no unsaved text: a link and Back do not ask; no `beforeunload` listener is attached.
 - US5 1's browser prompt: with unsaved text, a `beforeunload` event is cancelled.
-- Review focus 7: Back closing a sheet with an unsaved comment inside it does not ask; the editor's
-  redirect after a move does not ask.
+- Review focus 7: Back closing a sheet with an unsaved comment inside it does not ask, nor does
+  leaving the page after, the sheet's text kept but no longer drawn; the editor's redirect after a
+  move does not ask.
+- In WebKit, US5 5 through the real history: Stay, then Back on the confirmation, then Leave page.
 
 The break each test catches: a guard only on `RouterAnchor`, missing `navigate` (US5 4 through a
-`navigate` call); Back not re-pushed (US5 5); a guard on overlay pops (focus 7).
+`navigate` call); Back not re-pushed (US5 5, in happy-dom and WebKit); a guard on overlay pops
+(focus 7); a guard reading the whole store, not the fields drawn (focus 7, after the sheet).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web leave`
-- Expected: FAIL, `Unable to find role="alertdialog"`
+- Expected: FAIL, `Unable to find role="dialog" and name "Leave page?"` (the confirmation is the
+  app's overlay, R9)
 
-- [ ] **Step 3: Implement**: the guard asks only when the store holds unsaved text for the page's
-      repository path; Back re-pushes the left entry before asking, and ignores entries whose state
-      is an overlay; the `beforeunload` listener exists only while something is unsaved.
+- [x] **Step 3: Implement**: the guard asks only when a field drawn holds unsaved text (R26); Back
+      to another address re-pushes the left page's entry before asking, and Back that stays on the
+      page's address, over an overlay's entry, never asks; the `beforeunload` listener exists only
+      while a field drawn is unsaved.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check && vp test --project uraeda-web`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/web
+git add packages/web specs/2026-10-14-text-inputs
 git commit -m "feat(text-inputs): leaving a page with unsaved text asks first"
 ```
 

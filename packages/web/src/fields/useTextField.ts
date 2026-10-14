@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useRepositoryPath } from "../routes.tsx";
 import {
+  differ,
+  drawField,
   dropUnsaved,
   readUnsaved,
   type Unsaved,
@@ -8,11 +10,6 @@ import {
   useUnsaved,
   writeUnsaved,
 } from "./unsaved.ts";
-
-/** Whether two texts differ by more than spaces and line breaks at their ends. */
-function differ(a: string, b: string) {
-  return a.trim() !== b.trim();
-}
 
 /**
  * A text field of the page's repository, by its key, `<path>#notes` for one: the text it shows,
@@ -38,6 +35,10 @@ export function useTextField(field: string, saved: string, extra?: Unsaved["extr
   const [typed, setTyped] = useState<{ over: string; text: string }>();
   const shown = typed && (typed.over === saved || !differ(typed.text, saved)) ? typed.text : saved;
   const text = entry?.text ?? shown;
+
+  // While drawn, the field's unsaved text is the page's: leaving it asks first.
+  const [self] = useState(() => ({}));
+  useEffect(() => drawField(self, key, saved), [self, key, saved]);
 
   // Text that became the saved text, as saved elsewhere, is unsaved no more.
   useEffect(() => {

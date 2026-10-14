@@ -85,9 +85,18 @@ function notify(key: string) {
   for (const listener of listeners.get(key) ?? []) {
     listener();
   }
+  notifyAny();
+}
+
+function notifyAny() {
   for (const listener of anyListeners) {
     listener();
   }
+}
+
+/** Whether two texts differ by more than spaces and line breaks at their ends. */
+export function differ(a: string, b: string): boolean {
+  return a.trim() !== b.trim();
 }
 
 /** The entry of a key, if its field holds unsaved text. */
@@ -166,13 +175,39 @@ export function useUnsaved(key: string): Unsaved | undefined {
   );
 }
 
-/** Whether any field whose key starts with `prefix` holds unsaved text, drawn again as it changes. */
-export function useHasUnsaved(prefix = PREFIX): boolean {
-  return useSyncExternalStore(
-    (listener) => {
-      anyListeners.add(listener);
-      return () => anyListeners.delete(listener);
-    },
-    () => hasUnsaved(prefix),
-  );
+/**
+ * The fields drawn now, each with its key and its saved text: only their unsaved text is on the
+ * page. An entry whose field is not drawn, like a sheet's comment once the sheet closed, is kept
+ * for when it shows again, and is not on the page.
+ */
+const drawn = new Map<object, { key: string; saved: string }>();
+
+/** Says a field is drawn, by an object of its own, until the function returned is called. */
+export function drawField(field: object, key: string, saved: string): () => void {
+  drawn.set(field, { key, saved });
+  notifyAny();
+  return () => {
+    drawn.delete(field);
+    notifyAny();
+  };
+}
+
+/** Whether a field drawn now holds text that differs from its saved text: what leaving loses. */
+export function hasDrawnUnsaved(): boolean {
+  load();
+  for (const { key, saved } of drawn.values()) {
+    const entry = entries.get(key);
+    if (entry && differ(entry.text, saved)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Whether a field drawn now holds unsaved text, drawn again as it changes. */
+export function useHasDrawnUnsaved(): boolean {
+  return useSyncExternalStore((listener) => {
+    anyListeners.add(listener);
+    return () => anyListeners.delete(listener);
+  }, hasDrawnUnsaved);
 }
