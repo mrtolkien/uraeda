@@ -115,4 +115,112 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   command for a case only a hook calling `vp run --no-cache` reaches.
 - **If wrong**: a hook that runs `vp run --no-cache` fails the git tests; prefixing the test
   commands with `env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_COMMON_DIR` fixes it.
-- **Where**: task 3.
+  Superseded by task 4: the test commands drop the variables, so an uncached run passes too (R13).
+- **Where**: task 3. Superseded by task 4 (R13).
+
+## R9: The server tests' negative waits follow a sentinel or a running fake clock
+
+- **Decision**: "a take-back is published to every reader" runs a fake clock that still advances
+  (`shouldAdvanceTime`), and jumps it past `SESSION_UPDATE_MS` where it slept; "a change in one
+  repository sends no update to another" switches the first repository's branch as its sentinel,
+  whose updates (`Workspace`, `SessionList`) differ from the second's (`Workspace`, `Priorities`);
+  "closed hosts stop following the file" waits for other hosts, open on the same list, to follow two
+  additions. The waits' 1 s timeouts in `repositories.test.ts` become 10 s.
+- **Rationale**: the take-back's update merges into the update the sends left pending, so waiting
+  for it would also pass on the pending one: only the clock's jump says the earlier ones are out. A
+  sentinel of the same kind as the change would let the leaked update pass for it. With one
+  addition, the closed hosts' reload, in the break that keeps their watch, still ran after the
+  assertion; with two, the break failed 3 runs out of 3. A timeout bounds a wait for a condition, so
+  it is no duration check, but a 1 s one fails a loaded machine: SC-004's second is measured by no
+  test, as R5 does for SC-002 of the image attachments.
+- **Alternatives considered**: waiting for the take-back's update without the clock: a false pass
+  when the take-back sends none. A fake clock that only moves when told: the server's own timers, in
+  the same process, would stop.
+- **If wrong**: a test that waits up to 10 s where it failed in 1 s; the scenario of SC-002's live
+  test also arrives through the repository's watcher, so its "at once" is checked by the unit test
+  "a session's status change is published at once…", and its second by `live.bench.ts`.
+- **Where**: task 4.
+
+## R10: The web configs leave `.env` out through an option of the settings' readers
+
+- **Decision**: `loadEnv`, `loadDataDir` and `devHandler` take `{ file: false }`, which
+  `packages/web/vite.config.ts` passes under Vitest; `dev.test.ts`'s variables are `vi.stubEnv`'s,
+  undone after each test, instead of a saved copy of the browser setup's.
+- **Rationale**: the config has no other way to keep the settings of `vp dev` while the tests read
+  the environment only; the tests themselves still set `URAEDA_REPO` and `URAEDA_DATA_DIR` for the
+  handler, which the next tests must not get.
+- **Alternatives considered**: pointing the tests' root at a folder without `.env`: the root is also
+  the repository opened when `URAEDA_REPO` is not set.
+- **If wrong**: one option on three functions; dropping it brings the developer's `.env` back into
+  the tests.
+- **Where**: task 4.
+
+## R11: The session tests wait for the session's own view before typing again
+
+- **Decision**: `session.test.tsx`'s `openTurn` waits for its message in the session's transcript,
+  and `thumbnails` returns the buttons its wait saw, so
+  `Unable to find role="button" and name "Send"`, and the `/^Remove /` failures, are fixed in the
+  tests, not the product.
+- **Rationale**: reproduced with 10 runs of the file at once (3 failed, US1.3, US1.4 and a hand-over
+  test): the typed text never reached the draft, as a debug log of its setter showed, because `send`
+  typed into the empty view's composer while the session's view replaced it. A person types into the
+  composer on screen, which the draft carries over; the test held an element the page was removing.
+  The page that seemed empty was hidden by React while it suspended on the hand-over's redirect, a
+  synchronous update. With the waits, 24 runs at once passed; without `openTurn`'s, 1 of 12 failed
+  again.
+- **Alternatives considered**: keeping the empty view's composer mounted across the change, in
+  `SessionPage.tsx`: a product change for a race only a test, holding a stale element, can hit.
+- **If wrong**: a real loss of typed text would show as an empty composer after the first message;
+  the unmerged `2026-10-14-session-view` branch rewrites much of this file but keeps `openTurn`,
+  `send` and `thumbnails` as they were, so the two changes merge without a conflict in them.
+- **Where**: task 4.
+
+## R12: gix's `parallel` feature, and a teardown that waits for the page's requests
+
+- **Decision**: the workspace's gix dependency gets its `parallel` feature, with a core test of a
+  worktree whose object store is deleted before its status is read; the web tests' helpers unmount
+  the page, wait for the server to answer every request, then close the hosts and the sessions, in
+  one `afterEach`.
+- **Rationale**: without `parallel`, gix's object store handle is not thread-safe, and the worktree
+  status converts it with `into_arc().expect("arc conversion always works")`, which opens the store
+  again from disk: a missing `objects` folder panics, and a panic in a napi call cannot unwind, so
+  Node aborts. With `parallel`, the handle is already shared, and the conversion cannot fail; the
+  new test panicked at that line before, and passes after. The abort needed a read going while its
+  repository was deleted: the web tests closed their hosts and sessions before unmounting the page
+  (Vitest runs `afterEach` hooks last registered first), and nothing waited for the requests the
+  page sent as it went before the file's temporary folder was deleted; the same order left the
+  unhandled `FateRequestError` of run 38515969774. `parallel` adds `crossbeam-deque` and
+  `crossbeam-epoch`.
+- **Alternatives considered**: checking that the store's folder exists before each status: a race
+  still, between the check and the reopen. Catching the panic with `catch_unwind`: the panic is
+  gix's bug path, still printed, and the reopened store is not needed.
+- **If wrong**: gix's status may use more threads; dropping the feature brings the abort back, and
+  the test shows it.
+- **Where**: task 4.
+
+## R13: Every test task drops the git variables a hook exports
+
+- **Decision**: `vite.config.ts`'s `isolatedGit`, the start of every test task's command, is
+  `env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_COMMON_DIR GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1`.
+- **Rationale**: Vite Task passes the whole environment to an uncached run, which CI's `--no-cache`
+  is (R8): `GIT_DIR=/nonexistent nix develop -c vp run --no-cache ready:rust` failed 22 tests with
+  "not a git repository" before, and passes after. One home for every test task.
+- **Alternatives considered**: keeping R8's cached-only guarantee: a hook running
+  `vp run --no-cache` would fail the git tests.
+- **If wrong**: a longer command in each test task's summary; the helpers' own isolation stays.
+- **Where**: task 4.
+
+## R14: Waits found beyond the plan's lines
+
+- **Decision**: `links.test.ts`'s 50 ms wait becomes `quiet()`; `claude.test.ts`'s polls every 50 ms
+  become `vi.waitFor`, with 10 s instead of 3 s; `editor.test.tsx`'s `setTimeout(resolve)` stays;
+  `crates/lsp/tests/commands.rs`'s waiting hook also ends once its repository is gone.
+- **Rationale**: the plan's search finds these. `quiet()` waits for what the 50 ms stood for, every
+  answer drawn. The polls already waited for a condition; a 3 s bound failed nothing yet, but is a
+  duration under load. The editor's wait is for the next task, of no duration, as `answered` does.
+  The hook of `requests_are_answered_while_a_command_runs` looped for 1 h 42 min after a killed run
+  had deleted its repository, which no `Drop` could end.
+- **Alternatives considered**: leaving the polls as they were: their 50 ms is a poll interval, not a
+  sleep, but the search cannot tell.
+- **If wrong**: none changes what a test checks.
+- **Where**: task 4.

@@ -16,12 +16,22 @@ export type Env = {
 export const DEFAULT_PORT = 4310;
 
 /**
+ * Where the settings are read: `<root>/.env` too unless `file` is false, as for the web configs'
+ * tests, which must not take a developer's `.env`.
+ */
+export type Sources = { file?: boolean };
+
+/**
  * Reads `URAEDA_ALLOWED_HOSTS`, `URAEDA_PORT`, and `URAEDA_REPO` from `<root>/.env` and the
  * environment. Without a root, as in the package, only the environment, and the repository is
  * resolved from the current folder.
  */
-export function loadEnv(root: string | null, environment: NodeJS.ProcessEnv = process.env): Env {
-  const value = settings(root, environment);
+export function loadEnv(
+  root: string | null,
+  environment: NodeJS.ProcessEnv = process.env,
+  sources: Sources = {},
+): Env {
+  const value = settings(root, environment, sources);
   const hosts = value("URAEDA_ALLOWED_HOSTS") ?? "";
   const port = value("URAEDA_PORT");
   const repo = value("URAEDA_REPO");
@@ -52,15 +62,23 @@ export function loadDataDir(
   root: string | null,
   core: { dataDir: (custom?: string | null) => string },
   environment: NodeJS.ProcessEnv = process.env,
+  sources: Sources = {},
 ): string {
-  const custom = settings(root, environment)("URAEDA_DATA_DIR");
+  const custom = settings(root, environment, sources)("URAEDA_DATA_DIR");
   return resolve(root ?? process.cwd(), core.dataDir(custom));
 }
 
-/** A setting by its name: from the environment, else from `<root>/.env` when there is a root. */
-function settings(root: string | null, environment: NodeJS.ProcessEnv) {
+/**
+ * A setting by its name: from the environment, else from `<root>/.env` when there is a root and
+ * `file` leaves it in.
+ */
+function settings(
+  root: string | null,
+  environment: NodeJS.ProcessEnv,
+  { file: read = true }: Sources,
+) {
   let file: Record<string, string | undefined> = {};
-  if (root === null) {
+  if (root === null || !read) {
     return (name: string) => environment[name];
   }
   try {

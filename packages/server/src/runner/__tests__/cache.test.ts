@@ -383,9 +383,14 @@ test("reopening the file keeps the sessions", () => {
 test("a cache that cannot be opened is created again empty", () => {
   const path = tempPath();
   writeFileSync(path, "not a database, but long enough to be read as one's header".repeat(4));
+  const logged = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  onTestFinished(() => logged.mockRestore());
 
   const cache = SessionCache.open(path);
 
+  expect(logged).toHaveBeenCalledWith(
+    "The runner's cache could not be read, so it starts empty: Error: file is not a database\n",
+  );
   expect(cache.sessions(REPO)).toEqual([]);
   expect(cache.createSession(feature)).toMatchObject({ folder: FOLDER });
 });
@@ -406,7 +411,12 @@ test("a cache another process holds locked is kept, never replaced", () => {
   other.exec("CREATE TABLE lock (x)");
 
   // The lock outlasts the wait: this server keeps its sessions in memory.
+  const logged = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  onTestFinished(() => logged.mockRestore());
   const cache = SessionCache.open(path, { timeout: 50 });
+  expect(logged).toHaveBeenCalledWith(
+    "The runner's cache could not be opened, so this server keeps its sessions in memory: Error: database is locked\n",
+  );
   expect(cache.createSession(feature)).toMatchObject({ folder: FOLDER });
 
   other.exec("ROLLBACK");

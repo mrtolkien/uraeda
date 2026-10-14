@@ -1,8 +1,8 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { fireEvent, screen, within } from "@testing-library/react";
-import { expect, test } from "vite-plus/test";
-import { atRepo, git, read, refreshUntil, renderPage } from "./helpers.tsx";
+import { screen, within } from "@testing-library/react";
+import { expect, onTestFinished, test, vi } from "vite-plus/test";
+import { atRepo, click, git, read, refreshUntil, renderPage } from "./helpers.tsx";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 
 /** The page's own content, without the navigation. */
@@ -90,12 +90,21 @@ test("says how to set Uraeda up in a repository without specs/", async () => {
 });
 
 test("says when the server cannot be reached, with a way to try again", async () => {
+  // React reports the error its boundary caught: expected here, so kept from the log.
+  const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+  onTestFinished(() => logged.mockRestore());
   await renderPage("/", undefined, {
     fetch: () => Promise.reject(new TypeError("Failed to fetch")),
   });
 
   expect(await screen.findByText("Could not reach the Uraeda server.")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+  expect(logged).toHaveBeenCalledWith(
+    expect.any(String),
+    new TypeError("Failed to fetch"),
+    "The above error occurred in the <InRepository> component.",
+    expect.stringContaining("ServerErrorBoundary"),
+  );
 });
 
 /** US6.6 */
@@ -118,7 +127,8 @@ test("reads the page again when it comes back to the foreground", async () => {
 test("opens a feature from its row", async () => {
   await renderPage();
 
-  fireEvent.click(await (await main()).findByText("CLI TUIs"));
+  // Awaited: the feature's page suspends while it reads.
+  await click(await (await main()).findByText("CLI TUIs"));
 
   expect(window.location.pathname).toBe(atRepo("/f/2026-10-12-cli-tuis"));
 });

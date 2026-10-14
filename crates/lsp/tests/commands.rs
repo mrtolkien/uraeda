@@ -865,7 +865,8 @@ fn a_refusal_lists_no_files() {
 
 /// Creates the file `go` when dropped, which the hook of
 /// `requests_are_answered_while_a_command_runs` waits for: dropped on a failed assertion too, so the
-/// hook never outlives the test.
+/// hook never outlives the test. A test killed before, by a timeout, removes nothing: the hook also
+/// stops once its repository is gone.
 struct Go(PathBuf);
 
 impl Drop for Go {
@@ -879,7 +880,7 @@ impl Drop for Go {
 fn requests_are_answered_while_a_command_runs() {
     let repo = with_draft(false);
     repo.set_hook(
-        "until [ -e \"$(git rev-parse --git-common-dir)/go\" ]; do sleep 0.01; done\n\
+        "until [ -e \"$(git rev-parse --git-common-dir)/go\" ] || [ ! -e .git ]; do sleep 0.01; done\n\
          echo run >> \"$(git rev-parse --git-common-dir)/hook-runs\"",
     );
     let draft = repo.path().join("specs/drafts/codex-runtime.md");

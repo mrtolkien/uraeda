@@ -3,7 +3,7 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
-import { expect, test } from "vite-plus/test";
+import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import {
   click,
   fakeAgent,
@@ -242,11 +242,17 @@ test("an unreadable list shows its problem in the menu", async () => {
   const dataDir = twoRepositories();
   await renderPage("/r/uraeda/", undefined, { dataDir, raw: true });
   const menu = await openMenu();
+  // The server logs the problem too: expected here, so kept from the log.
+  const logged = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  onTestFinished(() => logged.mockRestore());
 
   writeFileSync(join(dataDir, "repositories.json"), "{ not json");
 
   await refreshUntil(() =>
     expect(menu.getByText(/^repositories\.json could not be read: /)).toBeTruthy(),
+  );
+  expect(logged).toHaveBeenCalledWith(
+    expect.stringMatching(/^uraeda-server: repositories\.json could not be read: /),
   );
   // The last list read stays.
   expect(rows(menu)).toEqual(["uraeda~/dev/uraeda", "todo-app~/dev/todo-app"]);

@@ -526,45 +526,98 @@ git commit -m "build(testing-review): ready is a graph of cached tasks"
 
 - Modify: `packages/server/src/__tests__/live.test.ts`,
   `packages/server/src/__tests__/repositories.test.ts`, `packages/server/src/__tests__/dev.test.ts`
-  (the saved variables), `packages/server/vite.config.ts` (`testTimeout`),
-  `packages/web/vite.config.ts` (no `.env` under Vitest), the tests printing the runner cache's
-  errors, `packages/web/src/__tests__/home.test.tsx` (the "Failed to fetch" at line 94),
-  `packages/web/src/__tests__/editor.test.tsx` (the unhandled server error of run 38515969774)
-- Create: `packages/server/src/__tests__/live.bench.ts`
+  (the saved variables), `packages/server/src/__tests__/env.test.ts`,
+  `packages/server/src/__tests__/search.bench.ts` (its measure printed),
+  `packages/server/src/env.ts` and `packages/server/src/dev.ts` (`Sources`),
+  `packages/server/vite.config.ts` (`testTimeout`), `packages/web/vite.config.ts` (no `.env` under
+  Vitest), `packages/server/src/runner/__tests__/cache.test.ts` and
+  `packages/web/src/__tests__/repository-menu.test.tsx` (the expected errors captured),
+  `packages/server/src/runner/__tests__/claude.test.ts` (its polls),
+  `packages/web/src/__tests__/home.test.tsx` (the "Failed to fetch" at line 94),
+  `packages/web/src/__tests__/document.test.tsx` and `links.test.ts`,
+  `packages/web/src/__tests__/helpers.tsx` (the teardown's order, `quiet`, behind the unhandled
+  server error of run 38515969774), `packages/web/src/__tests__/session.test.tsx` (`openTurn`,
+  `thumbnails`), `crates/core/tests/git.rs` and `Cargo.toml` (gix's `parallel` feature),
+  `crates/lsp/tests/commands.rs` (the hook's end), `vite.config.ts` (`isolatedGit`)
+- Create: `packages/server/src/__tests__/live.bench.ts`,
+  `packages/server/src/__tests__/live-stream.ts` (the live stream helpers and the two scenarios,
+  shared by the test and the benchmark)
 
 **Interfaces:**
 
 - Consumes: task 3's `ts:test` and `bench` tasks.
+- Produces: `loadEnv(root, environment, sources)`, `loadDataDir(root, environment, sources)` and
+  `devHandler(root, { adapter, file })`, `sources` being `{ file?: boolean }`; the web tests'
+  `quiet()`, which waits until the server answered every request the page sent, and the page drew
+  the answers.
 
-- [ ] **Step 1: Turn the duration checks into benchmarks, and the sleeps into waits**
+- [x] **Step 1: Turn the duration checks into benchmarks, and the sleeps into waits**
 
 - `live.test.ts`: the commit's update (line 140) and SC-002's status change (line 452) keep their
-  arrival checks, without durations; `live.bench.ts` measures both. The `SESSION_UPDATE_MS` sleep
-  (407) waits for the update it stands for, or advances fake timers; the 500 ms negative wait (465)
-  makes a change in the first repository afterwards as a sentinel, waits for it, then asserts the
-  first repository heard only the sentinel.
+  arrival checks, without durations; `live.bench.ts` measures both, and prints them. Both run the
+  scenarios of `live-stream.ts`. The `SESSION_UPDATE_MS` sleep (407) becomes a jump of a running
+  fake clock (R9); the 500 ms negative wait (465) switches the first repository's branch afterwards
+  as a sentinel, waits for it, then asserts the first repository heard only the switch.
 - `repositories.test.ts`: the duration check (491) goes, keeping its arrival check; the 300 ms sleep
-  (557) waits for its condition; the `HOME` stub (317-320) is restored in a `finally`.
+  (557) waits for other hosts, open on the same list, to follow two changes (R9); the `HOME` stub
+  (317-320) is restored in a `finally`. The waits' 1 s timeouts become 10 s.
 
 The break each catches: an update never sent (arrival), an update sent to the wrong repository (the
-sentinel).
+sentinel), closed hosts still following the list.
 
-- [ ] **Step 2: Stop the web configs from reading `.env` under Vitest, and give the server tests the
+- [x] **Step 2: Stop the web configs from reading `.env` under Vitest, and give the server tests the
       web tests' 20 s timeout**
 
 Under Vitest (`process.env.VITEST`), `packages/web/vite.config.ts` gives `devServer` and
-`uraedaServer` settings read from the environment only; `vp dev` and the build still read `.env`.
-`dev.test.ts`'s saving of `URAEDA_REPO` and `URAEDA_DATA_DIR` goes: the browser setup now runs in
-its own process (task 3).
+`uraedaServer` settings read from the environment only, through `loadEnv`'s and `devHandler`'s
+`{ file: false }` (R10); `vp dev` and the build still read `.env`. `env.test.ts` checks that the
+file is left out. `dev.test.ts`'s saving of `URAEDA_REPO` and `URAEDA_DATA_DIR` goes: the browser
+setup now runs in its own process (task 3); the variables the tests set are `vi.stubEnv`'s, undone
+after each.
 
-- [ ] **Step 3: Capture the expected errors, and fix the unexpected ones**
+- [x] **Step 3: Capture the expected errors, and fix the unexpected ones**
 
-The runner cache tests that make it fail on purpose assert its message on a spy of
-`process.stderr.write` instead of printing it; `home.test.tsx:94`'s fetch after the test's end and
-`editor.test.tsx`'s unhandled `FateRequestError` are traced to their cause and fixed (a test that
-ends before its request, or a server bug, fixed with a test).
+The runner cache tests that make it fail on purpose, and `repository-menu.test.tsx`'s unreadable
+list, assert their message on a spy of `process.stderr.write` instead of printing it;
+`home.test.tsx:94`'s "Failed to fetch" is React reporting the error its boundary caught, which the
+test now asserts on a spy of `console.error`; the "suspended inside an `act` scope" warnings of
+`home.test.tsx` and `document.test.tsx` go with an awaited `click`. `editor.test.tsx`'s unhandled
+`FateRequestError` came from the teardown's order: Vitest runs `afterEach` hooks last registered
+first, so the web helpers closed the hosts and the sessions before the page was unmounted, and the
+requests the page still sent, or sent as it left, failed with no page to show it. One hook now
+unmounts the page, waits for the server to answer every request (`quiet`'s wait), then closes the
+hosts and the sessions (R12). `links.test.ts`'s 50 ms wait becomes `quiet()`, and `claude.test.ts`'s
+polls `vi.waitFor` (R14).
 
-- [ ] **Step 4: Run every TypeScript unit test with the scenario of US1.3, and the benchmarks**
+- [x] **Step 4: Fix the session tests that fail under load (A, R11)**
+
+`session.test.tsx`'s `Unable to find role="button" and name "Send"`, reproduced with 10 runs of the
+file at once (3 failed): the composer was empty, the page drawn, Stop shown. A feature's session
+view replaces its empty view, and its composer, once the first message's send answers; `openTurn`
+went on once the agent got the message, so `send` could type into the composer being replaced, whose
+input reached nothing, and no Send showed for an empty composer. `openTurn` now waits for the
+message in the session's own transcript. `thumbnails` returns the buttons its wait saw: the page
+that hides its content while it suspends (a hand-over's redirect) made the query after the wait find
+none.
+
+- [x] **Step 5: A status read of a deleted repository does not panic (B, R12)**
+
+`crates/core/tests/git.rs`: a worktree on a branch with no commit, its repository's `.git/objects`
+deleted, then `changed_files`, `staged_files` and `has_local_changes`. Without gix's `parallel`
+feature, its status opens the object store again from disk, and panics on the missing folder
+(`gix-0.89.0/src/status/index_worktree.rs:125`), which aborts the Node process holding the binding.
+With it, the store already open is shared: the reads list nothing. The web tests' teardown (step 3)
+no longer leaves reads going while the file's temporary folder is deleted.
+
+- [x] **Step 6: The test tasks drop the git variables a hook exports (C, R13)**
+
+`vite.config.ts`'s `isolatedGit` starts with
+`env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_COMMON_DIR`, for every test task.
+
+- Run: `GIT_DIR=/nonexistent nix develop -c vp run --no-cache ready:rust`
+- Expected: PASS.
+
+- [x] **Step 7: Run every TypeScript unit test with the scenario of US1.3, and the benchmarks**
 
 - Run:
   `printf 'URAEDA_DATA_DIR=/tmp/elsewhere\nURAEDA_PORT=9999\n' > .env && nix develop -c vp run --no-cache ts:test; rm .env`
@@ -574,12 +627,15 @@ ends before its request, or a server bug, fixed with a test).
   measures.
 - Run:
   `grep -rnE 'setTimeout\(resolve|performance\.now\(\)' packages/server/src packages/web/src --include=*.test.ts --include=*.test.tsx`
-- Expected: none outside the browser tests, which task 5 fixes.
+- Expected: none outside the browser tests, which task 5 fixes, but `editor.test.tsx`'s wait for the
+  next task, of no duration (R14).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
-git add packages/server packages/web/vite.config.ts packages/web/src/__tests__
+git add Cargo.toml Cargo.lock crates/core/tests/git.rs
+git commit -m "fix(testing-review): a status read of a deleted repository does not panic"
+git add packages/server packages/web/vite.config.ts packages/web/src/__tests__ crates/lsp/tests/commands.rs vite.config.ts specs/2026-10-14-testing-review
 git commit -m "test(testing-review): TypeScript tests without timing checks, leaked settings, or stray errors"
 ```
 

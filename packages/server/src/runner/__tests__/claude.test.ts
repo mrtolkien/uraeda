@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expect, test } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
 import { fixture, temporaryFolder } from "uraeda-binding/test-utils";
 import { allowRule, type Blocks, lines, parseLine } from "../claude-events.ts";
 import { layout } from "../../paths.ts";
@@ -933,27 +933,35 @@ function alive(pid: number): boolean {
   }
 }
 
-/** Resolves once the process is gone, or rejects after 3 seconds. */
+/** Resolves once the process is gone, or rejects after 10 seconds, killing it. */
 async function gone(pid: number): Promise<void> {
-  for (let tries = 0; tries < 60; tries++) {
-    if (!alive(pid)) {
-      return;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 50));
+  try {
+    await vi.waitFor(
+      () => {
+        if (alive(pid)) {
+          throw new Error(`process ${pid} outlived its session's process`);
+        }
+      },
+      { interval: 50, timeout: 10_000 },
+    );
+  } catch (error) {
+    process.kill(pid, "SIGKILL");
+    throw error;
   }
-  process.kill(pid, "SIGKILL");
-  throw new Error(`process ${pid} outlived its session's process`);
 }
 
 /** Waits for a stand-in command to write its child's pid. */
-async function childPid(file: string): Promise<number> {
-  for (let tries = 0; tries < 60; tries++) {
-    if (existsSync(file) && readFileSync(file, "utf8").trim() !== "") {
-      return Number(readFileSync(file, "utf8").trim());
-    }
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-  throw new Error("the stand-in command did not start");
+function childPid(file: string): Promise<number> {
+  return vi.waitFor(
+    () => {
+      const pid = existsSync(file) ? readFileSync(file, "utf8").trim() : "";
+      if (pid === "") {
+        throw new Error("the stand-in command did not start");
+      }
+      return Number(pid);
+    },
+    { interval: 50, timeout: 10_000 },
+  );
 }
 
 test("kill signals the process's group: the processes it started end with it", async () => {
