@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { SpecItems } from "uraeda-binding";
+import { type Fold, type Folds, specFolds } from "./Blocks.tsx";
 import { currentEntry, updateEntry } from "./routes.tsx";
 
 /** The items a view opened, by their keys, and how to open or close one. */
@@ -25,5 +27,31 @@ export function useOpenKeys(): OpenKeys {
       }
     },
     open,
+  };
+}
+
+/**
+ * A spec's folds, open as the history entry keeps them, and those `forced` open by what the page
+ * shows in them, like a pending comment or the selection, without writing them to the entry. A
+ * forced fold the human closes stays closed until opened again.
+ */
+export function useSpecFolds(
+  spec: Pick<SpecItems, "details" | "stories"> | undefined,
+  forced: (folds: ReadonlyArray<Fold>) => ReadonlyArray<string> = () => [],
+): Folds | undefined {
+  const keys = useOpenKeys();
+  const [shut, setShut] = useState<ReadonlyArray<string>>([]);
+  const list = useMemo(() => (spec ? specFolds(spec) : []), [spec]);
+  if (list.length === 0) {
+    return undefined;
+  }
+  const opened = forced(list).filter((key) => !shut.includes(key) && !keys.open.includes(key));
+  return {
+    list,
+    onOpenChange: (key, isOpen) => {
+      setShut(isOpen ? shut.filter((k) => k !== key) : [...shut.filter((k) => k !== key), key]);
+      keys.onOpenChange(key, isOpen);
+    },
+    open: [...keys.open, ...opened],
   };
 }

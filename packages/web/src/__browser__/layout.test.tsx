@@ -73,6 +73,20 @@ test.each(CASES)("$name, in $mode", async ({ insets, mode, path, text }) => {
   await checkCase(path, text, insets, mode);
 });
 
+/**
+ * Opens a spec's folds, its stories' scenarios and its Details, so the checks reach what they hold:
+ * the scenarios' insets among them. Their triggers are controls, measured with the others.
+ */
+async function openFolds() {
+  const closed = screen
+    .queryAllByRole("button", { name: /^(Scenarios \(\d+\)|Details)$/ })
+    .filter((trigger) => trigger.getAttribute("aria-expanded") === "false");
+  for (const trigger of closed) {
+    await userEvent.click(trigger);
+  }
+  await drawn();
+}
+
 async function checkCase(
   path: string,
   text: string,
@@ -86,6 +100,7 @@ async function checkCase(
     // The phone instance has a touch screen.
     expect(window.matchMedia("(pointer: coarse)").matches).toBe(true);
   }
+  await openFolds();
   checkPage();
   checkTextSizes();
   checkControlHeights();

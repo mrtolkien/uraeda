@@ -7,6 +7,7 @@ import { Crumbs } from "./Crumbs.tsx";
 import type { useFile } from "./data.ts";
 import { Page } from "./layout/Page.tsx";
 import { navigate, useRepoPath } from "./routes.tsx";
+import { useSpecFolds } from "./useOpenKeys.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -16,9 +17,10 @@ const styles = stylex.create({
   },
 });
 
-/** A workflow file, drawn from the core's document tree. */
+/** A workflow file, drawn from the core's document tree, a spec's scenarios and details folded. */
 export function DocumentPage({ file }: { file: File }) {
   const here = useRepoPath();
+  const folds = useSpecFolds(file.current.items.spec);
   return (
     <Page>
       <Crumbs current={file.name} folder={file.folder} />
@@ -27,7 +29,7 @@ export function DocumentPage({ file }: { file: File }) {
           <Button label="Edit" onClick={() => navigate(here(`/edit/${file.path}`))} />
         </HStack>
       )}
-      <Blocks document={file.current.document} />
+      <Blocks document={file.current.document} folds={folds} />
     </Page>
   );
 }

@@ -99,10 +99,136 @@ const SECOND = "completes it on Thursday the 8th, Then it is due Monday the 12th
 /** The nested item's toggle. A parent's toggle is named by its text, its nested item's included. */
 const nested = () => screen.findByRole("button", { name: "Nested item" });
 
+/**
+ * A fold's trigger, by its label: the first with it, in the page's order, unless told otherwise.
+ * Its state is open or closed, where a block's toggle is pressed or not, as the Details heading's.
+ */
+async function fold(name: string, index = 0) {
+  return waitFor(() => {
+    const triggers = screen
+      .getAllByRole("button", { name })
+      .filter((button) => button.hasAttribute("aria-expanded"));
+    expect(triggers.length).toBeGreaterThan(index);
+    return triggers[index]!;
+  });
+}
+
+/** Opens a fold, as the human taps its trigger, unless it is open already. */
+async function openFold(name: string, index = 0) {
+  const trigger = await fold(name, index);
+  if (trigger.getAttribute("aria-expanded") !== "true") {
+    await click(trigger);
+  }
+}
+
+/** Opens US2's scenarios, the first "Scenarios (4)" of the page: US4's come after. */
+const openUS2 = () => openFold("Scenarios (4)");
+
+/**
+ * Whether an element is folded away: inside the region a closed trigger controls, which a screen
+ * reader skips and the browser does not draw (the browser tests check what shows).
+ */
+function folded(element: Element) {
+  return [...document.querySelectorAll("[aria-expanded='false'][aria-controls]")].some((trigger) =>
+    document.getElementById(trigger.getAttribute("aria-controls") ?? "")?.contains(element),
+  );
+}
+
+/** Writes a pending review with one comment on lines, on the spec at its branch's tip. */
+function pendingComment(r: string, start: number, end: number) {
+  const tip = git(r, "rev-parse", "--short=7", FOLDER).trim();
+  const lines = start === end ? `Line ${start}` : `Lines ${start}–${end}`;
+  writeFileSync(
+    join(r, WORKTREE, REVIEW),
+    `---\nverdict: pending\ncommit: ${tip}\n---\n\n# Review: Spec, Recurring tasks\n\n## C1: ${lines}, under "Somewhere"\n\n> Quoted.\n\nTwice?\n`,
+  );
+}
+
+/** The line of the spec's Testing table holding a phrase, at its branch's tip. */
+function lineOf(r: string, phrase: string) {
+  const lines = git(r, "show", `${FOLDER}:${SPEC}`).split("\n");
+  return lines.findIndex((line) => line.includes(phrase)) + 1;
+}
+
+/** US1.1, SC-001 */
+test("a spec under review shows each story's scenarios and its details folded", async () => {
+  await renderPage(PAGE, repo());
+
+  for (const name of ["Scenarios (3)", "Scenarios (4)", "Details"]) {
+    expect((await fold(name)).getAttribute("aria-expanded")).toBe("false");
+  }
+  expect(screen.getAllByRole("button", { name: /^Scenarios \(\d\)$/ })).toHaveLength(4);
+  const why = screen.getByText(
+    "Why this priority: this is what saves users from recreating tasks.",
+  );
+  expect(folded(why)).toBe(false);
+  for (const scenario of screen.getAllByText(/a weekly task due Monday the 5th/)) {
+    expect(folded(scenario)).toBe(true);
+  }
+  expect(folded(screen.getByRole("heading", { name: "Data" }))).toBe(true);
+});
+
+/** US1.2 */
+test("opening a story's scenarios lets the human comment on one", async () => {
+  await renderPage(PAGE, repo());
+
+  await openUS2();
+  const first = await scenario(FIRST);
+  expect(folded(first)).toBe(false);
+  await click(first);
+
+  expect(screen.getByText('Lines 92–93, under "US2: Complete a repeating task (P1)"')).toBeTruthy();
+});
+
+/** US1.3 */
+test("a pending comment opens its fold", async () => {
+  const r = repo();
+  pendingComment(r, 92, 93);
+  await renderPage(PAGE, r);
+
+  const pending = await screen.findByRole("group", { name: "C1 · lines 92–93" });
+  expect((await fold("Scenarios (4)")).getAttribute("aria-expanded")).toBe("true");
+  expect((await fold("Scenarios (3)")).getAttribute("aria-expanded")).toBe("false");
+  expect(folded(pending)).toBe(false);
+  expect(folded(within(pending).getByRole("button", { name: "Edit" }))).toBe(false);
+  expect(folded(within(pending).getByRole("button", { name: "Remove" }))).toBe(false);
+});
+
+/** The edge case of a pending comment inside Details. */
+test("a pending comment in the details opens them", async () => {
+  const r = repo();
+  const line = lineOf(r, "| Upgrade of version 1 data");
+  pendingComment(r, line, line);
+  await renderPage(PAGE, r);
+
+  const pending = await screen.findByRole("group", { name: `C1 · line ${line}` });
+  expect((await fold("Details")).getAttribute("aria-expanded")).toBe("true");
+  expect(folded(pending)).toBe(false);
+});
+
+/** Review focus 1 */
+test("closing a fold keeps the draft", async () => {
+  await renderPage(PAGE, repo());
+  await openUS2();
+  await click(await scenario(FIRST));
+  await typeComment("Twice?");
+
+  await click(await fold("Scenarios (4)"));
+  expect((await fold("Scenarios (4)")).getAttribute("aria-expanded")).toBe("false");
+  expect(folded(screen.getByLabelText("Comment text"))).toBe(true);
+  await click(await fold("Scenarios (4)"));
+
+  expect((await fold("Scenarios (4)")).getAttribute("aria-expanded")).toBe("true");
+  const field = screen.getByLabelText("Comment text") as HTMLTextAreaElement;
+  expect(folded(field)).toBe(false);
+  expect(field.value).toBe("Twice?");
+});
+
 /** US3.1 */
 test("a tapped block takes a comment on its lines", async () => {
   const r = repo();
   await renderPage(PAGE, r);
+  await openUS2();
 
   await click(await scenario(FIRST));
   expect(screen.getByText('Lines 92–93, under "US2: Complete a repeating task (P1)"')).toBeTruthy();
@@ -122,6 +248,7 @@ test("a tapped block takes a comment on its lines", async () => {
 /** US3.2 */
 test("a second tap extends the selection", async () => {
   await renderPage(PAGE, repo());
+  await openUS2();
 
   await click(await scenario(FIRST));
   await click(await scenario(SECOND));
@@ -133,6 +260,7 @@ test("a second tap extends the selection", async () => {
 test("a pending comment is edited, then removed with its review file", async () => {
   const r = repo();
   await renderPage(PAGE, r);
+  await openUS2();
   await click(await scenario(FIRST));
   await comment("Say what the row shows");
   const pending = await saved("C1 · lines 92–93", "Say what the row shows");
@@ -263,6 +391,7 @@ test("a general comment is edited, then removed", async () => {
 test("a table row takes a comment on its line", async () => {
   const r = repo();
   await renderPage(PAGE, r);
+  await openFold("Details");
   const row = await scenario("Upgrade of version 1 data");
 
   await click(row);
@@ -277,6 +406,7 @@ test("a table row takes a comment on its line", async () => {
 /** US2 3, 4: on a wide screen, the comment field opens under the block, with no overlay. */
 test("on a wide screen, the comment field opens under the block (US2 3, 4)", async () => {
   await renderPage(PAGE, repo());
+  await openUS2();
   const block = await scenario(FIRST);
   await click(block);
 
@@ -304,6 +434,7 @@ async function typeComment(text: string) {
 /** Final review: the field moves under each tapped block on wide screens, its text with it. */
 test("on a wide screen, the text typed follows the field to the next block (US2 2, 3)", async () => {
   await renderPage(PAGE, repo());
+  await openUS2();
   await click(await scenario(FIRST));
   await typeComment("Say what the row shows");
 
@@ -320,6 +451,7 @@ test("a general comment being typed is kept when a block is tapped", async () =>
   await renderPage(PAGE, repo());
   await click(await screen.findByRole("button", { name: "Add a general comment" }));
   await typeComment("Too long");
+  await openUS2();
 
   await click(await scenario(FIRST));
 
@@ -356,6 +488,7 @@ function composer() {
 test("US6.1: Ask the agent opens the session with the selected lines quoted", async () => {
   const r = repo();
   await renderPage(PAGE, r, { agent: true });
+  await openUS2();
   await click(await scenario(FIRST));
   await click(await scenario(SECOND));
 
@@ -375,6 +508,7 @@ test("US6.1: Ask the agent opens the session with the selected lines quoted", as
 test("Ask the agent on one line names that line", async () => {
   const r = repo();
   await renderPage(PAGE, r, { agent: true });
+  await openFold("Details");
   await click(await scenario("Upgrade of version 1 data"));
 
   await click(await screen.findByRole("button", { name: "Ask the agent" }));
@@ -389,6 +523,7 @@ test("Ask the agent on one line names that line", async () => {
 
 test("without the agent, a selection offers no Ask the agent", async () => {
   await renderPage(PAGE, repo());
+  await openUS2();
   await click(await scenario(FIRST));
 
   await screen.findByLabelText("Comment text");
