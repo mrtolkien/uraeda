@@ -135,8 +135,8 @@ validated when the plugin starts. The defaults: >lua
 :Uraeda image [{file}]                                         *:Uraeda-image*
     In a draft, a backlog file, or a markdown file of a feature's or a bug's
     folder: saves the image on the clipboard, or {file}, in the `images/`
-    folder next to the file, and inserts its link where the cursor was, in
-    one undo step, without committing. The commit of the file takes the
+    folder next to the file, and inserts its link after the character under
+    the cursor, as |p| puts text, in one undo step, without committing. The commit of the file takes the
     image with it. {file} is completed with <Tab>.
 
     Only PNG, JPEG, GIF, and WebP images are taken, re-encoded as WebP by
@@ -146,7 +146,8 @@ validated when the plugin starts. The defaults: >lua
 
     Says "uraeda: the clipboard holds no image" when it holds text, and
     names the tools to install when none is found, see
-    |vim.g.uraeda.clipboard|.
+    |vim.g.uraeda.clipboard|. On WSL, `powershell.exe` is tried before
+    `wl-paste`.
 
 :[range]Uraeda comment                                       *:Uraeda-comment*
     Opens the comment window over the lines of [range], else of the visual

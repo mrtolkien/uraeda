@@ -36,10 +36,23 @@ end
 
 local images = vim.api.nvim_create_namespace("uraeda.image")
 
+--- The byte column after the character at byte column `col` of `line`, as `p` puts text: the
+--- start of an empty line, else past every byte of a multi-byte character.
+--- @param line string
+--- @param col integer 0-based
+local function after_cursor(line, col)
+  if line == "" then
+    return 0
+  end
+  col = math.min(col, #line - 1)
+  return col + 1 + vim.str_utf_end(line, col + 1)
+end
+
 --- Saves the clipboard's image, or the file named after `:Uraeda image`, next to the current file,
---- and inserts its link where the cursor was, in one undo step, tracked by a mark while the server
---- works. A single-file draft becomes a folder: its buffer reopens at the new path, with the link at
---- the same place (image-attachments US5).
+--- and inserts its link after the cursor's character, as `p` does, in one undo step, tracked by a
+--- mark while the server works; the cursor ends on the link's last character. A single-file draft
+--- becomes a folder: its buffer reopens at the new path, with the link at the same place, and the
+--- edits made while the server worked (image-attachments US5).
 --- @param opts table?
 function M.image(opts)
   local bufnr = vim.api.nvim_get_current_buf()
@@ -62,41 +75,59 @@ function M.image(opts)
     args = { path = pasted }
   end
   local row, col = unpack(vim.api.nvim_win_get_cursor(0))
-  local mark = vim.api.nvim_buf_set_extmark(bufnr, images, row - 1, col, {})
-  client().command(
-    bufnr,
-    "uraeda.attachImage",
-    args,
-    { save = true, prefix = "uraeda: " },
-    function(result)
-      if pasted then
-        os.remove(pasted)
+  local line = vim.api.nvim_buf_get_lines(bufnr, row - 1, row, false)[1] or ""
+  local place = { row - 1, after_cursor(line, col) }
+  local mark = vim.api.nvim_buf_set_extmark(bufnr, images, place[1], place[2], {})
+  --- Where the mark is now, the edits made meanwhile counted.
+  local function marked()
+    if vim.api.nvim_buf_is_valid(bufnr) then
+      local found = vim.api.nvim_buf_get_extmark_by_id(bufnr, images, mark, {})
+      if found[1] then
+        place = found
       end
-      local place = { row - 1, col }
-      if vim.api.nvim_buf_is_valid(bufnr) then
-        place = vim.api.nvim_buf_get_extmark_by_id(bufnr, images, mark, {})
-        vim.api.nvim_buf_del_extmark(bufnr, images, mark)
-      end
-      -- A moved draft is now the current buffer, its old buffer left as `:Uraeda start` leaves it.
-      local target = result.opened and vim.api.nvim_get_current_buf() or bufnr
-      if result.opened and target ~= bufnr and vim.api.nvim_buf_is_valid(bufnr) then
-        pcall(vim.api.nvim_buf_delete, bufnr, {})
-      end
-      if vim.api.nvim_buf_is_valid(target) and result.link then
-        local last = vim.api.nvim_buf_line_count(target) - 1
-        local line_row = math.min(place[1], last)
-        local line = vim.api.nvim_buf_get_lines(target, line_row, line_row + 1, false)[1] or ""
-        local line_col = math.min(place[2], #line)
-        vim.api.nvim_buf_set_text(target, line_row, line_col, line_row, line_col, { result.link })
-      end
-      local saved = "images/" .. vim.fs.basename(result.written[1] or "")
-      local note = "uraeda: added " .. saved
-      if result.opened then
-        note = note .. "; the draft is now a folder"
-      end
-      vim.notify(note, vim.log.levels.INFO, { id = "uraeda", title = "Uraeda" })
     end
-  )
+    return place
+  end
+  -- Run on every outcome, a refusal or a request that could not be sent included.
+  local function finally()
+    if pasted then
+      os.remove(pasted)
+    end
+    if vim.api.nvim_buf_is_valid(bufnr) then
+      pcall(vim.api.nvim_buf_del_extmark, bufnr, images, mark)
+    end
+  end
+  local command_opts = { save = true, prefix = "uraeda: ", finally = finally }
+  client().command(bufnr, "uraeda.attachImage", args, command_opts, function(result)
+    marked()
+    -- A moved draft is now the current buffer, its old buffer left as `:Uraeda start` leaves it,
+    -- with the edits made while the server worked carried over: the file moved as it was saved.
+    local target = result.opened and vim.api.nvim_get_current_buf() or bufnr
+    if result.opened and target ~= bufnr and vim.api.nvim_buf_is_valid(bufnr) then
+      if vim.bo[bufnr].modified then
+        local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+        vim.api.nvim_buf_set_lines(target, 0, -1, false, lines)
+      end
+      -- Forced: its edits are in the new buffer, and a save would re-create the old file.
+      pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
+    end
+    if vim.api.nvim_buf_is_valid(target) and result.link then
+      local last = vim.api.nvim_buf_line_count(target) - 1
+      local line_row = math.min(place[1], last)
+      local text = vim.api.nvim_buf_get_lines(target, line_row, line_row + 1, false)[1] or ""
+      local line_col = math.min(place[2], #text)
+      vim.api.nvim_buf_set_text(target, line_row, line_col, line_row, line_col, { result.link })
+      if vim.api.nvim_get_current_buf() == target then
+        vim.api.nvim_win_set_cursor(0, { line_row + 1, line_col + #result.link - 1 })
+      end
+    end
+    local saved = "images/" .. vim.fs.basename(result.written[1] or "")
+    local note = "uraeda: added " .. saved
+    if result.opened then
+      note = note .. "; the draft is now a folder"
+    end
+    vim.notify(note, vim.log.levels.INFO, { id = "uraeda", title = "Uraeda" })
+  end)
 end
 
 --- Picks a frontmatter field of the current file, then its value (US5).
@@ -154,6 +185,7 @@ end
 --- @field buffer_local boolean its key is set in workflow files only, else once globally
 --- @field key string? its key under the prefix
 --- @field lhs string? its key outside the prefix, like `]u`, when it has no `key`
+--- @field file boolean? `:Uraeda <name>` takes a file after it; else it takes no argument
 
 --- Every action, in the order of `:Uraeda`'s completion. Later actions are appended here.
 --- @type uraeda.Action[]
@@ -189,6 +221,7 @@ M.list = {
     modes = { "n" },
     buffer_local = true,
     key = "i",
+    file = true,
   },
   {
     name = "comment",

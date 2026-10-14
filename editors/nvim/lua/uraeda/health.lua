@@ -57,7 +57,10 @@ function M.check()
 
   local clipboard = require("uraeda.clipboard")
   local tool = clipboard.tool()
-  if tool then
+  local command = config.clipboard
+  if command and vim.fn.executable(command[1]) ~= 1 then
+    vim.health.warn((clipboard.not_found(command):gsub("^uraeda: ", "")))
+  elseif tool then
     vim.health.ok("clipboard images: " .. tool.name)
   else
     vim.health.warn((clipboard.no_tool:gsub("^uraeda: ", "")))

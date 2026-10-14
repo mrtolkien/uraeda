@@ -371,4 +371,159 @@ T["a buffer edited while the command runs gets the link at the cursor's place"] 
   eq(child.lua_get("vim.api.nvim_buf_get_lines(0, 0, 1, false)"), { "Above" })
 end
 
+T["the link goes after the character under the cursor, as p puts text"] = function()
+  setup({ clipboard = { "cat", desktop } })
+  for _, line in ipairs({ "See the login form:", "See the login form →" }) do
+    local _, proposal = with_proposal()
+    open(proposal)
+    child.api.nvim_buf_set_lines(0, 4, 5, false, { line })
+    -- The cursor on the last character, as after typing it: `:`, or the three bytes of `→`.
+    local last = line:find("→") and #line - 3 or #line - 1
+    child.api.nvim_win_set_cursor(0, { 5, last })
+
+    child.cmd("Uraeda image")
+
+    eq(wait_line(5, line .. pasted), line .. pasted)
+    eq(child.api.nvim_win_get_cursor(0), { 5, #line + #pasted - 1 })
+  end
+end
+
+T["an empty line takes the link at its start"] = function()
+  setup({ clipboard = { "cat", desktop } })
+  local _, proposal = with_proposal()
+  open(proposal, 6)
+
+  child.cmd("Uraeda image")
+
+  eq(wait_line(6, pasted), pasted)
+  eq(child.api.nvim_win_get_cursor(0), { 6, #pasted - 1 })
+end
+
+T["a refused paste leaves no temporary file and no mark"] = function()
+  -- Starts as a PNG does, so the plugin sends it, and the core refuses it.
+  local broken = vim.fn.tempname()
+  helpers.write(broken, "\137PNG\r\n\26\nnot an image")
+  setup({ clipboard = { "cat", broken } })
+  local _, proposal = with_proposal()
+  open(proposal, 6)
+
+  child.cmd("Uraeda image")
+
+  local found = errors()
+  eq(#found, 1)
+  eq(vim.startswith(found[1][1], "uraeda: "), true)
+  eq(child.lua_get("vim.fn.readdir(vim.fn.fnamemodify(vim.fn.tempname(), ':h'))"), {})
+  eq(
+    child.lua_get(
+      "vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_create_namespace('uraeda.image'), 0, -1, {})"
+    ),
+    {}
+  )
+end
+
+T["a draft edited while it moves keeps the edits in its new buffer"] = function()
+  setup({ clipboard = { "cat", desktop } })
+  local repo = helpers.repo({
+    ["specs/PRIORITIES.md"] = later:gsub(
+      "%- Codex runtime",
+      "- [Login banner](drafts/login-banner.md)"
+    ),
+    ["specs/drafts/login-banner.md"] = banner,
+  })
+  local draft = repo .. "/specs/drafts/login-banner.md"
+  open(draft, 6)
+
+  -- The edit lands before the server answers: both run before the child reads its messages.
+  child.lua([[vim.cmd("Uraeda image")
+    vim.api.nvim_buf_set_lines(0, 0, 0, false, { "Above" })]])
+
+  local moved = repo .. "/specs/drafts/login-banner/proposal.md"
+  eq(wait_buffer(moved), true)
+  eq(wait_line(7, pasted), pasted)
+  eq(child.lua_get("vim.api.nvim_buf_get_lines(0, 0, 1, false)"), { "Above" })
+  eq(child.lua_get("vim.bo.modified"), true)
+  eq(child.lua_get("vim.fn.bufexists(...)", { draft }), 0)
+  child.cmd("wall")
+  eq(exists(draft), false)
+  eq(vim.split(read(moved), "\n")[1], "Above")
+end
+
+T["a missing clipboard command is named"] = function()
+  setup({ clipboard = { "no-such-clipboard-tool" } })
+  local _, proposal = with_proposal()
+  open(proposal, 6)
+
+  child.cmd("Uraeda image")
+
+  eq(errors(), { { "uraeda: clipboard command not found: no-such-clipboard-tool", ERROR } })
+end
+
+--- A folder holding a fake clipboard tool `name`, logging its arguments to `<folder>/log`, and
+--- running `script`; returns the folder.
+local function fake_tool(name, script)
+  local dir = vim.fn.tempname()
+  local log = vim.fs.joinpath(dir, "log")
+  helpers.write(
+    vim.fs.joinpath(dir, name),
+    ('#!/bin/sh\necho "$*" >> "%s"\n%s\n'):format(log, script)
+  )
+  vim.uv.fs_chmod(vim.fs.joinpath(dir, name), tonumber("755", 8))
+  return dir, log
+end
+
+T["wl-paste gives the first image type it lists"] = function()
+  local dir, log = fake_tool(
+    "wl-paste",
+    ([[case "$*" in
+  "--list-types") printf 'text/plain\nimage/png\n' ;;
+  "--type image/png") cat "%s" ;;
+  *) exit 1 ;;
+esac]]):format(desktop)
+  )
+  local _, proposal = with_proposal()
+  open(proposal, 6)
+  child.lua("vim.env.PATH, vim.env.WAYLAND_DISPLAY, vim.env.DISPLAY = ..., 'wayland-1', nil", {
+    dir .. ":" .. vim.env.PATH,
+  })
+
+  child.cmd("Uraeda image")
+
+  eq(wait_line(6, pasted), pasted)
+  eq(vim.split(vim.trim(read(log)), "\n"), { "--list-types", "--type image/png" })
+end
+
+T["xclip gives the first image type it lists"] = function()
+  local dir, log = fake_tool(
+    "xclip",
+    ([[case "$*" in
+  "-selection clipboard -t TARGETS -o") printf 'TARGETS\nUTF8_STRING\nimage/png\n' ;;
+  "-selection clipboard -t image/png -o") cat "%s" ;;
+  *) exit 1 ;;
+esac]]):format(desktop)
+  )
+  local _, proposal = with_proposal()
+  open(proposal, 6)
+  child.lua("vim.env.PATH, vim.env.WAYLAND_DISPLAY, vim.env.DISPLAY = ..., nil, ':0'", {
+    dir .. ":" .. vim.env.PATH,
+  })
+
+  child.cmd("Uraeda image")
+
+  eq(wait_line(6, pasted), pasted)
+  eq(
+    vim.split(vim.trim(read(log)), "\n"),
+    { "-selection clipboard -t TARGETS -o", "-selection clipboard -t image/png -o" }
+  )
+end
+
+T["an action other than image takes no argument"] = function()
+  local repo = helpers.repo({ ["specs/PRIORITIES.md"] = linked })
+  open(repo .. "/specs/PRIORITIES.md", 9)
+
+  child.cmd("Uraeda draft now")
+
+  eq(errors(), { { "Uraeda: draft takes no arguments.", ERROR } })
+  eq(child.lua_get("vim.api.nvim_buf_get_name(0)"), repo .. "/specs/PRIORITIES.md")
+end
+
 return T

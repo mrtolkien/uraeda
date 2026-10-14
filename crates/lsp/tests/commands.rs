@@ -983,12 +983,36 @@ fn a_missing_image_file_is_refused() {
         )
         .unwrap_err();
 
+    assert_eq!(
+        error.message,
+        format!(
+            "{} could not be read: No such file or directory.",
+            abs(&missing)
+        )
+    );
+    assert!(!repo.exists(&format!("{NVIM}/images")));
+}
+
+/// Task 12 review: a file that cannot be read is refused before the feature's worktree is made.
+#[test]
+fn a_missing_image_file_makes_no_worktree() {
+    let (repo, _) = feature("awaiting-human");
+    repo.switch("main");
+    let path = repo.path().join(NVIM).join("proposal.md");
+    let mut session = start(repo.path());
+    let missing = repo.path().join("missing.png");
+
+    let error = session
+        .command(
+            "uraeda.attachImage",
+            json!({ "uri": uri(&path), "path": abs(&missing), "name": "missing.png" }),
+        )
+        .unwrap_err();
+
     assert!(
-        error
-            .message
-            .starts_with(&format!("{} could not be read: ", abs(&missing))),
+        error.message.contains("could not be read"),
         "{}",
         error.message
     );
-    assert!(!repo.exists(&format!("{NVIM}/images")));
+    assert!(!repo.exists(".worktrees"));
 }
