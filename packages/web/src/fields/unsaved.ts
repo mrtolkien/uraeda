@@ -8,6 +8,8 @@ export type Unsaved = {
   base: string;
   /** A review comment's lines, and the commit they were on. */
   extra?: { commit: string; end: number; heading: string; start: number };
+  /** A settled comment's subject, for an edit: its number changes as comments before it go. */
+  subject?: string;
   /** What the field shows. */
   text: string;
 };

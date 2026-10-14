@@ -14,7 +14,14 @@ import { CommentForm } from "./CommentForm.tsx";
 import type { useFile } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
-import { dropUnsaved, readUnsaved, unsavedKey, useUnsaved } from "./fields/unsaved.ts";
+import {
+  dropUnsaved,
+  readUnsaved,
+  type Unsaved,
+  unsavedKey,
+  useUnsaved,
+  writeUnsaved,
+} from "./fields/unsaved.ts";
 import { Overlay } from "./layout/Overlay.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { CommentNote } from "./ReviewComments.tsx";
@@ -47,6 +54,13 @@ const styles = stylex.create({
 const newKey = (path: string, subject: string) => `${path}#settled:${subject}`;
 const editKey = (path: string, number: number) => `${path}#settled-edit:${number}`;
 
+/**
+ * Whether an edit kept for a comment's number is of that comment: one typed on another subject,
+ * before a removal made elsewhere renumbered the comments, is not. Its text stays in the browser.
+ */
+const editOf = (entry: Unsaved | undefined, comment: SettledComment) =>
+  entry !== undefined && (entry.subject === undefined || entry.subject === comment.subject);
+
 /** The form that held unsaved text when the page was drawn, opened again to restore it. */
 function restoredForm(
   repo: string,
@@ -54,23 +68,46 @@ function restoredForm(
   points: ReadonlyArray<SettledPoint>,
   comments: ReadonlyArray<SettledComment>,
 ): Open | undefined {
-  const kept = (field: string) => readUnsaved(unsavedKey(repo, field)) !== undefined;
+  const kept = (field: string) => readUnsaved(unsavedKey(repo, field));
   for (const comment of comments) {
     const point = points.find((p) => p.block === comment.point);
-    if (point && kept(editKey(path, comment.number))) {
+    if (point && editOf(kept(editKey(path, comment.number)), comment)) {
       return { comment, kind: "edit", point };
     }
   }
-  const point = points.find((p) => kept(newKey(path, p.subject)));
+  const point = points.find((p) => kept(newKey(path, p.subject)) !== undefined);
   return point && { kind: "new", point };
 }
 
 /**
- * The writes of a round's settled comments: `add` and `edit` resolve with nothing once written,
- * after `onWritten`, or with the error to show; a removal's error shows under its comment.
+ * Once comment `number` of `count` is removed, the edits kept for the comments after it follow
+ * their new numbers, one less; its own goes with it.
  */
-function useSettledWrites(file: File, onWritten: () => void) {
+function renumberEdits(repo: string, path: string, number: number, count: number) {
+  dropUnsaved(unsavedKey(repo, editKey(path, number)));
+  for (let after = number + 1; after <= count; after += 1) {
+    const from = unsavedKey(repo, editKey(path, after));
+    const entry = readUnsaved(from);
+    if (entry) {
+      writeUnsaved(unsavedKey(repo, editKey(path, after - 1)), entry);
+      dropUnsaved(from);
+    }
+  }
+}
+
+/**
+ * The writes of a round's settled comments: `add` and `edit` resolve with nothing once written,
+ * after `onWritten`, or with the error to show; a removal's error shows under its comment. An edit
+ * and a removal name the comment's subject, refused when its number is now another's; a removal
+ * done, the edits kept for the comments after it follow their new numbers, then `onRemoved`.
+ */
+function useSettledWrites(
+  file: File,
+  onWritten: () => void,
+  onRemoved: (number: number) => void = () => undefined,
+) {
   const fate = useFateClient();
+  const repo = useRepositoryPath();
   const [removal, setRemoval] = useState<{ message: string; number: number }>();
   const written = (result: { error?: unknown }) => {
     if (result.error) {
@@ -86,22 +123,38 @@ function useSettledWrites(file: File, onWritten: () => void) {
         view: FileView,
       }),
     );
-  const edit = async (comment: SettledComment, text: string) =>
+  /** Writes a comment's text over `previous`, its text as read, unless told otherwise. */
+  const edit = async (comment: SettledComment, text: string, previous = comment.text) =>
     written(
       await fate.mutations.settled.edit({
-        input: { folder: file.folder, number: comment.number, previous: comment.text, text },
+        input: {
+          folder: file.folder,
+          number: comment.number,
+          previous,
+          subject: comment.subject,
+          text,
+        },
         view: FileView,
       }),
     );
   const remove = async (comment: SettledComment) => {
     setRemoval(undefined);
+    const count = file.current.items.clarifications?.settledComments.length ?? 0;
     const result = await fate.mutations.settled.remove({
-      input: { folder: file.folder, number: comment.number, previous: comment.text },
+      input: {
+        folder: file.folder,
+        number: comment.number,
+        previous: comment.text,
+        subject: comment.subject,
+      },
       view: FileView,
     });
     if (result.error) {
       setRemoval({ message: refusal(result.error).message, number: comment.number });
+      return;
     }
+    renumberEdits(repo, file.path, comment.number, count);
+    onRemoved(comment.number);
   };
   const removeError = (comment: SettledComment) =>
     removal?.number === comment.number ? removal.message : undefined;
@@ -110,25 +163,30 @@ function useSettledWrites(file: File, onWritten: () => void) {
 
 /**
  * Saves the settled comments typed and not saved, as Submit does before it submits: each comment
- * edited, then each new one, whose text the store keeps, open or not, unless it is blank. Resolves
- * with whether every one was written, stopping at the first refused.
+ * edited, then each new one, whose text the store keeps, open or not, unless it is blank. An edit
+ * kept for a comment of another subject is not saved, and an edit is written over the comment's
+ * text when it began, refused when it changed since. Resolves with whether every one was
+ * written, stopping at the first refused.
  */
 export function useSaveSettled(file: File) {
   const repo = useRepositoryPath();
   const writes = useSettledWrites(file, () => undefined);
-  /** The text kept for a field, unless it is blank. */
+  /** The entry kept for a field, unless its text is blank. */
   const typed = (field: string) => {
     const key = unsavedKey(repo, field);
-    const text = readUnsaved(key)?.text;
-    return text?.trim() ? { key, text } : undefined;
+    const entry = readUnsaved(key);
+    return entry?.text.trim() ? { ...entry, key } : undefined;
   };
   return async () => {
     const round = file.current.items.clarifications;
     const saves = [
-      ...(round?.settledComments ?? []).map((comment) => ({
-        kept: typed(editKey(file.path, comment.number)),
-        write: (text: string) => writes.edit(comment, text),
-      })),
+      ...(round?.settledComments ?? []).map((comment) => {
+        const kept = typed(editKey(file.path, comment.number));
+        return {
+          kept: editOf(kept, comment) ? kept : undefined,
+          write: (text: string) => writes.edit(comment, text, kept?.base),
+        };
+      }),
       // A subject used twice is one field, for its first point.
       ...[...new Set((round?.settledPoints ?? []).map((point) => point.subject))].map(
         (subject) => ({
@@ -171,6 +229,7 @@ function SettledForm({
             field: editKey(path, shown.comment.number),
             onSubmit: (text: string) => writes.edit(shown.comment, text),
             saved: shown.comment.text,
+            subject: shown.comment.subject,
             submitLabel: "Save comment",
           }
         : {
@@ -180,6 +239,18 @@ function SettledForm({
     />
   );
 }
+
+/** The form open once comment `number` is removed: an edit of a comment after it follows it. */
+const afterRemoval =
+  (number: number) =>
+  (shown: Open | undefined): Open | undefined => {
+    if (shown?.kind !== "edit" || shown.comment.number < number) {
+      return shown;
+    }
+    return shown.comment.number === number
+      ? undefined
+      : { ...shown, comment: { ...shown.comment, number: shown.comment.number - 1 } };
+  };
 
 /**
  * The points a round settled without the human, with their comments under them. While the round
@@ -196,7 +267,11 @@ export function SettledPoints({ file, readOnly }: { file: File; readOnly: boolea
   const [open, setOpen] = useState<Open | undefined>(() =>
     readOnly ? undefined : restoredForm(repo, file.path, points, comments),
   );
-  const writes = useSettledWrites(file, () => setOpen(undefined));
+  const writes = useSettledWrites(
+    file,
+    () => setOpen(undefined),
+    (number) => setOpen(afterRemoval(number)),
+  );
   if (!round || round.settled.length === 0) {
     return null;
   }

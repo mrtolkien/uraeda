@@ -74,7 +74,7 @@ type Shared = {
  * A comment being written: where it goes, the start of what it comments on, its text, Cancel, and
  * the button that sends it. Its text is a field of the unsaved store, `field` its key, over
  * `saved`, the comment's text as the file holds it, empty for a new one, with `extra`, a review
- * comment's lines: it survives the form moving and a reload, restored with a notice; "Unsaved
+ * comment's lines, or `subject`, a settled comment's: it survives the form moving and a reload, restored with a notice; "Unsaved
  * changes" shows while it differs from `saved`, its button waits for a change, Ctrl+Enter or
  * Cmd+Enter sends it as its button does, and Cancel asks "Discard your comment?" first. Shared by
  * the review, the mockup page, and the settled points.
@@ -85,9 +85,10 @@ export function CommentForm({
   onCancel,
   onSubmit,
   saved = "",
+  subject,
   ...shared
-}: Shared & { extra?: Unsaved["extra"]; field: string; saved?: string }) {
-  const field = useTextField(key, saved, extra);
+}: Shared & { extra?: Unsaved["extra"]; field: string; saved?: string; subject?: string }) {
+  const field = useTextField(key, saved, extra, subject);
   const confirm = useConfirm();
   const cancel = async () => {
     if (field.dirty && !(await confirm(DISCARD_COMMENT))) {

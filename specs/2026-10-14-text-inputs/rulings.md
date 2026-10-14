@@ -542,3 +542,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   [`notes.rs`](/crates/core/src/files/clarifications/notes.rs), and `check_lines` in
   [`clarifications.rs`](/crates/core/src/files/clarifications.rs).
 - **Where**: the final review.
+
+## R33: A settled comment's edit is bound to its subject, and follows a removal
+
+- **Decision**: `settled.edit` and `settled.remove` name the comment's subject with its number, and
+  the core refuses them, as a change made elsewhere, when comment `number` is on another subject or
+  holds another text. A settled edit's entry keeps the comment's subject. Remove, once done, drops
+  the removed comment's edit and moves the edits of the comments after it to their new numbers; an
+  edit open on one of them follows it. As the page is drawn, an edit kept for a comment of another
+  subject does not open, and Submit does not save it: its text stays in the browser. Submit writes
+  an edit over the comment's text when the edit began, the entry's `base`, not as read since, so a
+  comment changed elsewhere stops Submit with "Some answers were not saved: nothing was submitted.
+  Check them, then submit again.", where R12 wrote over it. The review's edits,
+  `<path>#review-edit:<number>`, are left as they are: a removal renumbers them too, but one opens
+  at a time, under "Editing C<number>", with "The comment changed since: saving replaces it." when
+  its text differs, and nothing saves it unseen.
+- **Rationale**: the edits were kept by number alone: a comment removed renumbered the ones after
+  it, and Submit wrote an edit into the comment that took its number, on another point. The number
+  stays the key the spec names; the subject and the text tell when it no longer is the same comment.
+  An edit of another subject has no form to show it in, so refusing it would block every Submit.
+- **Alternatives considered**: the subject in the key, which the spec's keys do not have; Submit
+  refusing an edit of another subject, which nothing on the page lets the human resolve; the same
+  renumbering for the review's edits, which nothing saves without showing them.
+- **If wrong**: `change_settled_comment` in [`answer.rs`](/crates/core/src/actions/answer.rs),
+  `editOf`, `renumberEdits`, and `useSaveSettled` in
+  [`SettledPoints.tsx`](/packages/web/src/SettledPoints.tsx).
+- **Where**: the final review.
