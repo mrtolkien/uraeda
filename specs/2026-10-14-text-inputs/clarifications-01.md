@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Text inputs and comments
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 7 questions on saving text and commenting on settled points, about 25 minutes.
+> Answered on 2026-10-14.
 >
 > - One choice changes an active decision: lines edited in place would stop saving on blur, which
 >   the UI behaviour decision requires today.
@@ -63,7 +63,7 @@ Why it matters: options A and C change an active decision, which binds every lat
   - [pro] one rule with no exception.
   - [con] one more tap for every line, where Enter is the habit.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: Should a tap on an option still save the comment typed under it?
 
@@ -85,7 +85,7 @@ Why it matters: it decides whether a comment can ever be saved without its butto
   - [pro] nothing changes.
   - [con] a comment is saved without its button.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: What protects text you typed and did not save?
 
@@ -114,7 +114,7 @@ C can come on top of A or B.
   - [pro] nothing is lost even when the browser closes without asking.
   - [con] text restored on one device only, and a second place where text lives until saved.
 
-**Answer:**
+**Answer:** A and C
 
 ## Q4: Where should a comment on a settled point show once added?
 
@@ -138,7 +138,7 @@ editing one means.
   - [pro] one place for the text, and the core only appends.
   - [con] once added, nothing shows under the point.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: How should a comment on a settled point read in the notes?
 
@@ -162,7 +162,8 @@ Why it matters: the format is read by every later spec step, and becomes part of
   - [pro] reads as prose.
   - [con] harder to scan than a list, and no different to find.
 
-**Answer:**
+**Answer:** A: This is only the save format: this bullet point should not appear in the UI since
+it's already shown under its point (Q4)
 
 ## Q6: Should adding an image still save its field at once?
 
@@ -183,7 +184,7 @@ Why it matters: it decides whether images are an exception to the rule.
   - [pro] the image and its link are never apart.
   - [con] an exception: a field saves without its button, with whatever was typed.
 
-**Answer:**
+**Answer:** B: Write in the spec that the image input will be merged first
 
 ## Q7: Should the comment lag be fixed in the review page, or for the whole UI?
 
@@ -204,7 +205,7 @@ Why it matters: B speeds up every page, at the cost of a new dependency and a de
   - [con] a new dependency, experimental through the Rust transform, and a build that may change
     behaviour subtly.
 
-**Answer:**
+**Answer:** B
 
 ## Settled without the human
 
@@ -240,4 +241,10 @@ Why it matters: B speeds up every page, at the cost of a new dependency and a de
   the risk tier: Primer allows it for such controls, and the proposal is about text. See
   [discovery](discovery-01.md#saving-patterns-in-design-systems).
 
-**Notes:**
+**Notes:** There's also a small thing: text input boxes should not grow too much ahead of time.
+
+I'm not sure it's still the case but I remember the proposal comment box being bigger than needed,
+like there were ~2 empty lines at the end.
+
+Make sure the text input boxes behave in a coherent manner everywhere, and that this manner is in
+line with best UX practices.
