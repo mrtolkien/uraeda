@@ -438,6 +438,7 @@ test("migration 4 drops the turns' costs", () => {
   expect(columns.map((column) => column.name)).not.toContain("cost_usd");
 });
 
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the version 2 rows in a helper of their own
 test("migration 3 turns each feature's runs into the turns of one session", () => {
   const path = tempPath();
   const old = version2(path);

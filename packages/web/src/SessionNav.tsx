@@ -181,6 +181,7 @@ function Chat({ pathname, row }: { pathname: string; row: Row }) {
  * The navigation's sessions: the feature groups, each sorted by status, then the chats, with "New
  * chat" and the archived ones. `found`, during a search, holds the sessions found, by ID.
  */
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the search's filter in a function, and each group in a component
 function Sessions({
   data: { sessionList, workspace },
   found,

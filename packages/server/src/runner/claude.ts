@@ -156,6 +156,7 @@ export class ClaudeAdapter implements Adapter {
     return allowRule(denial);
   }
 
+  // oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the process's signals, exit, and output in helpers
   open(options: OpenOptions): AgentProcess {
     // In a process group of its own, which its signals reach whole: the tools it started end with
     // it. The terminal's Ctrl-C no longer reaches it, so the server ends it as it exits. Windows

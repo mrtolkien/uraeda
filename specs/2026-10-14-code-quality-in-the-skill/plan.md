@@ -560,9 +560,10 @@ git commit -m "build(code-quality-in-the-skill): TypeScript follows the fate sta
 
 - Modify: `vite.config.ts` (`lint.rules`, and an override turning `max-lines` off for
   `**/__tests__/**`, `**/__browser__/**`, `**/*.test.ts`, `**/*.test.tsx`)
-- Modify: the 16 functions and 3 files over the limits: markers only
-- Create: `packages/web/src/__lint__/long-function.tsx`, `long-file.tsx`, `many-params.tsx`,
-  `deep-nesting.tsx`
+- Modify: the 19 functions and 5 files over the limits: markers only
+  ([R11](rulings.md#r11-typescript-files-are-marked-at-their-top))
+- Create: `packages/web/src/__lint__/long-function.tsx`, `marked-function.tsx`, `long-file.tsx`,
+  `many-params.tsx`, `deep-nesting.tsx`
 - Test: `packages/web/src/__tests__/lint.test.ts`
 
 **Interfaces:**
@@ -570,10 +571,14 @@ git commit -m "build(code-quality-in-the-skill): TypeScript follows the fate sta
 - Produces:
   - `max-lines-per-function` `{ max: 100 }`, `max-lines` `{ max: 500 }`, `max-params` `{ max: 7 }`,
     and `max-depth` `{ max: 4 }`, at `error`;
-  - each marker reads
-    `// oxlint-disable-next-line <rule> -- over the limit before the code quality decision: <what to split>`.
+  - each function's marker reads
+    `// oxlint-disable-next-line <rule> -- over the limit before the code quality decision: <what to split>`;
+  - each file's marker, on its first line, reads
+    `// oxlint-disable max-lines -- over the limit before the code quality decision: <what to split>`.
+  - Marked: 19 functions (`max-lines-per-function`) and 5 files (`max-lines`): `Blocks.tsx`,
+    `PrioritiesPage.tsx`, `Transcript.tsx`, `runner/cache.ts`, and `scripts/validate-claude.ts`.
 
-- [ ] **Step 1: Write the failing lint tests**
+- [x] **Step 1: Write the failing lint tests**
 
 Add to `lint.test.ts`'s `test.each` (US3.2, SC-002, SC-005), each fixture just over its limit:
 
@@ -585,24 +590,25 @@ Add to `lint.test.ts`'s `test.each` (US3.2, SC-002, SC-005), each fixture just o
 Then a test "a marked function over the limit passes", on `long-function.tsx`'s twin
 `marked-function.tsx` with its marker: exit status 0.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/lint.test.ts`
 - Expected: FAIL, `long-function.tsx`'s output lacks `max-lines-per-function`.
 
-- [ ] **Step 3: Set the limits, then mark today's offenders**
+- [x] **Step 3: Set the limits, then mark today's offenders**
 
 - Run: `vp lint`.
-- Mark each reported function and file with its marker, and change nothing else.
+- Mark each reported function and file with its marker, and change nothing else. A function's marker
+  goes on the line above the one Oxlint reports, between its doc comment and its signature.
 - Check that a marker left on a shortened function fails with the unused-directive error from task
   3, then revert the scratch change.
 
-- [ ] **Step 4: Run all checks**
+- [x] **Step 4: Run all checks**
 
 - Run: `vp check && vp test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add vite.config.ts packages
