@@ -21,9 +21,9 @@ test("reads the allowed hosts, the port, and the repository from .env", () => {
 
   expect(loadEnv(dir, {})).toEqual({
     allowedHosts: ["a.ts.net", "b.ts.net"],
+    given: true,
     port: 4999,
     repo: join(dir, "../todo"),
-    given: true,
   });
 });
 
@@ -32,9 +32,9 @@ test("defaults to port 4310 and the root itself", () => {
 
   expect(loadEnv(dir, {})).toEqual({
     allowedHosts: [],
+    given: false,
     port: 4310,
     repo: dir,
-    given: false,
   });
 });
 

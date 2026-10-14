@@ -178,6 +178,9 @@ export type Blocks = Map<number, { input: string; name: string; target?: string 
 /** A file path, whole, in a tool call's input still being written. */
 const FILE_PATH = /"file_path"\s*:\s*("(?:[^"\\]|\\.)*")/;
 
+/** An activity, as the one event it makes. */
+const activity = (value: Activity): Array<AgentEvent> => [{ activity: value, type: "activity" }];
+
 /**
  * The main agent's text deltas, from `--include-partial-messages`, and what it writes that shows
  * nothing yet: a thinking block, or a tool call, named again once its input holds a file path.
@@ -187,7 +190,6 @@ function streamEvents(event: unknown, blocks: Blocks, cwd: string | undefined): 
   if (!isObject(event) || typeof event.index !== "number") {
     return [];
   }
-  const activity = (value: Activity): Array<AgentEvent> => [{ activity: value, type: "activity" }];
   if (event.type === "content_block_start" && isObject(event.content_block)) {
     const block = event.content_block;
     if (block.type === "thinking" || block.type === "redacted_thinking") {

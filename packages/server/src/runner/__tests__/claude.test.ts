@@ -551,16 +551,18 @@ test("the main agent's thinking and tool calls being written are activities; a s
   ).toEqual([]);
 });
 
+/** A background task's fields, as Claude Code reports them. */
+const task = (id: string, type: string, extra: Record<string, unknown> = {}) => ({
+  description: id,
+  task_id: id,
+  task_type: type,
+  ...extra,
+});
+
 test("background sub-agents are reported by their tool calls; shells and watchers are not", () => {
   const tasks = new Map<string, string>();
   const parse = (value: Record<string, unknown>) =>
     parseLine(line({ type: "system", ...value }), undefined, tasks);
-  const task = (id: string, type: string, extra: Record<string, unknown> = {}) => ({
-    description: id,
-    task_id: id,
-    task_type: type,
-    ...extra,
-  });
 
   expect(
     parse({ description: "Map", subtype: "task_started", task_id: "t1", tool_use_id: "toolu_1" }),

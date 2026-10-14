@@ -12,10 +12,10 @@ export type Binding = typeof import("uraeda-binding");
  */
 export type Context = {
   binding: Binding;
-  sessions: Sessions;
-  hosts: Hosts;
   dataDir: string;
+  hosts: Hosts;
   repo: string | null;
+  sessions: Sessions;
 };
 
 /** The context of a repository's endpoint, `/r/<name>/fate`. */

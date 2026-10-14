@@ -362,3 +362,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   lines revert in one edit each.
 - **Where**: task 10, `skills/uraeda/assets/example/specs/`,
   `skills/uraeda/references/{plan,conventions}.md`.
+
+## R22: The code merged from main follows the lint config and limits
+
+- **Decision**: the rebase on `main`, which gained the multi-repository server, the repository menu,
+  and `ura add`, brings their code under the branch's checks, behaviour unchanged.
+  - Fixed: the autofixes (sorted keys, props, and types, `at`, `String.raw`), with each style's
+    comment moved back inside its style in `RepositoryMenu.tsx` and `Shell.tsx`; the server's logs
+    in `repositories.ts`, `server.ts`, `dev.ts`, and `files.ts` written to the process's streams
+    (R8), their tests spying on `process.stderr`; the binding imported whole by a dynamic import in
+    five more test files (R10); functions that capture nothing moved to their module's scope, in
+    `app.ts`, `files.ts`, `live.ts`, `claude-events.ts`, and three tests; an apostrophe escaped in
+    `RepositoryPages.tsx`; and a `[...nodes].at(-1)!` where the autofix's `at` did not type check.
+  - Marked: `fate/mutations.ts` (546 lines) and `scripts/screenshots.ts` (527 lines) at their top,
+    as R11 says; the `hosts` of the server's test helpers, which the session manager may read while
+    they open, keeps its `let` under a `prefer-const` marker; `heard`'s spy takes `Array<never>`
+    instead of `any`. `crates/core/src/api.rs` stays in `LARGE` at its new 1,050 lines.
+- **Rationale**: the code was over the limits on `main` before this branch's checks reached it, as
+  the code R9 and R11 marked was. A split of `mutations.ts` or `screenshots.ts` is a restructuring
+  of its own, not part of bringing the merge under the checks.
+- **Alternatives considered**: splitting the two files now, which changes code this branch did not
+  write without a task of its plan; a `const` for `hosts`, which would throw when read before
+  `Hosts.open` returns.
+- **If wrong**: each marker goes with its split, in a commit of its own; `LARGE` takes the shorter
+  length.
+- **Where**: `packages/server/src/`, `packages/web/src/`, `packages/web/scripts/screenshots.ts`,
+  `crates/cli/tests/structure.rs`.

@@ -26,31 +26,31 @@ import { navigate, repoPath } from "./routes.tsx";
 import { RepositoriesView } from "./views.ts";
 
 const styles = stylex.create({
-  // The heading's trigger: "Uraeda" over the repository's name, two lines, the chevron at its end.
-  trigger: {
-    height: "auto",
-    minHeight: sizeVars["--size-element-md"],
-    justifyContent: "space-between",
-    textAlign: "start",
-  },
-  names: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "flex-start",
-    minWidth: 0,
-  },
   brand: {
     display: "block",
     fontSize: typeScaleVars["--text-large-size"],
     fontWeight: fontWeightVars["--font-weight-semibold"],
     lineHeight: typeScaleVars["--text-large-leading"],
   },
-  // A path wraps anywhere rather than be cut: the UI checks decision cuts no text.
+  names: {
+    alignItems: "flex-start",
+    display: "flex",
+    flexDirection: "column",
+    minWidth: 0,
+  },
   path: {
+    // A path wraps anywhere rather than be cut: the UI checks decision cuts no text.
     overflowWrap: "anywhere",
   },
-  // A row without the check keeps its name where the checked row's is.
+  trigger: {
+    // The heading's trigger: "Uraeda" over the repository's name, two lines, the chevron at its end.
+    height: "auto",
+    justifyContent: "space-between",
+    minHeight: sizeVars["--size-element-md"],
+    textAlign: "start",
+  },
   unchecked: {
+    // A row without the check keeps its name where the checked row's is.
     visibility: "hidden",
   },
 });
@@ -83,13 +83,13 @@ export function useOpenRepository(name: string | null) {
 /** The menu's content: the filter, the list's problem, the rows, a refusal, and Add. */
 function Menu({
   current,
-  onPick,
   onAdd,
+  onPick,
   onRemovedCurrent,
 }: {
   current: string | null;
-  onPick: (name: string) => void;
   onAdd: () => void;
+  onPick: (name: string) => void;
   onRemovedCurrent: () => void;
 }) {
   const fate = useFateClient();
@@ -120,46 +120,39 @@ function Menu({
   return (
     <VStack gap={2}>
       <TextInput
-        label="Filter repositories"
         isLabelHidden
+        label="Filter repositories"
+        onChange={(value: string) => setFilter(value)}
         placeholder="Filter repositories"
         startIcon="search"
         value={filter}
-        onChange={(value: string) => setFilter(value)}
       />
-      {list?.problem && <Banner status="error" title={list.problem} collapsible={false} />}
+      {list?.problem && <Banner collapsible={false} status="error" title={list.problem} />}
       <List aria-label="Repositories" density="compact">
         {rows.map((row) => (
           <ListItem
-            key={row.name}
-            label={row.name}
             description={
               row.missing ? (
-                <Text type="supporting" color="error" display="block" xstyle={styles.path}>
+                <Text color="error" display="block" type="supporting" xstyle={styles.path}>
                   Folder not found: {row.home}
                 </Text>
               ) : (
-                <Text type="supporting" color="secondary" display="block" xstyle={styles.path}>
+                <Text color="secondary" display="block" type="supporting" xstyle={styles.path}>
                   {row.home}
                 </Text>
               )
             }
-            isSelected={row.name === current}
-            startContent={
-              row.name === current ? (
-                <Icon icon="check" label="Current" />
-              ) : (
-                <Icon icon="check" xstyle={styles.unchecked} />
-              )
-            }
             endContent={
               <MoreMenu
-                label={`More for ${row.name}`}
                 alignment="end"
-                presentation={wide ? "popover" : "bottom-sheet"}
                 items={[{ label: "Remove from Uraeda", onClick: () => void remove(row.name) }]}
+                label={`More for ${row.name}`}
+                presentation={wide ? "popover" : "bottom-sheet"}
               />
             }
+            isSelected={row.name === current}
+            key={row.name}
+            label={row.name}
             onClick={(event: React.MouseEvent) => {
               // A click in the row's ⋯ menu, drawn elsewhere in the page, reaches the row through
               // React's tree: only the row's own pick it.
@@ -167,15 +160,22 @@ function Menu({
                 onPick(row.name);
               }
             }}
+            startContent={
+              row.name === current ? (
+                <Icon icon="check" label="Current" />
+              ) : (
+                <Icon icon="check" xstyle={styles.unchecked} />
+              )
+            }
           />
         ))}
       </List>
-      {refused && <Banner status="error" title={refused} collapsible={false} />}
+      {refused && <Banner collapsible={false} status="error" title={refused} />}
       <List aria-label="Add" density="compact">
         <ListItem
           label="Add a repository…"
-          startContent={<span aria-hidden="true">+</span>}
           onClick={onAdd}
+          startContent={<span aria-hidden="true">+</span>}
         />
       </List>
     </VStack>
@@ -206,15 +206,15 @@ export function RepositoryMenu({
  * closed one, in the heading of every page, leaves nothing on the page.
  */
 function Drawn({
-  label,
-  isOpen,
-  onClose,
   children,
+  isOpen,
+  label,
+  onClose,
 }: {
-  label: string;
-  isOpen: boolean;
-  onClose: () => void;
   children: ReactNode;
+  isOpen: boolean;
+  label: string;
+  onClose: () => void;
 }) {
   const [drawn, setDrawn] = useState(isOpen);
   if (isOpen && !drawn) {
@@ -226,7 +226,7 @@ function Drawn({
     }
   }, [isOpen, drawn, label]);
   return drawn ? (
-    <Overlay label={label} isOpen={isOpen} onClose={onClose}>
+    <Overlay isOpen={isOpen} label={label} onClose={onClose}>
       {children}
     </Overlay>
   ) : null;
@@ -254,8 +254,8 @@ function MenuTrigger({ current, isFolded }: { current: string | null; isFolded: 
     <Suspense fallback={<Spinner label="Loading the repositories" />}>
       <Menu
         current={current}
-        onPick={(name) => closeThen(() => navigate(repoPath(name, "/")))}
         onAdd={() => closeThen(() => setAdding(true))}
+        onPick={(name) => closeThen(() => navigate(repoPath(name, "/")))}
         onRemovedCurrent={() => closeThen(() => navigate("/"))}
       />
     </Suspense>
@@ -263,27 +263,27 @@ function MenuTrigger({ current, isFolded }: { current: string | null; isFolded: 
 
   const trigger = isFolded ? (
     <Button
-      variant="ghost"
-      label={label}
-      isIconOnly
       icon={<Icon icon="arrowsUpDown" />}
+      isIconOnly
+      label={label}
       onClick={wide ? undefined : () => setOpen(true)}
+      variant="ghost"
     />
   ) : (
     <Button
-      variant="ghost"
-      label={label}
-      width="100%"
       endContent={<Icon icon="chevronDown" />}
-      xstyle={styles.trigger}
+      label={label}
       onClick={wide ? undefined : () => setOpen(true)}
+      variant="ghost"
+      width="100%"
+      xstyle={styles.trigger}
     >
       <span {...stylex.props(styles.names)}>
         <span {...stylex.props(styles.brand)}>Uraeda</span>
         {/* Its accessible name, the label, is the text it shows, words apart. */}
         {current !== null && " "}
         {current !== null && (
-          <Text type="supporting" color="secondary" display="block">
+          <Text color="secondary" display="block" type="supporting">
             {current}
           </Text>
         )}
@@ -295,31 +295,31 @@ function MenuTrigger({ current, isFolded }: { current: string | null; isFolded: 
     <>
       {wide ? (
         <Popover
-          label={MENU}
+          content={open ? menu : null}
           isOpen={open}
+          label={MENU}
           onOpenChange={setOpen}
-          width="var(--size-menu)"
           padding={2}
           placement={isFolded ? "end" : "below"}
-          content={open ? menu : null}
+          width="var(--size-menu)"
         >
           {trigger}
         </Popover>
       ) : (
         <>
           {trigger}
-          <Drawn label={MENU} isOpen={open} onClose={() => setOpen(false)}>
+          <Drawn isOpen={open} label={MENU} onClose={() => setOpen(false)}>
             {menu}
           </Drawn>
         </>
       )}
-      <Drawn label={FORM} isOpen={adding} onClose={() => setAdding(false)}>
+      <Drawn isOpen={adding} label={FORM} onClose={() => setAdding(false)}>
         <AddRepository
-          onCancel={() => setAdding(false)}
           onAdded={(name) => {
             setAdding(false);
             afterOverlayCloses(FORM, () => navigate(repoPath(name, "/")));
           }}
+          onCancel={() => setAdding(false)}
         />
       </Drawn>
     </>

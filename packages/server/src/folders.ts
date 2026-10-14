@@ -10,7 +10,7 @@ export const SUGGESTIONS = 20;
 const NOT_ABSOLUTE = "Type an absolute path, starting with / or ~.";
 
 /** A folder the add form suggests: `path` as typed, ending with `/`, `git` when it holds `.git`. */
-export type Suggestion = { path: string; git: boolean };
+export type Suggestion = { git: boolean; path: string };
 
 /**
  * The absolute folder a typed path names: `~` is the home folder, and a trailing `/` is dropped.
@@ -88,11 +88,11 @@ export async function suggest(text: string, home: string): Promise<Array<Suggest
   folders.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
   return Promise.all(
     folders.slice(0, SUGGESTIONS).map(async (name) => ({
-      path: `${prefix}${name}/`,
       git: await lstat(join(parent, name, ".git")).then(
         () => true,
         () => false,
       ),
+      path: `${prefix}${name}/`,
     })),
   );
 }

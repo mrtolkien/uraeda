@@ -4,8 +4,10 @@ import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import * as binding from "uraeda-binding";
 import { click, fixtureRepo, git, listOf, refreshUntil, renderPage } from "./helpers.tsx";
+
+/** The core's binding, as one object: the server takes it whole. */
+const binding = await import("uraeda-binding");
 
 /** A list of uraeda, opened at 10:59, then todo-app, at 10:58, on two copies of the fixture. */
 function twoRepositories() {
@@ -50,7 +52,7 @@ test("an unknown name says so, with a link to the most recent", async () => {
 test("a missing folder shows where it was, with Remove", async () => {
   const path = fixtureRepo();
   const dataDir = listOf([["client-site", path]]);
-  rmSync(path, { recursive: true, force: true });
+  rmSync(path, { force: true, recursive: true });
   await renderPage("/r/client-site/", undefined, { dataDir, raw: true });
 
   expect(await screen.findByRole("heading", { name: "Folder not found" })).toBeTruthy();

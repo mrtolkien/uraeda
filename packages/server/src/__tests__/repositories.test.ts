@@ -10,7 +10,7 @@ import {
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
-import * as binding from "uraeda-binding";
+import type { WatchHandle } from "uraeda-binding";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import { live } from "../fate.ts";
 import { homePath } from "../folders.ts";
@@ -28,6 +28,9 @@ import {
   testServer,
 } from "./helpers.ts";
 import { createApp } from "../app.ts";
+
+/** The core's binding, as one object: the server takes it whole. */
+const binding = await import("uraeda-binding");
 
 const FOLDER = "2026-10-14-dark-mode";
 
@@ -49,13 +52,13 @@ async function twoRepositories() {
   const repos = [repoWithFeature("Dark mode in uraeda"), repoWithFeature("Dark mode in todo-app")];
   const opened = await testHosts(repos, { installed: false });
   const app = createApp({
-    port,
     allowedHosts: [],
     allowOrigins: [],
     binding,
-    sessions: opened.sessions,
-    hosts: opened.hosts,
     dataDir: opened.dataDir,
+    hosts: opened.hosts,
+    port,
+    sessions: opened.sessions,
   });
   return { app, ...opened };
 }
@@ -92,7 +95,7 @@ test("an unknown name is a 404", async () => {
 
 /** Review focus 1: a repository removed while its page is open. */
 test("a removed repository's endpoint is a 404", async () => {
-  const { app, name, hosts, dataDir } = await testApp();
+  const { app, dataDir, hosts, name } = await testApp();
   await binding.removeRepository(dataDir, name);
   await hosts.reload();
 
@@ -117,7 +120,7 @@ test("a missing repository's host starts without a watch", async () => {
   const repo = fixtureRepo();
   const dataDir = temporaryFolder("uraeda-data");
   const { repository } = await binding.addRepository(dataDir, repo);
-  rmSync(repo, { recursive: true, force: true });
+  rmSync(repo, { force: true, recursive: true });
   const watch = vi.fn(binding.watch);
   const { sessions } = fakeSessions({ installed: false });
 
@@ -132,7 +135,7 @@ test("a missing repository's host starts without a watch", async () => {
 
 /** Review focus 5 */
 test("a watch that fails to start is logged, and the server goes on", async () => {
-  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
   const repo = fixtureRepo();
   const failing = {
     ...binding,
@@ -145,7 +148,7 @@ test("a watch that fails to start is logged, and the server goes on", async () =
 
   expect(hosts.get(names[0])?.path).toBe(repo);
   expect(log).toHaveBeenCalledWith(
-    "uraeda-server: too many open files; pages refresh when shown again",
+    "uraeda-server: too many open files; pages refresh when shown again\n",
   );
   log.mockRestore();
 });
@@ -162,10 +165,10 @@ test("hosts follow the list as it reloads, and close the watch of a removed one"
           closed++;
           handle.close();
         },
-      } as binding.WatchHandle;
+      } as WatchHandle;
     },
   };
-  const { hosts, dataDir, names } = await testHosts([first], { binding: counting });
+  const { dataDir, hosts, names } = await testHosts([first], { binding: counting });
 
   const { repository } = await binding.addRepository(dataDir, second);
   await hosts.reload();
@@ -181,8 +184,8 @@ test("hosts follow the list as it reloads, and close the watch of a removed one"
 });
 
 test("an invalid list keeps the hosts, with its problem", async () => {
-  const log = vi.spyOn(console, "error").mockImplementation(() => {});
-  const { hosts, dataDir, names } = await testHosts([fixtureRepo()], { installed: false });
+  const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  const { dataDir, hosts, names } = await testHosts([fixtureRepo()], { installed: false });
   writeFileSync(join(dataDir, "repositories.json"), "{not json");
 
   await hosts.reload();
@@ -207,7 +210,7 @@ const change = (opened: Opened, mutation: string, input: unknown) =>
   mutate(opened.app, `repositories.${mutation}`, input, LIST);
 
 /** The calls a bus's `update` gets from now on, as `<type> <id>`. */
-function heard(bus: { update: (...args: Array<any>) => void }) {
+function heard(bus: { update: (...args: Array<never>) => void }) {
   const update = vi.spyOn(bus, "update");
   // The global bus's spy is shared by the tests of this file: its earlier calls are not heard.
   const from = update.mock.calls.length;
@@ -217,12 +220,12 @@ function heard(bus: { update: (...args: Array<any>) => void }) {
 test("the list is read from every endpoint, each path also from the home folder", async () => {
   const opened = await testApp();
   const path = realpathSync(opened.repo);
-  const row = { name: opened.name, path, home: homePath(path, homedir()), missing: false };
+  const row = { home: homePath(path, homedir()), missing: false, name: opened.name, path };
 
   const global = await list(opened.app, null);
   const hosted = await list(opened.app, opened.name);
 
-  expect(global).toEqual({ id: "repositories", rows: [row], problem: null, added: null });
+  expect(global).toEqual({ added: null, id: "repositories", problem: null, rows: [row] });
   expect(hosted).toEqual(global);
 });
 
@@ -248,7 +251,7 @@ test("a repository's endpoint finds its folder moved away, and back", async () =
   const away = `${opened.repo}-away`;
   const workspace = () =>
     fateAt(opened.app, opened.name, [
-      { kind: "byId", type: "Workspace", ids: ["workspace"], select: ["root"] },
+      { ids: ["workspace"], kind: "byId", select: ["root"], type: "Workspace" },
     ]);
 
   renameSync(opened.repo, away);
@@ -273,16 +276,16 @@ test("a repository inside another one that loses its .git is refused, not its pa
   renameSync(fixtureRepo(), child);
   const opened = await testApp(child);
 
-  rmSync(join(child, ".git"), { recursive: true, force: true });
+  rmSync(join(child, ".git"), { force: true, recursive: true });
   const response = await opened.app.request(`http://127.0.0.1:${port}/r/${opened.name}/fate`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
     body: JSON.stringify({
       operations: [
-        { id: "0", kind: "byId", type: "Workspace", ids: ["workspace"], select: ["root"] },
+        { id: "0", ids: ["workspace"], kind: "byId", select: ["root"], type: "Workspace" },
       ],
       version: 1,
     }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
   });
 
   expect(opened.hosts.get(opened.name)?.missing).toBe(true);
@@ -358,10 +361,10 @@ test("removing leaves the folder and its sessions", async () => {
   const opened = await testApp();
   const root = realpathSync(opened.repo);
   const session = opened.sessions.cache.createSession({
-    repo: root,
-    folder: "2026-10-11-web-ui",
     agent: "fake",
+    folder: "2026-10-11-web-ui",
     nativeId: "3f2c",
+    repo: root,
     title: null,
   });
 
@@ -442,18 +445,18 @@ test("opening a repository moves it first", async () => {
   writeFileSync(file, JSON.stringify(stored));
   await opened.hosts.reload();
   const app = createApp({
-    port,
     allowedHosts: [],
     allowOrigins: [],
     binding,
-    sessions: opened.sessions,
-    hosts: opened.hosts,
     dataDir: opened.dataDir,
+    hosts: opened.hosts,
+    port,
+    sessions: opened.sessions,
   });
   const last = opened.hosts.rows().at(-1)!.name;
 
   const [result] = await fateAt(app, null, [
-    { kind: "mutation", name: "repositories.open", input: { name: last }, select: LIST },
+    { input: { name: last }, kind: "mutation", name: "repositories.open", select: LIST },
   ]);
 
   expect(result.data.rows[0].name).toBe(last);
@@ -481,8 +484,8 @@ test("ura add reaches a running server within a second", async () => {
   const { repository } = await binding.addRepository(opened.dataDir, other);
   const start = performance.now();
   await vi.waitFor(() => expect(global()).toContain("Repositories repositories"), {
-    timeout: 1000,
     interval: 10,
+    timeout: 1000,
   });
 
   expect(performance.now() - start).toBeLessThan(1000);
@@ -503,22 +506,22 @@ test("a hand edit removing a repository closes its host", async () => {
   writeFileSync(file, JSON.stringify(stored));
 
   await vi.waitFor(() => expect(opened.hosts.get(opened.names[1])).toBeUndefined(), {
-    timeout: 1000,
     interval: 10,
+    timeout: 1000,
   });
   expect(opened.hosts.get(opened.names[0])).toBeDefined();
 });
 
 /** The edge case of an invalid `repositories.json`, review focus 2 */
 test("an invalid list on disk keeps the hosts, reports the problem, and refuses adding", async () => {
-  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
   const opened = await testApp();
   const file = join(opened.dataDir, "repositories.json");
 
   writeFileSync(file, "{not json");
   await vi.waitFor(() => expect(opened.hosts.problem).not.toBeNull(), {
-    timeout: 1000,
     interval: 10,
+    timeout: 1000,
   });
   const record = await list(opened.app, opened.name);
   const result = await change(opened, "add", { folder: fixtureRepo() });
@@ -539,8 +542,8 @@ test("the hosts watch a data folder that does not exist yet", async () => {
   const { repository } = await binding.addRepository(dataDir, fixtureRepo());
 
   await vi.waitFor(() => expect(hosts.get(repository.name)).toBeDefined(), {
-    timeout: 1000,
     interval: 10,
+    timeout: 1000,
   });
   hosts.close();
   sessions.close();
@@ -561,8 +564,8 @@ test("the global endpoint refuses a repository's record", async () => {
   const { app } = await testApp();
 
   const results = await fateAt(app, null, [
-    { kind: "byId", type: "Workspace", ids: ["workspace"], select: ["root"] },
-    { kind: "mutation", name: "priorities.commit", input: {}, select: ["hash"] },
+    { ids: ["workspace"], kind: "byId", select: ["root"], type: "Workspace" },
+    { input: {}, kind: "mutation", name: "priorities.commit", select: ["hash"] },
   ]);
 
   for (const result of results) {
@@ -574,9 +577,9 @@ test("the global endpoint still serves the list, suggestions, and the agent", as
   const { app, name } = await testApp();
 
   const [repositories, suggestions, agent] = await fateAt(app, null, [
-    { kind: "byId", type: "Repositories", ids: ["repositories"], select: ["rows.name"] },
-    { kind: "byId", type: "FolderSuggestions", ids: ["/"], select: ["rows.path"] },
-    { kind: "byId", type: "Agent", ids: ["agent"], select: ["name"] },
+    { ids: ["repositories"], kind: "byId", select: ["rows.name"], type: "Repositories" },
+    { ids: ["/"], kind: "byId", select: ["rows.path"], type: "FolderSuggestions" },
+    { ids: ["agent"], kind: "byId", select: ["name"], type: "Agent" },
   ]);
 
   expect(repositories.data[0].rows.map((row: { name: string }) => row.name)).toEqual([name]);
@@ -604,13 +607,13 @@ test("an old raw link redirects to the most recent repository", async () => {
 test("an old raw link without any repository is not found", async () => {
   const opened = await testHosts([]);
   const app = createApp({
-    port,
     allowedHosts: [],
     allowOrigins: [],
     binding,
-    sessions: opened.sessions,
-    hosts: opened.hosts,
     dataDir: opened.dataDir,
+    hosts: opened.hosts,
+    port,
+    sessions: opened.sessions,
   });
 
   const response = await app.request(`http://127.0.0.1:${port}/raw/specs/PRIORITIES.md`);

@@ -56,21 +56,21 @@ export type Server = {
  * merely started in is logged, and the list's most recent repository opens first.
  */
 export async function startServer(
-  options: Options & { binding: Binding; dataDir: string; adapter: Adapter },
+  options: Options & { adapter: Adapter; binding: Binding; dataDir: string },
 ): Promise<Server> {
-  const { binding, dataDir, adapter } = options;
+  const { adapter, binding, dataDir } = options;
   const root = await binding.mainRoot(options.repo).catch(() => null);
   if (root === null && options.given) {
     throw new Error(`${options.repo} is not a git repository`);
   }
   if (root === null) {
-    console.error(
-      `uraeda-server: ${options.repo} is not in a git repository: add one from the web UI`,
+    process.stderr.write(
+      `uraeda-server: ${options.repo} is not in a git repository: add one from the web UI\n`,
     );
   } else {
     // A list that cannot be written is the hosts' problem to report: the server still starts.
     await binding.addRepository(dataDir, root).catch((error: Error) => {
-      console.error(`uraeda-server: ${error.message.replace(/^refused: /, "")}`);
+      process.stderr.write(`uraeda-server: ${error.message.replace(/^refused: /, "")}\n`);
     });
   }
   let hosts: Hosts | undefined;
@@ -87,9 +87,9 @@ export async function startServer(
     app: createApp({
       ...options,
       binding,
-      sessions: sessions.sessions,
-      hosts: opened,
       dataDir,
+      hosts: opened,
+      sessions: sessions.sessions,
     }),
     hosts: opened,
     sessions: sessions.sessions,

@@ -31,7 +31,7 @@ const styles = stylex.create({
 const START = "~/";
 
 /** The folders starting with the text, those in git marked, each filling the field when picked. */
-function Suggestions({ text, onPick }: { text: string; onPick: (path: string) => void }) {
+function Suggestions({ onPick, text }: { onPick: (path: string) => void; text: string }) {
   const rows = useFolderSuggestions(text);
   if (rows.length === 0) {
     return null;
@@ -40,9 +40,9 @@ function Suggestions({ text, onPick }: { text: string; onPick: (path: string) =>
     <List aria-label="Folders" density="compact">
       {rows.map((row) => (
         <ListItem
+          endContent={row.git ? <Badge label="git" variant="neutral" /> : undefined}
           key={row.path}
           label={<span {...stylex.props(styles.path)}>{row.path}</span>}
-          endContent={row.git ? <Badge variant="neutral" label="git" /> : undefined}
           onClick={() => onPick(row.path)}
         />
       ))}
@@ -80,7 +80,7 @@ export function AddRepository({
 
   const add = async () => {
     setError(undefined);
-    const { result, error } = await fate.mutations.repositories.add({
+    const { error, result } = await fate.mutations.repositories.add({
       input: { folder: text },
       view: RepositoriesView,
     });
@@ -98,10 +98,8 @@ export function AddRepository({
   return (
     <VStack gap={3} xstyle={inline && styles.inline}>
       <TextInput
-        label="Folder"
-        value={text}
         hasAutoFocus={!inline}
-        status={error ? { type: "error", message: error } : undefined}
+        label="Folder"
         onChange={change}
         onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
           if (event.key === "Enter") {
@@ -109,18 +107,20 @@ export function AddRepository({
             void add();
           }
         }}
+        status={error ? { message: error, type: "error" } : undefined}
+        value={text}
       />
       {typed && /^[/~]/.test(shown) && (
         <Suspense fallback={null}>
-          <Suggestions text={shown} onPick={change} />
+          <Suggestions onPick={change} text={shown} />
         </Suspense>
       )}
-      <Text type="supporting" color="secondary">
+      <Text color="secondary" type="supporting">
         A folder in a git repository. From a terminal: <Code size="inherit">ura add</Code>
       </Text>
       <HStack gap={2} justify={inline ? "start" : "end"}>
         {onCancel && <Button label="Cancel" onClick={onCancel} />}
-        <Button variant="primary" label="Add" clickAction={add} />
+        <Button clickAction={add} label="Add" variant="primary" />
       </HStack>
     </VStack>
   );

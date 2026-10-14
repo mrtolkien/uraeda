@@ -22,13 +22,13 @@ import { RepositoriesView } from "./views.ts";
 const styles = stylex.create({
   // The page's surface, which the shell paints on the other pages: the first run has none.
   surface: {
-    minHeight: "var(--size-viewport-height)",
     backgroundColor: colorVars["--color-background-surface"],
+    minHeight: "var(--size-viewport-height)",
   },
 });
 
 /** A URL naming no repository of the list, with a link to the most recently opened one. */
-export function UnknownRepository({ name, mostRecent }: { name: string; mostRecent?: string }) {
+export function UnknownRepository({ mostRecent, name }: { mostRecent?: string; name: string }) {
   useRestoreScroll(true);
   return (
     <BareShell current={null}>
@@ -36,13 +36,13 @@ export function UnknownRepository({ name, mostRecent }: { name: string; mostRece
         <VStack gap={3}>
           <Heading level={1}>No repository named “{name}”</Heading>
           <Paragraph>
-            It is not in Uraeda's list.{" "}
+            It is not in Uraeda&apos;s list.{" "}
             {mostRecent === undefined ? (
-              <Link href="/" hasUnderline>
+              <Link hasUnderline href="/">
                 Add a repository
               </Link>
             ) : (
-              <Link href={repoPath(mostRecent, "/")} hasUnderline>
+              <Link hasUnderline href={repoPath(mostRecent, "/")}>
                 Open {mostRecent}
               </Link>
             )}
@@ -86,9 +86,9 @@ export function MissingFolder({ name, path }: { name: string; path: string }) {
             {name} was at <Code size="inherit">{path}</Code>, which no longer holds a git
             repository. Move it back, or remove it from Uraeda.
           </Paragraph>
-          {error && <Banner status="error" title={error} collapsible={false} />}
+          {error && <Banner collapsible={false} status="error" title={error} />}
           <HStack>
-            <Button label="Remove from Uraeda" isLoading={removing} onClick={() => void remove()} />
+            <Button isLoading={removing} label="Remove from Uraeda" onClick={() => void remove()} />
           </HStack>
         </VStack>
       </Page>
