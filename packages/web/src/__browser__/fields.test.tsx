@@ -169,7 +169,9 @@ test("the editor is 20 rows, whatever its text (US6 5)", async () => {
 
 test("quick add's field is 3 rows (US6 6)", async () => {
   await show("/priorities", "Git listener process");
-  await userEvent.click(screen.getByRole("button", { name: "Add a priority" }));
+  // The page's ＋, not the navigation's, which the phone may still hold while its drawer closes.
+  const adds = screen.getAllByRole("button", { name: "Add a priority" });
+  await userEvent.click(adds.find((add) => !add.closest("nav")) ?? adds[0]!);
   const overlay = await screen.findByRole("dialog", { name: "New priority" });
   await checkRows(area("Priority", overlay), 3);
 });
