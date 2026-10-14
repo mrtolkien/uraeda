@@ -21,7 +21,11 @@ export function composed(letters: ReadonlyArray<string>, comment: string) {
   if (!picked) {
     return text;
   }
-  return text ? `${picked}: ${text}` : picked;
+  if (!text) {
+    return picked;
+  }
+  // A comment starting with a code block starts below the letters, as its fence must.
+  return /^(```|~~~)/.test(text) ? `${picked}:\n\n${text}` : `${picked}: ${text}`;
 }
 
 /** An answer: its letters, and its comment. */
