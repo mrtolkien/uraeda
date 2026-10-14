@@ -186,34 +186,41 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: smoke
     runs-on: ubuntu-latest
+    # The trusted publisher on npm names this environment, whose rules on GitHub let only version
+    # tags deploy to it: a branch that edits this file cannot publish.
+    environment: npm
     permissions:
       contents: read
       # npm's trusted publishing, and the provenance statements.
       id-token: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ inputs.tag }}
           persist-credentials: false
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 12.9.1
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
-      - name: Install npm with trusted publishing
-        # Trusted publishing needs npm 11.5.1 or later. Run outside the checkout, whose devEngines
-        # ask for pnpm, which npm refuses.
+      - name: Check npm can publish with trusted publishing
+        # Trusted publishing needs npm 11.5.1 or later, which Node 24 ships: nothing is installed
+        # while this job holds the publishing token. Run outside the checkout, whose devEngines ask
+        # for pnpm, which npm refuses.
         working-directory: ${{ runner.temp }}
-        run: npm install --global npm@^11.5.1
+        run: |
+          version=$(npm --version)
+          echo "npm $version"
+          node -e 'const [a, b, c] = process.argv[1].split(".").map(Number); process.exit(a > 11 || (a === 11 && (b > 5 || (b === 5 && c >= 1))) ? 0 : 1)' "$version"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: uraeda
           path: packages/uraeda
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           pattern: binding-*
           merge-multiple: true
