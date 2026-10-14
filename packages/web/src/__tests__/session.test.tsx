@@ -3,6 +3,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { addPlan, ELEVEN } from "uraeda-binding/test-utils";
 import { expect, test, vi } from "vite-plus/test";
 import { navigate } from "../routes.tsx";
 import {
@@ -357,20 +358,93 @@ test("US1.9: Ask the agent opens the session with the quote, and Back returns to
   expect(window.location.pathname).toBe(atRepo(`/f/${folder}/spec.md`));
 });
 
-test("the status region says when a reply starts and ends", async () => {
+/** The page's status region, where turns and tasks are announced. */
+function status() {
+  return screen.getByRole("status", { name: "Agent updates" });
+}
+
+/** A workflow turn of the implementation, written in the cache as the runner starts one. */
+async function runningTurn(fake: Fake, repo: string) {
+  const session = await fake.sessions.featureSession(repo, CLI);
+  return fake.sessions.cache.addTurn({
+    allowed: null,
+    kind: "workflow",
+    sessionId: session.id,
+    state: "running",
+    step: "implementation",
+    trigger: "manual",
+  });
+}
+
+test("US4.5: turns are announced as they start, end, and fail", async () => {
+  const fake = await fakeAgent();
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  await renderPage(`/f/${CLI}/session?continue=manual`, repo, { agent: fake });
+  const start = await screen.findByRole("button", { name: "Start the agent" });
+  await waitFor(() => expect(start.hasAttribute("disabled")).toBe(false));
+  await click(start);
+
+  await refreshUntil(() => expect(status().textContent).toBe("The agent started: Implementation"));
+  fake.adapter.emit({ id: fake.adapter.sent[0].id, type: "accepted" });
+  fake.adapter.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
+  await refreshUntil(() => expect(status().textContent).toBe("The agent finished"));
+
+  // A second turn, failed with the runner's own reason for a silent agent.
+  const second = await runningTurn(fake, repo);
+  await refreshUntil(() => expect(status().textContent).toBe("The agent started: Implementation"));
+  fake.sessions.cache.endTurn(second, { reason: "No output for 30 minutes.", state: "failed" });
+  await refreshUntil(() =>
+    expect(status().textContent).toBe("The agent failed: No output for 30 minutes."),
+  );
+});
+
+test("a stopped turn is announced", async () => {
   const fake = await fakeAgent();
   await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: fake });
   await openTurn(fake, "Look at the plan.");
+  await refreshUntil(() => expect(status().textContent).toBe("The agent started"));
 
-  await refreshUntil(() =>
-    expect(screen.getByText("Claude Code is replying").closest("[role=status]")).toBeTruthy(),
-  );
-  fake.adapter.emit({ text: "Looked.", type: "text" });
-  fake.adapter.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
+  await click(screen.getByRole("button", { name: "Stop" }));
 
-  await refreshUntil(() =>
-    expect(screen.getByText("Reply complete").closest("[role=status]")).toBeTruthy(),
+  await refreshUntil(() => expect(status().textContent).toBe("The agent stopped"));
+});
+
+test("US4.6: a new current task is announced", async () => {
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  await renderPage(`/f/${CLI}/session`, repo, { agent: await fakeAgent() });
+  await screen.findByRole("complementary", { name: "Progress" });
+  // The task the page opens at is not news.
+  expect(status().textContent).toBe("");
+
+  addPlan(
+    repo,
+    CLI,
+    ELEVEN.map(([title], index) => [title, index < 7 ? 5 : 0, 5]),
   );
+
+  await refreshUntil(() => expect(status().textContent).toBe("Task 8 of 11: Jump to the latest"));
+});
+
+test("a session already working when opened announces nothing", async () => {
+  const fake = await fakeAgent();
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  await runningTurn(fake, repo);
+
+  await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
+
+  await refreshUntil(() => expect(screen.getByRole("button", { name: "Stop" })).toBeTruthy());
+  expect(log().getByText("Run: Implementation")).toBeTruthy();
+  expect(status().textContent).toBe("");
+});
+
+test("the transcript does not announce what streams", async () => {
+  await renderPage(`/f/${WEB_UI}/session`, fixtureRepo(), { agent: await fakeAgent() });
+
+  const transcript = await screen.findByRole("log", { name: "Conversation" });
+  expect(transcript.getAttribute("aria-live")).toBe("off");
 });
 
 test("a running turn ends with what the agent does now, gone once it ends", async () => {
