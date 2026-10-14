@@ -62,18 +62,18 @@ Back on sheets (NN/g), state that survives navigation (Vercel)
 Text is saved only on a button: notes saved as they were typed lost letters, because each save came
 back trimmed into the field, and a line saved on blur saves half-typed text; the human asked for
 every text field to save only with a button, lines on Enter or a Save button
-([Q1](../2026-10-14-text-inputs/clarifications-01.md#q1-which-text-fields-should-save-only-with-a-button),
-[which fields](../2026-10-14-text-inputs/discovery-01.md#which-fields-save-on-a-button)), and Primer
-recommends explicit saving for text. Saving on a button puts unsaved text at risk, so the human
-asked for both a warning before leaving and text kept in the browser, like GitHub
-([Q3](../2026-10-14-text-inputs/clarifications-01.md#q3-what-protects-text-you-typed-and-did-not-save),
-[unsaved text](../2026-10-14-text-inputs/discovery-01.md#unsaved-text)). Images keep saving their
-field at once, so an image and its link are never apart
-([Q6](../2026-10-14-text-inputs/clarifications-01.md#q6-should-adding-an-image-still-save-its-field-at-once)).
+([Q1](../done/2026-10-14-text-inputs.md#q1-which-text-fields-should-save-only-with-a-button),
+[which fields](../done/2026-10-14-text-inputs.md#q1-which-text-fields-should-save-only-with-a-button)),
+and Primer recommends explicit saving for text. Saving on a button puts unsaved text at risk, so the
+human asked for both a warning before leaving and text kept in the browser, like GitHub
+([Q3](../done/2026-10-14-text-inputs.md#q3-what-protects-text-you-typed-and-did-not-save),
+[unsaved text](../done/2026-10-14-text-inputs.md#q3-what-protects-text-you-typed-and-did-not-save)).
+Images keep saving their field at once, so an image and its link are never apart
+([Q6](../done/2026-10-14-text-inputs.md#q6-should-adding-an-image-still-save-its-field-at-once)).
 The human found text boxes taller than their text, asked for one coherent behaviour everywhere
-([notes](../2026-10-14-text-inputs/clarifications-01.md#settled-without-the-human)), and then for
-fixed heights by kind of field, since fields that grow move the page's layout as the human types
-(the review of the [spec](../2026-10-14-text-inputs/spec.md)).
+([notes](../done/2026-10-14-text-inputs.md)), and then for fixed heights by kind of field, since
+fields that grow move the page's layout as the human types (the review of the
+[spec](../done/2026-10-14-text-inputs.md)).
 
 ## Alternatives considered
 
