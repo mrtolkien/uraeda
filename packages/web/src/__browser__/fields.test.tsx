@@ -166,3 +166,21 @@ test("a comment keeps its resize handle, and a height dragged while typing (US6 
   expect(field.value).toBe("Taller");
   expect(field.getBoundingClientRect().height).toBe(dragged);
 });
+
+// The mockup's sections 1 and 6: on a wide screen, a multi-line field's Save says its key beside it,
+// as a line's does; the phone, with no such key, shows nothing.
+test("Ctrl+Enter saves shows beside a comment's, the notes', and the editor's Save on a wide screen", async () => {
+  const shown = window.innerWidth >= 768 ? 1 : 0;
+  await show(ROUND, QUESTION);
+  expect(within(document.getElementById("Q1")!).queryAllByText("Ctrl+Enter saves")).toHaveLength(
+    shown,
+  );
+  // Each question's comment, and the notes.
+  expect(screen.queryAllByText("Ctrl+Enter saves").length).toBe(
+    shown * (screen.getAllByRole("button", { name: "Save comment" }).length + 1),
+  );
+  await show("/edit/specs/drafts/git-listener.md", "Git listener");
+  await userEvent.click(screen.getByRole("button", { name: "Edit" }));
+  await screen.findByLabelText("Text");
+  expect(screen.queryAllByText("Ctrl+Enter saves")).toHaveLength(shown);
+});

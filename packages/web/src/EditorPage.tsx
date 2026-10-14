@@ -18,6 +18,7 @@ import { useDraft, useProposalHints } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { SaveStatus } from "./fields/SaveStatus.tsx";
+import { SaveKeys } from "./fields/SaveKeys.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
 import { Page } from "./layout/Page.tsx";
@@ -196,6 +197,7 @@ function EditorText({
       <HStack align="center" gap={2} wrap="wrap">
         <Button isDisabled={!field.dirty} label="Save" onClick={onSave} />
         <SaveStatus dirty={field.dirty} state={state} />
+        <SaveKeys />
       </HStack>
     </VStack>
   );

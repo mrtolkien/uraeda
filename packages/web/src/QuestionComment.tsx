@@ -18,6 +18,7 @@ import { useImageText } from "./attach/useImageText.ts";
 import { COMMENT_CHANGED } from "./CommentForm.tsx";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { SaveStatus } from "./fields/SaveStatus.tsx";
+import { SaveKeys } from "./fields/SaveKeys.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import type { useAnswer } from "./useAnswer.ts";
@@ -210,6 +211,7 @@ export function AnswerComment({
         >
           <Button isDisabled={!field.dirty} label="Save comment" onClick={answer.saveComment} />
           <SaveStatus dirty={field.dirty} state={answer.state} />
+          <SaveKeys />
         </CommentField>
       </div>
     </VStack>
