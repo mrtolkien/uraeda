@@ -1,6 +1,7 @@
 // The core's size limit of an attached image, which the server and the UI also check before the
-// core sees the image: their refusal is the core's text. Free of Node's modules, so the UI can import
-// it.
+// core sees the image: their refusal is the core's text. And the chat's own limits on a message's
+// images, which the sessions enforce and the composer checks first. Free of Node's modules, so the
+// UI can import it.
 
 const MIB = 1024 * 1024;
 /** The core's limit, 20 MB counted in MiB (R9). */
@@ -16,3 +17,15 @@ export function megabytes(bytes: number): string {
 export function overLimit(name: string, bytes: number): string {
   return `This image is over 20 MB: ${name} is ${megabytes(bytes)} MB.`;
 }
+
+/** A chat message takes at most this many images. */
+export const MAX_IMAGES = 10;
+
+/** The refusals of a message's images, by the sessions and by the composer before them. */
+export const IMAGE_REFUSALS = {
+  /** Images sent to an agent that does not declare them. */
+  noImages: "This agent cannot read images.",
+  tooManyImages: `A message takes at most ${MAX_IMAGES} images.`,
+  /** The workflow's message is the workflow's own text: the human sends images in a chat. */
+  workflowImages: "The workflow's message takes no images.",
+};

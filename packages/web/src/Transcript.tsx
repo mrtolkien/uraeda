@@ -17,13 +17,15 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, type RefObject, useEffect, useLayoutEffect, useState } from "react";
 import { useFateClient } from "react-fate";
-import type { Item } from "uraeda-server/fate";
+import type { ChatImage, Item } from "uraeda-server/fate";
 import { useAgent, useTurn, useTurnLog } from "./data.ts";
 import { refusal } from "./errors.ts";
+import { ImageView } from "./ImageView.tsx";
 import { stepLabel } from "./labels.ts";
 import { statusStyles } from "./Question.tsx";
+import { currentEntry, useRepository } from "./routes.tsx";
+import { chatImageSrc } from "./sessions.ts";
 import { StatusMark } from "./StatusMark.tsx";
-import { currentEntry } from "./routes.tsx";
 import type { OpenKeys } from "./useOpenKeys.ts";
 import { SessionView } from "./views.ts";
 
@@ -55,6 +57,16 @@ const styles = stylex.create({
     display: "flex",
     flexDirection: "column",
     gap: spacingVars["--spacing-3"],
+  },
+  // A message's images, above its text, side by side while they fit.
+  images: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: spacingVars["--spacing-2"],
+  },
+  // Images before text keep the bubble's spacing between them.
+  imagesAbove: {
+    marginBlockEnd: spacingVars["--spacing-2"],
   },
 });
 
@@ -193,8 +205,8 @@ export type Actions = {
   groups?: OpenKeys;
   /** Allows a blocked action. */
   onAllow?: (turn: string, seq: number) => Promise<void>;
-  /** Called with a message's text once it is taken back. */
-  onTakenBack?: (text: string) => void;
+  /** Called with a message's text and images once it is taken back. */
+  onTakenBack?: (text: string, images: ReadonlyArray<ChatImage>) => void;
   session: string;
 };
 
@@ -229,6 +241,7 @@ function Message({
   const fate = useFateClient();
   const [error, setError] = useState<string>();
   const pending = item.state === "pending";
+  const repo = useRepository();
   const takeBack = async () => {
     setError(undefined);
     const result = await fate.mutations.session.takeBack({
@@ -238,7 +251,7 @@ function Message({
     if (result.error) {
       setError(refusal(result.error).message);
     } else {
-      actions.onTakenBack?.(item.text);
+      actions.onTakenBack?.(item.text, item.images ?? []);
     }
   };
   return (
@@ -274,7 +287,16 @@ function Message({
     >
       <ChatMessageBubble variant={pending ? "ghost" : "filled"}>
         {item.opening && <span {...stylex.props(styles.opening)}>{item.opening}</span>}
-        <span {...stylex.props(styles.message, pending && styles.pending)}>{item.text}</span>
+        {item.images && item.images.length > 0 && (
+          <div {...stylex.props(styles.images, item.text !== "" && styles.imagesAbove)}>
+            {item.images.map((image) => (
+              <ImageView alt="" key={image.id} size="message" src={chatImageSrc(repo, image)} />
+            ))}
+          </div>
+        )}
+        {item.text !== "" && (
+          <span {...stylex.props(styles.message, pending && styles.pending)}>{item.text}</span>
+        )}
       </ChatMessageBubble>
     </ChatMessage>
   );
@@ -562,7 +584,7 @@ export function Transcript({
   canAllow?: boolean;
   groups?: OpenKeys;
   onAllow?: (turn: string, seq: number) => Promise<void>;
-  onTakenBack?: (text: string) => void;
+  onTakenBack?: (text: string, images: ReadonlyArray<ChatImage>) => void;
   session: { id: string; turns: ReadonlyArray<string> };
 }) {
   const agent = useAgent();

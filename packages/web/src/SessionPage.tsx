@@ -7,10 +7,10 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { type Dispatch, type SetStateAction, Suspense, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { SessionStatus as Status, Trigger } from "uraeda-server/fate";
-import { Composer } from "./Composer.tsx";
+import { Composer, type DraftImage, draftImage } from "./Composer.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { useAgent, useFeature, useSession, useWorkflowMessage } from "./data.ts";
 import { EditableLine } from "./EditableLine.tsx";
@@ -94,8 +94,22 @@ function Header({
   );
 }
 
-/** The composer's text, kept by the view while its session is created under it. */
-type Draft = [string, (update: string | ((now: string) => string)) => void];
+/**
+ * The composer's text and images, kept by the view while its session is created under it: a new
+ * chat's or a feature's first message draws a new composer once sent.
+ */
+type Draft = {
+  text: string;
+  setText: Dispatch<SetStateAction<string>>;
+  images: ReadonlyArray<DraftImage>;
+  setImages: Dispatch<SetStateAction<ReadonlyArray<DraftImage>>>;
+};
+
+function useDraft(): Draft {
+  const [text, setText] = useState("");
+  const [images, setImages] = useState<ReadonlyArray<DraftImage>>([]);
+  return { text, setText, images, setImages };
+}
 
 /**
  * What a feature's session was opened for: the workflow's message, while the composer holds it,
@@ -128,7 +142,7 @@ function Session({
   const session = useSession(id);
   const groups = useOpenKeys();
   const log = useRef<HTMLDivElement>(null);
-  const [text, setText] = draft;
+  const { setText, setImages } = draft;
   const [error, setError] = useState<string>();
   const working = session?.status === "working";
   useOpenAtEnd(log);
@@ -205,7 +219,14 @@ function Session({
             canAllow={!working}
             groups={groups}
             onAllow={allow}
-            onTakenBack={(back) => setText((now) => (now.trim() ? `${back}\n${now}` : back))}
+            onTakenBack={(back, images) => {
+              if (back.trim()) {
+                setText((now) => (now.trim() ? `${back}\n${now}` : back));
+              }
+              if (images.length > 0) {
+                setImages((now) => [...images.map(draftImage), ...now]);
+              }
+            }}
             session={session}
           />
         </div>
@@ -213,9 +234,11 @@ function Session({
       </VStack>
       <div {...stylex.props(styles.composer)}>
         <Composer
+          images={draft.images}
           onChange={setText}
+          onImagesChange={setImages}
           session={id}
-          value={text}
+          value={draft.text}
           working={working}
           {...handing}
           {...(blocked === undefined ? {} : { blocked })}
@@ -232,7 +255,7 @@ function Session({
 function NoSession({
   blocked,
   crumbs,
-  draft: [text, setText],
+  draft,
   folder,
   handing = {},
   onSent,
@@ -257,8 +280,10 @@ function NoSession({
       <div {...stylex.props(styles.composer)}>
         <Composer
           {...(folder === undefined ? {} : { folder })}
-          onChange={setText}
-          value={text}
+          images={draft.images}
+          onChange={draft.setText}
+          onImagesChange={draft.setImages}
+          value={draft.text}
           {...handing}
           {...(blocked === undefined ? {} : { blocked })}
           onSent={(session) => {
@@ -317,8 +342,8 @@ function FeatureSession({ folder }: { folder: string }) {
   const wide = useWidthClass() === "wide";
   // A session created here shows before the feature's live update names it.
   const [created, setCreated] = useState<string>();
-  const draft = useState("");
-  const [, setText] = draft;
+  const draft = useDraft();
+  const { setText } = draft;
   const search = useSearch();
   const workflow = useHandOver(search);
   const ask = new URLSearchParams(search).get("ask") ?? undefined;
@@ -413,7 +438,7 @@ export function SessionPage(props: { folder: string } | { id: string } | { newCh
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   const here = useRepoPath();
-  const draft = useState("");
+  const draft = useDraft();
   if ("folder" in props) {
     return <FeatureSession folder={props.folder} />;
   }

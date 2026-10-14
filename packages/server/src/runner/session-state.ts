@@ -1,4 +1,5 @@
 import type { Binding } from "../fate/context.ts";
+import { IMAGE_REFUSALS } from "../limits.ts";
 import type { Adapter, AgentProcess, Outgoing } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
 import type { Item, TurnActivity, TurnState } from "./events.ts";
@@ -18,8 +19,7 @@ export const WATCHDOG_MS = 30 * 60_000;
 export const TERMINATE_AFTER_MS = 10_000;
 /** A tool's output is cut to this many characters. */
 export const OUTPUT_LIMIT = 4000;
-/** A message takes at most this many images. */
-export const MAX_IMAGES = 10;
+export { MAX_IMAGES } from "../limits.ts";
 
 export const REFUSALS = {
   /** A write on a feature, or a session another server holds, while its agent works. */
@@ -33,11 +33,7 @@ export const REFUSALS = {
   blank: "The message is empty.",
   /** An allow of a blocked action no rule matches alone, as a command with a `*`. */
   noRule: "No allow rule can match only this action.",
-  /** Images sent to an agent that does not declare them. */
-  noImages: "This agent cannot read images.",
-  tooManyImages: `A message takes at most ${MAX_IMAGES} images.`,
-  /** The workflow's message is the workflow's own text: the human sends images in a chat. */
-  workflowImages: "The workflow's message takes no images.",
+  ...IMAGE_REFUSALS,
   /** An image ID with no file in the data folder: removed, or never uploaded. */
   imageGone: "This image is gone: add it again.",
   unavailable: (name: string) => `${name} is not available on this machine.`,

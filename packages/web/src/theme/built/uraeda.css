@@ -332,6 +332,7 @@
     --size-pane-min: 400px;
     --size-viewport-height: 100dvh;
     --size-image-max-height: 80dvh;
+    --size-message-image: 120px;
     --size-round-index: 240px;
     --size-form: 560px;
     --size-menu: 360px;
