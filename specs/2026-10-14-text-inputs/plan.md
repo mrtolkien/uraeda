@@ -419,50 +419,57 @@ git commit -m "feat(text-inputs): comments on settled points are added, edited, 
 - Produces: every web module compiled by `reactCompilerPreset()` through `@rolldown/plugin-babel`,
   in `vp dev`, `vp build`, and both test projects.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
+const renders = vi.fn();
+
+function Child({ label }: { label: string }) {
+  renders();
+  return <span>{label}</span>;
+}
+
+function Parent() {
+  const [count, setCount] = useState(0);
+  return (
+    <>
+      <Button clickAction={() => setCount(count + 1)} label={String(count)} />
+      <Child label="fixed" />
+    </>
+  );
+}
+
 test("a component whose props did not change does not render again (React Compiler)", async () => {
-  const renders = vi.fn();
-  function Child({ label }: { label: string }) {
-    renders();
-    return <span>{label}</span>;
-  }
-  function Parent() {
-    const [count, setCount] = useState(0);
-    return (
-      <>
-        <button onClick={() => setCount(count + 1)}>{count}</button>
-        <Child label="fixed" />
-      </>
-    );
-  }
   render(<Parent />);
   await click(screen.getByRole("button", { name: "0" }));
+  expect(screen.getByRole("button", { name: "1" })).toBeTruthy();
   expect(renders).toHaveBeenCalledTimes(1);
 });
 ```
 
+The components sit at the module's scope, and the button is Astryx's: the lint rules cover the tests
+of `packages/web/src`, raw `button` and functions that capture nothing included.
+
 The break it catches: the plugin missing from the tests' config, where the child renders twice.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test --project uraeda-web compiler`
 - Expected: FAIL, `expected "spy" to be called 1 times, but got 2 times`
 
-- [ ] **Step 3: Implement**: add `@rolldown/plugin-babel`, `@babel/core`, and
+- [x] **Step 3: Implement**: add `@rolldown/plugin-babel`, `@babel/core`, and
       `babel-plugin-react-compiler` as exact versions, and
       `babel({ presets: [reactCompilerPreset()] })` after `react()`. A raw `button` in a test file
       is allowed: the lint rule covers `packages/web/src` sources, check it does not cover tests; if
       it does, use Astryx's `Button`.
 
-- [ ] **Step 4: Run all tests and the build**
+- [x] **Step 4: Run all tests and the build**
 
 - Run: `vp check && vp test && vp run --filter uraeda-web build`
 - Expected: PASS. A test that relied on a re-render the compiler now skips fails; fix the code,
   never the test, and write a ruling.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web pnpm-workspace.yaml pnpm-lock.yaml
