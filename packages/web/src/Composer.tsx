@@ -7,8 +7,10 @@ import {
   ChatSendButton,
 } from "@astryxdesign/core/Chat";
 import { HStack } from "@astryxdesign/core/HStack";
+import { Icon } from "@astryxdesign/core/Icon";
 import { Thumbnail } from "@astryxdesign/core/Thumbnail";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
+import { VStack } from "@astryxdesign/core/VStack";
 import {
   type Dispatch,
   type KeyboardEvent,
@@ -411,21 +413,33 @@ export function Composer({
             images.length > 0 ? (
               <ChatComposerDrawer label="Images">
                 <HStack gap={2} wrap="wrap">
-                  {images.map((image, index, all) => (
-                    <Thumbnail
-                      key={image.key}
-                      src={image.image ? chatImageSrc(repo, image.image) : image.preview}
-                      label={image.name}
-                      // Told apart by their place, as pasted images share their name.
-                      {...(all.length > 1 ? { alt: `image ${index + 1} of ${all.length}` } : {})}
-                      isLoading={!image.image}
-                      showRemoveOn="always"
-                      onRemove={() => {
-                        attaching.remove(image.key);
-                        focusAt.current = index;
-                      }}
-                    />
-                  ))}
+                  {images.map((image, index, all) => {
+                    // Told apart by their place, as pasted images share their name.
+                    const alt = all.length > 1 ? `image ${index + 1} of ${all.length}` : undefined;
+                    return (
+                      // Remove under the thumbnail, tall enough for a finger: Astryx's own, in
+                      // its corner, is 20 px whatever the pointer (an Astryx gap, see the plan).
+                      <VStack key={image.key} role="group" gap={1} hAlign="center">
+                        <Thumbnail
+                          src={image.image ? chatImageSrc(repo, image.image) : image.preview}
+                          label={image.name}
+                          {...(alt ? { alt } : {})}
+                          isLoading={!image.image}
+                        />
+                        <Button
+                          label={`Remove ${image.name}${alt ? ` — ${alt}` : ""}`}
+                          icon={<Icon icon="close" />}
+                          isIconOnly
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            attaching.remove(image.key);
+                            focusAt.current = index;
+                          }}
+                        />
+                      </VStack>
+                    );
+                  })}
                 </HStack>
               </ChatComposerDrawer>
             ) : undefined

@@ -658,6 +658,10 @@
     --astryx-section-padding: var(--spacing-3);
   }
 
+  .astryx-lightbox:is(*) button {
+    background-color: var(--color-overlay) !important;
+  }
+
   .astryx-chat-tool-calls {
     max-width: 100%;
     min-width: 0;
