@@ -229,7 +229,7 @@ export function serverFetch(
     // fate's requests are JSON; an upload's multipart body sets its own type, with its boundary.
     const response = await app.request(
       url,
-      init?.body instanceof FormData
+      init?.body !== undefined && init.body !== null && typeof init.body !== "string"
         ? { body: init.body, method: init.method }
         : {
             body: init?.body as string,

@@ -590,7 +590,7 @@ test("an option's image is part of the option's toggle", async () => {
 
 /** The address a request goes to. */
 const urlOf = (input: RequestInfo | URL) =>
-  input instanceof Request ? input.url : input.toString();
+  typeof input === "object" && "url" in input ? input.url : input.toString();
 
 /** A PNG, as the picker gives it. */
 const png = (name: string) =>

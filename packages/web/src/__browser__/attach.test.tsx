@@ -11,7 +11,18 @@ import type { RepoCommands } from "../../vite.browser.config.ts";
 import { createFateClient } from "react-fate/client";
 import type { ChatImage } from "uraeda-server/fate";
 import { sendMessage } from "../sessions.ts";
-import { agent, atRepo, carrying, drawn, drop, image, LIVE, paste, show, startTurn } from "./helpers.tsx";
+import {
+  agent,
+  atRepo,
+  carrying,
+  drawn,
+  drop,
+  image,
+  LIVE,
+  paste,
+  show,
+  startTurn,
+} from "./helpers.tsx";
 
 const commands = browserCommands as unknown as RepoCommands;
 
@@ -26,7 +37,7 @@ const SVG_REFUSED = "Only PNG, JPEG, GIF, and WebP images can be added: diagram.
 
 /** The address a request goes to. */
 const urlOf = (input: RequestInfo | URL) =>
-  input instanceof Request ? input.url : input.toString();
+  typeof input === "object" && "url" in input ? input.url : input.toString();
 
 const realFetch = globalThis.fetch;
 

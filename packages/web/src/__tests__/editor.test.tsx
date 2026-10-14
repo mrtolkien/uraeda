@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
-import * as binding from "uraeda-binding";
+import { startFeature } from "uraeda-binding";
 import { expect, test } from "vite-plus/test";
 import { navigate } from "../routes.tsx";
 import {
@@ -353,7 +353,7 @@ function proposal(repo: string, text = "# Login error banner\n\n## What\n\nThe b
 
 /** The address a request goes to. */
 const urlOf = (input: RequestInfo | URL) =>
-  input instanceof Request ? input.url : input.toString();
+  typeof input === "object" && "url" in input ? input.url : input.toString();
 
 /** A PNG, as the picker gives it. */
 const png = (name: string) =>
@@ -587,11 +587,7 @@ test("an upload the server does not answer in time says so under the field", asy
 test("an image added while the feature's agent works is refused under the field", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
-  const { folder } = await binding.startFeature(
-    repo,
-    "specs/drafts/git-listener.md",
-    "git-listener",
-  );
+  const { folder } = await startFeature(repo, "specs/drafts/git-listener.md", "git-listener");
   const session = await fake.sessions.featureSession(repo, folder);
   await fake.sessions.send(repo, session.id, {
     text: "Continue the feature.",

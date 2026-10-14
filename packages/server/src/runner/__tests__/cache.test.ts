@@ -567,9 +567,11 @@ test("migration 3 turns each feature's runs into the turns of one session", () =
   ).toEqual([first, second, allow]);
 });
 
+/** A chat image of a message, by its ID. */
+const image = (id: string) => ({ height: 1, id, width: 2 });
+
 test("imagesInUse lists the images of every repository's messages, taken back or not", () => {
   const cache = SessionCache.open(":memory:");
-  const image = (id: string) => ({ height: 1, id, width: 2 });
   for (const [repo, state, images] of [
     ["/repo/a", "read", [image("a.webp"), image("b.webp")]],
     ["/repo/b", "taken-back", [image("c.webp")]],

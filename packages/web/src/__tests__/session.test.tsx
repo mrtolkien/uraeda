@@ -349,7 +349,7 @@ test("an activity's time reads in seconds, then minutes", () => {
 
 /** The address a request goes to. */
 const urlOf = (input: RequestInfo | URL) =>
-  input instanceof Request ? input.url : input.toString();
+  typeof input === "object" && "url" in input ? input.url : input.toString();
 
 /** A PNG of the fixtures, as the picker or the clipboard gives it. */
 const png = (name = "login.png") =>
@@ -460,7 +460,9 @@ test("US2.3: a removed thumbnail is not sent, and its image is deleted", async (
   await click(first);
 
   await thumbnails(1);
-  await waitFor(async () => expect((await server(atRepo(`/chat-images/${saved[0]}`))).status).toBe(404));
+  await waitFor(async () =>
+    expect((await server(atRepo(`/chat-images/${saved[0]}`))).status).toBe(404),
+  );
   await send("Only the second");
   await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
   expect(fake.adapter.sent[0].images).toHaveLength(1);
@@ -674,6 +676,10 @@ test("a hand-over sends the workflow's message alone, and keeps the draft's imag
 
   await waitFor(() => expect(fake.adapter.sent).toHaveLength(1));
   expect(fake.adapter.sent[0].images).toHaveLength(0);
+  // The page draws the session its message created, with the draft it kept.
+  await refreshUntil(() =>
+    expect(screen.getAllByRole("button", { name: /^Remove / })).toHaveLength(1),
+  );
   await thumbnails(1);
 });
 
@@ -738,7 +744,9 @@ test("a taken-back message's images leave the draft at most 10, and say why", as
   await thumbnails(10);
   expect(shownText("A message takes at most 10 images.").length).toBeGreaterThan(0);
   // The draft's last two are gone, with their files.
-  await waitFor(async () => expect((await server(atRepo(`/chat-images/${saved[10]}`))).status).toBe(404));
+  await waitFor(async () =>
+    expect((await server(atRepo(`/chat-images/${saved[10]}`))).status).toBe(404),
+  );
   expect((await server(atRepo(`/chat-images/${saved[11]}`))).status).toBe(404);
   expect((await server(atRepo(`/chat-images/${saved[9]}`))).status).toBe(200);
 });
@@ -857,6 +865,8 @@ test("a thumbnail shows its file, dimmed, while it is saved", async () => {
   expect(thumbnail.querySelector(SPINNER)).toBeTruthy();
   await uploads.releaseAll();
   await waitFor(() =>
-    expect(thumbnail.querySelector("img")?.getAttribute("src")).toMatch(/^\/r\/[^/]+\/chat-images\//),
+    expect(thumbnail.querySelector("img")?.getAttribute("src")).toMatch(
+      /^\/r\/[^/]+\/chat-images\//,
+    ),
   );
 });

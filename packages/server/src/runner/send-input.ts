@@ -1,5 +1,5 @@
 import type { Capabilities } from "./adapter.ts";
-import type { Trigger } from "./events.ts";
+import type { Item, Trigger } from "./events.ts";
 import type { ChatImage } from "./images.ts";
 import { MAX_IMAGES } from "../limits.ts";
 import { REFUSALS, refused } from "./session-state.ts";
@@ -15,7 +15,8 @@ export type SendInput = {
 };
 
 /**
- * A message checked before any session work: text, or images alone, as `checkImages` allows them. Its item keeps the images' IDs and sizes, `held`; the agent gets their paths.
+ * A message checked before any session work: text, or images alone, as `checkImages` allows
+ * them. Its item keeps the images' IDs and sizes, `held`; the agent gets their paths.
  */
 export function checkSend(input: SendInput, capabilities: Capabilities) {
   const images = input.images ?? [];
@@ -57,4 +58,13 @@ export function checkImages(
   if (!capabilities.images) {
     throw refused(REFUSALS.noImages);
   }
+}
+
+/** A message's item, pending until the agent reads it, as it is sent now. */
+export function messageItem(
+  id: string,
+  origin: "human" | "workflow",
+  text: string,
+): Extract<Item, { kind: "message" }> {
+  return { at: new Date().toISOString(), id, kind: "message", origin, state: "pending", text };
 }

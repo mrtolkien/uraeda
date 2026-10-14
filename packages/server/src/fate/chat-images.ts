@@ -1,5 +1,6 @@
 import { chatImages } from "../attach.ts";
 import { type ChatImage, chatImageSize } from "../runner/images.ts";
+import { checkImages } from "../runner/send-input.ts";
 import { REFUSALS, type SentImage } from "../runner/sessions.ts";
 import type { Context } from "./context.ts";
 import { callSiteError } from "./errors.ts";
@@ -44,7 +45,7 @@ export async function sentImages(
     throw callSiteError("refused: images is a list");
   }
   const unique = uniqueImages(images);
-  await refusedOn(() => ctx.sessions.checkImages(unique, workflow));
+  await refusedOn(() => checkImages(unique, workflow, ctx.sessions.adapter.capabilities));
   const store = chatImages(ctx.dataDir);
   return unique.map(({ height, id, width }) => {
     const path = typeof id === "string" ? store.path(id) : undefined;

@@ -17,6 +17,10 @@ const refusal = (error: unknown) => ({
   error: error instanceof Error ? error.message : String(error),
 });
 
+/** Whether a multipart field is a file: a field's text is a string. */
+const isFile = (value: unknown): value is File =>
+  typeof value === "object" && value !== null && "arrayBuffer" in value;
+
 /** The chat images of the server's data folder. */
 export const chatImages = (dataDir: string) => new ChatImages(join(dataDir, "images"));
 
@@ -58,7 +62,7 @@ export function attach() {
       const body = await context.req.parseBody().catch(() => ({}) as Record<string, unknown>);
       const file = body.file;
       // A field's text is a string; a file part is a `File`.
-      if (file === undefined || typeof file === "string" || Array.isArray(file)) {
+      if (!isFile(file)) {
         return context.json({ error: "refused: The body holds no file." }, 400);
       }
       try {
