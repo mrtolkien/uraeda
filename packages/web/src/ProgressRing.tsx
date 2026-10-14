@@ -6,6 +6,10 @@ import * as stylex from "@stylexjs/stylex";
 /** The ring's circle, in the SVG's 16 × 16 box. */
 const CENTER = 8;
 const RADIUS = 6;
+/** The ring's thickness, in the same box. */
+const STROKE = 3;
+/** A quarter turn back, so the fill starts at the top. */
+const FROM_TOP = `rotate(-90 ${CENTER} ${CENTER})`;
 
 const styles = stylex.create({
   fill: {
@@ -35,7 +39,7 @@ export function ProgressRing({ position, total }: { position: number; total: num
         cy={CENTER}
         fill="none"
         r={RADIUS}
-        strokeWidth={3}
+        strokeWidth={STROKE}
         {...stylex.props(styles.track)}
       />
       {filled > 0 && (
@@ -47,8 +51,8 @@ export function ProgressRing({ position, total }: { position: number; total: num
           pathLength={total}
           r={RADIUS}
           strokeDasharray={`${filled} ${total}`}
-          strokeWidth={3}
-          transform={`rotate(-90 ${CENTER} ${CENTER})`}
+          strokeWidth={STROKE}
+          transform={FROM_TOP}
           {...stylex.props(styles.fill)}
         />
       )}
