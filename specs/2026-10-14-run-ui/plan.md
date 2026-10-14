@@ -941,25 +941,28 @@ git commit -m "feat(run-ui): a second start opens its repository in the running 
 
 - Create: `packages/uraeda/package.json`, `packages/uraeda/vite.config.ts`,
   `packages/uraeda/scripts/build.ts`, `packages/uraeda/scripts/smoke.ts`,
-  `packages/uraeda/.gitignore` (`web/`, `plugin/`), `packages/uraeda/README.md`
+  `packages/uraeda/.gitignore` (`web/`, `plugin/`), `packages/uraeda/README.md`,
+  `packages/uraeda/tsconfig.json` (`vp check` types the scripts and the config)
 - Modify: `package.json` (rename to `uraeda-workspace`; `ready` builds and smoke-tests the package)
-- Modify: `vite.config.ts` (lint and format see the new package's scripts)
+- Modify: `vite.config.ts` (lint and format see the new package's scripts, and skip its built
+  `dist/`, `web/`, and `plugin/`), `pnpm-lock.yaml` (the new package)
 
 **Interfaces:**
 
 - Consumes: the bundle of `packages/server/src/main.ts`; `layout()`'s package layout (Task 2).
 - Produces: `vp run --filter uraeda build`, which writes `packages/uraeda/dist/uraeda.mjs`,
   `dist/binding.js`, `web/`, and `plugin/`; and
-  `node packages/uraeda/scripts/smoke.ts [--binding <path to .node> | --platform <tarball>]`, which
-  packs `uraeda` and checks it from a temporary folder, printing each check, exiting 1 on the first
-  failure.
+  `node packages/uraeda/scripts/smoke.ts [--binding <.node or folder> | --platform <tarball>]`,
+  which packs `uraeda` and checks it from a temporary folder, printing each check, exiting 1 on the
+  first failure.
 - `packages/uraeda/package.json`: `"name": "uraeda"`, `"version": "0.0.0"`, `"type": "module"`,
   `"bin": { "uraeda": "dist/uraeda.mjs" }`, `"files": ["dist", "web", "plugin"]`,
   `"engines": { "node": ">=24" }`, `"license": "MIT OR Apache-2.0"`, `"repository"` pointing at
   `git+https://github.com/mrtolkien/uraeda.git` with `"directory": "packages/uraeda"`, no
-  `dependencies`, no `scripts` that npm runs at install. It is not `private`.
+  `dependencies`, no `scripts` that npm runs at install: only `build`, and `@types/node` as its one
+  dev dependency. It is not `private`.
 
-- [ ] **Step 1: Write the smoke test, the failing check**
+- [x] **Step 1: Write the smoke test, the failing check**
 
 `scripts/smoke.ts` runs, from a new temporary folder outside the repository:
 
@@ -968,7 +971,10 @@ git commit -m "feat(run-ui): a second start opens its repository in the running 
 2. Checks, each printed as `ok <name>` or `failed <name>: <why>`:
    - **size**: prints the tarball's size in bytes (never fails:
      [review comment C1](#review-comments));
-   - **version**: `uraeda --version` prints `0.0.0` from the package, or the release's version;
+   - **install**: `npm install` of the tarball succeeded;
+   - **version**: `uraeda --version` prints the package's version, or, while it is `0.0.0`, the
+     Cargo workspace's, which the binding reports
+     ([R10](rulings.md#r10-the-smoke-test-expects-the-cargo-version-before-a-release));
    - **help**: `uraeda --help` exits 0 and lists `--allowed-hosts`;
    - **unknown option**: `uraeda --colour` exits 1 with the spec's message;
    - **start**: in a new git repository named `todo`, with its own `URAEDA_DATA_DIR`, a `.env`
@@ -979,31 +985,40 @@ git commit -m "feat(run-ui): a second start opens its repository in the running 
    - **outside git**: from a folder outside git, the stderr line of US1.3, and `/` answers 200;
    - **plugin**: the installed package's `plugin/skills/uraeda/SKILL.md` and
      `plugin/.claude-plugin/plugin.json` exist;
+   - **loader**: `dist/binding.js` is the checkout's `packages/binding/index.js`, byte for byte, the
+     bundle imports `./binding.js`, and it names no path of the checkout
+     ([review focus 6](#review-focus));
    - **missing binding**, only without `--platform` and `--binding`: the command exits 1 with a
-     message starting `uraeda: `.
+     message starting `uraeda: `. Without either, version, start, and outside git do not run.
 3. Every started child is ended in a `finally`, on every path.
 
 `--binding` sets `NAPI_RS_NATIVE_LIBRARY_PATH` for the started commands; `vp run ready` passes the
-checkout's built `.node`. Polling for readiness is allowed; sleeping a fixed time is not.
+checkout's `packages/binding`, in which the script takes the one `uraeda-binding.*.node`
+([R9](rulings.md#r9---binding-takes-a-folder)). Polling for readiness is allowed; sleeping a fixed
+time is not.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run:
   `node packages/uraeda/scripts/smoke.ts --binding packages/binding/uraeda-binding.linux-x64-gnu.node`
 - Expected: FAIL, `npm pack` finds no `package.json` contents to pack, or `failed version` since
-  nothing is built
+  nothing is built. Got: `failed install`, `npm pack` reading the root's `package.json` and refusing
+  its pnpm `devEngines`.
 
-- [ ] **Step 3: Implement the build**
+- [x] **Step 3: Implement the build**
 
 `vite.config.ts`'s `pack` block: entry `../server/src/main.ts`, output `dist/uraeda.mjs` with the
 banner `#!/usr/bin/env node`, `define: { URAEDA_PACKAGE: "true" }`, `uraeda-binding` resolved to
-`./binding.js` and kept external, every other dependency bundled. `scripts/build.ts` runs the pack,
+`./binding.js` and kept external (`deps.neverBundle`, and Rolldown's `outputOptions.paths`), every
+other dependency bundled, into one file (`codeSplitting: false`). `scripts/build.ts` runs the pack,
 copies `packages/binding/index.js` to `dist/binding.js` unchanged, copies `packages/web/dist` to
-`web/`, and copies `packages/server/plugin` to `plugin/`, following the skill's symlink. The build
-fails when the web UI is not built. Rename the root package to `uraeda-workspace`, and add to
-`ready`, after the web UI's build:
+`web/`, and copies `packages/server/plugin` to `plugin/`, following the skill's symlink with its own
+copy: `cpSync`'s `dereference` keeps a symlink found inside the folder. It takes the checkout's
+folders and the package's from `layout()`. The build fails when the web UI is not built. Rename the
+root package to `uraeda-workspace`, and add to `ready`, after the web UI's build:
 `vp run --filter uraeda build && node packages/uraeda/scripts/smoke.ts --binding <the checkout's .node>`,
-the `.node` found by its `uraeda-binding.*.node` name.
+the `.node` found by its `uraeda-binding.*.node` name: `--binding packages/binding`, as `vp run`
+expands no glob.
 
 - [ ] **Step 4: Run the smoke test and all checks**
 
@@ -1011,12 +1026,13 @@ the `.node` found by its `uraeda-binding.*.node` name.
   `vp run --filter uraeda-web build && vp run --filter uraeda build && node packages/uraeda/scripts/smoke.ts --binding packages/binding/uraeda-binding.linux-x64-gnu.node`
 - Expected: every check `ok`, exit 0
 - Run: `vp run ready`
-- Expected: PASS, with the working tree unchanged
+- Expected: PASS, with the working tree unchanged. Not run yet: `vp check`, the build and smoke
+  test, and `vp test packages/server` passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/uraeda package.json vite.config.ts pnpm-lock.yaml
+git add packages/uraeda package.json vite.config.ts pnpm-lock.yaml specs/2026-10-14-run-ui
 git commit -m "feat(run-ui): the uraeda npm package and its smoke test"
 ```
 
