@@ -86,6 +86,29 @@ test("the server in vp dev reads URAEDA_REPO", async () => {
   expect(await other.text()).toBe("vite");
 });
 
+/** Edge case: the running server is `vp dev`. */
+test("the dev server answers a handoff on Vite's port", async () => {
+  const root = temporaryFolder("uraeda-dev");
+  process.env.URAEDA_REPO = fixtureRepo();
+  process.env.URAEDA_DATA_DIR = temporaryFolder("uraeda-data");
+  const handler = devHandler(root, { adapter: new FakeAdapter() });
+  const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address() as { port: number };
+
+  const response = await fetch(`http://127.0.0.1:${port}/open`, {
+    body: JSON.stringify({ folder: temporaryFolder("uraeda-none"), given: false }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
+  });
+  const text = await response.text();
+  server.close();
+  await stopDevRuns();
+
+  expect(response.status).toBe(200);
+  expect((JSON.parse(text) as { url: string }).url).toBe("/");
+});
+
 /** An upload's body, as the UI sends it. */
 function upload() {
   const body = new FormData();

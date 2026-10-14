@@ -23,11 +23,11 @@ export function devServer(env: Env) {
 }
 
 /**
- * The paths the server answers, a repository's and the global ones; Vite serves everything else.
- * A repository's images and uploads are only under its prefix.
+ * The paths the server answers, a repository's and the global ones, and the handoff, `/open`; Vite
+ * serves everything else. A repository's images and uploads are only under its prefix.
  */
 const SERVER_PATHS =
-  /^\/((r\/[^/?]+\/)?(fate|raw|mockups)|r\/[^/?]+\/(attach|images|chat-images))(\/|\?|$)/;
+  /^\/(open|(r\/[^/?]+\/)?(fate|raw|mockups)|r\/[^/?]+\/(attach|images|chat-images))(\/|\?|$)/;
 
 type Listener = (req: IncomingMessage, res: ServerResponse) => Promise<void>;
 

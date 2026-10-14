@@ -672,25 +672,50 @@ git commit -m "feat(run-ui): open the browser when a desktop is there"
   ```ts
   export type OpenRequest = { folder: string; given: boolean };
   export type OpenAnswer = { uraeda: string; url: string };
+  /** The `code` of `openFolder`'s error for a given folder outside git, which stops the start. */
+  export const NOT_A_REPOSITORY = "NOT_A_REPOSITORY";
   /**
-   * Adds the main checkout of `folder` to the list and returns its page, `/r/<name>/`; `/` when the
-   * folder is not in git and was not given. Rejects with `<folder> is not a git repository` when it
-   * was given. Reloads the hosts before returning, when they are open.
+   * Adds the main checkout of `folder` to the list, or touches it when listed, and returns its page,
+   * `/r/<name>/`; `/` when the folder is not in git and was not given. Rejects with
+   * `<folder> is not a git repository`, its `code` `NOT_A_REPOSITORY`, when it was given. Reloads
+   * the hosts before returning, when they are open. A list the core refuses to change rejects with
+   * the core's error.
    */
   export function openFolder(
     deps: { binding: Binding; dataDir: string; hosts?: Hosts },
     request: OpenRequest,
   ): Promise<{ url: string }>;
-  /** The Hono route: 200 with `OpenAnswer`, 400 with `{ error }`. */
+  /**
+   * `POST /open`: 200 with `OpenAnswer`, `uraeda` from `binding.version()`; 400 with `{ error }`
+   * for a body without an absolute folder (`folder must be an absolute path`), a given folder
+   * outside git, or a list the core refuses to change (its message, without `refused: `).
+   */
   export function openRoute(): Hono<{ Variables: FateVariables }>;
   ```
 
-  `startServer` calls `openFolder` before the hosts open, and keeps writing
-  `uraeda: <folder> is not in a git repository: add one from the web UI` to stderr when the folder
-  is not in git and not given. A list that cannot be written is still reported and the start goes
-  on, as today.
+  Mounted in `createApp` with `app.route("/", openRoute())`, after `guard` and before the static
+  files. `dev.ts`'s `SERVER_PATHS` answers `/open`.
 
-- [ ] **Step 1: Write the failing tests**
+  From `server.ts`, `startServer` adds through `openFolder` before the hosts open, and its `Server`
+  gains the started repository's page:
+
+  ```ts
+  export type Server = {
+    app: ReturnType<typeof createApp>;
+    hosts: Hosts;
+    sessions: Sessions;
+    stop: () => Promise<void>;
+    /** The started repository's page, `/r/<name>/`, or `/` when the server started outside git. */
+    url: string;
+  };
+  ```
+
+  It keeps writing `uraeda: <folder> is not in a git repository: add one from the web UI` to stderr
+  when the folder is not in git and not given, and throws `<folder> is not a git repository` when it
+  was given. A list that cannot be written is still reported, `url` is then `/`, and the start goes
+  on, as before.
+
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // open.test.ts, on testApp() from helpers.ts
@@ -752,23 +777,23 @@ in `helpers.ts` if another test file needs them. The breaks: the page answered b
 reload, 404 on the first visit; the route outside the guard; a listed repository added twice;
 `vp dev`'s handler passing `/open` to Vite.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/__tests__/open.test.ts`
 - Expected: FAIL, first `expected 404 to be 200`
 
-- [ ] **Step 3: Implement `openFolder` and the route, and move `startServer`'s adding to it**
+- [x] **Step 3: Implement `openFolder` and the route, and move `startServer`'s adding to it**
 
 The route reads the JSON body, refuses a body without an absolute `folder` string with 400 and
 `{ "error": "folder must be an absolute path" }`, and runs behind `guard`, as every route of
 `createApp` does. It is added before the static files.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check && vp test packages/server`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src
@@ -786,7 +811,8 @@ git commit -m "feat(run-ui): hand a folder over to the running server"
 **Interfaces:**
 
 - Consumes: `parseOptions`, `HELP` (Task 3); `openBrowser` (Task 4); `OpenRequest`, `OpenAnswer`,
-  `openFolder` through `startServer` (Task 5); `layout()` (Task 2).
+  `openFolder` through `startServer`, whose `Server.url` is the page to open, `/r/<name>/` or `/`
+  (Task 5); `layout()` (Task 2).
 - Produces, from `open-client.ts`:
 
   ```ts
@@ -886,8 +912,8 @@ print `uraeda: <error>` and exit 1 when refused; print the "another program" mes
 otherwise. Once listening, attach a request listener that awaits the app, then call `startServer`
 and resolve the app with `getRequestListener(app.fetch)` from `@hono/node-server`. Then print
 `Uraeda server on http://127.0.0.1:<port>`, and open `/r/<name>/` of the started repository, or `/`
-without one, unless `--no-open`. `startServer` reports the started repository's name for this. Keep
-the signal handling as it is. `main.ts`'s functions stay under 100 lines.
+without one, unless `--no-open`: `startServer` returns it as `Server.url`. Keep the signal handling
+as it is. `main.ts`'s functions stay under 100 lines.
 
 - [ ] **Step 4: Run all tests**
 
