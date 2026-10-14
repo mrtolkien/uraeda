@@ -132,6 +132,18 @@ fn headings_links_and_lines() {
 }
 
 #[test]
+fn a_nested_image_is_not_a_link_of_its_own() {
+    let document = Document::parse("![a ![b](b.png) c](o.png) ![[e.png]] ![f](f.png)\n");
+
+    let links: Vec<_> = document
+        .links
+        .iter()
+        .map(|l| (l.target.as_str(), l.image))
+        .collect();
+    assert_eq!(links, [("o.png", true), ("f.png", true)]);
+}
+
+#[test]
 fn slugs_follow_github() {
     let cases = [
         ("Q6: How does ura run git?", "q6-how-does-ura-run-git"),

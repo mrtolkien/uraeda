@@ -566,7 +566,10 @@ export interface Span {
 /** An image of a span: its target as written, and the file it shows in the repository. */
 export interface SpanImage {
   target: string
-  /** The file from the repository's top level, `None` for a web image. */
+  /**
+   * The file from the repository's top level; absent for an image on the web or in a URI,
+   * such as `data:`.
+   */
   path?: string
 }
 
@@ -574,7 +577,10 @@ export interface SpanImage {
 export interface SpanLink {
   target: string
   wiki: boolean
-  /** The file from the repository's top level, `None` for a web link or an anchor in the page. */
+  /**
+   * The file from the repository's top level; absent for a web link, a URI, or an anchor in
+   * the page.
+   */
   path?: string
 }
 

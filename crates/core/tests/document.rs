@@ -216,6 +216,114 @@ fn an_image_is_a_span_with_its_alt_text_and_path() {
     );
 }
 
+/// The image spans of a paragraph's text, as their alt text, image path, and link path.
+fn images(text: &str) -> Vec<(String, Option<String>, Option<String>)> {
+    let doc = parse(text, "specs/2026-10-14-x");
+    doc.blocks[0]
+        .spans
+        .iter()
+        .filter_map(|s| {
+            let image = s.image.as_ref()?;
+            let link = s.link.as_ref().and_then(|l| l.path.clone());
+            Some((s.text.clone(), image.path.clone(), link))
+        })
+        .collect()
+}
+
+#[test]
+fn an_image_inside_a_link_has_the_link() {
+    assert_eq!(
+        images("[![a](a.png)](b.md)\n"),
+        [(
+            "a".to_string(),
+            Some("specs/2026-10-14-x/a.png".to_string()),
+            Some("specs/2026-10-14-x/b.md".to_string())
+        )]
+    );
+}
+
+#[test]
+fn an_image_alt_text_keeps_its_marked_text() {
+    assert_eq!(
+        images("![a *b* `c`](x.png)\n"),
+        [(
+            "a b c".to_string(),
+            Some("specs/2026-10-14-x/x.png".to_string()),
+            None
+        )]
+    );
+}
+
+#[test]
+fn a_nested_image_is_part_of_the_outer_alt_text() {
+    let doc = parse("![a ![b](b.png) c](o.png) d\n", "specs/2026-10-14-x");
+
+    let spans = &doc.blocks[0].spans;
+    assert_eq!(spans.len(), 2, "{spans:?}");
+    assert_eq!(spans[0].text, "a b c");
+    assert_eq!(spans[0].image.as_ref().unwrap().target, "o.png");
+    assert_eq!(spans[1].text, " d");
+    assert_eq!(spans[1].image, None);
+}
+
+#[test]
+fn an_image_alt_text_is_never_an_item_marker() {
+    let doc = parse("- ![! warn](w.png)\n", "specs");
+
+    let item = only(&doc, BlockKind::Item)[0];
+    assert_eq!(item.marker, Some(ItemMarker::Plain));
+    assert_eq!(item.spans[0].text, "! warn");
+    assert!(item.spans[0].image.is_some());
+}
+
+#[test]
+fn a_uri_scheme_is_not_a_repository_path() {
+    let doc = parse(
+        "![d](data:image/png;base64,AAAA) [f](file:///etc/passwd) [m](mailto:a@b.c) [c](C++.md) ![p](//e.com/x.png)\n",
+        "specs/f",
+    );
+
+    let paths: Vec<_> = doc.blocks[0]
+        .spans
+        .iter()
+        .filter_map(|s| match (&s.image, &s.link) {
+            (Some(image), _) => Some(image.path.clone()),
+            (None, Some(link)) => Some(link.path.clone()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        paths,
+        [None, None, None, Some("specs/f/C++.md".to_string()), None]
+    );
+}
+
+#[test]
+fn a_percent_encoded_target_is_decoded() {
+    let doc = parse(
+        "![s](images/my%20shot.webp) [n](caf%C3%A9.md#top) [bad](a%zz%FF.md)\n",
+        "specs/f",
+    );
+
+    let paths: Vec<_> = doc.blocks[0]
+        .spans
+        .iter()
+        .filter_map(|s| match (&s.image, &s.link) {
+            (Some(image), _) => image.path.clone(),
+            (None, Some(link)) => link.path.clone(),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        paths,
+        [
+            "specs/f/images/my shot.webp",
+            "specs/f/café.md",
+            "specs/f/a%zz%FF.md"
+        ]
+    );
+}
+
 #[test]
 fn headings_have_anchors_and_blocks_their_heading() {
     let doc = parse(

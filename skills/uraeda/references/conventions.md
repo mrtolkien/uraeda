@@ -17,11 +17,11 @@ GitHub Flavored Markdown, plus these extensions, which stay readable where they 
   root (`[auth](/src/auth.ts)`). Humans may write wikilinks (`[[due-dates]]`): read them, but do not
   write them. Link to what a file relies on: decisions, discovery, code.
 - **Images**: `![alt](images/name.webp)`, saved in the `images/` folder next to the file, and
-  committed with it. Each is re-encoded once, from PNG, JPEG, GIF, or WebP, as WebP with no metadata
-  and at most 2576 pixels on its long edge: JPEG and lossy WebP lossy at quality 80, the rest
-  near-lossless at level 60 and quality 75, and an animated GIF may stay as it is. A draft that gets
-  an image becomes a folder, `drafts/<slug>/proposal.md`. A commit of a human's file deletes the
-  images of its folder that no file there links to.
+  committed with it. Each is re-encoded once as WebP, with no metadata and at most 2576 pixels on
+  its long edge (JPEG and lossy WebP at quality 80, the rest near-lossless); an animated GIF stays a
+  `.gif`, without metadata. A draft or backlog file that gets an image becomes a folder,
+  `<slug>/proposal.md`, and links to it follow. When you commit a human's file, delete the images of
+  its folder that no file there links to; starting a feature moves them all, unchanged.
 
 Templates are strict where tools and agents need to find things, and free elsewhere:
 
