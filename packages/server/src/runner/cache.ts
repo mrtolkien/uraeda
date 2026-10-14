@@ -557,6 +557,18 @@ export class SessionCache {
     );
   }
 
+  /** The chat images the messages of every repository hold, by their IDs. */
+  imagesInUse(): Set<string> {
+    const rows = this.#db
+      .prepare(
+        `SELECT DISTINCT json_extract(image.value, '$.id') AS id
+         FROM items, json_each(items.data, '$.images') AS image
+         WHERE items.kind = 'message'`,
+      )
+      .all() as Array<{ id: string | null }>;
+    return new Set(rows.flatMap(({ id }) => (id === null ? [] : [id])));
+  }
+
   itemCount(turnId: number): number {
     const { count } = this.#db
       .prepare("SELECT COUNT(*) AS count FROM items WHERE turn_id = ?")
