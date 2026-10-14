@@ -77,8 +77,9 @@ export function AsideToggle({ aside: [shown, setShown] }: { aside: AsideShown })
 }
 
 /**
- * A feature's session's content, with the column beside it on wide screens while it is shown; the
- * content alone otherwise.
+ * A session's page, with a feature's column beside it at the window's edge, on wide screens while
+ * it is shown. The page keeps its place in the tree as the column comes and goes, or the width
+ * changes, so its transcript, focus, and errors stay.
  */
 export function WithAside({
   aside,
@@ -92,22 +93,22 @@ export function WithAside({
   session?: string;
 }) {
   const wide = useWidthClass() === "wide";
-  if (!wide || !aside?.[0] || folder === undefined) {
-    return children;
-  }
+  const shown = wide && aside?.[0] === true && folder !== undefined;
   return (
     <Layout
       content={children}
       end={
-        <LayoutPanel
-          hasDivider
-          label="Progress"
-          role="complementary"
-          width="var(--size-session-aside)"
-          xstyle={styles.panel}
-        >
-          <SessionAside folder={folder} {...(session === undefined ? {} : { session })} />
-        </LayoutPanel>
+        shown ? (
+          <LayoutPanel
+            hasDivider
+            label="Progress"
+            role="complementary"
+            width="var(--size-session-aside)"
+            xstyle={styles.panel}
+          >
+            <SessionAside folder={folder} {...(session === undefined ? {} : { session })} />
+          </LayoutPanel>
+        ) : undefined
       }
       height="auto"
     />

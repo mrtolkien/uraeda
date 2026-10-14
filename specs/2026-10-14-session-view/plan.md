@@ -960,10 +960,11 @@ git commit -m "feat(session-view): the session's own page at every width"
   - `useAsideShown(): AsideShown`, with `type AsideShown = [boolean, (shown: boolean) => void]`,
     over `localStorage`'s `uraeda.sessionAside`, called once in `FeatureSession` and passed to
     `Session` and `NoSession` as `aside`;
-  - `WithAside({ aside, children, folder, session })`, the `Layout` with the column on wide screens
-    while shown, the children alone otherwise, and `AsideToggle({ aside })`, "Hide progress" or
-    "Show progress" on wide screens only
-    ([R16](rulings.md#r16-the-columns-tests-follow-the-cores-steps-and-the-layout-wraps-the-whole-session)).
+  - `WithAside({ aside, children, folder, session })`, the `Layout` around the session's `Page` at
+    every width, its `end` slot the column on wide screens while shown, and
+    `AsideToggle({ aside })`, "Hide progress" or "Show progress" on wide screens only
+    ([R16](rulings.md#r16-the-columns-tests-follow-the-cores-steps-and-the-layout-wraps-the-whole-session),
+    [R17](rulings.md#r17-the-layout-wraps-the-page-at-every-width-its-column-at-the-windows-edge)).
 
 - [x] **Step 1: Write the failing tests**
 
@@ -1002,11 +1003,12 @@ are all checked reaches "Pull request" in the tests, which know no pull request
 
 - [x] **Step 3: Implement**
 
-- **The layout.** On wide screens, a feature's `Session` and `NoSession` are an Astryx `Layout`,
-  `height="auto"` as the window scrolls. The crumbs, the header, the transcript, and the composer
-  are its content, as in the mockup, and a `LayoutPanel` labelled "Progress", 320 px from the theme,
-  `role="complementary"`, with a divider, sticky through its `xstyle` and scrolling on its own like
-  `RoundNav`, is its `end` slot.
+- **The layout.** At every width, a session's `Page` is the content of an Astryx `Layout`,
+  `height="auto"` as the window scrolls, so the page keeps its place in the tree as the column comes
+  and goes. The crumbs, the header, the transcript, and the composer are in the page, as in the
+  mockup, and on wide screens, while shown, a `LayoutPanel` labelled "Progress", 320 px from the
+  theme, `role="complementary"`, with a divider, sticky through its `xstyle` and scrolling on its
+  own like `RoundNav`, is its `end` slot, at the window's edge.
 - **"Hide progress" and "Show progress"** sit in the header's status line, on wide screens only.
 - **`useAsideShown`** reads and writes `uraeda.sessionAside` in try/catch, falling back to the
   page's own state.

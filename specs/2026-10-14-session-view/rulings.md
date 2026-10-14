@@ -227,3 +227,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `useAsideShown` in each view, which forgets a refused choice on the first message.
 - **If wrong**: the test's two headings; `WithAside`'s slots in `SessionAside.tsx`.
 - **Where**: Task 7.
+
+## R17: The layout wraps the page at every width, its column at the window's edge
+
+- **Decision**: `WithAside` always draws the `Layout`, with the session's `Page` as its content, and
+  only adds or removes the `end` panel. The `Layout` is outside the `Page`, not inside it.
+- **Rationale**: the task's review found that drawing the page bare when the column was hidden, or
+  on a phone, remounted the crumbs, the header, the transcript, and the composer at each fold or
+  change of width: the focus fell to the page's body, following watched a detached log, and an error
+  under the composer vanished, against "Errors MUST stay on screen". Inside the `Page`, the column
+  shared its 720 px below 1024 px, leaving the transcript about 336 px, and floated mid-screen on a
+  wide window, where the mockup puts it at the window's edge.
+- **Alternatives considered**: keeping the page's state above the switch, which still moves the DOM
+  and its focus; a `key` kept on the content, which React does not keep across parents.
+- **If wrong**: `WithAside` in `SessionAside.tsx`, and the two `Page`s it wraps in
+  `SessionPage.tsx`.
+- **Where**: Task 7, after its review.
