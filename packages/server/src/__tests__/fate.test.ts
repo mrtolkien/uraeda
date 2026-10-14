@@ -6,6 +6,13 @@ import { byId, fixtureRepo, mutate, testApp } from "./helpers.ts";
 
 const ROUND = "2026-10-11-web-ui/clarifications-01.md";
 
+/** The error a call fails with, or undefined when it succeeds. */
+const failed = (call: () => Promise<unknown>) =>
+  call().then(
+    () => undefined,
+    (error) => error,
+  );
+
 test("reads the workspace by its id", async () => {
   const [workspace] = await byId(
     (await testApp()).app,
@@ -60,12 +67,7 @@ test("refuses a stale answer at the call site, with its code", async () => {
 });
 
 test("a binding call's refusal is a bad request, and any other error an internal one, logged", async () => {
-  const log = vi.spyOn(console, "error").mockImplementation(() => {});
-  const failed = (call: () => Promise<unknown>) =>
-    call().then(
-      () => undefined,
-      (error) => error,
-    );
+  const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 
   for (const message of ["refused: no", "conflict: changed", "hook: failed\n\noutput"]) {
     const refusal = await failed(() => refusable(() => Promise.reject(new Error(message))));

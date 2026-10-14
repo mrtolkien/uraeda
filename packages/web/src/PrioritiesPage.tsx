@@ -53,6 +53,11 @@ export function dropIndex(from: Spot, target: Spot) {
     : target.index;
 }
 
+/** Whether a pointer event's target is a node of the page, which a handle may contain. */
+function isNode(target: EventTarget | null): target is Node {
+  return target !== null && "nodeType" in target;
+}
+
 /** The lines of each section, by key, in order: what a drag reorders. */
 type Order = Record<string, Array<string>>;
 
@@ -367,6 +372,7 @@ export function PrioritiesPage() {
   };
 
   const changes = priorities.changes;
+  // oxlint-disable-next-line react/refs -- before the code quality decision: read by the announcer's callbacks during a drag, not while rendering
   const announcements = announcer(() => after.current ?? order);
   return (
     <Page>
@@ -413,7 +419,7 @@ export function PrioritiesPage() {
               activatorElements: (source) => [source.element],
               preventActivation: (event, source) =>
                 event.pointerType !== "touch" &&
-                !(event.target instanceof Node && source.handle?.contains(event.target)),
+                !(isNode(event.target) && source.handle?.contains(event.target)),
             }),
             KeyboardSensor,
           ]}

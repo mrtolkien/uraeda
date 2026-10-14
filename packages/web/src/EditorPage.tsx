@@ -67,6 +67,7 @@ export function EditorPage({ path }: { path: string }) {
   }, draft?.hash ?? "");
   const { idle, settle } = save;
   const shown = useRef(text);
+  // oxlint-disable-next-line react/refs -- before the code quality decision: the shown text, kept for the effects to read
   shown.current = text;
   // A text changed elsewhere replaces this one when nothing of it waits to be saved.
   useEffect(() => {

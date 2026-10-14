@@ -132,7 +132,7 @@ async function settle(page: Page) {
 async function save(shot: Shot, view: string) {
   const path = join(out, `${view}-${shot.size}-${shot.mode}.png`);
   await shot.page.screenshot({ path });
-  console.log(`  ${view}-${shot.size}-${shot.mode}.png`);
+  process.stdout.write(`  ${view}-${shot.size}-${shot.mode}.png\n`);
 }
 
 /** Every view, each at both sizes and in both themes, or on one size when only it shows it. */

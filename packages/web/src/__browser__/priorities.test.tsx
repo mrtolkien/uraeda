@@ -93,6 +93,9 @@ afterEach(async () => {
   await commands.mouse([{ type: "up" }]);
 });
 
+/** Waits for an announcement: the page shows the last message only. */
+const announced = (text: string) => expect.poll(() => document.body.textContent).toContain(text);
+
 test("dragging with a mouse makes room and moves the line (US4 5)", async () => {
   await show("/priorities", "Git listener process");
   const handle = middle(screen.getByRole("button", { name: "Move Git listener process" }));
@@ -160,9 +163,7 @@ test("Space, ↓, ↓, Space moves a line two places, announced (US4 7)", async 
   const handle = screen.getByRole("button", { name: "Move Web UI for the workflow files" });
   handle.focus();
 
-  // Each key is announced once the drag has taken it, with the line's place: the announcement
-  // shows the last message only.
-  const announced = (text: string) => expect.poll(() => document.body.textContent).toContain(text);
+  // Each key is announced once the drag has taken it, with the line's place.
   await userEvent.keyboard("[Space]");
   await announced("Web UI for the workflow files, 1 of 4 in Now.");
   await userEvent.keyboard("[ArrowDown]");

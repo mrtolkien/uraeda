@@ -1,9 +1,11 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
-import * as binding from "uraeda-binding";
 import { createApp } from "../app.ts";
 import { fixtureRepo, git, port, testApp, testHosts } from "./helpers.ts";
+
+/** The core's binding, as one object: the server takes it whole. */
+const binding = await import("uraeda-binding");
 
 test("serves a mockup sandboxed, with its type", async () => {
   const repo = fixtureRepo();
@@ -39,7 +41,7 @@ test("serves a file's raw text, and nothing outside the repository", async () =>
 });
 
 test("a file that cannot be read for another reason than its absence is a server error, logged", async () => {
-  const { hosts, sessions, dataDir, names } = await testHosts([fixtureRepo()], {
+  const { dataDir, hosts, names, sessions } = await testHosts([fixtureRepo()], {
     installed: false,
   });
   // The core fails for a reason other than a missing file.
@@ -48,15 +50,15 @@ test("a file that cannot be read for another reason than its absence is a server
     readRaw: () => Promise.reject(new Error("refused: disk unreadable")),
   };
   const app = createApp({
-    port,
     allowedHosts: [],
     allowOrigins: [],
     binding: failing,
-    sessions,
-    hosts,
     dataDir,
+    hosts,
+    port,
+    sessions,
   });
-  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 
   const raw = await app.request(`http://127.0.0.1:${port}/r/${names[0]}/raw/specs/README.md`);
   const mockup = await app.request(

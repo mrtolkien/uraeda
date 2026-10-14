@@ -15,6 +15,33 @@ const types: Record<string, string> = {
  */
 const NOT_FOUND = /^refused: .*: no such file$/s;
 
+/** The file's text, or the status of why it was not read: 404 when it is not found, else 500. */
+async function read(
+  context: { get: (key: "fate") => FateVariables["fate"] },
+  path: string,
+): Promise<string | 404 | 500> {
+  const { binding, repo } = context.get("fate");
+  if (repo === null) {
+    return 404;
+  }
+  try {
+    return await binding.readRaw(repo, decodeURIComponent(path));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (NOT_FOUND.test(message)) {
+      return 404;
+    }
+    process.stderr.write(`The server could not read ${path}: ${message}\n`);
+    return 500;
+  }
+}
+
+/** The request's path after its repository's prefix and `/<route>/`. */
+const rest = (context: { req: { path: string } }, route: string) =>
+  context.req.path.replace(/^\/r\/[^/]+/, "").slice(`/${route}/`.length);
+
+const failed = (status: 404 | 500) => (status === 404 ? "Not found" : "The file could not be read");
+
 /**
  * Files of the repository, read through the binding: `/raw/<path>` as text, for links to code,
  * and `/mockups/<path>` with their own type, sandboxed so their scripts run outside the UI's
@@ -22,31 +49,6 @@ const NOT_FOUND = /^refused: .*: no such file$/s;
  */
 export function files() {
   const app = new Hono<{ Variables: FateVariables }>();
-  /** The file's text, or the status of why it was not read: 404 when it is not found, else 500. */
-  const read = async (
-    context: { get: (key: "fate") => FateVariables["fate"] },
-    path: string,
-  ): Promise<string | 404 | 500> => {
-    const { binding, repo } = context.get("fate");
-    if (repo === null) {
-      return 404;
-    }
-    try {
-      return await binding.readRaw(repo, decodeURIComponent(path));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (NOT_FOUND.test(message)) {
-        return 404;
-      }
-      console.error(`The server could not read ${path}: ${message}`);
-      return 500;
-    }
-  };
-  /** The request's path after its repository's prefix and `/<route>/`. */
-  const rest = (context: { req: { path: string } }, route: string) =>
-    context.req.path.replace(/^\/r\/[^/]+/, "").slice(`/${route}/`.length);
-  const failed = (status: 404 | 500) =>
-    status === 404 ? "Not found" : "The file could not be read";
   app.get("/raw/*", async (context) => {
     const text = await read(context, rest(context, "raw"));
     return typeof text === "number"

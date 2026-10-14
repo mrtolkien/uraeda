@@ -1,9 +1,11 @@
 import { vi } from "vite-plus/test";
-import * as binding from "uraeda-binding";
 import { fixtureRepo } from "uraeda-binding/test-utils";
 import { SessionCache } from "../cache.ts";
 import { FakeAdapter } from "../fake.ts";
 import { type SessionChange, Sessions } from "../sessions.ts";
+
+/** The core's binding, as one object: the server takes it whole. */
+const binding = await import("uraeda-binding");
 
 /** Lets the session manager read the events emitted so far. */
 export function flush() {

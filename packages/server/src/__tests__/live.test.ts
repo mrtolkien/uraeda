@@ -1,12 +1,15 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
+import type { Changes } from "uraeda-binding";
 import { afterEach, expect, test, vi } from "vite-plus/test";
-import * as binding from "uraeda-binding";
 import { createFate, type LiveBus, live } from "../fate.ts";
 import { publish, SESSION_UPDATE_MS, sessionPublisher } from "../live.ts";
 import type { Host } from "../repositories.ts";
 import { SessionCache } from "../runner/cache.ts";
 import { byId, fixtureRepo, git, mutate, port, testApp, testHosts, testServer } from "./helpers.ts";
+
+/** The core's binding, as one object: the server takes it whole. */
+const binding = await import("uraeda-binding");
 
 type App = Awaited<ReturnType<typeof testApp>>["app"];
 
@@ -175,10 +178,10 @@ test("a repository is watched once, until it leaves the list", async () => {
  */
 test("a feature's change through git is published to its session and the list", async () => {
   const repo = fixtureRepo();
-  let watcher: ((changes: binding.Changes) => void) | undefined;
+  let watcher: ((changes: Changes) => void) | undefined;
   const capturing = {
     ...binding,
-    watch: (path: string, callback: (changes: binding.Changes) => void) => {
+    watch: (path: string, callback: (changes: Changes) => void) => {
       watcher = callback;
       return binding.watch(path, () => {});
     },

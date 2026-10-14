@@ -1,8 +1,10 @@
 // The session manager the server's and the UI's tests use: the fake adapter, and a cache in memory.
-import * as binding from "uraeda-binding";
 import { createSessions, type HostsOf } from "./live.ts";
 import { SessionCache } from "./runner/cache.ts";
 import { FakeAdapter } from "./runner/fake.ts";
+
+/** The core's binding, as one object: the server takes it whole. */
+const binding = await import("uraeda-binding");
 
 export { FakeAdapter };
 

@@ -96,6 +96,9 @@ async function saved(name: string | RegExp, text: string) {
 const FIRST = "completes it on Monday the 5th, Then it stays in the list, not done";
 const SECOND = "completes it on Thursday the 8th, Then it is due Monday the 12th.";
 
+/** The nested item's toggle. A parent's toggle is named by its text, its nested item's included. */
+const nested = () => screen.findByRole("button", { name: "Nested item" });
+
 /** US3.1 */
 test("a tapped block takes a comment on its lines", async () => {
   const r = repo();
@@ -331,8 +334,6 @@ test("a nested item's comment field takes taps without selecting its parent", as
     text.replace("## User stories\n", "- Parent item\n  - Nested item\n\n## User stories\n"),
   );
   await renderPage(PAGE, r);
-  // The parent's toggle is named by its text, its nested item's included.
-  const nested = () => screen.findByRole("button", { name: "Nested item" });
   await click(await nested());
   const field = await screen.findByLabelText("Comment text");
 

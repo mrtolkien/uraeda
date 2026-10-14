@@ -32,8 +32,7 @@ export class Turns {
 
   /** Records that the turn will end, for `settled`. */
   track(turn: number) {
-    let resolve = () => {};
-    const ended = new Promise<void>((done) => (resolve = done));
+    const { promise: ended, resolve } = Promise.withResolvers<void>();
     this.#pending.set(turn, { ended, resolve });
   }
 
@@ -167,7 +166,9 @@ export class Turns {
     try {
       this.#context.cache.endTurn(id, end);
     } catch (error) {
-      console.error(`The session manager could not record the end of turn ${id}: ${String(error)}`);
+      process.stderr.write(
+        `The session manager could not record the end of turn ${id}: ${String(error)}\n`,
+      );
     }
     this.#pending.get(id)?.resolve();
     this.#pending.delete(id);

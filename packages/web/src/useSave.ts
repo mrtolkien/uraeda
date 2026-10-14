@@ -28,6 +28,7 @@ export function useSave<T>(
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const latest = useRef<T | undefined>(undefined);
   const runRef = useRef(run);
+  // oxlint-disable-next-line react/refs -- before the code quality decision: the latest save function, kept for its timer to call
   runRef.current = run;
 
   /** Queues a write after the saves before it, over the text the last one wrote. */

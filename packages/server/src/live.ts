@@ -15,6 +15,10 @@ let sent = 0;
 /** A live update's event ID, unique in this process. */
 const eventId = (topic: string) => `${topic}:${Date.now()}:${sent++}`;
 
+/** Sends a record's live update on a bus. */
+const sender = (bus: LiveBus) => (type: string, id: string) =>
+  bus.update(type, id, { eventId: eventId(`${type}:${id}`) });
+
 /**
  * The hosts the session manager's changes go to, once they are open: the session manager starts
  * first, as the hosts' watches publish its sessions.
@@ -68,8 +72,6 @@ export function sessionPublisher(
     string,
     { last: number; repo: string; subagents: string; timer?: Timer; turns: Set<number> }
   >();
-  const sender = (bus: LiveBus) => (type: string, id: string) =>
-    bus.update(type, id, { eventId: eventId(`${type}:${id}`) });
   const turn = (update: ReturnType<typeof sender>, id: number) => {
     update("Turn", String(id));
     const count = pages(cache, id);

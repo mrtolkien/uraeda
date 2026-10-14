@@ -40,7 +40,7 @@ export function Overlay({
   const onCloseRef = useRef(onClose);
   useEffect(() => {
     onCloseRef.current = onClose;
-  });
+  }, [onClose]);
 
   useEffect(() => {
     if (!isOpen) {

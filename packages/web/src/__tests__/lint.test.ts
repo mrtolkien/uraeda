@@ -30,6 +30,10 @@ test.each([
   ["style-prop.tsx", "react(forbid-dom-props)"],
   ["class-name.tsx", "react(forbid-component-props)"],
   ["raw-color.tsx", "valid-styles"],
+  // US3.6: a `test.only` left behind fails the lint.
+  ["only-test.test.tsx", "no-only-tests"],
+  // The code quality decision: a marker left on code that no longer breaks its rule fails.
+  ["unused-directive.tsx", "Unused oxlint-disable directive"],
 ])("lint refuses %s (SC-002)", (file, rule) => {
   expect(lintOutput(`src/__lint__/${file}`)).toContain(rule);
 });
