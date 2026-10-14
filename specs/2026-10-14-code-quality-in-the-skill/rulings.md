@@ -340,3 +340,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the paragraph moves to `conventions.md` in one cut.
 - **Where**: task 9, `skills/uraeda/SKILL.md`,
   `skills/uraeda/references/{conventions,projects,cli}.md`.
+
+## R21: The example gets a code-quality decision, and a new marker waits for the plan's review
+
+- **Decision**: three additions beyond task 10's file list.
+  - The example gains `decisions/code-quality.md`, with ESLint limits and one marked offender,
+    `updateTask`. Its plan's task 2 splits `updateTask` first, in a step committed alone, and copies
+    the decision's rules into its global constraints. `references/code-quality.md` links it as the
+    model of a project's decision.
+  - `references/plan.md` lets a plan list a new marker as a constitution exception without a new
+    round of questions: the plan waits for the human's review, which approves it.
+  - `references/conventions.md` counts a task's structural step as a commit of its own.
+- **Rationale**: a structural step restructures a unit "over the project's limit", and the example
+  had no limit to be over. The amended principle says a new marker is "approved by a human in the
+  plan", which the rule "stop for any exception not accepted in the questions" contradicted. The
+  commit rule said one commit per task.
+- **Alternatives considered**: a structural step in the example with no decision behind it, which
+  shows a split no check asks for; linking this repository's decision as the model, which is not
+  part of the installed skill.
+- **If wrong**: the example's decision is one file, and its plan's step one block; the two reference
+  lines revert in one edit each.
+- **Where**: task 10, `skills/uraeda/assets/example/specs/`,
+  `skills/uraeda/references/{plan,conventions}.md`.

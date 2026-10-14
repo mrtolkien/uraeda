@@ -50,15 +50,18 @@ session's history. Otherwise, implement it yourself.
 1. **Read the task**, all of it, even one you remember: its text has the exact values. Check its
    **Consumes** against what the earlier tasks actually produced in the code, and trace the affected
    callers and owners of changed rules and state.
-2. **Work its steps in order.** Write the tests first. Tests of new behaviour must fail for the
-   intended reason before implementation; checks of preserved behaviour may already pass and must
-   keep passing. Then implement, and run every command the plan gives. Compare each output with the
-   step's **Expected** line:
+2. **Work its steps in order.** A structural step comes first, and is committed on its own, with its
+   box checked. Write the tests first. Tests of new behaviour must fail for the intended reason
+   before implementation; checks of preserved behaviour may already pass and must keep passing. Then
+   implement, and run every command the plan gives. Once a new test passes, make the break its step
+   names, see the test fail, revert it, and report the failure seen in the task's commit body: see
+   [tests that can fail](code-quality.md#tests-that-can-fail). Unit tests never sleep for a fixed
+   time. Compare each output with the step's **Expected** line:
    - **It matches**: go to the next step.
    - **The code is wrong**: find the root cause before changing anything: reproduce the failure,
      trace the wrong value back to where it first goes wrong, and test one hypothesis at a time, as
      the [bug step](bug.md#assess) describes. Never change a test or an expected value to make a run
-     pass.
+     pass. Changing or deleting an existing test for any other reason takes a ruling.
    - **The plan is wrong**: a name that does not match its producer, a command that cannot run, a
      failure that cannot happen. Make the smallest change that satisfies the spec, edit the plan's
      text to describe what was built, so later tasks read the right names, and write a ruling in
@@ -75,9 +78,11 @@ session's history. Otherwise, implement it yourself.
 5. **Review the task**, when your harness can run a fresh reviewer agent. Give it the task's text,
    the spec and its approval comments, the global constraints, and the diff of the task's commits.
    It derives expected behaviour from the approved requirements before checking the implementation
-   and tests, then reviews the changed responsibilities and their callers. Use the criteria of
-   [Review the branch](#review-the-branch), scaled to the task. Fix what matters in new commits,
-   each behaviour fix with a test that fails first; structural changes must keep behavioural tests
+   and tests, then reviews the changed responsibilities and their callers. It gives two verdicts,
+   spec compliance first, then quality, with the criteria of [Review the branch](#review-the-branch)
+   scaled to the task, and flags what the task grew, not sizes that were already there
+   ([extract, don't grow](code-quality.md#extract-dont-grow)). Fix what matters in new commits, each
+   behaviour fix with a test that fails first; structural changes must keep behavioural tests
    passing and satisfy explicit architectural constraints. After five rounds, rule on what remains,
    in `rulings.md`, and go on.
 
@@ -168,7 +173,9 @@ Review the changed subsystem and affected callers, including relevant code outsi
 - **Change cost**: identify duplicated decisions, unnecessary indirection, and obsolete paths. Trace
   where a likely follow-up change would belong without implementing that feature. Would it need the
   same rule edited in several places, or unrelated internals understood together? Judge the
-  boundaries by that cost, rather than file length or a preferred style.
+  boundaries by that cost, rather than a preferred style, and against the project's limits.
+- **Size**: list each function and file the branch grew, with its length before and after, for the
+  pull request's description ([extract, don't grow](code-quality.md#extract-dont-grow)).
 
 Grade each finding by what a user gets if the branch ships, not by whether the spec names the input
 that triggers it:
@@ -181,9 +188,13 @@ that triggers it:
 
 A maintenance defect can be important before it causes a user-visible failure. Name the likely
 change or failure it makes harder, and the duplicated edits, coupling, or missing ownership behind
-that cost. A preference for different names, formatting, or file sizes alone is minor.
+that cost. A preference for different names or formatting alone is minor; a unit the branch grew
+past a limit, or a copy of a rule ([one home per rule](code-quality.md#one-home-per-rule)), is not.
 
 A finding you decide not to fix is a ruling, written in `rulings.md` with the others.
+
+A second reviewer, such as another tool's review skill, can review the branch too, after the first.
+Its findings are graded and fixed the same way, and the pull request names it.
 
 Then push the branch, open its pull request as a draft, and run the [finish](finish.md) step: it
 replaces the folder with its record, and marks the pull request ready.
@@ -202,6 +213,7 @@ description, written when it is marked ready, reads like a file waiting for the 
   without a fresh reviewer.
 - **Links** to the record, and to `spec.md` and `plan.md` at the commit before finishing.
 - **Tests**: each acceptance scenario and review-focus item, with the test that covers it.
+- **Size**: each function and file the branch grew, with its length before and after.
 - **Rulings**: a link to `rulings.md`, and the ones that change behaviour, one line each.
 - **Review comments**: when the plan was approved with comments, how each was carried out.
 - **Deferred minors**: the minor findings of the final review.
@@ -227,5 +239,5 @@ stays `approved`: the human asked for the change.
 ## Commit
 
 One commit per task, with the plan's message, following [Commits](conventions.md#commits): its code,
-its tests, and its checked boxes in `plan.md`. Fixes from reviews are separate commits with the same
-scope.
+its tests, and its checked boxes in `plan.md`. A structural step is a commit of its own, before.
+Fixes from reviews are separate commits with the same scope.

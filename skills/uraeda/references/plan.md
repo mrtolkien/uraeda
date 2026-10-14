@@ -76,11 +76,12 @@ when the implementation shows a better fit.
   to test fixtures too.
 - Split by responsibility and the decisions each unit hides from its callers. Check where a likely
   change would belong: would it require editing the same rule in several places, or understanding
-  unrelated responsibilities? File length alone does not answer that question.
+  unrelated responsibilities? The project's limits, in its code-quality decision, flag a unit that
+  already does too much.
 - Files that change together live together. Split by responsibility, not by technical layer.
-- In an existing codebase, follow its established patterns. If it uses large files, do not
-  restructure it unilaterally; but if a file you are modifying has grown unwieldy, a targeted split
-  in the plan is reasonable.
+- In an existing codebase, follow its established patterns, and do not restructure what the feature
+  does not touch. A task that touches a function or file over the project's limit starts with a
+  structural step that splits it: see [extract, don't grow](code-quality.md#extract-dont-grow).
 - Tests are code too. They follow the project's test layout, and share helpers, fixtures, and fakes
   (rendering the app, seeding the store, setting the clock), so each test stays a few lines long.
   The spec's [Tests](spec.md#tests) rules apply: integration tests by default, Arrange, Act, Assert.
@@ -162,7 +163,8 @@ task's requirements implicitly include this section.]
 
 ## Complexity tracking
 
-[Every new abstraction, and every constitution exception the human accepted.]
+[Every new abstraction, every unit grown past a limit or left over one, and every constitution
+exception the human accepted.]
 
 ## Review comments
 
@@ -198,9 +200,11 @@ What goes in each section:
   them.
 - **Complexity tracking**: every new abstraction, meaning a type, module, layer, wrapper, or helper
   shared by several parts, tests included, even when the spec's architecture or details introduced
-  it; and every constitution exception the human accepted. Each row says why it is needed, and the
-  simpler alternative rejected. Name the callers, shared rule, or approved variation it serves:
-  unspecified future features do not justify an abstraction. "None." when there is none.
+  it; every function or file a task grows past the project's limits, or leaves over them; and every
+  constitution exception: one the human accepted in the questions, or a new marker on code over a
+  limit, for the plan's review to approve. Each row says why it is needed, and the simpler
+  alternative rejected. Name the callers, shared rule, or approved variation it serves: unspecified
+  future features do not justify an abstraction. "None." when there is none.
 
 Add `data-model.md` when the feature adds or changes entities beyond a few fields: fields,
 relationships, validation rules, state transitions. Smaller changes stay in the spec's **Data**,
@@ -276,12 +280,17 @@ A step is done when its outcome and required contracts can be checked. Several i
 meet them. State the decisions and evidence the implementer needs, and leave room to choose a
 simpler private design from what the code shows:
 
+- **A structural step**: first in a task that touches a unit over the project's limit. It only
+  restructures the unit, removes its marker, runs the tests, which pass before and after, and
+  commits on its own with a `refactor` message, before the failing test of the new behaviour. See
+  [extract, don't grow](code-quality.md#extract-dont-grow).
 - **A test step**: the tests' names and their assertions, as code, with the spec's exact values in
-  them, including the human's approval comments. Derive expectations from the approved behaviour,
-  independently of the proposed implementation. Integration tests by default, short, Arrange, Act,
-  Assert, on the shared helpers. The step also creates the helpers its tests use, so the first
-  failure is about the feature, not a missing helper. Checks of preserved behaviour may already pass
-  before the change.
+  them, including the human's approval comments. Each test names the break it catches, the realistic
+  mistake that makes it fail: see [tests that can fail](code-quality.md#tests-that-can-fail). Derive
+  expectations from the approved behaviour, independently of the proposed implementation.
+  Integration tests by default, short, Arrange, Act, Assert, on the shared helpers. The step also
+  creates the helpers its tests use, so the first failure is about the feature, not a missing
+  helper. Checks of preserved behaviour may already pass before the change.
 - **A run step**: the command to run, and the output that means it worked. For a failing run, the
   first failure the run will actually hit: not "the test fails", but the message.
 - **A code step**: the responsibility, the files it belongs in, the specific values the spec pins,
@@ -330,7 +339,8 @@ fix what you find inline. This is a checklist you run yourself.
    [Stopping to go back to the human](#stopping-to-go-back-to-the-human).
 9. **Ownership and change cost**: each changed rule and resource has an owner, its affected callers
    are covered, and the necessary simplification stays within the feature. Justify any duplicated
-   enforcement or new indirection through a concrete constraint or approved need.
+   enforcement or new indirection through a concrete constraint or approved need. Every task that
+   touches a unit over its limit starts with a structural step, and every test names its break.
 
 ## Rulings while planning
 
@@ -352,7 +362,8 @@ plan itself.
 Stop when the plan would need:
 
 - **A new [decision](spec.md#what-is-a-decision)**, or to go against an active one.
-- **A constitution exception** the human has not accepted in the questions.
+- **A constitution exception** the human has not accepted in the questions, other than a new marker
+  on code over a limit, which the plan's own review approves.
 - **A different behaviour than the spec**: the spec cannot be built as written, because the code, a
   dependency, or a platform does not allow it, and every way around it changes what users get.
 - **To pick between two sections of the spec that disagree**, or to meet an edge case its data
@@ -372,10 +383,10 @@ To stop: do not commit a `plan.md`. Start a new round instead, following
 Once the human answers, the spec is amended and approved again, and the plan is written from the new
 revision.
 
-Constitution exceptions are exceptional: only one the human accepted in the questions is allowed. It
-is spelled out in **Complexity tracking**: which principle, why, and the simpler alternative
-rejected. A plan with an exception always waits for the human's review, whatever the spec's
-`plan-review`.
+Constitution exceptions are exceptional: only one the human accepted in the questions, or a new
+marker on code over a limit, is allowed. It is spelled out in **Complexity tracking**: which
+principle, why, and the simpler alternative rejected. A plan with an exception always waits for the
+human's review, whatever the spec's `plan-review`.
 
 ## Set the status
 

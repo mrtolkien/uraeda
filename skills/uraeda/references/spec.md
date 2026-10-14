@@ -116,7 +116,10 @@ Write for a reviewer who has not read the discovery:
 - **Title**: the topic.
 - **Summary**: the choice and what it means for the project, in two or three plain sentences.
 - **Rules**: MUST, SHOULD, and MUST NOT rules that a spec, a plan, or code can be checked against.
-  Plans copy them word for word, so write each rule to stand on its own.
+  Plans copy them word for word, so write each rule to stand on its own. Each rule ends with how it
+  is checked: a lint, a test, `ura check`, or "Checked by review." A check a tool can run that does
+  not exist yet goes in the spec's **Testing**, so the plan has a task that adds it. See
+  [rules enforced by tools](code-quality.md#rules-enforced-by-tools).
 - **Why**: the problem and what the choice optimizes for, with links to the question and the
   discovery topic. Once the feature is [finished](finish.md#rewrite-the-links), these links point to
   its record, where the question keeps its anchor.
@@ -221,7 +224,8 @@ easy".
 
 The architecture is what the human approves of the build: the chosen approach and why, in a few
 sentences, linking to the decisions and discovery topics behind it; the main units; where each new
-rule lives; and the tradeoffs. It names the units, and the details describe them.
+rule lives ([one home per rule](code-quality.md#one-home-per-rule)); and the tradeoffs. It names the
+units, and the details describe them.
 
 Design for isolation and clarity:
 
@@ -236,9 +240,10 @@ Design for isolation and clarity:
 Working in the existing codebase:
 
 - Follow the patterns the discovery found.
-- Where existing code has problems that affect the feature, like a file that has grown too large,
+- Where existing code has problems that affect the feature, like a unit over the project's limits,
   unclear boundaries, or tangled responsibilities, include targeted improvements in the design, the
-  way a good developer improves code they work in.
+  way a good developer improves code they work in
+  ([extract, don't grow](code-quality.md#extract-dont-grow)).
 - Do not propose unrelated refactoring. Stay focused on what serves the feature.
 
 ## Mockups
@@ -314,6 +319,8 @@ of internal functions break, and an agent writes them quickly.
 - Readability is a key feature of a test: each one is short and readable by a human, Arrange, Act,
   Assert, in that order, with a name that states the scenario. Test files stay short.
 - Write unit tests only for pure logic with many cases, as one table-driven test: one row per case.
+- A UI story's scenarios run in the project's browser runner, through the real app: see
+  [UIs verified end to end](code-quality.md#uis-verified-end-to-end).
 
 The spec's **Testing** section opens with a sentence on how the integration tests run, then a table
 mapping every acceptance scenario, edge case, and success criterion to its test.
@@ -343,8 +350,8 @@ Before committing, read the spec again with fresh eyes, and fix what you find in
    A. Answered rounds are never edited.
 5. **Ambiguity**: a requirement that can be read two ways is rewritten to say one.
 6. **Linear reading**: nothing is referred to before it is introduced, and the block names subjects.
-7. **Decisions**: each new one passes the three tests, and each changed one lists every rule after
-   the change.
+7. **Decisions**: each new one passes the three tests, each changed one lists every rule after the
+   change, and each rule says how it is checked.
 
 ## Red flags
 

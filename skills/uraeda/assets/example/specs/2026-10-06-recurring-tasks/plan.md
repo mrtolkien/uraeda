@@ -57,29 +57,48 @@ task 2 checks that together with the error shown.
 
 From [due dates](../decisions/due-dates.md):
 
-- Due dates MUST be stored as `YYYY-MM-DD` strings.
-- Date arithmetic MUST go through `src/lib/dates.ts`.
+- Due dates MUST be stored as `YYYY-MM-DD` strings. Checked by the `CalendarDay` type and the
+  store's upgrade test.
+- Date arithmetic MUST go through `src/lib/dates.ts`. Checked by review.
 - Code MUST NOT convert a due date to a `Date`, except inside `src/lib/dates.ts` and to display it.
+  Checked by review.
 
 From [repeating tasks](../decisions/repeating-tasks.md):
 
-- A repeating task MUST be a single task, with its repeat rule stored on it.
+- A repeating task MUST be a single task, with its repeat rule stored on it. Checked by the
+  `RepeatRule` field of the `Task` type.
 - Completing a repeating task MUST move its due date to the next occurrence, and MUST NOT create a
-  new task.
-- Features MUST NOT rely on a history of completed occurrences: there is none.
+  new task. Checked by the completion tests of the task store.
+- Features MUST NOT rely on a history of completed occurrences: there is none. Checked by review.
 
 From [task storage](../decisions/task-storage.md):
 
-- Data MUST be stored in IndexedDB, through `src/store/`.
-- Components MUST NOT call IndexedDB or the `idb` library directly.
+- Data MUST be stored in IndexedDB, through `src/store/`. Checked by review.
+- Components MUST NOT call IndexedDB or the `idb` library directly. Checked by ESLint's
+  `no-restricted-imports` and `no-restricted-globals` in `src/components/`.
 - A change to stored data MUST come with a versioned upgrade in `src/store/upgrades.ts`, tested on
-  data saved by the previous version.
+  data saved by the previous version. Checked by review, and by the upgrade's own test.
 
 From [UI components](../decisions/ui-components.md):
 
-- Components MUST be written in the project, in `src/components/`.
-- Styles MUST use CSS modules, with the variables in `src/styles/theme.css`.
-- Code MUST NOT add a UI component library (MUI, Chakra, shadcn/ui, ...) or a CSS framework.
+- Components MUST be written in the project, in `src/components/`. Checked by review.
+- Styles MUST use CSS modules, with the variables in `src/styles/theme.css`. Checked by Stylelint's
+  `color-no-hex` outside `theme.css`.
+- Code MUST NOT add a UI component library (MUI, Chakra, shadcn/ui, ...) or a CSS framework. Checked
+  by review of `package.json`.
+
+From [code quality](../decisions/code-quality.md):
+
+- Functions MUST NOT be longer than 80 lines. Checked by ESLint's `max-lines-per-function`.
+- Functions MUST NOT take more than 4 parameters. Checked by ESLint's `max-params`.
+- Code MUST NOT nest blocks more than 3 levels deep inside a function. Checked by ESLint's
+  `max-depth`.
+- Source files MUST NOT be longer than 400 lines. Tests are exempt. Checked by ESLint's `max-lines`.
+- Code that broke a limit when this decision was approved MUST be marked where it stands, with an
+  `// eslint-disable-next-line <rule> -- <reason>` comment. A marker on code that no longer breaks
+  its limit MUST fail the lint. Checked by ESLint's `reportUnusedDisableDirectives: "error"`.
+- A new marker MUST NOT be added unless a human approves it as a constitution exception in the
+  plan's complexity tracking. Checked by review.
 
 From [the spec](spec.md):
 
@@ -104,6 +123,9 @@ From [the spec](spec.md):
   formatted with date-fns' `EEE, MMM d`, its `dateTime` attribute the timestamp's `toISOString()`.
 - The edit panel saves its date input with `updateTask(id, { dueDate })`, and has a "Delete" button
   calling `deleteTask(id)`, both in [the task store](/src/store/tasks.ts).
+- [`eslint.config.js`](/eslint.config.js): the [code quality](../decisions/code-quality.md) limits,
+  run by `npx eslint src`. `updateTask`, in [the task store](/src/store/tasks.ts), is 96 lines, the
+  only function over them, and carries its `max-lines-per-function` marker.
 - [`src/store/db.ts`](/src/store/db.ts): `openDatabase()` opens the `todo` database with the `idb`
   library, and runs [`upgrades.ts`](/src/store/upgrades.ts) on version changes.
 
@@ -126,6 +148,8 @@ The decisions this plan relies on, and where it follows them:
 - [Task storage](../decisions/task-storage.md): upgrade 2, tested on version 1 data (tasks 1 and 2).
 - [UI components](../decisions/ui-components.md): the menu uses `Select`, and the custom screen is
   built in the project (tasks 3 and 4).
+- [Code quality](../decisions/code-quality.md): `updateTask` is split, and its marker removed,
+  before task 2 changes it.
 
 ## Complexity tracking
 
@@ -204,6 +228,11 @@ test("removes a saved due date that is not a date, keeps the task, and logs it",
 });
 ```
 
+The break each test catches:
+
+- West of UTC: an upgrade that leaves the timestamp, or writes it as an ISO instant.
+- Not a date: a conversion that throws on a string, losing the task, or saves `Invalid Date`.
+
 - [x] **Step 3: Run them to check they fail**
 
 - Run: `npx vitest run tests/recurring-tasks/upgrade.test.tsx`
@@ -234,8 +263,9 @@ git commit -m "feat(recurring-tasks): calendar-day due dates, with upgrade 2"
 **Files:**
 
 - Create: `src/lib/repeat.ts`
-- Modify: `src/store/tasks.ts` (`repeat` field, `completeTask`, `restoreDueDate`, `updateTask` for
-  due dates), `src/store/upgrades.ts` (`repeat: null` in upgrade 2), `src/components/TaskRow.tsx`
+- Modify: `src/store/tasks.ts` (`updateTask` split first; `repeat` field, `completeTask`,
+  `restoreDueDate`, `updateTask` for due dates), `src/store/upgrades.ts` (`repeat: null` in upgrade
+  2), `src/components/TaskRow.tsx`
 - Modify: `tests/helpers/app.tsx` (`SeedTask` gets `repeat`; `renderApp` gets `failingStore`;
   `completeBox`, `openTask`, `moveDueDate`, `deleteFromPanel`)
 - Test: `tests/recurring-tasks/complete-a-repeating-task.test.tsx`
@@ -257,7 +287,20 @@ git commit -m "feat(recurring-tasks): calendar-day due dates, with upgrade 2"
   `moveDueDate(user, title: string, day: CalendarDay): Promise<void>`;
   `deleteFromPanel(user, title: string): Promise<void>`.
 
-- [x] **Step 1: Write the failing tests, and the helpers they use**
+- [x] **Step 1: Split `updateTask` before it changes**
+
+`updateTask` is over the 80-line limit, and this task changes it. Move its title, notes, and due
+date updates into one private function each, without changing what it does, and remove its marker.
+
+- Run: `npx vitest run && npx eslint src`, before and after the split
+- Expected: PASS both times, with no unused disable directive
+
+```bash
+git add src/store/tasks.ts
+git commit -m "refactor(recurring-tasks): split updateTask by field"
+```
+
+- [x] **Step 2: Write the failing tests, and the helpers they use**
 
 ```tsx
 // tests/recurring-tasks/complete-a-repeating-task.test.tsx
@@ -363,17 +406,27 @@ Also in `tests/recurring-tasks/upgrade.test.tsx`: a task upgraded from version 1
 completing it marks it done.
 
 The expected dates come from the approved schedule rules, independently of `nextDueDate`. The
-month-end test follows two completions so that adding a month to the previous date, which produces
-December 30, cannot pass. The failed-save test checks both the error and the unchanged due date; the
-non-repeating completion check preserves existing behaviour and already passes before this task.
+non-repeating completion check preserves existing behaviour and already passes before this task. The
+break each test catches:
 
-- [x] **Step 2: Run them to check they fail**
+- Moves: counting from today, which puts the late task on 2026-10-15, or skipping the check against
+  today, which leaves the third on 2026-10-12.
+- Confirmation: a timer never set, so "Next:" stays.
+- Undo: restoring nothing, or today's date.
+- Double click: a checkbox left enabled during the confirmation, which moves the task two weeks.
+- Failed save: showing the new date before the save resolves.
+- Month end: adding a month to the previous date, which gives December 30 on the second completion.
+- February 29: adding 365 days, which gives March 1.
+- Moving by hand: `updateTask` dropping the rule when the date changes, so completing marks it done.
+- Deleting: a delete that only clears a repeating task's due date.
+
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `npx vitest run tests/recurring-tasks/complete-a-repeating-task.test.tsx`
 - Expected: FAIL, `expected '2026-10-05' to be '2026-10-12'`: completing still only marks the task
   done.
 
-- [x] **Step 3: Implement**
+- [x] **Step 4: Implement**
 
 `nextDueDate` generates the rule's dates from `rule.from`, in order, and returns the first one after
 `dueDate` that is on or after `today`:
@@ -388,12 +441,12 @@ non-repeating completion check preserves existing behaviour and already passes b
 previous date; for other tasks, unchanged. The task row shows "Next: ..." and "Undo" for 5 seconds,
 with the checkbox disabled meanwhile, and "Could not save" when the store rejects.
 
-- [x] **Step 4: Run all tests, and the benchmark**
+- [x] **Step 5: Run all tests, and the benchmark**
 
 - Run: `npx vitest run && npx vitest bench --run --compare bench/baseline.json`
 - Expected: PASS, and no benchmark slower than the baseline beyond its margin of error.
 
-- [x] **Step 5: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/lib/repeat.ts src/store src/components/TaskRow.tsx tests
@@ -482,6 +535,13 @@ test("picking never stops the repeat, and keeps the due date", async () => {
   expect(within(row("Gym")).queryByLabelText("Repeats")).toBeNull();
 });
 ```
+
+The break each test catches:
+
+- Entries: one missing, or out of order.
+- Weekly: a preset saved without the due date's weekday, which reads "Every week".
+- Without a due date: a repeat that leaves the date empty.
+- Never: clearing the due date with the repeat.
 
 - [x] **Step 2: Run them to check they fail**
 
@@ -579,6 +639,13 @@ test.each([
   expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
 });
 ```
+
+The break each test catches:
+
+- Every 2 weeks: an ignored interval, which gives 2026-10-12.
+- Mondays and Thursdays: only the first chosen day kept, which gives 2026-10-12.
+- Choosing days: a rule saved without aligning the due date, which stays on 2026-10-06.
+- Save disabled: a pattern accepted with an interval of 0, or no day, which never repeats.
 
 - [x] **Step 2: Run them to check they fail**
 
@@ -690,6 +757,13 @@ test.each(["Gym", "Gym every so often", "Gym every 0 days", "every monday"])(
   (typed) => expect(parseRepeat(typed)).toBeNull(),
 );
 ```
+
+The break each test catches:
+
+- New and edited titles: a phrase parsed by only one of `createTask` and `renameTask`.
+- An interval without a due date: a pattern saved without aligning, which leaves no date.
+- Stays as typed: any "every ..." stripped, or a title made only of a phrase emptied.
+- The table: a case-sensitive match, a final period kept, or a 0 interval accepted.
 
 - [x] **Step 2: Run them to check they fail**
 

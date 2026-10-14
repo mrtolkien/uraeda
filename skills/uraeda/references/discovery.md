@@ -122,8 +122,11 @@ three sides below.
 - Trace the proposal's user path through the code, step by step, then every existing action that
   meets the new feature: undo, delete, uncheck, edit, empty fields. Each one that behaves
   differently with the feature is a finding.
-- Find the existing patterns the feature should follow, and the problems in the way: a file that
-  grew too large, a responsibility tangled with another.
+- List who owns each rule the feature touches, and where it is copied: see
+  [one home per rule](code-quality.md#one-home-per-rule).
+- Find the existing patterns the feature should follow, and the problems in the way: a function or
+  file over the project's limits, which a task must split first
+  ([extract, don't grow](code-quality.md#extract-dont-grow)), a responsibility tangled with another.
 - List the files the feature will likely change or add, under every option: never assume an option
   the human has not chosen.
 - Check recent commits on the files you read (`git log`): they explain choices the code does not.
@@ -259,6 +262,12 @@ writing a small module rather than adding a dependency, the behaviour of an edge
 intent already decides. List each settled point under **Settled without the human**, at the end of
 the questions file: what you chose, and why. The human sees it when answering, and can object. The
 spec copies it into its assumptions.
+
+**A project without code-quality checks.** When the project has no
+`specs/decisions/code-quality.md`, the round asks whether to adopt one. The recommended option names
+the limits for the project's own linters, as [setting up checks](code-quality.md#setting-up-checks)
+describes. It is asked once: a "no" becomes that decision, saying the project has no limits, with a
+date in its **Revisit when**. Before that date, no round asks again.
 
 Ask everything at once: anticipate the questions their answers would raise, and ask them now, as
 follow-ups, so the human answers once. There is no limit on the number of questions: early in a
