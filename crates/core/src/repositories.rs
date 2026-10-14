@@ -2,8 +2,9 @@
 //! by the CLI and the server (see `specs/decisions/repositories.md`).
 
 use std::fs;
-use std::io::ErrorKind;
+use std::io::{ErrorKind, Write as _};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::SystemTime;
 
 use serde::{Deserialize, Serialize};
@@ -13,8 +14,9 @@ use crate::today;
 
 /// The list's file, in the data folder.
 const FILE: &str = "repositories.json";
-/// Where a write goes before it is renamed over the file.
-const TEMPORARY: &str = "repositories.json.tmp";
+/// Where a write goes before it is renamed over the file, one per write: `repositories.json.`,
+/// then the process and a count, so writers in other processes never share it.
+const TEMPORARY: &str = "repositories.json.";
 /// The file format this core reads and writes.
 const VERSION: u64 = 1;
 
@@ -193,9 +195,23 @@ fn save(data_dir: &Path, entries: &[Entry]) -> Result<(), ListError> {
     let mut text = serde_json::to_string_pretty(&file).expect("the list is JSON");
     text.push('\n');
     fs::create_dir_all(data_dir).map_err(write)?;
-    let temporary = data_dir.join(TEMPORARY);
-    fs::write(&temporary, text).map_err(write)?;
-    fs::rename(&temporary, data_dir.join(FILE)).map_err(write)
+    let temporary = temporary(data_dir);
+    let mut file = fs::File::create_new(&temporary).map_err(write)?;
+    let written = file
+        .write_all(text.as_bytes())
+        .and_then(|()| fs::rename(&temporary, data_dir.join(FILE)));
+    if let Err(error) = written {
+        let _ = fs::remove_file(&temporary);
+        return Err(write(error));
+    }
+    Ok(())
+}
+
+/// A temporary file's path no other write uses, in this process or another.
+fn temporary(data_dir: &Path) -> PathBuf {
+    static COUNT: AtomicU64 = AtomicU64::new(0);
+    let count = COUNT.fetch_add(1, Ordering::Relaxed);
+    data_dir.join(format!("{TEMPORARY}{}.{count}.tmp", std::process::id()))
 }
 
 /// The most recently opened first, then by name.

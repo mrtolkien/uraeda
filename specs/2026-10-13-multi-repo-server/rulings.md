@@ -186,3 +186,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: each is one style, in `RepositoryMenu.tsx`, `AddRepository.tsx`, and
   `RepositoryPages.tsx`.
 - **Where**: task 9
+
+## R12: Each write of the list has its own temporary file
+
+- **Decision**: the core writes `repositories.json` through
+  `repositories.json.<process>.<count>.tmp`, created new for that write, renamed over the file, and
+  removed when the write fails, instead of the spec's one `repositories.json.tmp`. The server's
+  watch of the data folder reads the list again on a change of `repositories.json` alone, which the
+  rename changes.
+- **Rationale**: the final review found that several `ura add` at once shared the one temporary
+  file: one renamed it away while another wrote to it, and the others failed with "could not be
+  written". A file per write keeps the decision's rule, "a reader never sees half a file", across
+  processes; the last write still wins, as the decision's consequences say.
+- **Alternatives considered**: `tempfile`'s `NamedTempFile`, a new dependency of the CLI for one
+  name; a lock file across processes, more than the decision asks.
+- **If wrong**: the name is one function in `crates/core/src/repositories.rs`.
+- **Where**: task 1, and the final review
