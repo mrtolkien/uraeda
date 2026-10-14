@@ -30,6 +30,13 @@ export declare function addRepository(dataDir: string, folder: string): Promise<
 /** Approves a spec, a plan, or an assessment, and commits it. */
 export declare function approve(repo: string, folder: string, file: string, summary?: string | undefined | null, riskTier?: string | undefined | null, planReview?: boolean | undefined | null): Promise<FileView>
 
+/**
+ * Re-encodes an image, saves it in the `images/` folder next to the markdown file at `path`, and
+ * returns its link. `name` is the file's name, absent for a pasted image. A single-file draft
+ * becomes a folder first.
+ */
+export declare function attachImage(repo: string, path: string, bytes: Buffer, name?: string | undefined | null): Promise<AttachedView>
+
 /** Commits the priorities alone. */
 export declare function commitPriorities(repo: string): Promise<Priorities>
 
@@ -53,6 +60,29 @@ export declare function editComment(repo: string, folder: string, file: string, 
 
 /** Replaces a priority line's text. */
 export declare function editPriority(repo: string, id: string, text: string, previous: string): Promise<Priorities>
+
+/**
+ * An image checked and re-encoded by the core, for a chat message. Declared here, not in the core,
+ * since its bytes are a Node `Buffer`.
+ */
+export interface EncodedImage {
+  bytes: Buffer
+  extension: 'webp' | 'gif'
+  width: number
+  height: number
+}
+
+/**
+ * Checks and re-encodes an image for a chat message, without writing it. `name` is its file name,
+ * for refusals.
+ */
+export declare function encodeImage(bytes: Buffer, name: string): Promise<EncodedImage>
+
+/** The bytes of an image file, with the MIME type detected from its first bytes. */
+export interface ImageFile {
+  bytes: Buffer
+  type: string
+}
 
 /**
  * Inserts a priority line with its nested lines, as written, before the line at `index` of a
@@ -83,6 +113,12 @@ export declare function readFeature(repo: string, folder: string): Promise<Featu
 
 /** A workflow file of a feature, with its document, items, committed version, and review. */
 export declare function readFile(repo: string, folder: string, name: string): Promise<FileView>
+
+/**
+ * A PNG, JPEG, GIF, or WebP file under `specs/`, by its path from the top level; anything else is
+ * no such file.
+ */
+export declare function readImage(repo: string, path: string): Promise<ImageFile>
 
 /** `PRIORITIES.md`, with its changes since the last commit. */
 export declare function readPriorities(repo: string): Promise<Priorities>

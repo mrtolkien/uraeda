@@ -7,15 +7,15 @@
 
 use std::path::Path;
 
-use napi::bindgen_prelude::{AsyncTask, ToNapiValue, TypeName};
+use napi::bindgen_prelude::{AsyncTask, Buffer, ToNapiValue, TypeName};
 use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{Env, Status, Task};
 use napi_derive::napi;
 use uraeda_core::api::{self, ApiError};
 use uraeda_core::files::priorities::Priorities;
 use uraeda_core::view::{
-    AddedView, CommitView, DraftView, FeatureView, FileView, NextView, ProposalHint,
-    RepositoryView, StartedView, WorkspaceView,
+    AddedView, AttachedView, CommitView, DraftView, FeatureView, FileView, NextView,
+    ProposalHint, RepositoryView, StartedView, WorkspaceView,
 };
 use uraeda_core::watch::{self, Changes};
 
@@ -388,6 +388,68 @@ pub fn remove_repository(data_dir: String, name: String) -> AsyncTask<Job<()>> {
 #[napi(ts_return_type = "Promise<Repository>")]
 pub fn open_repository(data_dir: String, name: String) -> AsyncTask<Job<RepositoryView>> {
     job(move || api::open_repository(Path::new(&data_dir), &name))
+}
+
+/// An image checked and re-encoded by the core, for a chat message. Declared here, not in the core,
+/// since its bytes are a Node `Buffer`.
+#[napi(object)]
+pub struct EncodedImage {
+    pub bytes: Buffer,
+    #[napi(ts_type = "'webp' | 'gif'")]
+    pub extension: String,
+    pub width: u32,
+    pub height: u32,
+}
+
+/// The bytes of an image file, with the MIME type detected from its first bytes.
+#[napi(object)]
+pub struct ImageFile {
+    pub bytes: Buffer,
+    #[napi(js_name = "type")]
+    pub kind: String,
+}
+
+/// Re-encodes an image, saves it in the `images/` folder next to the markdown file at `path`, and
+/// returns its link. `name` is the file's name, absent for a pasted image. A single-file draft
+/// becomes a folder first.
+#[napi(ts_return_type = "Promise<AttachedView>")]
+pub fn attach_image(
+    repo: String,
+    path: String,
+    bytes: Buffer,
+    name: Option<String>,
+) -> AsyncTask<Job<AttachedView>> {
+    let bytes = Vec::<u8>::from(bytes);
+    job(move || api::attach_image(Path::new(&repo), &path, &bytes, name.as_deref()))
+}
+
+/// Checks and re-encodes an image for a chat message, without writing it. `name` is its file name,
+/// for refusals.
+#[napi(ts_return_type = "Promise<EncodedImage>")]
+pub fn encode_image(bytes: Buffer, name: String) -> AsyncTask<Job<EncodedImage>> {
+    let bytes = Vec::<u8>::from(bytes);
+    job(move || {
+        let encoded = api::encode_image(&bytes, &name)?;
+        Ok(EncodedImage {
+            bytes: encoded.bytes.into(),
+            extension: encoded.extension.to_owned(),
+            width: encoded.width,
+            height: encoded.height,
+        })
+    })
+}
+
+/// A PNG, JPEG, GIF, or WebP file under `specs/`, by its path from the top level; anything else is
+/// no such file.
+#[napi(ts_return_type = "Promise<ImageFile>")]
+pub fn read_image(repo: String, path: String) -> AsyncTask<Job<ImageFile>> {
+    job(move || {
+        let (bytes, kind) = api::read_image(Path::new(&repo), &path)?;
+        Ok(ImageFile {
+            bytes: bytes.into(),
+            kind: kind.to_owned(),
+        })
+    })
 }
 
 /// A running watch of a repository.
