@@ -1165,7 +1165,8 @@ git commit -m "feat(session-view): the session's progress line on the phone"
 - Create: `packages/web/src/following.ts` (`useOpenAtEnd`, `useFollowEnd`, moved from
   `Transcript.tsx` in Step 1, with `AT_END`; `useKeepPlace.ts` then imports `AT_END` from it, and
   its own `atEnd` copy becomes following's one `atEnd`)
-- Create: `packages/web/src/ToolGroups.tsx` (the tool groups, moved from `Transcript.tsx` in Step 1)
+- Create: `packages/web/src/ToolGroups.tsx` (the tool groups, moved from `Transcript.tsx` in Step 1:
+  `ToolGroup`, which draws one group, and its calls' statuses and durations)
 - Modify: `packages/web/src/Transcript.tsx` (the moved parts and its `max-lines` marker go)
 - Modify: `packages/web/src/SessionPage.tsx` (the button above the composer)
 - Test: `packages/web/src/__browser__/session.test.tsx`
@@ -1180,12 +1181,13 @@ git commit -m "feat(session-view): the session's progress line on the phone"
 - [x] **Step 1: Restructure `Transcript.tsx`, and commit**
 
 Move the tool groups into a module of their own, `ToolGroups.tsx`, as the file's `max-lines` marker
-says, and the following hooks, with `AT_END` and `scroller`, into `following.ts`. Remove the file's
-marker; the grouping function keeps its own marker if it moves unchanged. Behaviour does not change:
+says, and the following hooks, with `AT_END`, `scroller`, and one `atEnd`, into `following.ts`.
+Remove the file's marker. The grouping function, `TranscriptItems`, stays and draws each group with
+`ToolGroup`, which brings it under 100 lines, so its own marker goes too. Behaviour does not change:
 `vp check && vp test` passes with no test changed. Commit the three files alone:
 `refactor(session-view): the transcript's tool groups and following in their own modules`.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 In `__browser__/session.test.tsx`, on the working session at both sizes:
 
@@ -1197,27 +1199,30 @@ In `__browser__/session.test.tsx`, on the working session at both sizes:
 - US4.4: at the end, no "Jump to the latest" shows;
 - "an ended session scrolled up also offers Jump to the latest".
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test --project uraeda-web-browser packages/web/src/__browser__/session.test.tsx`
 - Expected: FAIL, US4.2 with `Unable to find role "button" with name "Jump to the latest"`.
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
-Make `useFollowEnd`, in `following.ts` since Step 1, expose its state. `SessionPage` shows an Astryx
-`Button` "Jump to the latest" above the composer, inside its sticky area, while `following` is
-false.
+Make `useFollowEnd`, in `following.ts` since Step 1, expose its state. It measures the distance to
+the end whether the session works or not, and only a working session follows it. It skips the
+positions of a layout drawn for the other width class, as `useKeepPlace` does. `SessionPage` shows
+an Astryx `Button` "Jump to the latest" above the composer, inside its sticky area, while
+`following` is false: `JumpToLatest`, floating over the transcript's end.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run: `vp check && vp test`
 - Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web/src/following.ts packages/web/src/Transcript.tsx packages/web/src/SessionPage.tsx \
-  packages/web/src/__browser__/session.test.tsx
+  packages/web/src/__browser__/session.test.tsx specs/2026-10-14-session-view/plan.md \
+  specs/2026-10-14-session-view/rulings.md
 git commit -m "feat(session-view): jump to the latest"
 ```
 

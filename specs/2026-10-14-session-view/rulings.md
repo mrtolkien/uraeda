@@ -313,3 +313,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `firstFrom` and the observer in `useKeepPlace.ts`, `useLineOpen` in
   `ProgressLine.tsx`, and US3.3's wait.
 - **Where**: Task 8, after its review.
+
+## R21: Following is measured at every width it is drawn for, and the button floats
+
+- **Decision**: `useFollowEnd` listens to the scroll whether the session works or not, and only a
+  working session scrolls to the end. A read while the window's width class differs from the drawn
+  one is skipped, as `useKeepPlace` skips it. "Jump to the latest" is an Astryx `Button`, `sm`,
+  `secondary`, with a low elevation, absolutely placed above the composer's sticky area and centred,
+  as the mockup's frame 2 draws it. `Transcript.tsx`'s grouping function draws each group with
+  `ToolGroup`, from `ToolGroups.tsx`, and loses its `max-lines-per-function` marker.
+- **Rationale**: the spec shows the button "whenever the page is not following the end, working or
+  not". With the state in React, each scroll of the moment WebKit lays the old layout out at the new
+  width rendered the session, and the width test found the line read 420 px from its place:
+  following must not fight `useKeepPlace`. A button in the flow would grow the page as it shows and
+  move the end the human jumps to. Moving the group's drawing out was the tool groups' module the
+  marker asked for, and brought the function under the limit.
+- **Alternatives considered**: following's state in a store only the button reads, which keeps the
+  session from rendering on scroll but not the clamp's false "at the end"; the button in the flow of
+  the sticky area.
+- **If wrong**: `read` in `useFollowEnd`, and `JumpToLatest`'s styles in `SessionPage.tsx`.
+- **Where**: Task 9.

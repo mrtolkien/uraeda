@@ -25,6 +25,7 @@ import { Crumbs } from "./Crumbs.tsx";
 import { useAgent, useFeature, useSession, useWorkflowMessage } from "./data.ts";
 import { EditableLine } from "./EditableLine.tsx";
 import { useFollowEnd, useOpenAtEnd } from "./following.ts";
+import { JumpToLatest } from "./JumpToLatest.tsx";
 import { type AsideShown, AsideToggle, useAsideShown, WithAside } from "./SessionAside.tsx";
 import { Page } from "./layout/Page.tsx";
 import { ProgressLine } from "./ProgressLine.tsx";
@@ -155,18 +156,24 @@ type Handing = {
   workflow?: { file?: string; trigger: Trigger };
 };
 
-/** A session's header, transcript, and errors, or why there is no session `id`. */
+/**
+ * A session's header, transcript, and errors, or why there is no session `id`. While the human
+ * reads above its end, it gives the pane the jump back to the latest.
+ */
 function SessionLog({
   aside,
   crumbs,
   draft,
   id,
+  onJump,
 }: {
   /** A feature's column, shown or not. */
   aside?: AsideShown | undefined;
   crumbs?: string | undefined;
   draft: Draft;
   id: string;
+  /** Called with the jump to the latest while the page does not follow the end, or `undefined`. */
+  onJump?: (jump: (() => void) | undefined) => void;
 }) {
   const fate = useFateClient();
   const here = useRepoPath();
@@ -176,8 +183,13 @@ function SessionLog({
   const log = useRef<HTMLDivElement>(null);
   const working = session?.status === "working";
   useOpenAtEnd(log);
-  useFollowEnd(log, working);
+  const { following, jumpToLatest } = useFollowEnd(log, working);
   useKeepPlace(log);
+  useEffect(() => {
+    onJump?.(following ? undefined : jumpToLatest);
+    // Once per change of following: `onJump` is a new function at each draw.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [following, jumpToLatest]);
   // Shown with its latest turn ended: the human saw the reply, whatever the status shows, as "Needs
   // you" at a gate.
   const unseen = session?.unseen === true;
@@ -270,6 +282,7 @@ function SessionPane({
   title?: string;
 }) {
   const session = useSessionRecord(id);
+  const [jump, setJump] = useState<() => void>();
   if (session === null) {
     return (
       <Page>
@@ -291,10 +304,17 @@ function SessionPane({
           // Read once the first message created the session: its title stays, and the composer, as
           // it is read. The transcript waits for it: a page shows one log.
           <Suspense fallback={title === undefined ? null : <Header aside={aside} title={title} />}>
-            <SessionLog aside={aside} crumbs={crumbs} draft={draft} id={id} />
+            <SessionLog
+              aside={aside}
+              crumbs={crumbs}
+              draft={draft}
+              id={id}
+              onJump={(next) => setJump(() => next)}
+            />
           </Suspense>
         )}
         <div {...stylex.props(styles.composer)}>
+          {jump && <JumpToLatest onJump={jump} />}
           <Composer
             {...(folder === undefined ? {} : { folder })}
             {...composerDraft(draft)}
