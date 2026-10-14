@@ -19,6 +19,7 @@
   - Setup with agent (checks project and creates relevant files)
 - [Chats, proposals, and reviews should accept images (drag and drop in the page, still show a dedicated button)](/specs/2026-10-13-image-attachments/proposal.md)
 - [Clean server code that can open any folder on the host + be run easily with node -> make the tool multi-repos](/specs/2026-10-13-multi-repo-server/proposal.md)
+- [Run the web UI with npx](drafts/run-the-web-ui-with-npx.md)
 
 ## Next
 
@@ -62,6 +63,8 @@
 - Offer nvim install during `ura install` if detected
 - ?Slack integration?
 - [Nice TUI](drafts/cli-tuis.md)
+- Add a repository from the web UI by running `git init` in a folder outside git, or by cloning a
+  URL
 
 ## Blocked
 
