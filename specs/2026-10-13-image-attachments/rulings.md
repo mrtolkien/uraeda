@@ -1288,14 +1288,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   a path without the prefix is a 404. The UI builds them with `repoPath`: the editor's and the
   comments' uploads, a document's images, and a chat's thumbnails and transcript. The dev proxy
   takes them only with a prefix, so Vite keeps every other `/images/…`. Chat images stay in the one
-  data folder that every repository shares, served under the prefix of the session's repository.
+  data folder that every repository shares, served under the prefix of the session's repository. A
+  chat image is not tied to its repository: `GET` and `DELETE /r/<name>/chat-images/<id>` and a
+  message's images take any repository's image under any repository's prefix.
 - **Rationale**: the repositories decision, merged meanwhile, wants every route that reads or writes
   a repository's data under `/r/<name>/`: an upload writes a workflow file's folder, and an image is
   read from one. A chat image belongs to a session, which belongs to a repository. Unlike `/raw` and
-  `/mockups`, no old link names the image routes, so they get no redirect.
+  `/mockups`, no old link names the image routes, so they get no redirect. Leaving chat images
+  untied is accepted: an ID is a random UUID, given only to the composer that uploaded it and the
+  transcript of the message that holds it, so a route cannot be used to find another repository's
+  image; one server serves every repository from one data folder, to the same human; and the agent
+  reads the whole images folder through `--add-dir` anyway.
 - **Alternatives considered**: redirecting the unprefixed routes to the most recent repository, as
   `/raw` does (no link was ever written with them); chat images outside any prefix (a route reading
-  the data folder that names no repository, against the decision's wording).
+  the data folder that names no repository, against the decision's wording); recording each chat
+  image's repository, in a folder per repository or next to the image, and refusing it under another
+  prefix (the store, its cleanup across repositories, `--add-dir`, and the message checks change,
+  for no reader the UUID does not already keep out).
 - **If wrong**: `createApp` in `packages/server/src/app.ts`, `SERVER_PATHS` in `dev.ts`, and
   `repoPath` in `useAttach.ts`, `Spans.tsx`, and `chatImageSrc`.
 - **Where**: the catch-up with the default branch, 52a73ec.
@@ -1324,15 +1333,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `commands.rs`, its image and draft commands in `commands/`, falls to 500 lines and leaves the size
   test's list. In TypeScript, the composer, the editor's images, the review's images, a question's
   and the notes' images, and the session manager's message checks are split into hooks and modules,
-  so no function the feature wrote passes 100 lines, no file passes 500, and the functions marked on
-  the default branch do not grow. The fate config's rules apply to the feature's code, sorted keys
-  included.
+  so no function the feature wrote passes 100 lines, no file passes 500, and the files and functions
+  marked on the default branch are no longer than there: the chat images the cache's messages hold
+  are read by `runner/image-uses.ts`, from the cache's database, the image checks of
+  `validate-claude.ts` live in `scripts/validate-claude-images.ts`, and `ClaudeAdapter.open` makes
+  the images folder through a helper, `#spawn`. The fate config's rules apply to the feature's code,
+  sorted keys included.
 - **Rationale**: the code quality decision and the constitution's principle VI, both merged
   meanwhile: a new marker needs a human's approval, and the sizes the checks measure must not go up.
 - **Alternatives considered**: markers on the feature's long functions (a human's approval for each,
   for code that splits along its responsibilities).
 - **If wrong**: the modules named above, and `crates/cli/tests/structure.rs`.
-- **Where**: the catch-up with the default branch, a17dc84, 12a155d.
+- **Where**: the catch-up with the default branch, a17dc84, 12a155d; the marked server files and
+  `open` after the final review, 8c2d49a.
 
 ## R87: The rules the feature copies across layers are listed and justified
 
@@ -1404,3 +1417,58 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: leaving the spec in its old layout (the validation fails).
 - **If wrong**: `specs/2026-10-13-image-attachments/spec.md`.
 - **Where**: the catch-up with the default branch.
+
+## R92: An attached image is encoded before the core's write lock
+
+- **Decision**: `api::attach_image` checks and encodes the image before it takes the write lock, and
+  the `attach` action takes the encoded image: the lock covers only reaching the file's checkout,
+  placing the image, and writing it. An image refused by its type, size, pixels, or decoding is
+  therefore refused before a missing target file is.
+- **Rationale**: encoding a 40-megapixel photo takes seconds, during which every other write of the
+  core, from every tool, waited. Encoding reads only the bytes, so it needs no lock. The spec's
+  error handling lists the image's refusals first.
+- **Alternatives considered**: keeping the encoding under the lock (writes stall behind uploads).
+- **If wrong**: `attach_image` in `crates/core/src/api/files.rs`, and `attach` in
+  `crates/core/src/actions/attach.rs`.
+- **Where**: the final review, 48810fd.
+
+## R93: `ura lsp` refuses an image file over 20 MB by its size, unread
+
+- **Decision**: `uraeda.attachImage` reads the image file's size first, and over the core's
+  `images::MAX_BYTES` refuses it with the core's own refusal, `ImageError::Size`, without reading
+  it. A file over the limit is refused by its size even when its bytes are no image, as the server's
+  route refuses a body over the limit before reading it (R34).
+- **Rationale**: the file was read whole before any check, so a large file chosen by mistake was
+  loaded into the language server's memory only to be refused.
+- **Alternatives considered**: reading it and letting the core refuse it (the memory the limit
+  exists to spare).
+- **If wrong**: `read_image` in `crates/lsp/src/commands/attach.rs`.
+- **Where**: the final review, 5b79fa9.
+
+## R94: The attach route checks the feature's agent before the image
+
+- **Decision**: `POST /attach` refuses a body over the limit first, unread, then a file of a feature
+  whose agent is working, then reads the body and lets the core check the image's type, size,
+  pixels, and decoding. The spec's error handling lists the agent after the image's checks.
+- **Rationale**: the agent's check needs no image: made first, a refused upload is neither read nor
+  encoded, which takes seconds for a large photo. The order matters only when an image would be
+  refused for both reasons, and either refusal tells the human what to do.
+- **Alternatives considered**: reading and encoding the body first, to follow the spec's order (an
+  encoding the server throws away).
+- **If wrong**: `attach` in `packages/server/src/attach.ts`.
+- **Where**: the final review.
+
+## R95: Two browser tests still wait a fixed time, to prove nothing happens
+
+- **Decision**: the overlay tests wait for the closing's Back to land, and the second overlay's
+  entry, instead of 300 ms. Two attach tests keep a fixed wait: text typed during an upload is not
+  saved, checked 1000 ms after the typing, as a save would go out 400 ms after it; and a paste of
+  text with a picture of it uploads nothing, checked 500 ms after the paste.
+- **Rationale**: the code quality decision forbids fixed sleeps in unit tests; these are browser
+  tests, and each proves that something does not happen, which no event signals: no save is
+  scheduled, and no upload starts. A shorter wait could pass with the bug present.
+- **Alternatives considered**: fake timers in the browser (the tests run the real app and server,
+  whose uploads and saves run on the real clock); a save state shown in the editor to wait on (a UI
+  change for a test).
+- **If wrong**: `packages/web/src/__browser__/attach.test.tsx`.
+- **Where**: the final review, a222ad2.
