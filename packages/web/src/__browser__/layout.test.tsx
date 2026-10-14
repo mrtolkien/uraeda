@@ -476,20 +476,22 @@ test.each(MODES)("an image open full screen, in $mode", async ({ mode }) => {
   await checkLayout(lightbox);
 });
 
+/** Waits for the composer's two images to be saved, Send enabled. */
+async function thumbnails() {
+  await expect
+    .poll(() => screen.queryAllByRole("button", { name: /^Remove / }).length, LIVE)
+    .toBe(2);
+  await expect
+    .poll(() => screen.getByRole("button", { name: "Send" }).hasAttribute("disabled"), LIVE)
+    .toBe(false);
+}
+
 test.each(MODES)(
   "the composer with two thumbnails, and a message with images, in $mode",
   async ({ mode }) => {
     window.localStorage.setItem("uraeda.theme", mode);
     await show(`/f/${CLI}/session`, "Message Claude Code");
     const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
-    const thumbnails = async () => {
-      await expect
-        .poll(() => screen.queryAllByRole("button", { name: /^Remove / }).length, LIVE)
-        .toBe(2);
-      await expect
-        .poll(() => screen.getByRole("button", { name: "Send" }).hasAttribute("disabled"), LIVE)
-        .toBe(false);
-    };
     paste([await image("phone.png", "image.png"), await image("desktop.png", "desktop.png")], box);
     await thumbnails();
     await userEvent.fill(box, "The login button overlaps the error banner on the phone.");

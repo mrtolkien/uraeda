@@ -31,6 +31,62 @@ const TIMED_OUT = "The image could not be added: the server did not answer in ti
 /** The name a file is told by: a pasted image has none. */
 const nameOf = (file: File) => file.name || PASTED;
 
+/** What the server answered an upload with: the core's image, or the refusal to show. */
+function answerOf(response: Response, text: string): AttachResult {
+  // Not the route's answer: the guard's refusal, like "Forbidden site", is plain text, worth
+  // showing; a proxy's error page is not.
+  const unknown = {
+    message: `The image could not be added (HTTP ${response.status}).`,
+    ok: false,
+  } as const;
+  const type = response.headers.get("content-type") ?? "";
+  if (!type.startsWith("application/json")) {
+    return type.startsWith("text/plain") && text.trim() ? { message: text, ok: false } : unknown;
+  }
+  let answer: AttachedView | ChatImage | { error: string };
+  try {
+    answer = JSON.parse(text);
+  } catch {
+    return unknown;
+  }
+  return "error" in answer
+    ? { message: refusal(answer.error).message, ok: false }
+    : { ok: true, value: answer };
+}
+
+/**
+ * Uploads an image to the repository's route at `url`, for the workflow file at `path` or, without
+ * one, for a chat. A file over the core's limit is refused before it is uploaded.
+ */
+async function uploadImage(
+  fetch: typeof globalThis.fetch,
+  url: string,
+  file: File,
+  path: string | undefined,
+): Promise<AttachResult> {
+  const name = nameOf(file);
+  if (file.size > IMAGE_LIMIT) {
+    return { message: overLimit(name, file.size), ok: false };
+  }
+  const query = new URLSearchParams(path === undefined ? { chat: "1" } : { path });
+  if (file.name) {
+    query.set("name", file.name);
+  }
+  const body = new FormData();
+  body.append("file", file);
+  try {
+    const response = await fetch(`${url}?${query}`, {
+      body,
+      method: "POST",
+      signal: AbortSignal.timeout(UPLOAD_TIMEOUT),
+    });
+    return answerOf(response, await response.text());
+  } catch (error) {
+    const timedOut = (error as { name?: unknown } | null)?.name === "TimeoutError";
+    return { message: timedOut ? TIMED_OUT : "Could not reach the Uraeda server.", ok: false };
+  }
+}
+
 /**
  * Uploads images one after the other to the repository's `POST /r/<name>/attach`, for a workflow
  * file at `path` or for a
@@ -59,57 +115,8 @@ export function useAttach(target: { path: string } | { chat: true }, initial?: A
   );
 
   const upload = useCallback(
-    async (file: File, path: string | undefined): Promise<AttachResult> => {
-      const name = nameOf(file);
-      if (file.size > IMAGE_LIMIT) {
-        return { message: overLimit(name, file.size), ok: false };
-      }
-      const query = new URLSearchParams(path === undefined ? { chat: "1" } : { path });
-      if (file.name) {
-        query.set("name", file.name);
-      }
-      const body = new FormData();
-      body.append("file", file);
-      let response: Response;
-      let text: string;
-      try {
-        response = await fetch(repoPath(repo, `/attach?${query}`), {
-          body,
-          method: "POST",
-          signal: AbortSignal.timeout(UPLOAD_TIMEOUT),
-        });
-        text = await response.text();
-      } catch (error) {
-        return {
-          message:
-            error instanceof DOMException && error.name === "TimeoutError"
-              ? TIMED_OUT
-              : "Could not reach the Uraeda server.",
-          ok: false,
-        };
-      }
-      // Not the route's answer: the guard's refusal, like "Forbidden site", is plain text, worth
-      // showing; a proxy's error page is not.
-      const unknown = {
-        message: `The image could not be added (HTTP ${response.status}).`,
-        ok: false,
-      } as const;
-      const type = response.headers.get("content-type") ?? "";
-      if (!type.startsWith("application/json")) {
-        return type.startsWith("text/plain") && text.trim()
-          ? { message: text, ok: false }
-          : unknown;
-      }
-      let answer: AttachedView | ChatImage | { error: string };
-      try {
-        answer = JSON.parse(text);
-      } catch {
-        return unknown;
-      }
-      return "error" in answer
-        ? { message: refusal(answer.error).message, ok: false }
-        : { ok: true, value: answer };
-    },
+    (file: File, path: string | undefined) =>
+      uploadImage(fetch, repoPath(repo, "/attach"), file, path),
     [fetch, repo],
   );
 

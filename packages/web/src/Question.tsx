@@ -12,21 +12,9 @@ import {
   typeScaleVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import {
-  createContext,
-  type ReactNode,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { Choice, Document, QuestionItem } from "uraeda-binding";
-import { AttachButton } from "./attach/AttachButton.tsx";
-import { AttachStatus } from "./attach/AttachStatus.tsx";
-import { DropHint } from "./attach/DropHint.tsx";
-import { useImageText } from "./attach/useImageText.ts";
 import { Blocks } from "./Blocks.tsx";
 import { refusal } from "./errors.ts";
 import { StaticImages } from "./ImageView.tsx";
@@ -35,11 +23,9 @@ import { useWidthClass } from "./layout/useWidthClass.ts";
 import { type SaveState, useSave } from "./useSave.ts";
 import { FileView } from "./views.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
+import { CommentField, useCommentSaves } from "./QuestionComment.tsx";
 
 const styles = stylex.create({
-  actions: {
-    marginBlockStart: spacingVars["--spacing-2"],
-  },
   belowBar: {
     scrollMarginTop: `calc(${spacingVars["--spacing-12"]} + ${spacingVars["--spacing-2"]})`,
   },
@@ -274,61 +260,6 @@ function Option({
 }
 
 /**
- * A question's comment as it is written: it takes images pasted, dropped while it has the focus,
- * or picked with "Add image". `onImages` takes the text once they are added, to save at once.
- * `onSettled` takes how to wait for the images under way, as a submit does.
- */
-function CommentField({
-  children,
-  comment,
-  id,
-  onChange,
-  onImages,
-  onSettled,
-  path,
-}: {
-  children: ReactNode;
-  comment: string;
-  id: string;
-  onChange: (comment: string) => void;
-  onImages: (comment: string, added: boolean) => void;
-  onSettled: (settled: () => Promise<void>) => void;
-  path: string;
-}) {
-  const images = useImageText({
-    label: `${id}'s comment`,
-    path,
-    text: comment,
-    // The notes take a drop with no field focused: a comment takes it only while focused.
-    onText: onImages,
-    priority: 0,
-  });
-  useEffect(() => {
-    onSettled(images.settled);
-  }, [onSettled, images.settled]);
-  return (
-    <>
-      <DropHint hint={images.hint} isLabelled>
-        <GrowingTextArea
-          label="Comment"
-          onChange={onChange}
-          value={comment}
-          {...images.fieldProps}
-        />
-      </DropHint>
-      <AttachStatus status={images.status} />
-      <HStack align="center" gap={2} wrap="wrap" xstyle={styles.actions}>
-        <AttachButton
-          name={`Add image to ${id}'s comment`}
-          onFiles={(files) => void images.addFiles(files)}
-        />
-        {children}
-      </HStack>
-    </>
-  );
-}
-
-/**
  * A question in full: its context, every option with its text, pros, cons, and why, and a comment.
  * A tap on an option toggles its letter and saves the answer, with the comment as typed; the comment
  * alone saves with its button, or with Submit. With `onAsk`, it and its follow-ups offer "Ask the
@@ -397,52 +328,14 @@ export function Question({
     }
     settle(question.answer);
   }, [question.answer, question.letters, question.comment, idle, settle]);
-  // The comment last handed to a save: Submit does not save it again while that save runs.
-  const committed = useRef(question.comment);
-  /** Saves the answer at once, with the comment as typed. */
-  const commit = useCallback(
-    (value: { comment: string; letters: ReadonlyArray<string> }) => {
-      committed.current = value.comment;
-      schedule(value, true);
-    },
-    [schedule],
-  );
-  // The images being added to the comment, which a submit waits for.
-  const settled = useRef<() => Promise<void>>(async () => {});
-  /** Saves the answer at once with the images' links, as a file with images is. */
-  const onImages = useCallback(
-    (value: string, added: boolean) => {
-      setComment(value);
-      local.current = { ...local.current, comment: value };
-      if (added) {
-        commit({ comment: value, letters: local.current.letters });
-      }
-    },
-    [commit],
-  );
-  // Submit saves a comment still being written first, its images added.
-  const pending = useContext(PendingSaves);
-  useEffect(() => {
-    const before = async () => {
-      await settled.current();
-      if (local.current.dirty && local.current.comment !== committed.current) {
-        commit({ comment: local.current.comment, letters: local.current.letters });
-      }
-      return flush();
-    };
-    pending.add(before);
-    return () => {
-      pending.delete(before);
-      // A follow-up that stops applying during an upload still saves the image's link once it is
-      // added: Submit waits for it, or the commit would delete the image (R74).
-      const after = async () => {
-        await settled.current();
-        return flush();
-      };
-      pending.add(after);
-      void after().finally(() => pending.delete(after));
-    };
-  }, [pending, flush, commit]);
+  const { commit, onImages, onSettled } = useCommentSaves({
+    flush,
+    initial: question.comment,
+    local,
+    pending: useContext(PendingSaves),
+    schedule,
+    setComment,
+  });
 
   const toggle = (letter: string) => {
     const next = letters.includes(letter)
@@ -515,9 +408,7 @@ export function Question({
             id={question.id}
             onChange={setComment}
             onImages={onImages}
-            onSettled={(wait) => {
-              settled.current = wait;
-            }}
+            onSettled={onSettled}
             path={path}
           >
             <Button

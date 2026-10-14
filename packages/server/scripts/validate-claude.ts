@@ -34,7 +34,7 @@ import {
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Readable, Writable } from "node:stream";
-import * as binding from "uraeda-binding";
+import { attachImage, encodeImage } from "uraeda-binding";
 import { fixture, fixtureRepo } from "uraeda-binding/test-utils";
 import type { AgentProcess } from "../src/runner/adapter.ts";
 import { allowRule, lines } from "../src/runner/claude-events.ts";
@@ -120,17 +120,16 @@ const find = <T extends AgentEvent["type"]>(events: Array<AgentEvent>, type: T) 
  * sent, or one through another link, as macOS's `/tmp` and `/private/tmp`.
  */
 function samePath(a: unknown, b: string): boolean {
-  if (typeof a !== "string") {
-    return false;
+  return typeof a === "string" && (a === b || realPath(a) === realPath(b));
+}
+
+/** A path through its symbolic links, or as it is when it does not exist. */
+function realPath(path: string) {
+  try {
+    return realpathSync(path);
+  } catch {
+    return path;
   }
-  const real = (path: string) => {
-    try {
-      return realpathSync(path);
-    } catch {
-      return path;
-    }
-  };
-  return a === b || real(a) === real(b);
 }
 
 /** Whether a run read the file at `path` with its Read tool, and the read did not fail. */
@@ -669,7 +668,7 @@ try {
     // mode, the same image copied outside the working folders is refused. No rule can block reads
     // outside the project but not in the images folder, which is outside it too (R41).
     const screenshot = readFileSync(fixture("images/desktop.png"));
-    const chatImage = await images.save(await binding.encodeImage(screenshot, "desktop.png"));
+    const chatImage = await images.save(await encodeImage(screenshot, "desktop.png"));
     const chatPath = join(images.dir, chatImage.id);
     const elsewhere = join(outside, chatImage.id);
     copyFileSync(chatPath, elsewhere);
@@ -694,7 +693,7 @@ try {
     // 8. An image a proposal links is opened by an agent asked about the proposal, as the skill
     // says (US6.1).
     const proposal = "specs/2026-10-10-cli-core/proposal.md";
-    const attached = await binding.attachImage(cwd, proposal, screenshot, "login.png");
+    const attached = await attachImage(cwd, proposal, screenshot, "login.png");
     const proposalPath = join(cwd, proposal);
     writeFileSync(
       proposalPath,

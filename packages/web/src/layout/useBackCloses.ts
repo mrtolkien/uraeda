@@ -14,6 +14,29 @@ let pendingBacks = 0;
 let landing = false;
 /** The overlays' own `popstate` handlers, called after the count is updated. */
 const handlers = new Set<() => void>();
+/** What runs once an overlay's entry is gone, and no Back is under way, by its overlay's label. */
+const afters = new Set<{ label: string; run: () => void }>();
+
+/** Runs what waited for an overlay's entry to go, once it is gone and no Back is under way. */
+function runAfters() {
+  for (const after of Array.from(afters)) {
+    if (pendingBacks === 0 && overlayOf(window.history.state) !== after.label) {
+      afters.delete(after);
+      after.run();
+    }
+  }
+}
+
+/**
+ * Runs once the overlay `label` is closed, its history entry gone, and the Backs under way landed:
+ * a page opened, or another overlay, while its entry is still there would be undone by the Back
+ * that closes it.
+ */
+export function afterOverlayCloses(label: string, run: () => void) {
+  afters.add({ label, run });
+  runAfters();
+  listen();
+}
 
 function onPopState() {
   landing = pendingBacks > 0;
@@ -25,12 +48,13 @@ function onPopState() {
     handler();
   }
   landing = false;
+  runAfters();
   listen();
 }
 
 /** Listens to `popstate` while an overlay is open or a Back is under way, and only then. */
 function listen() {
-  const needed = handlers.size > 0 || pendingBacks > 0;
+  const needed = handlers.size > 0 || pendingBacks > 0 || afters.size > 0;
   window.removeEventListener("popstate", onPopState);
   if (needed) {
     window.addEventListener("popstate", onPopState);
@@ -51,7 +75,7 @@ export function useBackCloses(label: string, isOpen: boolean, onClose: () => voi
   useEffect(() => {
     labelRef.current = label;
     onCloseRef.current = onClose;
-  }, [onClose]);
+  }, [label, onClose]);
 
   useEffect(() => {
     if (!isOpen) {

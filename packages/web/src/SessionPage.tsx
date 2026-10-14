@@ -7,10 +7,19 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { type Dispatch, type SetStateAction, Suspense, useEffect, useRef, useState } from "react";
+import {
+  type Dispatch,
+  type SetStateAction,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { useFateClient } from "react-fate";
-import type { SessionStatus as Status, Trigger } from "uraeda-server/fate";
-import { Composer, type DraftImage, draftImage, forgetPreviews } from "./Composer.tsx";
+import type { ChatImage, SessionStatus as Status, Trigger } from "uraeda-server/fate";
+import { type DraftImage, draftImage, forgetPreviews } from "./attach/chatImages.ts";
+import { Composer } from "./Composer.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { useAgent, useFeature, useSession, useWorkflowMessage } from "./data.ts";
 import { EditableLine } from "./EditableLine.tsx";
@@ -105,12 +114,31 @@ type Draft = {
   text: string;
 };
 
+/** The composer's text and images, held by the draft. */
+function composerDraft({ images, setImages, setText, text }: Draft) {
+  return { images, onChange: setText, onImagesChange: setImages, value: text };
+}
+
+/** Puts a taken-back message's text and images back in the draft, before what it holds. */
+function takeBackInto({ setImages, setText }: Draft) {
+  return (back: string, images: ReadonlyArray<ChatImage>) => {
+    if (back.trim()) {
+      setText((now) => (now.trim() ? `${back}\n${now}` : back));
+    }
+    if (images.length > 0) {
+      setImages((now) => [...images.map(draftImage), ...now]);
+    }
+  };
+}
+
 function useDraft(): Draft {
   const [text, setText] = useState("");
   const [images, setImages] = useState<ReadonlyArray<DraftImage>>([]);
   // The previews of images still being saved go with the page.
   const kept = useRef(images);
-  kept.current = images;
+  useLayoutEffect(() => {
+    kept.current = images;
+  });
   useEffect(() => () => forgetPreviews(kept.current), []);
   return { images, setImages, setText, text };
 }
@@ -146,7 +174,6 @@ function Session({
   const session = useSession(id);
   const groups = useOpenKeys();
   const log = useRef<HTMLDivElement>(null);
-  const { setImages, setText } = draft;
   const [error, setError] = useState<string>();
   const working = session?.status === "working";
   useOpenAtEnd(log);
@@ -223,14 +250,7 @@ function Session({
             canAllow={!working}
             groups={groups}
             onAllow={allow}
-            onTakenBack={(back, images) => {
-              if (back.trim()) {
-                setText((now) => (now.trim() ? `${back}\n${now}` : back));
-              }
-              if (images.length > 0) {
-                setImages((now) => [...images.map(draftImage), ...now]);
-              }
-            }}
+            onTakenBack={takeBackInto(draft)}
             session={session}
           />
         </div>
@@ -238,11 +258,8 @@ function Session({
       </VStack>
       <div {...stylex.props(styles.composer)}>
         <Composer
-          images={draft.images}
-          onChange={setText}
-          onImagesChange={setImages}
+          {...composerDraft(draft)}
           session={id}
-          value={draft.text}
           working={working}
           {...handing}
           {...(blocked === undefined ? {} : { blocked })}
@@ -284,10 +301,7 @@ function NoSession({
       <div {...stylex.props(styles.composer)}>
         <Composer
           {...(folder === undefined ? {} : { folder })}
-          images={draft.images}
-          onChange={draft.setText}
-          onImagesChange={draft.setImages}
-          value={draft.text}
+          {...composerDraft(draft)}
           {...handing}
           {...(blocked === undefined ? {} : { blocked })}
           onSent={(session) => {

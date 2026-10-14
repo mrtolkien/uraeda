@@ -13,64 +13,33 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Markdown } from "@astryxdesign/core/Markdown";
 import { Text } from "@astryxdesign/core/Text";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, type RefObject, useEffect, useLayoutEffect, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { ChatImage, Item } from "uraeda-server/fate";
 import { useAgent, useTurn, useTurnLog } from "./data.ts";
 import { refusal } from "./errors.ts";
-import { ImageView } from "./ImageView.tsx";
 import { stepLabel } from "./labels.ts";
 import { statusStyles } from "./Question.tsx";
-import { currentEntry, useRepository } from "./routes.tsx";
-import { chatImageSrc } from "./sessions.ts";
+import { MessageBody } from "./MessageBody.tsx";
+import { currentEntry } from "./routes.tsx";
 import { StatusMark } from "./StatusMark.tsx";
 import type { OpenKeys } from "./useOpenKeys.ts";
 import { SessionView } from "./views.ts";
 
 const styles = stylex.create({
-  message: {
-    // A message keeps its line breaks, and a long path wraps instead of running off screen.
-    overflowWrap: "anywhere",
-    whiteSpace: "pre-wrap",
-  },
   notice: {
     // Astryx centres a system line, as a chat's date separators are; the UI layout decision keeps
     // text left-aligned.
     justifyContent: "flex-start",
     textAlign: "start",
   },
-  opening: {
-    // The chat's opening line, muted above the human's text.
-    color: colorVars["--color-text-secondary"],
-    display: "block",
-    marginBlockEnd: spacingVars["--spacing-2"],
-    whiteSpace: "pre-wrap",
-  },
-  pending: {
-    // A message the agent has not read yet.
-    color: colorVars["--color-text-secondary"],
-  },
   turn: {
     // A turn's lines, spaced as the list spaces them, in a box the address's anchor scrolls to.
     display: "flex",
     flexDirection: "column",
     gap: spacingVars["--spacing-3"],
-  },
-  // The images of a message the agent has not read yet, dimmed as its text is.
-  pendingImages: {
-    opacity: 0.6,
-  },
-  // A message's images, above its text, side by side while they fit.
-  images: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: spacingVars["--spacing-2"],
-  },
-  // Images before text keep the bubble's spacing between them.
-  imagesAbove: {
-    marginBlockEnd: spacingVars["--spacing-2"],
   },
 });
 
@@ -245,7 +214,6 @@ function Message({
   const fate = useFateClient();
   const [error, setError] = useState<string>();
   const pending = item.state === "pending";
-  const repo = useRepository();
   const takeBack = async () => {
     setError(undefined);
     const result = await fate.mutations.session.takeBack({
@@ -290,32 +258,7 @@ function Message({
       sender="user"
     >
       <ChatMessageBubble variant={pending ? "ghost" : "filled"}>
-        {item.opening && <span {...stylex.props(styles.opening)}>{item.opening}</span>}
-        {item.images && item.images.length > 0 && (
-          <div
-            {...stylex.props(
-              styles.images,
-              item.text !== "" && styles.imagesAbove,
-              pending && styles.pendingImages,
-            )}
-          >
-            {item.images.map((image, index, all) => (
-              <ImageView
-                alt=""
-                height={image.height}
-                key={image.id}
-                // Told apart by their place: one alone is "Image".
-                label={all.length > 1 ? `Image ${index + 1} of ${all.length}` : "Image"}
-                size="message"
-                src={chatImageSrc(repo, image)}
-                width={image.width}
-              />
-            ))}
-          </div>
-        )}
-        {item.text !== "" && (
-          <span {...stylex.props(styles.message, pending && styles.pending)}>{item.text}</span>
-        )}
+        <MessageBody item={item} pending={pending} />
       </ChatMessageBubble>
     </ChatMessage>
   );

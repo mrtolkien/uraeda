@@ -133,6 +133,13 @@ async function editorShots(each: Each, repo: string, base: string) {
   });
 }
 
+/** A feature's proposal, with its screenshot loaded. */
+async function showProposal(page: Page) {
+  await show(page, "/f/2026-10-13-plan-review/proposal.md", LEAD);
+  await page.getByRole("img", { name: "login" }).waitFor();
+  await imagesLoaded(page);
+}
+
 /** A feature's proposal with a screenshot, and the screenshot open full screen. */
 async function proposalShots(each: Each, repo: string, base: string) {
   const proposal = "specs/2026-10-13-plan-review/proposal.md";
@@ -141,11 +148,6 @@ async function proposalShots(each: Each, repo: string, base: string) {
     join(repo, ".worktrees/2026-10-13-plan-review", proposal),
     proposalText("Plan review", link),
   );
-  const showProposal = async (page: Page) => {
-    await show(page, "/f/2026-10-13-plan-review/proposal.md", LEAD);
-    await page.getByRole("img", { name: "login" }).waitFor();
-    await imagesLoaded(page);
-  };
   await each("proposal-image", ({ page }) => showProposal(page));
   await each("lightbox", async ({ page }) => {
     await showProposal(page);

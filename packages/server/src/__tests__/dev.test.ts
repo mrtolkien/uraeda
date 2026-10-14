@@ -86,6 +86,13 @@ test("the server in vp dev reads URAEDA_REPO", async () => {
   expect(await other.text()).toBe("vite");
 });
 
+/** An upload's body, as the UI sends it. */
+function upload() {
+  const body = new FormData();
+  body.set("file", new File([readFileSync(fixture("images/desktop.png"))], "desktop.png"));
+  return body;
+}
+
 test("the dev server serves a repository's image routes, its uploads in the data folder", async () => {
   const repo = fixtureRepo();
   const root = temporaryFolder("uraeda-dev");
@@ -100,11 +107,6 @@ test("the dev server serves a repository's image routes, its uploads in the data
   // Listed under its folder's name as the server starts in it.
   const started = await fetch(`${url}/raw/specs/drafts/git-listener.md`);
   const name = basename(repo);
-  const upload = () => {
-    const body = new FormData();
-    body.set("file", new File([readFileSync(fixture("images/desktop.png"))], "desktop.png"));
-    return body;
-  };
 
   const response = await fetch(`${url}/r/${name}/attach?name=desktop.png&chat=1`, {
     body: upload(),
