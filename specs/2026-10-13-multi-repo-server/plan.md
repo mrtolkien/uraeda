@@ -1,9 +1,16 @@
 ---
-status: auto-approved
-spec-revision: 1
+status: approved
+spec-revision: 2
 ---
 
 # Plan: Multi-repo server
+
+> [!NOTE]
+>
+> Approved on 2026-10-14.
+>
+> - Built auto-approved; constitution 1.3.0, from the default branch, then made the CLI's size
+>   growth an exception, which you approved in round 02.
 
 **Goal:** One Uraeda server serves every repository listed in `repositories.json`, with a repository
 menu at the web UI's top left, an add form completing paths, and `ura add` in the CLI.
@@ -154,14 +161,14 @@ task's requirements include these:
 
 ## Constitution check
 
-| Principle                            | Complies | Notes                                                                       |
-| ------------------------------------ | -------- | --------------------------------------------------------------------------- |
-| I. Humans stay in control            | yes      | The list changes only on the human's add, remove, or hand edit              |
-| II. Git and plain text first         | yes      | No workflow state moves; the list is plain JSON outside repositories        |
-| III. Asynchronous by default         | yes      | No workflow step changes                                                    |
-| IV. Review effort matches impact     | yes      | No question left; rulings in [rulings.md](rulings.md)                       |
-| V. Tools are optional                | yes      | The skill gains `ura add`'s row; the workflow needs neither the list nor it |
-| VI. Code is checked against the spec | yes      | Every scenario has a test; new abstractions are below                       |
+| Principle                                  | Complies               | Notes                                                                              |
+| ------------------------------------------ | ---------------------- | ---------------------------------------------------------------------------------- |
+| I. Humans stay in control                  | yes                    | The list changes only on the human's add, remove, or hand edit                     |
+| II. Git and plain text first               | yes                    | No workflow state moves; the list is plain JSON outside repositories               |
+| III. Asynchronous by default               | yes                    | No workflow step changes                                                           |
+| IV. Review effort matches impact           | yes                    | No question left; rulings in [rulings.md](rulings.md)                              |
+| V. Tools are optional                      | yes                    | The skill gains `ura add`'s row; the workflow needs neither the list nor it        |
+| VI. Code is checked and stays maintainable | yes, with an exception | Every scenario has a test; new abstractions and the CLI's size exception are below |
 
 ## Decisions
 
@@ -182,14 +189,15 @@ The decisions this plan relies on, and where it follows them:
 
 ## Complexity tracking
 
-| Abstraction or exception                        | Why it is needed                                                                                                    | Simpler alternative rejected because                                                  |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `Hosts` registry and `Host` (`repositories.ts`) | One owner for each repository's fate server, live bus, and watch, used by the routes, live updates, and mutations   | Maps spread over `app.ts`, `live.ts`, and `dev.ts` would each start and close watches |
-| `createFate()` factory in `fate.ts`             | The decision requires a live bus per repository; fate's bus has no context, so each repository needs its own server | Repository-qualified IDs: every source, mutation, view, and hook reworked             |
-| `startServer()` (`server.ts`)                   | `main.ts` and `dev.ts` wire the same parts; the start repository's rules would be written twice                     | Keeping both wirings: the spec's start behaviour in two places                        |
-| A fate client per repository in the UI          | The cache is keyed by type and ID; two repositories' `workspace` records would collide                              | Qualified IDs, rejected with the factory above                                        |
-| `repoPath()` helper in `routes.tsx`             | About 55 path literals in 14 files must gain `/r/<name>`; SC-003 needs one place that builds them                   | Prefixing each literal by hand: a missed one breaks SC-003 silently                   |
-| Test helpers registering fixture repositories   | Every server and web test now reaches a repository through the list                                                 | Per-test wiring: boilerplate in every test file                                       |
+| Abstraction or exception                        | Why it is needed                                                                                                                                                                                                                                           | Simpler alternative rejected because                                                           |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `Hosts` registry and `Host` (`repositories.ts`) | One owner for each repository's fate server, live bus, and watch, used by the routes, live updates, and mutations                                                                                                                                          | Maps spread over `app.ts`, `live.ts`, and `dev.ts` would each start and close watches          |
+| `createFate()` factory in `fate.ts`             | The decision requires a live bus per repository; fate's bus has no context, so each repository needs its own server                                                                                                                                        | Repository-qualified IDs: every source, mutation, view, and hook reworked                      |
+| `startServer()` (`server.ts`)                   | `main.ts` and `dev.ts` wire the same parts; the start repository's rules would be written twice                                                                                                                                                            | Keeping both wirings: the spec's start behaviour in two places                                 |
+| A fate client per repository in the UI          | The cache is keyed by type and ID; two repositories' `workspace` records would collide                                                                                                                                                                     | Qualified IDs, rejected with the factory above                                                 |
+| `repoPath()` helper in `routes.tsx`             | About 55 path literals in 14 files must gain `/r/<name>`; SC-003 needs one place that builds them                                                                                                                                                          | Prefixing each literal by hand: a missed one breaks SC-003 silently                            |
+| Test helpers registering fixture repositories   | Every server and web test now reaches a repository through the list                                                                                                                                                                                        | Per-test wiring: boilerplate in every test file                                                |
+| Constitution exception: principle VI, size      | `ura add` and the repository list make the release `ura` grow by 36,464 bytes, from 5,784,512 to 5,820,976, with no new dependency; approved by the human in [round 02](clarifications-02.md#q1-do-you-accept-the-ura-binary-growing-by-36-kb-for-ura-add) | Dropping `ura add` loses US4, which the human asked for; shrinking elsewhere is unrelated work |
 
 ---
 
