@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Code quality and maintainability through the skill
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 25 minutes.
+> Approved on 2026-10-14.
 >
 > - **A new decision, [code quality](../decisions/code-quality.md).** It sets 100 lines per
 >   function, 7 parameters, 4 levels of nesting, and 500 lines per file. Today's offenders are
