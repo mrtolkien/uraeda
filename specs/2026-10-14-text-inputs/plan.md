@@ -899,7 +899,7 @@ git commit -m "feat(text-inputs): the editor saves with its button"
   line, `priorities#add:<section>` for an add row, `session#<id>:title` for a chat title; `QuickAdd`
   uses `quick-add` and `TextField kind="line"`.
 
-- [ ] **Step 1: Split `EditableLine` before it changes**: the save in a hook, removing its marker.
+- [x] **Step 1: Split `EditableLine` before it changes**: the save in a hook, removing its marker.
 
 - Run: `vp check && vp test --project uraeda-web priorities task`, before and after
 - Expected: PASS both times
