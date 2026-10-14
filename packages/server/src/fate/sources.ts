@@ -123,7 +123,8 @@ function missingFeature(folder: string): FeatureRecord {
 }
 
 /**
- * A feature's branch changes. A folder that is no feature's has none. Changes that cannot be read,
+ * A feature's branch changes. A folder that is no feature's has none, nor a repository without
+ * `specs/`, as one whose folder was removed under an open page. Changes that cannot be read,
  * git missing or the diff failing, are answered as failed, so the page says so, and logged with
  * the error's first line.
  */
@@ -134,7 +135,7 @@ async function branchChanges(
   try {
     return { changes: sentChanges(await binding.branchChanges(repo, id)), failed: false, id };
   } catch (error) {
-    if (isMissing(error)) {
+    if (isMissing(error) || (error instanceof Error && /^no specs\/ folder /.test(error.message))) {
       return { changes: null, failed: false, id };
     }
     const [line] = (error instanceof Error ? error.message : String(error)).split("\n");

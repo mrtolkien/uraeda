@@ -980,12 +980,12 @@ In `session-aside.test.tsx`, at 1440 px, with a helper `aside()` returning
 | US1.6: a running sub-agent is listed                                | a session with a sub-agent, as in `shell.test.tsx`                           | "Sub-agents", "Explore the tests"                                                                                                         |
 | US1.7: Hide progress folds it, for every session and after a reload | click "Hide progress"; open `WEB_UI`'s session; render again                 | no `complementary` "Progress"; the button reads "Show progress"                                                                           |
 | Edge: no plan yet                                                   | `CLI` as fixtured                                                            | "Plan", "No plan yet."                                                                                                                    |
-| Edge: a plan in review                                              | `addPlan(..., "awaiting-human")`                                             | 11 tasks, none "Current:", no `progressbar`                                                                                               |
+| Edge: a plan in review                                              | `addPlan(..., "awaiting-human")`                                             | "Review the plan", 11 tasks, none "Current:", no `progressbar`                                                                            |
 | Edge: every box checked                                             | `addPlan` all done                                                           | "Pull request", "11 of 11 tasks done", a full `progressbar`                                                                               |
 | Edge: nothing changed                                               | `CLI` as fixtured                                                            | "Nothing outside the feature's folder yet."                                                                                               |
 | Edge: more than 50 files                                            | 60 files committed                                                           | 50 paths, "and 10 more files"                                                                                                             |
 | Edge: a binary file                                                 | a PNG committed                                                              | its path and "binary"                                                                                                                     |
-| Edge: no branch                                                     | a feature whose proposal is uncommitted                                      | no "Changed on the branch"                                                                                                                |
+| Edge: no branch                                                     | a feature whose proposal is uncommitted                                      | "Write the proposal"; once `BranchChanges` is answered, no "Changed on the branch"                                                        |
 | Edge: git failing                                                   | the `branchChanges` binding rejecting, through `renderPage`'s server options | "The changes could not be read.", and the tasks still shown                                                                               |
 | Edge: no session                                                    | `CLI` with no session                                                        | the column shows, and the transcript is empty                                                                                             |
 | Edge: `localStorage` refused                                        | `setItem` throwing                                                           | the column shows; "Hide progress" still folds it                                                                                          |
@@ -1010,8 +1010,14 @@ are all checked reaches "Pull request" in the tests, which know no pull request
   theme, `role="complementary"`, with a divider, sticky through its `xstyle` and scrolling on its
   own like `RoundNav`, is its `end` slot, at the window's edge.
 - **"Hide progress" and "Show progress"** sit in the header's status line, on wide screens only.
-- **`useAsideShown`** reads and writes `uraeda.sessionAside` in try/catch, falling back to the
-  page's own state.
+- **`useAsideShown`** reads and writes `uraeda.sessionAside` in try/catch. Where storage refuses the
+  write, the choice is kept in the module for the document's life, as pages are drawn anew at each
+  address.
+- **The step's heading** reads what a gate asks of the human, `waiting(feature).title` like "Review
+  the plan", and the step's label otherwise.
+- **Each read of the column** (tasks, sub-agents, changes) has its own `Suspense` and error
+  boundary: a failed read leaves its section out, and the session and the other sections stay
+  ([R18](rulings.md#r18-the-columns-step-reads-as-a-gate-and-its-reads-fail-alone)).
 - **The sections**, in this order:
   - the step's label (`stepLabel`);
   - the progress: "Task N of M" with a `ProgressBar` while `step.progress` is set, "M of M tasks
