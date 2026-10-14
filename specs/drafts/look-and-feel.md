@@ -17,6 +17,9 @@ Look and feel pass: components style, logo, favicon, ...
   report
 - Better URLs for the navigation, right now it's a bit messy
   (`/f/2026-10-13-chat-in-the-web-ui/clarifications-01.md`)
+- The status detection is iffy -> wait for agent runs to finish before saying it's "waiting on you",
+  include PR URL, make sure the "PR ready" state means the PR was opened (currently it's at that
+  state when the reviewer runs)
 
 ## Why
 
