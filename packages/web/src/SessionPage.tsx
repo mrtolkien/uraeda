@@ -21,7 +21,8 @@ import { statusStyles } from "./Question.tsx";
 import { navigate, redirect, useRepoPath, useRestoreScroll, useSearch } from "./routes.tsx";
 import { sessionPath } from "./sessions.ts";
 import { StatusMark } from "./StatusMark.tsx";
-import { Transcript, useFollowEnd, useOpenAtEnd, useOpenGroups } from "./Transcript.tsx";
+import { Transcript, useFollowEnd, useOpenAtEnd } from "./Transcript.tsx";
+import { useOpenKeys } from "./useOpenKeys.ts";
 import { SessionView } from "./views.ts";
 
 const styles = stylex.create({
@@ -125,7 +126,7 @@ function Session({
   const fate = useFateClient();
   const here = useRepoPath();
   const session = useSession(id);
-  const groups = useOpenGroups();
+  const groups = useOpenKeys();
   const log = useRef<HTMLDivElement>(null);
   const [text, setText] = draft;
   const [error, setError] = useState<string>();

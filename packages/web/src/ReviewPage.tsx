@@ -1,9 +1,5 @@
-import { Badge } from "@astryxdesign/core/Badge";
-import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Code } from "@astryxdesign/core/Code";
-import { Heading } from "@astryxdesign/core/Heading";
-import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import {
@@ -14,36 +10,28 @@ import {
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useMemo } from "react";
-import { useFateClient } from "react-fate";
 import type { Block, CommentItem, Document } from "uraeda-binding";
-import { Blocks, selectable } from "./Blocks.tsx";
+import { Blocks } from "./Blocks.tsx";
 import { CommentForm, quoteOf } from "./CommentForm.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { type useFile, useAgent } from "./data.ts";
 import { Overlay } from "./layout/Overlay.tsx";
 import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
-import { PendingComment, usePlacedComments, where } from "./ReviewComments.tsx";
-import { ReviewVerdict, useRefusals } from "./ReviewVerdict.tsx";
-import { askAbout, quoted } from "./sessions.ts";
+import { PendingComment, usePlacedComments } from "./ReviewComments.tsx";
+import { reviewHeadings } from "./ReviewHeadings.tsx";
+import { useRefusals } from "./ReviewVerdict.tsx";
+import { selectable } from "./Selection.tsx";
 import { plain } from "./Spans.tsx";
 import { type Range, useCommentDraft } from "./useCommentDraft.ts";
-import { refusal } from "./errors.ts";
-import { FileView } from "./views.ts";
-import { Paragraph } from "./layout/Paragraph.tsx";
+import { useReviewActions } from "./useReviewActions.ts";
+import { StaleBanner, YourReview } from "./YourReview.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
+type Draft = ReturnType<typeof useCommentDraft>;
+
 const styles = stylex.create({
-  band: {
-    // A story's heading, after a band to the screen's edges on the phone.
-    backgroundColor: colorVars["--color-background-muted"],
-    height: spacingVars["--spacing-2"],
-    marginBlock: spacingVars["--spacing-5"],
-  },
-  bandBleed: {
-    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
-  },
   inline: {
     // The comment field under the block on wide screens.
     borderColor: colorVars["--color-border"],
@@ -56,9 +44,6 @@ const styles = stylex.create({
   sheetRoom: {
     // Room at the page's end, so the last block can rise above the comment sheet.
     height: "var(--size-viewport-height)",
-  },
-  task: {
-    marginBlock: spacingVars["--spacing-4"],
   },
 });
 
@@ -81,74 +66,27 @@ export function textOf(tree: Document, block: Block) {
     .join(" | ");
 }
 
-/**
- * A spec, a plan, or an assessment to review, as committed at its branch's tip: tapping blocks
- * selects lines to comment on, pending comments show under their blocks, and the end of the page
- * holds the verdict. The comment field opens under the last tapped block on wide screens, and in
- * a sheet on the phone, the block kept in view above it.
- */
-// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the comment's sending in a hook, and its form in a component
-export function ReviewPage({ file }: { file: File }) {
-  const fate = useFateClient();
+/** The comment field of a review, on the selected lines, the whole file, or a comment edited. */
+function ReviewForm({
+  actions: { ask, send },
+  draft: { close, draft, selection, setText, text },
+  tree,
+}: {
+  actions: ReturnType<typeof useReviewActions>;
+  draft: Draft;
+  tree: Document;
+}) {
   const agent = useAgent();
-  const wide = useWidthClass() === "wide";
-  const version = file.committed ?? file.current;
-  const tree = version.document;
-  const spec = version.items.spec;
-  const tasks = version.items.plan?.tasks ?? [];
-  const review = file.review?.review;
-  const comments = useMemo(() => (review?.verdict === "pending" ? review.comments : []), [review]);
-  const { close, draft, last, selection, setText, sheet, start, tap, text } = useCommentDraft(wide);
-  const refusals = useRefusals();
-  const { run } = refusals;
-  const placed = usePlacedComments(comments, tree);
-
-  const stories = new Map(spec?.stories.map((story) => [story.headingBlock, story]) ?? []);
-  const taskHeadings = new Map(tasks.map((task) => [task.headingBlock, task]));
-
-  const send = async (written: string) => {
-    if (!draft) {
-      return undefined;
-    }
-    const input = { file: file.name, folder: file.folder };
-    const result =
-      draft.kind === "edit"
-        ? await fate.mutations.review.edit({
-            input: { ...input, number: draft.number, text: written },
-            view: FileView,
-          })
-        : await fate.mutations.review.comment({
-            input: {
-              ...input,
-              text: written,
-              ...(draft.kind === "lines" && selection
-                ? { endLine: selection.end, startLine: selection.start }
-                : {}),
-            },
-            view: FileView,
-          });
-    if (result.error) {
-      return refusal(result.error).message;
-    }
-    close();
+  if (!draft) {
     return undefined;
-  };
-
-  /** Opens the feature's session with the selected lines quoted, as they read in the file. */
-  const ask = (range: Range) => {
-    const lines = version.text.split("\n").slice(range.start - 1, range.end);
-    const where =
-      range.start === range.end ? `line ${range.start}` : `lines ${range.start}–${range.end}`;
-    askAbout(file.folder, quoted(`About ${file.path}, ${where}:`, lines));
-  };
-
+  }
   // The selected lines' first block, quoted in the comment field.
   const first =
     selection &&
     tree.blocks
       .filter((b) => selectable(b) && b.startLine >= selection.start && b.endLine <= selection.end)
       .sort((a, b) => a.startLine - b.startLine)[0];
-  const form = draft && (
+  return (
     <CommentForm
       action={
         agent?.available &&
@@ -171,6 +109,27 @@ export function ReviewPage({ file }: { file: File }) {
       text={text}
     />
   );
+}
+
+/**
+ * A spec, a plan, or an assessment to review, as committed at its branch's tip: tapping blocks
+ * selects lines to comment on, pending comments show under their blocks, and the end of the page
+ * holds the verdict. The comment field opens under the last tapped block on wide screens, and in
+ * a sheet on the phone, the block kept in view above it.
+ */
+export function ReviewPage({ file }: { file: File }) {
+  const wide = useWidthClass() === "wide";
+  const version = file.committed ?? file.current;
+  const tree = version.document;
+  const review = file.review?.review;
+  const comments = useMemo(() => (review?.verdict === "pending" ? review.comments : []), [review]);
+  const commentDraft = useCommentDraft(wide);
+  const { close, draft, last, selection, sheet, start, tap } = commentDraft;
+  const refusals = useRefusals();
+  const actions = useReviewActions(file, commentDraft, refusals);
+  const placed = usePlacedComments(comments, tree);
+
+  const form = <ReviewForm actions={actions} draft={commentDraft} tree={tree} />;
   /** The comment field, in the page on wide screens: on the phone, it is in the sheet. */
   const inPage = (shown: boolean) =>
     wide && shown && <div {...stylex.props(styles.inline)}>{form}</div>;
@@ -183,14 +142,7 @@ export function ReviewPage({ file }: { file: File }) {
         comment={comment}
         key={comment.number}
         onEdit={() => start({ kind: "edit", number: comment.number, text: comment.text })}
-        onRemove={() =>
-          void run(() =>
-            fate.mutations.review.remove({
-              input: { file: file.name, folder: file.folder, number: comment.number },
-              view: FileView,
-            }),
-          )
-        }
+        onRemove={() => actions.remove(comment.number)}
       />
     );
 
@@ -199,25 +151,7 @@ export function ReviewPage({ file }: { file: File }) {
       <Crumbs current={file.name} folder={file.folder} />
       <VStack gap={3}>
         {file.reviewStale && comments.length > 0 && (
-          <Banner
-            endContent={
-              <Button
-                clickAction={async () => {
-                  await run(() =>
-                    fate.mutations.review.startOver({
-                      input: { file: file.name, folder: file.folder },
-                      view: FileView,
-                    }),
-                  );
-                }}
-                label="Start over"
-              />
-            }
-            status="warning"
-            title={`The ${file.kind} changed since your comments: your ${comments.length} pending ${
-              comments.length === 1 ? "comment is" : "comments are"
-            } on the previous version. Adding a comment replaces it.`}
-          />
+          <StaleBanner count={comments.length} kind={file.kind} onStartOver={actions.startOver} />
         )}
         <Text color="secondary" type="supporting">
           Tap a block to comment on it. Showing the version committed at <Code>{file.tip}</Code>
@@ -225,35 +159,7 @@ export function ReviewPage({ file }: { file: File }) {
         </Text>
         <Blocks
           document={tree}
-          override={(block) => {
-            const story = stories.get(block.id);
-            if (story) {
-              return (
-                <div id={block.anchor} key={block.id}>
-                  <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />
-                  <Text color="secondary" type="supporting" weight="semibold">
-                    {story.id} · {story.priority}
-                  </Text>
-                  <Heading level={3}>{story.title}</Heading>
-                </div>
-              );
-            }
-            const task = taskHeadings.get(block.id);
-            if (task) {
-              return (
-                <div id={block.anchor} key={block.id} {...stylex.props(styles.task)}>
-                  <Heading level={3}>
-                    Task {task.number}: {task.title}{" "}
-                    <Badge
-                      label={`${task.done}/${task.total}`}
-                      variant={task.done === task.total ? "success" : "neutral"}
-                    />
-                  </Heading>
-                </div>
-              );
-            }
-            return undefined;
-          }}
+          override={reviewHeadings(version.items, wide)}
           selection={{
             after: (block) => (
               <>
@@ -268,31 +174,15 @@ export function ReviewPage({ file }: { file: File }) {
             onTap: tap,
           }}
         />
-        <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />
-        <Heading level={2}>Your review</Heading>
-        {comments.length === 0 && (
-          <Text color="secondary" type="supporting">
-            No comment yet.
-          </Text>
-        )}
-        {comments.map((comment) =>
-          // A general comment has no block to show under: it is edited and removed here.
-          comment.general ? (
-            pendingNote(comment)
-          ) : (
-            <VStack gap={0} key={comment.number}>
-              <Text color="secondary" type="supporting">
-                {where(comment)}
-              </Text>
-              <Paragraph>{comment.text}</Paragraph>
-            </VStack>
-          ),
-        )}
-        <HStack gap={2}>
-          <Button label="Add a general comment" onClick={() => start({ kind: "general" })} />
-        </HStack>
-        {inPage(draft?.kind === "general")}
-        <ReviewVerdict comments={comments.length} file={file} refusals={refusals} />
+        <YourReview
+          comments={comments}
+          file={file}
+          general={inPage(draft?.kind === "general")}
+          onGeneral={() => start({ kind: "general" })}
+          pendingNote={pendingNote}
+          refusals={refusals}
+          wide={wide}
+        />
       </VStack>
       {!wide && draft && <div {...stylex.props(styles.sheetRoom)} />}
       {!wide && (

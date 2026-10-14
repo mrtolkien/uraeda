@@ -6,7 +6,7 @@ import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { Block, Document } from "uraeda-binding";
-import { selectable } from "./Blocks.tsx";
+import { selectable } from "./Selection.tsx";
 import { CommentForm, quoteOf } from "./CommentForm.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { useFile } from "./data.ts";

@@ -238,3 +238,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   and the round's context for every other caller.
 - **If wrong**: the fold's ids change in one function, `details` in `crates/core/src/files/spec.rs`.
 - **Where**: task 6, `crates/core/src/files/spec.rs`, `crates/core/tests/items.rs`.
+
+## R15: The review page's parts, each in a file
+
+- **Decision**: step 1 of task 7 splits `ReviewPage` into `reviewHeadings` and `Band`
+  (`ReviewHeadings.tsx`), `YourReview` and `StaleBanner` (`YourReview.tsx`), `useReviewActions`
+  (`useReviewActions.ts`), and `ReviewForm`, which stays in `ReviewPage.tsx`. The selection parts
+  moved to `Selection.tsx` take the `selection` alone, not `Blocks`' context.
+- **Rationale**: the plan named the heading override, the "Your review" list, and the handlers. The
+  comment field and the stale banner had to leave too for the component to fall under 100 lines. In
+  files of their own, `ReviewPage.tsx` keeps room under 500 lines for task 7's folds and task 8's
+  mockups.
+- **Alternatives considered**: the same functions in `ReviewPage.tsx`, at about 390 lines before the
+  folds and the mockups.
+- **If wrong**: the parts move back into one file without a change to what they do.
+- **Where**: task 7, `packages/web/src/{ReviewPage,ReviewHeadings,YourReview,Selection}.tsx`,
+  `useReviewActions.ts`.
