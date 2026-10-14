@@ -17,12 +17,19 @@ const LARGE: &[(&str, usize)] = &[
     ("crates/lsp/src/commands.rs", 539),
 ];
 
-/// A file's length without its tests: its lines before its first `#[cfg(test)]` line, or all of
-/// them when it has none.
+/// A file's length without its tests: its lines before the `#[cfg(test)]` line of its first test
+/// module, or all of them when it has none.
 fn measure(text: &str) -> usize {
-    text.lines()
-        .position(|line| line.trim_start().starts_with("#[cfg(test)]"))
-        .unwrap_or_else(|| text.lines().count())
+    let lines: Vec<&str> = text.lines().map(str::trim_start).collect();
+    (0..lines.len())
+        .find(|&start| {
+            lines[start].starts_with("#[cfg(test)]")
+                && lines[start + 1..]
+                    .iter()
+                    .find(|line| !line.is_empty())
+                    .is_some_and(|line| line.starts_with("mod ") || line.starts_with("pub mod "))
+        })
+        .unwrap_or(lines.len())
 }
 
 /// The `.rs` files under `dir`, at any depth.
@@ -96,9 +103,21 @@ fn the_measure_skips_test_modules() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("long.rs");
     let mut text = "fn line() {}\n".repeat(10);
-    text.push_str("#[cfg(test)]\n");
+    text.push_str("#[cfg(test)]\nmod tests {\n");
     text.push_str(&"fn test_line() {}\n".repeat(600));
+    text.push_str("}\n");
     fs::write(&path, text).unwrap();
 
     assert_eq!(measure(&fs::read_to_string(&path).unwrap()), 10);
+}
+
+/// Only a test module ends the measure: an earlier `#[cfg(test)]` item does not exempt the code
+/// after it.
+#[test]
+fn an_early_test_item_does_not_end_the_measure() {
+    let mut text = "#[cfg(test)]\nuse std::fs;\n".to_owned();
+    text.push_str(&"fn line() {}\n".repeat(600));
+    text.push_str("#[cfg(test)]\n\nmod tests {}\n");
+
+    assert_eq!(measure(&text), 602);
 }
