@@ -90,9 +90,16 @@ fn snapshot(root: &Path) -> Snapshot {
         }
         let summary = serde_json::to_string(&(&feature.step, &feature.files, &feature.problems))
             .unwrap_or_default();
+        // A code commit moves the branch's tip without touching `specs/`.
+        let tip = feature
+            .branch
+            .as_deref()
+            .and_then(|branch| git.tip(branch))
+            .map(|id| id.to_hex().to_string())
+            .unwrap_or_default();
         features.insert(
             feature.folder.clone(),
-            hash(&format!("{summary}{texts}{}", feature.uncommitted)),
+            hash(&format!("{summary}{texts}{}{tip}", feature.uncommitted)),
         );
         listing.push((&feature.folder, &feature.branch, &feature.worktree));
     }
