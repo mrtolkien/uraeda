@@ -2,13 +2,13 @@ import { type RefObject, useEffect, useRef, useSyncExternalStore } from "react";
 
 /** A field that takes the files dropped on its page. */
 export type DropField = {
-  /** The field's element: it is the target while it holds the focus, and is outlined. */
-  ref: RefObject<HTMLElement | null>;
-  /** Its rank among the page's fields when none holds the focus: the highest takes the drop. */
-  priority: number;
-  onFiles(files: File[]): void;
   /** What the hint names, "Drop to add to <label>". */
   label: string;
+  onFiles(files: Array<File>): void;
+  /** Its rank among the page's fields when none holds the focus: the highest takes the drop. */
+  priority: number;
+  /** The field's element: it is the target while it holds the focus, and is outlined. */
+  ref: RefObject<HTMLElement | null>;
 };
 
 /** The registered fields, each in a box its hook updates as it draws. */
@@ -145,7 +145,7 @@ function subscribe(listener: () => void) {
  * priority: it is outlined, with the hint "Drop to add to <label>". Returns whether the field is
  * the target now, and the hint to show then.
  */
-export function useImageDrop(field: DropField): { isTarget: boolean; hint?: string } {
+export function useImageDrop(field: DropField): { hint?: string; isTarget: boolean } {
   const box = useRef(field);
   box.current = field;
   useEffect(() => {
@@ -158,5 +158,5 @@ export function useImageDrop(field: DropField): { isTarget: boolean; hint?: stri
     };
   }, []);
   const isTarget = useSyncExternalStore(subscribe, () => target === box);
-  return isTarget ? { isTarget, hint: `Drop to add to ${field.label}` } : { isTarget };
+  return isTarget ? { hint: `Drop to add to ${field.label}`, isTarget } : { isTarget };
 }

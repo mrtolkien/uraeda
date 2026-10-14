@@ -898,44 +898,45 @@ test("a session of another repository is refused", async () => {
 
 /** Chat images as the server resolved them: their IDs and sizes, and their paths. */
 const image = (name: string) => ({
-  id: `${name}.webp`,
-  width: 1440,
   height: 900,
+  id: `${name}.webp`,
   path: `/data/images/${name}.webp`,
+  width: 1440,
 });
 
 test("US2.2: the agent receives the text, then the images' paths, and the item holds the images", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const chat = await sessions.newChat(repo);
   adapter.script([]);
 
   const { turn } = await sessions.send(repo, chat.id, {
-    text: "What is wrong here?",
     images: [image("a"), image("b")],
+    text: "What is wrong here?",
   });
   await sessions.settled(turn);
 
   expect(adapter.sent[0]).toMatchObject({
-    text: "What is wrong here?",
     images: [{ path: "/data/images/a.webp" }, { path: "/data/images/b.webp" }],
+    text: "What is wrong here?",
     when: "queue",
   });
   expect(cache.items(turn, 0, 1)[0]).toEqual({
-    seq: 0,
-    kind: "message",
+    at: expect.any(String),
     id: adapter.sent[0]?.id,
-    text: "What is wrong here?",
-    origin: "human",
-    state: "read",
     images: [
-      { id: "a.webp", width: 1440, height: 900 },
-      { id: "b.webp", width: 1440, height: 900 },
+      { height: 900, id: "a.webp", width: 1440 },
+      { height: 900, id: "b.webp", width: 1440 },
     ],
+    kind: "message",
+    origin: "human",
+    seq: 0,
+    state: "read",
+    text: "What is wrong here?",
   });
 });
 
 test("US2.2: a message without images sends none, and its item has none", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const chat = await sessions.newChat(repo);
   adapter.script([]);
 
@@ -947,77 +948,77 @@ test("US2.2: a message without images sends none, and its item has none", async 
 });
 
 test('US2.4: a message of an image alone is sent, and its chat is titled "Image"', async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const chat = await sessions.newChat(repo);
   adapter.script([]);
 
-  const { turn } = await sessions.send(repo, chat.id, { text: " \n", images: [image("a")] });
+  const { turn } = await sessions.send(repo, chat.id, { images: [image("a")], text: " \n" });
   await sessions.settled(turn);
 
-  expect(adapter.sent[0]).toMatchObject({ text: "", images: [{ path: "/data/images/a.webp" }] });
+  expect(adapter.sent[0]).toMatchObject({ images: [{ path: "/data/images/a.webp" }], text: "" });
   expect(cache.session(chat.id)?.title).toBe("Image");
-  await expect(sessions.send(repo, chat.id, { text: "  ", images: [] })).rejects.toThrow(
+  await expect(sessions.send(repo, chat.id, { images: [], text: "  " })).rejects.toThrow(
     "refused: The message is empty.",
   );
 });
 
 test("US2.4: an image alone on a feature goes with the opening line only", async () => {
-  const { sessions, adapter, repo } = await testSessions();
+  const { adapter, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, HUMAN);
   adapter.script([]);
 
   await sessions.settled(
-    (await sessions.send(repo, session.id, { text: "", images: [image("a")] })).turn,
+    (await sessions.send(repo, session.id, { images: [image("a")], text: "" })).turn,
   );
 
   expect(adapter.sent[0]).toMatchObject({
-    text: opening(HUMAN),
     images: [{ path: "/data/images/a.webp" }],
+    text: opening(HUMAN),
   });
 });
 
 test("US2.5: a steered message with an image, taken back, keeps its images on its item", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
-  await sessions.send(repo, session.id, { text: "Look", images: [image("a")] });
+  await sessions.send(repo, session.id, { images: [image("a")], text: "Look" });
   const message = adapter.sent[1]!;
-  expect(message).toMatchObject({ when: "steer", images: [{ path: "/data/images/a.webp" }] });
+  expect(message).toMatchObject({ images: [{ path: "/data/images/a.webp" }], when: "steer" });
 
   sessions.takeBack(repo, session.id, message.id);
-  adapter.emit({ type: "cancelled", id: message.id });
+  adapter.emit({ id: message.id, type: "cancelled" });
   await flush();
 
   expect(cache.itemsOf(turn, "message").find((each) => each.id === message.id)).toMatchObject({
-    text: "Look",
+    images: [{ height: 900, id: "a.webp", width: 1440 }],
     state: "taken-back",
-    images: [{ id: "a.webp", width: 1440, height: 900 }],
+    text: "Look",
   });
 });
 
 test("refuses an eleventh image", async () => {
-  const { sessions, adapter, repo } = await testSessions();
+  const { adapter, repo, sessions } = await testSessions();
   const chat = await sessions.newChat(repo);
   const images = Array.from({ length: 11 }, (_, n) => image(`i${n}`));
 
-  await expect(sessions.send(repo, chat.id, { text: "Many", images })).rejects.toThrow(
+  await expect(sessions.send(repo, chat.id, { images, text: "Many" })).rejects.toThrow(
     "refused: A message takes at most 10 images.",
   );
   expect(adapter.opens).toEqual([]);
   adapter.script([]);
   await sessions.settled(
-    (await sessions.send(repo, chat.id, { text: "Ten", images: images.slice(0, 10) })).turn,
+    (await sessions.send(repo, chat.id, { images: images.slice(0, 10), text: "Ten" })).turn,
   );
   expect(adapter.sent[0]?.images).toHaveLength(10);
 });
 
 test("refuses images to an agent without them", async () => {
-  const { sessions, adapter, repo } = await testSessions();
+  const { adapter, repo, sessions } = await testSessions();
   adapter.capabilities = { ...adapter.capabilities, images: false };
   const chat = await sessions.newChat(repo);
 
   await expect(
-    sessions.send(repo, chat.id, { text: "Look", images: [image("a")] }),
+    sessions.send(repo, chat.id, { images: [image("a")], text: "Look" }),
   ).rejects.toThrow("refused: This agent cannot read images.");
   expect(adapter.opens).toEqual([]);
   adapter.script([]);
@@ -1026,77 +1027,77 @@ test("refuses images to an agent without them", async () => {
 });
 
 test("US2.5: a message queued while a turn runs keeps its images for its later write", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   adapter.capabilities = { ...adapter.capabilities, steer: false };
   const chat = await sessions.newChat(repo);
   const first = await sessions.send(repo, chat.id, { text: "Plan it" });
 
-  const queued = await sessions.send(repo, chat.id, { text: "Look", images: [image("a")] });
+  const queued = await sessions.send(repo, chat.id, { images: [image("a")], text: "Look" });
   expect(queued.turn).not.toBe(first.turn);
   expect(cache.turn(queued.turn)?.state).toBe("queued");
   expect(adapter.sent).toHaveLength(1);
   adapter.script([]);
-  adapter.emit({ type: "accepted", id: adapter.sent[0]!.id });
+  adapter.emit({ id: adapter.sent[0]!.id, type: "accepted" });
   adapter.emit(done());
   await sessions.settled(queued.turn);
 
   expect(adapter.sent[1]).toMatchObject({
+    images: [{ path: "/data/images/a.webp" }],
     text: "Look",
     when: "queue",
-    images: [{ path: "/data/images/a.webp" }],
   });
   expect(cache.itemsOf(queued.turn, "message")[0]).toMatchObject({
-    text: "Look",
+    images: [{ height: 900, id: "a.webp", width: 1440 }],
     state: "read",
-    images: [{ id: "a.webp", width: 1440, height: 900 }],
+    text: "Look",
   });
 });
 
 test("US2.5: a queued turn's message with an image, taken back, keeps its images on its item", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   adapter.capabilities = { ...adapter.capabilities, steer: false };
   const chat = await sessions.newChat(repo);
   await sessions.send(repo, chat.id, { text: "Plan it" });
-  const queued = await sessions.send(repo, chat.id, { text: "Look", images: [image("a")] });
+  const queued = await sessions.send(repo, chat.id, { images: [image("a")], text: "Look" });
   const [message] = cache.itemsOf(queued.turn, "message");
 
   sessions.takeBack(repo, chat.id, message!.id);
 
   expect(cache.turn(queued.turn)?.state).toBe("stopped");
   expect(cache.itemsOf(queued.turn, "message")[0]).toMatchObject({
-    text: "Look",
+    images: [{ height: 900, id: "a.webp", width: 1440 }],
     state: "taken-back",
-    images: [{ id: "a.webp", width: 1440, height: 900 }],
+    text: "Look",
   });
   expect(adapter.sent).toHaveLength(1);
 });
 
 test("a failed turn takes back an unread steered message with images, and keeps them", async () => {
-  const { sessions, adapter, cache, repo } = await testSessions();
+  const { adapter, cache, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
   const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
-  await sessions.send(repo, session.id, { text: "Look", images: [image("a")] });
+  await sessions.send(repo, session.id, { images: [image("a")], text: "Look" });
   const steered = adapter.sent[1]!.id;
 
-  adapter.emit(done({ ok: false, errors: ["API error"] }));
+  adapter.emit(done({ errors: ["API error"], ok: false }));
   await sessions.settled(turn);
 
   expect(adapter.takenBack).toEqual([steered]);
   expect(cache.itemsOf(turn, "message").find((each) => each.id === steered)).toMatchObject({
-    text: "Look",
+    images: [{ height: 900, id: "a.webp", width: 1440 }],
     state: "taken-back",
-    images: [{ id: "a.webp", width: 1440, height: 900 }],
+    text: "Look",
   });
 });
 
 test("refuses images with a workflow message", async () => {
-  const { sessions, adapter, repo } = await testSessions();
+  const { adapter, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
 
   await expect(
     sessions.send(repo, session.id, {
-      text: "Continue the feature.",
       images: [image("a")],
+      text: "Continue the feature.",
       workflow: { trigger: "manual" },
     }),
   ).rejects.toThrow("refused: The workflow's message takes no images.");

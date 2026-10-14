@@ -17,10 +17,10 @@ const types: Record<string, string> = {
  * page of another site may embed it.
  */
 const imageHeaders = (type: string) => ({
-  "content-type": type,
-  "x-content-type-options": "nosniff",
   "content-security-policy": "default-src 'none'",
+  "content-type": type,
   "cross-origin-resource-policy": "same-origin",
+  "x-content-type-options": "nosniff",
 });
 
 /** A buffer's bytes as the response's body, without copying them. */

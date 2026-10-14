@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import type { FateVariables } from "./fate.ts";
+import { inRepository } from "./fate/context.ts";
 import { writable } from "./fate/sessions.ts";
 import { IMAGE_LIMIT, overLimit } from "./limits.ts";
 import { ChatImages } from "./runner/images.ts";
@@ -38,7 +39,8 @@ export function attach() {
       },
     }),
     async (context) => {
-      const ctx = context.get("fate");
+      // Mounted under `/r/<name>/` only: the repository is the route's.
+      const ctx = inRepository(context.get("fate"));
       const name = context.req.query("name") || undefined;
       const path = context.req.query("path");
       const chat = context.req.query("chat") === "1";
@@ -55,7 +57,8 @@ export function attach() {
       }
       const body = await context.req.parseBody().catch(() => ({}) as Record<string, unknown>);
       const file = body.file;
-      if (!(file instanceof File)) {
+      // A field's text is a string; a file part is a `File`.
+      if (file === undefined || typeof file === "string" || Array.isArray(file)) {
         return context.json({ error: "refused: The body holds no file." }, 400);
       }
       try {

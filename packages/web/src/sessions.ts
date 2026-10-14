@@ -19,9 +19,9 @@ export async function sendMessage(
   fate: Fate,
   input: {
     folder?: string;
+    images?: ReadonlyArray<ChatImage>;
     session?: string;
     text: string;
-    images?: ReadonlyArray<ChatImage>;
     workflow?: { file?: string; trigger: Trigger };
   },
 ): Promise<Sent> {

@@ -5,21 +5,11 @@ import { afterEach, expect, test, vi } from "vite-plus/test";
 import { createFate, type LiveBus, live } from "../fate.ts";
 import { publish, SESSION_UPDATE_MS, sessionPublisher } from "../live.ts";
 import type { Host } from "../repositories.ts";
-import { SessionCache } from "../runner/cache.ts";
-import { byId, fixtureRepo, git, mutate, port, testApp, testHosts, testServer } from "./helpers.ts";
-import * as binding from "uraeda-binding";
-import { live } from "../fate.ts";
 import { chatImages } from "../attach.ts";
-import {
-  SESSION_UPDATE_MS,
-  sessionPublisher,
-  startLive,
-  startSessions,
-  stopLive,
-} from "../live.ts";
 import { SessionCache } from "../runner/cache.ts";
 import { FakeAdapter } from "../runner/fake.ts";
 import { ChatImages, UNSENT_KEPT_MS } from "../runner/images.ts";
+import { startSessions } from "../server.ts";
 import {
   byId,
   fixtureRepo,
@@ -28,6 +18,7 @@ import {
   port,
   testApp,
   testDataDir,
+  testHosts,
   testServer,
 } from "./helpers.ts";
 
@@ -503,11 +494,13 @@ test("a session's change in a removed repository is dropped", () => {
   publish({ ...item, state: "done" });
 
   expect([elsewhere(), global()]).toEqual([[], []]);
+});
+
 test("review focus 10: the server's start cleans chat images no session uses, older than a day", async () => {
   const dataDir = testDataDir();
   const images = chatImages(dataDir);
   const image = () =>
-    images.save({ bytes: Buffer.from("RIFF....WEBP"), extension: "webp", width: 2, height: 1 });
+    images.save({ bytes: Buffer.from("RIFF....WEBP"), extension: "webp", height: 1, width: 2 });
   const [held, old, recent] = [await image(), await image(), await image()];
   const now = Date.now();
   const age = (id: string, ms: number) =>
@@ -518,31 +511,36 @@ test("review focus 10: the server's start cleans chat images no session uses, ol
   // Another repository's message, which another server may run, holds an image.
   const cache = SessionCache.open(join(dataDir, "runner.sqlite"));
   const other = cache.createSession({
-    repo: "/another/repo",
-    folder: null,
     agent: "fake",
+    folder: null,
     nativeId: "n1",
+    repo: "/another/repo",
     title: "Look",
   });
   const turn = cache.addTurn({
-    sessionId: other.id,
-    kind: "chat",
-    trigger: null,
-    step: null,
     allowed: null,
+    kind: "chat",
+    sessionId: other.id,
     state: "running",
+    step: null,
+    trigger: null,
   });
   cache.endTurn(turn, { state: "done" });
   cache.appendItem(turn, {
-    kind: "message",
     id: "m1",
-    text: "Look",
+    images: [held],
+    kind: "message",
     origin: "human",
     state: "read",
-    images: [held],
+    text: "Look",
   });
 
-  const { stop } = await startSessions({ adapter: new FakeAdapter(), binding, dataDir });
+  const { stop } = await startSessions({
+    adapter: new FakeAdapter(),
+    binding,
+    dataDir,
+    hosts: () => undefined,
+  });
   await stop();
 
   expect(readdirSync(images.dir).sort()).toEqual([held.id, recent.id].sort());
@@ -551,10 +549,15 @@ test("review focus 10: the server's start cleans chat images no session uses, ol
 test("review focus 10: a cleanup that fails is logged, and the server starts all the same", async () => {
   const dataDir = testDataDir();
   const clean = vi.spyOn(ChatImages.prototype, "clean").mockRejectedValueOnce(new Error("EACCES"));
-  const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+  const logged = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 
   try {
-    const { stop } = await startSessions({ adapter: new FakeAdapter(), binding, dataDir });
+    const { stop } = await startSessions({
+      adapter: new FakeAdapter(),
+      binding,
+      dataDir,
+      hosts: () => undefined,
+    });
     await stop();
 
     expect(clean).toHaveBeenCalledOnce();

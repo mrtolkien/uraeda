@@ -9,9 +9,10 @@ import { startServer } from "./server.ts";
 async function main(argv: Array<string>) {
   const options = parseOptions(argv, loadEnv(process.cwd()));
   const binding = await loadBinding();
+  const dataDir = loadDataDir(process.cwd());
   const { app, stop } = await startServer({
     ...options,
-    adapter: new ClaudeAdapter({ pluginDir: PLUGIN_DIR }),
+    adapter: new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: PLUGIN_DIR }),
     binding,
     dataDir,
   });

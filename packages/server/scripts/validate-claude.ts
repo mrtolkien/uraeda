@@ -56,7 +56,7 @@ const dataRoot = realpathSync(mkdtempSync(join(tmpdir(), "uraeda-data-")));
  */
 const dataDir = join(dataRoot, "uraeda data");
 const images = new ChatImages(join(dataDir, "images"));
-const adapter = new ClaudeAdapter({ configDir, pluginDir: PLUGIN_DIR, imagesDir: images.dir });
+const adapter = new ClaudeAdapter({ configDir, imagesDir: images.dir, pluginDir: PLUGIN_DIR });
 const cwd = fixtureRepo();
 /** A folder outside the project, for the sixth and seventh checks, and their wrappers. */
 const outside = mkdtempSync(join(tmpdir(), "uraeda-outside-"));
@@ -94,9 +94,9 @@ async function run(
   const events: Array<AgentEvent> = [];
   agent.send({
     id: randomUUID(),
+    images: paths.map((path) => ({ path })),
     text: message,
     when: "queue",
-    images: paths.map((path) => ({ path })),
   });
   try {
     for await (const event of agent.events) {
@@ -179,10 +179,10 @@ function wrappedAdapter(
   );
   chmodSync(wrapper, 0o755);
   return new ClaudeAdapter({
-    configDir,
     command: wrapper,
-    pluginDir: PLUGIN_DIR,
+    configDir,
     imagesDir: images.dir,
+    pluginDir: PLUGIN_DIR,
   });
 }
 
@@ -685,9 +685,9 @@ try {
         readDenied(control, elsewhere) &&
         !readFile(control, elsewhere),
       {
-        tools: tools(chat),
+        control: { result: find(control, "result"), tools: tools(control) },
         result: find(chat, "result"),
-        control: { tools: tools(control), result: find(control, "result") },
+        tools: tools(chat),
       },
     );
 
@@ -709,7 +709,7 @@ try {
     report(
       "an image a proposal links is opened with the proposal",
       readFile(asked, linkedPath) && find(asked, "result")?.ok === true,
-      { tools: tools(asked), result: find(asked, "result") },
+      { result: find(asked, "result"), tools: tools(asked) },
     );
   }
   await stdinChecks();

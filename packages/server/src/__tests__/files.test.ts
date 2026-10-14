@@ -1,16 +1,12 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { attachImage } from "uraeda-binding";
 import { expect, test, vi } from "vite-plus/test";
 import { createApp } from "../app.ts";
-import { fixtureRepo, git, port, testApp, testHosts } from "./helpers.ts";
+import { fixture, fixtureRepo, git, port, testApp, testHosts } from "./helpers.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
-import { attachImage } from "uraeda-binding";
-import { expect, test } from "vite-plus/test";
-import { fixture, fixtureRepo, git, port, testApp } from "./helpers.ts";
 
 test("serves a mockup sandboxed, with its type", async () => {
   const repo = fixtureRepo();
@@ -73,6 +69,8 @@ test("a file that cannot be read for another reason than its absence is a server
   expect([raw.status, mockup.status]).toEqual([500, 500]);
   expect(log).toHaveBeenCalledTimes(2);
   log.mockRestore();
+});
+
 test("serves an image with its type, nosniff, and default-src 'none'", async () => {
   const repo = fixtureRepo();
   const { path } = await attachImage(
@@ -82,7 +80,8 @@ test("serves an image with its type, nosniff, and default-src 'none'", async () 
     "desktop.png",
   );
 
-  const response = await testApp(repo).request(`http://127.0.0.1:${port}/images/${path}`);
+  const { app, name } = await testApp(repo);
+  const response = await app.request(`http://127.0.0.1:${port}/r/${name}/images/${path}`);
 
   expect(response.status).toBe(200);
   expect(response.headers.get("content-type")).toBe("image/webp");
@@ -104,7 +103,7 @@ test("does not serve a markdown file or a path outside specs as an image", async
   git(repo, "switch", "--quiet", "2026-10-11-web-ui");
   mkdirSync(join(repo, "specs/2026-10-11-web-ui/images"));
   writeFileSync(join(repo, "specs/2026-10-11-web-ui/images/page.png"), "<html><script></script>");
-  const app = testApp(repo);
+  const { app, name } = await testApp(repo);
 
   for (const path of [
     "specs/drafts/git-listener.md",
@@ -113,7 +112,7 @@ test("does not serve a markdown file or a path outside specs as an image", async
     "specs/..%2F..%2Fetc%2Fpasswd",
     "fixtures/images/desktop.png",
   ]) {
-    const response = await app.request(`http://127.0.0.1:${port}/images/${path}`);
+    const response = await app.request(`http://127.0.0.1:${port}/r/${name}/images/${path}`);
     expect(response.status, path).toBe(404);
   }
 });

@@ -10,11 +10,11 @@ const ServerFetchContext = createContext<typeof globalThis.fetch>((input, init) 
 
 /** Gives the app's plain requests a `fetch` of its own. */
 export function ServerFetch({
-  fetch,
   children,
+  fetch,
 }: {
-  fetch: typeof globalThis.fetch;
   children: ReactNode;
+  fetch: typeof globalThis.fetch;
 }) {
   return <ServerFetchContext.Provider value={fetch}>{children}</ServerFetchContext.Provider>;
 }

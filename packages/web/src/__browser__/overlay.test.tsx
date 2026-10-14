@@ -41,8 +41,8 @@ test("a sheet on the phone, a dialog on the desktop", async () => {
 function OwnedOverlay() {
   const [open, setOpen] = useState(true);
   return (
-    <Theme theme={uraedaTheme} mode="light">
-      <Overlay label="New priority" isOpen={open} onClose={() => setOpen(false)}>
+    <Theme mode="light" theme={uraedaTheme}>
+      <Overlay isOpen={open} label="New priority" onClose={() => setOpen(false)}>
         <Button
           label="Done, then open again"
           onClick={() => {
@@ -74,8 +74,8 @@ test("an overlay opened again while its closing goes back stays open, and Back c
 function OverlaysInTurn() {
   const [open, setOpen] = useState<"first" | "second" | undefined>("first");
   return (
-    <Theme theme={uraedaTheme} mode="light">
-      <Overlay label="First" isOpen={open === "first"} onClose={() => setOpen(undefined)}>
+    <Theme mode="light" theme={uraedaTheme}>
+      <Overlay isOpen={open === "first"} label="First" onClose={() => setOpen(undefined)}>
         <Button
           label="Done, then the second"
           onClick={() => {
@@ -85,7 +85,7 @@ function OverlaysInTurn() {
           }}
         />
       </Overlay>
-      <Overlay label="Second" isOpen={open === "second"} onClose={() => setOpen(undefined)}>
+      <Overlay isOpen={open === "second"} label="Second" onClose={() => setOpen(undefined)}>
         <p>The next form.</p>
       </Overlay>
     </Theme>

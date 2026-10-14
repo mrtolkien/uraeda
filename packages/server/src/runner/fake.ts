@@ -128,10 +128,10 @@ export class FakeAdapter implements Adapter {
   /** What the fake declares, which a test may change. */
   capabilities: Capabilities = {
     approvals: false,
+    images: true,
     queue: true,
     steer: true,
     subagents: true,
-    images: true,
     takeBack: true,
   };
   opens: Array<OpenOptions> = [];

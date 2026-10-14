@@ -597,7 +597,7 @@ const png = (name: string) =>
   new File([readFileSync(fixture("images/phone.png"))], name, { type: "image/png" });
 
 /** Picks files with an "Add image" button, named for its field, as the system's picker gives them. */
-async function pick(name: string, files: File[]) {
+async function pick(name: string, files: Array<File>) {
   const input = screen.getByLabelText(name, { selector: "input" });
   await act(async () => {
     fireEvent.change(input, { target: { files } });
@@ -612,14 +612,14 @@ function hold(repo: string, alsoHold: (body: string) => boolean = () => false) {
   const fetch = serverFetch(repo);
   const waiting: Array<() => void> = [];
   return {
-    waiting,
     fetch: (async (input, init) => {
       const body = typeof init?.body === "string" ? init.body : "";
-      if (urlOf(input).startsWith("/attach") || alsoHold(body)) {
+      if (urlOf(input).includes("/attach?") || alsoHold(body)) {
         await new Promise<void>((resolve) => waiting.push(resolve));
       }
       return fetch(input, init);
     }) as typeof globalThis.fetch,
+    waiting,
     /** Lets the next request held through, once it waits. */
     async release() {
       await waitFor(() => expect(waiting.length).toBeGreaterThan(0));

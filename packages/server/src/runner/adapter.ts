@@ -4,6 +4,8 @@ import type { AgentEvent, Denial } from "./events.ts";
 export type Capabilities = {
   /** The agent asks before an action, instead of skipping it. */
   approvals: boolean;
+  /** The agent opens the images sent with a message, by their paths. */
+  images: boolean;
   /** A message sent during a turn waits for the next one. */
   queue: boolean;
   /** A message sent during a turn joins it. */
@@ -12,8 +14,6 @@ export type Capabilities = {
   subagents: boolean;
   /** A message not read yet can be taken back. */
   takeBack: boolean;
-  /** The agent opens the images sent with a message, by their paths. */
-  images: boolean;
 };
 
 /** How to open a session's process. */
@@ -34,9 +34,9 @@ export type OpenOptions = {
  */
 export type Outgoing = {
   id: string;
+  images: Array<{ path: string }>;
   text: string;
   when: "steer" | "queue";
-  images: Array<{ path: string }>;
 };
 
 /** A session's open process, which takes messages until it is closed. */

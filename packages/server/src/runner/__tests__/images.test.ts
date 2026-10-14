@@ -16,7 +16,7 @@ const dirs: Array<string> = [];
 
 afterEach(() => {
   for (const dir of dirs.splice(0)) {
-    rmSync(dir, { recursive: true, force: true });
+    rmSync(dir, { force: true, recursive: true });
   }
 });
 
@@ -29,8 +29,8 @@ function images() {
 const encoded = (extension: "webp" | "gif") => ({
   bytes: Buffer.from("RIFF....WEBP"),
   extension,
-  width: 2,
   height: 1,
+  width: 2,
 });
 
 test("saves an image under a new ID, and resolves only IDs", async () => {
@@ -38,7 +38,7 @@ test("saves an image under a new ID, and resolves only IDs", async () => {
 
   const image = await store.save(encoded("gif"));
 
-  expect(image).toMatchObject({ width: 2, height: 1 });
+  expect(image).toMatchObject({ height: 1, width: 2 });
   expect(image.id).toMatch(/^[0-9a-f-]{36}\.gif$/);
   expect(store.path(image.id)).toBe(join(store.dir, image.id));
   expect(store.path("../runner.sqlite")).toBeUndefined();

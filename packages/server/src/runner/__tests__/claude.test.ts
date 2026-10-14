@@ -29,7 +29,7 @@ async function collect<T>(items: AsyncIterable<T>): Promise<Array<T>> {
 
 /** An images folder in a temporary folder, not created yet: opening a process creates it. */
 function images(): string {
-  return join(mkdtempSync(join(tmpdir(), "uraeda-data-")), "images");
+  return join(temporaryFolder("uraeda-data"), "images");
 }
 
 async function* chunks(...parts: Array<Buffer>) {
@@ -60,11 +60,8 @@ test("SC-006: a new session's arguments", () => {
 
 test("a resumed session with an allow rule", () => {
   expect(
-    claudeArgs({ ...open, allowed: "Bash(gh pr create --draft)", resume: true }, "/plugin").slice(
-      11,
-    ),
     claudeArgs(
-      { ...open, resume: true, allowed: "Bash(gh pr create --draft)" },
+      { ...open, allowed: "Bash(gh pr create --draft)", resume: true },
       "/plugin",
       "/data/images",
     ).slice(13),
@@ -73,11 +70,9 @@ test("a resumed session with an allow rule", () => {
 
 test("no argument skips permissions or sets a model", () => {
   for (const args of [
-    claudeArgs({ ...open, resume: false }, "/plugin"),
-    claudeArgs({ ...open, allowed: "Bash(gh pr create --draft)", resume: true }, "/plugin"),
     claudeArgs({ ...open, resume: false }, "/plugin", "/data/images"),
     claudeArgs(
-      { ...open, resume: true, allowed: "Bash(gh pr create --draft)" },
+      { ...open, allowed: "Bash(gh pr create --draft)", resume: true },
       "/plugin",
       "/data/images",
     ),
@@ -94,15 +89,15 @@ test("no argument skips permissions or sets a model", () => {
 });
 
 test("Claude Code declares what it can do", () => {
-  const adapter = new ClaudeAdapter({ pluginDir: "/plugin", imagesDir: "/data/images" });
+  const adapter = new ClaudeAdapter({ imagesDir: "/data/images", pluginDir: "/plugin" });
   expect([adapter.kind, adapter.name]).toEqual(["claude", "Claude Code"]);
   expect(adapter.capabilities).toEqual({
     approvals: false,
+    images: true,
     queue: true,
     steer: true,
     subagents: true,
     takeBack: true,
-    images: true,
   });
 });
 
@@ -258,14 +253,14 @@ test("a session exists when its transcript is found", () => {
   const configDir = temporaryFolder("uraeda-claude");
   mkdirSync(join(configDir, "projects", "-w"), { recursive: true });
   writeFileSync(join(configDir, "projects", "-w", "3f2c.jsonl"), "");
-  const adapter = new ClaudeAdapter({ configDir, pluginDir: "/p", imagesDir: images() });
+  const adapter = new ClaudeAdapter({ configDir, imagesDir: images(), pluginDir: "/p" });
   expect(adapter.hasSession("3f2c")).toBe(true);
   expect(adapter.hasSession("9a9a")).toBe(false);
   expect(
     new ClaudeAdapter({
       configDir: join(configDir, "none"),
-      pluginDir: "/p",
       imagesDir: images(),
+      pluginDir: "/p",
     }).hasSession("3f2c"),
   ).toBe(false);
 });
@@ -631,7 +626,7 @@ test.each<[Denial, string]>([
 ])("the allow rule of %o", (denial, rule) => {
   expect(allowRule(denial)).toBe(rule);
   expect(
-    new ClaudeAdapter({ pluginDir: "/plugin", imagesDir: "/data/images" }).allowRule(denial),
+    new ClaudeAdapter({ imagesDir: "/data/images", pluginDir: "/plugin" }).allowRule(denial),
   ).toBe(rule);
 });
 
@@ -644,8 +639,8 @@ test("a command with a `*` has no allow rule: Claude Code would read it as a wil
 test("review focus 5: a missing command exits as missing", async () => {
   const agent = new ClaudeAdapter({
     command: "/nonexistent/claude",
-    pluginDir: "/p",
     imagesDir: images(),
+    pluginDir: "/p",
   }).open({
     ...open,
     cwd: tmpdir(),
@@ -654,7 +649,7 @@ test("review focus 5: a missing command exits as missing", async () => {
   const events = await collect(agent.events);
   expect(events.at(-1)).toMatchObject({ missing: true, type: "exit" });
   // Writing to a process that is gone does nothing.
-  agent.send({ id: "m1", text: "hi", when: "steer", images: [] });
+  agent.send({ id: "m1", images: [], text: "hi", when: "steer" });
   agent.interrupt();
   agent.close();
 });
@@ -662,7 +657,7 @@ test("review focus 5: a missing command exits as missing", async () => {
 test("a missing directory exits with why, not as a missing command", async () => {
   const cwd = join(tmpdir(), "uraeda-no-such-directory");
   const command = script("exit 0");
-  const agent = new ClaudeAdapter({ command, pluginDir: "/p" }).open({
+  const agent = new ClaudeAdapter({ command, imagesDir: images(), pluginDir: "/p" }).open({
     ...open,
     cwd,
     resume: false,
@@ -678,8 +673,8 @@ test("version() is undefined without the command", async () => {
   expect(
     await new ClaudeAdapter({
       command: "/nonexistent/claude",
-      pluginDir: "/p",
       imagesDir: images(),
+      pluginDir: "/p",
     }).version(),
   ).toBeUndefined();
 });
@@ -702,7 +697,7 @@ const written = (path: string) =>
 
 test("version() is the command's first line", async () => {
   const command = script('echo "2.1.296 (Claude Code)"; echo more');
-  expect(await new ClaudeAdapter({ command, pluginDir: "/p", imagesDir: images() }).version()).toBe(
+  expect(await new ClaudeAdapter({ command, imagesDir: images(), pluginDir: "/p" }).version()).toBe(
     "2.1.296 (Claude Code)",
   );
 });
@@ -719,7 +714,7 @@ test("an open process streams its events, and exits with its stderr", async () =
     ].join("\n"),
   );
   const imagesDir = images();
-  const agent = new ClaudeAdapter({ command, pluginDir: "/plugin", imagesDir }).open({
+  const agent = new ClaudeAdapter({ command, imagesDir, pluginDir: "/plugin" }).open({
     ...open,
     cwd: dir,
     resume: false,
@@ -739,13 +734,13 @@ test("an open process streams its events, and exits with its stderr", async () =
 test("send writes a user message with its uuid and priority", async () => {
   const dir = temporaryFolder("uraeda-claude");
   const command = script(`cat > "${join(dir, "stdin")}"`);
-  const agent = new ClaudeAdapter({ command, pluginDir: "/p", imagesDir: images() }).open({
+  const agent = new ClaudeAdapter({ command, imagesDir: images(), pluginDir: "/p" }).open({
     ...open,
     cwd: dir,
     resume: false,
   });
-  agent.send({ id: "m1", text: "hi", when: "steer", images: [] });
-  agent.send({ id: "m2", text: "then this", when: "queue", images: [] });
+  agent.send({ id: "m1", images: [], text: "hi", when: "steer" });
+  agent.send({ id: "m2", images: [], text: "then this", when: "queue" });
   agent.takeBack("m2");
   agent.close();
   const events = await collect(agent.events);
@@ -772,10 +767,10 @@ test("send writes a user message with its uuid and priority", async () => {
 });
 
 test("US2.2: a message with images is its text, a blank line, then one line per image", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  const dir = temporaryFolder("uraeda-claude");
   const command = script(`cat > "${join(dir, "stdin")}"`);
   const imagesDir = images();
-  const agent = new ClaudeAdapter({ command, pluginDir: "/p", imagesDir }).open({
+  const agent = new ClaudeAdapter({ command, imagesDir, pluginDir: "/p" }).open({
     ...open,
     cwd: dir,
     resume: false,
@@ -783,73 +778,73 @@ test("US2.2: a message with images is its text, a blank line, then one line per 
   const [a, b] = [join(imagesDir, "a.webp"), join(imagesDir, "b.webp")];
   agent.send({
     id: "m1",
+    images: [{ path: a }, { path: b }],
     text: "What is wrong here?",
     when: "queue",
-    images: [{ path: a }, { path: b }],
   });
-  agent.send({ id: "m2", text: "", when: "steer", images: [{ path: a }] });
+  agent.send({ id: "m2", images: [{ path: a }], text: "", when: "steer" });
   agent.close();
   await collect(agent.events);
 
   expect(written(join(dir, "stdin"))).toEqual([
     {
-      type: "user",
       message: {
-        role: "user",
         content: `What is wrong here?\n\n[Image: ${a}]\n[Image: ${b}]`,
+        role: "user",
       },
-      uuid: "m1",
       priority: "later",
+      type: "user",
+      uuid: "m1",
     },
     {
-      type: "user",
-      message: { role: "user", content: `[Image: ${a}]` },
-      uuid: "m2",
+      message: { content: `[Image: ${a}]`, role: "user" },
       priority: "next",
+      type: "user",
+      uuid: "m2",
     },
   ]);
 });
 
 test("US2.4: a feature chat's first message is its opening line, its text, then its images", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  const dir = temporaryFolder("uraeda-claude");
   const command = script(`cat > "${join(dir, "stdin")}"`);
   const imagesDir = images();
-  const agent = new ClaudeAdapter({ command, pluginDir: "/p", imagesDir }).open({
+  const agent = new ClaudeAdapter({ command, imagesDir, pluginDir: "/p" }).open({
     ...open,
     cwd: dir,
     resume: false,
   });
   const opening = chatOpening({
-    folder: "2026-10-12-cli-tuis",
     branch: "2026-10-12-cli-tuis",
     bug: false,
+    folder: "2026-10-12-cli-tuis",
   });
   const a = join(imagesDir, "a.webp");
   // The session manager joins the opening line and the text; the adapter adds the images.
   agent.send({
     id: "m1",
+    images: [{ path: a }],
     text: `${opening}\nWhat is wrong here?`,
     when: "queue",
-    images: [{ path: a }],
   });
   agent.close();
   await collect(agent.events);
 
   expect(written(join(dir, "stdin"))).toEqual([
     {
-      type: "user",
-      message: { role: "user", content: `${opening}\nWhat is wrong here?\n\n[Image: ${a}]` },
-      uuid: "m1",
+      message: { content: `${opening}\nWhat is wrong here?\n\n[Image: ${a}]`, role: "user" },
       priority: "later",
+      type: "user",
+      uuid: "m1",
     },
   ]);
 });
 
 test("US6.2: the images folder exists before the process starts, which --add-dir needs", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "uraeda-claude-"));
+  const dir = temporaryFolder("uraeda-claude");
   const imagesDir = images();
   const command = script(`[ -d "${imagesDir}" ] && echo found > "${join(dir, "found")}"`);
-  const agent = new ClaudeAdapter({ command, pluginDir: "/p", imagesDir }).open({
+  const agent = new ClaudeAdapter({ command, imagesDir, pluginDir: "/p" }).open({
     ...open,
     cwd: dir,
     resume: false,
@@ -862,32 +857,32 @@ test("US6.2: the images folder exists before the process starts, which --add-dir
 test("an image the agent read stays out of its tool's output", () => {
   const base64 = "UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAQAcJaQAA3AA/v3AgAA=";
   const line = JSON.stringify({
-    type: "user",
     message: {
-      role: "user",
       content: [
         {
-          type: "tool_result",
-          tool_use_id: "toolu_1",
           content: [
-            { type: "image", source: { type: "base64", media_type: "image/webp", data: base64 } },
+            { source: { data: base64, media_type: "image/webp", type: "base64" }, type: "image" },
           ],
+          tool_use_id: "toolu_1",
+          type: "tool_result",
         },
       ],
+      role: "user",
     },
     tool_use_result: {
+      file: { base64, originalSize: 40, type: "image/webp" },
       type: "image",
-      file: { base64, type: "image/webp", originalSize: 40 },
     },
+    type: "user",
   });
 
-  expect(parseLine(line)).toEqual([{ type: "toolEnd", id: "toolu_1", isError: false, output: "" }]);
+  expect(parseLine(line)).toEqual([{ id: "toolu_1", isError: false, output: "", type: "toolEnd" }]);
 });
 
 test("interrupt writes the interrupt control request, and close ends stdin", async () => {
   const dir = temporaryFolder("uraeda-claude");
   const command = script(`cat > "${join(dir, "stdin")}"\necho closed >&2`);
-  const agent = new ClaudeAdapter({ command, pluginDir: "/p", imagesDir: images() }).open({
+  const agent = new ClaudeAdapter({ command, imagesDir: images(), pluginDir: "/p" }).open({
     ...open,
     cwd: dir,
     resume: false,
@@ -912,7 +907,7 @@ test("kill sends its signal to the process", async () => {
   const command = script(
     `trap 'echo interrupted >&2; exit 130' INT\necho not json\nwhile true; do sleep 0.1; done`,
   );
-  const agent = new ClaudeAdapter({ command, pluginDir: "/p", imagesDir: images() }).open({
+  const agent = new ClaudeAdapter({ command, imagesDir: images(), pluginDir: "/p" }).open({
     ...open,
     cwd: dir,
     resume: false,
@@ -963,7 +958,7 @@ async function childPid(file: string): Promise<number> {
 test("kill signals the process's group: the processes it started end with it", async () => {
   const dir = temporaryFolder("uraeda-claude");
   const command = script(`sleep 30 &\necho $! > "${join(dir, "pid")}"\nwait`);
-  const agent = new ClaudeAdapter({ command, pluginDir: "/p" }).open({
+  const agent = new ClaudeAdapter({ command, imagesDir: images(), pluginDir: "/p" }).open({
     ...open,
     cwd: dir,
     resume: false,
@@ -985,7 +980,7 @@ test("a session's process and the processes it started end with the server", asy
     `import { existsSync } from "node:fs";
 `,
     `import { ClaudeAdapter } from ${JSON.stringify(join(import.meta.dirname, "../claude.ts"))};`,
-    `new ClaudeAdapter({ command: ${JSON.stringify(command)}, pluginDir: "/p" })`,
+    `new ClaudeAdapter({ command: ${JSON.stringify(command)}, imagesDir: ${JSON.stringify(images())}, pluginDir: "/p" })`,
     `  .open({ cwd: ${JSON.stringify(dir)}, nativeId: "id", resume: false });`,
     `const wait = setInterval(() => {`,
     `  if (existsSync(${JSON.stringify(join(dir, "pid"))})) { clearInterval(wait); process.exit(0); }`,

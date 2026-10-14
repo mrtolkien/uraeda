@@ -607,19 +607,18 @@ test("Agent reads the agent's name, availability, version, and capabilities", as
 
   expect(agent).toEqual({
     available: true,
-    capabilities: { approvals: false, queue: true, steer: true, subagents: true, takeBack: true },
+    capabilities: {
+      approvals: false,
+      images: true,
+      queue: true,
+      steer: true,
+      subagents: true,
+      takeBack: true,
+    },
     id: "agent",
     kind: "fake",
     name: "Claude Code",
     version: "0.0.0 (fake agent)",
-    capabilities: {
-      steer: true,
-      queue: true,
-      takeBack: true,
-      approvals: false,
-      subagents: true,
-      images: true,
-    },
   });
 });
 
@@ -640,8 +639,8 @@ const saved = (server: Server) =>
   chatImages(server.dataDir).save({
     bytes: Buffer.from("RIFF....WEBP"),
     extension: "webp",
-    width: 1440,
     height: 900,
+    width: 1440,
   });
 
 test("US2.2: session.send passes the images' paths in the data folder, and the item holds them", async () => {
@@ -651,21 +650,21 @@ test("US2.2: session.send passes the images' paths in the data folder, and the i
   server.adapter.script([]);
 
   const session = await send(server, {
+    images: [a, b],
     session: chat.data.id,
     text: "What is wrong here?",
-    images: [a, b],
   });
   await settle(server, session);
 
   expect(server.adapter.sent[0]).toMatchObject({
-    text: "What is wrong here?",
     images: [
       { path: join(server.dataDir, "images", a!.id) },
       { path: join(server.dataDir, "images", b!.id) },
     ],
+    text: "What is wrong here?",
   });
   const [log] = await byId(server.app, "TurnLog", [`${session.turns[0]}:0`], ["id", "items"]);
-  expect(log.items[0]).toMatchObject({ kind: "message", images: [a, b] });
+  expect(log.items[0]).toMatchObject({ images: [a, b], kind: "message" });
   expect(server.sessions.cache.imagesInUse()).toEqual(new Set([a!.id, b!.id]));
 });
 
@@ -675,7 +674,7 @@ test('US2.4: session.send takes an image alone, and titles the chat "Image"', as
   const chat = await mutate(server.app, "session.newChat", {}, ["id"]);
   server.adapter.script([]);
 
-  const session = await send(server, { session: chat.data.id, text: "", images: [image] });
+  const session = await send(server, { images: [image], session: chat.data.id, text: "" });
   await settle(server, session);
 
   expect(session.title).toBe("Image");
@@ -689,7 +688,7 @@ test("session.send refuses an image that is not in the data folder", async () =>
     const refused = await mutate(
       server.app,
       "session.send",
-      { session: chat.data.id, text: "Look", images: [{ id, width: 1, height: 1 }] },
+      { images: [{ height: 1, id, width: 1 }], session: chat.data.id, text: "Look" },
       ["id"],
     );
     expect(refused.error?.message).toBe("refused: This image is gone: add it again.");
@@ -708,10 +707,10 @@ test("session.send refuses images that are not { id, width, height } objects", a
 
   for (const malformed of [null, 3, "id.webp", [image]]) {
     expect(
-      await refusalOf(server, { session: chat.data.id, text: "Look", images: [image, malformed] }),
+      await refusalOf(server, { images: [image, malformed], session: chat.data.id, text: "Look" }),
     ).toBe("refused: an image is an object of its id, width, and height");
   }
-  expect(await refusalOf(server, { session: chat.data.id, text: "Look", images: image })).toBe(
+  expect(await refusalOf(server, { images: image, session: chat.data.id, text: "Look" })).toBe(
     "refused: images is a list",
   );
   expect(server.adapter.sent).toEqual([]);
@@ -724,8 +723,8 @@ test("session.send refuses a size that is not two positive integers, or over the
   const gif = await chatImages(server.dataDir).save({
     bytes: Buffer.from("GIF89a"),
     extension: "gif",
-    width: 1,
     height: 1,
+    width: 1,
   });
 
   for (const [width, height] of [
@@ -738,28 +737,28 @@ test("session.send refuses a size that is not two positive integers, or over the
   ]) {
     expect(
       await refusalOf(server, {
+        images: [{ height, id, width }],
         session: chat.data.id,
         text: "Look",
-        images: [{ id, width, height }],
       }),
     ).toBe("refused: an image's size is two positive integers, within the core's limits");
   }
   // An animated GIF is kept as it came: over 2576 pixels, within 40 million.
   expect(
     await refusalOf(server, {
+      images: [{ height: 5001, id: gif.id, width: 8000 }],
       session: chat.data.id,
       text: "Look",
-      images: [{ id: gif.id, width: 8000, height: 5001 }],
     }),
   ).toBe("refused: an image's size is two positive integers, within the core's limits");
   server.adapter.script([]);
   const session = await send(server, {
+    images: [
+      { height: 2576, id, width: 2576 },
+      { height: 5000, id: gif.id, width: 8000 },
+    ],
     session: chat.data.id,
     text: "Look",
-    images: [
-      { id, width: 2576, height: 2576 },
-      { id: gif.id, width: 8000, height: 5000 },
-    ],
   });
   await settle(server, session);
   expect(server.adapter.sent).toHaveLength(1);
@@ -771,7 +770,7 @@ test("session.send sends an image given twice in one message once", async () => 
   const chat = await mutate(server.app, "session.newChat", {}, ["id"]);
   server.adapter.script([]);
 
-  const session = await send(server, { session: chat.data.id, text: "Look", images: [a, b, a] });
+  const session = await send(server, { images: [a, b, a], session: chat.data.id, text: "Look" });
   await settle(server, session);
 
   expect(server.adapter.sent[0]?.images).toEqual([
@@ -789,8 +788,8 @@ test("session.send refuses images with the workflow's message", async () => {
   expect(
     await refusalOf(server, {
       folder: AGENT,
-      text: "/uraeda:uraeda Continue.",
       images: [image],
+      text: "/uraeda:uraeda Continue.",
       workflow: { trigger: "manual" },
     }),
   ).toBe("refused: The workflow's message takes no images.");
@@ -802,11 +801,11 @@ test("session.send refuses too many images, or images the agent cannot read, bef
   const server = await testServer();
   const images = await Promise.all(Array.from({ length: 11 }, () => saved(server)));
 
-  expect(await refusalOf(server, { folder: AGENT, text: "Look", images })).toBe(
+  expect(await refusalOf(server, { folder: AGENT, images, text: "Look" })).toBe(
     "refused: A message takes at most 10 images.",
   );
   server.adapter.capabilities = { ...server.adapter.capabilities, images: false };
-  expect(await refusalOf(server, { folder: AGENT, text: "Look", images: [images[0]] })).toBe(
+  expect(await refusalOf(server, { folder: AGENT, images: [images[0]], text: "Look" })).toBe(
     "refused: This agent cannot read images.",
   );
 

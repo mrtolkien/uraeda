@@ -104,10 +104,10 @@ export type ClaudeAdapterOptions = {
   command?: string;
   /** Claude Code's configuration folder, where it keeps its transcripts. */
   configDir?: string;
-  /** The plugin folder that holds the Uraeda skill, `PLUGIN_DIR` in the server. */
-  pluginDir: string;
   /** The chat images' folder, `<data folder>/images`, created as a process opens. */
   imagesDir: string;
+  /** The plugin folder that holds the Uraeda skill, `PLUGIN_DIR` in the server. */
+  pluginDir: string;
 };
 
 /**
@@ -132,10 +132,10 @@ export class ClaudeAdapter implements Adapter {
   /** Taking back is `cancel_async_message`, which `validate-claude.ts` checks (R5). */
   readonly capabilities: Capabilities = {
     approvals: false,
+    images: true,
     queue: true,
     steer: true,
     subagents: true,
-    images: true,
     takeBack: true,
   };
   #command: string;
@@ -146,8 +146,8 @@ export class ClaudeAdapter implements Adapter {
   constructor({
     command = "claude",
     configDir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude"),
-    pluginDir,
     imagesDir,
+    pluginDir,
   }: ClaudeAdapterOptions) {
     this.#command = command;
     this.#configDir = configDir;

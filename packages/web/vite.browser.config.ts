@@ -46,7 +46,6 @@ let chatImageDelay = 0;
 
 /** Holds the chat images' answers for `chatImageDelay`, before the server answers them. */
 const slowChatImages: Plugin = {
-  name: "slow-chat-images",
   configureServer(server) {
     server.middlewares.use((request, _response, next) => {
       if (chatImageDelay > 0 && /^\/r\/[^/]+\/chat-images\//.test(request.url ?? "")) {
@@ -56,6 +55,7 @@ const slowChatImages: Plugin = {
       }
     });
   },
+  name: "slow-chat-images",
 };
 
 const commands = {
@@ -128,11 +128,11 @@ const commands = {
   },
   /** The messages sent to the agent during the test, in order. */
   agentSent() {
-    return agent.sent.map(({ id, text, when, images }) => ({
+    return agent.sent.map(({ id, images, text, when }) => ({
       id,
+      images: images.map(({ path }) => path),
       text,
       when,
-      images: images.map(({ path }) => path),
     }));
   },
   /** The agent reads the latest message sent to it, or the one at `index`. */
@@ -183,11 +183,13 @@ const commands = {
 };
 
 export type RepoCommands = {
-  fixtureImage: (name: string) => Promise<string>;
   agentAccept: (index?: number) => Promise<void>;
   agentEmit: (events: Array<AgentEvent>) => Promise<void>;
   agentFinish: (code?: number, stderr?: string) => Promise<void>;
-  agentSent: () => Promise<Array<{ id: string; images: Array<string>; text: string; when: string }>>;
+  agentSent: () => Promise<
+    Array<{ id: string; images: Array<string>; text: string; when: string }>
+  >;
+  fixtureImage: (name: string) => Promise<string>;
   mouse: (
     steps: Array<{ ms?: number; type: "move" | "down" | "up" | "wait"; x?: number; y?: number }>,
   ) => Promise<void>;

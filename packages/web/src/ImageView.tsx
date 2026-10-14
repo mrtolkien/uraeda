@@ -21,16 +21,16 @@ const styles = stylex.create({
   // At most the column's width and most of the window's height, framed so a white screenshot
   // keeps its edge on a white page.
   image: {
-    display: "block",
-    maxInlineSize: "100%",
-    maxBlockSize: "var(--size-image-max-height)",
     blockSize: "auto",
-    inlineSize: "auto",
-    objectFit: "contain",
-    borderWidth: borderVars["--border-width"],
-    borderStyle: "solid",
     borderColor: colorVars["--color-border"],
     borderRadius: radiusVars["--radius-element"],
+    borderStyle: "solid",
+    borderWidth: borderVars["--border-width"],
+    display: "block",
+    inlineSize: "auto",
+    maxBlockSize: "var(--size-image-max-height)",
+    maxInlineSize: "100%",
+    objectFit: "contain",
   },
   // In a chat message: a preview, which opens full size.
   message: {
@@ -51,16 +51,16 @@ const styles = stylex.create({
     verticalAlign: "middle",
   },
   missing: {
+    borderColor: colorVars["--color-border"],
+    borderRadius: radiusVars["--radius-element"],
+    borderStyle: "dashed",
+    borderWidth: borderVars["--border-width"],
+    color: colorVars["--color-text-secondary"],
     display: "block",
     inlineSize: "fit-content",
     maxInlineSize: "100%",
     paddingBlock: spacingVars["--spacing-2"],
     paddingInline: spacingVars["--spacing-3"],
-    borderWidth: borderVars["--border-width"],
-    borderStyle: "dashed",
-    borderColor: colorVars["--color-border"],
-    borderRadius: radiusVars["--radius-element"],
-    color: colorVars["--color-text-secondary"],
   },
 });
 
@@ -84,7 +84,7 @@ export function useStaticImages() {
 function Missing({ alt }: { alt: string }) {
   return (
     <span {...stylex.props(styles.missing)}>
-      <Text type="supporting" color="inherit">
+      <Text color="inherit" type="supporting">
         {alt ? `Image missing: ${alt}` : "Image missing"}
       </Text>
     </span>
@@ -100,28 +100,28 @@ function Missing({ alt }: { alt: string }) {
  * names an image without alt text, "Image" by default.
  */
 export function ImageView({
-  src,
   alt,
-  isStatic = false,
-  size = "column",
-  width,
   height,
+  isStatic = false,
   label = "Image",
+  size = "column",
+  src,
+  width,
 }: {
-  src: string;
   alt: string;
-  isStatic?: boolean;
-  size?: "column" | "message";
-  width?: number;
   height?: number;
+  isStatic?: boolean;
   label?: string;
+  size?: "column" | "message";
+  src: string;
+  width?: number;
 }) {
   // The address that failed: an image whose address changes, as in a preview while its link is
   // typed, loads again.
   const [failed, setFailed] = useState<string>();
   const inControl = useStaticImages();
   const lightbox = useLightbox({
-    media: { src, alt },
+    media: { alt, src },
     // The lightbox is drawn where the image is: in a review's block, a click in it would select
     // the block. Its keys are left to bubble: Astryx closes it on an Escape the document hears.
     onClick: (event: MouseEvent) => event.stopPropagation(),
@@ -135,12 +135,12 @@ export function ImageView({
   const cap = size === "message" ? "var(--size-message-image)" : "var(--size-image-max-height)";
   const image = (zoom: boolean, inline: boolean) => (
     <img
-      src={src}
       alt={alt}
+      src={src}
       // Its box is drawn before it loads: a transcript opened at its end stays there.
-      {...(known ? { width, height } : {})}
-      loading="lazy"
+      {...(known ? { height, width } : {})}
       decoding="async"
+      loading="lazy"
       onError={() => setFailed(src)}
       {...stylex.props(
         styles.image,
@@ -167,9 +167,9 @@ export function ImageView({
   return (
     <>
       <Link
+        aria-haspopup="dialog"
         href={src}
         onClick={onClick}
-        aria-haspopup="dialog"
         // An image without alt text is not named by it.
         {...(alt ? {} : { "aria-label": label })}
         xstyle={styles.link}

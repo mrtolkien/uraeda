@@ -6,22 +6,22 @@ import type { ReactNode } from "react";
 /** The outline of the field a file dragged over the page would go to. */
 export const dropStyles = stylex.create({
   target: {
+    backgroundColor: colorVars["--color-accent-muted"],
     outlineColor: colorVars["--color-accent"],
+    outlineOffset: spacingVars["--spacing-0-5"],
     outlineStyle: "solid",
     outlineWidth: spacingVars["--spacing-0-5"],
-    outlineOffset: spacingVars["--spacing-0-5"],
-    backgroundColor: colorVars["--color-accent-muted"],
   },
 });
 
 const styles = stylex.create({
   field: { position: "relative" },
   hint: {
-    position: "absolute",
     insetBlockStart: spacingVars["--spacing-2"],
     insetInlineEnd: spacingVars["--spacing-2"],
-    zIndex: 1,
     pointerEvents: "none",
+    position: "absolute",
+    zIndex: 1,
   },
   // On the line of a field's label, at its end, clear of the field's border.
   labelled: { insetBlockStart: 0, insetInlineEnd: 0 },
@@ -32,19 +32,19 @@ const styles = stylex.create({
  * inside the field, or, for a field whose label shows, at the end of the label's line.
  */
 export function DropHint({
+  children,
   hint,
   isLabelled = false,
-  children,
 }: {
+  children: ReactNode;
   hint?: string;
   isLabelled?: boolean;
-  children: ReactNode;
 }) {
   return (
     <div {...stylex.props(styles.field)}>
       {children}
       {hint && (
-        <Badge variant="info" label={hint} xstyle={[styles.hint, isLabelled && styles.labelled]} />
+        <Badge label={hint} variant="info" xstyle={[styles.hint, isLabelled && styles.labelled]} />
       )}
     </div>
   );
