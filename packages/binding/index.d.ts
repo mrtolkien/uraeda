@@ -27,6 +27,9 @@ export declare function addPriority(repo: string, section: string, text: string,
  */
 export declare function addRepository(dataDir: string, folder: string): Promise<Added>
 
+/** Adds a comment on the settled point starting with `subject`, at the end of the notes. */
+export declare function addSettledComment(repo: string, folder: string, subject: string, text: string): Promise<FileView>
+
 /** Approves a spec, a plan, or an assessment, and commits it. */
 export declare function approve(repo: string, folder: string, file: string, summary?: string | undefined | null, riskTier?: string | undefined | null, planReview?: boolean | undefined | null): Promise<FileView>
 
@@ -60,6 +63,9 @@ export declare function editComment(repo: string, folder: string, file: string, 
 
 /** Replaces a priority line's text. */
 export declare function editPriority(repo: string, id: string, text: string, previous: string): Promise<Priorities>
+
+/** Writes comment `number` on a settled point over its text last read. */
+export declare function editSettledComment(repo: string, folder: string, number: number, text: string, previous: string): Promise<FileView>
 
 /**
  * An image checked and re-encoded by the core, for a chat message. Declared here, not in the core,
@@ -143,6 +149,9 @@ export declare function removePriority(repo: string, id: string, previous: strin
 
 /** Takes a repository off the list, leaving its folder and sessions as they are. */
 export declare function removeRepository(dataDir: string, name: string): Promise<void>
+
+/** Removes comment `number` on a settled point, over its text last read. */
+export declare function removeSettledComment(repo: string, folder: string, number: number, previous: string): Promise<FileView>
 
 /** Requests changes on a spec, a plan, or an assessment, and commits it. */
 export declare function requestChanges(repo: string, folder: string, file: string, summary?: string | undefined | null): Promise<FileView>

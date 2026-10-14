@@ -51,6 +51,35 @@ test("saves an answer, and returns the file", async () => {
   expect(written).toContain("**Answer:** A\n");
 });
 
+test("comments on a settled point, and returns the file", async () => {
+  const repo = fixtureRepo();
+  const { app } = await testApp(repo);
+  const subject = "The actions' commits move into the core";
+
+  const result = await mutate(
+    app,
+    "settled.comment",
+    { folder: "2026-10-11-web-ui", subject, text: "Keep them in one place." },
+    ["id", "current"],
+  );
+  const gone = await mutate(
+    app,
+    "settled.comment",
+    { folder: "2026-10-11-web-ui", subject: "Gone", text: "Text." },
+    ["id"],
+  );
+
+  expect(result.data.current.items.clarifications.settledComments).toEqual([
+    expect.objectContaining({ number: 1, subject, text: "Keep them in one place." }),
+  ]);
+  const written = readFileSync(join(repo, ".worktrees/2026-10-11-web-ui/specs", ROUND), "utf8");
+  expect(written).toContain(`- **${subject}**: Keep them in one place.\n`);
+  expect(gone.error).toEqual({
+    code: "BAD_REQUEST",
+    message: "refused: That point is no longer in the round.",
+  });
+});
+
 test("refuses a stale answer at the call site, with its code", async () => {
   const { app } = await testApp();
   const input = { comment: "", folder: "2026-10-11-web-ui", previous: "", question: "Q2" };

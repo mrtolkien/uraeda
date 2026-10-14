@@ -156,6 +156,21 @@ const mutations = {
     FateAPI['mutations']['session.takeBack']['input'],
     FateAPI['mutations']['session.takeBack']['output']
   >('Session'),
+  'settled.comment': mutation<
+    WorkflowFile,
+    FateAPI['mutations']['settled.comment']['input'],
+    FateAPI['mutations']['settled.comment']['output']
+  >('WorkflowFile'),
+  'settled.edit': mutation<
+    WorkflowFile,
+    FateAPI['mutations']['settled.edit']['input'],
+    FateAPI['mutations']['settled.edit']['output']
+  >('WorkflowFile'),
+  'settled.remove': mutation<
+    WorkflowFile,
+    FateAPI['mutations']['settled.remove']['input'],
+    FateAPI['mutations']['settled.remove']['output']
+  >('WorkflowFile'),
   'text.commit': mutation<
     Draft,
     FateAPI['mutations']['text.commit']['input'],

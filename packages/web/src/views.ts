@@ -33,6 +33,8 @@ const ItemsSelection = {
     notesLine: true,
     questions: true,
     settled: true,
+    settledComments: true,
+    settledPoints: true,
     status: true,
   },
   plan: { tasks: true },
