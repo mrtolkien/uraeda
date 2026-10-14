@@ -6,6 +6,7 @@ use uraeda_core::actions::place::{self, Place};
 use uraeda_core::actions::review::{self, Tier};
 use uraeda_core::actions::{ActionError, answer, draft, start, text};
 use uraeda_core::embedded;
+use uraeda_core::files::clarifications::AnswerError;
 use uraeda_core::files::document::hash;
 use uraeda_core::git::Git;
 use uraeda_core::today::Date;
@@ -211,6 +212,140 @@ fn a_refused_commit_keeps_the_answers_and_can_be_tried_again() {
     assert_eq!(
         repo.subjects(FOLDER)[0],
         "discovery(web-ui): answer round 01"
+    );
+}
+
+/// A round whose settled points are "Undoing a completion" and "Deleting a repeating task", with
+/// `notes` after its `**Notes:**` marker.
+fn settled_round(notes: &str) -> String {
+    round("", "", "")
+        .replace(
+            "- **A point** settled.",
+            "- **Undoing a completion** puts back what completing changed.\n- **Deleting a repeating task** ends the repetition.",
+        )
+        .replace("**Notes:**\n", &format!("**Notes:** {notes}\n"))
+}
+
+/// The round's text after its `**Notes:**` marker.
+fn notes_text(place: &Place) -> String {
+    let text = read(place, ROUND);
+    text.split_once("**Notes:**").unwrap().1.to_string()
+}
+
+const UNDO: &str = "Undoing a completion";
+
+/// US4.1
+#[test]
+fn a_settled_comment_is_added_after_the_free_notes() {
+    let repo = repo_with(&settled_round("Overall fine."));
+    let (feature, place) = reach(&repo);
+
+    answer::add_settled_comment(&place, &feature, UNDO, "Keep the undo.").unwrap();
+
+    assert_eq!(
+        notes_text(&place),
+        " Overall fine.\n\n- **Undoing a completion**: Keep the undo.\n"
+    );
+}
+
+/// US4.8
+#[test]
+fn a_settled_comment_of_two_lines_is_indented() {
+    let repo = repo_with(&settled_round("Overall fine."));
+    let (feature, place) = reach(&repo);
+
+    answer::add_settled_comment(&place, &feature, UNDO, "Keep the undo.\nAlso for deletes.")
+        .unwrap();
+
+    assert!(
+        notes_text(&place)
+            .ends_with("\n\n- **Undoing a completion**: Keep the undo.\n  Also for deletes.\n"),
+        "{}",
+        notes_text(&place)
+    );
+}
+
+/// US4.4
+#[test]
+fn a_settled_comment_is_edited_over_its_text_last_read() {
+    let notes = "Overall fine.\n\n- **Undoing a completion**: Keep the undo.\n- **Deleting a repeating task**: Ask first.";
+    let repo = repo_with(&settled_round(notes));
+    let (feature, place) = reach(&repo);
+
+    let error = answer::edit_settled_comment(&place, &feature, 1, "Drop it.", "Other").unwrap_err();
+    assert!(matches!(error, ActionError::Changed { .. }), "{error}");
+    assert_eq!(notes_text(&place), format!(" {notes}\n"));
+
+    answer::edit_settled_comment(&place, &feature, 1, "Keep it, say so.", "Keep the undo.")
+        .unwrap();
+    assert_eq!(
+        notes_text(&place),
+        " Overall fine.\n\n- **Undoing a completion**: Keep it, say so.\n- **Deleting a repeating task**: Ask first.\n"
+    );
+}
+
+/// US4.5
+#[test]
+fn a_settled_comment_is_removed_and_the_rest_kept() {
+    let notes = "Overall fine.\n\n- **Undoing a completion**: Keep the undo.\n- **Deleting a repeating task**: Ask first.";
+    let repo = repo_with(&settled_round(notes));
+    let (feature, place) = reach(&repo);
+
+    answer::remove_settled_comment(&place, &feature, 1, "Keep the undo.").unwrap();
+
+    assert_eq!(
+        notes_text(&place),
+        " Overall fine.\n\n- **Deleting a repeating task**: Ask first.\n"
+    );
+}
+
+#[test]
+fn a_settled_comment_on_an_unknown_point_is_refused() {
+    let repo = repo_with(&settled_round("Overall fine."));
+    let (feature, place) = reach(&repo);
+    let before = read(&place, ROUND);
+
+    let error = answer::add_settled_comment(&place, &feature, "Gone", "Text.").unwrap_err();
+
+    assert_eq!(error.to_string(), "That point is no longer in the round.");
+    assert_eq!(read(&place, ROUND), before);
+}
+
+#[test]
+fn a_settled_comment_with_a_heading_is_refused() {
+    let repo = repo_with(&settled_round("Overall fine."));
+    let (feature, place) = reach(&repo);
+    let before = read(&place, ROUND);
+
+    let error =
+        answer::add_settled_comment(&place, &feature, UNDO, "Fine.\n# Heading").unwrap_err();
+
+    assert!(
+        matches!(error, ActionError::Answer(AnswerError::Structure)),
+        "{error}"
+    );
+    assert_eq!(read(&place, ROUND), before);
+}
+
+/// US4.3: the notes saved over the free notes last read keep the settled comments.
+#[test]
+fn settled_comments_stay_when_the_free_notes_are_saved() {
+    let repo = repo_with(&settled_round(
+        "Overall fine.\n\n- **Undoing a completion**: Keep the undo.",
+    ));
+    let (feature, place) = reach(&repo);
+
+    answer::save_notes(
+        &place,
+        &feature,
+        "Overall fine, icon bigger.",
+        "Overall fine.",
+    )
+    .unwrap();
+
+    assert_eq!(
+        notes_text(&place),
+        " Overall fine, icon bigger.\n\n- **Undoing a completion**: Keep the undo.\n"
     );
 }
 

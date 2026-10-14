@@ -1,4 +1,5 @@
-//! The answers to a clarifications round: one answer, the notes, and the round's submission.
+//! The answers to a clarifications round: one answer, the notes, the comments on settled points,
+//! and the round's submission.
 
 use std::path::Path;
 
@@ -34,6 +35,46 @@ pub fn save_notes(repo: &Path, folder: &str, notes: &str, previous: &str) -> Res
     let _lock = write_lock();
     let (git, feature, place) = reach(repo, folder)?;
     let written = answer::save_notes(&place, &feature, notes, previous)?;
+    file_view(&git, &feature, &round_name(&feature)?, Some(written.text))
+}
+
+/// Adds a comment on the settled point starting with `subject`, at the end of the notes.
+pub fn add_settled_comment(
+    repo: &Path,
+    folder: &str,
+    subject: &str,
+    text: &str,
+) -> Result<FileView> {
+    let _lock = write_lock();
+    let (git, feature, place) = reach(repo, folder)?;
+    let written = answer::add_settled_comment(&place, &feature, subject, text)?;
+    file_view(&git, &feature, &round_name(&feature)?, Some(written.text))
+}
+
+/// Writes comment `number` on a settled point over its text last read.
+pub fn edit_settled_comment(
+    repo: &Path,
+    folder: &str,
+    number: u32,
+    text: &str,
+    previous: &str,
+) -> Result<FileView> {
+    let _lock = write_lock();
+    let (git, feature, place) = reach(repo, folder)?;
+    let written = answer::edit_settled_comment(&place, &feature, number, text, previous)?;
+    file_view(&git, &feature, &round_name(&feature)?, Some(written.text))
+}
+
+/// Removes comment `number` on a settled point, over its text last read.
+pub fn remove_settled_comment(
+    repo: &Path,
+    folder: &str,
+    number: u32,
+    previous: &str,
+) -> Result<FileView> {
+    let _lock = write_lock();
+    let (git, feature, place) = reach(repo, folder)?;
+    let written = answer::remove_settled_comment(&place, &feature, number, previous)?;
     file_view(&git, &feature, &round_name(&feature)?, Some(written.text))
 }
 

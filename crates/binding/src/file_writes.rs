@@ -1,4 +1,4 @@
-//! The writes of a feature's workflow files: answers, notes, and reviews.
+//! The writes of a feature's workflow files: answers, notes, comments on settled points, and reviews.
 
 use std::path::Path;
 
@@ -40,6 +40,40 @@ pub fn save_notes(
     previous: String,
 ) -> AsyncTask<Job<FileView>> {
     job(move || api::save_notes(Path::new(&repo), &folder, &notes, &previous))
+}
+
+/// Adds a comment on the settled point starting with `subject`, at the end of the notes.
+#[napi(ts_return_type = "Promise<FileView>")]
+pub fn add_settled_comment(
+    repo: String,
+    folder: String,
+    subject: String,
+    text: String,
+) -> AsyncTask<Job<FileView>> {
+    job(move || api::add_settled_comment(Path::new(&repo), &folder, &subject, &text))
+}
+
+/// Writes comment `number` on a settled point over its text last read.
+#[napi(ts_return_type = "Promise<FileView>")]
+pub fn edit_settled_comment(
+    repo: String,
+    folder: String,
+    number: u32,
+    text: String,
+    previous: String,
+) -> AsyncTask<Job<FileView>> {
+    job(move || api::edit_settled_comment(Path::new(&repo), &folder, number, &text, &previous))
+}
+
+/// Removes comment `number` on a settled point, over its text last read.
+#[napi(ts_return_type = "Promise<FileView>")]
+pub fn remove_settled_comment(
+    repo: String,
+    folder: String,
+    number: u32,
+    previous: String,
+) -> AsyncTask<Job<FileView>> {
+    job(move || api::remove_settled_comment(Path::new(&repo), &folder, number, &previous))
 }
 
 /// Submits the latest round of questions, and commits it; refused when `name`, the round
