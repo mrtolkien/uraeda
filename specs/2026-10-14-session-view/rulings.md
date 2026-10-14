@@ -264,3 +264,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `stepTitle` and `Section` in `SessionAside.tsx`, and one condition in
   `branchChanges` of `sources.ts`.
 - **Where**: Task 7, after its review.
+
+## R19: The phone's line is Astryx's Collapsible, and the page keeps the line read
+
+- **Decision**: the phone's progress line is an Astryx `Collapsible`, its trigger the button with
+  `aria-expanded`, its content `SessionAside`, drawn only while open. Its step reads as the column's
+  heading, through `stepTitle`, so a plan in review reads "Review the plan". The line lives in
+  `ProgressLine.tsx`. `useKeepPlace`, in `Session`, keeps the transcript's line read a third down
+  the window where it was as the width class changes, or the end in view, and the browser test
+  checks that line's place rather than an equal `scrollY`. The browser tests gain an
+  `addPlan(folder)` command, for the plan's link and the "7/11" line.
+- **Rationale**: a `Button` has a fixed height and one line, which a long task title would cut on a
+  402 px screen, and the `Collapsible` is Astryx's component for a disclosure, with its chevron, as
+  the mockup draws it. Crossing 768 px, WebKit first lays the page drawn for the old width out at
+  the new one, the column squeezing the transcript to a page 15,000 px tall, then clamps the
+  position at the end once the new layout is drawn: the page jumped to its end and started following
+  it. The same `scrollY` at 402 and 1440 px is not the same place, as text sizes and widths change:
+  what the human reads is. `SessionPage.tsx` is near the 500-line limit.
+- **Alternatives considered**: the plan's `Button`; an equal `scrollY`, which only holds without the
+  clamp, at another place of the text; hiding the column with a media query, against the UI layout
+  decision's rule on media queries; anchoring on the element under a point, which is a message's
+  padding between two lines.
+- **If wrong**: `ProgressLine.tsx`, `useKeepPlace.ts`, and the width test of
+  `__browser__/session.test.tsx`.
+- **Where**: Task 8.
