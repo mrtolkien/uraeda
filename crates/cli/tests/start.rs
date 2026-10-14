@@ -3,9 +3,9 @@ mod common;
 use common::*;
 
 const DRAFT: &str = "specs/drafts/git-listener-process.md";
-const PROPOSAL: &str = "specs/2026-10-11-git-listener-process/proposal.md";
-const BRANCH: &str = "2026-10-11-git-listener-process";
-const WORKTREE: &str = ".worktrees/2026-10-11-git-listener-process";
+const PROPOSAL: &str = "specs/2026-10-11-git-listener/proposal.md";
+const BRANCH: &str = "2026-10-11-git-listener";
+const WORKTREE: &str = ".worktrees/2026-10-11-git-listener";
 
 /// A path in the new feature's worktree.
 fn in_worktree(path: &str) -> String {
@@ -36,11 +36,11 @@ fn commits_the_start_on_main() {
     assert_eq!(output.code, 0, "{}", output.stderr);
     assert_eq!(
         repo.subjects("main")[0],
-        "chore(git-listener-process): start Git listener process"
+        "chore(git-listener): start Git listener process"
     );
     let priorities = repo.git(&["show", "main:specs/PRIORITIES.md"]);
     assert!(priorities.contains(
-        "- [CLI](/specs/2026-10-10-cli/proposal.md)\n- [Git listener process](/specs/2026-10-11-git-listener-process/proposal.md)\n\n## Next\n\n- Runner\n"
+        "- [CLI](/specs/2026-10-10-cli/proposal.md)\n- [Git listener process](/specs/2026-10-11-git-listener/proposal.md)\n\n## Next\n\n- Runner\n"
     ), "{priorities}");
     assert_eq!(repo.changed_in("main"), ["specs/PRIORITIES.md"]);
 }
@@ -53,13 +53,10 @@ fn moves_the_draft_on_the_new_branch_in_its_worktree() {
     let output = ura(&repo, &["start", DRAFT]);
 
     assert_eq!(repo.current_branch(), "main");
-    assert_eq!(
-        repo.subjects(BRANCH)[0],
-        "chore(git-listener-process): proposal"
-    );
+    assert_eq!(repo.subjects(BRANCH)[0], "chore(git-listener): proposal");
     assert_eq!(
         repo.subjects(BRANCH)[1],
-        "chore(git-listener-process): start Git listener process"
+        "chore(git-listener): start Git listener process"
     );
     assert_eq!(repo.changed_in(BRANCH), [PROPOSAL, DRAFT]);
     assert_eq!(repo.read(&in_worktree(PROPOSAL)), written_draft());
@@ -70,7 +67,7 @@ fn moves_the_draft_on_the_new_branch_in_its_worktree() {
     assert_eq!(
         output.stdout,
         format!(
-            "on main: committed \"chore(git-listener-process): start Git listener process\"\ncreated branch {BRANCH} in {WORKTREE}\nmoved   {DRAFT} -> {PROPOSAL}\ncommitted \"chore(git-listener-process): proposal\"\nNext: discovery. Ask an agent, or run ura next.\n"
+            "on main: committed \"chore(git-listener): start Git listener process\"\ncreated branch {BRANCH} in {WORKTREE}\nmoved   {DRAFT} -> {PROPOSAL}\ncommitted \"chore(git-listener): proposal\"\nNext: discovery. Ask an agent, or run ura next.\n"
         )
     );
 }
@@ -232,10 +229,7 @@ fn a_bug() {
 
     let output = ura(
         &repo,
-        &[
-            "start",
-            "specs/bugs/2026-10-14-completed-tasks-reappear/report.md",
-        ],
+        &["start", "specs/bugs/2026-10-14-tasks-reappear/report.md"],
     );
 
     assert_eq!(output.code, 101);
@@ -261,10 +255,10 @@ fn a_failure_after_the_first_commit() {
     assert_eq!(output.code, 1);
     assert_eq!(
         repo.subjects("main")[0],
-        "chore(git-listener-process): start Git listener process"
+        "chore(git-listener): start Git listener process"
     );
     assert!(output.stderr.ends_with(&format!(
-        "ura: git commit failed: boom\nDone: the start commit on main, the branch {BRANCH}, the move of the draft.\nLeft: commit {PROPOSAL} as \"chore(git-listener-process): proposal\".\n"
+        "ura: git commit failed: boom\nDone: the start commit on main, the branch {BRANCH}, the move of the draft.\nLeft: commit {PROPOSAL} as \"chore(git-listener): proposal\".\n"
     )), "{}", output.stderr);
 }
 
@@ -291,7 +285,7 @@ fn a_draft_two_lines_link() {
 fn refuses_a_name_a_record_holds() {
     let repo = repo_with_a_draft();
     repo.write(
-        "specs/done/2026-10-11-git-listener-process.md",
+        "specs/done/2026-10-11-git-listener.md",
         &record("feature", "Git listener process"),
     );
     repo.commit("finish: an earlier git listener");
@@ -301,7 +295,7 @@ fn refuses_a_name_a_record_holds() {
     assert_eq!(output.code, 1);
     assert_eq!(
         output.stderr,
-        "ura: specs/done/2026-10-11-git-listener-process.md exists: choose another slug with --slug\n"
+        "ura: specs/done/2026-10-11-git-listener.md exists: choose another slug with --slug\n"
     );
 }
 

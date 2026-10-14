@@ -123,8 +123,8 @@ fn priorities_are_read_from_the_default_branchs_worktree() {
     assert_eq!(workspace.priorities.last().unwrap().text, "An idea");
 }
 
-const BUG: &str = "2026-10-14-completed-tasks-reappear";
-const BUG_BRANCH: &str = "fix/2026-10-14-completed-tasks-reappear";
+const BUG: &str = "2026-10-14-tasks-reappear";
+const BUG_BRANCH: &str = "fix/2026-10-14-tasks-reappear";
 
 /// On `branch`, replaces the folder `dir` with the record of `folder`, and commits.
 fn finish(repo: &TestRepo, branch: &str, dir: &str, folder: &str, kind: &str) {
@@ -303,7 +303,7 @@ fn a_merged_bugs_worktree_is_one_folder_deeper() {
     assert_eq!(bug.left_branch.as_deref(), Some(BUG_BRANCH));
     assert_eq!(
         bug.left_worktree.as_deref(),
-        Some(".worktrees/fix/2026-10-14-completed-tasks-reappear")
+        Some(".worktrees/fix/2026-10-14-tasks-reappear")
     );
 }
 

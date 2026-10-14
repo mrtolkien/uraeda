@@ -43,7 +43,8 @@ test("a line with a draft shows it drawn (US3 2)", async () => {
   expect(await screen.findByRole("heading", { name: "What" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Start the feature" })).toBeTruthy();
-  expect(screen.queryByRole("textbox")).toBeNull();
+  // The only field is the slug, two words of the draft's name, for the human to change.
+  expect(screen.getByRole("textbox", { name: "Slug" })).toHaveProperty("value", "git-listener");
 });
 
 test("editing the line in place moves the address (US3 3)", async () => {

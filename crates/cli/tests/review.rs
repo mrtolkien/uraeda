@@ -295,7 +295,7 @@ fn a_bug_assessment() {
     );
     feature(
         &repo,
-        "fix/2026-10-14-completed-tasks-reappear",
+        "fix/2026-10-14-tasks-reappear",
         &[
             ("report.md", "# Report\n\nIt breaks.\n".to_string()),
             (
@@ -305,17 +305,17 @@ fn a_bug_assessment() {
         ],
     );
 
-    let output = ura(&repo, &["review", "completed-tasks-reappear", "--approve"]);
+    let output = ura(&repo, &["review", "tasks-reappear", "--approve"]);
 
     assert_eq!(output.code, 0, "{}", output.stderr);
     assert_eq!(repo.current_branch(), "main");
     assert!(
-        repo.read(".worktrees/fix/2026-10-14-completed-tasks-reappear/specs/bugs/2026-10-14-completed-tasks-reappear/assessment.md")
+        repo.read(".worktrees/fix/2026-10-14-tasks-reappear/specs/bugs/2026-10-14-tasks-reappear/assessment.md")
             .contains("status: approved\n")
     );
     assert_eq!(
-        repo.subjects("fix/2026-10-14-completed-tasks-reappear")[0],
-        "assessment(completed-tasks-reappear): approve"
+        repo.subjects("fix/2026-10-14-tasks-reappear")[0],
+        "assessment(tasks-reappear): approve"
     );
 }
 

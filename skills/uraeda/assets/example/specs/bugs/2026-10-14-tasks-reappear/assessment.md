@@ -23,7 +23,7 @@ The report's steps fail every time when the task is completed less than one seco
 creation, and never after. A second test shows that a rename in that second is lost the same way.
 
 ```tsx
-// tests/bugs/completed-tasks-reappear.test.tsx
+// tests/bugs/tasks-reappear.test.tsx
 test("a task completed right after its creation stays completed after a reload", async () => {
   const { user } = await renderApp();
   await addTask(user, "Buy milk");
@@ -47,7 +47,7 @@ test("a task renamed right after its creation keeps its new name after a reload"
 });
 ```
 
-- Run: `npx vitest run tests/bugs/completed-tasks-reappear.test.tsx`
+- Run: `npx vitest run tests/bugs/tasks-reappear.test.tsx`
 - Result: FAIL, `expected element to be checked`, then
   `Unable to find an element with the text: Buy oat milk`.
 
@@ -79,7 +79,7 @@ tasks stays as fast as today.
 - Modify: `src/store/tasks.ts` (`createTask`, `flushCreations`)
 - Modify: `tests/helpers/app.tsx` (`reloadApp(): Promise<void>`, which unmounts the app, empties the
   store's memory, and renders the app again on the same database)
-- Test: `tests/bugs/completed-tasks-reappear.test.tsx`
+- Test: `tests/bugs/tasks-reappear.test.tsx`
 
 - [ ] **Step 1: Record the benchmark baseline**
 
@@ -88,7 +88,7 @@ tasks stays as fast as today.
 
 - [ ] **Step 2: Add the failing tests**
 
-- Run: `npx vitest run tests/bugs/completed-tasks-reappear.test.tsx`
+- Run: `npx vitest run tests/bugs/tasks-reappear.test.tsx`
 - Expected: FAIL, `expected element to be checked`.
 
 - [ ] **Step 3: Fix the root cause**
@@ -104,5 +104,5 @@ the tasks it finds in one transaction.
 - [ ] **Step 5: Commit**
 
 ```bash
-git commit -m "fix(completed-tasks-reappear): save new tasks as they are when the save runs"
+git commit -m "fix(tasks-reappear): save new tasks as they are when the save runs"
 ```

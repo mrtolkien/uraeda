@@ -11,8 +11,8 @@ use uraeda_core::workspace::{Feature, Workspace};
 
 const FOLDER: &str = "2026-10-11-web-ui";
 const WORKTREE: &str = ".worktrees/2026-10-11-web-ui";
-const BUG: &str = "2026-10-14-completed-tasks-reappear";
-const BUG_BRANCH: &str = "fix/2026-10-14-completed-tasks-reappear";
+const BUG: &str = "2026-10-14-tasks-reappear";
+const BUG_BRANCH: &str = "fix/2026-10-14-tasks-reappear";
 
 /// A branch with its folder, finished with its record, then rebased onto `main` and merged
 /// fast-forward, like GitHub's rebase merge: `main`'s commits have new hashes. The branch stays,
@@ -228,7 +228,7 @@ fn refuses_a_feature_not_merged() {
 fn cleans_a_merged_bug() {
     let repo = merged_branch(
         BUG_BRANCH,
-        "specs/bugs/2026-10-14-completed-tasks-reappear",
+        "specs/bugs/2026-10-14-tasks-reappear",
         BUG,
         "bug",
         "report.md",
@@ -240,7 +240,7 @@ fn cleans_a_merged_bug() {
     assert_eq!(
         cleaned.did,
         [
-            Did::RemovedWorktree(".worktrees/fix/2026-10-14-completed-tasks-reappear".into()),
+            Did::RemovedWorktree(".worktrees/fix/2026-10-14-tasks-reappear".into()),
             Did::DeletedBranch(BUG_BRANCH.into())
         ]
     );

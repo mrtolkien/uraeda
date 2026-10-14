@@ -20,3 +20,18 @@ fn slugs_from_text() {
         assert_eq!(slug::from_text(text), expected, "{text}");
     }
 }
+
+#[test]
+fn short_slugs_keep_two_words_that_name_something() {
+    let cases = [
+        ("git-listener-process", "git-listener"),
+        ("slack-integration", "slack-integration"),
+        ("run-the-web-ui-with-npx", "run-web"),
+        ("add-a-bugfixing-low-impact-change-flow", "add-bugfixing"),
+        ("benchmarks", "benchmarks"),
+        ("to-the", "to-the"),
+    ];
+    for (slug, expected) in cases {
+        assert_eq!(slug::short(slug), expected, "{slug}");
+    }
+}

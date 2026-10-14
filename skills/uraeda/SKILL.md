@@ -311,11 +311,13 @@ Do these only when a human asks.
   proposal template with the line as its title and as the first paragraph of What, and no
   placeholder text, and the line links to it. With `ura`, `ura draft <text>` does it, on the default
   branch, without committing, and opens the editor.
-- **Start**: name the folder with today's date and a short slug of the feature's name,
-  `YYYY-MM-DD-feature-slug`, like `2026-10-06-recurring-tasks`. The date never changes, even if the
-  feature is renamed. If a folder or branch with that name exists, choose another slug. With `ura`,
-  `ura start <draft>` runs these steps for a draft file or postponed folder, whatever it holds: the
-  proposal is freeform.
+- **Start**: name the folder with today's date and a slug of two words at most,
+  `YYYY-MM-DD-feature-slug`, like `2026-10-06-recurring-tasks`. Propose a slug from the feature's
+  name and ask the human for theirs before starting. The date never changes, even if the feature is
+  renamed. If a folder or branch with that name exists, choose another slug. With `ura`,
+  `ura start <draft> --slug <slug>` runs these steps for a draft file or postponed folder, whatever
+  it holds: the proposal is freeform. Without `--slug`, it takes the first two words of the draft's
+  name that name something.
   1. On the default branch, move the feature's `PRIORITIES.md` entry to the end of **Now**, unless
      the human says otherwise, as a link to the future `proposal.md` from the repository root,
      `[Name](/specs/YYYY-MM-DD-feature-slug/proposal.md)`, and commit with
@@ -362,17 +364,17 @@ follow [Conventional Commits](https://www.conventionalcommits.org/), with one ex
 workflow step. The scope is the feature's or the bug's slug, its folder's name without the date. The
 description is the feature name for a first version, and what changed for later commits.
 
-| Type          | Step                                     | Example                                                  |
-| ------------- | ---------------------------------------- | -------------------------------------------------------- |
-| `discovery:`  | A discovery and questions round          | `discovery(recurring-tasks): recurring tasks`            |
-| `decision:`   | Apply approved decisions                 | `decision(recurring-tasks): apply due dates`             |
-| `spec:`       | Write or revise a spec and its decisions | `spec(recurring-tasks): recurring tasks`                 |
-| `plan:`       | Write or revise a plan                   | `plan(recurring-tasks): split the store migration`       |
-| `assessment:` | Assess a bug                             | `assessment(completed-tasks-reappear): stale copy saved` |
-| `finish:`     | Replace the folder with its record       | `finish(recurring-tasks): recurring tasks`               |
+| Type          | Step                                     | Example                                            |
+| ------------- | ---------------------------------------- | -------------------------------------------------- |
+| `discovery:`  | A discovery and questions round          | `discovery(recurring-tasks): recurring tasks`      |
+| `decision:`   | Apply approved decisions                 | `decision(recurring-tasks): apply due dates`       |
+| `spec:`       | Write or revise a spec and its decisions | `spec(recurring-tasks): recurring tasks`           |
+| `plan:`       | Write or revise a plan                   | `plan(recurring-tasks): split the store migration` |
+| `assessment:` | Assess a bug                             | `assessment(tasks-reappear): stale copy saved`     |
+| `finish:`     | Replace the folder with its record       | `finish(recurring-tasks): recurring tasks`         |
 
 Code commits use the plan's messages, with the standard types and the same scope:
-`feat(recurring-tasks): repeat menu`, `fix(completed-tasks-reappear): save new tasks as they are`.
+`feat(recurring-tasks): repeat menu`, `fix(tasks-reappear): save new tasks as they are`.
 
 The human's commits, and the agent's when the human asks, use the step's type for what they answer
 and `chore:` for the rest. `ura` and the web UI write the same messages.
