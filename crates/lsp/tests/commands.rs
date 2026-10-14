@@ -1016,3 +1016,79 @@ fn a_missing_image_file_makes_no_worktree() {
     );
     assert!(!repo.exists(".worktrees"));
 }
+
+/// A worktree of the feature `feat`, beside `main`'s checkout, holding a folder draft committed on
+/// `main`.
+fn worktree_with_folder_draft() -> (TestRepo, std::path::PathBuf) {
+    let repo = with_priorities(LATER);
+    repo.write(
+        "specs/drafts/codex-runtime/proposal.md",
+        "# Codex runtime\n\n## What\n\nA runtime.\n",
+    );
+    repo.commit("chore: draft Codex runtime");
+    let worktree = repo.path().join(".worktrees/feat");
+    repo.git(&[
+        "worktree",
+        "add",
+        "--quiet",
+        "-b",
+        "feat",
+        worktree.to_str().unwrap(),
+    ]);
+    (repo, worktree)
+}
+
+/// Drafts are written on `main` from any checkout (the git decision): from a feature's worktree,
+/// an unchanged copy's image goes into `main`'s checkout, whose file opens to take the link.
+#[test]
+fn an_image_of_a_draft_from_a_worktree_goes_to_mains_checkout() {
+    let (repo, worktree) = worktree_with_folder_draft();
+    let copy = worktree.join("specs/drafts/codex-runtime/proposal.md");
+    let mut session = start(&worktree);
+    session.open(&copy, &std::fs::read_to_string(&copy).unwrap());
+
+    let result = session
+        .command(
+            "uraeda.attachImage",
+            json!({ "uri": uri(&copy), "path": fixture_image("still.gif"), "name": "login.png" }),
+        )
+        .unwrap();
+
+    let folder = repo.path().join("specs/drafts/codex-runtime");
+    assert_eq!(
+        result,
+        json!({
+            "opened": abs(&folder.join("proposal.md")),
+            "written": [abs(&folder.join("images/login.webp"))],
+            "link": "![login](images/login.webp)",
+        })
+    );
+    assert!(folder.join("images/login.webp").exists());
+    assert!(!worktree.join("specs/drafts/codex-runtime/images").exists());
+}
+
+/// An edited copy of a draft in a feature's worktree is refused, naming `main`'s checkout, and no
+/// image is written.
+#[test]
+fn an_image_of_an_edited_draft_copy_is_refused() {
+    let (repo, worktree) = worktree_with_folder_draft();
+    let copy = worktree.join("specs/drafts/codex-runtime/proposal.md");
+    std::fs::write(&copy, "# Codex runtime\n\n## What\n\nEdited here.\n").unwrap();
+    let mut session = start(&worktree);
+
+    let error = session
+        .command(
+            "uraeda.attachImage",
+            json!({ "uri": uri(&copy), "path": fixture_image("still.gif"), "name": "login.png" }),
+        )
+        .unwrap_err();
+
+    assert_eq!(
+        error.message,
+        format!(
+            "proposal.md here differs from main's: open it from main's checkout, {}.",
+            abs(repo.path())
+        )
+    );
+    assert!(!repo.exists("specs/drafts/codex-runtime/images"));
+}

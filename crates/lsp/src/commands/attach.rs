@@ -74,11 +74,15 @@ pub(super) fn attach_image(
         Some(folder) => PathBuf::from(core(api::work_dir(root, folder))?),
     };
     let mut written = vec![absolute(checkout.join(&attached.path))];
-    let opened = attached.moved.map(|moved| absolute(checkout.join(moved)));
-    if let Some(opened) = &opened {
-        written.push(opened.clone());
+    if let Some(moved) = &attached.moved {
+        written.push(absolute(checkout.join(moved)));
         written.push(absolute(checkout.join(priorities_path())));
     }
+    // A draft is the default branch's: from another branch's checkout, the link goes into the
+    // default branch's file, which opens in place of this copy (the git decision).
+    let file = attached.moved.as_deref().unwrap_or(&path);
+    let elsewhere = std::fs::canonicalize(&checkout).ok() != std::fs::canonicalize(root).ok();
+    let opened = (attached.moved.is_some() || elsewhere).then(|| absolute(checkout.join(file)));
     Ok(Done {
         link: Some(attached.link),
         ..Done::from(Outcome { opened, written })

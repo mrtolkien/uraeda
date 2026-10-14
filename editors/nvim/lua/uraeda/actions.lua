@@ -52,7 +52,8 @@ end
 --- and inserts its link after the cursor's character, as `p` does, in one undo step, tracked by a
 --- mark while the server works; the cursor ends on the link's last character. A single-file draft
 --- becomes a folder: its buffer reopens at the new path, with the link at the same place, and the
---- edits made while the server worked (image-attachments US5).
+--- edits made while the server worked (image-attachments US5). A draft opened from another
+--- branch's checkout reopens as the default branch's file, where drafts are written.
 --- @param opts table?
 function M.image(opts)
   local bufnr = vim.api.nvim_get_current_buf()
@@ -100,8 +101,9 @@ function M.image(opts)
   local command_opts = { save = true, prefix = "uraeda: ", finally = finally }
   client().command(bufnr, "uraeda.attachImage", args, command_opts, function(result)
     marked()
-    -- A moved draft is now the current buffer, its old buffer left as `:Uraeda start` leaves it,
-    -- with the edits made while the server worked carried over: the file moved as it was saved.
+    -- A moved draft, or the default branch's copy of a draft, is now the current buffer, its old
+    -- buffer left as `:Uraeda start` leaves it, with the edits made while the server worked
+    -- carried over: the file moved, or was the default branch's, as it was saved.
     local target = result.opened and vim.api.nvim_get_current_buf() or bufnr
     if result.opened and target ~= bufnr and vim.api.nvim_buf_is_valid(bufnr) then
       if vim.bo[bufnr].modified then
@@ -123,7 +125,9 @@ function M.image(opts)
     end
     local saved = "images/" .. vim.fs.basename(result.written[1] or "")
     local note = "uraeda: added " .. saved
-    if result.opened then
+    -- A draft that moved also wrote its new file and the priorities; one opened from another
+    -- branch's checkout only opens the default branch's file.
+    if #result.written > 1 then
       note = note .. "; the draft is now a folder"
     end
     vim.notify(note, vim.log.levels.INFO, { id = "uraeda", title = "Uraeda" })
