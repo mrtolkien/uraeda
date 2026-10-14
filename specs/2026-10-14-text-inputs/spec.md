@@ -26,8 +26,8 @@ plan-review: false
 >
 > - C1: done. Every multi-line field has a fixed height by what it holds, and scrolls past it: the
 >   proposal editor 20 rows, the notes 12, every comment and the review summary 7, quick add 3. The
->   [UI behaviour](../decisions/ui-behaviour.md#proposed-change-2026-10-14-text-inputs) change, US6,
->   SC-005, the components, the assumptions, and the mockup's last section follow.
+>   [UI behaviour](../decisions/ui-behaviour.md) change, US6, SC-005, the components, the
+>   assumptions, and the mockup's last section follow.
 > - Each field keeps the browser's resize handle, so a long text can still be given more room by
 >   hand.
 
@@ -35,12 +35,10 @@ plan-review: false
 >
 > Changes requested on 2026-10-14: 1 comment in spec-review.md.
 >
-> - Two changed decisions:
->   [UI behaviour](../decisions/ui-behaviour.md#proposed-change-2026-10-14-text-inputs) gains the
->   saving rules, from Save buttons to text kept in the browser and one growing text area, and lines
->   stop saving on blur;
->   [toolchain](../decisions/toolchain.md#proposed-change-2026-10-14-text-inputs) compiles the web
->   UI with React Compiler, through Babel, the stable route.
+> - Two changed decisions: [UI behaviour](../decisions/ui-behaviour.md) gains the saving rules, from
+>   Save buttons to text kept in the browser and one growing text area, and lines stop saving on
+>   blur; [toolchain](../decisions/toolchain.md) compiles the web UI with React Compiler, through
+>   Babel, the stable route.
 > - React Compiler alone does not stop the comment lag: the review page holds the comment's text and
 >   passes it into the document. The comment's text also moves out of the page, into a store of
 >   unsaved text shared by every field.
@@ -526,11 +524,11 @@ Settled while writing this spec:
 
 Changed, applied when this spec is approved:
 
-- [UI behaviour](../decisions/ui-behaviour.md#proposed-change-2026-10-14-text-inputs): text saves
-  only on a button or the field's own key, lines no longer save on blur, unsaved text is kept in the
-  browser and leaving asks first, and every multi-line field has a fixed height by what it holds.
-- [Toolchain](../decisions/toolchain.md#proposed-change-2026-10-14-text-inputs): the web UI is
-  compiled with React Compiler through Babel, and new code does not memoize by hand for speed.
+- [UI behaviour](../decisions/ui-behaviour.md): text saves only on a button or the field's own key,
+  lines no longer save on blur, unsaved text is kept in the browser and leaving asks first, and
+  every multi-line field has a fixed height by what it holds.
+- [Toolchain](../decisions/toolchain.md): the web UI is compiled with React Compiler through Babel,
+  and new code does not memoize by hand for speed.
 
 Relied on:
 
