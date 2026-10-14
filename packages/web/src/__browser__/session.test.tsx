@@ -256,7 +256,7 @@ test("US3.3: the open progress line survives a file link and Back", async () => 
 
   const back = await screen.findByRole("button", { name: LINE }, LIVE);
   expect(back.getAttribute("aria-expanded")).toBe("true");
-  expect(screen.getByRole("link", { name: "plan.md" })).toBeTruthy();
+  expect(await screen.findByRole("link", { name: "plan.md" }, LIVE)).toBeTruthy();
   await expect.poll(() => Math.round(box.scrollTop), LIVE).toBe(position);
 });
 
@@ -289,7 +289,9 @@ test("the column turns into the collapsed progress line across 768 px, at the sa
     // The same page, not a new one: its transcript stays, the line read where it was.
     expect(log.isConnected).toBe(true);
     expect(Math.abs(read.getBoundingClientRect().top - top)).toBeLessThan(2);
-    // The window is shorter: the line read a third down it is another one.
+    // Scrolled on the phone: the line read a third down it is another one.
+    box.scrollTo(0, Math.round((box.scrollHeight - box.clientHeight) / 3));
+    await drawn();
     const readNarrow = readLine(log);
     const topNarrow = readNarrow.getBoundingClientRect().top;
 
@@ -300,6 +302,81 @@ test("the column turns into the collapsed progress line across 768 px, at the sa
     await drawn();
     expect(log.isConnected).toBe(true);
     expect(Math.abs(readNarrow.getBoundingClientRect().top - topNarrow)).toBeLessThan(2);
+  } finally {
+    await page.viewport(1440, 900);
+  }
+});
+
+/** Scrolls the window so that an element's top is `offset` px above the line a third down it. */
+async function putAboveTheThird(element: Element, offset: number) {
+  const box = scroller();
+  const third = window.innerHeight / 3;
+  box.scrollTo(0, Math.round(box.scrollTop + element.getBoundingClientRect().top - third + offset));
+  await drawn();
+}
+
+test("a paragraph read across the line a third down keeps its place across 768 px", async () => {
+  if (window.innerWidth < 768) {
+    return;
+  }
+  const words = Array.from({ length: 400 }, (_, index) => `word${index}`).join(" ");
+  try {
+    await show(`/f/${CLI}/session`, "CLI TUIs");
+    await startTurn("Plan the CLI.", [
+      ...lines(10, "Line"),
+      { text: `Long \`paragraph\` ${words}.`, type: "text" },
+      ...lines(30, "Next line"),
+    ]);
+    const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
+    await within(log).findByText("Next line 30.", undefined, LIVE);
+    await drawn();
+    // Its inline code above the line, its text across it.
+    const paragraph = within(log).getByText(/word399\.$/);
+    expect(paragraph.getBoundingClientRect().height).toBeGreaterThan(200);
+    await putAboveTheThird(paragraph, 100);
+    const top = paragraph.getBoundingClientRect().top;
+
+    await page.viewport(402, 874);
+    await expect.poll(() => window.innerWidth).toBe(402);
+    await screen.findByRole("button", { name: "Plan" }, LIVE);
+    await drawn();
+
+    expect(Math.abs(paragraph.getBoundingClientRect().top - top)).toBeLessThan(2);
+  } finally {
+    await page.viewport(1440, 900);
+  }
+});
+
+test("opening the line moves the place read, which the next width keeps", async () => {
+  if (window.innerWidth < 768) {
+    return;
+  }
+  try {
+    await page.viewport(402, 874);
+    await expect.poll(() => window.innerWidth).toBe(402);
+    await agent.addPlan(CLI);
+    await show(`/f/${CLI}/session`, "CLI TUIs");
+    await startTurn("Plan the CLI.", lines(60, "Line"));
+    const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
+    await within(log).findByText("Line 60.", undefined, LIVE);
+    await drawn();
+    const box = scroller();
+    box.scrollTo(0, Math.round((box.scrollHeight - box.clientHeight) / 2));
+    await drawn();
+
+    // Opened without scrolling to it, as a tap at the top of the page would.
+    await act(async () => screen.getByRole("button", { name: LINE }).click());
+    await screen.findByRole("region", { name: "Progress" }, LIVE);
+    await drawn();
+    const read = readLine(log);
+    const top = read.getBoundingClientRect().top;
+
+    await page.viewport(1440, 900);
+    await expect.poll(() => window.innerWidth).toBe(1440);
+    await screen.findByRole("complementary", { name: "Progress" }, LIVE);
+    await drawn();
+
+    expect(Math.abs(read.getBoundingClientRect().top - top)).toBeLessThan(2);
   } finally {
     await page.viewport(1440, 900);
   }

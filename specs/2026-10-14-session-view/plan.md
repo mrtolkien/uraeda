@@ -1110,6 +1110,12 @@ In `__browser__/session.test.tsx`:
   window where it was, and going back to 1440 shows the column, the line read kept again
   ([R19](rulings.md#r19-the-phones-line-is-astryxs-collapsible-and-the-page-keeps-the-line-read)).
 
+After the task's review, unit tests check that the line comes before the transcript and opens a
+region "Progress", that a reload keeps it open and a new visit starts folded, that it folds back
+once wide, that without progress it reads the step alone, and that a chat has none; two browser
+tests check a paragraph read across the line, and a place moved by opening the line, across 768 px
+([R20](rulings.md#r20-the-place-read-follows-what-moves-and-the-line-folds-back)).
+
 A second unit test, "a plan in review", checks that the line reads "Review the plan", as the
 column's heading does
 ([R18](rulings.md#r18-the-columns-step-reads-as-a-gate-and-its-reads-fail-alone)).
@@ -1125,10 +1131,14 @@ column's heading does
   header, its trigger a button with `aria-expanded`. It holds the ring and
   "`<Step> · <position>/<total> · <title>`", or the step alone without progress, the step read as
   the column's heading reads it (`stepTitle`). When open, `SessionAside` shows below it, above the
-  transcript, drawn only while open.
+  transcript, drawn only while open, in a region labelled "Progress". Its open state is drawn by an
+  inner `Line`, which the wide layout removes: the line comes back folded
+  ([R20](rulings.md#r20-the-place-read-follows-what-moves-and-the-line-folds-back)).
 - **Keeping it.** The open state is kept in the history entry's `progress`, so Back restores it.
 - **Keeping the place.** `useKeepPlace` keeps the transcript's line read a third down the window
-  where it was as the width class changes, or the end in view
+  where it was as the width class changes, or the end in view. It reads the place on scroll and as
+  the page or the transcript resizes, and a block holding text across the line is the place
+  ([R20](rulings.md#r20-the-place-read-follows-what-moves-and-the-line-folds-back))
   ([R19](rulings.md#r19-the-phones-line-is-astryxs-collapsible-and-the-page-keeps-the-line-read)).
 
 - [x] **Step 4: Run all tests**
@@ -1153,7 +1163,8 @@ git commit -m "feat(session-view): the session's progress line on the phone"
 **Files:**
 
 - Create: `packages/web/src/following.ts` (`useOpenAtEnd`, `useFollowEnd`, moved from
-  `Transcript.tsx` in Step 1)
+  `Transcript.tsx` in Step 1, with `AT_END`; `useKeepPlace.ts` then imports `AT_END` from it, and
+  its own `atEnd` copy becomes following's one `atEnd`)
 - Create: `packages/web/src/ToolGroups.tsx` (the tool groups, moved from `Transcript.tsx` in Step 1)
 - Modify: `packages/web/src/Transcript.tsx` (the moved parts and its `max-lines` marker go)
 - Modify: `packages/web/src/SessionPage.tsx` (the button above the composer)

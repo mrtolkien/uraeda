@@ -288,3 +288,28 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `ProgressLine.tsx`, `useKeepPlace.ts`, and the width test of
   `__browser__/session.test.tsx`.
 - **Where**: Task 8.
+
+## R20: The place read follows what moves, and the line folds back
+
+- **Decision**: `useKeepPlace` reads the place again on a `ResizeObserver` of the page and the
+  transcript, through the same frame as a scroll, and takes as the place a block holding text of its
+  own across the reading line, though its children, like inline code, are above it. The line's open
+  state lives in an inner `Line`, which the wide layout removes; leaving because the window turned
+  wide writes `progress: false` to the entry, so the line comes back folded. The open content is a
+  region labelled "Progress", and the trigger holds the row's inset, so all of the bordered row but
+  the chevron's 8 px margin toggles it. Back's scroll restore is not held until the open line's
+  reads resolve: the session's page restores once its own data is drawn, and the line's reads are
+  those the session already made, so US3.3 waits for the plan's link with `findByRole`.
+- **Rationale**: the task's review found the place stale after the line opened without a scroll: the
+  next width put back an element the human no longer read, 817 px away in the browser test, and a
+  paragraph with inline code above the line was passed over for the next block, 1,168 px away. The
+  spec says the column becomes the collapsed line. A message's padding under its text, with no text
+  of its own, is still passed, as R19 found. Holding the restore would need the sections' suspense
+  above `useRestoreScroll`, a change to every page's restore for a read already cached.
+- **Alternatives considered**: re-reading on the line's toggle only, which misses a tool group
+  opened in the transcript; resetting the state in an effect, which the React compiler's lint
+  refuses; a theme override of every `Collapsible`'s trigger padding, which would move the spec's
+  folds too.
+- **If wrong**: `firstFrom` and the observer in `useKeepPlace.ts`, `useLineOpen` in
+  `ProgressLine.tsx`, and US3.3's wait.
+- **Where**: Task 8, after its review.

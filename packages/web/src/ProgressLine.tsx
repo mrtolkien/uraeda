@@ -11,9 +11,9 @@ import {
   spacingVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFeature } from "./data.ts";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { useWidthClass, widthClassNow } from "./layout/useWidthClass.ts";
 import { ProgressRing } from "./ProgressRing.tsx";
 import { currentEntry, updateEntry } from "./routes.tsx";
 import { SessionAside, stepTitle } from "./SessionAside.tsx";
@@ -24,23 +24,38 @@ const styles = stylex.create({
     borderRadius: radiusVars["--radius-container"],
     borderStyle: "solid",
     borderWidth: borderVars["--border-width"],
-    paddingInline: spacingVars["--spacing-3"],
+    // Room for Astryx's chevron, which ends the trigger: the rest of the row is the trigger.
+    paddingInlineEnd: spacingVars["--spacing-2"],
+  },
+  open: {
+    paddingBlockEnd: spacingVars["--spacing-3"],
+    paddingInlineStart: spacingVars["--spacing-3"],
   },
   trigger: {
-    // A control's height for a finger.
+    // A control's height for a finger, its inset inside the trigger, so a tap on it toggles.
     minHeight: sizeVars["--size-element-md"],
+    paddingInlineStart: spacingVars["--spacing-3"],
   },
 });
 
 /**
  * Whether the progress line is open, kept in the history entry, so Back and a reload find it as it
- * was left.
+ * was left. Once the window turns wide, the column takes its place: the line comes back folded.
  */
 function useLineOpen(): [boolean, (open: boolean) => void] {
   const [open, setOpen] = useState(() => currentEntry().progress === true);
   // The entry this page was opened on: still shown while the next page loads, it must not write
   // into the next one's entry.
   const [id] = useState(() => currentEntry().id);
+  useEffect(
+    () => () => {
+      // Gone because the window turned wide, not because the page was left.
+      if (widthClassNow() === "wide" && currentEntry().id === id) {
+        updateEntry({ progress: false });
+      }
+    },
+    [id],
+  );
   return [
     open,
     (next) => {
@@ -59,10 +74,25 @@ function useLineOpen(): [boolean, (open: boolean) => void] {
 export function ProgressLine({ folder, session }: { folder: string; session?: string }) {
   const narrow = useWidthClass() === "narrow";
   const feature = useFeature(folder);
-  const [open, setOpen] = useLineOpen();
   if (!narrow || !feature || feature.missing) {
     return null;
   }
+  return <Line feature={feature} folder={folder} {...(session === undefined ? {} : { session })} />;
+}
+
+/** The line itself, drawn while the window is narrow: its open state goes when it does. */
+function Line({
+  feature,
+  folder,
+  session,
+}: {
+  feature: Parameters<typeof stepTitle>[0] & {
+    step: { progress?: { position: number; title: string; total: number } | null };
+  };
+  folder: string;
+  session?: string;
+}) {
+  const [open, setOpen] = useLineOpen();
   const step = stepTitle(feature);
   const progress = feature.step.progress ?? null;
   return (
@@ -81,7 +111,11 @@ export function ProgressLine({ folder, session }: { folder: string; session?: st
       }
       xstyle={styles.line}
     >
-      {open && <SessionAside folder={folder} {...(session === undefined ? {} : { session })} />}
+      {open && (
+        <div aria-label="Progress" role="region" {...stylex.props(styles.open)}>
+          <SessionAside folder={folder} {...(session === undefined ? {} : { session })} />
+        </div>
+      )}
     </Collapsible>
   );
 }

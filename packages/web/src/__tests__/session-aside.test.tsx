@@ -456,3 +456,94 @@ test("a plan in review: the progress line reads what the gate asks", async () =>
 
   expect(await screen.findByRole("button", { name: "Review the plan" })).toBeTruthy();
 });
+
+/** The phone's progress line of `CLI` at Task 7 of 11. */
+const LINE = "Implementation · 7/11 · Session column";
+
+test("US3.1: the progress line comes under the header, before the transcript", async () => {
+  atWidth(402);
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  const fake = await fakeAgent();
+  const session = await fake.sessions.featureSession(repo, CLI);
+  fake.adapter.script([{ text: "Started Task 7.", type: "text" }]);
+  const { turn } = await fake.sessions.send(repo, session.id, { text: "Go on." });
+  await fake.sessions.settled(turn);
+  await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
+  await screen.findByText("Started Task 7.");
+
+  const line = await screen.findByRole("button", { name: LINE });
+  const heading = screen.getByRole("heading", { level: 1, name: "CLI TUIs" });
+  const log = screen.getByRole("log", { name: "Conversation" });
+  expect(heading.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(line.compareDocumentPosition(log) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+  await click(line);
+  const region = await screen.findByRole("region", { name: "Progress" });
+  expect(region.compareDocumentPosition(log) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(await within(region).findByText("Task 7 of 11")).toBeTruthy();
+});
+
+test("the open line is kept on a reload, and a new visit starts collapsed", async () => {
+  atWidth(402);
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  const fake = await fakeAgent();
+  await renderPage(`/f/${CLI}/session`, repo, { agent: fake });
+  await click(await screen.findByRole("button", { name: LINE }));
+
+  await renderPage(`/f/${CLI}/session`, repo, { agent: fake, reload: true });
+  const kept = await screen.findByRole("button", { name: LINE });
+  expect(kept.getAttribute("aria-expanded")).toBe("true");
+
+  await click(await screen.findByRole("link", { name: "Feature page" }));
+  await click(await screen.findByRole("link", { name: "Open the session" }));
+  const fresh = await screen.findByRole("button", { name: LINE });
+  expect(fresh.getAttribute("aria-expanded")).toBe("false");
+});
+
+test("the open line folds back once the window is wide", async () => {
+  atWidth(402);
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  await renderPage(`/f/${CLI}/session`, repo, { agent: await fakeAgent() });
+  await click(await screen.findByRole("button", { name: LINE }));
+
+  await act(async () => atWidth(1440));
+  await findAside();
+  await act(async () => atWidth(402));
+
+  const line = await screen.findByRole("button", { name: LINE });
+  expect(line.getAttribute("aria-expanded")).toBe("false");
+});
+
+test("no progress: the line reads the step alone", async () => {
+  atWidth(402);
+  await renderPage(`/f/${CLI}/session`, fixtureRepo(), { agent: await fakeAgent() });
+
+  const line = await screen.findByRole("button", { name: "Plan" });
+  expect(line.getAttribute("aria-expanded")).toBe("false");
+});
+
+test("US5.1: a chat on the phone has no progress line", async () => {
+  atWidth(402);
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const chat = await fake.sessions.newChat(repo);
+  fake.adapter.script([{ text: "Done.", type: "text" }]);
+  const { turn } = await fake.sessions.send(repo, chat.id, { text: "List the open draft files" });
+  await fake.sessions.settled(turn);
+
+  await renderPage(`/chats/${chat.id}`, repo, { agent: fake });
+
+  const heading = await screen.findByRole("heading", {
+    level: 1,
+    name: "List the open draft files",
+  });
+  await waitFor(() => expect(screen.queryByRole("button", { name: "Archive" })).toBeTruthy());
+  // Under the header, nothing opens or folds: the shell's menu comes before it.
+  const toggles = [...document.querySelectorAll("[aria-expanded]")].filter(
+    (toggle) => heading.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+  expect(toggles).toEqual([]);
+});
