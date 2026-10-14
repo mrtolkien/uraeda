@@ -450,8 +450,7 @@ Changed, applied when this spec is approved:
 - [UI layout](../decisions/ui-layout.md): a session opens as a page of its own at both widths, with
   a column beside its transcript that the human can fold away. The sidebar's rows stay short:
   features by their slug, progress and status as icons and counts, with full words for screen
-  readers. See its
-  [proposed change](../decisions/ui-layout.md#proposed-change-2026-10-14-session-view).
+  readers. Applied, in its [rules](../decisions/ui-layout.md#rules).
 
 Relied on:
 
