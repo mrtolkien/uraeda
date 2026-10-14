@@ -856,17 +856,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R58: An overlay's history entry is pushed once per opening
 
 - **Decision**: `useBackCloses` pushes its entry when the overlay opens, under the label it has
-  then, and keeps that entry while the label changes. An overlay opened again while the Back of its
-  last closing has not landed waits for it, then pushes a new entry.
+  then, and keeps that entry while the label changes. The Backs that overlays closed by their owner
+  start are counted for the whole page: an overlay opened while one has not landed, the same overlay
+  or another, waits for them, then pushes a new entry, and an open overlay ignores their landing.
 - **Rationale**: a label change while open pushed a second entry, which a Back left behind. The
   browser's Back is asynchronous: an overlay closed by its owner and opened again at once read the
-  old entry as its own, then closed when the late `popstate` arrived. happy-dom goes back at once,
-  so the race is tested in the browser tests.
+  old entry as its own, then closed when the late `popstate` arrived. A form that leads to another,
+  its overlay closed and the next one opened at once, met the same race across two overlays: the
+  count is the page's, not an overlay's. happy-dom goes back at once, so the race is tested in the
+  browser tests.
 - **Alternatives considered**: replacing the entry's state on a label change (a Back then lands on a
   state the next page reads); ignoring the race (a form opened just after another one closed
-  vanished).
+  vanished); a count kept by each overlay (the review's case of two overlays stays broken).
 - **If wrong**: `packages/web/src/layout/useBackCloses.ts`.
-- **Where**: task 9, review.
+- **Where**: task 9, review; task 10, review.
 
 ## R59: An image is at most 80 % of the window's height
 
@@ -938,8 +941,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: a message's images show above its text, side by side while they fit, each at most
   the theme's `--size-message-image`, 120 px, tall, and open full screen with `ImageView`'s
-  lightbox. They have no alt text: their link is named "Image", and a missing one shows "Image
-  missing".
+  lightbox. They have no alt text: their link is named "Image" (R68), and a missing one shows "Image
+  missing". A message not read yet has its images dimmed, as its text.
 - **Rationale**: the mockup shows the images as small previews above the text; 120 px keeps a
   desktop screenshot and a phone screenshot side by side in a bubble beside a feature page, and
   wraps them on the phone. A chat image has no alt text to give: its name is a UUID.
@@ -972,3 +975,81 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `onImages` and the pending save in `packages/web/src/Question.tsx`; `submit` and `NotesField` in
   `packages/web/src/RoundPage.tsx`; `settled` in `packages/web/src/attach/useImageText.ts`.
 - **Where**: task 11, Review focus 11.
+
+## R65: A chat image's box is drawn before it loads
+
+- **Decision**: `ImageView` takes the image's `width` and `height` when they are known, as a chat
+  image's are: its `<img>` carries them, and its box gets their proportions and a height of the
+  smaller of the image's own and the cap, the theme's `--size-message-image` or
+  `--size-image-max-height`, through a dynamic StyleX style. The width still fits the column.
+- **Rationale**: a transcript opens at its end once drawn (`useOpenAtEnd`); a message's images,
+  loaded after, pushed the end out of view. The attributes alone do not size the box: the image's
+  `inline-size: auto` and `block-size: auto`, which keep it in proportion under both caps, override
+  them. An image already loaded in the page is drawn at once, at its size: the browser test serves
+  the chat images a second late, through a test-only middleware, and sends them outside the page.
+- **Alternatives considered**: scrolling to the end again as each image loads (the view jumps, and
+  moves a human who scrolled up); the attributes alone (no box before load); sizes for the
+  documents' images too (a document links images without their size).
+- **If wrong**: `sized` in `packages/web/src/ImageView.tsx`, `Message` in
+  `packages/web/src/Transcript.tsx`.
+- **Where**: task 10, review.
+
+## R66: A batch of chat images is saved in one run
+
+- **Decision**: the images added at once, by a drop, a paste, or the picker, are saved in one
+  `useAttach` run, which reports each result as it comes (`onResult`), so each thumbnail shows once
+  saved; a refusal in the batch stays shown over the images added after it, as in a field. The
+  images removed while being saved are remembered by the module, not by a composer, and deleted once
+  saved.
+- **Rationale**: an upload per file made each "Added" replace the refusal before it, at once: an SVG
+  dropped with a PNG vanished. The page draws a new composer when the first message creates the
+  session: an upload that ends after it read the old composer's images, and missed the removal.
+- **Alternatives considered**: the last refusal kept until the queue drains (a second rule beside
+  `useAttach`'s); the removals kept by the page's draft (a second state passed to the composer).
+- **If wrong**: `useChatImages` in `packages/web/src/Composer.tsx`, `attach` in
+  `packages/web/src/attach/useAttach.ts`.
+- **Where**: task 10, review.
+
+## R67: The workflow's message leaves the draft's images for the next one
+
+- **Decision**: while the composer holds the workflow's message, "Start the agent" sends its text
+  alone, and the draft's images stay in the composer, under "The workflow's message takes no images:
+  they stay here for your next message.". Images still being saved do not hold it back.
+- **Rationale**: the server refuses images with the workflow's message (R42), so a hand-over opened
+  over a draft with images could never start. The images were picked for a question of the human's,
+  which can follow the step.
+- **Alternatives considered**: Start disabled until the images are removed (the human throws away
+  what they picked); the images deleted with a notice (lost work).
+- **If wrong**: `withImages` and `submit` in `packages/web/src/Composer.tsx`.
+- **Where**: task 10, review.
+
+## R68: Images are told apart by their place
+
+- **Decision**: a message's images, when several, are named "Image 1 of 2", "Image 2 of 2"; one
+  alone stays "Image". A thumbnail, when several, takes "image 1 of 3" as its alt text, so its
+  remove button reads "Remove image.png — image 1 of 3". Removing one moves the focus to the next
+  thumbnail's remove button, or the last, and to the message's text when none is left.
+- **Rationale**: a chat image has no alt text, and the browsers name every pasted screenshot
+  `image.png`: screen readers heard the same name for each. The focus stayed on a removed button,
+  sending it back to the page's start.
+- **Alternatives considered**: the file names alone (alike for pastes); the upload's ID (a UUID).
+- **If wrong**: `Message` in `packages/web/src/Transcript.tsx`, the drawer and `focusAt` in
+  `packages/web/src/Composer.tsx`.
+- **Where**: task 10, review.
+
+## R69: The composer's images follow what the agent can do
+
+- **Decision**: an image added while the agent is not available is refused, under the composer, with
+  "<agent> is not available on this machine.", before the other refusals. An agent not read yet
+  refuses nothing. A taken-back message's images that bring the draft past 10 keep the first 10, the
+  taken-back ones first, delete the draft's others, and show "A message takes at most 10 images.".
+  During a turn, Send shows, disabled, while an image is saved, as it does when idle.
+- **Rationale**: the page's drop reached the composer of an agent that could not take the message.
+  An unknown agent is a moment, not a refusal; the server checks the message at Send. The server
+  refuses a message past 10 images (R42), and a Send that vanished looked like the turn had taken
+  the message.
+- **Alternatives considered**: a drop queued until the agent is read (the agent is read with the
+  page: no case was found); refusing the whole taken-back message (its images and text lost).
+- **If wrong**: `refusedWith`, the `over` effect, and `sendActions` in
+  `packages/web/src/Composer.tsx`.
+- **Where**: task 10, review.

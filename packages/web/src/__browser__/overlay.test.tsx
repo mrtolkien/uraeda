@@ -69,3 +69,37 @@ test("an overlay opened again while its closing goes back stays open, and Back c
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(overlayEntry()).toBeUndefined();
 });
+
+/** Two overlays: the first, closed by its page, opens the second at once, as one form leads on. */
+function OverlaysInTurn() {
+  const [open, setOpen] = useState<"first" | "second" | undefined>("first");
+  return (
+    <Theme theme={uraedaTheme} mode="light">
+      <Overlay label="First" isOpen={open === "first"} onClose={() => setOpen(undefined)}>
+        <Button
+          label="Done, then the second"
+          onClick={() => {
+            // The second opens before the browser went back over the first's entry.
+            flushSync(() => setOpen(undefined));
+            setOpen("second");
+          }}
+        />
+      </Overlay>
+      <Overlay label="Second" isOpen={open === "second"} onClose={() => setOpen(undefined)}>
+        <p>The next form.</p>
+      </Overlay>
+    </Theme>
+  );
+}
+
+test("an overlay opened while another's closing goes back stays open, and Back closes it", async () => {
+  render(<OverlaysInTurn />);
+  screen.getByRole("button", { name: "Done, then the second" }).click();
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  expect(screen.getByRole("dialog", { name: "Second" })).toBeTruthy();
+  expect(overlayEntry()).toBe("Second");
+  window.history.back();
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect(overlayEntry()).toBeUndefined();
+});

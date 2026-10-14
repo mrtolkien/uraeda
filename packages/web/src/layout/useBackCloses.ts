@@ -6,16 +6,46 @@ export function overlayOf(state: unknown): string | undefined {
 }
 
 /**
+ * The Backs that overlays closed by their owner started, and that have not landed yet: every
+ * overlay opened meanwhile, the same or another, waits for them before it pushes its entry.
+ */
+let pendingBacks = 0;
+/** Whether the `popstate` being handled is the landing of one of those Backs. */
+let landing = false;
+/** The overlays' own `popstate` handlers, called after the count is updated. */
+const handlers = new Set<() => void>();
+
+function onPopState() {
+  landing = pendingBacks > 0;
+  if (landing) {
+    pendingBacks -= 1;
+  }
+  // The overlays open now: one opened by a handler waits for the next `popstate`.
+  for (const handler of Array.from(handlers)) {
+    handler();
+  }
+  landing = false;
+  listen();
+}
+
+/** Listens to `popstate` while an overlay is open or a Back is under way, and only then. */
+function listen() {
+  const needed = handlers.size > 0 || pendingBacks > 0;
+  window.removeEventListener("popstate", onPopState);
+  if (needed) {
+    window.addEventListener("popstate", onPopState);
+  }
+}
+
+/**
  * A history entry for an open overlay, named by its label, so Back closes it. Returns what closes
  * it from the overlay itself: going back over its entry, which calls `onClose`. The entry is
- * pushed once per opening, whatever the label becomes while open; an overlay opened again while
- * its closing still goes back over its entry waits for that, then pushes a new one.
+ * pushed once per opening, whatever the label becomes while open; an overlay opened while the
+ * closing of any overlay still goes back over its entry waits for that, then pushes a new one.
  */
 export function useBackCloses(label: string, isOpen: boolean, onClose: () => void): () => void {
   // The label of the entry this overlay pushed, while it is in the history.
   const entry = useRef<string>(undefined);
-  // Whether a Back this overlay started has not landed yet.
-  const leaving = useRef(false);
   const labelRef = useRef(label);
   const onCloseRef = useRef(onClose);
   useEffect(() => {
@@ -29,17 +59,11 @@ export function useBackCloses(label: string, isOpen: boolean, onClose: () => voi
       const pushed = entry.current;
       entry.current = undefined;
       if (pushed !== undefined && overlayOf(window.history.state) === pushed) {
-        leaving.current = true;
+        pendingBacks += 1;
+        listen();
         window.history.back();
       }
-      if (!leaving.current) {
-        return;
-      }
-      const onLanded = () => {
-        leaving.current = false;
-      };
-      window.addEventListener("popstate", onLanded, { once: true });
-      return () => window.removeEventListener("popstate", onLanded);
+      return;
     }
     const push = () => {
       const name = labelRef.current;
@@ -48,14 +72,21 @@ export function useBackCloses(label: string, isOpen: boolean, onClose: () => voi
       }
       entry.current = name;
     };
-    if (!leaving.current) {
+    let waiting = pendingBacks > 0;
+    if (!waiting) {
       push();
     }
     const onPop = () => {
-      if (leaving.current) {
-        // The Back of its last closing landed: the overlay, open again, takes a new entry.
-        leaving.current = false;
-        push();
+      if (waiting) {
+        // The Backs of the last closings landed: the overlay takes its entry.
+        if (pendingBacks === 0) {
+          waiting = false;
+          push();
+        }
+        return;
+      }
+      if (landing) {
+        // Another overlay's closing, over an entry above this one's.
         return;
       }
       if (overlayOf(window.history.state) !== entry.current) {
@@ -63,8 +94,12 @@ export function useBackCloses(label: string, isOpen: boolean, onClose: () => voi
         onCloseRef.current();
       }
     };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
+    handlers.add(onPop);
+    listen();
+    return () => {
+      handlers.delete(onPop);
+      listen();
+    };
   }, [isOpen]);
 
   // Closing goes back over the overlay's own entry, which closes it.

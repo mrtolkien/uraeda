@@ -58,6 +58,10 @@ const styles = stylex.create({
     flexDirection: "column",
     gap: spacingVars["--spacing-3"],
   },
+  // The images of a message the agent has not read yet, dimmed as its text is.
+  pendingImages: {
+    opacity: 0.6,
+  },
   // A message's images, above its text, side by side while they fit.
   images: {
     display: "flex",
@@ -288,9 +292,24 @@ function Message({
       <ChatMessageBubble variant={pending ? "ghost" : "filled"}>
         {item.opening && <span {...stylex.props(styles.opening)}>{item.opening}</span>}
         {item.images && item.images.length > 0 && (
-          <div {...stylex.props(styles.images, item.text !== "" && styles.imagesAbove)}>
-            {item.images.map((image) => (
-              <ImageView alt="" key={image.id} size="message" src={chatImageSrc(repo, image)} />
+          <div
+            {...stylex.props(
+              styles.images,
+              item.text !== "" && styles.imagesAbove,
+              pending && styles.pendingImages,
+            )}
+          >
+            {item.images.map((image, index, all) => (
+              <ImageView
+                alt=""
+                height={image.height}
+                key={image.id}
+                // Told apart by their place: one alone is "Image".
+                label={all.length > 1 ? `Image ${index + 1} of ${all.length}` : "Image"}
+                size="message"
+                src={chatImageSrc(repo, image)}
+                width={image.width}
+              />
             ))}
           </div>
         )}

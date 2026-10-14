@@ -10,7 +10,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type Dispatch, type SetStateAction, Suspense, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { SessionStatus as Status, Trigger } from "uraeda-server/fate";
-import { Composer, type DraftImage, draftImage } from "./Composer.tsx";
+import { Composer, type DraftImage, draftImage, forgetPreviews } from "./Composer.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { useAgent, useFeature, useSession, useWorkflowMessage } from "./data.ts";
 import { EditableLine } from "./EditableLine.tsx";
@@ -108,6 +108,10 @@ type Draft = {
 function useDraft(): Draft {
   const [text, setText] = useState("");
   const [images, setImages] = useState<ReadonlyArray<DraftImage>>([]);
+  // The previews of images still being saved go with the page.
+  const kept = useRef(images);
+  kept.current = images;
+  useEffect(() => () => forgetPreviews(kept.current), []);
   return { text, setText, images, setImages };
 }
 

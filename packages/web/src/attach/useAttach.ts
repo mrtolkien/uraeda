@@ -92,10 +92,11 @@ export function useAttach(target: { path: string } | { chat: true }, initial?: A
 
   /**
    * Uploads files in order, to the file at `at`, the target's path by default. A draft that became
-   * a folder with the first image takes the next ones at its new path.
+   * a folder with the first image takes the next ones at its new path. `onResult` hears each
+   * result as it comes, as the chat's thumbnails show each image once saved.
    */
   const attach = useCallback(
-    async (files: File[], at = path) => {
+    async (files: File[], at = path, onResult?: (result: AttachResult, index: number) => void) => {
       setBusy(true);
       const results: AttachResult[] = [];
       try {
@@ -103,6 +104,7 @@ export function useAttach(target: { path: string } | { chat: true }, initial?: A
           show(`Adding ${nameOf(file)}…`);
           const result = await upload(file, at);
           results.push(result);
+          onResult?.(result, results.length - 1);
           if (result.ok && "moved" in result.value && result.value.moved) {
             at = result.value.moved;
           }
