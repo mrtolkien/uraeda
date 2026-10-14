@@ -5,7 +5,7 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import type { ReactNode, RefObject } from "react";
-import { overlayOf, useBackCloses } from "./useBackCloses.ts";
+import { useBackCloses } from "./useBackCloses.ts";
 import { useWidthClass } from "./useWidthClass.ts";
 
 /**
@@ -74,20 +74,4 @@ export function Overlay({
   );
 }
 
-/**
- * Runs once the overlay `label` is closed, its history entry gone: a page opened, or another
- * overlay, while its entry is still there would be undone by the Back that closes it.
- */
-export function afterOverlayCloses(label: string, run: () => void) {
-  if (overlayOf(window.history.state) !== label) {
-    run();
-    return;
-  }
-  const onPop = () => {
-    if (overlayOf(window.history.state) !== label) {
-      window.removeEventListener("popstate", onPop);
-      run();
-    }
-  };
-  window.addEventListener("popstate", onPop);
-}
+export { afterOverlayCloses } from "./useBackCloses.ts";

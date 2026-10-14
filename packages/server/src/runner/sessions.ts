@@ -6,7 +6,7 @@ import type { TurnActivity, TurnKind } from "./events.ts";
 import { LiveSessions } from "./live-sessions.ts";
 import { chatOpening, chatTitle, retryMessage } from "./message.ts";
 import { Processes } from "./processes.ts";
-import { checkImages, checkSend, type SendInput } from "./send-input.ts";
+import { checkSend, messageItem, type SendInput } from "./send-input.ts";
 import {
   type Live,
   type Message,
@@ -200,14 +200,6 @@ export class Sessions {
     return this.#context.live.serial(live, () => this.#send(live, message));
   }
 
-  /**
-   * Refuses a message's images before any session work: more than 10, to an agent that does not
-   * declare images, or with the workflow's message.
-   */
-  checkImages(images: Array<unknown>, workflow: boolean): void {
-    checkImages(images, workflow, this.adapter.capabilities);
-  }
-
   async #send(
     live: Live,
     { held, paths, text, workflow }: ReturnType<typeof checkSend>,
@@ -242,15 +234,7 @@ export class Sessions {
     const origin = workflow ? "workflow" : "human";
     // During a turn, a human message joins it, when the agent can steer and the turn is not ending.
     if (live.turn && !live.turn.stop && !workflow && adapter.capabilities.steer) {
-      const item: Message = {
-        at: now(),
-        id,
-        kind: "message",
-        origin,
-        state: "pending",
-        text,
-        ...held,
-      };
+      const item: Message = { ...messageItem(id, origin, text), ...held };
       const seq = cache.appendItem(live.turn.id, item);
       live.messages.set(id, { item, seq, turn: live.turn.id, written: true });
       changed(live, live.turn.id);
@@ -268,13 +252,8 @@ export class Sessions {
           })
         : undefined;
     const item: Message = {
-      id,
-      kind: "message",
-      origin,
-      text,
+      ...messageItem(id, origin, text),
       ...(opening === undefined ? {} : { opening }),
-      at: now(),
-      state: "pending",
       ...held,
     };
     const message: Outgoing = {

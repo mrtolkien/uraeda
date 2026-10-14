@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useRef, useSyncExternalStore } from "react";
+import { type RefObject, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 
 /** A field that takes the files dropped on its page. */
 export type DropField = {
@@ -43,6 +43,50 @@ function update(next: { current: DropField } | undefined) {
 
 const carriesFiles = (event: DragEvent) => event.dataTransfer?.types.includes("Files") ?? false;
 
+/** The window's drag and drop listeners, which move the drop's target and hand it the files. */
+const onEnter = (event: DragEvent) => {
+  if (carriesFiles(event)) {
+    event.preventDefault();
+    depth += 1;
+    update(pick());
+  }
+};
+const onOver = (event: DragEvent) => {
+  if (carriesFiles(event)) {
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = target ? "copy" : "none";
+    }
+  }
+};
+const onLeave = (event: DragEvent) => {
+  if (carriesFiles(event)) {
+    depth = Math.max(0, depth - 1);
+    if (depth === 0) {
+      update(undefined);
+    }
+  }
+};
+const onEnd = () => {
+  depth = 0;
+  update(undefined);
+};
+const onDrop = (event: DragEvent) => {
+  if (!carriesFiles(event)) {
+    return;
+  }
+  // A field that took the drop itself, like the composer's input, cancelled it already.
+  const handled = event.defaultPrevented;
+  event.preventDefault();
+  const field = target ?? pick();
+  depth = 0;
+  update(undefined);
+  const files = [...(event.dataTransfer?.files ?? [])];
+  if (!handled && field && files.length > 0) {
+    field.current.onFiles(files);
+  }
+};
+
 /**
  * Listens on the window for files dragged over the page and dropped, until the returned function
  * stops it. The browser's default of a file drop, opening the file in place of the app, is
@@ -50,48 +94,6 @@ const carriesFiles = (event: DragEvent) => event.dataTransfer?.types.includes("F
  * a drop target, an Astryx gap the plan lists.
  */
 function listen() {
-  const onEnter = (event: DragEvent) => {
-    if (carriesFiles(event)) {
-      event.preventDefault();
-      depth += 1;
-      update(pick());
-    }
-  };
-  const onOver = (event: DragEvent) => {
-    if (carriesFiles(event)) {
-      event.preventDefault();
-      if (event.dataTransfer) {
-        event.dataTransfer.dropEffect = target ? "copy" : "none";
-      }
-    }
-  };
-  const onLeave = (event: DragEvent) => {
-    if (carriesFiles(event)) {
-      depth = Math.max(0, depth - 1);
-      if (depth === 0) {
-        update(undefined);
-      }
-    }
-  };
-  const onEnd = () => {
-    depth = 0;
-    update(undefined);
-  };
-  const onDrop = (event: DragEvent) => {
-    if (!carriesFiles(event)) {
-      return;
-    }
-    // A field that took the drop itself, like the composer's input, cancelled it already.
-    const handled = event.defaultPrevented;
-    event.preventDefault();
-    const field = target ?? pick();
-    depth = 0;
-    update(undefined);
-    const files = [...(event.dataTransfer?.files ?? [])];
-    if (!handled && field && files.length > 0) {
-      field.current.onFiles(files);
-    }
-  };
   const events = [
     ["dragenter", onEnter],
     ["dragover", onOver],
@@ -147,7 +149,9 @@ function subscribe(listener: () => void) {
  */
 export function useImageDrop(field: DropField): { hint?: string; isTarget: boolean } {
   const box = useRef(field);
-  box.current = field;
+  useLayoutEffect(() => {
+    box.current = field;
+  });
   useEffect(() => {
     fields.add(box);
     return () => {

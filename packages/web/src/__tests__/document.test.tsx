@@ -93,7 +93,9 @@ test("US1.4: a proposal's image shows with its alt text, and opens full screen",
   await renderPage("/f/2026-10-11-web-ui/proposal.md", imagesRepo());
 
   const image = await screen.findByRole("img", { name: "Login" });
-  expect(image.getAttribute("src")).toBe(atRepo("/images/specs/2026-10-11-web-ui/images/login.webp"));
+  expect(image.getAttribute("src")).toBe(
+    atRepo("/images/specs/2026-10-11-web-ui/images/login.webp"),
+  );
   // Its lightbox is a dialog, which a paragraph cannot hold.
   expect(image.closest("p")).toBeNull();
   expect(screen.queryByRole("dialog")).toBeNull();

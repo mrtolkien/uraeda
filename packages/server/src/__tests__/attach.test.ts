@@ -322,12 +322,7 @@ test("refuses a cross-site upload or deletion without an Origin header", async (
   const server = await testServer();
   const headers = { "sec-fetch-site": "cross-site" };
 
-  const posted = await upload(
-    server,
-    { chat: "1", name: "desktop.png" },
-    "desktop.png",
-    headers,
-  );
+  const posted = await upload(server, { chat: "1", name: "desktop.png" }, "desktop.png", headers);
   const deleted = await server.app.request(
     `${base(server)}/chat-images/00000000-0000-0000-0000-000000000000.webp`,
     { headers, method: "DELETE" },

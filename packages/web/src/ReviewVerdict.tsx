@@ -76,9 +76,6 @@ export function ReviewVerdict({
   const proceed = (trigger: "approval" | "changes") => handOver(file.folder, trigger, file.name);
 
   const verdict = async (approve: boolean, next: boolean) => {
-    if (hold?.()) {
-      return;
-    }
     const input = { file: file.name, folder: file.folder, summary: summary || undefined };
     const trigger = approve ? "approval" : "changes";
     continues.current = next ? trigger : undefined;
@@ -157,7 +154,7 @@ export function ReviewVerdict({
         continueLabel="Request changes and start the agent"
         isDisabled={comments === 0 || file.committed != null}
         label="Request changes"
-        onCommit={(next) => verdict(false, next)}
+        onCommit={async (next) => (hold?.() ? undefined : verdict(false, next))}
         onlyLabel="Request changes only"
         tooltip={comments === 0 ? "Add a comment first" : undefined}
         variant="destructive"
@@ -166,7 +163,7 @@ export function ReviewVerdict({
         continueLabel="Approve and start the agent"
         isDisabled={file.committed != null}
         label="Approve"
-        onCommit={(next) => verdict(true, next)}
+        onCommit={async (next) => (hold?.() ? undefined : verdict(true, next))}
         onlyLabel="Approve only"
       />
       {message && !hides?.(message) && (

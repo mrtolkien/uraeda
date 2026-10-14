@@ -2,7 +2,6 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { Heading } from "@astryxdesign/core/Heading";
-import { HStack } from "@astryxdesign/core/HStack";
 import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
 import {
@@ -12,24 +11,20 @@ import {
   typographyVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useFateClient } from "react-fate";
-import { AttachButton } from "./attach/AttachButton.tsx";
-import { AttachStatus } from "./attach/AttachStatus.tsx";
-import { DropHint } from "./attach/DropHint.tsx";
-import { useImageText } from "./attach/useImageText.ts";
 import { Blocks } from "./Blocks.tsx";
 import { CommitActions } from "./CommitActions.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { type Refusal, refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
-import { GrowingTextArea, PendingSaves, Question, statusStyles } from "./Question.tsx";
+import { PendingSaves, Question, statusStyles } from "./Question.tsx";
 import { jumpTo, type NavQuestion, RoundNav } from "./RoundNav.tsx";
+import { NotesField, useRoundNotes } from "./RoundNotes.tsx";
 import { askAbout, handOver, quoted } from "./sessions.ts";
 import { plain } from "./Spans.tsx";
 import { useRoundPosition } from "./useRoundPosition.ts";
-import { useSave } from "./useSave.ts";
 import { FileView } from "./views.ts";
 import { type useFile, useAgent } from "./data.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
@@ -94,44 +89,6 @@ export function HookRefusal({
 }
 
 /**
- * The round's notes as they are written: the page's main field, which takes the images dropped
- * with no field focused, as well as those pasted or picked. `onText` takes the text once they are
- * added, to save at once; `onSettled` takes how to wait for the images under way, as a submit does.
- */
-function NotesField({
-  notes,
-  onChange,
-  onSettled,
-  onText,
-  path,
-}: {
-  notes: string;
-  onChange: (notes: string) => void;
-  onSettled: (settled: () => Promise<void>) => void;
-  onText: (notes: string, added: boolean) => void;
-  path: string;
-}) {
-  const images = useImageText({ label: "the notes", onText, path, priority: 1, text: notes });
-  useEffect(() => {
-    onSettled(images.settled);
-  }, [onSettled, images.settled]);
-  return (
-    <VStack gap={2}>
-      <DropHint hint={images.hint} isLabelled>
-        <GrowingTextArea label="Notes" onChange={onChange} value={notes} {...images.fieldProps} />
-      </DropHint>
-      <AttachStatus status={images.status} />
-      <HStack gap={2}>
-        <AttachButton
-          name="Add image to the notes"
-          onFiles={(files) => void images.addFiles(files)}
-        />
-      </HStack>
-    </VStack>
-  );
-}
-
-/**
  * A round of questions on one page: its context, every question in full with its follow-ups, the
  * points settled without the human, the notes, and Submit.
  */
@@ -142,36 +99,12 @@ export function RoundPage({ file }: { file: File }) {
   const round = file.current.items.clarifications;
   const document = file.current.document;
   const readOnly = file.status !== "awaiting-human";
-  const [notes, setNotes] = useState(round?.notes ?? "");
   const [error, setError] = useState<Refusal>();
   // Whether the last commit asked to start the agent, for its Try again.
   const continues = useRef(false);
   // oxlint-disable-next-line react/refs -- before the code quality decision: a set made once, kept for the page's life
   const pending = useRef(new Set<() => Promise<boolean>>()).current;
-  // The images being added to the notes, which a submit waits for.
-  const notesSettled = useRef<() => Promise<void>>(async () => {});
-  const notesSave = useSave<string>(async (value, previous) => {
-    const result = await fate.mutations.notes.save({
-      input: { folder: file.folder, notes: value, previous },
-      view: FileView,
-    });
-    if (result.error) {
-      return { message: refusal(result.error).message, ok: false };
-    }
-    return { ok: true, saved: result.result?.current.items.clarifications?.notes ?? value };
-  }, round?.notes ?? "");
-  const { idle, settle } = notesSave;
-  const shownNotes = useRef(notes);
-  // oxlint-disable-next-line react/refs -- before the code quality decision: the shown notes, kept for the effects to read
-  shownNotes.current = notes;
-  // Notes changed elsewhere replace these when nothing of them waits to be saved.
-  useEffect(() => {
-    const read = round?.notes ?? "";
-    if (idle() && read !== shownNotes.current) {
-      setNotes(read);
-    }
-    settle(read);
-  }, [round?.notes, idle, settle]);
+  const notes = useRoundNotes(file);
   const wide = useWidthClass() === "wide";
   const end = useRef<HTMLDivElement>(null);
   // Submit's buttons, which the bar's Submit focuses.
@@ -216,10 +149,7 @@ export function RoundPage({ file }: { file: File }) {
     setError(undefined);
     continues.current = next;
     // What is still being typed is saved first, and nothing is submitted unless it all is.
-    const saved = await Promise.all([
-      ...[...pending].map((flush) => flush()),
-      notesSettled.current().then(() => notesSave.flush()),
-    ]);
+    const saved = await Promise.all([...[...pending].map((flush) => flush()), notes.flush()]);
     if (!saved.every(Boolean)) {
       setError({
         kind: "refused",
@@ -285,31 +215,14 @@ export function RoundPage({ file }: { file: File }) {
         </>
       )}
       {readOnly ? (
-        notes && (
+        notes.text && (
           <Paragraph>
-            <strong>Notes:</strong> {notes}
+            <strong>Notes:</strong> {notes.text}
           </Paragraph>
         )
       ) : (
         <VStack gap={3} ref={end}>
-          <NotesField
-            notes={notes}
-            onChange={(value) => {
-              setNotes(value);
-              notesSave.schedule(value);
-            }}
-            onSettled={(wait) => {
-              notesSettled.current = wait;
-            }}
-            onText={(value, added) => {
-              setNotes(value);
-              notesSave.schedule(value, added);
-            }}
-            path={file.path}
-          />
-          {notesSave.state.kind === "error" && (
-            <span {...stylex.props(statusStyles.error)}>Not saved: {notesSave.state.message}</span>
-          )}
+          <NotesField notes={notes} path={file.path} />
           {blank.length > 0 && (
             <Banner
               status="error"

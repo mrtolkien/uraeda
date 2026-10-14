@@ -603,7 +603,7 @@ test("taps in a block's image, opened full screen, do not select the block", asy
 
 /** The address a request goes to. */
 const urlOf = (input: RequestInfo | URL) =>
-  input instanceof Request ? input.url : input.toString();
+  typeof input === "object" && "url" in input ? input.url : input.toString();
 
 /** A PNG, as the picker gives it. */
 const png = (name: string) =>
