@@ -84,6 +84,10 @@ fn the_example_has_no_problems() {
 
 /// One row per rule: how to break the example, and the problem expected.
 #[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "over the limit before the code quality decision: split the rows by file checked"
+)]
 fn each_rule() {
     let clarifications = format!("{FEATURE}/clarifications-01.md");
     let spec = format!("{FEATURE}/spec.md");

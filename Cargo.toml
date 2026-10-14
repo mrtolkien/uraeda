@@ -40,6 +40,8 @@ uraeda-lsp = { path = "crates/lsp" }
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
+allow_attributes_without_reason = "warn"
+too_many_lines = "warn"
 
 [profile.release]
 codegen-units = 1

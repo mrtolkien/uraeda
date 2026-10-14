@@ -1,0 +1,6 @@
+# The limits of the code quality decision, specs/decisions/code-quality.md.
+too-many-lines-threshold = 100
+too-many-arguments-threshold = 7
+# 4 levels inside a function body: clippy also counts the function's own block, and an `impl`'s,
+# so a method is held to 3 levels (rulings R1 and R5 of 2026-10-14-code-quality-in-the-skill).
+excessive-nesting-threshold = 5

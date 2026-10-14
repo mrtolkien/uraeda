@@ -66,3 +66,39 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the LSP layer has no test of its own for the new default. It passes the core's
   `tier_choices` through unchanged, so a row can be added to its test in a few lines.
 - **Where**: task 1, `crates/lsp/tests/reads.rs` and `editors/nvim/tests/test_verdict.lua`.
+
+## R5: The nesting threshold is 5, and holds methods to 3 levels
+
+- **Decision**: `clippy.toml` sets `excessive-nesting-threshold = 5`.
+  - Calibrated as R1 says, on scratch functions in `crates/core/src/lib.rs`: at 5, a free function
+    with five nested blocks (`if` in `for` in `match` in `if` in `loop`) fails and one with four
+    passes; at 6, both pass.
+  - Clippy also counts an `impl` block, so at 5 a method with four nested blocks fails; it passes
+    at 6.
+  - No code of the workspace breaks the threshold at 5, so no `excessive_nesting` marker is needed.
+- **Rationale**: the decision says no more than 4 levels. At 5 every function holding five fails,
+  and methods are held one level tighter. At 6 a free function holding five passes, which breaks the
+  decision's rule.
+- **Alternatives considered**: 6, which matches the decision for methods but lets five levels
+  through in free functions.
+- **If wrong**: a method with four nested blocks fails, and is split one level earlier than the
+  decision asks. Raising the threshold to 6 is one line.
+- **Where**: task 2, `clippy.toml`.
+
+## R6: The markers are the functions clippy reports
+
+- **Decision**: the `too_many_lines` markers go on the functions clippy reports: `clean` (112), and
+  the tests `each_rule` (165) and `feature_table` in `crates/core/tests/steps.rs` (109).
+  - `read_feature` and `check_sections` get no marker: clippy counts code lines, without blank lines
+    and comments, and they are under 100 by that count.
+  - The marker break check of step 5 shortens `clean`, which carries a marker, instead of
+    `check_sections`.
+  - The existing `#[allow]` attributes gain a `reason`, which `allow_attributes_without_reason`
+    requires: `dead_code` in the tests' shared `common` modules, and `deprecated` in the LSP.
+- **Rationale**: the plan's list came from raw line counts. A marker on a function clippy does not
+  flag is unfulfilled, and fails `-D warnings`.
+- **Alternatives considered**: marking the plan's list, which fails clippy; or counting raw lines
+  with a custom test, which duplicates a lint the decision names.
+- **If wrong**: a function of over 100 raw lines with fewer than 100 code lines passes. The decision
+  names clippy's lint as the check, so its count is the measure.
+- **Where**: task 2, `crates/core/src/actions/clean.rs`, `crates/core/tests/{check,steps}.rs`.

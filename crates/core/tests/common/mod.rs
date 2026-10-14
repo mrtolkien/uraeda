@@ -1,4 +1,7 @@
-#![allow(dead_code)]
+#![allow(
+    dead_code,
+    reason = "each test binary uses only part of the shared helpers"
+)]
 
 pub mod repo;
 pub mod texts;

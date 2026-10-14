@@ -376,19 +376,24 @@ git commit -m "feat(code-quality-in-the-skill): plan review is off by default fo
 
 - Create: `clippy.toml`, `crates/cli/tests/structure.rs`
 - Modify: `Cargo.toml` (`[workspace.lints.clippy]`)
-- Modify: `crates/core/src/actions/clean.rs` (`clean`), `crates/core/src/workspace.rs`
-  (`read_feature`), `crates/core/src/check/sections.rs` (`check_sections`),
-  `crates/core/tests/check.rs` (`each_rule`): markers only
+- Modify: `crates/core/src/actions/clean.rs` (`clean`), `crates/core/tests/check.rs` (`each_rule`),
+  `crates/core/tests/steps.rs` (`feature_table`): markers only. Clippy counts code lines only, so
+  `read_feature` and `check_sections` are under 100 for it and get no marker. See
+  [R6](rulings.md#r6-the-markers-are-the-functions-clippy-reports).
+- Modify: the existing `#[allow]` attributes of `crates/lsp/src/{server,symbols}.rs` and of the
+  tests' `common` modules gain a `reason`, for `allow_attributes_without_reason`
 - Test: `crates/cli/tests/structure.rs`
 
 **Interfaces:**
 
 - Produces:
-  - `structure.rs`'s list `LARGE: &[(&str, usize)]`, each listed file with its length today;
+  - `structure.rs`'s list `LARGE: &[(&str, usize)]`, each listed file with its length today:
+    `crates/core/src/` `api.rs` 1004, `files/document.rs` 686, `files/priorities.rs` 685, `git.rs`
+    625, `workspace.rs` 1080, and `crates/lsp/src/commands.rs` 539;
   - the rule later tasks follow: a listed file may shrink, and must leave the list once it is at or
     under 500 lines.
 
-- [ ] **Step 1: Write the failing structural test**
+- [x] **Step 1: Write the failing structural test**
 
 The test walks `crates/*/src/**/*.rs`. Each file's length is its lines before its first
 `#[cfg(test)]` line, or all its lines. It checks three things:
@@ -418,45 +423,47 @@ The breaks these catch:
 - counting the test module makes `picker.rs`-like files fail;
 - dropping the growth check lets a listed file grow.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `cargo test -p uraeda-cli --test structure`
 - Expected: FAIL, `crates/core/src/workspace.rs has 1080 lines, over the 500 …` (lengths measured
   without test modules may be lower).
 
-- [ ] **Step 3: Fill `LARGE` with each reported file and its measured length**
+- [x] **Step 3: Fill `LARGE` with each reported file and its measured length**
 
-- [ ] **Step 4: Turn the clippy limits on**
+- [x] **Step 4: Turn the clippy limits on**
 
 - `clippy.toml`:
   - `too-many-lines-threshold = 100`;
   - `too-many-arguments-threshold = 7`;
-  - the `excessive-nesting-threshold` that flags a fifth level of blocks inside a function body. See
-    [R1](rulings.md#r1-the-nesting-threshold-is-calibrated-on-a-scratch-function).
+  - `excessive-nesting-threshold = 5`, which flags a fifth level of blocks inside a free function's
+    body, and a fourth inside a method's. See
+    [R1](rulings.md#r1-the-nesting-threshold-is-calibrated-on-a-scratch-function) and
+    [R5](rulings.md#r5-the-nesting-threshold-is-5-and-holds-methods-to-3-levels).
 - `Cargo.toml` `[workspace.lints.clippy]`: `too_many_lines = "warn"` and
   `allow_attributes_without_reason = "warn"`, next to `all`.
 - Run `cargo clippy --workspace --all-targets -- -D warnings`. Mark each function it reports with
   `#[expect(clippy::<lint>, reason = "over the limit before the code quality decision: <what to split>")]`,
   with nothing else changed.
 
-- [ ] **Step 5: Check that each limit catches its break**
+- [x] **Step 5: Check that each limit catches its break**
 
 Do each check, see it fail, and revert it before the next:
 
 - Add a scratch function of 101 lines to `crates/core/src/lib.rs`: clippy fails with
   `too_many_lines` (US3.1).
-- Shorten `check_sections` to under 100 lines, as a scratch change that keeps its marker: clippy
-  fails with "this lint expectation is unfulfilled" (US3.4).
+- Shorten `clean` to under 100 lines, as a scratch change that keeps its marker: clippy fails with
+  "this lint expectation is unfulfilled" (US3.4).
 - Add a line to `crates/core/src/api.rs`: `structure` fails with "grew from …".
 
 Write what each run printed in the task's commit body.
 
-- [ ] **Step 6: Run all checks**
+- [x] **Step 6: Run all checks**
 
 - Run: `cargo clippy --workspace --all-targets -- -D warnings && cargo test`
 - Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add clippy.toml Cargo.toml crates
