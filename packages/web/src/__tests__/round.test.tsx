@@ -188,6 +188,25 @@ test("the end of the page lists the questions left, and Submit waits for them", 
   );
 });
 
+/** Second review: a comment typed in a blank question answers it for Submit, which saves it. */
+test("a question left blank on disk with its comment typed is not left, and Submit saves it", async () => {
+  const repo = answered({ Q1: "A", Q2: "A" });
+  await renderPage(PAGE, repo);
+  expect(await screen.findByText("1 question left:", { exact: false })).toBeTruthy();
+  // A comment of spaces answers nothing.
+  await type(comment("Q3"), "   ");
+  expect(screen.getByText("1 question left:", { exact: false })).toBeTruthy();
+
+  await type(comment("Q3"), "keep it simple");
+
+  expect(screen.queryByText("1 question left:", { exact: false })).toBeNull();
+  const submit = screen.getByRole("button", { name: "Submit answers" });
+  expect(submit.hasAttribute("disabled")).toBe(false);
+  await tap(submit);
+  await waitFor(() => expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(SUBMITTED));
+  expect(git(repo, "show", `${FOLDER}:${ROUND}`)).toContain("**Answer:** keep it simple");
+});
+
 /** US2.9 */
 test("submitting commits the round and shows its record", async () => {
   const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
