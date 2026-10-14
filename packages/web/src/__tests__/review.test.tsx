@@ -821,6 +821,38 @@ test.each([
   expect(lastCommit(r)).not.toBe("spec(recurring-tasks): approve");
 });
 
+/** A `beforeunload` event sent to the window, as a reload sends: cancelled or not. */
+function unloadCancelled() {
+  const event = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(event);
+  return event.defaultPrevented;
+}
+
+/** Second review, R26: a comment kept in the closed sheet is not on the page; leaving asks nothing. */
+test("on the phone, a new comment left in its closed sheet does not make leaving ask", async () => {
+  atWidth(402);
+  await renderPage(PAGE, repo());
+  await click(await scenario(FIRST));
+  const sheet = await screen.findByRole("dialog", { name: "Comment" });
+  await act(async () => {
+    fireEvent.change(within(sheet).getByLabelText("Comment text"), {
+      target: { value: "Half typed" },
+    });
+  });
+  expect(unloadCancelled()).toBe(true);
+
+  await click(within(sheet).getByRole("button", { name: "Close" }));
+
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Comment" })).toBeNull());
+  expect(unloadCancelled()).toBe(false);
+  // The text is kept for the sheet, which opens with it again.
+  await click(await scenario(FIRST));
+  const again = await screen.findByRole("dialog", { name: "Comment" });
+  expect((within(again).getByLabelText("Comment text") as HTMLTextAreaElement).value).toBe(
+    "Half typed",
+  );
+});
+
 /** A comment cancelled during its upload leaves no form to say the refusal in: the page says it. */
 test("on the phone, a verdict during the upload of a cancelled comment is refused on the page", async () => {
   atWidth(402);

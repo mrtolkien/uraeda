@@ -26,12 +26,18 @@ import {
  *   typed, and whether `saved` changed since it was.
  * - `entry`: the unsaved text now, and `unsavedNow()` as the store holds it when called, for code
  *   that runs after waiting, like a submit.
+ *
+ * `drawn: false` is for a hook that reads a field another component draws, which says itself
+ * whether it is drawn: its unsaved text is the page's only while that field shows.
  */
 export function useTextField(
   field: string,
   saved: string,
-  extra?: Unsaved["extra"],
-  subject?: string,
+  {
+    drawn = true,
+    extra,
+    subject,
+  }: { drawn?: boolean; extra?: Unsaved["extra"]; subject?: string } = {},
 ) {
   const key = unsavedKey(useRepositoryPath(), field);
   const entry = useUnsaved(key);
@@ -62,7 +68,7 @@ export function useTextField(
 
   // While drawn, the field's unsaved text is the page's: leaving it asks first.
   const [self] = useState(() => ({}));
-  useEffect(() => drawField(self, key, saved), [self, key, saved]);
+  useEffect(() => (drawn ? drawField(self, key, saved) : undefined), [drawn, self, key, saved]);
 
   // Text that became the saved text, as saved elsewhere, is unsaved no more.
   useEffect(() => {
