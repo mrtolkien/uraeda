@@ -254,3 +254,37 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the parts move back into one file without a change to what they do.
 - **Where**: task 7, `packages/web/src/{ReviewPage,ReviewHeadings,YourReview,Selection}.tsx`,
   `useReviewActions.ts`.
+
+## R16: A fold's toggle takes the place of its title
+
+- **Decision**: a fold's first block, the scenarios' "Acceptance scenarios:" intro or the
+  `## Details` heading, is not drawn: the toggle stands in its place, and its anchor, like
+  `#details`, moves to the fold. A pending comment on that line shows first inside the fold, which
+  it opens.
+- **Rationale**: the screenshots showed "Details" twice, the toggle above a heading of the same
+  name, and "Scenarios (4)" above "Acceptance scenarios:". [The mockup](mockups/spec-folds.html)
+  shows the toggle alone, the scenarios and Data straight under it.
+- **Alternatives considered**: drawing every block of the fold under its toggle, as the plan read:
+  each label twice. Leaving the title out of the core's fold: its anchor and its comments would have
+  no place.
+- **If wrong**: the title line can no longer be tapped for a new comment. Drawing it again is one
+  line in `FoldNode`, in `Blocks.tsx`.
+- **Where**: task 7, `packages/web/src/Blocks.tsx`.
+
+## R17: A fold opened by a comment closes at a tap
+
+- **Decision**: `useSpecFolds`, beside `useOpenKeys`, gives both pages their folds. A review adds
+  the folds holding a pending comment's block or the selection, without writing them to the history
+  entry; a tap that closes one of them keeps it closed until the human opens it again.
+  - happy-dom applies no Astryx stylesheet, so its tests read a folded text as one inside the region
+    a closed toggle's `aria-controls` names. The browser tests check what is drawn.
+  - A link's target scrolls 16 px below the top, or below the phone's top bar, where a heading would
+    otherwise sit under it.
+- **Rationale**: review focus 1 closes a fold that holds the selection, and reopens it. A fold
+  forced open by its contents could never close.
+- **Alternatives considered**: writing the forced folds to the entry, which the plan ruled out; a
+  union of the open and the forced keys, which keeps such a fold open whatever the human taps.
+- **If wrong**: a fold closed over a pending comment stays closed while the page is shown, the
+  comment still listed under "Your review". A reload opens it again.
+- **Where**: task 7, `packages/web/src/{useOpenKeys.ts,ReviewPage.tsx,DocumentPage.tsx,Blocks.tsx}`,
+  `packages/web/src/__tests__/review.test.tsx`.

@@ -755,7 +755,8 @@ git commit -m "feat(code-quality-in-the-skill): a spec's scenarios and details a
 - Create: `packages/web/src/useOpenKeys.ts`, and the files the restructuring steps extract
 - Modify: `packages/web/src/Transcript.tsx` (`useOpenGroups` becomes `useOpenKeys`),
   `packages/web/src/Blocks.tsx` (`folds`), `packages/web/src/ReviewPage.tsx`,
-  `packages/web/src/DocumentPage.tsx`
+  `packages/web/src/DocumentPage.tsx`, `packages/web/src/routes.tsx` (`useHash`),
+  `packages/web/scripts/screenshots.ts` (the folds' views)
 - Test: `packages/web/src/__tests__/review.test.tsx`,
   `packages/web/src/__tests__/document.test.tsx`, `packages/web/src/__browser__/review.test.tsx`,
   `packages/web/src/__browser__/layout.test.tsx`
@@ -770,14 +771,22 @@ git commit -m "feat(code-quality-in-the-skill): a spec's scenarios and details a
     `folds?: { list: ReadonlyArray<Fold>; open: ReadonlyArray<string>; onOpenChange: (key: string, isOpen: boolean) => void }`.
     - It draws each fold where its first block would be, as a `Collapsible` whose trigger is the
       label, at the reading size, and skips the fold's blocks in the main walk.
+    - The trigger takes the place of the fold's first block, its title (the scenarios' intro, the
+      Details heading), and its anchor. What follows the title in a review, like a pending comment
+      on it, shows first inside the fold
+      ([R16](rulings.md#r16-a-folds-toggle-takes-the-place-of-its-title)).
     - When the location's hash names the anchor of a block inside a fold, it opens that fold and
-      scrolls to the block.
+      scrolls to the block, below the phone's top bar, once per hash, unless Back restores a saved
+      position.
   - `useOpenKeys(): { open: ReadonlyArray<string>; onOpenChange: (key: string, isOpen: boolean) => void }`,
     the former `useOpenGroups`, in its own file.
   - `specFolds(spec: SpecItems): Array<Fold>`, beside `Blocks`:
     - a fold per story with details, keyed by the story's id and labelled `Scenarios (${n})`, where
       n is its number of scenarios;
     - then `{ key: "details", label: "Details" }` when `spec.details` is not empty.
+  - `useSpecFolds(spec, forced?): Folds | undefined`, in `useOpenKeys.ts`: a spec's folds with
+    `useOpenKeys`, plus the keys `forced` gives, which a human's close shuts until reopened
+    ([R17](rulings.md#r17-a-fold-opened-by-a-comment-closes-at-a-tap)).
 
 - [x] **Step 1: Restructure `Blocks.tsx` and `ReviewPage.tsx` under their limits, alone**
 
@@ -803,7 +812,7 @@ git add packages/web/src
 git commit -m "refactor(code-quality-in-the-skill): blocks' selection and the review page's parts in their own files"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 In `__tests__/review.test.tsx`, on the fixture spec:
 
@@ -812,6 +821,10 @@ In `__tests__/review.test.tsx`, on the fixture spec:
     false;
   - `screen.queryByText(/a weekly task due Monday the 5th/)` is not visible;
   - neither is the Data heading.
+  - happy-dom loads no Astryx stylesheet, so "not visible" is read as inside the region a closed
+    trigger's `aria-controls` names, what a screen reader skips. The browser's "open folds survive
+    Back" checks that the scenarios are not drawn before they are opened
+    ([R17](rulings.md#r17-a-fold-opened-by-a-comment-closes-at-a-tap)).
 - "opening a story's scenarios lets the human comment on one" (US1.2): tap "Scenarios (4)", tap
   scenario 1, and the comment form names `Lines 92–93, under "US2: Complete a repeating task (P1)"`.
 - "a pending comment opens its fold" (US1.3): with a pending comment on lines 92 to 93, US2's fold
@@ -832,37 +845,40 @@ In `__browser__/review.test.tsx`:
 - "open folds survive Back" (US1.4): open US2 and Details, go to the feature page, go back, and both
   are `aria-expanded` true.
 - "a link to the data opens the details" (US1.5, review focus 2): go to the spec's URL with `#data`.
-  Details is open and the Data heading is in view. The same holds with `#details`.
+  Details is open and the Data heading is in view, below the phone's top bar. The same holds with
+  `#details`.
 - The existing scenario tap opens "Scenarios (4)" first.
 
 `layout.test.tsx`'s spec case opens every fold before measuring, so the scenarios' insets are still
 checked. Its control heights check covers the triggers.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/review.test.tsx`
 - Expected: FAIL, `Unable to find role="button" and name "Scenarios (3)"`.
 
-- [ ] **Step 4: Implement the folds, then pass them from both pages**
+- [x] **Step 4: Implement the folds, then pass them from both pages**
 
 - Both pages pass `specFolds(spec)` with `useOpenKeys()` when the file is a spec.
 - `ReviewPage` adds to the open keys every fold holding a placed comment's block or the selection,
-  without writing them to the history entry.
+  without writing them to the history entry, through `useSpecFolds`.
 - A trigger never selects a block: it is a button without `aria-pressed`.
 
-- [ ] **Step 5: Run all tests, then take the screenshots**
+- [x] **Step 5: Run all tests, then take the screenshots**
 
 - Run: `vp check && vp test`
 - Expected: PASS.
 - Take screenshots of the review page and of an approved spec, folds closed and open, at both sizes
-  and in both themes, through `packages/web/scripts/screenshots.ts`. Review them against
+  and in both themes, through `packages/web/scripts/screenshots.ts`: the views `spec-folded`,
+  `spec-scenarios`, `spec-details` (from `#data`), `spec-approved`, `spec-approved-details`, and
+  `review-comment`, which opens US2's scenarios first. Review them against
   [the mockup](mockups/spec-folds.html), fix what differs, and save them in
   `specs/2026-10-14-code-quality-in-the-skill/screenshots/`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add packages/web/src specs/2026-10-14-code-quality-in-the-skill/screenshots
+git add packages/web/src packages/web/scripts specs/2026-10-14-code-quality-in-the-skill/screenshots
 git commit -m "feat(code-quality-in-the-skill): the web UI folds a spec's scenarios and details"
 ```
 

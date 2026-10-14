@@ -1,6 +1,6 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { atRepo, fixtureRepo, git, renderPage } from "./helpers.tsx";
 
@@ -47,4 +47,25 @@ test("opens workflow files in the UI, code as text, and the web in a new tab", a
   expect(screen.getByRole("link", { name: "Vite" }).getAttribute("target")).toBe("_blank");
   fireEvent.click(screen.getByRole("link", { name: "the spec" }));
   expect(window.location.pathname).toBe(atRepo("/f/2026-10-11-web-ui/spec.md"));
+});
+
+/** US1.6 */
+test("an approved spec shows the same folds", async () => {
+  await renderPage("/f/2026-10-13-plan-review/spec.md");
+
+  const details = await screen.findByRole("button", { name: "Details" });
+  const scenarios = screen.getAllByRole("button", { name: /^Scenarios \(\d\)$/ });
+  expect(scenarios.map((trigger) => trigger.textContent)).toEqual([
+    "Scenarios (3)",
+    "Scenarios (4)",
+    "Scenarios (3)",
+    "Scenarios (4)",
+  ]);
+  for (const trigger of [...scenarios, details]) {
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+  }
+
+  fireEvent.click(details);
+  await waitFor(() => expect(details.getAttribute("aria-expanded")).toBe("true"));
+  expect(screen.getByRole("heading", { name: "Data" })).toBeTruthy();
 });
