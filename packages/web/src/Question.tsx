@@ -275,6 +275,7 @@ function Option({
  * alone saves with its button, or with Submit. With `onAsk`, it and its follow-ups offer "Ask the
  * agent".
  */
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the answer's saving in a hook, and the options in a component
 export function Question({
   document,
   folder,

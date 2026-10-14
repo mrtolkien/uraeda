@@ -34,6 +34,11 @@ test.each([
   ["only-test.test.tsx", "no-only-tests"],
   // The code quality decision: a marker left on code that no longer breaks its rule fails.
   ["unused-directive.tsx", "Unused oxlint-disable directive"],
+  // US3.2 and SC-005: the code quality decision's limits, each fixture just over its limit.
+  ["long-function.tsx", "max-lines-per-function"],
+  ["long-file.tsx", "max-lines"],
+  ["many-params.tsx", "max-params"],
+  ["deep-nesting.tsx", "max-depth"],
 ])("lint refuses %s (SC-002)", (file, rule) => {
   expect(lintOutput(`src/__lint__/${file}`)).toContain(rule);
 });
@@ -41,6 +46,11 @@ test.each([
 test("a suppression with its reason passes", () => {
   // Its summary reads "0 errors" on some runs: the exit status says it passed.
   const result = lint("src/__lint__/suppressed.tsx");
+  expect(result.status, `${result.stdout}${result.stderr}`).toBe(0);
+});
+
+test("a marked function over the limit passes", () => {
+  const result = lint("src/__lint__/marked-function.tsx");
   expect(result.status, `${result.stdout}${result.stderr}`).toBe(0);
 });
 

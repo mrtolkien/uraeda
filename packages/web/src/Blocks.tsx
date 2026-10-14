@@ -1,3 +1,4 @@
+// oxlint-disable max-lines -- over the limit before the code quality decision: each kind of block's component in a module of its own
 import { Blockquote } from "@astryxdesign/core/Blockquote";
 import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Divider } from "@astryxdesign/core/Divider";

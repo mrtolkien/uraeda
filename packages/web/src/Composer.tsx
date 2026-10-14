@@ -44,6 +44,7 @@ function useReplyStatus(agentName: string, working: boolean): string {
  * workflow's message, "Start the agent" stays, disabled, so the message never goes as a chat.
  * `blocked` disables it, with why, as when the agent is not on this machine.
  */
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the send and stop actions in a hook
 export function Composer({
   blocked,
   folder,

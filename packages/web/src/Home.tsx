@@ -57,6 +57,7 @@ function Group({ children, title }: { children: ReactNode; title?: string }) {
 }
 
 /** The home screen: what waits on the human, what agents do, the next priorities, what is done. */
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: each section's list in a component
 export function Home() {
   const workspace = useWorkspace();
   // Its data is read before it draws: the position comes back at once.

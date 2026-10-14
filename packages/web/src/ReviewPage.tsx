@@ -87,6 +87,7 @@ export function textOf(tree: Document, block: Block) {
  * holds the verdict. The comment field opens under the last tapped block on wide screens, and in
  * a sheet on the phone, the block kept in view above it.
  */
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the comment's sending in a hook, and its form in a component
 export function ReviewPage({ file }: { file: File }) {
   const fate = useFateClient();
   const agent = useAgent();

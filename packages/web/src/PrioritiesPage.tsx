@@ -1,3 +1,4 @@
+// oxlint-disable max-lines -- over the limit before the code quality decision: the drag and drop and its announcements in a module of their own
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -292,6 +293,7 @@ function announcer(order: () => Order) {
  * While a line is dragged, and until its move is written, the list stays as the drag found it: a
  * live update waits for the drag's end.
  */
+// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the drag and drop in a hook
 export function PrioritiesPage() {
   const fate = useFateClient();
   const live = usePriorities();
