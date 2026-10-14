@@ -252,7 +252,8 @@ pub fn set_answer(text: &str, id: &str, answer: &str) -> Result<String, AnswerEr
 }
 
 /// The text with the marker on line `marker_line` followed by `answer`, in place of the marker's
-/// line and the lines after it, up to the next heading.
+/// line and the lines after it, up to the next heading. An answer starting with a code block
+/// starts on the line after the marker, after a blank line.
 fn replace_after(text: &str, marker_line: usize, marker: &str, answer: &str) -> String {
     let mut lines: Vec<&str> = text.split('\n').collect();
     let start = marker_line - 1;
@@ -272,6 +273,9 @@ fn replace_after(text: &str, marker_line: usize, marker: &str, answer: &str) -> 
         marker.to_string()
     } else if answer.starts_with('\n') {
         format!("{marker}{answer}")
+    } else if answer.lines().next().is_some_and(super::is_fence) {
+        // A fence is one only at the start of its line: a code block starts below the marker.
+        format!("{marker}\n\n{answer}")
     } else {
         format!("{marker} {answer}")
     };
