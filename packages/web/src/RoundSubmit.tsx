@@ -11,10 +11,11 @@ import type { QuestionItem } from "uraeda-binding";
 import { CommitActions } from "./CommitActions.tsx";
 import type { useFile } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
+import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { statusStyles } from "./Question.tsx";
 import { jumpTo } from "./RoundNav.tsx";
-import { NotesField, type useRoundNotes } from "./RoundNotes.tsx";
+import { NOTES_CHANGED, NotesField, type useRoundNotes } from "./RoundNotes.tsx";
 import { handOver } from "./sessions.ts";
 import { FileView } from "./views.ts";
 
@@ -155,12 +156,23 @@ export function RoundEnd({
 }) {
   const { error, retry, submit } = useRoundSubmit(file, notes, pending);
   if (readOnly) {
+    const unsaved = notes.field.entry;
     return (
-      notes.text && (
-        <Paragraph>
-          <strong>Notes:</strong> {notes.text}
-        </Paragraph>
-      )
+      <>
+        {unsaved && (
+          <RestoreNotice
+            answered
+            changed={NOTES_CHANGED}
+            onDiscard={notes.field.discard}
+            restored={{ at: unsaved.at, changed: false }}
+          />
+        )}
+        {notes.read && (
+          <Paragraph>
+            <strong>Notes:</strong> {notes.read}
+          </Paragraph>
+        )}
+      </>
     );
   }
   return (

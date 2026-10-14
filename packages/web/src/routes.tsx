@@ -67,6 +67,18 @@ export function useRepository(): string {
   return repo;
 }
 
+/** The folder of the page tree's repository, set by `App`: what keeps its unsaved text apart. */
+export const RepositoryPathContext = createContext<string | null>(null);
+
+/** The folder of the repository of the page drawn. */
+export function useRepositoryPath(): string {
+  const path = useContext(RepositoryPathContext);
+  if (path === null) {
+    throw new Error("A repository's page is drawn outside its repository");
+  }
+  return path;
+}
+
 /** Builds the paths of the current repository's pages and files, from their path within it. */
 export function useRepoPath(): (path: string) => string {
   const repo = useRepository();

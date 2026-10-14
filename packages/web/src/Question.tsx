@@ -2,7 +2,6 @@ import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
-import { TextArea, type TextAreaProps } from "@astryxdesign/core/TextArea";
 import {
   borderVars,
   colorVars,
@@ -190,24 +189,6 @@ function Status({ state }: { state: SaveState }) {
     default:
       return null;
   }
-}
-
-/**
- * A text area as tall as its text, about 50 characters a row, two rows at least. Its ref and other
- * props go to the `TextArea`, as an image field's paste and outline do.
- */
-export function GrowingTextArea({
-  value,
-  ...props
-}: Omit<TextAreaProps, "rows" | "value" | "onChange"> & {
-  onChange?: (value: string) => void;
-  value: string;
-}) {
-  const rows = Math.max(
-    2,
-    value.split("\n").reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / 50)), 0),
-  );
-  return <TextArea {...props} rows={rows} value={value} />;
 }
 
 function Option({
