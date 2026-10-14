@@ -521,3 +521,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   save; the hint in `SaveStatus`, which a line's status also uses, with keys of its own.
 - **If wrong**: one component, drawn in three places.
 - **Where**: task 13, from the review of its screenshots.
+
+## R32: Code blocks in the notes are kept, and a fence left open is closed before the comments
+
+- **Decision**: the notes are read with their code blocks as written: a fence and its lines are
+  notes, a heading in a code block does not end them, and a bullet in one is not a comment. An
+  answer's or the notes' line in a closed code block ends nothing, so `#` and `**Answer:**` are
+  allowed there; after a fence left open, they are still refused. When the free notes leave a fence
+  open and comments follow, a closing fence, ` ``` ` or `~~~` as opened, is written after them, so
+  the comments are not code.
+- **Rationale**: the notes were read without their code, and every write of a settled comment
+  rewrote the whole section, deleting the code of the free notes and of the comments; a heading in
+  code is read as code by the file's parser and by `replace_after`, so refusing it refused notes as
+  read. A fence left open runs to the end of the file in Markdown: it hid every comment after it,
+  and a line of the answer after it would make the file's next headings code.
+- **Alternatives considered**: refusing free notes with a fence left open when comments follow,
+  which refuses text the human typed; keeping the comments after the open fence, which shows them as
+  code and hides them from the page.
+- **If wrong**: `notes`, `open_fence`, and `join_notes` in
+  [`notes.rs`](/crates/core/src/files/clarifications/notes.rs), and `check_lines` in
+  [`clarifications.rs`](/crates/core/src/files/clarifications.rs).
+- **Where**: the final review.
