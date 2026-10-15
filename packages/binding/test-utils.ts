@@ -11,6 +11,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { expect, onTestFinished, vi } from "vite-plus/test";
 
 const fixtures = join(import.meta.dirname, "../../fixtures");
 
@@ -150,4 +151,36 @@ export function planText(tasks: Array<PlanTask>, status = "auto-approved") {
     }
   }
   return text;
+}
+
+/** A logger a test can spy on, as `process.stderr` or `console`, by the name of its method. */
+type Logger = Record<string, (...args: Array<unknown>) => unknown>;
+
+/**
+ * Keeps the messages a test expects out of its log, and only those: until the test ends, the calls
+ * of `target[method]` whose arguments, joined, match `expected` are swallowed, and every other goes
+ * through to the real logger and fails the test once it ends. Returns the spy, to check the
+ * expected calls.
+ */
+export function expectLogged(
+  target: typeof process.stderr | typeof console,
+  method: "write" | "error",
+  expected: RegExp,
+) {
+  const logger = target as unknown as Logger;
+  const real = logger[method]!.bind(target);
+  const unexpected: Array<string> = [];
+  const spy = vi.spyOn(logger, method).mockImplementation((...args: Array<unknown>) => {
+    const text = args.map(String).join(" ");
+    if (expected.test(text)) {
+      return true;
+    }
+    unexpected.push(text);
+    return real(...args);
+  });
+  onTestFinished(() => {
+    spy.mockRestore();
+    expect(unexpected, `only messages matching ${expected} are logged`).toEqual([]);
+  });
+  return spy;
 }

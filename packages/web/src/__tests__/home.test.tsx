@@ -1,9 +1,9 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, within } from "@testing-library/react";
-import { expect, onTestFinished, test, vi } from "vite-plus/test";
+import { expect, test } from "vite-plus/test";
 import { atRepo, click, git, read, refreshUntil, renderPage } from "./helpers.tsx";
-import { temporaryFolder } from "uraeda-binding/test-utils";
+import { expectLogged, temporaryFolder } from "uraeda-binding/test-utils";
 
 /** The page's own content, without the navigation. */
 async function main() {
@@ -91,8 +91,11 @@ test("says how to set Uraeda up in a repository without specs/", async () => {
 
 test("says when the server cannot be reached, with a way to try again", async () => {
   // React reports the error its boundary caught: expected here, so kept from the log.
-  const logged = vi.spyOn(console, "error").mockImplementation(() => {});
-  onTestFinished(() => logged.mockRestore());
+  const logged = expectLogged(
+    console,
+    "error",
+    /Failed to fetch.*The above error occurred in the <InRepository> component/s,
+  );
   await renderPage("/", undefined, {
     fetch: () => Promise.reject(new TypeError("Failed to fetch")),
   });
