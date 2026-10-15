@@ -242,6 +242,48 @@ fn a_spec_has_its_mockups() {
     assert_eq!(links, [("mockups/b.html".into(), "Big board".into())]);
 }
 
+/// `## Mockups` lists stories as list items, and links written from the repository's root.
+#[test]
+fn the_mockups_section_takes_story_links_and_links_from_the_root() {
+    let text = "# Spec: Sidebar resize\n\n## Mockups\n\n\
+        - [Dragging](/packages/web/src/SidebarHandle.stories.tsx#Dragging): the handle held.\n\
+        - [Old](/specs/2026-10-20-sidebar-resize/mockups/old.html): the first sketch.\n";
+    let doc = document::parse(text, "specs/2026-10-20-sidebar-resize");
+
+    let mockups = items("spec.md", text, &doc).spec.unwrap().mockups;
+
+    let found: Vec<_> = mockups
+        .iter()
+        .map(|m| {
+            (
+                m.path.as_str(),
+                m.label.as_str(),
+                m.story
+                    .as_ref()
+                    .map(|s| (s.path.as_str(), s.export.as_str())),
+            )
+        })
+        .collect();
+    assert_eq!(
+        found,
+        [
+            (
+                "packages/web/src/SidebarHandle.stories.tsx",
+                "Dragging",
+                Some(("packages/web/src/SidebarHandle.stories.tsx", "Dragging"))
+            ),
+            ("mockups/old.html", "Old", None),
+        ]
+    );
+    let items: Vec<u32> = doc
+        .blocks
+        .iter()
+        .filter(|b| b.kind == document::BlockKind::Item)
+        .map(|b| b.id)
+        .collect();
+    assert_eq!(mockups.iter().map(|m| m.block).collect::<Vec<_>>(), items);
+}
+
 #[test]
 fn a_plan_has_its_tasks_and_steps() {
     let (_, items, _) = example("plan.md");

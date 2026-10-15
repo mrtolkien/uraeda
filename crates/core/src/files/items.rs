@@ -7,6 +7,7 @@ use napi_derive::napi;
 use serde::Serialize;
 
 use super::document::{BlockKind, Document, ItemMarker, Span, plain};
+use super::stories::StoryTarget;
 use super::{frontmatter, review};
 use crate::workspace::FileKind;
 
@@ -163,17 +164,20 @@ pub struct SpecItems {
     pub mockups: Vec<MockupLink>,
 }
 
-/// A link of a spec's `## Mockups` section to a file under `mockups/`.
+/// A link of a spec's `## Mockups` section to an HTML file under `mockups/`, or to a story.
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MockupLink {
-    /// `mockups/repeat.html`, from the spec's folder.
+    /// `mockups/repeat.html`, from the spec's folder, or a story's stories file, from the
+    /// repository's top level.
     pub path: String,
     /// The link's text.
     pub label: String,
     /// The selectable block holding the link: its list item, row, or paragraph.
     pub block: u32,
+    /// The story it names, when it is a story link.
+    pub story: Option<StoryTarget>,
 }
 
 /// A risk tier an approval may pick, and whether the plan then waits for the human's review,

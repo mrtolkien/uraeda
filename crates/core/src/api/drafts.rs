@@ -11,6 +11,7 @@ use super::{
 use crate::actions::{draft, place, priorities as edits, text};
 use crate::files::document::{self, hash};
 use crate::files::proposal;
+use crate::files::stories::story_links;
 use crate::target;
 use crate::view::{CommitView, DraftView, PriorityView, ProposalHint, WorkspaceView, title};
 use crate::workspace::{Feature, Workspace};
@@ -58,11 +59,13 @@ fn text_view(
     } else {
         "proposal"
     };
+    let document = document::parse(&text, dir);
     DraftView {
         path: path.to_string(),
         title: title(&text).unwrap_or_else(|| path.to_string()),
         hash: hash(&text),
-        document: document::parse(&text, dir),
+        stories: story_links(&document),
+        document,
         committed,
         entry: None,
         priority_changes: 0,

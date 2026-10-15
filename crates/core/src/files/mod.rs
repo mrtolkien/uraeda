@@ -16,6 +16,7 @@ pub mod retarget;
 pub mod review;
 pub mod rulings;
 pub mod spec;
+pub mod stories;
 
 /// Runs an edit on the text with `\n` line endings, and gives the result the text's own endings.
 pub(crate) fn with_unix_newlines<T>(

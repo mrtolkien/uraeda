@@ -5,6 +5,7 @@ use napi_derive::napi;
 use serde::Serialize;
 
 use super::Builder;
+use crate::files::stories::{StoryTarget, story_target};
 use crate::workspace::resolve;
 
 /// A link of a span: its target as written, and the file it points to in the repository.
@@ -17,6 +18,8 @@ pub struct SpanLink {
     /// The file from the repository's top level; absent for a web link, a URI, or an anchor in
     /// the page.
     pub path: Option<String>,
+    /// The story it names, when it is a story link.
+    pub story: Option<StoryTarget>,
 }
 
 /// An image of a span: its target as written, and the file it shows in the repository.
@@ -127,6 +130,7 @@ impl Builder<'_> {
             target: target.to_string(),
             wiki,
             path,
+            story: (!wiki).then(|| story_target(self.dir, target)).flatten(),
         }
     }
 }

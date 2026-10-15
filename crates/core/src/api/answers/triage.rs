@@ -10,6 +10,7 @@ use crate::api::{Result, on_default, open, reach_default, refused, write_lock};
 use crate::files::document;
 use crate::files::frontmatter;
 use crate::files::items::{Items, round};
+use crate::files::stories::story_links;
 use crate::git::{Git, ObjectId};
 use crate::today;
 use crate::view::{FileView, VersionView};
@@ -24,10 +25,12 @@ fn version(text: String) -> VersionView {
         clarifications: Some(round(&text, &document)),
         ..Items::default()
     };
+    let stories = story_links(&document);
     VersionView {
         text,
         document,
         items,
+        stories,
     }
 }
 
