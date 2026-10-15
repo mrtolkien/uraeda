@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 2
 risk-tier: high
@@ -8,15 +8,20 @@ plan-review: false
 
 # Spec: UI iteration flow
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 30 minutes.
->
+> Changes requested on 2026-10-15: An important thing is phone vs desktop previews:
+
+- On desktop it should be easy to look and test both
+- For mobile I think we'll have to be happy with testing mostly mobile behaviour
+
+Also will we be able to see the full, standard storybook UI? I feel like it could often be helpful
+too!
+
 > - **Your round 02 answer, as I read it.** Every project with a UI gets a Storybook:
 >   - its own, when its stack has one;
 >   - otherwise a small mockups Storybook in React with Astryx, inside the project, whose stories
->     live in each feature's `mockups/` folder.
->   HTML mockups stay only for projects that decline.
+>     live in each feature's `mockups/` folder. HTML mockups stay only for projects that decline.
 > - **Nothing after the pull request**, as your note on "After the code" says. Fixes after the pull
 >   request still go through the session.
 > - **A new decision, preview.** Uraeda's mockups and UI states are stories in `packages/web`, and
