@@ -613,3 +613,33 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `RoundPage.tsx`, `RoundNotes.tsx`, `RoundSubmit.tsx`, `Question.tsx`, `QuestionComment.tsx`,
   `useAnswer.ts`, `attach/useImageText.ts`, `attach/useImageDrop.ts`, `FilePage.tsx`,
   `TriagePage.tsx`, `InboxPage.tsx`, `InboxTriage.tsx`, `data.ts`, `App.tsx`
+
+## R23: Catching up with the bugfixing flow: what the rebase kept from both sides
+
+- **Decision**:
+  - The decisions `main` changed since this branch started,
+    [attachments](../decisions/attachments.md), [CLI](../decisions/cli.md), and
+    [UI checks](../decisions/ui-checks.md), rename bugs to changes, and conflict with nothing here.
+    The CLI's "without a target, the current branch's feature or change" applies to
+    `ura note --about`'s default (ruling R24); the other two do not apply to the inbox, whose images
+    go in drafts' folders.
+  - `workspace.rs`, which `main` split down to its `LARGE` number, 967, got room for the inbox's two
+    fields in a structural commit: `linked_draft` and `match_feature` moved, unchanged, to
+    `workspace/links.rs`. The draft API this branch moved to `api/drafts.rs` takes `main`'s versions
+    of its functions, a change's paths included, while `start_feature` and `draft_path` stay in
+    `main`'s `api/start.rs`.
+  - The sidebar's `Item` takes both `main`'s `tag` and this branch's `actions`: a tag fills the
+    row's end when there is one, which no row with ＋ has. The rows read Home, Priorities, Inbox,
+    then `main`'s "New change", so the two rows with ＋ stay together.
+  - The links of this feature's discovery, clarifications, and spec to the files the bugfixing
+    feature removed, its draft and `references/bug.md`, point at its record or name the old path as
+    code, as `main` did for its own records, so `ura check specs` passes. Their words are unchanged.
+- **Rationale**: The
+  [catch-up](/skills/uraeda/references/implementation.md#catch-up-with-the-default-branch) keeps
+  what both sides need. A marked file may not grow past its number, so the room is made by a move,
+  not by raising it.
+- **Alternatives considered**: Raising `workspace.rs`'s number, which the structural test exists to
+  refuse. "New change" between Priorities and Inbox, which splits the two rows with ＋.
+- **If wrong**: Each is a few lines: the row order in `SessionNav.tsx`, the moved functions back.
+- **Where**: task 14, `crates/core/src/workspace.rs`, `workspace/links.rs`, `api/drafts.rs`,
+  `packages/web/src/SessionNav.tsx`, `SessionNavRows.tsx`, the feature's spec files

@@ -171,9 +171,9 @@ the inbox is written on the default branch.
 ## Q4: What can a note become?
 
 Past notes became drafts, grouped or appended to existing ones, fixes made in passing, or were
-deleted. The [bugfixing feature](/specs/drafts/add-a-bugfixing-low-impact-change-flow.md), in
-flight, defines a shorter flow for small changes, the proposal's "fixed quickly without a full dev
-flow". More in [discovery](discovery-01.md#outcomes-of-a-note).
+deleted. The [bugfixing feature](/specs/done/2026-10-15-add-bugfixing.md), in flight, defines a
+shorter flow for small changes, the proposal's "fixed quickly without a full dev flow". More in
+[discovery](discovery-01.md#outcomes-of-a-note).
 
 Why it matters: it sets the choices of the organizing step, and how this feature depends on the
 bugfixing one.

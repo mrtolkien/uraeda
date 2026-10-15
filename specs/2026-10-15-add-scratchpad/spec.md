@@ -152,7 +152,7 @@ Acceptance scenarios:
    two, **When** the agent applies it, **Then** one commit, `chore: apply the inbox triage`, changes
    the draft and `INBOX.md`, and deletes `INBOX-TRIAGE.md`.
 5. **Given** a question answered "Bug", **When** the agent applies the triage, **Then** it starts a
-   bug from the note, as the [bug flow](/skills/uraeda/references/bug.md) says, since the answer is
+   bug from the note, as the bug flow, `skills/uraeda/references/bug.md`, says, since the answer is
    the human asking for it.
 6. **Given** a note added to `INBOX.md` after the triage was written, **When** the agent applies the
    triage, **Then** that note stays in the inbox, untouched.
@@ -357,9 +357,9 @@ Settled while writing this spec:
   commit holds `INBOX.md` too, as it holds `PRIORITIES.md` today.
 - **A bug** is not an action of the inbox page: it starts a branch, which the human asks for through
   the triage, or through the bug flow. The
-  [bugfixing feature](/specs/drafts/add-a-bugfixing-low-impact-change-flow.md), whose spec waits for
-  review, replaces bugs with changes started from drafts: whichever feature lands second turns the
-  triage's "Bug" outcome into "a draft started as a change"
+  [bugfixing feature](/specs/done/2026-10-15-add-bugfixing.md), whose spec waits for review,
+  replaces bugs with changes started from drafts: whichever feature lands second turns the triage's
+  "Bug" outcome into "a draft started as a change"
   ([Q4](clarifications-01.md#q4-what-can-a-note-become)).
 - **The triage's questions** offer, per note or group: a priorities section, a new draft, an
   existing draft, a bug, deletion, or keeping it in the inbox. Each question names the notes it
