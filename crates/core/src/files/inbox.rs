@@ -336,7 +336,7 @@ pub fn link_title(text: &str, id: &str) -> Option<String> {
 }
 
 /// What the text of a link starting `markdown` says, unescaped.
-fn link_text(markdown: &str) -> Option<String> {
+pub(crate) fn link_text(markdown: &str) -> Option<String> {
     let (inner, _) = markdown.strip_prefix('[')?.rsplit_once("](")?;
     Some(lines::unescape_link_text(inner))
 }
