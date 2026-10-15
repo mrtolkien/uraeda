@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 03: UI iteration flow
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 1 question on the previews' security, about 5 minutes.
+> Answered on 2026-10-15.
 >
 > - **A hole in the approved stack rule.** While a Storybook runs, any website open in your browser
 >   can read the project's code through Uraeda, and use Storybook's live channel. It is the same
@@ -61,7 +61,7 @@ changes a rule you approved.
   - [con] the hole stays: any website can read the code of a running preview, and use Storybook's
     channel.
 
-**Answer:**
+**Answer:** C: Create a draft for the security task and include this
 
 ## Settled without the human
 
