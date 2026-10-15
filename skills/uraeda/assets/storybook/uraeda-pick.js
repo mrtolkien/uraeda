@@ -83,10 +83,49 @@
     submit: "button",
   };
 
-  /** The elements a click inside picks rather than the element clicked. */
-  const CONTROLS = "[role], a[href], button, input, select, summary, textarea";
+  /** The roles of the controls a click inside picks rather than the element clicked. */
+  const INTERACTIVE = [
+    "button",
+    "checkbox",
+    "combobox",
+    "link",
+    "menuitem",
+    "menuitemcheckbox",
+    "menuitemradio",
+    "option",
+    "radio",
+    "searchbox",
+    "separator",
+    "slider",
+    "spinbutton",
+    "switch",
+    "tab",
+    "textbox",
+    "treeitem",
+  ];
 
-  /** The pointer events pick mode keeps from the story; a click picks. */
+  /**
+   * The controls a click inside picks rather than the element clicked: an element of an interactive
+   * role, a native control, or a label, which stands for its control.
+   */
+  const CONTROLS = [
+    ...INTERACTIVE.map((role) => `[role="${role}"]`),
+    "a[href]",
+    "button",
+    "input",
+    "label",
+    "select",
+    "summary",
+    "textarea",
+  ].join(", ");
+
+  /** The native controls, which keep their role under `presentation` or `none`. */
+  const NATIVE = "a[href], button, input, select, summary, textarea";
+
+  /** The roles that say an element has none; never reported. */
+  const NO_ROLE = new Set(["none", "presentation"]);
+
+  /** The pointer events pick mode keeps from the story, its default stopped; a click picks. */
   const POINTER = [
     "pointerdown",
     "pointerup",
@@ -95,7 +134,14 @@
     "click",
     "dblclick",
     "auxclick",
+    "contextmenu",
   ];
+
+  /**
+   * The touch events pick mode keeps from the story, their default left alone, so a tap still
+   * makes the click that picks.
+   */
+  const TOUCH = ["touchstart", "touchmove", "touchend"];
 
   /** The white space of a text, collapsed. */
   const SPACES = /\s+/g;
@@ -113,17 +159,32 @@
   /** The trimmed text of an element, its white space collapsed. */
   const textOf = (element) => (element?.textContent ?? "").replaceAll(SPACES, " ").trim();
 
-  /** The element a pointer event picks: the control it is in, or its own target. */
-  const targetOf = (event) =>
-    typeof event.target?.closest === "function"
-      ? (event.target.closest(CONTROLS) ?? event.target)
-      : null;
+  /**
+   * The element a pointer event picks: the control it is in, a label's control, or its own target.
+   */
+  const targetOf = (event) => {
+    if (typeof event.target?.closest !== "function") {
+      return null;
+    }
+    const control = event.target.closest(CONTROLS);
+    if (control?.tagName === "LABEL") {
+      return control.control ?? control;
+    }
+    return control ?? event.target;
+  };
 
-  /** The element's role: its `role` attribute, else its implicit role, else `element`. */
+  /**
+   * The element's role: the first of its `role` attribute's that is not `none` or `presentation`,
+   * else its implicit role, else `element`. A native control keeps its implicit role under `none`.
+   */
   const roleOf = (element) => {
-    const role = element.getAttribute("role")?.trim().split(SPACES)[0];
+    const roles = (element.getAttribute("role") ?? "").trim().split(SPACES).filter(Boolean);
+    const role = roles.find((value) => !NO_ROLE.has(value));
     if (role) {
       return role;
+    }
+    if (roles.length > 0 && !element.matches(NATIVE)) {
+      return "element";
     }
     if (element.tagName === "INPUT") {
       return INPUT_ROLES[(element.getAttribute("type") ?? "").toLowerCase()] ?? "textbox";
@@ -138,32 +199,50 @@
   };
 
   /**
-   * The element's accessible name: its `aria-label`, the text of its `aria-labelledby`, its labels,
-   * `alt`, or `title`, else its text for a role named by its content.
+   * The element's accessible name, from the first source that gives one: its `aria-label`, the text
+   * of its `aria-labelledby`, its labels, `alt`, `title`, a text box's `placeholder`, else its text
+   * for a role named by its content.
    */
-  const nameOf = (element, role) => {
-    const label = element.getAttribute("aria-label")?.trim();
-    if (label) {
-      return label;
+  const nameOf = (element, role) =>
+    element.getAttribute("aria-label")?.trim() ||
+    (element.getAttribute("aria-labelledby") ?? "")
+      .split(SPACES)
+      .map((id) => (id ? textOf(page.document.getElementById(id)) : ""))
+      .join(" ")
+      .trim() ||
+    [...(element.labels ?? [])].map(textOf).join(" ").trim() ||
+    element.getAttribute("alt")?.trim() ||
+    element.getAttribute("title")?.trim() ||
+    (role === "textbox" || role === "searchbox"
+      ? element.getAttribute("placeholder")?.trim()
+      : "") ||
+    (NAMED_BY_CONTENT.has(role) ? textOf(element) : "");
+
+  /** Storybook's root, holding the story, if the page has it. */
+  const rootOf = () => page.document.querySelector("#storybook-root");
+
+  /**
+   * The story's height: Storybook's root and the body's margins and padding around it, since the
+   * body of the centered layout is at least as tall as the window; else the body's.
+   */
+  const measure = () => {
+    const body = page.document.body;
+    const root = rootOf();
+    if (!root) {
+      return body.getBoundingClientRect().height;
     }
-    const ids = element.getAttribute("aria-labelledby")?.trim();
-    if (ids) {
-      return ids
-        .split(SPACES)
-        .map((id) => textOf(page.document.getElementById(id)))
-        .join(" ")
-        .trim();
-    }
-    return (
-      [...(element.labels ?? [])].map(textOf).join(" ").trim() ||
-      element.getAttribute("alt")?.trim() ||
-      element.getAttribute("title")?.trim() ||
-      (NAMED_BY_CONTENT.has(role) ? textOf(element) : "")
-    );
+    const style = page.getComputedStyle(body);
+    const around = [
+      style.marginTop,
+      style.marginBottom,
+      style.paddingTop,
+      style.paddingBottom,
+    ].reduce((sum, value) => sum + (Number.parseFloat(value) || 0), 0);
+    return root.getBoundingClientRect().height + around;
   };
 
   const sendSize = () => {
-    const next = Math.ceil(page.document.body.getBoundingClientRect().height);
+    const next = Math.ceil(measure());
     if (next !== height) {
       height = next;
       post({ height, uraeda: "size" });
@@ -192,10 +271,18 @@
     });
   };
 
-  /** Keeps a pointer event from the story; a click picks its element and ends pick mode. */
+  /**
+   * Keeps a pointer or touch event from the story, stopping the default of a pointer event only; a
+   * press outlines its element, as touch has no hover, and a click picks it and ends pick mode.
+   */
   const onPointer = (event) => {
-    event.preventDefault();
+    if (!TOUCH.includes(event.type)) {
+      event.preventDefault();
+    }
     event.stopImmediatePropagation();
+    if (event.type === "pointerdown") {
+      draw(event);
+    }
     const target = targetOf(event);
     if (event.type !== "click" || !target) {
       return;
@@ -226,7 +313,7 @@
     picking = true;
     page.addEventListener("pointermove", draw, true);
     page.addEventListener("keydown", onEscape, true);
-    for (const type of POINTER) {
+    for (const type of [...POINTER, ...TOUCH]) {
       page.addEventListener(type, onPointer, true);
     }
   };
@@ -235,7 +322,7 @@
     picking = false;
     page.removeEventListener("pointermove", draw, true);
     page.removeEventListener("keydown", onEscape, true);
-    for (const type of POINTER) {
+    for (const type of [...POINTER, ...TOUCH]) {
       page.removeEventListener(type, onPointer, true);
     }
     outline?.remove();
@@ -257,7 +344,12 @@
   const ready = () => {
     post({ uraeda: "ready" });
     sendSize();
-    new page.ResizeObserver(sendSize).observe(page.document.body);
+    const observer = new page.ResizeObserver(sendSize);
+    observer.observe(page.document.body);
+    const root = rootOf();
+    if (root) {
+      observer.observe(root);
+    }
   };
 
   if (page.document.readyState === "complete") {

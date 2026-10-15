@@ -716,16 +716,22 @@ git commit -m "feat(ui-iteration): the preview decision's fields"
   `env.URAEDA_PREVIEW_BASE` is unset; else a copy whose `viteFinal` sets `base`, adds a `post`
   `transformIndexHtml` giving the base to root-absolute `src` and `href` values, and whose
   `previewHead` and `managerHead`, both async, start with the WebSocket patch, each calling the
-  config's own function first. On a framework other than `@storybook/*-vite`, or a `core.builder`
-  other than `@storybook/builder-vite`, it throws
-  `uraeda-preview.js needs Storybook's Vite builder.`
+  config's own function first. On a webpack framework (`@storybook/nextjs`, `@storybook/angular`,
+  `@storybook/ember`, or any `*-webpack5`), or a `core.builder` other than
+  `@storybook/builder-vite`, it throws `uraeda-preview.js needs Storybook's Vite builder.`, and its
+  `webpackFinal` throws it too; any other framework, such as `@storybook/sveltekit`, is served
+  ([R18](rulings.md#r18-the-helper-refuses-only-webpack)). Names are matched with `\` made `/`.
 - Produces: `uraeda-pick.js`, a classic script with no import, its names in a block, for the
   preview: it posts `{ uraeda: "ready" }` to `window.parent` on load and
-  `{ uraeda: "size", height }` on each change of the document's height; on
-  `{ uraeda: "pick", on: true }` from `window.parent`, it outlines the element under the pointer,
-  swallows clicks, and posts `{ uraeda: "picked", role, name, text }` for a click, then leaves pick
-  mode; on Escape, or `{ uraeda: "pick", on: false }`, it leaves pick mode, posting
-  `{ uraeda: "pick-stopped" }` for Escape.
+  `{ uraeda: "size", height }` on each change of the story's height (`#storybook-root` with the
+  body's margins and padding, else the body); on `{ uraeda: "pick", on: true }` from
+  `window.parent`, it outlines the element under the pointer or pressed, swallows pointer, touch,
+  and context menu events, and posts `{ uraeda: "picked", role, name, text }` for a click, then
+  leaves pick mode. A click picks the control it is in, an element of an interactive role or a
+  native control, a label standing for its control; else the element clicked, never a `dialog` or
+  `region` around it, and never `presentation` or `none`; on Escape, or
+  `{ uraeda: "pick", on: false }`, it leaves pick mode, posting `{ uraeda: "pick-stopped" }` for
+  Escape.
 
 - [x] **Step 1: Write the failing tests**
 
