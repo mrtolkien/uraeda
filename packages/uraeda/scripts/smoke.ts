@@ -1,6 +1,6 @@
 /**
  * `node packages/uraeda/scripts/smoke.ts [--binding <.node or folder> | --platform <tarball>]`: packs
- * `uraeda`, installs it with npm in a new temporary folder outside the repository, and runs it as a
+ * `@uraeda/ui`, installs it with npm in a new temporary folder outside the repository, and runs it as a
  * user would: its version, help, an unknown option, a start in a new git repository whose `.env`
  * must be ignored, a start outside git, and the package's contents.
  *
@@ -228,7 +228,7 @@ function install(folder: string, binding?: string, platform?: string): Install {
     binding: Boolean(binding || platform),
     env,
     folder,
-    root: join(root, "node_modules/uraeda"),
+    root: join(root, "node_modules/@uraeda/ui"),
   };
 }
 

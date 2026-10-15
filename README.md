@@ -184,16 +184,16 @@ In a repository, `ura init` sets up `specs/` and offers to install the skill for
 installs the latest release, through the installer script or Homebrew, then updates your skill; with
 Nix, update the flake input.
 
-The web UI comes from npm. In a repository, run `npx uraeda`: it starts the server on
+The web UI comes from npm. In a repository, run `npx @uraeda/ui`: it starts the server on
 http://127.0.0.1:4310 and opens the repository in your browser. It needs Node 24 or later, and
-sessions need `claude` installed and signed in. Run `npx uraeda` in another repository and it opens
-in the server already running.
+sessions need `claude` installed and signed in. Run `npx @uraeda/ui` in another repository and it
+opens in the server already running.
 
 ```sh
-npx uraeda                              # the web UI, for the repository you are in
-npx uraeda --no-open --port 4311        # without opening the browser, on another port
-npx uraeda --allowed-hosts mac.tail1234.ts.net  # host names accepted besides 127.0.0.1
-npm i -g uraeda@latest                  # a lasting install, then `uraeda`; updated the same way
+npx @uraeda/ui                          # the web UI, for the repository you are in
+npx @uraeda/ui --no-open --port 4311    # without opening the browser, on another port
+npx @uraeda/ui --allowed-hosts mac.tail1234.ts.net  # host names accepted besides 127.0.0.1
+npm i -g @uraeda/ui@latest              # a lasting install, then `uraeda`; updated the same way
 ```
 
 `uraeda --help` lists every option.
@@ -250,7 +250,7 @@ vp run --filter uraeda-binding build  # the Rust core for Node: again after ever
 vp run ready       # every check and test, as CI runs them
 vp dev             # the web UI on http://127.0.0.1:4310, opening this repository first
 vp run dev         # the same, rebuilding the Rust core and restarting as it or the server changes
-vp run --filter uraeda build  # the npm package, in packages/uraeda, after the web UI's build
+vp run --filter @uraeda/ui build  # the npm package, in packages/uraeda, after the web UI's build
 cargo run -p uraeda-cli -- status
 ```
 

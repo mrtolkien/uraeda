@@ -16,7 +16,7 @@ export type Layout = {
   web: string;
 };
 
-/** Defined, as true, by the `uraeda` package's build of the bundle; undefined in the sources. */
+/** Defined, as true, by the `@uraeda/ui` package's build of the bundle; undefined in the sources. */
 declare const URAEDA_PACKAGE: boolean | undefined;
 
 // `typeof`, as the sources never define it: a bare reference would throw.

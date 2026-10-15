@@ -1,6 +1,6 @@
 name: npm
 
-# Publishes `uraeda` and its four platform packages from the tag that releases `ura`, through npm's
+# Publishes `@uraeda/ui` and its four platform packages from the tag that releases `ura`, through npm's
 # trusted publishing: no npm token is stored (see `specs/decisions/distribution.md`). It lives apart
 # from `release.yml`, which `dist generate` overwrites.
 on:
@@ -130,8 +130,8 @@ jobs:
         run: pnpm exec vp run --filter uraeda-binding build
       - name: Build the web UI
         run: pnpm exec vp run --filter uraeda-web build
-      - name: Build uraeda
-        run: pnpm exec vp run --filter uraeda build
+      - name: Build @uraeda/ui
+        run: pnpm exec vp run --filter @uraeda/ui build
 
       - uses: actions/upload-artifact@v7
         with:
@@ -241,5 +241,5 @@ jobs:
 
       - name: Set the versions, and print the sizes
         run: node packages/uraeda/scripts/release.ts prepare "$TAG"
-      - name: Publish the platform packages, then uraeda
+      - name: Publish the platform packages, then @uraeda/ui
         run: node packages/uraeda/scripts/release.ts publish "$TAG"
