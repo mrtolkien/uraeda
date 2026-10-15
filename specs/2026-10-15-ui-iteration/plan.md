@@ -1863,7 +1863,8 @@ git commit -m "feat(ui-iteration): the Storybook page and its rows"
 
 **Files:**
 
-- Modify: `packages/web/src/StoryEmbed.tsx` (toolbar, pick mode, comment form),
+- Modify: `packages/web/src/StoryEmbed.tsx` (split first; toolbar, pick mode, comment form),
+  `packages/web/src/StoryFrames.tsx` (created by the split; pick mode in `useFrames`),
   `packages/web/src/ReviewPage.tsx` (the review's `comment`, in `StoriesProvider`),
   `packages/web/src/ReviewMockups.tsx`, `packages/web/vite.browser.config.ts` (`frameOutlined`,
   `framePress`, `frameReload`), `packages/web/scripts/screenshots.ts` (the `story-pick` view,
@@ -1884,7 +1885,22 @@ git commit -m "feat(ui-iteration): the Storybook page and its rows"
   its field `<path>#story:<folder>:<path>#<export>`.
 - Changes: `ReviewMockups`' button for a story scrolls to its embed.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Split `StoryEmbed` before it grows**
+
+`StoryEmbed.tsx` is at 442 lines, and this task adds the pick buttons, the hint, and the form. Move
+the frames, `useFrames`, `DesktopFrame`, `StoryFrames`, and their styles, into `StoryFrames.tsx`,
+without changing what they do.
+
+- Run: `vp test --project desktop src/__browser__/story-embed.test.tsx`,
+  `vp test --project uraeda-web src/__tests__/stories.test.tsx`, and `vp check`, before and after
+- Expected: PASS both times
+
+```bash
+git add packages/web/src/StoryEmbed.tsx packages/web/src/StoryFrames.tsx
+git commit -m "refactor(ui-iteration): a story's frames in a file of their own"
+```
+
+- [ ] **Step 2: Write the failing tests**
 
 ```tsx
 // packages/web/src/__browser__/story-comments.test.tsx
@@ -1954,12 +1970,12 @@ The break each test catches:
 - Pending comments: the override dropping `selection.after`, so a comment on the embed vanishes.
 - Reload: a frame that came back from a reload ignoring the human's clicks no more.
 
-- [ ] **Step 2: Run them to check they fail**
+- [ ] **Step 3: Run them to check they fail**
 
 - Run: `vp test --project desktop src/__browser__/story-comments.test.tsx`
 - Expected: FAIL, `Unable to find role="button" and name "Pick an element"`.
 
-- [ ] **Step 3: Implement**
+- [ ] **Step 4: Implement**
 
 - `StoryEmbed`: "Pick an element" sends `{ uraeda: "pick", on: true }` to each frame and shows the
   hint, "Tap an element to comment on it." under `(pointer: coarse)`; `picked` from a frame ends
@@ -1972,13 +1988,13 @@ The break each test catches:
 - `screenshots.ts`: the view `story-pick`, beside task 8's `story-embed` and `storybook-page`, in
   `takeStories`: the embed in pick mode.
 
-- [ ] **Step 4: Run all tests**
+- [ ] **Step 5: Run all tests**
 
 - Run:
   `vp test --project desktop && vp test --project phone && vp test --project uraeda-web && vp check`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add packages/web
