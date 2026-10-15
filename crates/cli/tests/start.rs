@@ -327,3 +327,23 @@ fn refuses_a_folder_where_the_worktree_goes() {
     );
     assert_eq!(repo.subjects("main")[0], "draft");
 }
+
+/// US1.3: `--change` starts the draft as a change, in its own folder and branch.
+#[test]
+fn a_draft_starts_as_a_change() {
+    let repo = repo_with_a_draft();
+
+    let output = ura(&repo, &["start", "git-listener-process", "--change"]);
+
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    let branch = "change/2026-10-11-git-listener";
+    let proposal = "specs/changes/2026-10-11-git-listener/proposal.md";
+    assert_eq!(repo.changed_in(branch), [proposal, DRAFT]);
+    assert_eq!(repo.read(&in_worktree(proposal)), written_draft());
+    assert_eq!(
+        output.stdout,
+        format!(
+            "on main: committed \"chore(git-listener): start Git listener process\"\ncreated branch {branch} in {WORKTREE}\nmoved   {DRAFT} -> {proposal}\ncommitted \"chore(git-listener): proposal\"\nNext: change. Ask an agent, or run ura next.\n"
+        )
+    );
+}

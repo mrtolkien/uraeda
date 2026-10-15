@@ -14,7 +14,7 @@ use uraeda_core::api::{self, ApiError};
 use uraeda_core::gates::{Gate, awaits_human, gate_of};
 use uraeda_core::target;
 use uraeda_core::view::FileView;
-use uraeda_core::workspace::FileKind;
+use uraeda_core::workspace::{FileKind, Kind};
 
 use crate::documents::Documents;
 use crate::requests::{WorkflowFile, api_error, refused, workflow_file};
@@ -238,12 +238,10 @@ fn start(documents: &Documents, args: FileArgs) -> Result<Done, ResponseError> {
         absolute(default.join(&path)),
     ];
     let before = Before::read(written.clone());
-    let started = api::start_feature(root, &draft, None).map_err(|error| before.failed(error))?;
+    let started = api::start_feature(root, &draft, None, Kind::Feature)
+        .map_err(|error| before.failed(error))?;
     let worktree = PathBuf::from(core(api::work_dir(root, &started.folder))?);
-    let proposal = worktree
-        .join("specs")
-        .join(&started.folder)
-        .join("proposal.md");
+    let proposal = worktree.join(format!("specs/{}/proposal.md", started.folder));
     Ok(Done {
         outcome: Outcome {
             opened: Some(absolute(proposal)),

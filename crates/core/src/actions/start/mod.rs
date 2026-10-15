@@ -1,22 +1,28 @@
-//! Starting a drafted feature, as the skill's start section says: on the default branch, its
-//! `PRIORITIES.md` entry moves to the end of **Now** as a link and is committed; then its branch
-//! is created, and the draft moves into the dated folder, unchanged, in a second commit.
+//! Starting a drafted feature or change, as the skill's start section says: on the default
+//! branch, its `PRIORITIES.md` entry moves to the end of **Now** as a link and is committed; then
+//! its branch is created, and the draft moves into the dated folder, unchanged, in a second commit.
+//! A change typed as a text starts the same way, its proposal written from the text.
 
 use std::path::Path;
 
 use crate::git::{Git, GitError};
+use crate::images::Encoded;
 use crate::today::Date;
-use crate::workspace::Workspace;
+use crate::workspace::{Kind, Workspace};
 
 use super::place;
 
 mod commits;
 mod plan;
+mod typed;
 
 /// What a start did.
 pub struct Started {
     pub default_branch: String,
     pub start_subject: String,
+    /// The dated folder's name: `<date>-<slug>`.
+    pub folder: String,
+    /// The folder's name for a feature, `change/<folder>` for a change.
     pub branch: String,
     /// The worktree the branch is checked out in, from the main checkout, unless `--switch`.
     pub worktree: Option<String>,
@@ -44,12 +50,44 @@ pub enum StartError {
     },
 }
 
-/// Starts the feature written in a draft: its branch in a worktree at `.worktrees/<folder>/`, or,
-/// with `switch`, in this working tree, switched to it.
+/// Starts the feature or the change written in a draft: its branch in a worktree at
+/// `.worktrees/<folder>/`, or, with `switch`, in this working tree, switched to it.
 pub fn run(
     git: &Git,
     workspace: &Workspace,
     draft: &str,
+    slug: Option<&str>,
+    kind: Kind,
+    today: Date,
+    switch: bool,
+) -> Result<Started, StartError> {
+    let source = Source::Draft(draft);
+    begin(git, workspace, source, kind, slug, today, switch)
+}
+
+/// Starts a change typed as a text: its first written line is the title, and its images are saved
+/// in the change's `images/` folder, linked at the end of the proposal. `slug` defaults to the one
+/// [`crate::slug::propose`] gives for the title.
+pub fn run_text(
+    git: &Git,
+    workspace: &Workspace,
+    text: &str,
+    images: &[Encoded],
+    slug: Option<&str>,
+    today: Date,
+    switch: bool,
+) -> Result<Started, StartError> {
+    let source = Source::Text { text, images };
+    begin(git, workspace, source, Kind::Change, slug, today, switch)
+}
+
+/// Reaches the default branch, starts there, and switches back when the start is refused before
+/// its first commit.
+fn begin(
+    git: &Git,
+    workspace: &Workspace,
+    source: Source<'_>,
+    kind: Kind,
     slug: Option<&str>,
     today: Date,
     switch: bool,
@@ -64,7 +102,7 @@ pub fn run(
     } else {
         place::reach(git, &default)?
     };
-    let result = Start::open(git, &place, workspace, draft, &default, switch)
+    let result = Start::open(git, &place, workspace, source, kind, &default, switch)
         .and_then(|start| start.run(slug, today));
     if matches!(&result, Err(error) if !matches!(error, StartError::Partial { .. })) {
         place::switch_back(git, &place, previous.as_deref());
@@ -72,7 +110,19 @@ pub fn run(
     result
 }
 
-/// A start under way: where it runs, and the draft it starts.
+/// What a start starts from.
+#[derive(Clone, Copy)]
+enum Source<'a> {
+    /// A draft's file or postponed folder, from the top level.
+    Draft(&'a str),
+    /// A change typed as a text, with its encoded images.
+    Text {
+        text: &'a str,
+        images: &'a [Encoded],
+    },
+}
+
+/// A start under way: where it runs, and what it starts.
 struct Start<'a> {
     /// The repository the command runs in.
     git: &'a Git,
@@ -80,7 +130,8 @@ struct Start<'a> {
     /// The working tree on the default branch, and its repository.
     root: &'a Path,
     at: Git,
-    draft: &'a str,
+    source: Source<'a>,
+    kind: Kind,
     default: &'a str,
     switch: bool,
 }
@@ -99,7 +150,8 @@ impl<'a> Start<'a> {
         git: &'a Git,
         place: &'a place::Place,
         workspace: &'a Workspace,
-        draft: &'a str,
+        source: Source<'a>,
+        kind: Kind,
         default: &'a str,
         switch: bool,
     ) -> Result<Start<'a>, StartError> {
@@ -108,25 +160,40 @@ impl<'a> Start<'a> {
             workspace,
             root: place.root.as_path(),
             at: Git::open(&place.root)?,
-            draft,
+            source,
+            kind,
             default,
             switch,
         })
     }
 
     fn run(&self, slug: Option<&str>, today: Date) -> Result<Started, StartError> {
-        let plan = self.plan(slug, today)?;
+        let plan = match self.source {
+            Source::Draft(draft) => self.plan(draft, slug, today)?,
+            Source::Text { text, .. } => self.plan_text(text, slug, today)?,
+        };
         self.commit_start(&plan)?;
         let mut done = vec![format!("the start commit on {}", self.default)];
         let target_root = self.create_branch(&plan, &done)?;
-        done.push(format!("the branch {}", plan.folder));
-        let moves = self.move_draft(&plan, &target_root)?;
-        done.push("the move of the draft".to_string());
+        done.push(format!("the branch {}", plan.branch));
+        let moves = match self.source {
+            Source::Draft(draft) => {
+                let moves = self.move_draft(draft, &plan, &target_root)?;
+                done.push("the move of the draft".to_string());
+                moves
+            }
+            Source::Text { images, .. } => {
+                self.write_text(&plan, images, &target_root, &done)?;
+                done.push(format!("the proposal in {}", plan.destination));
+                Vec::new()
+            }
+        };
         self.commit_proposal(&plan, &moves, &target_root, &done)?;
         Ok(Started {
             default_branch: self.default.to_string(),
             start_subject: plan.start_subject,
-            branch: plan.folder.clone(),
+            folder: plan.folder.clone(),
+            branch: plan.branch.clone(),
             worktree: (!self.switch).then(|| format!(".worktrees/{}", plan.folder)),
             moves,
             proposal_subject: plan.proposal_subject,

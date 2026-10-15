@@ -173,14 +173,40 @@ pub fn proposal_hints() -> AsyncTask<Job<Vec<ProposalHint>>> {
     job(api::proposal_hints)
 }
 
-/// Starts a drafted feature in its own worktree.
-#[napi(ts_return_type = "Promise<StartedView>")]
+/// Starts a drafted feature, or a change with the kind `"change"`, in its own worktree.
+#[napi(
+    ts_args_type = "repo: string, draft: string, slug?: string | undefined | null, kind?: \"feature\" | \"change\" | undefined | null",
+    ts_return_type = "Promise<StartedView>"
+)]
 pub fn start_feature(
     repo: String,
     draft: String,
     slug: Option<String>,
+    kind: Option<String>,
 ) -> AsyncTask<Job<StartedView>> {
-    job(move || api::start_feature(Path::new(&repo), &draft, slug.as_deref()))
+    job(move || {
+        let kind = api::start_kind(kind.as_deref())?;
+        api::start_feature(Path::new(&repo), &draft, slug.as_deref(), kind)
+    })
+}
+
+/// Starts a change typed as a text, with its images, in its own worktree: the first written line
+/// is its title.
+#[napi(ts_return_type = "Promise<StartedView>")]
+pub fn start_change(
+    repo: String,
+    text: String,
+    images: Vec<Buffer>,
+    slug: Option<String>,
+) -> AsyncTask<Job<StartedView>> {
+    let images: Vec<Vec<u8>> = images.iter().map(|image| image.to_vec()).collect();
+    job(move || api::start_change(Path::new(&repo), &text, &images, slug.as_deref()))
+}
+
+/// The slug proposed for a change typed with this title.
+#[napi]
+pub fn propose_slug(title: String) -> String {
+    api::propose_slug(&title)
 }
 
 /// Adds a line at the end of a section of the priorities.

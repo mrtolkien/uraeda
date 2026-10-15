@@ -10,7 +10,7 @@ use uraeda_core::files::clarifications::AnswerError;
 use uraeda_core::files::document::hash;
 use uraeda_core::git::Git;
 use uraeda_core::today::Date;
-use uraeda_core::workspace::{Feature, Workspace};
+use uraeda_core::workspace::{Feature, Kind, Workspace};
 
 const FOLDER: &str = "2026-10-11-web-ui";
 const ROUND: &str = "specs/2026-10-11-web-ui/clarifications-01.md";
@@ -679,6 +679,7 @@ fn start_accepts_a_draft_with_placeholders_or_empty_sections() {
             &workspace,
             "specs/drafts/x.md",
             Some("x"),
+            Kind::Feature,
             today(),
             false,
         );
@@ -864,7 +865,16 @@ fn us1_7_a_draft_folder_starts_with_its_images() {
     let git = Git::discover(repo.path()).unwrap();
     let workspace = Workspace::read(&git).unwrap();
 
-    let started = start::run(&git, &workspace, DRAFT_FOLDER, None, today(), false).unwrap();
+    let started = start::run(
+        &git,
+        &workspace,
+        DRAFT_FOLDER,
+        None,
+        Kind::Feature,
+        today(),
+        false,
+    )
+    .unwrap();
 
     let folder = format!("specs/{}", started.branch);
     let worktree = repo.path().join(".worktrees").join(&started.branch);
@@ -1218,4 +1228,249 @@ fn a_request_for_changes_commits_the_review_images() {
         ]
     );
     assert!(!place.root.join(IMAGES).join("old.webp").exists());
+}
+
+const CHANGE_FOLDER: &str = "2026-10-16-centred-x";
+const TYPED: &str = "Centre the x in failure circles\n\nIn failures the x sits low in its circle.";
+
+fn change_day() -> Date {
+    Date::parse("2026-10-16").unwrap()
+}
+
+/// The repository's git and workspace, read now.
+fn opened(repo: &TestRepo) -> (Git, Workspace) {
+    let git = Git::discover(repo.path()).unwrap();
+    let workspace = Workspace::read(&git).unwrap();
+    (git, workspace)
+}
+
+/// A file of a change's worktree.
+fn in_change(repo: &TestRepo, path: &str) -> String {
+    std::fs::read_to_string(
+        repo.path()
+            .join(".worktrees")
+            .join(CHANGE_FOLDER)
+            .join(path),
+    )
+    .unwrap()
+}
+
+/// Starts a typed text as a change, on the change's day.
+fn start_text(
+    repo: &TestRepo,
+    text: &str,
+    images: &[uraeda_core::images::Encoded],
+    slug: Option<&str>,
+) -> Result<start::Started, start::StartError> {
+    let (git, workspace) = opened(repo);
+    start::run_text(&git, &workspace, text, images, slug, change_day(), false)
+}
+
+/// US1.3: a draft started as a change.
+#[test]
+fn a_draft_starts_as_a_change() {
+    let repo = draft_repo();
+    let (git, workspace) = opened(&repo);
+
+    let started = start::run(
+        &git,
+        &workspace,
+        DRAFT,
+        Some("centred-x"),
+        Kind::Change,
+        change_day(),
+        false,
+    )
+    .unwrap();
+
+    let branch = format!("change/{CHANGE_FOLDER}");
+    assert_eq!(started.branch, branch);
+    assert_eq!(started.folder, CHANGE_FOLDER);
+    assert_eq!(
+        started.worktree.as_deref(),
+        Some(".worktrees/2026-10-16-centred-x")
+    );
+    let proposal = format!("specs/changes/{CHANGE_FOLDER}/proposal.md");
+    assert_eq!(
+        in_change(&repo, &proposal),
+        "# Login banner\n\n## What\n\nA banner.\n"
+    );
+    assert_eq!(repo.changed_in(&branch), [proposal, DRAFT.to_string()]);
+    assert_eq!(repo.subjects(&branch)[0], "chore(centred-x): proposal");
+    let priorities = repo.git(&["show", "main:specs/PRIORITIES.md"]);
+    assert!(
+        priorities.contains(
+            "## Now\n\n- [Login banner](/specs/changes/2026-10-16-centred-x/proposal.md)\n"
+        ),
+        "{priorities}"
+    );
+}
+
+/// US1.1: the first line is the title, and the rest is kept as typed.
+#[test]
+fn a_typed_text_starts_a_change() {
+    let repo = draft_repo();
+
+    let started = start_text(&repo, TYPED, &[], Some("centred-x")).unwrap();
+
+    assert_eq!(started.folder, CHANGE_FOLDER);
+    let proposal = format!("specs/changes/{CHANGE_FOLDER}/proposal.md");
+    assert_eq!(
+        in_change(&repo, &proposal),
+        "# Centre the x in failure circles\n\nIn failures the x sits low in its circle.\n"
+    );
+    let branch = format!("change/{CHANGE_FOLDER}");
+    assert_eq!(repo.changed_in(&branch), [proposal]);
+    assert_eq!(repo.subjects(&branch)[0], "chore(centred-x): proposal");
+    assert_eq!(
+        repo.subjects("main")[0],
+        "chore(centred-x): start Centre the x in failure circles"
+    );
+    let priorities = repo.git(&["show", "main:specs/PRIORITIES.md"]);
+    assert!(
+        priorities.contains(
+            "## Now\n\n- [Centre the x in failure circles](/specs/changes/2026-10-16-centred-x/proposal.md)\n"
+        ),
+        "{priorities}"
+    );
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// US1.2: the images are saved in the change's folder and committed with its proposal.
+#[test]
+fn a_typed_text_brings_its_images() {
+    let repo = draft_repo();
+
+    start_text(&repo, TYPED, &[image(), image()], Some("centred-x")).unwrap();
+
+    let folder = format!("specs/changes/{CHANGE_FOLDER}");
+    let proposal = in_change(&repo, &format!("{folder}/proposal.md"));
+    assert!(
+        proposal.ends_with(
+            "circle.\n\n![Image 1](images/image-1.webp)\n\n![Image 2](images/image-2.webp)\n"
+        ),
+        "{proposal}"
+    );
+    assert_eq!(
+        repo.changed_in(&format!("change/{CHANGE_FOLDER}")),
+        [
+            format!("{folder}/images/image-1.webp"),
+            format!("{folder}/images/image-2.webp"),
+            format!("{folder}/proposal.md"),
+        ]
+    );
+}
+
+/// Review focus 2: a feature and a change of the same slug and day, in both orders.
+#[test]
+fn a_slug_taken_by_a_feature_is_refused_for_a_change() {
+    for first in [Kind::Feature, Kind::Change] {
+        let repo = draft_repo();
+        let (git, workspace) = opened(&repo);
+        start::run(
+            &git,
+            &workspace,
+            DRAFT,
+            Some("centred-x"),
+            first,
+            change_day(),
+            false,
+        )
+        .unwrap();
+        repo.write("specs/drafts/other.md", "# Other\n");
+        repo.commit("chore: draft Other");
+        let second = match first {
+            Kind::Feature => Kind::Change,
+            Kind::Change => Kind::Feature,
+        };
+        let (git, workspace) = opened(&repo);
+
+        let refused = start::run(
+            &git,
+            &workspace,
+            "specs/drafts/other.md",
+            Some("centred-x"),
+            second,
+            change_day(),
+            false,
+        );
+
+        assert_eq!(
+            refused.err().map(|error| error.to_string()).as_deref(),
+            Some("2026-10-16-centred-x exists: choose another slug with --slug"),
+            "{first:?} first"
+        );
+    }
+}
+
+/// Review focus 1 and 2: a name held by a folder alone, of either kind, or by a branch alone.
+#[test]
+fn a_folder_or_a_branch_alone_takes_the_name() {
+    let holders: [(&str, Option<&str>); 3] = [
+        ("specs/changes/2026-10-16-centred-x/proposal.md", None),
+        ("specs/2026-10-16-centred-x/proposal.md", None),
+        ("README.md", Some("change/2026-10-16-centred-x")),
+    ];
+    for (file, branch) in holders {
+        let repo = draft_repo();
+        repo.write(file, "# Held\n");
+        repo.commit("chore: hold the name");
+        if let Some(branch) = branch {
+            repo.branch(branch);
+        }
+
+        let refused = start_text(&repo, TYPED, &[], Some("centred-x"));
+
+        assert_eq!(
+            refused.err().map(|error| error.to_string()).as_deref(),
+            Some("2026-10-16-centred-x exists: choose another slug with --slug"),
+            "{file} {branch:?}"
+        );
+    }
+}
+
+/// Review focus 3: the title is the first written line, and the blank lines after it are kept.
+#[test]
+fn a_typed_text_with_a_blank_first_line_takes_its_first_written_line() {
+    let repo = draft_repo();
+
+    start_text(
+        &repo,
+        "\n   \n  Centre the x  \n\nFirst.\n\n\nSecond.\n\n",
+        &[],
+        Some("centred-x"),
+    )
+    .unwrap();
+
+    assert_eq!(
+        in_change(&repo, &format!("specs/changes/{CHANGE_FOLDER}/proposal.md")),
+        "# Centre the x\n\nFirst.\n\n\nSecond.\n"
+    );
+}
+
+/// The spec's assumption: a first line over 80 characters is cut for the title, and kept whole.
+#[test]
+fn a_long_first_line_is_cut_for_the_title_and_kept_whole() {
+    let repo = draft_repo();
+    let line = format!("{} tail", "word ".repeat(16).trim_end());
+
+    start_text(&repo, &format!("{line}\n\nMore."), &[], Some("centred-x")).unwrap();
+
+    let title: String = line.chars().take(80).collect();
+    assert_eq!(
+        in_change(&repo, &format!("specs/changes/{CHANGE_FOLDER}/proposal.md")),
+        format!("# {}\n\n{line}\n\nMore.\n", title.trim_end())
+    );
+}
+
+#[test]
+fn a_text_with_no_written_line_is_refused() {
+    let repo = draft_repo();
+
+    let refused = start_text(&repo, " \n\n", &[], Some("centred-x"));
+
+    assert_eq!(
+        refused.err().map(|error| error.to_string()).as_deref(),
+        Some("a change needs a text: its first line is its title")
+    );
 }

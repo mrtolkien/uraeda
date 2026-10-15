@@ -1,16 +1,18 @@
-//! `ura start`: a drafted feature, started as the skill says.
+//! `ura start`: a drafted feature or change, started as the skill says.
 
 use std::process::ExitCode;
 
 use uraeda_core::actions::start::{self, StartError};
 use uraeda_core::target::{self, Purpose, Target, TargetError};
 use uraeda_core::today;
+use uraeda_core::workspace::Kind;
 
 use crate::output;
 
 pub fn run(
     target_name: Option<String>,
     slug: Option<String>,
+    change: bool,
     switch: bool,
 ) -> Result<ExitCode, String> {
     let (git, workspace) = output::workspace()?;
@@ -25,11 +27,13 @@ pub fn run(
         }
         Err(error) => return Err(error.to_string()),
     };
+    let kind = if change { Kind::Change } else { Kind::Feature };
     match start::run(
         &git,
         &workspace,
         &draft,
         slug.as_deref(),
+        kind,
         today::today(),
         switch,
     ) {
@@ -46,7 +50,11 @@ pub fn run(
                 println!("moved   {from} -> {to}");
             }
             println!("committed \"{}\"", started.proposal_subject);
-            println!("Next: discovery. Ask an agent, or run ura next.");
+            let next = match kind {
+                Kind::Feature => "discovery",
+                Kind::Change => "change",
+            };
+            println!("Next: {next}. Ask an agent, or run ura next.");
             Ok(ExitCode::SUCCESS)
         }
         Err(StartError::Partial { done, left, cause }) => {
