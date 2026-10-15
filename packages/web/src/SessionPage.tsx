@@ -280,7 +280,7 @@ function SessionPane({
   return (
     <WithAside aside={aside} folder={crumbs} {...(id === undefined ? {} : { session: id })}>
       <Page>
-        {crumbs !== undefined && <Crumbs current="Session" folder={crumbs} />}
+        {crumbs !== undefined && <Crumbs folder={crumbs} session />}
         {id === undefined ? (
           <VStack gap={3}>
             <Header aside={aside} title={title ?? ""} />
