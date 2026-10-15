@@ -71,16 +71,11 @@ fn refused(message: impl Into<String>) -> ApiError {
 impl From<ActionError> for ApiError {
     fn from(error: ActionError) -> ApiError {
         match error {
-            // A save or an edit over a file changed since it was read.
-            ActionError::Changed { .. } | ActionError::Refused(_)
-                if error.to_string().contains(" changed on disk") =>
-            {
-                ApiError {
-                    code: "conflict",
-                    message: error.to_string(),
-                    output: None,
-                }
-            }
+            error if error.is_stale() => ApiError {
+                code: "conflict",
+                message: error.to_string(),
+                output: None,
+            },
             ActionError::Hook { message, output } => ApiError {
                 code: "hook",
                 message: format!("git commit failed: {message}"),

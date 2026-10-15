@@ -8,7 +8,7 @@ use crate::files::priorities::{self, EntryChange, Priorities, Section};
 use crate::git::Git;
 
 use super::place::{self, Place};
-use super::{ActionError, Change, Committed, commit};
+use super::{ActionError, Change, Committed, STALE, commit};
 
 pub const PATH: &str = "specs/PRIORITIES.md";
 
@@ -37,9 +37,7 @@ fn apply(
 ) -> Result<Priorities, ActionError> {
     let current = text(place);
     if hash(&current) != previous {
-        return Err(ActionError::Refused(
-            "PRIORITIES.md changed on disk. Your change was not applied.".to_string(),
-        ));
+        return Err(ActionError::Refused(format!("PRIORITIES.md {STALE}")));
     }
     let edited = edit(&current).ok_or_else(|| ActionError::Refused(refused.to_string()))?;
     fs::write(place.root.join(PATH), &edited)?;

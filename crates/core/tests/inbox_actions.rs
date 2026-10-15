@@ -216,3 +216,79 @@ fn the_triage_status_is_read() {
         Some("awaiting-human")
     );
 }
+
+/// A mark must parse back: a folder whose slug is not lowercase letters, digits, and `-` is
+/// refused, and nothing is written.
+#[test]
+fn a_note_about_a_folder_that_is_not_a_slug_is_refused() {
+    let repo = fixture_repo();
+    let before = repo.read(INBOX);
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    for folder in ["2026-10-14-Run UI", "2026-10-14-a]b", "run-ui"] {
+        let error = api::add_note(repo.path(), None, Some(folder.into()), "A note", &read.hash)
+            .unwrap_err();
+        assert_eq!(error.code, "refused", "{folder}");
+    }
+    let marks = Marks {
+        agent: false,
+        about: Some("Run UI".into()),
+    };
+    actions::add(&main_place(&repo), None, &marks, "A note", None).unwrap_err();
+
+    assert_eq!(repo.read(INBOX), before);
+}
+
+/// Only a missing file reads as empty: one that cannot be read is not overwritten.
+#[test]
+fn an_unreadable_inbox_is_not_overwritten() {
+    let repo = fixture_repo();
+    let path = repo.path().join(INBOX);
+    std::fs::write(&path, b"# Inbox\n\n- \xff\n").unwrap();
+
+    let error =
+        actions::add(&main_place(&repo), None, &Marks::default(), "A note", None).unwrap_err();
+
+    assert!(matches!(error, ActionError::Io(_)), "{error:?}");
+    assert_eq!(std::fs::read(&path).unwrap(), b"# Inbox\n\n- \xff\n");
+}
+
+/// An Undo with no line to put back has a refusal of its own.
+#[test]
+fn inserting_no_line_is_refused() {
+    let repo = fixture_repo();
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let error = api::insert_note(repo.path(), None, 0, &[], &read.hash).unwrap_err();
+
+    assert_eq!(error.message, "Nothing to put back.");
+}
+
+/// Reading from a feature's checkout, with the default branch checked out nowhere, reads its tip
+/// and creates no worktree.
+#[test]
+fn reading_from_a_feature_branch_creates_no_worktree() {
+    let repo = fixture_repo();
+    repo.switch_new("2026-10-15-add-scratchpad");
+
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    assert_eq!(read.count, 10);
+    assert!(!repo.exists(".worktrees/main"));
+}
+
+/// Only a save or an edit over a changed file is a conflict, whatever its file.
+#[test]
+fn only_a_stale_edit_is_a_conflict() {
+    let code = |message: &str| api::ApiError::from(ActionError::Refused(message.into())).code;
+
+    assert_eq!(
+        code("INBOX.md changed on disk. Your change was not applied."),
+        "conflict"
+    );
+    assert_eq!(code("the branch changed on disk meanwhile"), "refused");
+    assert_eq!(
+        api::ApiError::from(ActionError::changed("specs/drafts/x.md")).code,
+        "conflict"
+    );
+}
