@@ -101,7 +101,8 @@ and decisions win over specs and plans. Decisions are high-impact choices made b
 they change over time: see [what is a decision](references/spec.md#what-is-a-decision).
 
 An active decision is never edited before approval: changes are proposed in a `## Proposed change`
-section at the end of the file, and applied when the spec that links to them is approved.
+section at the end of the file, and applied when the spec that links to them is approved, or, for a
+change, once its round approves them: see [Change](references/change.md#decisions).
 
 Templates for every file are in `assets/templates/specs/`, at the same paths. A filled-in example,
 for a todo app, is in `assets/example/specs/`: `2026-10-06-recurring-tasks/` is the model of every
@@ -165,7 +166,9 @@ feedback asking for options, a plan or implementation blocked by something the s
 not allow. Never work around it, and never leave it as a note only: start a new round. Write
 `discovery-NN.md` and `clarifications-NN.md` with the next number, following
 [Discovery](references/discovery.md), in the same commit. The new questions wait for the human like
-the first ones, and the spec is amended once they are answered.
+the first ones, and the spec is amended once they are answered. A change's round differs: it has no
+discovery file, and a new decision there is an offer to upgrade: see
+[Change](references/change.md#asking).
 
 ### Coming back to the human
 

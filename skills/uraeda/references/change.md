@@ -33,27 +33,17 @@ A change's folder is `specs/changes/YYYY-MM-DD-<slug>/`. It holds `proposal.md`,
 
 ## Starting a change
 
-Only when a human asks. A change starts like a feature (see
-[Projects](projects.md#starting-postponing-and-dropping-a-feature)), with its own names:
-
-- **In the web UI**: "New change", in the sidebar. The human types the request, whose first line is
-  the title, and starts it: the change's branch, worktree, proposal, and entry in **Now** are
-  created, and its session's agent runs at once.
-- **With `ura`**: `ura start <draft> --slug <slug> --change` starts a draft as a change, and prints
-  `Next: change`.
-- **By hand**: on the default branch, move the draft's entry to the end of **Now** as a link to
-  `/specs/changes/YYYY-MM-DD-<slug>/proposal.md`, and commit `chore(<slug>): start <title>`. Create
-  the branch `change/YYYY-MM-DD-<slug>` from there, checked out in `.worktrees/YYYY-MM-DD-<slug>/`.
-  On it, move the draft unchanged to `specs/changes/YYYY-MM-DD-<slug>/proposal.md`, with its images,
-  and commit `chore(<slug>): proposal`.
+Only when a human asks. A change starts like a feature, with its own names, from the web UI's "New
+change", with `ura start <draft> --slug <slug> --change`, or by hand: see **Start as a change** in
+[Projects](projects.md#starting-postponing-and-dropping-a-feature).
 
 **From a chat on the main checkout**, a request for a code change is offered as a change, not
 committed to the default branch. Answer with what you would start: the draft's title, its text in
 the human's own words, and the slug. Ask whether to start it as a change, and change no file before
 the human says yes. On yes, commit the draft on the default branch, `chore: draft <title>`, and
-start it with `ura start <draft> --slug <slug> --change`, or by hand. Then say to open `/f/<folder>`
-in the web UI, where the change's own session runs: the chat stays a chat. Typos, formatting, and
-comments stay in the chat, made there as before.
+start it as [Projects](projects.md#starting-postponing-and-dropping-a-feature) says. Then say to
+open `/f/<folder>` in the web UI, where the change's own session runs: the chat stays a chat. Typos,
+formatting, and comments stay in the chat, made there as before.
 
 ## Finding the step
 
@@ -75,10 +65,10 @@ and run the first row that matches.
 Without `gh`, `ura` cannot see the pull request, and names `change` until the record exists: check
 the pull request yourself.
 
-**Resuming**: the commits are the only progress. Read the proposal, the answered rounds,
-`rulings.md`, and `git log` on the branch: each item committed is done, and its commit's body says
-what was found. Changes left uncommitted by an interrupted session are not trusted: read them, and
-redo that item. The proposal is read as it is now: the human may have edited it between two runs.
+**Resuming** works as the implementation step's [resuming](implementation.md#before-the-first-task)
+says, an item standing for a task. Read the proposal, the answered rounds, `rulings.md`, and
+`git log` on the branch: each item committed is done, and its commit's body says what was found. The
+proposal is read as it is now: the human may have edited it between two runs.
 
 ## Investigating
 
@@ -139,8 +129,9 @@ decision is a reason to upgrade.
 1. **Propose it.** In the same commit as the round, add a `## Proposed change (<folder>)` section at
    the end of the decision, as the spec step's
    [new decision or change](spec.md#new-decision-or-change) describes, with every rule as it would
-   read after the change. The round asks to approve it, with "A (recommended). Approve the change"
-   first, before any pull request.
+   read after the change. A change has no spec and no discovery file: who proposes it links the
+   change's proposal, and its why links the round's question. The round asks to approve it, with "A
+   (recommended). Approve the change" first, before any pull request.
 2. **On "A"**, rewrite the decision with the proposed change and remove the section, as
    [approval](approval.md#apply-the-decisions) does, set `approved-by` to the human, and commit
    `decision(<slug>): apply <topic>`. Then continue.
@@ -160,20 +151,36 @@ Some changes need more than the light flow allows. Offer to make the change a fe
 
 The size of the diff is never a reason: it goes in the pull request.
 
-Ask in a round, with the question "Make this change a feature?". Its context names the reason, "It
-changes the format of `PRIORITIES.md`, which every project has", and option A is the upgrade. When
-one item of a batch needs it, the round offers to split that item out instead.
+Ask in a round, with the question "Make this change a feature?". Its context names the reason, such
+as "It changes the format of `PRIORITIES.md`, which every project has", and option A is the upgrade.
+When one item of a batch needs it, the round offers to split that item out instead.
 
 - **On "A"**: the folder is postponed, as a feature's is
-  ([Projects](projects.md#starting-postponing-and-dropping-a-feature)). First, one commit reverts
-  the code the branch has committed, so the merge brings only the folder. Then, in the branch's last
-  commit, move the folder to `specs/drafts/<slug>/`, its files unchanged, and relink **Now**'s entry
-  to `drafts/<slug>/proposal.md`: `chore(<slug>): upgrade to a feature`. Merge the branch into the
-  default branch. The human starts the draft as a feature, and `ura clean` removes the branch and
-  its worktree.
+  ([Projects](projects.md#starting-postponing-and-dropping-a-feature)).
+  1. One commit reverts what the branch committed outside the folder, so the merge brings only the
+     folder: the code commits, with their rulings and screenshots, and every
+     `decision(<slug>): apply <topic>` commit, since the human approved that change for this change
+     only, and the feature proposes it again. Revert them with `git revert --no-commit`, newest
+     first, and commit `revert(<slug>): undo the change before its upgrade`, its body listing the
+     reverted commits.
+  2. The branch's last commit moves the folder to `specs/drafts/<slug>/`, its files unchanged,
+     removes the `## Proposed change (<folder>)` sections the change added, the ones the revert
+     brought back included, and relinks **Now**'s entry to `drafts/<slug>/proposal.md`:
+     `chore(<slug>): upgrade to a feature`.
+  3. Merge the branch into the default branch. The human starts the draft as a feature, and
+     `ura clean` removes the branch and its worktree.
+
+  The started feature has an answered round and no discovery file, so its first step is the
+  [spec](spec.md#is-the-scope-clear): it reads the change's rounds, which settled the change, not
+  the feature's scope, and starts a new round, with its discovery file, at the proposal's
+  [discovery effort](discovery.md#discovery-effort).
+
 - **On "A", for one item of a batch**: on the default branch, write that item's text as
-  `specs/drafts/<slug>.md`, add it under the change's entry in **Now**, and commit. Make the other
-  items.
+  `specs/drafts/<item-slug>.md`, add its entry on the line after the change's entry in **Now**, not
+  nested under it, and commit `chore: draft <Name>`. Then make the other items. Finish removes the
+  change's entry with its nested lines, and the
+  [catch-up](implementation.md#catch-up-with-the-default-branch) brings the draft's line into the
+  branch before it, so the draft's entry stays.
 - **On another answer**: keep the change within that answer, or stop if it leaves nothing to do, and
   say so in the session.
 
@@ -181,8 +188,9 @@ When the merge into the default branch conflicts, stop and say so in the session
 
 ## Making the change
 
-Run the project's validation once, before any change: a failure already there is reported in the
-pull request, not fixed in passing. Then make the change one item at a time, one commit per item:
+Run the project's validation once, before any change, as the implementation step does
+[before the first task](implementation.md#before-the-first-task). Then make the change one item at a
+time, one commit per item:
 
 - **Tests first.** A test fails first for the bug or the new behaviour, for the intended reason: the
   proposal's expected behaviour stands for a spec's acceptance scenarios. Checks of preserved
@@ -209,16 +217,12 @@ midway, ask in a round: the items already committed stay.
 ## The review
 
 Once every item is committed, catch up with the default branch, as the implementation step's
-[catch-up](implementation.md#catch-up-with-the-default-branch) describes. Then give one fresh
-reviewer agent, on the most capable model available, the whole diff since the branch started, the
-proposal, its answered rounds, and `rulings.md`. It reviews as in
-[review the branch](implementation.md#review-the-branch), the proposal standing for the spec, and
-lists each function and file the branch grew, with its length before and after. Without a reviewer
-agent, review the branch yourself as a separate pass, and say so in the pull request.
-
-Fix the critical and important findings, each behaviour fix with a test that fails first, in commits
-with the change's scope. List the minor ones in the pull request. Then push the branch, and open its
-pull request as a draft, with `gh pr create --draft`.
+[catch-up](implementation.md#catch-up-with-the-default-branch) describes. Then review the branch,
+open its draft pull request, and run the finish step, as
+[review the branch](implementation.md#review-the-branch) describes, with what differs for a change:
+the reviewer is given the proposal and its answered rounds in place of the spec and the plan, and
+there were no per-item reviews before it, so this one review is the change's only one. Fixes use the
+change's scope.
 
 ## The pull request
 
@@ -238,20 +242,34 @@ in this order:
 8. **Minor findings** of the review.
 9. **Last line**: "Once merged, run `ura clean` to remove the worktree and the branch."
 
-Changes requested on the pull request are handled as for a feature: see
+Changes requested on the pull request are handled as for a feature, as
 [implementation](implementation.md#changes-requested-on-the-pull-request) and
-[finish](finish.md#changes-asked-on-the-pull-request).
+[finish](finish.md#changes-asked-on-the-pull-request) say, with what differs for a change:
+
+- **The record and `rulings.md` stand for the spec and the plan.** A change applied directly updates
+  the record, as for a feature. When the folder is brought back, the record's changes noted before
+  the revert go into `rulings.md`, one ruling each, since the proposal stays the human's words: the
+  next record lists them under **Changes after approval**.
+- **A new question** is a round as in [Asking](#asking): `clarifications-NN.md` alone, with no
+  discovery file.
+- **A new decision** is the [upgrade](#upgrading) offer, and a change to an active decision is
+  proposed as in [Decisions](#decisions).
+- **Once the round is answered**, the pull request is still a draft, so the table names finish:
+  first make the change from the answers, as in [Making the change](#making-the-change), and review
+  it, then finish.
 
 ## Red flags
 
-| Thought                                                   | Reality                                                               |
-| --------------------------------------------------------- | --------------------------------------------------------------------- |
-| "The fix is obvious, the test can come after"             | A fix without a failing test hides the bug. Reproduce it first.       |
-| "I'll write an assessment so the human can check my plan" | The pull request is the review. Settled points go in its description. |
-| "This decision is in the way, I'll work around it"        | Propose the change to the decision, and ask in a round.               |
-| "It is a new field in the file, but a small one"          | Data users already have is an upgrade, whatever its size.             |
-| "The diff is big, I'll stop and ask"                      | Size is never a stop: list it in the pull request.                    |
-| "One more fix and it will pass"                           | After three failed fixes the approach is wrong: offer the upgrade.    |
+| Thought                                                   | Reality                                                                       |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| "The fix is obvious, the test can come after"             | A fix without a failing test hides the bug. Reproduce it first.               |
+| "I'll write an assessment so the human can check my plan" | The pull request is the review. Settled points go in its description.         |
+| "This decision is in the way, I'll work around it"        | Propose the change to the decision, and ask in a round.                       |
+| "It is a new field in the file, but a small one"          | Data users already have is an upgrade, whatever its size.                     |
+| "The diff is big, I'll stop and ask"                      | Size is never a stop: list it in the pull request.                            |
+| "One more fix and it will pass"                           | After three failed fixes the approach is wrong: offer the upgrade.            |
+| "It's a small fix, I'll commit it to main from the chat"  | Offer it as a change: its branch, its tests, and its pull request.            |
+| "I'll write a discovery file for this round"              | A change's round is `clarifications-NN.md` alone: findings go in its Context. |
 
 ## Commit
 
@@ -260,5 +278,7 @@ Changes requested on the pull request are handled as for a feature: see
 - **A decision's change, applied**: `decision(<slug>): apply <topic>`.
 - **Code**: `fix(<slug>): <what changed>` for a bug, `feat(<slug>): <what changed>` for a change,
   and `refactor(<slug>):` for a structural commit, each with its tests and its body.
-- **The upgrade**: `chore(<slug>): upgrade to a feature`.
+- **The upgrade**: `revert(<slug>): undo the change before its upgrade`, when the branch committed
+  outside the folder, then `chore(<slug>): upgrade to a feature`.
+- **A split-out item**: `chore: draft <Name>`, on the default branch.
 - **The record**: `finish(<slug>): <title>`, as the [finish](finish.md) step says.

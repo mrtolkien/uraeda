@@ -21,16 +21,17 @@ keeps every file of the folder, and `git log -- specs/<folder>/` finds them, or
 
 Find the state of the branch in this table, and start at its step:
 
-| State of the branch                                    | Start at                                                                  |
-| ------------------------------------------------------ | ------------------------------------------------------------------------- |
-| Every step is checked, and there is no pull request    | The [final review](implementation.md#final-review), then the next row     |
-| Every step is checked, and the pull request is a draft | [Write the record](#write-the-record): the final review is done           |
-| The record, and the pull request is a draft            | [Mark the pull request ready](#mark-the-pull-request-ready)               |
-| The record, and no pull request                        | [Open the pull request](#open-the-draft-pull-request), then mark it ready |
+| State of the branch                                                               | Start at                                                                  |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Every step is checked, and there is no pull request                               | The [final review](implementation.md#final-review), then the next row     |
+| Every step is checked, or the change is reviewed, and the pull request is a draft | [Write the record](#write-the-record): the final review is done           |
+| The record, and the pull request is a draft                                       | [Mark the pull request ready](#mark-the-pull-request-ready)               |
+| The record, and no pull request                                                   | [Open the pull request](#open-the-draft-pull-request), then mark it ready |
 
-For a change, the first row is [the review](change.md#the-review). With `ura`, `ura next` names the
-step, `finish` for every row but the first. Without `gh`, it cannot see the pull request, and names
-`pull-request` once the record is there: check the pull request yourself.
+For a change, the first row is [the review](change.md#the-review), and the second its draft pull
+request. With `ura`, `ura next` names the step, `finish` for every row but the first. Without `gh`,
+it cannot see the pull request, and names `pull-request` once the record is there: check the pull
+request yourself.
 
 ## Open the draft pull request
 
@@ -123,7 +124,8 @@ A change that needs a new round of questions brings the folder back:
    it.
 2. `git revert` the finishing commit. When later commits changed the record, git stops on a conflict
    over it: delete the record, and continue the revert.
-3. In the next commit, carry the changes you noted into the spec and the plan.
+3. In the next commit, carry the changes you noted into the spec and the plan; for a change, see
+   [its pull request](change.md#the-pull-request).
 4. Turn the pull request back into a draft, with `gh pr ready --undo`.
 5. Start the round, following
    [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
