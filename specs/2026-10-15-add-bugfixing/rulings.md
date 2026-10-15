@@ -145,3 +145,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: change the fixture or the binding; the start's behaviour is unchanged.
 - **Where**: task 5, `crates/core/tests/actions.rs`, `crates/core/src/api/start.rs`,
   `crates/lsp/src/commands.rs`.
+
+## R10: A finished item's pull request is read in its view
+
+- **Decision**: `FeatureView::new` reads the `pull-request` field of the item's record, through
+  `Feature::file(FileKind::Record)` and its text. `workspace.rs` is not modified.
+- **Rationale**: `workspace.rs` is at its `LARGE` size of 967 lines and may not grow. The record's
+  text is already on the `Feature`, and only the view needs the URL.
+- **Alternatives considered**: a `Feature::pull_request` method or field in `workspace.rs`, which
+  grows the file past its listed size.
+- **If wrong**: move the reading to a module of `workspace`; the field's value is unchanged.
+- **Where**: task 6, `crates/core/src/view/feature.rs`.

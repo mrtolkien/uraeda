@@ -673,8 +673,9 @@ git commit -m "feat(add-bugfixing): start a change from a draft or a typed text"
 
 **Files:**
 
-- Modify: `crates/core/src/view/feature.rs` (`FeatureView`, moved there by Task 1),
-  `crates/core/src/workspace.rs` (the record's `pull-request`)
+- Modify: `crates/core/src/view/feature.rs` (`FeatureView`, moved there by Task 1, and the record's
+  `pull-request`, read there: see
+  [R10](rulings.md#r10-a-finished-items-pull-request-is-read-in-its-view))
 - Regenerate: `packages/binding/index.js`, `index.d.ts`
 - Modify: `packages/server/src/fate/views.ts`, `packages/web/src/views.ts` (`pullRequest` selected)
 - Test: `crates/core/tests/workspace.rs`
@@ -684,25 +685,25 @@ git commit -m "feat(add-bugfixing): start a change from a draft or a typed text"
 - Produces: `FeatureView.pull_request: Option<String>` (`pullRequest: string | null` in TypeScript).
   It is the record's `pull-request` URL when the item is finished, else `None`.
 
-- [ ] **Step 1: Write the failing test**: `a_finished_items_view_carries_its_pull_request`: a record
+- [x] **Step 1: Write the failing test**: `a_finished_items_view_carries_its_pull_request`: a record
       with `pull-request: https://github.com/o/r/pull/31` gives
       `Some("https://github.com/o/r/pull/31")`; one without the field, and an unfinished item, give
       `None`.
 
 The break it catches: the URL read from the wrong field, or kept for an unfinished item.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `cargo nextest run -p uraeda-core pull_request`
 - Expected: FAIL, `no field pull_request`.
 
-- [ ] **Step 3: Implement the field**, and select it in the server's and the web UI's views.
-- [ ] **Step 4: Run the checks**
+- [x] **Step 3: Implement the field**, and select it in the server's and the web UI's views.
+- [x] **Step 4: Run the checks**
 
 - Run: `vp run binding:build && vp run ready:rust && vp run ts:check`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages

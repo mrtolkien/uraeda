@@ -271,6 +271,7 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
   missing: true,
   mockups: true,
   problems: true,
+  pullRequest: true,
   session: true,
   slug: true,
   source: true,
