@@ -1,11 +1,10 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { useFateClient } from "react-fate";
 import type { QuestionItem } from "uraeda-binding";
 import { refusal } from "./errors.ts";
 import { useTextField } from "./fields/useTextField.ts";
 import { useCommentSaves } from "./QuestionComment.tsx";
+import { RoundHash, type RoundTarget, useRoundWrites } from "./roundTarget.ts";
 import { useSave } from "./useSave.ts";
-import { FileView } from "./views.ts";
 
 /** Where questions put what they still have to save, so Submit saves it first. */
 export const PendingSaves = createContext<Set<() => Promise<boolean>>>(new Set());
@@ -40,10 +39,10 @@ const sameLetters = (a: ReadonlyArray<string>, b: ReadonlyArray<string>) =>
  * comment is a field of the unsaved store, `<path>#<id>`, over the comment the file holds: a tap on
  * an option or "Does not apply" saves at once with the comment as saved, the comment typed saves
  * with its button or Ctrl+Enter, its images at once with the text as typed, and Submit what is
- * still unsaved.
+ * still unsaved. `target` is the round the answer is written in, a feature's or the triage.
  */
-export function useAnswer(question: QuestionItem, folder: string, path: string) {
-  const fate = useFateClient();
+export function useAnswer(question: QuestionItem, target: RoundTarget, path: string) {
+  const writes = useRoundWrites(target, useContext(RoundHash));
   const field = useTextField(`${path}#${question.id}`, question.comment);
   const [letters, setLetters] = useState<ReadonlyArray<string>>(question.letters);
   // The letters as last picked, and the comment as last saved or read, for the saves, which run
@@ -51,15 +50,11 @@ export function useAnswer(question: QuestionItem, folder: string, path: string) 
   const picked = useRef<ReadonlyArray<string>>(question.letters);
   const savedComment = useRef(question.comment);
   const run = async (value: Answer, previous: string) => {
-    const result = await fate.mutations.answer.save({
-      input: {
-        comment: value.comment,
-        folder,
-        letters: [...value.letters],
-        previous,
-        question: question.id,
-      },
-      view: FileView,
+    const result = await writes.answer({
+      comment: value.comment,
+      letters: [...value.letters],
+      previous,
+      question: question.id,
     });
     if (result.error) {
       return { message: refusal(result.error).message, ok: false as const };

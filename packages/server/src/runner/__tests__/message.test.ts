@@ -1,5 +1,13 @@
 import { expect, test } from "vite-plus/test";
-import { chatOpening, chatTitle, retryMessage, runMessage, toolTarget } from "../message.ts";
+import {
+  APPLY_TRIAGE,
+  chatOpening,
+  chatTitle,
+  ORGANIZE_INBOX,
+  retryMessage,
+  runMessage,
+  toolTarget,
+} from "../message.ts";
 
 test.each<[string, Record<string, unknown>, string | undefined]>([
   ["Bash", { command: "vp run ready", description: "Run the checks" }, "vp run ready"],
@@ -125,4 +133,14 @@ test.each<[string, string]>([
 test('a chat of text and images is titled by its text, and of images alone "Image"', () => {
   expect(chatTitle("What is wrong here?", true)).toBe("What is wrong here?");
   expect(chatTitle(" \n", true)).toBe("Image");
+});
+
+/** US4 1 and 3 of the inbox: the skill's inbox reference answers these two messages. */
+test("the inbox's triage messages", () => {
+  expect(ORGANIZE_INBOX).toBe(
+    "/uraeda:uraeda Organize the inbox, specs/INBOX.md: propose a triage in specs/INBOX-TRIAGE.md, following references/inbox.md. Stop when the triage waits for my answers.",
+  );
+  expect(APPLY_TRIAGE).toBe(
+    "/uraeda:uraeda Apply my answers in specs/INBOX-TRIAGE.md, following references/inbox.md.",
+  );
 });

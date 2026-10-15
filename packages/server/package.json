@@ -9,7 +9,8 @@
     "./dev": "./src/dev.ts",
     "./testing": "./src/testing.ts",
     "./limits": "./src/limits.ts",
-    "./paths": "./src/paths.ts"
+    "./paths": "./src/paths.ts",
+    "./triage-messages": "./src/runner/triage-messages.ts"
   },
   "scripts": {
     "start": "node src/main.ts"

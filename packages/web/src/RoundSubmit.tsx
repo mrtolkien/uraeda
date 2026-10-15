@@ -5,7 +5,7 @@ import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
 import { typeScaleVars, typographyVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type RefObject, useRef, useState } from "react";
+import { type RefObject, useContext, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { QuestionItem } from "uraeda-binding";
 import { CommitActions } from "./CommitActions.tsx";
@@ -16,6 +16,8 @@ import { Paragraph } from "./layout/Paragraph.tsx";
 import { statusStyles } from "./Question.tsx";
 import { jumpTo } from "./RoundNav.tsx";
 import { NOTES_CHANGED, NotesField, type useRoundNotes } from "./RoundNotes.tsx";
+import { isTriage, RoundHash, type RoundTarget, useRoundWrites } from "./roundTarget.ts";
+import { navigateHere } from "./routes.tsx";
 import { handOver } from "./sessions.ts";
 import { useSaveSettled } from "./SettledPoints.tsx";
 import { FileView } from "./views.ts";
@@ -32,20 +34,23 @@ const styles = stylex.create({
   },
 });
 
-/** A hook's refusal: the answers are saved, the commit is not, and it can be tried again. */
+/**
+ * A hook's refusal: the answers are saved, the commit is not, and, with `onRetry`, it can be tried
+ * again.
+ */
 export function HookRefusal({
   error,
   onRetry,
   what,
 }: {
   error: Refusal;
-  onRetry: () => Promise<void>;
+  onRetry?: () => Promise<void>;
   what: string;
 }) {
   return (
     <Banner
       collapsible={false}
-      endContent={<Button clickAction={onRetry} label="Try again" />}
+      endContent={onRetry && <Button clickAction={onRetry} label="Try again" />}
       status="error"
       title={`The pre-commit hook refused the commit. ${what}`}
     >
@@ -60,11 +65,18 @@ export function HookRefusal({
  * A round's submit: what is still being typed is saved first, the notes, every save in `pending`,
  * then the settled points' comments, and nothing is submitted unless it all is. `next` hands the
  * feature over to the agent once the round is committed; a hook's refusal is tried again with
- * `retry`.
+ * `retry`. The triage, submitted, goes back to the inbox, which offers to apply it; its hook's
+ * refusal has no `retry`, as the core commits it only from the submit.
  */
-export function useRoundSubmit(file: File, notes: Notes, pending: Set<() => Promise<boolean>>) {
+export function useRoundSubmit(
+  file: File,
+  notes: Notes,
+  pending: Set<() => Promise<boolean>>,
+  target: RoundTarget,
+) {
   const fate = useFateClient();
   const saveSettled = useSaveSettled(file);
+  const writes = useRoundWrites(target, useContext(RoundHash));
   const [error, setError] = useState<Refusal>();
   // Whether the last commit asked to start the agent, for its Try again.
   const continues = useRef(false);
@@ -83,12 +95,11 @@ export function useRoundSubmit(file: File, notes: Notes, pending: Set<() => Prom
       });
       return;
     }
-    const result = await fate.mutations.answers.submit({
-      input: { file: file.name, folder: file.folder },
-      view: FileView,
-    });
+    const result = await writes.submit(file.name);
     if (result.error) {
       setError(refusal(result.error));
+    } else if (isTriage(target)) {
+      navigateHere("/inbox");
     } else if (next) {
       proceed();
     }
@@ -103,7 +114,7 @@ export function useRoundSubmit(file: File, notes: Notes, pending: Set<() => Prom
       proceed();
     }
   };
-  return { error, retry, submit };
+  return { error, retry: isTriage(target) ? undefined : retry, submit };
 }
 
 /** The questions left blank, each a link that jumps to it. */
@@ -148,6 +159,7 @@ export function RoundEnd({
   pending,
   readOnly,
   submitRow,
+  target,
 }: {
   blank: ReadonlyArray<QuestionItem>;
   end: RefObject<HTMLDivElement | null>;
@@ -156,8 +168,9 @@ export function RoundEnd({
   pending: Set<() => Promise<boolean>>;
   readOnly: boolean;
   submitRow: RefObject<HTMLDivElement | null>;
+  target: RoundTarget;
 }) {
-  const { error, retry, submit } = useRoundSubmit(file, notes, pending);
+  const { error, retry, submit } = useRoundSubmit(file, notes, pending, target);
   if (readOnly) {
     const unsaved = notes.field.entry;
     return (
@@ -188,7 +201,17 @@ export function RoundEnd({
         error && <span {...stylex.props(statusStyles.error)}>{error.message}</span>
       )}
       <div ref={submitRow}>
-        <CommitActions isDisabled={blank.length > 0} label="Submit answers" onCommit={submit} />
+        {isTriage(target) ? (
+          // The triage hands nothing over: the inbox offers to apply it.
+          <Button
+            clickAction={() => submit(false)}
+            isDisabled={blank.length > 0}
+            label="Submit answers"
+            variant="primary"
+          />
+        ) : (
+          <CommitActions isDisabled={blank.length > 0} label="Submit answers" onCommit={submit} />
+        )}
       </div>
     </VStack>
   );

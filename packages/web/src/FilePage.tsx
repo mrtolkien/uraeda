@@ -35,7 +35,7 @@ export function FilePage({ folder, name }: { folder: string; name: string }) {
     );
   }
   if (file.kind === "clarifications") {
-    return <RoundPage file={file} />;
+    return <RoundPage file={file} target={{ folder }} />;
   }
   const reviewed = ["spec", "plan"].includes(file.kind);
   if (reviewed && file.status === "awaiting-human") {
