@@ -107,6 +107,9 @@ through Tailscale, with a laxer `Origin` rule on the preview's paths
 [the spec](../2026-10-15-ui-iteration/spec.md)). A frame sandboxed without `allow-same-origin` sends
 `Origin: null`, which every write and every other route still refuses
 ([running untrusted UI](../2026-10-15-ui-iteration/discovery-02.md#running-untrusted-ui-next-to-a-host)).
+Any page can send `Origin: null` too, so the human kept these rules only until basic security
+([round 03](../2026-10-15-ui-iteration/clarifications-03.md#q1-how-do-previews-stay-out-of-other-websites-reach),
+[basic security](../drafts/basic-security.md)).
 
 ## Alternatives considered
 
@@ -145,8 +148,9 @@ through Tailscale, with a laxer `Origin` rule on the preview's paths
   both reach it.
 - The server runs project code, the preview command a human approved in the project's decision, and
   forwards its traffic.
-- Anyone who reaches the server reaches the previews it runs, as for the rest of the server, until
-  basic security is added.
+- Anyone who reaches the server, and any website open in the human's browser, can read the previews
+  it runs and open Storybook's channel, until basic security is added: any page can send
+  `Origin: null`.
 - A story's code can read any path under `/r/<repository>/preview/`, of any checkout, but nothing
   else of the server.
 
@@ -155,65 +159,3 @@ through Tailscale, with a laxer `Origin` rule on the preview's paths
 - [`crates/`](/crates/) and [`packages/`](/packages/), and every feature that adds logic, a command,
   an endpoint, or a page
 - [`editors/`](/editors/), and every feature that adds an editor integration
-
-## Proposed change (2026-10-15-ui-iteration)
-
-Proposed by the [spec](../2026-10-15-ui-iteration/spec.md). The rules do not change: one consequence
-names who reaches the previews more precisely, as its third round of questions found.
-
-The rules become:
-
-- Workflow logic, parsing, validation, and workflow states MUST live in the Rust core,
-  [`crates/core`](/crates/core/). Checked by review.
-- The CLI MUST be written in Rust, in [`crates/cli`](/crates/cli/), build the binary `ura`, and MUST
-  NOT need Node or any other runtime to run. Checked by review.
-- The server MUST be written in TypeScript, run on Node, and live in
-  [`packages/server`](/packages/server/). Checked by review.
-- TypeScript code MUST reach the core only through the binding,
-  [`packages/binding`](/packages/binding/), and MUST NOT reimplement its parsing, validation, or
-  states. Checked by review.
-- The TypeScript types of core data MUST come from the declarations napi-rs generates for the
-  binding. They MUST NOT be redeclared by hand in TypeScript. Checked by review.
-- The web UI MUST use React and Astryx components, live in [`packages/web`](/packages/web/), and get
-  its data only from the server, through fate. Checked by review.
-- The web UI MUST draw workflow files from the document tree the core sends, and MUST NOT parse
-  their markdown, with a library or by hand. It MAY render an agent's messages, which are not
-  workflow files, with Astryx's `Markdown` component. Checked by review.
-- The server MUST listen on 127.0.0.1 only. It MUST reject requests whose `Host` is not `127.0.0.1`
-  or `localhost` on its port, or a host name listed in `URAEDA_ALLOWED_HOSTS`. It MUST reject
-  requests whose `Origin`, when present, is not the server's own, `https://` and a listed host name,
-  or an allowed origin, except GET and HEAD requests and WebSocket upgrades under
-  `/r/<repository>/preview/`, which MAY carry `Origin: null`. Checked by the guard's tests.
-- The server MAY start the command of a project's active [preview](preview.md) decision, read from a
-  checkout, in that checkout, bound to 127.0.0.1 on a free port. It MUST forward only that process's
-  GET and HEAD requests and WebSocket upgrades, under `/r/<repository>/preview/<folder>/`, with
-  `Access-Control-Allow-Origin: *` and a `Content-Security-Policy` of
-  `sandbox allow-scripts allow-popups` on every response. It MUST stop the process when the server
-  stops. Checked by the preview proxy's and runner's tests.
-- The web UI MAY show a preview's pages only in frames sandboxed without `allow-same-origin`. It
-  MUST accept messages only from those frames' windows, and MUST NOT give a frame any data beyond
-  the story to show, its colour mode, and whether pick mode is on. Checked by the embed's tests.
-- The language server MUST live in `crates/lsp`, run as `ura lsp` over stdio, and reach workflow
-  files only through the core. Checked by review.
-- The language server MUST be built on the `lsp-server` and `lsp-types` crates, without an async
-  runtime. Checked by review.
-- Editor plugins MUST live in `editors/<editor>/`, and MUST reach workflow files only through
-  `ura lsp`. They MUST NOT parse workflow files, their frontmatter, or their structure, with a
-  library or by hand. Checked by review.
-- The language server's completions and code actions MUST only edit the open document. Actions that
-  write another file or commit MUST be commands the user runs explicitly, never code actions.
-  Checked by review.
-
-Why: any web page can send `Origin: null` by creating a sandboxed frame, so the preview paths are
-open to any website in the human's browser, not only to who reaches the server. The human kept the
-rules until basic security
-([round 03](../2026-10-15-ui-iteration/clarifications-03.md#q1-how-do-previews-stay-out-of-other-websites-reach),
-[the hole](../2026-10-15-ui-iteration/discovery-03.md#summary)), which the
-[basic security draft](../drafts/basic-security.md) holds.
-
-The consequence "Anyone who reaches the server reaches the previews it runs, as for the rest of the
-server, until basic security is added" becomes:
-
-- Anyone who reaches the server, and any website open in the human's browser, can read the previews
-  it runs and open Storybook's channel, until basic security is added: any page can send
-  `Origin: null`.
