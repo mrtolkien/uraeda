@@ -243,3 +243,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   builder neither Vite nor webpack, such as Rsbuild, starts and fails in the frame. The list is one
   constant of the helper, with its tests.
 - **Where**: task 3, `skills/uraeda/assets/storybook/uraeda-preview.js`.
+
+## R19: A stopped runner fails every view, and starts nothing
+
+- **Decision**: once `stopAll` ran, `view` and `restart` return
+  `{ state: "failed", error: "Storybook is not running for this branch." }`, record nothing, and
+  start no process; `state` stays undefined.
+- **Rationale**: a request that reaches the server while it stops would otherwise start a Storybook
+  that nothing stops. `view` and `restart` return a `PreviewState`, so a failed state keeps their
+  type, and the spec's own sentence for a Storybook that does not run says why, with no new text.
+- **Alternatives considered**: returning undefined, which widens both signatures for every caller; a
+  new sentence for a stopping server, which the spec does not have.
+- **If wrong**: a request racing the server's stop sees "Storybook is not running for this branch."
+  instead of "Starting Storybook for this branch…", and the next server starts it.
+- **Where**: task 4's review, `packages/server/src/preview/runner.ts`.

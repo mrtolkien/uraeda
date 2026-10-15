@@ -15,8 +15,8 @@
 // - `/__events`: a first chunk, then held open.
 //
 // Its modes: `ok`; `fail`, which prints `Error: Cannot find module 'storybook'` and exits 1; `hang`,
-// which never answers `/index.json`; `bad-index`, which serves `not json` as the index; `no-pick`,
-// without the pick script. `--delay` waits before listening. A taken port prints
+// which never answers `/index.json`; `hang-later`, which answers it once, then never again;
+// `bad-index`, which serves `not json` as the index; `no-pick`, without the pick script. `--delay` waits before listening. A taken port prints
 // `Port <port> is not available` and exits 1.
 
 import { createHash } from "node:crypto";
@@ -135,7 +135,7 @@ const server = createServer((request, response) => {
   const path = url.pathname;
   if (path === "/index.json") {
     indexReads += 1;
-    if (mode === "hang") {
+    if (mode === "hang" || (mode === "hang-later" && indexReads > 1)) {
       return;
     }
     const body = mode === "bad-index" ? "not json" : JSON.stringify(storyIndex());

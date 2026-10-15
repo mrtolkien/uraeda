@@ -1,10 +1,16 @@
 // The runner on the fake preview, with a clock the test moves: `previews()` stops what it started
 // after each test.
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:net";
 import { join } from "node:path";
 import { expect, onTestFinished, test } from "vite-plus/test";
-import { addPreview, fixtureRepo, git, previewStarts } from "uraeda-binding/test-utils";
+import {
+  addPreview,
+  fixtureRepo,
+  git,
+  previewStarts,
+  temporaryFolder,
+} from "uraeda-binding/test-utils";
 import { freePort, type PreviewState } from "../runner.ts";
 import { alive, checkoutOf, fakeClock, previews, ready, storyCheckout, WAIT } from "./helpers.ts";
 
@@ -269,4 +275,46 @@ test("a state change is told", async () => {
     [checkout.base, "ready"],
     [checkout.base, undefined],
   ]);
+});
+
+test("a command that exits by itself leaves no process of its group behind (SC-005)", async () => {
+  const dir = temporaryFolder("uraeda-preview");
+  const pidFile = join(dir, "grandchild.pid");
+  // The shell starts a process that keeps none of its output, and exits at once.
+  const command = `sleep 600 > /dev/null 2>&1 & echo $! > ${pidFile}; echo gone`;
+  const runner = previews();
+
+  runner.view({ base: "/r/repo/preview/main/", command, dir, folder: "." });
+
+  await expect
+    .poll(() => runner.state("/r/repo/preview/main/"), WAIT)
+    .toEqual({ error: "Storybook did not start: gone", state: "failed" });
+  expect(existsSync(pidFile)).toBe(true);
+  await expect.poll(() => alive(Number(readFileSync(pidFile, "utf8"))), WAIT).toBe(false);
+});
+
+test("a ready Storybook that holds its index open is read as no index", async () => {
+  const { checkout } = await storyCheckout({ mode: "hang-later" });
+  const runner = previews({ indexMs: 100 });
+  runner.view(checkout);
+  await ready(runner, checkout);
+
+  expect(await runner.index(checkout.base)).toBeUndefined();
+});
+
+test("once stopped, a runner starts nothing", async () => {
+  const { checkout, log } = await storyCheckout();
+  const runner = previews();
+  await runner.stopAll();
+
+  expect(runner.view(checkout)).toEqual({
+    error: "Storybook is not running for this branch.",
+    state: "failed",
+  });
+  expect(runner.restart(checkout)).toEqual({
+    error: "Storybook is not running for this branch.",
+    state: "failed",
+  });
+  expect(runner.state(checkout.base)).toBeUndefined();
+  expect(previewStarts(log)).toEqual([]);
 });
