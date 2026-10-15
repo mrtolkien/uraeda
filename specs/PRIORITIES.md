@@ -8,20 +8,19 @@
 
 - [Look and feel pass](drafts/look-and-feel.md)
 
+- [UI iteration flow](/specs/2026-10-15-ui-iteration/proposal.md)
 - [Add a "scratchpad" concept: quick notes about the system, small issues, ...](/specs/2026-10-15-add-scratchpad/proposal.md)
 
 - Settings page with selection of agent runner, config values, other run values
   - For example: does each step start with a new context or continues a "master session"? Should be
     a config flag, and able to toggle it per feature
   - Same for subagents in implementation, or review settings (command, model, count, ...)
+- [Specs, clarifications, and related files should be on main. It will be easier to see what’s actually ongoing, and if there’s no code changes there should be no issue](/specs/2026-10-15-specs-clarifications/proposal.md)
+- Review pull request management and flow
+- [Look and feel pass](drafts/look-and-feel.md)
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
-- [UI iteration flow](/specs/2026-10-15-ui-iteration/proposal.md)
-- When adding a priority from home screen on mobile we need to go to the priorities page manually to
-  commit…
-- Review pull request management and flow
-- [Specs, clarifications, and related files should be on main. It will be easier to see what’s actually ongoing, and if there’s no code changes there should be no issue](/specs/2026-10-15-specs-clarifications/proposal.md)
 
 ## Next
 
