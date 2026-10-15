@@ -187,9 +187,8 @@ Capabilities users of these products may expect, whether or not the proposal men
 - [`packages/server/src/runner/message.ts`](/packages/server/src/runner/message.ts): the prompts
   that start an agent exist only for a feature's or a bug's step. An agent that processes notes
   would need a new kind of run.
-- [`skills/uraeda/references/bug.md`](/skills/uraeda/references/bug.md): the bug flow, an
-  agent-authored draft, starts from a human's `report.md` on a `fix/` branch. No tool creates a bug
-  yet.
+- `skills/uraeda/references/bug.md`: the bug flow, an agent-authored draft, starts from a human's
+  `report.md` on a `fix/` branch. No tool creates a bug yet.
 
 ### The proposal's path and existing actions
 
@@ -222,9 +221,9 @@ Capabilities users of these products may expect, whether or not the proposal men
 
 The branch `2026-10-15-add-bugfixing` holds only its proposal: a shorter flow for bugs and small
 changes, which "should itself be able to ask the user to upgrade it to a full feature". The
-[draft](/specs/drafts/add-a-bugfixing-low-impact-change-flow.md) is still on the default branch. Its
-small changes are the "could be fixed quickly without a full dev flow" of this proposal: whichever
-lands second links to the other.
+[draft](/specs/done/2026-10-15-add-bugfixing.md) is still on the default branch. Its small changes
+are the "could be fixed quickly without a full dev flow" of this proposal: whichever lands second
+links to the other.
 
 ### Rules and their owners
 
@@ -364,7 +363,7 @@ Where a processed note goes. See [what they have in common](#what-they-have-in-c
 - A priority entry, in Now, Next, Later, or Blocked
 - A new draft, possibly gathering several notes
 - An addition to an existing draft, or to a feature in flight before its spec is approved
-- A bug report, for the [bug flow](/skills/uraeda/references/bug.md)
+- A bug report, for the bug flow, `skills/uraeda/references/bug.md`
 - A small change, for the [bugfixing feature in flight](#the-bugfixing-feature-in-flight)
 - Deleted: done already, a duplicate, or not wanted
 
