@@ -133,7 +133,9 @@ fn submitting_commits_the_answered_triage() {
         api::save_triage_answer(repo.path(), id, &letters(&[letter]), "", "").unwrap();
     }
 
-    let submitted = api::submit_triage(repo.path()).unwrap();
+    let read = api::read_triage(repo.path()).unwrap().unwrap();
+
+    let submitted = api::submit_triage(repo.path(), &read.current.document.hash).unwrap();
 
     assert_eq!(repo.subjects("main")[0], "chore: answer the inbox triage");
     assert_eq!(repo.changed_in("HEAD"), [TRIAGE]);
@@ -154,7 +156,9 @@ fn a_triage_with_blank_answers_is_not_submitted() {
     let repo = triage_repo();
     api::save_triage_answer(repo.path(), "Q1", &letters(&["A"]), "", "").unwrap();
 
-    let error = api::submit_triage(repo.path()).unwrap_err();
+    let read = api::read_triage(repo.path()).unwrap().unwrap();
+
+    let error = api::submit_triage(repo.path(), &read.current.document.hash).unwrap_err();
 
     assert_eq!(error.message, "Q2 and Q3 have no answer");
     assert_eq!(repo.subjects("main")[0], "chore: propose an inbox triage");
@@ -173,4 +177,24 @@ fn an_answered_triage_takes_no_answer() {
     let error = api::save_triage_answer(repo.path(), "Q1", &letters(&["A"]), "", "").unwrap_err();
 
     assert_eq!(error.message, "INBOX-TRIAGE.md is not waiting for answers");
+}
+
+/// A triage changed since the page read it is not submitted: the human did not see those answers.
+#[test]
+fn a_triage_changed_elsewhere_is_not_submitted() {
+    let repo = triage_repo();
+    for (id, letter) in [("Q1", "A"), ("Q2", "B")] {
+        api::save_triage_answer(repo.path(), id, &letters(&[letter]), "", "").unwrap();
+    }
+    let read = api::read_triage(repo.path()).unwrap().unwrap();
+    api::save_triage_answer(repo.path(), "Q3", &letters(&["B"]), "", "").unwrap();
+
+    let error = api::submit_triage(repo.path(), &read.current.document.hash).unwrap_err();
+
+    assert_eq!(error.code, "conflict", "{}", error.message);
+    assert_eq!(repo.subjects("main")[0], "chore: propose an inbox triage");
+    assert!(
+        repo.read(TRIAGE)
+            .starts_with("---\nstatus: awaiting-human\n")
+    );
 }

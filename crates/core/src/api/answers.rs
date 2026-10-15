@@ -15,7 +15,7 @@ pub use triage::*;
 
 fn round_name(feature: &Feature) -> Result<String> {
     let path = answer::round_path(feature)?;
-    Ok(path.rsplit('/').next().unwrap_or_default().to_string())
+    Ok(answer::name_of(&path).to_string())
 }
 
 /// Saves one answer, from the letters picked and a comment, over the answer last read.

@@ -285,7 +285,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   - The answer actions take a `RoundFile`: a `Feature`, for its latest round, or a `str`, a path
     from the top level, for `specs/INBOX-TRIAGE.md`. `answer::record` writes a round answered,
     shared by a feature's `submit` and `actions::inbox::submit_triage`, which commits it alone as
-    `chore: answer the inbox triage`.
+    `chore: answer the inbox triage`. It takes the hash of the triage the page read, `previous`, and
+    refuses with the conflict code when the file changed since, so answers the human never saw are
+    not submitted.
   - The triage's API is in `api/answers/triage.rs`, a module of the answers re-exported by them, not
     `api/triage.rs`: `api.rs` is at its `LARGE` number and cannot take a `mod` and a `pub use` line.
     Its `FileView` has the id `inbox-triage`, which the server uses as is, an empty folder, and the
@@ -298,7 +300,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
     requires.
   - The server's inbox, changes, and triage mutations are in `fate/inbox-mutations.ts`; the masked
     records the mutation files answer with, `priorities`, `draft`, and `inbox`, are in
-    `fate/masked.ts`. `inbox.toPriorities` and `inbox.toDraft` answer with the `Inbox`.
+    `fate/masked.ts`. `inbox.toPriorities` and `inbox.toDraft` answer with the `Inbox`. None calls
+    `writable`, which refuses a write to a feature an agent works on: the inbox, the triage, and the
+    drafts and backlog files `inbox.toDraft` accepts are no feature's, so it would never refuse. The
+    `text.*` mutations keep it, as they also write a feature's proposal.
   - `live.ts` sends `Inbox` and `Priorities` when either file changes, as both carry the commit
     bar's count, and the `WorkflowFile` `inbox-triage` when the inbox does.
 - **Rationale**: One home for the answer rules, as the plan asks, within the files' limits. The
