@@ -595,12 +595,26 @@ fn finishing_rows() {
             StepName::Finish,
             WaitsOn::Agent,
         ),
+        (
+            "change record, changes requested",
+            finished_record(Kind::Change),
+            PullRequest::ChangesRequested,
+            StepName::PullRequestChanges,
+            WaitsOn::Agent,
+        ),
     ];
     for (name, mut feature, pull_request, expected, waits_on) in rows {
         feature.with_pull_request(pull_request);
 
         assert_eq!(feature.step.name, expected, "{name}");
         assert_eq!(feature.step.waits_on, waits_on, "{name}");
+        if expected == StepName::PullRequestChanges {
+            let reference = match feature.kind {
+                Kind::Feature => "skills/uraeda/references/implementation.md",
+                Kind::Change => "skills/uraeda/references/change.md",
+            };
+            assert_eq!(feature.step.reference.as_deref(), Some(reference), "{name}");
+        }
     }
 }
 
