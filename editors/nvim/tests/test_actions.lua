@@ -194,7 +194,7 @@ T["a draft is committed"] = function()
   child.type_keys("\\ag")
   eq(errors(), {
     {
-      "Only drafts, backlog files, proposals, and PRIORITIES.md are committed from the editor.",
+      "Only drafts, backlog files, proposals, PRIORITIES.md, and INBOX.md are committed from the editor.",
       ERROR,
     },
   })

@@ -257,6 +257,11 @@ impl Server {
                 requests::WAITING => answer(requests::WAITING, request.params, |_: Value| {
                     requests::waiting(&self.documents)
                 }),
+                requests::INBOX_CATEGORIES => {
+                    answer(requests::INBOX_CATEGORIES, request.params, |_: Value| {
+                        requests::inbox_categories(&self.documents)
+                    })
+                }
                 method => Err(error(
                     ErrorCode::MethodNotFound,
                     format!("method not found: {method}"),

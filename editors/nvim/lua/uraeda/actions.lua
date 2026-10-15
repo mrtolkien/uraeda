@@ -166,6 +166,55 @@ function M.waiting()
   require("uraeda.pickers").waiting()
 end
 
+--- Adds the note `text` to `category`, or to the notes without one, in the default branch's
+--- `INBOX.md`, without committing, and opens the file at the note's line.
+--- @param text string
+--- @param category string?
+local function add_note(text, category)
+  local args = { text = text, category = category }
+  client().command_checkout("uraeda.note", args, function(result)
+    if result.opened and result.line then
+      pcall(vim.api.nvim_win_set_cursor, 0, { result.line, 0 })
+    end
+  end)
+end
+
+--- Asks a note's text, then picks its category among the default branch's, or none, or a new one
+--- typed, and adds it to the inbox from any buffer (US7). The categories come from the server.
+function M.note()
+  vim.ui.input({ prompt = "Note: " }, function(text)
+    if text == nil or text == "" then
+      return
+    end
+    client().request_checkout("uraeda/inboxCategories", vim.empty_dict(), function(names)
+      local choices = { { label = "No category" } }
+      for _, name in ipairs(names or {}) do
+        table.insert(choices, { label = name, name = name })
+      end
+      table.insert(choices, { label = "New category…", new = true })
+      vim.ui.select(choices, {
+        prompt = "Category",
+        kind = "uraeda_category",
+        format_item = function(choice)
+          return choice.label
+        end,
+      }, function(choice)
+        if choice == nil then
+          return
+        end
+        if not choice.new then
+          return add_note(text, choice.name)
+        end
+        vim.ui.input({ prompt = "New category: " }, function(name)
+          if name ~= nil and name ~= "" then
+            add_note(text, name)
+          end
+        end)
+      end)
+    end)
+  end)
+end
+
 --- Jumps to the next question of a round, or comment of a review (US8).
 function M.next()
   require("uraeda.marks").jump(0, 1)
@@ -266,6 +315,14 @@ M.list = {
     modes = { "n" },
     buffer_local = false,
     key = "w",
+  },
+  {
+    name = "note",
+    desc = "Uraeda: add a note to the inbox",
+    fn = M.note,
+    modes = { "n" },
+    buffer_local = false,
+    key = "o",
   },
   {
     name = "next",
