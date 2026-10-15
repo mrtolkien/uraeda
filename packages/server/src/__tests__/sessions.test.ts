@@ -4,6 +4,7 @@ import { expect, test, vi } from "vite-plus/test";
 import { chatImages } from "../attach.ts";
 import type { AgentEvent } from "../runner/events.ts";
 import { imagesInUse } from "../runner/image-uses.ts";
+import { ChatImages } from "../runner/images.ts";
 import { addChange, byId, type Data, fixture, git, mutate, testServer } from "./helpers.ts";
 
 /** Waits on an agent, at step `plan`. */
@@ -905,6 +906,60 @@ test("change.start answers with the started change when its first run cannot be 
     `uraeda: ${started.data.folder} started, but its first run was not sent: the agent could not start\n`,
   );
   logged.mockRestore();
+});
+
+/** The fixture's WebP, saved as a chat image. */
+const savedWebp = (server: Server) =>
+  chatImages(server.dataDir).save({
+    bytes: readFileSync(fixture("images/lossy.webp")),
+    extension: "webp",
+    height: 874,
+    width: 402,
+  });
+
+test("change.start takes images the agent cannot read, as they go into the repository", async () => {
+  const server = await testServer(undefined, { installed: false });
+  server.adapter.capabilities = { ...server.adapter.capabilities, images: false };
+  const eleven = await Promise.all(Array.from({ length: 11 }, () => savedWebp(server)));
+  const [image] = eleven;
+  const input = { slug: "centred-x", text: TYPED };
+
+  const tooMany = await mutate(server.app, "change.start", { ...input, images: eleven }, ["id"]);
+  const started = await mutate(server.app, "change.start", { ...input, images: [image] }, ["id"]);
+
+  expect(tooMany.error?.message).toBe("refused: A message takes at most 10 images.");
+  expect(started.error).toBeUndefined();
+  const folder = started.data.id as string;
+  expect(
+    git(
+      server.repo,
+      "ls-tree",
+      "-r",
+      "--name-only",
+      `change/${folder}`,
+      `specs/changes/${folder}/`,
+    ),
+  ).toContain("images/image-1.webp");
+});
+
+test("change.start refuses an image whose file is gone as it is read", async () => {
+  const server = await testServer(undefined, { installed: false });
+  const image = await savedWebp(server);
+  const gone = join(server.dataDir, "images", "gone.webp");
+  const path = vi.spyOn(ChatImages.prototype, "path").mockReturnValue(gone);
+
+  const started = await mutate(
+    server.app,
+    "change.start",
+    { images: [image], slug: "centred-x", text: TYPED },
+    ["id"],
+  );
+
+  path.mockRestore();
+  expect(started.error).toEqual({
+    code: "BAD_REQUEST",
+    message: "refused: This image is gone: add it again.",
+  });
 });
 
 test("change.start refuses a taken slug with the core's message", async () => {
