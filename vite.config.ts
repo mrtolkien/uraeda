@@ -139,6 +139,8 @@ const tsTestInputs = [
   "!**/node_modules/**",
   "!**/dist/**",
   "!**/.vitest/**",
+  // Built by `ui:build`, from what the tests read already.
+  "!packages/uraeda/{plugin,web}/**",
 ];
 
 /** The binding's sources, from `binding.ts`'s list, a folder standing for every file under it. */
@@ -215,7 +217,16 @@ const tasks = {
   },
   "ready:typescript": {
     command: "true",
-    dependsOn: ["binding:build", "web:theme", "lua:fmt", "ts:check", "ts:test", "web:build"],
+    dependsOn: [
+      "binding:build",
+      "web:theme",
+      "lua:fmt",
+      "ts:check",
+      "ts:test",
+      "web:build",
+      "ui:build",
+      "ui:smoke",
+    ],
   },
   "rust:clippy": {
     cache: { input: rustSources, output: [] },
@@ -282,12 +293,44 @@ const tasks = {
         ".github/workflows/ci.yml",
         "crates/*/Cargo.toml",
         "crates/*/src/lib.rs",
+        // The server's tests start it on the built web UI.
+        "packages/web/dist/**",
       ],
       output: [],
       untrackedEnv: testEnv,
     },
-    command: `${isolatedGit} vp test --project uraeda-binding --project uraeda-server --project uraeda-web`,
-    dependsOn: ["binding:touch"],
+    command: `${isolatedGit} vp test --project uraeda-binding --project uraeda-server --project @uraeda/ui --project uraeda-web`,
+    dependsOn: ["binding:touch", "web:build"],
+  },
+  // `@uraeda/ui`, built from the web UI, the server, the binding's loader, and the skill.
+  "ui:build": {
+    cache: {
+      input: [
+        "packages/uraeda/**",
+        "packages/server/**",
+        "packages/web/dist/**",
+        "packages/binding/index.js",
+        "skills/uraeda/**",
+        "vite.config.ts",
+        "pnpm-lock.yaml",
+        "!**/node_modules/**",
+        "!packages/uraeda/{dist,plugin,web}/**",
+      ],
+      output: ["packages/uraeda/{dist,plugin,web}/**"],
+    },
+    command: "node scripts/build.ts",
+    cwd: "packages/uraeda",
+    dependsOn: ["web:build", "binding:build"],
+  },
+  // The package, installed and run as a user would, on the checkout's binding.
+  "ui:smoke": {
+    cache: {
+      input: ["packages/uraeda/**", "packages/binding/*.node", "!**/node_modules/**"],
+      output: [],
+      untrackedEnv: testEnv,
+    },
+    command: `${isolatedGit} node packages/uraeda/scripts/smoke.ts --binding packages/binding`,
+    dependsOn: ["ui:build", "binding:touch"],
   },
   "web:build": {
     cache: {
