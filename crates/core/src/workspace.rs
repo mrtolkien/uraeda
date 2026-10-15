@@ -18,7 +18,9 @@ mod read;
 
 use read::{folder_uncommitted, read_record, read_texts, source_of};
 
-pub use links::resolve;
+pub use links::{linked_draft, resolve};
+
+use links::match_feature;
 pub(crate) use paths::folder_path;
 pub use paths::{branch_folder, first_file, folder_branch, folder_slug, path_folder, record_path};
 
@@ -715,31 +717,6 @@ impl Workspace {
     pub fn linked_feature(&self, link: &str) -> Option<&Feature> {
         match_feature(link, &self.features).and_then(|folder| self.feature(&folder))
     }
-}
-
-/// The draft a priorities entry's link points to, from the top level, when it links a file of
-/// `specs/drafts/`.
-pub fn linked_draft(link: &str) -> Option<String> {
-    resolve("specs", link).filter(|path| path.starts_with("specs/drafts/"))
-}
-
-/// The feature an entry's link points to: a path component or file name equal to its folder or
-/// its slug.
-fn match_feature(link: &str, features: &[Feature]) -> Option<String> {
-    let path = link.split('#').next().unwrap_or(link);
-    let names: Vec<&str> = path
-        .split('/')
-        .map(|part| part.strip_suffix(".md").unwrap_or(part))
-        .filter(|part| !part.is_empty() && *part != "proposal")
-        .collect();
-    features
-        .iter()
-        .find(|feature| {
-            names
-                .iter()
-                .any(|name| *name == feature.folder || *name == feature.slug)
-        })
-        .map(|feature| feature.folder.clone())
 }
 
 fn read_feature(
