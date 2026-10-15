@@ -1,5 +1,5 @@
 //! The answers to a clarifications round: one answer, the notes, the comments on settled points,
-//! and the round's submission.
+//! and the round's submission; and those of the inbox's triage, in [`triage`].
 
 use std::path::Path;
 
@@ -8,6 +8,10 @@ use crate::actions::answer;
 use crate::today;
 use crate::view::FileView;
 use crate::workspace::Feature;
+
+mod triage;
+
+pub use triage::*;
 
 fn round_name(feature: &Feature) -> Result<String> {
     let path = answer::round_path(feature)?;

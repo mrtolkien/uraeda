@@ -7,6 +7,7 @@ import type {
   DraftView,
   FeatureView,
   FileView,
+  Inbox,
   Priorities,
   ProposalHint,
   StepView,
@@ -97,6 +98,13 @@ export function sentChanges(changes: BranchChanges | null): BranchChangesRecord[
   );
 }
 export type PrioritiesRecord = Record_<Priorities> & { id: string };
+/** The inbox: one record, `inbox`, its triage's status sent as null when there is no triage. */
+export type InboxRecord = Omit<Record_<Inbox>, "triage"> & { id: string; triage: string | null };
+
+/** The inbox as it is sent: the client's cache keeps a field an answer leaves out. */
+export function sentInbox(inbox: Inbox): InboxRecord {
+  return { ...inbox, id: INBOX_ID, triage: inbox.triage ?? null };
+}
 export type DraftRecord = Record_<DraftView> & { id: string };
 /** The proposal template's guidance, by heading, which the editor shows in empty sections. */
 export type ProposalHintsRecord = { hints: Array<Record_<ProposalHint>>; id: string };
@@ -313,6 +321,16 @@ export const prioritiesDataView = dataView<PrioritiesRecord>("Priorities")({
   sections: true,
 });
 
+export const inboxDataView = dataView<InboxRecord>("Inbox")({
+  categories: true,
+  changes: true,
+  count: true,
+  hash: true,
+  id: true,
+  names: true,
+  triage: true,
+});
+
 export const draftDataView = dataView<DraftRecord>("Draft")({
   committed: true,
   discovery: true,
@@ -421,6 +439,9 @@ export const folderSuggestionsDataView = dataView<FolderSuggestionsRecord>("Fold
 /** The ids of the records there is one of. */
 export const WORKSPACE_ID = "workspace";
 export const PRIORITIES_ID = "priorities";
+export const INBOX_ID = "inbox";
+/** The inbox's triage, among workflow files: the core's id for it, as it has no feature. */
+export const TRIAGE_ID = "inbox-triage";
 export const AGENT_ID = "agent";
 export const SESSION_LIST_ID = "all";
 export const PROPOSAL_HINTS_ID = "proposal";
@@ -433,6 +454,7 @@ export const Root = {
   drafts: list(draftDataView),
   features: list(featureDataView),
   folderSuggestionsList: list(folderSuggestionsDataView),
+  inboxes: list(inboxDataView),
   prioritiesList: list(prioritiesDataView),
   proposalHintsList: list(proposalHintsDataView),
   repositoriesList: list(repositoriesDataView),

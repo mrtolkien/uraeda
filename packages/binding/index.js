@@ -716,28 +716,38 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { WatchHandle, addComment, addPriority, addRepository, addSettledComment, approve, attachImage, branchChanges, commitPriorities, commitText, createDraft, dataDir, discardPriorities, editComment, editPriority, editSettledComment, encodeImage, insertPriority, mainRoot, movePriority, nextStep, openRepository, pathFolder, proposalHints, proposeSlug, readDraft, readFeature, readFile, readImage, readPriorities, readRaw, readRepositories, readText, readWorkspace, removeComment, removePriority, removeRepository, removeSettledComment, requestChanges, retryCommit, saveAnswer, saveNotes, saveText, setDiscovery, startChange, startFeature, startOver, submitAnswers, version, watch, workDir, BlockKind, CalloutKind, ItemMarker } = nativeBinding
+const { WatchHandle, addComment, addNote, addNoteAsDraft, addPriority, addRepository, addSettledComment, approve, attachImage, branchChanges, commitChanges, commitPriorities, commitText, createDraft, dataDir, discardChanges, discardPriorities, editComment, editNote, editPriority, editSettledComment, encodeImage, insertNote, insertPriority, mainRoot, moveNoteToCategory, movePriority, nextStep, noteToDraft, noteToNewDraft, noteToPriorities, openRepository, pathFolder, proposalHints, proposeSlug, readDraft, readFeature, readFile, readImage, readInbox, readPriorities, readRaw, readRepositories, readText, readTriage, readWorkspace, removeComment, removeNote, removePriority, removeRepository, removeSettledComment, requestChanges, retryCommit, saveAnswer, saveNotes, saveText, saveTriageAnswer, saveTriageNotes, setDiscovery, startChange, startFeature, startOver, submitAnswers, submitTriage, version, watch, workDir, BlockKind, CalloutKind, ItemMarker } = nativeBinding
 export { WatchHandle }
 export { addComment }
+export { addNote }
+export { addNoteAsDraft }
 export { addPriority }
 export { addRepository }
 export { addSettledComment }
 export { approve }
 export { attachImage }
 export { branchChanges }
+export { commitChanges }
 export { commitPriorities }
 export { commitText }
 export { createDraft }
 export { dataDir }
+export { discardChanges }
 export { discardPriorities }
 export { editComment }
+export { editNote }
 export { editPriority }
 export { editSettledComment }
 export { encodeImage }
+export { insertNote }
 export { insertPriority }
 export { mainRoot }
+export { moveNoteToCategory }
 export { movePriority }
 export { nextStep }
+export { noteToDraft }
+export { noteToNewDraft }
+export { noteToPriorities }
 export { openRepository }
 export { pathFolder }
 export { proposalHints }
@@ -746,12 +756,15 @@ export { readDraft }
 export { readFeature }
 export { readFile }
 export { readImage }
+export { readInbox }
 export { readPriorities }
 export { readRaw }
 export { readRepositories }
 export { readText }
+export { readTriage }
 export { readWorkspace }
 export { removeComment }
+export { removeNote }
 export { removePriority }
 export { removeRepository }
 export { removeSettledComment }
@@ -760,11 +773,14 @@ export { retryCommit }
 export { saveAnswer }
 export { saveNotes }
 export { saveText }
+export { saveTriageAnswer }
+export { saveTriageNotes }
 export { setDiscovery }
 export { startChange }
 export { startFeature }
 export { startOver }
 export { submitAnswers }
+export { submitTriage }
 export { version }
 export { watch }
 export { workDir }

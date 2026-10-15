@@ -1,0 +1,293 @@
+import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { expect, test } from "vite-plus/test";
+import { byId, type Data, fixture, fixtureRepo, git, mutate, testApp } from "./helpers.ts";
+
+const INBOX = ["id", "hash", "categories", "names", "count", "changes", "triage"];
+const FILE = ["id", "folder", "name", "path", "kind", "status", "current", "missing"];
+
+type App = Awaited<ReturnType<typeof testApp>>["app"];
+
+const readInbox = async (app: App) => (await byId(app, "Inbox", ["inbox"], INBOX))[0];
+
+/** The note of the inbox with this text. */
+const noteOf = (inbox: Data, text: string) =>
+  inbox.categories
+    .flatMap((category: { notes: Array<{ text: string }> }) => category.notes)
+    .find((note: { text: string }) => note.text === text);
+
+const read = (repo: string, path: string) => readFileSync(join(repo, path), "utf8");
+
+/** A repository whose main checkout holds the fixture's triage, committed. */
+function triageRepo() {
+  const repo = fixtureRepo();
+  copyFileSync(fixture("INBOX-TRIAGE.md"), join(repo, "specs/INBOX-TRIAGE.md"));
+  git(repo, "add", "--all");
+  git(repo, "commit", "--quiet", "--no-verify", "--message", "chore: propose an inbox triage");
+  return repo;
+}
+
+test("reads the inbox by its id", async () => {
+  const inbox = await readInbox((await testApp()).app);
+
+  expect(inbox.id).toBe("inbox");
+  expect(inbox.count).toBe(10);
+  expect(inbox.changes).toBe(0);
+  expect(inbox.names).toEqual(["UI", "CLI"]);
+  expect(inbox.triage).toBeNull();
+});
+
+test("US1 1: adds a note last in its category, not committed", async () => {
+  const repo = fixtureRepo();
+  const { app } = await testApp(repo);
+  const { hash } = await readInbox(app);
+
+  const result = await mutate(
+    app,
+    "inbox.add",
+    { category: "UI", hash, text: "The plan's task list scrolls under the top bar" },
+    INBOX,
+  );
+
+  expect(result.ok).toBe(true);
+  expect(result.data.count).toBe(11);
+  expect(result.data.changes).toBe(1);
+  const ui = result.data.categories.find((category: { name?: string }) => category.name === "UI");
+  expect(ui.notes.at(-1).text).toBe("The plan's task list scrolls under the top bar");
+  expect(read(repo, "specs/INBOX.md")).toContain(
+    "- Text input feels laggy on the sessions page\n- The plan's task list scrolls under the top bar\n",
+  );
+});
+
+test("US1 4: a note about a feature is marked with its slug", async () => {
+  const repo = fixtureRepo();
+  const { app } = await testApp(repo);
+  const { hash } = await readInbox(app);
+
+  await mutate(
+    app,
+    "inbox.add",
+    { about: "2026-10-14-run-ui", hash, text: "The x is not centered" },
+    ["id"],
+  );
+
+  expect(read(repo, "specs/INBOX.md")).toContain("- [run-ui] The x is not centered\n");
+});
+
+test("an add over a stale hash is refused as a conflict", async () => {
+  const repo = fixtureRepo();
+  const { app } = await testApp(repo);
+  const { hash } = await readInbox(app);
+  writeFileSync(join(repo, "specs/INBOX.md"), `${read(repo, "specs/INBOX.md")}- Elsewhere\n`);
+
+  const result = await mutate(app, "inbox.add", { hash, text: "Mine" }, ["id"]);
+
+  expect(result.ok).toBe(false);
+  expect(result.error?.code).toBe("BAD_REQUEST");
+  expect(result.error?.message).toBe(
+    "conflict: INBOX.md changed on disk. Your change was not applied.",
+  );
+});
+
+test("edits, recategorizes, removes, and puts back a note", async () => {
+  const repo = fixtureRepo();
+  const { app } = await testApp(repo);
+  const before = read(repo, "specs/INBOX.md");
+  const inbox = await readInbox(app);
+  const note = noteOf(inbox, "We need a home icon");
+
+  const edited = await mutate(
+    app,
+    "inbox.edit",
+    { hash: inbox.hash, note: note.id, text: "We need a home icon, in the sidebar" },
+    INBOX,
+  );
+  const moved = await mutate(
+    app,
+    "inbox.category",
+    { category: "UI", hash: edited.data.hash, note: note.id },
+    INBOX,
+  );
+  const id = noteOf(moved.data, "We need a home icon, in the sidebar").id;
+  const removed = await mutate(app, "inbox.remove", { hash: moved.data.hash, note: id }, INBOX);
+  const restored = await mutate(
+    app,
+    "inbox.insert",
+    { hash: removed.data.hash, index: 2, lines: ["- We need a home icon"] },
+    INBOX,
+  );
+
+  expect(edited.data.changes).toBe(1);
+  expect(read(repo, "specs/INBOX.md")).toBe(before);
+  expect(restored.data.changes).toBe(0);
+});
+
+test("US2 1: moves a note to a section of the priorities", async () => {
+  const repo = fixtureRepo();
+  const { app } = await testApp(repo);
+  const inbox = await readInbox(app);
+  const [priorities] = await byId(app, "Priorities", ["priorities"], ["id", "hash"]);
+
+  const result = await mutate(
+    app,
+    "inbox.toPriorities",
+    {
+      hash: inbox.hash,
+      note: noteOf(inbox, "Draft to proposal on mobile went 404").id,
+      prioritiesHash: priorities.hash,
+      section: "next",
+    },
+    INBOX,
+  );
+
+  expect(result.data.count).toBe(9);
+  expect(result.data.changes).toBe(1);
+  expect(read(repo, "specs/PRIORITIES.md")).toContain(
+    "- [Git listener process](drafts/git-listener.md)\n- Draft to proposal on mobile went 404\n",
+  );
+});
+
+test("US2 2: makes a note a new draft, linked from a section", async () => {
+  const repo = fixtureRepo();
+  const { app } = await testApp(repo);
+  const inbox = await readInbox(app);
+  const [priorities] = await byId(app, "Priorities", ["priorities"], ["id", "hash"]);
+
+  const result = await mutate(
+    app,
+    "inbox.toNewDraft",
+    {
+      hash: inbox.hash,
+      note: noteOf(inbox, "We need a home icon").id,
+      prioritiesHash: priorities.hash,
+      section: "later",
+    },
+    ["id", "path", "title"],
+  );
+
+  expect(result.data).toEqual({
+    id: "specs/drafts/we-need-a-home-icon.md",
+    path: "specs/drafts/we-need-a-home-icon.md",
+    title: "We need a home icon",
+  });
+  expect(read(repo, "specs/PRIORITIES.md")).toContain(
+    "- [We need a home icon](drafts/we-need-a-home-icon.md)\n",
+  );
+});
+
+test("US2 3: adds a note to a draft's What", async () => {
+  const repo = fixtureRepo();
+  const { app } = await testApp(repo);
+  const inbox = await readInbox(app);
+
+  const result = await mutate(
+    app,
+    "inbox.toDraft",
+    {
+      draft: "specs/drafts/git-listener.md",
+      hash: inbox.hash,
+      note: noteOf(inbox, "Make sure agents are resumable").id,
+    },
+    INBOX,
+  );
+
+  expect(result.data.count).toBe(9);
+  expect(read(repo, "specs/drafts/git-listener.md")).toContain(
+    "Run the next step when a branch changes.\n\n- Make sure agents are resumable\n",
+  );
+});
+
+test("US6 2: adds a note as a draft, linked from the inbox", async () => {
+  const repo = fixtureRepo();
+  const { app } = await testApp(repo);
+  const { hash } = await readInbox(app);
+
+  const result = await mutate(
+    app,
+    "inbox.addAsDraft",
+    { category: "UI", hash, text: "Headings are body-sized" },
+    ["id", "path"],
+  );
+
+  expect(result.data.path).toBe("specs/drafts/headings-are-body-sized.md");
+  expect(read(repo, "specs/INBOX.md")).toContain(
+    "- [Headings are body-sized](drafts/headings-are-body-sized.md)\n",
+  );
+});
+
+test("US2 7: the commit bar commits the inbox's changes", async () => {
+  const repo = fixtureRepo();
+  const { app } = await testApp(repo);
+  const { hash } = await readInbox(app);
+  await mutate(app, "inbox.add", { hash, text: "A note to commit" }, ["id"]);
+
+  const committed = await mutate(app, "changes.commit", {}, ["id", "changes"]);
+
+  expect(committed.data).toEqual({ changes: 0, id: "priorities" });
+  expect((await readInbox(app)).changes).toBe(0);
+  expect(git(repo, "log", "-1", "--format=%s").trim()).toBe(
+    'chore: add "A note to commit" to the inbox',
+  );
+});
+
+test("the commit bar's Discard restores the inbox", async () => {
+  const repo = fixtureRepo();
+  const { app } = await testApp(repo);
+  const before = read(repo, "specs/INBOX.md");
+  const { hash } = await readInbox(app);
+  await mutate(app, "inbox.add", { hash, text: "A note to discard" }, ["id"]);
+
+  const discarded = await mutate(app, "changes.discard", {}, ["id", "changes"]);
+
+  expect(discarded.data.changes).toBe(0);
+  expect(read(repo, "specs/INBOX.md")).toBe(before);
+});
+
+test("the triage is missing until an agent writes it", async () => {
+  const [file] = await byId((await testApp()).app, "WorkflowFile", ["inbox-triage"], FILE);
+
+  expect(file.missing).toBe(true);
+});
+
+test("US4 2: reads the triage as a round of questions", async () => {
+  const { app } = await testApp(triageRepo());
+
+  const [file] = await byId(app, "WorkflowFile", ["inbox-triage"], FILE);
+
+  expect(file).toMatchObject({
+    folder: "",
+    id: "inbox-triage",
+    kind: "clarifications",
+    name: "INBOX-TRIAGE.md",
+    path: "specs/INBOX-TRIAGE.md",
+    status: "awaiting-human",
+  });
+  expect(file.missing).toBeNull();
+  expect(file.current.items.clarifications.questions).toHaveLength(3);
+  expect((await readInbox(app)).triage).toBe("awaiting-human");
+});
+
+test("US4 2 and 3: answers the triage, then submits it", async () => {
+  const repo = triageRepo();
+  const { app } = await testApp(repo);
+
+  const answered = await mutate(
+    app,
+    "triage.answer",
+    { comment: "", letters: ["A"], previous: "", question: "Q1" },
+    FILE,
+  );
+  for (const question of ["Q2", "Q3"]) {
+    await mutate(app, "triage.answer", { comment: "", letters: ["B"], previous: "", question }, [
+      "id",
+    ]);
+  }
+  const noted = await mutate(app, "triage.notes", { notes: "Later.", previous: "" }, ["id"]);
+  const submitted = await mutate(app, "triage.submit", {}, FILE);
+
+  expect(answered.data.current.items.clarifications.questions[0].answer).toBe("A");
+  expect(noted.ok).toBe(true);
+  expect(submitted.data.status).toBe("answered");
+  expect(read(repo, "specs/INBOX-TRIAGE.md")).toContain("**Answer:** A\n");
+  expect(git(repo, "log", "-1", "--format=%s").trim()).toBe("chore: answer the inbox triage");
+});

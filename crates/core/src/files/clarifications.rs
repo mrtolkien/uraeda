@@ -127,6 +127,26 @@ fn option_letter(line: &str) -> Option<char> {
     (rest.starts_with(". ") || rest.starts_with(" (recommended).")).then_some(letter)
 }
 
+/// Whether a line is the `**Notes:**` marker.
+fn is_notes(line: &str) -> bool {
+    NOTES.iter().any(|marker| line.starts_with(marker))
+}
+
+/// The mark of a section that is not a question, or of the notes, at `line`: it ends the last
+/// question, and is dropped once the file is read.
+fn end_of_questions(line: usize) -> Question {
+    Question {
+        id: String::new(),
+        parent: None,
+        letter: None,
+        title: String::new(),
+        line,
+        options: Vec::new(),
+        answer: String::new(),
+        answer_line: 0,
+    }
+}
+
 /// Every question and follow-up of a clarifications file, in order. An answer keeps its code blocks
 /// as written; a line of code is no heading, marker, or option.
 pub fn parse(text: &str) -> Vec<Question> {
@@ -160,17 +180,14 @@ pub fn parse(text: &str) -> Vec<Question> {
                 });
             } else if line.starts_with("## ") {
                 // A section that is not a question ends the last one.
-                questions.push(Question {
-                    id: String::new(),
-                    parent: None,
-                    letter: None,
-                    title: String::new(),
-                    line: number,
-                    options: Vec::new(),
-                    answer: String::new(),
-                    answer_line: 0,
-                });
+                questions.push(end_of_questions(number));
             }
+            continue;
+        }
+        if is_notes(line) {
+            // So do the notes, in a file with no section between the last question and them.
+            in_answer = false;
+            questions.push(end_of_questions(number));
             continue;
         }
         let Some(question) = questions.last_mut() else {
@@ -223,9 +240,7 @@ fn check_lines(answer: &str) -> Result<(), AnswerError> {
     }
     let ends = |line: &str| {
         let line = line.trim_start();
-        line.starts_with('#')
-            || line.starts_with(ANSWER)
-            || NOTES.iter().any(|m| line.starts_with(m))
+        line.starts_with('#') || line.starts_with(ANSWER) || is_notes(line)
     };
     if lines
         .iter()
@@ -287,7 +302,7 @@ pub fn set_answer(text: &str, id: &str, answer: &str) -> Result<String, AnswerEr
 }
 
 /// The text with the marker on line `marker_line` followed by `answer`, in place of the marker's
-/// line and the lines after it, up to the next heading. An answer starting with a code block
+/// line and the lines after it, up to the next heading or the notes. An answer starting with a code block
 /// starts on the line after the marker, after a blank line.
 fn replace_after(text: &str, marker_line: usize, marker: &str, answer: &str) -> String {
     let mut lines: Vec<&str> = text.split('\n').collect();
@@ -299,7 +314,7 @@ fn replace_after(text: &str, marker_line: usize, marker: &str, answer: &str) -> 
         if super::is_fence(line) {
             in_code = !in_code;
         }
-        if !in_code && line.starts_with('#') {
+        if !in_code && (line.starts_with('#') || is_notes(line)) {
             break;
         }
         end += 1;

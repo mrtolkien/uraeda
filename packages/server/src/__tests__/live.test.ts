@@ -350,6 +350,20 @@ test("a change in one repository sends no update to another", async () => {
   expect(heard().filter((update) => update === "Workspace workspace")).toHaveLength(1);
 });
 
+/** The inbox, written on the default branch, reaches its page, with the triage and the commit bar. */
+test("a change of INBOX.md publishes the inbox, the priorities, and the triage", async () => {
+  const { hosts, names } = await testHosts([fixtureRepo()], { installed: false });
+  const host = hosts.get(names[0])!;
+  const sent = published(host.live);
+
+  writeFileSync(join(host.path, "specs/INBOX.md"), "# Inbox\n\n- A note\n");
+  await vi.waitFor(() => expect(sent()).toContain("Inbox inbox"), { timeout: 5000 });
+
+  expect(sent()).toEqual(
+    expect.arrayContaining(["Priorities priorities", "WorkflowFile inbox-triage"]),
+  );
+});
+
 test("a session's change goes to its repository's bus", () => {
   const { cache, session } = sessionWithItems(0);
   const [mine, other] = [hostAt("/repo"), hostAt("/other", "other")];

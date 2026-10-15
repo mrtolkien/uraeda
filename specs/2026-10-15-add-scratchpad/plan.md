@@ -18,7 +18,7 @@ agent's triage file. Home shows their count.
 - **The commit.** `actions/changes.rs` owns the change list that merges `INBOX.md`, `PRIORITIES.md`,
   and the drafts notes went into. The commit bar's count, its message, Commit, and Discard all come
   from that list.
-- **The triage.** `api/triage.rs` reads and answers `specs/INBOX-TRIAGE.md` through the
+- **The triage.** `api/answers/triage.rs` reads and answers `specs/INBOX-TRIAGE.md` through the
   clarifications code, generalized from a feature's round to a path.
 
 Every surface only calls the core: the binding, the server's fate views and mutations, the web UI,
@@ -834,15 +834,17 @@ git commit -m "feat(add-scratchpad): ura check and ura init know the inbox and i
 
 **Files:**
 
-- Create: `crates/core/src/api/triage.rs`
+- Create: `crates/core/src/api/answers/triage.rs`, `crates/binding/src/inbox_writes.rs`,
+  `packages/server/src/fate/inbox-mutations.ts`, `packages/server/src/fate/masked.ts` (ruling R16)
 - Modify:
   - core: `crates/core/src/actions/answer.rs` and `crates/core/src/api/answers.rs` (answers by
-    path);
+    path), `crates/core/src/actions/inbox.rs` (`submit_triage`),
+    `crates/core/src/files/clarifications.rs` (an answer ends at the notes), and
+    `crates/core/src/files/items.rs` (`round`);
   - binding: `crates/binding/src/lib.rs`, `packages/binding/index.d.ts`,
     `packages/binding/index.js`;
-  - server: `packages/server/src/fate/views.ts`, `fate/sources.ts`, `fate/mutations.ts` (or a new
-    `fate/inbox-mutations.ts` if `mutations.ts` passes 450 lines), `live.ts`, and `binding.ts`
-    (`SOURCES`)
+  - server: `packages/server/src/fate/views.ts`, `fate/sources.ts`, `fate/mutations.ts`, `fate.ts`,
+    and `live.ts`. `binding.ts`'s `SOURCES` already covers the core and the binding.
 - Test: `crates/core/tests/triage.rs`, `packages/server/src/__tests__/inbox.test.ts`,
   `packages/server/src/__tests__/live.test.ts`
 
@@ -850,13 +852,18 @@ git commit -m "feat(add-scratchpad): ura check and ura init know the inbox and i
 
 - Consumes: tasks 3 and 4.
 - Produces:
-  - Core `api::triage`, each written on the default branch:
-    - `read_triage(repo) -> Result<Option<FileView>>`, kind `clarifications`, with `folder: ""` and
-      `name: "INBOX-TRIAGE.md"`;
+  - In `actions::answer`: `RoundFile`, a feature's latest round or a path, taken by `save`,
+    `save_notes`, and the settled comments; and `record(place, file, today)`. In `actions::inbox`:
+    `submit_triage(place, today)` (ruling R16).
+  - Core `api::triage`, in `api/answers/triage.rs`, re-exported from `api`, each written on the
+    default branch:
+    - `read_triage(repo) -> Result<Option<FileView>>`, kind `clarifications`, with
+      `id: "inbox-triage"`, `folder: ""`, and `name: "INBOX-TRIAGE.md"`;
     - `save_triage_answer(repo, question, letters, comment, previous) -> Result<FileView>`;
-    - `save_triage_notes(repo, notes, previous)`;
-    - `submit_triage(repo)`, which commits `chore: answer the inbox triage`.
-  - Binding functions of the same names in camelCase, and every task 3 and 4 API call.
+    - `save_triage_notes(repo, notes, previous) -> Result<FileView>`;
+    - `submit_triage(repo) -> Result<FileView>`, which commits `chore: answer the inbox triage`.
+  - Binding functions of the same names in camelCase, and every task 3 and 4 API call, with an
+    optional `category` and `about` last.
   - The server's views:
     - type `Inbox`, id `"inbox"`, with `{ id, hash, categories, names, count, changes, triage }`;
     - type `WorkflowFile` with id `"inbox-triage"` for the triage.
@@ -864,15 +871,17 @@ git commit -m "feat(add-scratchpad): ura check and ura init know the inbox and i
     - `inbox.add { hash, category?, about?, text }`, `inbox.edit { note, hash, text }`,
       `inbox.remove { note, hash }`, `inbox.insert { hash, category?, index, lines }`, and
       `inbox.category { note, hash, category? }`;
-    - `inbox.toPriorities { note, hash, prioritiesHash, section }`;
+    - `inbox.toPriorities { note, hash, prioritiesHash, section }`, which returns the `Inbox`;
     - `inbox.toNewDraft { note, hash, prioritiesHash, section }`, which returns a `Draft`;
-    - `inbox.toDraft { note, hash, draft }` and
+    - `inbox.toDraft { note, hash, draft }`, which returns the `Inbox`, and
       `inbox.addAsDraft { hash, category?, about?, text }`, the second returning a `Draft`;
     - `changes.commit {}` and `changes.discard {}`, which return `Priorities`;
-    - `triage.answer`, `triage.notes`, and `triage.submit`.
-  - `live.ts` updates `Inbox` and `Priorities` when `changes.inbox` is set.
+    - `triage.answer { question, letters, comment, previous }`, `triage.notes { notes, previous }`,
+      and `triage.submit {}`, which return the `WorkflowFile` `inbox-triage`.
+  - `live.ts` updates `Inbox` and `Priorities` when `changes.inbox` or `changes.priorities` is set,
+    and the `WorkflowFile` `inbox-triage` when `changes.inbox` is.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - **Core:** answering Q1 of `fixtures/INBOX-TRIAGE.md`, written into the repository, with "A" writes
   `**Answer:** A` under it. `submit` commits the file with `status: answered` and the block turned
@@ -889,23 +898,24 @@ The break each test catches:
 
 - An answer written into a feature's round.
 - A live update forgotten for the inbox.
+- The last answer of the triage writing over its `**Notes:**` line (ruling R16).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `cargo nextest run -p uraeda-core --test triage && vp test packages/server/src/__tests__/inbox.test.ts`
 - Expected: FAIL, `no function read_triage` and `unknown mutation inbox.add`
 
-- [ ] **Step 3: Generalize the answer actions to a path, implement `api/triage.rs`, then the binding
-      and the server**
+- [x] **Step 3: Generalize the answer actions to a path, implement `api/answers/triage.rs`, then the
+      binding and the server**
 
-- [ ] **Step 4: Regenerate the binding, and run all tests**
+- [x] **Step 4: Regenerate the binding, and run all tests**
 
 - Run:
   `vp run binding:build && cargo nextest run && vp test --project '!phone' --project '!desktop'`
 - Expected: PASS, and `index.d.ts` declares `Inbox` and `addNote`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages specs/2026-10-15-add-scratchpad/plan.md

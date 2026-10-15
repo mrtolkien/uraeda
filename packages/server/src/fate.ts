@@ -11,6 +11,7 @@ import {
   featureDataView,
   fileDataView,
   folderSuggestionsDataView,
+  inboxDataView,
   prioritiesDataView,
   proposalHintsDataView,
   repositoriesDataView,
@@ -32,6 +33,7 @@ export {
   featureDataView,
   fileDataView,
   folderSuggestionsDataView,
+  inboxDataView,
   prioritiesDataView,
   proposalHintsDataView,
   repositoriesDataView,
@@ -46,10 +48,12 @@ export {
 };
 export {
   AGENT_ID,
+  INBOX_ID,
   PRIORITIES_ID,
   PROPOSAL_HINTS_ID,
   REPOSITORIES_ID,
   SESSION_LIST_ID,
+  TRIAGE_ID,
   WORKSPACE_ID,
 } from "./fate/views.ts";
 
@@ -59,6 +63,7 @@ export type Feature = Entity<typeof featureDataView, "Feature">;
 export type BranchChanges = Entity<typeof branchChangesDataView, "BranchChanges">;
 export type WorkflowFile = Entity<typeof fileDataView, "WorkflowFile">;
 export type Priorities = Entity<typeof prioritiesDataView, "Priorities">;
+export type Inbox = Entity<typeof inboxDataView, "Inbox">;
 export type Draft = Entity<typeof draftDataView, "Draft">;
 export type ProposalHints = Entity<typeof proposalHintsDataView, "ProposalHints">;
 export type Agent = Entity<typeof agentDataView, "Agent">;
