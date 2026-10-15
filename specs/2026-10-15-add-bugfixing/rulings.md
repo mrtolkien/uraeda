@@ -39,3 +39,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   a started change without its run when the second call fails.
 - **If wrong**: split the mutation, and send from the client.
 - **Where**: task 7.
+
+## R4: read_feature's helpers live in a module of workspace
+
+- **Decision**: splitting `read_feature` under 80 lines moves its new helpers, `read_texts`,
+  `read_record`, `folder_uncommitted`, and `source_of`, into
+  [`workspace/read.rs`](/crates/core/src/workspace/read.rs); `read_feature` stays in `workspace.rs`.
+- **Rationale**: kept in `workspace.rs`, the helpers' signatures and doc comments grow it from 1061
+  to 1097 lines, past its `LARGE` entry of 1080, which may only shrink. Moved, it is 1011 lines.
+- **Alternatives considered**: all of `read_feature` in the new module, which moves more code than
+  the split needs; trimming unrelated code of `workspace.rs` to make room.
+- **If wrong**: move the helpers back once `workspace.rs` has room.
+- **Where**: task 1, and task 2's record kind check.
