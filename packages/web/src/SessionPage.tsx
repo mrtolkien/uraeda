@@ -12,7 +12,7 @@ import { useFateClient, useView } from "react-fate";
 import type { Session, SessionStatus as Status, StatusReason, Trigger } from "uraeda-server/fate";
 import { Composer } from "./Composer.tsx";
 import { Crumbs } from "./Crumbs.tsx";
-import { useAgent, useFeature, useSession, useWorkflowMessage } from "./data.ts";
+import { useAgent, useFeature, useSession, useWorkflowMessage, useWorkspace } from "./data.ts";
 import { composerDraft, type Draft, takeBackInto, useDraft } from "./useDraft.ts";
 import { EditableLine } from "./EditableLine.tsx";
 import { JumpToLatest } from "./JumpToLatest.tsx";
@@ -108,9 +108,15 @@ type Handing = {
   workflow?: { file?: string; trigger: Trigger };
 };
 
-/** What a session that needs attention tells the human, by why it needs it. */
+/**
+ * What a session that needs attention tells the human, by why it needs it, its item named as a
+ * feature or a change.
+ */
 const ATTENTION: Partial<
-  Record<StatusReason, { status: "error" | "warning"; text: string; title: string }>
+  Record<
+    StatusReason,
+    { status: "error" | "warning"; text: string | ((item: string) => string); title: string }
+  >
 > = {
   failed: {
     status: "error",
@@ -119,7 +125,8 @@ const ATTENTION: Partial<
   },
   halted: {
     status: "warning",
-    text: "The feature still waits on the agent. Read its last message, then tell it how to go on.",
+    text: (item) =>
+      `The ${item} still waits on the agent. Read its last message, then tell it how to go on.`,
     title: "The agent stopped before a human gate.",
   },
   stopped: {
@@ -151,6 +158,7 @@ function SessionLog({
   const fate = useFateClient();
   const here = useRepoPath();
   const session = useSession(id);
+  const workspace = useWorkspace();
   const { allow, chat, error } = useSessionControls(id, session);
   const groups = useOpenKeys();
   const log = useRef<HTMLDivElement>(null);
@@ -189,6 +197,7 @@ function SessionLog({
     session.status === "attention" && session.statusReason
       ? ATTENTION[session.statusReason]
       : undefined;
+  const item = workspace?.features.find((feature) => feature.folder === crumbs)?.kind ?? "feature";
   return (
     <VStack gap={3}>
       <Header
@@ -211,7 +220,7 @@ function SessionLog({
       {attention && (
         <Banner
           collapsible={false}
-          description={attention.text}
+          description={typeof attention.text === "string" ? attention.text : attention.text(item)}
           status={attention.status}
           title={attention.title}
         />

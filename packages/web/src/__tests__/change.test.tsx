@@ -4,7 +4,7 @@
 import { screen, within } from "@testing-library/react";
 import { addChange, commitOnBranch } from "uraeda-binding/test-utils";
 import { beforeEach, expect, test } from "vite-plus/test";
-import { atWidth, fixtureRepo, renderPage } from "./helpers.tsx";
+import { atWidth, fakeAgent, fixtureRepo, renderPage } from "./helpers.tsx";
 
 const FOLDER = "2026-10-16-header-logo";
 
@@ -130,4 +130,28 @@ test("a change's crumbs end with the change itself", async () => {
   expect(crumbs.getAllByRole("link").map((link) => link.textContent)).toEqual(["Home"]);
   expect(await crumbs.findByText("A home logo")).toBeTruthy();
   expect(crumbs.queryByText("Session")).toBeNull();
+});
+
+// US4.1: a change's page says "change", not "feature", when its agent stopped while the step still
+// waits on it.
+test("a change's agent stopped before a gate is told about in the change's words", async () => {
+  const repo = fixtureRepo();
+  addChange(repo, FOLDER, { "proposal.md": "# A home logo\n" });
+  const fake = await fakeAgent();
+  fake.adapter.script([{ text: "Investigated.", type: "text" }]);
+  const session = await fake.sessions.featureSession(repo, FOLDER);
+  const { turn } = await fake.sessions.send(repo, session.id, {
+    text: "Continue the change.",
+    workflow: { trigger: "manual" },
+  });
+  await fake.sessions.settled(turn);
+
+  await renderPage(`/f/${FOLDER}`, repo, { agent: fake });
+
+  expect(await screen.findByText("The agent stopped before a human gate.")).toBeTruthy();
+  expect(
+    screen.getByText(
+      "The change still waits on the agent. Read its last message, then tell it how to go on.",
+    ),
+  ).toBeTruthy();
 });
