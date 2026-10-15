@@ -554,7 +554,7 @@ git commit -m "feat(add-scratchpad): the inbox's format, in the core and the ski
   - In `watch`: `Changes.inbox: bool`, set when the default branch's `INBOX.md` or `INBOX-TRIAGE.md`
     changes.
 
-- [ ] **Step 1: Move the draft functions out of `api.rs` into `api/drafts.rs`**
+- [x] **Step 1: Move the draft functions out of `api.rs` into `api/drafts.rs`**
 
 This is a structural step. Move `create_draft`, `read_draft`, `draft_path`, and their helpers out,
 re-exported unchanged. Lower `api.rs`'s `LARGE` number to its new size.
