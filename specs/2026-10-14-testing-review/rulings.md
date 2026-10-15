@@ -571,3 +571,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a phone-only test of a behaviour that breaks only on the desktop, or the reverse,
   goes unseen; moving it is one `describe`.
 - **Where**: the rebase, task 6.
+
+## R32: US3.3 reads its position once the progress line's sections are drawn
+
+- **Decision**: `session.test.tsx` "US3.3: the open progress line survives a file link and Back"
+  waits for the open line's task list and its "Changed on the branch" text before scrolling to the
+  `plan.md` link and reading the position. The product is unchanged.
+- **Rationale**: it failed on the phone in `vp run ready` with `expected 702 to be 68`; with 48 busy
+  loops on 32 cores, 8 runs out of 10 failed with the same values, and alone it passed. A trace of
+  the window's scrolls showed the cause: the `plan.md` link, in the line's "Feature" section, shows
+  before the sections above it, each read in a `Suspense` of its own; the plan's 11 tasks drew 76 ms
+  after the position was read, growing the page from 3254 to 3878 px and moving the link from 437 to
+  1061 px, below the window. The click then scrolled the link into view, to 702, and clicked it
+  there; the page saved 702 for Back and restored it, as it should. With the waits, 10 runs out of
+  10 passed under the same load.
+- **Alternatives considered**: `grown()`, the helper that waits for the page's height to stay the
+  same for 200 ms: a section read slower than that still moves the link; restoring the scroll in the
+  product: it restored the position the human left at.
+- **If wrong**: a section added above the link later moves it again; the failure's 702 against a
+  smaller number shows it.
+- **Where**: the rebase, task 6.
