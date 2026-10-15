@@ -6,7 +6,7 @@
 // - `/index.json`: one story entry per `export const X` of each `*.stories.*` file;
 // - `/iframe.html?id=<id>`: a page holding the export's name, a button counting its clicks, a
 //   separator, the colour mode it was sent, the module script `/story.js`, and the skill's pick
-//   script;
+//   script, with a `Content-Security-Policy` that forbids framing it, which the proxy replaces;
 // - WebSockets at `/storybook-server-channel`, refused when their `Origin` is `null`, and under
 //   `URAEDA_PREVIEW_BASE` for the `vite-hmr` protocol, which each send one message: the path,
 //   `Host`, and `Origin` they got, as JSON;
@@ -122,8 +122,8 @@ function echo(request) {
   });
 }
 
-function send(response, status, type, body) {
-  response.writeHead(status, { "Content-Type": type });
+function send(response, status, type, body, headers = {}) {
+  response.writeHead(status, { "Content-Type": type, ...headers });
   response.end(body);
 }
 
@@ -144,7 +144,9 @@ const server = createServer((request, response) => {
   if (path === "/iframe.html") {
     const page = storyPage(url.searchParams.get("id") ?? "");
     return page
-      ? send(response, 200, "text/html; charset=utf-8", page)
+      ? send(response, 200, "text/html; charset=utf-8", page, {
+          "Content-Security-Policy": "frame-ancestors 'none'",
+        })
       : send(response, 404, "text/plain", "No such story");
   }
   if (path === "/story.js") {

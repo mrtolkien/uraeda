@@ -1,12 +1,16 @@
 // The server's wiring, one for `main.ts` and `dev.ts`: the session manager, the hosts of the
 // listed repositories, the starting repository, and the app.
+import type { IncomingMessage } from "node:http";
 import { join } from "node:path";
+import type { Duplex } from "node:stream";
 import { createApp } from "./app.ts";
 import { chatImages } from "./attach.ts";
 import type { Binding } from "./fate/context.ts";
 import { createSessions, type HostsOf } from "./live.ts";
 import { NOT_A_REPOSITORY, openFolder, type OpenRequest } from "./open.ts";
 import type { Options } from "./options.ts";
+import { guardCheck } from "./guard.ts";
+import { previewUpgrade } from "./preview/proxy.ts";
 import { Previews } from "./preview/runner.ts";
 import { Hosts } from "./repositories.ts";
 import type { Adapter } from "./runner/adapter.ts";
@@ -69,6 +73,8 @@ export type Server = {
    * Storybook.
    */
   stop: () => Promise<void>;
+  /** The HTTP server's upgrades: WebSockets to the Storybooks, through the guard's rule. */
+  upgrade: (request: IncomingMessage, socket: Duplex, head: Buffer) => void;
   /** The started repository's page, `/r/<name>/`, or `/` when the server started outside git. */
   url: string;
 };
@@ -132,6 +138,7 @@ export async function startServer(
       binding,
       dataDir,
       hosts: opened,
+      previews,
       sessions: sessions.sessions,
     }),
     hosts: opened,
@@ -145,6 +152,7 @@ export async function startServer(
       })();
       return stopping;
     },
+    upgrade: previewUpgrade({ check: guardCheck(options), previews }),
     url,
   };
 }

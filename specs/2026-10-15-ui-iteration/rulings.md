@@ -257,3 +257,39 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a request racing the server's stop sees "Storybook is not running for this branch."
   instead of "Starting Storybook for this branch…", and the next server starts it.
 - **Where**: task 4's review, `packages/server/src/preview/runner.ts`.
+
+## R20: The proxy forwards what a browser sends, and closes the rest
+
+- **Decision**: the proxy reads a preview's base from the request's path as Hono and Node's `URL`
+  normalize it, `..` resolved and percent-encoding kept, and the runner's base must be that same
+  string. It drops hop-by-hop headers both ways, and Storybook's `Content-Security-Policy`. A
+  forwarded socket closes both sides when either ends. An upgrade on a preview's path with nothing
+  ready is closed with a 503 and the spec's sentence; any other upgrade, outside a preview's path,
+  with a 404. The path alone, `/r/<name>/preview/<folder>`, redirects with a 301.
+- **Rationale**: the guard and the proxy read one normalized path, so `/r/x/preview/../fate` is
+  never a preview's. A socket left half open kept the server from closing, as Node's HTTP sockets
+  allow half-open connections and a live socket has no use for one. The 503 says why, as the proxy's
+  HTTP answer does.
+- **Alternatives considered**: a 404 for every refused upgrade, as the plan said, which hides that
+  Storybook is not running; Hono's decoded `param("name")` as the base, which differs from the path
+  the browser and `URAEDA_PREVIEW_BASE` hold for a name with spaces.
+- **If wrong**: a repository or folder whose name needs encoding gets 503 until task 6 builds bases
+  with `encodeURIComponent`; the rule is `previewPath` in `preview/proxy.ts`.
+- **Where**: task 5, `packages/server/src/preview/proxy.ts`.
+
+## R21: The proxy's tests reach the runner and sockets directly
+
+- **Decision**: `dev.ts` exports `devPreviews(port)`, the runner of the server `vp dev` started on a
+  port, which the dev test views a checkout through, as fate's story records will in task 6.
+  `socketOpens` sends a raw HTTP upgrade instead of Node's `WebSocket`, whose DOM type takes no
+  headers. The fake preview sends `Content-Security-Policy: frame-ancestors 'none'` with each story
+  page, so the test sees the proxy replace it, and gets a `hang-later` mode for the runner's index
+  timeout. `createApp`'s `previews` is required: the server's and the UI's test helpers create and
+  stop one.
+- **Rationale**: nothing views a checkout through HTTP before task 6; a header the fake never sends
+  cannot prove it is replaced; and a required runner cannot be forgotten by a caller.
+- **Alternatives considered**: mocking `Previews.state` in the dev test, which proves less; casting
+  undici's init through the DOM type.
+- **If wrong**: nothing for the user: tests and one test-only export.
+- **Where**: task 5, `packages/server/src/dev.ts`, `packages/server/src/preview/__tests__/`,
+  `fixtures/preview/serve.mjs`, `packages/web/src/__tests__/helpers.tsx`.

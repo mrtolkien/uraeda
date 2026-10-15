@@ -3,13 +3,32 @@ import { createMiddleware } from "hono/factory";
 /** What a browser's `Sec-Fetch-Site` says of a request the server's own page, or its user, sent. */
 const OWN_SITES = new Set(["same-origin", "none"]);
 
+/** The paths of the checkouts' Storybooks, `/r/<repository>/preview/<folder>/…`. */
+export const PREVIEW_PATH = /^\/r\/[^/]+\/preview\//;
+
+/** A request, or an upgrade, as the guard reads it: its path is normalized, without its query. */
+export type GuardedRequest = {
+  host: string;
+  method: string;
+  origin?: string;
+  path: string;
+  site?: string;
+  upgrade: boolean;
+};
+
+/** Whether the request only reads: a GET, a HEAD, or an upgrade. */
+const read = (request: GuardedRequest) =>
+  request.upgrade || ["GET", "HEAD"].includes(request.method);
+
 /**
- * Rejects requests a web page could send to the local server: any `Host` but the server's own or
- * an allowed host name, as in DNS rebinding, any `Origin` but theirs and the allowed ones, and a
- * write without an `Origin` that the browser says another site sent. A request without either
- * header, from a test or `curl`, passes.
+ * The guard's rule, for requests and upgrades alike: the refusal's text, or undefined when the
+ * request passes. It rejects what a web page could send to the local server: any `Host` but the
+ * server's own or an allowed host name, as in DNS rebinding, any `Origin` but theirs and the
+ * allowed ones, and a write without an `Origin` that the browser says another site sent. A request
+ * without either header, from a test or `curl`, passes. A sandboxed frame's `Origin: null` passes
+ * only for reads and upgrades under a preview's path (SC-004).
  */
-export function guard({
+export function guardCheck({
   allowedHosts = [],
   allowOrigins,
   port,
@@ -17,7 +36,7 @@ export function guard({
   allowedHosts?: Array<string>;
   allowOrigins: Array<string>;
   port: number;
-}) {
+}): (request: GuardedRequest) => string | undefined {
   const own = [`127.0.0.1:${port}`, `localhost:${port}`];
   // `tailscale serve` passes the machine's name, without a port behind HTTPS.
   const hosts = new Set([...own, ...allowedHosts, ...allowedHosts.map((h) => `${h}:${port}`)]);
@@ -26,24 +45,38 @@ export function guard({
     ...allowedHosts.map((host) => `https://${host}`),
     ...allowOrigins,
   ]);
+  return (request) => {
+    if (!hosts.has(request.host)) {
+      return "Forbidden host";
+    }
+    const { origin, site } = request;
+    const frame = origin === "null" && read(request) && PREVIEW_PATH.test(request.path);
+    if (origin !== undefined && !origins.has(origin) && !frame) {
+      return "Forbidden origin";
+    }
+    if (origin === undefined && site !== undefined && !OWN_SITES.has(site) && !read(request)) {
+      return "Forbidden site";
+    }
+    return undefined;
+  };
+}
 
+/** The guard's rule, `guardCheck`, for every request the app answers. */
+export function guard(options: Parameters<typeof guardCheck>[0]) {
+  const check = guardCheck(options);
   return createMiddleware(async (context, next) => {
     // @hono/node-server builds the request's URL from its `Host` header.
-    if (!hosts.has(new URL(context.req.url).host)) {
-      return context.text("Forbidden host", 403);
-    }
-    const origin = context.req.header("origin");
-    if (origin !== undefined && !origins.has(origin)) {
-      return context.text("Forbidden origin", 403);
-    }
-    const site = context.req.header("sec-fetch-site");
-    if (
-      origin === undefined &&
-      site !== undefined &&
-      !OWN_SITES.has(site) &&
-      !["GET", "HEAD"].includes(context.req.method)
-    ) {
-      return context.text("Forbidden site", 403);
+    const url = new URL(context.req.url);
+    const refusal = check({
+      host: url.host,
+      method: context.req.method,
+      origin: context.req.header("origin"),
+      path: url.pathname,
+      site: context.req.header("sec-fetch-site"),
+      upgrade: false,
+    });
+    if (refusal !== undefined) {
+      return context.text(refusal, 403);
     }
     await next();
   });

@@ -3,7 +3,7 @@ import { basename, dirname, join } from "node:path";
 import { act, cleanup, configure, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach } from "vite-plus/test";
 import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
-import { createApp, Hosts } from "uraeda-server";
+import { createApp, Hosts, Previews } from "uraeda-server";
 import { fakeSessions } from "uraeda-server/testing";
 import { App } from "../App.tsx";
 import { ServerFetch } from "../attach/ServerFetch.tsx";
@@ -184,6 +184,8 @@ export async function renderPage(
 
 /** The hosts of the tests' apps, whose watches are closed after each test. */
 const opened: Array<Promise<Hosts>> = [];
+/** The Storybook runners of the tests' apps, stopped after each test. */
+const runners: Array<Previews> = [];
 
 /**
  * After each test, in order: the page goes, which may send its last saves; the server answers every
@@ -201,6 +203,7 @@ afterEach(async () => {
   for (const sessions of managers.splice(0)) {
     sessions.close();
   }
+  await Promise.all(runners.splice(0).map((runner) => runner.stopAll()));
 });
 
 /** The name of each server's repository, as its list holds it. */
@@ -247,6 +250,8 @@ export function serverFetch(
       : binding.addRepository(dataDir, repo).then(({ repository }) => repository.name);
   const hosts = added.then(() => Hosts.open({ binding: server, dataDir, sessions }));
   opened.push(hosts);
+  const previews = new Previews();
+  runners.push(previews);
   const created = hosts.then((hosts) =>
     createApp({
       allowedHosts: [],
@@ -255,6 +260,7 @@ export function serverFetch(
       dataDir,
       hosts,
       port,
+      previews,
       sessions,
     }),
   );
