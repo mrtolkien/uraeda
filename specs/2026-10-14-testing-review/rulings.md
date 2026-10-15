@@ -286,8 +286,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `expected 1 to be +0`; uploading a text paste fails with `expected 2 to be 1`.
 - **Alternatives considered**: waiting for the save state shown on the page: an unscheduled save
   shows nothing to wait for.
-- **If wrong**: fake timers stop the page's other timers for 1 s of fake time, which the test does
-  not depend on; a page that uploads pastes out of order would pass the paste test wrongly.
+- **If wrong**: a page timer set while the clock is faked and not due within the advanced second
+  never fires: `vi.useRealTimers()` discards it rather than resuming it, and the test depends on
+  none; a page that uploads pastes out of order would pass the paste test wrongly.
 - **Where**: task 5.
 
 ## R18: Task 5's commands, as run
@@ -356,8 +357,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   through the same server. The paste is a synthetic event in both, so WebKit adds no real input.
 - **Alternatives considered**: keeping it at the phone size only: a second copy of the same
   scenario, at 2 to 3 seconds a run.
-- **If wrong**: a WebKit-only failure of the composer's paste goes unseen; the editor's paste,
-  `US1.2: a pasted image is linked as "pasted image"`, still runs in WebKit.
+- **If wrong**: a WebKit-only failure of the composer's paste would show in `attach.test.tsx`'s "a
+  message not read yet has its images dimmed, as its text", kept in WebKit, which pastes an image in
+  the same composer, sees its thumbnail, and sends it with a text; the editor's paste,
+  `US1.2: a pasted image is linked as "pasted image"`, also still runs in WebKit.
 - **Where**: task 6.
 
 ## R22: The session page's drop is checked in happy-dom
@@ -453,3 +456,32 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a global setting no local one overrides and the template does not reach could still
   leak; `GIT_CONFIG_GLOBAL=/dev/null` ignores the whole file, so none can.
 - **Where**: task 7.
+
+## R28: The toasts' closings run on the desktop, under the test's clock
+
+- **Decision**: "committing closes the page's toasts" and "discarding closes the page's toasts", in
+  `priorities.test.tsx`, run under fake `setTimeout` and `clearTimeout` from before the Delete that
+  opens the toast, never advanced, and poll for the Undo's end with the default timeout instead of
+  `{ timeout: 2000 }`. They wait for a button with `expect.poll`, not `findByRole`, and move from
+  the phone to the desktop, in a block of their own. `atSize` throws when called after a test of its
+  scope or inside a test.
+- **Rationale**: the 2-second poll stood for "well before the toast's own 5 seconds", a duration
+  that a loaded runner can exceed without a bug. With the toast's timer faked, it cannot close by
+  itself, so only the commit or the discard can close it, however long either takes. Testing
+  Library's `findBy` ends each wait with a `setTimeout` of the page, which never fires under the
+  fake clock. On the phone, the toast lies over Commit and Discard: under the fake clock, the click
+  waits for it until the test's timeout, and the old tests took 5.9 seconds, passing because the
+  click landed only once the toast had closed by itself. On the desktop, a click reaches both
+  buttons. Breaks seen: without the commit's `closeUndoToasts()`, the commit test fails with
+  `expected <button …> to be null`, and the same for the discard's; the old tests passed on the
+  phone either way. The search for other `timeout:` options below their default (`vi.waitFor`'s 1 s,
+  the browser `expect.poll`'s and Testing Library's 5 s) finds none: the rest raise a wait, and
+  `cache.test.ts`'s `{ timeout: 50 }` is SQLite's busy timeout, an input of the code under test. The
+  phone runs 94 tests and skips 16, the desktop runs 74 and skips 36: `sizes-helper.test.tsx` has
+  two more tests, of a misplaced call, at each size.
+- **Alternatives considered**: keeping them on the phone, pressing Commit through the keyboard: a
+  path no finger takes while the toast is shown; a click with `force`: the toast takes it.
+- **If wrong**: a toast that covers the commit bar on the desktop too would hang both tests until
+  their timeout, with a failure screenshot that shows it. Whether the phone's toast should leave
+  Commit and Discard reachable is the human's to decide.
+- **Where**: task 6.
