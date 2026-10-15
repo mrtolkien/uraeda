@@ -1013,7 +1013,7 @@ git commit -m "feat(add-scratchpad): ura note"
     files, proposals, PRIORITIES.md, and INBOX.md are committed from the editor."
   - In Neovim, the action `note`, desc "Uraeda: add a note to the inbox", key `o`, global.
 
-- [ ] **Step 1: Move `commit` out of `commands.rs` into `commands/commit.rs`**
+- [x] **Step 1: Move `commit` out of `commands.rs` into `commands/commit.rs`**
 
 This is a structural step.
 
