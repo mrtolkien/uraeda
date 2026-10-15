@@ -70,10 +70,10 @@ language server attaches, is in the help: `:help uraeda`, from [doc/uraeda.txt](
 
 ## Development
 
-The tests use mini.test, against the `ura` built by cargo, from the repository's root:
+The tests use mini.test, against the `ura` their task builds with cargo. `vp run ready` leaves them
+out and CI runs them; run them from the repository's root with:
 
 ```sh
-cargo build -p uraeda-cli
 nix develop -c vp run test:nvim
 ```
 

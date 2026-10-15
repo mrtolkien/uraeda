@@ -2,13 +2,15 @@ local helpers = dofile("tests/helpers.lua")
 local eq = MiniTest.expect.equality
 
 -- The day an approval or a submission writes, read by the server from its environment, inherited
--- from the child (R8).
-vim.env.URA_TODAY = "2026-10-14"
+-- from the child (R8): set for this file's cases only.
+local today = "2026-10-14"
+local saved_today
 
 local child = helpers.new_child()
 local T = MiniTest.new_set({
   hooks = {
     pre_case = function()
+      saved_today, vim.env.URA_TODAY = vim.env.URA_TODAY, today
       child.setup()
       -- Every notification, as { message, level }; `vim.ui.select` picks the item shown as
       -- `_G.picks[n]`, and records what it showed.
@@ -29,6 +31,9 @@ local T = MiniTest.new_set({
           on_choice(nil, nil)
         end
       ]])
+    end,
+    post_case = function()
+      vim.env.URA_TODAY = saved_today
     end,
     post_once = child.stop,
   },

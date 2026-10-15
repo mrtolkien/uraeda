@@ -1,10 +1,10 @@
 local helpers = dofile("tests/helpers.lua")
 local eq = MiniTest.expect.equality
 
--- The day a start writes, read by the server from its environment, inherited from the child.
-vim.env.URA_TODAY = "2026-10-14"
--- The time a pasted image is named after, read the same way.
-vim.env.URA_NOW = "20261014-104733"
+-- The day a start writes, and the time a pasted image is named after, read by the server from its
+-- environment, inherited from the child: set for this file's cases only.
+local dates = { URA_TODAY = "2026-10-14", URA_NOW = "20261014-104733" }
+local saved = {}
 
 local child = helpers.new_child()
 --- (Re)starts the child with `config`, keeping every notification in `_G.notes`, as
@@ -22,7 +22,15 @@ end
 local T = MiniTest.new_set({
   hooks = {
     pre_case = function()
+      for name, value in pairs(dates) do
+        saved[name], vim.env[name] = vim.env[name], value
+      end
       setup()
+    end,
+    post_case = function()
+      for name in pairs(dates) do
+        vim.env[name] = saved[name]
+      end
     end,
     post_once = child.stop,
   },
