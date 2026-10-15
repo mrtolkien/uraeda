@@ -74,8 +74,8 @@ copy from standing for the default branch's.
 
 The inbox and its triage joined them, since notes are not priorities and are written while reviewing
 a feature's branch as much as anywhere else
-([Q1](../2026-10-15-add-scratchpad/clarifications-01.md#q1-where-do-notes-live),
-[Q3.A](../2026-10-15-add-scratchpad/clarifications-01.md#q3a-where-does-the-agents-proposal-live-until-you-answer-it)).
+([Q1](../done/2026-10-15-add-scratchpad.md#q1-where-do-notes-live),
+[Q3.A](../done/2026-10-15-add-scratchpad.md#q3a-where-does-the-agents-proposal-live-until-you-answer-it)).
 
 Tools remove a merged feature's worktree and local branch only when the human asks: worktrees are
 full checkouts that pile up once their features are merged, and the human asked for `ura clean`, run
