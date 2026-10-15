@@ -15,6 +15,7 @@ import { waiting } from "./labels.ts";
 import { Page } from "./layout/Page.tsx";
 import { navigate, useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
+import { storybookHref } from "./stories.tsx";
 
 function statusVariant(status?: string) {
   switch (status) {
@@ -181,14 +182,15 @@ function FileList({ feature, folder }: { feature: FeatureData; folder: string })
   );
 }
 
-/** The feature's HTML mockups. */
+/** The feature's HTML mockups, and its Storybook when it has a preview decision. */
 function MockupList({ feature, folder }: { feature: FeatureData; folder: string }) {
   const here = useRepoPath();
-  if (feature.mockups.length === 0) {
+  if (feature.mockups.length === 0 && !feature.preview) {
     return null;
   }
   return (
     <List hasDividers header={<Heading level={2}>Mockups</Heading>}>
+      {feature.preview && <ListItem href={here(storybookHref(folder))} label="Storybook" />}
       {feature.mockups.map((name) => (
         <ListItem
           href={here(`/f/${folder}/mockups/${name}`)}

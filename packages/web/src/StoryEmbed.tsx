@@ -300,8 +300,8 @@ function Bar({
   );
 }
 
-/** Why the story does not show. */
-function State({ children, error = false }: { children: ReactNode; error?: boolean }) {
+/** Why the story does not show, or its Storybook: the Storybook page shows it too. */
+export function State({ children, error = false }: { children: ReactNode; error?: boolean }) {
   return (
     <div {...stylex.props(styles.state, error && styles.error)}>
       <Text color={error ? "error" : "secondary"}>{children}</Text>
@@ -309,8 +309,17 @@ function State({ children, error = false }: { children: ReactNode; error?: boole
   );
 }
 
-/** "Try again": restarts the checkout's Storybook, whose updates reach the story. */
-function TryAgain({ folder }: { folder: string }) {
+/** A story its Storybook's index does not hold. */
+export function NoSuchStory({ story }: { story: StoryTarget }) {
+  return (
+    <State>
+      No story “{story.export}” in {story.path} on this branch.
+    </State>
+  );
+}
+
+/** "Try again": restarts the checkout's Storybook, whose updates reach its records. */
+export function TryAgain({ folder }: { folder: string }) {
   const fate = useFateClient();
   const [message, setMessage] = useState<string>();
   const restart = async () => {
@@ -381,9 +390,7 @@ function LiveStory({
         <Bar label={label} labelId={labelId}>
           <OpenInStorybook href={storybookHref(folder)} wide={wide} />
         </Bar>
-        <State>
-          No story “{story.export}” in {story.path} on this branch.
-        </State>
+        <NoSuchStory story={story} />
       </>
     );
   }

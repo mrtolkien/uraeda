@@ -14,6 +14,10 @@ test.each([
   ["/f/2026-10-12-cli-tuis/runs/7", { folder: "2026-10-12-cli-tuis", id: "7", page: "run" }],
   // "New change", which the sidebar's row opens (the spec's components).
   ["/changes/new", { page: "new-change" }],
+  // US5.1: a feature's Storybook page, and the main checkout's; a file of that name stays a file.
+  ["/f/x/storybook", { folder: "x", page: "storybook" }],
+  ["/storybook", { folder: "main", page: "storybook" }],
+  ["/f/x/storybook.md", { folder: "x", name: "storybook.md", page: "file" }],
 ])("parseRoute(%s)", (path, route) => expect(parseRoute(path)).toEqual(route));
 
 /** US6.3: the repository is in the URL, and a path without it is still a page's. */

@@ -248,8 +248,9 @@ From [the spec](spec.md), word for word:
   output, retries once on a taken port, and restarts on demand; stops a process group after 30
   minutes without a view, when the worktree is removed, and at exit. An embed on screen asks again
   every 5 minutes.
-- The proxy replaces Storybook's `Content-Security-Policy` with
-  `sandbox allow-scripts allow-popups; frame-ancestors 'self'`, keeps the full path for Vite's
+- The proxy replaces Storybook's `Content-Security-Policy` with `sandbox allow-scripts allow-popups`
+  (the spec adds `; frame-ancestors 'self'`, dropped by
+  [R29](rulings.md#r29-the-proxy-sets-no-frame-ancestors)), keeps the full path for Vite's
   `vite-hmr` protocol and removes the path otherwise, and removes the `Origin` header of upgrades.
 - A paragraph is an embed when it holds exactly one link, and nothing but whitespace around it. The
   link's path must end in `.stories.` and one of `js`, `jsx`, `ts`, `tsx`, `mjs`, or `svelte`, and
@@ -1246,7 +1247,7 @@ test("every response allows any origin, and is sandboxed", async () => {
   );
   expect(response.headers.get("access-control-allow-origin")).toBe("*");
   expect(response.headers.get("content-security-policy")).toBe(
-    "sandbox allow-scripts allow-popups; frame-ancestors 'self'",
+    "sandbox allow-scripts allow-popups",
   );
 });
 
@@ -1739,7 +1740,13 @@ git commit -m "feat(ui-iteration): story embeds in workflow files"
 - Modify: `packages/web/src/routes.tsx` (`Route`, `parseRoute`), `packages/web/src/App.tsx`
   (`Page`), `packages/web/src/FeaturePage.tsx` (split first), `packages/web/src/SessionAside.tsx`
   (`Pages`), `packages/web/src/data.ts` (`usePreview`), `packages/web/scripts/screenshots.ts`
-  (views)
+  (views), `packages/web/src/Crumbs.tsx` (no feature, for `/storybook`),
+  `packages/web/src/StoryEmbed.tsx` (`State`, `TryAgain`, and `NoSuchStory` exported)
+- Modify: `fixtures/preview/serve.mjs` (Storybook's interface at `/`),
+  `packages/web/vite.browser.config.ts` (`innerFrameText`),
+  [R30](rulings.md#r30-the-fake-preview-draws-storybooks-interface);
+  `packages/server/src/preview/proxy.ts` (`SANDBOX`) and its test,
+  [R29](rulings.md#r29-the-proxy-sets-no-frame-ancestors)
 - Test: `packages/web/src/__browser__/storybook-page.test.tsx`,
   `packages/web/src/__tests__/routes.test.ts`, `packages/web/src/__browser__/layout.test.tsx`
 
@@ -1769,7 +1776,7 @@ git add packages/web/src/FeaturePage.tsx
 git commit -m "refactor(ui-iteration): split FeaturePage, and remove its marker"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```tsx
 // packages/web/src/__browser__/storybook-page.test.tsx
@@ -1783,12 +1790,17 @@ test("Open in Storybook opens Uraeda's Storybook page at the story (US1.3, US5.1
   expect(window.location.pathname + window.location.search).toBe(
     atRepo("/f/2026-10-20-sidebar-resize/storybook?path=/story/sidebarhandle--dragging"),
   );
-  const crumbs = screen.getByRole("navigation", { name: "Breadcrumbs" });
-  expect(within(crumbs).getAllByRole("listitem").at(-1)?.textContent).toBe("Storybook");
+  const crumbs = within(screen.getByRole("navigation", { name: "Breadcrumbs" }));
+  expect(crumbs.getByRole("link", { name: "Sidebar resize" })).toBeTruthy();
+  expect(within(crumbs.getAllByRole("listitem").at(-1)!).getByText("Storybook")).toBeTruthy();
   expect(frame.getAttribute("src")).toBe(
     `/r/${encodeURIComponent(repository())}/preview/2026-10-20-sidebar-resize/?path=/story/sidebarhandle--dragging`,
   );
   expect(frame.getBoundingClientRect().bottom).toBe(window.innerHeight);
+  // US5.2: Storybook's interface frames the story itself (R29).
+  await expect
+    .poll(() => commands.innerFrameText("Storybook", "storybook-preview-iframe"))
+    .toContain("Dragging");
 });
 ```
 
@@ -1804,6 +1816,9 @@ Also:
   `?path=/story/sidebarhandle--dragging`.
 - `a failed Storybook says so, with Try again` (edge case): `fail` mode; the page reads "Storybook
   did not start: Error: Cannot find module 'storybook'".
+- `an inline link's story not in the index says so, with Open in Storybook` (edge case), and the
+  page reads "Nothing here." without a preview decision
+  ([R31](rulings.md#r31-the-storybook-page-says-why-it-cannot-show-a-story)).
 - In `__tests__/stories.test.tsx`, `the Storybook page is asked for again every 5 minutes` (review
   focus 4), as task 7's test does for a story.
 - In `routes.test.ts`: `/f/x/storybook` and `/storybook` parse to the page; `/f/x/storybook.md`
@@ -1817,25 +1832,27 @@ The break each test catches:
 - US5.4: a frame with a fixed width.
 - Inline links: `?story=` passed to Storybook as is, which it does not know.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test --project desktop src/__browser__/storybook-page.test.tsx`
 - Expected: FAIL, `Unable to find an element with the title: Storybook.`: the address is read as a
   file named `storybook`.
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 The routes, before the file route; the page; the rows, "Storybook" in `SessionAside`'s `Pages` and
-in `FeaturePage`'s mockups list, when `usePreviewOn(folder)`. Add the views `story-embed`,
-`storybook-page`, and `story-pick` to `screenshots.ts`, on `addStoryFeature`, for the final review.
+in `FeaturePage`'s mockups list, when the feature's record says `preview`
+([R31](rulings.md#r31-the-storybook-page-says-why-it-cannot-show-a-story)). Add the views
+`story-embed` and `storybook-page` to `screenshots.ts`, on `addStoryFeature`, for the final review;
+task 9 adds `story-pick`, once pick mode exists.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run:
   `vp test --project desktop && vp test --project phone && vp test --project uraeda-web && vp check`
 - Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web
@@ -1849,7 +1866,8 @@ git commit -m "feat(ui-iteration): the Storybook page and its rows"
 - Modify: `packages/web/src/StoryEmbed.tsx` (toolbar, pick mode, comment form),
   `packages/web/src/ReviewPage.tsx` (the review's `comment`, in `StoriesProvider`),
   `packages/web/src/ReviewMockups.tsx`, `packages/web/vite.browser.config.ts` (`frameOutlined`,
-  `framePress`, `frameReload`)
+  `framePress`, `frameReload`), `packages/web/scripts/screenshots.ts` (the `story-pick` view,
+  [R31](rulings.md#r31-the-storybook-page-says-why-it-cannot-show-a-story))
 - Create: `packages/web/src/storyComment.ts`
 - Test: `packages/web/src/__browser__/story-comments.test.tsx`
 
@@ -1951,6 +1969,8 @@ The break each test catches:
   review's error when it fails, as comments do today.
 - `ReviewPage` provides `comment`: `review.comment` on the file, with the embed's block's
   `startLine` and `endLine`.
+- `screenshots.ts`: the view `story-pick`, beside task 8's `story-embed` and `storybook-page`, in
+  `takeStories`: the embed in pick mode.
 
 - [ ] **Step 4: Run all tests**
 

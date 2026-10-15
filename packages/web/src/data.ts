@@ -13,6 +13,7 @@ import {
   FileView,
   FolderSuggestionsView,
   InboxView,
+  PreviewView,
   PrioritiesView,
   ProposalHintsView,
   RepositoriesView,
@@ -413,6 +414,18 @@ export function useStory(folder: string, story: StoryTarget) {
   useRefreshOnShow(request);
   useStillViewed(request);
   return useLiveView(StoryView, record);
+}
+
+/**
+ * A checkout's Storybook, by its folder, `main` for the main checkout, kept up to date as it starts,
+ * fails, or stops: reading it is a view, as `useStory`'s, and it is read again while it is drawn.
+ */
+export function usePreview(folder: string) {
+  const request = { preview: { id: folder, view: PreviewView } };
+  const { preview } = useRequest(request, { mode: "stale-while-revalidate" });
+  useRefreshOnShow(request);
+  useStillViewed(request);
+  return useLiveView(PreviewView, preview);
 }
 
 /** The folder of the main checkout's stories and Storybook, as the server names it. */

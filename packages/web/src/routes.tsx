@@ -10,6 +10,7 @@ import {
   useRef,
   useSyncExternalStore,
 } from "react";
+import { MAIN_CHECKOUT } from "./data.ts";
 
 /** The UI's pages, from the location's path. */
 export type Route =
@@ -24,6 +25,7 @@ export type Route =
   | { page: "edit"; path: string }
   | { folder: string; name: string; page: "mockup" }
   | { folder: string; page: "session" }
+  | { folder: string; page: "storybook" }
   | { folder: string; id: string; page: "run" }
   | { id: string; page: "chat" }
   | { page: "new-chat" }
@@ -110,6 +112,9 @@ export function parseRoute(pathname: string): Route {
   if (parts[0] === "f" && parts.length === 3 && parts[2] === "session") {
     return { folder: parts[1], page: "session" };
   }
+  if (parts[0] === "f" && parts.length === 3 && parts[2] === "storybook") {
+    return { folder: parts[1], page: "storybook" };
+  }
   if (parts[0] === "f" && parts.length === 3) {
     return { folder: parts[1], name: parts[2], page: "file" };
   }
@@ -124,6 +129,9 @@ export function parseRoute(pathname: string): Route {
   }
   if (parts[0] === "changes" && parts.length === 2 && parts[1] === "new") {
     return { page: "new-change" };
+  }
+  if (parts[0] === "storybook" && parts.length === 1) {
+    return { folder: MAIN_CHECKOUT, page: "storybook" };
   }
   if (parts[0] === "priorities" && parts.length === 1) {
     return { page: "priorities" };
