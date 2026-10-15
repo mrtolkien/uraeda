@@ -98,7 +98,7 @@ export function NewChangePage() {
           sendLabel="Start the change"
           value={text.text}
         />
-        <SlugField field={slug} />
+        <SlugField field={slug} restoreNotice={false} />
         {error && <Banner collapsible={false} status="error" title={error} />}
         <Text color="secondary" type="supporting">
           Creates its branch and worktree, and adds it to Now. The agent asks only what it must,
