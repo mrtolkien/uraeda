@@ -57,7 +57,7 @@ pub(crate) fn item_text<'a>(lines: &[&'a str], item: &Item) -> Vec<&'a str> {
 
 /// Every item at column 0 under a heading `heading` accepts, with what it returned for that
 /// heading, which it gets with its line number, from 1. Any line starting with `#` is a heading.
-/// Lines inside fenced code are neither. An item runs on over its indented lines, up to a blank or
+/// Lines inside fenced code are neither: see [`is_fence`]. An item runs on over its indented lines, up to a blank or
 /// unindented line; its text ends at its first sub-item.
 pub(crate) fn items<S: Clone>(
     text: &str,
@@ -70,7 +70,7 @@ pub(crate) fn items<S: Clone>(
     let mut index = 0;
     while index < lines.len() {
         let line = lines[index];
-        if super::is_fence(line) {
+        if is_fence(line) {
             in_code = !in_code;
             index += 1;
             continue;
@@ -123,7 +123,20 @@ fn item_at(lines: &[&str], index: usize, marker: Marker) -> Item {
 
 /// The headings of a text outside fenced code, with their line numbers, from 1.
 pub(crate) fn headings(text: &str) -> impl Iterator<Item = (usize, &str)> {
-    super::lines_outside_code(text).filter(|(_, line)| line.starts_with('#'))
+    let mut in_code = false;
+    text.lines().enumerate().filter_map(move |(index, line)| {
+        if is_fence(line) {
+            in_code = !in_code;
+            return None;
+        }
+        (!in_code && line.starts_with('#')).then_some((index + 1, line))
+    })
+}
+
+/// Whether a line opens or closes fenced code between items. Only a fence at column 0 does: an
+/// indented one is part of the item above it, whose lines a blank line inside the fence ends.
+fn is_fence(line: &str) -> bool {
+    line.starts_with("```") || line.starts_with("~~~")
 }
 
 /// Adds `item`, the lines of an item, after `last`, the last item of a section, or else after the

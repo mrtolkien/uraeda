@@ -63,7 +63,6 @@ fn a_line_is_added_to_an_empty_section() {
     assert_eq!(added, "# Priorities\n\n## Now\n\n- First\n\n## Next\n");
 }
 
-/// US7.3: a swap is one change.
 /// R7: bullets inside fenced code are not items, in the priorities as in the inbox.
 #[test]
 fn priorities_skip_fenced_code() {
@@ -78,6 +77,27 @@ fn priorities_skip_fenced_code() {
     assert_eq!(added, format!("{text}\n## Later\n\n- Idea\n"));
 }
 
+/// A fence indented under an entry, with a blank line in it, does not hide what follows.
+#[test]
+fn indented_fences_do_not_hide_later_entries() {
+    let text =
+        "# Priorities\n\n## Now\n\n- a\n  ```\n  x\n\n  y\n  ```\n- next\n\n## Next\n\n- b\n";
+
+    let entries: Vec<(Section, String)> = priorities::parse(text)
+        .into_iter()
+        .map(|e| (e.section, e.text))
+        .filter(|(_, t)| !t.starts_with('a'))
+        .collect();
+    assert_eq!(
+        entries,
+        [
+            (Section::Now, "next".to_string()),
+            (Section::Next, "b".to_string())
+        ]
+    );
+}
+
+/// US7.3: a swap is one change.
 #[test]
 fn a_line_moves_above_another() {
     let moved = priorities::move_entry(TEXT, "next-2", Section::Next, 0).unwrap();

@@ -42,9 +42,9 @@ The inbox is optional. A project without `INBOX.md` has no notes, and the first 
 
 The `[agent]` mark says an agent wrote the note. The slug is the folder of the feature or bug the
 note is about, without its date: `[run-ui]` for `2026-10-14-run-ui`. Lines inside fenced code are
-not notes, and a `###` heading does not end a category. A category's name appears once: tools add to
-the first heading of a name, and `ura check` reports a repeated one. A category left empty keeps its
-heading.
+not notes, a fence indented under a note is part of it, and a `###` heading does not end a category.
+A category's name appears once: tools add to the first heading of a name, and `ura check` reports a
+repeated one. A category left empty keeps its heading.
 
 Tools edit the file line by line: every line they do not change keeps its bytes. By hand, do the
 same.
@@ -54,7 +54,8 @@ same.
 Notes are written on the default branch, from any checkout, like `PRIORITIES.md`: in the checkout or
 worktree that has the default branch, see [Branches](conventions.md#branches). Write one line per
 note, at the end of its category, or after the last note without one. A new category goes at the end
-of the file. When `INBOX.md` does not exist, create it as `# Inbox`, a blank line, and the note.
+of the file. When `INBOX.md` does not exist, create it as `# Inbox`, a blank line, and the note, and
+add that title to a file without one.
 
 - **By hand**: add the line, then commit `specs/INBOX.md` alone, with
   `chore: add "<note>" to the inbox`. When it has other uncommitted changes, write the note without
@@ -142,7 +143,7 @@ Once `INBOX-TRIAGE.md` is `answered`:
 An agent working on a feature or a bug that finds a problem outside its task, like a slow page or a
 confusing message, does not fix it in passing, and does not drop it. It adds a note:
 
-- marked `[agent]`, then with the slug of the feature or bug it works on;
+- marked `[agent]`, then with the slug of the feature or bug the note is about;
 - under the category that fits, or a new one named like the others;
 - with `ura note <text> --agent --about <slug> --category <name>`, or by hand in the default
   branch's checkout, committed alone with `chore: add "<note>" to the inbox`.
