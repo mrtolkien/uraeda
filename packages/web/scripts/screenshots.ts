@@ -1,8 +1,8 @@
 /**
  * Screenshots of the UI's views for review, as the UI checks decision asks before handing a UI
  * change over: each view at a phone's size (402 × 874, with a touch screen) and a desktop's
- * (1440 × 900), in light and dark, saved as `<view>-<phone|desktop>-<light|dark>.png` in the
- * feature's `screenshots/` folder.
+ * (1440 × 900), in light and dark, saved as `<view>-<phone|desktop>-<light|dark>.webp` in the
+ * feature's `screenshots/` folder, re-encoded by the core as an attached image is.
  *
  * Run it with `vp run --filter uraeda-web screenshots <folder>`, inside `nix develop` for WebKit. It serves
  * the UI with Vite over a fresh copy of `fixtures/repo`, the repository it opens first, listed in a
@@ -23,6 +23,7 @@ import { fixtureRepo, git } from "uraeda-binding/test-utils";
 import { FakeAdapter } from "uraeda-server/testing";
 import { createServer, type PluginOption } from "vite-plus";
 import base, { uraedaServer } from "../vite.config.ts";
+import { takeChanges } from "./change-shots.ts";
 import { takeImages } from "./image-shots.ts";
 import { takeTextInputs } from "./text-input-shots.ts";
 import {
@@ -115,6 +116,7 @@ async function main() {
     await take(shots, adapter, repo, at);
     await takeImages(shooter(shots, out, views), shots[0]!.page, adapter, repo, `${url}${at}`);
     await takeTextInputs(shooter(shots, out, views));
+    await takeChanges(shooter(shots, out, views), shots[0]!.page, adapter, repo);
   } finally {
     await browser?.close();
     await server.close();

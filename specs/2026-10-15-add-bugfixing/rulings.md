@@ -381,3 +381,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   does not follow; nesting the draft under the change's entry, as the spec's "under" could read.
 - **If wrong**: keep the applied decision, and drop it from the revert.
 - **Where**: review of task 10, `skills/uraeda/references/change.md`.
+
+## R23: Screenshots are WebP, re-encoded by the core
+
+- **Decision**: the screenshot script saves each view as `<view>-<size>-<theme>.webp`, re-encoded by
+  the core's `encodeImage`, as an attached image is, not as Playwright's PNG. Task 11's screenshots
+  are WebP.
+- **Rationale**: the attachments decision makes WebP the repository's image format, and
+  near-lossless WebP takes about a quarter of a PNG's size: these 20 screenshots take 540 KB. The
+  core encodes, as the decision asks of TypeScript code, so the script names no encoder.
+- **Alternatives considered**: PNG, as earlier features committed, four times larger, in git history
+  once the folder is finished.
+- **If wrong**: `save` in `packages/web/scripts/shots.ts` writes Playwright's PNG again.
+- **Where**: Task 11, `packages/web/scripts/shots.ts`.
