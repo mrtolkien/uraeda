@@ -39,8 +39,8 @@ pub struct StoryLink {
 }
 
 /// The story a link names, as written in a file of `dir`, from the repository's top level: a path
-/// ending in `.stories.` and one of the extensions, and a fragment that is a JavaScript identifier.
-/// Web links, URIs, and anchors in the page name none.
+/// ending in `.stories.` and one of the extensions, and a fragment that is an ASCII JavaScript
+/// identifier. Web links, URIs, and anchors in the page name none.
 pub fn story_target(dir: &str, target: &str) -> Option<StoryTarget> {
     let (_, export) = target.split_once('#')?;
     if !is_identifier(export) {
@@ -101,12 +101,12 @@ fn only_link(spans: &[Span]) -> Option<(&SpanLink, String)> {
     found.map(|link| (link, label))
 }
 
-/// Whether a text is a JavaScript identifier: a letter, `$`, or `_`, then letters, digits, `$`, or
-/// `_`.
+/// Whether a text is an ASCII JavaScript identifier: an ASCII letter, `$`, or `_`, then ASCII
+/// letters, digits, `$`, or `_`.
 fn is_identifier(text: &str) -> bool {
     let mut chars = text.chars();
     chars
         .next()
-        .is_some_and(|c| c.is_alphabetic() || c == '$' || c == '_')
-        && chars.all(|c| c.is_alphanumeric() || c == '$' || c == '_')
+        .is_some_and(|c| c.is_ascii_alphabetic() || c == '$' || c == '_')
+        && chars.all(|c| c.is_ascii_alphanumeric() || c == '$' || c == '_')
 }
