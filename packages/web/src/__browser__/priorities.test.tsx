@@ -241,18 +241,33 @@ describe("on the phone", () => {
 
     await expect.poll(() => commands.readRepo(), { timeout: 10_000 }).toContain(NEXT_SWAPPED);
   });
+});
+
+/**
+ * A button once it shows, waited for by Vitest's own clock: Testing Library's `findBy` waits on the
+ * page's `setTimeout`, which the toasts' tests fake.
+ */
+async function button(name: string) {
+  await expect.poll(() => screen.queryByRole("button", { name })).not.toBeNull();
+  return screen.getByRole("button", { name });
+}
+
+// On the desktop: on the phone, the toast lies over Commit and Discard, and a click reaches them
+// only once it has closed by itself.
+describe("on the desktop, the toasts", () => {
+  atSize("desktop");
 
   test("committing closes the page's toasts", async () => {
     await show("/priorities/nix-docker-based-execution-environments", "Delete");
+    // The page's clock is the test's, never advanced: the toast cannot close by itself, after its 5
+    // seconds, so only the commit can close it.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     await userEvent.click(screen.getByRole("button", { name: "Delete" }));
-    expect(await screen.findByRole("button", { name: "Undo" })).toBeTruthy();
+    await button("Undo");
 
-    await userEvent.click(await screen.findByRole("button", { name: "Commit" }));
+    await userEvent.click(await button("Commit"));
 
-    // Closed by the commit, well before the toast would close by itself, after 5 seconds.
-    await expect
-      .poll(() => screen.queryByRole("button", { name: "Undo" }), { timeout: 2000 })
-      .toBeNull();
+    await expect.poll(() => screen.queryByRole("button", { name: "Undo" })).toBeNull();
     // Committed: nothing is left to commit.
     await expect.poll(() => screen.queryByRole("button", { name: "Commit" })).toBeNull();
   });
@@ -260,17 +275,17 @@ describe("on the phone", () => {
   test("discarding closes the page's toasts", async () => {
     const original = await commands.readRepo();
     await show("/priorities/nix-docker-based-execution-environments", "Delete");
+    // The page's clock is the test's, never advanced: the toast cannot close by itself, after its 5
+    // seconds, so only the discard can close it.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     await userEvent.click(screen.getByRole("button", { name: "Delete" }));
-    expect(await screen.findByRole("button", { name: "Undo" })).toBeTruthy();
+    await button("Undo");
 
-    await userEvent.click(await screen.findByRole("button", { name: "Discard" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Discard them" }));
+    await userEvent.click(await button("Discard"));
+    await userEvent.click(await button("Discard them"));
 
-    // Discarded: the line is back, and no Undo is left to insert it a second time, well before the
-    // toast would close by itself, after 5 seconds.
+    // Discarded: the line is back, and no Undo is left to insert it a second time.
     await expect.poll(() => commands.readRepo()).toBe(original);
-    await expect
-      .poll(() => screen.queryByRole("button", { name: "Undo" }), { timeout: 2000 })
-      .toBeNull();
+    await expect.poll(() => screen.queryByRole("button", { name: "Undo" })).toBeNull();
   });
 });
