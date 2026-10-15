@@ -1,5 +1,6 @@
 // The preview proxy: the server on a port, its upgrades too, with the fake preview behind it.
 import { createServer, type IncomingHttpHeaders, request as httpRequest } from "node:http";
+import { randomBytes } from "node:crypto";
 import { basename, join } from "node:path";
 import { getRequestListener } from "@hono/node-server";
 import { expect, onTestFinished, test } from "vite-plus/test";
@@ -114,6 +115,51 @@ test("Storybook's channel goes without the path or Origin; Vite's socket keeps i
   expect(await socketOpens(`${origin}${base}`, { origin: "null", protocol: "vite-hmr" })).toBe(
     true,
   );
+});
+
+/**
+ * The fake preview's echo of a WebSocket upgrade to `url`: its first message, one text frame under
+ * 64 KB, parsed. The socket is destroyed once it is read.
+ */
+function upgradeEcho(url: string): Promise<{ path: string; query: Record<string, Array<string>> }> {
+  return new Promise((resolve, reject) => {
+    const request = httpRequest(url, {
+      headers: {
+        connection: "Upgrade",
+        "sec-websocket-key": randomBytes(16).toString("base64"),
+        "sec-websocket-version": "13",
+        upgrade: "websocket",
+      },
+    });
+    request.on("upgrade", (_response, socket, head) => {
+      let received = head;
+      const read = (chunk: Buffer) => {
+        received = Buffer.concat([received, chunk]);
+        const short = received.length >= 2 && received[1]! < 126;
+        const start = short ? 2 : 4;
+        const length = short ? received[1]! : received.length >= 4 ? received.readUInt16BE(2) : 0;
+        if (received.length >= 2 && received.length >= start + length && length > 0) {
+          socket.destroy();
+          resolve(JSON.parse(received.subarray(start, start + length).toString("utf8")));
+        }
+      };
+      socket.on("data", read);
+      read(Buffer.alloc(0));
+    });
+    request.on("response", (response) => reject(new Error(`${url}: ${response.statusCode}`)));
+    request.on("error", reject);
+    request.end();
+  });
+}
+
+test("Storybook's channel is only ever opened as a preview's, with its token", async () => {
+  const { base, origin } = await runningPreview();
+  const channel = `${origin}${base}storybook-server-channel`;
+
+  for (const query of ["?token=t&page=manager", "?token=t", "?page=preview&token=t&page=manager"]) {
+    const echo = await upgradeEcho(`${channel}${query}`);
+    expect(echo.query).toEqual({ page: ["preview"], token: ["t"] });
+  }
 });
 
 test("a write is refused", async () => {
