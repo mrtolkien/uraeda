@@ -21,8 +21,9 @@ mockups stay HTML.]
 - Storybook MUST use its Vite builder. Checked by `uraeda-preview.js`, which stops a webpack
   Storybook with "uraeda-preview.js needs Storybook's Vite builder."
 - [Mockups and named states MUST be stories, in `<Component>.stories.<ext>` files next to their
-  component, one export per state or variant. For a mockups Storybook: in the feature's
-  `mockups/*.stories.tsx`, written in React with Astryx.] Checked by review.
+  component, one export per state or variant. For a mockups Storybook: in the feature's or the
+  change's `mockups/*.stories.tsx`, read through `specs/*/mockups/*.stories.tsx` and
+  `specs/changes/*/mockups/*.stories.tsx`, written in React with Astryx.] Checked by review.
 - Storybook's `main.ts` MUST be wrapped by `uraeda-preview.js`, and its preview MUST load
   `uraeda-pick.js`, both copied unchanged from the Uraeda skill's `assets/storybook/`. Checked by
   review.

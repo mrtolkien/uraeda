@@ -31,8 +31,8 @@ its `preview-command` starts it with `{port}` and `--host 127.0.0.1`, as
   skill's `assets/storybook/`. Its packages are pinned to exact versions, and its telemetry is off.
 - **Any other stack**, like Rails or Django, gets a mockups Storybook in `storybook/` at the
   repository's root, in React with Astryx, with the same two files, reading
-  `specs/*/mockups/*.stories.tsx`. Its stories are mockups only, and leave with the feature's folder
-  when it finishes.
+  `specs/*/mockups/*.stories.tsx` and `specs/changes/*/mockups/*.stories.tsx`. Its stories are
+  mockups only, and leave with the feature's or the change's folder when it finishes.
 - **Data**: Uraeda forwards only Storybook's GET and HEAD requests and WebSocket upgrades, in
   sandboxed frames. A story that reads data with POSTs needs a Storybook-only middleware turning
   GETs back into POSTs, and event streams opened without credentials: say so in the decision.
