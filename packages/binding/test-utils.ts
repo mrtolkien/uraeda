@@ -5,6 +5,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readdirSync,
+  readFileSync,
   realpathSync,
   rmSync,
   writeFileSync,
@@ -204,4 +205,130 @@ export function expectLogged(
     expect(unexpected, `only messages matching ${expected} are logged`).toEqual([]);
   });
   return spy;
+}
+
+/** How the fake preview, `fixtures/preview/serve.mjs`, behaves: see its header. */
+export type FakeMode = "ok" | "fail" | "hang" | "bad-index" | "no-pick";
+
+/** The preview decision's path, from a checkout's top level. */
+const PREVIEW_DECISION = "specs/decisions/preview.md";
+
+/**
+ * An active preview decision running the fake preview in `folder`, logging its starts to `log`.
+ * The command ends in `&& true`, so its shell waits for the fake, as `pnpm exec` waits for
+ * Storybook: only a signal to the whole process group stops both.
+ */
+function previewDecision(log: string, folder: string, mode: FakeMode, delay: number): string {
+  const command = `node ${fixture("preview/serve.mjs")} --port {port} --mode ${mode} --delay ${delay} --log ${log} && true`;
+  return `---\nstatus: active\napproved-by: Test\npreview-folder: ${folder}\npreview-command: ${command}\n---\n\n# Preview\n\nThe tests' fake Storybook.\n`;
+}
+
+/** Writes files in the main checkout, their paths from its top level, and commits them. */
+function commitOnMain(repo: string, files: Record<string, string>) {
+  for (const [path, text] of Object.entries(files)) {
+    mkdirSync(dirname(join(repo, path)), { recursive: true });
+    writeFileSync(join(repo, path), text);
+  }
+  git(repo, "add", "--", ...Object.keys(files));
+  git(repo, "commit", "--quiet", "--no-verify", "--message", "chore: files");
+}
+
+/**
+ * Commits `specs/decisions/preview.md`, active, running the fake preview in `folder`
+ * (`packages/web` by default), on `main`, in the main checkout, and on every other branch, which
+ * no worktree may hold yet. Returns the log file the fake appends its starts to: see
+ * `previewStarts`.
+ */
+export function addPreview(
+  repo: string,
+  options: { delay?: number; folder?: string; mode?: FakeMode } = {},
+): string {
+  const log = join(temporaryFolder("uraeda-preview"), "starts.log");
+  const text = previewDecision(
+    log,
+    options.folder ?? "packages/web",
+    options.mode ?? "ok",
+    options.delay ?? 0,
+  );
+  commitOnMain(repo, { [PREVIEW_DECISION]: text });
+  const branches = git(repo, "for-each-ref", "--format=%(refname:short)", "refs/heads").split("\n");
+  for (const branch of branches.filter((name) => name !== "" && name !== "main")) {
+    commitOnBranch(repo, branch, { [PREVIEW_DECISION]: text });
+  }
+  return log;
+}
+
+/** Each start the fake preview logged: its base path, its folder, its process, and its port. */
+export function previewStarts(
+  log: string,
+): Array<{ base: string; cwd: string; pid: number; port: number }> {
+  if (!existsSync(log)) {
+    return [];
+  }
+  return readFileSync(log, "utf8")
+    .split("\n")
+    .filter((line) => line !== "")
+    .map((line) => JSON.parse(line) as { base: string; cwd: string; pid: number; port: number });
+}
+
+/** The test feature's branch and folder: the spec's own example. */
+export const STORY_FEATURE = "2026-10-20-sidebar-resize";
+
+/** The stories file the test feature links, from the repository's top level. */
+export const STORIES_FILE = "packages/web/src/SidebarHandle.stories.tsx";
+
+/** The stories file's text, with the given exports. */
+function storiesText(exports: Array<string>): string {
+  const stories = exports.map((name) => `export const ${name} = {};\n`).join("");
+  return `export default { title: "SidebarHandle" };\n\n${stories}`;
+}
+
+/** The test feature's files, from `fixtures/preview/feature/`, with the given statuses. */
+function featureFiles(options: { round?: "awaiting-human" | "answered"; specStatus?: string }) {
+  const folder = fixture("preview/feature");
+  const files: Record<string, string> = {};
+  for (const name of readdirSync(join(folder, "specs", STORY_FEATURE))) {
+    const path = `specs/${STORY_FEATURE}/${name}`;
+    files[path] = readFileSync(join(folder, path), "utf8");
+  }
+  const spec = `specs/${STORY_FEATURE}/spec.md`;
+  if (options.specStatus !== undefined) {
+    files[spec] = files[spec]!.replace(/^status: .*$/m, `status: ${options.specStatus}`);
+  }
+  if (options.round === "answered") {
+    const round = `specs/${STORY_FEATURE}/clarifications-01.md`;
+    const answered = files[round]!.replace(/^status: .*$/m, "status: answered");
+    // Q2's answer is the second, and last, empty one.
+    const at = answered.lastIndexOf("**Answer:**\n");
+    files[round] = `${answered.slice(0, at)}**Answer:** A\n${answered.slice(at + 12)}`;
+    files[STORIES_FILE] = storiesText(["Dragging", "ThinLine"]);
+  }
+  return files;
+}
+
+/**
+ * Builds the test feature, `2026-10-20-sidebar-resize`, in a fixture repository: commits
+ * `packages/web/src/SidebarHandle.stories.tsx`, exporting `Dragging`, `ThinLine`, and `Grip`, on
+ * `main`, then the branch with the files of `fixtures/preview/feature/`, and checks it out in
+ * `.worktrees/2026-10-20-sidebar-resize` unless `worktree` is false. With `preview` (the default),
+ * the fake preview's decision is committed on every branch first, and its log returned. `specStatus`
+ * rewrites the spec's status; `round: "answered"` answers the round's Q2 "A" and deletes `Grip`.
+ */
+export function addStoryFeature(
+  repo: string,
+  options: {
+    preview?: false | { delay?: number; mode?: FakeMode };
+    round?: "awaiting-human" | "answered";
+    specStatus?: string;
+    worktree?: boolean;
+  } = {},
+): { log?: string } {
+  commitOnMain(repo, { [STORIES_FILE]: storiesText(["Dragging", "ThinLine", "Grip"]) });
+  git(repo, "branch", STORY_FEATURE, "main");
+  commitOnBranch(repo, STORY_FEATURE, featureFiles(options));
+  const log = options.preview === false ? undefined : addPreview(repo, options.preview ?? {});
+  if (options.worktree !== false) {
+    git(repo, "worktree", "add", "--quiet", join(".worktrees", STORY_FEATURE), STORY_FEATURE);
+  }
+  return { log };
 }
