@@ -694,6 +694,25 @@ test("Category, then UI, makes the note the last of UI", async () => {
   expect(await screen.findByText("Note, in UI")).toBeTruthy();
 });
 
+/** A move can change the keys of notes of the same text: the view follows its note to its new key. */
+test("a note moved before another of the same text keeps its view, and Delete takes it", async () => {
+  const { repo } = await renderPage(
+    "/inbox/dark-mode",
+    withInbox("# Inbox\n\n## UI\n\n- Dark mode\n  - for the editor\n\n## CLI\n\n- Dark mode\n"),
+  );
+  expect(await screen.findByText("Note, in UI")).toBeTruthy();
+
+  await moveTo("CLI");
+
+  await toast("Moved to CLI, not committed");
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/inbox/dark-mode-2")));
+  expect(await screen.findByText("Note, in CLI")).toBeTruthy();
+  await click(screen.getByRole("button", { name: "Delete" }));
+  await toast("Deleted, not committed");
+  await waitFor(() => expect(read(repo, PATH)).not.toContain("for the editor"));
+  expect(read(repo, PATH)).toContain("## CLI\n\n- Dark mode\n");
+});
+
 /** Edge case: Undo after the note changed elsewhere is refused. */
 test("Undo of a moved note that changed since is refused", async () => {
   const { repo } = await renderPage("/inbox/we-need-a-home-icon");
