@@ -284,7 +284,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: deleting `bug.md` broke seven links that Task 10's files did not list. The merged
   record `specs/done/2026-10-12-finish-feature.md` links `change.md` in its place, keeping its text,
   `bug.md`. This feature's `discovery-01.md`, `clarifications-01.md`, and `plan.md` name `bug.md` as
-  a plain path, as R6 did for the deleted templates.
+  a plain path, as R6 did for the deleted templates. The benchmarks backlog's `discovery-01.md`
+  names it as a plain path too, `skills/uraeda/references/bug.md`: its "bug flow stays out"
+  describes the flow of its day, which `change.md` does not. This edits the answered
+  `clarifications-01.md`, whose only allowed edit is its block's record: it fixes a broken link
+  only, as a frozen record may, and keeps its words, the lines only reflowed.
 - **Rationale**: `ura check specs` refuses links to missing files. A merged record is edited only to
   fix a broken link ([finish](/skills/uraeda/references/finish.md#after-the-merge)), and `change.md`
   is what replaced the file it named, step table first. This feature's rounds describe `bug.md` as
@@ -294,7 +298,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   discuss.
 - **If wrong**: link the record's text as a plain path too.
 - **Where**: task 10, `specs/done/2026-10-12-finish-feature.md`,
-  `specs/2026-10-15-add-bugfixing/discovery-01.md`, `clarifications-01.md`, and `plan.md`.
+  `specs/2026-10-15-add-bugfixing/discovery-01.md`, `clarifications-01.md`, and `plan.md`;
+  `specs/backlog/benchmarks/discovery-01.md`.
 
 ## R19: New change restores silently, and a start answered after leaving opens nothing
 
@@ -317,3 +322,62 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: review of task 9, `packages/web/src/SlugField.tsx`,
   `packages/web/src/NewChangePage.tsx`, `packages/web/src/Composer.tsx`,
   `packages/web/vite.browser.config.ts`.
+
+## R20: Changes requested on a change's pull request
+
+- **Decision**: `change.md`'s pull request section says what differs from a feature's:
+  - a change applied directly updates the record, as for a feature; when the folder comes back for a
+    round, the record's changes noted before the revert go into `rulings.md`, one ruling each;
+  - a new question is a round of `clarifications-NN.md` alone; a new decision is the upgrade offer,
+    and a change to an active decision is proposed in a round;
+  - once that round is answered, the draft pull request makes the table name finish: the agent first
+    makes the change from the answers and reviews it, then finishes.
+
+  `SKILL.md`'s "Going back to the human" and its rule on proposed decision changes link the change's
+  exceptions, and finish's table row "the pull request is a draft" covers a reviewed change.
+
+- **Rationale**: implementation and finish said "the spec and the plan", a discovery file, and a
+  round for a new decision, which a change has none of or answers with the upgrade (spec: "Rounds
+  without a discovery file", "Decisions are the human's intent"). The proposal stays the human's
+  words, never rewritten ([projects](/skills/uraeda/references/projects.md)); `rulings.md` is where
+  a change's choices live, and the record's **Changes after approval** lists the rulings that change
+  behaviour. The core's step for a change with a draft pull request is finish, with no row for an
+  answered round, so the reference carries that order.
+- **Alternatives considered**: carrying the noted changes into the proposal, which rewrites the
+  human's words; a step of its own for an answered round after the pull request, which the core does
+  not have.
+- **If wrong**: add a `change` row before finish for a round answered after the draft pull request,
+  in the core and in `change.md`'s table.
+- **Where**: review of task 10, `skills/uraeda/references/change.md`, `finish.md`, `SKILL.md`.
+
+## R21: An upgraded change's feature starts with a new discovery round
+
+- **Decision**: an upgraded change's draft folder has answered rounds and no discovery file, so the
+  started feature's step is the spec. The spec step's "Is the scope clear?" sends it to a new round,
+  with its discovery file, at the proposal's discovery effort: round 02 after a change that asked
+  once. `change.md`'s upgrade section and `spec.md` say so.
+- **Rationale**: the change's rounds settled the change and its upgrade, not the feature's scope,
+  and a spec written from them would skip the discovery the feature flow exists for. The table needs
+  no new row: the spec step already starts a new round when the scope is unclear.
+- **Alternatives considered**: a step-table row for a folder with no discovery file, which the core
+  would need too; renaming the change's rounds, which edits answered rounds.
+- **If wrong**: add the row to `SKILL.md`'s table and to the core's `feature_step`.
+- **Where**: review of task 10, `skills/uraeda/references/change.md`, `spec.md`.
+
+## R22: The upgrade reverts applied decisions, and a split-out item is its own entry
+
+- **Decision**:
+  - the upgrade's revert commit, `revert(<slug>): undo the change before its upgrade`, reverts the
+    code commits, with their rulings and screenshots, and every `decision(<slug>): apply <topic>`
+    commit; the upgrade commit removes the `## Proposed change` sections the revert brings back;
+  - a split-out item is written on the default branch as `specs/drafts/<item-slug>.md`, committed
+    `chore: draft <Name>`, with its entry on the line after the change's entry, not nested under it.
+- **Rationale**: the human approved a decision's change for that change only; the feature proposes
+  it again in its spec, and postponing already removes a feature's proposed sections. `revert` is a
+  Conventional Commits type, and `chore: draft <Name>` is conventions' message for a draft. The
+  finishing commit removes the change's entry with its nested lines, so a nested line would go with
+  it; the catch-up brings the default branch's line into the branch before finishing.
+- **Alternatives considered**: keeping the applied decision, which leaves a rule the merged code
+  does not follow; nesting the draft under the change's entry, as the spec's "under" could read.
+- **If wrong**: keep the applied decision, and drop it from the revert.
+- **Where**: review of task 10, `skills/uraeda/references/change.md`.
