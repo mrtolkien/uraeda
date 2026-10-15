@@ -1,16 +1,16 @@
 # Projects
 
 What happens only when a human asks: setting Uraeda up in a project, and starting, postponing, or
-dropping a feature. And how a feature ends, once its work is done.
+dropping a feature or a change. And how a feature ends, once its work is done.
 
 ## Setting up a project
 
 When asked to set up Uraeda in a project, copy `assets/templates/specs/README.md`,
 `CONSTITUTION.md`, and `PRIORITIES.md` into the project's `specs/` folder, and create its `drafts/`,
-`backlog/`, `decisions/`, and `bugs/` folders, each with an empty `.gitkeep`, since git keeps no
+`backlog/`, `decisions/`, and `changes/` folders, each with an empty `.gitkeep`, since git keeps no
 empty folder. Never overwrite a file that exists. The constitution is the human's: help them write
 it by asking about the project's goals and constraints, and propose principles with recommended
-wording. Do not copy the feature, decision, or bug templates: they stay in this skill.
+wording. Do not copy the feature or decision templates: they stay in this skill.
 
 Once the constitution is written, propose a code-quality decision,
 `specs/decisions/code-quality.md`, for the project's own linters: limits, the stack's shared lint
@@ -63,6 +63,12 @@ Do these only when a human asks.
      [the table](../SKILL.md#finding-the-next-step) for a folder. A round left waiting for answers
      stays at its gate. When the human asks for fresh research, start a new round instead, following
      [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
+- **Start as a change**: a bug fix or a small change starts as a [change](change.md), with the same
+  steps under its own names: the folder `specs/changes/YYYY-MM-DD-<slug>/`, the branch
+  `change/YYYY-MM-DD-<slug>`, and the worktree `.worktrees/YYYY-MM-DD-<slug>/`. In the web UI, "New
+  change" starts one from a typed request, with no draft. With `ura`,
+  `ura start <draft> --slug <slug> --change` starts a draft as a change. By hand, see
+  [starting a change](change.md#starting-a-change). Then run the [change](change.md) step.
 - **Postpone or block**: on the feature's branch, move the whole folder to `specs/drafts/<slug>/` or
   `specs/backlog/<slug>/`, as the human prefers, without its date: the proposal, the discovery
   rounds, and the questions, answered or not, stay as they are. Delete the feature's `proposed`
@@ -74,7 +80,7 @@ Do these only when a human asks.
 
 ## Finishing a feature
 
-Once a feature's final review or a bug's fix is done, its folder is replaced by one record,
+Once a feature's final review or a change's review is done, its folder is replaced by one record,
 `specs/done/YYYY-MM-DD-<slug>.md`, in the last commit of its branch, before its pull request is
 ready: the default branch keeps what the feature does and why, and git keeps the rest. Links into
 the folder are rewritten to the record, whose questions keep their anchors. Records are frozen once

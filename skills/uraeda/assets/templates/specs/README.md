@@ -18,14 +18,17 @@ Without it, the file names and their `status` fields still tell where each featu
   `proposal.md` next to its `images/`
 - `decisions/`: the decision ledger, one file per topic, named after the question it answers:
   high-impact choices made by humans, binding for all work once `active`
-- `done/YYYY-MM-DD-<slug>.md`: the record of a merged feature or bug, written in place of its folder
-  in the last commit of its branch: what it does and why, each question with its answer, and the
-  changes made after approval. The folder's files stay in git: `git log -- specs/<folder>/`
-- `bugs/YYYY-MM-DD-<slug>/`: a bug `report.md` from a human, and its `assessment.md` from an agent,
-  on the branch `fix/YYYY-MM-DD-<slug>`, until it is finished into its record
-- `images/`, in a feature's, a bug's, or a draft's folder: the images a human attached, as WebP or
-  animated GIF, linked from the folder's files with `![alt](images/name.webp)`, and deleted with a
-  feature's or a bug's folder when it is finished
+- `done/YYYY-MM-DD-<slug>.md`: the record of a merged feature or change, written in place of its
+  folder in the last commit of its branch: what it does and why, each question with its answer, and
+  the changes made after approval. The folder's files stay in git: `git log -- specs/<folder>/`
+- `changes/YYYY-MM-DD-<slug>/`: a change, the light flow for a bug fix or a small change, on the
+  branch `change/YYYY-MM-DD-<slug>` until it is finished into its record: its `proposal.md` from a
+  human, its rounds of `clarifications-NN.md` when it needs a decision, and `rulings.md`. There is
+  no spec or plan: the agent's investigation is in its commits, and the human reviews the pull
+  request
+- `images/`, in a feature's, a change's, or a draft's folder: the images a human attached, as WebP
+  or animated GIF, linked from the folder's files with `![alt](images/name.webp)`, and deleted with
+  a feature's or a change's folder when it is finished
 - `YYYY-MM-DD-feature-slug/`: one folder per feature, dated the day it started, on the branch of the
   same name until it is finished into its record, with these files, in workflow order:
   - `proposal.md`: what and why, written by a human

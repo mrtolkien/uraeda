@@ -52,7 +52,7 @@ The step is written in [`finish.md`](/skills/uraeda/references/finish.md), with 
 [template](/skills/uraeda/assets/templates/specs/done/YYYY-MM-DD-feature-slug.md) and the
 [example's record](/skills/uraeda/assets/example/specs/done/2026-10-06-recurring-tasks.md); the
 feature and bug step tables of [`SKILL.md`](/skills/uraeda/SKILL.md) and
-[`bug.md`](/skills/uraeda/references/bug.md) check for a record first.
+[`bug.md`](/skills/uraeda/references/change.md) check for a record first.
 
 - [`workspace.rs`](/crates/core/src/workspace.rs): `Feature::from_record`, a feature whose only file
   is its record, in `specs/done`; `owns` matches a path to a feature's files; merged features come

@@ -271,7 +271,7 @@ local function pick(bufnr, verdict, action)
   end)
 end
 
---- Opens the verdict window of `bufnr`: for a spec, a plan, or an assessment, the window of
+--- Opens the verdict window of `bufnr`: for a spec or a plan, the window of
 --- `action`, else of the verdict the human picks; for a round of questions, the submission's. A
 --- file not waiting gets no window, and the server refuses other files.
 --- @param bufnr integer?

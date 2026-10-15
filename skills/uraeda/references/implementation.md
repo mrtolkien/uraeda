@@ -60,8 +60,8 @@ session's history. Otherwise, implement it yourself.
    - **It matches**: go to the next step.
    - **The code is wrong**: find the root cause before changing anything: reproduce the failure,
      trace the wrong value back to where it first goes wrong, and test one hypothesis at a time, as
-     the [bug step](bug.md#assess) describes. Never change a test or an expected value to make a run
-     pass. Changing or deleting an existing test for any other reason takes a ruling.
+     a [change](change.md#investigating) does for a bug. Never change a test or an expected value to
+     make a run pass. Changing or deleting an existing test for any other reason takes a ruling.
    - **The plan is wrong**: a name that does not match its producer, a command that cannot run, a
      failure that cannot happen. Make the smallest change that satisfies the spec, edit the plan's
      text to describe what was built, so later tasks read the right names, and write a ruling in

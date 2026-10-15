@@ -156,7 +156,7 @@ function M.comment(opts)
   require("uraeda.comment").open(0, first, last)
 end
 
---- Opens the verdict window of the current spec, plan, assessment, or round of questions (US6).
+--- Opens the verdict window of the current spec, plan, or round of questions (US6).
 function M.verdict()
   require("uraeda.verdict").open(0)
 end

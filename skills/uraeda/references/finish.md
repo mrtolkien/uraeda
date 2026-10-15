@@ -1,11 +1,11 @@
 # Finish
 
-Replaces a feature's or a bug's folder with one record, the last commit of its branch, so the
+Replaces a feature's or a change's folder with one record, the last commit of its branch, so the
 default branch keeps what later readers need and git keeps the rest. Then marks the pull request
 ready for the human.
 
-- **Runs when**: the final review of a feature, or the fix of a bug, is done and its pull request is
-  a draft; or the branch has the record, and its pull request is not ready yet
+- **Runs when**: the final review of a feature, or the review of a change, is done and its pull
+  request is a draft; or the branch has the record, and its pull request is not ready yet
 - **Writes**: `specs/done/YYYY-MM-DD-<slug>.md`, the deletion of the folder, the links into it, the
   `PRIORITIES.md` entry, and the pull request
 - **Ends at**: a human gate, the pull request
@@ -14,7 +14,8 @@ A merged folder is mostly process: discovery notes, questions with their options
 box checked. Kept on the default branch, it clutters the file tree and every search, and a finished
 plan reads like instructions to an agent that finds it. The record keeps what a reader of the
 project needs later, what the feature does and why each choice was made, in one dense file. Git
-keeps every file of the folder, and `git log -- specs/<folder>/` finds them.
+keeps every file of the folder, and `git log -- specs/<folder>/` finds them, or
+`git log -- specs/changes/<folder>/` for a change.
 
 ## Where you are
 
@@ -27,9 +28,9 @@ Find the state of the branch in this table, and start at its step:
 | The record, and the pull request is a draft            | [Mark the pull request ready](#mark-the-pull-request-ready)               |
 | The record, and no pull request                        | [Open the pull request](#open-the-draft-pull-request), then mark it ready |
 
-With `ura`, `ura next` names the step, `finish` for every row but the first. Without `gh`, it cannot
-see the pull request, and names `pull-request` once the record is there: check the pull request
-yourself.
+For a change, the first row is [the review](change.md#the-review). With `ura`, `ura next` names the
+step, `finish` for every row but the first. Without `gh`, it cannot see the pull request, and names
+`pull-request` once the record is there: check the pull request yourself.
 
 ## Open the draft pull request
 
@@ -49,21 +50,22 @@ Write `specs/done/YYYY-MM-DD-<slug>.md`, named after the folder, from
 feature. Read the whole folder first: the proposal, every round of questions and answers, the spec,
 the plan, the rulings, and the review files.
 
-- **Frontmatter**: `kind`, `feature` or `bug`, as its branch is; `finished`, today's date;
+- **Frontmatter**: `kind`, `feature` or `change`, as its branch is; `finished`, today's date;
   `pull-request`, its URL.
 - **The `> [!NOTE]` block**: it says the file is a record, not instructions, with the start date,
   the date of the folder's name, the finish date, the pull request, and
-  `git log -- specs/<folder>/`.
-- **What and why**: the proposal's or the report's intent, in the human's terms.
+  `git log -- specs/<folder>/`, or `git log -- specs/changes/<folder>/` for a change.
+- **What and why**: the proposal's intent, in the human's terms.
 - **Behaviour**: one line per user story, with the rules a later feature must keep, as the code does
-  them, not as the spec first said. For a bug, the behaviour fixed.
+  them, not as the spec first said. For a change, what was fixed or changed.
 - **Design**: the spec's architecture, and the main components, each with a link to its code. For a
-  bug, the root cause and the fix.
+  change, the root cause or the approach, and the code it touched.
 - **Questions**: every round, `### Round 01`, then every question under its exact heading at level
   4, `#### Q2: When does the next occurrence appear?`, so its anchor stays the questions file's. Its
   answer in a sentence: the letters and what they chose, or the human's words, shortened, quoted
   where they are the decision. A follow-up, `#### Q2.B: ...`, only when it applied. The human's
-  notes on the settled points, under `#### Notes`. No questions for a bug.
+  notes on the settled points, under `#### Notes`. A change's record keeps its rounds' questions the
+  same way, and has none when it asked nothing.
 - **Decisions**: each decision the feature made or changed, linked, in a line.
 - **Changes after approval**: the rulings that change behaviour, the spec's revisions after its
   approval, and the changes asked on the pull request.
@@ -99,11 +101,11 @@ message: `finish(<slug>): <feature name>`. Run `ura check` first, with `ura`.
 
 Write the pull request's description, as the
 [implementation step's pull request](implementation.md#pull-request) describes, with its links to
-`spec.md` and `plan.md` at the commit before finishing, since the branch no longer has them. Its
-last line, for a feature or a bug: "Once merged, run `ura clean` to remove the worktree and the
-branch." If the default branch moved since the
-[catch-up](implementation.md#catch-up-with-the-default-branch), catch up again first. Then mark it
-ready, with `gh pr ready`. It is the feature's last human gate.
+`spec.md` and `plan.md` at the commit before finishing, since the branch no longer has them. A
+change's description follows [its own order](change.md#the-pull-request). Its last line, for a
+feature or a change: "Once merged, run `ura clean` to remove the worktree and the branch." If the
+default branch moved since the [catch-up](implementation.md#catch-up-with-the-default-branch), catch
+up again first. Then mark it ready, with `gh pr ready`. It is the feature's last human gate.
 
 Advise a rebase merge, which keeps the default branch's history linear, or else a merge commit: a
 squash merge leaves the folder's files only in the pull request, out of
@@ -137,7 +139,7 @@ The branch and its worktree stay until the human cleans them. When you find a me
 worktree or a local branch left, tell the human to run `ura clean`. By hand, from the main checkout,
 never forced:
 
-1. `git worktree remove .worktrees/<branch>`: git refuses a worktree with uncommitted or untracked
+1. `git worktree remove .worktrees/<folder>`: git refuses a worktree with uncommitted or untracked
    files, and they stay until the human deals with them. `git worktree prune` drops the record of a
    worktree folder already deleted.
 2. `git branch -D <branch>`, only when every commit of the branch is on the default branch:

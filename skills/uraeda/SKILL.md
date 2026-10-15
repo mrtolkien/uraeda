@@ -3,10 +3,11 @@ name: uraeda
 description:
   Asynchronous, git-driven spec workflow. Humans write proposals, answer questions, and approve
   specs; agents research, ask, and write specs, plans, code, and pull requests, committing every
-  step. Use in a repository with a `specs/` folder when the user wants a feature or bug moved
+  step. Use in a repository with a `specs/` folder when the user wants a feature or a change moved
   forward ("continue recurring tasks", "I answered the questions", "the spec is approved", "what is
-  next?", "start the keyboard shortcuts draft", "assess the bug in specs/bugs/"), or to set Uraeda
-  up ("set up specs/"). Finds the next step from the repository alone, and stops at human gates.
+  next?", "start the keyboard shortcuts draft", "continue the change in specs/changes/", "fix this
+  bug"), or to set Uraeda up ("set up specs/"). Finds the next step from the repository alone, and
+  stops at human gates.
 metadata:
   version: "0.1.0"
 ---
@@ -52,6 +53,11 @@ says what to do by hand, and names the command that does it, to use when `ura` i
    [Coming back to the human](#coming-back-to-the-human).
 7. **End every step with a commit.** The next step may be run by a different agent, in a different
    session, days later: everything it needs must be in the repository.
+8. **In a chat, offer a change for a code change.** When the human asks a chat on the main checkout
+   for a fix or a small change to the code, offer to start it as a
+   [change](references/change.md#starting-a-change), with its own branch, session, and pull request,
+   rather than committing to the default branch. Start it only on their yes. Typos, formatting, and
+   comments stay in the chat.
 
 ## The `specs/` folder
 
@@ -65,8 +71,9 @@ specs/
                             # in both, a folder is a postponed feature, or a draft with images:
                             # <slug>/proposal.md, images/, ...
   decisions/                # decision ledger, one file per topic: due-dates.md
-  done/YYYY-MM-DD-<slug>.md # the record of a merged feature or bug, in place of its folder
-  bugs/YYYY-MM-DD-<slug>/   # report.md (human), assessment.md (agent), images/
+  done/YYYY-MM-DD-<slug>.md # the record of a merged feature or change, in place of its folder
+  changes/                  # one folder per change, YYYY-MM-DD-<slug>/: proposal.md (human),
+                            # clarifications-NN.md, rulings.md, images/, screenshots/
   YYYY-MM-DD-feature-slug/  # one folder per feature, dated the day it starts
     proposal.md             # human: what and why, in their own words
     discovery-01.md         # agent: findings and options, never decisions
@@ -107,10 +114,11 @@ With `ura`, `ura next` runs this section's two steps and prints the target, its 
 reference to follow, or `ura next <feature>` for one feature; `ura status` shows every feature's
 step. By hand:
 
-1. **Pick the target.** Use the feature or bug the human named. Otherwise, read
-   `specs/PRIORITIES.md` on the default branch, list the feature and bug branches (`git branch -a`),
-   and take the first branch with work for an agent, in the order of the **Now** section. An entry
-   matches the branch whose slug matches its file's name. Starting a feature is a human action: see
+1. **Pick the target.** Use the feature or change the human named. Otherwise, read
+   `specs/PRIORITIES.md` on the default branch, list the feature and change branches
+   (`git branch -a`), and take the first branch with work for an agent, in the order of the **Now**
+   section. An entry matches the branch whose slug matches its file's name. Starting a feature or a
+   change is a human action: see
    [Projects](references/projects.md#starting-postponing-and-dropping-a-feature).
 2. **Find the step.** Read the target's branch where it is checked out, or in its worktree (see
    [Branches](references/conventions.md#branches)). In its spec folder, `NN` is the highest
@@ -136,7 +144,7 @@ step. By hand:
 | The branch's pull request has changes requested                                                 | [Implementation](references/implementation.md), changes      |
 | The branch has an open pull request                                                             | **Human gate**: the review happens on the pull request       |
 
-For a bug branch, see [Bug](references/bug.md).
+For a change branch, see [Change](references/change.md).
 
 3. **Run the step**, following its reference file, and commit.
 4. **Continue to the next human gate.** A run stops only at a human gate, or for a reason to stop
@@ -219,7 +227,8 @@ Read a step's reference before running it, and the others when the step needs th
 - [Implementation](references/implementation.md): the plan's tasks, the final review, the pull
   request, and the changes it requests.
 - [Finish](references/finish.md): replacing a folder with its record, and cleaning up after merge.
-- [Bug](references/bug.md): every step of a bug, from its report to its fix.
+- [Change](references/change.md): the light flow, for a bug fix or a small change, from its proposal
+  to its pull request.
 - [Code quality](references/code-quality.md): the five code-quality concepts each step links to, and
   how a project sets up its checks.
 - [Conventions](references/conventions.md): markdown, the status table, review files, branches and
