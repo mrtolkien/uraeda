@@ -165,3 +165,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   version would then have to default.
 - **If wrong**: nothing for the user: a missing file draws no story either way.
 - **Where**: task 1, `packages/server/src/fate/sources.ts`.
+
+## R14: The helper moves only Storybook's two live sockets
+
+- **Decision**: the WebSocket patch of `uraeda-preview.js` moves Storybook's channel
+  (`/storybook-server-channel`) and Vite's hot reload socket (the `vite-hmr` protocol) to the page's
+  host and port, and leaves every other socket as the story opened it. `packages/web/tsconfig.json`
+  gets `allowJs`, so the tests, and task 12's `main.ts`, type the helper from its JSDoc.
+- **Rationale**: the spec points "both live sockets" at the page's own address; the plan's "every
+  socket" would also send a story's own socket to an outside service, such as
+  `wss://api.example.com`, to Uraeda's host. Without `allowJs`, TypeScript refuses to import the
+  helper (`TS7016`), and the plan's files for task 3 missed it.
+- **Alternatives considered**: moving every socket, as the plan said; a `.d.ts` next to the helper,
+  a second home for its types.
+- **If wrong**: a socket Storybook adds later, under another path, stays on Storybook's port; the
+  patch is one function of the helper, with its test.
+- **Where**: task 3, `skills/uraeda/assets/storybook/uraeda-preview.js`,
+  `packages/web/tsconfig.json`.

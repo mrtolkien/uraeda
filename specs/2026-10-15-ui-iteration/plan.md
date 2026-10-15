@@ -704,6 +704,8 @@ git commit -m "feat(ui-iteration): the preview decision's fields"
 
 - Create: `skills/uraeda/assets/storybook/uraeda-preview.js`,
   `skills/uraeda/assets/storybook/uraeda-pick.js`
+- Modify: `packages/web/tsconfig.json` (`allowJs`, so the tests type the helper from its JSDoc,
+  [R14](rulings.md#r14-the-helper-moves-only-storybooks-two-live-sockets))
 - Test: `packages/web/src/__tests__/storybook-preview.test.ts`,
   `packages/web/src/__tests__/storybook-pick.test.ts`
 
@@ -713,17 +715,19 @@ git commit -m "feat(ui-iteration): the preview decision's fields"
   typed with JSDoc so `vp check` types it from `main.ts`: returns `config` itself when
   `env.URAEDA_PREVIEW_BASE` is unset; else a copy whose `viteFinal` sets `base`, adds a `post`
   `transformIndexHtml` giving the base to root-absolute `src` and `href` values, and whose
-  `previewHead` and `managerHead` start with the WebSocket patch, each calling the config's own
-  function first. On a framework other than `@storybook/*-vite`, or a `core.builder` other than
-  `@storybook/builder-vite`, it throws `uraeda-preview.js needs Storybook's Vite builder.`
-- Produces: `uraeda-pick.js`, a classic script with no import, for the preview: it posts
-  `{ uraeda: "ready" }` to `window.parent` on load and `{ uraeda: "size", height }` on each change
-  of the document's height; on `{ uraeda: "pick", on: true }` from `window.parent`, it outlines the
-  element under the pointer, swallows clicks, and posts `{ uraeda: "picked", role, name, text }` for
-  a click, then leaves pick mode; on Escape, or `{ uraeda: "pick", on: false }`, it leaves pick
-  mode, posting `{ uraeda: "pick-stopped" }` for Escape.
+  `previewHead` and `managerHead`, both async, start with the WebSocket patch, each calling the
+  config's own function first. On a framework other than `@storybook/*-vite`, or a `core.builder`
+  other than `@storybook/builder-vite`, it throws
+  `uraeda-preview.js needs Storybook's Vite builder.`
+- Produces: `uraeda-pick.js`, a classic script with no import, its names in a block, for the
+  preview: it posts `{ uraeda: "ready" }` to `window.parent` on load and
+  `{ uraeda: "size", height }` on each change of the document's height; on
+  `{ uraeda: "pick", on: true }` from `window.parent`, it outlines the element under the pointer,
+  swallows clicks, and posts `{ uraeda: "picked", role, name, text }` for a click, then leaves pick
+  mode; on Escape, or `{ uraeda: "pick", on: false }`, it leaves pick mode, posting
+  `{ uraeda: "pick-stopped" }` for Escape.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/web/src/__tests__/storybook-preview.test.ts: one row per config and variable
@@ -757,26 +761,29 @@ test("Vite's base, and the two tags that ignore it, take the path", async () => 
 });
 
 test("both live sockets follow the page's own address, the channel under the path", () => {
-  const head = uraedaPreview(vite, { URAEDA_PREVIEW_BASE: BASE }).previewHead("<meta>");
-  const opened = socketsOpenedBy(
+  const head = await uraedaPreview(vite, { URAEDA_PREVIEW_BASE: BASE }).previewHead("<meta>", {});
+  const opened = await socketsOpenedBy(
     head,
     "https://mac.tail1234.ts.net/r/uraeda/preview/x/iframe.html",
     [
       ["ws://127.0.0.1:6123/storybook-server-channel"],
       ["ws://127.0.0.1:6123/r/uraeda/preview/2026-10-20-sidebar-resize/", "vite-hmr"],
+      ["wss://api.example.com/feed"],
     ],
   );
   expect(opened).toEqual([
     `wss://mac.tail1234.ts.net${BASE}storybook-server-channel`,
     `wss://mac.tail1234.ts.net${BASE}`,
+    "wss://api.example.com/feed",
   ]);
 });
 ```
 
-Also: `the config's own heads and viteFinal still run`: a config whose `previewHead` returns
-`"<own>"` and whose `viteFinal` adds a plugin keeps both. `socketsOpenedBy(head, url, calls)` runs
-the head's script in a happy-dom window at `url` whose `WebSocket` records the URLs it is
-constructed with; `transformIndexHtml(final, html)` calls the plugin's `post` handler.
+Also: `the manager's channel socket moves under the path too`;
+`the config's own heads and viteFinal still run`: a config whose `previewHead` returns `"<own>"` and
+whose `viteFinal` adds a plugin keeps both. `socketsOpenedBy(head, url, calls)` runs the head's
+script in a happy-dom window at `url` whose `WebSocket` records the URLs it is constructed with;
+`transformIndexHtml(final, html)` calls the plugin's `post` handler.
 
 ```ts
 // packages/web/src/__tests__/storybook-pick.test.ts: the pick script in a frame of its own
@@ -794,11 +801,12 @@ test("pick mode reports the clicked element's role and name, and ends", async ()
 });
 ```
 
-Also: `a separator has its role and no name` (`<div role="separator">`, `name: ""`);
+Also: `a click inside a link picks the link`; `a separator has its role and no name`
+(`<div role="separator">`, `name: ""`); `pick mode turned off from the page ends without a word`;
 `Escape ends pick mode and says so` (`{ uraeda: "pick-stopped" }`, then a click acts);
 `it says it is ready, and its height`; `a message from another window than its parent is ignored`.
-`pickFrame(html)` loads `uraeda-pick.js` into an `iframe` of the test's happy-dom document with
-frames enabled, and records what it posts to its parent.
+`pickFrame(html)` loads `uraeda-pick.js` into an `iframe` of a happy-dom `Window` of its own, with
+JavaScript enabled, and records what it posts to its parent.
 
 The break each test catches:
 
@@ -811,29 +819,33 @@ The break each test catches:
 - Pick: clicks reaching the story in pick mode, an implicit role missed, Escape ignored, or a
   stranger's `pick` obeyed.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `vp test --project uraeda-web src/__tests__/storybook-preview.test.ts src/__tests__/storybook-pick.test.ts`
-- Expected: FAIL, `Failed to load url ../../../../skills/uraeda/assets/storybook/uraeda-preview.js`.
+- Expected: FAIL,
+  `Failed to resolve import "../../../../skills/uraeda/assets/storybook/uraeda-preview.js"`, and
+  `ENOENT` for `uraeda-pick.js`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 The two files, plain JavaScript with JSDoc. The WebSocket patch replaces `window.WebSocket` with a
-subclass: a socket to `/storybook-server-channel` gets the base before its path; every socket gets
-the page's `location.host`, and `wss:` when the page is `https:`. The pick script's role is the
-`role` attribute, else the implicit role of the common elements (`button`, `a[href]` link, `input`
-by type, `textarea` textbox, `select` combobox, `h1`–`h6` heading, `img` img, `hr` separator, `li`
-listitem, …), else `element`; its name is `aria-label`, the text of `aria-labelledby`, `alt`,
-`title`, or, for roles named by their content, its trimmed text; `text` is the trimmed text, cut at
-200 characters.
+subclass: a socket to `/storybook-server-channel` gets the base before its path; it and a socket
+with the `vite-hmr` protocol get the page's host and port, and `wss:` when the page is `https:`.
+Other sockets are left as they are
+([R14](rulings.md#r14-the-helper-moves-only-storybooks-two-live-sockets)). The pick script's role is
+the `role` attribute, else the implicit role of the common elements (`button`, `a[href]` link,
+`input` by type, `textarea` textbox, `select` combobox, `h1`–`h6` heading, `img` img, `hr`
+separator, `li` listitem, …), else `element`; its name is `aria-label`, the text of
+`aria-labelledby`, `alt`, `title`, or, for roles named by their content, its trimmed text; `text` is
+the trimmed text, cut at 200 characters.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check && vp test --project uraeda-web`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add skills/uraeda/assets/storybook packages/web/src/__tests__/storybook-*.test.ts
