@@ -1,9 +1,10 @@
 //! The user stories and success criteria of a spec.
 
-use super::document::{Block, BlockKind, Document};
+use super::document::{Block, BlockKind, Document, SpanLink};
 use super::items::{
     Criterion, MockupLink, Scenario, SpecItems, Story, TierChoice, headings, section,
 };
+use super::stories::StoryTarget;
 use crate::check::allowed_values;
 use crate::workspace::FileKind;
 
@@ -137,8 +138,9 @@ fn section_range(doc: &Document, title: &str) -> Option<std::ops::Range<usize>> 
     Some(all[position].0..end)
 }
 
-/// The links of the `## Mockups` section to files under `mockups/`, in order, each with the block
-/// a review comment on it lands on. A link whose text has several marks, several spans, is one.
+/// The links of the `## Mockups` section to stories and to HTML files under `mockups/`, in order,
+/// each with the block a review comment on it lands on. A link whose text has several marks,
+/// several spans, is one.
 fn mockups(doc: &Document) -> Vec<MockupLink> {
     let Some(range) = section_range(doc, "Mockups") else {
         return Vec::new();
@@ -147,24 +149,33 @@ fn mockups(doc: &Document) -> Vec<MockupLink> {
     for block in &doc.blocks[range] {
         let mut previous = None;
         for span in &block.spans {
-            let target = span.link.as_ref().map(|link| link.target.as_str());
-            let path = target
-                .and_then(|target| target.split('#').next())
-                .map(|path| path.strip_prefix("./").unwrap_or(path))
-                .filter(|path| path.starts_with("mockups/"));
-            match (path, links.last_mut()) {
-                (Some(_), Some(last)) if previous == target => last.label.push_str(&span.text),
-                (Some(path), _) => links.push(MockupLink {
-                    path: path.to_string(),
+            let link = span.link.as_ref();
+            match (link.and_then(mockup), links.last_mut()) {
+                (Some(_), Some(last)) if previous == link => last.label.push_str(&span.text),
+                (Some((path, story)), _) => links.push(MockupLink {
+                    path,
                     label: span.text.clone(),
                     block: holder(doc, block),
+                    story,
                 }),
                 _ => {}
             }
-            previous = target;
+            previous = link;
         }
     }
     links
+}
+
+/// The mockup a link opens: its story's stories file, or `mockups/<file>.html` when its path ends
+/// there, written from the spec's folder or from the repository's root.
+fn mockup(link: &SpanLink) -> Option<(String, Option<StoryTarget>)> {
+    if let Some(story) = &link.story {
+        return Some((story.path.clone(), Some(story.clone())));
+    }
+    let mut parts = link.path.as_deref()?.rsplit('/');
+    let file = parts.next()?;
+    (parts.next() == Some("mockups") && file.ends_with(".html"))
+        .then(|| (format!("mockups/{file}"), None))
 }
 
 /// The block a review selects for a block: itself, or its nearest list item or table row, or its

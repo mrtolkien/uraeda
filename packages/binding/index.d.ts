@@ -468,6 +468,8 @@ export interface DraftView {
   text: string
   hash: string
   document: Document
+  /** The stories its paragraphs embed. */
+  stories: Array<StoryLink>
   /** Whether its current text is committed. */
   committed: boolean
   /** The priority line linking it. */
@@ -657,14 +659,19 @@ export interface LineRange {
   end: number
 }
 
-/** A link of a spec's `## Mockups` section to a file under `mockups/`. */
+/** A link of a spec's `## Mockups` section to an HTML file under `mockups/`, or to a story. */
 export interface MockupLink {
-  /** `mockups/repeat.html`, from the spec's folder. */
+  /**
+   * `mockups/repeat.html`, from the spec's folder, or a story's stories file, from the
+   * repository's top level.
+   */
   path: string
   /** The link's text. */
   label: string
   /** The selectable block holding the link: its list item, row, or paragraph. */
   block: number
+  /** The story it names, when it is a story link. */
+  story?: StoryTarget
 }
 
 /** A feature's next step, as `ura next` gives it, for an agent's run. */
@@ -869,6 +876,8 @@ export interface SpanLink {
    * the page.
    */
   path?: string
+  /** The story it names, when it is a story link. */
+  story?: StoryTarget
 }
 
 export interface SpecItems {
@@ -931,6 +940,26 @@ export interface Story {
   details: Array<number>
 }
 
+/** A paragraph that embeds a story. */
+export interface StoryLink {
+  /** The stories file, from the repository's top level. */
+  path: string
+  /** The export's name. */
+  export: string
+  /** The link's text. */
+  label: string
+  /** The paragraph's block. */
+  block: number
+}
+
+/** The story a link names. */
+export interface StoryTarget {
+  /** The stories file, from the repository's top level. */
+  path: string
+  /** The export's name. */
+  export: string
+}
+
 export interface TaskItem {
   number: number
   title: string
@@ -964,6 +993,8 @@ export interface VersionView {
   text: string
   document: Document
   items: Items
+  /** The stories its paragraphs embed. */
+  stories: Array<StoryLink>
 }
 
 export interface WorkspaceView {

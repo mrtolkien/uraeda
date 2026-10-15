@@ -6,6 +6,7 @@ use serde::Serialize;
 
 use crate::files::document::{self, Document};
 use crate::files::items::{Items, items};
+use crate::files::stories::{StoryLink, story_links};
 
 /// A file's document and items, at one version.
 #[cfg_attr(feature = "napi", napi(object))]
@@ -15,6 +16,8 @@ pub struct VersionView {
     pub text: String,
     pub document: Document,
     pub items: Items,
+    /// The stories its paragraphs embed.
+    pub stories: Vec<StoryLink>,
 }
 
 impl VersionView {
@@ -23,10 +26,12 @@ impl VersionView {
     pub fn new(name: &str, text: String, dir: &str) -> VersionView {
         let document = document::parse(&text, dir);
         let items = items(name, &text, &document);
+        let stories = story_links(&document);
         VersionView {
             text,
             document,
             items,
+            stories,
         }
     }
 }

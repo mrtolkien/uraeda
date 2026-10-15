@@ -289,6 +289,19 @@ fn each_rule() {
     }
 }
 
+/// SC-003: a story link is a plain markdown link, and a spec holding one checks without problem.
+#[test]
+fn a_spec_with_a_story_link_has_no_problem() {
+    let example = Example::new();
+    example.edit(
+        &format!("{FEATURE}/spec.md"),
+        "### US1: Make a task repeat (P1)\n",
+        "### US1: Make a task repeat (P1)\n\n[Repeat menu, open](/src/tasks/RepeatMenu.stories.tsx#Open)\n",
+    );
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+}
+
 #[test]
 fn plan_review_on_any_tier() {
     let example = Example::new();

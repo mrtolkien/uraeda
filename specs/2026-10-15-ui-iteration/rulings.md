@@ -153,3 +153,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the test fails to start its context; the validation script still checks the same
   path by hand.
 - **Where**: task 7, `packages/web/vite.browser.config.ts`.
+
+## R13: A missing file's empty version has no stories
+
+- **Decision**: task 1 also changes `packages/server/src/fate/sources.ts`: `missingFile`, the record
+  of a file its feature does not have, gives its empty version `stories: []`.
+- **Rationale**: `VersionView` gains `stories`, and the server builds this one empty version by
+  hand, typed by the binding's declarations: without the field, `vp check` fails to type it. The
+  plan's files for task 1 missed it.
+- **Alternatives considered**: making `stories` optional in the core, which every reader of a
+  version would then have to default.
+- **If wrong**: nothing for the user: a missing file draws no story either way.
+- **Where**: task 1, `packages/server/src/fate/sources.ts`.

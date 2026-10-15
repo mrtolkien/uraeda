@@ -543,6 +543,53 @@ fn a_feature_lists_its_files_in_workflow_order() {
     );
 }
 
+/// A file's version and a draft both carry the stories their paragraphs embed.
+#[test]
+fn a_file_and_a_draft_carry_their_stories() {
+    let repo = repo();
+    let embed = "[Dragging the handle](/packages/web/src/SidebarHandle.stories.tsx#Dragging)\n";
+    let expected = (
+        "packages/web/src/SidebarHandle.stories.tsx",
+        "Dragging",
+        "Dragging the handle",
+    );
+    repo.add_on_branch(
+        FOLDER,
+        SPEC,
+        &format!("{}\n{embed}", spec("awaiting-human", 1, 1)),
+    );
+    repo.write(
+        "specs/drafts/idea.md",
+        &format!("# Idea\n\nText.\n\n{embed}"),
+    );
+
+    let file = api::read_file(repo.path(), FOLDER, "spec.md").unwrap();
+    let draft = api::read_draft(repo.path(), "specs/drafts/idea.md").unwrap();
+
+    for (case, stories, document) in [
+        ("file", &file.current.stories, &file.current.document),
+        ("draft", &draft.stories, &draft.document),
+    ] {
+        let found: Vec<_> = stories
+            .iter()
+            .map(|s| (s.path.as_str(), s.export.as_str(), s.label.as_str()))
+            .collect();
+        assert_eq!(found, [expected], "{case}");
+        let block = &document.blocks[stories[0].block as usize];
+        assert_eq!(
+            (
+                block.kind,
+                uraeda_core::files::document::plain(&block.spans)
+            ),
+            (
+                uraeda_core::files::document::BlockKind::Paragraph,
+                "Dragging the handle".to_string()
+            ),
+            "{case}"
+        );
+    }
+}
+
 /// C1: a feature lists its mockups, from its branch's tip, or from its working tree when checked
 /// out.
 #[test]
