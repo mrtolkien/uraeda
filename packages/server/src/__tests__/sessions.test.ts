@@ -184,7 +184,7 @@ test("US3.6: SessionList lists features' and chats' sessions with their status, 
 
   expect(rows.map((row) => [row.id, row.folder, row.title, row.status, row.statusLabel])).toEqual([
     [human.id, HUMAN, "Web UI for the workflow files", "needs-you", "Needs you"],
-    [failed.id, AGENT, expect.any(String), "failed", "Failed"],
+    [failed.id, AGENT, expect.any(String), "attention", "Needs attention"],
     [chat.id, null, "List the open draft files", "unread", "New reply"],
   ]);
   expect(rows[0]).toMatchObject({ archived: false, subagents: [], updatedAt: expect.any(String) });
@@ -261,9 +261,9 @@ test("US2.1: WorkflowMessage gives the message the composer is filled with", asy
     refusal: null,
     step: "plan",
     text:
-      `/uraeda:uraeda Continue the feature specs/${AGENT}/, on branch ${AGENT}.\n` +
-      "The human asked you to continue.\n" +
-      "Its next step is plan: follow skills/uraeda/references/plan.md.\n",
+      `/uraeda:uraeda Continue the feature specs/${AGENT}/ on branch ${AGENT}: ` +
+      "Write the plan, starting with skills/uraeda/references/plan.md.\n" +
+      "Stop when the plan waits for my review, and earlier only if you need a decision from me.\n",
   });
 });
 
@@ -400,10 +400,10 @@ test("session.stop stops the turn, and keeps the session", async () => {
   expect(server.adapter.interrupts).toBe(1);
   const [turn] = await byId(server.app, "Turn", session.turns, ["id", "state"]);
   expect(turn.state).toBe("stopped");
-  const [record] = await byId(server.app, "Session", [session.id], ["id", "statusLabel"]);
-  expect(record.statusLabel).toBe("New reply");
+  const [record] = await byId(server.app, "Session", [session.id], ["statusLabel", "statusReason"]);
+  expect(record).toMatchObject({ statusLabel: "Needs attention", statusReason: "stopped" });
   const seen = await mutate(server.app, "session.seen", { session: session.id }, ["statusLabel"]);
-  expect(seen.data.statusLabel).toBe("Stopped");
+  expect(seen.data.statusLabel).toBe("Needs attention");
 });
 
 test("a turn waits for its background sub-agents to report back, and lists them meanwhile", async () => {
