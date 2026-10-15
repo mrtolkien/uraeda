@@ -23,33 +23,23 @@ const rewritten = async (request: Request) =>
     method: "POST",
   });
 
+/** What `createApp` takes, and its route groups. */
+type AppOptions = Omit<Options, "given" | "open" | "repo" | "show"> & {
+  binding: Binding;
+  dataDir: string;
+  hosts: Hosts;
+  sessions: Sessions;
+  /** The built UI, served as static files when set. */
+  webRoot?: string;
+};
+
+type App = Hono<{ Variables: FateVariables }>;
+
 /**
- * The server's routes: each listed repository's under `/r/<name>/`, with its host's context and
- * fate server; the global `/fate`, which serves the list and refuses a repository's records; and
- * `/raw/*` and `/mockups/*`, links from before repositories had names, sent on to the most recently
- * opened repository's; and `POST /open`, a second start's handoff.
+ * A repository's routes take its host's context, its folder looked at now; an unknown name or a
+ * missing folder is a 404, so the core never looks for a repository above it.
  */
-export function createApp(
-  options: Omit<Options, "given" | "open" | "repo" | "show"> & {
-    binding: Binding;
-    dataDir: string;
-    hosts: Hosts;
-    sessions: Sessions;
-    /** The built UI, served as static files when set. */
-    webRoot?: string;
-  },
-) {
-  const { binding, dataDir, hosts, sessions } = options;
-  const app = new Hono<{ Variables: FateVariables }>();
-  app.use(guard(options));
-  app.use(async (context, next) => {
-    context.set("fate", { binding, dataDir, hosts, repo: null, sessions });
-    await next();
-  });
-  /**
-   * A repository's routes take its host's context, its folder looked at now; an unknown name or a
-   * missing folder is a 404, so the core never looks for a repository above it.
-   */
+function hostedRoutes(app: App, { binding, dataDir, hosts, sessions }: AppOptions) {
   const hosted = async (context: Context, next: Next) => {
     const name = context.req.param("name")!;
     const host = await hosts.current(name);
@@ -74,6 +64,10 @@ export function createApp(
   ]) {
     app.use(path, hosted);
   }
+}
+
+/** The fate endpoints and their live updates: the global one, and each repository's. */
+function fateRoutes(app: App, hosts: Hosts) {
   /** The fate endpoint and its live updates, at `base`, on the server `server` gives. */
   const endpoint = (base: string, server: (context: Context) => FateServer) => {
     app.post(`${base}/fate`, async (context) =>
@@ -88,6 +82,24 @@ export function createApp(
   };
   endpoint("", () => fateServer);
   endpoint("/r/:name", (context) => hosts.get(context.req.param("name")!)!.fate);
+}
+
+/**
+ * The server's routes: each listed repository's under `/r/<name>/`, with its host's context and
+ * fate server; the global `/fate`, which serves the list and refuses a repository's records; and
+ * `/raw/*` and `/mockups/*`, links from before repositories had names, sent on to the most recently
+ * opened repository's; and `POST /open`, a second start's handoff.
+ */
+export function createApp(options: AppOptions) {
+  const { binding, dataDir, hosts, sessions } = options;
+  const app: App = new Hono<{ Variables: FateVariables }>();
+  app.use(guard(options));
+  app.use(async (context, next) => {
+    context.set("fate", { binding, dataDir, hosts, repo: null, sessions });
+    await next();
+  });
+  hostedRoutes(app, options);
+  fateRoutes(app, hosts);
   /** An old file link: the same file in the most recently opened repository, or 404 with none. */
   const moved = (context: Context) => {
     const host = hosts.mostRecent();
