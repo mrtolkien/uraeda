@@ -170,8 +170,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
     `changes` counts `inbox::diff` against the committed file.
   - `Workspace` holds the texts of `INBOX.md` and `INBOX-TRIAGE.md`, not the triage's status, and
     skips both in `ura status --json`.
-  - `add_note` refuses an `about` that is not a feature or bug folder name, without checking that
-    the feature exists.
+  - `add_note` refuses an `about` that is not a dated folder name, without checking that the feature
+    exists. `actions::inbox::add` refuses a slug that would not parse back as a mark, through
+    `files::inbox::is_slug`, the parser's own rule.
 - **Rationale**: A read that creates `.worktrees/main` would be a write, against the priorities'
   pattern. The watch flag must fire when the triage's answers change, not only its status, so the
   snapshot hashes the text. The JSON of `ura status` is a documented output that no story changes.

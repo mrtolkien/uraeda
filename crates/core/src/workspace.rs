@@ -242,9 +242,10 @@ pub struct Workspace {
     /// Drafts and postponed features, from the default branch: `specs/drafts/x.md`,
     /// `specs/backlog/y` for a folder.
     pub drafts: Vec<String>,
-    /// `INBOX.md` and `INBOX-TRIAGE.md`, from the default branch, as the priorities are read.
+    /// The text of `INBOX.md`, from the default branch, as the priorities are read.
     #[serde(skip)]
     pub inbox: Option<String>,
+    /// The text of `INBOX-TRIAGE.md`, from the default branch, as the priorities are read.
     #[serde(skip)]
     pub triage: Option<String>,
     pub problems: Vec<Problem>,

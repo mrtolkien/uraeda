@@ -250,6 +250,32 @@ fn an_edit_of_the_inbox_is_reported() {
 }
 
 #[test]
+fn an_edit_of_the_inbox_triage_is_reported() {
+    let repo = repo();
+    let (_watcher, receiver) = watching(&repo);
+
+    repo.write(
+        "specs/INBOX-TRIAGE.md",
+        "---\nstatus: awaiting-human\n---\n\n# Inbox triage\n",
+    );
+
+    assert!(next(&receiver).inbox);
+}
+
+/// The inbox is the default branch's: a feature checkout's copy is not it.
+#[test]
+fn an_edit_of_a_feature_checkouts_inbox_is_not_reported_as_the_inbox() {
+    let repo = repo();
+    let place = place::reach(&Git::discover(repo.path()).unwrap(), FOLDER).unwrap();
+    let (_watcher, receiver) = watching(&repo);
+
+    std::fs::write(place.root.join("specs/INBOX.md"), "# Inbox\n\n- A note\n").unwrap();
+
+    let reports = until_priorities(&repo, &receiver, "After the note");
+    assert!(reports.iter().all(|changes| !changes.inbox), "{reports:?}");
+}
+
+#[test]
 fn a_new_worktree_is_reported_then_watched() {
     let repo = repo();
     let (_watcher, receiver) = watching(&repo);

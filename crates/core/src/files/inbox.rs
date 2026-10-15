@@ -54,13 +54,18 @@ fn scan(text: &str) -> Vec<(Heading, Item)> {
     })
 }
 
+/// Whether `text` can be a note's `[<slug>]` mark: lowercase letters, digits, and `-`.
+pub fn is_slug(text: &str) -> bool {
+    !text.is_empty()
+        && text
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+}
+
 /// A `[<slug>] ` mark at the start of `text`, and the text after it, when some is left.
 fn slug_mark(text: &str) -> Option<(&str, &str)> {
     let (slug, rest) = text.strip_prefix('[')?.split_once("] ")?;
-    let valid = slug
-        .chars()
-        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-');
-    (!slug.is_empty() && valid && !rest.trim().is_empty()).then_some((slug, rest))
+    (is_slug(slug) && !rest.trim().is_empty()).then_some((slug, rest))
 }
 
 /// The marks at the start of a note's first line, `[agent]` then a slug, and the text after them.

@@ -527,10 +527,12 @@ git commit -m "feat(add-scratchpad): the inbox's format, in the core and the ski
 - Create: `crates/core/src/actions/inbox.rs`, `crates/core/src/api/drafts.rs`,
   `crates/core/src/api/inbox_edits.rs`
 - Modify: `crates/core/src/api.rs` (the draft functions move out; the `From<ActionError>` conflict
-  arm), `crates/core/src/actions/mod.rs`, `crates/core/src/actions/place.rs` (`committed`, shared
-  with the priorities), `crates/core/src/workspace.rs` (inbox text), `crates/core/src/watch.rs`
-  (`Changes.inbox`), `crates/cli/tests/structure.rs` (`api.rs` row lowered),
-  `packages/binding/index.d.ts` and `packages/server/src/__tests__/live.test.ts` (`Changes.inbox`)
+  arm), `crates/core/src/actions/mod.rs` (`STALE` and `is_stale`),
+  `crates/core/src/actions/place.rs` (`committed`, shared with the priorities),
+  `crates/core/src/actions/priorities.rs` (`STALE`), `crates/core/src/files/inbox.rs` (`is_slug`),
+  `crates/core/src/workspace.rs` (inbox text), `crates/core/src/watch.rs` (`Changes.inbox`),
+  `crates/cli/tests/structure.rs` (`api.rs` row lowered), `packages/binding/index.d.ts` and
+  `packages/server/src/__tests__/live.test.ts` (`Changes.inbox`)
 - Test: `crates/core/tests/inbox_actions.rs`, `crates/core/tests/watch.rs`
 
 **Interfaces:**
@@ -609,9 +611,13 @@ needs text."; an edit then a move keeping the marks; the triage's status read fr
 
 - [x] **Step 4: Implement the actions, the API, the workspace read, and the watch flag**
 
-- The conflict arm of `From<ActionError>` matches a `Changed` error or any refusal containing "
-  changed on disk", in one arm, so `INBOX.md`'s maps to `conflict` like `PRIORITIES.md`'s, and
-  `api.rs` shrinks by one line with the inbox's `mod` and `pub use` lines.
+- The conflict arm of `From<ActionError>` matches `ActionError::is_stale`: a `Changed` error, or a
+  refusal ending with `actions::STALE`, "changed on disk. Your change was not applied.", which the
+  priorities' and the inbox's refusals share. `INBOX.md`'s maps to `conflict` like
+  `PRIORITIES.md`'s, and `api.rs` shrinks with the inbox's `mod` and `pub use` lines.
+- Only a missing `INBOX.md` reads as empty: one that cannot be read refuses an edit with
+  `ActionError::Io`, so it is never overwritten. `insert` without a line refuses with "Nothing to
+  put back.", and a mark that is not a slug is refused with the parser's `inbox::is_slug`.
 - `Workspace` reads the default branch's `INBOX.md` and `INBOX-TRIAGE.md` texts the way it reads
   `PRIORITIES.md`, within its 19 lines of room.
 - The snapshot hashes them into the inbox flag.
