@@ -2,12 +2,10 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { useMediaQuery } from "@astryxdesign/core/hooks";
-import { HStack } from "@astryxdesign/core/HStack";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import {
-  borderVars,
   colorVars,
   shadowVars,
   spacingVars,
@@ -27,15 +25,15 @@ import {
 import { useSortable } from "@dnd-kit/react/sortable";
 import { Accessibility, PointerActivationConstraints } from "@dnd-kit/dom";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useRef, useState } from "react";
+import { type ComponentProps, type ReactNode, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
+import { CommitBar } from "./CommitBar.tsx";
 import type { EntryItem } from "uraeda-binding";
 import { usePriorities } from "./data.ts";
 import { dropMove, type Order, orderOf, type Priorities, spotOf } from "./drop.ts";
 import { EditableLine } from "./EditableLine.tsx";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
-import { closeUndoToasts } from "./layout/useUndoToast.ts";
 import { useLocalPath, useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { plain } from "./Spans.tsx";
 import { PrioritiesView } from "./views.ts";
@@ -49,18 +47,6 @@ const styles = stylex.create({
   add: {
     paddingBlock: spacingVars["--spacing-2"],
     paddingInlineStart: spacingVars["--spacing-2"],
-  },
-  bar: {
-    // The bar stays at the bottom of the screen while there is something to commit.
-    backgroundColor: colorVars["--color-background-body"],
-    borderBlockStartColor: colorVars["--color-border"],
-    borderBlockStartStyle: "solid",
-    borderBlockStartWidth: borderVars["--border-width"],
-    bottom: 0,
-    marginBlockStart: spacingVars["--spacing-4"],
-    paddingBlock: spacingVars["--spacing-2"],
-    position: "sticky",
-    zIndex: 2,
   },
   count: {
     color: colorVars["--color-text-secondary"],
@@ -230,13 +216,120 @@ function announcer(order: () => Order) {
   };
 }
 
+/** The sensors of a drag: the whole line on a touch screen, the handle alone otherwise; the keys. */
+const SENSORS = [
+  PointerSensor.configure({
+    // The whole line on a touch screen, after a press of half a second; the handle alone with a
+    // mouse or a pen, at once.
+    activationConstraints: (event) =>
+      event.pointerType === "touch"
+        ? [new PointerActivationConstraints.Delay({ tolerance: 5, value: 500 })]
+        : undefined,
+    activatorElements: (source) => [source.element],
+    preventActivation: (event, source) =>
+      event.pointerType !== "touch" &&
+      !(isNode(event.target) && source.handle?.contains(event.target)),
+  }),
+  KeyboardSensor,
+];
+
+/** dnd-kit's plugins, as the provider takes them: a function of its defaults. */
+type PluginsOf = Extract<
+  ComponentProps<typeof DragDropProvider>["plugins"],
+  (...args: never) => unknown
+>;
+
+/** dnd-kit's plugins, with what a screen reader hears of a drag. */
+function plugins(announcements: ReturnType<typeof announcer>): PluginsOf {
+  return (defaults) => [
+    ...defaults.filter((plugin) => plugin !== Accessibility),
+    Accessibility.configure({
+      announcements,
+      screenReaderInstructions: {
+        draggable:
+          "To move a line, press Space, then the arrow keys; Space again drops it, Escape cancels.",
+      },
+    }),
+  ];
+}
+
+/**
+ * A drag of a line: the priorities as the drag found them, held until its move is written, the
+ * lines' order as dragged, and the provider's handlers. `run` writes the move, and resolves with
+ * its refusal, if any.
+ */
+function useDrag(
+  live: Priorities | undefined,
+  run: (call: () => Promise<{ error?: unknown }>) => Promise<string | undefined>,
+) {
+  const fate = useFateClient();
+  const [held, setHeld] = useState<Priorities>();
+  const [dragged, setDragged] = useState<Order>();
+  const before = useRef<{ order: Order; priorities: Priorities }>(undefined);
+  const after = useRef<Order>(undefined);
+  const priorities = held ?? live;
+  const order = dragged ?? (priorities ? orderOf(priorities) : {});
+
+  const release = () => {
+    before.current = undefined;
+    after.current = undefined;
+    setDragged(undefined);
+    setHeld(undefined);
+  };
+
+  const onDragEnd = async (event: DragEndEvent) => {
+    const start = before.current;
+    const key = event.operation.source?.id;
+    const to =
+      start && key !== undefined && !event.canceled && after.current
+        ? dropMove(start.order, after.current, String(key))
+        : undefined;
+    const entry = start?.priorities.sections
+      .flatMap((section) => section.entries)
+      .find((e) => e.key === String(key));
+    if (start && to && entry) {
+      // Over the version the drag started from: a list changed meanwhile refuses the move.
+      await run(() =>
+        fate.mutations.priorities.move({
+          input: { entry: entry.id, ...to, hash: start.priorities.hash },
+          view: PrioritiesView,
+        }),
+      );
+    }
+    release();
+  };
+
+  const onDragOver = (event: DragOverEvent) => {
+    if (!after.current) {
+      return;
+    }
+    after.current = move(after.current, event);
+    setDragged(after.current);
+  };
+
+  const onDragStart = () => {
+    const from = live ?? priorities;
+    if (!from) {
+      return;
+    }
+    const found = orderOf(from);
+    before.current = { order: found, priorities: from };
+    after.current = found;
+    setHeld(from);
+    setDragged(found);
+  };
+
+  // oxlint-disable-next-line react/refs -- before the code quality decision: read by the announcer's callbacks during a drag, not while rendering
+  const announcements = announcer(() => after.current ?? order);
+  return { announcements, onDragEnd, onDragOver, onDragStart, order, priorities };
+}
+
 /**
  * Every line of `PRIORITIES.md`, by section: each opens its task view, drags to its place, and each
  * section ends with an Add row; each change is written at once, and a bar commits or discards them.
  * While a line is dragged, and until its move is written, the list stays as the drag found it: a
  * live update waits for the drag's end.
  */
-// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the drag and drop in a hook
 export function PrioritiesPage() {
   const fate = useFateClient();
   const live = usePriorities();
@@ -246,125 +339,55 @@ export function PrioritiesPage() {
   const pathname = useLocalPath();
   const isReduced = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [message, setMessage] = useState<string>();
-  const [confirm, setConfirm] = useState(false);
-  // The priorities as the drag found them, held until its move is written.
-  const [held, setHeld] = useState<Priorities>();
-  const [dragged, setDragged] = useState<Order>();
-  const before = useRef<{ order: Order; priorities: Priorities }>(undefined);
-  const after = useRef<Order>(undefined);
-  const priorities = held ?? live;
-  if (!priorities) {
-    return null;
-  }
-  const order = dragged ?? orderOf(priorities);
-  const byKey = new Map(
-    priorities.sections.flatMap((section) => section.entries.map((e) => [e.key, e] as const)),
-  );
-  const hash = priorities.hash;
 
+  /** Writes a change: a refusal shows above the list, and a conflict reads the list again. */
   const run = async (call: () => Promise<{ error?: unknown }>) => {
     setMessage(undefined);
     const result = await call();
-    if (result.error) {
-      const failed = refusal(result.error);
-      if (failed.kind === "conflict") {
-        void fate.request(
-          { priorities: { id: "priorities", view: PrioritiesView } },
-          { mode: "network-only" },
-        );
-      }
-      return failed.message;
+    if (!result.error) {
+      return undefined;
     }
-    return undefined;
+    const failed = refusal(result.error);
+    if (failed.kind === "conflict") {
+      void fate.request(
+        { priorities: { id: "priorities", view: PrioritiesView } },
+        { mode: "network-only" },
+      );
+    }
+    return failed.message;
   };
+  const drag = useDrag(live, async (call) => {
+    const failed = await run(call);
+    setMessage(failed);
+    return failed;
+  });
+  const { order, priorities } = drag;
+  if (!priorities) {
+    return null;
+  }
+  const byKey = new Map(
+    priorities.sections.flatMap((section) => section.entries.map((e) => [e.key, e] as const)),
+  );
 
   const add = (section: string) => (text: string) =>
     run(() =>
-      fate.mutations.priorities.add({ input: { hash, section, text }, view: PrioritiesView }),
-    );
-
-  const release = () => {
-    before.current = undefined;
-    after.current = undefined;
-    setDragged(undefined);
-    setHeld(undefined);
-  };
-
-  const drop = async (event: DragEndEvent) => {
-    const start = before.current;
-    const key = event.operation.source?.id;
-    if (!start || key === undefined || event.canceled || !after.current) {
-      release();
-      return;
-    }
-    const to = dropMove(start.order, after.current, String(key));
-    const entry = start.priorities.sections
-      .flatMap((section) => section.entries)
-      .find((e) => e.key === String(key));
-    if (!to || !entry) {
-      release();
-      return;
-    }
-    // Over the version the drag started from: a list changed meanwhile refuses the move.
-    const failed = await run(() =>
-      fate.mutations.priorities.move({
-        input: { entry: entry.id, ...to, hash: start.priorities.hash },
+      fate.mutations.priorities.add({
+        input: { hash: priorities.hash, section, text },
         view: PrioritiesView,
       }),
     );
-    setMessage(failed);
-    release();
-  };
 
-  const changes = priorities.changes;
-  // oxlint-disable-next-line react/refs -- before the code quality decision: read by the announcer's callbacks during a drag, not while rendering
-  const announcements = announcer(() => after.current ?? order);
   return (
     <Page>
       <VStack gap={2}>
         <Heading level={1}>Priorities</Heading>
         {message && <Banner collapsible={false} status="error" title={message} />}
         <DragDropProvider
-          onDragEnd={(event) => void drop(event)}
-          onDragOver={(event) => {
-            if (!after.current) {
-              return;
-            }
-            after.current = move(after.current, event);
-            setDragged(after.current);
-          }}
-          onDragStart={() => {
-            const found = orderOf(live ?? priorities);
-            before.current = { order: found, priorities: live ?? priorities };
-            after.current = found;
-            setHeld(live ?? priorities);
-            setDragged(found);
-          }}
-          plugins={(defaults) => [
-            ...defaults.filter((plugin) => plugin !== Accessibility),
-            Accessibility.configure({
-              announcements,
-              screenReaderInstructions: {
-                draggable:
-                  "To move a line, press Space, then the arrow keys; Space again drops it, Escape cancels.",
-              },
-            }),
-          ]}
-          sensors={[
-            PointerSensor.configure({
-              // The whole line on a touch screen, after a press of half a second; the handle alone
-              // with a mouse or a pen, at once.
-              activationConstraints: (event) =>
-                event.pointerType === "touch"
-                  ? [new PointerActivationConstraints.Delay({ tolerance: 5, value: 500 })]
-                  : undefined,
-              activatorElements: (source) => [source.element],
-              preventActivation: (event, source) =>
-                event.pointerType !== "touch" &&
-                !(isNode(event.target) && source.handle?.contains(event.target)),
-            }),
-            KeyboardSensor,
-          ]}
+          onDragEnd={(event) => void drag.onDragEnd(event)}
+          onDragOver={drag.onDragOver}
+          onDragStart={drag.onDragStart}
+          plugins={plugins(drag.announcements)}
+          sensors={SENSORS}
         >
           {priorities.sections.map((section) => (
             <Section
@@ -389,55 +412,7 @@ export function PrioritiesPage() {
             </Section>
           ))}
         </DragDropProvider>
-        {changes > 0 && (
-          <div {...stylex.props(styles.bar)}>
-            <HStack align="center" gap={2} wrap="wrap">
-              <Text>
-                {changes} {changes === 1 ? "change" : "changes"} to commit
-              </Text>
-              <HStack gap={2} justify="end">
-                {confirm ? (
-                  <>
-                    <Button label="Keep them" onClick={() => setConfirm(false)} />
-                    <Button
-                      clickAction={async () => {
-                        setConfirm(false);
-                        const failed = await run(() =>
-                          fate.mutations.priorities.discard({ input: {}, view: PrioritiesView }),
-                        );
-                        setMessage(failed);
-                        if (!failed) {
-                          // Discarded: an Undo would write a change back over the committed file.
-                          closeUndoToasts();
-                        }
-                      }}
-                      label="Discard them"
-                      variant="destructive"
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Button label="Discard" onClick={() => setConfirm(true)} variant="ghost" />
-                    <Button
-                      clickAction={async () => {
-                        const failed = await run(() =>
-                          fate.mutations.priorities.commit({ input: {}, view: PrioritiesView }),
-                        );
-                        setMessage(failed);
-                        if (!failed) {
-                          // Committed: no Undo is left to take back.
-                          closeUndoToasts();
-                        }
-                      }}
-                      label="Commit"
-                      variant="primary"
-                    />
-                  </>
-                )}
-              </HStack>
-            </HStack>
-          </div>
-        )}
+        <CommitBar changes={priorities.changes} />
       </VStack>
     </Page>
   );
