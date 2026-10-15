@@ -278,3 +278,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the slug field; a browser command that takes the agent away, for one test.
 - **If wrong**: return the message, and show it in the composer's status; drop `drawn: false`.
 - **Where**: task 9, `packages/web/src/Composer.tsx`, `packages/web/src/NewChangePage.tsx`.
+
+## R18: Links to the deleted `bug.md` become plain paths, or point to `change.md`
+
+- **Decision**: deleting `bug.md` broke seven links that Task 10's files did not list. The merged
+  record `specs/done/2026-10-12-finish-feature.md` links `change.md` in its place, keeping its text,
+  `bug.md`. This feature's `discovery-01.md`, `clarifications-01.md`, and `plan.md` name `bug.md` as
+  a plain path, as R6 did for the deleted templates.
+- **Rationale**: `ura check specs` refuses links to missing files. A merged record is edited only to
+  fix a broken link ([finish](/skills/uraeda/references/finish.md#after-the-merge)), and `change.md`
+  is what replaced the file it named, step table first. This feature's rounds describe `bug.md` as
+  it was: a path keeps their words, and git keeps the file.
+- **Alternatives considered**: links to `bug.md` at a past commit, which `ura check` cannot follow;
+  pointing this feature's links to `change.md`, which describes another file than the one they
+  discuss.
+- **If wrong**: link the record's text as a plain path too.
+- **Where**: task 10, `specs/done/2026-10-12-finish-feature.md`,
+  `specs/2026-10-15-add-bugfixing/discovery-01.md`, `clarifications-01.md`, and `plan.md`.

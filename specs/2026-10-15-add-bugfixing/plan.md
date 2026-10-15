@@ -191,11 +191,11 @@ and starts a change's first run. The web UI only draws what the core says. The s
     agent commands.
   - [`packages/binding/test-utils.ts`](/packages/binding/test-utils.ts) has `fixtureRepo`,
     `addPlan`, `commitOnBranch`, and `git`. No fixture holds a change.
-- **The skill.** [`bug.md`](/skills/uraeda/references/bug.md), and the bug lines of `SKILL.md`,
-  `conventions.md`, `finish.md`, `projects.md`, `implementation.md`:63, `cli.md`, the templates'
-  `specs/README.md` (the project's and the example's `specs/README.md` link to it), the record
-  template, and the example's `PRIORITIES.md`. Also [`README.md`](/README.md):144-160,213, the
-  Neovim docs `editors/nvim/doc/uraeda.txt`:136,166, and
+- **The skill.** `bug.md`, and the bug lines of `SKILL.md`, `conventions.md`, `finish.md`,
+  `projects.md`, `implementation.md`:63, `cli.md`, the templates' `specs/README.md` (the project's
+  and the example's `specs/README.md` link to it), the record template, and the example's
+  `PRIORITIES.md`. Also [`README.md`](/README.md):144-160,213, the Neovim docs
+  `editors/nvim/doc/uraeda.txt`:136,166, and
   [`specs/backlog/benchmarks/discovery-01.md`](/specs/backlog/benchmarks/discovery-01.md):622, which
   links `bug.md`.
 - **Validation.**
@@ -1060,7 +1060,10 @@ git commit -m "feat(add-bugfixing): New change, a composer that starts a change"
   - `README.md` (the layout and the light flow's paragraph);
   - `editors/nvim/doc/uraeda.txt`:136,166, and the doc comments of
     `editors/nvim/lua/uraeda/actions.lua`:159 and `verdict.lua`:274;
-  - `specs/backlog/benchmarks/discovery-01.md`:622, whose link moves to `change.md`.
+  - `specs/backlog/benchmarks/discovery-01.md`:622, whose link moves to `change.md`;
+  - `specs/done/2026-10-12-finish-feature.md`:55, whose link moves to `change.md`, and this
+    feature's `discovery-01.md`, `clarifications-01.md`, and `plan.md`, whose links to `bug.md`
+    become plain paths ([R18](rulings.md)).
 - Test: `vp run specs:check`, and review against the spec's US1.5–US1.7, US2.3–US2.5, US3, and US5.
 
 **Interfaces:**
@@ -1105,20 +1108,20 @@ git commit -m "feat(add-bugfixing): New change, a composer that starts a change"
       `kind: change`.
   12. "Commit": `fix(<slug>):` or `feat(<slug>):` for code, and `discovery(<slug>):` for a round.
 
-- [ ] **Step 1: Write `change.md` and update every line listed above.** Check that no `bug.md`,
+- [x] **Step 1: Write `change.md` and update every line listed above.** Check that no `bug.md`,
       `specs/bugs`, `fix/`, `report.md`, `assessment`, or `assessment:` is left in the skill, the
       README, the docs, and the Neovim plugin: `grep -rn` over them prints only unrelated uses.
-- [ ] **Step 2: Check the length**: `wc -l skills/uraeda/references/change.md` is under the combined
+- [x] **Step 2: Check the length**: `wc -l skills/uraeda/references/change.md` is under the combined
       length of `discovery.md`, `spec.md`, `plan.md`, and `implementation.md` (SC-004).
-- [ ] **Step 3: Run the checks**
+- [x] **Step 3: Run the checks**
 
 - Run: `vp run specs:check && vp run ready:rust`
 - Expected: PASS, both `ura check` runs printing no problems.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
-git add skills README.md editors/nvim specs/backlog
+git add skills README.md editors/nvim specs/backlog specs/done specs/2026-10-15-add-bugfixing
 git commit -m "docs(add-bugfixing): change.md, the light flow, replacing bug.md"
 ```
 

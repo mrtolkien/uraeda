@@ -141,8 +141,8 @@ specs/
   backlog/                     # nice-to-have features, not scheduled
                                # a postponed feature keeps its folder here, without its date
   decisions/                   # decision ledger, one file per topic
-  done/                        # one record per merged feature or bug, in place of its folder
-  bugs/YYYY-MM-DD-<slug>/      # a bug report, and the agent's assessment with its fix
+  done/                        # one record per merged feature or change, in place of its folder
+  changes/YYYY-MM-DD-<slug>/   # a change: your proposal, and the questions it needed
   2026-10-06-recurring-tasks/  # one folder per feature, dated the day it starts
     proposal.md                # you: what and why
     discovery-01.md            # agent: findings and options
@@ -156,8 +156,13 @@ Each feature lives on a branch named after its folder. You answer and approve on
 single pull request merges everything at once: the decisions, the code, and the feature's record,
 which replaces its folder in the branch's last commit, while git keeps the folder's history. When
 your answers raise new questions, a second round follows, `discovery-02.md` and
-`clarifications-02.md`, and so on. Bugs get a lighter flow: the agent reproduces the bug with a
-failing test, finds the root cause, and proposes a fix for you to approve.
+`clarifications-02.md`, and so on.
+
+Bug fixes and small changes take a lighter flow, a change: you type the request under "New change"
+in the web UI, and its agent works in its own branch and worktree. It investigates, asks only what
+you must decide, makes the change with tests that fail first, has a fresh reviewer check it, and
+opens a pull request: no spec, no plan, and often nothing to answer before the review. A change that
+turns out too big is offered to you as a feature.
 
 To start in a project, run `ura init`, or ask the agent to "set up specs/": either creates the
 folder, and the agent drafts the constitution with you. `ura init` also offers to install the skill
@@ -210,12 +215,12 @@ skill says how to do each step by hand, and names the command that does it.
 ```sh
 ura init                                   # specs/, and the skill offered for your user
 ura install --user --agents --claude       # the skill, for your agents and Claude Code
-ura status                                 # every feature and bug, and who it waits on
+ura status                                 # every feature and change, and who it waits on
 ura next                                   # the next step for an agent, from the skill's table
 ura check                                  # every workflow file against the skill's rules
 ura add                                    # this repository, to the web UI's list
 ura draft "listener"                       # a line of PRIORITIES.md becomes a draft
-ura start git-listener-process             # a draft becomes a started feature
+ura start git-listener-process             # a draft becomes a started feature; --change, a change
 ura answer cli-core Q3 "B, simpler"        # one answer; --submit sends the round
 ura review cli-core --comment 50-52 "Why?" # a comment; --approve or --request-changes
 ```

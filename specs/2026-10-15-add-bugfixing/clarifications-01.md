@@ -27,12 +27,12 @@ The [proposal](proposal.md) asks for a flow shorter than the feature flow, for b
 changes, that skips questions and specs when nothing needs them, keeps code quality, and offers to
 upgrade a change that turns out too big. It also floats a third, visual flow for iterating on UI.
 
-Today, the skill has an agent-written bug flow, [`bug.md`](/skills/uraeda/references/bug.md), never
-reviewed and never used: it always stops for your approval of its assessment, `ura start` panics on
-a bug, and the web UI cannot start one. Small work bypasses the workflow instead: about 24 changes
-went straight to `main` between 2026-10-11 and 2026-10-15, with no record, test evidence, or review,
-and both `fix/` branches skipped the bug flow's files. Even the smallest feature through the full
-flow wrote a 446-line spec and a 616-line plan.
+Today, the skill has an agent-written bug flow, `bug.md`, never reviewed and never used: it always
+stops for your approval of its assessment, `ura start` panics on a bug, and the web UI cannot start
+one. Small work bypasses the workflow instead: about 24 changes went straight to `main` between
+2026-10-11 and 2026-10-15, with no record, test evidence, or review, and both `fix/` branches
+skipped the bug flow's files. Even the smallest feature through the full flow wrote a 446-line spec
+and a 616-line plan.
 
 Other workflows converged on three sizes: just do it, a light path, the full flow. Bugs get their
 own shape, with the root cause before any edit, a test that fails first, and what must stay
