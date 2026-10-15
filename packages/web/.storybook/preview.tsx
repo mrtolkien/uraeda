@@ -10,7 +10,7 @@ import "../../../skills/uraeda/assets/storybook/uraeda-pick.js";
 import { LayerProvider } from "@astryxdesign/core/Layer";
 import { Theme } from "@astryxdesign/core/theme";
 import type { Decorator, Preview } from "@storybook/react-vite";
-import { type ReactNode, Suspense, useEffect, useState } from "react";
+import { type ReactNode, Suspense, useSyncExternalStore } from "react";
 import { FateClient } from "react-fate";
 import { fateClients } from "../src/clients.ts";
 import { ListClientContext } from "../src/RepositoryMenu.tsx";
@@ -32,29 +32,42 @@ const clientFor = fateClients({
 
 /**
  * The colour mode the embedding page sends, `{ uraeda: "mode", mode }`, from `window.parent` only;
- * the system's until then, and on Storybook's own pages.
+ * the system's until then, and on Storybook's own pages. The page sends it as soon as the pick
+ * script says the frame is ready, before the story renders: it is listened for as the preview
+ * loads, and kept.
  */
-function useEmbeddingMode(): ThemeMode {
-  const [mode, setMode] = useState<ThemeMode>("system");
-  useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
-      const data: unknown = event.data;
-      if (
-        event.source === window.parent &&
-        typeof data === "object" &&
-        data !== null &&
-        "uraeda" in data &&
-        data.uraeda === "mode" &&
-        "mode" in data &&
-        (data.mode === "light" || data.mode === "dark")
-      ) {
-        setMode(data.mode);
+const embeddingMode = (() => {
+  let mode: ThemeMode = "system";
+  const listeners = new Set<() => void>();
+  window.addEventListener("message", (event: MessageEvent) => {
+    const data: unknown = event.data;
+    if (
+      event.source === window.parent &&
+      typeof data === "object" &&
+      data !== null &&
+      "uraeda" in data &&
+      data.uraeda === "mode" &&
+      "mode" in data &&
+      (data.mode === "light" || data.mode === "dark")
+    ) {
+      mode = data.mode;
+      for (const listener of listeners) {
+        listener();
       }
-    };
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, []);
-  return mode;
+    }
+  });
+  return {
+    get: () => mode,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+})();
+
+/** The embedding page's colour mode, its last message's. */
+function useEmbeddingMode(): ThemeMode {
+  return useSyncExternalStore(embeddingMode.subscribe, embeddingMode.get);
 }
 
 /** Uraeda's theme and the fixture repository's providers, around a story. */
