@@ -5,7 +5,7 @@
 // notes take images too, and a verdict never deletes the image of a comment not added yet.
 // Files come from `fixtures/images/`, dropped and pasted through an in-page `DataTransfer`.
 import { screen, within } from "@testing-library/react";
-import { afterEach, expect, test } from "vite-plus/test";
+import { afterEach, expect, test, vi } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
 import { createFateClient } from "react-fate/client";
@@ -41,16 +41,26 @@ const urlOf = (input: RequestInfo | URL) =>
 
 const realFetch = globalThis.fetch;
 
-/** Holds the page's uploads until the test lets each one through: what happens during one. */
-function holdUploads() {
+/**
+ * Counts the uploads and the text saves the page sends; `hold` keeps each upload until the test lets
+ * it through, to see what happens during one.
+ */
+function watchRequests({ hold }: { hold: boolean }) {
   const waiting: Array<() => void> = [];
+  const sent = { saves: 0, uploads: 0 };
   globalThis.fetch = async (input, init) => {
     if (urlOf(input).includes("/attach?")) {
-      await new Promise<void>((resolve) => waiting.push(resolve));
+      sent.uploads += 1;
+      if (hold) {
+        await new Promise<void>((resolve) => waiting.push(resolve));
+      }
+    } else if (typeof init?.body === "string" && init.body.includes('"text.save"')) {
+      sent.saves += 1;
     }
     return realFetch(input, init);
   };
   return {
+    sent,
     waiting,
     /** Lets the next upload through, once it waits. */
     async release() {
@@ -59,6 +69,9 @@ function holdUploads() {
     },
   };
 }
+
+/** Holds the page's uploads until the test lets each one through: what happens during one. */
+const holdUploads = () => watchRequests({ hold: true });
 
 // The editor of a draft the fixture lacks leaves before its repository goes: its live view, still
 // listening as the next test's repository replaces this one, would read a draft no longer there.
@@ -266,18 +279,14 @@ test("a file dragged over the editor shows it is taken", async () => {
   document.body.dispatchEvent(new DragEvent("dragleave", init));
 });
 
-test("SC-002: a 1440×900 screenshot is linked within a second of its drop", async () => {
+test("SC-002: a 1440×900 screenshot dropped is linked", async () => {
   const field = await editProposal();
   cursorAt(field, TEXT.indexOf(LEAD) + LEAD.length);
   const file = await image("desktop.png", "desktop.png");
 
-  const start = performance.now();
   drop([file]);
-  await expect
-    .poll(() => field.value.includes("![desktop](images/desktop.webp)"), { interval: 10 })
-    .toBe(true);
+  await expect.poll(() => field.value.includes("![desktop](images/desktop.webp)")).toBe(true);
 
-  expect(performance.now() - start).toBeLessThan(1000);
   await saved("![desktop](images/desktop.webp)");
 });
 
@@ -290,9 +299,17 @@ test("text typed at the cursor during an upload goes after the link, saved once 
 
   drop([await image("phone.png", "login.png")]);
   await expect.poll(() => held.waiting.length).toBe(1);
-  await userEvent.keyboard("Then");
-  // A save would have gone out 400 ms after the typing stopped.
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  // The test sets the clock: a save would go out 400 ms after the typing stopped.
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    await userEvent.keyboard("Then");
+    await vi.advanceTimersByTimeAsync(1000);
+    // A save's request is sent a few promises after its timer: by the next frame.
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  } finally {
+    vi.useRealTimers();
+  }
+  expect(held.sent.saves).toBe(0);
   expect(await commands.readRepo(PROPOSAL)).toBe(TEXT);
   await held.release();
 
@@ -333,6 +350,7 @@ test("a link added while the preview shows does not take the focus later", async
 
 /** Review: an office suite copies a picture of the text with the text, which is what is pasted. */
 test("a paste of text with a picture of it is a paste of text", async () => {
+  const { sent } = watchRequests({ hold: false });
   const field = await editProposal();
   cursorAt(field, 0);
   const clipboardData = carrying([await image("phone.png", "image.png")]);
@@ -343,9 +361,11 @@ test("a paste of text with a picture of it is a paste of text", async () => {
 
   // The browser pastes the text unless the page cancels the paste.
   expect(event.defaultPrevented).toBe(false);
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  expect(screen.queryAllByText(/Adding pasted image/)).toEqual([]);
-  expect(await commands.repoFileSize("specs/drafts/login-banner/images")).toBe(-1);
+  // A paste of the image alone after it: its link shows once every upload before it was sent.
+  paste([await image("phone.png", "image.png")], field);
+  await expect.poll(() => field.value).toMatch(/^!\[pasted image\]/);
+  expect(sent.uploads).toBe(1);
+  await saved("![pasted image]");
 });
 
 test("a paste of an image with markup holding only it is a paste of the image", async () => {

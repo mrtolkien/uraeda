@@ -655,29 +655,35 @@ git commit -m "test(testing-review): TypeScript tests without timing checks, lea
   `__browser__/helpers.tsx`, called at the top of a file or `describe` block: at another size, every
   test of that scope is skipped, and no hook of the file runs for it. Task 6 applies it.
 
-- [ ] **Step 1: Write the size helper's tests**
+- [x] **Step 1: Write the size helper's tests**
 
 In a new `__browser__/sizes-helper.test.tsx`: a `describe` with `atSize("phone")` whose single test
 asserts `window.innerWidth < 768`, and one with `atSize("desktop")` asserting `>= 768`; a counter in
-`beforeEach` asserts, in an `afterAll`, that it ran only for the tests of this size.
+`beforeEach` asserts, in an `afterAll`, that it ran only for the tests of this size. As built, a
+third block with `atSize("both")` runs at each size, so the `afterAll` expects 2 hooks for 2 tests.
 
 The break each catches: a helper that skips inside the test body (the counter counts it), or skips
 at the wrong size (the width assertion).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
-- Run: `nix develop -c vp test --project phone src/__browser__/sizes-helper.test.tsx`
+- Run, from the root (R18):
+  `nix develop -c vp test --project phone packages/web/src/__browser__/sizes-helper.test.tsx`
 - Expected: FAIL, `atSize` is not exported by `./helpers.tsx`.
 
-- [ ] **Step 3: Implement `atSize`, copy the template repository in `takeRepo`, and replace every
+- [x] **Step 3: Implement `atSize`, copy the template repository in `takeRepo`, and replace every
       `window.innerWidth` early return with `atSize` on its test's scope**
 
-`atSize` decides from the instance's viewport at collection time, with Vitest's `skipIf`. The global
-setup builds the fixture repository once, as the template; `takeRepo` copies it into a new temporary
-folder instead of calling `fixtureRepo()`. The early returns become `atSize` in a `describe` around
-their tests.
+`atSize` decides from the instance's viewport at collection time. As built (R15), it reads the
+configured viewport (`server.config.browser.viewport`) and, at the other size, sets `skip` in its
+block's options (`TestRunner.getCurrentSuite()`), which the tests declared after it inherit, as
+`describe.skip` does: Vitest's `skipIf` cannot apply to a whole scope from a call inside it. The
+global setup builds the fixture repository once, as the template, in `URAEDA_TEMPLATE_REPO`;
+`takeRepo` copies it into a new temporary folder instead of calling `fixtureRepo()`. The early
+returns become `atSize` in a `describe` around their tests, or at the top of a file whose tests are
+all of one size (`round.test.tsx`, `task.test.tsx`).
 
-- [ ] **Step 4: Remove the timing checks of `attach.test.tsx`, and fix the scroll flake of
+- [x] **Step 4: Remove the timing checks of `attach.test.tsx`, and fix the scroll flake of
       `round.test.tsx`**
 
 - Line 280's duration goes, keeping the link's arrival; lines 295 and 346 wait for what the sleep
@@ -687,14 +693,24 @@ their tests.
   CPU loaded (`stress` or a parallel `vp run ready:rust`), find why the scroll does not land (a jump
   issued before the page settled, an animation cancelled), and fix the test's wait or the product,
   with a test when it is the product.
+- As built: line 295 types under a fake clock and counts the save requests; line 346 pastes an image
+  alone after it, as a sentinel, and counts the uploads (R17). The round's offsets were no flake:
+  both CI failures were the test of a commit before 4b8de71, which expected the round to open at Q1
+  after a1a0286 opened it on its intro, and that test fails with the same values on today's code;
+  the current test passed 20 runs under load (R16), so its waits stay.
 
-- [ ] **Step 5: Run both sizes at once, as `ready` does (review focus 2)**
+- [x] **Step 5: Run both sizes at once, as `ready` does (review focus 2)**
 
-- Run: `nix develop -c vp run --no-cache ready:browser-phone ready:browser-desktop`
+- Run, as two processes at once (R18): `nix develop -c vp run binding:touch`, then
+  `nix develop -c vp run --no-cache --ignore-depends-on browser:phone` and
+  `nix develop -c vp run --no-cache --ignore-depends-on browser:desktop` in parallel.
 - Expected: PASS at both sizes, run at the same time, each on its own port.
 - Run:
-  `grep -rnE 'setTimeout\(resolve|performance\.now\(\)|innerWidth\s*[<>]' packages/web/src/__browser__/*.test.tsx`
-- Expected: none, except the `mouse` command's waits, which are part of a drag's gesture.
+  `grep -rnE 'setTimeout\(resolve|performance\.now\(\)' packages/web/src/__browser__/ packages/web/vite.browser.config.ts`
+  and, for the early returns,
+  `grep -rlPz 'innerWidth\s*[<>]=?\s*\d+\)\s*\{\s*return;' packages/web/src/__browser__/*.test.tsx`
+- Expected: none, except the `mouse` command's waits, which are part of a drag's gesture. The tests
+  at both sizes that branch on `innerWidth` stay.
 
 - [ ] **Step 6: Commit**
 

@@ -4,7 +4,9 @@
 import { act, screen } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
-import { atRepo, drawn, repository, scrollStopped, show, watchFor } from "./helpers.tsx";
+import { atRepo, atSize, drawn, repository, scrollStopped, show, watchFor } from "./helpers.tsx";
+
+atSize("desktop");
 
 const FOLDER = "2026-10-11-web-ui";
 const PAGE = `/f/${FOLDER}/clarifications-01.md`;
@@ -24,9 +26,6 @@ function offset(id: string) {
 }
 
 test("the index is a column beside the questions, and n and p jump (US1 6, 7)", async () => {
-  if (window.innerWidth < 768) {
-    return;
-  }
   await show(PAGE, "How does your iPhone reach the server?");
   const index = screen.getByRole("navigation", { name: "Questions" });
   expect(index.textContent).toContain("0 of 3 answered");
@@ -67,9 +66,6 @@ test("the index is a column beside the questions, and n and p jump (US1 6, 7)", 
 });
 
 test("Back returns to the question at the top (US1 8)", async () => {
-  if (window.innerWidth < 768) {
-    return;
-  }
   await show(PAGE, "How does your iPhone reach the server?");
   await userEvent.click(
     screen.getByRole("heading", { name: "Which human steps does the UI perform?" }),
@@ -95,9 +91,6 @@ test("Back returns to the question at the top (US1 8)", async () => {
 });
 
 test("at 1200 px with the navigation open, the questions get at least 600 px (C3)", async () => {
-  if (window.innerWidth < 768) {
-    return;
-  }
   await page.viewport(1200, 900);
   try {
     await show(PAGE, "How does your iPhone reach the server?");
