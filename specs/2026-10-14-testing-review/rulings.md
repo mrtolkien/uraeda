@@ -759,3 +759,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a banner or a line that comes in a later commit than the end of the work is not
   followed; its failure shows "Jump to the latest" after a run ends.
 - **Where**: the rebase onto `main` with d25a7e7.
+
+## R39: The unit tests' tasks select their Vitest projects by exclusion
+
+- **Decision**: `ts:test` and `coverage` run `vp test --project '!phone' --project '!desktop'`,
+  every project of `test.projects` but the browser's, instead of naming the four unit projects one
+  by one. The toolchain test checks that every project of `test.projects`, by its name (a package's
+  `package.json` name, a config file's browser instances), is run by some `vp test` of `ready`'s
+  tasks, and says to select by exclusion or add a task when one is not.
+- **Rationale**: the final review found that a package added to `test.projects` would have been run
+  by no task of `ready` and no CI job, silently, where `ready` ran a bare `vp test` before this
+  branch: the toolchain decision's `ready` runs every check. The new table row "a Vitest project no
+  task selects" failed first (the check returned nothing); with `ts:test`'s `uraeda-web` removed by
+  hand, the repository's check failed with its message. `vp run --no-cache ts:test` ran the same 62
+  files as the four named projects (`vp test list --filesOnly --json`: 3, 25, 2, and 32).
+- **Alternatives considered**: keeping the explicit list with only the check: a new package then
+  fails `ready` until it is named in two tasks, where exclusion runs it at once. Reading the names
+  from `vp test list` in the test: authoritative, but it starts Vitest inside a unit test.
+- **If wrong**: a new browser project, or a project that should not run in `ts:test`, runs there
+  until it is excluded; a project named another way than the check reads is reported as unknown, and
+  the check is taught its name.
+- **Where**: the final review, finding I1.
