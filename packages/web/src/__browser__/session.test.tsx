@@ -5,20 +5,29 @@
 // width changes. US4.1–US4.4: scrolled up, "Jump to the latest" brings back the end, and the page
 // follows it again. The session view passes the layout checks at both sizes, in light and dark
 // (SC-004).
+// A chat whose last message has images opens at its end too, once they load.
 import { act, screen, within } from "@testing-library/react";
-import { afterEach, expect, test } from "vite-plus/test";
-import { page, userEvent } from "vite-plus/test/browser";
+import { createFateClient } from "react-fate/client";
+import type { ChatImage } from "uraeda-server/fate";
+import { afterEach, describe, expect, test } from "vite-plus/test";
+import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
+import type { RepoCommands } from "../../vite.browser.config.ts";
+import { sendMessage as sendTo } from "../sessions.ts";
 import {
   atRepo,
+  atSize,
   agent,
   checkLayout,
   drawn,
   grown,
+  image,
   LIVE,
   sendMessage,
   show,
   startTurn,
 } from "./helpers.tsx";
+
+const commands = browserCommands as unknown as RepoCommands;
 
 const CLI = "2026-10-12-cli-tuis";
 
@@ -130,89 +139,6 @@ test("US4.2–US4.4: scrolled up, Jump to the latest brings the end back, and th
   expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
 });
 
-test("an ended session scrolled up also offers Jump to the latest", async () => {
-  const log = await openWorkingSession();
-  await agent.agentFinish();
-  await expect.poll(() => screen.queryByRole("button", { name: "Stop" }), LIVE).toBeNull();
-  await drawn();
-  const box = scroller();
-  box.scrollTo(0, box.scrollHeight);
-  await drawn();
-  expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
-
-  box.scrollTo(0, box.scrollTop - 400);
-  // Pressed from the keyboard: the focus goes to the composer, not to the page.
-  (await screen.findByRole("button", { name: JUMP }, LIVE)).focus();
-  await userEvent.keyboard("{Enter}");
-
-  const last = within(log).getByText("Line 40.");
-  await expect.poll(() => inView(last), LIVE).toBe(true);
-  await expect.poll(() => screen.queryByRole("button", { name: JUMP }), LIVE).toBeNull();
-  expect(document.activeElement).toBe(composer());
-});
-
-test("idle at the end, send: the reply stays in view and no button shows", async () => {
-  const log = await openWorkingSession();
-  await agent.agentFinish();
-  await expect.poll(() => screen.queryByRole("button", { name: "Stop" }), LIVE).toBeNull();
-  await drawn();
-  const box = scroller();
-  box.scrollTo(0, box.scrollHeight);
-  await drawn();
-
-  // The message, two lines, grows the transcript before the session works.
-  await sendMessage("Now the tests.\nThen the docs.");
-  await agent.agentAccept();
-  await agent.agentEmit(lines(10, "Reply"));
-  const reply = await within(log).findByText("Reply 10.", undefined, LIVE);
-  await expect.poll(() => inView(reply), LIVE).toBe(true);
-  await drawn();
-  expect(inView(reply)).toBe(true);
-  expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
-});
-
-// A session opened from a task view still opens at its end: the task view's pane keeps its own
-// position in its history entry, which must not hold the session's page back.
-test("a session opened from a task view's pane opens at its end", async () => {
-  // Only the wide layout shows the task view in a pane.
-  if (window.innerWidth < 768) {
-    return;
-  }
-  await show(`/f/${CLI}/session`, "CLI TUIs");
-  await startTurn("Plan the CLI.", [
-    {
-      id: "task",
-      input: {},
-      kind: "other",
-      name: "Task",
-      subagent: { description: "Map the runner code" },
-      type: "toolStart",
-    },
-    ...lines(40, "Line"),
-  ]);
-  await within(await screen.findByRole("log", { name: "Conversation" }, LIVE)).findByText(
-    "Line 40.",
-    undefined,
-    LIVE,
-  );
-  await show("/priorities/claude-code-runner-triggered-manually", "Claude Code runner");
-  // Scrolled, the pane has a position of its own for the task view's entry to keep.
-  const pane = screen.getByRole("region", { name: "Detail" });
-  pane.scrollTo(0, pane.scrollHeight);
-  await drawn();
-
-  await userEvent.click(
-    await screen.findByRole("link", { name: "Map the runner code, Working" }, LIVE),
-  );
-
-  await expect.poll(() => window.location.pathname).toBe(atRepo(`/f/${CLI}/session`));
-  const last = await within(
-    await screen.findByRole("log", { name: "Conversation" }, LIVE),
-  ).findByText("Line 40.", undefined, LIVE);
-  await drawn();
-  await expect.poll(() => inView(last), LIVE).toBe(true);
-});
-
 test("a working session, with a sub-agent and a steered message, in dark (SC-004)", async () => {
   window.localStorage.setItem("uraeda.theme", "dark");
   await show(`/f/${CLI}/session`, "CLI TUIs");
@@ -314,6 +240,73 @@ test("Back from a session view returns to its position, following the end only f
   await expect.poll(() => inView(newest), LIVE).toBe(true);
 });
 
+/** Saves an image for a chat, as the composer does, without showing it on the page. */
+async function chatImage(file: File): Promise<ChatImage> {
+  const body = new FormData();
+  body.append("file", file);
+  const response = await fetch(atRepo(`/attach?chat=1&name=${encodeURIComponent(file.name)}`), {
+    body,
+    method: "POST",
+  });
+  return (await response.json()) as ChatImage;
+}
+
+/**
+ * Review: the images of the last message load after the view showed the transcript's end. They
+ * are sent outside the page, and served late: an image this page already loaded, or one loaded
+ * before the view is drawn, is drawn at once, at its size.
+ */
+test("a chat whose last message has images opens at its end", async () => {
+  await show("/", "Priorities");
+  const fate = createFateClient({ url: atRepo("/fate") });
+  const ended = {
+    denials: [],
+    errors: [],
+    interrupted: false,
+    ok: true,
+    type: "result" as const,
+  };
+  const first = await sendTo(fate, { text: "Plan the CLI." });
+  if (!first.ok) {
+    throw new Error(first.message);
+  }
+  await agent.agentAccept();
+  await agent.agentEmit([
+    ...Array.from({ length: 40 }, (_, index) => ({
+      text: `Line ${index + 1}.`,
+      type: "text" as const,
+    })),
+    ended,
+  ]);
+  const images = [
+    await chatImage(await image("phone.png", "one.png")),
+    await chatImage(await image("desktop.png", "two.png")),
+  ];
+  // The turn's end is recorded before the next message goes.
+  await expect
+    .poll(async () => {
+      const next = await sendTo(fate, { images, session: first.session, text: "These two." });
+      return next.ok;
+    }, LIVE)
+    .toBe(true);
+  await agent.agentAccept();
+  await agent.agentEmit([ended]);
+
+  // Over a slow network, its images come after the view opened.
+  await commands.slowChatImages(1000);
+  await show(`/chats/${first.session}`, "These two.");
+
+  const log = await screen.findByRole("log", { name: "Conversation" });
+  const drawnImages = [...log.querySelectorAll<HTMLImageElement>('a[href*="/chat-images/"] img')];
+  expect(drawnImages).toHaveLength(2);
+  await expect
+    .poll(() => drawnImages.every((one) => one.complete && one.naturalWidth > 0), LIVE)
+    .toBe(true);
+  await drawn();
+  const box = scroller();
+  expect(box.scrollHeight - box.scrollTop - box.clientHeight).toBeLessThanOrEqual(1);
+});
+
 /** The line of the transcript a third down the window: where the human reads. */
 function readLine(log: HTMLElement) {
   const third = window.innerHeight / 3;
@@ -325,87 +318,6 @@ function readLine(log: HTMLElement) {
 /** The phone's progress line of `CLI` at Task 7 of 11. */
 const LINE = "Implementation · 7/11 · Session column";
 
-test("US3.3: the open progress line survives a file link and Back", async () => {
-  if (window.innerWidth >= 768) {
-    return;
-  }
-  await agent.addPlan(CLI);
-  await show(`/f/${CLI}/session`, "CLI TUIs");
-  await startTurn("Plan the CLI.", lines(40, "Line"));
-  const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
-  await within(log).findByText("Line 40.", undefined, LIVE);
-  await drawn();
-
-  const line = screen.getByRole("button", { name: LINE });
-  await userEvent.click(line);
-  expect(line.getAttribute("aria-expanded")).toBe("true");
-  const plan = await screen.findByRole("link", { name: "plan.md" }, LIVE);
-  await drawn();
-  // Scrolled to the plan's link, in the column's open content.
-  const box = scroller();
-  box.scrollTo(
-    0,
-    Math.round(box.scrollTop + plan.getBoundingClientRect().top - box.clientHeight / 2),
-  );
-  await drawn();
-  const position = Math.round(box.scrollTop);
-  expect(position).toBeGreaterThan(0);
-
-  await followAndComeBack(plan, `/f/${CLI}/plan.md`);
-
-  const back = await screen.findByRole("button", { name: LINE }, LIVE);
-  expect(back.getAttribute("aria-expanded")).toBe("true");
-  expect(await screen.findByRole("link", { name: "plan.md" }, LIVE)).toBeTruthy();
-  await expect.poll(() => Math.round(box.scrollTop), LIVE).toBe(position);
-});
-
-test("the column turns into the collapsed progress line across 768 px, at the same position", async () => {
-  if (window.innerWidth < 768) {
-    return;
-  }
-  try {
-    await agent.addPlan(CLI);
-    await show(`/f/${CLI}/session`, "CLI TUIs");
-    await startTurn("Plan the CLI.", lines(60, "Line"));
-    const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
-    await within(log).findByText("Line 60.", undefined, LIVE);
-    await screen.findByRole("complementary", { name: "Progress" }, LIVE);
-    await drawn();
-    const box = scroller();
-    box.scrollTo(0, Math.round((box.scrollHeight - box.clientHeight) / 2));
-    await drawn();
-    expect(box.scrollTop).toBeGreaterThan(0);
-    // The line the human reads, a third down the window.
-    const read = readLine(log);
-    const top = read.getBoundingClientRect().top;
-
-    await page.viewport(402, 874);
-    await expect.poll(() => window.innerWidth).toBe(402);
-    const line = await screen.findByRole("button", { name: LINE }, LIVE);
-    expect(line.getAttribute("aria-expanded")).toBe("false");
-    expect(screen.queryByRole("complementary", { name: "Progress" })).toBeNull();
-    await drawn();
-    // The same page, not a new one: its transcript stays, the line read where it was.
-    expect(log.isConnected).toBe(true);
-    expect(Math.abs(read.getBoundingClientRect().top - top)).toBeLessThan(2);
-    // Scrolled on the phone: the line read a third down it is another one.
-    box.scrollTo(0, Math.round((box.scrollHeight - box.clientHeight) / 3));
-    await drawn();
-    const readNarrow = readLine(log);
-    const topNarrow = readNarrow.getBoundingClientRect().top;
-
-    await page.viewport(1440, 900);
-    await expect.poll(() => window.innerWidth).toBe(1440);
-    await screen.findByRole("complementary", { name: "Progress" }, LIVE);
-    expect(screen.queryByRole("button", { name: LINE })).toBeNull();
-    await drawn();
-    expect(log.isConnected).toBe(true);
-    expect(Math.abs(readNarrow.getBoundingClientRect().top - topNarrow)).toBeLessThan(2);
-  } finally {
-    await page.viewport(1440, 900);
-  }
-});
-
 /** Scrolls the window so that an element's top is `offset` px above the line a third down it. */
 async function putAboveTheThird(element: Element, offset: number) {
   const box = scroller();
@@ -414,70 +326,232 @@ async function putAboveTheThird(element: Element, offset: number) {
   await drawn();
 }
 
-test("a paragraph read across the line a third down keeps its place across 768 px", async () => {
-  if (window.innerWidth < 768) {
-    return;
-  }
-  const words = Array.from({ length: 400 }, (_, index) => `word${index}`).join(" ");
-  try {
-    await show(`/f/${CLI}/session`, "CLI TUIs");
-    await startTurn("Plan the CLI.", [
-      ...lines(10, "Line"),
-      { text: `Long \`paragraph\` ${words}.`, type: "text" },
-      ...lines(30, "Next line"),
-    ]);
-    const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
-    await within(log).findByText("Next line 30.", undefined, LIVE);
-    await drawn();
-    // Its inline code above the line, its text across it.
-    const paragraph = within(log).getByText(/word399\.$/);
-    expect(paragraph.getBoundingClientRect().height).toBeGreaterThan(200);
-    await putAboveTheThird(paragraph, 100);
-    const top = paragraph.getBoundingClientRect().top;
+// Behaviour the two layouts share: the transcript is a page of its own at both sizes.
+describe("on the phone", () => {
+  atSize("phone");
 
-    await page.viewport(402, 874);
-    await expect.poll(() => window.innerWidth).toBe(402);
-    await screen.findByRole("button", { name: "Plan" }, LIVE);
-    await drawn();
-
-    expect(Math.abs(paragraph.getBoundingClientRect().top - top)).toBeLessThan(2);
-  } finally {
-    await page.viewport(1440, 900);
-  }
-});
-
-test("opening the line moves the place read, which the next width keeps", async () => {
-  if (window.innerWidth < 768) {
-    return;
-  }
-  try {
-    await page.viewport(402, 874);
-    await expect.poll(() => window.innerWidth).toBe(402);
-    await agent.addPlan(CLI);
-    await show(`/f/${CLI}/session`, "CLI TUIs");
-    await startTurn("Plan the CLI.", lines(60, "Line"));
-    const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
-    await within(log).findByText("Line 60.", undefined, LIVE);
+  test("an ended session scrolled up also offers Jump to the latest", async () => {
+    const log = await openWorkingSession();
+    await agent.agentFinish();
+    await expect.poll(() => screen.queryByRole("button", { name: "Stop" }), LIVE).toBeNull();
     await drawn();
     const box = scroller();
-    box.scrollTo(0, Math.round((box.scrollHeight - box.clientHeight) / 2));
+    box.scrollTo(0, box.scrollHeight);
+    await drawn();
+    expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
+
+    box.scrollTo(0, box.scrollTop - 400);
+    // Pressed from the keyboard: the focus goes to the composer, not to the page.
+    (await screen.findByRole("button", { name: JUMP }, LIVE)).focus();
+    await userEvent.keyboard("{Enter}");
+
+    const last = within(log).getByText("Line 40.");
+    await expect.poll(() => inView(last), LIVE).toBe(true);
+    await expect.poll(() => screen.queryByRole("button", { name: JUMP }), LIVE).toBeNull();
+    expect(document.activeElement).toBe(composer());
+  });
+
+  test("idle at the end, send: the reply stays in view and no button shows", async () => {
+    const log = await openWorkingSession();
+    await agent.agentFinish();
+    await expect.poll(() => screen.queryByRole("button", { name: "Stop" }), LIVE).toBeNull();
+    await drawn();
+    const box = scroller();
+    box.scrollTo(0, box.scrollHeight);
     await drawn();
 
-    // Opened without scrolling to it, as a tap at the top of the page would.
-    await act(async () => screen.getByRole("button", { name: LINE }).click());
-    await screen.findByRole("region", { name: "Progress" }, LIVE);
-    // Its sections drawn, each once its files are read.
-    await grown();
-    const read = readLine(log);
-    const top = read.getBoundingClientRect().top;
+    // The message, two lines, grows the transcript before the session works.
+    await sendMessage("Now the tests.\nThen the docs.");
+    await agent.agentAccept();
+    await agent.agentEmit(lines(10, "Reply"));
+    const reply = await within(log).findByText("Reply 10.", undefined, LIVE);
+    await expect.poll(() => inView(reply), LIVE).toBe(true);
+    await drawn();
+    expect(inView(reply)).toBe(true);
+    expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
+  });
 
-    await page.viewport(1440, 900);
-    await expect.poll(() => window.innerWidth).toBe(1440);
-    await screen.findByRole("complementary", { name: "Progress" }, LIVE);
+  test("US3.3: the open progress line survives a file link and Back", async () => {
+    await agent.addPlan(CLI);
+    await show(`/f/${CLI}/session`, "CLI TUIs");
+    await startTurn("Plan the CLI.", lines(40, "Line"));
+    const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
+    await within(log).findByText("Line 40.", undefined, LIVE);
     await drawn();
 
-    expect(Math.abs(read.getBoundingClientRect().top - top)).toBeLessThan(2);
-  } finally {
-    await page.viewport(1440, 900);
-  }
+    const line = screen.getByRole("button", { name: LINE });
+    await userEvent.click(line);
+    expect(line.getAttribute("aria-expanded")).toBe("true");
+    const plan = await screen.findByRole("link", { name: "plan.md" }, LIVE);
+    await drawn();
+    // Scrolled to the plan's link, in the column's open content.
+    const box = scroller();
+    box.scrollTo(
+      0,
+      Math.round(box.scrollTop + plan.getBoundingClientRect().top - box.clientHeight / 2),
+    );
+    await drawn();
+    const position = Math.round(box.scrollTop);
+    expect(position).toBeGreaterThan(0);
+
+    await followAndComeBack(plan, `/f/${CLI}/plan.md`);
+
+    const back = await screen.findByRole("button", { name: LINE }, LIVE);
+    expect(back.getAttribute("aria-expanded")).toBe("true");
+    expect(await screen.findByRole("link", { name: "plan.md" }, LIVE)).toBeTruthy();
+    await expect.poll(() => Math.round(box.scrollTop), LIVE).toBe(position);
+  });
+});
+
+// Only the wide layout shows a task view in a pane, and the width changes start from it.
+describe("on the desktop", () => {
+  atSize("desktop");
+
+  // A session opened from a task view still opens at its end: the task view's pane keeps its own
+  // position in its history entry, which must not hold the session's page back.
+  test("a session opened from a task view's pane opens at its end", async () => {
+    await show(`/f/${CLI}/session`, "CLI TUIs");
+    await startTurn("Plan the CLI.", [
+      {
+        id: "task",
+        input: {},
+        kind: "other",
+        name: "Task",
+        subagent: { description: "Map the runner code" },
+        type: "toolStart",
+      },
+      ...lines(40, "Line"),
+    ]);
+    await within(await screen.findByRole("log", { name: "Conversation" }, LIVE)).findByText(
+      "Line 40.",
+      undefined,
+      LIVE,
+    );
+    await show("/priorities/claude-code-runner-triggered-manually", "Claude Code runner");
+    // Scrolled, the pane has a position of its own for the task view's entry to keep.
+    const pane = screen.getByRole("region", { name: "Detail" });
+    pane.scrollTo(0, pane.scrollHeight);
+    await drawn();
+
+    await userEvent.click(
+      await screen.findByRole("link", { name: "Map the runner code, Working" }, LIVE),
+    );
+
+    await expect.poll(() => window.location.pathname).toBe(atRepo(`/f/${CLI}/session`));
+    const last = await within(
+      await screen.findByRole("log", { name: "Conversation" }, LIVE),
+    ).findByText("Line 40.", undefined, LIVE);
+    await drawn();
+    await expect.poll(() => inView(last), LIVE).toBe(true);
+  });
+
+  test("a paragraph read across the line a third down keeps its place across 768 px", async () => {
+    const words = Array.from({ length: 400 }, (_, index) => `word${index}`).join(" ");
+    try {
+      await show(`/f/${CLI}/session`, "CLI TUIs");
+      await startTurn("Plan the CLI.", [
+        ...lines(10, "Line"),
+        { text: `Long \`paragraph\` ${words}.`, type: "text" },
+        ...lines(30, "Next line"),
+      ]);
+      const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
+      await within(log).findByText("Next line 30.", undefined, LIVE);
+      await drawn();
+      // Its inline code above the line, its text across it.
+      const paragraph = within(log).getByText(/word399\.$/);
+      expect(paragraph.getBoundingClientRect().height).toBeGreaterThan(200);
+      await putAboveTheThird(paragraph, 100);
+      const top = paragraph.getBoundingClientRect().top;
+
+      await page.viewport(402, 874);
+      await expect.poll(() => window.innerWidth).toBe(402);
+      await screen.findByRole("button", { name: "Plan" }, LIVE);
+      await drawn();
+
+      expect(Math.abs(paragraph.getBoundingClientRect().top - top)).toBeLessThan(2);
+    } finally {
+      await page.viewport(1440, 900);
+    }
+  });
+});
+
+describe("on the desktop, the column across 768 px", () => {
+  atSize("desktop");
+
+  test("the column turns into the collapsed progress line across 768 px, at the same position", async () => {
+    try {
+      await agent.addPlan(CLI);
+      await show(`/f/${CLI}/session`, "CLI TUIs");
+      await startTurn("Plan the CLI.", lines(60, "Line"));
+      const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
+      await within(log).findByText("Line 60.", undefined, LIVE);
+      await screen.findByRole("complementary", { name: "Progress" }, LIVE);
+      await drawn();
+      const box = scroller();
+      box.scrollTo(0, Math.round((box.scrollHeight - box.clientHeight) / 2));
+      await drawn();
+      expect(box.scrollTop).toBeGreaterThan(0);
+      // The line the human reads, a third down the window.
+      const read = readLine(log);
+      const top = read.getBoundingClientRect().top;
+
+      await page.viewport(402, 874);
+      await expect.poll(() => window.innerWidth).toBe(402);
+      const line = await screen.findByRole("button", { name: LINE }, LIVE);
+      expect(line.getAttribute("aria-expanded")).toBe("false");
+      expect(screen.queryByRole("complementary", { name: "Progress" })).toBeNull();
+      await drawn();
+      // The same page, not a new one: its transcript stays, the line read where it was.
+      expect(log.isConnected).toBe(true);
+      expect(Math.abs(read.getBoundingClientRect().top - top)).toBeLessThan(2);
+      // Scrolled on the phone: the line read a third down it is another one.
+      box.scrollTo(0, Math.round((box.scrollHeight - box.clientHeight) / 3));
+      await drawn();
+      const readNarrow = readLine(log);
+      const topNarrow = readNarrow.getBoundingClientRect().top;
+
+      await page.viewport(1440, 900);
+      await expect.poll(() => window.innerWidth).toBe(1440);
+      await screen.findByRole("complementary", { name: "Progress" }, LIVE);
+      expect(screen.queryByRole("button", { name: LINE })).toBeNull();
+      await drawn();
+      expect(log.isConnected).toBe(true);
+      expect(Math.abs(readNarrow.getBoundingClientRect().top - topNarrow)).toBeLessThan(2);
+    } finally {
+      await page.viewport(1440, 900);
+    }
+  });
+
+  test("opening the line moves the place read, which the next width keeps", async () => {
+    try {
+      await page.viewport(402, 874);
+      await expect.poll(() => window.innerWidth).toBe(402);
+      await agent.addPlan(CLI);
+      await show(`/f/${CLI}/session`, "CLI TUIs");
+      await startTurn("Plan the CLI.", lines(60, "Line"));
+      const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
+      await within(log).findByText("Line 60.", undefined, LIVE);
+      await drawn();
+      const box = scroller();
+      box.scrollTo(0, Math.round((box.scrollHeight - box.clientHeight) / 2));
+      await drawn();
+
+      // Opened without scrolling to it, as a tap at the top of the page would.
+      await act(async () => screen.getByRole("button", { name: LINE }).click());
+      await screen.findByRole("region", { name: "Progress" }, LIVE);
+      // Its sections drawn, each once its files are read.
+      await grown();
+      const read = readLine(log);
+      const top = read.getBoundingClientRect().top;
+
+      await page.viewport(1440, 900);
+      await expect.poll(() => window.innerWidth).toBe(1440);
+      await screen.findByRole("complementary", { name: "Progress" }, LIVE);
+      await drawn();
+
+      expect(Math.abs(read.getBoundingClientRect().top - top)).toBeLessThan(2);
+    } finally {
+      await page.viewport(1440, 900);
+    }
+  });
 });
