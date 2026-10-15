@@ -110,12 +110,12 @@ folder, `specs/changes/YYYY-MM-DD-<slug>/`. Run every step on the target's branc
 and approves on it too.
 
 Never switch the human's checkout to reach a branch. Write where the branch is checked out, the
-checkout itself or a worktree, or else in a worktree at `.worktrees/<folder>/`, named after the
-item's folder, at the root of the main checkout, created with `git worktree add`. Keep `.worktrees/`
-out of `git status` through the repository's `.git/info/exclude`, never a tracked file. When
-`core.hooksPath` is a relative path, commit in a worktree with it made absolute from the main
-checkout, so the same hooks run. Worktrees stay until removed with `git worktree remove`. `ura` does
-all of this.
+checkout itself or a worktree, or else in a worktree at `.worktrees/<branch>/`, at the root of the
+main checkout, created with `git worktree add`; `ura start` creates a started item's at
+`.worktrees/<folder>/`. Keep `.worktrees/` out of `git status` through the repository's
+`.git/info/exclude`, never a tracked file. When `core.hooksPath` is a relative path, commit in a
+worktree with it made absolute from the main checkout, so the same hooks run. Worktrees stay until
+removed with `git worktree remove`. `ura` does all of this.
 
 ## Commits
 
