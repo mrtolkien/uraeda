@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use uraeda_core::files::priorities::Section;
 use uraeda_core::steps::{PullRequest, StepName, WaitsOn};
-use uraeda_core::workspace::{Feature, PriorityEntry, Workspace, folder_branch};
+use uraeda_core::workspace::{Feature, PriorityEntry, Workspace, first_file, folder_branch};
 
 use crate::output::{self, Style};
 
@@ -52,9 +52,12 @@ pub fn describe(feature: &Feature) -> String {
                 .iter()
                 .find(|f| &f.name == file)
                 .and_then(|f| f.waiting_line.clone());
-            let what = waiting.unwrap_or_else(|| match file.as_str() {
-                "proposal.md" => "write it, then commit it".to_string(),
-                _ => "waiting for you".to_string(),
+            let what = waiting.unwrap_or_else(|| {
+                if file == first_file(feature.kind) {
+                    "write it, then commit it".to_string()
+                } else {
+                    "waiting for you".to_string()
+                }
             });
             format!("{file}: {what}")
         }

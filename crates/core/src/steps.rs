@@ -5,7 +5,7 @@ use napi_derive::napi;
 use serde::Serialize;
 
 use crate::files::plan;
-use crate::workspace::{Feature, FileKind, Kind};
+use crate::workspace::{Feature, FileKind, Kind, first_file};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -192,7 +192,7 @@ fn finished_step(pull_request: PullRequest) -> Step {
 
 fn feature_step(feature: &Feature, pull_request: PullRequest) -> Step {
     if !feature.proposal_committed {
-        return Step::gate("proposal.md");
+        return Step::gate(first_file(feature.kind));
     }
     if let Some(gate) = waiting_gate(feature) {
         return gate;
@@ -303,7 +303,7 @@ fn waiting_gate(feature: &Feature) -> Option<Step> {
 /// workspace reads every change without asking `gh`.
 fn change_step(feature: &Feature, pull_request: PullRequest) -> Step {
     if !feature.proposal_committed {
-        return Step::gate("proposal.md");
+        return Step::gate(first_file(feature.kind));
     }
     if let Some(gate) = waiting_gate(feature) {
         return gate;
