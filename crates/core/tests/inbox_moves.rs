@@ -603,3 +603,71 @@ fn a_note_after_indented_code_is_a_list_item() {
             .contains("    let x = 1;\n\n- Icons are blurry on retina screens\n\n## Why")
     );
 }
+
+/// A note with an indented code fence and a sub-bullet, committed in the fixture's inbox.
+const CRASH: &str =
+    "- Crash on start\n  ```\n  thread main panicked\n  - not an item\n  ```\n  - sub bullet\n";
+
+/// A repository whose inbox holds [`CRASH`] at the end of `## CLI`, committed.
+fn crash_repo() -> (TestRepo, place::Place, String) {
+    let repo = fixture_repo();
+    let inbox = format!("{}{CRASH}", repo.read(INBOX));
+    repo.write(INBOX, &inbox);
+    repo.commit("chore: a note with code");
+    let place = main_place(&repo);
+    let read = actions::read(&place);
+    let priorities = uraeda_core::actions::priorities::read(&place);
+    let note = read
+        .categories
+        .last()
+        .unwrap()
+        .notes
+        .last()
+        .unwrap()
+        .id
+        .clone();
+    let path =
+        actions::to_new_draft(&place, &note, Section::Next, &read.hash, &priorities.hash).unwrap();
+    (repo, place, path)
+}
+
+/// A note's code fence goes into the draft's What whole, re-indented, after the note's first line,
+/// which is the title alone.
+#[test]
+fn a_note_with_code_becomes_a_draft_with_its_code() {
+    let (repo, _, path) = crash_repo();
+
+    assert_eq!(path, "specs/drafts/crash-on-start.md");
+    let draft = repo.read(&path);
+    assert!(
+        draft.contains(
+            "# Crash on start\n\n## What\n\nCrash on start\n\n\
+             ```\nthread main panicked\n- not an item\n```\n- sub bullet\n\n## Why\n"
+        ),
+        "{draft}"
+    );
+    assert!(
+        repo.read(PRIORITIES)
+            .contains("- [Crash on start](drafts/crash-on-start.md)\n")
+    );
+}
+
+/// The change list counts the note made a draft as one move, Commit holds the draft, and Discard
+/// deletes it.
+#[test]
+fn a_note_with_code_made_a_draft_is_one_move() {
+    let (repo, place, path) = crash_repo();
+
+    assert_eq!(
+        changes::list(&place).lines,
+        ["- Move from the inbox to Next: Crash on start"]
+    );
+    changes::discard(&place).unwrap();
+    assert!(!repo.exists(&path));
+    assert_eq!(repo.porcelain(), "");
+
+    let (repo, place, path) = crash_repo();
+    changes::commit(&place).unwrap();
+    assert_eq!(repo.changed_in("main"), [INBOX, PRIORITIES, path.as_str()]);
+    assert_eq!(repo.porcelain(), "");
+}

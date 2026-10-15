@@ -431,7 +431,7 @@ pub fn unmarked_lines(text: &str, id: &str) -> Option<(Vec<String>, usize)> {
 }
 
 /// What a draft made from a note holds: the markdown of its text without its marks, on one line,
-/// and its nested lines.
+/// and its nested lines, code included, without the indent they share.
 pub fn draft_parts(text: &str, id: &str) -> Option<(String, Vec<String>)> {
     let (lines, text_lines) = unmarked_lines(text, id)?;
     let (_, first) = item_marker(&lines[0])?;
@@ -439,7 +439,8 @@ pub fn draft_parts(text: &str, id: &str) -> Option<(String, Vec<String>)> {
         .chain(lines[1..text_lines].iter().map(|l| l.trim()))
         .collect::<Vec<_>>()
         .join(" ");
-    Some((title.trim().to_string(), lines[text_lines..].to_vec()))
+    let nested = lines::dedented(&lines[text_lines..]);
+    Some((title.trim().to_string(), nested))
 }
 
 /// The markdown of the text of a note that is a whole link: what the link's text says, unescaped.
