@@ -307,18 +307,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   - the slug field shows no restore notice on New change: `SlugField` takes `restoreNotice`, false
     there, and the draft editor keeps its notice;
   - a start that answers once the page is gone neither opens the change's page nor hands it over,
-    and still clears the text and the slug, since the change started;
+    and still clears the text and the slug, since the change started, but only the ones it sent: the
+    page clears the text while the store still holds the text sent, and the slug while it is still
+    the slug sent, or the proposed one; a newer text or slug, typed once the human came back, stays.
+    The composer leaves a sent text to `onSend`'s caller;
   - "Start the change" is Astryx's loading button while the start is pending: busy, its name kept;
   - the browser tests read the change's committed files with a command, `committedFiles`, which
     lists a worktree's files at its head.
 - **Rationale**: the spec keeps New change's text "as a new chat's is", which comes back without a
   notice; "Unsaved text restored" and "The draft's name changed since" are a draft's words, in
   neither mockup. Clearing the text after a start the human left keeps them from starting the same
-  change twice. The spec's US1.2 wants the images "committed in the change's `images/` folder",
-  which a file on disk alone does not show.
+  change twice; the text and slug are kept in the browser, shared by every visit to New change, so
+  clearing them unconditionally would erase a newer change typed while the first one started. The
+  spec's US1.2 wants the images "committed in the change's `images/` folder", which a file on disk
+  alone does not show.
 - **Alternatives considered**: a notice of New change's own, which no mockup has; keeping the text
   of a start answered after leaving; reading the files from the worktree's disk.
-- **If wrong**: pass `restoreNotice` on New change; keep the text when the page is gone.
+- **If wrong**: pass `restoreNotice` on New change; keep the text when the page is gone; clear the
+  text and slug whatever they hold now.
 - **Where**: review of task 9, `packages/web/src/SlugField.tsx`,
   `packages/web/src/NewChangePage.tsx`, `packages/web/src/Composer.tsx`,
   `packages/web/vite.browser.config.ts`.

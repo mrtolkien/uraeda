@@ -37,9 +37,10 @@ function useSettled(text: string) {
  * Starts the change from the composer's text and images, under the slug typed: its page opens, or,
  * when no run was sent, its session with the workflow's message unsent (R12). A refusal is shown
  * under the slug field, and the text stays. A change started once the human left the page opens
- * nothing: its text and slug still go, since it started.
+ * nothing: its text and slug still go, since it started, but only while they are the ones sent: a
+ * newer text or slug, typed while it started, stays (R19).
  */
-function useStart(slug: ReturnType<typeof useTextField>) {
+function useStart(text: ReturnType<typeof useTextField>, slug: ReturnType<typeof useTextField>) {
   const fate = useFateClient();
   const here = useRepoPath();
   const [error, setError] = useState<string>();
@@ -50,14 +51,15 @@ function useStart(slug: ReturnType<typeof useTextField>) {
       shown.current = false;
     };
   }, []);
-  const start = async (text: string, images: ReadonlyArray<DraftImage>) => {
+  const start = async (sent: string, images: ReadonlyArray<DraftImage>) => {
     setError(undefined);
+    const sentSlug = slug.text.trim();
     const result = await fate.mutations.change.start({
       input: {
         images: images.flatMap((image) => (image.image ? [image.image] : [])),
         // Before a slug is proposed, or once it is cleared, the core proposes its own.
-        ...(slug.text.trim() ? { slug: slug.text.trim() } : {}),
-        text,
+        ...(sentSlug ? { slug: sentSlug } : {}),
+        text: sent,
       },
       view: FeatureView,
     });
@@ -66,7 +68,14 @@ function useStart(slug: ReturnType<typeof useTextField>) {
       setError(result.error ? refusal(result.error).message : "The change did not start.");
       return false;
     }
-    slug.discard();
+    // The store's text now, not this page's: the human may have come back and typed another.
+    if (text.unsavedNow()?.text.trim() === sent) {
+      text.discard();
+    }
+    const slugNow = slug.unsavedNow();
+    if (!slugNow || slugNow.text.trim() === sentSlug) {
+      slug.discard();
+    }
     if (!shown.current) {
       return true;
     }
@@ -91,7 +100,7 @@ export function NewChangePage() {
   const { images, setImages } = useDraft();
   const proposed = useSlugProposal(useSettled(text.text));
   const slug = useTextField("new-change#slug", proposed, { drawn: false });
-  const { error, start } = useStart(slug);
+  const { error, start } = useStart(text, slug);
   return (
     <Page>
       <VStack gap={4}>

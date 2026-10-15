@@ -61,7 +61,8 @@ type ComposerProps = {
   /**
    * Sends the text and its images elsewhere than a session, like "New change" to the change it
    * starts, with or without the agent: whether it was sent. A refusal is the caller's to show, and
-   * the composer keeps the text and the images.
+   * the composer keeps the text and the images. A sent text is the caller's to clear: it may answer
+   * once the page is gone, and only the caller knows the text kept by then.
    */
   onSend?: (text: string, images: ReadonlyArray<DraftImage>) => Promise<boolean>;
   onSent?: (session: string) => void;
@@ -112,12 +113,11 @@ function useSend(
       return;
     }
     if (onSend) {
-      // The text stays until it is sent: a refusal leaves it as typed.
+      // The text stays until it is sent, and `onSend` clears it: a refusal leaves it as typed.
       setPending(true);
       void onSend(text, images).then((done) => {
         setPending(false);
         if (done) {
-          onChange("");
           onImagesChange([]);
           sent();
         }
