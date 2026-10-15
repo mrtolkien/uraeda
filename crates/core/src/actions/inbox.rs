@@ -403,30 +403,3 @@ pub fn to_draft(place: &Place, id: &str, draft: &str, previous: &str) -> Result<
     let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
     write_both(place, draft, &edited, &without)
 }
-
-/// Adds a note as a new draft, `specs/drafts/<slug>.md` or the next free name, written from its
-/// text, with the note linking it at the end of a category. Returns the draft's path.
-pub fn add_as_draft(
-    place: &Place,
-    category: Option<&str>,
-    marks: &Marks,
-    text: &str,
-    previous: Option<&str>,
-) -> Result<String, ActionError> {
-    checked_note(marks, text)?;
-    let current = match previous {
-        Some(previous) => current(place, PATH, previous)?,
-        None => self::text(place)?,
-    };
-    let title = text.split_whitespace().collect::<Vec<_>>().join(" ");
-    let path = draft::free_path(place, &title);
-    let link = inbox::link_to(&title, path.trim_start_matches("specs/"));
-    let line = inbox::note_line(marks.agent, marks.about.as_deref(), &link);
-    let (edited, _) = inbox::add(&current, category, &line);
-    draft::write_new(place, &path, &title, &[])?;
-    if let Err(error) = fs::write(place.root.join(PATH), edited) {
-        let _ = fs::remove_file(place.root.join(&path));
-        return Err(error.into());
-    }
-    Ok(path)
-}

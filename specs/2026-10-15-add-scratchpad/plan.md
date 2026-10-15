@@ -661,7 +661,8 @@ git commit -m "feat(add-scratchpad): inbox edits on the default branch"
     - `to_draft(place, id, draft: &str, previous) -> Result<(), ActionError>`, which appends the
       note's lines at the end of the draft's `## What`;
     - `add_as_draft(place, category, marks, text, previous) -> Result<String, ActionError>`, which
-      writes `specs/drafts/<slug>.md` from the proposal template and links it as a whole-line note;
+      writes `specs/drafts/<slug>.md` from the proposal template and links it as a whole-line note,
+      removed by the final review once `add_with_image` (task 13) was the only add as a draft;
     - a note moved into the priorities or a draft leaves its marks in the inbox, and its nested
       lines follow it: after the What paragraph of a new draft. A note that is a whole link is not
       made a draft (ruling R13). A new draft's title, What, and link text are the note's markdown,
@@ -713,7 +714,8 @@ Moves:
 - **US2 3:** "Icons are blurry on retina screens" added to `look-and-feel.md` is the last line of
   its `## What`.
 - **US6 2, core half:** `add_as_draft` writes the draft and the note `- [<text>](drafts/<slug>.md)`,
-  on a text without an apostrophe: see ruling R13.
+  on a text without an apostrophe: see ruling R13. Since the final review, these tests add through
+  `add_with_image`, the add the product calls.
 - **Review focus 3:** when only `PRIORITIES.md`'s hash is stale, the move is refused with the
   `PRIORITIES.md` message, and `INBOX.md` is unchanged.
 
@@ -1313,7 +1315,7 @@ git commit -m "feat(add-scratchpad): organize notes by hand, committed with the 
     Discard and the Undo share: a draft a move wrote, never committed and untouched, goes with its
     whole `images/` and its folder;
   - `changes::commit` holds a draft folder's linked images;
-  - `inbox.addAsDraft` is removed;
+  - `inbox.addAsDraft` is removed, and the final review removed `actions::inbox::add_as_draft`;
   - in the web UI, `NoteImage.tsx`'s `PickedImage`, `usePickedImage`, `useAddWithImage`,
     `addedNote`, `noteOfDraft`, and `undoAsDraft`.
 
