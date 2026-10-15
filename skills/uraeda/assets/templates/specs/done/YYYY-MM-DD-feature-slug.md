@@ -10,7 +10,7 @@ pull-request: [Optional: the pull request's URL]
 >
 > The record of a merged [feature | change], not instructions to follow. Started on [YYYY-MM-DD],
 > finished on [YYYY-MM-DD], in [its pull request](https://...). Its full files are in git:
-> `git log -- specs/YYYY-MM-DD-feature-slug/`.
+> `git log -- [specs/ | specs/changes/]YYYY-MM-DD-feature-slug/`.
 
 ## What and why
 
