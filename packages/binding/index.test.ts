@@ -6,6 +6,7 @@ import {
   encodeImage,
   mainRoot,
   nextStep,
+  pathFolder,
   readFile,
   readImage,
   readWorkspace,
@@ -153,6 +154,12 @@ test("does not read a markdown file as an image", async () => {
   await expect(readImage(fixtureRepo(), "specs/README.md")).rejects.toThrow(
     "refused: specs/README.md: no such file",
   );
+});
+
+test("pathFolder names the folder of a feature's or a change's file", () => {
+  expect(pathFolder("specs/2026-10-11-web-ui/spec.md")).toBe("2026-10-11-web-ui");
+  expect(pathFolder("specs/changes/2026-10-16-x/images/a.webp")).toBe("2026-10-16-x");
+  expect(pathFolder("README.md")).toBeNull();
 });
 
 test("the binding's version is the Cargo workspace's", () => {

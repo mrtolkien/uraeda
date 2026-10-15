@@ -113,6 +113,7 @@ function missingFeature(folder: string): FeatureRecord {
     kind: "",
     missing: true,
     mockups: [],
+    path: "",
     problems: [],
     session: null,
     slug: "",

@@ -825,8 +825,7 @@ test("US2.4: a feature chat's first message is its opening line, its text, then 
   });
   const opening = chatOpening({
     branch: "2026-10-12-cli-tuis",
-    change: false,
-    folder: "2026-10-12-cli-tuis",
+    feature: { kind: "feature", path: "specs/2026-10-12-cli-tuis" },
   });
   const a = join(imagesDir, "a.webp");
   // The session manager joins the opening line and the text; the adapter adds the images.
