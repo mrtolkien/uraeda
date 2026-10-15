@@ -11,6 +11,8 @@ use super::ActionError;
 use super::place::Place;
 
 const PRIORITIES: &str = "specs/PRIORITIES.md";
+/// The folder of `INBOX.md`, which a note's relative links start from.
+pub(crate) const INBOX_FOLDER: &str = "specs";
 
 /// The lines that can be drafted: those without a link.
 pub fn candidates(place: &Place) -> Result<Vec<Entry>, ActionError> {
@@ -129,15 +131,14 @@ pub fn free_path(place: &Place, text: &str) -> String {
     format!("specs/drafts/{name}.md")
 }
 
-/// Writes a new draft at `path` from the proposal template, with `line` as its title and the
-/// paragraph of What, and `nested`, a note's nested lines, after it.
+/// Writes a new draft at `path` from a note, as [`from_note`] gives it.
 pub fn write_new(
     place: &Place,
     path: &str,
     line: &str,
     nested: &[String],
 ) -> Result<(), ActionError> {
-    let content = proposal(line, nested);
+    let content = from_note(path, line, nested);
     if content.is_empty() {
         return Err(ActionError::Refused("no proposal template".into()));
     }
@@ -167,6 +168,14 @@ pub(crate) fn proposal(line: &str, nested: &[String]) -> String {
         return String::new();
     }
     paragraphs.join("\n\n") + "\n"
+}
+
+/// What a draft at `path` made from a note of `INBOX.md` holds: the [`proposal`] of the note's
+/// line and nested lines, their relative links rebased from `specs/` to the draft's folder, so they
+/// point at the same files.
+pub(crate) fn from_note(path: &str, line: &str, nested: &[String]) -> String {
+    let folder = path.rsplit_once('/').map_or("", |(folder, _)| folder);
+    crate::files::retarget::rebase(&proposal(line, nested), INBOX_FOLDER, folder)
 }
 
 /// Deletes the draft at `path` while it holds what a move wrote, `written`, with at most a note's

@@ -69,7 +69,7 @@ pub fn undo_to_draft(
     let current = text(place)?;
     let written = draft_text(place, draft)?;
     let name = draft.strip_prefix("specs/").unwrap_or(draft);
-    let without = lines::markdown_of(&unmarked)
+    let without = lines::markdown_of(&super::into_draft(&unmarked, draft))
         .and_then(|markdown| proposal::without_item(&written, &markdown))
         .ok_or_else(|| gone(&note, name))?;
     let back = put_back(&current, category, index, lines)?;
@@ -112,13 +112,13 @@ pub fn undo_as_draft(place: &Place, lines: &[String]) -> Result<(), ActionError>
         .and_then(|note| note.link)
         .and_then(|link| crate::workspace::resolve("specs", &link))
         .filter(|path| crate::target::is_draft(path));
-    let written = inbox::link_title(&current, id).map(|title| draft::proposal(&title, &[]));
+    let title = inbox::link_title(&current, id);
     let without = inbox::remove(&current, id).ok_or_else(|| gone(&note, "INBOX.md"))?;
     fs::write(place.root.join(PATH), without)?;
-    if let (Some(path), Some(written)) = (linked, written)
+    if let (Some(path), Some(title)) = (linked, title)
         && place::committed(place, &path).is_none()
     {
-        draft::remove_written(place, &path, &written)?;
+        draft::remove_written(place, &path, &draft::from_note(&path, &title, &[]))?;
     }
     Ok(())
 }
