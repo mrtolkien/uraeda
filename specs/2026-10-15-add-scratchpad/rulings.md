@@ -75,3 +75,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   disagrees with what Commit does.
 - **If wrong**: Split the counts in `actions::changes::list`.
 - **Where**: task 4
+
+## R7: `lines::items` skips fenced code from task 2, not task 1
+
+- **Decision**: Task 1's `lines::items` scans exactly as the priorities' parser did, fenced code
+  included. Task 2 adds the fenced-code skip, with its inbox test, and the priorities share it from
+  then on.
+- **Rationale**: Task 1 only restructures: its tests pass unchanged before and after. The
+  priorities' parser never skipped fenced code, so skipping it in task 1 would change what
+  `PRIORITIES.md` entries are, inside a structural commit.
+- **Alternatives considered**: Skipping fenced code in task 1, a behaviour change in a refactor. A
+  flag on `items` to skip or not, two rules for one scan.
+- **If wrong**: Gate the skip behind a parameter, so the priorities keep reading fenced bullets.
+- **Where**: tasks 1 and 2
