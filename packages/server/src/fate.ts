@@ -12,6 +12,7 @@ import {
   fileDataView,
   folderSuggestionsDataView,
   inboxDataView,
+  previewDataView,
   prioritiesDataView,
   proposalHintsDataView,
   repositoriesDataView,
@@ -20,6 +21,8 @@ import {
   sessionListDataView,
   sessionSearchDataView,
   slugProposalDataView,
+  storyDataView,
+  storyHrefDataView,
   turnDataView,
   turnLogDataView,
   workflowMessageDataView,
@@ -34,6 +37,7 @@ export {
   fileDataView,
   folderSuggestionsDataView,
   inboxDataView,
+  previewDataView,
   prioritiesDataView,
   proposalHintsDataView,
   repositoriesDataView,
@@ -41,6 +45,8 @@ export {
   sessionListDataView,
   sessionSearchDataView,
   slugProposalDataView,
+  storyDataView,
+  storyHrefDataView,
   turnDataView,
   turnLogDataView,
   workflowMessageDataView,
@@ -76,6 +82,9 @@ export type WorkflowMessage = Entity<typeof workflowMessageDataView, "WorkflowMe
 export type Repositories = Entity<typeof repositoriesDataView, "Repositories">;
 export type SlugProposal = Entity<typeof slugProposalDataView, "SlugProposal">;
 export type FolderSuggestions = Entity<typeof folderSuggestionsDataView, "FolderSuggestions">;
+export type Story = Entity<typeof storyDataView, "Story">;
+export type Preview = Entity<typeof previewDataView, "Preview">;
+export type StoryHref = Entity<typeof storyHrefDataView, "StoryHref">;
 /** What started a workflow turn, for `session.send`'s `workflow`. */
 export type { Trigger } from "./runner/events.ts";
 /** A turn's item, as a `TurnLog` page lists it. */

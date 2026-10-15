@@ -6,12 +6,12 @@ import type { Duplex } from "node:stream";
 import { createApp } from "./app.ts";
 import { chatImages } from "./attach.ts";
 import type { Binding } from "./fate/context.ts";
-import { createSessions, type HostsOf } from "./live.ts";
+import { createSessions, type HostsOf, livePreviews } from "./live.ts";
 import { NOT_A_REPOSITORY, openFolder, type OpenRequest } from "./open.ts";
 import type { Options } from "./options.ts";
 import { guardCheck } from "./guard.ts";
 import { previewUpgrade } from "./preview/proxy.ts";
-import { Previews } from "./preview/runner.ts";
+import type { Previews } from "./preview/runner.ts";
 import { Hosts } from "./repositories.ts";
 import type { Adapter } from "./runner/adapter.ts";
 import { SessionCache } from "./runner/cache.ts";
@@ -128,7 +128,7 @@ export async function startServer(
     throw error;
   }
   const opened = hosts;
-  const previews = new Previews();
+  const previews = livePreviews();
   const sweeping = setInterval(() => previews.sweep(), SWEEP_EVERY_MS);
   sweeping.unref();
   let stopping: Promise<void> | undefined;

@@ -11,7 +11,8 @@ import {
 } from "uraeda-binding/test-utils";
 import { createApp } from "../app.ts";
 import type { Binding } from "../fate/context.ts";
-import { Previews } from "../preview/runner.ts";
+import { livePreviews } from "../live.ts";
+import type { Previews } from "../preview/runner.ts";
 import { Hosts } from "../repositories.ts";
 import { SessionCache } from "../runner/cache.ts";
 import type { Sessions } from "../runner/sessions.ts";
@@ -43,7 +44,7 @@ afterEach(async () => {
 
 /** A Storybook runner for a test's app, stopped after the test. */
 export function testPreviews(): Previews {
-  const runner = new Previews();
+  const runner = livePreviews();
   runners.push(runner);
   return runner;
 }
@@ -88,6 +89,7 @@ function app(
   { dataDir, hosts, names: [name], sessions }: Awaited<ReturnType<typeof testHosts>>,
   using: Binding = binding,
 ) {
+  const previews = testPreviews();
   const created = createApp({
     allowedHosts,
     allowOrigins: ["http://localhost:5173"],
@@ -95,17 +97,17 @@ function app(
     dataDir,
     hosts,
     port,
-    previews: testPreviews(),
+    previews,
     sessions,
   });
   names.set(created, name);
-  return created;
+  return { app: created, previews };
 }
 
 /**
  * The server's app, called in process, on a repository added to a temporary list, with sessions
  * that have no agent, on the core's binding or a fake of it. `name` is the repository's in the
- * list.
+ * list, and `previews` the app's Storybook runner.
  */
 export async function testApp(
   repo = fixtureRepo(),
@@ -115,14 +117,14 @@ export async function testApp(
   }: { allowedHosts?: Array<string>; binding?: Binding } = {},
 ) {
   const opened = await testHosts([repo], { binding: using, installed: false });
-  return { ...opened, app: app(allowedHosts, opened, using), name: opened.names[0], repo };
+  return { ...opened, ...app(allowedHosts, opened, using), name: opened.names[0], repo };
 }
 
 /** The server's app with sessions on the fake adapter, checked once. */
 export async function testServer(repo = fixtureRepo(), { installed = true } = {}) {
   const opened = await testHosts([repo], { installed });
   await opened.sessions.check();
-  return { ...opened, app: app([], opened), name: opened.names[0], repo };
+  return { ...opened, ...app([], opened), name: opened.names[0], repo };
 }
 
 /**

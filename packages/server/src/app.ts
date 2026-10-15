@@ -14,6 +14,7 @@ import type { Hosts } from "./repositories.ts";
 
 export { Hosts } from "./repositories.ts";
 export { Previews } from "./preview/runner.ts";
+export { livePreviews } from "./live.ts";
 import type { Sessions } from "./runner/sessions.ts";
 
 type Context = HonoContext<{ Variables: FateVariables }>;
