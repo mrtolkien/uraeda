@@ -1,15 +1,22 @@
 // A change's session's column: its step, with its round or its pull request, its running
-// sub-agents, the files changed on its branch, and its files. The phone's progress line counts its
-// round's questions the same way.
+// sub-agents, the files changed on its branch, and its files, its Storybook first. The phone's
+// progress line counts its round's questions the same way.
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import type { Feature } from "uraeda-server/fate";
 import { useFeature, useFile } from "./data.ts";
 import { useRepoPath } from "./routes.tsx";
-import { Changes, Section, SectionHeading, stepTitle, Subagents } from "./SessionAside.tsx";
+import {
+  Changes,
+  Section,
+  SectionHeading,
+  StorybookRow,
+  stepTitle,
+  Subagents,
+} from "./SessionAside.tsx";
 
-type Item = Pick<Feature, "files" | "folder" | "pullRequest" | "step">;
+type Item = Pick<Feature, "files" | "folder" | "preview" | "pullRequest" | "step">;
 
 /** The number of questions a round asks now, from its parsed items. */
 export function useRoundQuestions(folder: string, file: string): number {
@@ -83,14 +90,18 @@ function StepContent({ item }: { item: Item }) {
   ) : null;
 }
 
-/** The change's workflow files but its reviews, or its record once finished, each opening it. */
-function Files({ item }: { item: Pick<Item, "files" | "folder"> }) {
+/**
+ * The change's Storybook when its checkout has a preview decision, then its workflow files but its
+ * reviews, or its record once finished, each opening it.
+ */
+function Files({ item }: { item: Pick<Item, "files" | "folder" | "preview"> }) {
   const here = useRepoPath();
   const files = item.files.filter((file) => file.kind !== "review");
   return (
     <VStack gap={2}>
       <SectionHeading>Files</SectionHeading>
       <List aria-label="Files" density="compact">
+        <StorybookRow item={item} />
         {files.map((file) => (
           <ListItem
             href={here(`/f/${item.folder}/${file.name}`)}
@@ -105,7 +116,8 @@ function Files({ item }: { item: Pick<Item, "files" | "folder"> }) {
 
 /**
  * A change's column: its step, the running sub-agents, the files changed on its branch, and its
- * files. It has no plan, and no page but its session.
+ * files, after its Storybook with a preview decision. It has no plan, and no page but its session
+ * and its Storybook.
  */
 export function ChangeAside({ folder, session }: { folder: string; session?: string }) {
   const item = useFeature(folder);
