@@ -56,15 +56,135 @@ function Group({ children, title }: { children: ReactNode; title?: string }) {
   );
 }
 
+/** The workspace's features, as home reads them. */
+type Feature = NonNullable<ReturnType<typeof useWorkspace>>["features"][number];
+
+/** The features waiting on the human, each by what it waits for, with the block's line. */
+function WaitingGroup({ features }: { features: Array<Feature> }) {
+  const here = useRepoPath();
+  if (!features.length) {
+    return <Banner status="info" title="Nothing waits on you." />;
+  }
+  return (
+    <Group title="Waiting on you">
+      {features.map((feature) => {
+        const { href, line, verb } = waiting(feature);
+        return (
+          <Row
+            badge={<Badge label={verb} variant="warning" />}
+            href={here(href)}
+            key={feature.folder}
+            line={line}
+            title={feature.title}
+          />
+        );
+      })}
+    </Group>
+  );
+}
+
+/** The features whose files have problems, each with its first one. */
+function ProblemsGroup({ features }: { features: Array<Feature> }) {
+  const here = useRepoPath();
+  if (!features.length) {
+    return null;
+  }
+  return (
+    <Group title="Files to fix">
+      {features.map((feature) => (
+        <Row
+          badge={<Badge label="Problems" variant="error" />}
+          href={here(`/f/${feature.folder}`)}
+          key={feature.folder}
+          line={feature.problems[0].message}
+          title={feature.title}
+        />
+      ))}
+    </Group>
+  );
+}
+
+/** The features agents work on, each with its step, or "Working" while its agent runs. */
+function AgentsGroup({ features, running }: { features: Array<Feature>; running: Array<string> }) {
+  const here = useRepoPath();
+  if (!features.length) {
+    return null;
+  }
+  return (
+    <Group title="Agents at work">
+      {features.map((feature) => {
+        const working = running.includes(feature.folder);
+        const step = stepLabel(feature.step.name);
+        const line = working
+          ? [step, feature.step.task].filter(Boolean).join(" · ")
+          : feature.step.task;
+        return (
+          <Row
+            // A running agent says so; its step moves to the line under the title.
+            badge={
+              <Badge label={working ? "Working" : step} variant={working ? "success" : "info"} />
+            }
+            href={here(`/f/${feature.folder}`)}
+            key={feature.folder}
+            line={line || undefined}
+            title={feature.title}
+          />
+        );
+      })}
+    </Group>
+  );
+}
+
+/** The Now and Next lines not started, each opening its task view, then all the priorities. */
+function PrioritiesGroup({
+  priorities,
+}: {
+  priorities: NonNullable<ReturnType<typeof useWorkspace>>["priorities"];
+}) {
+  // The task view open beside home, on wide screens.
+  const pathname = useLocalPath();
+  const here = useRepoPath();
+  return (
+    <Group title={priorities.length > 0 ? "Priorities" : undefined}>
+      {priorities.map((entry) => (
+        <Row
+          href={here(`/priorities/${entry.key}`)}
+          isSelected={pathname === `/priorities/${entry.key}`}
+          key={entry.id}
+          line={entry.section === "now" ? "Now" : "Next"}
+          title={entry.text}
+        />
+      ))}
+      <Row href={here("/priorities")} title="All priorities" />
+    </Group>
+  );
+}
+
+/** The merged features, latest first. */
+function DoneGroup({ features }: { features: Array<Feature> }) {
+  const here = useRepoPath();
+  if (!features.length) {
+    return null;
+  }
+  return (
+    <Group title="Done">
+      {features.map((feature) => (
+        <Row
+          badge={<Badge label="Merged" variant="success" />}
+          href={here(`/f/${feature.folder}`)}
+          key={feature.folder}
+          title={feature.title}
+        />
+      ))}
+    </Group>
+  );
+}
+
 /** The home screen: what waits on the human, what agents do, the next priorities, what is done. */
-// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: each section's list in a component
 export function Home() {
   const workspace = useWorkspace();
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
-  // The task view open beside home, on wide screens.
-  const pathname = useLocalPath();
-  const here = useRepoPath();
   if (!workspace) {
     return null;
   }
@@ -98,86 +218,11 @@ export function Home() {
         <QuickAdd />
       </TopBarSlot>
       <VStack gap={6}>
-        {!human.length && <Banner status="info" title="Nothing waits on you." />}
-        {human.length > 0 && (
-          <Group title="Waiting on you">
-            {human.map((feature) => {
-              const { href, line, verb } = waiting(feature);
-              return (
-                <Row
-                  badge={<Badge label={verb} variant="warning" />}
-                  href={here(href)}
-                  key={feature.folder}
-                  line={line}
-                  title={feature.title}
-                />
-              );
-            })}
-          </Group>
-        )}
-        {invalid.length > 0 && (
-          <Group title="Files to fix">
-            {invalid.map((feature) => (
-              <Row
-                badge={<Badge label="Problems" variant="error" />}
-                href={here(`/f/${feature.folder}`)}
-                key={feature.folder}
-                line={feature.problems[0].message}
-                title={feature.title}
-              />
-            ))}
-          </Group>
-        )}
-        {agents.length > 0 && (
-          <Group title="Agents at work">
-            {agents.map((feature) => {
-              const working = workspace.running.includes(feature.folder);
-              const step = stepLabel(feature.step.name);
-              const line = working
-                ? [step, feature.step.task].filter(Boolean).join(" · ")
-                : feature.step.task;
-              return (
-                <Row
-                  // A running agent says so; its step moves to the line under the title.
-                  badge={
-                    <Badge
-                      label={working ? "Working" : step}
-                      variant={working ? "success" : "info"}
-                    />
-                  }
-                  href={here(`/f/${feature.folder}`)}
-                  key={feature.folder}
-                  line={line || undefined}
-                  title={feature.title}
-                />
-              );
-            })}
-          </Group>
-        )}
-        <Group title={priorities.length > 0 ? "Priorities" : undefined}>
-          {priorities.map((entry) => (
-            <Row
-              href={here(`/priorities/${entry.key}`)}
-              isSelected={pathname === `/priorities/${entry.key}`}
-              key={entry.id}
-              line={entry.section === "now" ? "Now" : "Next"}
-              title={entry.text}
-            />
-          ))}
-          <Row href={here("/priorities")} title="All priorities" />
-        </Group>
-        {done.length > 0 && (
-          <Group title="Done">
-            {done.map((feature) => (
-              <Row
-                badge={<Badge label="Merged" variant="success" />}
-                href={here(`/f/${feature.folder}`)}
-                key={feature.folder}
-                title={feature.title}
-              />
-            ))}
-          </Group>
-        )}
+        <WaitingGroup features={human} />
+        <ProblemsGroup features={invalid} />
+        <AgentsGroup features={agents} running={workspace.running} />
+        <PrioritiesGroup priorities={priorities} />
+        <DoneGroup features={done} />
       </VStack>
     </Page>
   );
