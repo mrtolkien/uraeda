@@ -215,7 +215,10 @@ time, one commit per item:
 - **Benchmarks.** When the change touches what the constitution says to benchmark, record a baseline
   before the change, and compare after it, in the pull request.
 - **UI work.** Run the browser tests through the real app, look at screenshots of each changed view,
-  and commit them in the change's `screenshots/` when the project's decisions ask for them.
+  and commit them in the change's `screenshots/` when the project's decisions ask for them. In the
+  messages that report your work, link each story you wrote or changed, alone on a line, as a
+  [story link](conventions.md#markdown): Uraeda shows it live in the session, where the human can
+  try it and comment on it.
 - **Rulings.** The choices a later reader would want explained go in the change's `rulings.md`, from
   [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md), in the same commit,
   as the [implementation step](implementation.md#rulings) describes.
