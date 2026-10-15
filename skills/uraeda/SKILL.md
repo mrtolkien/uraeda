@@ -89,7 +89,7 @@ specs/
     rulings.md              # agent: low-impact choices made while planning and building
     data-model.md           # agent, when needed
     contracts/              # agent, when needed
-    mockups/                # agent, for any UI work
+    mockups/                # agent: HTML mockups, or the stories of a mockups Storybook
     images/                 # images a human attached, linked from their files
 ```
 

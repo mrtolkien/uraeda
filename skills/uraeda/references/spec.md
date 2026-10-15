@@ -253,16 +253,30 @@ Working in the existing codebase:
 
 Any UI work requires mockups: a new screen, a new control, or a visible change to an existing one.
 The human approves what users will see, not a description of it, and the implementation follows it.
-Put them in `mockups/`, next to the spec, and link each one from the spec's `## Mockups` section.
-
-The format is yours: use whatever shows the change best, and is quickest for the human to check. For
-example, a static HTML page when layout or interaction matters, an SVG for a single screen or
-component, a generated image when the look matters more than the exact layout, or code, when the UI
-is simple to build: a small component in the project's own stack, that the human can run or read.
+Link each one from the spec's `## Mockups` section, as a list item with what it shows.
 
 Show every state the user stories name, like an open menu, an empty list, or an error, with the
 exact text the spec fixes. A mockup shows what users see: the spec's text stays the reference for
 behaviour, and wins when the two disagree.
+
+**With an active preview decision**, `specs/decisions/preview.md`, mockups are Storybook stories,
+written where the decision says: one export per state. Embed each one where it illustrates, often
+right after a user story's description, by a [story link](conventions.md#markdown) alone in its
+paragraph: Uraeda shows the story there, live, at a phone's width and a desktop's.
+
+```markdown
+[Repeat menu, open](/src/tasks/RepeatMenu.stories.tsx#Open)
+```
+
+Story links need Storybook's Vite builder, which the decision requires. After a
+[visual question](discovery.md#visual-questions), the spec's commit keeps the picked variant's
+export and deletes the others, so the spec embeds the picked one.
+
+**Without one**, put the mockups in `mockups/`, next to the spec. The format is yours: use whatever
+shows the change best, and is quickest for the human to check. For example, a static HTML page when
+layout or interaction matters, an SVG for a single screen or component, a generated image when the
+look matters more than the exact layout, or code, when the UI is simple to build: a small component
+in the project's own stack, that the human can run or read.
 
 ## What the human weighs
 

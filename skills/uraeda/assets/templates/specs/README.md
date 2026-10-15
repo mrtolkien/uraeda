@@ -42,7 +42,8 @@ Without it, the file names and their `status` fields still tell where each featu
   - `spec-review.md`, `plan-review.md`: a human's review comments, when the latest review has any
   - `plan.md`: the implementation tasks, with the files and tests of each, amended in place
   - `data-model.md` and `contracts/`: entities and interfaces, when needed
-  - `mockups/`: what users will see, for any UI work
+  - `mockups/`: what users will see, for any UI work: HTML mockups, or the stories of a mockups
+    Storybook. With the project's own Storybook, mockups are stories in the code instead.
 
 Discovery and clarifications come in numbered rounds, `01`, `02`, ...: a later round is a new pair
 of files, and earlier rounds stay as they were.

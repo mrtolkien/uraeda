@@ -128,7 +128,7 @@ fn a_spec_has_its_stories_and_criteria() {
             (s.number, block.start_line, block.end_line)
         })
         .collect();
-    assert_eq!(&scenarios[..2], [(1, 58, 59), (2, 60, 61)]);
+    assert_eq!(&scenarios[..2], [(1, 62, 63), (2, 64, 65)]);
     assert_eq!(spec.criteria[0].id, "SC-001");
 }
 
@@ -176,7 +176,7 @@ fn a_spec_has_its_folds() {
     let story = "# Spec: X\n\n## User stories\n\n### US2: Y (P1)\n\nText.\n\n";
     let scenario = "1. **Given** a, **When** b, **Then** c.\n";
     let cases: [(&str, String, Folds); 5] = [
-        ("the example", example, (vec![56, 58], Some((193, 249)))),
+        ("the example", example, (vec![60, 62], Some((205, 261)))),
         (
             "a story with no scenarios",
             format!("{story}Acceptance scenarios:\n\nNone yet.\n"),
@@ -210,13 +210,27 @@ fn a_spec_has_its_mockups() {
     let (_, example, doc) = example("spec.md");
     let mockups = example.spec.unwrap().mockups;
 
-    assert_eq!(mockups.len(), 1);
-    assert_eq!(mockups[0].path, "mockups/repeat.html");
-    assert_eq!(mockups[0].label, "Repeat");
+    let stories: Vec<_> = mockups
+        .iter()
+        .map(|m| {
+            let story = m.story.as_ref().unwrap();
+            (m.path.as_str(), story.path.as_str(), story.export.as_str())
+        })
+        .collect();
+    let file = "src/tasks/RepeatMenu.stories.tsx";
+    assert_eq!(
+        stories,
+        [
+            (file, file, "Open"),
+            (file, file, "Completed"),
+            (file, file, "Custom")
+        ]
+    );
+    assert_eq!(mockups[0].label, "Repeat menu, open");
     let block = &doc.blocks[mockups[0].block as usize];
     assert_eq!(
         (block.start_line, block.heading.as_deref()),
-        (141, Some("Mockups"))
+        (147, Some("Mockups"))
     );
 
     let story = "# Spec: X\n\n## User stories\n\n### US1: Y (P1)\n\nSee [it](mockups/a.html).\n";

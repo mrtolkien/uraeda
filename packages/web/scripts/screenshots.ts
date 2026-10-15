@@ -55,14 +55,14 @@ const views = process.argv.slice(3);
 const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";
 const MOCKUP = "/f/2026-10-06-recurring-tasks/mockups/repeat.html";
 
-/** The fixture, with the example's mockup committed on the recurring tasks' branch. */
+/** The fixture, with the fixture HTML mockup committed on the recurring tasks' branch. */
 function repository() {
   const repo = fixtureRepo();
   const branch = "2026-10-06-recurring-tasks";
   git(repo, "switch", "--quiet", branch);
   mkdirSync(join(repo, "specs", branch, "mockups"), { recursive: true });
   copyFileSync(
-    join(root, "skills/uraeda/assets/example/specs", branch, "mockups/repeat.html"),
+    join(root, "fixtures/mockups/repeat.html"),
     join(repo, "specs", branch, "mockups/repeat.html"),
   );
   git(repo, "add", "--all");

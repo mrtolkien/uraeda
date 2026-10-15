@@ -377,10 +377,8 @@ comments (judgement).
   writes a no-build HTML page loading Astryx from esm.sh, with the neutral theme, not Uraeda's
   (`@astryxdesign/core` and `@astryxdesign/cli` READMEs). No Storybook, Ladle, or Histoire is in the
   repository.
-- **The example's mockup**,
-  [`repeat.html`](/skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/mockups/repeat.html),
-  is a static page of three frozen states in its own palette, at one width: the kind of mockup the
-  proposal criticises.
+- **The example's mockup**, [`repeat.html`](/fixtures/mockups/repeat.html), is a static page of
+  three frozen states in its own palette, at one width: the kind of mockup the proposal criticises.
 - **Sizes in the way** ([code quality](/specs/decisions/code-quality.md): 500 lines a file, 100 a
   function): `Question` is about 90 lines, `RoundPage` 97, `ReviewPage` 99, `SettledPoints` about
   100, and `FeaturePage` is already marked. `api.rs` sits at its 859-line baseline. A visual option

@@ -273,6 +273,13 @@ the limits for the project's own linters, as [setting up checks](code-quality.md
 describes. It is asked once: a "no" becomes that decision, saying the project has no limits, with a
 date in its **Revisit when**. Before that date, no round asks again.
 
+**A project with a UI and no preview decision.** When a round is about UI work and the project has
+no `specs/decisions/preview.md`, the round asks once whether to adopt one, from
+[the template](../assets/templates/specs/decisions/preview.md), as
+[setting up a project](projects.md#setting-up-a-project) describes. A "no" becomes that decision,
+saying the project has no preview, without its two preview fields, and with a date in its **Revisit
+when**: its mockups stay HTML, and no round asks again before that date.
+
 Ask everything at once: anticipate the questions their answers would raise, and ask them now, as
 follow-ups, so the human answers once. There is no limit on the number of questions: early in a
 project, dozens are normal.
@@ -370,6 +377,32 @@ The rules behind it:
 
 If nothing needs a human answer, write a file with a single question confirming the scope: "A
 (recommended). Go ahead with the scope above". The human still sets `answered`.
+
+## Visual questions
+
+With an active preview decision, a question about a look or a behaviour can offer its options as
+stories, so the human tries each one live before picking. Ask one only when seeing helps more than
+reading: a layout, a control, a motion, not a label's wording.
+
+- **Two to four variants**, each a story export written where the decision puts stories, all made by
+  the session that writes the round.
+- **Distinct**: if two could swap their text unnoticed, they are too alike. Drop one, or make it
+  differ.
+- **Each option links its variant** in a paragraph of its own, under the option's sentence, then
+  gives a one-line tradeoff as its `[pro]` and `[con]`. The recommended one comes first, as A.
+
+```markdown
+- **A (recommended). A thin line, which thickens under the pointer.**
+
+  [Thin line](/src/SidebarHandle.stories.tsx#ThinLine)
+
+  - [pro] nothing new to see until the pointer is there.
+  - [con] harder to find.
+  - Why recommended: it keeps the sidebar quiet.
+```
+
+The human may answer with a mix, "A, with B's grip". Commit the variants with the round. The spec
+keeps the picked one, as [mockups](spec.md#mockups) describes.
 
 ## Self-review
 
