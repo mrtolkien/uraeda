@@ -19,7 +19,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type Browser, type Page, webkit } from "playwright";
 import { addRepository } from "uraeda-binding";
-import { fixtureRepo, git } from "uraeda-binding/test-utils";
+import { addStoryFeature, fixtureRepo, git, STORY_FEATURE } from "uraeda-binding/test-utils";
 import { FakeAdapter } from "uraeda-server/testing";
 import { createServer, type PluginOption } from "vite-plus";
 import base, { uraedaServer } from "../vite.config.ts";
@@ -73,6 +73,9 @@ function repository() {
 
 async function main() {
   const repo = repository();
+  // The test feature, whose spec embeds a story, before any worktree is made: its preview decision
+  // goes on every branch, so the features' pages and sessions list their Storybook.
+  addStoryFeature(repo);
   const data = mkdtempSync(join(tmpdir(), "uraeda-data-"));
   process.env.URAEDA_REPO = repo;
   process.env.URAEDA_DATA_DIR = data;
@@ -118,6 +121,7 @@ async function main() {
     await takeImages(shooter(shots, out, views), shots[0]!.page, adapter, repo, `${url}${at}`);
     await takeTextInputs(shooter(shots, out, views));
     await takeChanges(shooter(shots, out, views), shots[0]!.page, adapter, repo);
+    await takeStories(shooter(shots, out, views));
   } finally {
     await browser?.close();
     await server.close();
@@ -368,6 +372,27 @@ async function takeReviews(each: Each, first: Page) {
     await page
       .getByRole("button", { name: "Approve and start the agent" })
       .evaluate((element) => element.scrollIntoView({ block: "center" }));
+    await settle(page);
+  });
+}
+
+/** A spec embedding a story, and the Storybook page, on the fake preview. */
+async function takeStories(each: Each) {
+  await each("story-embed", async ({ page }) => {
+    await show(page, `/f/${STORY_FEATURE}/spec.md`, "Resize the sidebar");
+    await page
+      .frameLocator('iframe[title="Dragging the handle, phone"]')
+      .getByText("Clicked 0 times")
+      .waitFor({ timeout: 20_000 });
+    await settle(page);
+  });
+  await each("storybook-page", async ({ page }) => {
+    await show(page, `/f/${STORY_FEATURE}/storybook`, "Storybook");
+    await page
+      .frameLocator('iframe[title="Storybook"]')
+      .frameLocator('iframe[title="storybook-preview-iframe"]')
+      .getByText("Clicked 0 times")
+      .waitFor({ timeout: 20_000 });
     await settle(page);
   });
 }

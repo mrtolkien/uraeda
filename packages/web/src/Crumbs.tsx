@@ -18,7 +18,8 @@ const styles = stylex.create({
  * Where a page sits: Home, its feature, and the page itself when it is inside the feature, like a
  * file. The feature is named by its title, read with the navigation's workspace. A session's page
  * is "Session" inside its feature, but a change's is the change's own page (US4.6), which has no
- * other page to go back to: it has no crumbs.
+ * other page to go back to: it has no crumbs. Without a feature, as the main checkout's Storybook,
+ * Home and the page.
  */
 export function Crumbs({
   current,
@@ -26,7 +27,7 @@ export function Crumbs({
   session = false,
 }: {
   current?: string;
-  folder: string;
+  folder?: string;
   /** Whether the page is the item's session, named "Session" inside a feature. */
   session?: boolean;
 }) {
@@ -43,7 +44,11 @@ export function Crumbs({
       <BreadcrumbItem href={here("/")} xstyle={styles.item}>
         Home
       </BreadcrumbItem>
-      {page === undefined ? (
+      {folder === undefined ? (
+        <BreadcrumbItem isCurrent xstyle={styles.item}>
+          {current}
+        </BreadcrumbItem>
+      ) : page === undefined ? (
         <BreadcrumbItem isCurrent xstyle={styles.item}>
           {title}
         </BreadcrumbItem>

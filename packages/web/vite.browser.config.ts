@@ -259,6 +259,19 @@ const commands = {
       .innerText({ timeout: 1000 })
       .catch(() => "");
   },
+  /**
+   * The text of a frame inside a frame of the page, both by their `title`, as Storybook's story
+   * inside its own interface, or "" while it has none.
+   */
+  async innerFrameText(context: Context, title: string, inner: string) {
+    const frame = await frameTitled(context, title);
+    return frame
+      .locator(`iframe[title="${inner}"]`)
+      .contentFrame()
+      .locator("body")
+      .innerText({ timeout: 1000 })
+      .catch(() => "");
+  },
   /** Clicks the element of a role and name in a frame of the page, by its `title`. */
   async frameClick(context: Context, title: string, role: "button", name: string) {
     await (await frameTitled(context, title)).getByRole(role, { name }).click();
@@ -381,6 +394,7 @@ export type RepoCommands = {
   frameReload: (title: string) => Promise<void>;
   frameRun: (title: string, script: string) => Promise<void>;
   frameText: (title: string) => Promise<string>;
+  innerFrameText: (title: string, inner: string) => Promise<string>;
   mouse: (
     steps: Array<{ ms?: number; type: "move" | "down" | "up" | "wait"; x?: number; y?: number }>,
   ) => Promise<void>;

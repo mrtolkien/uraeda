@@ -4,6 +4,9 @@
 // It appends its start to the log file, as one JSON line `{ base, cwd, pid, port }`, then serves,
 // from its working folder:
 // - `/index.json`: one story entry per `export const X` of each `*.stories.*` file;
+// - `/`: Storybook's own interface, as its manager draws it: the stories' list, and the story of
+//   its `?path=/story/<id>`, or its first, in a frame titled "storybook-preview-iframe", as
+//   Storybook's is;
 // - `/iframe.html?id=<id>`: a page holding the export's name, a button counting its clicks, a
 //   separator, the colour mode it was sent, the module script `/story.js`, and the skill's pick
 //   script, with a `Content-Security-Policy` that forbids framing it, which the proxy replaces. Its
@@ -109,6 +112,24 @@ function storyPage(id) {
 `;
 }
 
+/** Storybook's own interface: the stories' list, and the story `path` names, framed. */
+function managerPage(path) {
+  const entries = Object.values(storyIndex().entries);
+  const id = /^\/story\/(.+)$/.exec(path ?? "")?.[1] ?? entries[0]?.id ?? "";
+  const items = entries
+    .map((entry) => `<li><a href="?path=/story/${entry.id}">${entry.title} ${entry.name}</a></li>`)
+    .join("");
+  return `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Storybook</title></head>
+<body>
+<nav aria-label="Stories"><ul>${items}</ul></nav>
+<iframe id="storybook-preview-iframe" title="storybook-preview-iframe" src="iframe.html?id=${id}&amp;viewMode=story"></iframe>
+</body>
+</html>
+`;
+}
+
 /** The story's own script, which counts the button's clicks and shows the mode it is sent. */
 const STORY_JS = `let clicks = 0;
 document.getElementById("hide").addEventListener("click", () => {
@@ -158,6 +179,9 @@ const server = createServer((request, response) => {
     }
     const body = mode === "bad-index" ? "not json" : JSON.stringify(storyIndex());
     return send(response, 200, "application/json", body);
+  }
+  if (path === "/" || path === "/index.html") {
+    return send(response, 200, "text/html; charset=utf-8", managerPage(url.searchParams.get("path")));
   }
   if (path === "/iframe.html") {
     const page = storyPage(url.searchParams.get("id") ?? "");
