@@ -175,27 +175,34 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `send` and `thumbnails` as they were, so the two changes merge without a conflict in them.
 - **Where**: task 4.
 
-## R12: gix's `parallel` feature, and a teardown that waits for the page's requests
+## R12: A status read catches gix's panic, and a teardown waits for the page's requests
 
-- **Decision**: the workspace's gix dependency gets its `parallel` feature, with a core test of a
+- **Decision**: the three status reads of `crates/core/src/git/status.rs` run in `catch_unwind`, and
+  fail with "its repository was deleted during the read" when gix panics, with a core test of a
   worktree whose object store is deleted before its status is read; the web tests' helpers unmount
   the page, wait for the server to answer every request, then close the hosts and the sessions, in
   one `afterEach`.
-- **Rationale**: without `parallel`, gix's object store handle is not thread-safe, and the worktree
-  status converts it with `into_arc().expect("arc conversion always works")`, which opens the store
-  again from disk: a missing `objects` folder panics, and a panic in a napi call cannot unwind, so
-  Node aborts. With `parallel`, the handle is already shared, and the conversion cannot fail; the
-  new test panicked at that line before, and passes after. The abort needed a read going while its
+- **Rationale**: gix's object store handle is not thread-safe without its `parallel` feature, and
+  the worktree status converts it with `into_arc().expect("arc conversion always works")`, which
+  opens the store again from disk: a missing `objects` folder panics, and a panic in a napi call
+  cannot unwind, so Node aborts. Caught in the core, the panic becomes the read's error; the new
+  test panicked at that line before, and passes after. The abort needed a read going while its
   repository was deleted: the web tests closed their hosts and sessions before unmounting the page
   (Vitest runs `afterEach` hooks last registered first), and nothing waited for the requests the
   page sent as it went before the file's temporary folder was deleted; the same order left the
-  unhandled `FateRequestError` of run 38515969774. `parallel` adds `crossbeam-deque` and
-  `crossbeam-epoch`.
-- **Alternatives considered**: checking that the store's folder exists before each status: a race
-  still, between the check and the reopen. Catching the panic with `catch_unwind`: the panic is
-  gix's bug path, still printed, and the reopened store is not needed.
-- **If wrong**: gix's status may use more threads; dropping the feature brings the abort back, and
-  the test shows it.
+  unhandled `FateRequestError` of run 38515969774. Measured with
+  `cargo build --release -p uraeda-cli` (`stat -c %s target/release/ura`): 6,717,112 bytes without
+  the feature, 6,797,144 with it (+80,032 bytes, 78 KB, 1.2%, from `crossbeam-deque` and
+  `crossbeam-epoch`), 6,716,888 with the caught panic. The CLI decision keeps the binary as small as
+  possible, so the caught panic won.
+- **Alternatives considered**: gix's `parallel` feature, the first fix: the store already open is
+  shared, so the conversion cannot fail and the reads list nothing, for 78 KB. Checking that the
+  store's folder exists before each status: a race still, between the check and the reopen, which
+  comes after the index is read.
+- **If wrong**: the panic is still printed to stderr by Rust's default hook, once per read that
+  meets a deleted repository, which the teardown now avoids; each status read also opens the store
+  again, as it did before this pull request. A gix that stops panicking there returns its own error
+  instead, and fails the test's message.
 - **Where**: task 4.
 
 ## R13: Every test task drops the git variables a hook exports

@@ -543,8 +543,8 @@ git commit -m "build(testing-review): ready is a graph of cached tasks"
   `packages/web/src/__tests__/document.test.tsx` and `links.test.ts`,
   `packages/web/src/__tests__/helpers.tsx` (the teardown's order, `quiet`, behind the unhandled
   server error of run 38515969774), `packages/web/src/__tests__/session.test.tsx` (`openTurn`,
-  `thumbnails`), `crates/core/tests/git.rs` and `Cargo.toml` (gix's `parallel` feature),
-  `crates/lsp/tests/commands.rs` (the hook's end), `vite.config.ts` (`isolatedGit`)
+  `thumbnails`), `crates/core/tests/git.rs` and `crates/core/src/git/status.rs` (the status reads'
+  caught panic), `crates/lsp/tests/commands.rs` (the hook's end), `vite.config.ts` (`isolatedGit`)
 - Create: `packages/server/src/__tests__/live.bench.ts`,
   `packages/server/src/__tests__/live-stream.ts` (the live stream helpers and the two scenarios,
   shared by the test and the benchmark)
@@ -612,8 +612,9 @@ none.
 deleted, then `changed_files`, `staged_files` and `has_local_changes`. Without gix's `parallel`
 feature, its status opens the object store again from disk, and panics on the missing folder
 (`gix-0.89.0/src/status/index_worktree.rs:125`), which aborts the Node process holding the binding.
-With it, the store already open is shared: the reads list nothing. The web tests' teardown (step 3)
-no longer leaves reads going while the file's temporary folder is deleted.
+Each status read catches that panic, and fails with "its repository was deleted during the read";
+the feature, which shares the store already open, added 78 KB to the release binary. The web tests'
+teardown (step 3) no longer leaves reads going while the file's temporary folder is deleted.
 
 - [x] **Step 6: The test tasks drop the git variables a hook exports (C, R13)**
 
