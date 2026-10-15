@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Story embeds: spec, pick mode, states, and questions</title>
+    <style>
+      :root {
+        --bg: #fbfbfa;
+        --surface: #ffffff;
+        --muted: #f1f1ef;
+        --line: #dcdcd8;
+        --text: #1d1d1b;
+        --soft: #5f5f5a;
+        --accent: #2457d6;
+        --accent-soft: #e6edfb;
+        --danger: #b42318;
+        --danger-soft: #fdecea;
+        --radius: 10px;
+        font-family: system-ui, sans-serif;
+        color: var(--text);
+        background: #e9e9e6;
+      }
+      body {
+        margin: 0;
+        padding: 32px;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 8px;
+      }
+      .caption {
+        font-size: 15px;
+        color: var(--soft);
+        margin: 0 0 12px;
+        max-width: 900px;
+      }
+      .shot {
+        margin: 0 0 48px;
+      }
+      .desktop {
+        width: 1440px;
+        height: 900px;
+        display: flex;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        overflow: hidden;
+      }
+      .phone {
+        width: 402px;
+        height: 874px;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        overflow: hidden;
+        position: relative;
+      }
+      .sidebar {
+        width: 260px;
+        background: var(--muted);
+        border-right: 1px solid var(--line);
+        padding: 16px;
+        font-size: 15px;
+      }
+      .sidebar div {
+        padding: 8px 10px;
+        border-radius: 8px;
+      }
+      .sidebar .on {
+        background: var(--surface);
+        font-weight: 600;
+      }
+      .page {
+        flex: 1;
+        padding: 28px 48px;
+        overflow: hidden;
+        font-size: 19px;
+        line-height: 1.5;
+      }
+      .phone .page {
+        padding: 16px;
+        font-size: 17px;
+      }
+      .column {
+        max-width: 1100px;
+      }
+      h2 {
+        font-size: 26px;
+        margin: 0 0 12px;
+      }
+      h3 {
+        font-size: 21px;
+        margin: 20px 0 6px;
+      }
+      p {
+        margin: 0 0 12px;
+      }
+      .embed {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--surface);
+        margin: 8px 0 16px;
+        overflow: hidden;
+      }
+      .bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--line);
+        font-size: 16px;
+        flex-wrap: wrap;
+      }
+      .bar .label {
+        font-weight: 600;
+        margin-right: auto;
+      }
+      .seg {
+        display: inline-flex;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .seg span {
+        padding: 6px 12px;
+      }
+      .seg .on {
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .btn {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 6px 12px;
+        background: var(--surface);
+      }
+      .btn.primary {
+        background: var(--accent);
+        color: white;
+        border-color: var(--accent);
+      }
+      .btn.pressed {
+        background: var(--accent-soft);
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+      .frame {
+        background: #f6f6f4;
+        padding: 16px;
+        position: relative;
+      }
+      .scaled {
+        transform-origin: top left;
+      }
+      .app {
+        display: flex;
+        border: 1px solid var(--line);
+        background: white;
+        height: 300px;
+        font-size: 15px;
+      }
+      .app .side {
+        width: 220px;
+        background: var(--muted);
+        position: relative;
+        padding: 12px;
+      }
+      .handle {
+        position: absolute;
+        right: -4px;
+        top: 0;
+        bottom: 0;
+        width: 8px;
+        background: var(--accent);
+        opacity: 0.6;
+      }
+      .hide {
+        display: inline-block;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 4px 8px;
+        margin-top: 8px;
+        background: white;
+      }
+      .picked {
+        outline: 3px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .hint {
+        background: var(--accent-soft);
+        color: var(--accent);
+        padding: 8px 12px;
+        font-size: 16px;
+      }
+      .form {
+        border-top: 1px solid var(--line);
+        padding: 12px;
+        font-size: 16px;
+      }
+      .form .anchor {
+        color: var(--soft);
+        margin-bottom: 6px;
+      }
+      .field {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        min-height: 72px;
+        padding: 8px;
+        margin-bottom: 8px;
+      }
+      .right {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+      .state {
+        padding: 28px 16px;
+        text-align: left;
+        color: var(--soft);
+        font-size: 17px;
+      }
+      .state.error {
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+      .option {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 10px 12px;
+        background: var(--surface);
+      }
+      .option.on {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+      }
+      .letter {
+        display: inline-block;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--text);
+        color: white;
+        text-align: center;
+        line-height: 26px;
+        margin-right: 8px;
+        font-weight: 600;
+      }
+      .sheet {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--surface);
+        border-top: 1px solid var(--line);
+        border-radius: 16px 16px 0 0;
+        padding: 16px;
+        font-size: 17px;
+        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
+      }
+      .icon {
+        font-size: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Story embeds</h1>
+    <p class="caption">
+      The stories inside the frames are drawn by hand here: in the product, each frame is the
+      worktree's own Storybook, running the story live. The example spec is a future feature of
+      Uraeda, "Sidebar resize", whose stories are in
+      <code>packages/web/src/SidebarHandle.stories.tsx</code>.
+    </p>
+
+    <section class="shot">
+      <h2>1. A story embedded in a spec, 1440 × 900</h2>
+      <p class="caption">
+        The spec's line
+        <code>[Dragging the handle](/packages/web/src/SidebarHandle.stories.tsx#Dragging)</code>,
+        alone in its paragraph under US1, shows as the live story. "Desktop" draws the story 1440 px
+        wide, scaled to the reading column; "Phone" draws it 402 px wide, unscaled. "Pick an
+        element" appears once the story's frame says it has the pick script.
+      </p>
+      <div class="desktop">
+        <div class="sidebar">
+          <div>Priorities</div>
+          <div class="on">sidebar-resize</div>
+          <div>inbox</div>
+        </div>
+        <div class="page">
+          <div class="column">
+            <h2>Spec: Sidebar resize</h2>
+            <h3>US1: Resize the sidebar (P1)</h3>
+            <p>
+              The human drags the sidebar's edge to make it wider or narrower, and the width is
+              kept.
+            </p>
+            <div class="embed" role="group" aria-label="Story: Dragging the handle">
+              <div class="bar">
+                <span class="label">Dragging the handle</span>
+                <span class="seg" role="radiogroup" aria-label="Width"
+                  ><span>Phone</span><span class="on">Desktop</span></span
+                >
+                <span class="btn">Pick an element</span>
+                <span class="btn">Comment</span>
+                <span class="btn">Open in Storybook ↗</span>
+              </div>
+              <div class="frame">
+                <div class="app">
+                  <div class="side">
+                    Priorities<br />sidebar-resize<br /><span class="hide">Hide the sidebar</span>
+                    <div class="handle"></div>
+                  </div>
+                  <div style="padding: 12px">Main content</div>
+                </div>
+              </div>
+            </div>
+            <p>Why this priority: the sidebar is too narrow on desktop today.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="shot">
+      <h2>2. Pick mode, then the comment, 1440 × 900</h2>
+      <p class="caption">
+        "Pick an element" is pressed: the story stops reacting to clicks, the element under the
+        pointer is outlined, and a click picks it. Escape, inside or outside the frame, stops pick
+        mode. The comment form opens under the embed, naming the story and the picked element.
+        Ctrl+Enter or "Add comment" saves it to the spec's review, on the embed's line.
+      </p>
+      <div class="desktop">
+        <div class="sidebar">
+          <div>Priorities</div>
+          <div class="on">sidebar-resize</div>
+        </div>
+        <div class="page">
+          <div class="column">
+            <h3>US1: Resize the sidebar (P1)</h3>
+            <div class="embed">
+              <div class="bar">
+                <span class="label">Dragging the handle</span>
+                <span class="seg"><span>Phone</span><span class="on">Desktop</span></span>
+                <span class="btn pressed">Pick an element</span>
+                <span class="btn">Comment</span>
+                <span class="btn">Open in Storybook ↗</span>
+              </div>
+              <div class="hint">Click an element to comment on it. Escape to stop.</div>
+              <div class="frame">
+                <div class="app">
+                  <div class="side">
+                    Priorities<br />sidebar-resize<br /><span class="hide picked"
+                      >Hide the sidebar</span
+                    >
+                    <div class="handle"></div>
+                  </div>
+                  <div style="padding: 12px">Main content</div>
+                </div>
+              </div>
+              <div class="form">
+                <div class="anchor">
+                  Comment on <strong>Dragging the handle</strong>, button “Hide the sidebar”
+                </div>
+                <div class="field">This should be an icon button, at the top of the sidebar.</div>
+                <div class="right">
+                  <span class="btn">Cancel</span><span class="btn primary">Add comment</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="shot">
+      <h2>3. The embed's other states</h2>
+      <p class="caption">
+        In order: Storybook is starting for the worktree; it failed to start, with the last line it
+        printed; the story is not on the branch; the round was answered and the variant removed; the
+        page is open from another device; the feature has no worktree. In each, "Open in Storybook"
+        is hidden when there is nothing to open.
+      </p>
+      <div style="width: 1100px">
+        <div class="embed">
+          <div class="bar"><span class="label">Dragging the handle</span></div>
+          <div class="state">Starting Storybook for this branch…</div>
+        </div>
+        <div class="embed">
+          <div class="bar">
+            <span class="label">Dragging the handle</span><span class="btn">Try again</span>
+          </div>
+          <div class="state error">
+            Storybook did not start: Error: Cannot find module '@storybook/react-vite'
+          </div>
+        </div>
+        <div class="embed">
+          <div class="bar">
+            <span class="label">Dragging the handle</span
+            ><span class="btn">Open in Storybook ↗</span>
+          </div>
+          <div class="state">
+            No story “Dragging” in packages/web/src/SidebarHandle.stories.tsx on this branch.
+          </div>
+        </div>
+        <div class="embed">
+          <div class="bar"><span class="label">B: A handle with a grip</span></div>
+          <div class="state">This variant was removed after your answer.</div>
+        </div>
+        <div class="embed">
+          <div class="bar"><span class="label">Dragging the handle</span></div>
+          <div class="state">Stories run only on the computer that runs Uraeda.</div>
+        </div>
+        <div class="embed">
+          <div class="bar"><span class="label">Dragging the handle</span></div>
+          <div class="state">This feature has no worktree, so its stories cannot run here.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="shot">
+      <h2>4. A visual question, 1440 × 900</h2>
+      <p class="caption">
+        Each option links its variant's story under its text. The questions view draws the story
+        under the option's button, never inside it: the button picks the option, the frame is used
+        freely. Option A is picked.
+      </p>
+      <div class="desktop">
+        <div class="sidebar"><div class="on">sidebar-resize</div></div>
+        <div class="page">
+          <div class="column">
+            <h3>Q2: How does the sidebar's edge look?</h3>
+            <p>Why it matters: it is the only hint that the sidebar can be resized.</p>
+            <div class="grid">
+              <div>
+                <div class="option on">
+                  <span class="letter">A</span><strong>Recommended</strong> A thin line that
+                  thickens on hover.
+                </div>
+                <div class="embed">
+                  <div class="bar">
+                    <span class="label">A: Thin line</span><span class="btn">Pick an element</span
+                    ><span class="btn">Comment</span>
+                  </div>
+                  <div class="frame">
+                    <div class="app" style="height: 200px">
+                      <div class="side">
+                        sidebar
+                        <div class="handle" style="width: 2px; right: -1px"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="option">
+                  <span class="letter">B</span>A handle with a grip, always visible.
+                </div>
+                <div class="embed">
+                  <div class="bar">
+                    <span class="label">B: Grip</span><span class="btn">Pick an element</span
+                    ><span class="btn">Comment</span>
+                  </div>
+                  <div class="frame">
+                    <div class="app" style="height: 200px">
+                      <div class="side">
+                        sidebar
+                        <div
+                          class="handle"
+                          style="
+                            width: 10px;
+                            right: -5px;
+                            background: repeating-linear-gradient(
+                              0deg,
+                              #888 0 3px,
+                              transparent 3px 6px
+                            );
+                          "
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="shot">
+      <h2>5. The phone, 402 × 874: an embed, then pick mode's comment sheet</h2>
+      <p class="caption">
+        On a narrow screen the embed is as wide as the page, at "Phone" by default, and its buttons
+        are icons with names: width, pick, comment, open. The comment form opens as a bottom sheet.
+        Options of a visual question stack, each with its story under it.
+      </p>
+      <div style="display: flex; gap: 32px">
+        <div class="phone">
+          <div class="page">
+            <h3>US1: Resize the sidebar</h3>
+            <div class="embed">
+              <div class="bar">
+                <span class="label">Dragging the handle</span>
+                <span class="btn icon" aria-label="Width: Phone">▯</span>
+                <span class="btn icon" aria-label="Pick an element">⌖</span>
+                <span class="btn icon" aria-label="Comment">✎</span>
+                <span class="btn icon" aria-label="Open in Storybook">↗</span>
+              </div>
+              <div class="frame" style="padding: 0">
+                <div class="app" style="height: 420px; flex-direction: column">
+                  <div class="side" style="width: auto; height: 120px">
+                    sidebar<br /><span class="hide">Hide the sidebar</span>
+                  </div>
+                  <div style="padding: 12px">Main content</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="phone">
+          <div class="page">
+            <h3>US1: Resize the sidebar</h3>
+            <div class="embed">
+              <div class="hint">Tap an element to comment on it.</div>
+              <div class="frame" style="padding: 0">
+                <div class="app" style="height: 300px; flex-direction: column">
+                  <div class="side" style="width: auto; height: 120px">
+                    sidebar<br /><span class="hide picked">Hide the sidebar</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="sheet">
+            <div style="color: var(--soft); margin-bottom: 8px">
+              Comment on <strong>Dragging the handle</strong>, button “Hide the sidebar”
+            </div>
+            <div class="field">Make it an icon.</div>
+            <div class="right">
+              <span class="btn">Cancel</span><span class="btn primary">Add comment</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>
