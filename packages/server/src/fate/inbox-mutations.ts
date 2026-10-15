@@ -193,6 +193,8 @@ export const inboxMutations = {
       input,
       select,
     }: Resolver<{
+      /** The hash of the triage as the page read or wrote it last. */
+      base: string;
       comment: string;
       letters: Array<string>;
       previous: string;
@@ -207,6 +209,7 @@ export const inboxMutations = {
             input.letters,
             input.comment,
             input.previous,
+            input.base,
           ),
         ),
         select,
@@ -215,13 +218,24 @@ export const inboxMutations = {
     type: "WorkflowFile",
   },
   "triage.notes": {
-    resolve: async ({ ctx, input, select }: Resolver<{ notes: string; previous: string }>) => {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ base: string; notes: string; previous: string }>) => {
       return triage(
         ctx,
-        await refusable(() => ctx.binding.saveTriageNotes(ctx.repo, input.notes, input.previous)),
+        await refusable(() =>
+          ctx.binding.saveTriageNotes(ctx.repo, input.notes, input.previous, input.base),
+        ),
         select,
       );
     },
+    type: "WorkflowFile",
+  },
+  "triage.retry": {
+    resolve: async ({ ctx, select }: Resolver<Record<string, never>>) =>
+      triage(ctx, await refusable(() => ctx.binding.retryTriage(ctx.repo)), select),
     type: "WorkflowFile",
   },
   "triage.submit": {

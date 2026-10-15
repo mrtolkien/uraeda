@@ -1,6 +1,7 @@
 // What a round of questions answers into: a feature's latest round, or the inbox's triage, which
-// has no feature. The answers, the notes, and the submit go through the target's own mutations.
-import { createContext, useEffect, useState } from "react";
+// has no feature. The answers, the notes, the submit, and its retry go through the target's own
+// mutations.
+import { createContext, useContext, useEffect, useState } from "react";
 import { useFateClient } from "react-fate";
 import { FileView } from "./views.ts";
 
@@ -13,34 +14,54 @@ export function isTriage(target: RoundTarget): target is { triage: true } {
 }
 
 /**
- * The hash of the round's text as the page last read or wrote it, `current`: the triage is
- * submitted over it, so the page's own saves, like the notes a submit saves first, are not taken
- * for a change made elsewhere. The page's reads of its own saves may be drawn after a later save:
- * only a read of another text replaces `current`.
+ * The hash of the round's text as the page last read or wrote it, `current`: the triage's saves
+ * and its submit are based on it, and the core refuses them once the file holds anything else, as
+ * another page's answer. The page's writes to the triage run one after another, each based on the
+ * hash the last one left. A read of a text the page already had, drawn late, does not replace it.
  */
 export class Hashes {
   current: string;
-  #written = new Set<string>();
+  #seen = new Set<string>();
+  #queue: Promise<unknown> = Promise.resolve();
 
   constructor(current: string) {
     this.current = current;
+    this.#seen.add(current);
   }
 
   /** Takes the hash of a text the page wrote. */
   wrote(hash: string) {
     this.current = hash;
-    this.#written.add(hash);
+    this.#seen.add(hash);
   }
 
-  /** Takes the hash of the text the page read, unless it is one of its own saves, drawn late. */
+  /** Takes the hash of the text the page read, unless the page already had that text. */
   read(hash: string) {
-    if (!this.#written.has(hash)) {
+    if (!this.#seen.has(hash)) {
       this.current = hash;
+      this.#seen.add(hash);
     }
+  }
+
+  /** Runs a write after the page's writes before it, based on the hash the last one left. */
+  serial<T>(write: (base: string) => Promise<T>): Promise<T> {
+    const next = this.#queue.then(() => write(this.current));
+    this.#queue = next.catch(() => undefined);
+    return next;
   }
 }
 
-export const RoundHash = createContext(new Hashes(""));
+/** The page's `Hashes`, provided by `RoundPage`: none outside a round. */
+export const RoundHash = createContext<Hashes | null>(null);
+
+/** The `Hashes` of the round page around. */
+export function useRoundHash(): Hashes {
+  const hashes = useContext(RoundHash);
+  if (!hashes) {
+    throw new Error("A round's question is drawn in its RoundPage.");
+  }
+  return hashes;
+}
 
 /** The page's `Hashes`, from the hash of the text it reads, `hash`. */
 export function useHashes(hash: string) {
@@ -51,50 +72,61 @@ export function useHashes(hash: string) {
   return hashes;
 }
 
+/** A text written, whose hash the page keeps. */
+type Written = { current: { document: { hash: string } } } | null | undefined;
+
 /**
- * The round's writes into its target, each keeping the hash of the text it wrote in `hash`, the
- * page's `RoundHash`.
+ * The round's writes into its target. The triage's are based on the hash `hashes` keeps, which
+ * each keeps in turn.
  */
-export function useRoundWrites(target: RoundTarget, hash: Hashes) {
+export function useRoundWrites(target: RoundTarget, hashes: Hashes) {
   const fate = useFateClient();
-  /** Keeps the hash of the text a save wrote. */
-  const kept = (written?: { current: { document: { hash: string } } } | null) => {
-    if (written) {
-      hash.wrote(written.current.document.hash);
-    }
-  };
+  /** Runs a triage's write in turn, keeping the hash of the text it wrote. */
+  const based = <T extends { result?: Written }>(write: (base: string) => Promise<T>) =>
+    hashes.serial(async (base) => {
+      const result = await write(base);
+      if (result.result) {
+        hashes.wrote(result.result.current.document.hash);
+      }
+      return result;
+    });
   return {
     /** Saves a question's answer, over the answer last read, `previous`. */
-    answer: async (input: {
+    answer: (input: {
       comment: string;
       letters: Array<string>;
       previous: string;
       question: string;
-    }) => {
-      const result = isTriage(target)
-        ? await fate.mutations.triage.answer({ input, view: FileView })
-        : await fate.mutations.answer.save({
+    }) =>
+      isTriage(target)
+        ? based((base) =>
+            fate.mutations.triage.answer({ input: { ...input, base }, view: FileView }),
+          )
+        : fate.mutations.answer.save({
             input: { ...input, folder: target.folder },
             view: FileView,
-          });
-      kept(result.result);
-      return result;
-    },
+          }),
     /** Saves the round's notes, over the notes last read, `previous`. */
-    notes: async (input: { notes: string; previous: string }) => {
-      const result = isTriage(target)
-        ? await fate.mutations.triage.notes({ input, view: FileView })
-        : await fate.mutations.notes.save({
-            input: { ...input, folder: target.folder },
+    notes: (input: { notes: string; previous: string }) =>
+      isTriage(target)
+        ? based((base) =>
+            fate.mutations.triage.notes({ input: { ...input, base }, view: FileView }),
+          )
+        : fate.mutations.notes.save({ input: { ...input, folder: target.folder }, view: FileView }),
+    /** Commits the round again after a hook refused it: `name` in a feature's folder. */
+    retry: (name: string) =>
+      isTriage(target)
+        ? fate.mutations.triage.retry({ input: {}, view: FileView })
+        : fate.mutations.commit.retry({
+            input: { file: name, folder: target.folder },
             view: FileView,
-          });
-      kept(result.result);
-      return result;
-    },
+          }),
     /** Submits the round, `name` in a feature's folder, or the triage over the hash kept. */
     submit: (name: string) =>
       isTriage(target)
-        ? fate.mutations.triage.submit({ input: { previous: hash.current }, view: FileView })
+        ? hashes.serial((previous) =>
+            fate.mutations.triage.submit({ input: { previous }, view: FileView }),
+          )
         : fate.mutations.answers.submit({
             input: { file: name, folder: target.folder },
             view: FileView,

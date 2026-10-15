@@ -232,6 +232,9 @@ export declare function requestChanges(repo: string, folder: string, file: strin
 /** Commits again what a hook refused to commit: a submitted round, or a verdict. */
 export declare function retryCommit(repo: string, folder: string, name: string): Promise<CommitView>
 
+/** Commits the answered triage again, after a hook refused its submit. */
+export declare function retryTriage(repo: string): Promise<FileView>
+
 /** Saves an answer from the letters picked and a comment, over the answer last read. */
 export declare function saveAnswer(repo: string, folder: string, question: string, letters: Array<string>, comment: string, previous: string): Promise<FileView>
 
@@ -246,12 +249,12 @@ export declare function saveText(repo: string, path: string, text: string, previ
 
 /**
  * Saves one answer of the triage, from the letters picked and a comment, over the answer last
- * read.
+ * read, in the triage read with the hash `base`.
  */
-export declare function saveTriageAnswer(repo: string, question: string, letters: Array<string>, comment: string, previous: string): Promise<FileView>
+export declare function saveTriageAnswer(repo: string, question: string, letters: Array<string>, comment: string, previous: string, base: string): Promise<FileView>
 
-/** Saves the triage's notes, over the notes last read. */
-export declare function saveTriageNotes(repo: string, notes: string, previous: string): Promise<FileView>
+/** Saves the triage's notes, over the notes last read, in the triage read with the hash `base`. */
+export declare function saveTriageNotes(repo: string, notes: string, previous: string, base: string): Promise<FileView>
 
 /** Sets the discovery effort of a draft or a proposal, over the version read at `previous`. */
 export declare function setDiscovery(repo: string, path: string, level: string, previous: string): Promise<DraftView>

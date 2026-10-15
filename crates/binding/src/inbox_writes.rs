@@ -171,7 +171,7 @@ pub fn read_triage(repo: String) -> AsyncTask<Job<Option<FileView>>> {
 }
 
 /// Saves one answer of the triage, from the letters picked and a comment, over the answer last
-/// read.
+/// read, in the triage read with the hash `base`.
 #[napi(ts_return_type = "Promise<FileView>")]
 pub fn save_triage_answer(
     repo: String,
@@ -179,18 +179,35 @@ pub fn save_triage_answer(
     letters: Vec<String>,
     comment: String,
     previous: String,
+    base: String,
 ) -> AsyncTask<Job<FileView>> {
-    job(move || api::save_triage_answer(Path::new(&repo), &question, &letters, &comment, &previous))
+    job(move || {
+        api::save_triage_answer(
+            Path::new(&repo),
+            &question,
+            &letters,
+            &comment,
+            &previous,
+            &base,
+        )
+    })
 }
 
-/// Saves the triage's notes, over the notes last read.
+/// Saves the triage's notes, over the notes last read, in the triage read with the hash `base`.
 #[napi(ts_return_type = "Promise<FileView>")]
 pub fn save_triage_notes(
     repo: String,
     notes: String,
     previous: String,
+    base: String,
 ) -> AsyncTask<Job<FileView>> {
-    job(move || api::save_triage_notes(Path::new(&repo), &notes, &previous))
+    job(move || api::save_triage_notes(Path::new(&repo), &notes, &previous, &base))
+}
+
+/// Commits the answered triage again, after a hook refused its submit.
+#[napi(ts_return_type = "Promise<FileView>")]
+pub fn retry_triage(repo: String) -> AsyncTask<Job<FileView>> {
+    job(move || api::retry_triage(Path::new(&repo)))
 }
 
 /// Submits the triage, every question answered, and commits it, over the triage read with the

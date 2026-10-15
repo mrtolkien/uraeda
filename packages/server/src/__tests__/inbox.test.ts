@@ -312,18 +312,31 @@ test("US4 2 and 3: answers the triage, then submits it", async () => {
   const repo = triageRepo();
   const { app } = await testApp(repo);
 
+  const [opened] = await byId(app, "WorkflowFile", ["inbox-triage"], FILE);
+  // Each save is based on the hash the last one wrote: the page saw all of the triage.
   const answered = await mutate(
     app,
     "triage.answer",
-    { comment: "", letters: ["A"], previous: "", question: "Q1" },
+    {
+      base: opened.current.document.hash,
+      comment: "",
+      letters: ["A"],
+      previous: "",
+      question: "Q1",
+    },
     FILE,
   );
+  let base = answered.data.current.document.hash;
   for (const question of ["Q2", "Q3"]) {
-    await mutate(app, "triage.answer", { comment: "", letters: ["B"], previous: "", question }, [
-      "id",
-    ]);
+    const saved = await mutate(
+      app,
+      "triage.answer",
+      { base, comment: "", letters: ["B"], previous: "", question },
+      FILE,
+    );
+    base = saved.data.current.document.hash;
   }
-  const noted = await mutate(app, "triage.notes", { notes: "Later.", previous: "" }, FILE);
+  const noted = await mutate(app, "triage.notes", { base, notes: "Later.", previous: "" }, FILE);
   const submitted = await mutate(
     app,
     "triage.submit",

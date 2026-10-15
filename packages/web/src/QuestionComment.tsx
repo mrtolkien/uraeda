@@ -14,7 +14,7 @@ import {
 import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
-import { useImageText } from "./attach/useImageText.ts";
+import { takesImages, useImageText } from "./attach/useImageText.ts";
 import { COMMENT_CHANGED } from "./CommentForm.tsx";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { SaveStatus } from "./fields/SaveStatus.tsx";
@@ -126,9 +126,11 @@ export function CommentField({
   onSubmit: () => void;
   path: string;
 }) {
+  const takes = takesImages(path);
   const images = useImageText({
     label: `${id}'s comment`,
     path,
+    takes,
     text: comment,
     // The notes take a drop with no field focused: a comment takes it only while focused.
     onText: onImages,
@@ -151,10 +153,12 @@ export function CommentField({
       </DropHint>
       <AttachStatus status={images.status} />
       <HStack align="center" gap={2} wrap="wrap" xstyle={styles.actions}>
-        <AttachButton
-          name={`Add image to ${id}'s comment`}
-          onFiles={(files) => void images.addFiles(files)}
-        />
+        {takes && (
+          <AttachButton
+            name={`Add image to ${id}'s comment`}
+            onFiles={(files) => void images.addFiles(files)}
+          />
+        )}
         {children}
       </HStack>
     </>
