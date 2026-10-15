@@ -45,6 +45,26 @@ async function readyEmbed(options: Parameters<typeof commands.addStoryFeature>[0
   }
 }
 
+/**
+ * Has a frame post what it posts for an element picked, and waits until the page received it and
+ * drew what it changed, if anything.
+ */
+async function pickedLate(title: string) {
+  const seen = new Promise((resolve) =>
+    window.addEventListener("message", (event) => {
+      if ((event.data as { name?: string } | null)?.name === "Late") {
+        resolve(undefined);
+      }
+    }),
+  );
+  await commands.frameRun(
+    title,
+    `parent.postMessage({ uraeda: "picked", role: "button", name: "Late", text: "Late" }, "*")`,
+  );
+  await seen;
+  await drawn();
+}
+
 /** Presses "Pick an element", once the frames said they have the pick script. */
 async function pick() {
   await userEvent.click(await within(embed()).findByRole("button", { name: PICK }, READY));
@@ -73,8 +93,9 @@ describe("on a desktop", () => {
       .toContain(
         "Story SidebarHandle.stories.tsx#Dragging, phone, button “Hide the sidebar”: This should be an icon button.",
       );
-    expect(await commands.readRepo(REVIEW)).toMatch(
-      /## C1: Line \d+, under "US1: Resize the sidebar \(P1\)"/,
+    // The embed's own line in the spec.
+    expect(await commands.readRepo(REVIEW)).toContain(
+      '## C1: Line 27, under "US1: Resize the sidebar (P1)"',
     );
   });
 
@@ -126,6 +147,35 @@ describe("on a desktop", () => {
     await commands.frameClick(DESKTOP, "separator");
 
     expect(await screen.findByText(`Comment on ${LABEL}, separator`)).toBeTruthy();
+  });
+});
+
+describe("on a desktop, as pick mode ends", () => {
+  atSize("desktop");
+
+  test("an element picked after pick mode ended is ignored (US2.5)", async () => {
+    await readyEmbed();
+    await pick();
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(within(embed()).queryByText(HINT)).toBeNull());
+
+    await pickedLate(DESKTOP);
+    expect(form()).toBeNull();
+
+    await userEvent.click(within(embed()).getByRole("button", { name: "Comment" }));
+    expect(await screen.findByText(`Comment on ${LABEL}`)).toBeTruthy();
+    await pickedLate(PHONE);
+    expect(screen.getByText(`Comment on ${LABEL}`)).toBeTruthy();
+    expect(screen.queryByText(/“Late”/)).toBeNull();
+  });
+
+  test("the pick hint is announced in a live region there before pick mode", async () => {
+    await readyEmbed();
+    const regions = within(embed()).getAllByRole("status");
+
+    await pick();
+
+    expect(regions.some((region) => region.textContent === HINT)).toBe(true);
   });
 });
 
@@ -202,6 +252,25 @@ describe("on a desktop, around the embed", () => {
     expect(window.location.pathname).toBe(page);
     expect(page).toBe(atRepo(SPEC));
   });
+
+  test("the Mockups button opens the fold holding its story's embed, and scrolls to it (edge case)", async () => {
+    await commands.addStoryFeature();
+    // The embed moved from US1 into the Details fold, closed when the page opens.
+    const path = `specs/${FEATURE}/spec.md`;
+    const spec = await commands.readRepo(`.worktrees/${FEATURE}/${path}`);
+    const line = "[Dragging the handle](/packages/web/src/SidebarHandle.stories.tsx#Dragging)\n\n";
+    const moved = spec.replace(line, "").replace("### Components\n\n", `### Components\n\n${line}`);
+    await commands.commitOnBranch(FEATURE, { [path]: moved });
+    await show(SPEC, "Resize the sidebar");
+    expect(screen.queryByRole("figure", { name: LABEL })).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: `Open the mockup: ${LABEL}` }));
+
+    await screen.findByRole("figure", { name: LABEL });
+    await expect.poll(() => embed().getBoundingClientRect().top).toBeLessThan(200);
+    expect(embed().getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+    expect(window.location.pathname).toBe(atRepo(SPEC));
+  });
 });
 
 describe("on the phone", () => {
@@ -209,9 +278,11 @@ describe("on the phone", () => {
 
   test("on the phone, the toolbar is three named icons, picking asks for a tap, and the form is a sheet (US1.5)", async () => {
     await readyEmbed();
+    // Shown once a frame said it has the pick script.
+    const pickButton = await within(embed()).findByRole("button", { name: PICK }, READY);
 
     const controls = [
-      [within(embed()).getByRole("button", { name: PICK }), PICK],
+      [pickButton, PICK],
       [within(embed()).getByRole("button", { name: "Comment" }), "Comment"],
       [within(embed()).getByRole("link", { name: "Open in Storybook" }), "Open in Storybook"],
     ] as const;

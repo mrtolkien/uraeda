@@ -473,8 +473,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: a story's button in a review's Mockups finds the embed of the same file and export
   among the version's `stories`, by the element id `story-<block>`, and scrolls to it under the top
-  bar, as an address's anchor does. When no embed shows, without a preview decision, it opens the
-  Storybook page at the story.
+  bar, as an address's anchor does, opening first the fold that holds it, when closed. When no embed
+  shows, without a preview decision, it opens the Storybook page at the story.
 - **Rationale**: the spec's edge case asks the buttons to scroll to each story's embed; a story with
   no embed on the page has nowhere to scroll, and `/f/<folder>/<path>` is not a page for a stories
   file.
@@ -534,3 +534,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the `Option` component in `Question.tsx`, and one condition each in `Question` and
   `StoryEmbed`.
 - **Where**: task 10, `packages/web/src/Question.tsx`, `packages/web/src/StoryEmbed.tsx`.
+
+## R38: An element picked without an accessible name is named by its role alone
+
+- **Decision**: when the element picked has no accessible name, the comment and its anchor name its
+  role alone, as `, button`, not `, button “”`.
+- **Rationale**: the spec writes `<role> “<name>”` for an element with a name; empty quotes tell the
+  agent nothing and read as a missing value, while the role alone, with the comment's text, still
+  says what the human pointed at.
+- **Alternatives considered**: empty quotes, as the spec's pattern written literally; the element's
+  visible text in place of a name, which the spec keeps out of the comment.
+- **If wrong**: one line of `element` in `storyComment.ts`.
+- **Where**: task 9, `packages/web/src/storyComment.ts`.

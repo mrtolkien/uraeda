@@ -61,7 +61,11 @@ export function useStoryPick() {
     return () => document.removeEventListener("keydown", onKey);
   }, [picking]);
   const frames: Omit<PickMode, "onPicked"> & { onPicked: (picked: Picked) => void } = {
+    // A frame may still send a pick after pick mode ended, before it heard so.
     onPicked: (picked) => {
+      if (!picking) {
+        return;
+      }
       setPicking(false);
       setForm({ picked });
     },
@@ -125,16 +129,21 @@ function useCoarsePointer() {
   );
 }
 
-/** What pick mode asks for: a click, or a tap under a coarse pointer, where Escape is no key. */
-export function PickHint() {
+/**
+ * What pick mode asks for, while on: a click, or a tap under a coarse pointer, where Escape is no
+ * key. Its live region stays, empty while pick mode is off, so the hint is announced as it shows.
+ */
+export function PickHint({ picking }: { picking: boolean }) {
   const coarse = useCoarsePointer();
   return (
-    <div role="status" {...stylex.props(styles.hint)}>
-      <Text>
-        {coarse
-          ? "Tap an element to comment on it."
-          : "Click an element to comment on it. Escape to stop."}
-      </Text>
+    <div role="status" {...stylex.props(picking && styles.hint)}>
+      {picking && (
+        <Text>
+          {coarse
+            ? "Tap an element to comment on it."
+            : "Click an element to comment on it. Escape to stop."}
+        </Text>
+      )}
     </div>
   );
 }
