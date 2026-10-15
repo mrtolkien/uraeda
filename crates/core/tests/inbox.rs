@@ -151,6 +151,15 @@ fn notes_have_ids_in_file_order_and_unique_keys() {
     assert_eq!(keys, ["same", "same-2", "other"]);
 }
 
+/// The web UI's `/inbox/triage` is the triage's address: no note takes it as its key.
+#[test]
+fn no_note_is_keyed_triage() {
+    let notes = inbox::parse("# Inbox\n\n- Triage\n- Triage\n");
+
+    let keys: Vec<&str> = notes.iter().map(|n| n.key.as_str()).collect();
+    assert_eq!(keys, ["triage-2", "triage-3"]);
+}
+
 #[test]
 fn a_note_line_has_its_marks_in_order() {
     assert_eq!(

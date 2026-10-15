@@ -81,11 +81,46 @@ function CategoryField({
 }
 
 /**
+ * The form's typed text, each kept like every text field: the note's, under the unsaved store's
+ * `inbox-add`, and a new category's name, under `inbox-add#category`, which brings its "New
+ * category…" choice back with it.
+ */
+function useTypedNote() {
+  const note = useTextField("inbox-add", "");
+  const name = useTextField("inbox-add#category", "");
+  const [category, setCategory] = useState(() => (name.text ? NEW : NONE));
+  const naming = category === NEW;
+  return {
+    category,
+    chosen: category === NONE ? undefined : naming ? name.text.trim() : category.slice(1),
+    // A name left behind another choice is not the form's: it shows again with "New category…".
+    dirty: note.dirty || (naming && name.dirty),
+    discard: () => {
+      note.discard();
+      name.discard();
+    },
+    name,
+    note,
+    restored: note.restored ?? (naming ? name.restored : undefined),
+    setCategory,
+    /** Forgets the text just added, unless more was typed meanwhile. */
+    added: (text: string, typedName: string) => {
+      if (note.unsavedNow()?.text === text) {
+        note.discard();
+      }
+      if (naming && name.unsavedNow()?.text === typedName) {
+        name.discard();
+      }
+    },
+  };
+}
+
+/**
  * The add form: a note's text, and its category, "No category" by default, one of the inbox's, or
  * a new one, named in its own field. It reads the inbox when it opens, for the version it adds to.
  * `about`, on a feature's or a bug's page, is its folder, which marks the note with its slug. Its
- * text is the unsaved store's `inbox-add`, kept as the overlay closes and restored as it opens
- * again; Cancel asks "Discard your changes?" first when it holds text. Enter adds.
+ * text is kept as the overlay closes and restored as it opens again (`useTypedNote`); Cancel asks
+ * "Discard your changes?" first when it holds text. Enter adds.
  */
 export function AddNote({
   about,
@@ -99,12 +134,10 @@ export function AddNote({
   const fate = useFateClient();
   const confirm = useConfirm();
   const inbox = useInbox();
-  const field = useTextField("inbox-add", "");
-  const text = field.text;
-  const [category, setCategory] = useState(NONE);
-  const [name, setName] = useState("");
+  const typed = useTypedNote();
+  const text = typed.note.text;
+  const chosen = typed.chosen;
   const [message, setMessage] = useState<string>();
-  const chosen = category === NONE ? undefined : category === NEW ? name.trim() : category.slice(1);
   const ready = text.trim() !== "" && chosen !== "";
 
   const add = async () => {
@@ -131,33 +164,30 @@ export function AddNote({
       }
       return;
     }
-    // Forgotten once added, unless more was typed meanwhile.
-    if (field.unsavedNow()?.text === text) {
-      field.discard();
-    }
+    typed.added(text, typed.name.text);
     onAdded(addedNote(before, result.result?.categories ?? []));
   };
 
   const cancel = async () => {
-    if (field.dirty && !(await confirm(DISCARD_CHANGES))) {
+    if (typed.dirty && !(await confirm(DISCARD_CHANGES))) {
       return;
     }
-    field.discard();
+    typed.discard();
     onCancel();
   };
 
   return (
     <VStack gap={4}>
-      {field.restored && (
+      {typed.restored && (
         // Its saved text is always empty: it never changes since.
-        <RestoreNotice changed="" onDiscard={field.discard} restored={field.restored} />
+        <RestoreNotice changed="" onDiscard={typed.discard} restored={typed.restored} />
       )}
       <TextField
         hasAutoFocus
         isLabelHidden
         kind="line"
         label="Note"
-        onChange={field.change}
+        onChange={typed.note.change}
         onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
           // A note is one line: Enter adds it.
           if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
@@ -169,11 +199,11 @@ export function AddNote({
         value={text}
       />
       <CategoryField
-        category={category}
-        name={name}
+        category={typed.category}
+        name={typed.name.text}
         names={inbox?.names ?? []}
-        onCategory={setCategory}
-        onName={setName}
+        onCategory={typed.setCategory}
+        onName={typed.name.change}
       />
       {message && <Banner status="error" title={message} />}
       <HStack gap={2} justify="end">

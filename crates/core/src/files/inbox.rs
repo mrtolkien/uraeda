@@ -155,7 +155,8 @@ pub fn parse(text: &str) -> Vec<Note> {
         })
         .collect();
     let slugs = notes.iter().map(|n| crate::slug::from_text(&n.text));
-    let keys = lines::unique_keys(slugs.collect());
+    // `triage` is the address of the inbox's triage in the web UI, `/inbox/triage`.
+    let keys = lines::unique_keys_besides(slugs.collect(), &["triage"]);
     for (note, key) in notes.iter_mut().zip(keys) {
         note.key = key;
     }

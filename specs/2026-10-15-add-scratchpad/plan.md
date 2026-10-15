@@ -1092,6 +1092,7 @@ git commit -m "feat(add-scratchpad): notes from Neovim"
   - `packages/web/src/QuickAdd.tsx`: `AddForm` exported; `QuickAdd` deleted;
   - `packages/web/src/SessionNav.tsx`: an `actions` prop on `Item`, and the Inbox row;
   - `packages/web/src/Shell.tsx`: the shell inside `SidebarAddForms`;
+  - `crates/core/src/files/inbox.rs` and `files/lines.rs`: the key `triage` reserved;
   - the tests that opened the top bar's "Add a priority": `__tests__/priorities.test.tsx`,
     `shell.test.tsx`, `round.test.tsx`, `__browser__/layout.test.tsx`, and `fields.test.tsx` (ruling
     R19);
@@ -1111,6 +1112,8 @@ git commit -m "feat(add-scratchpad): notes from Neovim"
   - `useInbox()` and `readInbox(fate)`;
   - the routes `/inbox`, `/inbox/<key>`, and `/inbox/triage`; the last two show the inbox page until
     tasks 10 and 12 give them their views.
+  - in the core, `triage` reserved among the notes' keys, `lines::unique_keys_besides`, so a note
+    never takes the triage's address (ruling R19).
 
 - [x] **Step 1: Split `Home` into a component per group, and remove its marker**
 
