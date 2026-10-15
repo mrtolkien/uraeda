@@ -2382,8 +2382,9 @@ Each rule once, where its step is read:
   that decision with a date in its **Revisit when**.
 - `plan.md`: a picked variant's component is the starting point; the first task of that view adds
   the tests of the view's scenarios, then wires the component into the app.
-- `implementation.md`: link each story written or changed, alone on a line, in the messages that
-  report it ([R11](rulings.md#r11-the-change-flows-reference-gets-the-line-when-it-merges)).
+- `implementation.md`, and `change.md` at the catch-up: link each story written or changed, alone on
+  a line, in the messages that report it
+  ([R11](rulings.md#r11-the-change-flows-reference-gets-the-line-at-the-catch-up)).
 - `projects.md`: after the code-quality decision, propose `specs/decisions/preview.md` from the
   template for a project with a UI: the stack's own Storybook on its Vite builder, in the folder
   that holds the UI, with `uraeda-preview.js` in its `main.ts` and `uraeda-pick.js` in its preview,
