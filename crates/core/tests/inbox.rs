@@ -429,3 +429,31 @@ fn indented_fences_do_not_hide_later_notes() {
     );
     assert_eq!(inbox::category_names(text), ["UI"]);
 }
+
+/// A category's name is its heading's text, without the closing hashes CommonMark allows.
+#[test]
+fn closing_hashes_are_not_part_of_a_category() {
+    let rows = [
+        ("## UI ##", "UI"),
+        ("## UI ##  ", "UI"),
+        ("## UI#", "UI#"),
+        ("## C# ##", "C#"),
+        ("## ##", ""),
+        ("##", ""),
+    ];
+    for (heading, name) in rows {
+        let text = format!("# Inbox\n\n{heading}\n\n- a\n");
+
+        assert_eq!(inbox::category_names(&text), [name], "{heading:?}");
+        assert_eq!(
+            inbox::parse(&text)[0].category.as_deref(),
+            Some(name),
+            "{heading:?}"
+        );
+    }
+    let text = "# Inbox\n\n## UI ##\n\n- a\n";
+    assert_eq!(
+        inbox::add(text, Some("UI"), "- note"),
+        "# Inbox\n\n## UI ##\n\n- a\n- note\n"
+    );
+}

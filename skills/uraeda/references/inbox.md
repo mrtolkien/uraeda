@@ -37,8 +37,8 @@ The inbox is optional. A project without `INBOX.md` has no notes, and the first 
   covering its whole text.
 - **Marks**: leading groups `[agent]`, then `[<slug>]`, each followed by one space. A slug is
   lowercase letters, digits, and `-`. Any other bracket, like `[!]`, is text.
-- **Category**: a `## ` heading; its name is the heading's text. Notes before the first `##` have no
-  category. Other headings and text are kept and ignored.
+- **Category**: a `## ` heading; its name is the heading's text, without closing `#`s: `## UI ##` is
+  `UI`. Notes before the first `##` have no category. Other headings and text are kept and ignored.
 
 The `[agent]` mark says an agent wrote the note. The slug is the folder of the feature or bug the
 note is about, without its date: `[run-ui]` for `2026-10-14-run-ui`. Lines inside fenced code are

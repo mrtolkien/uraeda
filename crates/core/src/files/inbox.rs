@@ -38,8 +38,21 @@ pub struct Note {
 /// A category's heading: its line, from 1, and its name. `None` before the first `##` heading.
 type Heading = Option<(usize, String)>;
 
+/// The name of a `##` heading, or `None` for any other line. As in CommonMark, a closing run of
+/// `#` after a space is not part of it: `## UI ##` is `UI`, and `## ##` is empty.
 fn category_of(line: &str) -> Option<String> {
-    Some(line.strip_prefix("## ")?.trim().to_string())
+    let rest = line.strip_prefix("##")?;
+    if !(rest.is_empty() || rest.starts_with([' ', '\t'])) {
+        return None;
+    }
+    let name = rest.trim();
+    let without = name.trim_end_matches('#');
+    let name = if without.is_empty() || without.ends_with([' ', '\t']) {
+        without.trim_end()
+    } else {
+        name
+    };
+    Some(name.to_string())
 }
 
 /// Every note, with the heading of its category. A `#` or `###` heading does not change the

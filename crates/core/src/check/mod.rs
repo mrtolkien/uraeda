@@ -163,8 +163,8 @@ fn walk(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
     }
 }
 
-/// What kind of file a name is, in a folder: decisions in `decisions/`; priorities, the inbox, and
-/// its triage at the top.
+/// What kind of file a name is, in a folder: decisions in `decisions/`, records in `specs/done/`,
+/// priorities anywhere, and the inbox and its triage in `specs/`.
 fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
     let parent = dir.file_name().map(|n| n.to_string_lossy().into_owned());
     if parent.as_deref() == Some("decisions") && name.ends_with(".md") {
@@ -177,11 +177,16 @@ fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
     {
         return Some(Checked::Record);
     }
-    match name {
-        "PRIORITIES.md" => return Some(Checked::Priorities),
-        "INBOX.md" => return Some(Checked::Inbox),
-        "INBOX-TRIAGE.md" => return Some(Checked::Triage),
-        _ => {}
+    if name == "PRIORITIES.md" {
+        return Some(Checked::Priorities);
+    }
+    // The inbox and its triage are files of `specs/` itself: one elsewhere is the human's.
+    if parent.as_deref() == Some("specs") {
+        match name {
+            "INBOX.md" => return Some(Checked::Inbox),
+            "INBOX-TRIAGE.md" => return Some(Checked::Triage),
+            _ => {}
+        }
     }
     if !any_folder && !names::is_workflow_folder(dir) {
         return None;

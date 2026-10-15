@@ -781,3 +781,71 @@ fn a_triage_is_checked_like_a_round() {
         );
     }
 }
+
+/// A closing `##` is not part of the name: `## UI ##` repeats `## UI`.
+#[test]
+fn closing_hashes_repeat_a_category() {
+    let example = Example::new();
+    example.write(INBOX, "# Inbox\n\n## UI\n\n- a\n\n## UI ##\n\n- b\n");
+
+    assert_eq!(
+        summary(&example.problems()),
+        vec![format!("{INBOX}:7: the category \"UI\" is repeated")]
+    );
+}
+
+/// An empty heading names no category, so two of them repeat nothing.
+#[test]
+fn empty_headings_are_not_repeated_categories() {
+    let example = Example::new();
+    example.write(INBOX, "# Inbox\n\n## \n\n- a\n\n##\n\n- b\n");
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+}
+
+/// Only `specs/INBOX.md` and `specs/INBOX-TRIAGE.md` are the inbox and its triage: a file of the
+/// same name elsewhere is the human's.
+#[test]
+fn an_inbox_outside_the_top_of_specs_is_not_checked() {
+    let example = Example::new();
+    for path in [
+        format!("{FEATURE}/INBOX.md"),
+        "specs/drafts/INBOX.md".to_string(),
+        format!("{FEATURE}/INBOX-TRIAGE.md"),
+        "docs/INBOX.md".to_string(),
+    ] {
+        example.write(&path, "# Foo\n\n## A\n\n## A\n");
+    }
+    example.edit(INBOX, "# Inbox\n", "# Foo\n");
+
+    assert_eq!(
+        summary(&example.problems()),
+        vec![format!("{INBOX}:1: the title is \"# Inbox\"")]
+    );
+    let docs = check::check(example.root(), &example.root().join("docs/INBOX.md")).unwrap();
+    assert_eq!(summary(&docs), Vec::<String>::new());
+}
+
+/// The triage's `answered` is the human's Submit, as a round's is.
+#[test]
+fn the_triages_answered_status_submits() {
+    let example = Example::new();
+    let path = example.root().join(TRIAGE);
+
+    let fields = check::fields(example.root(), &path, &triage());
+
+    let status = fields.iter().find(|f| f.name == "status").unwrap();
+    assert_eq!(status.value.as_deref(), Some("awaiting-human"));
+    let actions: Vec<(&str, Option<check::Action>)> = status
+        .values
+        .iter()
+        .map(|c| (c.value.as_str(), c.action))
+        .collect();
+    assert_eq!(
+        actions,
+        [
+            ("awaiting-human", None),
+            ("answered", Some(check::Action::Submit))
+        ]
+    );
+}
