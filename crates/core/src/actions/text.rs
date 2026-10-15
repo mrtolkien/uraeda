@@ -152,7 +152,11 @@ pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
         // The lists a draft is made from or linked in, when they changed.
         for list in [PRIORITIES, INBOX] {
             let text = read(place, list);
-            if committed(list).is_some_and(|bytes| bytes != text.as_bytes()) {
+            let changed = match committed(list) {
+                Some(bytes) => bytes != text.as_bytes(),
+                None => place.root.join(list).is_file(),
+            };
+            if changed {
                 paths.push(list.to_string());
             }
         }

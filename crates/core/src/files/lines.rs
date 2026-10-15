@@ -384,3 +384,51 @@ pub(crate) fn unique_keys(slugs: Vec<String>) -> Vec<String> {
         })
         .collect()
 }
+
+/// Runs `escape` on each character of `markdown` outside its code spans, which keep their bytes.
+fn outside_code(markdown: &str, mut escape: impl FnMut(&mut String, char, Option<char>)) -> String {
+    let chars: Vec<char> = markdown.chars().collect();
+    let mut out = String::new();
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i] == '`' {
+            let run = chars[i..].iter().take_while(|&&c| c == '`').count();
+            let close = (i + run..chars.len()).find(|&j| {
+                chars[j..].iter().take_while(|&&c| c == '`').count() == run
+                    && (j == 0 || chars[j - 1] != '`')
+            });
+            let end = close.map_or(i + run, |j| j + run);
+            out.extend(&chars[i..end]);
+            i = end;
+            continue;
+        }
+        escape(&mut out, chars[i], chars.get(i + 1).copied());
+        i += 1;
+    }
+    out
+}
+
+/// Markdown as a link's text: its brackets and backslashes escaped outside code spans, so the
+/// link parses whatever the text holds.
+pub(crate) fn escape_link_text(markdown: &str) -> String {
+    outside_code(markdown, |out, c, _| {
+        if matches!(c, '[' | ']' | '\\') {
+            out.push('\\');
+        }
+        out.push(c);
+    })
+}
+
+/// The markdown a link's text escaped with [`escape_link_text`].
+pub(crate) fn unescape_link_text(text: &str) -> String {
+    let mut skip = false;
+    outside_code(text, |out, c, next| {
+        if std::mem::take(&mut skip) {
+            out.push(c);
+        } else if c == '\\' && matches!(next, Some('[' | ']' | '\\')) {
+            skip = true;
+        } else {
+            out.push(c);
+        }
+    })
+}

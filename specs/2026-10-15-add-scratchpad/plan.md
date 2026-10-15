@@ -664,20 +664,25 @@ git commit -m "feat(add-scratchpad): inbox edits on the default branch"
       writes `specs/drafts/<slug>.md` from the proposal template and links it as a whole-line note;
     - a note moved into the priorities or a draft leaves its marks in the inbox, and its nested
       lines follow it: after the What paragraph of a new draft. A note that is a whole link is not
-      made a draft (ruling R13).
+      made a draft (ruling R13). A new draft's title, What, and link text are the note's markdown,
+      the link's brackets escaped outside code spans (ruling R14).
   - In `actions::draft`: `free_path(place, text) -> String`, the next free `specs/drafts/<slug>.md`,
     and `write_new(place, path, line, nested)`.
-  - In `files::inbox`: `note(text, id) -> Option<Note>` and
+  - In `files::inbox`: `note(text, id) -> Option<Note>`,
     `unmarked_lines(text, id) -> Option<(Vec<String>, usize)>`, a note's lines without its marks,
-    and how many are its text. In `files::proposal`: `append_to_what(text, item) -> Option<String>`.
+    and how many are its text, `draft_parts(text, id)`, its markdown on one line and its nested
+    lines, `link_title(text, id)`, and `link_to(markdown, target)`, on `lines::escape_link_text` and
+    `unescape_link_text`. In `files::proposal`: `append_to_what(text, item) -> Option<String>`.
   - In `actions::changes`:
     - `pub struct Changes { pub count: u32, pub lines: Vec<String> }`;
     - `pub fn list(place: &Place) -> Changes`;
     - `pub fn message(place: &Place) -> (String, Option<String>)`;
     - `pub fn commit(place) -> Result<Committed, ActionError>`, refused with "INBOX.md and
       PRIORITIES.md have no change to commit", and
-      `pub fn discard(place) -> Result<(), ActionError>`, which deletes the files of the list that
-      have no committed version, like a new draft;
+      `pub fn discard(place) -> Result<(), ActionError>`, which restores `INBOX.md` and
+      `PRIORITIES.md` from `HEAD` and never loses text the human typed in a draft: a draft a move
+      wrote and nobody committed is deleted only while it holds what the move wrote, and a draft a
+      note was added to loses that note's lines only (ruling R14);
     - `lines` are the body's lines: the priorities' as before, then `- Add to the inbox: <note>`,
       `- Remove from the inbox: <note>`, `- Move to <Category> in the inbox: <note>`,
       `- Move within <Category> in the inbox: <note>`, `- Edit in the inbox: <before> -> <after>`,
@@ -690,7 +695,9 @@ git commit -m "feat(add-scratchpad): inbox edits on the default branch"
     `add_note_as_draft(repo, category, about, text, previous) -> Result<String>`, and
     `commit_changes(repo)` and `discard_changes(repo)`, which return `()`, as `note_to_priorities`
     and `note_to_draft` do.
-  - `commit_priorities` and `discard_priorities` call the same two functions.
+  - `commit_priorities` and `discard_priorities` call `changes::commit` and `changes::discard`, and
+    read the priorities back, under the write lock. `actions::priorities::message` is gone:
+    `changes::message` names priorities-only changes as it did (ruling R14).
 
 - [x] **Step 1: Write the failing tests**
 

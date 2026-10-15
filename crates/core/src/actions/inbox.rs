@@ -252,13 +252,16 @@ pub fn to_new_draft(
             note.text
         )));
     }
-    let (lines, text_lines) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
+    let (title, nested) = inbox::draft_parts(&inbox, id).ok_or_else(|| no_note(id))?;
     let path = draft::free_path(place, &note.text);
-    let entry = format!("- [{}]({})", note.text, path.trim_start_matches("specs/"));
+    let entry = format!(
+        "- {}",
+        inbox::link_to(&title, path.trim_start_matches("specs/"))
+    );
     let edited = priorities::insert_entry(&priorities, section, usize::MAX, &[entry])
         .ok_or_else(|| no_note(id))?;
     let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
-    draft::write_new(place, &path, &note.text, &lines[text_lines..])?;
+    draft::write_new(place, &path, &title, &nested)?;
     if let Err(error) = write_both(place, super::priorities::PATH, &edited, &without) {
         let _ = fs::remove_file(place.root.join(&path));
         return Err(error);
@@ -298,7 +301,7 @@ pub fn add_as_draft(
     };
     let title = text.split_whitespace().collect::<Vec<_>>().join(" ");
     let path = draft::free_path(place, &title);
-    let link = format!("[{title}]({})", path.trim_start_matches("specs/"));
+    let link = inbox::link_to(&title, path.trim_start_matches("specs/"));
     let line = inbox::note_line(marks.agent, marks.about.as_deref(), &link);
     let edited = inbox::add(&current, category, &line);
     draft::write_new(place, &path, &title, &[])?;

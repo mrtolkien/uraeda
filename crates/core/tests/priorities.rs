@@ -2,7 +2,7 @@ mod common;
 
 use common::repo::TestRepo;
 use uraeda_core::actions::priorities as actions;
-use uraeda_core::actions::{ActionError, draft, place};
+use uraeda_core::actions::{ActionError, changes, draft, place};
 use uraeda_core::api;
 use uraeda_core::files::document::hash;
 use uraeda_core::files::priorities::{self, EntryChange, Section};
@@ -217,9 +217,15 @@ fn a_removal_and_an_addition_elsewhere_are_two_changes() {
     assert_eq!(priorities::changes(TEXT, &added), 2);
 }
 
+/// The commit bar's message for `after`, written over `TEXT` committed.
+fn message(after: &str) -> (String, Option<String>) {
+    let repo = repo();
+    repo.write("specs/PRIORITIES.md", after);
+    changes::message(&main_place(&repo))
+}
+
 #[test]
 fn one_change_is_the_subject() {
-    let message = |after: &str| actions::message(TEXT, after);
     let added = priorities::add(TEXT, Section::Next, "An idea").unwrap();
     let long = priorities::add(
         TEXT,
@@ -260,7 +266,7 @@ fn more_changes_are_counted_and_listed_in_the_body() {
     let swapped = priorities::move_entry(&edited, "later-2", Section::Later, 0).unwrap();
 
     assert_eq!(
-        actions::message(TEXT, &swapped),
+        message(&swapped),
         (
             "chore: edit \"Git listener process, and triggering\", and 1 more".to_string(),
             Some(
