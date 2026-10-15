@@ -39,6 +39,17 @@ pub struct Note {
     pub end: usize,
 }
 
+impl Note {
+    /// The draft or backlog file its whole text links, from the top level: a note that is a draft
+    /// already. `None` for a link to any other file.
+    pub fn draft(&self) -> Option<String> {
+        self.link
+            .as_deref()
+            .and_then(|link| crate::workspace::resolve("specs", link))
+            .filter(|path| crate::target::is_draft(path))
+    }
+}
+
 /// A category's heading: its line, from 1, and its name. `None` before the first `##` heading.
 type Heading = Option<(usize, String)>;
 

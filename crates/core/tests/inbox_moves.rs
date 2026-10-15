@@ -958,3 +958,60 @@ fn discard_keeps_a_draft_made_a_folder_and_typed_in() {
     assert!(!repo.exists(LISTENER));
     assert_eq!(repo.read(PRIORITIES), linked);
 }
+
+/// A note whose whole text links a file that is no draft is made a draft as any note: one move,
+/// whose untouched draft Discard deletes. Only a note linking a draft is one already.
+#[test]
+fn a_note_linking_a_file_that_is_no_draft_is_made_a_draft() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    actions::add(
+        &place,
+        None,
+        &Marks::default(),
+        "[README](../README.md)",
+        None,
+    )
+    .unwrap();
+    repo.commit("chore: a note");
+    let inbox = actions::read(&place);
+    let priorities = uraeda_core::actions::priorities::read(&place);
+
+    let path = actions::to_new_draft(
+        &place,
+        &id(&inbox, "[README](../README.md)"),
+        Section::Later,
+        &inbox.hash,
+        &priorities.hash,
+    )
+    .unwrap();
+
+    assert_eq!(
+        changes::list(&place).lines,
+        ["- Move from the inbox to Later: README"]
+    );
+    changes::discard(&place).unwrap();
+    assert!(!repo.exists(&path));
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// A note whose whole text links a draft is refused: it is one already.
+#[test]
+fn a_note_linking_a_draft_is_not_made_a_draft() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    let text = "[Look and feel pass](drafts/look-and-feel.md)";
+    actions::add(&place, None, &Marks::default(), text, None).unwrap();
+    let inbox = actions::read(&place);
+    let priorities = uraeda_core::actions::priorities::read(&place);
+
+    let refused = actions::to_new_draft(
+        &place,
+        &id(&inbox, text),
+        Section::Later,
+        &inbox.hash,
+        &priorities.hash,
+    );
+
+    assert!(refused.is_err());
+}

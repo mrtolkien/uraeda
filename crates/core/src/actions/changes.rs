@@ -196,7 +196,7 @@ fn take_moved(
     }
     let note = inbox::parse(inbox)
         .into_iter()
-        .find(|note| note.text == text && note.link.is_none())?;
+        .find(|note| note.text == text && note.draft().is_none())?;
     let drafted = inbox::drafted_text(inbox, &note.id)?;
     Some((take_entry(entries, &drafted)?, drafted))
 }
