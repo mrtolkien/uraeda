@@ -1,14 +1,15 @@
 // Shared by the browser tests: rendering a page against the test server, and the layout checks of
-// the UI checks decision. Every browser test runs at a phone's and a desktop's size (see
-// `vite.browser.config.ts`): a test reads `window.innerWidth` for what differs between them.
+// the UI checks decision. The browser tests run at a phone's and a desktop's size (see
+// `vite.browser.config.ts`): a test declares the size its scenario is about with `atSize`, and one
+// at both sizes reads `window.innerWidth` for what differs between them.
 import "@astryxdesign/core/reset.css";
 import "@astryxdesign/core/astryx.css";
 import "../theme/built/uraeda.css";
 import axe from "axe-core";
 import { createRoot, type Root } from "react-dom/client";
 import { configure, screen } from "@testing-library/react";
-import { afterEach, beforeEach, expect } from "vite-plus/test";
-import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
+import { afterEach, beforeEach, expect, TestRunner } from "vite-plus/test";
+import { commands as browserCommands, server, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
 import { App } from "../App.tsx";
 import { fateClients } from "../clients.ts";
@@ -35,6 +36,22 @@ export function repository(): string {
 /** A path of the UI, `/priorities` for one, in the test's repository. */
 export function atRepo(path: string): string {
   return `/r/${encodeURIComponent(name)}${path}`;
+}
+
+/** The instance's size: the phone's under 768 px wide, as the UI's narrow layout. */
+const size = server.config.browser.viewport.width < 768 ? "phone" : "desktop";
+
+/**
+ * Declares the size a file's or a `describe` block's tests are about, called at its top: at the other
+ * size, every test declared after it in that scope is skipped, as `test.skip` would, so no hook runs
+ * for it and it takes no repository.
+ */
+export function atSize(only: "phone" | "desktop" | "both") {
+  if (only !== "both" && only !== size) {
+    const scope = TestRunner.getCurrentSuite();
+    // The options the scope's tests and blocks are declared with: `skip` makes each a `test.skip`.
+    scope.options = { ...scope.options, skip: true };
+  }
 }
 
 beforeEach(async () => {

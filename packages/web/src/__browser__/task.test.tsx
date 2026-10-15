@@ -3,12 +3,11 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
-import { atRepo, show } from "./helpers.tsx";
+import { atRepo, atSize, show } from "./helpers.tsx";
+
+atSize("desktop");
 
 test("on a wide screen, the task view opens beside home (US3 5)", async () => {
-  if (window.innerWidth < 768) {
-    return;
-  }
   await show("/", "Claude Code runner");
   // A real click: WebKit skips, on Back, an entry that added another without a user's gesture.
   await userEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
@@ -24,9 +23,6 @@ test("on a wide screen, the task view opens beside home (US3 5)", async () => {
 });
 
 test("on a wide screen, a second line tapped in home's list keeps home beside it", async () => {
-  if (window.innerWidth < 768) {
-    return;
-  }
   await show("/", "Claude Code runner");
   await userEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
   expect(await screen.findByRole("radio", { checked: true, name: "Next" })).toBeTruthy();

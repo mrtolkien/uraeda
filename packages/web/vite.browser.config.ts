@@ -1,11 +1,17 @@
 // The layout's checks, in WebKit at an iPhone 17's size and at a desktop's, against the server
 // mounted in the test server (see `vite.config.ts`), on the fake agent: the tests `vp run ready`
 // runs never start Claude Code. The root's config lists this project next to the others.
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Frame, Page } from "playwright";
 import { addRepository, removeRepository } from "uraeda-binding";
-import { addPlan, commitOnBranch, ELEVEN, fixture, fixtureRepo } from "uraeda-binding/test-utils";
+import {
+  addPlan,
+  commitOnBranch,
+  ELEVEN,
+  fixture,
+  temporaryFolder,
+} from "uraeda-binding/test-utils";
 import { reloadRepositories } from "uraeda-server/dev";
 import { FakeAdapter } from "uraeda-server/testing";
 import { playwright } from "vite-plus/test/browser-playwright";
@@ -17,8 +23,9 @@ const plugins = (base.plugins ?? []).filter(
 );
 
 /**
- * Each test has a repository of its own, a fresh copy of the fixture listed under its own name, its
- * pages under `/r/<name>/` (see `src/__browser__/helpers.tsx`). The tests still take their turn,
+ * Each test has a repository of its own, a fresh copy of the fixture listed under its own name: the
+ * template the global setup built once with git, copied (see `src/__browser__/setup.ts`), its pages
+ * under `/r/<name>/` (see `src/__browser__/helpers.tsx`). The tests still take their turn,
  * both sizes included, for the one fake agent, whose messages each test resets. Each turn has its
  * own token, so a test only ever ends its own turn.
  */
@@ -70,7 +77,8 @@ const commands = {
     await previous;
     const token = (shared.uraedaRepoTokens = (shared.uraedaRepoTokens ?? 0) + 1);
     shared.uraedaRepoHolder = { release, token };
-    const path = fixtureRepo();
+    const path = temporaryFolder("uraeda-repo");
+    cpSync(process.env.URAEDA_TEMPLATE_REPO!, path, { recursive: true });
     const { repository } = await addRepository(process.env.URAEDA_DATA_DIR!, path);
     // Served at once, without waiting for the server's watch of the list.
     await reloadRepositories();

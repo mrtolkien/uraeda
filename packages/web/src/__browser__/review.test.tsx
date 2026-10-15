@@ -2,10 +2,10 @@
 // selected block in view above it, and quotes the lines it comments on. A spec's folds (US1 of code
 // quality in the skill): they survive Back, and a link into Details opens it, once.
 import { act, screen, within } from "@testing-library/react";
-import { expect, test } from "vite-plus/test";
+import { describe, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 import { navigate } from "../routes.tsx";
-import { atRepo, drawn, show } from "./helpers.tsx";
+import { atRepo, atSize, drawn, show } from "./helpers.tsx";
 
 /**
  * The toggle of the first block a review can select whose text holds a phrase: its name is the
@@ -47,54 +47,52 @@ function barBottom() {
   return screen.getByRole("banner").getBoundingClientRect().bottom;
 }
 
-test("the selected block stays visible above the sheet, quoted (US2 1, 2)", async () => {
-  if (window.innerWidth >= 768) {
-    return;
-  }
-  await show(SPEC, "Complete a repeating task");
-  await userEvent.click(fold("Scenarios (4)"));
-  const block = blockOf("Given a weekly task");
-  block.scrollIntoView({ block: "end" });
-  await tap(block);
+describe("on the phone", () => {
+  atSize("phone");
 
-  const sheet = await screen.findByRole("dialog", { name: "Comment" });
-  // The sheet has risen: before, it is below the block, which shows above it whatever the page.
-  await drawn();
-  // Between the bar and the sheet, once the page has scrolled.
-  await expect
-    .poll(() => {
-      const box = block.getBoundingClientRect();
-      return box.top >= barBottom() && box.bottom <= sheetTop();
-    })
-    .toBe(true);
-  expect(block.getAttribute("aria-pressed")).toBe("true");
-  expect(within(sheet).getByText(/^Lines \d+–\d+, under "US2/)).toBeTruthy();
-  expect(within(sheet).getByText(/Given a weekly task/)).toBeTruthy();
-});
+  test("the selected block stays visible above the sheet, quoted (US2 1, 2)", async () => {
+    await show(SPEC, "Complete a repeating task");
+    await userEvent.click(fold("Scenarios (4)"));
+    const block = blockOf("Given a weekly task");
+    block.scrollIntoView({ block: "end" });
+    await tap(block);
 
-test("a block taller than the space above the sheet starts under the bar", async () => {
-  if (window.innerWidth >= 768) {
-    return;
-  }
-  await show("/f/2026-10-13-plan-review/plan.md", "Task 5");
-  // The tallest block of the plan a review can select.
-  const tallest = screen
-    .getAllByRole("button")
-    .filter((b) => b.hasAttribute("aria-pressed"))
-    .sort((a, b) => b.getBoundingClientRect().height - a.getBoundingClientRect().height)[0]!;
-  tallest.scrollIntoView({ block: "end" });
-  await tap(tallest);
+    const sheet = await screen.findByRole("dialog", { name: "Comment" });
+    // The sheet has risen: before, it is below the block, which shows above it whatever the page.
+    await drawn();
+    // Between the bar and the sheet, once the page has scrolled.
+    await expect
+      .poll(() => {
+        const box = block.getBoundingClientRect();
+        return box.top >= barBottom() && box.bottom <= sheetTop();
+      })
+      .toBe(true);
+    expect(block.getAttribute("aria-pressed")).toBe("true");
+    expect(within(sheet).getByText(/^Lines \d+–\d+, under "US2/)).toBeTruthy();
+    expect(within(sheet).getByText(/Given a weekly task/)).toBeTruthy();
+  });
 
-  await screen.findByRole("dialog", { name: "Comment" });
-  await drawn();
-  // Taller than the space between the bar and the sheet, once the sheet has risen, and its top
-  // under the bar once the page has scrolled.
-  await expect
-    .poll(() => {
-      const box = tallest.getBoundingClientRect();
-      return box.height > sheetTop() - barBottom() && Math.abs(box.top - barBottom()) < 3;
-    })
-    .toBe(true);
+  test("a block taller than the space above the sheet starts under the bar", async () => {
+    await show("/f/2026-10-13-plan-review/plan.md", "Task 5");
+    // The tallest block of the plan a review can select.
+    const tallest = screen
+      .getAllByRole("button")
+      .filter((b) => b.hasAttribute("aria-pressed"))
+      .sort((a, b) => b.getBoundingClientRect().height - a.getBoundingClientRect().height)[0]!;
+    tallest.scrollIntoView({ block: "end" });
+    await tap(tallest);
+
+    await screen.findByRole("dialog", { name: "Comment" });
+    await drawn();
+    // Taller than the space between the bar and the sheet, once the sheet has risen, and its top
+    // under the bar once the page has scrolled.
+    await expect
+      .poll(() => {
+        const box = tallest.getBoundingClientRect();
+        return box.height > sheetTop() - barBottom() && Math.abs(box.top - barBottom()) < 3;
+      })
+      .toBe(true);
+  });
 });
 
 test("open folds survive Back (US1 4)", async () => {
