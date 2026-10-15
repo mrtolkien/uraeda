@@ -227,18 +227,23 @@ fn an_uncommitted_draft_is_committed_as_the_proposal() {
 #[test]
 fn a_changes_proposal_is_not_a_draft() {
     let repo = repo_with_a_draft();
+    let started = ura(&repo, &["start", DRAFT, "--change"]);
+    assert_eq!(started.code, 0, "{}", started.stderr);
+    let proposal = "specs/changes/2026-10-11-git-listener/proposal.md";
+    assert!(repo.path().join(in_worktree(proposal)).is_file());
 
-    let output = ura(
-        &repo,
-        &[
-            "start",
-            "specs/changes/2026-10-14-tasks-reappear/proposal.md",
-        ],
-    );
+    let output = ura_in(&repo.path().join(WORKTREE), &["start", proposal], &[]);
 
     assert_eq!(output.code, 1, "{}", output.stderr);
     assert!(output.stderr.contains("not a draft"), "{}", output.stderr);
-    assert_eq!(repo.subjects("main")[0], "draft");
+    assert_eq!(
+        repo.subjects("main")[0],
+        "chore(git-listener): start Git listener process"
+    );
+    assert_eq!(
+        repo.subjects("change/2026-10-11-git-listener")[0],
+        "chore(git-listener): proposal"
+    );
 }
 
 #[test]
