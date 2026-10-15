@@ -349,7 +349,8 @@ fn an_old_fix_branch_is_no_item() {
     assert!(workspace.feature(CHANGE).is_none());
 }
 
-/// Review focus 1: a dated `specs/changes/<folder>` without its `change/` branch is no item.
+/// Review focus 1: a dated `specs/changes/<folder>` without its `change/` branch is no item. It is
+/// committed on another branch, so it is neither on this checkout's disk nor merged.
 #[test]
 fn a_changes_folder_without_its_branch_is_no_item() {
     let repo = repo();
@@ -361,6 +362,7 @@ fn a_changes_folder_without_its_branch_is_no_item() {
     let workspace = workspace(&repo);
 
     assert!(workspace.feature(CHANGE).is_none());
+    assert!(workspace.features.iter().all(|f| f.kind == Kind::Feature));
 }
 
 #[test]
