@@ -344,9 +344,9 @@ These are the tools behind the proposal's third flow.
 
 - **A report needs three things**: steps to reproduce, what you expected, and what you saw
   ([Spolsky](https://www.joelonsoftware.com/2000/11/08/painless-bug-tracking/),
-  [Mozilla](https://bugzilla.mozilla.org/page.cgi?id=bug-writing.html)). Uraeda's
-  [report template](/skills/uraeda/assets/templates/specs/bugs/YYYY-MM-DD-bug-slug/report.md) has
-  them.
+  [Mozilla](https://bugzilla.mozilla.org/page.cgi?id=bug-writing.html)). Uraeda's report template,
+  `skills/uraeda/assets/templates/specs/bugs/YYYY-MM-DD-bug-slug/report.md` until this feature
+  removed it, has them.
 - **A regression test fails before the fix** (Django's checklist, above). It is named after what it
   guards, not after the issue's number
   ([rustc-dev-guide](https://rustc-dev-guide.rust-lang.org/tests/best-practices.html)).
@@ -372,13 +372,11 @@ These are the tools behind the proposal's third flow.
 
   Its questions sit at the end of the assessment, in the clarifications format.
 
-- **The bug templates**:
-  - [`report.md`](/skills/uraeda/assets/templates/specs/bugs/YYYY-MM-DD-bug-slug/report.md): what
-    happens, what should happen, how to reproduce, and the environment;
-  - [`assessment.md`](/skills/uraeda/assets/templates/specs/bugs/YYYY-MM-DD-bug-slug/assessment.md):
-    reproduction, root cause, the fix with checked steps, and optional questions;
-  - [the example](/skills/uraeda/assets/example/specs/bugs/2026-10-14-tasks-reappear/assessment.md):
-    a 108-line assessment.
+- **The bug templates**, in `skills/uraeda/assets/templates/specs/bugs/YYYY-MM-DD-bug-slug/` until
+  this feature removed them:
+  - `report.md`: what happens, what should happen, how to reproduce, and the environment;
+  - `assessment.md`: reproduction, root cause, the fix with checked steps, and optional questions;
+  - the example's `specs/bugs/2026-10-14-tasks-reappear/assessment.md`: a 108-line assessment.
 - [`steps.rs`](/crates/core/src/steps.rs):
   - `feature_step` (85 lines) and `bug_step` are separate tables;
   - `bug_step` gates on the report, then on the assessment's status, then counts its checkboxes;

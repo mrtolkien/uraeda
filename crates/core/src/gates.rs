@@ -10,17 +10,17 @@ pub const AWAITING_HUMAN: &str = "awaiting-human";
 /// What the human's verdict on a file is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Gate {
-    /// A spec, a plan, or an assessment: approved, or changes requested.
+    /// A spec or a plan: approved, or changes requested.
     Review,
     /// A round of questions, by its number: its answers submitted.
     Round(u32),
 }
 
-/// The verdict a file of a feature or a bug takes, by its name: `None` for a file that takes
+/// The verdict a file of a feature or a change takes, by its name: `None` for a file that takes
 /// none.
 pub fn gate_of(name: &str) -> Option<Gate> {
     match FileKind::of(name)? {
-        (FileKind::Spec | FileKind::Plan | FileKind::Assessment, _) => Some(Gate::Review),
+        (FileKind::Spec | FileKind::Plan, _) => Some(Gate::Review),
         (FileKind::Clarifications, Some(round)) => Some(Gate::Round(round)),
         _ => None,
     }

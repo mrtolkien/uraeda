@@ -11,8 +11,8 @@ use uraeda_core::workspace::{Feature, Workspace};
 
 const FOLDER: &str = "2026-10-11-web-ui";
 const WORKTREE: &str = ".worktrees/2026-10-11-web-ui";
-const BUG: &str = "2026-10-14-tasks-reappear";
-const BUG_BRANCH: &str = "fix/2026-10-14-tasks-reappear";
+const CHANGE: &str = "2026-10-14-tasks-reappear";
+const CHANGE_BRANCH: &str = "change/2026-10-14-tasks-reappear";
 
 /// A branch with its folder, finished with its record, then rebased onto `main` and merged
 /// fast-forward, like GitHub's rebase merge: `main`'s commits have new hashes. The branch stays,
@@ -225,23 +225,23 @@ fn refuses_a_feature_not_merged() {
 
 /// US3.8, review focus 3
 #[test]
-fn cleans_a_merged_bug() {
+fn cleans_a_merged_change() {
     let repo = merged_branch(
-        BUG_BRANCH,
-        "specs/bugs/2026-10-14-tasks-reappear",
-        BUG,
-        "bug",
-        "report.md",
+        CHANGE_BRANCH,
+        "specs/changes/2026-10-14-tasks-reappear",
+        CHANGE,
+        "change",
+        "proposal.md",
     );
 
-    let cleaned = run(&repo, BUG, false).unwrap();
+    let cleaned = run(&repo, CHANGE, false).unwrap();
 
-    assert_eq!(cleaned.name, BUG_BRANCH);
+    assert_eq!(cleaned.name, CHANGE_BRANCH);
     assert_eq!(
         cleaned.did,
         [
-            Did::RemovedWorktree(".worktrees/fix/2026-10-14-tasks-reappear".into()),
-            Did::DeletedBranch(BUG_BRANCH.into())
+            Did::RemovedWorktree(".worktrees/change/2026-10-14-tasks-reappear".into()),
+            Did::DeletedBranch(CHANGE_BRANCH.into())
         ]
     );
 }

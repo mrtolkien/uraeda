@@ -58,7 +58,7 @@ enum Command {
         #[arg(long)]
         switch: bool,
     },
-    /// Show where every feature and bug stands, across branches
+    /// Show where every feature and change stands, across branches
     Status {
         /// Print JSON
         #[arg(long)]
@@ -76,9 +76,9 @@ enum Command {
         #[arg(long)]
         no_commit: bool,
     },
-    /// Review a spec, a plan, or an assessment: comment, then approve or request changes
+    /// Review a spec or a plan: comment, then approve or request changes
     Review {
-        /// The feature or bug, or the file's path
+        /// The feature or change, or the file's path
         target: Option<String>,
         /// Comment on lines of the committed file, or on all of it: 50, 50-52, or general
         #[arg(long, num_args = 2, value_names = ["LINES", "TEXT"])]
@@ -113,9 +113,9 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
-    /// Tell an agent the next step: of a feature or bug, or of the first one in Now with work
+    /// Tell an agent the next step: of a feature or change, or of the first one in Now with work
     Next {
-        /// A feature or bug: a path under specs/, a folder name, or a slug
+        /// A feature or change: a path under specs/, a folder name, or a slug
         target: Option<String>,
         /// Print JSON
         #[arg(long)]
@@ -123,7 +123,7 @@ enum Command {
     },
     /// Remove the worktree and the branch merged features left behind
     Clean {
-        /// A merged feature or bug: a path under specs/, a folder name, or a slug
+        /// A merged feature or change: a path under specs/, a folder name, or a slug
         target: Option<String>,
         /// Clean every merged feature with a worktree or a branch left
         #[arg(long)]

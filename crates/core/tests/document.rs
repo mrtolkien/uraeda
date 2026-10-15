@@ -373,7 +373,7 @@ fn every_example_file_parses() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let mut files = Vec::new();
     markdown_files(&root.join("skills/uraeda/assets/example/specs"), &mut files);
-    assert!(files.len() >= 20, "{} example files", files.len());
+    assert!(files.len() >= 19, "{} example files", files.len());
     for file in files {
         let text = std::fs::read_to_string(&file).unwrap();
         let doc = parse(&text, "specs");

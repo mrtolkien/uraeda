@@ -9,7 +9,7 @@ use common::texts::{proposal, record};
 use uraeda_core::changes::{BranchChanges, ChangedFile, branch_changes};
 
 const FOLDER: &str = "2026-10-14-session-view";
-const BUG: &str = "2026-10-13-x";
+const CHANGE: &str = "2026-10-13-x";
 
 /// A repository on `main`, with the feature's branch holding its committed proposal.
 fn repo() -> TestRepo {
@@ -146,13 +146,13 @@ fn only_on_origin(repo: &TestRepo) -> &'static str {
     FOLDER
 }
 
-fn bug(repo: &TestRepo) -> &'static str {
-    repo.switch_new(&format!("fix/{BUG}"));
-    repo.write(&format!("specs/bugs/{BUG}/report.md"), "# Crash\n");
+fn change(repo: &TestRepo) -> &'static str {
+    repo.switch_new(&format!("change/{CHANGE}"));
+    repo.write(&format!("specs/changes/{CHANGE}/proposal.md"), "# Crash\n");
     repo.write("src/fix.rs", "fn fix() {}\n");
     repo.commit("fix");
     repo.switch("main");
-    BUG
+    CHANGE
 }
 
 fn merged(repo: &TestRepo) -> &'static str {
@@ -334,8 +334,8 @@ fn cases() -> Vec<(&'static str, Setup, Expected)> {
             changes(a(), 1, 1, 0),
         ),
         (
-            "a bug's branch, with a slash",
-            bug,
+            "a change's branch, with a slash",
+            change,
             changes(vec![file("src/fix.rs", Some(1), Some(0))], 1, 1, 0),
         ),
         ("the feature merged into main", merged, Expected::Nothing),

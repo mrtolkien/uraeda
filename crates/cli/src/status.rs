@@ -1,4 +1,4 @@
-//! `ura status`: where every feature and bug stands, by `PRIORITIES.md` section.
+//! `ura status`: where every feature and change stands, by `PRIORITIES.md` section.
 
 use std::process::ExitCode;
 
@@ -24,11 +24,11 @@ struct Row {
     step: String,
 }
 
-/// A feature's name in the table: its folder, or its branch for a bug.
+/// A feature's name in the table: its folder, or its branch for a change.
 pub fn name(feature: &Feature) -> String {
     match feature.kind {
         Kind::Feature => feature.folder.clone(),
-        Kind::Bug => format!("fix/{}", feature.folder),
+        Kind::Change => format!("change/{}", feature.folder),
     }
 }
 
@@ -56,7 +56,7 @@ pub fn describe(feature: &Feature) -> String {
                 .find(|f| &f.name == file)
                 .and_then(|f| f.waiting_line.clone());
             let what = waiting.unwrap_or_else(|| match file.as_str() {
-                "proposal.md" | "report.md" => "write it, then commit it".to_string(),
+                "proposal.md" => "write it, then commit it".to_string(),
                 _ => "waiting for you".to_string(),
             });
             format!("{file}: {what}")

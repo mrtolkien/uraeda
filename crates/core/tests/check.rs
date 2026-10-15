@@ -243,7 +243,7 @@ fn each_rule() {
         (
             "record kind",
             |e| e.edit(RECORD, "kind: feature", "kind: chore"),
-            format!("{RECORD}:2: kind \"chore\" is not one of feature, bug"),
+            format!("{RECORD}:2: kind \"chore\" is not one of feature, change"),
         ),
         (
             "record finished date",
@@ -422,11 +422,11 @@ fn a_record_keeps_the_anchors_of_its_questions() {
 }
 
 #[test]
-fn a_bug_record_needs_no_questions() {
+fn a_change_record_needs_no_questions() {
     let example = Example::new();
     example.write(
         "specs/done/2026-10-14-tasks-reappear.md",
-        &record("bug", "Completed tasks reappear"),
+        &record("change", "Completed tasks reappear"),
     );
 
     assert_eq!(summary(&example.problems()), Vec::<String>::new());

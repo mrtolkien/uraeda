@@ -30,7 +30,7 @@ export declare function addRepository(dataDir: string, folder: string): Promise<
 /** Adds a comment on the settled point starting with `subject`, at the end of the notes. */
 export declare function addSettledComment(repo: string, folder: string, subject: string, text: string): Promise<FileView>
 
-/** Approves a spec, a plan, or an assessment, and commits it. */
+/** Approves a spec or a plan, and commits it. */
 export declare function approve(repo: string, folder: string, file: string, summary?: string | undefined | null, riskTier?: string | undefined | null, planReview?: boolean | undefined | null): Promise<FileView>
 
 /**
@@ -144,7 +144,7 @@ export declare function readRepositories(dataDir: string): Promise<Array<Reposit
 /** A draft or a proposal, for its editor, by its path from the top level. */
 export declare function readText(repo: string, path: string): Promise<DraftView>
 
-/** Every feature, bug, and priority of the repository at `repo`. */
+/** Every feature, change, and priority of the repository at `repo`. */
 export declare function readWorkspace(repo: string): Promise<WorkspaceView>
 
 /** Removes a pending comment. */
@@ -159,7 +159,7 @@ export declare function removeRepository(dataDir: string, name: string): Promise
 /** Removes comment `number` on the settled point `subject`, over its text last read. */
 export declare function removeSettledComment(repo: string, folder: string, number: number, subject: string, previous: string): Promise<FileView>
 
-/** Requests changes on a spec, a plan, or an assessment, and commits it. */
+/** Requests changes on a spec or a plan, and commits it. */
 export declare function requestChanges(repo: string, folder: string, file: string, summary?: string | undefined | null): Promise<FileView>
 
 /** Commits again what a hook refused to commit: a submitted round, or a verdict. */
@@ -350,13 +350,13 @@ export interface DraftView {
   entry?: PriorityView
   /** How many priority changes are not committed, which its commit takes along. */
   priorityChanges: number
-  /** `draft` for a file of `specs/drafts/` or `specs/backlog/`, `proposal`, or `report`. */
+  /** `draft` for a file of `specs/drafts/` or `specs/backlog/`, or `proposal`. */
   kind: string
-  /** The feature's or the bug's folder, for a proposal or a report. */
+  /** The feature's or the change's folder, for a proposal. */
   folder?: string
   /** The slug Start gives a draft's feature unless another is typed. */
   slug?: string
-  /** The effort its `discovery` field asks for, `high` by default; none for a report. */
+  /** The effort its `discovery` field asks for, `high` by default. */
   discovery?: string
   /** The discovery efforts it may ask for, from the least research to the most. */
   discoveryLevels: Array<string>
@@ -389,11 +389,11 @@ export interface EntryItem {
 }
 
 export interface FeatureView {
-  /** `feature` or `bug`. */
+  /** `feature` or `change`. */
   kind: string
   folder: string
   slug: string
-  /** The title of its proposal or report. */
+  /** The title of its proposal, or of its record. */
   title: string
   branch?: string
   /** `working-tree`, `local`, `remote`, or `default-branch`. */

@@ -256,16 +256,16 @@ fn branch_with_a_slash() {
     let repo = repo_with_priorities();
     feature(
         &repo,
-        "fix/2026-10-14-reappear",
-        &[("report.md", "# Report\n\nIt breaks.\n".to_string())],
+        "change/2026-10-14-reappear",
+        &[("proposal.md", "# Reappear\n\nIt breaks.\n".to_string())],
     );
 
     let output = ura(&repo, &["status"]);
 
     let not_in_priorities = output.stdout.find("Not in priorities").unwrap();
-    assert!(not_in_priorities < output.stdout.find("fix/2026-10-14-reappear").unwrap());
+    assert!(not_in_priorities < output.stdout.find("change/2026-10-14-reappear").unwrap());
     assert_eq!(
-        output.row("fix/2026-10-14-reappear")[1..],
+        output.row("change/2026-10-14-reappear")[1..],
         ["agent", "assess"]
     );
 }

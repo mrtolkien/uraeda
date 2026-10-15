@@ -1,4 +1,4 @@
-//! Reviewing a spec, a plan, or an assessment: comments in its review file, then a verdict.
+//! Reviewing a spec or a plan: comments in its review file, then a verdict.
 
 use std::fs;
 
@@ -31,7 +31,7 @@ pub fn reviewed_file(feature: &Feature, named: Option<&str>) -> Result<String, A
     };
     if gate_of(&name) != Some(Gate::Review) {
         return Err(ActionError::Refused(format!(
-            "{name} is not a spec, a plan, or an assessment"
+            "{name} is not a spec or a plan"
         )));
     }
     Ok(name)
@@ -42,7 +42,7 @@ fn kind(file: &str) -> &str {
 }
 
 /// The subject of the commit a verdict on a file makes: `spec(recurring-tasks): approve`, or
-/// `plan(recurring-tasks): request changes`. `slug` is the feature's or the bug's.
+/// `plan(recurring-tasks): request changes`. `slug` is the feature's or the change's.
 pub fn subject(slug: &str, file: &str, verdict: Verdict) -> String {
     let action = match verdict {
         Verdict::ChangesRequested => "request changes",

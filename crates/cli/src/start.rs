@@ -8,25 +8,6 @@ use uraeda_core::today;
 
 use crate::output;
 
-/// Whether a target is a bug's report or folder, which has no start yet.
-fn is_bug(cwd: &std::path::Path, root: &std::path::Path, target: &str) -> bool {
-    let joined = cwd.join(target);
-    let mut parts = std::path::PathBuf::new();
-    for component in joined.components() {
-        match component {
-            std::path::Component::ParentDir => {
-                parts.pop();
-            }
-            std::path::Component::CurDir => {}
-            other => parts.push(other),
-        }
-    }
-    let root = root.canonicalize().unwrap_or(root.to_path_buf());
-    parts
-        .strip_prefix(&root)
-        .is_ok_and(|relative| relative.starts_with("specs/bugs"))
-}
-
 pub fn run(
     target_name: Option<String>,
     slug: Option<String>,
@@ -34,11 +15,6 @@ pub fn run(
 ) -> Result<ExitCode, String> {
     let (git, workspace) = output::workspace()?;
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
-    if let Some(name) = &target_name
-        && is_bug(&cwd, git.root(), name)
-    {
-        unimplemented!("starting a bug, until the bug flow has its spec");
-    }
     let draft = match target::resolve(&workspace, &cwd, target_name.as_deref(), Purpose::Start) {
         Ok(Target::Draft(draft)) => draft,
         Ok(_) | Err(TargetError::NoPath(_)) => {

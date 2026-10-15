@@ -119,7 +119,7 @@ pub fn specs(repo: &TestRepo, priorities: &str) {
 }
 
 /// Commits a feature's files on its own branch, created from `main`, then goes back to `main`.
-/// A bug's branch is `fix/<folder>`.
+/// A change's branch is `change/<folder>`.
 pub fn feature(repo: &TestRepo, folder: &str, files: &[(&str, String)]) {
     branch_with(repo, folder, &feature_path(folder), files);
 }
@@ -135,10 +135,11 @@ pub fn branch_with(repo: &TestRepo, branch: &str, dir: &str, files: &[(&str, Str
     repo.switch("main");
 }
 
-/// Where a feature's or a bug's folder lives: `fix/2026-10-14-x` is `specs/bugs/2026-10-14-x`.
+/// Where a feature's or a change's folder lives: `change/2026-10-14-x` is
+/// `specs/changes/2026-10-14-x`.
 pub fn feature_path(folder: &str) -> String {
-    match folder.strip_prefix("fix/") {
-        Some(bug) => format!("specs/bugs/{bug}"),
+    match folder.strip_prefix("change/") {
+        Some(change) => format!("specs/changes/{change}"),
         None => format!("specs/{folder}"),
     }
 }

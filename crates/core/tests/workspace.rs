@@ -123,8 +123,8 @@ fn priorities_are_read_from_the_default_branchs_worktree() {
     assert_eq!(workspace.priorities.last().unwrap().text, "An idea");
 }
 
-const BUG: &str = "2026-10-14-tasks-reappear";
-const BUG_BRANCH: &str = "fix/2026-10-14-tasks-reappear";
+const CHANGE: &str = "2026-10-14-tasks-reappear";
+const CHANGE_BRANCH: &str = "change/2026-10-14-tasks-reappear";
 
 /// On `branch`, replaces the folder `dir` with the record of `folder`, and commits.
 fn finish(repo: &TestRepo, branch: &str, dir: &str, folder: &str, kind: &str) {
@@ -284,27 +284,83 @@ fn new_commits_after_the_merge_leave_the_feature_done() {
 
 /// Review focus 3
 #[test]
-fn a_merged_bugs_worktree_is_one_folder_deeper() {
+fn a_merged_changes_worktree_is_one_folder_deeper() {
     let repo = repo();
-    repo.switch_new(BUG_BRANCH);
+    repo.switch_new(CHANGE_BRANCH);
     repo.write(
-        &format!("specs/bugs/{BUG}/report.md"),
+        &format!("specs/changes/{CHANGE}/proposal.md"),
         "# Completed tasks reappear\n",
     );
+    repo.commit("chore: proposal");
+    repo.switch("main");
+    finish(
+        &repo,
+        CHANGE_BRANCH,
+        &format!("specs/changes/{CHANGE}"),
+        CHANGE,
+        "change",
+    );
+    merge(&repo, CHANGE_BRANCH);
+    place::reach(&Git::discover(repo.path()).unwrap(), CHANGE_BRANCH).unwrap();
+
+    let change = feature(&repo, CHANGE);
+
+    assert_eq!(change.kind, Kind::Change);
+    assert_eq!(change.left_branch.as_deref(), Some(CHANGE_BRANCH));
+    assert_eq!(
+        change.left_worktree.as_deref(),
+        Some(".worktrees/change/2026-10-14-tasks-reappear")
+    );
+}
+
+/// A change on its branch is read from `specs/changes/<folder>`, its proposal first.
+#[test]
+fn a_change_is_read_from_its_folder_on_its_branch() {
+    let repo = repo();
+    repo.switch_new(CHANGE_BRANCH);
+    repo.write(
+        &format!("specs/changes/{CHANGE}/proposal.md"),
+        "# Completed tasks reappear\n",
+    );
+    repo.commit("chore: proposal");
+    repo.switch("main");
+
+    let change = feature(&repo, CHANGE);
+
+    assert_eq!(change.kind, Kind::Change);
+    assert_eq!(change.branch.as_deref(), Some(CHANGE_BRANCH));
+    assert_eq!(change.path, format!("specs/changes/{CHANGE}"));
+    assert!(change.proposal_committed);
+}
+
+/// An old `fix/` branch, left by the bug flow in its worktree, shows nowhere.
+#[test]
+fn an_old_fix_branch_is_no_item() {
+    let repo = repo();
+    let branch = format!("fix/{CHANGE}");
+    repo.switch_new(&branch);
+    repo.write(&format!("specs/bugs/{CHANGE}/report.md"), "# Crash\n");
     repo.commit("chore: report");
     repo.switch("main");
-    finish(&repo, BUG_BRANCH, &format!("specs/bugs/{BUG}"), BUG, "bug");
-    merge(&repo, BUG_BRANCH);
-    place::reach(&Git::discover(repo.path()).unwrap(), BUG_BRANCH).unwrap();
+    place::reach(&Git::discover(repo.path()).unwrap(), &branch).unwrap();
 
-    let bug = feature(&repo, BUG);
+    let workspace = workspace(&repo);
 
-    assert_eq!(bug.kind, Kind::Bug);
-    assert_eq!(bug.left_branch.as_deref(), Some(BUG_BRANCH));
-    assert_eq!(
-        bug.left_worktree.as_deref(),
-        Some(".worktrees/fix/2026-10-14-tasks-reappear")
-    );
+    assert!(workspace.feature(CHANGE).is_none());
+}
+
+/// Review focus 1: a dated `specs/changes/<folder>` without its `change/` branch is no item.
+#[test]
+fn a_changes_folder_without_its_branch_is_no_item() {
+    let repo = repo();
+    repo.switch_new("2026-10-14-other");
+    repo.write(&format!("specs/changes/{CHANGE}/proposal.md"), "# Crash\n");
+    repo.commit("chore: a stray folder");
+    repo.switch("main");
+
+    let workspace = workspace(&repo);
+
+    assert!(workspace.feature(CHANGE).is_none());
 }
 
 #[test]
@@ -359,27 +415,27 @@ fn a_broken_record_is_a_problem() {
 #[test]
 fn a_record_kind_must_match_its_branch() {
     let repo = repo();
-    finish(&repo, FOLDER, "specs/2026-10-11-web-ui", FOLDER, "bug");
+    finish(&repo, FOLDER, "specs/2026-10-11-web-ui", FOLDER, "change");
 
     let feature = feature(&repo, FOLDER);
 
     assert_eq!(feature.problems[0].rule, "frontmatter.kind");
     assert_eq!(
         feature.problems[0].message,
-        "kind is bug, but 2026-10-11-web-ui is a feature's branch"
+        "kind is change, but 2026-10-11-web-ui is a feature's branch"
     );
 }
 
-/// A fix made outside the workflow, its branch left after the merge, is no bug.
+/// A fix made outside the workflow, its branch left after the merge, is no change.
 #[test]
 fn a_branch_without_its_folder_or_record_is_not_a_feature() {
     let repo = repo();
-    repo.switch_new(BUG_BRANCH);
+    repo.switch_new(CHANGE_BRANCH);
     repo.write("src/lib.rs", "// fixed\n");
     repo.commit("fix: completed tasks reappear");
     repo.switch("main");
 
     let workspace = workspace(&repo);
 
-    assert!(workspace.feature(BUG).is_none());
+    assert!(workspace.feature(CHANGE).is_none());
 }

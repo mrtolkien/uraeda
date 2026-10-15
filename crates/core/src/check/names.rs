@@ -1,5 +1,5 @@
-//! `names.*`: feature and bug folders are `YYYY-MM-DD-<slug>` with a real date, and rounds have two
-//! digits.
+//! `names.*`: feature and change folders are `YYYY-MM-DD-<slug>` with a real date, and rounds have
+//! two digits.
 
 use std::fs;
 use std::path::Path;
@@ -12,20 +12,20 @@ fn name(path: &Path) -> String {
         .unwrap_or_default()
 }
 
-/// Whether a folder holds a feature's or a bug's files: a dated folder, or a postponed feature in
+/// Whether a folder holds a feature's or a change's files: a dated folder, or a postponed feature in
 /// `drafts/` or `backlog/`.
 pub(super) fn is_workflow_folder(dir: &Path) -> bool {
     let parent = dir.parent().map(name).unwrap_or_default();
     folder_slug(&name(dir)).is_some() || parent == "drafts" || parent == "backlog"
 }
 
-/// Checks the names of the folders directly inside `specs/` and `specs/bugs/`.
+/// Checks the names of the folders directly inside `specs/` and `specs/changes/`.
 pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
     let here = name(dir);
     let parent = dir.parent().map(name).unwrap_or_default();
     let fixed: &[&str] = if here == "specs" {
-        &["drafts", "backlog", "decisions", "bugs", "done"]
-    } else if here == "bugs" && parent == "specs" {
+        &["drafts", "backlog", "decisions", "changes", "done"]
+    } else if here == "changes" && parent == "specs" {
         &[]
     } else {
         return;

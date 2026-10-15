@@ -407,45 +407,16 @@ fn implemented_once_past_the_implementation() {
     }
 }
 
-fn assessment(status: &str, done: usize, total: usize) -> String {
-    let mut text = format!("---\nstatus: {status}\n---\n\n# Assessment: Bug\n\n## Fix\n\n");
-    for step in 0..total {
-        let mark = if step < done { "x" } else { " " };
-        text.push_str(&format!("- [{mark}] Step {}\n", step + 1));
-    }
-    text
-}
-
+/// Until the change's own table: a change gates on its proposal only, then waits on its agent.
 #[test]
 fn bug_table() {
-    let report = || ("report.md", "# Report\n\nIt breaks.\n".to_string());
+    let proposal = || ("proposal.md", "# Crash\n\nIt breaks.\n".to_string());
     let rows: Vec<(&str, Files, StepName)> = vec![
-        ("no report", vec![], StepName::HumanGate),
-        ("report only", vec![report()], StepName::Assess),
-        (
-            "assessment waiting",
-            vec![
-                report(),
-                ("assessment.md", assessment("awaiting-human", 0, 1)),
-            ],
-            StepName::HumanGate,
-        ),
-        (
-            "changes requested",
-            vec![
-                report(),
-                ("assessment.md", assessment("changes-requested", 0, 1)),
-            ],
-            StepName::AssessRevision,
-        ),
-        (
-            "approved, unchecked",
-            vec![report(), ("assessment.md", assessment("approved", 0, 2))],
-            StepName::Fix,
-        ),
+        ("no proposal", vec![], StepName::HumanGate),
+        ("proposal only", vec![proposal()], StepName::Assess),
     ];
     for (name, files, expected) in rows {
-        let feature = feature(Kind::Bug, &files);
+        let feature = feature(Kind::Change, &files);
 
         assert_eq!(feature.step.name, expected, "{name}");
     }
@@ -471,16 +442,9 @@ fn invalid_files_have_no_step() {
 fn finished_record(kind: Kind) -> Feature {
     let text = match kind {
         Kind::Feature => record("feature", "X"),
-        Kind::Bug => record("bug", "X"),
+        Kind::Change => record("change", "X"),
     };
     Feature::from_record(kind, "2026-10-10-x", text)
-}
-
-fn fixed() -> Files {
-    vec![
-        ("report.md", "# Report\n\nIt breaks.\n".to_string()),
-        ("assessment.md", assessment("approved", 2, 2)),
-    ]
 }
 
 /// US1.3 to US1.6, US4.1, US4.2, US6.1, review focus 5
@@ -537,15 +501,8 @@ fn finishing_rows() {
             WaitsOn::Agent,
         ),
         (
-            "bug record, draft",
-            finished_record(Kind::Bug),
-            PullRequest::Draft,
-            StepName::Finish,
-            WaitsOn::Agent,
-        ),
-        (
-            "bug fixed, draft",
-            feature(Kind::Bug, &fixed()),
+            "change record, draft",
+            finished_record(Kind::Change),
             PullRequest::Draft,
             StepName::Finish,
             WaitsOn::Agent,

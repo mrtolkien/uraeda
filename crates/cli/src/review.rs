@@ -1,4 +1,4 @@
-//! `ura review`: comments on a spec, a plan, or an assessment, then a verdict.
+//! `ura review`: comments on a spec or a plan, then a verdict.
 
 use std::process::ExitCode;
 

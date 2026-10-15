@@ -217,7 +217,7 @@ fn a_proposal_has_no_verdict() {
 
     assert_eq!(
         error.message,
-        "Only a spec, a plan, an assessment, or a round of questions gets a verdict."
+        "Only a spec, a plan, or a round of questions gets a verdict."
     );
     assert_eq!(error.data, Some(json!({ "code": "refused" })));
 }

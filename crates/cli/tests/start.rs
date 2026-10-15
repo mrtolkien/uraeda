@@ -223,23 +223,21 @@ fn an_uncommitted_draft_is_committed_as_the_proposal() {
     assert_eq!(repo.porcelain(), "");
 }
 
+/// A change's proposal is no draft: `ura start` refuses it as it refuses any other file.
 #[test]
-fn a_bug() {
+fn a_changes_proposal_is_not_a_draft() {
     let repo = repo_with_a_draft();
 
     let output = ura(
         &repo,
-        &["start", "specs/bugs/2026-10-14-tasks-reappear/report.md"],
+        &[
+            "start",
+            "specs/changes/2026-10-14-tasks-reappear/proposal.md",
+        ],
     );
 
-    assert_eq!(output.code, 101);
-    assert!(
-        output
-            .stderr
-            .contains("not implemented: starting a bug, until the bug flow has its spec"),
-        "{}",
-        output.stderr
-    );
+    assert_eq!(output.code, 1, "{}", output.stderr);
+    assert!(output.stderr.contains("not a draft"), "{}", output.stderr);
     assert_eq!(repo.subjects("main")[0], "draft");
 }
 

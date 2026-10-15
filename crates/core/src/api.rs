@@ -154,7 +154,7 @@ fn checked(git: &Git, feature: &Feature) -> Vec<Problem> {
     problems
 }
 
-/// Every feature, bug, and priority, with each feature's step and problems.
+/// Every feature, change, and priority, with each feature's step and problems.
 pub fn read_workspace(repo: &Path) -> Result<WorkspaceView> {
     let git = Git::discover(repo)?;
     let workspace = match Workspace::read(&git) {
@@ -188,7 +188,7 @@ pub fn read_feature(repo: &Path, folder: &str) -> Result<FeatureView> {
     Ok(FeatureView::new(feature, &checked(&git, feature)))
 }
 
-/// Every file waiting for the human, `status: awaiting-human`, of every feature and bug read from a
+/// Every file waiting for the human, `status: awaiting-human`, of every feature and change read from a
 /// checkout, with its path in that checkout. A branch checked out nowhere has no file to open.
 pub fn waiting(repo: &Path) -> Result<Vec<WaitingFile>> {
     let (git, workspace) = open(repo)?;
@@ -224,7 +224,7 @@ pub fn waiting(repo: &Path) -> Result<Vec<WaitingFile>> {
     Ok(waiting)
 }
 
-/// What each entry of a priorities text links to, by its first line: a feature or a bug with its
+/// What each entry of a priorities text links to, by its first line: a feature or a change with its
 /// step, or a draft. Entries that link neither are left out. `text` is read as given, so an
 /// editor's unsaved lines are linked too.
 pub fn priority_links(repo: &Path, text: &str) -> Result<Vec<PriorityLink>> {
@@ -258,7 +258,7 @@ fn plain(path: &str) -> bool {
         .all(|part| !part.is_empty() && !part.starts_with('.') && !part.contains(['\\', ':']))
 }
 
-/// The feature or bug whose folder holds `path`.
+/// The feature or change whose folder holds `path`.
 fn feature_of<'a>(workspace: &'a Workspace, path: &str) -> Option<&'a Feature> {
     workspace
         .features
@@ -266,8 +266,8 @@ fn feature_of<'a>(workspace: &'a Workspace, path: &str) -> Option<&'a Feature> {
         .find(|feature| feature.owns(path).is_some())
 }
 
-/// The feature or bug of a workflow file, `specs/<folder>/<name>` or `specs/bugs/<folder>/<name>`,
-/// and the file's name.
+/// The feature or change of a workflow file, `specs/<folder>/<name>` or
+/// `specs/changes/<folder>/<name>`, and the file's name.
 fn feature_file<'a, 'p>(workspace: &'a Workspace, path: &'p str) -> Result<(&'a Feature, &'p str)> {
     feature_of(workspace, path)
         .and_then(|feature| Some((feature, feature.owns(path)?)))
@@ -410,7 +410,7 @@ pub fn main_root(repo: &Path) -> Result<String> {
 }
 
 /// Commits again what a hook refused to commit, its files left written: a submitted round, or a
-/// verdict on a spec, a plan, or an assessment, with its review file; with the images the
+/// verdict on a spec or a plan, with its review file; with the images the
 /// feature's folder links.
 pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView> {
     let _lock = write_lock();
@@ -425,7 +425,7 @@ pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView>
         (Some((FileKind::Clarifications, Some(round))), Some("answered")) => {
             (answer::subject(&feature.slug, round), vec![path])
         }
-        (Some((FileKind::Spec | FileKind::Plan | FileKind::Assessment, _)), Some(verdict))
+        (Some((FileKind::Spec | FileKind::Plan, _)), Some(verdict))
             if verdict == "approved" || verdict == "changes-requested" =>
         {
             let verdict = if verdict == "approved" {
@@ -531,7 +531,7 @@ fn as_committed(git: &Git, feature: &Feature, place: &place::Place, file: &str) 
     Ok(())
 }
 
-/// Approves a spec, a plan, or an assessment, and commits it.
+/// Approves a spec or a plan, and commits it.
 pub fn approve(
     repo: &Path,
     folder: &str,
@@ -552,7 +552,7 @@ pub fn approve(
     read_file(repo, folder, file)
 }
 
-/// Requests changes on a spec, a plan, or an assessment, and commits it.
+/// Requests changes on a spec or a plan, and commits it.
 pub fn request_changes(
     repo: &Path,
     folder: &str,
@@ -635,12 +635,8 @@ fn text_view(
     committed: bool,
     folder: Option<String>,
 ) -> DraftView {
-    let name = path.rsplit('/').next().unwrap_or(path);
-    let report = FileKind::of(name).is_some_and(|(kind, _)| kind == FileKind::Report);
     let kind = if target::is_draft(path) {
         "draft"
-    } else if report {
-        "report"
     } else {
         "proposal"
     };
@@ -656,15 +652,11 @@ fn text_view(
         folder,
         slug: target::draft_to_start(path)
             .map(|draft| crate::slug::short(target::draft_name(&draft))),
-        discovery: (!report).then(|| proposal::discovery(&text).to_string()),
-        discovery_levels: if report {
-            Vec::new()
-        } else {
-            proposal::discovery_levels()
-                .iter()
-                .map(|level| level.to_string())
-                .collect()
-        },
+        discovery: Some(proposal::discovery(&text).to_string()),
+        discovery_levels: proposal::discovery_levels()
+            .iter()
+            .map(|level| level.to_string())
+            .collect(),
         written: proposal::is_written(&text),
         empty_sections: proposal::empty_sections(&text),
         text,
@@ -769,13 +761,6 @@ pub fn set_discovery(repo: &Path, path: &str, level: &str, previous: &str) -> Re
     {
         let _lock = write_lock();
         let place = text_place(repo, path)?;
-        if FileKind::of(path.rsplit('/').next().unwrap_or(path))
-            .is_some_and(|(kind, _)| kind == FileKind::Report)
-        {
-            return Err(refused(format!(
-                "{path} is a report: it has no discovery effort"
-            )));
-        }
         let text = std::fs::read_to_string(place.root.join(path))
             .map_err(|_| refused(format!("{path}: no such file")))?;
         let edited = proposal::set_discovery(&text, level).map_err(refused)?;
