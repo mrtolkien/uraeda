@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 2
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Add a bugfixing/low impact change flow
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review again, about 10 minutes: only starting a change changed.
+> Approved on 2026-10-15.
 >
 > - **C1: done.** A "New change" row in the sidebar opens a composer page, `/changes/new`, like "New
 >   chat". There is no draft and no line in the priorities first. What you type becomes the change's
