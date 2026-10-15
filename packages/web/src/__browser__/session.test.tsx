@@ -307,6 +307,22 @@ test("a chat whose last message has images opens at its end", async () => {
   expect(box.scrollHeight - box.scrollTop - box.clientHeight).toBeLessThanOrEqual(1);
 });
 
+test("a run that fails while the human is at its end keeps how it ended in view", async () => {
+  await openWorkingSession();
+  const box = scroller();
+  box.scrollTo(0, box.scrollHeight);
+  await drawn();
+  expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
+
+  // The fake agent exits without a result: the run fails, and its banner shows below the transcript.
+  await agent.agentFinish();
+
+  const banner = await screen.findByText("The agent's run failed.", undefined, LIVE);
+  await drawn();
+  await expect.poll(() => inView(banner), LIVE).toBe(true);
+  expect(screen.queryByRole("button", { name: JUMP })).toBeNull();
+});
+
 /** The line of the transcript a third down the window: where the human reads. */
 function readLine(log: HTMLElement) {
   const third = window.innerHeight / 3;
