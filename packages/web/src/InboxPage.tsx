@@ -27,6 +27,7 @@ export function Marks({ note }: { note: InboxNote }) {
   return (
     <>
       {note.agent && <Badge label="agent" variant="purple" />}
+      {note.agent && note.about && " "}
       {note.about && <Badge label={note.about} variant="neutral" />}{" "}
     </>
   );
@@ -41,13 +42,12 @@ function Note({ isSelected, note }: { isSelected: boolean; note: InboxNote }) {
       isSelected={isSelected}
       // Nodes, not strings, so long notes wrap instead of being cut.
       label={
-        <HStack align="center" gap={1} wrap="wrap">
+        // Inline, so a long note wraps under its marks rather than below them.
+        <span>
           <Marks note={note} />
-          <span>
-            {/* The row is one link: a link of its text, like a note's draft, would nest in it. */}
-            <Spans spans={note.spans.map(({ link: _, ...span }) => span)} />
-          </span>
-        </HStack>
+          {/* The row is one link: a link of its text, like a note's draft, would nest in it. */}
+          <Spans spans={note.spans.map(({ link: _, ...span }) => span)} />
+        </span>
       }
     />
   );
