@@ -159,10 +159,12 @@ export const uraedaTheme = defineTheme({
     // The repository menu's popover on wide screens, and the add form's field in the first run.
     "--size-form": "560px",
     "--size-menu": "360px",
-    // A story's frames: the phone's width, the desktop's, scaled to the space left, and the height
-    // of a story that never reports its own.
+    // A story's frames: the phone's width, the desktop's, scaled to the space left, the height of a
+    // story that never reports its own, and the most any frame grows to, a desktop window's 900 px:
+    // a story as tall as its window grows the frame with each size it reports, up to it (R55).
     "--size-story-desktop": "1440px",
     "--size-story-height": "560px",
+    "--size-story-max-height": "900px",
     "--size-story-phone": "402px",
     // The selected block of a review: an amber tint and bar, apart from the muted background.
     "--color-selection": "var(--color-background-yellow)",
