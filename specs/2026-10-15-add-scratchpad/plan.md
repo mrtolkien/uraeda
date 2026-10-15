@@ -41,8 +41,9 @@ interactions with existing behaviour. Each gets a test in the task that owns the
 3. **A move into the priorities when only `PRIORITIES.md` changed on disk.** It is refused with the
    `PRIORITIES.md` message, and `INBOX.md` is not written. Writing the inbox first and then failing
    on the priorities would lose the note. Task 4.
-4. **The merged change list after a note is edited and then moved.** It names one change, a move,
-   with the edited text, not an edit plus a move. Task 4.
+4. **A note edited, then moved.** An edited then moved note is two changes, a removal and an
+   addition, named with their own texts: no rule tells it from a deletion and an addition (ruling
+   R10). Tasks 2 and 4.
 5. **`ura note` from a feature's worktree when the default branch has no checkout.** It writes in
    `.worktrees/main`, created by `place::reach`, and commits there, as `ura draft` does today.
    Task 7.
@@ -368,7 +369,8 @@ git commit -m "refactor(add-scratchpad): the priorities' line splicing in files/
   priorities then share, with a test of a bullet inside a fence in both files (ruling R7).
   `append_to_section` takes the section's last item and heading line (ruling R8). The priorities'
   diff moves into `lines::diff`, generic over the section, with `lines::Signed` and `lines::Change`,
-  which both files map to their own change type (ruling R10).
+  which both files map to their own change type (ruling R10). Only fences at column 0 open fenced
+  code (ruling R7).
 - Produces, in `uraeda_core::files::inbox`:
   - `pub struct Note { pub id: String, pub key: String, pub category: Option<String>, pub text: String, pub agent: bool, pub about: Option<String>, pub link: Option<String>, pub line: usize, pub end: usize }`.
     The id is `note-<n>`, counted from 1 in file order. The key is the text's slug, made unique.
@@ -396,8 +398,8 @@ git commit -m "refactor(add-scratchpad): the priorities' line splicing in files/
     - `note_lines(text, id) -> Option<Vec<String>>`.
   - `pub enum NoteChange { Added { category, text }, Removed { category, text }, Moved { from, to, text }, Edited { category, before, after } }`
     and `pub fn diff(before: &str, after: &str) -> Vec<NoteChange>`, in `files/inbox/diff.rs`. The
-    `from` and `to` fields hold `Option<String>` categories. A removed note and an added one sharing
-    half their words are one `Moved` with the new text (ruling R10).
+    `from` and `to` fields hold `Option<String>` categories. A move keeps the note's markdown, marks
+    included; a note edited, then moved, is a removal and an addition (ruling R10).
 
 The fixture `fixtures/repo/main/specs/INBOX.md`, used by every later task, holds 11 notes:
 
@@ -449,14 +451,15 @@ fixture repository's files are updated for `INBOX.md`.
   and `move_to` change only the note's lines (SC-004).
 - `category_names` on two `## UI` gives `["UI", "UI"]`, and `add(Some("UI"))` adds to the first.
 - `diff` rows: an added note, a removed one, a category change as `Moved`, an edited text as
-  `Edited`, and an edit plus a category change as one `Moved` with the new text.
+  `Edited`, an edit plus a category change as a removal and an addition, and a note deleted while a
+  similar one is added as two changes.
 
 The break each test catches:
 
 - Parse: a heading-reset bug that files the notes before the first `##` under the last category, and
   marks parsed into the text.
 - Byte-for-byte: an edit that renormalizes newlines or blank lines.
-- Diff: the review focus's edit-then-move counted as two changes.
+- Diff: a deletion and a similar addition counted as a move.
 
 - [x] **Step 2: Run them to check they fail**
 
@@ -676,7 +679,8 @@ Change list:
 - **US2 8:** a note added to a draft gives
   `move "<note>" from the inbox to the draft Look and feel pass`, and the commit holds the draft.
 - A table-driven test of `message` maps one change of each kind to its subject.
-- **Review focus 4:** an edited note, then moved, is one move.
+- **Review focus 4:** an edited note, then moved, is two changes, a removal and an addition, named
+  with their own texts.
 - **Discard:** it restores all three files.
 - **Drafts in the editor:** `text::commit` of a draft made from a note holds `INBOX.md`.
 
