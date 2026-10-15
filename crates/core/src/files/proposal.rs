@@ -91,9 +91,14 @@ pub fn empty_sections(text: &str) -> Vec<String> {
         .collect()
 }
 
-/// Whether a line belongs to a list: an item at column 0, or a line indented under one.
-fn in_list(line: &str) -> bool {
-    super::lines::item_marker(line).is_some() || line.starts_with([' ', '\t'])
+/// Whether the line at `at` belongs to a list: an item at column 0, or a line indented under one,
+/// blank lines between them included. Indented code under a paragraph is not.
+fn in_list(lines: &[String], at: usize) -> bool {
+    lines[..=at]
+        .iter()
+        .rev()
+        .find(|line| !line.trim().is_empty() && !line.starts_with([' ', '\t']))
+        .is_some_and(|line| super::lines::item_marker(line).is_some())
 }
 
 /// The text with `item`, a list item's lines, at the end of its `## What` section: right after a
@@ -113,7 +118,7 @@ pub fn append_to_what(text: &str, item: &[String]) -> Option<String> {
             .map_or(lines.len(), |n| n - 1);
         let last = (what..end).rev().find(|&i| !lines[i].trim().is_empty());
         let mut block = Vec::new();
-        if !last.is_some_and(|i| in_list(&lines[i])) {
+        if !last.is_some_and(|i| in_list(&lines, i)) {
             block.push(String::new());
         }
         block.extend(item.iter().cloned());

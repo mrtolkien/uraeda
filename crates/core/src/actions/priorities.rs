@@ -173,20 +173,6 @@ pub(crate) fn line(change: &EntryChange) -> String {
     }
 }
 
-/// The commit message of the changes from `before` to `after`: the first change, and with more,
-/// their count, and every change in the body.
-pub fn message(before: &str, after: &str) -> (String, Option<String>) {
-    let changes = priorities::diff(before, after);
-    match changes.as_slice() {
-        [] => ("chore: update the priorities".to_string(), None),
-        [change] => (format!("chore: {}", describe(change)), None),
-        [first, rest @ ..] => (
-            format!("chore: {}, and {} more", describe(first), rest.len()),
-            Some(changes.iter().map(line).collect::<Vec<_>>().join("\n")),
-        ),
-    }
-}
-
 /// Commits the commit bar's changes: the priorities, the inbox, and the drafts notes went into.
 pub fn commit(place: &Place) -> Result<Committed, ActionError> {
     changes::commit(place)

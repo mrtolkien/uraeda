@@ -149,7 +149,7 @@ pub fn write_new(
 
 /// The proposal template with `line` as its title and as the paragraph of What, and no other
 /// placeholder: each section keeps its heading, empty. `nested` lines follow the paragraph.
-fn proposal(line: &str, nested: &[String]) -> String {
+pub(crate) fn proposal(line: &str, nested: &[String]) -> String {
     let mut paragraphs: Vec<String> = Vec::new();
     for paragraph in embedded::proposal_paragraphs() {
         if paragraph.starts_with("# ") {

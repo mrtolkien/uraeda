@@ -191,7 +191,8 @@ pub fn commit_changes(repo: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Restores the committed `INBOX.md`, `PRIORITIES.md`, and the drafts notes went into.
+/// Restores the committed `INBOX.md` and `PRIORITIES.md`, and takes the notes back out of drafts,
+/// keeping any text the human typed: see [`changes::discard`].
 pub fn discard_changes(repo: &Path) -> Result<()> {
     let _lock = write_lock();
     let place = reach_default(repo)?;

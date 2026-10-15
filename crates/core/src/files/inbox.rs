@@ -403,6 +403,31 @@ pub fn unmarked_lines(text: &str, id: &str) -> Option<(Vec<String>, usize)> {
     Some((unmarked, item.text_end + 1 - item.line))
 }
 
+/// What a draft made from a note holds: the markdown of its text without its marks, on one line,
+/// and its nested lines.
+pub fn draft_parts(text: &str, id: &str) -> Option<(String, Vec<String>)> {
+    let (lines, text_lines) = unmarked_lines(text, id)?;
+    let (_, first) = item_marker(&lines[0])?;
+    let title = std::iter::once(first)
+        .chain(lines[1..text_lines].iter().map(|l| l.trim()))
+        .collect::<Vec<_>>()
+        .join(" ");
+    Some((title.trim().to_string(), lines[text_lines..].to_vec()))
+}
+
+/// The markdown of the text of a note that is a whole link: what the link's text says, unescaped.
+pub fn link_title(text: &str, id: &str) -> Option<String> {
+    let (lines, _) = unmarked_lines(text, id)?;
+    let (_, first) = item_marker(&lines[0])?;
+    let (inner, _) = first.strip_prefix('[')?.rsplit_once("](")?;
+    Some(lines::unescape_link_text(inner))
+}
+
+/// A note's text as a link to `target`, its markdown kept.
+pub fn link_to(markdown: &str, target: &str) -> String {
+    format!("[{}]({target})", lines::escape_link_text(markdown))
+}
+
 /// Replaces a note's text with `new_text`, its marker, marks, and sub-items kept. `None` when the
 /// note is gone or the text is blank.
 pub fn edit(text: &str, id: &str, new_text: &str) -> Option<String> {
