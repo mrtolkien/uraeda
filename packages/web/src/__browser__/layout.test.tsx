@@ -269,6 +269,10 @@ const LONG_TURN = [
   { attempt: 1, delayMs: 30_000, error: "rate_limit", type: "retry" as const },
 ];
 
+/** The button of an action auto mode blocked, found again as the transcript draws it anew. */
+const allowAndRetry = () =>
+  screen.getByRole("button", { name: "Allow and retry" }) as HTMLButtonElement;
+
 // A feature's session with long paths and commands, working, then failed with an action blocked,
 // and the feature page's agent section: the same checks as the pages', in both themes.
 test.each(
@@ -290,7 +294,10 @@ test.each(
         type: "result",
       },
     ]);
+    // Disabled while the session still works, then enabled, fading from half its opacity: its
+    // fade is drawn before the checks measure its contrast.
     await screen.findByRole("button", { name: "Allow and retry" }, LIVE);
+    await expect.poll(() => allowAndRetry().disabled, LIVE).toBe(false);
   }
   await drawn();
   await checkLayout();

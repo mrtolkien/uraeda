@@ -591,3 +591,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a section added above the link later moves it again; the failure's 702 against a
   smaller number shows it.
 - **Where**: the rebase, task 6.
+
+## R33: The failed session's layout checks wait for "Allow and retry" to be enabled
+
+- **Decision**: `layout.test.tsx` "a feature's session, failed, and its agent section", in both
+  themes, waits for "Allow and retry" to be enabled before its layout checks.
+- **Rationale**: the button shows disabled while the session still works, at half its opacity, and
+  fades in over a transition once enabled. The test waited for the button alone: axe-core measured
+  its contrast mid-fade, failing with `color-contrast: <span …>Allow and retry</span>` on the
+  desktop in 3 runs out of 8, alone. A trace showed it found disabled at an opacity of 0.5, still
+  0.5 once `drawn()` returned, as the fade had not started when `drawn()` read the animations, and
+  0.75 as axe-core ran. With the wait, 8 runs out of 8 passed.
+- **Alternatives considered**: waiting in `checkAccessibility` for every transition: the fade had
+  not started when the animations were read.
+- **If wrong**: another control that fades in after its data comes fails the same way; its failure
+  names the control.
+- **Where**: the rebase, task 6.
