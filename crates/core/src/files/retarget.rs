@@ -1,4 +1,7 @@
-//! The links of `PRIORITIES.md` and `INBOX.md` to a draft that moved, as it becomes a folder.
+//! Link destinations rewritten in place: the links of `PRIORITIES.md` and `INBOX.md` to a draft
+//! that moved, as it becomes a folder, and a note's relative links, as it moves into a draft.
+
+use std::ops::Range;
 
 use pulldown_cmark::{Event, LinkType, Parser, Tag, TagEnd};
 
@@ -13,52 +16,103 @@ pub fn retarget(text: &str, from: &str, to: &str) -> String {
     let Some(moved) = to.strip_prefix(folder).and_then(|to| to.strip_prefix('/')) else {
         return text.to_string();
     };
+    rewrite(text, |raw| {
+        if !links_to(raw, from) {
+            return None;
+        }
+        let (target, anchor) = match raw.split_once('#') {
+            Some((target, anchor)) => (target, format!("#{anchor}")),
+            None => (raw, String::new()),
+        };
+        let prefix = target.strip_suffix(file)?;
+        Some(format!("{prefix}{moved}{anchor}"))
+    })
+}
+
+/// The text written in the folder `from`, from the top level, with its relative links and images
+/// pointing at the same files from the folder `to`: inline ones and reference definitions. Rooted
+/// paths (`/…`), URLs, and anchors stay, and so does a link climbing out of the top level.
+pub fn rebase(text: &str, from: &str, to: &str) -> String {
+    if from == to {
+        return text.to_string();
+    }
+    rewrite(text, |raw| {
+        let is_file = !raw.starts_with('/') && crate::workspace::resolve(from, raw).is_some();
+        is_file.then(|| rebased(raw, from, to)).flatten()
+    })
+}
+
+/// A relative destination written in the folder `from`, as written in the folder `to`: its path
+/// through their common folder, its `?query` and `#anchor` kept. `None` when it climbs out of the
+/// top level.
+fn rebased(raw: &str, from: &str, to: &str) -> Option<String> {
+    let (path, rest) = raw.split_at(raw.find(['?', '#']).unwrap_or(raw.len()));
+    let mut parts: Vec<&str> = from.split('/').filter(|part| !part.is_empty()).collect();
+    for part in path.split('/') {
+        match part {
+            "" | "." => {}
+            ".." => {
+                parts.pop()?;
+            }
+            part => parts.push(part),
+        }
+    }
+    let base: Vec<&str> = to.split('/').filter(|part| !part.is_empty()).collect();
+    let common = base.iter().zip(&parts).take_while(|(a, b)| a == b).count();
+    let mut written = vec![".."; base.len() - common];
+    written.extend(&parts[common..]);
+    let mut joined = written.join("/");
+    if joined.is_empty() {
+        joined.push('.');
+    }
+    if path.ends_with('/') {
+        joined.push('/');
+    }
+    Some(joined + rest)
+}
+
+/// The text with each link destination `edit` gives a new one for, as written without its `<…>`:
+/// inline links' and images', and reference definitions'.
+fn rewrite(text: &str, edit: impl Fn(&str) -> Option<String>) -> String {
     let parser = Parser::new_ext(text, crate::files::markdown::options());
     // Each destination's place in the text, without its `<…>`.
-    let mut places: Vec<std::ops::Range<usize>> = parser
+    let mut places: Vec<Range<usize>> = parser
         .reference_definitions()
         .iter()
-        .filter(|(_, definition)| links_to(&definition.dest, from))
         .filter_map(|(_, definition)| {
             let label_end = label_end(text, definition.span.start)?;
             destination(text, label_end + 1)
         })
         .collect();
-    // The link being read: its destination's file, and where its text ends so far.
-    let mut link: Option<(bool, usize)> = None;
+    // The links and images being read, nested ones included: whether inline, and where their text
+    // ends so far.
+    let mut open: Vec<(bool, usize)> = Vec::new();
     for (event, range) in parser.into_offset_iter() {
         match event {
-            Event::Start(Tag::Link {
-                link_type: LinkType::Inline,
-                dest_url,
-                ..
-            }) => link = Some((links_to(&dest_url, from), range.start + 1)),
-            Event::End(TagEnd::Link) => {
-                if let Some((true, text_end)) = link.take() {
+            Event::Start(Tag::Link { link_type, .. } | Tag::Image { link_type, .. }) => {
+                open.push((link_type == LinkType::Inline, range.start + 1));
+                continue;
+            }
+            Event::End(TagEnd::Link | TagEnd::Image) => {
+                if let Some((true, text_end)) = open.pop() {
                     let after = text[text_end..range.end]
                         .find("](")
                         .map(|at| text_end + at + 2);
                     places.extend(after.and_then(|after| destination(text, after)));
                 }
             }
-            _ => {
-                if let Some((_, text_end)) = &mut link {
-                    *text_end = (*text_end).max(range.end);
-                }
-            }
+            _ => {}
+        }
+        for (_, text_end) in &mut open {
+            *text_end = (*text_end).max(range.end);
         }
     }
     places.sort_by_key(|place| place.start);
     places.dedup();
     let mut edited = text.to_string();
     for place in places.into_iter().rev() {
-        let raw = &text[place.clone()];
-        let (target, anchor) = match raw.split_once('#') {
-            Some((target, anchor)) => (target, format!("#{anchor}")),
-            None => (raw, String::new()),
-        };
-        if let Some(prefix) = target.strip_suffix(file) {
-            edited.replace_range(place, &format!("{prefix}{moved}{anchor}"));
+        if let Some(new) = edit(&text[place.clone()]) {
+            edited.replace_range(place, &new);
         }
     }
     edited
@@ -89,7 +143,7 @@ fn label_end(text: &str, start: usize) -> Option<usize> {
 
 /// The place of the link destination after `start`, past spaces and at most one line break, as
 /// CommonMark reads it: inside `<…>`, else up to a space or an unbalanced `)`.
-fn destination(text: &str, start: usize) -> Option<std::ops::Range<usize>> {
+fn destination(text: &str, start: usize) -> Option<Range<usize>> {
     let rest = &text[start..];
     let skipped = rest.len() - rest.trim_start_matches([' ', '\t']).len();
     let mut at = start + skipped;
@@ -127,4 +181,33 @@ fn destination(text: &str, start: usize) -> Option<std::ops::Range<usize>> {
         }
     }
     Some(at..text.len())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::rebase;
+
+    #[test]
+    fn relative_links_are_rebased_and_the_others_kept() {
+        let cases = [
+            ("[a](../README.md)", "[a](../../README.md)"),
+            ("[a](done/x.md#why)", "[a](../done/x.md#why)"),
+            ("[a](<my file.md>)", "[a](<../my file.md>)"),
+            (
+                "[![i](images/a.png)](../x.md)",
+                "[![i](../images/a.png)](../../x.md)",
+            ),
+            ("[a]\n\n[a]: ../x.md", "[a]\n\n[a]: ../../x.md"),
+            ("[a](drafts/b.md)", "[a](b.md)"),
+            (
+                "[a](/README.md) [b](https://x.y) [c](#c) [d](mailto:a@b.c)",
+                "[a](/README.md) [b](https://x.y) [c](#c) [d](mailto:a@b.c)",
+            ),
+            ("[a](../../out.md)", "[a](../../out.md)"),
+            ("`[a](../x.md)`", "`[a](../x.md)`"),
+        ];
+        for (text, rebased) in cases {
+            assert_eq!(rebase(text, "specs", "specs/drafts"), rebased, "{text}");
+        }
+    }
 }

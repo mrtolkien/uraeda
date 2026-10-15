@@ -866,3 +866,30 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `Git::commit` stops calling `unstage`; Discard's call is one line.
 - **Where**: second final review, `crates/core/src/git.rs`, `crates/core/src/git/status.rs`,
   `crates/core/src/actions/changes.rs`, `crates/core/tests/inbox_moves.rs`
+
+## R36: A note's relative links are rebased into the draft it goes into
+
+- **Decision**: A note's lines moved into a draft, by Add to a draft, Make a draft, or an add with
+  an image, have their relative links and images rebased from `specs/` to the draft's folder: inline
+  ones, nested lines' included, and reference definitions, written in the draft as the path from its
+  folder to the same file, their `?query` and `#anchor` kept. Rooted paths (`/…`), URLs, anchors,
+  and a link climbing out of the top level stay as written. A move into `PRIORITIES.md` rebases
+  nothing: it is beside `INBOX.md`. `files/retarget.rs` holds both rewrites of link destinations, a
+  moved draft's links and a note's, over one parser of destinations, which now reads images and
+  nested links too. `draft::from_note` gives what a draft made from a note holds, which the move
+  writes and the Undo and Discard compare with; `into_draft` gives a note's lines as Add to a draft
+  writes them, which its Undo looks for.
+- **Rationale**: The second review found `[README](../README.md)` in `INBOX.md` pointed at
+  `specs/README.md` once in `specs/drafts/x.md`, and further off from a folder draft. A note keeps
+  its meaning when it moves.
+- **Alternatives considered**: Rewriting relative links as rooted ones (`/README.md`), which reads
+  differently from what the human wrote, and from the links the core writes elsewhere.
+- **If wrong**: `rebase` in `files/retarget.rs`, called from `draft::from_note` and
+  `inbox::into_draft`.
+- **Open**: a note holding a link, made a draft, does not pair with its entry, whose link text
+  escapes the note's brackets: the change list shows a removal and an addition, and Discard keeps a
+  draft holding nested lines. It was so before this ruling.
+- **Where**: second final review, `crates/core/src/files/retarget.rs`,
+  `crates/core/src/actions/draft.rs`, `actions/inbox.rs`, `actions/inbox/image.rs`,
+  `actions/inbox/undo.rs`, `actions/changes.rs`, `actions/changes/drafts.rs`,
+  `crates/core/tests/inbox_moves.rs`
