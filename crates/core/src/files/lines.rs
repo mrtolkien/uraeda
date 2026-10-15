@@ -58,7 +58,7 @@ pub(crate) fn item_text<'a>(lines: &[&'a str], item: &Item) -> Vec<&'a str> {
 /// Every item at column 0 under a heading `heading` accepts, with what it returned for that
 /// heading, which it gets with its line number, from 1. Any line starting with `#` is a heading.
 /// Lines inside fenced code are neither: see [`is_fence`]. An item runs on over its indented lines, up to a blank or
-/// unindented line; its text ends at its first sub-item.
+/// unindented line; its text ends at its first sub-item or code fence.
 pub(crate) fn items<S: Clone>(
     text: &str,
     mut heading: impl FnMut(usize, &str) -> Option<S>,
@@ -106,7 +106,8 @@ fn item_at(lines: &[&str], index: usize, marker: Marker) -> Item {
             break;
         }
         end = index + 1 + offset;
-        if item_marker(next.trim_start()).is_some() {
+        let trimmed = next.trim_start();
+        if item_marker(trimmed).is_some() || is_fence(trimmed) {
             in_text = false;
         }
         if in_text {
@@ -137,6 +138,21 @@ pub(crate) fn headings(text: &str) -> impl Iterator<Item = (usize, &str)> {
 /// indented one is part of the item above it, whose lines a blank line inside the fence ends.
 fn is_fence(line: &str) -> bool {
     line.starts_with("```") || line.starts_with("~~~")
+}
+
+/// `lines` without the indent their non-blank lines share.
+pub(crate) fn dedented(lines: &[String]) -> Vec<String> {
+    let indent = |line: &str| line.len() - line.trim_start_matches([' ', '\t']).len();
+    let shared = lines
+        .iter()
+        .filter(|line| !line.trim().is_empty())
+        .map(|line| indent(line))
+        .min()
+        .unwrap_or_default();
+    lines
+        .iter()
+        .map(|line| line.get(shared..).unwrap_or_default().to_string())
+        .collect()
 }
 
 /// Adds `item`, the lines of an item, after `last`, the last item of a section, or else after the
