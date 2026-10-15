@@ -100,17 +100,24 @@ export function useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolea
     return () => target.removeEventListener("scroll", read);
   }, [ref]);
 
-  // Only a session at work scrolls: to its end as it starts working, and as it grows.
+  // Only a session at work scrolls: to its end as it starts working, and as it grows, and once more
+  // as it stops, for what its end draws with it, as a banner that says why it needs the human.
+  const wasEnabled = useRef(false);
   useEffect(() => {
     const element = ref.current;
-    if (!element || !enabled) {
-      return;
-    }
     const follow = () => {
       if (followingNow.current) {
         toEnd(box.current);
       }
     };
+    if (!element || !enabled) {
+      if (element && wasEnabled.current) {
+        follow();
+      }
+      wasEnabled.current = false;
+      return;
+    }
+    wasEnabled.current = true;
     follow();
     const observer = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(follow);
     observer?.observe(element);
