@@ -54,13 +54,17 @@ export function StoriesProvider({
   );
 }
 
-/** The story a paragraph embeds, when its checkout has a preview decision. */
-export function useStoryAt(block: Block): StoryLink | undefined {
-  const context = useContext(StoryContext);
-  if (!context?.preview || block.kind !== "paragraph") {
+/** The story a paragraph embeds, in a page's stories, when its checkout has a preview decision. */
+export function storyIn(context: Stories | null, block: Block | undefined): StoryLink | undefined {
+  if (!context?.preview || block?.kind !== "paragraph") {
     return undefined;
   }
   return context.stories.find((story) => story.block === block.id);
+}
+
+/** The story a paragraph embeds, when its checkout has a preview decision. */
+export function useStoryAt(block: Block): StoryLink | undefined {
+  return storyIn(useContext(StoryContext), block);
 }
 
 /**

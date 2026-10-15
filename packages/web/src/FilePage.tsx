@@ -42,10 +42,16 @@ export function FilePage({ folder, name }: { folder: string; name: string }) {
   if (reviewed && file.status === "awaiting-human") {
     return <ReviewPage file={file} />;
   }
-  // A round and a document draw the file as it is now, with the stories it embeds.
+  // A round and a document draw the file as it is now, with the stories it embeds: a story gone
+  // from an answered round is a variant removed after its answer.
+  const round = file.kind === "clarifications";
   return (
-    <StoriesProvider folder={file.folder} stories={file.current.stories}>
-      {file.kind === "clarifications" ? <RoundPage file={file} target={{ folder }} /> : <DocumentPage file={file} />}
+    <StoriesProvider
+      folder={file.folder}
+      removed={round && file.status === "answered"}
+      stories={file.current.stories}
+    >
+      {round ? <RoundPage file={file} target={{ folder }} /> : <DocumentPage file={file} />}
     </StoriesProvider>
   );
 }
