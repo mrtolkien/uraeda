@@ -115,10 +115,10 @@ fn pair(place: &Place, texts: &Texts) -> (Vec<Described>, Drafts) {
     let mut changes = Vec::new();
     for change in inbox::diff(inbox_then, inbox_now) {
         if let NoteChange::Removed { text, .. } = &change {
-            if let Some(section) = take_entry(&mut entries, text) {
+            if let Some((section, entry)) = take_moved(&mut entries, inbox_then, text) {
                 let link = linked_entries
                     .iter()
-                    .find(|e| e.section == section && &e.text == text)
+                    .find(|e| e.section == section && e.text == entry)
                     .and_then(|e| e.link.as_deref());
                 found.linked(place, link, |path| written_from(inbox_then, text, path));
                 changes.push(moved_out(text, section.title()));
@@ -181,6 +181,24 @@ fn gather(place: &Place) -> Listed {
         paths: files(&texts, drafts.paths),
         undo: drafts.undo,
     }
+}
+
+/// Takes the added entry the removed note of the text `text` in `inbox` became out of the
+/// priorities' changes, and gives its section and text: the note's lines, moved, or a link to the
+/// draft made from it, whose text escapes the note's markdown.
+fn take_moved(
+    entries: &mut [Option<EntryChange>],
+    inbox: &str,
+    text: &str,
+) -> Option<(Section, String)> {
+    if let Some(section) = take_entry(entries, text) {
+        return Some((section, text.to_string()));
+    }
+    let note = inbox::parse(inbox)
+        .into_iter()
+        .find(|note| note.text == text && note.link.is_none())?;
+    let drafted = inbox::drafted_text(inbox, &note.id)?;
+    Some((take_entry(entries, &drafted)?, drafted))
 }
 
 /// Takes the added entry of the text `text` out of the priorities' changes, and gives its section.

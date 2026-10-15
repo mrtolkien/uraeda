@@ -801,7 +801,8 @@ fn linked_from(folder: &str) -> String {
     )
 }
 
-/// A note with relative links, nested lines included, made a draft.
+/// A note with relative links, nested lines included, made a draft: one move, which Discard takes
+/// back.
 #[test]
 fn a_notes_relative_links_are_rebased_into_a_new_draft() {
     let repo = fixture_repo();
@@ -832,6 +833,13 @@ fn a_notes_relative_links_are_rebased_into_a_new_draft() {
         )),
         "{draft}"
     );
+    assert_eq!(
+        changes::list(&place).lines,
+        ["- Move from the inbox to Later: See readme, shot, top, web, and here"]
+    );
+    changes::discard(&place).unwrap();
+    assert!(!repo.exists(&path));
+    assert_eq!(repo.porcelain(), "");
 }
 
 /// A note added to a folder draft gets its links rebased two folders down, and its Undo takes it

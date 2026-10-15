@@ -878,18 +878,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   moved draft's links and a note's, over one parser of destinations, which now reads images and
   nested links too. `draft::from_note` gives what a draft made from a note holds, which the move
   writes and the Undo and Discard compare with; `into_draft` gives a note's lines as Add to a draft
-  writes them, which its Undo looks for.
+  writes them, which its Undo looks for. A note made a draft pairs with its entry by the entry's
+  text: the change list reads the note's markdown as a link's text, escaped by `inbox::link_to` as
+  Make a draft writes it, through `inbox::drafted_text`. A note holding a link, whose entry escapes
+  its brackets, so is one move, and Discard deletes its untouched draft, nested lines included.
 - **Rationale**: The second review found `[README](../README.md)` in `INBOX.md` pointed at
   `specs/README.md` once in `specs/drafts/x.md`, and further off from a folder draft. A note keeps
-  its meaning when it moves.
+  its meaning when it moves. A note holding a link, made a draft, showed as a removal and an
+  addition, and Discard kept its draft when it had nested lines.
 - **Alternatives considered**: Rewriting relative links as rooted ones (`/README.md`), which reads
   differently from what the human wrote, and from the links the core writes elsewhere.
 - **If wrong**: `rebase` in `files/retarget.rs`, called from `draft::from_note` and
-  `inbox::into_draft`.
-- **Open**: a note holding a link, made a draft, does not pair with its entry, whose link text
-  escapes the note's brackets: the change list shows a removal and an addition, and Discard keeps a
-  draft holding nested lines. It was so before this ruling.
-- **Where**: second final review, `crates/core/src/files/retarget.rs`,
+  `inbox::into_draft`; the pairing, `take_moved` in `actions/changes.rs`.
+- **Where**: second final review, `crates/core/src/files/retarget.rs`, `files/inbox.rs`,
   `crates/core/src/actions/draft.rs`, `actions/inbox.rs`, `actions/inbox/image.rs`,
   `actions/inbox/undo.rs`, `actions/changes.rs`, `actions/changes/drafts.rs`,
   `crates/core/tests/inbox_moves.rs`

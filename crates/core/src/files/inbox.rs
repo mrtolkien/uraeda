@@ -341,6 +341,13 @@ pub(crate) fn link_text(markdown: &str) -> Option<String> {
     Some(lines::unescape_link_text(inner))
 }
 
+/// The text, without markdown, of the entry Make a draft writes for the note `id`: its markdown as
+/// the text of a link, escaped as [`link_to`] escapes it.
+pub fn drafted_text(text: &str, id: &str) -> Option<String> {
+    let (title, _) = draft_parts(text, id)?;
+    Some(lines::plain(&link_to(&title, "draft.md")).0)
+}
+
 /// A note's text as a link to `target`, its markdown kept.
 pub fn link_to(markdown: &str, target: &str) -> String {
     format!("[{}]({target})", lines::escape_link_text(markdown))
