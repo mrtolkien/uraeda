@@ -23,9 +23,9 @@ about them in the code, the priorities, and the drafts, with links.]
 
 Why it matters: [what this outcome costs or saves later].
 
-- **A (recommended). [An outcome, as a self-contained sentence: a priorities section, a new draft,
-  an existing draft named by its title, a bug with its slug, deletion, or keeping it in the
-  inbox.]**
+- **A (recommended). [An outcome, as a self-contained sentence: a priorities section, a new draft
+  with its title and the priorities section that links it, an existing draft named by its title, a
+  bug with its slug, deletion, or keeping it in the inbox.]**
   - [pro] [...]
   - [con] [...]
   - Why recommended: [...]
