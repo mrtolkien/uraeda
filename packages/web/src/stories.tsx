@@ -2,7 +2,7 @@
 // links its paragraphs embed, and where a comment on one goes. Each page that draws a workflow file
 // fills `StoryContext`, so `Blocks` and `Spans` read it without a prop through every caller.
 import { createContext, type ReactNode, useContext } from "react";
-import type { Block, StoryLink, StoryTarget } from "uraeda-binding";
+import type { Block, Document, StoryLink, StoryTarget } from "uraeda-binding";
 import { MAIN_CHECKOUT, usePreviewOn } from "./data.ts";
 import type { EmbedComment } from "./StoryPick.tsx";
 
@@ -78,6 +78,25 @@ export function storyIn(context: Stories | null, block: Block | undefined): Stor
     return undefined;
   }
   return context.stories.find((story) => story.block === block.id);
+}
+
+/**
+ * Whether a block embeds a story, or holds a paragraph that does, at any depth, as in a quote or a
+ * list's item: the core finds story paragraphs wherever they are nested.
+ */
+export function holdsStory(context: Stories | null, document: Document, id: number): boolean {
+  if (!context?.preview) {
+    return false;
+  }
+  return context.stories.some((story) => {
+    for (let at: number | undefined = story.block; at !== undefined;) {
+      if (at === id) {
+        return true;
+      }
+      at = document.blocks[at]?.parent;
+    }
+    return false;
+  });
 }
 
 /** The story a paragraph embeds, when its checkout has a preview decision. */
