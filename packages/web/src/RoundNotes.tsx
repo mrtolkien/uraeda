@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
-import { useImageText } from "./attach/useImageText.ts";
+import { takesImages, useImageText } from "./attach/useImageText.ts";
 import type { useFile } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
@@ -77,6 +77,7 @@ export function NotesField({
   path: string;
 }) {
   const { commit, field, save, waitFor } = notes;
+  const takes = takesImages(path);
   const images = useImageText({
     label: "the notes",
     onText: (value: string, added: boolean) => {
@@ -87,6 +88,7 @@ export function NotesField({
     },
     path,
     priority: 1,
+    takes,
     text: field.text,
   });
   useEffect(() => {
@@ -118,10 +120,12 @@ export function NotesField({
       </DropHint>
       <AttachStatus status={images.status} />
       <HStack align="center" gap={2} wrap="wrap">
-        <AttachButton
-          name="Add image to the notes"
-          onFiles={(files) => void images.addFiles(files)}
-        />
+        {takes && (
+          <AttachButton
+            name="Add image to the notes"
+            onFiles={(files) => void images.addFiles(files)}
+          />
+        )}
         <Button isDisabled={!field.dirty} label="Save notes" onClick={saveNow} />
         <SaveStatus dirty={field.dirty} state={save.state} />
         <SaveKeys />

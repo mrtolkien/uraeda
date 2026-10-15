@@ -12,6 +12,7 @@ import {
   fixtureRepo,
   git,
   read,
+  refreshUntil,
   renderPage,
   today,
   type,
@@ -61,6 +62,22 @@ function answerLine(repo: string, id: string) {
   return lines.slice(heading).find((line) => line.startsWith("**Answer:**"));
 }
 
+/** Answers every question of the triage page with A, each saved before the next. */
+async function answerAll(repo: string) {
+  await screen.findByRole("heading", { level: 1, name: "Inbox triage" });
+  for (const id of ["Q1", "Q2", "Q3"]) {
+    await click(option(id, "A"));
+    await waitFor(() => expect(answerLine(repo, id)).toBe("**Answer:** A"));
+  }
+}
+
+/** Submit, once the page drew the last answer saved. */
+async function submit() {
+  const button = screen.getByRole("button", { name: "Submit answers" }) as HTMLButtonElement;
+  await waitFor(() => expect(button.disabled).toBe(false));
+  await click(button);
+}
+
 /** US4 1 */
 test("Organize with an agent starts a chat in the main checkout with the triage's message", async () => {
   const { agent, repo } = await renderPage("/inbox", fixtureRepo(), { agent: true });
@@ -102,18 +119,10 @@ test("a triage waiting is linked from the inbox, and answered in the round's vie
 test("the triage's answers are submitted in one commit, and the inbox offers to apply them", async () => {
   const repo = withTriage();
   await renderPage("/inbox/triage", repo, { agent: true });
-  await screen.findByRole("heading", { level: 1, name: "Inbox triage" });
-
-  for (const id of ["Q1", "Q2", "Q3"]) {
-    await click(option(id, "A"));
-    await waitFor(() => expect(answerLine(repo, id)).toBe("**Answer:** A"));
-  }
+  await answerAll(repo);
   // Notes typed and not saved: Submit saves them first, over the triage as the page wrote it.
   await type(screen.getByLabelText("Notes"), "Start with the bug.");
-  // Enabled once the page drew the last answer saved.
-  const submit = screen.getByRole("button", { name: "Submit answers" }) as HTMLButtonElement;
-  await waitFor(() => expect(submit.disabled).toBe(false));
-  await click(submit);
+  await submit();
 
   await waitFor(() =>
     expect(git(repo, "log", "-1", "--format=%s").trim()).toBe("chore: answer the inbox triage"),
@@ -134,4 +143,95 @@ test("an answered triage is applied in a new chat", async () => {
   expect(agent.sent[0].text).toBe(
     "/uraeda:uraeda Apply my answers in specs/INBOX-TRIAGE.md, following references/inbox.md.",
   );
+});
+
+/**
+ * US4 2, two pages on the triage: notes saved over a triage another page answered since are
+ * refused, so its answer is never submitted unseen.
+ */
+test("a triage answered on another page since is not submitted unseen", async () => {
+  const repo = withTriage();
+  await renderPage("/inbox/triage", repo, { agent: true });
+  await answerAll(repo);
+  // The other page changes Q2's answer.
+  writeFileSync(
+    join(repo, TRIAGE),
+    read(repo, TRIAGE).replace(/(## Q2:[^]*?)\*\*Answer:\*\* A\n/, "$1**Answer:** B\n"),
+  );
+
+  await type(screen.getByLabelText("Notes"), "Start with the bug.");
+  await submit();
+
+  expect(
+    await screen.findByText(
+      "Some answers were not saved: nothing was submitted. Check them, then submit again.",
+    ),
+  ).toBeTruthy();
+  expect(git(repo, "log", "-1", "--format=%s").trim()).toBe("chore: propose an inbox triage");
+  expect(answerLine(repo, "Q2")).toBe("**Answer:** B");
+  expect(read(repo, TRIAGE)).not.toContain("Start with the bug.");
+});
+
+/** The spec's error handling: a hook's refusal keeps the answers, and Try again commits them. */
+test("a hook's refusal of the triage's commit is tried again", async () => {
+  const repo = withTriage();
+  const hooks = join(repo, ".git/hooks");
+  git(repo, "config", "core.hooksPath", hooks);
+  writeFileSync(join(hooks, "pre-commit"), "#!/bin/sh\necho 'refused by the hook'\nexit 1\n", {
+    mode: 0o755,
+  });
+  await renderPage("/inbox/triage", repo, { agent: true });
+  await answerAll(repo);
+
+  await submit();
+  const refused = "The pre-commit hook refused the commit. Your answers are saved, not committed.";
+  expect(await screen.findByText(refused)).toBeTruthy();
+  // Read again, the triage is answered: the page shows it as a record, and keeps the refusal.
+  await refreshUntil(() =>
+    expect(screen.queryByRole("button", { name: "Submit answers" })).toBeNull(),
+  );
+  expect(screen.getByText(refused)).toBeTruthy();
+  writeFileSync(join(hooks, "pre-commit"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+  await click(screen.getByRole("button", { name: "Try again" }));
+
+  await waitFor(() =>
+    expect(git(repo, "log", "-1", "--format=%s").trim()).toBe("chore: answer the inbox triage"),
+  );
+  expect(git(repo, "status", "--porcelain").trim()).toBe("");
+});
+
+/** The core takes no image for the triage, which is no feature's, bug's, or draft's file. */
+test("the triage's comments and notes offer no image", async () => {
+  await renderPage("/inbox/triage", withTriage(), { agent: true });
+  await screen.findByRole("heading", { level: 1, name: "Inbox triage" });
+
+  expect(screen.queryByRole("button", { name: "Add image to the notes" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Add image to Q1's comment" })).toBeNull();
+});
+
+/** US4 1 and 3 without an agent on this machine: the messages to give one, to copy. */
+test("without an agent, the inbox gives the triage's messages to copy", async () => {
+  await renderPage("/inbox", fixtureRepo());
+
+  await click(await screen.findByRole("button", { name: "Organize with an agent" }));
+
+  expect(
+    screen.getByText(
+      "/uraeda:uraeda Organize the inbox, specs/INBOX.md: propose a triage in specs/INBOX-TRIAGE.md, following references/inbox.md. Stop when the triage waits for my answers.",
+    ),
+  ).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Copy the message" })).toBeTruthy();
+});
+
+test("without an agent, an answered triage gives its apply message to copy", async () => {
+  await renderPage("/inbox", withAnswered());
+
+  expect(await screen.findByText("Your triage answers are ready to apply")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Apply the answers" })).toBeNull();
+  expect(
+    screen.getByText(
+      "/uraeda:uraeda Apply my answers in specs/INBOX-TRIAGE.md, following references/inbox.md.",
+    ),
+  ).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Copy the message" })).toBeTruthy();
 });

@@ -557,46 +557,59 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `packages/web/src/AddNote.tsx`, `NoteImage.tsx`, `SidebarAdd.tsx`, `InboxPage.tsx`,
   `attach/AttachButton.tsx`
 
-## R22: The triage's messages are a module the UI imports, and the triage is submitted over the page's own saves
+## R22: The triage's messages are a module the UI imports, and its saves are based on all the page saw
 
 - **Decision**:
   - `ORGANIZE_INBOX` and `APPLY_TRIAGE` live in `packages/server/src/runner/triage-messages.ts`,
     free of Node's modules, re-exported by `runner/message.ts` and exported to the web as
-    `uraeda-server/triage-messages`, as `uraeda-server/limits` already is. They are fixed strings,
-    not core data, so no view carries them, and the UI never writes them out by hand.
-  - `RoundPage` takes a `target`, `{ folder }` or `{ triage: true }`, and its answers, notes, and
-    submit go through `roundTarget.ts`'s `useRoundWrites`, to `answer.save`, `notes.save`, and
-    `answers.submit`, or to `triage.answer`, `triage.notes`, and `triage.submit`. `Question` takes
-    the target in place of its folder; `FilePage` passes `{ folder }`.
-  - The triage is submitted over `Hashes.current`: the hash of the text the page last read or wrote.
-    Each save keeps the hash of the text it wrote, and a read of one of the page's own saves, drawn
-    after a later save, does not replace it. Submit saves the notes typed first, which changes the
-    file: the hash the page drew before that save was refused as a change made elsewhere.
+    `uraeda-server/triage-messages`. The UI imports only constants from it, as it does from
+    `uraeda-server/limits`: fixed strings, not core data, so no view carries them, and the UI never
+    writes them out by hand.
+  - `RoundPage` takes a `target`, `{ folder }` or `{ triage: true }`, and its answers, notes,
+    submit, and retry go through `roundTarget.ts`'s `useRoundWrites`, to `answer.save`,
+    `notes.save`, `answers.submit`, and `commit.retry`, or to `triage.answer`, `triage.notes`,
+    `triage.submit`, and `triage.retry`. `Question` takes the target in place of its folder;
+    `FilePage` passes `{ folder }`.
+  - The triage's answers and notes take `base`, besides `previous`: the hash of the whole triage as
+    the page last read or wrote it, and the core refuses them as a conflict once the file holds
+    anything else, as another page's answer. This changes task 6's `triage.answer` and
+    `triage.notes`, and the core's and the binding's `save_triage_answer` and `save_triage_notes`.
+    The page keeps the hash in `Hashes`, provided by each `RoundPage`: its writes to the triage run
+    one after another, each based on the hash the last one wrote, and the submit, over the same
+    hash, commits only what the page saw. A read of a text the page already had, drawn late, does
+    not replace it.
   - The triage hides the feature's crumbs, "Ask the agent", and the hand-over: its Submit is one
     "Submit answers" button, which goes back to the inbox once committed, where "Apply the answers"
-    waits. A hook's refusal of its commit shows the hook's output without "Try again": the core's
-    retry is a feature's, and the answers stay saved on the default branch, where the next submit or
-    the apply run commits them.
+    waits. A hook's refusal of its commit offers "Try again", as a round's does, through
+    `triage.retry`: the core's `retry_triage` commits `INBOX-TRIAGE.md` alone, as
+    `chore: answer the inbox triage`, when it is answered and differs from the last commit.
+    `RoundPage` keeps the submit's state, so the refusal stays once the page reads the round as
+    answered.
   - "Organize with an agent" and "Apply the answers" show only while the agent works on this
-    machine, as the feature pages' agent buttons do; the banners show regardless. Both start a chat
-    through `sendMessage` and open it. "Answer it" is a link drawn as a button, `Button` with an
-    `href`, since a link in a banner's text is 20 px tall, under the 44 px of a control on the
-    phone. `/inbox/triage` without a triage says "No inbox triage waits." with "Open the inbox".
-  - The triage's comments and notes keep "Add image": the core refuses an image for
-    `INBOX-TRIAGE.md`, which is no feature's, bug's, or draft's file, with its message, as for any
-    path it does not take.
+    machine, as the feature pages' agent buttons do. Without one, "Organize with an agent" opens its
+    message, and the answered triage's banner holds the apply message, each with "Copy the message",
+    to give an agent elsewhere. "Answer it" is a link drawn as a button, `Button` with an `href`,
+    since a link in a banner's text is 20 px tall, under the 44 px of a control on the phone.
+    `/inbox/triage` without a triage says "No inbox triage waits." with "Open the inbox".
+  - The triage's comments and notes offer no image: `takesImages(path)` is false for
+    `specs/INBOX-TRIAGE.md`, which hides "Add image", and drops and pastes skip the field. The core
+    takes no image for a file that is no feature's, bug's, or draft's, and the triage is committed
+    alone.
 - **Rationale**: The plan left the boundary to the implementer; the limits module is the existing
   pattern for constants the server and the UI share, and `message.ts` imports `node:path`, which the
-  UI's bundle cannot. The hash fix comes from the plan's `previous`, which a feature's submit does
-  not take.
+  UI's bundle cannot. The plan's `previous` for the submit only holds if every save before it was
+  based on what the page saw: a check of the saved answer or notes alone let a save adopt another
+  page's answers. The triage needs the retry the feature rounds have, or a refused commit leaves it
+  answered and uncommitted, with nothing to try.
 - **Alternatives considered**: A field of the `Inbox` view holding both messages: data sent with
   every inbox read for two constants. Reading the triage's hash from the server before the submit:
-  answers written elsewhere would be submitted unseen. Hiding "Add image" for the triage: a flag
-  through `Question`, `AnswerComment`, `CommentField`, `NotesField`, and `useImageText`'s drop and
-  paste, for a refusal the core already gives.
+  answers written elsewhere would be submitted unseen. Saves in parallel, each based on the hash
+  read: a second tap before the first save answered would be refused.
 - **If wrong**: the messages module moves with one export line; `useRoundWrites` is the one place
-  that picks the mutations.
-- **Where**: task 12, `packages/server/src/runner/triage-messages.ts`, `runner/message.ts`,
-  `packages/server/package.json`; `packages/web/src/roundTarget.ts`, `RoundPage.tsx`,
-  `RoundNotes.tsx`, `RoundSubmit.tsx`, `Question.tsx`, `useAnswer.ts`, `FilePage.tsx`,
-  `TriagePage.tsx`, `InboxPage.tsx`, `data.ts`, `App.tsx`
+  that picks the mutations, and `Hashes` the one that keeps the base.
+- **Where**: tasks 6 and 12, `crates/core/src/actions/inbox.rs`, `api/answers/triage.rs`, the
+  binding's `inbox_writes.rs`; `packages/server/src/runner/triage-messages.ts`, `runner/message.ts`,
+  `fate/inbox-mutations.ts`, `packages/server/package.json`; `packages/web/src/roundTarget.ts`,
+  `RoundPage.tsx`, `RoundNotes.tsx`, `RoundSubmit.tsx`, `Question.tsx`, `QuestionComment.tsx`,
+  `useAnswer.ts`, `attach/useImageText.ts`, `attach/useImageDrop.ts`, `FilePage.tsx`,
+  `TriagePage.tsx`, `InboxPage.tsx`, `InboxTriage.tsx`, `data.ts`, `App.tsx`

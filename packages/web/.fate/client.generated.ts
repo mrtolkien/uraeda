@@ -271,6 +271,11 @@ const mutations = {
     FateAPI['mutations']['triage.notes']['input'],
     FateAPI['mutations']['triage.notes']['output']
   >('WorkflowFile'),
+  'triage.retry': mutation<
+    WorkflowFile,
+    FateAPI['mutations']['triage.retry']['input'],
+    FateAPI['mutations']['triage.retry']['output']
+  >('WorkflowFile'),
   'triage.submit': mutation<
     WorkflowFile,
     FateAPI['mutations']['triage.submit']['input'],

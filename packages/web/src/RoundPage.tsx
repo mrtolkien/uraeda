@@ -11,7 +11,7 @@ import { useWidthClass } from "./layout/useWidthClass.ts";
 import { Question } from "./Question.tsx";
 import { type NavQuestion, RoundNav } from "./RoundNav.tsx";
 import { useRoundNotes } from "./RoundNotes.tsx";
-import { RoundEnd } from "./RoundSubmit.tsx";
+import { RoundEnd, useRoundSubmit } from "./RoundSubmit.tsx";
 import { isTriage, RoundHash, type RoundTarget, useHashes } from "./roundTarget.ts";
 import { useRepositoryPath } from "./routes.tsx";
 import { askAbout, quoted } from "./sessions.ts";
@@ -66,6 +66,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
   // The text's hash as last read or written, which the page's saves keep up to date.
   const hash = useHashes(document.hash);
   const notes = useRoundNotes(file, target, hash);
+  const submitting = useRoundSubmit(file, notes, pending, target, hash);
   const wide = useWidthClass() === "wide";
   const end = useRef<HTMLDivElement>(null);
   // Submit's buttons, which the bar's Submit focuses.
@@ -124,9 +125,9 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
         end={end}
         file={file}
         notes={notes}
-        pending={pending}
         readOnly={readOnly}
         submitRow={submitRow}
+        submitting={submitting}
         target={target}
       />
     </>

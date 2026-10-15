@@ -1375,29 +1375,38 @@ git commit -m "feat(add-scratchpad): a note with an image becomes a linked draft
 
 **Files:**
 
-- Create: `packages/web/src/TriagePage.tsx`, `packages/web/src/roundTarget.ts`, and
-  `packages/server/src/runner/triage-messages.ts` (ruling R22)
+- Create: `packages/web/src/TriagePage.tsx`, `packages/web/src/roundTarget.ts`,
+  `packages/web/src/InboxTriage.tsx`, and `packages/server/src/runner/triage-messages.ts` (ruling
+  R22)
 - Modify:
   - `packages/web/src/RoundPage.tsx`, `useAnswer.ts`, `RoundNotes.tsx`, `RoundSubmit.tsx`, and
     `Question.tsx`: a target that is a feature's round or the triage; `FilePage.tsx` passes
     `{ folder }`;
-  - `packages/web/src/InboxPage.tsx`: the banners and buttons; `data.ts` (`useTriage`) and `App.tsx`
-    (`/inbox/triage`);
+  - `packages/web/src/InboxPage.tsx` and `InboxTriage.tsx`: the banners and buttons, and without an
+    agent the messages to copy;
+  - `QuestionComment.tsx`, `RoundNotes.tsx`, and `attach/useImageText.ts` and `useImageDrop.ts`: no
+    image for the triage (`takesImages`);
+  - the triage's saves based on the whole file, and its retry: `crates/core/src/actions/inbox.rs`,
+    `api/answers/triage.rs`, the binding's `inbox_writes.rs`, and the server's
+    `fate/inbox-mutations.ts`; `data.ts` (`useTriage`) and `App.tsx` (`/inbox/triage`);
   - `packages/server/src/runner/message.ts`: `ORGANIZE_INBOX` and `APPLY_TRIAGE`, exported, from
     `triage-messages.ts`, which the web imports as `uraeda-server/triage-messages`
     (`packages/server/package.json`)
-- Test: `packages/web/src/__tests__/triage.test.tsx`,
+- Test: `crates/core/tests/triage.rs`, `packages/server/src/__tests__/inbox.test.ts`,
+  `packages/web/src/__tests__/triage.test.tsx`,
   `packages/server/src/runner/__tests__/message.test.ts`,
-  `packages/web/src/__browser__/inbox.test.tsx` (the banner and the triage's view at both sizes,
-  with `fixtureText` in `vite.browser.config.ts`), `packages/web/src/__tests__/round.test.tsx`
-  (still passing)
+  `packages/web/src/__browser__/inbox.test.tsx` (the banners, "Organize with an agent", and the
+  triage's view at both sizes, with `fixtureText` in `vite.browser.config.ts`),
+  `packages/web/src/__tests__/round.test.tsx` (still passing)
 
 **Interfaces:**
 
 - Consumes: `triage.*` and the `WorkflowFile` `inbox-triage` (task 6), and
   `sendMessage(fate, { text })`.
 - Produces: `RoundPage({ file, target })`, where `target` is `{ folder }` or `{ triage: true }`; the
-  triage is submitted over the hash of the text the page last read or wrote (ruling R22).
+  triage's answers and notes take `base`, the hash of the whole triage as the page last read or
+  wrote it, and the triage is submitted over it; `triage.retry {}` commits it again after a hook's
+  refusal (ruling R22). This adds `base` to task 6's `triage.answer` and `triage.notes`.
 
 - [x] **Step 1: Write the failing tests**
 
@@ -1418,6 +1427,10 @@ The break each test catches:
 - A changed message the skill no longer matches.
 - Answers written into a feature.
 - A triage submitted over the hash the page drew before Submit saved its notes (ruling R22).
+- Notes saved over a triage another page answered since, then submitted with that answer unseen.
+- A hook's refusal of the triage's commit with nothing to try again.
+- An answered triage with no next step when no agent works on this machine.
+- "Add image" offered for the triage, which the core refuses.
 
 - [x] **Step 2: Run them to check they fail**
 
