@@ -38,9 +38,5 @@ credentials, and introduces no constitution exceptions or new abstractions. Test
 parsing, selection, exit, idle closure, expiry, placement, collapse and live updates. Browser checks
 cover both sizes and themes, including accessibility and layout.
 
-Screenshots:
-
-- [Desktop, light](2026-10-15-claude-usage/screenshots/sidebar-desktop-light.png)
-- [Desktop, dark](2026-10-15-claude-usage/screenshots/sidebar-desktop-dark.png)
-- [Phone, light](2026-10-15-claude-usage/screenshots/sidebar-phone-light.png)
-- [Phone, dark](2026-10-15-claude-usage/screenshots/sidebar-phone-dark.png)
+Screenshots of the sidebar at both sizes and in both themes were taken for the review and removed
+once merged: `git log -- specs/done/2026-10-15-claude-usage/` finds them.
