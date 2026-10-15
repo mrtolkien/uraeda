@@ -9,7 +9,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFateClient, useView } from "react-fate";
-import type { Session, SessionStatus as Status, Trigger } from "uraeda-server/fate";
+import type { Session, SessionStatus as Status, StatusReason, Trigger } from "uraeda-server/fate";
 import { Composer } from "./Composer.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { useAgent, useFeature, useSession, useWorkflowMessage } from "./data.ts";
@@ -108,6 +108,27 @@ type Handing = {
   workflow?: { file?: string; trigger: Trigger };
 };
 
+/** What a session that needs attention tells the human, by why it needs it. */
+const ATTENTION: Partial<
+  Record<StatusReason, { status: "error" | "warning"; text: string; title: string }>
+> = {
+  failed: {
+    status: "error",
+    text: "Read how it ended, then tell the agent how to go on.",
+    title: "The agent's run failed.",
+  },
+  halted: {
+    status: "warning",
+    text: "The feature still waits on the agent. Read its last message, then tell it how to go on.",
+    title: "The agent stopped before a human gate.",
+  },
+  stopped: {
+    status: "warning",
+    text: "Tell the agent how to go on when you are ready.",
+    title: "You stopped the agent.",
+  },
+};
+
 /**
  * A session's header, transcript, and errors, or why there is no session `id`. While the human
  * reads above its end, it gives the pane the jump back to the latest.
@@ -164,6 +185,10 @@ function SessionLog({
       />
     );
   }
+  const attention =
+    session.status === "attention" && session.statusReason
+      ? ATTENTION[session.statusReason]
+      : undefined;
   return (
     <VStack gap={3}>
       <Header
@@ -183,6 +208,14 @@ function SessionLog({
           session={session}
         />
       </div>
+      {attention && (
+        <Banner
+          collapsible={false}
+          description={attention.text}
+          status={attention.status}
+          title={attention.title}
+        />
+      )}
       {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
     </VStack>
   );

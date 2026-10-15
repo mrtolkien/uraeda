@@ -497,6 +497,8 @@ export interface NextStepView {
   progress?: TaskProgress
   /** `open`, `draft`, `changes-requested`, `none`, or `unknown`, when the step depends on it. */
   pullRequest?: string
+  /** Whether the plan waits for the human's review, for the steps before it is approved. */
+  planReview?: boolean
 }
 
 /** A feature, its branch, and its next step, with the main checkout's path. */

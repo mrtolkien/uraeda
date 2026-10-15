@@ -1,26 +1,5 @@
 import { expect, test } from "vite-plus/test";
-import {
-  chatOpening,
-  chatTitle,
-  retryMessage,
-  runMessage,
-  toolTarget,
-  triggerSentence,
-} from "../message.ts";
-
-test.each<[Parameters<typeof triggerSentence>[0], string]>([
-  [
-    { file: "clarifications-01.md", trigger: "answers" },
-    "The human answered clarifications-01.md of the questions.",
-  ],
-  [{ file: "spec.md", trigger: "approval" }, "The human approved the spec."],
-  [{ file: "assessment.md", trigger: "approval" }, "The human approved the assessment."],
-  [{ file: "plan.md", trigger: "changes" }, "The human requested changes on the plan."],
-  [{ file: "proposal.md", trigger: "proposal" }, "The human committed the proposal."],
-  [{ file: "report.md", trigger: "proposal" }, "The human committed the bug report."],
-  [{ trigger: "start" }, "The human started the feature."],
-  [{ trigger: "manual" }, "The human asked you to continue."],
-])("the sentence of %o", (detail, sentence) => expect(triggerSentence(detail)).toBe(sentence));
+import { chatOpening, chatTitle, retryMessage, runMessage, toolTarget } from "../message.ts";
 
 test.each<[string, Record<string, unknown>, string | undefined]>([
   ["Bash", { command: "vp run ready", description: "Run the checks" }, "vp run ready"],
@@ -43,53 +22,61 @@ test.each<[string, Record<string, unknown>, string | undefined]>([
   expect(toolTarget(name, input, "/repo")).toBe(target),
 );
 
-test("the message names the skill, the step, its reference, and the trigger", () => {
-  expect(
-    runMessage({
-      branch: "2026-10-12-cli-tuis",
-      folder: "2026-10-12-cli-tuis",
-      reference: "skills/uraeda/references/plan.md",
-      step: "plan",
-      trigger: "manual",
-    }),
-  ).toBe(
-    "/uraeda:uraeda Continue the feature specs/2026-10-12-cli-tuis/, on branch 2026-10-12-cli-tuis.\n" +
-      "The human asked you to continue.\n" +
-      "Its next step is plan: follow skills/uraeda/references/plan.md.\n",
+const PLAN = {
+  branch: "2026-10-12-cli-tuis",
+  folder: "2026-10-12-cli-tuis",
+  reference: "skills/uraeda/references/plan.md",
+  step: "plan",
+};
+
+test("the message names the skill, the goal, the reference, and where to stop", () => {
+  expect(runMessage({ ...PLAN, planReview: false })).toBe(
+    "/uraeda:uraeda Continue the feature specs/2026-10-12-cli-tuis/ on branch 2026-10-12-cli-tuis: " +
+      "Write the plan, then implement it, starting with skills/uraeda/references/plan.md.\n" +
+      "Stop when the pull request is ready for review, and earlier only if you need a decision from me.\n",
   );
 });
+
+test("a plan the human reviews stops at its review", () => {
+  expect(runMessage({ ...PLAN, planReview: true })).toMatch(
+    /: Write the plan, starting with .*\nStop when the plan waits for my review, /,
+  );
+});
+
+test("a spec without plan-review runs through the implementation", () => {
+  expect(runMessage({ ...PLAN, step: "approval" })).toMatch(
+    /: Record the approved decisions and write the plan, then implement it, .*\nStop when the pull request is ready for review, /,
+  );
+});
+
+test.each<[string, string]>([
+  ["discovery", "the questions wait for my answers"],
+  ["spec", "the spec waits for my review"],
+  ["spec-revision", "the spec waits for my review again"],
+  ["implementation", "the pull request is ready for review"],
+  ["pull-request-changes", "the pull request is ready for review again"],
+  ["assess", "the assessment waits for my review"],
+  ["fix", "the pull request is ready for review"],
+])("the run of %s stops when %s", (step, stop) =>
+  expect(runMessage({ ...PLAN, step })).toContain(`\nStop when ${stop}, `),
+);
 
 test("a bug's message names its folder under specs/bugs/", () => {
   expect(
     runMessage({
       branch: "fix/2026-10-14-lost-undo",
       bug: true,
-      file: "report.md",
       folder: "2026-10-14-lost-undo",
       reference: "skills/uraeda/references/bug.md",
       step: "assess",
-      trigger: "proposal",
     }),
   ).toMatch(
-    /^\/uraeda:uraeda Continue the bug specs\/bugs\/2026-10-14-lost-undo\/, on branch fix\/2026-10-14-lost-undo\.\nThe human committed the bug report\.\n/,
+    /^\/uraeda:uraeda Continue the bug specs\/bugs\/2026-10-14-lost-undo\/ on branch fix\/2026-10-14-lost-undo: Find the root cause/,
   );
 });
 
-test("the message of answered questions is three lines", () => {
-  expect(
-    runMessage({
-      branch: "2026-10-13-chat",
-      file: "clarifications-01.md",
-      folder: "2026-10-13-chat",
-      reference: "skills/uraeda/references/spec.md",
-      step: "spec",
-      trigger: "answers",
-    }),
-  ).toBe(
-    "/uraeda:uraeda Continue the feature specs/2026-10-13-chat/, on branch 2026-10-13-chat.\n" +
-      "The human answered clarifications-01.md of the questions.\n" +
-      "Its next step is spec: follow skills/uraeda/references/spec.md.\n",
-  );
+test("the message does not say what the human did", () => {
+  expect(runMessage(PLAN)).not.toMatch(/the human/i);
 });
 
 test("the chat's opening line", () => {

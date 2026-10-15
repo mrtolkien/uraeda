@@ -1,11 +1,17 @@
 import type { TurnRow } from "./cache.ts";
 
 /** A session's status in the sidebar and its view. */
-export type SessionStatus = "working" | "needs-you" | "failed" | "unread" | "idle";
+export type SessionStatus = "working" | "needs-you" | "attention" | "unread" | "idle";
+
+/**
+ * Why a session needs the human: an action to allow, a step that waits on them, or a latest turn
+ * that failed, that they stopped, or that ran the workflow and ended before a human gate.
+ */
+export type StatusReason = "blocked" | "step" | "failed" | "stopped" | "halted";
 
 /** The order of statuses within a sidebar group: what needs the human first. */
 export const STATUS_ORDER: Record<SessionStatus, number> = {
-  failed: 1,
+  attention: 1,
   idle: 4,
   "needs-you": 0,
   unread: 2,
@@ -14,17 +20,19 @@ export const STATUS_ORDER: Record<SessionStatus, number> = {
 
 /**
  * A session's status, from the first rule that matches: a running or queued turn, a blocked action
- * not allowed or a step that waits on the human, a failed latest turn, a latest turn that ended
- * after the human last saw the session, and otherwise idle, or stopped.
+ * not allowed or a step that waits on the human, a latest turn that failed, was stopped, or ran the
+ * workflow while the step still waits on the agent, a latest turn that ended after the human last
+ * saw the session, and otherwise idle.
  */
 export function sessionStatus(input: {
   blocked: boolean;
-  latest?: Pick<TurnRow, "state" | "endedAt">;
+  latest?: Pick<TurnRow, "endedAt" | "kind" | "state">;
   queued: boolean;
   seenAt: string | null;
+  waitsOnAgent?: boolean;
   waitsOnHuman: boolean;
-}): { label: string; reason?: "blocked" | "step"; status: SessionStatus } {
-  const { blocked, latest, queued, seenAt, waitsOnHuman } = input;
+}): { label: string; reason?: StatusReason; status: SessionStatus } {
+  const { blocked, latest, queued, seenAt, waitsOnAgent = false, waitsOnHuman } = input;
   if (queued || latest?.state === "running" || latest?.state === "queued") {
     return { label: "Working", status: "working" };
   }
@@ -34,11 +42,14 @@ export function sessionStatus(input: {
   if (waitsOnHuman) {
     return { label: "Needs you", reason: "step", status: "needs-you" };
   }
-  if (latest?.state === "failed") {
-    return { label: "Failed", status: "failed" };
+  if (latest?.state === "failed" || latest?.state === "stopped") {
+    return { label: "Needs attention", reason: latest.state, status: "attention" };
+  }
+  if (latest?.state === "done" && latest.kind !== "chat" && waitsOnAgent) {
+    return { label: "Needs attention", reason: "halted", status: "attention" };
   }
   if (latest?.endedAt && (seenAt === null || Date.parse(latest.endedAt) > Date.parse(seenAt))) {
     return { label: "New reply", status: "unread" };
   }
-  return { label: latest?.state === "stopped" ? "Stopped" : "Idle", status: "idle" };
+  return { label: "Idle", status: "idle" };
 }

@@ -20,11 +20,14 @@ Look and feel pass: components style, logo, favicon, ...
 - The status detection is iffy -> wait for agent runs to finish before saying it's "waiting on you",
   include PR URL, make sure the "PR ready" state means the PR was opened (currently it's at that
   state when the reviewer runs)
+- Opening a big session is slow and laggy: I want the full UI to feel instant, the UI should only be
+  passed the last X messages by default
+- Priorities line -> edit text is too many clicks (one opens the sidebar, then edit, then edit
+  again...), it's bad UI for the most standard path
+  - And priorities that have a draft file associated should be highlighted!
 
 ## Why
 
 The UI works, but it does not look like a finished tool yet: it should look good before v1.0.0.
 
 ## Notes
-
-- Going to the priorities page is too slow, is this a UI or backend issue?

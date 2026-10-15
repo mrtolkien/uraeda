@@ -201,6 +201,32 @@ fn approval_when_a_decision_is_pending() {
 }
 
 #[test]
+fn the_steps_before_the_plan_carry_plan_review() {
+    let with = |spec_text: String, plan_text: Option<String>| {
+        let mut files = vec![
+            ("proposal.md", proposal()),
+            ("clarifications-01.md", answered()),
+            ("spec.md", spec_text),
+        ];
+        files.extend(plan_text.map(|text| ("plan.md", text)));
+        feature(Kind::Feature, &files).step
+    };
+    let reviewed = spec("approved", 1, 1).replace("risk-tier: low", "plan-review: true");
+
+    assert_eq!(with(spec("approved", 1, 1), None).plan_review, Some(false));
+    assert_eq!(with(reviewed.clone(), None).plan_review, Some(true));
+    let revision = with(
+        reviewed.clone(),
+        Some(plan("changes-requested", 1, &[("One", 0, 1)])),
+    );
+    assert_eq!(revision.name, StepName::PlanRevision);
+    assert_eq!(revision.plan_review, Some(true));
+    let implementation = with(reviewed, Some(plan("approved", 1, &[("One", 0, 1)])));
+    assert_eq!(implementation.name, StepName::Implementation);
+    assert_eq!(implementation.plan_review, None);
+}
+
+#[test]
 fn implementation_names_the_first_unchecked_task() {
     let feature = feature(
         Kind::Feature,

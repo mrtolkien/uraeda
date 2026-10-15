@@ -1,61 +1,80 @@
 import { isAbsolute, relative, sep } from "node:path";
-import type { Trigger } from "./events.ts";
-
-/** What a committed file is, in a sentence: "round 01", "spec", "bug report". */
-function fileName(file = ""): string {
-  const round = /^clarifications-(\d+)\.md$/.exec(file);
-  if (round) {
-    return `round ${round[1]}`;
-  }
-  if (file === "report.md") {
-    return "bug report";
-  }
-  return file.replace(/\.md$/, "");
-}
-
-/** The sentence that tells the agent why it runs. */
-export function triggerSentence({ file, trigger }: { file?: string; trigger: Trigger }): string {
-  switch (trigger) {
-    case "answers":
-      return `The human answered ${file} of the questions.`;
-    case "approval":
-      return `The human approved the ${fileName(file)}.`;
-    case "changes":
-      return `The human requested changes on the ${fileName(file)}.`;
-    case "proposal":
-      return `The human committed the ${fileName(file)}.`;
-    case "start":
-      return "The human started the feature.";
-    case "manual":
-      return "The human asked you to continue.";
-  }
-}
 
 /** A feature's or a bug's folder, and the word that names it. */
 function subject(folder: string, bug?: boolean): string {
   return bug ? `bug specs/bugs/${folder}/` : `feature specs/${folder}/`;
 }
 
+const READY = "the pull request is ready for review";
+
 /**
- * The workflow's message, which the human reads and may change before sending. A resumed session
- * keeps its first system prompt, so every message names the skill, the step, its reference, and
- * the trigger.
+ * What a run does from a step, and where it stops: the next human gate, which the step and the
+ * spec's `plan-review` decide.
+ */
+function goal(step: string, planReview?: boolean): { stop: string; work: string } {
+  const plan = (first: string) =>
+    planReview
+      ? { stop: "the plan waits for my review", work: first }
+      : { stop: READY, work: `${first}, then implement it` };
+  switch (step) {
+    case "discovery":
+      return {
+        stop: "the questions wait for my answers",
+        work: "Investigate it and ask me your questions",
+      };
+    case "spec":
+      return { stop: "the spec waits for my review", work: "Write the spec from the answers" };
+    case "spec-revision":
+      return { stop: "the spec waits for my review again", work: "Revise the spec from my review" };
+    case "approval":
+      return plan("Record the approved decisions and write the plan");
+    case "plan":
+      return plan("Write the plan");
+    case "plan-revision":
+      return plan("Revise the plan");
+    case "implementation":
+      return { stop: READY, work: "Implement the plan" };
+    case "final-review":
+      return { stop: READY, work: "Review the implementation" };
+    case "pull-request-changes":
+      return { stop: `${READY} again`, work: "Address the changes requested on the pull request" };
+    case "assess":
+      return {
+        stop: "the assessment waits for my review",
+        work: "Find the root cause and propose a fix",
+      };
+    case "assess-revision":
+      return {
+        stop: "the assessment waits for my review again",
+        work: "Revise the assessment from my review",
+      };
+    case "fix":
+      return { stop: READY, work: "Fix the bug" };
+    default:
+      return { stop: READY, work: "Finish it" };
+  }
+}
+
+/**
+ * The workflow's message, which the human reads and may change before sending: the goal of the run
+ * and where it stops. A resumed session keeps its first system prompt, so every message names the
+ * skill and the step's reference.
  */
 export function runMessage(input: {
   branch: string;
   /** A bug lives in `specs/bugs/`. */
   bug?: boolean;
-  /** The file the human committed, for the trigger's sentence. */
-  file?: string;
   folder: string;
+  /** The spec's `plan-review`, for the steps before the plan is approved. */
+  planReview?: boolean;
   reference: string;
   step: string;
-  trigger: Trigger;
 }): string {
+  const { stop, work } = goal(input.step, input.planReview);
   return (
-    `/uraeda:uraeda Continue the ${subject(input.folder, input.bug)}, on branch ${input.branch}.\n` +
-    `${triggerSentence(input)}\n` +
-    `Its next step is ${input.step}: follow ${input.reference}.\n`
+    `/uraeda:uraeda Continue the ${subject(input.folder, input.bug)} on branch ${input.branch}: ` +
+    `${work}, starting with ${input.reference}.\n` +
+    `Stop when ${stop}, and earlier only if you need a decision from me.\n`
   );
 }
 

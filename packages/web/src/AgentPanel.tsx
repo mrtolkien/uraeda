@@ -44,8 +44,8 @@ const ENDINGS: Partial<Record<string, string>> = { failed: "Failed", stopped: "S
 
 /** What the panel's buttons are told of the latest turn. */
 type Latest = {
-  /** It failed or was stopped. */
-  endedBadly: boolean;
+  /** It failed, was stopped, or ended before a human gate: the human reads it and answers. */
+  needsAttention: boolean;
   /** It runs the workflow's step, or waits to: starting the agent again would run it twice. */
   runsStep: boolean;
 };
@@ -69,7 +69,7 @@ function LatestTurn({ children, id }: { children: (latest: Latest) => ReactNode;
     <>
       <Line parts={[what, ending, time]} />
       {children({
-        endedBadly: ending !== undefined,
+        needsAttention: ending !== undefined,
         runsStep: turn?.kind === "workflow" && ["queued", "running"].includes(turn.state),
       })}
     </>
@@ -85,7 +85,7 @@ function Summary({ actions, id }: { actions: (latest: Latest) => ReactNode; id: 
   const session = useSession(id);
   const [error, setError] = useState<string>();
   if (!session) {
-    return actions({ endedBadly: false, runsStep: false });
+    return actions({ needsAttention: false, runsStep: false });
   }
   const stop = async () => {
     setError(undefined);
@@ -106,14 +106,17 @@ function Summary({ actions, id }: { actions: (latest: Latest) => ReactNode; id: 
           {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
         </>
       )}
-      {actions({ ...latest, endedBadly: latest.endedBadly || session.status === "failed" })}
+      {actions({
+        ...latest,
+        needsAttention: latest.needsAttention || session.status === "attention",
+      })}
     </>
   );
   return (
     <>
       <SessionStatus label={session.statusLabel} status={session.status} />
       {latest === undefined ? (
-        rest({ endedBadly: false, runsStep: false })
+        rest({ needsAttention: false, runsStep: false })
       ) : (
         <LatestTurn id={latest}>{rest}</LatestTurn>
       )}
@@ -123,10 +126,11 @@ function Summary({ actions, id }: { actions: (latest: Latest) => ReactNode; id: 
 
 /**
  * A feature's agent: its session's status, its latest turn, Stop while it works, "Open
- * the session", and, when the feature waits on an agent, "Review and start the agent" or "Review and
- * try again", which open the session with the workflow's message in the composer, unsent: never
- * while the agent runs the step, or waits to. Nothing shows without a
- * session when the agent is not on this machine, or when the feature has no branch.
+ * the session", and, when the feature waits on an agent, "Review and start the agent", which opens
+ * the session with the workflow's message in the composer, unsent: never while the agent runs the
+ * step, or waits to, nor when its latest turn needs the human's attention, which they answer in the
+ * session. Nothing shows without a session when the agent is not on this machine, or when the
+ * feature has no branch.
  */
 export function AgentPanel({ feature }: { feature: Feature }) {
   const agent = useAgent();
@@ -139,29 +143,28 @@ export function AgentPanel({ feature }: { feature: Feature }) {
     return null;
   }
   const start = () => handOver(feature.folder, "manual");
-  const actions = ({ endedBadly, runsStep }: Latest) => (
-    <HStack gap={2} wrap="wrap">
-      <Button
-        href={here(sessionPath(feature.folder))}
-        label="Open the session"
-        variant={canStart ? "secondary" : "primary"}
-      />
-      {canStart && !runsStep && (
+  const actions = ({ needsAttention, runsStep }: Latest) => {
+    const offered = canStart && !runsStep && !needsAttention;
+    return (
+      <HStack gap={2} wrap="wrap">
         <Button
-          clickAction={start}
-          label={endedBadly ? "Review and try again" : "Review and start the agent"}
-          variant="primary"
+          href={here(sessionPath(feature.folder))}
+          label="Open the session"
+          variant={offered ? "secondary" : "primary"}
         />
-      )}
-    </HStack>
-  );
+        {offered && (
+          <Button clickAction={start} label="Review and start the agent" variant="primary" />
+        )}
+      </HStack>
+    );
+  };
   return (
     <VStack aria-label="Agent" as="section" gap={3}>
       <Heading level={2}>Agent</Heading>
       {feature.session ? (
         <Summary actions={actions} id={feature.session} />
       ) : (
-        actions({ endedBadly: false, runsStep: false })
+        actions({ needsAttention: false, runsStep: false })
       )}
     </VStack>
   );

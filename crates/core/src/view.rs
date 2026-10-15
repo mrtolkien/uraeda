@@ -257,6 +257,8 @@ pub struct NextStepView {
     pub progress: Option<TaskProgress>,
     /// `open`, `draft`, `changes-requested`, `none`, or `unknown`, when the step depends on it.
     pub pull_request: Option<String>,
+    /// Whether the plan waits for the human's review, for the steps before it is approved.
+    pub plan_review: Option<bool>,
 }
 
 impl From<&Step> for StepView {
@@ -282,6 +284,7 @@ impl From<&Step> for NextStepView {
             task: step.task.clone(),
             progress: step.progress.clone(),
             pull_request: step.pull_request.as_ref().map(kebab),
+            plan_review: step.plan_review,
         }
     }
 }

@@ -17,7 +17,7 @@ const SEARCH_DELAY = 200;
 
 /** The order of statuses within a group: what needs the human first. */
 const STATUS_ORDER: Record<SessionStatus, number> = {
-  failed: 1,
+  attention: 1,
   idle: 4,
   "needs-you": 0,
   unread: 2,

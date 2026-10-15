@@ -112,6 +112,7 @@ function statusOf(row: SessionRow, read: ReturnType<typeof turnsOf>, feature?: F
     blocked: read.blocked,
     queued: read.queued,
     seenAt: row.seenAt,
+    waitsOnAgent: feature?.step.waitsOn === "agent",
     waitsOnHuman: feature?.step.waitsOn === "human",
   });
   return { status: status.status, statusLabel: status.label, statusReason: status.reason ?? null };
@@ -300,7 +301,7 @@ export async function readWorkflowMessage(
   ctx: RepoContext,
   id: string,
 ): Promise<WorkflowMessageRecord | undefined> {
-  const [folder, trigger, ...file] = id.split(":");
+  const [folder, trigger] = id.split(":");
   if (!folder || !TRIGGERS.includes(trigger as Trigger)) {
     return undefined;
   }
@@ -329,8 +330,7 @@ export async function readWorkflowMessage(
       folder,
       reference: step.reference,
       step: step.name,
-      trigger: trigger as Trigger,
-      ...(file.length === 0 ? {} : { file: file.join(":") }),
+      ...(step.planReview === undefined ? {} : { planReview: step.planReview }),
     }),
   };
 }
