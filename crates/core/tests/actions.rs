@@ -1306,6 +1306,43 @@ fn a_draft_starts_as_a_change() {
     );
 }
 
+/// Edge case: a postponed feature's folder, with a discovery round, a spec, and a plan, holds files
+/// a change's folder has no place for, so it is refused as a change before anything is committed.
+#[test]
+fn a_postponed_feature_is_refused_as_a_change() {
+    let repo = draft_repo();
+    repo.remove(DRAFT);
+    for file in ["proposal.md", "discovery-01.md", "spec.md", "plan.md"] {
+        repo.write(&format!("{DRAFT_FOLDER}/{file}"), "# Login banner\n");
+    }
+    repo.write(&format!("{DRAFT_FOLDER}/images/login.webp"), "image");
+    repo.write(&format!("{DRAFT_FOLDER}/.gitkeep"), "");
+    repo.commit("chore: postpone Login banner");
+    let (git, workspace) = opened(&repo);
+
+    let refused = start::run(
+        &git,
+        &workspace,
+        DRAFT_FOLDER,
+        Some("centred-x"),
+        Kind::Change,
+        change_day(),
+        false,
+    );
+
+    assert_eq!(
+        refused.err().map(|error| error.to_string()).as_deref(),
+        Some(
+            "specs/drafts/login-banner holds discovery-01.md, plan.md, and spec.md, which have no \
+             place in a change: start it as a feature, without --change"
+        )
+    );
+    assert_eq!(repo.subjects("main")[0], "chore: postpone Login banner");
+    assert_eq!(repo.git(&["branch", "--list", "change/*"]), "");
+    assert!(!repo.path().join(".worktrees").join(CHANGE_FOLDER).exists());
+    assert_eq!(repo.porcelain(), "");
+}
+
 /// US1.1: the first line is the title, and the rest is kept as typed.
 #[test]
 fn a_typed_text_starts_a_change() {
