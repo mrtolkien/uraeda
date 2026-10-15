@@ -512,8 +512,7 @@ Changed, applied when this spec is approved:
 - [Stack](../decisions/stack.md): the server may run a project's preview command in a checkout, and
   forward its reads and live connections under `/r/<repository>/preview/<folder>/`. Those paths
   accept `Origin: null`, and every other route keeps the rule. The web UI embeds stories in
-  sandboxed frames, accepting messages only from them. See its
-  [rules](../decisions/stack.md#rules).
+  sandboxed frames, accepting messages only from them. See its [rules](../decisions/stack.md#rules).
 
 Relied on:
 

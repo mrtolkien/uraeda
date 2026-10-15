@@ -100,13 +100,12 @@ out of code actions: a code action is a quick fix, picked from a list next to ot
 and approving or starting a feature must be a deliberate act
 ([Q2](../done/2026-10-13-nvim-plugin.md#q2-what-does-picking-a-human-status-do)).
 
-The human chose live mockups run by Uraeda from the project's own Storybook, working remotely through
-Tailscale, with a laxer `Origin` rule on the preview's paths
+The human chose live mockups run by Uraeda from the project's own Storybook, working remotely
+through Tailscale, with a laxer `Origin` rule on the preview's paths
 ([Q5](../2026-10-15-ui-iteration/clarifications-01.md#q5-how-do-you-see-interactions-not-only-a-still),
 [round 02](../2026-10-15-ui-iteration/clarifications-02.md),
-[the spec](../2026-10-15-ui-iteration/spec.md)). A frame sandboxed
-without `allow-same-origin` sends `Origin: null`, which every write and every other route still
-refuses
+[the spec](../2026-10-15-ui-iteration/spec.md)). A frame sandboxed without `allow-same-origin` sends
+`Origin: null`, which every write and every other route still refuses
 ([running untrusted UI](../2026-10-15-ui-iteration/discovery-02.md#running-untrusted-ui-next-to-a-host)).
 
 ## Alternatives considered
@@ -156,4 +155,3 @@ refuses
 - [`crates/`](/crates/) and [`packages/`](/packages/), and every feature that adds logic, a command,
   an endpoint, or a page
 - [`editors/`](/editors/), and every feature that adds an editor integration
-
