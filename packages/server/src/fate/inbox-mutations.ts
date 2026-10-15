@@ -16,6 +16,12 @@ type NoteInput = { hash: string; note: string };
 /** A note to add: its text, its category, none when left out, and the feature or bug it is about. */
 type AddInput = { about?: string; category?: string; hash: string; text: string };
 
+/**
+ * The Undo of a move: the note's lines as written, and its place, its category, none when left
+ * out, and its index in it, which it goes back to.
+ */
+type UndoInput = { category?: string; index: number; lines: Array<string> };
+
 /** A move into the priorities: both files' hashes as read, and the section's id, `next`. */
 type ToPrioritiesInput = NoteInput & { prioritiesHash: string; section: string };
 
@@ -133,6 +139,56 @@ export const inboxMutations = {
       );
       return inbox(ctx, await ctx.binding.readInbox(ctx.repo), select);
     },
+    type: "Inbox",
+  },
+  "inbox.undoCategory": {
+    resolve: async ({ ctx, input, select }: Resolver<UndoInput>) =>
+      inbox(
+        ctx,
+        await refusable(() =>
+          ctx.binding.undoNoteCategory(ctx.repo, input.lines, input.index, input.category),
+        ),
+        select,
+      ),
+    type: "Inbox",
+  },
+  "inbox.undoToDraft": {
+    resolve: async ({ ctx, input, select }: Resolver<UndoInput & { draft: string }>) =>
+      inbox(
+        ctx,
+        await refusable(() =>
+          ctx.binding.undoNoteToDraft(
+            ctx.repo,
+            input.draft,
+            input.lines,
+            input.index,
+            input.category,
+          ),
+        ),
+        select,
+      ),
+    type: "Inbox",
+  },
+  "inbox.undoToPriorities": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<UndoInput & { entryKey?: string; section: string }>) =>
+      inbox(
+        ctx,
+        await refusable(() =>
+          ctx.binding.undoNoteToPriorities(
+            ctx.repo,
+            input.lines,
+            input.index,
+            input.section,
+            input.category,
+            input.entryKey,
+          ),
+        ),
+        select,
+      ),
     type: "Inbox",
   },
   "triage.answer": {

@@ -185,3 +185,52 @@ pub fn save_triage_notes(
 pub fn submit_triage(repo: String, previous: String) -> AsyncTask<Job<FileView>> {
     job(move || api::submit_triage(Path::new(&repo), &previous))
 }
+
+/// Takes back a note's move to a section of the priorities, in one write of both files or none:
+/// the line the move wrote leaves the section, found by the note's lines and, among several, by
+/// `entryKey`, its key once moved; the note goes back before the note at `index` of its category.
+#[napi(ts_return_type = "Promise<Inbox>")]
+pub fn undo_note_to_priorities(
+    repo: String,
+    lines: Vec<String>,
+    index: u32,
+    section: String,
+    category: Option<String>,
+    entry_key: Option<String>,
+) -> AsyncTask<Job<Inbox>> {
+    job(move || {
+        api::undo_note_to_priorities(
+            Path::new(&repo),
+            &lines,
+            category,
+            index,
+            &section,
+            entry_key,
+        )
+    })
+}
+
+/// Takes back a note's add to a draft, in one write of both files or none: the note's lines leave
+/// the draft, every other edit kept, and the note goes back to its place.
+#[napi(ts_return_type = "Promise<Inbox>")]
+pub fn undo_note_to_draft(
+    repo: String,
+    draft: String,
+    lines: Vec<String>,
+    index: u32,
+    category: Option<String>,
+) -> AsyncTask<Job<Inbox>> {
+    job(move || api::undo_note_to_draft(Path::new(&repo), &draft, &lines, category, index))
+}
+
+/// Takes back a note's move to another category, in one write: the note, found by its lines,
+/// goes back before the note at `index` of `category`, or of the notes without one.
+#[napi(ts_return_type = "Promise<Inbox>")]
+pub fn undo_note_category(
+    repo: String,
+    lines: Vec<String>,
+    index: u32,
+    category: Option<String>,
+) -> AsyncTask<Job<Inbox>> {
+    job(move || api::undo_note_category(Path::new(&repo), &lines, category, index))
+}

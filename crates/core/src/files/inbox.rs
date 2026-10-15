@@ -6,8 +6,10 @@ use pulldown_cmark::{Event, Parser, Tag, TagEnd};
 use super::lines::{self, Item, item_marker};
 
 mod diff;
+mod found;
 
 pub use diff::{NoteChange, diff};
+pub use found::{ids_of_lines, of_lines};
 
 /// What an empty inbox holds.
 const TITLE: &str = "# Inbox\n";

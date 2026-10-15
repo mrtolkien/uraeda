@@ -45,13 +45,14 @@ export function CommitBar({ changes }: { changes: number }) {
   const run = async (call: () => Promise<{ error?: unknown }>) => {
     setMessage(undefined);
     const result = await call();
+    // Both pages show the count: the one the answer did not update reads it again, and a refusal,
+    // like a commit over files changed meanwhile, shows them as they are.
+    rereadChanges(fate);
     if (result.error) {
       setMessage(refusal(result.error).message);
       return;
     }
     closeUndoToasts();
-    // Both pages show the count: the one the answer did not update reads it again.
-    rereadChanges(fate);
   };
 
   const commit = () =>

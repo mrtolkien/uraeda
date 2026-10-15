@@ -213,6 +213,14 @@ pub(crate) fn signed_markdown(lines: &[&str], item: &Item) -> String {
     format!("{first}\n{rest}")
 }
 
+/// The markdown of an item given by its lines, as [`signed_markdown`] gives it from a text: what an
+/// item another file holds is found by.
+pub(crate) fn markdown_of(lines: &[String]) -> Option<String> {
+    let (first, rest) = lines.split_first()?;
+    let (_, first) = item_marker(first)?;
+    Some(format!("{first}\n{}", rest.join("\n")))
+}
+
 /// A change to one item between two texts, each item named by its text without markdown.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum Change<S> {

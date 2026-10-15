@@ -18,13 +18,21 @@ import { TITLES } from "./QuickAdd.tsx";
 import { useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { Spans } from "./Spans.tsx";
 import { useLineSave } from "./useLineSave.ts";
-import { categoryName, type Placed, useNoteActions } from "./useNoteActions.ts";
+import { categoryName, type Placed, type Renaming, useNoteActions } from "./useNoteActions.ts";
 
 /** The Category menu's value for no category; a category's is its name, after `:`. */
 const NONE = "none";
 
-/** The note of a key, or of an id while its text, and so its key, changes, with its place. */
-function placed(inbox: Pick<Inbox, "categories">, key: string, id?: string): Placed | undefined {
+/**
+ * The note of a key, with its place; while its text is saved, and so its key changes, the note of
+ * its id, only as long as that note holds the text saved: an id is a place, which another note
+ * takes once this one goes.
+ */
+function placed(
+  inbox: Pick<Inbox, "categories">,
+  key: string,
+  renaming?: Renaming,
+): Placed | undefined {
   const find = (match: (note: Placed["note"]) => boolean) => {
     for (const category of inbox.categories) {
       const index = category.notes.findIndex(match);
@@ -34,7 +42,10 @@ function placed(inbox: Pick<Inbox, "categories">, key: string, id?: string): Pla
     }
     return undefined;
   };
-  return find((note) => note.key === key) ?? (id ? find((note) => note.id === id) : undefined);
+  return (
+    find((note) => note.key === key) ??
+    (renaming ? find((note) => note.id === renaming.id && note.text === renaming.text) : undefined)
+  );
 }
 
 /** The path the editor and the moves take for a draft the workspace lists: a folder's proposal. */
@@ -138,7 +149,7 @@ function NoteBody({
   placed: found,
 }: {
   inbox: Pick<Inbox, "hash" | "names">;
-  onRenaming: (id: string | undefined) => void;
+  onRenaming: (renaming: Renaming | undefined) => void;
   placed: Placed;
 }) {
   const { note } = found;
@@ -192,8 +203,8 @@ function NoteBody({
 export function NoteView({ noteKey }: { noteKey: string }) {
   const inbox = useInbox();
   const here = useRepoPath();
-  // The note's id while it is renamed: its key changes before its address does.
-  const [renaming, setRenaming] = useState<string>();
+  // The note's id and new text while it is renamed: its key changes before its address does.
+  const [renaming, setRenaming] = useState<Renaming>();
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   if (!inbox) {

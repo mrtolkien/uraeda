@@ -280,6 +280,25 @@ export declare function submitAnswers(repo: string, folder: string, name?: strin
  */
 export declare function submitTriage(repo: string, previous: string): Promise<FileView>
 
+/**
+ * Takes back a note's move to another category, in one write: the note, found by its lines,
+ * goes back before the note at `index` of `category`, or of the notes without one.
+ */
+export declare function undoNoteCategory(repo: string, lines: Array<string>, index: number, category?: string | undefined | null): Promise<Inbox>
+
+/**
+ * Takes back a note's add to a draft, in one write of both files or none: the note's lines leave
+ * the draft, every other edit kept, and the note goes back to its place.
+ */
+export declare function undoNoteToDraft(repo: string, draft: string, lines: Array<string>, index: number, category?: string | undefined | null): Promise<Inbox>
+
+/**
+ * Takes back a note's move to a section of the priorities, in one write of both files or none:
+ * the line the move wrote leaves the section, found by the note's lines and, among several, by
+ * `entryKey`, its key once moved; the note goes back before the note at `index` of its category.
+ */
+export declare function undoNoteToPriorities(repo: string, lines: Array<string>, index: number, section: string, category?: string | undefined | null, entryKey?: string | undefined | null): Promise<Inbox>
+
 /** The binding's version, the Cargo workspace's. It reads nothing, so it returns at once. */
 export declare function version(): string
 
