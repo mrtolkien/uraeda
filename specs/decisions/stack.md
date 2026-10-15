@@ -10,39 +10,51 @@ built on it. The server is a TypeScript program on Node that calls the same core
 binding, and the web UI is React with Astryx and fate, fed by the server. TypeScript never
 reimplements what the core does, and the types that cross from Rust are generated, never written by
 hand. Editors reach the same core through a language server, `ura lsp`, and their plugins never
-parse workflow files.
+parse workflow files. The server may run a project's Storybook and forward it under its own address,
+so the web UI embeds live stories in sandboxed frames.
 
 ## Rules
 
 - Workflow logic, parsing, validation, and workflow states MUST live in the Rust core,
-  [`crates/core`](/crates/core/).
+  [`crates/core`](/crates/core/). Checked by review.
 - The CLI MUST be written in Rust, in [`crates/cli`](/crates/cli/), build the binary `ura`, and MUST
-  NOT need Node or any other runtime to run.
+  NOT need Node or any other runtime to run. Checked by review.
 - The server MUST be written in TypeScript, run on Node, and live in
-  [`packages/server`](/packages/server/).
+  [`packages/server`](/packages/server/). Checked by review.
 - TypeScript code MUST reach the core only through the binding,
   [`packages/binding`](/packages/binding/), and MUST NOT reimplement its parsing, validation, or
-  states.
+  states. Checked by review.
 - The TypeScript types of core data MUST come from the declarations napi-rs generates for the
-  binding. They MUST NOT be redeclared by hand in TypeScript.
+  binding. They MUST NOT be redeclared by hand in TypeScript. Checked by review.
 - The web UI MUST use React and Astryx components, live in [`packages/web`](/packages/web/), and get
-  its data only from the server, through fate.
+  its data only from the server, through fate. Checked by review.
 - The web UI MUST draw workflow files from the document tree the core sends, and MUST NOT parse
   their markdown, with a library or by hand. It MAY render an agent's messages, which are not
-  workflow files, with Astryx's `Markdown` component.
+  workflow files, with Astryx's `Markdown` component. Checked by review.
 - The server MUST listen on 127.0.0.1 only. It MUST reject requests whose `Host` is not `127.0.0.1`
-  or `localhost` on its port, or a host name listed in `URAEDA_ALLOWED_HOSTS`, and requests whose
-  `Origin`, when present, is not the server's own, `https://` and a listed host name, or an allowed
-  origin.
+  or `localhost` on its port, or a host name listed in `URAEDA_ALLOWED_HOSTS`. It MUST reject
+  requests whose `Origin`, when present, is not the server's own, `https://` and a listed host name,
+  or an allowed origin, except GET and HEAD requests and WebSocket upgrades under
+  `/r/<repository>/preview/`, which MAY carry `Origin: null`. Checked by the guard's tests.
+- The server MAY start the command of a project's active [preview](preview.md) decision, read from a
+  checkout, in that checkout, bound to 127.0.0.1 on a free port. It MUST forward only that process's
+  GET and HEAD requests and WebSocket upgrades, under `/r/<repository>/preview/<folder>/`, with
+  `Access-Control-Allow-Origin: *` and a `Content-Security-Policy` of
+  `sandbox allow-scripts allow-popups` on every response. It MUST stop the process when the server
+  stops. Checked by the preview proxy's and runner's tests.
+- The web UI MAY show a preview's pages only in frames sandboxed without `allow-same-origin`. It
+  MUST accept messages only from those frames' windows, and MUST NOT give a frame any data beyond
+  the story to show, its colour mode, and whether pick mode is on. Checked by the embed's tests.
 - The language server MUST live in `crates/lsp`, run as `ura lsp` over stdio, and reach workflow
-  files only through the core.
+  files only through the core. Checked by review.
 - The language server MUST be built on the `lsp-server` and `lsp-types` crates, without an async
-  runtime.
+  runtime. Checked by review.
 - Editor plugins MUST live in `editors/<editor>/`, and MUST reach workflow files only through
   `ura lsp`. They MUST NOT parse workflow files, their frontmatter, or their structure, with a
-  library or by hand.
+  library or by hand. Checked by review.
 - The language server's completions and code actions MUST only edit the open document. Actions that
   write another file or commit MUST be commands the user runs explicitly, never code actions.
+  Checked by review.
 
 ## Why
 
@@ -88,6 +100,15 @@ out of code actions: a code action is a quick fix, picked from a list next to ot
 and approving or starting a feature must be a deliberate act
 ([Q2](../done/2026-10-13-nvim-plugin.md#q2-what-does-picking-a-human-status-do)).
 
+The human chose live mockups run by Uraeda from the project's own Storybook, working remotely through
+Tailscale, with a laxer `Origin` rule on the preview's paths
+([Q5](../2026-10-15-ui-iteration/clarifications-01.md#q5-how-do-you-see-interactions-not-only-a-still),
+[round 02](../2026-10-15-ui-iteration/clarifications-02.md),
+[the spec](../2026-10-15-ui-iteration/spec.md)). A frame sandboxed
+without `allow-same-origin` sends `Origin: null`, which every write and every other route still
+refuses
+([running untrusted UI](../2026-10-15-ui-iteration/discovery-02.md#running-untrusted-ui-next-to-a-host)).
+
 ## Alternatives considered
 
 - All TypeScript, the CLI shipped with Bun: one toolchain, but an 80 MB binary.
@@ -123,6 +144,12 @@ and approving or starting a feature must be a deliberate act
 - The `ura` binary grows by the server and its two crates, about 263 KB measured alone.
 - Every editor action is a core function first: an action the web UI lacks is added to the core, and
   both reach it.
+- The server runs project code, the preview command a human approved in the project's decision, and
+  forwards its traffic.
+- Anyone who reaches the server reaches the previews it runs, as for the rest of the server, until
+  basic security is added.
+- A story's code can read any path under `/r/<repository>/preview/`, of any checkout, but nothing
+  else of the server.
 
 ## Applies to
 
@@ -130,71 +157,3 @@ and approving or starting a feature must be a deliberate act
   an endpoint, or a page
 - [`editors/`](/editors/), and every feature that adds an editor integration
 
-## Proposed change (2026-10-15-ui-iteration)
-
-Proposed by the [spec](../2026-10-15-ui-iteration/spec.md). The server may run a project's
-Storybook, from its active preview decision, in a checkout, and forward it under its own address, so
-stories work wherever Uraeda is reached. The `Origin` rule is laxer on those paths only: it accepts
-the sandboxed frames' `Origin: null` for reads and live connections.
-
-The rules become:
-
-- Workflow logic, parsing, validation, and workflow states MUST live in the Rust core,
-  [`crates/core`](/crates/core/). Checked by review.
-- The CLI MUST be written in Rust, in [`crates/cli`](/crates/cli/), build the binary `ura`, and MUST
-  NOT need Node or any other runtime to run. Checked by review.
-- The server MUST be written in TypeScript, run on Node, and live in
-  [`packages/server`](/packages/server/). Checked by review.
-- TypeScript code MUST reach the core only through the binding,
-  [`packages/binding`](/packages/binding/), and MUST NOT reimplement its parsing, validation, or
-  states. Checked by review.
-- The TypeScript types of core data MUST come from the declarations napi-rs generates for the
-  binding. They MUST NOT be redeclared by hand in TypeScript. Checked by review.
-- The web UI MUST use React and Astryx components, live in [`packages/web`](/packages/web/), and get
-  its data only from the server, through fate. Checked by review.
-- The web UI MUST draw workflow files from the document tree the core sends, and MUST NOT parse
-  their markdown, with a library or by hand. It MAY render an agent's messages, which are not
-  workflow files, with Astryx's `Markdown` component. Checked by review.
-- The server MUST listen on 127.0.0.1 only. It MUST reject requests whose `Host` is not `127.0.0.1`
-  or `localhost` on its port, or a host name listed in `URAEDA_ALLOWED_HOSTS`. It MUST reject
-  requests whose `Origin`, when present, is not the server's own, `https://` and a listed host name,
-  or an allowed origin, except GET and HEAD requests and WebSocket upgrades under
-  `/r/<repository>/preview/`, which MAY carry `Origin: null`. Checked by the guard's tests.
-- The server MAY start the command of a project's active [preview](preview.md) decision, read from a
-  checkout, in that checkout, bound to 127.0.0.1 on a free port. It MUST forward only that process's
-  GET and HEAD requests and WebSocket upgrades, under `/r/<repository>/preview/<folder>/`, with
-  `Access-Control-Allow-Origin: *` and a `Content-Security-Policy` of
-  `sandbox allow-scripts allow-popups` on every response. It MUST stop the process when the server
-  stops. Checked by the preview proxy's and runner's tests.
-- The web UI MAY show a preview's pages only in frames sandboxed without `allow-same-origin`. It
-  MUST accept messages only from those frames' windows, and MUST NOT give a frame any data beyond
-  the story to show, its colour mode, and whether pick mode is on. Checked by the embed's tests.
-- The language server MUST live in `crates/lsp`, run as `ura lsp` over stdio, and reach workflow
-  files only through the core. Checked by review.
-- The language server MUST be built on the `lsp-server` and `lsp-types` crates, without an async
-  runtime. Checked by review.
-- Editor plugins MUST live in `editors/<editor>/`, and MUST reach workflow files only through
-  `ura lsp`. They MUST NOT parse workflow files, their frontmatter, or their structure, with a
-  library or by hand. Checked by review.
-- The language server's completions and code actions MUST only edit the open document. Actions that
-  write another file or commit MUST be commands the user runs explicitly, never code actions.
-  Checked by review.
-
-Why: you chose live mockups run by Uraeda, from the project's own Storybook
-([Q5](../2026-10-15-ui-iteration/clarifications-01.md#q5-how-do-you-see-interactions-not-only-a-still),
-[round 02](../2026-10-15-ui-iteration/clarifications-02.md)), and they must work remotely through
-Tailscale, with a laxer `Origin` rule allowed (C2 of the
-[spec's review](../2026-10-15-ui-iteration/spec-review.md)). Products that run generated or project
-UI next to a host give it no origin of its own, or another one
-([running untrusted UI](../2026-10-15-ui-iteration/discovery-02.md#running-untrusted-ui-next-to-a-host)).
-A frame sandboxed without `allow-same-origin` sends `Origin: null`, which every write and every
-other route still refuses.
-
-New consequences:
-
-- The server runs project code, the preview command a human approved in the project's decision, and
-  forwards its traffic.
-- Anyone who reaches the server reaches the previews it runs, as for the rest of the server, until
-  the basic security planned in Next.
-- A story's code can read any path under `/r/<repository>/preview/`, of any checkout, but nothing
-  else of the server.
