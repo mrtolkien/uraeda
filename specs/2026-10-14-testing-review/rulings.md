@@ -318,3 +318,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a comment stripper of two patterns can drop a setting after a `//` in a string on
   the same line, which no config has.
 - **Where**: task 3.
+
+## R20: Four tasks read more than the spec's Data table lists
+
+- **Decision**: `ts:test` also lists `.config/nextest.toml`, `.github/workflows/ci.yml`,
+  `crates/*/Cargo.toml`, and `crates/*/src/lib.rs`; `specs:check` lists every `**/*.md` outside
+  `node_modules/` and `target/`; `binding:build` adds `pnpm-lock.yaml` and `rust-toolchain.toml`;
+  `rust:fmt` adds `rust-toolchain.toml`.
+- **Rationale**: each is a file the task reads that the table missed. The toolchain test, run by
+  `ts:test`, reads the runners' settings, CI's workflow (task 9 compares its jobs with `ready`), and
+  the crates' manifests: after `vp run ts:test`, appending `retries = 2` to `.config/nextest.toml`
+  replayed a pass from the cache, and with the inputs it reran and failed. `ura check` resolves the
+  specs' links to any Markdown file, such as `README.md` or `AGENTS.md`: an edit of `AGENTS.md`
+  replayed `specs:check` before, and reruns it after. napi's CLI comes from the lockfile, and the
+  toolchain pins rustc and rustfmt.
+- **Alternatives considered**: moving the toolchain test out of `ts:test`, to a task of its own: it
+  would need a Vitest project of its own, for one file.
+- **If wrong**: an unrelated Markdown or toolchain edit reruns a check that would have passed, a few
+  seconds each.
+- **Where**: task 3.

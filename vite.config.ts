@@ -164,7 +164,12 @@ const tasks = {
   // A hit restores the built binding, and its generated files, which are committed.
   "binding:build": {
     cache: {
-      input: [...bindingInputs, "packages/binding/package.json"],
+      input: [
+        ...bindingInputs,
+        "packages/binding/package.json",
+        "pnpm-lock.yaml",
+        "rust-toolchain.toml",
+      ],
       output: [
         "packages/binding/*.node",
         "packages/binding/index.js",
@@ -222,7 +227,7 @@ const tasks = {
     command: "! cargo tree -p uraeda-cli -e features --prefix none | grep -qE '^napi(-derive)? v'",
   },
   "rust:fmt": {
-    cache: { input: ["crates/**", "rustfmt.toml"], output: [] },
+    cache: { input: ["crates/**", "rustfmt.toml", "rust-toolchain.toml"], output: [] },
     command: "cargo fmt --check",
   },
   "rust:test": {
@@ -234,8 +239,12 @@ const tasks = {
     },
     command: `${isolatedGit} cargo nextest run`,
   },
+  // `ura check` follows the specs' links to any Markdown file of the repository.
   "specs:check": {
-    cache: { input: [...rustSources, "specs/**"], output: [] },
+    cache: {
+      input: [...rustSources, "specs/**", "**/*.md", "!**/node_modules/**", "!target/**"],
+      output: [],
+    },
     command: [
       "cargo run -q -p uraeda-cli -- check specs",
       "cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs",
@@ -265,7 +274,18 @@ const tasks = {
     command: "vp check",
   },
   "ts:test": {
-    cache: { input: tsTestInputs, output: [], untrackedEnv: testEnv },
+    cache: {
+      // The toolchain test reads the runners' settings, CI's workflow, and the crates' manifests.
+      input: [
+        ...tsTestInputs,
+        ".config/nextest.toml",
+        ".github/workflows/ci.yml",
+        "crates/*/Cargo.toml",
+        "crates/*/src/lib.rs",
+      ],
+      output: [],
+      untrackedEnv: testEnv,
+    },
     command: `${isolatedGit} vp test --project uraeda-binding --project uraeda-server --project uraeda-web`,
     dependsOn: ["binding:touch"],
   },
