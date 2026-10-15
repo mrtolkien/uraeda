@@ -64,8 +64,8 @@ on an element you pick inside it. A visual question offers variants as stories, 
 is the code that ships. Every project with a UI gets a Storybook, Uraeda's own included, with
 stories fed by its real server. This answers the proposal's complaint that HTML mockups end up "far
 from the actual results". See the [proposal](proposal.md), the discoveries [01](discovery-01.md) and
-[02](discovery-02.md), the clarifications [01](clarifications-01.md) and [02](clarifications-02.md),
-and the [review](spec-review.md).
+[02](discovery-02.md), and the clarifications [01](clarifications-01.md) and
+[02](clarifications-02.md).
 
 ## User stories
 
@@ -513,7 +513,7 @@ Changed, applied when this spec is approved:
   forward its reads and live connections under `/r/<repository>/preview/<folder>/`. Those paths
   accept `Origin: null`, and every other route keeps the rule. The web UI embeds stories in
   sandboxed frames, accepting messages only from them. See its
-  [proposed change](../decisions/stack.md#proposed-change-2026-10-15-ui-iteration).
+  [rules](../decisions/stack.md#rules).
 
 Relied on:
 
