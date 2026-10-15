@@ -13,7 +13,6 @@
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
 
-- [Testing review](/specs/2026-10-14-testing-review/proposal.md)
 - [Add a bugfixing/low impact change flow](/specs/2026-10-15-add-bugfixing/proposal.md)
 - [Add a "scratchpad" concept: quick notes about the system, small issues, ...](/specs/2026-10-15-add-scratchpad/proposal.md)
 
