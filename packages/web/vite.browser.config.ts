@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 import type { Frame, Page } from "playwright";
 import { addRepository, removeRepository } from "uraeda-binding";
 import {
+  addChange,
   addPlan,
   commitOnBranch,
   ELEVEN,
@@ -138,9 +139,13 @@ const commands = {
   addPlan(_context: unknown, folder: string) {
     addPlan(repoFolder(), folder, ELEVEN);
   },
-  /** Commits files, by path, on a feature's branch. */
-  commitOnBranch(_context: unknown, folder: string, files: Record<string, string>) {
-    commitOnBranch(repoFolder(), folder, files);
+  /** Commits files, by path, on a branch: a feature's, by its folder. A file given `null` goes. */
+  commitOnBranch(_context: unknown, branch: string, files: Record<string, string | null>) {
+    commitOnBranch(repoFolder(), branch, files);
+  },
+  /** Creates a change on its branch `change/<folder>`, with its files, by name in its folder. */
+  addChange(_context: unknown, folder: string, files: Record<string, string>) {
+    addChange(repoFolder(), folder, files);
   },
   /** The messages sent to the agent during the test, in order. */
   agentSent() {
@@ -199,6 +204,7 @@ const commands = {
 };
 
 export type RepoCommands = {
+  addChange: (folder: string, files: Record<string, string>) => Promise<void>;
   addPlan: (folder: string) => Promise<void>;
   agentAccept: (index?: number) => Promise<void>;
   agentEmit: (events: Array<AgentEvent>) => Promise<void>;
@@ -206,7 +212,7 @@ export type RepoCommands = {
   agentSent: () => Promise<
     Array<{ id: string; images: Array<string>; text: string; when: string }>
   >;
-  commitOnBranch: (folder: string, files: Record<string, string>) => Promise<void>;
+  commitOnBranch: (branch: string, files: Record<string, string | null>) => Promise<void>;
   fixtureImage: (name: string) => Promise<string>;
   mouse: (
     steps: Array<{ ms?: number; type: "move" | "down" | "up" | "wait"; x?: number; y?: number }>,
