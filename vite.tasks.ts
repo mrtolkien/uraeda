@@ -149,6 +149,7 @@ export const tasks = {
       "web:build",
       "ui:build",
       "ui:smoke",
+      "storybook:build",
     ],
   },
   "rust:clippy": {
@@ -185,6 +186,29 @@ export const tasks = {
     ],
   },
   // CI only (see the toolchain decision): the Neovim plugin's tests, on the `ura` they build.
+  // Uraeda's own Storybook, built so a story that does not build fails `ready` (see
+  // `specs/decisions/preview.md`): the stories, its config, the skill's two files it loads, and the
+  // web UI's Vite config it extends, with the server's fate API its client is generated from.
+  "storybook:build": {
+    cache: {
+      input: [
+        "packages/web/src/**",
+        "packages/web/.storybook/**",
+        "packages/web/vite.config.ts",
+        "packages/web/package.json",
+        "packages/server/src/**",
+        "skills/uraeda/assets/storybook/uraeda-preview.js",
+        "skills/uraeda/assets/storybook/uraeda-pick.js",
+        "pnpm-lock.yaml",
+        "!packages/web/node_modules/.cache/storybook/**",
+      ],
+      output: ["packages/web/storybook-static/**"],
+    },
+    // `vp exec` is never cached: the binary itself is.
+    command: "node_modules/.bin/storybook build --quiet --output-dir storybook-static",
+    cwd: "packages/web",
+    dependsOn: ["binding:build"],
+  },
   "test:nvim": {
     cache: false,
     command: [

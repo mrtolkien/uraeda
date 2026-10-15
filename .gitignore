@@ -5,3 +5,4 @@ dist/
 .env
 .vitest/
 coverage/
+packages/web/storybook-static/

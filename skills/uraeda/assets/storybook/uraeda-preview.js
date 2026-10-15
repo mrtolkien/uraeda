@@ -13,10 +13,10 @@ import process from "node:process";
 
 /**
  * A preset value of Storybook's config: the value itself, or a function of the value the earlier
- * presets made.
+ * presets made. Storybook's own types let either be undefined, which adds nothing.
  *
  * @template T
- * @typedef {T | ((value: T, options: unknown) => T | Promise<T>)} Preset
+ * @typedef {T | undefined | ((value: T, options: any) => T | undefined | Promise<T | undefined>)} Preset
  */
 
 /**
@@ -113,7 +113,7 @@ function nameOf(value) {
 }
 
 /**
- * The value a preset makes of `value`.
+ * The value a preset makes of `value`: empty when it makes none.
  *
  * @param {Preset<string> | undefined} preset
  * @param {string} value
@@ -124,7 +124,7 @@ async function run(preset, value, options) {
   if (preset === undefined) {
     return value;
   }
-  return typeof preset === "function" ? preset(value, options) : preset;
+  return (typeof preset === "function" ? await preset(value, options) : preset) ?? "";
 }
 
 /**

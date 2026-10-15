@@ -230,7 +230,12 @@ const PREVIEW_DECISION = "specs/decisions/preview.md";
  * The command ends in `&& true`, so its shell waits for the fake, as `pnpm exec` waits for
  * Storybook: only a signal to the whole process group stops both.
  */
-function previewDecision(log: string, folder: string, mode: FakeMode, delay: number): string {
+export function previewDecision(
+  log: string,
+  folder: string,
+  mode: FakeMode,
+  delay: number,
+): string {
   const command = `node ${fixture("preview/serve.mjs")} --port {port} --mode ${mode} --delay ${delay} --log ${log} && true`;
   return `---\nstatus: active\napproved-by: Test\npreview-folder: ${folder}\npreview-command: ${command}\n---\n\n# Preview\n\nThe tests' fake Storybook.\n`;
 }
