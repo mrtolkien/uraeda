@@ -1200,9 +1200,11 @@ git commit -m "feat(add-scratchpad): capture notes from the sidebar, see them in
   - `NoteView({ noteKey })`;
   - `CommitBar({ changes })`, with Commit, Discard, the confirmation, and `closeUndoToasts`.
 
-- [ ] **Step 1: Extract `CommitBar` from `PrioritiesPage`, and remove its marker**
+- [x] **Step 1: Extract `CommitBar` from `PrioritiesPage`, and remove its marker**
 
-This is a structural step. Point it at `changes.commit` and `changes.discard`.
+This is a structural step. Point it at `changes.commit` and `changes.discard`. The drag goes into a
+`useDrag` hook of `PrioritiesPage.tsx`, its sensors and plugins into module constants, so the page
+fits the function limit without its marker.
 
 - Run: `vp test packages/web/src/__tests__/priorities.test.tsx && vp check`
 - Expected: PASS
