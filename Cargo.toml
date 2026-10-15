@@ -20,14 +20,7 @@ rust-version = "1.96"
 clap = { version = "4.6.7", features = ["derive"] }
 crossbeam-channel = "0.5.15"
 gif = "0.14.2"
-# `parallel`: a status read keeps the object store it opened, where without it gix opens the store
-# again from disk, and panics when its folder is gone (see `crates/core/tests/git.rs`).
-gix = { version = "0.89", default-features = false, features = [
-  "sha1",
-  "revision",
-  "status",
-  "parallel",
-] }
+gix = { version = "0.89", default-features = false, features = ["sha1", "revision", "status"] }
 image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "gif", "webp"] }
 include_dir = "0.7.4"
 libwebp-sys = "0.14.4"
