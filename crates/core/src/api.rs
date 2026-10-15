@@ -39,7 +39,7 @@ pub use priority_edits::{
 pub use repository_list::{
     add_repository, data_dir, open_repository, read_repositories, remove_repository,
 };
-pub use start::start_feature;
+pub use start::{propose_slug, start_change, start_feature, start_kind};
 
 use start::draft_path;
 

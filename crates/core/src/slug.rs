@@ -40,3 +40,9 @@ pub fn short(slug: &str) -> String {
     let kept = if named.is_empty() { &words } else { &named };
     kept.iter().take(2).copied().collect::<Vec<_>>().join("-")
 }
+
+/// The slug proposed for a change typed as a text, from its title: the short slug of its words, as
+/// `ura start` proposes one from a draft's name.
+pub fn propose(title: &str) -> String {
+    short(&from_text(title))
+}

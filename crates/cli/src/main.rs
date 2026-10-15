@@ -46,13 +46,16 @@ enum Command {
         #[arg(long)]
         no_edit: bool,
     },
-    /// Start a drafted feature: its entry in Now, its branch, and its proposal
+    /// Start a drafted feature or change: its entry in Now, its branch, and its proposal
     Start {
         /// The draft: a file or folder in specs/drafts/ or specs/backlog/, or its name
         target: Option<String>,
-        /// The slug of the feature's folder and branch, instead of the draft's name
+        /// The slug of the feature's or change's folder and branch, instead of the draft's name
         #[arg(long)]
         slug: Option<String>,
+        /// Start the draft as a change, on a change/ branch, in specs/changes/
+        #[arg(long)]
+        change: bool,
         /// Switch this checkout to the new branch, instead of creating its worktree in
         /// .worktrees/
         #[arg(long)]
@@ -161,8 +164,9 @@ fn main() -> ExitCode {
         Command::Start {
             target,
             slug,
+            change,
             switch,
-        } => start::run(target, slug, switch),
+        } => start::run(target, slug, change, switch),
         Command::Status { json } => status::run(json),
         Command::Next { target, json } => next::run(target, json),
         Command::Check { target, json } => check::run(target, json),

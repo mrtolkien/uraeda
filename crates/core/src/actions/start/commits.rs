@@ -1,4 +1,5 @@
-//! The writes of a start: its two commits, the feature's branch, and the draft's move.
+//! The writes of a start: its two commits, the feature's or the change's branch, and the draft's
+//! move.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -6,7 +7,7 @@ use std::path::{Path, PathBuf};
 use crate::git::Git;
 
 use super::plan::Plan;
-use super::{Start, StartError, partial};
+use super::{Source, Start, StartError, partial};
 
 impl Start<'_> {
     /// The start commit, on the default branch.
@@ -23,8 +24,8 @@ impl Start<'_> {
                     "commit specs/PRIORITIES.md on {} as \"{}\"",
                     self.default, plan.start_subject
                 ),
-                format!("create the branch {}", plan.folder),
-                format!("move {} to {}", self.draft, plan.destination),
+                format!("create the branch {}", plan.branch),
+                plan.write_left.clone(),
                 plan.commit_left(),
             ];
             return Err(partial(&[], left, error));
@@ -32,33 +33,30 @@ impl Start<'_> {
         Ok(())
     }
 
-    /// The feature's branch, switched to or in its new worktree: the working tree it is in.
+    /// The feature's or the change's branch, switched to or in its new worktree: the working tree
+    /// it is in.
     pub(super) fn create_branch(
         &self,
         plan: &Plan,
         done: &[String],
     ) -> Result<PathBuf, StartError> {
-        let folder = &plan.folder;
+        let (folder, branch) = (&plan.folder, &plan.branch);
         let (created, branch_left) = if self.switch {
             (
-                self.at.switch_new(folder, self.default),
-                format!("create the branch {folder}"),
+                self.at.switch_new(branch, self.default),
+                format!("create the branch {branch}"),
             )
         } else {
             (
                 self.git.exclude_worktrees().and_then(|()| {
                     self.at
-                        .add_worktree_new(&plan.worktree, folder, self.default)
+                        .add_worktree_new(&plan.worktree, branch, self.default)
                 }),
-                format!("create the branch {folder} in .worktrees/{folder}"),
+                format!("create the branch {branch} in .worktrees/{folder}"),
             )
         };
         if let Err(error) = created {
-            let left = vec![
-                branch_left,
-                format!("move {} to {}", self.draft, plan.destination),
-                plan.commit_left(),
-            ];
+            let left = vec![branch_left, plan.write_left.clone(), plan.commit_left()];
             return Err(partial(done, left, error));
         }
         Ok(if self.switch {
@@ -71,10 +69,11 @@ impl Start<'_> {
     /// Moves the draft's files into the dated folder of `target_root`: each move, from and to.
     pub(super) fn move_draft(
         &self,
+        draft: &str,
         plan: &Plan,
         target_root: &Path,
     ) -> Result<Vec<(String, String)>, StartError> {
-        let (root, draft) = (self.root, self.draft);
+        let root = self.root;
         let mut moves = Vec::new();
         for file in &plan.files {
             let to = if plan.folder_draft {
@@ -113,7 +112,8 @@ impl Start<'_> {
         Ok(moves)
     }
 
-    /// The proposal commit, on the feature's branch.
+    /// The proposal commit, on the feature's or the change's branch: a typed change's whole
+    /// folder.
     pub(super) fn commit_proposal(
         &self,
         plan: &Plan,
@@ -123,10 +123,12 @@ impl Start<'_> {
     ) -> Result<(), StartError> {
         // Folders as pathspecs, so files git ignores, like `.DS_Store`, stay out of the commit.
         let mut paths: Vec<String> = Vec::new();
-        if plan.folder_draft {
+        if plan.folder_draft || plan.typed.is_some() {
             paths.push(plan.destination.clone());
-            if !plan.tracked.is_empty() {
-                paths.push(self.draft.to_string());
+            if let Source::Draft(draft) = self.source
+                && !plan.tracked.is_empty()
+            {
+                paths.push(draft.to_string());
             }
         } else {
             for (from, to) in moves {

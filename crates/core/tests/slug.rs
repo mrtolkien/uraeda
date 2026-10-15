@@ -35,3 +35,17 @@ fn short_slugs_keep_two_words_that_name_something() {
         assert_eq!(slug::short(slug), expected, "{slug}");
     }
 }
+
+/// R1: a typed change's slug, proposed from its title as `ura start` does from a draft's name.
+#[test]
+fn a_title_proposes_the_short_slug_of_its_words() {
+    let cases = [
+        ("Centre the x in failure circles", "centre-x"),
+        ("The header's logo", "header-s"),
+        ("A home logo in the header", "home-logo"),
+        ("  ", ""),
+    ];
+    for (title, expected) in cases {
+        assert_eq!(slug::propose(title), expected, "{title}");
+    }
+}

@@ -3,6 +3,7 @@
 //! first.
 
 use std::fs;
+use std::path::Path;
 
 use crate::files::retarget::retarget as retarget_links;
 use crate::images::Encoded;
@@ -63,7 +64,7 @@ pub fn attach(
     } else {
         (
             folder.to_string(),
-            save(place, folder, &base, encoded)?,
+            save(&place.root, folder, &base, encoded)?,
             None,
         )
     };
@@ -135,11 +136,17 @@ fn escape(text: &str) -> String {
 }
 
 /// Writes an image in `<folder>/images/` as `<base>.<extension>`, or `<base>-2`, `<base>-3`, and so
-/// on when the name is taken. Returns its file name. Never writes through a symbolic link.
-fn save(place: &Place, folder: &str, base: &str, encoded: &Encoded) -> Result<String, ActionError> {
-    let dir = place.root.join(folder).join("images");
+/// on when the name is taken, in the working tree `root`. Returns its file name. Never writes
+/// through a symbolic link.
+pub(crate) fn save(
+    root: &Path,
+    folder: &str,
+    base: &str,
+    encoded: &Encoded,
+) -> Result<String, ActionError> {
+    let dir = root.join(folder).join("images");
     fs::create_dir_all(&dir).map_err(failed)?;
-    let root = fs::canonicalize(&place.root).map_err(failed)?;
+    let root = fs::canonicalize(root).map_err(failed)?;
     if fs::canonicalize(&dir).map_err(failed)? != root.join(folder).join("images") {
         return Err(ActionError::Refused(format!(
             "The image could not be saved: {folder}/images goes through a symbolic link."
@@ -199,7 +206,7 @@ fn into_folder(
         }
     }
     let moved = format!("{folder}/proposal.md");
-    let result = save(place, &folder, base, encoded).and_then(|image| {
+    let result = save(&place.root, &folder, base, encoded).and_then(|image| {
         fs::rename(place.root.join(path), place.root.join(&moved)).map_err(failed)?;
         if let Err(error) = retarget(place, path, &moved) {
             let _ = fs::rename(place.root.join(&moved), place.root.join(path));

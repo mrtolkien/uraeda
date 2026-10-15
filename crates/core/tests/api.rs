@@ -6,6 +6,7 @@ use common::repo::TestRepo;
 use common::texts::{clarifications, proposal, spec};
 use uraeda_core::api;
 use uraeda_core::files::priorities;
+use uraeda_core::workspace::Kind;
 
 const FOLDER: &str = "2026-10-11-web-ui";
 const SPEC: &str = "specs/2026-10-11-web-ui/spec.md";
@@ -380,7 +381,7 @@ fn a_feature_starts_from_a_draft_only() {
         "specs/README.md",
     ] {
         assert!(
-            api::start_feature(repo.path(), draft, Some("victim")).is_err(),
+            api::start_feature(repo.path(), draft, Some("victim"), Kind::Feature).is_err(),
             "{draft}"
         );
     }
