@@ -14,25 +14,26 @@ const TITLE_LIMIT: usize = 80;
 
 /// A typed text, read as a proposal.
 pub(super) struct Typed {
-    /// The first written line, trimmed and cut at 80 characters.
+    /// The first written line, trimmed, without heading marks, and cut at 80 characters.
     pub(super) title: String,
-    /// The text under the title: the whole first line when it was cut, then the rest as typed.
+    /// The text under the title: the whole first line, unmarked, when it was cut, then the rest as
+    /// typed.
     body: String,
 }
 
 impl Typed {
-    /// The title is the first line holding more than spaces; the text after it is kept as typed,
-    /// trimmed at its ends. `None` when no line holds more than spaces.
+    /// The title is the first line holding more than spaces and heading marks, without them; the
+    /// text after it is kept as typed, trimmed at its ends. `None` when no line holds more.
     pub(super) fn read(text: &str) -> Option<Typed> {
         let mut offset = 0;
         let line = text.split_inclusive('\n').find(|line| {
-            let written = !line.trim().is_empty();
+            let written = !unmarked(line).is_empty();
             if !written {
                 offset += line.len();
             }
             written
         })?;
-        let first = line.trim();
+        let first = unmarked(line);
         let rest = trim_ends(&text[offset + line.len()..]);
         let title: String = first.chars().take(TITLE_LIMIT).collect();
         let title = title.trim_end().to_string();
@@ -55,6 +56,17 @@ impl Typed {
             parts.push(format!("![Image {}](images/{image})", index + 1));
         }
         parts.join("\n\n") + "\n"
+    }
+}
+
+/// A line trimmed, without the marks of a heading typed as one: `## Title` is `Title`.
+fn unmarked(line: &str) -> &str {
+    let line = line.trim();
+    let rest = line.trim_start_matches('#');
+    if rest.is_empty() || rest.starts_with(char::is_whitespace) {
+        rest.trim_start()
+    } else {
+        line
     }
 }
 
