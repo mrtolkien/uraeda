@@ -218,6 +218,18 @@ fn first_paragraph(text: &str, start: usize, end: usize) -> String {
         .join(" ")
 }
 
+/// A link's or an image's text, with `[`, `]`, and `\` escaped, so it stays one link.
+pub(crate) fn link_text(text: &str) -> String {
+    let mut escaped = String::new();
+    for c in text.chars() {
+        if matches!(c, '[' | ']' | '\\') {
+            escaped.push('\\');
+        }
+        escaped.push(c);
+    }
+    escaped
+}
+
 /// GitHub's anchor for a heading: lowercase, spaces to hyphens, punctuation removed.
 pub fn slug(heading: &str) -> String {
     heading

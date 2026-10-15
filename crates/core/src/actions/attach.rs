@@ -5,6 +5,7 @@
 use std::fs;
 use std::path::Path;
 
+use crate::files::markdown::link_text;
 use crate::files::retarget::retarget as retarget_links;
 use crate::images::Encoded;
 
@@ -119,20 +120,8 @@ fn alt(stem: &str) -> String {
     if text.is_empty() {
         "image".to_string()
     } else {
-        escape(&text)
+        link_text(&text)
     }
-}
-
-/// Alt text with `[`, `]`, and `\` escaped.
-fn escape(text: &str) -> String {
-    let mut escaped = String::new();
-    for c in text.chars() {
-        if matches!(c, '[' | ']' | '\\') {
-            escaped.push('\\');
-        }
-        escaped.push(c);
-    }
-    escaped
 }
 
 /// Writes an image in `<folder>/images/` as `<base>.<extension>`, or `<base>-2`, `<base>-3`, and so
@@ -260,7 +249,7 @@ mod tests {
         assert_eq!(file_name("Écran"), "cran");
         assert_eq!(file_name("--"), "image");
         assert_eq!(file_name(&format!("{}-b", "a".repeat(59))), "a".repeat(59));
-        assert_eq!(escape("a[b]\\c"), "a\\[b\\]\\\\c");
+        assert_eq!(link_text("a[b]\\c"), "a\\[b\\]\\\\c");
         assert_eq!(stem(".png"), "");
         assert_eq!(alt(""), "image");
         assert_eq!(alt(" a \n\t b "), "a b");
