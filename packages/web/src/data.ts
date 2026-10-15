@@ -16,6 +16,7 @@ import {
   SessionListView,
   SessionSearchView,
   SessionView,
+  SlugProposalView,
   TurnLogView,
   TurnView,
   WorkflowMessageView,
@@ -217,6 +218,15 @@ export function useProposalHints() {
     proposalHints: { id: PROPOSAL_HINTS_ID, view: ProposalHintsView },
   });
   return useView(ProposalHintsView, proposalHints)?.hints ?? [];
+}
+
+/**
+ * The slug the core proposes for a typed change's whole text, which it reads the title in (R14):
+ * empty for a text with no title. Read once per text.
+ */
+export function useSlugProposal(text: string) {
+  const { slugProposal } = useRequest({ slugProposal: { id: text, view: SlugProposalView } });
+  return useView(SlugProposalView, slugProposal)?.slug ?? "";
 }
 
 /**

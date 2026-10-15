@@ -18,6 +18,7 @@ import { EditorPage } from "./EditorPage.tsx";
 import { FilePage } from "./FilePage.tsx";
 import { Home } from "./Home.tsx";
 import { MockupPage } from "./MockupPage.tsx";
+import { NewChangePage } from "./NewChangePage.tsx";
 import { PrioritiesPage } from "./PrioritiesPage.tsx";
 import { Page as PageLayout } from "./layout/Page.tsx";
 import { Panes } from "./layout/Panes.tsx";
@@ -102,6 +103,8 @@ function Page({ route }: { route: Route }) {
       return <SessionPage id={route.id} key={route.id} />;
     case "new-chat":
       return <SessionPage newChat />;
+    case "new-change":
+      return <NewChangePage />;
     case "first-run":
       return <FirstRun />;
     default:

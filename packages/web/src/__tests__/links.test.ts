@@ -46,6 +46,7 @@ const PAGES: Array<[path: string, text: string]> = [
   ["/priorities/git-listener", "Git listener process"],
   ["/edit/specs/drafts/git-listener.md", "Git listener"],
   ["/chats/new", "New chat"],
+  ["/changes/new", "Describe the bug or the change."],
 ];
 
 /** The web UI's proposal, on its checkout, links a workflow file, a draft, code, and the web. */

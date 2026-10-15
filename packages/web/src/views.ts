@@ -13,6 +13,7 @@ import type {
   Session,
   SessionList,
   SessionSearch,
+  SlugProposal,
   Turn,
   TurnLog,
   WorkflowFile,
@@ -238,4 +239,10 @@ export const RepositoriesView = view<Repositories>()({
 export const FolderSuggestionsView = view<FolderSuggestions>()({
   id: true,
   rows: true,
+});
+
+/** The slug the core proposes for a typed change's whole text, its id (R14). */
+export const SlugProposalView = view<SlugProposal>()({
+  id: true,
+  slug: true,
 });
