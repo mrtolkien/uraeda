@@ -122,6 +122,17 @@ pub(super) fn check_change_files(root: &Path, dir: &Path, problems: &mut Vec<Pro
     }
 }
 
+/// Checks one file, as `check_change_files` checks it within its folder: a file directly in a
+/// change's folder that the folder does not hold.
+pub(super) fn check_change_file(root: &Path, path: &Path, problems: &mut Vec<Problem>) {
+    let (Some(dir), entry) = (path.parent(), name(path)) else {
+        return;
+    };
+    if is_change_folder(dir) && !entry.starts_with('.') && !change_holds(&entry, false) {
+        problems.push(change_file_problem(root, dir, &entry));
+    }
+}
+
 /// Checks that discovery and clarifications rounds have two digits.
 pub(super) fn check_rounds(root: &Path, dir: &Path, names: &[String], problems: &mut Vec<Problem>) {
     for file in names {

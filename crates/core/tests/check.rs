@@ -619,3 +619,42 @@ fn an_old_bugs_folder_says_how_to_move_it() {
         ]
     );
 }
+
+/// A file of a change's folder that the folder does not hold is reported when the file alone is
+/// checked, on disk or as a text, as the editor checks it, and not for the files it holds.
+#[test]
+fn a_change_file_alone_is_checked_against_its_folder() {
+    for (name, allowed) in [
+        ("notes.md", false),
+        ("spec.md", false),
+        ("proposal.md", true),
+        ("clarifications-01.md", true),
+    ] {
+        let example = Example::new();
+        let file = format!("{CHANGE}/{name}");
+        if name != "proposal.md" {
+            example.write(&file, "x\n");
+        }
+        let path = example.root().join(&file);
+        let expected: Vec<String> = if allowed {
+            vec![]
+        } else {
+            vec![format!(
+                "{file}: \"{name}\" has no place in a change: its folder holds proposal.md, clarifications-NN.md, rulings.md, images/, and screenshots/."
+            )]
+        };
+        let flagged = |problems: Vec<Problem>| -> Vec<String> {
+            let named: Vec<Problem> = problems
+                .into_iter()
+                .filter(|p| p.rule == "names.change-file")
+                .collect();
+            summary(&named)
+        };
+
+        let on_disk = check::check(example.root(), &path).unwrap();
+        let as_text = check::check_text(example.root(), &path, &example.read(&file));
+
+        assert_eq!(flagged(on_disk), expected, "{name} on disk");
+        assert_eq!(flagged(as_text), expected, "{name} as a text");
+    }
+}
