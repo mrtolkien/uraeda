@@ -31,6 +31,8 @@ Look and feel pass: components style, logo, favicon, ...
 - We need to be able to resize the left and right sidebars on desktop: right now they are a bit too
   small. We should also be able to hide them easily: the chevron on the bottom of the sidebar is not
   great: show a hide bar button on hover + a handle to resize.
+- Add a constitution view, should not be part of the sidebar but should be there _somewhere_, maybe
+  in the home or a "project overview"
 
 ---
 

@@ -12,8 +12,9 @@
 - [Add a "scratchpad" concept: quick notes about the system, small issues, ...](/specs/2026-10-15-add-scratchpad/proposal.md)
 
 - Option page with selection of agent runner, config values, other run values
-  - For example: does each step start with a new context? Should be a config flag, and able to
-    toggle it per feature
+  - For example: does each step start with a new context or continues a "master session"? Should be
+    a config flag, and able to toggle it per feature
+  - Same for subagents in implementation, or review settings (command, model, count, ...)
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
@@ -74,6 +75,7 @@
 
 ## Scratchpad
 
+- Add notifications when there's a user action available
 - Specs are still way too long and hard to read, with tens of bullet points (examples: "run ui")
 - Allow no selection in responses (after a warning)
 - Only true uraeda flows should show up in the UI -> `review-findings` was in the UI despite not
