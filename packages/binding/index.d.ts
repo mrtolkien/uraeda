@@ -274,8 +274,11 @@ export declare function startOver(repo: string, folder: string, file: string): P
  */
 export declare function submitAnswers(repo: string, folder: string, name?: string | undefined | null): Promise<FileView>
 
-/** Submits the triage, every question answered, and commits it. */
-export declare function submitTriage(repo: string): Promise<FileView>
+/**
+ * Submits the triage, every question answered, and commits it, over the triage read with the
+ * hash `previous`.
+ */
+export declare function submitTriage(repo: string, previous: string): Promise<FileView>
 
 /** The binding's version, the Cargo workspace's. It reads nothing, so it returns at once. */
 export declare function version(): string

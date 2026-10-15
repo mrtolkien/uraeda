@@ -302,8 +302,8 @@ pub fn set_answer(text: &str, id: &str, answer: &str) -> Result<String, AnswerEr
 }
 
 /// The text with the marker on line `marker_line` followed by `answer`, in place of the marker's
-/// line and the lines after it, up to the next heading or the notes. An answer starting with a code block
-/// starts on the line after the marker, after a blank line.
+/// line and the lines after it, up to the next heading or the notes. An answer starting with a
+/// code block starts on the line after the marker, after a blank line.
 fn replace_after(text: &str, marker_line: usize, marker: &str, answer: &str) -> String {
     let mut lines: Vec<&str> = text.split('\n').collect();
     let start = marker_line - 1;

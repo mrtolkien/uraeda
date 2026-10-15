@@ -48,7 +48,7 @@ fn view(text: String, committed: Option<String>, tip: Option<ObjectId>) -> FileV
     FileView {
         id: TRIAGE_ID.to_string(),
         folder: String::new(),
-        name: TRIAGE.rsplit('/').next().unwrap_or(TRIAGE).to_string(),
+        name: answer::name_of(TRIAGE).to_string(),
         path: TRIAGE.to_string(),
         kind,
         status,
@@ -108,10 +108,11 @@ pub fn save_triage_notes(repo: &Path, notes: &str, previous: &str) -> Result<Fil
 }
 
 /// Submits the triage, every question answered, and commits it: `chore: answer the inbox triage`.
-pub fn submit_triage(repo: &Path) -> Result<FileView> {
+/// Refused when it changed since it was read with the hash `previous`.
+pub fn submit_triage(repo: &Path, previous: &str) -> Result<FileView> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    crate::actions::inbox::submit_triage(&place, today::today())?;
+    crate::actions::inbox::submit_triage(&place, previous, today::today())?;
     let text = std::fs::read_to_string(place.root.join(TRIAGE))
         .map_err(|error| refused(error.to_string()))?;
     written(&place, text)

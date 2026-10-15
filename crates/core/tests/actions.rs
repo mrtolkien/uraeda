@@ -1592,3 +1592,26 @@ fn a_text_with_no_written_line_is_refused() {
         Some("a change needs a text: its first line is its title")
     );
 }
+
+/// A round whose last question is followed by its notes, with no section between: the last answer
+/// ends at the `**Notes:**` line, when it is read and when it is written.
+#[test]
+fn a_rounds_last_answer_ends_at_the_notes() {
+    let unsettled = round("B", "A", "").replace(
+        "## Settled without the human\n\n- **A point** settled.\n\n",
+        "",
+    );
+    let repo = repo_with(&unsettled);
+    let (feature, place) = reach(&repo);
+
+    let blank = answer::submit_and_commit(&place, &feature, today()).unwrap_err();
+    answer::save(&place, &feature, "Q2", &letters(&["A"]), "", "").unwrap();
+    answer::save_notes(&place, &feature, "Fine.", "").unwrap();
+
+    assert_eq!(blank.to_string(), "Q2 has no answer");
+    assert!(
+        read(&place, ROUND).ends_with("## Q2: And this?\n\n- **A. One.**\n- **B. Two.**\n\n**Answer:** A\n\n**Notes:** Fine.\n"),
+        "{}",
+        read(&place, ROUND)
+    );
+}

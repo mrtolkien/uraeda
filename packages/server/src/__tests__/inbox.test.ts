@@ -282,12 +282,36 @@ test("US4 2 and 3: answers the triage, then submits it", async () => {
       "id",
     ]);
   }
-  const noted = await mutate(app, "triage.notes", { notes: "Later.", previous: "" }, ["id"]);
-  const submitted = await mutate(app, "triage.submit", {}, FILE);
+  const noted = await mutate(app, "triage.notes", { notes: "Later.", previous: "" }, FILE);
+  const submitted = await mutate(
+    app,
+    "triage.submit",
+    { previous: noted.data.current.document.hash },
+    FILE,
+  );
 
   expect(answered.data.current.items.clarifications.questions[0].answer).toBe("A");
   expect(noted.ok).toBe(true);
   expect(submitted.data.status).toBe("answered");
   expect(read(repo, "specs/INBOX-TRIAGE.md")).toContain("**Answer:** A\n");
   expect(git(repo, "log", "-1", "--format=%s").trim()).toBe("chore: answer the inbox triage");
+});
+
+test("a triage changed since the page read it is not submitted", async () => {
+  const repo = triageRepo();
+  const { app } = await testApp(repo);
+  const [read] = await byId(app, "WorkflowFile", ["inbox-triage"], FILE);
+  writeFileSync(
+    join(repo, "specs/INBOX-TRIAGE.md"),
+    read.current.text.replaceAll("**Answer:**\n", "**Answer:** A\n"),
+  );
+
+  const result = await mutate(app, "triage.submit", { previous: read.current.document.hash }, [
+    "id",
+  ]);
+
+  expect(result.ok).toBe(false);
+  expect(result.error?.code).toBe("BAD_REQUEST");
+  expect(result.error?.message).toMatch(/^conflict: INBOX-TRIAGE\.md changed/);
+  expect(git(repo, "log", "-1", "--format=%s").trim()).toBe("chore: propose an inbox triage");
 });
