@@ -913,3 +913,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: `packages/web/src/StoryPick.tsx`, `StoryEmbed.tsx`, `CommentForm.tsx`,
   `fields/unsaved.ts`, `fields/useTextField.ts`, `packages/web/vite.browser.config.ts`'s
   `stopPreview`, and `packages/web/src/__browser__/story-comments.test.tsx`.
+
+## R57: The example's plan follows its preview decision, and the stories keep their path
+
+- **Decision**: the example's plan lists the preview decision in its **Decisions**, and its rules,
+  word for word, in its **Global constraints**. Its tasks 3 and 4, the repeat menu and the custom
+  screen, start from the components of the spec's `Open` and `Custom` stories, named in their
+  **Files** as `Start from`, and write their scenarios' tests before wiring them into the app; task
+  4 modifies `RepeatScreen.tsx` rather than creating it. The plan's template gets the optional
+  `Start from` line, and the plan reference names it. The stories stay in
+  `src/tasks/RepeatMenu.stories.tsx`.
+- **Rationale**: the plan reference asks a view whose mockups are the project's own stories to start
+  from them, and the example is the reference for good artifacts: its plan ignored its own preview
+  decision, and created a screen its spec's story already showed. The approved spec fixes the
+  stories' path, "its spec links `/src/tasks/RepeatMenu.stories.tsx` exports", and the example's
+  preview decision asks only for files under `src/`, so moving them next to `src/components/` is
+  left to the human.
+- **Alternatives considered**: moving the stories to `src/components/`, one file per component,
+  which contradicts the approved spec's text; a paragraph before each task's **Files**, which the
+  template has no place for.
+- **If wrong**: the example's tasks 3 and 4, and the template's one line.
+- **Where**: `skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/plan.md`,
+  `skills/uraeda/assets/templates/specs/YYYY-MM-DD-feature-slug/plan.md`, and
+  `skills/uraeda/references/plan.md`.

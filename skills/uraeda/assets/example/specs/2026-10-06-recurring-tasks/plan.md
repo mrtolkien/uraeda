@@ -87,6 +87,24 @@ From [UI components](../decisions/ui-components.md):
 - Code MUST NOT add a UI component library (MUI, Chakra, shadcn/ui, ...) or a CSS framework. Checked
   by review of `package.json`.
 
+From [preview](../decisions/preview.md):
+
+- The preview MUST be the app's Storybook, at the repository's top level, run by
+  `npx storybook dev --ci --no-open --exact-port --host 127.0.0.1 --port {port}`. This decision's
+  frontmatter MUST hold them as `preview-folder: .` and that `preview-command`. Checked by
+  `ura check`.
+- Storybook MUST use its Vite builder, through `@storybook/react-vite`. Checked by Uraeda's helper,
+  which stops a webpack Storybook.
+- Mockups and named states MUST be stories, in `*.stories.tsx` files under `src/`, one export per
+  state or variant. Checked by review.
+- Stories MUST get their tasks from the app's own store, on an in-memory IndexedDB the story fills,
+  as the integration tests do. Checked by review.
+- Storybook's `main.ts` MUST be wrapped by `.storybook/uraeda-preview.js`, and its preview MUST load
+  `.storybook/uraeda-pick.js`, both copied unchanged from the Uraeda skill's `assets/storybook/`.
+  Checked by review.
+- Storybook's packages MUST be pinned to exact versions, upgraded together, and its telemetry MUST
+  be off. Checked by review of `package.json` and `main.ts`.
+
 From [code quality](../decisions/code-quality.md):
 
 - Functions MUST NOT be longer than 80 lines. Checked by ESLint's `max-lines-per-function`.
@@ -148,6 +166,10 @@ The decisions this plan relies on, and where it follows them:
 - [Task storage](../decisions/task-storage.md): upgrade 2, tested on version 1 data (tasks 1 and 2).
 - [UI components](../decisions/ui-components.md): the menu uses `Select`, and the custom screen is
   built in the project (tasks 3 and 4).
+- [Preview](../decisions/preview.md): the menu and the custom screen start from the components the
+  spec's stories `Open` and `Custom` show, in `src/tasks/RepeatMenu.stories.tsx`, not a rewrite.
+  Each task adds its scenarios' tests, then wires the component into the app, and the stories stay
+  as the views' states (tasks 3 and 4).
 - [Code quality](../decisions/code-quality.md): `updateTask` is split, and its marker removed,
   before task 2 changes it.
 
@@ -457,9 +479,12 @@ git commit -m "feat(recurring-tasks): complete a repeating task"
 
 **Files:**
 
+- Start from: `src/tasks/RepeatMenu.stories.tsx#Open`, the repeat menu written with the spec, a
+  `Select` labelled "Repeat" shown on its own: the tests of US1's scenarios come first, then the
+  edit panel draws it, wired to the store.
 - Modify: `src/lib/repeat.ts` (presets, labels, `alignDueDate`), `src/store/tasks.ts` (`setRepeat`),
-  `src/components/EditPanel.tsx`, `src/components/TaskRow.tsx` (repeat icon),
-  `src/components/icons.tsx`
+  `src/components/EditPanel.tsx` (draws the story's menu), `src/components/TaskRow.tsx` (repeat
+  icon), `src/components/icons.tsx`, `src/tasks/RepeatMenu.stories.tsx` (`Open` fills the store)
 - Modify: `tests/helpers/app.tsx` (`repeatMenu`, `pickRepeat`)
 - Test: `tests/recurring-tasks/make-a-task-repeat.test.tsx`
 
@@ -552,9 +577,10 @@ The break each test catches:
 
 - `alignDueDate`: today when `dueDate` is `null`, then, for patterns with `weekdays`, the first
   chosen day on or after it.
-- Edit panel: a `Select` labelled "Repeat", with the global constraints' entries, calling
-  `setRepeat`. "Custom..." is listed, and opens the custom screen from task 4: until then, it does
-  nothing.
+- Edit panel: the `Open` story's menu, a `Select` labelled "Repeat" with the global constraints'
+  entries, drawn in the panel and calling `setRepeat`. "Custom..." is listed, and opens the custom
+  screen from task 4: until then, it does nothing. The story keeps showing the menu open, on a task
+  its store holds.
 - Task row: the repeat icon, labelled "Repeats", when `repeat` is set.
 
 - [x] **Step 4: Run all tests, and the benchmark**
@@ -573,7 +599,10 @@ git commit -m "feat(recurring-tasks): repeat menu"
 
 **Files:**
 
-- Create: `src/components/RepeatScreen.tsx`, `src/components/RepeatScreen.module.css`
+- Start from: `src/tasks/RepeatMenu.stories.tsx#Custom`, the `RepeatScreen` written with the spec:
+  the tests of US3's scenarios come first, then the edit panel opens it and saves its pattern.
+- Modify: `src/components/RepeatScreen.tsx`, `src/components/RepeatScreen.module.css` (from the
+  `Custom` story: Save's rules)
 - Modify: `src/components/EditPanel.tsx` ("Custom..." opens the screen)
 - Modify: `tests/helpers/app.tsx` (`fillCustomRepeat`)
 - Test: `tests/recurring-tasks/custom-schedule.test.tsx`
@@ -654,9 +683,9 @@ The break each test catches:
 
 - [x] **Step 3: Implement**
 
-A dialog with a number input for the interval (a whole number, at least 1), a unit `Select`, and,
-for weeks, seven day toggles. "Save" is enabled only for a valid pattern, and calls `setRepeat`
-through the edit panel.
+The `Custom` story's dialog keeps its number input for the interval, its unit `Select`, and, for
+weeks, its seven day toggles. "Save" is enabled only for a valid pattern, an interval of at least 1
+and, for weeks, a day chosen, and calls `setRepeat` through the edit panel.
 
 - [x] **Step 4: Run all tests**
 
