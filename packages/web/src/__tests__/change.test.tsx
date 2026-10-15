@@ -1,5 +1,6 @@
 // US4.2 and US4.3's edges: a change's column counts its round's questions in plural words, and a
-// record without a pull request leaves the step's title without a link (the spec's error handling). A feature's column keeps its words.
+// record without a pull request leaves the step's title without a link (the spec's error
+// handling). A feature's column keeps its words.
 import { screen, within } from "@testing-library/react";
 import { addChange, commitOnBranch } from "uraeda-binding/test-utils";
 import { beforeEach, expect, test } from "vite-plus/test";
@@ -14,13 +15,21 @@ function question(heading: string, title: string, answer = "") {
   return `${heading}: ${title}\n\n- **A (recommended). Yes.**\n  - [pro] simple.\n- **B. No.**\n  - [con] harder.\n\n**Answer:**${answer ? ` ${answer}` : ""}\n`;
 }
 
-/** A round, waiting on the human unless answered, with a question for each title. */
+/**
+ * A round, waiting on the human unless answered, with a question for each title, and a follow-up
+ * of Q1's option B when given.
+ */
 function round(
   titles: Array<string>,
-  { answer = "", number = "01" }: { answer?: string; number?: string } = {},
+  {
+    answer = "",
+    followUp = "",
+    number = "01",
+  }: { answer?: string; followUp?: string; number?: string } = {},
 ) {
   const questions = titles
     .map((title, index) => question(`## Q${index + 1}`, title, answer))
+    .concat(followUp ? [question("### Q1.B", followUp)] : [])
     .join("\n");
   const status = answer ? "answered" : "awaiting-human";
   return `---\nstatus: ${status}\n---\n\n# Clarifications, round ${number}: A home logo\n\n> [!IMPORTANT]\n>\n> ${titles.length} questions.\n\n## Context\n\nThe [proposal](proposal.md).\n\n${questions}`;
@@ -43,6 +52,8 @@ test("a round of two questions counts them in plural words", async () => {
   const aside = await column();
   expect(await aside.findByText("2 questions")).toBeTruthy();
   expect(aside.getByRole("link", { name: "Questions, round 01" })).toBeTruthy();
+  // The round waits on the human: the agent is not said to work.
+  expect(aside.queryByText("The agent is working.")).toBeNull();
 });
 
 test("a second round is the one linked, once the first is answered", async () => {
@@ -62,6 +73,21 @@ test("a second round is the one linked, once the first is answered", async () =>
   const link = aside.getByRole("link", { name: "Questions, round 02" });
   expect(link.getAttribute("href")).toMatch(new RegExp(`/f/${FOLDER}/clarifications-02\\.md$`));
   expect(aside.queryByRole("link", { name: "Questions, round 01" })).toBeNull();
+});
+
+test("a follow-up not asked yet is not counted", async () => {
+  const repo = fixtureRepo();
+  addChange(repo, FOLDER, {
+    "clarifications-01.md": round(["Does the logo replace the name?"], {
+      followUp: "How wide is the logo?",
+    }),
+    "proposal.md": "# A home logo\n",
+  });
+
+  await renderPage(`/f/${FOLDER}`, repo, { agent: true });
+
+  const aside = await column();
+  expect(await aside.findByText("1 question")).toBeTruthy();
 });
 
 test("a record without a pull request shows the step's title, with no link", async () => {
