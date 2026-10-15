@@ -369,6 +369,17 @@ export function Changes({
 }
 
 /**
+ * The row opening the Storybook page of a feature or a change, when its checkout has an active
+ * preview decision; nothing otherwise.
+ */
+export function StorybookRow({ item }: { item: Pick<Feature, "folder" | "preview"> }) {
+  const here = useRepoPath();
+  return item.preview ? (
+    <ListItem href={here(storybookHref(item.folder))} label="Storybook" />
+  ) : null;
+}
+
+/**
  * The feature's page, its Storybook when it has a preview decision, then its workflow files but its
  * reviews, each a row that opens it.
  */
@@ -380,9 +391,7 @@ function Pages({ feature }: { feature: Pick<Feature, "files" | "folder" | "previ
       <SectionHeading>Feature</SectionHeading>
       <List aria-label="Feature" density="compact">
         <ListItem href={here(`/f/${feature.folder}`)} label="Feature page" />
-        {feature.preview && (
-          <ListItem href={here(storybookHref(feature.folder))} label="Storybook" />
-        )}
+        <StorybookRow item={feature} />
         {files.map((file) => (
           <ListItem
             href={here(`/f/${feature.folder}/${file.name}`)}

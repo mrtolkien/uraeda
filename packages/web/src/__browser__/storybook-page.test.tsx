@@ -1,14 +1,16 @@
 // US5 of the UI iteration flow: Uraeda's Storybook page shows Storybook's own interface for a
 // branch, at the story an embed or an inline link names (US1.3, US5.1, US5.2), as tall as the window
-// and, on the phone, as wide (US5.4). The feature's page and the session's column list it (US4.5,
-// US5.3), only with a preview decision; a story not in the index, and a failed Storybook, say so
-// (edge cases).
+// and, on the phone, as wide (US5.4). The feature's page and the session's column, a change's too,
+// list it (US4.5, US5.3), only with a preview decision; a story not in the index, and a failed
+// Storybook, say so (edge cases).
 import { screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 import { atRepo, atSize, commands, repository, show } from "./helpers.tsx";
 
 const FEATURE = "2026-10-20-sidebar-resize";
+const CHANGE = "2026-10-16-centred-x";
+const CHANGE_TITLE = "Centre the x in failure circles";
 const PAGE = `/f/${FEATURE}/storybook`;
 const AT_STORY = "?path=/story/sidebarhandle--dragging";
 const BASE = () => `/r/${encodeURIComponent(repository())}/preview/${FEATURE}/`;
@@ -40,6 +42,13 @@ async function undoRefused() {
   await commands.writeRepo(priorities.replace("- Show the last commit\n", ""));
   await userEvent.click(undo);
   await screen.findByText(/^Could not undo/);
+}
+
+/** Adds the change `centred-x`, with its proposal, and shows its page's column. */
+async function changeColumn() {
+  await commands.addChange(CHANGE, { "proposal.md": `# ${CHANGE_TITLE}\n` });
+  await show(`/f/${CHANGE}`, CHANGE_TITLE);
+  return within(await screen.findByRole("complementary", { name: "Progress" }, READY));
 }
 
 describe("on a desktop", () => {
@@ -132,6 +141,25 @@ describe("on a desktop", () => {
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
 
     await expect.poll(async () => (await commands.previewStarts()).length, READY).toBe(2);
+  });
+});
+
+describe("a change's column, on a desktop", () => {
+  atSize("desktop");
+
+  test("lists Storybook, its checkout having a preview decision (US4.5)", async () => {
+    // The decision is on `main`, which the change's branch starts from, in the main checkout the
+    // change follows without a worktree.
+    await commands.addStoryFeature();
+    const column = await changeColumn();
+    const row = await column.findByRole("link", { name: "Storybook" }, READY);
+    expect(row.getAttribute("href")).toBe(atRepo(`/f/${CHANGE}/storybook`));
+  });
+
+  test("without a preview decision, does not list Storybook (edge case)", async () => {
+    const column = await changeColumn();
+    await column.findByRole("link", { name: "proposal.md" }, READY);
+    expect(column.queryByRole("link", { name: "Storybook" })).toBeNull();
   });
 });
 
