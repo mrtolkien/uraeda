@@ -203,6 +203,50 @@ function Option({
 }
 
 /**
+ * A question's options, each a toggle of its letter, and "Does not apply" for a follow-up whose
+ * parent's answer names no option.
+ */
+function Options({
+  answer,
+  document,
+  question,
+  readOnly,
+}: {
+  answer: ReturnType<typeof useAnswer>;
+  document: Document;
+  question: QuestionItem;
+  readOnly: boolean;
+}) {
+  const wide = useWidthClass() === "wide";
+  const parent = question.parent;
+  return (
+    <>
+      {question.options.length > 0 && (
+        <div
+          {...stylex.props(styles.options, !wide && (parent ? styles.bleedFollowUp : styles.bleed))}
+        >
+          {question.options.map((choice) => (
+            <Option
+              choice={choice}
+              disabled={readOnly}
+              document={document}
+              key={choice.letter}
+              onToggle={() => answer.toggle(choice.letter)}
+              selected={answer.letters.includes(choice.letter)}
+            />
+          ))}
+        </div>
+      )}
+      {question.applies === "unclear" && !readOnly && (
+        <HStack gap={2} xstyle={styles.spaced}>
+          <Button label="Does not apply" onClick={answer.notApplying} />
+        </HStack>
+      )}
+    </>
+  );
+}
+
+/**
  * A question in full: its context, every option with its text, pros, cons, and why, and a comment.
  * A tap on an option toggles its letter and saves the answer, with the comment as typed; the comment
  * alone saves with its button, or with Submit. With `onAsk`, it and its follow-ups offer "Ask the
@@ -231,7 +275,6 @@ export function Question({
   target: RoundTarget;
 }) {
   const answer = useAnswer(question, target, path);
-  const { letters } = answer;
   const unclear = question.applies === "unclear";
   const parent = question.parent;
   const wide = useWidthClass() === "wide";
@@ -259,27 +302,7 @@ export function Question({
         {question.title}
       </Heading>
       <Blocks document={document} ids={question.context} />
-      {question.options.length > 0 && (
-        <div
-          {...stylex.props(styles.options, !wide && (parent ? styles.bleedFollowUp : styles.bleed))}
-        >
-          {question.options.map((choice) => (
-            <Option
-              choice={choice}
-              disabled={readOnly}
-              document={document}
-              key={choice.letter}
-              onToggle={() => answer.toggle(choice.letter)}
-              selected={letters.includes(choice.letter)}
-            />
-          ))}
-        </div>
-      )}
-      {unclear && !readOnly && (
-        <HStack gap={2} xstyle={styles.spaced}>
-          <Button label="Does not apply" onClick={answer.notApplying} />
-        </HStack>
-      )}
+      <Options answer={answer} document={document} question={question} readOnly={readOnly} />
       <AnswerComment
         answer={answer}
         id={question.id}

@@ -2029,7 +2029,7 @@ git commit -m "feat(ui-iteration): pick mode, and comments on stories in reviews
 - Changes: an option draws its `other` blocks that embed a story after its button, never inside it;
   `FilePage` gives a round's `StoriesProvider` `removed` when the round is `answered`.
 
-- [ ] **Step 1: Split `Question` before it grows**
+- [x] **Step 1: Split `Question` before it grows**
 
 Move its options' list and the "Does not apply" button into an `Options` component of
 `Question.tsx`, without changing what it draws.
