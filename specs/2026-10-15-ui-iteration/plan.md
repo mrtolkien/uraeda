@@ -1334,13 +1334,17 @@ git commit -m "feat(ui-iteration): the preview proxy, and the guard's exception"
 
 **Files:**
 
-- Create: `packages/server/src/fate/preview.ts`
-- Modify: `packages/server/src/fate/views.ts` (`StoryRecord`, `PreviewRecord`, `StoryHrefRecord`,
-  their data views and roots; `FeatureRecord.preview`, `WorkspaceRecord.preview`),
-  `packages/server/src/fate/sources.ts`, `packages/server/src/fate/sessions.ts` (`featureRecord`),
-  `packages/server/src/fate/mutations.ts` (`preview.restart`), `packages/server/src/fate.ts`
-  (exports), `packages/server/src/server.ts` (`onChange` to the hosts' buses)
+- Create: `packages/server/src/fate/preview.ts` (`StoryRecord`, `PreviewRecord`, `StoryHrefRecord`,
+  and their reads)
+- Modify: `packages/server/src/fate/views.ts` (their data views and roots; `FeatureRecord.preview`,
+  `WorkspaceRecord.preview`), `packages/server/src/fate/sources.ts`,
+  `packages/server/src/fate/sessions.ts` (`featureRecord`), `packages/server/src/fate/mutations.ts`
+  (`preview.restart`), `packages/server/src/fate.ts` (exports), `packages/server/src/live.ts`
+  (`livePreviews`: the runner whose `onChange` reaches the buses), `packages/server/src/server.ts`
+  and `packages/server/src/app.ts` (`livePreviews`)
 - Modify: `packages/web/.fate/client.generated.ts`, generated
+- Modify: `packages/server/src/__tests__/helpers.ts` (`testApp` and `testServer` give `previews`,
+  from `livePreviews`), `packages/web/src/__tests__/helpers.tsx` (`livePreviews`)
 - Test: `packages/server/src/__tests__/preview.test.ts`
 
 **Interfaces:**
@@ -1353,8 +1357,8 @@ git commit -m "feat(ui-iteration): the preview proxy, and the guard's exception"
     `/f/<folder>/storybook?path=/story/<id>` (`/storybook?path=…` for `main`) when ready. Reading it
     is a view.
   - `Preview`, id `<folder>`:
-    `{ id; state: "none" | "starting" | "ready" | "failed"; base: string | null; error: string | null }`.
-    Reading it is a view.
+    `{ id; state: "none" | "starting" | "ready" | "failed"; base: string | null; error: string | null }`,
+    `base` `/r/<name>/preview/<folder>/` when ready. Reading it is a view.
   - `StoryHref`, id an href as written: `{ id; path: string | null; export: string | null }`, from
     `binding.storyLink`. Not a view, not live.
 - Produces: `FeatureRecord.preview: boolean` and `WorkspaceRecord.preview: boolean`, whether the
@@ -1363,8 +1367,11 @@ git commit -m "feat(ui-iteration): the preview proxy, and the guard's exception"
 - Produces: mutation `preview.restart`, input `{ folder: string }`, answering the `Preview` record.
 - Produces: `checkoutOf(ctx, folder): Promise<{ dir: string } | null>`: the main checkout for
   `main`, else the feature's worktree resolved from the main checkout, `null` without one.
+- Produces: `livePreviews(options?)`, exported by `live.ts` and `uraeda-server`: the runner every
+  server and test app uses, whose changes send the live updates
+  ([R22](rulings.md#r22-a-live-update-of-a-story-is-a-view)).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/server/src/__tests__/preview.test.ts
@@ -1380,7 +1387,7 @@ test("a story's first read starts its Storybook, and turns ready live (US1.1)", 
   const [first] = await byId(app, "Story", [STORY], FIELDS);
 
   expect(first.state).toBe("starting");
-  await updates.next();
+  expect(await updates.arrival('"state":"ready"'), "no live update to ready").toBeDefined();
   const [ready] = await byId(app, "Story", [STORY], FIELDS);
   expect(ready).toMatchObject({
     frame: `/r/${name}/preview/2026-10-20-sidebar-resize/iframe.html?id=sidebarhandle--dragging&viewMode=story`,
@@ -1416,29 +1423,32 @@ The break each test catches:
 - Flags: a "Storybook" row on a project without the decision.
 - `StoryHref`: a link check that starts Storybook, or a rule copied into TypeScript.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test --project uraeda-server src/__tests__/preview.test.ts`
 - Expected: FAIL on the first read: fate refuses the type `Story`, which no source reads.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 - `checkoutOf`: `main` gives `binding.mainRoot(repo)`; a feature gives its `worktree` from
   `readFeature`, resolved against the main root, or `null`.
 - Reading `Story`: no checkout, `none`; a checkout without `preview(dir)`, `none` too; else
   `previews.view(…)` with the base `/r/<encoded name>/preview/<folder>/`; when ready,
-  `matchStory(await previews.index(base), …)` gives `ready` or `missing`. `Preview` the same,
-  without matching. Each read adds the id to the ones its base updates.
-- `onChange(base)`: the base's repository's bus updates its `Preview` and every `Story` read for it.
+  `matchStory(await previews.index(base), …)` gives `ready` or `missing`, and an index that cannot
+  be read `failed`
+  ([R23](rulings.md#r23-a-ready-storybook-whose-index-cannot-be-read-fails-its-stories)). `Preview`
+  the same, without matching. Each read adds the id to the ones its base updates.
+- `onChange(base)`, in `livePreviews`: the bus of the repository that read the base updates its
+  `Preview` and every `Story` read for it.
 - `featureRecord` and the workspace record fill `preview` with `binding.preview(dir) !== null`.
 - Regenerate fate's client with the web package's build.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp test --project uraeda-server && vp run --filter uraeda-web build && vp check`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src packages/web/.fate

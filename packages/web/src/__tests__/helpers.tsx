@@ -3,7 +3,7 @@ import { basename, dirname, join } from "node:path";
 import { act, cleanup, configure, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach } from "vite-plus/test";
 import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
-import { createApp, Hosts, Previews } from "uraeda-server";
+import { createApp, Hosts, livePreviews, type Previews } from "uraeda-server";
 import { fakeSessions } from "uraeda-server/testing";
 import { App } from "../App.tsx";
 import { ServerFetch } from "../attach/ServerFetch.tsx";
@@ -250,7 +250,7 @@ export function serverFetch(
       : binding.addRepository(dataDir, repo).then(({ repository }) => repository.name);
   const hosts = added.then(() => Hosts.open({ binding: server, dataDir, sessions }));
   opened.push(hosts);
-  const previews = new Previews();
+  const previews = livePreviews();
   runners.push(previews);
   const created = hosts.then((hosts) =>
     createApp({

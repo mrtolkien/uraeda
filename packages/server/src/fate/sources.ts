@@ -1,6 +1,7 @@
 import { homedir } from "node:os";
 import { homePath, suggest } from "../folders.ts";
 import { type Context, inRepository, type RepoContext } from "./context.ts";
+import { hasPreview, readPreview, readStory, readStoryHref } from "./preview.ts";
 import {
   agentRecord,
   featureRecord,
@@ -25,6 +26,7 @@ import {
   INBOX_ID,
   inboxDataView,
   PRIORITIES_ID,
+  previewDataView,
   prioritiesDataView,
   PROPOSAL_HINTS_ID,
   proposalHintsDataView,
@@ -43,6 +45,8 @@ import {
   sessionSearchDataView,
   slugProposalDataView,
   TRIAGE_ID,
+  storyDataView,
+  storyHrefDataView,
   turnDataView,
   turnLogDataView,
   workflowMessageDataView,
@@ -67,10 +71,12 @@ async function found<T>(
 
 async function workspace(ctx: RepoContext): Promise<WorkspaceRecord> {
   const read = await ctx.binding.readWorkspace(ctx.repo);
+  const root = await ctx.binding.mainRoot(ctx.repo).catch(() => undefined);
   return {
     id: WORKSPACE_ID,
     ...read,
     features: read.features.map((feature) => ({ ...feature, step: sentStep(feature.step) })),
+    preview: root !== undefined && (await hasPreview(ctx, root)),
     running: await working(ctx),
   };
 }
@@ -119,6 +125,7 @@ function missingFeature(folder: string): FeatureRecord {
     missing: true,
     mockups: [],
     path: "",
+    preview: false,
     problems: [],
     session: null,
     slug: "",
@@ -292,6 +299,18 @@ export const sources = createSources<Context>([
     repository({
       byIds: async (ctx, ids) => found(ids, (id) => readWorkflowMessage(ctx, id)),
     }),
+  ),
+  fileSource(
+    storyDataView,
+    repository({ byIds: async (ctx, ids) => each(ids, (id) => readStory(ctx, id)) }),
+  ),
+  fileSource(
+    previewDataView,
+    repository({ byIds: async (ctx, ids) => each(ids, (id) => readPreview(ctx, id)) }),
+  ),
+  fileSource(
+    storyHrefDataView,
+    repository({ byIds: async (ctx, ids) => ids.map((href) => readStoryHref(ctx, href)) }),
   ),
   fileSource(repositoriesDataView, {
     // Read again on each read, so a folder moved away or back since shows as it is now.

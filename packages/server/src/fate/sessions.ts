@@ -1,5 +1,6 @@
 // The session manager's records, read from its cache: the agent, sessions, their turns and item
 // pages, the sidebar's list and search, and the workflow's message.
+import { resolve } from "node:path";
 import type { FeatureView, WorkspaceView } from "uraeda-binding";
 import type { SessionCache, SessionRow, TurnRow } from "../runner/cache.ts";
 import type { Trigger } from "../runner/events.ts";
@@ -8,6 +9,7 @@ import { REFUSALS } from "../runner/sessions.ts";
 import { sessionStatus, STATUS_ORDER } from "../runner/status.ts";
 import type { Context, RepoContext } from "./context.ts";
 import { callSiteError } from "./errors.ts";
+import { hasPreview } from "./preview.ts";
 import {
   AGENT_ID,
   type AgentRecord,
@@ -337,7 +339,7 @@ export async function readWorkflowMessage(
   };
 }
 
-/** A feature's record: its view, with its session's ID. */
+/** A feature's record: its view, with its session's ID, and whether it has a preview. */
 export async function featureRecord(
   ctx: RepoContext,
   feature: FeatureView,
@@ -345,9 +347,12 @@ export async function featureRecord(
   const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
   const session =
     root === undefined ? undefined : ctx.sessions.cache.featureSession(root, feature.folder);
+  // A feature without a worktree follows the main checkout's decision (R7).
+  const checkout = root === undefined ? undefined : resolve(root, feature.worktree ?? ".");
   return {
     id: feature.folder,
     ...feature,
+    preview: checkout !== undefined && (await hasPreview(ctx, checkout)),
     session: session?.id ?? null,
     step: sentStep(feature.step),
   };
