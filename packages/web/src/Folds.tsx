@@ -114,12 +114,44 @@ export function useHashFold(document: Document, folds: Folds | undefined) {
     handled.current = visit;
     const element = window.document.getElementById(hash);
     if (element) {
-      element.scrollIntoView({ block: "start" });
-      // A little below the top, or the top bar, where it stays on the phone.
-      const bar = window.document.querySelector('[role="banner"]')?.getBoundingClientRect();
-      window.scrollBy(0, -Math.max(bar?.bottom ?? 0, 0) - 16);
+      scrollBelowBar(element);
     }
   }, [folds, hash, target, visit]);
+}
+
+/** Scrolls to an element, a little below the top, or the top bar, where it stays on the phone. */
+function scrollBelowBar(element: HTMLElement) {
+  element.scrollIntoView({ block: "start" });
+  const bar = window.document.querySelector('[role="banner"]')?.getBoundingClientRect();
+  window.scrollBy(0, -Math.max(bar?.bottom ?? 0, 0) - 16);
+}
+
+/**
+ * Scrolls to the element of a block, by its id, a little below the top bar: when the block is in a
+ * closed fold, once the fold it opens shows it.
+ */
+export function useRevealBlock(document: Document, folds: Folds | undefined) {
+  // The element to scroll to once its fold opened, written by the click that opens it.
+  const pending = useRef<string>(undefined);
+  useLayoutEffect(() => {
+    const element = pending.current && window.document.getElementById(pending.current);
+    if (element) {
+      pending.current = undefined;
+      scrollBelowBar(element);
+    }
+  });
+  return (block: Block | undefined, id: string) => {
+    const fold = folds && foldOf(document, folds.list, block);
+    if (fold && !folds.open.includes(fold.key)) {
+      pending.current = id;
+      folds.onOpenChange(fold.key, true);
+      return;
+    }
+    const element = window.document.getElementById(id);
+    if (element) {
+      scrollBelowBar(element);
+    }
+  };
 }
 
 /**

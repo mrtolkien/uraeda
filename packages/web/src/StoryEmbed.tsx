@@ -183,7 +183,7 @@ function ReadyStory({
         {comment && <PickControls pick={pick} wide={wide} />}
         <OpenInStorybook href={storybook} wide={wide} />
       </Bar>
-      {pick.picking && <PickHint />}
+      {comment && <PickHint picking={pick.picking} />}
       <StoryFrames label={label} pick={pick.frames} src={frame} wide={wide} widths={widths} />
       {comment && (
         <StoryCommentForm comment={comment} label={label} pick={pick} story={story} wide={wide} />
