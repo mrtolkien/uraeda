@@ -677,3 +677,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a job's step names a version that changes its inputs; actionlint 1.7.12 reports no
   problem in `ci.yml` and the setup action.
 - **Where**: task 9.
+
+## R37: CI measured on one run, without the reruns or the scratch branch
+
+- **Decision**: task 10 ran CI once on the branch, by hand (run 38681678318), and measured it; the
+  10 reruns of SC-002 and US1.1, the cancellation of US3.2, and the scratch branch of US3.4 were not
+  run.
+- **Rationale**: the human asked for one run, and no scratch branch, on 2026-10-15. The run passed
+  every job in 6 min 7 s (SC-001, under 8 minutes; up to 15 before), with the browser jobs' summed
+  file times at 162.7 s (phone) and 149.0 s (desktop) (SC-004, at most 180 s). Locally,
+  `vp run ready` passed three times in a row after the rebase, twice uncached, which stands in for
+  SC-002's reruns.
+- **Alternatives considered**: the plan's 10 reruns and scratch branch: declined by the human.
+- **If wrong**: a flake that fails one CI run in ten shows on the pull request's runs instead; the
+  clean tree check's failure path is untested until a job leaves a file changed.
+- **Where**: task 10.

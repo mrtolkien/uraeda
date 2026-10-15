@@ -1024,39 +1024,34 @@ git commit -m "ci(testing-review): CI runs ready's groups in parallel jobs"
 
 - Consumes: everything above.
 
-- [ ] **Step 1: Run CI on the branch**
+- [x] **Step 1: Run CI on the branch**
 
 - Run:
   `git push -u origin 2026-10-14-testing-review && gh workflow run ci.yml --ref 2026-10-14-testing-review`
 - Expected: the jobs `rust`, `typescript`, `browser-phone`, `browser-desktop`, `neovim` and
   `release` start at once and pass (US3.1, US5.2), with no `coverage` job (not a push to `main`).
 
-- [ ] **Step 2: Measure SC-001 and SC-004**
+- [x] **Step 2: Measure SC-001 and SC-004**
 
 - Run: `gh run view <id> --json jobs` and the browser jobs' logs.
 - Expected: from the first job's start to the last job's end under 8 minutes; each browser job's
   summed file time at most 180 seconds. A miss is a ruling with the measure, the cause, and what
   would close it.
 
-- [ ] **Step 3: Rerun it 10 times (SC-002, US1.1)**
+As run (R37): run 38681678318 passed every job, from 04:28:57 to 04:35:04, 6 min 7 s (SC-001); the
+browser jobs' summed file times were 162.7 s at the phone's size and 149.0 s at the desktop's
+(SC-004). The human asked for one run only, and no scratch branch: the 10 reruns of SC-002 and the
+checks of US3.2 and US3.4 below are left to the pull request's own runs.
 
-- Run: `gh run rerun <id>` after each run ends, 10 times.
-- Expected: 10 passes. A failure is investigated to its cause, fixed in this branch with a test, and
-  the count starts again.
+- [ ] **Step 3: Rerun it 10 times (SC-002, US1.1)**: not run, at the human's request (R37).
 
-- [ ] **Step 4: Check the cancellation and the clean tree check (US3.2, US3.4)**
-
-- Run: two `gh workflow run` on the branch in a row. Expected: the first run is cancelled once the
-  second starts.
-- Run: on a scratch branch `scratch/testing-review-stale-binding` from this one, a commit that edits
-  `packages/binding/index.d.ts` by hand, pushed, then `gh workflow run ci.yml --ref` that branch;
-  then delete the scratch branch, locally and on `origin`. Expected: its `typescript` job fails,
-  printing ` M packages/binding/index.d.ts`.
+- [ ] **Step 4: Check the cancellation and the clean tree check (US3.2, US3.4)**: not run, at the
+      human's request (R37).
 
 US6.2, the `coverage` job's artifact, can only run on a push to `main`: the pull request's
 description says it is checked on the first push after the merge.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add specs/2026-10-14-testing-review/rulings.md
