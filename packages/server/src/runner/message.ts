@@ -1,5 +1,7 @@
 import { isAbsolute, relative, sep } from "node:path";
 
+export { APPLY_TRIAGE, ORGANIZE_INBOX } from "./triage-messages.ts";
+
 /** What a message is about: a feature's or a change's kind, and its folder's path. */
 type Subject = { kind: string; path: string };
 

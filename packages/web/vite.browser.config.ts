@@ -140,6 +140,10 @@ const commands = {
   fixtureImage(_context: unknown, name: string) {
     return readFileSync(join(fixture("images"), name)).toString("base64");
   },
+  /** A text file of `fixtures/`, like the inbox's triage, to write in the repository. */
+  fixtureText(_context: unknown, name: string) {
+    return readFileSync(fixture(name), "utf8");
+  },
   /** Serves the chat images `ms` late, until the test ends. */
   slowChatImages(_context: unknown, ms: number) {
     chatImageDelay = ms;
@@ -224,6 +228,7 @@ export type RepoCommands = {
   commitOnBranch: (branch: string, files: Record<string, string | null>) => Promise<void>;
   committedFiles: (at: string, path: string) => Promise<Array<string>>;
   fixtureImage: (name: string) => Promise<string>;
+  fixtureText: (name: string) => Promise<string>;
   mouse: (
     steps: Array<{ ms?: number; type: "move" | "down" | "up" | "wait"; x?: number; y?: number }>,
   ) => Promise<void>;

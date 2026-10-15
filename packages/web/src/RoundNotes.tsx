@@ -2,7 +2,6 @@ import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useCallback, useEffect, useRef } from "react";
-import { useFateClient } from "react-fate";
 import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
@@ -14,8 +13,8 @@ import { SaveStatus } from "./fields/SaveStatus.tsx";
 import { SaveKeys } from "./fields/SaveKeys.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
+import { type Hashes, type RoundTarget, useRoundWrites } from "./roundTarget.ts";
 import { useSave } from "./useSave.ts";
-import { FileView } from "./views.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -25,19 +24,17 @@ export const NOTES_CHANGED = "The notes changed since: saving replaces them.";
 /**
  * A round's notes: the free notes the file holds, `read`, and the field's text, kept unsaved until
  * `commit` saves it, as "Save notes" does. `flush` saves what is unsaved at once, once the images
- * being added are in, as a submit does.
+ * being added are in, as a submit does. `target` is the round they are written in, `hashes` the
+ * page's `RoundHash`, which it provides below the page's own hooks.
  */
-export function useRoundNotes(file: File) {
-  const fate = useFateClient();
+export function useRoundNotes(file: File, target: RoundTarget, hashes: Hashes) {
+  const writes = useRoundWrites(target, hashes);
   const read = file.current.items.clarifications?.notes ?? "";
   const field = useTextField(`${file.path}#notes`, read);
   // The images being added to the notes, which a submit waits for.
   const settled = useRef<() => Promise<void>>(async () => {});
   const run = async (value: string, previous: string) => {
-    const result = await fate.mutations.notes.save({
-      input: { folder: file.folder, notes: value, previous },
-      view: FileView,
-    });
+    const result = await writes.notes({ notes: value, previous });
     if (result.error) {
       return { message: refusal(result.error).message, ok: false as const };
     }

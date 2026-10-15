@@ -1,6 +1,7 @@
 // US1 and SC-001 of the inbox at both sizes: a note added from the sidebar's ＋ with the text and
 // Enter, in a dialog on wide screens and a bottom sheet on narrow ones (the UI layout decision); and
-// the inbox page, full and empty, passing the layout checks of the UI checks decision.
+// the inbox page, full and empty, with its triage's banner, and the triage's answering view (US4 2),
+// passing the layout checks of the UI checks decision.
 import { screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
@@ -310,4 +311,16 @@ describe("on the desktop, the inbox's toasts", () => {
     await expect.poll(() => commands.readRepo(PATH)).toBe(original);
     await expect.poll(() => screen.queryByRole("button", { name: "Undo" })).toBeNull();
   });
+});
+
+/** US4 2: the triage's banner on the inbox page, and the triage answered in the round's view. */
+test("the triage's banner and its answering view pass the layout checks", async () => {
+  await commands.writeRepo(await commands.fixtureText("INBOX-TRIAGE.md"), "specs/INBOX-TRIAGE.md");
+  await show("/inbox", "An inbox triage waits for your answers");
+  await checkLayout();
+
+  await userEvent.click(screen.getByRole("link", { name: "Answer it" }));
+  await screen.findByRole("heading", { level: 1, name: "Inbox triage" });
+  await drawn();
+  await checkLayout();
 });

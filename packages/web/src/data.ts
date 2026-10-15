@@ -29,6 +29,8 @@ import {
 const WORKSPACE_ID = "workspace";
 const PRIORITIES_ID = "priorities";
 const INBOX_ID = "inbox";
+/** The inbox's triage, among workflow files: it has no feature folder. */
+const TRIAGE_ID = "inbox-triage";
 const AGENT_ID = "agent";
 const SESSION_LIST_ID = "all";
 const PROPOSAL_HINTS_ID = "proposal";
@@ -72,6 +74,14 @@ export function useBranchChanges(folder: string) {
 
 export function useFile(folder: string, name: string) {
   const request = { workflowFile: { id: `${folder}/${name}`, view: FileView } };
+  const { workflowFile } = useRequest(request);
+  useRefreshOnShow(request);
+  return useLiveView(FileView, workflowFile);
+}
+
+/** The inbox's triage, `specs/INBOX-TRIAGE.md`, as a round of questions: missing until written. */
+export function useTriage() {
+  const request = { workflowFile: { id: TRIAGE_ID, view: FileView } };
   const { workflowFile } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(FileView, workflowFile);

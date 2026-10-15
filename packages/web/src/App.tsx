@@ -42,6 +42,7 @@ import { ListClientContext, useOpenRepository } from "./RepositoryMenu.tsx";
 import { FirstRun, MissingFolder, UnknownRepository } from "./RepositoryPages.tsx";
 import { SessionPage } from "./SessionPage.tsx";
 import { TaskView } from "./TaskView.tsx";
+import { TriagePage } from "./TriagePage.tsx";
 import { Shell } from "./Shell.tsx";
 import { ThemeModeProvider } from "./theme.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
@@ -95,10 +96,10 @@ function Page({ route }: { route: Route }) {
       return <TaskRoute entryKey={route.key} />;
     case "note":
       return <NoteRoute noteKey={route.key} />;
-    // The triage's view comes with its own task: until then, the inbox.
     case "inbox":
-    case "triage":
       return <InboxPage />;
+    case "triage":
+      return <TriagePage />;
     case "edit":
       return <EditorPage key={route.path} path={route.path} />;
     case "mockup":
