@@ -386,21 +386,34 @@ export function useTurnFollowed(id: string) {
 /** How often a record drawn on screen is read again, so the server knows it is still viewed. */
 export const STILL_VIEWED_MS = 5 * 60_000;
 
+/** The records a request reads, by name and id: two requests of the same records are one. */
+function requestKey(request: Parameters<typeof useRequest>[0]): string {
+  return Object.entries(request as Record<string, { id?: unknown }>)
+    .map(([name, { id }]) => `${name}:${String(id)}`)
+    .join("\n");
+}
+
 /**
- * Reads a request again, from the server, every 5 minutes while its component is drawn: a read is a
- * view, and a Storybook stops after 30 minutes without one. The request is its first draw's: a
- * component that reads another record is drawn anew, under another key.
+ * Reads a request again, from the server, every 5 minutes while its component is drawn and its page
+ * shows: a read is a view, and a Storybook stops after 30 minutes without one. A hidden page asks
+ * nothing; it asks again as it shows, through `useRefreshOnShow`. The request asked again is the one
+ * the component draws now, by the records it reads.
  */
 export function useStillViewed(request: Parameters<typeof useRequest>[0]) {
   const fate = useFateClient();
-  const [first] = useState(request);
+  const key = requestKey(request);
+  const [held, setHeld] = useState({ key, request });
+  if (held.key !== key) {
+    setHeld({ key, request });
+  }
   useEffect(() => {
-    const timer = setInterval(
-      () => void fate.request(first as never, { mode: "network-only" }).catch(() => {}),
-      STILL_VIEWED_MS,
-    );
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void fate.request(held.request as never, { mode: "network-only" }).catch(() => {});
+      }
+    }, STILL_VIEWED_MS);
     return () => clearInterval(timer);
-  }, [fate, first]);
+  }, [fate, held]);
 }
 
 /**
