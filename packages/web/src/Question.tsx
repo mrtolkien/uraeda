@@ -11,6 +11,7 @@ import {
   typeScaleVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { useContext } from "react";
 import type { Choice, Document, QuestionItem } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { StaticImages } from "./ImageView.tsx";
@@ -19,6 +20,7 @@ import { useWidthClass } from "./layout/useWidthClass.ts";
 import { useAnswer } from "./useAnswer.ts";
 import { AnswerComment } from "./QuestionComment.tsx";
 import type { RoundTarget } from "./roundTarget.ts";
+import { storyIn, StoryContext } from "./stories.tsx";
 
 const styles = stylex.create({
   belowBar: {
@@ -66,9 +68,6 @@ const styles = stylex.create({
   },
   option: {
     backgroundColor: "transparent",
-    borderBlockEndColor: colorVars["--color-border"],
-    borderBlockEndStyle: "solid",
-    borderBlockEndWidth: borderVars["--border-width"],
     borderInlineStartColor: "transparent",
     borderInlineStartStyle: "solid",
     borderInlineStartWidth: spacingVars["--spacing-1"],
@@ -88,6 +87,12 @@ const styles = stylex.create({
     textWrap: "pretty",
     width: "100%",
   },
+  // An option and its variants' stories, split from the next by a hairline.
+  optionItem: {
+    borderBlockEndColor: colorVars["--color-border"],
+    borderBlockEndStyle: "solid",
+    borderBlockEndWidth: borderVars["--border-width"],
+  },
   optionOff: {
     cursor: "default",
   },
@@ -95,6 +100,8 @@ const styles = stylex.create({
     backgroundColor: colorVars["--color-accent-muted"],
     borderInlineStartColor: colorVars["--color-accent"],
   },
+  // An option's stories, under its button, at its text's inset: on the phone, the embed takes it
+  // back, to the screen's edges.
   options: {
     // Options run to the screen's edges on the phone, split by hairlines.
     borderBlockStartColor: colorVars["--color-border"],
@@ -145,6 +152,9 @@ const styles = stylex.create({
     marginBlockEnd: spacingVars["--spacing-2"],
     marginBlockStart: spacingVars["--spacing-0-5"],
   },
+  variants: {
+    paddingInline: spacingVars["--spacing-4"],
+  },
   why: { color: colorVars["--color-warning"] },
 });
 
@@ -166,6 +176,11 @@ function Option({
   onToggle: () => void;
   selected: boolean;
 }) {
+  // A story is drawn after the button, never inside it, where its frames would be inert.
+  const stories = useContext(StoryContext);
+  const isStory = (id: number) => storyIn(stories, document.blocks[id]) !== undefined;
+  const other = choice.other.filter((id) => !isStory(id));
+  const variants = choice.other.filter(isStory);
   const spans = (id: number) => <Spans spans={document.blocks[id]?.spans ?? []} />;
   const point = (id: number, sign: string, tone: stylex.StyleXStyles) => (
     <li key={`${sign}${id}`} {...stylex.props(styles.point)}>
@@ -174,31 +189,40 @@ function Option({
     </li>
   );
   return (
-    // oxlint-disable-next-line react/forbid-elements -- a full-width toggle holding paragraphs and lists, which no Astryx component draws (an Astryx gap, see the plan)
-    <button
-      aria-pressed={selected}
-      disabled={disabled}
-      onClick={onToggle}
-      type="button"
-      {...stylex.props(styles.option, selected && styles.optionOn, disabled && styles.optionOff)}
-    >
-      {/* A toggle holds its images alone: a link in it is invalid, and a tap is the toggle's. */}
-      <StaticImages>
-        {choice.recommended && <span {...stylex.props(styles.tag)}>Recommended</span>}
-        <span {...stylex.props(styles.summary)}>
-          <span {...stylex.props(styles.letter, selected && styles.letterOn)}>{choice.letter}</span>{" "}
-          <Spans spans={choice.summary} />
-        </span>
-        {(choice.pros.length > 0 || choice.cons.length > 0 || choice.why !== undefined) && (
-          <ul {...stylex.props(styles.points)}>
-            {choice.pros.map((id) => point(id, "+", styles.pro))}
-            {choice.cons.map((id) => point(id, "−", styles.con))}
-            {choice.why !== undefined && point(choice.why, "★", styles.why)}
-          </ul>
-        )}
-        {choice.other.length > 0 && <Blocks document={document} ids={choice.other} />}
-      </StaticImages>
-    </button>
+    <div {...stylex.props(styles.optionItem)}>
+      {/* oxlint-disable-next-line react/forbid-elements -- a full-width toggle holding paragraphs and lists, which no Astryx component draws (an Astryx gap, see the plan) */}
+      <button
+        aria-pressed={selected}
+        disabled={disabled}
+        onClick={onToggle}
+        type="button"
+        {...stylex.props(styles.option, selected && styles.optionOn, disabled && styles.optionOff)}
+      >
+        {/* A toggle holds its images alone: a link in it is invalid, and a tap is the toggle's. */}
+        <StaticImages>
+          {choice.recommended && <span {...stylex.props(styles.tag)}>Recommended</span>}
+          <span {...stylex.props(styles.summary)}>
+            <span {...stylex.props(styles.letter, selected && styles.letterOn)}>
+              {choice.letter}
+            </span>{" "}
+            <Spans spans={choice.summary} />
+          </span>
+          {(choice.pros.length > 0 || choice.cons.length > 0 || choice.why !== undefined) && (
+            <ul {...stylex.props(styles.points)}>
+              {choice.pros.map((id) => point(id, "+", styles.pro))}
+              {choice.cons.map((id) => point(id, "−", styles.con))}
+              {choice.why !== undefined && point(choice.why, "★", styles.why)}
+            </ul>
+          )}
+          {other.length > 0 && <Blocks document={document} ids={other} />}
+        </StaticImages>
+      </button>
+      {variants.length > 0 && (
+        <div {...stylex.props(styles.variants)}>
+          <Blocks document={document} ids={variants} />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -278,52 +302,71 @@ export function Question({
   const unclear = question.applies === "unclear";
   const parent = question.parent;
   const wide = useWidthClass() === "wide";
+  // A comment on one of its stories joins its answer, on a line of its own, while it can be
+  // answered.
+  const stories = useContext(StoryContext);
+  const comments =
+    stories && !readOnly
+      ? {
+          ...stories,
+          comment: { path, save: (_: unknown, text: string) => answer.appendLine(text) },
+        }
+      : stories;
 
   return (
-    <section
-      id={question.id}
-      {...stylex.props(
-        styles.question,
-        wide ? styles.belowNothing : styles.belowBar,
-        parent !== undefined && styles.followUp,
-      )}
-    >
-      <HStack align="center" gap={2} justify="between" wrap="wrap">
-        <Text color="secondary" type="supporting" weight="semibold">
-          {question.id}
-          {parent && question.applies === "yes" && ` · because you picked ${question.parentLetter}`}
-          {parent && unclear && ` · ${parent} names no option`}
-        </Text>
-        {onAsk && (
-          <Button label="Ask the agent" onClick={() => onAsk(question)} size="sm" variant="ghost" />
-        )}
-      </HStack>
-      <Heading id={`${question.id}-title`} level={2} tabIndex={-1} xstyle={styles.title}>
-        {question.title}
-      </Heading>
-      <Blocks document={document} ids={question.context} />
-      <Options answer={answer} document={document} question={question} readOnly={readOnly} />
-      <AnswerComment
-        answer={answer}
+    <StoryContext value={comments}>
+      <section
         id={question.id}
-        path={path}
-        readOnly={readOnly}
-        saved={question.comment}
-        takes={takes}
-      />
-      {followUps.map((followUp) => (
-        <Question
-          document={document}
-          followUps={[]}
-          key={followUp.id}
+        {...stylex.props(
+          styles.question,
+          wide ? styles.belowNothing : styles.belowBar,
+          parent !== undefined && styles.followUp,
+        )}
+      >
+        <HStack align="center" gap={2} justify="between" wrap="wrap">
+          <Text color="secondary" type="supporting" weight="semibold">
+            {question.id}
+            {parent &&
+              question.applies === "yes" &&
+              ` · because you picked ${question.parentLetter}`}
+            {parent && unclear && ` · ${parent} names no option`}
+          </Text>
+          {onAsk && (
+            <Button
+              label="Ask the agent"
+              onClick={() => onAsk(question)}
+              size="sm"
+              variant="ghost"
+            />
+          )}
+        </HStack>
+        <Heading id={`${question.id}-title`} level={2} tabIndex={-1} xstyle={styles.title}>
+          {question.title}
+        </Heading>
+        <Blocks document={document} ids={question.context} />
+        <Options answer={answer} document={document} question={question} readOnly={readOnly} />
+        <AnswerComment
+          answer={answer}
+          id={question.id}
           path={path}
-          question={followUp}
           readOnly={readOnly}
+          saved={question.comment}
           takes={takes}
-          target={target}
-          {...(onAsk ? { onAsk } : {})}
         />
-      ))}
-    </section>
+        {followUps.map((followUp) => (
+          <Question
+            document={document}
+            followUps={[]}
+            key={followUp.id}
+            path={path}
+            question={followUp}
+            readOnly={readOnly}
+            takes={takes}
+            target={target}
+            {...(onAsk ? { onAsk } : {})}
+          />
+        ))}
+      </section>
+    </StoryContext>
   );
 }

@@ -198,12 +198,14 @@ function LiveStory({
   folder,
   label,
   labelId,
+  removed,
   story,
 }: {
   comment?: EmbedComment;
   folder: string;
   label: string;
   labelId: string;
+  removed: boolean;
   story: StoryTarget;
 }) {
   const record = useStory(folder, story);
@@ -236,7 +238,11 @@ function LiveStory({
         <Bar label={label} labelId={labelId}>
           <OpenInStorybook href={storybookHref(folder)} wide={wide} />
         </Bar>
-        <NoSuchStory story={story} />
+        {removed ? (
+          <State>This variant was removed after your answer.</State>
+        ) : (
+          <NoSuchStory story={story} />
+        )}
       </>
     );
   }
@@ -255,8 +261,9 @@ function LiveStory({
 /**
  * A story link alone in its paragraph, by its checkout's folder, `main` for the main checkout: a
  * figure named by its label, showing the story live once its Storybook runs, or why it does not.
- * `removed`, for a variant removed after its round was answered, reads nothing. `comment` saves a
- * comment on the story, where the page can take one. `id` lets a page scroll to it.
+ * `removed`, in a round answered, says a story missing is a variant removed after the answer.
+ * `comment` saves a comment on the story, where the page can take one. `id` lets a page scroll to
+ * it.
  */
 export function StoryEmbed({
   comment,
@@ -280,22 +287,16 @@ export function StoryEmbed({
       id={id}
       {...stylex.props(styles.embed, !wide && styles.bleed)}
     >
-      {removed ? (
-        <>
-          <Bar label={story.label} labelId={labelId} />
-          <State>This variant was removed after your answer.</State>
-        </>
-      ) : (
-        <Suspense fallback={<Bar label={story.label} labelId={labelId} />}>
-          <LiveStory
-            comment={comment}
-            folder={folder}
-            label={story.label}
-            labelId={labelId}
-            story={target}
-          />
-        </Suspense>
-      )}
+      <Suspense fallback={<Bar label={story.label} labelId={labelId} />}>
+        <LiveStory
+          comment={comment}
+          folder={folder}
+          label={story.label}
+          labelId={labelId}
+          removed={removed}
+          story={target}
+        />
+      </Suspense>
     </figure>
   );
 }

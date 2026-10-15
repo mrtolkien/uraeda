@@ -14,8 +14,8 @@
 // your comment?" confirmations. So do a feature's session at its implementation, its column shown
 // and hidden, the phone's progress line open, and a chat, the transcript 760 px wide beside the
 // column at 1440 px (SC-001, SC-004 of the session view), and at 1024 px with the sidebar open (its
-// edge case). So do a spec with a story embedded, ready, and the Storybook page (the UI iteration
-// flow's UI checks).
+// edge case). So do a spec with a story embedded, ready, a round whose options are stories, and the
+// Storybook page (the UI iteration flow's UI checks).
 import { act, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vite-plus/test";
 import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
@@ -612,6 +612,24 @@ test.each(MODES)("a spec with a story embedded, ready, in $mode", async ({ mode 
   await expect
     .poll(() => commands.frameText("Dragging the handle, phone"), { timeout: 20_000 })
     .toContain("Dragging");
+  await checkLayout();
+});
+
+test.each(MODES)("a round whose options are stories, ready, in $mode", async ({ mode }) => {
+  window.localStorage.setItem("uraeda.theme", mode);
+  await commands.addStoryFeature();
+  await show(
+    "/f/2026-10-20-sidebar-resize/clarifications-01.md",
+    "What does the handle look like?",
+  );
+  for (const [label, name] of [
+    ["Thin line", "ThinLine"],
+    ["Grip", "Grip"],
+  ]) {
+    await expect
+      .poll(() => commands.frameText(`${label}, phone`), { timeout: 20_000 })
+      .toContain(name);
+  }
   await checkLayout();
 });
 

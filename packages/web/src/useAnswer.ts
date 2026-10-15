@@ -4,7 +4,7 @@ import { refusal } from "./errors.ts";
 import { useTextField } from "./fields/useTextField.ts";
 import { useCommentSaves } from "./QuestionComment.tsx";
 import { type RoundTarget, useRoundHash, useRoundWrites } from "./roundTarget.ts";
-import { useSave } from "./useSave.ts";
+import { type SaveResult, useSave } from "./useSave.ts";
 
 /** Where questions put what they still have to save, so Submit saves it first. */
 export const PendingSaves = createContext<Set<() => Promise<boolean>>>(new Set());
@@ -33,6 +33,36 @@ type Answer = { comment: string; letters: ReadonlyArray<string> };
 /** Whether two answers pick the same letters. */
 const sameLetters = (a: ReadonlyArray<string>, b: ReadonlyArray<string>) =>
   a.length === b.length && a.every((letter, index) => letter === b[index]);
+
+/** What `saveWithLine` saves with: the saved comment and the letters picked, as refs. */
+type LineSave = {
+  comment: { current: string };
+  field: ReturnType<typeof useTextField>;
+  letters: { current: ReadonlyArray<string> };
+  run: (value: Answer, previous: string) => Promise<SaveResult>;
+  write: ReturnType<typeof useSave<Answer>>["write"];
+};
+
+/**
+ * Saves an answer with `line` after its saved comment, on a line of its own, after the saves
+ * before it: why it was refused, or nothing. The comment's unsaved text stays unsaved, with the
+ * line after it too, so saving it later keeps the line (R36).
+ */
+async function saveWithLine(line: string, answer: LineSave): Promise<string | undefined> {
+  let refused: string | undefined;
+  await answer.write(async (previous) => {
+    const saved = answer.comment.current.trim();
+    const comment = saved ? `${saved}\n${line}` : line;
+    const result = await answer.run({ comment, letters: answer.letters.current }, previous);
+    refused = result.ok ? undefined : result.message;
+    return result;
+  });
+  const unsaved = answer.field.unsavedNow()?.text;
+  if (refused === undefined && unsaved !== undefined) {
+    answer.field.change(`${unsaved.trimEnd()}\n${line}`);
+  }
+  return refused;
+}
 
 /**
  * A question's answer as the page shows it, its letters and its comment, and how it saves. The
@@ -101,6 +131,9 @@ export function useAnswer(question: QuestionItem, target: RoundTarget, path: str
     void send(() => ({ comment: comment ?? savedComment.current, letters: next }));
   };
   return {
+    /** Saves the answer with `line` after the comment saved: why it was refused, or nothing. */
+    appendLine: (line: string) =>
+      saveWithLine(line, { comment: savedComment, field, letters: picked, run, write }),
     field,
     letters,
     /** Marks a follow-up as not applying, its comment typed dropped: its answer is "-". */
