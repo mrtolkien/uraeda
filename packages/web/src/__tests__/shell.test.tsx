@@ -248,7 +248,7 @@ test("US3.6: needs you sorts first in its group", async () => {
   await waitFor(() =>
     expect(done.getAllByRole("link").map((link) => statusOf(link))).toEqual([
       "Needs you",
-      "Failed",
+      "Needs attention",
     ]),
   );
   expect(done.getAllByRole("link")[0].textContent).toContain("stack-decision");

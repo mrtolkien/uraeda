@@ -1,6 +1,6 @@
 // The feature page's agent: its session's status, its latest turn, Stop, "Open the session", and
-// "Review and start the agent" or "Review and try again", which open the session with the workflow's
-// message (US2). The transcript's tool calls, its long turns, and a blocked action (US5) are checked on the session.
+// "Review and start the agent", which opens the session with the workflow's message (US2), unless
+// the latest turn needs the human's attention. The transcript's tool calls, its long turns, and a blocked action (US5) are checked on the session.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, screen, waitFor, within } from "@testing-library/react";
@@ -26,9 +26,8 @@ const WEB_UI = "2026-10-11-web-ui";
 
 /** The workflow's message when the human asks the CLI's agent to continue. */
 const MANUAL = [
-  `/uraeda:uraeda Continue the feature specs/${CLI}/, on branch ${CLI}.`,
-  "The human asked you to continue.",
-  "Its next step is plan: follow skills/uraeda/references/plan.md.",
+  `/uraeda:uraeda Continue the feature specs/${CLI}/ on branch ${CLI}: Write the plan, starting with skills/uraeda/references/plan.md.`,
+  "Stop when the plan waits for my review, and earlier only if you need a decision from me.",
 ].join("\n");
 
 today("2026-10-12");
@@ -122,7 +121,32 @@ async function opensWith(folder: string, text: string) {
   await waitFor(() => expect(box.textContent).toBe(text));
 }
 
+/** The composer of the feature's session, once it is open. */
+async function opensEmpty(folder: string) {
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/f/${folder}/session`)));
+  const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
+  expect(box.textContent).toBe("");
+}
+
 /** US1, US2 */
+test("a run that ends before a human gate needs attention, and opens its session unfilled", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  // The fake agent commits nothing: the plan step still waits on the agent.
+  await seedRun(fake, repo, CLI, [{ text: "Planned.", type: "text" }]);
+
+  await renderPage(`/f/${CLI}`, repo, { agent: fake });
+
+  await waitFor(() => expect(panel().getByText("Needs attention")).toBeTruthy());
+  expect(panel().getByRole("img", { name: "Needs attention" })).toBeTruthy();
+  expect(panel().getByText(/Run: Plan/)).toBeTruthy();
+  expect(panel().queryByRole("button", { name: "Review and start the agent" })).toBeNull();
+  await click(panel().getByRole("link", { name: "Open the session" }));
+
+  await opensEmpty(CLI);
+  expect(await screen.findByText("The agent stopped before a human gate.")).toBeTruthy();
+});
+
 test("the feature page shows the session's status and Open the session", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
@@ -130,9 +154,7 @@ test("the feature page shows the session's status and Open the session", async (
 
   await renderPage(`/f/${CLI}`, repo, { agent: fake });
 
-  await waitFor(() => expect(panel().getByText("New reply")).toBeTruthy());
-  expect(panel().getByRole("img", { name: "New reply" })).toBeTruthy();
-  expect(panel().getByText(/Run: Plan/)).toBeTruthy();
+  await waitFor(() => expect(panel().getByText(/Run: Plan/)).toBeTruthy());
   expect(panel().getByRole("link", { name: "Open the session" }).getAttribute("href")).toBe(
     atRepo(`/f/${CLI}/session`),
   );
@@ -145,7 +167,7 @@ test("a feature waiting on you, with no session yet, opens its session to chat",
   expect(await screen.findByRole("link", { name: "Open the session" })).toBeTruthy();
 });
 
-test("Stop stops the turn, and Review and try again opens the session with the message", async () => {
+test("Stop stops the turn, which then needs attention, without a message to send", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   await liveRun(fake, repo);
@@ -158,9 +180,12 @@ test("Stop stops the turn, and Review and try again opens the session with the m
 
   await waitFor(() => expect(agent.interrupts).toBe(1));
   await refreshUntil(() => expect(panel().getByText(/Run: Plan · Stopped/)).toBeTruthy());
-  await click(panel().getByRole("button", { name: "Review and try again" }));
+  expect(panel().getByText("Needs attention")).toBeTruthy();
+  expect(panel().queryByRole("button", { name: "Review and start the agent" })).toBeNull();
+  await click(panel().getByRole("link", { name: "Open the session" }));
 
-  await opensWith(CLI, MANUAL);
+  await opensEmpty(CLI);
+  expect(await screen.findByText("You stopped the agent.")).toBeTruthy();
   expect(agent.sent).toHaveLength(1);
 });
 
@@ -238,18 +263,21 @@ test("US2.5: during a chat turn, the agent's start queues the workflow's message
   expect(fake.adapter.sent[1].text).toBe(MANUAL);
 });
 
-test("Review and try again after a failure opens the session with the message", async () => {
+test("a failed run needs attention, and opens its session unfilled", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
   await seedRun(fake, repo, CLI, [
     { denials: [], errors: ["Rate limit reached"], interrupted: false, ok: false, type: "result" },
   ]);
   const { agent } = await renderPage(`/f/${CLI}`, repo, { agent: fake });
-  await waitFor(() => expect(panel().getByText("Failed")).toBeTruthy());
+  await waitFor(() => expect(panel().getByText(/Run: Plan · Failed/)).toBeTruthy());
+  expect(panel().getByText("Needs attention")).toBeTruthy();
+  expect(panel().queryByRole("button", { name: "Review and start the agent" })).toBeNull();
 
-  await click(panel().getByRole("button", { name: "Review and try again" }));
+  await click(panel().getByRole("link", { name: "Open the session" }));
 
-  await opensWith(CLI, MANUAL);
+  await opensEmpty(CLI);
+  expect(await screen.findByText("The agent's run failed.")).toBeTruthy();
   expect(agent.sent).toHaveLength(1);
 });
 
@@ -452,7 +480,6 @@ test("a merged feature shows its session, and no button that starts the agent", 
   expect(await screen.findByRole("link", { name: "Open the session" })).toBeTruthy();
   expect(screen.queryByRole("list", { name: "Runs" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Review and start the agent" })).toBeNull();
-  expect(screen.queryByRole("button", { name: "Review and try again" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Stop" })).toBeNull();
 });
 

@@ -23,16 +23,14 @@ const SPEC = `/f/${RECURRING}/spec.md`;
 
 /** The workflow's message once round 01 of the web UI is answered. */
 const ANSWERED = [
-  `/uraeda:uraeda Continue the feature specs/${WEB_UI}/, on branch ${WEB_UI}.`,
-  "The human answered clarifications-01.md of the questions.",
-  "Its next step is spec: follow skills/uraeda/references/spec.md.",
+  `/uraeda:uraeda Continue the feature specs/${WEB_UI}/ on branch ${WEB_UI}: Write the spec from the answers, starting with skills/uraeda/references/spec.md.`,
+  "Stop when the spec waits for my review, and earlier only if you need a decision from me.",
 ].join("\n");
 
 /** The workflow's message when the human asks the CLI's agent to continue. */
 const MANUAL = [
-  `/uraeda:uraeda Continue the feature specs/${CLI}/, on branch ${CLI}.`,
-  "The human asked you to continue.",
-  "Its next step is plan: follow skills/uraeda/references/plan.md.",
+  `/uraeda:uraeda Continue the feature specs/${CLI}/ on branch ${CLI}: Write the plan, starting with skills/uraeda/references/plan.md.`,
+  "Stop when the plan waits for my review, and earlier only if you need a decision from me.",
 ].join("\n");
 
 today("2026-10-12");
@@ -120,7 +118,7 @@ test("US2.2: Start the agent hands over, with the note", async () => {
 
   await waitFor(() => expect(agent.sent).toHaveLength(1));
   expect(agent.sent[0].text.endsWith("Keep the spec short.")).toBe(true);
-  expect(agent.sent[0].text).toContain("The human answered clarifications-01.md of the questions.");
+  expect(agent.sent[0].text).toContain("Write the spec from the answers");
   await refreshUntil(() =>
     expect(
       within(screen.getByRole("log", { name: "Conversation" })).getByText("Run: Spec"),
@@ -241,7 +239,10 @@ test("approving a spec with Approve and start the agent opens the session with t
 
   await click(screen.getByRole("button", { name: "Approve and start the agent" }));
 
-  await opensWith(RECURRING, /The human approved the spec\./);
+  await opensWith(
+    RECURRING,
+    /write the plan, starting with .*\nStop when the plan waits for my review/i,
+  );
   expect(git(repo, "log", "-1", "--format=%s", RECURRING).trim()).toBe(
     "spec(recurring-tasks): approve",
   );
@@ -261,7 +262,7 @@ test("requesting changes with Request changes and start the agent opens the sess
   await waitFor(() => expect(button.getAttribute("aria-disabled")).not.toBe("true"));
   await click(button);
 
-  await opensWith(RECURRING, /The human requested changes on the spec\./);
+  await opensWith(RECURRING, /Revise the spec from my review/);
   expect(git(repo, "log", "-1", "--format=%s", RECURRING).trim()).toBe(
     "spec(recurring-tasks): request changes",
   );
@@ -281,7 +282,7 @@ test("committing a proposal and starting a feature open their sessions with the 
 
   await click(await screen.findByRole("button", { name: "Commit and start the agent" }));
 
-  await opensWith("2026-10-14-runner", /The human committed the proposal\./);
+  await opensWith("2026-10-14-runner", /Investigate it and ask me your questions/);
   expect(git(repo, "log", "-1", "--format=%s", "2026-10-14-runner").trim()).toBe(
     "chore(runner): proposal",
   );
@@ -292,7 +293,10 @@ test("committing a proposal and starting a feature open their sessions with the 
   expect(screen.getByRole("button", { name: "Start only" })).toBeTruthy();
   await click(screen.getByRole("button", { name: "Start the feature and the agent" }));
 
-  const box = await opensWith("2026-10-12-git-listener", /The human started the feature\./);
+  const box = await opensWith(
+    "2026-10-12-git-listener",
+    /Investigate it and ask me your questions/,
+  );
   expect(box.textContent).toContain("specs/2026-10-12-git-listener/");
   expect(agent.sent).toHaveLength(0);
 });

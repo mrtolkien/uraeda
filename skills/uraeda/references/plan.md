@@ -400,6 +400,8 @@ human's review, whatever the spec's `plan-review`.
 | `plan-review: true`                     | `awaiting-human` | Human gate                          |
 | `plan-review: false`                    | `auto-approved`  | [Implementation](implementation.md) |
 
+An auto-approved plan is not a stop: commit it, then start the implementation in the same session.
+
 A spec with no `plan-review` has `false`, whatever its tier: the plan waits only when the human
 turned plan review on when approving the spec, or when it lists a constitution exception.
 

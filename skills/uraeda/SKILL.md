@@ -139,8 +139,11 @@ step. By hand:
 For a bug branch, see [Bug](references/bug.md).
 
 3. **Run the step**, following its reference file, and commit.
-4. **Continue or stop.** If the step did not end at a human gate, run the next step in the same
-   session when you can. Otherwise stop: the next run finds it with this same table.
+4. **Continue to the next human gate.** A run stops only at a human gate, or for a reason to stop
+   that the step's reference names, such as a new round of questions. If the step did not end at
+   one, find and run the next step in the same session: an auto-approved plan goes straight on to
+   the implementation. Do not stop between steps to report or to check in. If you cannot go on, say
+   why in your last message: the next run finds the step with this same table.
 
 The last two rows of the table are for pull requests opened before the
 [Finish](references/finish.md) step existed. When a merged feature still has a worktree or a local
