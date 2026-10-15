@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 
 use crate::actions::draft::listed;
 use crate::actions::place;
+use crate::check::change_holds;
 use crate::files::markdown::Document;
 use crate::files::priorities::{self, Entry};
 use crate::git::GitError;
@@ -79,6 +80,45 @@ impl<'a> Drafted<'a> {
             text,
         })
     }
+
+    /// Refuses a postponed folder holding files a change's folder has no place for, like a
+    /// feature's `spec.md`, which `ura check` would report once the folder is a change's.
+    fn check_change(&self) -> Result<(), StartError> {
+        let prefix = format!("{}/", self.draft);
+        let mut misplaced: Vec<String> = Vec::new();
+        for file in &self.files {
+            let Some(inside) = file.strip_prefix(&prefix) else {
+                continue;
+            };
+            let (entry, is_dir) = match inside.split_once('/') {
+                Some((folder, _)) => (folder, true),
+                None => (inside, false),
+            };
+            let shown = if is_dir {
+                format!("{entry}/")
+            } else {
+                entry.to_string()
+            };
+            if !entry.starts_with('.')
+                && !change_holds(entry, is_dir)
+                && !misplaced.contains(&shown)
+            {
+                misplaced.push(shown);
+            }
+        }
+        misplaced.sort();
+        let (verb, list) = match misplaced.as_slice() {
+            [] => return Ok(()),
+            [one] => ("has", one.clone()),
+            [first, second] => ("have", format!("{first} and {second}")),
+            [rest @ .., last] => ("have", format!("{}, and {last}", rest.join(", "))),
+        };
+        Err(StartError::Refused(format!(
+            "{} holds {list}, which {verb} no place in a change: start it as a feature, without \
+             --change",
+            self.draft
+        )))
+    }
 }
 
 /// What a start starts from, read: a draft, or a typed change and its number of images.
@@ -137,6 +177,11 @@ impl Start<'_> {
             Source::Draft(draft) => Origin::Draft(Drafted::read(self.root, draft)?),
             Source::Text { typed, images } => Origin::Text(typed, images.len()),
         };
+        if let Origin::Draft(drafted) = &origin
+            && self.kind == Kind::Change
+        {
+            drafted.check_change()?;
+        }
         let slug = slug.map_or_else(
             || match &origin {
                 Origin::Draft(drafted) => crate::slug::short(draft_name(drafted.draft)),

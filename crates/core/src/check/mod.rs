@@ -7,6 +7,7 @@ mod names;
 mod sections;
 mod values;
 
+pub(crate) use names::change_holds;
 pub use values::{Action, Choice, Field, FieldKind, allowed_values};
 
 use std::collections::BTreeMap;

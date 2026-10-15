@@ -65,13 +65,43 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
     }
 }
 
-/// Checks that a change's folder, `specs/changes/<folder>/`, holds only its proposal, its rounds,
-/// its rulings, and its `images/` and `screenshots/` folders.
-pub(super) fn check_change_files(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
+/// Whether a change's folder, `specs/changes/<folder>/`, holds an entry of this name: its proposal,
+/// its rounds, its rulings, and its `images/` and `screenshots/` folders. The one home of the rule,
+/// for `ura check` and for `ura start --change`.
+pub(crate) fn change_holds(entry: &str, is_dir: bool) -> bool {
+    if is_dir {
+        entry == "images" || entry == "screenshots"
+    } else {
+        entry == "proposal.md"
+            || entry == "rulings.md"
+            || (entry.starts_with("clarifications-") && entry.ends_with(".md"))
+    }
+}
+
+/// Whether a folder is a change's: a dated folder in `specs/changes/`.
+fn is_change_folder(dir: &Path) -> bool {
     let parent = dir.parent();
-    let in_changes = parent.map(name).as_deref() == Some("changes")
-        && parent.and_then(Path::parent).map(name).as_deref() == Some("specs");
-    if !in_changes || folder_slug(&name(dir)).is_none() {
+    parent.map(name).as_deref() == Some("changes")
+        && parent.and_then(Path::parent).map(name).as_deref() == Some("specs")
+        && folder_slug(&name(dir)).is_some()
+}
+
+/// The problem of an entry of a change's folder that has no place in it.
+fn change_file_problem(root: &Path, dir: &Path, entry: &str) -> Problem {
+    Problem {
+        file: super::relative(root, &dir.join(entry)),
+        line: None,
+        rule: "names.change-file".into(),
+        message: format!(
+            "\"{entry}\" has no place in a change: its folder holds proposal.md, \
+             clarifications-NN.md, rulings.md, images/, and screenshots/."
+        ),
+    }
+}
+
+/// Checks that a change's folder, `specs/changes/<folder>/`, holds only what `change_holds` allows.
+pub(super) fn check_change_files(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
+    if !is_change_folder(dir) {
         return;
     }
     let mut entries: Vec<(String, bool)> = fs::read_dir(dir)
@@ -86,25 +116,9 @@ pub(super) fn check_change_files(root: &Path, dir: &Path, problems: &mut Vec<Pro
         .collect();
     entries.sort();
     for (entry, is_dir) in entries {
-        let allowed = if is_dir {
-            entry == "images" || entry == "screenshots"
-        } else {
-            entry == "proposal.md"
-                || entry == "rulings.md"
-                || (entry.starts_with("clarifications-") && entry.ends_with(".md"))
-        };
-        if allowed {
-            continue;
+        if !change_holds(&entry, is_dir) {
+            problems.push(change_file_problem(root, dir, &entry));
         }
-        problems.push(Problem {
-            file: super::relative(root, &dir.join(&entry)),
-            line: None,
-            rule: "names.change-file".into(),
-            message: format!(
-                "\"{entry}\" has no place in a change: its folder holds proposal.md, \
-                 clarifications-NN.md, rulings.md, images/, and screenshots/."
-            ),
-        });
     }
 }
 
