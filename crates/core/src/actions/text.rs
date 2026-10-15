@@ -134,8 +134,8 @@ fn candidates(path: &str) -> Vec<String> {
 /// The commit of a draft, `chore: draft <title>`, or `chore: edit the draft <title>` once
 /// committed, and of a backlog file, `chore: add <title> to the backlog`, or
 /// `chore: edit <title> in the backlog`, both with `PRIORITIES.md` when it changed; of a proposal,
-/// `chore(<slug>): proposal`, or `chore(<slug>): edit the proposal` once committed; and the same
-/// for a bug's report. The commit holds the images the file's folder links, the others deleted
+/// `chore(<slug>): proposal`, or `chore(<slug>): edit the proposal` once committed, a feature's or
+/// a change's. The commit holds the images the file's folder links, the others deleted
 /// from disk, and a folder draft's single file, committed before it became a folder, as deleted.
 pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
     checked(path)?;
@@ -162,25 +162,20 @@ pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
             (true, false) => format!("chore: edit the draft {title}"),
             (true, true) => format!("chore: edit {title} in the backlog"),
         }
-    } else if let Some((slug, file)) = path
-        .strip_prefix("specs/bugs/")
-        .and_then(|rest| rest.strip_suffix("/report.md"))
-        .map(|folder| (folder, "report"))
-        .or_else(|| {
-            path.strip_prefix("specs/")
-                .and_then(|rest| rest.strip_suffix("/proposal.md"))
-                .map(|folder| (folder, "proposal"))
-        })
-        .and_then(|(folder, file)| Some((folder_slug(folder)?, file)))
+    } else if let Some(slug) = path
+        .strip_prefix("specs/")
+        .map(|rest| rest.strip_prefix("changes/").unwrap_or(rest))
+        .and_then(|rest| rest.strip_suffix("/proposal.md"))
+        .and_then(folder_slug)
     {
         if committed(path).is_some() {
-            format!("chore({slug}): edit the {file}")
+            format!("chore({slug}): edit the proposal")
         } else {
-            format!("chore({slug}): {file}")
+            format!("chore({slug}): proposal")
         }
     } else {
         return Err(ActionError::Refused(format!(
-            "{path} is not a draft, a proposal, or a report"
+            "{path} is not a draft or a proposal"
         )));
     };
     // Unlinked images are deleted first: a deletion of a committed one is a change.

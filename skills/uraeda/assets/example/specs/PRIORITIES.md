@@ -2,7 +2,7 @@
 
 ## Now
 
-1. [Completed tasks reappear after reload](bugs/2026-10-14-tasks-reappear)
+1. [Completed tasks reappear after reload](/specs/changes/2026-10-14-tasks-reappear/proposal.md)
 
 ## Next
 

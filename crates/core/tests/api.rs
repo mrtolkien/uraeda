@@ -271,14 +271,14 @@ fn priority_lines_come_as_written() {
     );
 }
 
-const BUG: &str = "2026-10-11-crash";
-const REPORT: &str = "specs/bugs/2026-10-11-crash/report.md";
+const CHANGE: &str = "2026-10-11-crash";
+const CHANGE_PROPOSAL: &str = "specs/changes/2026-10-11-crash/proposal.md";
 
-fn with_bug(repo: &TestRepo) {
-    repo.switch_new(&format!("fix/{BUG}"));
-    repo.write(REPORT, "# Report: Crash\n\nIt breaks.\n");
+fn with_change(repo: &TestRepo) {
+    repo.switch_new(&format!("change/{CHANGE}"));
+    repo.write(CHANGE_PROPOSAL, "# Crash\n\nIt breaks.\n");
     repo.git(&["add", "specs"]);
-    repo.git(&["commit", "--quiet", "--no-verify", "-m", "report"]);
+    repo.git(&["commit", "--quiet", "--no-verify", "-m", "proposal"]);
     repo.switch("main");
 }
 
@@ -314,7 +314,7 @@ fn draft_paths_stay_in_the_drafts() {
 #[test]
 fn a_text_comes_with_what_its_editor_shows() {
     let repo = repo();
-    with_bug(&repo);
+    with_change(&repo);
     repo.write(
         "specs/backlog/later/proposal.md",
         "# Later\n\n## What\n\nSoon.\n\n## Why\n",
@@ -337,13 +337,11 @@ fn a_text_comes_with_what_its_editor_shows() {
     );
     assert_eq!(proposal.slug, None);
 
-    let report = api::read_text(repo.path(), REPORT).unwrap();
+    let change = api::read_text(repo.path(), CHANGE_PROPOSAL).unwrap();
     assert_eq!(
-        (report.kind.as_str(), report.folder.as_deref()),
-        ("report", Some(BUG))
+        (change.kind.as_str(), change.folder.as_deref()),
+        ("proposal", Some(CHANGE))
     );
-    assert_eq!(report.discovery, None);
-    assert!(report.discovery_levels.is_empty());
 }
 
 #[test]
@@ -367,7 +365,6 @@ fn the_discovery_effort_is_set_over_the_version_read() {
         wrong.message,
         "discovery \"deep\" is not one of low, medium, high"
     );
-    assert!(api::set_discovery(repo.path(), REPORT, "low", "").is_err());
 }
 
 /// Codex review: starting a feature takes a draft, never another file.
@@ -391,25 +388,26 @@ fn a_feature_starts_from_a_draft_only() {
     assert!(repo.path().join("specs/README.md").exists());
 }
 
-/// Codex review: a bug's report opens, saves, and commits in its editor.
+/// Review focus 4: a change's proposal opens, saves, and commits on its branch.
 #[test]
-fn a_bug_report_is_edited_on_its_branch() {
+fn a_change_proposal_is_edited_on_its_branch() {
     let repo = repo();
-    with_bug(&repo);
+    with_change(&repo);
 
-    let read = api::read_text(repo.path(), REPORT).unwrap();
-    assert_eq!(read.title, "Report: Crash");
+    let read = api::read_text(repo.path(), CHANGE_PROPOSAL).unwrap();
+    assert_eq!(read.title, "Crash");
     api::save_text(
         repo.path(),
-        REPORT,
-        "# Report: Crash\n\nIt breaks twice.\n",
+        CHANGE_PROPOSAL,
+        "# Crash\n\nIt breaks twice.\n",
         &read.hash,
     )
     .unwrap();
-    api::commit_text(repo.path(), REPORT).unwrap();
+    let committed = api::commit_text(repo.path(), CHANGE_PROPOSAL).unwrap();
+    assert_eq!(committed.subject, "chore(crash): edit the proposal");
     assert_eq!(
-        repo.git(&["show", &format!("fix/{BUG}:{REPORT}")]),
-        "# Report: Crash\n\nIt breaks twice.\n"
+        repo.git(&["show", &format!("change/{CHANGE}:{CHANGE_PROPOSAL}")]),
+        "# Crash\n\nIt breaks twice.\n"
     );
 }
 

@@ -123,13 +123,13 @@ pub struct DraftView {
     pub entry: Option<PriorityView>,
     /// How many priority changes are not committed, which its commit takes along.
     pub priority_changes: u32,
-    /// `draft` for a file of `specs/drafts/` or `specs/backlog/`, `proposal`, or `report`.
+    /// `draft` for a file of `specs/drafts/` or `specs/backlog/`, or `proposal`.
     pub kind: String,
-    /// The feature's or the bug's folder, for a proposal or a report.
+    /// The feature's or the change's folder, for a proposal.
     pub folder: Option<String>,
     /// The slug Start gives a draft's feature unless another is typed.
     pub slug: Option<String>,
-    /// The effort its `discovery` field asks for, `high` by default; none for a report.
+    /// The effort its `discovery` field asks for, `high` by default.
     pub discovery: Option<String>,
     /// The discovery efforts it may ask for, from the least research to the most.
     pub discovery_levels: Vec<String>,
@@ -225,7 +225,7 @@ pub struct ProposalHint {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WaitingFile {
-    /// The feature's or the bug's slug: `codex-runtime`.
+    /// The feature's or the change's slug: `codex-runtime`.
     pub feature: String,
     pub folder: String,
     /// `clarifications-01.md`.
@@ -238,7 +238,7 @@ pub struct WaitingFile {
     pub text: String,
 }
 
-/// What a priorities entry links to: a feature or a bug and its step, or a draft. Not exposed to
+/// What a priorities entry links to: a feature or a change and its step, or a draft. Not exposed to
 /// the binding: the language server reads it.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]

@@ -27,7 +27,7 @@ pub struct Attached {
 }
 
 /// Saves an image, as [`crate::images::encode`] checked and encoded it, next to the markdown
-/// file `path`, a file directly in a feature's, a bug's, or a draft's folder, or a single-file
+/// file `path`, a file directly in a feature's, a change's, or a draft's folder, or a single-file
 /// draft, in `place`. `name` is the image's original file name, `None` for a pasted image, named
 /// after the time `stamp` gives. A failed write leaves the files as they were.
 pub fn attach(
@@ -76,7 +76,7 @@ pub fn attach(
 
 fn not_markdown(path: &str) -> ActionError {
     ActionError::Refused(format!(
-        "{path} is not a markdown file of a feature, a bug, or a draft"
+        "{path} is not a markdown file of a feature, a change, or a draft"
     ))
 }
 

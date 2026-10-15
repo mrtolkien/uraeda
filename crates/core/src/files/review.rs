@@ -1,4 +1,4 @@
-//! Review files: `spec-review.md`, `plan-review.md`, and `assessment-review.md`.
+//! Review files: `spec-review.md` and `plan-review.md`.
 
 use super::frontmatter::{self, FrontmatterError};
 

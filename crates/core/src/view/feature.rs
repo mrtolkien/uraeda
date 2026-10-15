@@ -39,11 +39,11 @@ pub struct FileSummary {
     pub waiting_line: Option<String>,
 }
 
-/// A file's place in its feature's workflow: the proposal, the report, or the record first, then
+/// A file's place in its feature's workflow: the proposal or the record first, then
 /// the rounds, each round's discovery before its questions, then the rest in `FileKind`'s order.
 fn workflow_key(file: &WorkflowFile) -> (u8, u32, FileKind, &str) {
     let stage = match file.kind {
-        FileKind::Proposal | FileKind::Report | FileKind::Record => 0,
+        FileKind::Proposal | FileKind::Record => 0,
         FileKind::Discovery | FileKind::Clarifications => 1,
         _ => 2,
     };
@@ -54,11 +54,11 @@ fn workflow_key(file: &WorkflowFile) -> (u8, u32, FileKind, &str) {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FeatureView {
-    /// `feature` or `bug`.
+    /// `feature` or `change`.
     pub kind: String,
     pub folder: String,
     pub slug: String,
-    /// The title of its proposal or report.
+    /// The title of its proposal, or of its record.
     pub title: String,
     pub branch: Option<String>,
     /// `working-tree`, `local`, `remote`, or `default-branch`.
@@ -104,10 +104,7 @@ impl From<&Step> for StepView {
 
 impl FeatureView {
     pub fn new(feature: &Feature, extra: &[Problem]) -> FeatureView {
-        let first = match feature.kind {
-            crate::workspace::Kind::Feature => "proposal.md",
-            crate::workspace::Kind::Bug => "report.md",
-        };
+        let first = crate::workspace::first_file(feature.kind);
         let mut files: Vec<&WorkflowFile> = feature.files.iter().collect();
         files.sort_by(|a, b| workflow_key(a).cmp(&workflow_key(b)));
         FeatureView {

@@ -55,8 +55,8 @@ fn raw_bytes(git: &Git, workspace: &Workspace, path: &str) -> Option<Vec<u8>> {
     }
 }
 
-/// Attaches an image to a draft, a proposal, a report, or another markdown file of a feature's or
-/// a bug's folder: re-encoded, saved in the `images/` folder next to it, a single-file draft
+/// Attaches an image to a draft, a proposal, or another markdown file of a feature's or a
+/// change's folder: re-encoded, saved in the `images/` folder next to it, a single-file draft
 /// becoming a folder first. `name` is the image's original file name, `None` for a pasted image.
 /// The image is checked and encoded before the write lock is taken: encoding a large photo takes
 /// seconds, which no other write waits for.
@@ -68,7 +68,7 @@ pub fn attach_image(
 ) -> Result<AttachedView> {
     if !plain(path) {
         return Err(refused(format!(
-            "{path} is not a markdown file of a feature, a bug, or a draft"
+            "{path} is not a markdown file of a feature, a change, or a draft"
         )));
     }
     let encoded = encode_image(bytes, name.unwrap_or("pasted image"))?;

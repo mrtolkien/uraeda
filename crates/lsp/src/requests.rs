@@ -85,7 +85,7 @@ pub(crate) struct Comment {
 pub(crate) struct Verdict {
     /// `spec.md`.
     pub file: String,
-    /// `review` for a spec, a plan, or an assessment; `round` for a round of questions.
+    /// `review` for a spec or a plan; `round` for a round of questions.
     pub kind: &'static str,
     /// The subject of the commit approving, or submitting the answers.
     pub approve: String,
@@ -230,8 +230,8 @@ pub(crate) fn comments(documents: &Documents, params: FileParams) -> Vec<Comment
         .collect()
 }
 
-/// `uraeda/verdict { uri }`: the verdict a spec, a plan, an assessment, or a round of questions
-/// would get, with the subjects of the commits it makes, from the core.
+/// `uraeda/verdict { uri }`: the verdict a spec, a plan, or a round of questions would get, with
+/// the subjects of the commits it makes, from the core.
 pub(crate) fn verdict(documents: &Documents, params: FileParams) -> Result<Verdict, ResponseError> {
     let file = workflow_file(documents, &params.uri)
         .ok_or_else(|| refused("This file is not a Uraeda workflow file."))?;
@@ -240,7 +240,7 @@ pub(crate) fn verdict(documents: &Documents, params: FileParams) -> Result<Verdi
         Some(Gate::Review) => None,
         None => {
             return Err(refused(
-                "Only a spec, a plan, an assessment, or a round of questions gets a verdict.",
+                "Only a spec, a plan, or a round of questions gets a verdict.",
             ));
         }
     };

@@ -60,10 +60,10 @@ pub fn decision(status: &str) -> String {
     format!("---\nstatus: {status}\napproved-by:\n---\n\n# Topic\n\nA choice.\n")
 }
 
-/// A valid record of a finished feature or bug, `kind` `feature` or `bug`: a feature's has one round
-/// of two questions.
+/// A valid record of a finished feature or change, `kind` `feature` or `change`: a feature's has
+/// one round of two questions.
 pub fn record(kind: &str, title: &str) -> String {
-    let questions = if kind == "bug" {
+    let questions = if kind == "change" {
         String::new()
     } else {
         "\n## Questions\n\n### Round 01\n\n#### Q1: Question 1?\n\n**Answer:** A.\n\n#### Q2: Question 2?\n\n**Answer:** B.\n".to_string()

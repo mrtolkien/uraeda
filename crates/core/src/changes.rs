@@ -48,7 +48,7 @@ pub fn branch_changes(repo: &Path, folder: &str) -> Result<Option<BranchChanges>
         return Ok(None);
     };
     // The commits themselves, as `Git::tip` resolves them, local first, then `origin`'s: a
-    // branch only on `origin`, or named `fix/...`, needs no ref name on the command line.
+    // branch only on `origin`, or named `change/...`, needs no ref name on the command line.
     let (Some(tip), Some(base)) = (git.tip(branch), git.tip(default)) else {
         return Ok(None);
     };

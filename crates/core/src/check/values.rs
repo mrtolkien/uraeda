@@ -13,9 +13,7 @@ use super::{Checked, File};
 fn fields(kind: Checked) -> Option<(&'static [&'static str], &'static [&'static str])> {
     match kind {
         Checked::Workflow(FileKind::Proposal) => Some((&[], &["discovery"])),
-        Checked::Workflow(FileKind::Clarifications | FileKind::Assessment) => {
-            Some((&["status"], &[]))
-        }
+        Checked::Workflow(FileKind::Clarifications) => Some((&["status"], &[])),
         Checked::Workflow(FileKind::Spec) => Some((
             &["status", "revision", "clarifications", "risk-tier"],
             &["plan-review"],
@@ -32,7 +30,7 @@ fn allowed(kind: Checked, key: &str) -> Option<&'static [&'static str]> {
     match (kind, key) {
         (Checked::Workflow(kind), "status") => Some(kind.statuses()),
         (Checked::Decision, "status") => Some(&["proposed", "active"]),
-        (Checked::Record, "kind") => Some(&["feature", "bug"]),
+        (Checked::Record, "kind") => Some(&["feature", "change"]),
         (_, "risk-tier" | "discovery") => Some(&["low", "medium", "high"]),
         (_, "verdict") => Some(&["pending", "approved", "changes-requested"]),
         _ => None,
@@ -106,10 +104,8 @@ fn action(kind: Checked, key: &str, value: &str) -> Option<Action> {
     };
     match (kind, key, value) {
         (FileKind::Clarifications, "status", "answered") => Some(Action::Submit),
-        (FileKind::Spec | FileKind::Plan | FileKind::Assessment, "status", "approved") => {
-            Some(Action::Approve)
-        }
-        (FileKind::Spec | FileKind::Plan | FileKind::Assessment, "status", "changes-requested") => {
+        (FileKind::Spec | FileKind::Plan, "status", "approved") => Some(Action::Approve),
+        (FileKind::Spec | FileKind::Plan, "status", "changes-requested") => {
             Some(Action::RequestChanges)
         }
         _ => None,

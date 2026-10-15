@@ -1,4 +1,4 @@
-//! A proposal, or a bug report: how far discovery researches it, and which of its `##` sections
+//! A proposal, a feature's or a change's: how far discovery researches it, and which of its `##` sections
 //! are written yet.
 
 use crate::check::allowed_values;

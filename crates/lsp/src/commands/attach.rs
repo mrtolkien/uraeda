@@ -60,20 +60,20 @@ pub(super) fn attach_image(
 ) -> Result<Done, ResponseError> {
     let root = &documents.root;
     let path = relative(documents, &args.uri).ok_or_else(|| refused(NOT_WORKFLOW))?;
-    // The feature's or the bug's folder, None for a draft; checked without writing anything.
+    // The feature's or the change's folder, None for a draft; checked without writing anything.
     let folder = if path.starts_with("specs/drafts/") || path.starts_with("specs/backlog/") {
         on_default_branch(documents, &path)?;
         None
     } else {
         let folder = path
             .strip_prefix("specs/")
-            .map(|rest| rest.strip_prefix("bugs/").unwrap_or(rest))
+            .map(|rest| rest.strip_prefix("changes/").unwrap_or(rest))
             .and_then(|rest| rest.split_once('/'))
             .filter(|(_, name)| !name.contains('/'))
             .map(|(folder, _)| folder)
             .ok_or_else(|| {
                 refused(format!(
-                    "{path} is not a markdown file of a feature, a bug, or a draft"
+                    "{path} is not a markdown file of a feature, a change, or a draft"
                 ))
             })?;
         Some(folder)
@@ -81,7 +81,7 @@ pub(super) fn attach_image(
     let bytes = read_image(&args)?;
     let attached = core(api::attach_image(root, &path, &bytes, args.name.as_deref()))?;
     // The checkout the core wrote in: the default branch's for a draft, else the feature's or the
-    // bug's, reached by now.
+    // change's, reached by now.
     let checkout = match folder {
         None => core(api::default_root(root))?,
         Some(folder) => PathBuf::from(core(api::work_dir(root, folder))?),

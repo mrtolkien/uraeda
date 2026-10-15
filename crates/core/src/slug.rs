@@ -28,7 +28,7 @@ const FILLERS: &[&str] = &[
     "on", "or", "should", "the", "to", "with",
 ];
 
-/// A feature's or a bug's slug, the default the human is offered: the first two words of a slug
+/// A feature's or a change's slug, the default the human is offered: the first two words of a slug
 /// that name something, or its first two words when none does.
 pub fn short(slug: &str) -> String {
     let words: Vec<&str> = slug.split('-').filter(|word| !word.is_empty()).collect();

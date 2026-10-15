@@ -50,10 +50,10 @@ pub struct Left {
     pub why: WhyLeft,
 }
 
-/// The cleanup of one merged feature or bug.
+/// The cleanup of one merged feature or change.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Cleaned {
-    /// The folder, or `fix/<folder>` for a bug.
+    /// The folder, or `change/<folder>` for a change.
     pub name: String,
     pub did: Vec<Did>,
     pub left: Vec<Left>,
@@ -86,7 +86,7 @@ pub fn clean(
     let mut cleaned = Cleaned {
         name: match feature.kind {
             Kind::Feature => feature.folder.clone(),
-            Kind::Bug => branch.clone(),
+            Kind::Change => branch.clone(),
         },
         did: Vec::new(),
         left: Vec::new(),
