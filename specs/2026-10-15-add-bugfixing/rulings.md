@@ -92,3 +92,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   effort the upgrade needs; keeping the deleted templates until Task 10, against Task 2's files.
 - **If wrong**: restore the report's view on a change's proposal in `text_view`.
 - **Where**: task 2.
+
+## R7: Without `gh`, a change's status reads its pull request as unknown
+
+- **Decision**: `ura status` and the Neovim hint show a change with only its proposal as
+  `pull-request (pull request state unknown)` and `pull-request · waits on agent` when `gh` gives no
+  answer, as they show a feature past its last task. The CLI's `branch_with_a_slash` row and the
+  Neovim test's hint expect these texts.
+- **Rationale**: the change's table shares the feature's pull request tail,
+  `after_the_last_step(pull_request, Change, "change")`, so an unknown pull request is the
+  `pull-request` row, as for a feature. The tests run without a logged-in `gh`.
+- **Alternatives considered**: a change step that ignores an unknown pull request, which would make
+  a change's tail differ from a feature's.
+- **If wrong**: map `PullRequest::Unknown` to `StepName::Change` in `change_step`.
+- **Where**: task 3, `crates/cli/tests/status.rs`, and `editors/nvim/tests/test_inline.lua`.

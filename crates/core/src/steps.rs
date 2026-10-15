@@ -23,9 +23,8 @@ pub enum StepName {
     PullRequest,
     /// Write the record, or open the pull request or mark it ready, after the final review.
     Finish,
-    Assess,
-    AssessRevision,
-    Fix,
+    /// A change's agent: investigate, ask, fix, and open the pull request.
+    Change,
     /// Merged into the default branch.
     Done,
     None,
@@ -46,9 +45,7 @@ impl StepName {
             StepName::PullRequestChanges => "pull-request-changes",
             StepName::PullRequest => "pull-request",
             StepName::Finish => "finish",
-            StepName::Assess => "assess",
-            StepName::AssessRevision => "assess-revision",
-            StepName::Fix => "fix",
+            StepName::Change => "change",
             StepName::Done => "done",
             StepName::None => "none",
         }
@@ -171,7 +168,7 @@ pub fn step(feature: &Feature, pull_request: PullRequest) -> Step {
     }
     match feature.kind {
         Kind::Feature => feature_step(feature, pull_request),
-        Kind::Change => bug_step(feature),
+        Kind::Change => change_step(feature, pull_request),
     }
 }
 
@@ -197,14 +194,10 @@ fn feature_step(feature: &Feature, pull_request: PullRequest) -> Step {
     if !feature.proposal_committed {
         return Step::gate("proposal.md");
     }
-    let files = &feature.files;
-    if let Some(waiting) = files
-        .iter()
-        .rev()
-        .find(|file| file.status.as_deref() == Some("awaiting-human"))
-    {
-        return Step::gate(&waiting.name);
+    if let Some(gate) = waiting_gate(feature) {
+        return gate;
     }
+    let files = &feature.files;
     let latest = files
         .iter()
         .filter(|file| file.kind == FileKind::Clarifications)
@@ -294,12 +287,26 @@ fn after_the_last_step(pull_request: PullRequest, without: StepName, reference: 
     }
 }
 
-/// A change's step: a gate until its proposal is committed, then its agent's.
-fn bug_step(feature: &Feature) -> Step {
+/// The gate on the last file waiting for the human, if any.
+fn waiting_gate(feature: &Feature) -> Option<Step> {
+    feature
+        .files
+        .iter()
+        .rev()
+        .find(|file| file.status.as_deref() == Some("awaiting-human"))
+        .map(|file| Step::gate(&file.name))
+}
+
+/// A change's step: a gate until its proposal is committed, and on a round waiting for the human;
+/// otherwise its agent's, then the pull request's, as a feature's after its last task.
+fn change_step(feature: &Feature, pull_request: PullRequest) -> Step {
     if !feature.proposal_committed {
         return Step::gate("proposal.md");
     }
-    Step::agent(StepName::Assess, "bug")
+    if let Some(gate) = waiting_gate(feature) {
+        return gate;
+    }
+    after_the_last_step(pull_request, StepName::Change, "change")
 }
 
 /// A branch's pull request in the repository at `repo`, through `gh` when it is installed and

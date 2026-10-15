@@ -266,7 +266,7 @@ fn branch_with_a_slash() {
     assert!(not_in_priorities < output.stdout.find("change/2026-10-14-reappear").unwrap());
     assert_eq!(
         output.row("change/2026-10-14-reappear")[1..],
-        ["agent", "assess"]
+        ["agent", "pull-request (pull request state unknown)"]
     );
 }
 
