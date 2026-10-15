@@ -24,6 +24,24 @@ async function storyShown() {
     .toContain("Dragging");
 }
 
+/**
+ * Shows a refused Undo's error, which stays above every page until dismissed: a line added to
+ * Later, removed by hand before its Undo.
+ */
+async function undoRefused() {
+  await show("/priorities", "Git listener process");
+  const adds = screen.getAllByRole("button", { name: "Add a priority" });
+  await userEvent.click(adds.find((add) => !add.closest("nav")) ?? adds[0]!);
+  await userEvent.type(await screen.findByLabelText("Priority"), "Show the last commit");
+  await userEvent.click(screen.getByRole("radio", { name: "Later" }));
+  await userEvent.click(screen.getByRole("button", { name: "Add" }));
+  const undo = await screen.findByRole("button", { name: "Undo" });
+  const priorities = await commands.readRepo();
+  await commands.writeRepo(priorities.replace("- Show the last commit\n", ""));
+  await userEvent.click(undo);
+  await screen.findByText(/^Could not undo/);
+}
+
 describe("on a desktop", () => {
   atSize("desktop");
 
@@ -43,6 +61,19 @@ describe("on a desktop", () => {
     expect(frame.getBoundingClientRect().bottom).toBe(window.innerHeight);
     expect(document.documentElement.scrollHeight).toBe(window.innerHeight);
     await storyShown();
+  });
+
+  test("the frame still reaches the window's bottom once a banner above it closes (the spec's frame as tall as the window)", async () => {
+    await commands.addStoryFeature();
+    await undoRefused();
+
+    await show(PAGE, "Storybook");
+    const frame = await screen.findByTitle("Storybook", {}, READY);
+    expect(frame.getBoundingClientRect().bottom).toBe(window.innerHeight);
+    await userEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+
+    await expect.poll(() => screen.queryByText(/^Could not undo/)).toBeNull();
+    await expect.poll(() => frame.getBoundingClientRect().bottom).toBe(window.innerHeight);
   });
 
   test("the feature's page and the session's column list Storybook (US4.5, US5.3)", async () => {

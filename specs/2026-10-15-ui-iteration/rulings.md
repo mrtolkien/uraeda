@@ -416,9 +416,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   origin, which `'self'` never matches: WebKit refused the story's frame inside the Storybook page,
   which stayed empty until the directive was removed. The stack decision requires the sandbox policy
   only, and the sandbox, not `frame-ancestors`, is what keeps a story from Uraeda's origin.
-- **Alternatives considered**: `frame-ancestors *`, which says the same with one more directive;
-  keeping `'self'` on the story's frame only, which needs the proxy to tell Storybook's pages apart,
-  and still blocks any page Storybook frames inside a frame.
+- **Alternatives considered**: `frame-ancestors *`, which blocks the same frame: an ancestor with an
+  opaque origin matches no source expression, `*` included, so any `frame-ancestors` directive
+  refuses Storybook's inner frame; keeping `'self'` on the story's frame only, which needs the proxy
+  to tell Storybook's pages apart, and still blocks any page Storybook frames inside a frame.
 - **If wrong**: another site can frame a running Storybook's pages, sandboxed and on 127.0.0.1, as
   it could frame Storybook run by hand; the directive is one string in `preview/proxy.ts`.
 - **Where**: task 8, `packages/server/src/preview/proxy.ts` and its test.
