@@ -62,9 +62,13 @@ add that title to a file without one.
   committing: they are someone's work in progress.
 - **With `ura`**:
   `ura note <text> [--category <name>] [--about <feature or bug>] [--agent] [--no-commit]` writes
-  and commits the note on the default branch, and writes without committing when `INBOX.md` has
-  other changes. `--about` writes the slug of the target's folder; inside a feature's worktree, it
-  defaults to that feature.
+  the note on the default branch, and commits `specs/INBOX.md` alone. When `INBOX.md` had other
+  uncommitted changes, it writes without committing, and says "INBOX.md had uncommitted changes: the
+  note is written but not committed." `--about` writes the slug of the target's folder; inside a
+  feature's or a bug's worktree, it defaults to that one. `--category` names the category, created
+  when missing; `--agent` adds the `[agent]` mark; `--no-commit` leaves the file for you to commit.
+  It refuses a blank note with "A note needs text.", and runs only in a repository with a `specs/`
+  folder.
 - **In the web UI**: the ＋ next to Inbox in the sidebar, from any page. From a feature's page, the
   note gets that feature's slug. It stays uncommitted until the commit bar's Commit. A note with an
   image becomes a draft that holds it, and the note links to the draft.

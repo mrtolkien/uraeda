@@ -9,6 +9,7 @@ mod editor;
 mod init;
 mod install;
 mod next;
+mod note;
 mod output;
 mod picker;
 mod review;
@@ -45,6 +46,24 @@ enum Command {
         /// Do not open the editor
         #[arg(long)]
         no_edit: bool,
+    },
+    /// Add a note to the inbox, specs/INBOX.md, on the default branch, and commit it
+    Note {
+        /// The note's text, on one line
+        text: String,
+        /// The category, a ## heading of INBOX.md, created when missing
+        #[arg(long)]
+        category: Option<String>,
+        /// The feature or bug the note is about, written as its slug; by default, the one of
+        /// this checkout's branch
+        #[arg(long)]
+        about: Option<String>,
+        /// Mark the note as written by an agent
+        #[arg(long)]
+        agent: bool,
+        /// Leave INBOX.md for you to commit
+        #[arg(long)]
+        no_commit: bool,
     },
     /// Start a drafted feature or change: its entry in Now, its branch, and its proposal
     Start {
@@ -161,6 +180,19 @@ fn main() -> ExitCode {
         Command::Init { no_input } => init::run(no_input),
         Command::Install(flags) => install::run(flags),
         Command::Draft { text, no_edit } => draft::run(text, no_edit),
+        Command::Note {
+            text,
+            category,
+            about,
+            agent,
+            no_commit,
+        } => note::run(note::Options {
+            text,
+            category,
+            about,
+            agent,
+            no_commit,
+        }),
         Command::Start {
             target,
             slug,

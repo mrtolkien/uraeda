@@ -139,6 +139,54 @@ pub fn add(
     )
 }
 
+/// What [`note`] did once the note was written.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Noted {
+    /// Committed alone, in this commit.
+    Committed(Committed),
+    /// Written without committing, as asked.
+    Written,
+    /// Written without committing: `INBOX.md` had uncommitted changes, someone's work in progress.
+    Uncommitted,
+}
+
+/// Adds a note, as `ura note` does, and commits `INBOX.md` alone when `commit` is set and the file
+/// had no uncommitted change. Other staged files are refused before anything is written.
+pub fn note(
+    place: &Place,
+    category: Option<&str>,
+    marks: &Marks,
+    text: &str,
+    commit: bool,
+) -> Result<Noted, ActionError> {
+    checked_note(marks, text)?;
+    if commit {
+        super::place::ensure_only_staged(place, &[PATH.to_string()])?;
+    }
+    let before = fs::read_to_string(place.root.join(PATH)).ok();
+    let clean = before == super::place::committed(place, PATH);
+    add(place, category, marks, text, None)?;
+    if !commit {
+        return Ok(Noted::Written);
+    }
+    if !clean {
+        return Ok(Noted::Uncommitted);
+    }
+    let subject = format!(
+        "chore: add \"{}\" to the inbox",
+        super::priorities::short(&crate::files::lines::one_line(text))
+    );
+    commit::commit(
+        place,
+        &Change {
+            paths: vec![PATH.to_string()],
+            subject,
+            body: None,
+        },
+    )
+    .map(Noted::Committed)
+}
+
 /// Replaces a note's text, its marks and sub-items kept.
 pub fn edit(
     place: &Place,

@@ -84,13 +84,26 @@ pub fn target(
 /// Says where an action wrote, when it is not this working tree: the worktree created or found
 /// for its branch, from the main checkout, or the branch this one was switched to.
 pub fn say_place(git: &Git, place: &Place) {
-    if let Some(branch) = &place.switched {
-        println!("switched to {branch}");
-    } else if place.root != git.root() {
-        let main = git.main_root();
-        let shown = place.root.strip_prefix(&main).unwrap_or(&place.root);
-        println!("wrote in {}", shown.display());
+    if let Some(message) = place_message(git, place) {
+        println!("{message}");
     }
+}
+
+/// Where an action wrote, when it is not this working tree: a worktree under the main checkout by
+/// its path from there, and the main checkout itself by its full path.
+pub fn place_message(git: &Git, place: &Place) -> Option<String> {
+    if let Some(branch) = &place.switched {
+        return Some(format!("switched to {branch}"));
+    }
+    if place.root == git.root() {
+        return None;
+    }
+    let main = git.main_root();
+    let shown = match place.root.strip_prefix(&main) {
+        Ok(path) if !path.as_os_str().is_empty() => path,
+        _ => &place.root,
+    };
+    Some(format!("wrote in {}", shown.display()))
 }
 
 /// The message of a committing action's error: a hook's refusal is printed, then explained.
