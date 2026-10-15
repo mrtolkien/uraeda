@@ -284,6 +284,12 @@ export declare function submitAnswers(repo: string, folder: string, name?: strin
 export declare function submitTriage(repo: string, previous: string): Promise<FileView>
 
 /**
+ * Takes back a note's add: the note, found by its lines, leaves the inbox wherever it is now.
+ * Refused once it changed or left, or when two notes hold its lines.
+ */
+export declare function undoNoteAdd(repo: string, lines: Array<string>): Promise<Inbox>
+
+/**
  * Takes back a note added as a draft: the note, found by its lines, leaves the inbox, and its
  * draft goes with it, images included, unless a commit has it or the human typed in it.
  */
@@ -573,6 +579,11 @@ export interface FileView {
   review?: Items
   /** Whether the pending review comments on an older version of the file than its tip's. */
   reviewStale: boolean
+  /**
+   * Whether images can be attached to it: a feature's or a change's file can, the inbox's
+   * triage, committed alone, cannot.
+   */
+  takesImages: boolean
 }
 
 /** `INBOX.md` read for editing. */
@@ -614,6 +625,11 @@ export interface InboxNote {
   about?: string
   /** The path of the draft its whole text links to, from the repository's top level. */
   draft?: string
+  /**
+   * The markdown of that link's text, unescaped: a note added as a draft as it was typed, which
+   * an add whose answer was lost finds it by.
+   */
+  draftTitle?: string
   startLine: number
   endLine: number
   /** Its lines as written, sub-items included: what an Undo of its removal writes back. */

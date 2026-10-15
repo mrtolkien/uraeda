@@ -132,6 +132,11 @@ export const inboxMutations = {
     },
     type: "Inbox",
   },
+  "inbox.undoAdd": {
+    resolve: async ({ ctx, input, select }: Resolver<{ lines: Array<string> }>) =>
+      inbox(ctx, await refusable(() => ctx.binding.undoNoteAdd(ctx.repo, input.lines)), select),
+    type: "Inbox",
+  },
   "inbox.undoAsDraft": {
     resolve: async ({ ctx, input, select }: Resolver<{ lines: Array<string> }>) =>
       inbox(ctx, await refusable(() => ctx.binding.undoNoteAsDraft(ctx.repo, input.lines)), select),

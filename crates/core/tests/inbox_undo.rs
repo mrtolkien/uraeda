@@ -195,3 +195,53 @@ fn undo_of_a_category_move_puts_the_note_back_at_its_place() {
     );
     assert_eq!(repo.read(INBOX), edited);
 }
+
+/// The note an add wrote, found by its lines wherever it is now.
+fn added(repo: &TestRepo, text: &str) -> InboxNote {
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let after = api::add_note(repo.path(), Some("UI".into()), None, text, &inbox.hash).unwrap();
+    let (note, _, _) = placed(&after, text);
+    note
+}
+
+/// The Undo of an add takes the note out wherever it went, over a change made meanwhile; once the
+/// note changed or left, it is refused, and nothing is written.
+#[test]
+fn undo_of_an_add_takes_the_note_out_wherever_it_is() {
+    let repo = fixture_repo();
+    let before = repo.read(INBOX);
+    let note = added(&repo, "An idea");
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let (moved, _, _) = placed(&inbox, "An idea");
+    api::move_note_to_category(repo.path(), &moved.id, Some("CLI".into()), &inbox.hash).unwrap();
+    let elsewhere = repo.read(INBOX).replace("Make sure", "Check that");
+    repo.write(INBOX, &elsewhere);
+
+    let inbox = api::undo_note_add(repo.path(), &note.lines).unwrap();
+
+    assert_eq!(repo.read(INBOX), before.replace("Make sure", "Check that"));
+    assert_eq!(inbox.count, 10);
+    let error = api::undo_note_add(repo.path(), &note.lines).unwrap_err();
+    assert_eq!(
+        error.to_string(),
+        "Could not undo: \"An idea\" is no longer in INBOX.md."
+    );
+}
+
+/// With two notes of the same lines, the Undo cannot tell which the add wrote: it refuses, and
+/// both stay.
+#[test]
+fn undo_of_an_add_refuses_between_two_same_notes() {
+    let repo = fixture_repo();
+    let note = added(&repo, "An idea");
+    added(&repo, "An idea");
+    let both = repo.read(INBOX);
+
+    let error = api::undo_note_add(repo.path(), &note.lines).unwrap_err();
+
+    assert_eq!(
+        error.to_string(),
+        "Could not undo: \"An idea\" is no longer in INBOX.md."
+    );
+    assert_eq!(repo.read(INBOX), both);
+}

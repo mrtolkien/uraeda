@@ -332,7 +332,12 @@ pub fn draft_parts(text: &str, id: &str) -> Option<(String, Vec<String>)> {
 pub fn link_title(text: &str, id: &str) -> Option<String> {
     let (lines, _) = unmarked_lines(text, id)?;
     let (_, first) = item_marker(&lines[0])?;
-    let (inner, _) = first.strip_prefix('[')?.rsplit_once("](")?;
+    link_text(first)
+}
+
+/// What the text of a link starting `markdown` says, unescaped.
+fn link_text(markdown: &str) -> Option<String> {
+    let (inner, _) = markdown.strip_prefix('[')?.rsplit_once("](")?;
     Some(lines::unescape_link_text(inner))
 }
 

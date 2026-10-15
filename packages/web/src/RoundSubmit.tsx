@@ -195,7 +195,7 @@ export function RoundEnd({
   }
   return (
     <VStack gap={3} ref={end}>
-      <NotesField notes={notes} path={file.path} />
+      <NotesField notes={notes} path={file.path} takes={file.takesImages} />
       {blank.length > 0 && <QuestionsLeft blank={blank} />}
       {refused || (error && <span {...stylex.props(statusStyles.error)}>{error.message}</span>)}
       <div ref={submitRow}>

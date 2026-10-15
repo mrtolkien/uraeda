@@ -311,6 +311,7 @@ export const fileDataView = dataView<FileRecord>("WorkflowFile")({
   review: true,
   reviewStale: true,
   status: true,
+  takesImages: true,
   tip: true,
 });
 

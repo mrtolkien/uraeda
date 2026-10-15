@@ -86,6 +86,11 @@ const mutations = {
     FateAPI['mutations']['inbox.toPriorities']['input'],
     FateAPI['mutations']['inbox.toPriorities']['output']
   >('Inbox'),
+  'inbox.undoAdd': mutation<
+    Inbox,
+    FateAPI['mutations']['inbox.undoAdd']['input'],
+    FateAPI['mutations']['inbox.undoAdd']['output']
+  >('Inbox'),
   'inbox.undoAsDraft': mutation<
     Inbox,
     FateAPI['mutations']['inbox.undoAsDraft']['input'],

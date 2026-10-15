@@ -194,6 +194,23 @@ fn read_groups_notes_with_no_category_first_and_hides_empty_categories() {
     let draft = &read.categories[2].notes[0];
     assert_eq!(draft.draft.as_deref(), Some("specs/drafts/x.md"));
     assert_eq!(draft.text, "[Draft](drafts/x.md)");
+    assert_eq!(draft.draft_title.as_deref(), Some("Draft"));
+    assert_eq!(icons.draft_title, None);
+}
+
+/// A note added as a draft is found by its draft's title, its markdown as typed: escapes undone,
+/// inline code kept.
+#[test]
+fn a_draft_notes_title_is_its_link_text_as_typed() {
+    let text = "# Inbox\n\n- [Fix \\[x\\] in the `a]b` view](drafts/fix.md)\n";
+
+    let read = inbox::read(text);
+
+    let note = &read.categories[0].notes[0];
+    assert_eq!(
+        note.draft_title.as_deref(),
+        Some("Fix [x] in the `a]b` view")
+    );
 }
 
 #[test]

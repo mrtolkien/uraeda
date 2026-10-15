@@ -215,6 +215,7 @@ export function Question({
   path,
   question,
   readOnly,
+  takes,
   target,
 }: {
   document: Document;
@@ -224,6 +225,8 @@ export function Question({
   path: string;
   question: QuestionItem;
   readOnly: boolean;
+  /** Whether the round's file takes images, as the core says. */
+  takes: boolean;
   /** The round the answer is written in. */
   target: RoundTarget;
 }) {
@@ -283,6 +286,7 @@ export function Question({
         path={path}
         readOnly={readOnly}
         saved={question.comment}
+        takes={takes}
       />
       {followUps.map((followUp) => (
         <Question
@@ -292,6 +296,7 @@ export function Question({
           path={path}
           question={followUp}
           readOnly={readOnly}
+          takes={takes}
           target={target}
           {...(onAsk ? { onAsk } : {})}
         />

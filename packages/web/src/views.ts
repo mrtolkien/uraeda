@@ -115,6 +115,7 @@ export const FileView = view<WorkflowFile>()({
   review: ItemsSelection,
   reviewStale: true,
   status: true,
+  takesImages: true,
   tip: true,
 });
 
