@@ -117,6 +117,9 @@ export declare function openRepository(dataDir: string, name: string): Promise<R
 /** Each section of the proposal template, with the guidance the editor shows while it is empty. */
 export declare function proposalHints(): Promise<Array<ProposalHint>>
 
+/** The slug proposed for a change typed with this title. */
+export declare function proposeSlug(title: string): string
+
 /** A draft, by its path from the top level. */
 export declare function readDraft(repo: string, path: string): Promise<DraftView>
 
@@ -180,8 +183,14 @@ export declare function saveText(repo: string, path: string, text: string, previ
 /** Sets the discovery effort of a draft or a proposal, over the version read at `previous`. */
 export declare function setDiscovery(repo: string, path: string, level: string, previous: string): Promise<DraftView>
 
-/** Starts a drafted feature in its own worktree. */
-export declare function startFeature(repo: string, draft: string, slug?: string | undefined | null): Promise<StartedView>
+/**
+ * Starts a change typed as a text, with its images, in its own worktree: the first written line
+ * is its title.
+ */
+export declare function startChange(repo: string, text: string, images: Array<Buffer>, slug?: string | undefined | null): Promise<StartedView>
+
+/** Starts a drafted feature, or a change with the kind `"change"`, in its own worktree. */
+export declare function startFeature(repo: string, draft: string, slug?: string | undefined | null, kind?: "feature" | "change" | undefined | null): Promise<StartedView>
 
 /** Deletes the pending review of a file. */
 export declare function startOver(repo: string, folder: string, file: string): Promise<FileView>

@@ -119,3 +119,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   command instead of the behaviour.
 - **If wrong**: the command only selects tests; the rule is unchanged.
 - **Where**: task 4, `crates/core/tests/check.rs`.
+
+## R9: A typed change's still images are WebP, and the core reads the binding's kind
+
+- **Decision**: Task 5's images test expects `images/image-1.webp` and `images/image-2.webp`, not
+  `.gif`: a still GIF is re-encoded as WebP, as every attached image is. The binding's `kind`
+  argument is read by `api::start_kind`, which refuses a name other than `feature` or `change`. A
+  text with no written line is refused with `a change needs a text: its first line is its title`.
+  `Started` gains `folder`, since a change's branch is no longer its folder's name, and the
+  attachments' `save` takes the working tree's root instead of a `Place`. The LSP's start builds its
+  proposal path in one line, so `commands.rs` stays at 498 lines with its new `Kind` argument.
+- **Rationale**: [`images.rs`](/crates/core/src/images.rs) keeps only animated GIFs as GIF, and
+  `still.gif` became `login.webp` in the existing attach tests. Kinds are the core's, so the binding
+  does not parse them. A text with no written line has no title to start from.
+- **Alternatives considered**: an animated GIF fixture, which tests the encoder rather than the
+  start; parsing the kind in the binding.
+- **If wrong**: change the fixture or the binding; the start's behaviour is unchanged.
+- **Where**: task 5, `crates/core/tests/actions.rs`, `crates/core/src/api/start.rs`,
+  `crates/lsp/src/commands.rs`.

@@ -11,8 +11,9 @@ use crate::files::priorities::{self, Entry};
 use crate::git::GitError;
 use crate::target::draft_name;
 use crate::today::Date;
-use crate::workspace::resolve;
+use crate::workspace::{Kind, folder_branch, folder_path, resolve};
 
+use super::typed::Typed;
 use super::{Start, StartError};
 
 /// A slug as `ura draft` makes them: lowercase letters, digits, and hyphens.
@@ -56,16 +57,22 @@ pub(super) struct Plan {
     pub(super) files: Vec<String>,
     /// The draft's files that are committed.
     pub(super) tracked: Vec<String>,
-    /// The dated folder, also the branch's name.
+    /// The dated folder.
     pub(super) folder: String,
+    /// The folder for a feature, `change/<folder>` for a change.
+    pub(super) branch: String,
     /// Where the branch's worktree goes, unless `switch`.
     pub(super) worktree: PathBuf,
     /// `PRIORITIES.md` with the entry moved to **Now**.
     pub(super) priorities: String,
     pub(super) start_subject: String,
     pub(super) proposal_subject: String,
-    /// `specs/<folder>`.
+    /// `specs/<folder>`, or `specs/changes/<folder>` for a change.
     pub(super) destination: String,
+    /// What puts the proposal in `destination`, as the step left to do by hand.
+    pub(super) write_left: String,
+    /// The proposal of a typed change.
+    pub(super) typed: Option<Typed>,
 }
 
 impl Plan {
@@ -87,8 +94,12 @@ impl Plan {
 
 impl Start<'_> {
     /// Every check, before anything is written.
-    pub(super) fn plan(&self, slug: Option<&str>, today: Date) -> Result<Plan, StartError> {
-        let draft = self.draft;
+    pub(super) fn plan(
+        &self,
+        draft: &str,
+        slug: Option<&str>,
+        today: Date,
+    ) -> Result<Plan, StartError> {
         let folder_draft = self.root.join(draft).is_dir();
         let proposal_source = if folder_draft {
             format!("{draft}/proposal.md")
@@ -99,30 +110,79 @@ impl Start<'_> {
         let text = fs::read_to_string(self.root.join(&proposal_source))
             .map_err(|_| StartError::Refused(format!("{proposal_source}: no such draft")))?;
         let slug = slug.map_or_else(|| crate::slug::short(draft_name(draft)), str::to_string);
-        let folder = self.free_folder(&slug, today)?;
-        let worktree = place::worktree_path(self.git, &folder);
-        if !self.switch && worktree.exists() {
-            return Err(GitError::WorktreeExists(format!(".worktrees/{folder}")).into());
-        }
+        let (folder, worktree) = self.claim(&slug, today)?;
         // Which of the draft's files are committed, read before any write of ours.
         let tracked = self.tracked(&files);
         self.check_clean(&files)?;
-        let (name, priorities) = self.moved_entry(&proposal_source, &text, &slug, &folder)?;
+        let destination = folder_path(self.kind, &folder);
+        let (name, priorities) =
+            self.moved_entry(draft, &proposal_source, &text, &slug, &destination)?;
         Ok(Plan {
             folder_draft,
             files,
             tracked,
             start_subject: format!("chore({slug}): start {name}"),
             proposal_subject: format!("chore({slug}): proposal"),
-            destination: format!("specs/{folder}"),
+            write_left: format!("move {draft} to {destination}"),
+            destination,
+            branch: folder_branch(self.kind, &folder),
             folder,
             worktree,
             priorities,
+            typed: None,
         })
     }
 
+    /// Every check of a change typed as a text, before anything is written.
+    pub(super) fn plan_text(
+        &self,
+        text: &str,
+        slug: Option<&str>,
+        today: Date,
+    ) -> Result<Plan, StartError> {
+        let typed = Typed::read(text).ok_or_else(|| {
+            StartError::Refused("a change needs a text: its first line is its title".into())
+        })?;
+        let slug = slug.map_or_else(|| crate::slug::propose(&typed.title), str::to_string);
+        let (folder, worktree) = self.claim(&slug, today)?;
+        self.check_clean(&[])?;
+        let destination = folder_path(self.kind, &folder);
+        let priorities_text =
+            fs::read_to_string(self.root.join("specs/PRIORITIES.md")).unwrap_or_default();
+        let priorities = priorities::add_to_now(
+            &priorities_text,
+            &typed.title,
+            &format!("/{destination}/proposal.md"),
+        );
+        Ok(Plan {
+            folder_draft: false,
+            files: Vec::new(),
+            tracked: Vec::new(),
+            start_subject: format!("chore({slug}): start {}", typed.title),
+            proposal_subject: format!("chore({slug}): proposal"),
+            write_left: format!("write {destination}/proposal.md from the text"),
+            destination,
+            branch: folder_branch(self.kind, &folder),
+            folder,
+            worktree,
+            priorities,
+            typed: Some(typed),
+        })
+    }
+
+    /// The dated folder for a slug, and where its worktree goes: refused when the folder is taken,
+    /// or when its worktree's folder exists.
+    fn claim(&self, slug: &str, today: Date) -> Result<(String, PathBuf), StartError> {
+        let folder = self.free_folder(slug, today)?;
+        let worktree = place::worktree_path(self.git, &folder);
+        if !self.switch && worktree.exists() {
+            return Err(GitError::WorktreeExists(format!(".worktrees/{folder}")).into());
+        }
+        Ok((folder, worktree))
+    }
+
     /// The dated folder for a slug, refused when the slug is not one, or when a record, a branch,
-    /// or a folder already holds the name.
+    /// or a folder already holds the name, as a feature's or as a change's.
     fn free_folder(&self, slug: &str, today: Date) -> Result<String, StartError> {
         if !valid_slug(slug) {
             return Err(StartError::Refused(format!(
@@ -141,13 +201,13 @@ impl Start<'_> {
                 "{record} exists: choose another slug with --slug"
             )));
         }
-        let taken = self
-            .at
-            .branches()?
-            .iter()
-            .any(|branch| branch.name == folder)
-            || self.root.join("specs").join(&folder).exists()
-            || features.iter().any(|feature| feature.folder == folder);
+        let kinds = [Kind::Feature, Kind::Change];
+        let branches = self.at.branches()?;
+        let taken = kinds.iter().any(|&kind| {
+            let branch_name = folder_branch(kind, &folder);
+            branches.iter().any(|branch| branch.name == branch_name)
+                || self.root.join(folder_path(kind, &folder)).exists()
+        }) || features.iter().any(|feature| feature.folder == folder);
         if taken {
             return Err(StartError::Refused(format!(
                 "{folder} exists: choose another slug with --slug"
@@ -195,12 +255,12 @@ impl Start<'_> {
     /// link to the proposal, or added there when no entry links the draft.
     fn moved_entry(
         &self,
+        draft: &str,
         proposal_source: &str,
         text: &str,
         slug: &str,
-        folder: &str,
+        destination: &str,
     ) -> Result<(String, String), StartError> {
-        let draft = self.draft;
         let priorities_text =
             fs::read_to_string(self.root.join("specs/PRIORITIES.md")).unwrap_or_default();
         let linking: Vec<Entry> = priorities::parse(&priorities_text)
@@ -213,7 +273,7 @@ impl Start<'_> {
                     .is_some_and(|path| path == draft || path == proposal_source)
             })
             .collect();
-        let target = format!("/specs/{folder}/proposal.md");
+        let target = format!("/{destination}/proposal.md");
         match linking.as_slice() {
             [] => {
                 let name = Document::parse(text)

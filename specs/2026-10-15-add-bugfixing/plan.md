@@ -577,6 +577,8 @@ git commit -m "feat(add-bugfixing): check a change's folder, and name the move o
     - when the first line was cut, the whole first line comes back as the text's first paragraph;
     - then, for each image, `![Image N](images/image-N.<ext>)`, saved in the change's `images/`
       folder.
+    - a text with no written line is refused: `a change needs a text: its first line is its title`
+      (R9).
 
     Now's entry takes the title. The commits are those of a draft's start, and the proposal's commit
     holds its images.
@@ -589,14 +591,16 @@ git commit -m "feat(add-bugfixing): check a change's folder, and name the move o
     - `api::start_feature(repo, draft, slug, kind: Kind)`;
     - `api::start_change(repo, text: &str, images: &[Vec<u8>], slug: Option<&str>) -> Result<StartedView>`,
       which encodes each image with `images::encode(bytes, "image-N")`;
-    - `api::propose_slug(title: &str) -> String`.
+    - `api::propose_slug(title: &str) -> String`;
+    - `api::start_kind(name: Option<&str>) -> Result<Kind>`, the binding's `kind` read by the core
+      (R9).
   - **The binding**: `startFeature(repo, draft, slug?, kind?: "feature" | "change")`,
     `startChange(repo: string, text: string, images: Buffer[], slug?: string | null): Promise<StartedView>`,
     and `proposeSlug(title: string): string`, synchronous.
   - **The CLI**: `ura start <draft> [--slug <slug>] [--change] [--switch]`. With `--change`, it
     prints `Next: change. Ask an agent, or run ura next.`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/actions.rs
@@ -618,8 +622,9 @@ fn a_typed_text_starts_a_change() {
 
 #[test]
 fn a_typed_text_brings_its_images() {
-    // two still.gif images: images/image-1.gif and images/image-2.gif committed with the proposal,
-    // which ends with "![Image 1](images/image-1.gif)" and "![Image 2](images/image-2.gif)"
+    // two still.gif images, re-encoded as WebP (R9): images/image-1.webp and images/image-2.webp
+    // committed with the proposal, which ends with "![Image 1](images/image-1.webp)" and
+    // "![Image 2](images/image-2.webp)"
 }
 
 #[test]
@@ -644,20 +649,20 @@ The break each test catches:
 - The images test: images saved outside the change's folder, or not committed.
 - The taken-name test: a check that looks in one folder only.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo nextest run -p uraeda-core -p uraeda-cli start`
 - Expected: FAIL, first at compile time with the missing `kind` argument of `start::run`.
 
-- [ ] **Step 3: Implement the start of a change**, the text's proposal and its images through
+- [x] **Step 3: Implement the start of a change**, the text's proposal and its images through
       `actions/attach.rs`'s save with the base `image-N`, `propose`, the API, the binding, and
       `--change`.
-- [ ] **Step 4: Regenerate the binding, and run all checks**
+- [x] **Step 4: Regenerate the binding, and run all checks**
 
 - Run: `vp run binding:build && vp run ready:rust && vp run ts:check`
 - Expected: PASS, with `index.d.ts` holding `startChange` and `proposeSlug`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages/binding/index.js packages/binding/index.d.ts
