@@ -534,7 +534,7 @@ impl Git {
         let addable = self.addable(paths, &staged)?;
         if !addable.is_empty() {
             let mut add = vec!["add", "--all", "--"];
-            add.extend(addable);
+            add.extend(addable.iter().copied());
             self.run("add", &add)?;
         }
         let hooks = self
@@ -548,7 +548,19 @@ impl Git {
         if let Some(body) = body {
             commit.extend(["--message", body]);
         }
+        // A refused commit takes back what it staged, so nothing it held blocks or rides along.
         self.run("commit", &commit)
+            .inspect_err(|_| drop(self.unstage(&addable)))
+    }
+
+    /// Resets the index entries of `paths`, files or folders, to `HEAD`, the working tree kept.
+    pub fn unstage(&self, paths: &[&str]) -> Result<(), GitError> {
+        if paths.is_empty() {
+            return Ok(());
+        }
+        let mut reset = vec!["reset", "--quiet", "--"];
+        reset.extend(paths);
+        self.run("reset", &reset)
     }
 
     fn run(&self, subcommand: &str, args: &[&str]) -> Result<(), GitError> {

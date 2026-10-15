@@ -290,6 +290,12 @@ pub fn commit(place: &Place) -> Result<Committed, ActionError> {
 pub fn discard(place: &Place) -> Result<(), ActionError> {
     let listed = gather(place);
     let git = Git::open(&place.root)?;
+    // Nothing discarded stays staged, as a refused commit or the human left it: a deleted file's
+    // entry would block the next commit, or bring the file back.
+    let mut staged: Vec<&str> = vec![INBOX, PRIORITIES];
+    let folders = images_folders(&listed.paths);
+    staged.extend(listed.paths.iter().chain(&folders).map(String::as_str));
+    git.unstage(&staged)?;
     for path in [INBOX, PRIORITIES] {
         if place::committed(place, path).is_some() {
             git.restore(path)?;
