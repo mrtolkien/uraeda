@@ -105,7 +105,7 @@ function storyPage(id) {
 <p id="mode">No mode</p>
 <button type="button" id="hide">Hide the sidebar</button>
 <p id="clicks">Clicked 0 times</p>
-<div role="separator" tabindex="0"></div>
+<div role="separator" tabindex="0" style="height: 8px; background: gray"></div>
 <script type="module" src="story.js"></script>
 </body>
 </html>

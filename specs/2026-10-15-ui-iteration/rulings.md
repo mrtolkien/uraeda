@@ -450,3 +450,56 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: one branch of `StorybookPage.tsx` each.
 - **Where**: task 8, `packages/web/src/StorybookPage.tsx`, `FeaturePage.tsx`, `SessionAside.tsx`;
   task 9, `packages/web/scripts/screenshots.ts`.
+
+## R32: A page's story comments carry the file they go to
+
+- **Decision**: `StoriesProvider`'s `comment` is `{ path, save }`, `StoryComments`: `save` is the
+  plan's `(story, text, block?)` function, and `path`, the file the comments go to, keys each
+  embed's unsaved text, `<path>#story:<folder>:<story path>#<export>`. `StoryEmbed`'s `comment` is
+  `{ field, save(text) }`, which `Blocks` builds. The pick buttons, the hint, and the form live in
+  `StoryPick.tsx`, and the frames' pick mode in `StoryFrames.tsx`'s `useFrames`.
+- **Rationale**: the plan names the field `<path>#story:…` but gives the embed no path; the page
+  that provides `comment` is the one that knows where it goes, the review's file, a round, or a
+  session. `StoryEmbed.tsx` would pass 500 lines with the form.
+- **Alternatives considered**: a second context field beside `comment`, which a page could fill
+  without the other; a key without the file, which a spec's review and a round embedding the same
+  story would share.
+- **If wrong**: the type in `stories.tsx` and its three providers.
+- **Where**: task 9, `packages/web/src/stories.tsx`, `Blocks.tsx`, `StoryPick.tsx`; tasks 10 and 11
+  provide `{ path, save }`.
+
+## R33: A Mockups button scrolls to its story's embed, else opens its Storybook page
+
+- **Decision**: a story's button in a review's Mockups finds the embed of the same file and export
+  among the version's `stories`, by the element id `story-<block>`, and scrolls to it under the top
+  bar, as an address's anchor does. When no embed shows, without a preview decision, it opens the
+  Storybook page at the story.
+- **Rationale**: the spec's edge case asks the buttons to scroll to each story's embed; a story with
+  no embed on the page has nowhere to scroll, and `/f/<folder>/<path>` is not a page for a stories
+  file.
+- **Alternatives considered**: a button that does nothing without an embed; the raw file.
+- **If wrong**: one branch of `ReviewMockups.tsx`.
+- **Where**: task 9, `packages/web/src/ReviewMockups.tsx`.
+
+## R34: Pick and Comment are the app's own icons, and the fake story's separator shows
+
+- **Decision**: on narrow screens, "Pick an element" is a crosshair and "Comment" a speech bubble,
+  Lucide's outlines registered as `uraeda:pick` and `uraeda:comment` in `theme/icons.ts`, as the
+  paperclip is. The fake preview's separator is 8 px tall and grey, so a test can click it.
+- **Rationale**: Astryx's icons have neither. A separator 0 px tall cannot be clicked, and the
+  plan's tests pick it.
+- **Alternatives considered**: text buttons, which US1.5 refuses; another element of the fake story.
+- **If wrong**: two icons.
+- **Where**: task 9, `packages/web/src/theme/icons.ts`, `fixtures/preview/serve.mjs`.
+
+## R35: Both shows the phone alone where the phone's width does not fit
+
+- **Decision**: "Both" shows the phone's frame alone, at most as wide as the embed, when the frames'
+  box is narrower than the phone's width, its padding, and the gap, measured on the box, as a
+  draft's pane on a wide screen is. "Phone" and "Desktop" are unchanged.
+- **Rationale**: the spec's "Both" assumes a reading column; in a narrower box the desktop frame had
+  no room, and the phone's was cut.
+- **Alternatives considered**: a minimum width for the desktop's frame too, which would hide it in
+  columns the spec shows it in.
+- **If wrong**: `useRoomForBoth` in `StoryFrames.tsx`.
+- **Where**: the fix after task 7's review, `packages/web/src/StoryFrames.tsx`.

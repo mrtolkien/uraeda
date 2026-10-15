@@ -3,6 +3,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useLayoutEffect, useMemo, useState } from "react";
+import { useFateClient } from "react-fate";
 import type { Block, CommentItem, Document } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { Crumbs } from "./Crumbs.tsx";
@@ -27,13 +28,15 @@ import { reviewHeadings } from "./ReviewHeadings.tsx";
 import { ReviewMockups } from "./ReviewMockups.tsx";
 import { useRefusals } from "./ReviewVerdict.tsx";
 import { useRepositoryPath } from "./routes.tsx";
-import { StoriesProvider } from "./stories.tsx";
+import { StoriesProvider, type StoryComments } from "./stories.tsx";
 import { unsavedKey } from "./fields/unsaved.ts";
 import { type Range, useCommentDraft } from "./useCommentDraft.ts";
 import { useSpecFolds } from "./useOpenKeys.ts";
 import { useReviewActions } from "./useReviewActions.ts";
 import { withoutCommentRefusal } from "./useReviewImages.ts";
 import { StaleBanner, YourReview } from "./YourReview.tsx";
+import { refusal } from "./errors.ts";
+import { FileView } from "./views.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -95,6 +98,25 @@ function useReviewDraft(
 }
 
 /**
+ * The review's comments on its embedded stories: on the embed's lines, as a mockup's comment is on
+ * the line that links it, their unsaved text kept under the file's path.
+ */
+function useStoryComments(file: File): StoryComments {
+  const fate = useFateClient();
+  return {
+    path: file.path,
+    save: async (_story, text, block) => {
+      const lines = block ? { endLine: block.endLine, startLine: block.startLine } : {};
+      const result = await fate.mutations.review.comment({
+        input: { file: file.name, folder: file.folder, text, ...lines },
+        view: FileView,
+      });
+      return result.error ? refusal(result.error).message : undefined;
+    },
+  };
+}
+
+/**
  * What a review says before its file: that the file changed under pending comments, its mockups,
  * and which version it shows.
  */
@@ -115,7 +137,12 @@ function ReviewIntro({
       {file.reviewStale && comments > 0 && (
         <StaleBanner count={comments} kind={file.kind} onStartOver={onStartOver} />
       )}
-      <ReviewMockups folder={file.folder} mockups={version.items.spec?.mockups} wide={wide} />
+      <ReviewMockups
+        folder={file.folder}
+        mockups={version.items.spec?.mockups}
+        stories={version.stories}
+        wide={wide}
+      />
       <Text color="secondary" type="supporting">
         Tap a block to comment on it. Showing the version committed at <Code>{file.tip}</Code>
         {file.committed && ", which differs from the file on disk"}.
@@ -253,6 +280,7 @@ export function ReviewPage({ file }: { file: File }) {
   const placed = usePlacedComments(comments, tree);
   const folds = useSpecFolds(version.items.spec, shownFolds(tree, placed, selection));
   const field = fieldOf(file, comments, commentDraft);
+  const storyComments = useStoryComments(file);
   const {
     inPage,
     pendingNote,
@@ -286,7 +314,7 @@ export function ReviewPage({ file }: { file: File }) {
             onStartOver={actions.startOver}
             wide={wide}
           />
-          <StoriesProvider folder={file.folder} stories={version.stories}>
+          <StoriesProvider comment={storyComments} folder={file.folder} stories={version.stories}>
             <Blocks
               document={tree}
               folds={folds}

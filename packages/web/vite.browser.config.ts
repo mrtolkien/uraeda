@@ -272,9 +272,35 @@ const commands = {
       .innerText({ timeout: 1000 })
       .catch(() => "");
   },
-  /** Clicks the element of a role and name in a frame of the page, by its `title`. */
-  async frameClick(context: Context, title: string, role: "button", name: string) {
+  /** Clicks the element of a role, and name when given, in a frame of the page, by its `title`. */
+  async frameClick(context: Context, title: string, role: "button" | "separator", name?: string) {
     await (await frameTitled(context, title)).getByRole(role, { name }).click();
+  },
+  /**
+   * Moves the pointer over the element of a role and name in a frame of the page, by its `title`,
+   * and says whether the pick script outlines it: a box drawn over the page, at the element's place.
+   */
+  async frameOutlined(context: Context, title: string, role: "button", name: string) {
+    const target = (await frameTitled(context, title)).getByRole(role, { name });
+    await target.hover();
+    return target.evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      return [...document.documentElement.children].some((child) => {
+        const drawn = child.getBoundingClientRect();
+        return (
+          child !== document.body &&
+          getComputedStyle(child).position === "fixed" &&
+          Math.abs(drawn.left - box.left) < 1 &&
+          Math.abs(drawn.top - box.top) < 1 &&
+          Math.abs(drawn.width - box.width) < 1 &&
+          Math.abs(drawn.height - box.height) < 1
+        );
+      });
+    });
+  },
+  /** Presses a key in a frame of the page, by its `title`, its body focused, as the human does. */
+  async framePress(context: Context, title: string, key: string) {
+    await (await frameTitled(context, title)).locator("body").press(key);
   },
   /** An attribute of the element `selector` finds in a frame of the page, by its `title`. */
   async frameAttribute(context: Context, title: string, selector: string, name: string) {
@@ -390,7 +416,9 @@ export type RepoCommands = {
   fixtureImage: (name: string) => Promise<string>;
   fixtureText: (name: string) => Promise<string>;
   frameAttribute: (title: string, selector: string, name: string) => Promise<string | null>;
-  frameClick: (title: string, role: "button", name: string) => Promise<void>;
+  frameClick: (title: string, role: "button" | "separator", name?: string) => Promise<void>;
+  frameOutlined: (title: string, role: "button", name: string) => Promise<boolean>;
+  framePress: (title: string, key: string) => Promise<void>;
   frameReload: (title: string) => Promise<void>;
   frameRun: (title: string, script: string) => Promise<void>;
   frameText: (title: string) => Promise<string>;

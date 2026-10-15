@@ -59,6 +59,8 @@ type Shared = {
   action?: ReactNode;
   /** Where the comment goes, above its field. */
   anchor: string;
+  /** Whether its field takes the focus as it shows, as after the click that opened it. */
+  hasAutoFocus?: boolean;
   /** The field's images, pasted, dropped, or picked with "Add image", the first button. */
   images?: CommentImages;
   /** An error about the comment from outside it, like a verdict refused while it is open. */
@@ -130,6 +132,7 @@ function CommentFields({
   action,
   anchor,
   dirty,
+  hasAutoFocus,
   images,
   notice,
   onCancel,
@@ -184,6 +187,7 @@ function CommentFields({
         {images ? (
           <DropHint hint={images.hint} isLabelled>
             <TextField
+              hasAutoFocus={hasAutoFocus}
               kind="comment"
               label="Comment text"
               onChange={onChange}
@@ -194,6 +198,7 @@ function CommentFields({
           </DropHint>
         ) : (
           <TextField
+            hasAutoFocus={hasAutoFocus}
             kind="comment"
             label="Comment text"
             onChange={onChange}
