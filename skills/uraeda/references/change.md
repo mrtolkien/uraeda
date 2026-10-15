@@ -50,20 +50,26 @@ formatting, and comments stay in the chat, made there as before.
 With `ura`, `ura next <slug>` names the step. By hand, on the change's branch, go down this table
 and run the first row that matches.
 
-| State of the change's branch                                 | Step                                                   |
-| ------------------------------------------------------------ | ------------------------------------------------------ |
-| `proposal.md` is not committed, and there is no record       | **Human gate**: the human writes it, then commits it   |
-| The record is in `specs/done/`, and no pull request is ready | [Finish](finish.md)                                    |
-| The record, and the pull request has changes requested       | [The pull request](#the-pull-request), changes         |
-| The record, and the pull request is ready for review         | **Human gate**: the review happens on the pull request |
-| A file has `status: awaiting-human`                          | **Human gate**: stop                                   |
-| The branch has no pull request                               | This file, from [Investigating](#investigating)        |
-| The branch's pull request is a draft                         | [Finish](finish.md)                                    |
-| The branch's pull request has changes requested              | [The pull request](#the-pull-request), changes         |
-| The branch has an open pull request                          | **Human gate**: the review happens on the pull request |
+| State of the change's branch                                     | Step                                                                    |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `proposal.md` is not committed, and there is no record           | **Human gate**: the human writes it, then commits it                    |
+| The record is in `specs/done/`, and no pull request is ready     | [Finish](finish.md)                                                     |
+| The record, and the pull request has changes requested           | [The pull request](#the-pull-request), changes                          |
+| The record, and the pull request is ready for review             | **Human gate**: the review happens on the pull request                  |
+| A file has `status: awaiting-human`                              | **Human gate**: stop                                                    |
+| The branch has no pull request                                   | This file, from [Investigating](#investigating)                         |
+| The folder came back, and a round answered since is not made yet | [Making the change](#making-the-change), then [the review](#the-review) |
+| The branch's pull request is a draft                             | [Finish](finish.md)                                                     |
+| The branch's pull request has changes requested                  | [The pull request](#the-pull-request), changes                          |
+| The branch has an open pull request                              | **Human gate**: the review happens on the pull request                  |
 
 Without `gh`, `ura` cannot see the pull request, and names `change` until the record exists: check
 the pull request yourself.
+
+The folder comes back when the branch reverts its finishing commit, for a round asked on the pull
+request ([below](#the-pull-request)). A round answered after that revert, in `git log`, has its
+change to make before finishing, though the pull request is a draft: `ura` cannot tell, and names
+`finish`.
 
 **Resuming** works as the implementation step's [resuming](implementation.md#before-the-first-task)
 says, an item standing for a task. Read the proposal, the answered rounds, `rulings.md`, and
@@ -254,9 +260,9 @@ Changes requested on the pull request are handled as for a feature, as
   discovery file.
 - **A new decision** is the [upgrade](#upgrading) offer, and a change to an active decision is
   proposed as in [Decisions](#decisions).
-- **Once the round is answered**, the pull request is still a draft, so the table names finish:
-  first make the change from the answers, as in [Making the change](#making-the-change), and review
-  it, then finish.
+- **Once the round is answered**, the pull request is still a draft, and `ura` names finish: the
+  [table](#finding-the-step)'s row for a folder that came back makes the change from the answers
+  first, and reviews it, then finishes.
 
 ## Red flags
 
