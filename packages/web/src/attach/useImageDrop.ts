@@ -9,6 +9,8 @@ export type DropField = {
   priority: number;
   /** The field's element: it is the target while it holds the focus, and is outlined. */
   ref: RefObject<HTMLElement | null>;
+  /** Whether it takes images: `false` for a file the core takes none for, never the target. */
+  takes?: boolean;
 };
 
 /** The registered fields, each in a box its hook updates as it draws. */
@@ -24,7 +26,7 @@ const listeners = new Set<() => void>();
  * it, drawn or not yet, like an editor showing its preview.
  */
 function pick() {
-  const all = [...fields];
+  const all = [...fields].filter((field) => field.current.takes !== false);
   const active = document.activeElement;
   return (
     all.find((field) => active && field.current.ref.current?.contains(active)) ??

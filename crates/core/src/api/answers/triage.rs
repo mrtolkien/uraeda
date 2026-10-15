@@ -4,7 +4,7 @@
 use std::path::Path;
 
 use crate::actions::answer;
-use crate::actions::inbox::TRIAGE;
+use crate::actions::inbox::{self, TRIAGE};
 use crate::actions::place::Place;
 use crate::api::{Result, on_default, open, reach_default, refused, write_lock};
 use crate::files::document;
@@ -85,24 +85,29 @@ pub fn read_triage(repo: &Path) -> Result<Option<FileView>> {
 }
 
 /// Saves one answer of the triage, from the letters picked and a comment, over the answer last
-/// read.
+/// read, `previous`, in the triage read with the hash `base`: a triage changed elsewhere since is
+/// refused, so the hash of the text written covers only what the page saw.
 pub fn save_triage_answer(
     repo: &Path,
     question: &str,
     letters: &[String],
     comment: &str,
     previous: &str,
+    base: &str,
 ) -> Result<FileView> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
+    inbox::ensure_triage(&place, base)?;
     let saved = answer::save(&place, TRIAGE, question, letters, comment, previous)?;
     written(&place, saved.text)
 }
 
-/// Saves the triage's notes, over the notes last read.
-pub fn save_triage_notes(repo: &Path, notes: &str, previous: &str) -> Result<FileView> {
+/// Saves the triage's notes, over the notes last read, `previous`, in the triage read with the
+/// hash `base`, as an answer is.
+pub fn save_triage_notes(repo: &Path, notes: &str, previous: &str, base: &str) -> Result<FileView> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
+    inbox::ensure_triage(&place, base)?;
     let saved = answer::save_notes(&place, TRIAGE, notes, previous)?;
     written(&place, saved.text)
 }
@@ -112,8 +117,21 @@ pub fn save_triage_notes(repo: &Path, notes: &str, previous: &str) -> Result<Fil
 pub fn submit_triage(repo: &Path, previous: &str) -> Result<FileView> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    crate::actions::inbox::submit_triage(&place, previous, today::today())?;
+    inbox::submit_triage(&place, previous, today::today())?;
+    committed(&place)
+}
+
+/// Commits the answered triage again, after a hook refused its submit.
+pub fn retry_triage(repo: &Path) -> Result<FileView> {
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    inbox::retry_triage(&place)?;
+    committed(&place)
+}
+
+/// The triage's view once committed.
+fn committed(place: &Place) -> Result<FileView> {
     let text = std::fs::read_to_string(place.root.join(TRIAGE))
         .map_err(|error| refused(error.to_string()))?;
-    written(&place, text)
+    written(place, text)
 }

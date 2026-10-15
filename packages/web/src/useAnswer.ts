@@ -3,7 +3,7 @@ import type { QuestionItem } from "uraeda-binding";
 import { refusal } from "./errors.ts";
 import { useTextField } from "./fields/useTextField.ts";
 import { useCommentSaves } from "./QuestionComment.tsx";
-import { RoundHash, type RoundTarget, useRoundWrites } from "./roundTarget.ts";
+import { type RoundTarget, useRoundHash, useRoundWrites } from "./roundTarget.ts";
 import { useSave } from "./useSave.ts";
 
 /** Where questions put what they still have to save, so Submit saves it first. */
@@ -42,7 +42,7 @@ const sameLetters = (a: ReadonlyArray<string>, b: ReadonlyArray<string>) =>
  * still unsaved. `target` is the round the answer is written in, a feature's or the triage.
  */
 export function useAnswer(question: QuestionItem, target: RoundTarget, path: string) {
-  const writes = useRoundWrites(target, useContext(RoundHash));
+  const writes = useRoundWrites(target, useRoundHash());
   const field = useTextField(`${path}#${question.id}`, question.comment);
   const [letters, setLetters] = useState<ReadonlyArray<string>>(question.letters);
   // The letters as last picked, and the comment as last saved or read, for the saves, which run

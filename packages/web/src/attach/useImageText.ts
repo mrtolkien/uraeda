@@ -97,6 +97,8 @@ type ImageTextOptions = {
   path: string;
   /** The field's rank among its page's drop targets when none holds the focus. */
   priority: number;
+  /** Whether the file takes images, as `takesImages` says: else no drop or paste attaches one. */
+  takes?: boolean;
   /** The field's text now. */
   text: string;
 };
@@ -243,6 +245,14 @@ function useRuns(field: Field, attaching: ReturnType<typeof useAttach>) {
 }
 
 /**
+ * Whether the core takes images for the markdown file at `path`: not for the inbox's triage, which
+ * is no feature's, bug's, or draft's file, and is committed alone.
+ */
+export function takesImages(path: string): boolean {
+  return path !== "specs/INBOX-TRIAGE.md";
+}
+
+/**
  * The files a paste attaches, as pasted images, named by the core: none when it holds text, as a
  * paste from an office suite carries a picture of the text with the text, which is pasted (R51).
  */
@@ -265,7 +275,7 @@ function pastedImages(event: ClipboardEvent<HTMLTextAreaElement>) {
  * become a folder, whose later files went to its new path.
  */
 export function useImageText(options: ImageTextOptions) {
-  const { initialSelection, initialStatus, label, path, priority, text } = options;
+  const { initialSelection, initialStatus, label, path, priority, takes, text } = options;
   const ref = useRef<HTMLTextAreaElement>(null);
   // A field never focused since it was drawn has no cursor the human chose, and its images go at
   // the end. A field drawn again, as after the preview, is new.
@@ -286,6 +296,7 @@ export function useImageText(options: ImageTextOptions) {
     onFiles: (files) => void addFiles(files),
     priority,
     ref,
+    ...(takes === undefined ? {} : { takes }),
   });
 
   return {
@@ -302,7 +313,7 @@ export function useImageText(options: ImageTextOptions) {
         focused.current = ref.current;
       },
       onPaste: (event: ClipboardEvent<HTMLTextAreaElement>) => {
-        const files = pastedImages(event);
+        const files = takes === false ? undefined : pastedImages(event);
         if (files) {
           event.preventDefault();
           void addFiles(files);

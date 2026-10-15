@@ -324,3 +324,21 @@ test("the triage's banner and its answering view pass the layout checks", async 
   await drawn();
   await checkLayout();
 });
+
+/** US4 1 and 3: "Organize with an agent", then the answered triage's banner and its button. */
+test("Organize with an agent and the answered triage's banner pass the layout checks", async () => {
+  await show("/inbox", "10 notes");
+  expect(screen.getByRole("button", { name: "Organize with an agent" })).toBeTruthy();
+  await checkLayout();
+
+  const triage = await commands.fixtureText("INBOX-TRIAGE.md");
+  await commands.writeRepo(
+    triage
+      .replace("status: awaiting-human", "status: answered")
+      .replaceAll("**Answer:**\n", "**Answer:** A\n"),
+    "specs/INBOX-TRIAGE.md",
+  );
+  await show("/inbox", "Your triage answers are ready to apply");
+  expect(screen.getByRole("button", { name: "Apply the answers" })).toBeTruthy();
+  await checkLayout();
+});
