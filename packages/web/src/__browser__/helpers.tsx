@@ -44,11 +44,18 @@ const size = server.config.browser.viewport.width < 768 ? "phone" : "desktop";
 /**
  * Declares the size a file's or a `describe` block's tests are about, called at its top: at the other
  * size, every test declared after it in that scope is skipped, as `test.skip` would, so no hook runs
- * for it and it takes no repository.
+ * for it and it takes no repository. A call after a test of its scope, or inside a test, throws: it
+ * could not skip the tests already declared.
  */
 export function atSize(only: "phone" | "desktop" | "both") {
+  const scope = TestRunner.getCurrentSuite();
+  // Checked at both sizes: a misplaced call fails at the size it would not skip at too.
+  if (TestRunner.getCurrentTest() !== undefined || scope.tasks.length > 0) {
+    throw new Error(
+      "atSize was called after a test was declared, or inside one: call atSize before the tests of its file or describe block",
+    );
+  }
   if (only !== "both" && only !== size) {
-    const scope = TestRunner.getCurrentSuite();
     // The options the scope's tests and blocks are declared with: `skip` makes each a `test.skip`.
     scope.options = { ...scope.options, skip: true };
   }

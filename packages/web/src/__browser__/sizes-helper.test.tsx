@@ -12,8 +12,8 @@ beforeEach(() => {
 });
 
 afterAll(() => {
-  // At each size: its own test, and the test of both sizes.
-  expect({ hooked, ran }).toEqual({ hooked: 2, ran: 2 });
+  // At each size: its own test, the test of both sizes, and the two of a misplaced call.
+  expect({ hooked, ran }).toEqual({ hooked: 4, ran: 4 });
 });
 
 describe("at the phone's size", () => {
@@ -39,5 +39,30 @@ describe("at both sizes", () => {
 
   test("runs at each size", () => {
     ran += 1;
+  });
+});
+
+/** What a call made after its scope's first test threw. */
+let late: unknown;
+
+describe("a call after a test of its scope", () => {
+  test("throws: it can no longer skip that test", () => {
+    ran += 1;
+    expect(String(late)).toContain("call atSize before the tests of its file or describe block");
+  });
+
+  try {
+    atSize("both");
+  } catch (error) {
+    late = error;
+  }
+});
+
+describe("a call inside a test", () => {
+  test("throws: the test is already running", () => {
+    ran += 1;
+    expect(() => atSize("both")).toThrow(
+      "call atSize before the tests of its file or describe block",
+    );
   });
 });
