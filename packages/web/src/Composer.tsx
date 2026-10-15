@@ -10,6 +10,7 @@ import * as stylex from "@stylexjs/stylex";
 import {
   type Dispatch,
   type KeyboardEvent,
+  type ReactNode,
   type RefObject,
   type SetStateAction,
   useRef,
@@ -180,6 +181,41 @@ function composerStatus(
 }
 
 /**
+ * The composer's send buttons, in its send row: Send, or "Start the agent" while it holds the
+ * workflow's message, "Start once this turn ends" during a turn. During a chat's turn, Send steers
+ * the message into it, beside Stop: shown, disabled, while its images are saved.
+ */
+function sendButtons({
+  canSend,
+  hasContent,
+  send,
+  workflow,
+  working,
+}: {
+  canSend: boolean;
+  hasContent: boolean;
+  send: () => void;
+  workflow: boolean;
+  working: boolean;
+}): { sendActions?: ReactNode; sendButton?: ReactNode } {
+  // Astryx's Send takes text alone: this one takes a message of images too (an Astryx gap).
+  const sendButton = <ChatSendButton isDisabled={!canSend} isStopShown={false} onSend={send} />;
+  if (workflow) {
+    return {
+      sendButton: (
+        <Button
+          clickAction={send}
+          isDisabled={!canSend}
+          label={working ? "Start once this turn ends" : "Start the agent"}
+          variant="primary"
+        />
+      ),
+    };
+  }
+  return working ? (hasContent ? { sendActions: sendButton } : {}) : { sendButton };
+}
+
+/**
  * The composer under a transcript, on Astryx's `ChatComposer`: Send, which turns into Stop while
  * the session works, and reads "Start the agent" while it holds the workflow's message, or "Start
  * once this turn ends" while the session works on a chat. Enter sends on wide screens; on the
@@ -224,14 +260,13 @@ export function Composer(props: ComposerProps) {
   const { error, stop, submit } = useSend(props, { canSend, refused, sent: attaching.sent });
   const onKeyDown = useEnter(input, wide, canSend ? () => submit(value.trim()) : undefined);
   const placeholder = `Message ${name}`;
-  // Astryx's Send takes text alone: this one takes a message of images too (an Astryx gap).
-  const send = (
-    <ChatSendButton
-      isDisabled={!canSend || refused}
-      isStopShown={false}
-      onSend={() => submit(value.trim())}
-    />
-  );
+  const buttons = sendButtons({
+    canSend: canSend && !refused,
+    hasContent,
+    send: () => submit(value.trim()),
+    workflow: workflow !== undefined,
+    working,
+  });
 
   return (
     <>
@@ -267,21 +302,8 @@ export function Composer(props: ComposerProps) {
           onSubmit={submit}
           placeholder={placeholder}
           ref={box}
-          // During a turn, Send steers the message into it, beside Stop: shown, disabled, while
-          // its images are saved.
-          sendActions={working && hasContent && !workflow ? send : undefined}
-          sendButton={
-            workflow ? (
-              <Button
-                clickAction={() => submit(value.trim())}
-                isDisabled={!canSend || refused}
-                label={working ? "Start once this turn ends" : "Start the agent"}
-                variant="primary"
-              />
-            ) : working ? undefined : (
-              send
-            )
-          }
+          sendActions={buttons.sendActions}
+          sendButton={buttons.sendButton}
           status={composerStatus(error, props, unavailable)}
           value={value}
           xstyle={drop.isTarget ? dropStyles.target : undefined}
