@@ -457,11 +457,11 @@ Changed, applied when this spec is approved:
 
 - [UI checks](../decisions/ui-checks.md): a UI test may guard the expected behaviour of a change's
   proposal, and a change's screenshots go in its folder. See its
-  [proposed change](../decisions/ui-checks.md#proposed-change-2026-10-15-add-bugfixing).
+  [rules](../decisions/ui-checks.md#rules).
 - [Attachments](../decisions/attachments.md): "a change's folder" where it said "a bug's". See its
-  [proposed change](../decisions/attachments.md#proposed-change-2026-10-15-add-bugfixing).
+  [rules](../decisions/attachments.md#rules).
 - [CLI](../decisions/cli.md): commands act on "a feature, a change, a draft, or a workflow file".
-  See its [proposed change](../decisions/cli.md#proposed-change-2026-10-15-add-bugfixing).
+  See its [rules](../decisions/cli.md#rules).
 
 Relied on:
 

@@ -14,15 +14,15 @@ files.
 ## Rules
 
 - An image attached to a workflow file MUST be saved in the `images/` folder of the folder holding
-  that file: a feature's, a bug's, or a draft's folder. It MUST be linked from the file with a
+  that file: a feature's, a change's, or a draft's folder. It MUST be linked from the file with a
   relative markdown image, `![alt](images/name.webp)`, and MUST be committed in the same commit as
   the file that links to it.
 - A draft that gets an image MUST become a folder, `specs/drafts/<slug>/proposal.md` or
   `specs/backlog/<slug>/proposal.md`, holding its `images/` folder.
 - A commit of a human's workflow file MUST delete the images of its folder's `images/` that no
   markdown file of that folder links to.
-- Finishing a feature or a bug MUST delete its images with its folder. A record MUST NOT link to an
-  image.
+- Finishing a feature or a change MUST delete its images with its folder. A record MUST NOT link to
+  an image.
 - Images attached to a chat MUST be saved in Uraeda's data folder, under `images/`, and MUST NOT be
   committed.
 - Every attached image MUST be re-encoded before it is saved, by the Rust core, with libwebp:
@@ -82,44 +82,5 @@ as sharp, while the pure Rust encoder makes files twice as large
 
 - The core's image and attachment code, [`crates/core`](/crates/core/), and its callers: the
   [server](/packages/server/), the [binding](/packages/binding/), and [`ura lsp`](/crates/lsp/)
-- Every feature, bug, and draft folder under `specs/`, and the [skill](/skills/uraeda/SKILL.md)'s
+- Every feature, change, and draft folder under `specs/`, and the [skill](/skills/uraeda/SKILL.md)'s
   layout
-
-## Proposed change (2026-10-15-add-bugfixing)
-
-Proposed by the [spec](../2026-10-15-add-bugfixing/spec.md). Bugs become changes, the light flow, in
-`specs/changes/`: the rules name a change where they named a bug.
-
-The rules become:
-
-- An image attached to a workflow file MUST be saved in the `images/` folder of the folder holding
-  that file: a feature's, a change's, or a draft's folder. It MUST be linked from the file with a
-  relative markdown image, `![alt](images/name.webp)`, and MUST be committed in the same commit as
-  the file that links to it.
-- A draft that gets an image MUST become a folder, `specs/drafts/<slug>/proposal.md` or
-  `specs/backlog/<slug>/proposal.md`, holding its `images/` folder.
-- A commit of a human's workflow file MUST delete the images of its folder's `images/` that no
-  markdown file of that folder links to.
-- Finishing a feature or a change MUST delete its images with its folder. A record MUST NOT link to
-  an image.
-- Images attached to a chat MUST be saved in Uraeda's data folder, under `images/`, and MUST NOT be
-  committed.
-- Every attached image MUST be re-encoded before it is saved, by the Rust core, with libwebp:
-  - JPEG and lossy WebP inputs as lossy WebP, quality 80;
-  - other inputs as near-lossless WebP, level 60, quality 75;
-  - downscaled so its long edge is at most 2576 pixels, and rotated by its EXIF orientation;
-  - with no metadata. Animated GIFs MAY be kept as they are.
-- Accepted inputs MUST be PNG, JPEG, GIF, and WebP, detected by their first bytes, at most 20 MB and
-  40 million pixels. SVG and other types MUST be refused.
-- TypeScript code and editor plugins MUST NOT encode or name attached images, nor write them into
-  the repository: they pass the bytes to the core, through the binding or `ura lsp`. The server MAY
-  write the core's encoded chat images to the data folder.
-- The server MUST serve images only with their detected type, `X-Content-Type-Options: nosniff`, and
-  a `Content-Security-Policy` of `default-src 'none'`.
-
-Why: the bug flow was never used, and becomes the change flow
-([Q2](../2026-10-15-add-bugfixing/clarifications-01.md#q2-do-bugs-and-small-changes-share-one-flow),
-[names](../2026-10-15-add-bugfixing/discovery-01.md#names-of-the-light-flow)).
-
-The applies-to line becomes: every feature, change, and draft folder under `specs/`, and the
-[skill](/skills/uraeda/SKILL.md)'s layout.
