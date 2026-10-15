@@ -1,5 +1,5 @@
-//! `names.*`: feature and change folders are `YYYY-MM-DD-<slug>` with a real date, and rounds have
-//! two digits.
+//! `names.*`: feature and change folders are `YYYY-MM-DD-<slug>` with a real date, rounds have two
+//! digits, a change's folder holds only a change's files, and `specs/bugs/` is no longer used.
 
 use std::fs;
 use std::path::Path;
@@ -43,12 +43,66 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
         if fixed.contains(&folder.as_str()) || folder_slug(&folder).is_some() {
             continue;
         }
+        if here == "specs" && folder == "bugs" {
+            problems.push(Problem {
+                file: super::relative(root, &dir.join(&folder)),
+                line: None,
+                rule: "names.bugs".into(),
+                message: "specs/bugs/ is no longer used: bugs are changes. Move its folders to \
+                          specs/changes/, and delete it if empty."
+                    .into(),
+            });
+            continue;
+        }
         problems.push(Problem {
             file: super::relative(root, &dir.join(&folder)),
             line: None,
             rule: "names.folder".into(),
             message: format!(
                 "\"{folder}\" is not a feature folder: YYYY-MM-DD-<slug>, with a real date"
+            ),
+        });
+    }
+}
+
+/// Checks that a change's folder, `specs/changes/<folder>/`, holds only its proposal, its rounds,
+/// its rulings, and its `images/` and `screenshots/` folders.
+pub(super) fn check_change_files(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
+    let parent = dir.parent();
+    let in_changes = parent.map(name).as_deref() == Some("changes")
+        && parent.and_then(Path::parent).map(name).as_deref() == Some("specs");
+    if !in_changes || folder_slug(&name(dir)).is_none() {
+        return;
+    }
+    let mut entries: Vec<(String, bool)> = fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|entry| {
+            let is_dir = entry.file_type().is_ok_and(|t| t.is_dir());
+            (name(&entry.path()), is_dir)
+        })
+        .filter(|(entry, _)| !entry.starts_with('.'))
+        .collect();
+    entries.sort();
+    for (entry, is_dir) in entries {
+        let allowed = if is_dir {
+            entry == "images" || entry == "screenshots"
+        } else {
+            entry == "proposal.md"
+                || entry == "rulings.md"
+                || (entry.starts_with("clarifications-") && entry.ends_with(".md"))
+        };
+        if allowed {
+            continue;
+        }
+        problems.push(Problem {
+            file: super::relative(root, &dir.join(&entry)),
+            line: None,
+            rule: "names.change-file".into(),
+            message: format!(
+                "\"{entry}\" has no place in a change: its folder holds proposal.md, \
+                 clarifications-NN.md, rulings.md, images/, and screenshots/."
             ),
         });
     }
