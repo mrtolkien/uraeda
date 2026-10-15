@@ -589,7 +589,7 @@ git commit -m "feat(ui-iteration): story links in the core"
 - Produces, in the binding: `preview(checkout: string): Promise<Preview | null>`;
   `storyLink(href: string): StoryTarget | null`, synchronous, like `version()`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/check.rs: one row per field value, on the example's decisions folder
@@ -664,14 +664,14 @@ The break each test catches:
 - `preview`: a proposed or invalid decision run, or the main checkout's copy read for a worktree.
 - The binding: a function missing from `index.d.ts`, or `storyLink` made asynchronous.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo nextest run -p uraeda-core --test check the_preview_decisions_fields`
 - Expected: FAIL on its first row, `both fields`: the fields are still unknown,
   `["specs/decisions/preview.md:4: unknown field \"preview-folder\"", "specs/decisions/preview.md:5: unknown field \"preview-command\""]`
   in place of `[]`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 - `kind_of`: `decisions/preview.md` is `Checked::PreviewDecision`, with the decision's sections and
   statuses, and `preview-folder` and `preview-command` as optional fields; every other decision
@@ -685,13 +685,13 @@ The break each test catches:
 - `specs/decisions/preview.md` gets `preview-folder: packages/web` and
   `preview-command: pnpm exec storybook dev --ci --no-open --exact-port --host 127.0.0.1 --port {port}`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run:
   `vp run binding:build && cargo nextest run && vp test --project uraeda-binding && cargo run -q -p uraeda-cli -- check specs`
 - Expected: PASS, and `specs/: no problems` apart from problems already there.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages/binding specs/decisions/preview.md

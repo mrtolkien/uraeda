@@ -1,9 +1,9 @@
 //! The core's Node binding. Every type it returns is declared in the core, and napi-rs generates
 //! its TypeScript declarations in `packages/binding/index.d.ts`.
 //!
-//! Each function but `version` runs on libuv's thread pool and returns a promise. A refusal rejects
-//! with a message prefixed by its code, `refused: `, `conflict: `, or `hook: `, the last followed by
-//! the hook's output after a blank line.
+//! Each function but `version` and `storyLink` runs on libuv's thread pool and returns a promise. A
+//! refusal rejects with a message prefixed by its code, `refused: `, `conflict: `, or `hook: `, the
+//! last followed by the hook's output after a blank line.
 
 use std::path::Path;
 
@@ -13,7 +13,9 @@ use napi::{Env, Status, Task};
 use napi_derive::napi;
 use uraeda_core::api::{self, ApiError};
 use uraeda_core::changes::{self, BranchChanges};
+use uraeda_core::files::preview::Preview;
 use uraeda_core::files::priorities::Priorities;
+use uraeda_core::files::stories::{self, StoryTarget};
 use uraeda_core::view::{
     AddedView, AttachedView, CommitView, DraftView, FeatureView, FileView, NextView, ProposalHint,
     RepositoryView, StartedView, WorkspaceView,
@@ -64,6 +66,20 @@ fn job<T: ToNapiValue + TypeName + Send + 'static>(
 #[napi]
 pub fn version() -> String {
     env!("CARGO_PKG_VERSION").to_owned()
+}
+
+/// The story an agent's link names, read from the repository's top level: `null` for any other
+/// link. It reads nothing, so it returns at once.
+#[napi]
+pub fn story_link(href: String) -> Option<StoryTarget> {
+    stories::story_link(&href)
+}
+
+/// The preview of the checkout at `checkout`, from its own active preview decision: `null`
+/// without one, or when its fields are wrong.
+#[napi(ts_return_type = "Promise<Preview | null>")]
+pub fn preview(checkout: String) -> AsyncTask<Job<Option<Preview>>> {
+    job(move || api::preview(Path::new(&checkout)))
 }
 
 /// Every feature, change, and priority of the repository at `repo`.

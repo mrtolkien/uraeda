@@ -4,6 +4,7 @@
 use serde::Serialize;
 
 use crate::files::frontmatter::{self, Frontmatter, Value};
+use crate::files::preview;
 use crate::workspace::{FileKind, Problem};
 
 use super::{Checked, File};
@@ -21,6 +22,10 @@ fn fields(kind: Checked) -> Option<(&'static [&'static str], &'static [&'static 
         Checked::Workflow(FileKind::Plan) => Some((&["status", "spec-revision"], &[])),
         Checked::Workflow(FileKind::Review) => Some((&["verdict", "commit"], &[])),
         Checked::Decision => Some((&["status", "approved-by"], &[])),
+        Checked::PreviewDecision => Some((
+            &["status", "approved-by"],
+            &["preview-folder", "preview-command"],
+        )),
         Checked::Record => Some((&["kind", "finished"], &["pull-request"])),
         _ => None,
     }
@@ -30,7 +35,7 @@ fn allowed(kind: Checked, key: &str) -> Option<&'static [&'static str]> {
     match (kind, key) {
         (Checked::Workflow(kind), "status") => Some(kind.statuses()),
         (Checked::Triage, "status") => Some(FileKind::Clarifications.statuses()),
-        (Checked::Decision, "status") => Some(&["proposed", "active"]),
+        (Checked::Decision | Checked::PreviewDecision, "status") => Some(&["proposed", "active"]),
         (Checked::Record, "kind") => Some(&["feature", "change"]),
         (_, "risk-tier" | "discovery") => Some(&["low", "medium", "high"]),
         (_, "verdict") => Some(&["pending", "approved", "changes-requested"]),
@@ -213,6 +218,11 @@ pub(super) fn check_frontmatter(
     }
     if file.kind == Checked::Record {
         check_finished(file, &front, problems);
+    }
+    if file.kind == Checked::PreviewDecision {
+        for (rule, message) in preview::field_problems(&front) {
+            problems.push(file.problem(None, rule, message));
+        }
     }
     Some(front)
 }
