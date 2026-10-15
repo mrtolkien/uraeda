@@ -1,7 +1,8 @@
 // The stories an agent's message links, drawn by the transcript's markdown: a story link alone in
 // its paragraph shows the story, and one inside a sentence opens Uraeda's Storybook page. Whether a
 // link is a story link is the core's rule, asked through a `StoryHref` record for each link (R3): a
-// link shows as a plain one until it is known.
+// link shows as a plain one until it is known. A message streaming shows no story: a paragraph that
+// is a link alone for a moment would start a Storybook for nothing.
 import { Link } from "@astryxdesign/core/Link";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -29,8 +30,14 @@ const styles = stylex.create({
 
 type LinkProps = { children: ReactNode; href: string };
 
-/** Tells the message a story shows in it, so its bubble takes the column's width. */
-export const StoryShown = createContext<(() => void) | undefined>(undefined);
+/**
+ * What an agent's message tells the stories it links: whether it ended, as a message shows its
+ * stories only then, not while it streams; and `shown`, called while a story shows in it, so its
+ * bubble takes the column's width, which returns what to call once the story no longer shows.
+ */
+export type MessageStories = { ended: boolean; shown: () => () => void };
+
+export const MessageStories = createContext<MessageStories | undefined>(undefined);
 
 /** A link as Astryx's markdown draws one: the web in a new tab. */
 function PlainLink({ children, href }: LinkProps) {
@@ -101,12 +108,9 @@ function StoryParagraph({
   stories: Stories;
 }) {
   const story = useStoryHref(link.href);
-  const shown = useContext(StoryShown);
-  useLayoutEffect(() => {
-    if (story) {
-      shown?.();
-    }
-  }, [shown, story]);
+  const message = useContext(MessageStories);
+  const shown = message?.shown;
+  useLayoutEffect(() => (story ? shown?.() : undefined), [shown, story]);
   if (!story) {
     return paragraph;
   }
@@ -115,15 +119,17 @@ function StoryParagraph({
     <StoryEmbed
       comment={embedComment(stories, story)}
       folder={stories.folder}
+      key={`${stories.folder}:${story.path}#${story.export}`}
       story={{ ...story, label }}
     />
   );
 }
 
-/** An agent's paragraph: a story link alone in it shows the story. */
+/** An agent's paragraph: a story link alone in it shows the story, once the message ended. */
 function AgentParagraph({ children }: { children: ReactNode }) {
   const stories = useContext(StoryContext);
-  const link = stories?.preview ? linkAlone(children) : undefined;
+  const ended = useContext(MessageStories)?.ended ?? true;
+  const link = stories?.preview && ended ? linkAlone(children) : undefined;
   const paragraph = (
     <div role="paragraph" {...stylex.props(styles.paragraph)}>
       {children}

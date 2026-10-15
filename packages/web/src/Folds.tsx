@@ -126,20 +126,61 @@ function scrollBelowBar(element: HTMLElement) {
   window.scrollBy(0, -Math.max(bar?.bottom ?? 0, 0) - 16);
 }
 
+/** How long a revealed element is kept in place while what is above it settles, as embeds load. */
+const SETTLE_MS = 3000;
+
+/** What the human does to scroll: any of it ends the keeping in place. */
+const OWN_SCROLL = ["keydown", "pointerdown", "touchstart", "wheel"] as const;
+
 /**
- * Scrolls to the element of a block, by its id, a little below the top bar: when the block is in a
- * closed fold, once the fold it opens shows it.
+ * Scrolls to an element below the top bar, and again each time the page's size changes for a few
+ * seconds, as the embeds above it draw their stories, until the human scrolls. Returns what stops
+ * it early.
+ */
+function revealBelowBar(element: HTMLElement): () => void {
+  scrollBelowBar(element);
+  if (typeof ResizeObserver === "undefined") {
+    return () => {};
+  }
+  const observer = new ResizeObserver(() => scrollBelowBar(element));
+  observer.observe(window.document.body);
+  const stop = () => {
+    observer.disconnect();
+    clearTimeout(timer);
+    for (const type of OWN_SCROLL) {
+      window.removeEventListener(type, stop);
+    }
+  };
+  const timer = setTimeout(stop, SETTLE_MS);
+  for (const type of OWN_SCROLL) {
+    window.addEventListener(type, stop, { passive: true });
+  }
+  return stop;
+}
+
+/**
+ * Scrolls to the element of a block, by its id, a little below the top bar, and keeps it there
+ * while what is above it settles: when the block is in a closed fold, once the fold it opens shows
+ * it.
  */
 export function useRevealBlock(document: Document, folds: Folds | undefined) {
-  // The element to scroll to once its fold opened, written by the click that opens it.
+  // The element to scroll to once its fold opened, written by the click that opens it: read by the
+  // next drawing alone, so a fold that did not show it never scrolls the page later.
   const pending = useRef<string>(undefined);
+  const settling = useRef<() => void>(undefined);
+  const reveal = (element: HTMLElement) => {
+    settling.current?.();
+    settling.current = revealBelowBar(element);
+  };
   useLayoutEffect(() => {
-    const element = pending.current && window.document.getElementById(pending.current);
+    const id = pending.current;
+    pending.current = undefined;
+    const element = id && window.document.getElementById(id);
     if (element) {
-      pending.current = undefined;
-      scrollBelowBar(element);
+      reveal(element);
     }
   });
+  useLayoutEffect(() => () => settling.current?.(), []);
   return (block: Block | undefined, id: string) => {
     const fold = folds && foldOf(document, folds.list, block);
     if (fold && !folds.open.includes(fold.key)) {
@@ -149,7 +190,7 @@ export function useRevealBlock(document: Document, folds: Folds | undefined) {
     }
     const element = window.document.getElementById(id);
     if (element) {
-      scrollBelowBar(element);
+      reveal(element);
     }
   };
 }

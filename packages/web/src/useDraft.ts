@@ -47,7 +47,7 @@ export function storyCommentsInto({ setText }: Draft, path: string): StoryCommen
   return {
     path,
     save: async (_story, line) => {
-      setText((now) => (now.trim() ? `${now}\n${line}` : line));
+      setText((now) => (now.trim() ? `${now.trimEnd()}\n${line}` : line));
       return undefined;
     },
   };

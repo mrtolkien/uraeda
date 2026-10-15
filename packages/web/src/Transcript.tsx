@@ -12,10 +12,10 @@ import { Markdown } from "@astryxdesign/core/Markdown";
 import { Text } from "@astryxdesign/core/Text";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { ChatImage, Item } from "uraeda-server/fate";
-import { agentStories, StoryShown } from "./AgentStories.tsx";
+import { agentStories, MessageStories } from "./AgentStories.tsx";
 import { useAgent, useTurn, useTurnLog } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { stepLabel } from "./labels.ts";
@@ -142,19 +142,29 @@ function Message({
 }
 
 /**
- * An agent's message, as markdown, with the stories it links: its bubble takes the column's width
- * once a story shows in it, so the story's two widths have room.
+ * An agent's message, as markdown, with the stories it links once it ended: its bubble takes the
+ * column's width while a story shows in it, so the story's two widths have room.
  */
-function AgentMessage({ text }: { text: string }) {
-  const [stories, setStories] = useState(false);
+function AgentMessage({ streaming, text }: { streaming: boolean; text: string }) {
+  const [shown, setShown] = useState(0);
+  const stories = useMemo<MessageStories>(
+    () => ({
+      ended: !streaming,
+      shown: () => {
+        setShown((count) => count + 1);
+        return () => setShown((count) => count - 1);
+      },
+    }),
+    [streaming],
+  );
   return (
     <ChatMessage sender="assistant">
-      <ChatMessageBubble width={stories ? "100%" : undefined}>
-        <StoryShown value={() => setStories(true)}>
+      <ChatMessageBubble width={shown > 0 ? "100%" : undefined}>
+        <MessageStories value={stories}>
           <Markdown components={agentStories} density="compact" headingLevelStart={4}>
             {text}
           </Markdown>
-        </StoryShown>
+        </MessageStories>
       </ChatMessageBubble>
     </ChatMessage>
   );
@@ -258,7 +268,7 @@ function TranscriptItems({
         <Message actions={actions} canTakeBack={canTakeBack} item={item} key={item.seq} />,
       );
     } else if (item.kind === "text") {
-      shown.push(<AgentMessage key={item.seq} text={item.text} />);
+      shown.push(<AgentMessage key={item.seq} streaming={item.streaming} text={item.text} />);
     } else if (item.kind === "system") {
       shown.push(
         <ChatSystemMessage key={item.seq} xstyle={styles.notice}>
