@@ -5,6 +5,7 @@ use common::texts::{clarifications, proposal, record};
 use uraeda_core::actions::place;
 use uraeda_core::git::Git;
 use uraeda_core::steps::{StepName, WaitsOn};
+use uraeda_core::view::FeatureView;
 use uraeda_core::workspace::{Feature, Kind, Source, Workspace, path_folder};
 
 const FOLDER: &str = "2026-10-11-web-ui";
@@ -468,4 +469,27 @@ fn a_path_under_specs_names_its_folder() {
     for (path, expected) in rows {
         assert_eq!(path_folder(path), expected, "{path}");
     }
+}
+
+/// US4.3: a finished item's view carries its record's pull request; an unfinished one has none.
+#[test]
+fn a_finished_items_view_carries_its_pull_request() {
+    let repo = repo();
+    let view = |repo: &TestRepo| FeatureView::new(&feature(repo, FOLDER), &[]).pull_request;
+    assert_eq!(view(&repo), None);
+
+    repo.switch(FOLDER);
+    repo.git(&["rm", "-r", "--quiet", "specs/2026-10-11-web-ui"]);
+    let text = record("feature", "Web UI").replace("owner/repo/pull/1", "o/r/pull/31");
+    repo.write(&format!("specs/done/{FOLDER}.md"), &text);
+    repo.commit("finish: web ui");
+    assert_eq!(
+        view(&repo).as_deref(),
+        Some("https://github.com/o/r/pull/31")
+    );
+
+    let without = text.replace("pull-request: https://github.com/o/r/pull/31\n", "");
+    repo.write(&format!("specs/done/{FOLDER}.md"), &without);
+    repo.commit("record: no pull request");
+    assert_eq!(view(&repo), None);
 }

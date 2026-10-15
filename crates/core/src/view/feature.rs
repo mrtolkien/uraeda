@@ -5,6 +5,7 @@ use napi_derive::napi;
 use serde::Serialize;
 
 use super::{ProblemView, kebab, title};
+use crate::files::frontmatter;
 use crate::steps::{Step, TaskProgress};
 use crate::workspace::{Feature, FileKind, Problem, WorkflowFile};
 
@@ -77,6 +78,8 @@ pub struct FeatureView {
     pub left_worktree: Option<String>,
     /// For a merged feature, its local branch still there.
     pub left_branch: Option<String>,
+    /// For a finished item, its record's `pull-request` URL.
+    pub pull_request: Option<String>,
 }
 
 /// A feature started.
@@ -111,7 +114,7 @@ impl FeatureView {
             kind: kebab(&feature.kind),
             folder: feature.folder.clone(),
             slug: feature.slug.clone(),
-            title: match feature.file(crate::workspace::FileKind::Record) {
+            title: match feature.file(FileKind::Record) {
                 Some(record) => feature
                     .text(&record.name)
                     .and_then(title)
@@ -144,6 +147,14 @@ impl FeatureView {
                 .collect(),
             left_worktree: feature.left_worktree.clone(),
             left_branch: feature.left_branch.clone(),
+            pull_request: pull_request(feature),
         }
     }
+}
+
+/// The `pull-request` URL of its record, once finished.
+fn pull_request(feature: &Feature) -> Option<String> {
+    let record = feature.file(FileKind::Record)?;
+    let front = frontmatter::parse(feature.text(&record.name)?).ok()?;
+    front.text("pull-request").map(String::from)
 }
