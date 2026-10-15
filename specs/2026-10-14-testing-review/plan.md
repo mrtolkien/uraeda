@@ -397,7 +397,8 @@ git commit -m "test(testing-review): Rust tests without environment races or tim
   `ready:rust`, `ready:typescript`, `ready:browser-phone`, `ready:browser-desktop`, which task 9's
   CI jobs run; `binding:touch`, which the test tasks and `bench` depend on (R7);
   `toolchain.test.ts`'s pure checks `untracked(tasks: Record<string, Task>): Array<string>`,
-  `retried(files: Record<string, string>): Array<string>` and
+  `retried(files: Record<string, string>): Array<string>`,
+  `retriedTasks(tasks: Record<string, Task>): Array<string>` (R19) and
   `withDoctests(manifests: Record<string, string>): Array<string>`, each returning the messages of
   the global constraints, and its `readyTasks()`; task 9 adds
   `notInCi(tasks: Record<string, Task>, ci: string): Array<string>`.
@@ -439,10 +440,14 @@ test("the repository's toolchain follows the decision", () => {
 
 Two more rows: a Vitest config setting `retry`, and an uncached check next to a group (command
 `true`) and a task that only touches files, of which only the check is reported. `untracked` skips
-the groups and the touch, which read nothing (R7). `readyTasks()` imports the root `vite.config.ts`
-and returns every task `ready` depends on, transitively; `runnerConfigs()` reads
-`.config/nextest.toml`, the root's Vitest config and the four packages' ones; `libraryManifests()`
-reads the `Cargo.toml` of each crate with a `src/lib.rs`, the binding included.
+the groups and a single-string `touch` command, which read nothing (R7), and reports a task with an
+`{ auto }` input. After review (R19): rows for a one-line `retry`, a task's `--retry` or
+`NEXTEST_RETRIES`, an `{ auto }` input, a touch followed by a check, and a comment naming a setting;
+the repository test also runs `retriedTasks` on every task. `readyTasks()` imports the root
+`vite.config.ts` and returns every task `ready` depends on, transitively; `runnerConfigs()` reads
+`.config/nextest.toml`, CI's workflow, the root's Vitest config and every
+`packages/*/vite*.config.ts`; `libraryManifests()` reads the `Cargo.toml` of each crate with a
+`src/lib.rs`, the binding included.
 
 The break each test catches: a check that reports nothing, or the wrong text; a task added to
 `ready` without inputs.

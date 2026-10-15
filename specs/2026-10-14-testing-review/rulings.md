@@ -298,3 +298,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: `vp run ready`: every other check too.
 - **If wrong**: none changes what runs on CI, whose two browser jobs are two machines.
 - **Where**: task 5.
+
+## R19: The toolchain test reads retries anywhere a runner takes them, and automatic inputs
+
+- **Decision**: `retried` strips comments, then looks for `retries =` in TOML, `retry:` anywhere in
+  a Vitest config, and `--retry`, `--retries`, or `NEXTEST_RETRIES` in CI's workflow; it reads every
+  `packages/*/vite*.config.ts`, found, not listed. A new `retriedTasks` looks for the same flags and
+  variable in every task's command and `untrackedEnv`. `untracked` reports an `{ auto }` input, and
+  skips a touch only when it is the task's whole command, a single string.
+- **Rationale**: the plan's line-start patterns missed `test: { retry: 2 }` on one line, and nothing
+  read the other ways a runner is told to retry; a task whose array of commands began with a touch
+  was skipped, and an `{ auto: true }` input passed, both against "a check MUST NOT rely on
+  automatic input tracking". Each new fixture row failed first; breaks seen on the repository's
+  files: `--retry 2` on `ts:test`'s command, `retry: 2` on `packages/binding/vite.config.ts`'s one
+  line, and `{ auto: true }` in `lua:fmt`'s inputs each failed the repository test.
+- **Alternatives considered**: importing each Vitest config and reading `test.retry`: the web
+  configs check the binding as they load, and a retry set in a project or an instance is nested
+  deeper than `test`.
+- **If wrong**: a comment stripper of two patterns can drop a setting after a `//` in a string on
+  the same line, which no config has.
+- **Where**: task 3.
