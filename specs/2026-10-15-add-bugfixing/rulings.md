@@ -242,3 +242,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: check the agent's capability in `changeImages` too.
 - **Where**: task 7, `packages/server/src/fate/chat-images.ts`,
   `packages/server/src/fate/mutations.ts`.
+
+## R16: A change's round is its step's gate
+
+- **Decision**: the change's column and its phone line show the round the step gates on, the file
+  `step.file` names, when it is of kind `clarifications`, with that file's `round`. Task 8's first
+  reading took the highest `round` among the change's clarifications files.
+- **Rationale**: which file the step waits on is the core's rule
+  ([`steps.rs`](/crates/core/src/steps.rs)'s `waiting_gate`). Picking the latest round again in
+  TypeScript copies it, and the two could drift: one home per rule.
+- **Alternatives considered**: the highest round, which agrees with the core today but copies its
+  rule.
+- **If wrong**: the core names the gate either way; read the latest round again in `roundOf`.
+- **Where**: task 8 review, `packages/web/src/ChangeAside.tsx`.
