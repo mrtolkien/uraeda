@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Inbox
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 30 minutes.
+> Approved on 2026-10-15.
 >
 > - **One changed decision, git**: `INBOX.md` and `INBOX-TRIAGE.md` join the drafts and
 >   `PRIORITIES.md` as files every tool writes on the default branch, from any checkout.
