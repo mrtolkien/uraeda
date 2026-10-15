@@ -744,19 +744,19 @@ git commit -m "test(testing-review): browser tests run at their size, on a copie
 The audit's outcome, read for this plan from every UI test file against the specs in `specs/done/`
 and the UI decisions. Line numbers are as of the plan's commit; the test names are the reference.
 
-| Browser file            | Tests | Removed | phone / desktop / both | Why                                                                       |
-| ----------------------- | ----- | ------- | ---------------------- | ------------------------------------------------------------------------- |
-| `attach.test.tsx`       | 28    | 6       | 21 / 0 / 0             | Editor drops, pastes and cursor tracking exist only here; 6 repeat others |
-| `layout.test.tsx`       | 48    | 0       | 1 / 3 / 44             | The UI checks decision's layout and axe checks, at both sizes             |
-| `overlay.test.tsx`      | 3     | 0       | 2 / 0 / 1              | Sheet against dialog geometry; real history for Back                      |
-| `priorities.test.tsx`   | 7     | 0       | 3 / 4 / 0              | Real mouse, touch and keyboard drags; real toast transitions              |
-| `repositories.test.tsx` | 6     | 0       | 0 / 0 / 6              | Popover against sheet, with layout checks in both themes                  |
-| `review.test.tsx`       | 8     | 0       | 8 / 0 / 0              | The phone's sheet geometry; folds across Back and hash links              |
-| `round.test.tsx`        | 3     | 0       | 0 / 3 / 0              | Real scroll, focus and width of the desktop's index                       |
-| `scroll.test.tsx`       | 2     | 0       | 2 / 0 / 0              | Real scroll position across Back and reload                               |
-| `session.test.tsx`      | 3     | 0       | 0 / 0 / 4              | The pane's and the window's scrollers differ by layout                    |
-| `sizes.test.tsx`        | 1     | 0       | 0 / 1 / 0              | The desktop's 19 px text and larger controls                              |
-| `task.test.tsx`         | 2     | 0       | 0 / 2 / 0              | The task view beside home                                                 |
+| Browser file            | Tests   | Removed | phone / desktop / both | Why                                                                       |
+| ----------------------- | ------- | ------- | ---------------------- | ------------------------------------------------------------------------- |
+| `attach.test.tsx`       | 28      | 6       | 21 / 0 / 0             | Editor drops, pastes and cursor tracking exist only here; 6 repeat others |
+| `layout.test.tsx`       | 48      | 0       | 1 / 3 / 44             | The UI checks decision's layout and axe checks, at both sizes             |
+| `overlay.test.tsx`      | 3       | 0       | 2 / 0 / 1              | Sheet against dialog geometry; real history for Back                      |
+| `priorities.test.tsx`   | 7       | 0       | 3 / 4 / 0              | Real mouse, touch and keyboard drags; real toast transitions              |
+| `repositories.test.tsx` | 6       | 0       | 0 / 0 / 6              | Popover against sheet, with layout checks in both themes                  |
+| `review.test.tsx`       | 8       | 0       | 8 / 0 / 0              | The phone's sheet geometry; folds across Back and hash links              |
+| `round.test.tsx`        | 3       | 0       | 0 / 3 / 0              | Real scroll, focus and width of the desktop's index                       |
+| `scroll.test.tsx`       | 2       | 0       | 2 / 0 / 0              | Real scroll position across Back and reload                               |
+| `session.test.tsx`      | 4 (R26) | 0       | 0 / 0 / 4              | The pane's and the window's scrollers differ by layout                    |
+| `sizes.test.tsx`        | 1       | 0       | 0 / 1 / 0              | The desktop's 19 px text and larger controls                              |
+| `task.test.tsx`         | 2       | 0       | 0 / 2 / 0              | The task view beside home                                                 |
 
 Every happy-dom file (`__tests__/`, 301 tests) is kept: each test guards a spec's scenario or a
 decision's rule, and none repeats another. Four tests of `session.test.tsx` guard behaviour shipped
@@ -799,7 +799,8 @@ The single-size browser tests, by the size their scenario is about:
 
 After the audit, the phone runs 92 tests and the desktop 68, against 111 each today. As built (R26),
 "a chat whose last message has images opens at its end" moved to the browser `session.test.tsx`,
-which the table counts, and `attach.test.tsx` declares the phone at its top.
+which the table counts as its fourth, and `attach.test.tsx` declares the phone at its top. The two
+toast closings run on the desktop (R28): on the phone, the toast lies over Commit and Discard.
 
 - [x] **Step 1: Remove the six tests, each with its ruling**
 
