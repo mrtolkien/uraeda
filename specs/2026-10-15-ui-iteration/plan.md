@@ -1755,7 +1755,7 @@ git commit -m "feat(ui-iteration): story embeds in workflow files"
   from `?story=`; the runner's states as in the embed; asking again every 5 minutes.
 - Produces: `usePreview(folder: string)`, the live `Preview` record.
 
-- [ ] **Step 1: Split `FeaturePage`, and remove its marker**
+- [x] **Step 1: Split `FeaturePage`, and remove its marker**
 
 Move the branch line, the "left" banner, and the lists of files, mockups, and problems into
 components of `FeaturePage.tsx`, without changing what it shows, and remove its
