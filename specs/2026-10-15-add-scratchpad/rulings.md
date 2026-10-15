@@ -750,3 +750,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `crates/core/src/actions/inbox/undo.rs`, `crates/core/src/files/inbox/read.rs`,
   `crates/core/src/view.rs`, `packages/web/src/SidebarAdd.tsx`, `packages/web/src/NoteImage.tsx`,
   `packages/web/src/attach/useImageText.ts`, `crates/core/tests/inbox_actions.rs`
+
+## R30: `add_as_draft` is gone; its tests add with an image
+
+- **Decision**: `actions::inbox::add_as_draft`, which no tool called once task 13 made an add with
+  an image one core call, is removed. Its tests in `inbox_moves.rs` add through `add_with_image`,
+  through the API as the add form does: Discard deleting the untouched draft and keeping the one
+  typed in, a first `INBOX.md` committed with its draft, and a note with brackets and code linked as
+  written. `a_note_is_added_as_a_draft` is removed:
+  `a_note_with_an_image_is_a_linked_draft_committed_with_its_image` checks the same draft, link,
+  commit subject, and committed files.
+- **Rationale**: A path no product code reaches proved guarantees for an add the product does not
+  make; the same guarantees now hold for the add it makes.
+- **Alternatives considered**: Keeping it for a future add as a draft without an image, which the
+  spec does not ask for.
+- **If wrong**: The function is in git history, with its tests.
+- **Where**: final review, `crates/core/src/actions/inbox.rs`, `crates/core/tests/inbox_moves.rs`

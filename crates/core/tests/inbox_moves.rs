@@ -66,6 +66,24 @@ fn to_priorities(place: &place::Place, text: &str, section: Section) {
     .unwrap();
 }
 
+/// Adds a note with an image, as the add form does: a draft folder linked from the inbox, over the
+/// inbox as it is. Returns the draft's path.
+fn add_with_image(repo: &TestRepo, category: Option<&str>, text: &str) -> String {
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let image = std::fs::read(common::fixture("images/phone.png")).unwrap();
+    let (_, draft) = api::add_note_with_image(
+        repo.path(),
+        category.map(String::from),
+        None,
+        text,
+        &image,
+        Some("phone.png"),
+        &inbox.hash,
+    )
+    .unwrap();
+    draft
+}
+
 /// US2 1: the note leaves the inbox, and is the last entry of Next. Both files count the move
 /// once.
 #[test]
@@ -188,37 +206,6 @@ fn a_note_is_added_to_a_draft() {
     );
     assert!(!repo.read(INBOX).contains("Icons are blurry"));
     assert_eq!(api::read_inbox(repo.path()).unwrap().changes, 1);
-}
-
-/// US6 2, the core's half: a draft from the note's text, and the note linking it.
-#[test]
-fn a_note_is_added_as_a_draft() {
-    let repo = fixture_repo();
-    let place = main_place(&repo);
-
-    let path = actions::add_as_draft(
-        &place,
-        Some("UI"),
-        &Marks::default(),
-        "The spec headings are body-sized",
-        None,
-    )
-    .unwrap();
-
-    assert_eq!(path, "specs/drafts/the-spec-headings-are-body-sized.md");
-    assert!(repo.read(&path).contains(
-        "# The spec headings are body-sized\n\n## What\n\nThe spec headings are body-sized\n"
-    ));
-    assert!(repo.read(INBOX).contains(
-        "- Text input feels laggy on the sessions page\n\
-         - [The spec headings are body-sized](drafts/the-spec-headings-are-body-sized.md)\n\n## CLI"
-    ));
-    let committed = changes::commit(&place).unwrap();
-    assert_eq!(
-        committed.change.subject,
-        "chore: add \"The spec headings are body-sized\" to the inbox"
-    );
-    assert_eq!(repo.changed_in("main"), [INBOX, path.as_str()]);
 }
 
 /// Review focus 3: with only `PRIORITIES.md` changed on disk, the move is refused for it, and
@@ -514,9 +501,8 @@ fn discard_keeps_typing_in_a_draft_a_note_went_into() {
 fn discard_deletes_only_untouched_drafts_made_from_notes() {
     let repo = fixture_repo();
     let place = main_place(&repo);
-    let typed = actions::add_as_draft(&place, None, &Marks::default(), "Dark mode", None).unwrap();
-    let untouched =
-        actions::add_as_draft(&place, None, &Marks::default(), "Light mode", None).unwrap();
+    let typed = add_with_image(&repo, None, "Dark mode");
+    let untouched = add_with_image(&repo, None, "Light mode");
     let text = repo
         .read(&typed)
         .replace("## Why\n", "## Why\n\nMy eyes.\n");
@@ -526,6 +512,7 @@ fn discard_deletes_only_untouched_drafts_made_from_notes() {
 
     assert_eq!(repo.read(&typed), text);
     assert!(!repo.exists(&untouched));
+    assert!(!repo.exists("specs/drafts/light-mode"));
     assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
 }
 
@@ -535,12 +522,18 @@ fn a_first_inbox_is_committed_with_its_draft() {
     let repo = TestRepo::new();
     repo.write("specs/README.md", "# Specs\n");
     repo.commit("chore: specs");
-    let place = main_place(&repo);
-    let path = actions::add_as_draft(&place, None, &Marks::default(), "Dark mode", None).unwrap();
+    let path = add_with_image(&repo, None, "Dark mode");
 
     api::commit_text(repo.path(), &path).unwrap();
 
-    assert_eq!(repo.changed_in("main"), [INBOX, path.as_str()]);
+    assert_eq!(
+        repo.changed_in("main"),
+        [
+            INBOX,
+            "specs/drafts/dark-mode/images/phone.webp",
+            path.as_str()
+        ]
+    );
 }
 
 /// A note with brackets and code keeps its markdown in the draft, and its link parses and pairs.
@@ -573,7 +566,7 @@ fn a_note_with_brackets_and_code_is_linked_as_written() {
     changes::discard(&place).unwrap();
     assert!(!repo.exists(&path));
 
-    let added = actions::add_as_draft(&place, Some("UI"), &Marks::default(), text, None).unwrap();
+    let added = add_with_image(&repo, Some("UI"), text);
     let read = actions::read(&place);
     let linked = &read.categories[1].notes.last().unwrap();
     assert_eq!(linked.draft.as_deref(), Some(added.as_str()));
