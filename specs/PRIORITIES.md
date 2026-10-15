@@ -16,7 +16,6 @@
     a config flag, and able to toggle it per feature
   - Same for subagents in implementation, or review settings (command, model, count, ...)
 - [Specs, clarifications, and related files should be on main. It will be easier to see what’s actually ongoing, and if there’s no code changes there should be no issue](/specs/2026-10-15-specs-clarifications/proposal.md)
-- Review pull request management and flow
 - [Look and feel pass](drafts/look-and-feel.md)
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
@@ -103,3 +102,5 @@
 - Text input still feels a bit laggy on sessions page, might be due to the huge page height
 - We should have a way to have an agent be aware of multiple repos, for project spanning multiple
   repos and not in a monorepo
+- Need a small "look at PR comments" button in features that restarts the agent and pushes it to
+  check the comments
