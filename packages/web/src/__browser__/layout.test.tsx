@@ -221,7 +221,7 @@ describe("on the desktop", () => {
 });
 
 // The agents decision: the tests `vp run ready` runs use the fake adapter, never Claude Code. Both
-// sizes' servers come from the same global setup, so one size checks it.
+// sizes' servers come from the same config, so one size checks it.
 describe("on the phone", () => {
   atSize("phone");
 
