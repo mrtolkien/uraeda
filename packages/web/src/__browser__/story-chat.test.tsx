@@ -1,7 +1,8 @@
 // US4 of the UI iteration flow: the stories an agent links in its messages. A story link alone in
 // its paragraph shows the story live, from the feature's worktree in its session (US4.1) and from
 // the main checkout in a chat (US4.2); a comment on it goes to the composer, unsent (US4.3); and a
-// story link inside a sentence opens Uraeda's Storybook page (US4.4).
+// story link inside a sentence opens Uraeda's Storybook page (US4.4). A message shows its stories
+// once it ends, not while it streams.
 import { screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
@@ -19,6 +20,9 @@ const READY = { interval: 100, timeout: 20_000 };
 
 /** The embed of the story the agent linked, once its message shows. */
 const embed = () => screen.findByRole("figure", { name: LABEL }, LIVE);
+
+/** The conversation's log. */
+const log = () => screen.findByRole("log", { name: "Conversation" });
 
 /** The composer's text field. */
 const composer = () => screen.getByRole("textbox", { name: "Message Claude Code" });
@@ -96,4 +100,37 @@ test("a story link inside a sentence opens Uraeda's Storybook page (US4.4)", asy
       atRepo(`/f/${FEATURE}/storybook?story=packages/web/src/SidebarHandle.stories.tsx%23Dragging`),
     );
   expect(screen.queryByRole("figure")).toBeNull();
+});
+
+test("a message shows its stories once it ends, not while it streams", async () => {
+  await commands.addStoryFeature();
+  const sentence = "I wrote the stories.\n\n";
+  // The streamed text ends at the link's `)`: a link alone in its paragraph, for now.
+  await startTurn("Show me", [{ text: `${sentence}${LINK}`, type: "textDelta" }], SESSION);
+  // Once the link is known as a story's: a figure in its place, or the link to its Storybook page.
+  await expect
+    .poll(
+      async () =>
+        screen.queryByRole("figure") !== null ||
+        /\/storybook\?story=/.test(
+          within(await log())
+            .queryByRole("link", { name: LABEL })
+            ?.getAttribute("href") ?? "",
+        ),
+      LIVE,
+    )
+    .toBe(true);
+  expect(screen.queryByRole("figure")).toBeNull();
+
+  await commands.agentEmit([
+    { text: " is ready.", type: "textDelta" },
+    { text: `${sentence}${LINK} is ready.`, type: "text" },
+  ]);
+  await screen.findByText(/is ready\./, {}, LIVE);
+  expect(screen.queryByRole("figure")).toBeNull();
+  expect(await commands.previewStarts()).toHaveLength(0);
+
+  // A message that ends with a story link alone in a paragraph shows it.
+  await commands.agentEmit([{ text: LINK, type: "text" }]);
+  expect(await embed()).toBeTruthy();
 });

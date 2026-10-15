@@ -273,6 +273,36 @@ describe("on a desktop, around the embed", () => {
   });
 });
 
+describe("on a desktop, as embeds settle", () => {
+  atSize("desktop");
+
+  test("the Mockups button scrolls to an embed below another one in the fold, once they settle (edge case)", async () => {
+    await commands.addStoryFeature();
+    // Both embeds in the Details fold, the button's story below the other.
+    const path = `specs/${FEATURE}/spec.md`;
+    const spec = await commands.readRepo(`.worktrees/${FEATURE}/${path}`);
+    const line = "[Dragging the handle](/packages/web/src/SidebarHandle.stories.tsx#Dragging)\n\n";
+    const above = "[The thin line](/packages/web/src/SidebarHandle.stories.tsx#ThinLine)\n\n";
+    const moved = spec
+      .replace(line, "")
+      .replace("### Components\n\n", `### Components\n\n${above}${line}`);
+    await commands.commitOnBranch(FEATURE, { [path]: moved });
+    await show(SPEC, "Resize the sidebar");
+
+    await userEvent.click(screen.getByRole("button", { name: `Open the mockup: ${LABEL}` }));
+
+    await screen.findByRole("figure", { name: LABEL });
+    await storyShown(DESKTOP);
+    await expect
+      .poll(() => commands.frameText("The thin line, desktop"), READY)
+      .toContain("ThinLine");
+    await drawn();
+    // A little below the top bar, where the button scrolled it, the embed above it drawn.
+    const bar = document.querySelector('[role="banner"]')?.getBoundingClientRect().bottom ?? 0;
+    expect(Math.abs(embed().getBoundingClientRect().top - (Math.max(bar, 0) + 16))).toBeLessThan(4);
+  });
+});
+
 describe("on the phone", () => {
   atSize("phone");
 
