@@ -227,13 +227,13 @@ From `@astryxdesign/core` 0.6.8 in `node_modules`:
 
 ### The proposal's path and existing actions
 
-- **The agent writes a mockup**: today an HTML page in `mockups/`; with Storybook, a stories file
-  in the project's code, on the feature's branch.
+- **The agent writes a mockup**: today an HTML page in `mockups/`; with Storybook, a stories file in
+  the project's code, on the feature's branch.
 - **You open the spec**: today a button per mockup opens it on its own page; with an embed, the
   story runs where the spec links it.
-- **You comment**: today on the spec's line that links the mockup, or as a general comment; the
-  same anchor holds for an embed, with the [comment precision](#comment-precision-on-a-live-story)
-  on top.
+- **You comment**: today on the spec's line that links the mockup, or as a general comment; the same
+  anchor holds for an embed, with the [comment precision](#comment-precision-on-a-live-story) on
+  top.
 - **The agent revises the story** after changes requested: a running preview shows the new version
   on the next view, since the dev server reloads.
 - **The feature finishes**: the folder is removed as today. Stories stay in the code, as the
