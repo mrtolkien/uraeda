@@ -10,14 +10,17 @@ use serde::Serialize;
 use crate::files::{frontmatter, markdown, priorities};
 use crate::git::{Branch, Git, GitError, ObjectId};
 use crate::steps::{self, PullRequest, Step};
-use crate::today::{self, Date};
+use crate::today;
 
 mod links;
+mod paths;
 mod read;
 
 use read::{folder_uncommitted, read_record, read_texts, source_of};
 
 pub use links::resolve;
+pub(crate) use paths::folder_path;
+pub use paths::{branch_folder, first_file, folder_branch, folder_slug, record_path};
 
 #[derive(Debug, thiserror::Error)]
 pub enum WorkspaceError {
@@ -242,34 +245,6 @@ pub struct Workspace {
     pub fetched_ago: Option<String>,
 }
 
-/// A feature folder's name: `2026-10-10-cli-core`, with a real date and a slug.
-pub fn folder_slug(folder: &str) -> Option<&str> {
-    let (date, slug) = (folder.get(..10)?, folder.get(11..)?);
-    (folder.as_bytes().get(10) == Some(&b'-') && Date::parse(date).is_some() && !slug.is_empty())
-        .then_some(slug)
-}
-
-/// The feature or change a branch is for: `2026-10-10-cli-core`, or `change/2026-10-14-x`.
-pub fn branch_folder(branch: &str) -> Option<(Kind, &str)> {
-    match branch.strip_prefix("change/") {
-        Some(folder) => folder_slug(folder).map(|_| (Kind::Change, folder)),
-        None => folder_slug(branch).map(|_| (Kind::Feature, branch)),
-    }
-}
-
-/// The branch of a feature or a change.
-pub fn folder_branch(kind: Kind, folder: &str) -> String {
-    match kind {
-        Kind::Feature => folder.to_string(),
-        Kind::Change => format!("change/{folder}"),
-    }
-}
-
-/// Where a finished feature's or change's record lives.
-pub fn record_path(folder: &str) -> String {
-    format!("specs/done/{folder}.md")
-}
-
 /// A record's kind, from its frontmatter: a feature unless it says `change`.
 fn record_kind(text: &str) -> Kind {
     match frontmatter::parse(text)
@@ -279,19 +254,6 @@ fn record_kind(text: &str) -> Kind {
         Some(kind) if kind == "change" => Kind::Change,
         _ => Kind::Feature,
     }
-}
-
-pub(crate) fn folder_path(kind: Kind, folder: &str) -> String {
-    match kind {
-        Kind::Feature => format!("specs/{folder}"),
-        Kind::Change => format!("specs/changes/{folder}"),
-    }
-}
-
-/// The first file of a feature's or a change's folder, its proposal: committed, it starts the
-/// workflow.
-pub fn first_file(_kind: Kind) -> &'static str {
-    "proposal.md"
 }
 
 /// Where files are read from: a commit, or the working tree.
