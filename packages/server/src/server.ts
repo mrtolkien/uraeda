@@ -5,6 +5,7 @@ import { createApp } from "./app.ts";
 import { chatImages } from "./attach.ts";
 import type { Binding } from "./fate/context.ts";
 import { createSessions, type HostsOf } from "./live.ts";
+import { NOT_A_REPOSITORY, openFolder, type OpenRequest } from "./open.ts";
 import type { Options } from "./options.ts";
 import { Hosts } from "./repositories.ts";
 import type { Adapter } from "./runner/adapter.ts";
@@ -50,14 +51,42 @@ export async function startSessions(options: {
   };
 }
 
-/** A started server: its app, the hosts and the session manager it serves, and how to stop them. */
+/**
+ * A started server: its app, the hosts and the session manager it serves, the page of the
+ * repository it started in, and how to stop them.
+ */
 export type Server = {
   app: ReturnType<typeof createApp>;
   hosts: Hosts;
   sessions: Sessions;
   /** Closes the hosts' watches, stops the sessions' turns, and closes their processes. */
   stop: () => Promise<void>;
+  /** The started repository's page, `/r/<name>/`, or `/` when the server started outside git. */
+  url: string;
 };
+
+/**
+ * Adds the starting folder's repository through `openFolder`, and returns its page. A folder
+ * outside git that was not given is logged; a list that cannot be written is reported, and the
+ * server still starts, the hosts reporting it too.
+ */
+async function openStart(binding: Binding, dataDir: string, request: OpenRequest): Promise<string> {
+  try {
+    const { url } = await openFolder({ binding, dataDir }, request);
+    if (url === "/") {
+      process.stderr.write(
+        `uraeda: ${request.folder} is not in a git repository: add one from the web UI\n`,
+      );
+    }
+    return url;
+  } catch (error) {
+    if ((error as { code?: string }).code === NOT_A_REPOSITORY) {
+      throw error;
+    }
+    process.stderr.write(`uraeda: ${(error as Error).message.replace(/^refused: /, "")}\n`);
+    return "/";
+  }
+}
 
 /**
  * Starts the server in `options.repo`. In a git repository, its main checkout is added to the list,
@@ -66,23 +95,16 @@ export type Server = {
  * merely started in is logged, and the list's most recent repository opens first.
  */
 export async function startServer(
-  options: Options & { adapter: Adapter; binding: Binding; dataDir: string },
+  options: Omit<Options, "open" | "show"> & {
+    adapter: Adapter;
+    binding: Binding;
+    dataDir: string;
+    /** The built UI, served as static files when set: `vp dev` leaves it to Vite. */
+    webRoot?: string;
+  },
 ): Promise<Server> {
   const { adapter, binding, dataDir } = options;
-  const root = await binding.mainRoot(options.repo).catch(() => null);
-  if (root === null && options.given) {
-    throw new Error(`${options.repo} is not a git repository`);
-  }
-  if (root === null) {
-    process.stderr.write(
-      `uraeda-server: ${options.repo} is not in a git repository: add one from the web UI\n`,
-    );
-  } else {
-    // A list that cannot be written is the hosts' problem to report: the server still starts.
-    await binding.addRepository(dataDir, root).catch((error: Error) => {
-      process.stderr.write(`uraeda-server: ${error.message.replace(/^refused: /, "")}\n`);
-    });
-  }
+  const url = await openStart(binding, dataDir, { folder: options.repo, given: options.given });
   let hosts: Hosts | undefined;
   const sessions = await startSessions({ adapter, binding, dataDir, hosts: () => hosts });
   try {
@@ -110,5 +132,6 @@ export async function startServer(
       })();
       return stopping;
     },
+    url,
   };
 }

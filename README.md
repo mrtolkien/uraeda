@@ -184,6 +184,20 @@ In a repository, `ura init` sets up `specs/` and offers to install the skill for
 installs the latest release, through the installer script or Homebrew, then updates your skill; with
 Nix, update the flake input.
 
+The web UI comes from npm. In a repository, run `npx @uraeda/ui`: it starts the server on
+http://127.0.0.1:4310 and opens the repository in your browser. It needs Node 24 or later, and
+sessions need `claude` installed and signed in. Run `npx @uraeda/ui` in another repository and it
+opens in the server already running.
+
+```sh
+npx @uraeda/ui                          # the web UI, for the repository you are in
+npx @uraeda/ui --no-open --port 4311    # without opening the browser, on another port
+npx @uraeda/ui --allowed-hosts mac.tail1234.ts.net  # host names accepted besides 127.0.0.1
+npm i -g @uraeda/ui@latest              # a lasting install, then `uraeda`; updated the same way
+```
+
+`uraeda --help` lists every option.
+
 ## The `ura` CLI
 
 `ura` performs the mechanical parts of the workflow, for you and for agents. It is optional: the
@@ -236,6 +250,8 @@ vp run --filter uraeda-binding build  # the Rust core for Node: again after ever
 vp run ready       # every check and test, as CI runs them
 vp dev             # the web UI on http://127.0.0.1:4310, opening this repository first
 vp run dev         # the same, rebuilding the Rust core and restarting as it or the server changes
+vp run --filter @uraeda/ui build  # the npm package, in packages/uraeda, after the web UI's build
+vp run release 0.5.0  # on an up-to-date main: notes in CHANGELOG.md, version, tag, push
 cargo run -p uraeda-cli -- status
 ```
 
@@ -247,7 +263,8 @@ adds the repository of the folder you are in. Each repository's pages are under 
 `URAEDA_REPO` names the repository opened first, and adds it to the list, `URAEDA_PORT` changes the
 port, and `URAEDA_ALLOWED_HOSTS` lists the host names it accepts besides 127.0.0.1, like your
 machine's full name on your tailnet, `mac.tail1234.ts.net`. The server listens on 127.0.0.1 only:
-`tailscale serve --bg 4310` reaches it from your phone, at `https://mac.tail1234.ts.net/`.
+`tailscale serve --bg 4310` reaches it from your phone, at `https://mac.tail1234.ts.net/`. The npm
+package reads no `.env`: give it its flags, or the same variables in its environment.
 
 Sessions need `claude` installed and signed in on the machine. Each feature has one session, in its
 worktree, where the workflow's runs and your chat follow each other; "New chat" opens one without a

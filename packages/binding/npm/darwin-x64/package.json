@@ -1,0 +1,20 @@
+{
+  "name": "@uraeda/binding-darwin-x64",
+  "version": "0.0.0",
+  "cpu": [
+    "x64"
+  ],
+  "main": "uraeda-binding.darwin-x64.node",
+  "files": [
+    "uraeda-binding.darwin-x64.node"
+  ],
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrtolkien/uraeda.git",
+    "directory": "packages/binding"
+  },
+  "os": [
+    "darwin"
+  ]
+}

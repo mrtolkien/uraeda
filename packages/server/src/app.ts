@@ -6,6 +6,7 @@ import { type FateServer, type FateVariables, fateServer } from "./fate.ts";
 import { withWholeFields } from "./fate/select.ts";
 import { files } from "./files.ts";
 import { guard } from "./guard.ts";
+import { openRoute } from "./open.ts";
 import type { Options } from "./options.ts";
 import type { Hosts } from "./repositories.ts";
 
@@ -26,14 +27,16 @@ const rewritten = async (request: Request) =>
  * The server's routes: each listed repository's under `/r/<name>/`, with its host's context and
  * fate server; the global `/fate`, which serves the list and refuses a repository's records; and
  * `/raw/*` and `/mockups/*`, links from before repositories had names, sent on to the most recently
- * opened repository's.
+ * opened repository's; and `POST /open`, a second start's handoff.
  */
 export function createApp(
-  options: Omit<Options, "given" | "repo"> & {
+  options: Omit<Options, "given" | "open" | "repo" | "show"> & {
     binding: Binding;
     dataDir: string;
     hosts: Hosts;
     sessions: Sessions;
+    /** The built UI, served as static files when set. */
+    webRoot?: string;
   },
 ) {
   const { binding, dataDir, hosts, sessions } = options;
@@ -97,6 +100,7 @@ export function createApp(
   app.get("/mockups/*", moved);
   app.route("/r/:name", files());
   app.route("/r/:name", attach());
+  app.route("/", openRoute());
   if (options.webRoot) {
     app.use("/*", serveStatic({ root: options.webRoot }));
     app.get("/*", serveStatic({ path: "index.html", root: options.webRoot }));

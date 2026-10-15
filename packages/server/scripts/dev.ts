@@ -11,11 +11,11 @@
 import { type ChildProcess, execFileSync, spawn } from "node:child_process";
 import { watch } from "node:fs";
 import { join, relative, sep } from "node:path";
-import { fileURLToPath } from "node:url";
 import { SOURCES } from "../src/binding.ts";
+import { layout } from "../src/paths.ts";
 
 /** The repository's root, where `vp dev` runs. */
-const ROOT = fileURLToPath(new URL("../../..", import.meta.url));
+const ROOT = layout().checkout ?? process.cwd();
 /** The server's code, which Vite's process loads once, in its config. */
 const SERVER = "packages/server/src";
 /** Changes this close together, as an editor's save or a checkout writes them, make one restart. */

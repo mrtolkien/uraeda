@@ -192,6 +192,9 @@ export declare function startOver(repo: string, folder: string, file: string): P
  */
 export declare function submitAnswers(repo: string, folder: string, name?: string | undefined | null): Promise<FileView>
 
+/** The binding's version, the Cargo workspace's. It reads nothing, so it returns at once. */
+export declare function version(): string
+
 /**
  * Watches the repository at `repo`, and calls `onChange` with what changed after each burst of
  * file events. The watch does not keep Node running.

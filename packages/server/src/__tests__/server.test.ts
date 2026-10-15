@@ -69,10 +69,12 @@ test("starting in a listed repository opens it first", async () => {
     ["other", other],
   ]);
 
-  const { hosts } = await start(join(repo, "specs"), dataDir);
+  const { hosts, url } = await start(join(repo, "specs"), dataDir);
 
   expect(hosts.rows().map((row) => row.name)).toEqual(["repo", "other"]);
   expect(hosts.mostRecent()?.path).toBe(repo);
+  // The page `main.ts` opens.
+  expect(url).toBe("/r/repo/");
 });
 
 /** US3.2 */
@@ -83,12 +85,13 @@ test("starting outside git keeps the list's most recent", async () => {
   const folder = temporaryFolder("uraeda-home");
   const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 
-  const { hosts } = await start(folder, dataDir);
+  const { hosts, url } = await start(folder, dataDir);
 
   expect(hosts.mostRecent()?.name).toBe("todo-app");
   expect(hosts.rows()).toHaveLength(1);
+  expect(url).toBe("/");
   expect(log).toHaveBeenCalledWith(
-    `uraeda-server: ${folder} is not in a git repository: add one from the web UI\n`,
+    `uraeda: ${folder} is not in a git repository: add one from the web UI\n`,
   );
 });
 

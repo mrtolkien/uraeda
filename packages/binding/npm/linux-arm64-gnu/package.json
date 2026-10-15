@@ -1,0 +1,23 @@
+{
+  "name": "@uraeda/binding-linux-arm64-gnu",
+  "version": "0.0.0",
+  "cpu": [
+    "arm64"
+  ],
+  "main": "uraeda-binding.linux-arm64-gnu.node",
+  "files": [
+    "uraeda-binding.linux-arm64-gnu.node"
+  ],
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrtolkien/uraeda.git",
+    "directory": "packages/binding"
+  },
+  "os": [
+    "linux"
+  ],
+  "libc": [
+    "glibc"
+  ]
+}

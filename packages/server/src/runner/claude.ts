@@ -3,13 +3,9 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import type { Adapter, AgentProcess, Capabilities, OpenOptions } from "./adapter.ts";
 import { allowRule, type Blocks, lines, parseLine } from "./claude-events.ts";
 import type { AgentEvent, Denial } from "./events.ts";
-
-/** The plugin folder around the server's copy of the skill, passed to `--plugin-dir`. */
-export const PLUGIN_DIR = fileURLToPath(new URL("../../plugin", import.meta.url));
 
 /** A failed process keeps this many lines of stderr. */
 const STDERR_LINES = 20;
@@ -106,7 +102,7 @@ export type ClaudeAdapterOptions = {
   configDir?: string;
   /** The chat images' folder, `<data folder>/images`, created as a process opens. */
   imagesDir: string;
-  /** The plugin folder that holds the Uraeda skill, `PLUGIN_DIR` in the server. */
+  /** The plugin folder that holds the Uraeda skill, `layout().plugin` in the server. */
   pluginDir: string;
 };
 

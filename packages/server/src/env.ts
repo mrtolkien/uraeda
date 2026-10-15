@@ -1,9 +1,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseEnv } from "node:util";
-import { dataDir } from "uraeda-binding";
 
-/** The server's settings, from `.env` at the root, then the process's environment. */
+/** The server's settings, from `.env` at the checkout's root, if any, then the process's environment. */
 export type Env = {
   /** Host names accepted besides 127.0.0.1 and localhost, like `mac.tail1234.ts.net`. */
   allowedHosts: Array<string>;
@@ -16,36 +15,54 @@ export type Env = {
 
 export const DEFAULT_PORT = 4310;
 
-/** Reads `URAEDA_ALLOWED_HOSTS`, `URAEDA_PORT`, and `URAEDA_REPO` from `<root>/.env` and the environment. */
-export function loadEnv(root: string, environment: NodeJS.ProcessEnv = process.env): Env {
+/**
+ * Reads `URAEDA_ALLOWED_HOSTS`, `URAEDA_PORT`, and `URAEDA_REPO` from `<root>/.env` and the
+ * environment. Without a root, as in the package, only the environment, and the repository is
+ * resolved from the current folder.
+ */
+export function loadEnv(root: string | null, environment: NodeJS.ProcessEnv = process.env): Env {
   const value = settings(root, environment);
   const hosts = value("URAEDA_ALLOWED_HOSTS") ?? "";
   const port = value("URAEDA_PORT");
   const repo = value("URAEDA_REPO");
   return {
-    allowedHosts: hosts
-      .split(",")
-      .map((host) => host.trim())
-      .filter(Boolean),
+    allowedHosts: hostNames(hosts),
     given: Boolean(repo),
     port: port ? Number(port) : DEFAULT_PORT,
-    repo: resolve(root, repo || "."),
+    repo: resolve(root ?? process.cwd(), repo || "."),
   };
+}
+
+/** A comma separated list of host names, as `URAEDA_ALLOWED_HOSTS` and `--allowed-hosts` take. */
+export function hostNames(list: string): Array<string> {
+  return list
+    .split(",")
+    .map((host) => host.trim())
+    .filter(Boolean);
 }
 
 /**
  * Uraeda's data folder, where the runner keeps its cache and the list of repositories:
  * `URAEDA_DATA_DIR` from the environment or `<root>/.env`, or else the operating system's
- * default, from the core. A relative path is resolved from the root: the agent runs in the
- * repository, where it would point elsewhere (R39).
+ * default, from the core, given by the binding: this module never loads it, so `--help` runs
+ * without it. A relative path is resolved from the root, or the current folder without
+ * one: the agent runs in the repository, where it would point elsewhere (R39).
  */
-export function loadDataDir(root: string, environment: NodeJS.ProcessEnv = process.env): string {
-  return resolve(root, dataDir(settings(root, environment)("URAEDA_DATA_DIR")));
+export function loadDataDir(
+  root: string | null,
+  core: { dataDir: (custom?: string | null) => string },
+  environment: NodeJS.ProcessEnv = process.env,
+): string {
+  const custom = settings(root, environment)("URAEDA_DATA_DIR");
+  return resolve(root ?? process.cwd(), core.dataDir(custom));
 }
 
-/** A setting by its name: from the environment, else from `<root>/.env`. */
-function settings(root: string, environment: NodeJS.ProcessEnv) {
+/** A setting by its name: from the environment, else from `<root>/.env` when there is a root. */
+function settings(root: string | null, environment: NodeJS.ProcessEnv) {
   let file: Record<string, string | undefined> = {};
+  if (root === null) {
+    return (name: string) => environment[name];
+  }
   try {
     file = parseEnv(readFileSync(resolve(root, ".env"), "utf8"));
   } catch {

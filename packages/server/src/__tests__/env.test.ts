@@ -6,6 +6,9 @@ import { parseOptions } from "../options.ts";
 import { dataDir } from "uraeda-binding";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 
+/** The core's default data folder, as the binding gives it. */
+const core = { dataDir };
+
 function root(env?: string) {
   const dir = temporaryFolder("uraeda-env");
   if (env !== undefined) {
@@ -55,26 +58,55 @@ test("the repository is given by URAEDA_REPO or --repo, not by the folder the se
   expect(parseOptions(["--repo", "../todo"], loadEnv(dir, {})).given).toBe(true);
 });
 
+test("--allowed-hosts replaces URAEDA_ALLOWED_HOSTS", () => {
+  const env = loadEnv(null, { URAEDA_ALLOWED_HOSTS: "a.ts.net" });
+
+  expect(parseOptions(["--allowed-hosts", "b.ts.net, c.ts.net"], env).allowedHosts).toEqual([
+    "b.ts.net",
+    "c.ts.net",
+  ]);
+});
+
+test("--no-open, --help, and --version", () => {
+  const env = loadEnv(null, {});
+
+  expect(parseOptions([], env).open).toBe(true);
+  expect(parseOptions(["--no-open"], env).open).toBe(false);
+  expect(parseOptions(["--help"], env).show).toBe("help");
+  expect(parseOptions(["--version"], env).show).toBe("version");
+});
+
 test("the data folder comes from .env, then the environment, then the system's default", () => {
   const dir = root("URAEDA_DATA_DIR=/data/from-env-file\n");
 
-  expect(loadDataDir(dir, {})).toBe("/data/from-env-file");
-  expect(loadDataDir(dir, { URAEDA_DATA_DIR: "/data/env" })).toBe("/data/env");
-  expect(loadDataDir(root(), {})).toBe(dataDir());
-  expect(loadDataDir(root("URAEDA_DATA_DIR=\n"), {})).toBe(dataDir());
+  expect(loadDataDir(dir, core, {})).toBe("/data/from-env-file");
+  expect(loadDataDir(dir, core, { URAEDA_DATA_DIR: "/data/env" })).toBe("/data/env");
+  expect(loadDataDir(root(), core, {})).toBe(dataDir());
+  expect(loadDataDir(root("URAEDA_DATA_DIR=\n"), core, {})).toBe(dataDir());
 });
 
 test("a relative data folder is resolved from the root, as Claude Code runs in another folder", () => {
   const dir = root("URAEDA_DATA_DIR=.uraeda\n");
 
-  expect(loadDataDir(dir, {})).toBe(join(dir, ".uraeda"));
-  expect(loadDataDir(dir, { URAEDA_DATA_DIR: "data/uraeda" })).toBe(join(dir, "data/uraeda"));
+  expect(loadDataDir(dir, core, {})).toBe(join(dir, ".uraeda"));
+  expect(loadDataDir(dir, core, { URAEDA_DATA_DIR: "data/uraeda" })).toBe(join(dir, "data/uraeda"));
   // The system's default, from the core, made absolute too.
   vi.stubEnv("URAEDA_DATA_DIR", "");
   vi.stubEnv("XDG_DATA_HOME", "xdg");
   try {
-    expect(loadDataDir(root(), {})).toMatch(/^\/.*\/xdg\/uraeda$/);
+    expect(loadDataDir(root(), core, {})).toMatch(/^\/.*\/xdg\/uraeda$/);
   } finally {
     vi.unstubAllEnvs();
+  }
+});
+
+test("without a checkout, no .env is read", () => {
+  const dir = root("URAEDA_PORT=5000\nURAEDA_ALLOWED_HOSTS=evil.test\n");
+  const previous = process.cwd();
+  process.chdir(dir);
+  try {
+    expect(loadEnv(null, {})).toEqual({ allowedHosts: [], given: false, port: 4310, repo: dir });
+  } finally {
+    process.chdir(previous);
   }
 });
