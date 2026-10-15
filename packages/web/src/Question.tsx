@@ -18,6 +18,7 @@ import { Spans } from "./Spans.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { useAnswer } from "./useAnswer.ts";
 import { AnswerComment } from "./QuestionComment.tsx";
+import type { RoundTarget } from "./roundTarget.ts";
 
 const styles = stylex.create({
   belowBar: {
@@ -209,23 +210,24 @@ function Option({
  */
 export function Question({
   document,
-  folder,
   followUps,
   onAsk,
   path,
   question,
   readOnly,
+  target,
 }: {
   document: Document;
-  folder: string;
   followUps: ReadonlyArray<QuestionItem>;
   onAsk?: (question: QuestionItem) => void;
   /** The round's file, which the comments' images are attached to. */
   path: string;
   question: QuestionItem;
   readOnly: boolean;
+  /** The round the answer is written in. */
+  target: RoundTarget;
 }) {
-  const answer = useAnswer(question, folder, path);
+  const answer = useAnswer(question, target, path);
   const { letters } = answer;
   const unclear = question.applies === "unclear";
   const parent = question.parent;
@@ -285,12 +287,12 @@ export function Question({
       {followUps.map((followUp) => (
         <Question
           document={document}
-          folder={folder}
           followUps={[]}
           key={followUp.id}
           path={path}
           question={followUp}
           readOnly={readOnly}
+          target={target}
           {...(onAsk ? { onAsk } : {})}
         />
       ))}

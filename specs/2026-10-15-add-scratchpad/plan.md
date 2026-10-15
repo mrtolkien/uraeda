@@ -1375,24 +1375,31 @@ git commit -m "feat(add-scratchpad): a note with an image becomes a linked draft
 
 **Files:**
 
-- Create: `packages/web/src/TriagePage.tsx`
+- Create: `packages/web/src/TriagePage.tsx`, `packages/web/src/roundTarget.ts`, and
+  `packages/server/src/runner/triage-messages.ts` (ruling R22)
 - Modify:
-  - `packages/web/src/RoundPage.tsx`, `useAnswer.ts`, `RoundNotes.tsx`, and `RoundSubmit.tsx`: a
-    target that is a feature's round or the triage;
-  - `packages/web/src/InboxPage.tsx`: the banners and buttons;
-  - `packages/server/src/runner/message.ts`: `ORGANIZE_INBOX` and `APPLY_TRIAGE`, exported and
-    served to the web through a view or imported constants
+  - `packages/web/src/RoundPage.tsx`, `useAnswer.ts`, `RoundNotes.tsx`, `RoundSubmit.tsx`, and
+    `Question.tsx`: a target that is a feature's round or the triage; `FilePage.tsx` passes
+    `{ folder }`;
+  - `packages/web/src/InboxPage.tsx`: the banners and buttons; `data.ts` (`useTriage`) and `App.tsx`
+    (`/inbox/triage`);
+  - `packages/server/src/runner/message.ts`: `ORGANIZE_INBOX` and `APPLY_TRIAGE`, exported, from
+    `triage-messages.ts`, which the web imports as `uraeda-server/triage-messages`
+    (`packages/server/package.json`)
 - Test: `packages/web/src/__tests__/triage.test.tsx`,
   `packages/server/src/runner/__tests__/message.test.ts`,
-  `packages/web/src/__tests__/round.test.tsx` (still passing)
+  `packages/web/src/__browser__/inbox.test.tsx` (the banner and the triage's view at both sizes,
+  with `fixtureText` in `vite.browser.config.ts`), `packages/web/src/__tests__/round.test.tsx`
+  (still passing)
 
 **Interfaces:**
 
 - Consumes: `triage.*` and the `WorkflowFile` `inbox-triage` (task 6), and
   `sendMessage(fate, { text })`.
-- Produces: `RoundPage({ file, target })`, where `target` is `{ folder }` or `{ triage: true }`.
+- Produces: `RoundPage({ file, target })`, where `target` is `{ folder }` or `{ triage: true }`; the
+  triage is submitted over the hash of the text the page last read or wrote (ruling R22).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - **US4 1:** "Organize with an agent" sends exactly
   `/uraeda:uraeda Organize the inbox, specs/INBOX.md: propose a triage in specs/INBOX-TRIAGE.md, following references/inbox.md. Stop when the triage waits for my answers.`
@@ -1410,23 +1417,25 @@ The break each test catches:
 
 - A changed message the skill no longer matches.
 - Answers written into a feature.
+- A triage submitted over the hash the page drew before Submit saved its notes (ruling R22).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/triage.test.tsx`
 - Expected: FAIL, `Unable to find role="button" name "Organize with an agent"`
 
-- [ ] **Step 3: Implement the round target, `TriagePage`, and the inbox banners**
+- [x] **Step 3: Implement the round target, `TriagePage`, and the inbox banners**
 
-Follow frame 9 of the mockups. For the triage, `RoundPage` hides "Ask about" and its feature crumbs.
+Follow frame 9 of the mockups. For the triage, `RoundPage` hides "Ask about", its feature crumbs,
+and the hand-over to the agent (ruling R22).
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run:
   `vp check && vp test --project '!phone' --project '!desktop' && vp test --project desktop && vp test --project phone`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages specs/2026-10-15-add-scratchpad/plan.md
