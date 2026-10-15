@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 2
 clarifications: 2
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: UI iteration flow
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review again, about 20 minutes.
+> Approved on 2026-10-15.
 >
 > - **Phone and desktop.** On wide screens, an embed shows the story at both widths side by side,
 >   each live and usable, with "Phone" and "Desktop" to see one alone. On a phone, it shows the
