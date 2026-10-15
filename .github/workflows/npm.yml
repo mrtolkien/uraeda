@@ -186,9 +186,10 @@ jobs:
       - name: Pack the platform package
         working-directory: packages/binding/npm/${{ matrix.platform }}
         run: npm pack --pack-destination "$RUNNER_TEMP"
+      # Timed: the run-ui feature's SC-002, the first page within 2 seconds, on a runner of its own.
       - name: Run the smoke test
         run:
-          node packages/uraeda/scripts/smoke.ts --platform "$RUNNER_TEMP"/uraeda-binding-${{
+          node packages/uraeda/scripts/smoke.ts --timed --platform "$RUNNER_TEMP"/uraeda-binding-${{
           matrix.platform }}-*.tgz
 
   publish:
