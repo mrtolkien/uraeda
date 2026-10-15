@@ -1,4 +1,5 @@
 import { useMemo, useSyncExternalStore } from "react";
+import type { Picked } from "../storyComment.ts";
 
 /** A field's text typed and not saved, as the store keeps it. */
 export type Unsaved = {
@@ -8,6 +9,8 @@ export type Unsaved = {
   base: string;
   /** A review comment's lines, and the commit they were on. */
   extra?: { commit: string; end: number; heading: string; start: number };
+  /** The element picked in an embedded story, which a comment on it names. */
+  picked?: Picked;
   /**
    * The comment an edit is of, as its number changes when comments before it go: a settled
    * comment's subject, or a review comment's lines.

@@ -893,3 +893,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: `packages/web/src/theme/theme.ts` and its built files,
   `packages/web/src/StoryFrames.tsx`, `fixtures/preview/serve.mjs`, whose `FullHeight` export is
   sized to its window, and `packages/web/src/__browser__/story-embed.test.tsx`.
+
+## R56: A story's comment form outlives its story's state, and keeps its element
+
+- **Decision**: the element picked is stored with the comment's unsaved text, as `picked` beside a
+  review comment's `extra`. Pick mode and the form are held by `StoryEmbed`, not by the ready story,
+  and the form is drawn under the embed whatever its story's state: starting, failed, missing, or
+  ready. An embed whose comment field holds unsaved text opens its form at once, on the element
+  kept, as the settled points' `restoredForm` does. Pick mode ends when the story's frames go.
+- **Rationale**: the UI behaviour decision restores unsaved text when its field shows again, and
+  asks before leaving a page that holds it. The form lived in the ready story, so a reload, or a
+  Storybook that stopped, lost the open form and its element: the text stayed in the store, under no
+  field, so leaving did not ask, and the comment saved later named the story alone. A form shown
+  through a restart keeps the human's text in front of them.
+- **Alternatives considered**: hiding the form while the story is not ready, and opening it again
+  once ready, which leaves text the page holds without a field while Storybook restarts.
+- **If wrong**: a comment form under a failed story; `useStoryPick` in
+  `packages/web/src/StoryPick.tsx` and `StoryEmbed` in `StoryEmbed.tsx`.
+- **Where**: `packages/web/src/StoryPick.tsx`, `StoryEmbed.tsx`, `CommentForm.tsx`,
+  `fields/unsaved.ts`, `fields/useTextField.ts`, `packages/web/vite.browser.config.ts`'s
+  `stopPreview`, and `packages/web/src/__browser__/story-comments.test.tsx`.

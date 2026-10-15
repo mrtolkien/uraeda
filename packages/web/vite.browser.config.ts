@@ -251,6 +251,13 @@ const commands = {
   previewStarts() {
     return previewLog === undefined ? [] : previewStarts(previewLog);
   },
+  /** Kills the test feature's running fake preview, as a crash would: its Storybook fails. */
+  stopPreview() {
+    const last = previewLog === undefined ? undefined : previewStarts(previewLog).at(-1);
+    if (last !== undefined) {
+      process.kill(last.pid, "SIGKILL");
+    }
+  },
   /** The text of a frame of the page, by its `title`, or "" while it has none. */
   async frameText(context: Context, title: string) {
     const frame = await frameTitled(context, title);
@@ -432,6 +439,7 @@ export type RepoCommands = {
   releaseRepo: (token: number) => Promise<void>;
   repoFileSize: (path: string) => Promise<number>;
   slowChatImages: (ms: number) => Promise<void>;
+  stopPreview: () => Promise<void>;
   takeRepo: () => Promise<{ name: string; token: number }>;
   writeRepo: (text: string, path?: string) => Promise<void>;
 };
