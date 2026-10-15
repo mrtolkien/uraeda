@@ -233,7 +233,7 @@ fn into_folder(
 
 /// Points the links of the priorities and of the inbox to the draft `from` at `to`, leaving both
 /// files as they were when a write fails.
-fn retarget(place: &Place, from: &str, to: &str) -> Result<(), ActionError> {
+pub(crate) fn retarget(place: &Place, from: &str, to: &str) -> Result<(), ActionError> {
     let mut written: Vec<(std::path::PathBuf, String)> = Vec::new();
     let result = (|| {
         for list in LISTS {

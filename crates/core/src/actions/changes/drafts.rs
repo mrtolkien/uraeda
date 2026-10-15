@@ -17,6 +17,9 @@ pub(super) enum Undo {
     Created { path: String, written: String },
     /// A draft a note was added to: the note's item, by its markdown, taken out again.
     Grown { path: String, markdown: String },
+    /// A committed single-file draft an attached image made a folder, at `path`: put back at `old`
+    /// while the folder holds what the conversion wrote, with at most images added.
+    Converted { old: String, path: String },
 }
 
 /// The drafts and backlog files of the working tree: single files, and folders' `proposal.md`.
@@ -183,11 +186,20 @@ pub(super) fn never_committed(place: &Place, texts: &Texts, found: &mut Drafts) 
     }
     let text = |version: &Option<String>| version.clone().unwrap_or_default();
     let then = draft_links(&text(&texts.inbox.1), &text(&texts.priorities.1));
-    for (path, title) in draft_links(&text(&texts.inbox.0), &text(&texts.priorities.0)) {
+    let now = draft_links(&text(&texts.inbox.0), &text(&texts.priorities.0));
+    for (path, title) in now.clone() {
         if found.paths.contains(&path)
             || !place.root.join(&path).is_file()
             || place::committed(place, &path).is_some()
         {
+            continue;
+        }
+        if let Some(old) = converted_from(place, &path, &then, &now) {
+            found.undo.push(Undo::Converted {
+                old: old.clone(),
+                path: path.clone(),
+            });
+            found.paths.extend([old, path]);
             continue;
         }
         if let Some(title) = title.filter(|_| !then.iter().any(|(was, _)| *was == path)) {
@@ -198,6 +210,36 @@ pub(super) fn never_committed(place: &Place, texts: &Texts, found: &mut Drafts) 
         }
         found.paths.push(path);
     }
+}
+
+/// The committed single-file draft the folder draft `path` was made from by an attached image: the
+/// lists linked it at the last commit and link `path` in its place, the file is gone, and `path` is
+/// in the folder named after it, numbered when that name was taken.
+fn converted_from(
+    place: &Place,
+    path: &str,
+    then: &[(String, Option<String>)],
+    now: &[(String, Option<String>)],
+) -> Option<String> {
+    let folder = path.strip_suffix("/proposal.md")?;
+    then.iter()
+        .map(|(old, _)| old)
+        .find(|old| {
+            let Some(stem) = old.strip_suffix(".md") else {
+                return false;
+            };
+            let named = folder == stem
+                || folder
+                    .strip_prefix(stem)
+                    .and_then(|rest| rest.strip_prefix('-'))
+                    .is_some_and(|number| number.parse::<u32>().is_ok());
+            named
+                && !old.ends_with("/proposal.md")
+                && !now.iter().any(|(linked, _)| linked == *old)
+                && !place.root.join(old).exists()
+                && place::committed(place, old).is_some()
+        })
+        .cloned()
 }
 
 /// Takes an item of the text `text` out of the items added to the drafts, and gives its draft's
