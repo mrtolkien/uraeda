@@ -439,7 +439,7 @@ No constitution exception, and no new marker.
   root whose path ends in `mockups/<file>.html`, as `path: "mockups/<file>.html"`
   ([R8](rulings.md#r8-an-html-mockup-from-the-root-is-read-by-its-last-two-parts)).
 
-- [ ] **Step 1: Move `Span`, `SpanLink`, and `SpanImage` into `document/inline.rs`, and
+- [x] **Step 1: Move `Span`, `SpanLink`, and `SpanImage` into `document/inline.rs`, and
       `VersionView` with `version()` into `view/version.rs`, before they change**
 
 `document.rs` re-exports the three types, so their paths stay `files::document::*`. `view.rs`
