@@ -14,8 +14,10 @@ import type { RepoCommands } from "../../vite.browser.config.ts";
 import { App } from "../App.tsx";
 import { fateClients } from "../clients.ts";
 
-// CI's WebKit draws without a GPU: what it shows takes longer to appear than on a desktop.
-configure({ asyncUtilTimeout: 5000 });
+// CI's WebKit draws without a GPU: what it shows takes longer to appear than on a desktop. A
+// wait's bound is no duration check, and 10 s fails no loaded machine (R9, R14 of the testing
+// review); the 30 s test timeout still stops a hang.
+configure({ asyncUtilTimeout: 10_000 });
 
 const commands = browserCommands as unknown as RepoCommands;
 
