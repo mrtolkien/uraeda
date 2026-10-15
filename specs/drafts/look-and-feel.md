@@ -6,6 +6,8 @@ discovery: high # low, medium, or high: how far the agent researches before aski
 
 ## What
 
+<!-- TODO: SPLIT THIS INTO GENERAL UI VS PAGE-SPECIFIC UI -->
+
 Look and feel pass: components style, logo, favicon, ...
 
 - Generally, the happy path should look good: parsed frontmatter should not appear in the edit box,

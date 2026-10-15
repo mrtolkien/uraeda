@@ -6,16 +6,17 @@
 >
 > Features for v1.0.0
 
-- [Look and feel pass](drafts/look-and-feel.md)
-
 - [UI iteration flow](/specs/2026-10-15-ui-iteration/proposal.md)
 - [Add a "scratchpad" concept: quick notes about the system, small issues, ...](/specs/2026-10-15-add-scratchpad/proposal.md)
+
+- [Redesign clarifications](drafts/redesign-clarifications/proposal.md)
+- Redesign specs
 
 - [Settings page with selection of agent runner, config values, other run values](drafts/settings-page-with-selection-of-agent-runner.md)
   - For example: does each step start with a new context or continues a "master session"? Should be
     a config flag, and able to toggle it per feature
   - Same for subagents in implementation, or review settings (command, model, count, ...)
-- [Specs, clarifications, and related files should be on main. It will be easier to see what’s actually ongoing, and if there’s no code changes there should be no issue](/specs/2026-10-15-specs-clarifications/proposal.md)
+
 - [Look and feel pass](drafts/look-and-feel.md)
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
@@ -51,6 +52,7 @@
 - Dedicated Pi-durable runtime with basic tooling
   - Web tools in pi-durable
 - Extensions system: of course!
+- Basic git UI in the web ui (pull, see diffs, ...)
 
 ## Later
 
@@ -107,3 +109,4 @@
 - Need to be able to rename a project slug, at least in the UI
 - Priorities -> Draft should bring it children bullet point
 - Add run options: "master session" vs 1 session per step.
+- Allow to not select an option in clarifications in the web UI (but needs a comment)
