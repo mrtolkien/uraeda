@@ -7,8 +7,8 @@ use crate::files::document::hash;
 use crate::files::frontmatter;
 use crate::files::inbox::{self, Inbox};
 
-use super::ActionError;
 use super::place::{self, Place};
+use super::{ActionError, STALE};
 
 pub const PATH: &str = "specs/INBOX.md";
 /// The agent's proposed triage, answered like a round of questions.
@@ -23,8 +23,13 @@ pub struct Marks {
     pub about: Option<String>,
 }
 
-fn text(place: &Place) -> String {
-    fs::read_to_string(place.root.join(PATH)).unwrap_or_default()
+/// The file's text: empty when it is missing, an error when it cannot be read, so that an edit
+/// does not overwrite it.
+fn text(place: &Place) -> Result<String, ActionError> {
+    match fs::read_to_string(place.root.join(PATH)) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(String::new()),
+        result => Ok(result?),
+    }
 }
 
 /// The inbox of `text`, with its changes since `committed` and the status of the triage `triage`.
@@ -48,9 +53,10 @@ fn read_text(place: &Place, written: &str) -> Inbox {
     )
 }
 
-/// The inbox, with its changes since the last commit and the triage's status.
+/// The inbox, with its changes since the last commit and the triage's status. A file that cannot
+/// be read shows as empty.
 pub fn read(place: &Place) -> Inbox {
-    read_text(place, &text(place))
+    read_text(place, &text(place).unwrap_or_default())
 }
 
 /// Applies an edit over the version read at `previous`, or over the file as it is without one,
@@ -61,11 +67,9 @@ fn apply(
     edit: impl FnOnce(&str) -> Option<String>,
     refused: &str,
 ) -> Result<Inbox, ActionError> {
-    let current = text(place);
+    let current = text(place)?;
     if previous.is_some_and(|previous| hash(&current) != previous) {
-        return Err(ActionError::Refused(
-            "INBOX.md changed on disk. Your change was not applied.".to_string(),
-        ));
+        return Err(ActionError::Refused(format!("INBOX.md {STALE}")));
     }
     let edited = edit(&current).ok_or_else(|| ActionError::Refused(refused.to_string()))?;
     fs::write(place.root.join(PATH), &edited)?;
@@ -85,6 +89,15 @@ pub fn add(
 ) -> Result<Inbox, ActionError> {
     if text.trim().is_empty() {
         return Err(ActionError::Refused(NO_TEXT.to_string()));
+    }
+    if let Some(about) = marks
+        .about
+        .as_deref()
+        .filter(|about| !inbox::is_slug(about))
+    {
+        return Err(ActionError::Refused(format!(
+            "{about} is not a slug: lowercase letters, digits, and -"
+        )));
     }
     let line = inbox::note_line(marks.agent, marks.about.as_deref(), text);
     apply(
@@ -151,6 +164,6 @@ pub fn insert(
         place,
         previous,
         |current| inbox::insert(current, category, index, lines),
-        NO_TEXT,
+        "Nothing to put back.",
     )
 }

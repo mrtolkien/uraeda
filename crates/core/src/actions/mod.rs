@@ -46,7 +46,20 @@ pub enum ActionError {
     Hook { message: String, output: String },
 }
 
+/// The end of the refusal of an edit over a file changed since it was read.
+pub const STALE: &str = "changed on disk. Your change was not applied.";
+
 impl ActionError {
+    /// Whether the action was refused because its file changed since it was read: nothing was
+    /// written.
+    pub fn is_stale(&self) -> bool {
+        match self {
+            ActionError::Changed { .. } => true,
+            ActionError::Refused(message) => message.ends_with(STALE),
+            _ => false,
+        }
+    }
+
     /// A save refused because `path` changed since it was read.
     pub fn changed(path: &str) -> ActionError {
         ActionError::Changed {

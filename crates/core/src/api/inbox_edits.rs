@@ -22,7 +22,8 @@ pub fn read_inbox(repo: &Path) -> Result<Inbox> {
 }
 
 /// Adds a note at the end of a category, or of the notes without one. `about` is the folder of
-/// the feature or bug the note is about, written as its slug.
+/// the feature or bug the note is about, written as its slug: one that is not a dated folder is
+/// refused here, and a slug that would not parse back as a mark is refused by `edits::add`.
 pub fn add_note(
     repo: &Path,
     category: Option<String>,
