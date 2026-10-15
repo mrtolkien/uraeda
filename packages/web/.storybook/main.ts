@@ -2,12 +2,9 @@
 // copy of the fixture repository, on the fake agent (see `specs/decisions/preview.md`). The skill's
 // helper wraps the config, so Uraeda serves it under its own address when it runs it.
 import type { StorybookConfig } from "@storybook/react-vite";
-import { FakeAdapter } from "uraeda-server/testing";
 import type { Plugin, PluginOption } from "vite-plus";
 import uraedaPreview from "../../../skills/uraeda/assets/storybook/uraeda-preview.js";
-import { uraedaServer } from "../vite.config.ts";
-import { fateOverGet } from "./fateOverGet.ts";
-import { storybookFixture } from "./fixture.ts";
+import { fixtureServer } from "./fixture.ts";
 
 /**
  * StyleX's dev runtime fetches its stylesheet again at the root-absolute `'/virtual:stylex.css'`:
@@ -40,11 +37,7 @@ const viteFinal: StorybookConfig["viteFinal"] = (config, { configType }) => {
     plugins.push(stylexUnderBase(base));
   }
   if (configType === "DEVELOPMENT") {
-    const { dataDir, repo } = storybookFixture();
-    process.env.URA_TODAY = "2026-10-16";
-    process.env.URAEDA_REPO = repo;
-    process.env.URAEDA_DATA_DIR = dataDir;
-    plugins.push(fateOverGet(), uraedaServer({ adapter: new FakeAdapter(), file: false }));
+    plugins.push(...fixtureServer());
   }
   // StyleX's plugin holds the dependency crawl on some of Astryx's components, as Astryx's own
   // Storybook found: the optimizer goes on without waiting for the crawl's end.

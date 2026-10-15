@@ -92,6 +92,7 @@ function app(
   { dataDir, hosts, names: [name], sessions }: Awaited<ReturnType<typeof testHosts>>,
   using: Binding = binding,
   options: PreviewOptions = {},
+  lockedList = false,
 ) {
   const previews = testPreviews(options);
   const created = createApp({
@@ -100,6 +101,7 @@ function app(
     binding: using,
     dataDir,
     hosts,
+    lockedList,
     port,
     previews,
     sessions,
@@ -111,20 +113,27 @@ function app(
 /**
  * The server's app, called in process, on a repository added to a temporary list, with sessions
  * that have no agent, on the core's binding or a fake of it. `name` is the repository's in the
- * list, and `previews` the app's Storybook runner, built with `previewOptions`.
+ * list, and `previews` the app's Storybook runner, built with `previewOptions`; `lockedList` locks
+ * its list, as Uraeda's own Storybook does.
  */
 export async function testApp(
   repo = fixtureRepo(),
   {
     allowedHosts = [],
     binding: using = binding,
+    lockedList,
     previewOptions,
-  }: { allowedHosts?: Array<string>; binding?: Binding; previewOptions?: PreviewOptions } = {},
+  }: {
+    allowedHosts?: Array<string>;
+    binding?: Binding;
+    lockedList?: boolean;
+    previewOptions?: PreviewOptions;
+  } = {},
 ) {
   const opened = await testHosts([repo], { binding: using, installed: false });
   return {
     ...opened,
-    ...app(allowedHosts, opened, using, previewOptions),
+    ...app(allowedHosts, opened, using, previewOptions, lockedList),
     name: opened.names[0],
     repo,
   };

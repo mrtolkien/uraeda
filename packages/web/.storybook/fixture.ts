@@ -12,7 +12,11 @@ import {
   previewDecision,
   temporaryFolder,
 } from "uraeda-binding/test-utils";
+import { FakeAdapter } from "uraeda-server/testing";
+import type { Plugin } from "vite-plus";
+import { uraedaServer } from "../vite.config.ts";
 import { CHECKOUTS } from "./checkouts.ts";
+import { fateOverGet } from "./fateOverGet.ts";
 
 /** The date of every commit the fixture is built with. */
 const DATE = "2026-10-16T09:00:00Z";
@@ -64,4 +68,20 @@ export function storybookFixture(): { dataDir: string; repo: string } {
       delete process.env[name];
     }
   }
+}
+
+/**
+ * Uraeda's server in Storybook's own, over a fresh fixture: on the fake agent, dated 2026-10-16,
+ * with no `.env`, its list locked to the fixture (R47), behind the middleware that turns the
+ * fixture's fate GETs back into POSTs (R4).
+ */
+export function fixtureServer(): Array<Plugin> {
+  const { dataDir, repo } = storybookFixture();
+  process.env.URA_TODAY = "2026-10-16";
+  process.env.URAEDA_REPO = repo;
+  process.env.URAEDA_DATA_DIR = dataDir;
+  return [
+    fateOverGet(),
+    uraedaServer({ adapter: new FakeAdapter(), file: false, lockedList: true }),
+  ];
 }

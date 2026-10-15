@@ -4,7 +4,7 @@
  */
 import { homedir } from "node:os";
 import { typedFolder } from "../folders.ts";
-import type { Context } from "./context.ts";
+import { type Context, unlockedList } from "./context.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { repositoriesRecord, sources } from "./sources.ts";
 import { repositoriesDataView } from "./views.ts";
@@ -35,6 +35,7 @@ async function listChanged(ctx: Context, select: Array<string>, added: string | 
 export const listMutations = {
   "repositories.add": {
     resolve: async ({ ctx, input, select }: ListResolver<{ folder: string }>) => {
+      unlockedList(ctx);
       const folder = await refusedOn(() => typedFolder(input.folder, homedir()));
       const { repository } = await refusable(() => ctx.binding.addRepository(ctx.dataDir, folder));
       return listChanged(ctx, select, repository.name);
@@ -43,6 +44,7 @@ export const listMutations = {
   },
   "repositories.open": {
     resolve: async ({ ctx, input, select }: ListResolver<{ name: string }>) => {
+      unlockedList(ctx);
       await refusable(() => ctx.binding.openRepository(ctx.dataDir, input.name));
       return listChanged(ctx, select);
     },
@@ -50,6 +52,7 @@ export const listMutations = {
   },
   "repositories.remove": {
     resolve: async ({ ctx, input, select }: ListResolver<{ name: string }>) => {
+      unlockedList(ctx);
       const host = ctx.hosts.get(input.name);
       if (host && ctx.sessions.busy(host.path)) {
         throw callSiteError(`refused: An agent is working in ${input.name}: stop it first.`);

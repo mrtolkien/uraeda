@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { homePath, suggest } from "../folders.ts";
-import { type Context, inRepository, type RepoContext } from "./context.ts";
+import { type Context, inRepository, type RepoContext, unlockedList } from "./context.ts";
 import { checkoutDir, hasPreview, readPreview, readStory, readStoryHref } from "./preview.ts";
 import {
   agentRecord,
@@ -323,8 +323,12 @@ export const sources = createSources<Context>([
     },
   }),
   fileSource(folderSuggestionsDataView, {
-    byIds: async (_, ids) =>
-      Promise.all(ids.map(async (text) => ({ id: text, rows: await suggest(text, homedir()) }))),
+    byIds: async (ctx, ids) => {
+      unlockedList(ctx);
+      return Promise.all(
+        ids.map(async (text) => ({ id: text, rows: await suggest(text, homedir()) })),
+      );
+    },
   }),
   fileSource(proposalHintsDataView, {
     byIds: async ({ binding }, ids) =>

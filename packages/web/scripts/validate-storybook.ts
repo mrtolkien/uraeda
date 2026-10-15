@@ -15,7 +15,7 @@
  * It prints one line per check, `PASS` or `FAIL` with what it got, and exits 1 on the first failure.
  */
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { createServer, type Server as HttpServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -24,6 +24,7 @@ import { type Frame, type Page, webkit } from "playwright";
 import { addRepository } from "uraeda-binding";
 import { devHandler, devUpgrade, stopDevRuns } from "uraeda-server/dev";
 import { FakeAdapter } from "uraeda-server/testing";
+import { whileEdited } from "./edited.ts";
 
 const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
 const STORIES = join(root, "packages/web/src/StoryEmbed.stories.tsx");
@@ -127,21 +128,21 @@ async function check(address: string, name: string, folder: string) {
     await page.evaluate(() => {
       (window as { uraedaLoaded?: boolean }).uraedaLoaded = true;
     });
-    const original = readFileSync(STORIES, "utf8");
-    try {
-      writeFileSync(STORIES, original.replace(`label: "${LABEL}"`, `label: "${EDITED}"`));
-      const edited = await shown(page, EDITED);
-      if (!edited.includes(EDITED)) {
-        fail("an edit of the stories file shows", edited);
-      }
-      const kept = await page.evaluate(() => (window as { uraedaLoaded?: boolean }).uraedaLoaded);
-      if (kept !== true) {
-        fail("the edit shows without a reload", "the page was reloaded");
-      }
-      pass("an edit of the stories file shows in the frame, without a reload");
-    } finally {
-      writeFileSync(STORIES, original);
-    }
+    await whileEdited(
+      STORIES,
+      (original) => original.replace(`label: "${LABEL}"`, `label: "${EDITED}"`),
+      async () => {
+        const edited = await shown(page, EDITED);
+        if (!edited.includes(EDITED)) {
+          fail("an edit of the stories file shows", edited);
+        }
+        const kept = await page.evaluate(() => (window as { uraedaLoaded?: boolean }).uraedaLoaded);
+        if (kept !== true) {
+          fail("the edit shows without a reload", "the page was reloaded");
+        }
+        pass("an edit of the stories file shows in the frame, without a reload");
+      },
+    );
   } finally {
     await browser.close();
   }

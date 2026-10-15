@@ -113,6 +113,8 @@ export async function startServer(
     adapter: Adapter;
     binding: Binding;
     dataDir: string;
+    /** Whether the list is locked, as Uraeda's own Storybook locks it: see `unlockedList`. */
+    lockedList?: boolean;
     /** The built UI, served as static files when set: `vp dev` leaves it to Vite. */
     webRoot?: string;
   },
