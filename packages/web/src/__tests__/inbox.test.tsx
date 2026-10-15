@@ -6,7 +6,8 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { atRepo, click, fixtureRepo, git, read, renderPage, type } from "./helpers.tsx";
+import { forgetUnsaved } from "../fields/unsaved.ts";
+import { atRepo, atWidth, click, fixtureRepo, git, read, renderPage, type } from "./helpers.tsx";
 
 const PATH = "specs/INBOX.md";
 
@@ -252,9 +253,116 @@ test("the sidebar's ＋ next to Priorities opens the priorities form", async () 
 });
 
 /** The spec's sidebar: the top bar's ＋ is gone from Home and the priorities page. */
-test.each(["/", "/priorities"])("no ＋ in the top bar of %s", async (path) => {
+test.each(["/", "/priorities"])("every ＋ outside %s's page is the sidebar's", async (path) => {
   await renderPage(path);
   await screen.findByRole("button", { name: "Add a note to the inbox" });
+  // The page's own Add rows, like the priorities' "＋ Add to Later", are in its main region.
+  const page = await screen.findByRole("main");
 
-  expect(screen.queryByRole("button", { name: "Add a priority" })).toBeNull();
+  const plus = screen
+    .getAllByRole("button")
+    .filter((button) => button.textContent?.includes("＋") && !page.contains(button))
+    .map((button) => button.getAttribute("aria-label"));
+  expect(plus).toEqual(["Add to the priorities", "Add a note to the inbox"]);
+});
+
+test.each(["/", "/priorities"])("no ＋ in the phone's top bar of %s", async (path) => {
+  atWidth(402);
+  await renderPage(path);
+  const bar = await screen.findByRole("banner");
+  await screen.findByRole("button", { name: "Open navigation" });
+
+  expect(
+    within(bar)
+      .queryAllByRole("button")
+      .filter((button) => button.textContent?.includes("＋")),
+  ).toEqual([]);
+});
+
+/** Edge case and error handling: an add over a change made elsewhere is refused, text kept. */
+test("an add over a change made elsewhere is refused, and the note's text is kept", async () => {
+  const { repo } = await renderPage("/inbox");
+  const form = await openForm();
+  writeFileSync(join(repo, PATH), read(repo, PATH).replace("We need a home icon", "A home icon"));
+
+  await type(form.getByPlaceholderText("What did you notice?"), "Icons are too small");
+  await click(form.getByRole("button", { name: "Add" }));
+
+  expect(
+    await form.findByText("INBOX.md changed on disk. Your change was not applied."),
+  ).toBeTruthy();
+  expect(form.getByPlaceholderText("What did you notice?")).toHaveProperty(
+    "value",
+    "Icons are too small",
+  );
+  expect(read(repo, PATH)).not.toContain("Icons are too small");
+});
+
+/** The UI behaviour decision: unsaved text, the new category's name too, comes back after a reload. */
+test("the note and a new category's name are restored after a reload, with a notice", async () => {
+  const { repo } = await renderPage("/inbox");
+  let form = await openForm();
+  await type(form.getByPlaceholderText("What did you notice?"), "Folding is slow");
+  await pick(form, "New category…");
+  await type(form.getByRole("textbox", { name: "Category name" }), "Editor");
+  await click(form.getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add a note" })).toBeNull());
+
+  forgetUnsaved();
+  await renderPage("/inbox", repo, { reload: true });
+  form = await openForm();
+
+  expect(form.getByPlaceholderText("What did you notice?")).toHaveProperty(
+    "value",
+    "Folding is slow",
+  );
+  expect(form.getByRole("textbox", { name: "Category name" })).toHaveProperty("value", "Editor");
+  expect(form.getByText(/^Unsaved text restored from \d\d:\d\d\.$/)).toBeTruthy();
+});
+
+/** A new category's name typed alone: Cancel asks first, as for the note's text. */
+test("Cancel asks first when only a new category's name was typed", async () => {
+  await renderPage("/inbox");
+  const form = await openForm();
+  await pick(form, "New category…");
+  await type(form.getByRole("textbox", { name: "Category name" }), "Editor");
+
+  await click(form.getByRole("button", { name: "Cancel" }));
+
+  expect(await screen.findByRole("dialog", { name: "Discard your changes?" })).toBeTruthy();
+});
+
+test("a blank new category's name keeps Add disabled", async () => {
+  await renderPage("/inbox");
+  const form = await openForm();
+  await type(form.getByPlaceholderText("What did you notice?"), "Folding is slow");
+  await pick(form, "New category…");
+  const add = () => form.getByRole("button", { name: "Add" });
+
+  expect(add()).toHaveProperty("disabled", true);
+  await type(form.getByRole("textbox", { name: "Category name" }), "  ");
+  expect(add()).toHaveProperty("disabled", true);
+  await type(form.getByRole("textbox", { name: "Category name" }), "Editor");
+  expect(add()).toHaveProperty("disabled", false);
+});
+
+/** US1 4, for a bug: its folder is in `specs/bugs/`, its pages at `/f/<folder>` too. */
+test("a note added from a bug's page is marked with its slug", async () => {
+  const { repo } = await renderPage("/f/2026-10-14-login-crash");
+
+  await addNote("The banner hides the button");
+
+  await toast("Added to the inbox, not committed");
+  expect(read(repo, PATH)).toContain(
+    "- We need a home icon\n- [login-crash] The banner hides the button\n",
+  );
+});
+
+test("a note added from a page whose folder is not dated has no mark", async () => {
+  const { repo } = await renderPage("/f/notes");
+
+  await addNote("Plain note");
+
+  await toast("Added to the inbox, not committed");
+  expect(read(repo, PATH)).toContain("- We need a home icon\n- Plain note\n");
 });

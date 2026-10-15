@@ -369,7 +369,13 @@ pub(crate) fn one_line(line: &str) -> String {
 /// The slugs made unique, in order: a slug already taken by an earlier one gets `-2`, `-3`, ...,
 /// and an empty slug becomes `line`.
 pub(crate) fn unique_keys(slugs: Vec<String>) -> Vec<String> {
-    let mut taken = std::collections::HashSet::new();
+    unique_keys_besides(slugs, &[])
+}
+
+/// `unique_keys`, with `reserved` taken from the start, like an address that is not an item's.
+pub(crate) fn unique_keys_besides(slugs: Vec<String>, reserved: &[&str]) -> Vec<String> {
+    let mut taken: std::collections::HashSet<String> =
+        reserved.iter().map(|key| key.to_string()).collect();
     slugs
         .into_iter()
         .map(|slug| {
