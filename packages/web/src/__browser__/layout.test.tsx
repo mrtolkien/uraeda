@@ -355,55 +355,54 @@ test.each(MODES)(
   },
 );
 
-// SC-004: the same session with its column hidden, on wide screens, where the column is.
-test.each(MODES)(
-  "a feature's session at its implementation, with its column hidden, in $mode",
-  async ({ mode }) => {
-    if (window.innerWidth < 768) {
-      return;
-    }
-    await implementation(mode);
-    await userEvent.click(screen.getByRole("button", { name: "Hide progress" }));
-    await expect
-      .poll(() => screen.queryByRole("complementary", { name: "Progress" }), LIVE)
-      .toBeNull();
-    await screen.findByRole("button", { name: "Show progress" });
-    await drawn();
-    await checkSession();
-  },
-);
+describe("the session on the desktop", () => {
+  atSize("desktop");
 
-// SC-004 on the phone: the progress line opened above the transcript.
-test.each(MODES)(
-  "a feature's session at its implementation, its progress line open, in $mode",
-  async ({ mode }) => {
-    if (window.innerWidth >= 768) {
-      return;
-    }
-    await implementation(mode);
-    await userEvent.click(screen.getByRole("button", { name: LINE }));
-    const open = await screen.findByRole("region", { name: "Progress" }, LIVE);
-    await within(open).findByText("3 files · +3 −0", undefined, LIVE);
-    await grown();
-    await checkSession();
-  },
-);
+  // SC-004: the same session with its column hidden, on wide screens, where the column is.
+  test.each(MODES)(
+    "a feature's session at its implementation, with its column hidden, in $mode",
+    async ({ mode }) => {
+      await implementation(mode);
+      await userEvent.click(screen.getByRole("button", { name: "Hide progress" }));
+      await expect
+        .poll(() => screen.queryByRole("complementary", { name: "Progress" }), LIVE)
+        .toBeNull();
+      await screen.findByRole("button", { name: "Show progress" });
+      await drawn();
+      await checkSession();
+    },
+  );
 
-// The edge case "From 768 to 1024 px with the sidebar open": the sidebar, the transcript, and the
-// column share the width, and nothing scrolls sideways.
-test("a session at 1024 px with the sidebar and the column open", async () => {
-  if (window.innerWidth < 768) {
-    return;
-  }
-  try {
-    await page.viewport(1024, 900);
-    await expect.poll(() => window.innerWidth).toBe(1024);
-    await implementation("light");
-    expect(within(nav()).getByRole("button", { name: "Collapse sidebar" })).toBeTruthy();
-    await checkSession();
-  } finally {
-    await page.viewport(1440, 900);
-  }
+  // The edge case "From 768 to 1024 px with the sidebar open": the sidebar, the transcript, and the
+  // column share the width, and nothing scrolls sideways.
+  test("a session at 1024 px with the sidebar and the column open", async () => {
+    try {
+      await page.viewport(1024, 900);
+      await expect.poll(() => window.innerWidth).toBe(1024);
+      await implementation("light");
+      expect(within(nav()).getByRole("button", { name: "Collapse sidebar" })).toBeTruthy();
+      await checkSession();
+    } finally {
+      await page.viewport(1440, 900);
+    }
+  });
+});
+
+describe("the session on the phone", () => {
+  atSize("phone");
+
+  // SC-004 on the phone: the progress line opened above the transcript.
+  test.each(MODES)(
+    "a feature's session at its implementation, its progress line open, in $mode",
+    async ({ mode }) => {
+      await implementation(mode);
+      await userEvent.click(screen.getByRole("button", { name: LINE }));
+      const open = await screen.findByRole("region", { name: "Progress" }, LIVE);
+      await within(open).findByText("3 files · +3 −0", undefined, LIVE);
+      await grown();
+      await checkSession();
+    },
+  );
 });
 
 /** Starts a chat with a turn whose action auto mode blocked. */

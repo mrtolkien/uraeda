@@ -528,3 +528,46 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   such as a live view, an empty file; that is the product's, not this test's, and is listed for the
   human in the pull request.
 - **Where**: the rebase, after task 7.
+
+## R31: Task 6 applied again on `main`'s browser tests, and `main`'s new tests sized
+
+- **Decision**: the rebase took `main`'s `attach.test.tsx`, `overlay.test.tsx`, and
+  `session.test.tsx`, losing task 6's changes to them; they are made again. `attach.test.tsx` loses
+  the SC-002 test (R5) and the five of R21 to R25, and declares the phone at its top; "a chat whose
+  last message has images opens at its end" moves to `session.test.tsx`, at both sizes (R26), its
+  `sendMessage` imported as `sendTo` beside the helpers' own. `overlay.test.tsx`'s two history races
+  run on the phone. Every covering test the removals' rulings name still exists on `main`. The 39
+  browser tests `main` added get these sizes, and none is removed:
+  - `layout.test.tsx`, at both: a feature's session at its implementation with its column, a chat
+    with one reply, a round with a settled point's comment and another's form open, the notes
+    restored after a reload, and the "Leave page?" and "Discard your comment?" confirmations, each
+    in light and dark; on the desktop: the session with its column hidden, in both themes, and at
+    1024 px with the sidebar open; on the phone: the session with its progress line open, in both
+    themes.
+  - `session.test.tsx`, at both: US4.2–US4.4's Jump to the latest, which runs the layout checks with
+    the button shown; on the phone: an ended session's Jump to the latest, a message sent from the
+    end, and US3.3's progress line across a link and Back; on the desktop: a session opened from a
+    task view's pane, the column turning into the line across 768 px, a paragraph keeping its place
+    across 768 px, and the line opened moving the place read. `main`'s "a working session: a page of
+    its own" stays at both, with its layout checks, and "Back from a session view" too (R26).
+  - `overlay.test.tsx`: "a confirmation is as tall as what it asks" at both, and "a confirmation
+    answers once the browser went back over its entry" on the phone.
+  - `fields.test.tsx`, at both: the fields' rows (the round's, the review's, the editor's, quick
+    add's, the composer's), the content and the forms' buttons that do not move at the first letter,
+    and "Ctrl+Enter saves" on a wide screen only; on the desktop: the resize handle.
+  - `leave.test.tsx`, on the phone: Back from unsaved text, and "Leave page" as the main button.
+- **Rationale**: the audit's rules (US4): a layout check of a governed page at both sizes; a
+  behaviour at the size its scenario is about, at both only where the layouts differ, the phone
+  otherwise. The early returns `main` added become `atSize` blocks, as task 5's did. A field's
+  height, what moves as one fills, and a confirmation's height depend on the width, its text size,
+  and the sheet against the dialog; Back over an entry, a button's colour, and a session's following
+  do not, as the window scrolls the transcript at both sizes since `main`'s session view. A resize
+  handle is dragged with a mouse. `overlay.test.tsx`'s "as tall" test stays last: it leaves its
+  confirmation open, and its history entry with it, which failed the three history tests run after
+  it with `expected 'Discard your comment?' to be undefined`. Counts, both sizes at once as R18 runs
+  them: the phone runs 125 tests and skips 24, the desktop runs 105 and skips 44.
+- **Alternatives considered**: `main`'s new tests at both sizes, as written: the early returns ran
+  as passes at the other size, which US4.2 forbids, and the behaviour tests doubled.
+- **If wrong**: a phone-only test of a behaviour that breaks only on the desktop, or the reverse,
+  goes unseen; moving it is one `describe`.
+- **Where**: the rebase, task 6.

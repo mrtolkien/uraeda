@@ -5,7 +5,10 @@ import { act, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 import { navigate } from "../routes.tsx";
-import { atRepo, show } from "./helpers.tsx";
+import { atRepo, atSize, show } from "./helpers.tsx";
+
+// The history and the button's colour do not depend on the layout: a sheet and a dialog alike.
+atSize("phone");
 
 const FOLDER = "2026-10-11-web-ui";
 const PAGE = `/f/${FOLDER}/clarifications-01.md`;

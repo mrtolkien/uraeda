@@ -1,11 +1,11 @@
 // The UI layout decision: short forms are bottom sheets on narrow screens, dialogs on wide ones.
-import { drawn } from "./helpers.tsx";
+import { atSize, drawn } from "./helpers.tsx";
 import { Theme } from "@astryxdesign/core/theme";
 import { Button } from "@astryxdesign/core/Button";
 import { render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { flushSync } from "react-dom";
-import { expect, test } from "vite-plus/test";
+import { describe, expect, test } from "vite-plus/test";
 import { ConfirmHost, useConfirm } from "../fields/Confirm.tsx";
 import { Overlay } from "../layout/Overlay.tsx";
 import { uraedaTheme } from "../theme/built/uraeda.js";
@@ -66,21 +66,22 @@ function backLanded() {
   return () => landed;
 }
 
-test("an overlay opened again while its closing goes back stays open, and Back closes it", async () => {
-  render(<OwnedOverlay />);
-  const landed = backLanded();
-  screen.getByRole("button", { name: "Done, then open again" }).click();
-  // The closing's Back lands, then the overlay, opened again, pushes its entry anew.
-  await waitFor(() => {
-    expect(landed()).toBe(true);
-    expect(overlayEntry()).toBe("New priority");
-  });
-
-  expect(screen.getByRole("dialog", { name: "New priority" })).toBeTruthy();
-  window.history.back();
-  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(overlayEntry()).toBeUndefined();
-});
+/** A button that asks to discard, and the overlay entry current when each answer came. */
+function Asker({ entries }: { entries: Array<string | undefined> }) {
+  const confirm = useConfirm();
+  const question = {
+    body: "The text you typed is deleted.",
+    cancel: "Keep editing",
+    confirm: "Discard",
+    title: "Discard your comment?",
+  };
+  return (
+    <Button
+      label="Cancel"
+      onClick={() => confirm(question).then(() => entries.push(overlayEntry()))}
+    />
+  );
+}
 
 /** Two overlays: the first, closed by its page, opens the second at once, as one form leads on. */
 function OverlaysInTurn() {
@@ -104,49 +105,53 @@ function OverlaysInTurn() {
   );
 }
 
-test("an overlay opened while another's closing goes back stays open, and Back closes it", async () => {
-  render(<OverlaysInTurn />);
-  screen.getByRole("button", { name: "Done, then the second" }).click();
-  // The second's entry is pushed only once the first's Back landed.
-  await waitFor(() => expect(overlayEntry()).toBe("Second"));
+// The history's races do not depend on the layout: a sheet and a dialog push the same entry.
+describe("on the phone", () => {
+  atSize("phone");
 
-  expect(screen.getByRole("dialog", { name: "Second" })).toBeTruthy();
-  window.history.back();
-  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(overlayEntry()).toBeUndefined();
-});
+  test("an overlay opened again while its closing goes back stays open, and Back closes it", async () => {
+    render(<OwnedOverlay />);
+    const landed = backLanded();
+    screen.getByRole("button", { name: "Done, then open again" }).click();
+    // The closing's Back lands, then the overlay, opened again, pushes its entry anew.
+    await waitFor(() => {
+      expect(landed()).toBe(true);
+      expect(overlayEntry()).toBe("New priority");
+    });
 
-/** A button that asks to discard, and the overlay entry current when each answer came. */
-function Asker({ entries }: { entries: Array<string | undefined> }) {
-  const confirm = useConfirm();
-  const question = {
-    body: "The text you typed is deleted.",
-    cancel: "Keep editing",
-    confirm: "Discard",
-    title: "Discard your comment?",
-  };
-  return (
-    <Button
-      label="Cancel"
-      onClick={() => confirm(question).then(() => entries.push(overlayEntry()))}
-    />
-  );
-}
+    expect(screen.getByRole("dialog", { name: "New priority" })).toBeTruthy();
+    window.history.back();
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(overlayEntry()).toBeUndefined();
+  });
 
-test("a confirmation answers once the browser went back over its entry", async () => {
-  const entries: Array<string | undefined> = [];
-  render(
-    <Theme mode="light" theme={uraedaTheme}>
-      <ConfirmHost>
-        <Asker entries={entries} />
-      </ConfirmHost>
-    </Theme>,
-  );
-  screen.getByRole("button", { name: "Cancel" }).click();
-  await waitFor(() => expect(overlayEntry()).toBe("Discard your comment?"));
-  screen.getByRole("button", { name: "Discard" }).click();
-  // A page the answer opens is not undone by the Back that closes the confirmation.
-  await waitFor(() => expect(entries).toEqual([undefined]));
+  test("an overlay opened while another's closing goes back stays open, and Back closes it", async () => {
+    render(<OverlaysInTurn />);
+    screen.getByRole("button", { name: "Done, then the second" }).click();
+    // The second's entry is pushed only once the first's Back landed.
+    await waitFor(() => expect(overlayEntry()).toBe("Second"));
+
+    expect(screen.getByRole("dialog", { name: "Second" })).toBeTruthy();
+    window.history.back();
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(overlayEntry()).toBeUndefined();
+  });
+
+  test("a confirmation answers once the browser went back over its entry", async () => {
+    const entries: Array<string | undefined> = [];
+    render(
+      <Theme mode="light" theme={uraedaTheme}>
+        <ConfirmHost>
+          <Asker entries={entries} />
+        </ConfirmHost>
+      </Theme>,
+    );
+    screen.getByRole("button", { name: "Cancel" }).click();
+    await waitFor(() => expect(overlayEntry()).toBe("Discard your comment?"));
+    screen.getByRole("button", { name: "Discard" }).click();
+    // A page the answer opens is not undone by the Back that closes the confirmation.
+    await waitFor(() => expect(entries).toEqual([undefined]));
+  });
 });
 
 // The mockup's section 4: a confirmation is as tall as its question and its buttons, on the phone's
