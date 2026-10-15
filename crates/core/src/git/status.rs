@@ -33,7 +33,7 @@ impl Git {
         })?
     }
 
-    /// The paths of a commit git can add: a deletion already staged, after a refused commit, is
+    /// The paths of a commit git can add: a deletion already staged, by the human, is
     /// not one, whether a file or a folder whose files the index no longer holds.
     pub(super) fn addable<'a>(
         &self,

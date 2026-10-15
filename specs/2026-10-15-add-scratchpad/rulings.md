@@ -847,3 +847,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `text::change` drops its call to `changes::drafts`.
 - **Where**: second final review, `crates/core/src/actions/text.rs`,
   `crates/core/src/actions/changes.rs`, `crates/core/tests/inbox_moves.rs`
+
+## R35: A refused commit unstages what it staged, and Discard leaves its files unstaged
+
+- **Decision**: `Git::commit` resets the index entries of the paths it added to `HEAD` when the
+  commit fails, a hook's refusal included, through `git reset`, the files kept as written: the index
+  is as it was, but for a staged edit of those same paths, which the add had already replaced. The
+  commit bar's Discard resets the index entries of `INBOX.md`, `PRIORITIES.md`, and every draft of
+  its list, with their `images/`, to `HEAD`, however they were staged: a file it deletes leaves no
+  entry, and one it keeps is unstaged, its text kept.
+- **Rationale**: The second review found that a refused commit left new files staged, and Discard
+  then deleted them from disk only: the staged additions blocked every later tool commit as other
+  staged files, and a plain `git commit` would bring them back. Trying again adds the paths again,
+  so nothing needs them staged.
+- **Alternatives considered**: Unstaging in Discard only, which leaves a refused commit's files
+  blocking the other tools' commits until the human discards or commits. `git rm --cached` of the
+  deleted files only, which leaves a kept draft staged, outside the restored lists.
+- **If wrong**: `Git::commit` stops calling `unstage`; Discard's call is one line.
+- **Where**: second final review, `crates/core/src/git.rs`, `crates/core/src/git/status.rs`,
+  `crates/core/src/actions/changes.rs`, `crates/core/tests/inbox_moves.rs`
