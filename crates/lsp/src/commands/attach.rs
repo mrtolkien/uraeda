@@ -8,6 +8,7 @@ use serde::Deserialize;
 use serde_json::Value;
 use uraeda_core::api;
 use uraeda_core::images::{self, ImageError};
+use uraeda_core::workspace::path_folder;
 
 use super::{
     Done, NOT_WORKFLOW, Outcome, absolute, core, on_default_branch, priorities_path, relative,
@@ -65,12 +66,9 @@ pub(super) fn attach_image(
         on_default_branch(documents, &path)?;
         None
     } else {
-        let folder = path
-            .strip_prefix("specs/")
-            .map(|rest| rest.strip_prefix("changes/").unwrap_or(rest))
-            .and_then(|rest| rest.split_once('/'))
-            .filter(|(_, name)| !name.contains('/'))
-            .map(|(folder, _)| folder)
+        let folder = path_folder(&path)
+            .filter(|(_, _, name)| !name.is_empty() && !name.contains('/'))
+            .map(|(_, folder, _)| folder)
             .ok_or_else(|| {
                 refused(format!(
                     "{path} is not a markdown file of a feature, a change, or a draft"

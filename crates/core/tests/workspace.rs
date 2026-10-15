@@ -5,7 +5,7 @@ use common::texts::{clarifications, proposal, record};
 use uraeda_core::actions::place;
 use uraeda_core::git::Git;
 use uraeda_core::steps::{StepName, WaitsOn};
-use uraeda_core::workspace::{Feature, Kind, Source, Workspace};
+use uraeda_core::workspace::{Feature, Kind, Source, Workspace, path_folder};
 
 const FOLDER: &str = "2026-10-11-web-ui";
 
@@ -438,4 +438,32 @@ fn a_branch_without_its_folder_or_record_is_not_a_feature() {
     let workspace = workspace(&repo);
 
     assert!(workspace.feature(CHANGE).is_none());
+}
+
+#[test]
+fn a_path_under_specs_names_its_folder() {
+    let rows = [
+        (
+            "specs/2026-10-10-x/proposal.md",
+            Some((Kind::Feature, "2026-10-10-x", "proposal.md")),
+        ),
+        (
+            "specs/2026-10-10-x",
+            Some((Kind::Feature, "2026-10-10-x", "")),
+        ),
+        (
+            "specs/changes/2026-10-14-y/images/a.webp",
+            Some((Kind::Change, "2026-10-14-y", "images/a.webp")),
+        ),
+        (
+            "specs/changes/2026-10-14-y",
+            Some((Kind::Change, "2026-10-14-y", "")),
+        ),
+        ("specs/", None),
+        ("specs/changes/", None),
+        ("README.md", None),
+    ];
+    for (path, expected) in rows {
+        assert_eq!(path_folder(path), expected, "{path}");
+    }
 }

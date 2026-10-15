@@ -20,7 +20,7 @@ use read::{folder_uncommitted, read_record, read_texts, source_of};
 
 pub use links::resolve;
 pub(crate) use paths::folder_path;
-pub use paths::{branch_folder, first_file, folder_branch, folder_slug, record_path};
+pub use paths::{branch_folder, first_file, folder_branch, folder_slug, path_folder, record_path};
 
 #[derive(Debug, thiserror::Error)]
 pub enum WorkspaceError {
