@@ -15,12 +15,13 @@ use uraeda_core::gates::{Gate, awaits_human, gate_of};
 use uraeda_core::target;
 use uraeda_core::view::FileView;
 use uraeda_core::workspace::path_folder;
-use uraeda_core::workspace::{FileKind, Kind};
+use uraeda_core::workspace::Kind;
 
 use crate::documents::Documents;
 use crate::requests::{WorkflowFile, api_error, refused, workflow_file};
 
 mod attach;
+mod commit;
 mod draft;
 
 /// Every command the server runs.
@@ -147,7 +148,7 @@ pub(crate) fn run(
         "uraeda.approve" => approve(documents, parse(args)?).map(Done::from),
         "uraeda.requestChanges" => request_changes(documents, parse(args)?).map(Done::from),
         "uraeda.submit" => submit(documents, parse(args)?).map(Done::from),
-        "uraeda.commit" => commit(documents, parse(args)?).map(Done::from),
+        "uraeda.commit" => commit::commit(documents, parse(args)?).map(Done::from),
         "uraeda.attachImage" => attach::attach_image(documents, parse(args)?),
         command => Err(crate::server::error(
             lsp_server::ErrorCode::InvalidParams,
@@ -471,27 +472,4 @@ fn submit(documents: &Documents, args: FileArgs) -> Result<Outcome, ResponseErro
         opened: None,
         written: in_checkout(documents, &folder, &view, std::slice::from_ref(&view.name))?,
     })
-}
-
-/// `uraeda.commit { uri }`: commits a draft, a backlog file, or a proposal, with the priorities
-/// when they changed, or the priorities with the inbox's changes, as the commit bar does.
-fn commit(documents: &Documents, args: FileArgs) -> Result<Outcome, ResponseError> {
-    const ONLY: &str =
-        "Only drafts, backlog files, proposals, and PRIORITIES.md are committed from the editor.";
-    let root = &documents.root;
-    let path = relative(documents, &args.uri).ok_or_else(|| refused(ONLY))?;
-    if path == priorities_path() {
-        on_default_branch(documents, &path)?;
-        core(api::commit_priorities(root))?;
-    } else if target::is_draft(&path) {
-        on_default_branch(documents, &path)?;
-        core(api::commit_text(root, &path))?;
-    } else if workflow_file(documents, &args.uri)
-        .is_some_and(|file| file.kind == FileKind::Proposal)
-    {
-        core(api::commit_text(root, &path))?;
-    } else {
-        return Err(refused(ONLY));
-    }
-    Ok(Outcome::default())
 }
