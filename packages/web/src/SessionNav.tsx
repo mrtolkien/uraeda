@@ -199,18 +199,18 @@ function FeatureGroup({
   ) : null;
 }
 
-/** "New change", after "Priorities": a composer that starts a change. */
-function NewChange({ pathname }: { pathname: string }) {
+/** A "＋" row opening a new item's page at `path`, like "New change" or "New chat". */
+function NewRow({ label, path, pathname }: { label: string; path: string; pathname: string }) {
   const here = useRepoPath();
   return (
     <SideNavItem
-      href={here("/changes/new")}
+      href={here(path)}
       icon={<span aria-hidden="true">＋</span>}
-      isSelected={pathname === "/changes/new"}
-      label="New change"
+      isSelected={pathname === path}
+      label={label}
       onClick={(event: React.MouseEvent) => {
         event.preventDefault();
-        navigate(here("/changes/new"));
+        navigate(here(path));
       }}
     />
   );
@@ -226,7 +226,6 @@ function Chats({
   pathname: string;
   searching: boolean;
 }) {
-  const here = useRepoPath();
   const open = chats.filter((row) => !row.archived);
   const archived = chats.filter((row) => row.archived);
   if (searching && chats.length === 0) {
@@ -234,18 +233,7 @@ function Chats({
   }
   return (
     <SideNavSection title="Chats">
-      {!searching && (
-        <SideNavItem
-          href={here("/chats/new")}
-          icon={<span aria-hidden="true">＋</span>}
-          isSelected={pathname === "/chats/new"}
-          label="New chat"
-          onClick={(event: React.MouseEvent) => {
-            event.preventDefault();
-            navigate(here("/chats/new"));
-          }}
-        />
-      )}
+      {!searching && <NewRow label="New chat" path="/chats/new" pathname={pathname} />}
       {open.map((row) => (
         <Chat key={row.id} pathname={pathname} row={row} />
       ))}
@@ -321,7 +309,8 @@ function Sessions({
         />
       )}
       {!found && <Item label="Priorities" pathname={pathname} to="/priorities" />}
-      {!found && <NewChange pathname={pathname} />}
+      {/* "New change", after "Priorities": a composer that starts a change. */}
+      {!found && <NewRow label="New change" path="/changes/new" pathname={pathname} />}
       {groups.slice(0, 2).map(group)}
       <Chats chats={chats} pathname={pathname} searching={!!found} />
       {groups.slice(2).map(group)}
