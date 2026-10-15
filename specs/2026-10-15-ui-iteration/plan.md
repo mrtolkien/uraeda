@@ -1166,8 +1166,19 @@ git commit -m "feat(ui-iteration): the preview runner"
   (`Context.previews`); `Server.upgrade` is `previewUpgrade` for the server's options;
   `devUpgrade(): (request, socket, head) => void` sends an upgrade to the server of its port;
   `devHandler`'s options take `allowOrigins?: (port: number) => Array<string>`, for task 7's SC-006
-  test.
-- Changes: `testApp` and `testServer` create a `Previews`, stopped after each test.
+  test; `devPreviews(port): Promise<Previews | undefined>` gives the tests the runner of the server
+  started on Vite's port
+  ([R21](rulings.md#r21-the-proxys-tests-reach-the-runner-and-sockets-directly)).
+- Produces, in `guard.ts`: `PREVIEW_PATH`, the regular expression of `/r/<name>/preview/` paths,
+  shared by the guard and `devUpgrade`. In `preview/proxy.ts`: `SANDBOX`, the forwarded
+  `Content-Security-Policy`. In `preview/runner.ts`: `NOT_RUNNING`, the 503's sentence.
+  `uraeda-server` (`app.ts`) exports `Previews`, for the UI's tests.
+- Changes: `testApp` and `testServer` create a `Previews`, stopped after each test, through
+  `testPreviews()` of the server's test helpers; the UI's `helpers.tsx` stops its own.
+- Bases: the runner's base and the proxy's are the request's path as the browser sends it,
+  percent-encoded: task 6 builds `/r/<name>/preview/<folder>/` with each part through
+  `encodeURIComponent`
+  ([R20](rulings.md#r20-the-proxy-forwards-what-a-browser-sends-and-closes-the-rest)).
 
 - [x] **Step 1: Split `createApp` before it grows**
 
@@ -1182,7 +1193,7 @@ git add packages/server/src/app.ts
 git commit -m "refactor(ui-iteration): split createApp by route group"
 ```
 
-- [ ] **Step 2: Write the failing tests, and the helpers they use**
+- [x] **Step 2: Write the failing tests, and the helpers they use**
 
 ```ts
 // guard.test.ts, a second table (SC-004): one row per method, path, and Origin
@@ -1259,10 +1270,14 @@ Also in `proxy.test.ts`:
 - `the path alone is sent to its slash`: `/r/repo/preview/<folder>` redirects to `…/<folder>/`.
 - `an upgrade outside a preview path is closed`: `/r/repo/fate/live` upgrades get no `101`.
 
+- `an upgrade from another site is refused`: the channel with `Origin: https://evil.com` gets no
+  `101`.
+
 `runningPreview()` starts `startServer`'s app and its `upgrade` on a free port with
 `addStoryFeature`, views the checkout through `server.previews`, waits until ready, and closes
-everything after the test. `socketOpens(url, { origin, protocol })` opens a `ws:` connection with
-Node's `WebSocket` and resolves on `open` or `close`.
+everything after the test. `socketOpens(url, { origin, protocol })`, in the preview tests' helpers,
+sends an HTTP upgrade with those headers and resolves true on `101`, false on any other answer or a
+closed socket (R21).
 
 In `dev.test.ts`, `vp dev sends preview paths and their sockets to the server`: through `devHandler`
 and `devUpgrade` on a Node server, a read of `…/preview/<folder>/__echo` answers the fake's JSON,
@@ -1279,13 +1294,13 @@ The break each test catches:
 - 503 and writes: a dead port forwarded to, or a POST reaching the process.
 - Streams: a buffered response, which never reaches a live view.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test --project uraeda-server src/__tests__/guard.test.ts src/preview`
-- Expected: FAIL,
-  `The requested module '../guard.ts' does not provide an export named 'guardCheck'`.
+- Expected: FAIL, `TypeError: guardCheck is not a function` (Vitest's module runner names a missing
+  export this way), and the proxy's tests on `server.upgrade`, undefined.
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 - `guardCheck`: the existing checks, in order; an `Origin` of `null` passes only on GET, HEAD, and
   upgrades whose path starts with `/r/<name>/preview/`. `guard` calls it.
@@ -1296,18 +1311,19 @@ The break each test catches:
   Other methods: 405. A failed connection: 503.
 - `previewUpgrade`: refuses with `guardCheck`, then connects to the port, writing the request line
   with the full path when `Sec-WebSocket-Protocol` is `vite-hmr` and the rest only otherwise, with
-  `Host` set to the upstream and no `Origin`, then pipes both ways; anything else is closed with
-  `HTTP/1.1 404`.
+  `Host` set to the upstream and no `Origin`, then pipes both ways, and closes both when either
+  ends; a preview path with nothing ready is closed with `HTTP/1.1 503`, anything else with
+  `HTTP/1.1 404` (R20).
 - `main.ts` listens for `upgrade` and calls `server.upgrade`; `SERVER_PATHS` takes
   `r/<name>/preview`; `uraedaServer` adds `httpServer.on("upgrade", devUpgrade())`, which leaves
   Vite's own HMR socket alone.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run: `vp test --project uraeda-server && vp check`
 - Expected: PASS, the guard's first table unchanged.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server packages/web/vite.config.ts

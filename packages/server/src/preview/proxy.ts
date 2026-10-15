@@ -1,0 +1,206 @@
+// The preview proxy: forwards the reads and WebSocket upgrades of `/r/<name>/preview/<folder>/` to
+// the Storybook the runner runs for that path, and nothing else. Every forwarded response is
+// sandboxed, and readable from a sandboxed frame.
+import { request as httpRequest, type IncomingMessage } from "node:http";
+import { connect } from "node:net";
+import type { Duplex } from "node:stream";
+import { Readable } from "node:stream";
+import { type Context as HonoContext, Hono } from "hono";
+import type { FateVariables } from "../fate.ts";
+import type { guardCheck } from "../guard.ts";
+import { NOT_RUNNING, type Previews } from "./runner.ts";
+
+/** The `Content-Security-Policy` of every forwarded response, replacing Storybook's own. */
+export const SANDBOX = "sandbox allow-scripts allow-popups; frame-ancestors 'self'";
+
+/** A preview's path: its base, `/r/<name>/preview/<folder>/`, and the rest. */
+const PREVIEW = /^(\/r\/[^/]+\/preview\/[^/]+)(\/.*)?$/;
+
+/** Headers of one connection, which a proxy does not pass on. */
+const HOP_BY_HOP = new Set([
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "proxy-connection",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade",
+]);
+
+/** Statuses whose responses have no body. */
+const NO_BODY = new Set([101, 204, 205, 304]);
+
+/** The base and the rest of a preview's normalized path; undefined outside a preview. */
+function previewPath(path: string): { base: string; rest?: string } | undefined {
+  const match = PREVIEW.exec(path);
+  return match === null ? undefined : { base: `${match[1]}/`, rest: match[2] };
+}
+
+/** A forwarded response's headers: Storybook's, opened to any origin, sandboxed. */
+function sandboxed(response: IncomingMessage): Headers {
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(response.headers)) {
+    if (value === undefined || HOP_BY_HOP.has(name) || name === "content-security-policy") {
+      continue;
+    }
+    for (const one of Array.isArray(value) ? value : [value]) {
+      headers.append(name, one);
+    }
+  }
+  headers.set("access-control-allow-origin", "*");
+  headers.set("content-security-policy", SANDBOX);
+  return headers;
+}
+
+const notRunning = () => new Response(NOT_RUNNING, { status: 503 });
+
+/**
+ * Sends a read to the Storybook on `port` at `path`, with its own `Host`, and the response back as
+ * it streams; 503 when the connection fails.
+ */
+function forward(port: number, path: string, request: Request): Promise<Response> {
+  const headers: Record<string, string> = {};
+  request.headers.forEach((value, name) => {
+    if (!HOP_BY_HOP.has(name)) {
+      headers[name] = value;
+    }
+  });
+  headers.host = `127.0.0.1:${port}`;
+  return new Promise((resolve) => {
+    const upstream = httpRequest(
+      { headers, host: "127.0.0.1", method: request.method, path, port, signal: request.signal },
+      (response) => {
+        const status = response.statusCode ?? 502;
+        const empty = request.method === "HEAD" || NO_BODY.has(status);
+        if (empty) {
+          response.resume();
+        }
+        const body = empty ? null : (Readable.toWeb(response) as ReadableStream<Uint8Array>);
+        resolve(new Response(body, { headers: sandboxed(response), status }));
+      },
+    );
+    upstream.on("error", () => resolve(notRunning()));
+    upstream.end();
+  });
+}
+
+/**
+ * A preview's request: the path alone is sent to its slash; GET and HEAD go to the Storybook the
+ * runner has ready for the base, without the base; other methods are refused.
+ */
+async function preview(context: HonoContext<{ Variables: FateVariables }>) {
+  const url = new URL(context.req.url);
+  const found = previewPath(url.pathname);
+  if (found === undefined) {
+    return context.notFound();
+  }
+  if (found.rest === undefined) {
+    return context.redirect(`${found.base}${url.search}`, 301);
+  }
+  if (!["GET", "HEAD"].includes(context.req.method)) {
+    return context.text("Method not allowed", 405, { allow: "GET, HEAD" });
+  }
+  const state = context.get("fate").previews.state(found.base);
+  if (state?.state !== "ready") {
+    return notRunning();
+  }
+  return forward(state.port, `${found.rest}${url.search}`, context.req.raw);
+}
+
+/** The preview routes, mounted at `/r/:name`. */
+export function previewRoutes() {
+  const app = new Hono<{ Variables: FateVariables }>();
+  app.all("/preview/:folder", preview);
+  app.all("/preview/:folder/*", preview);
+  return app;
+}
+
+/** Ends an upgrade's socket with an HTTP status, and its text. */
+function refuse(socket: Duplex, status: string, text: string) {
+  socket.end(
+    `HTTP/1.1 ${status}\r\nConnection: close\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${text}`,
+  );
+}
+
+/** The upgrade's request head for the Storybook on `port`: its own `Host`, and no `Origin`. */
+function upgradeHead(request: IncomingMessage, path: string, port: number): string {
+  const lines = [`${request.method ?? "GET"} ${path} HTTP/1.1`, `Host: 127.0.0.1:${port}`];
+  const raw = request.rawHeaders;
+  for (let index = 0; index < raw.length; index += 2) {
+    const name = raw[index]!;
+    if (!["host", "origin"].includes(name.toLowerCase())) {
+      lines.push(`${name}: ${raw[index + 1]}`);
+    }
+  }
+  return `${lines.join("\r\n")}\r\n\r\n`;
+}
+
+/**
+ * The server's upgrades: refused by the guard's rule, `check`; under a preview's path, piped to the
+ * Storybook the runner has ready, with the full path for Vite's `vite-hmr` protocol and the rest
+ * only otherwise; anything else is closed with a 404.
+ */
+export function previewUpgrade({
+  check,
+  previews,
+}: {
+  check: ReturnType<typeof guardCheck>;
+  previews: Previews;
+}): (request: IncomingMessage, socket: Duplex, head: Buffer) => void {
+  return (request, socket, head) => {
+    socket.on("error", () => socket.destroy());
+    const url = new URL(request.url ?? "/", "http://127.0.0.1");
+    const refusal = check({
+      host: request.headers.host ?? "",
+      method: request.method ?? "GET",
+      origin: request.headers.origin,
+      path: url.pathname,
+      site: request.headers["sec-fetch-site"] as string | undefined,
+      upgrade: true,
+    });
+    if (refusal !== undefined) {
+      refuse(socket, "403 Forbidden", refusal);
+      return;
+    }
+    const found = previewPath(url.pathname);
+    if (found?.rest === undefined) {
+      refuse(socket, "404 Not Found", "Not found");
+      return;
+    }
+    const state = previews.state(found.base);
+    if (state?.state !== "ready") {
+      refuse(socket, "503 Service Unavailable", NOT_RUNNING);
+      return;
+    }
+    const protocols = (request.headers["sec-websocket-protocol"] ?? "").split(",");
+    const hmr = protocols.some((protocol) => protocol.trim() === "vite-hmr");
+    const path = `${hmr ? url.pathname : found.rest}${url.search}`;
+    let connected = false;
+    const upstream = connect(state.port, "127.0.0.1", () => {
+      connected = true;
+      upstream.write(upgradeHead(request, path, state.port));
+      upstream.write(head);
+      upstream.pipe(socket);
+      socket.pipe(upstream);
+      // A socket has no use half closed: when either side ends, both go.
+      const end = () => {
+        upstream.destroy();
+        socket.destroy();
+      };
+      for (const side of [socket, upstream]) {
+        side.once("end", end);
+        side.once("close", end);
+      }
+    });
+    upstream.on("error", () => {
+      if (connected) {
+        socket.destroy();
+      } else {
+        refuse(socket, "503 Service Unavailable", NOT_RUNNING);
+      }
+    });
+    socket.once("close", () => upstream.destroy());
+  };
+}

@@ -1,5 +1,7 @@
 // The preview runner's test helpers: runners stopped after each test, a clock the test moves, and
 // the test feature's checkout on the fake preview.
+import { randomBytes } from "node:crypto";
+import { request as httpRequest } from "node:http";
 import { join } from "node:path";
 import { afterEach, expect } from "vite-plus/test";
 import {
@@ -77,4 +79,36 @@ export function alive(pid: number): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Whether a WebSocket upgrade to `url` is switched, with the given `Origin` and protocol: false
+ * when it is answered otherwise, or closed.
+ */
+export function socketOpens(
+  url: string,
+  { origin, protocol }: { origin?: string; protocol?: string },
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    const request = httpRequest(url, {
+      headers: {
+        connection: "Upgrade",
+        "sec-websocket-key": randomBytes(16).toString("base64"),
+        "sec-websocket-version": "13",
+        upgrade: "websocket",
+        ...(origin === undefined ? {} : { origin }),
+        ...(protocol === undefined ? {} : { "sec-websocket-protocol": protocol }),
+      },
+    });
+    request.on("upgrade", (_, socket) => {
+      socket.destroy();
+      resolve(true);
+    });
+    request.on("response", (response) => {
+      response.resume();
+      resolve(false);
+    });
+    request.on("error", () => resolve(false));
+    request.end();
+  });
 }

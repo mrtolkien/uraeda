@@ -4,7 +4,14 @@ import babel from "@rolldown/plugin-babel";
 import { unplugin as stylex } from "@stylexjs/unplugin";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { fate } from "react-fate/vite";
-import { checkBinding, devHandler, devServer, loadEnv, stopDevRuns } from "uraeda-server/dev";
+import {
+  checkBinding,
+  devHandler,
+  devServer,
+  devUpgrade,
+  loadEnv,
+  stopDevRuns,
+} from "uraeda-server/dev";
 import { layout } from "uraeda-server/paths";
 import { defineConfig, type Plugin } from "vite-plus";
 
@@ -28,6 +35,8 @@ export function uraedaServer(options: Parameters<typeof devHandler>[1] = {}): Pl
         checkBinding(root);
       }
       server.middlewares.use(devHandler(root, { ...sources, ...options }));
+      // Vite's own HMR socket is left to Vite: only a preview's sockets go to the server.
+      server.httpServer?.on("upgrade", devUpgrade());
       server.httpServer?.once("close", () => void stopDevRuns());
     },
     name: "uraeda-server",
