@@ -438,6 +438,14 @@ fn change_table() {
             None,
         ),
         (
+            "proposal only, pull request unknown",
+            vec![("proposal.md", proposal())],
+            PullRequest::Unknown,
+            StepName::Change,
+            WaitsOn::Agent,
+            None,
+        ),
+        (
             "a round waiting",
             vec![
                 ("proposal.md", proposal()),

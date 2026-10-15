@@ -215,7 +215,7 @@ T["priorities show their hints"] = function() -- C1
     return a[1] < b[1]
   end)
   eq(hints, {
-    { 5, "pull-request · waits on agent" },
+    { 5, "change · waits on agent" },
     { 9, "draft" },
     { 10, "draft" },
   })
