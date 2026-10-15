@@ -326,6 +326,16 @@ pub fn discard(place: &Place) -> Result<(), ActionError> {
             Undo::Created { path, written } => {
                 super::draft::remove_written(place, &path, &written)?;
             }
+            Undo::Converted { old, path } => {
+                let Some(written) = place::committed(place, &old) else {
+                    continue;
+                };
+                if super::draft::remove_written(place, &path, &written)? {
+                    git.restore(&old)?;
+                } else {
+                    super::attach::retarget(place, &old, &path)?;
+                }
+            }
             Undo::Grown { path, markdown } => {
                 let file = place.root.join(&path);
                 let text = fs::read_to_string(&file)?;

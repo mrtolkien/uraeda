@@ -886,3 +886,75 @@ fn a_note_with_links_added_with_an_image_links_the_same_files() {
     assert!(!repo.exists(&path));
     assert_eq!(repo.porcelain(), "");
 }
+
+const LISTENER: &str = "specs/drafts/git-listener.md";
+const LISTENER_FOLDER: &str = "specs/drafts/git-listener/proposal.md";
+
+/// Attaches an image to the committed draft "Git listener process", which the priorities link: it
+/// becomes a folder, and the priorities link its `proposal.md`.
+fn attach_to_listener(repo: &TestRepo) {
+    let image = std::fs::read(common::fixture("images/phone.png")).unwrap();
+    let attached = api::attach_image(repo.path(), LISTENER, &image, Some("phone.png")).unwrap();
+    assert_eq!(attached.moved.as_deref(), Some(LISTENER_FOLDER));
+}
+
+/// A committed single-file draft that became a folder is committed as a rename: the old file's
+/// deletion goes with the folder, nothing left behind.
+#[test]
+fn a_draft_made_a_folder_is_committed_as_a_rename() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    attach_to_listener(&repo);
+    let linked = format!(
+        "{}\n![phone](images/phone.webp)\n",
+        repo.read(LISTENER_FOLDER)
+    );
+    repo.write(LISTENER_FOLDER, &linked);
+
+    changes::commit(&place).unwrap();
+
+    assert_eq!(
+        repo.changed_in("main"),
+        [
+            PRIORITIES,
+            LISTENER,
+            "specs/drafts/git-listener/images/phone.webp",
+            LISTENER_FOLDER,
+        ]
+    );
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// Discard puts an untouched draft made a folder back where it was: the old file restored, the
+/// folder and its image gone, the priorities linking the old file again.
+#[test]
+fn discard_puts_back_an_untouched_draft_made_a_folder() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    let text = repo.read(LISTENER);
+    attach_to_listener(&repo);
+
+    changes::discard(&place).unwrap();
+
+    assert_eq!(repo.read(LISTENER), text);
+    assert!(!repo.exists("specs/drafts/git-listener"));
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// Discard keeps a draft made a folder and typed in since, and the priorities' link to it: no
+/// link points at a missing file, and nothing typed is lost.
+#[test]
+fn discard_keeps_a_draft_made_a_folder_and_typed_in() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    attach_to_listener(&repo);
+    let linked = repo.read(PRIORITIES);
+    let typed = format!("{}\nMy notes.\n", repo.read(LISTENER_FOLDER));
+    repo.write(LISTENER_FOLDER, &typed);
+
+    changes::discard(&place).unwrap();
+
+    assert_eq!(repo.read(LISTENER_FOLDER), typed);
+    assert!(!repo.exists(LISTENER));
+    assert_eq!(repo.read(PRIORITIES), linked);
+}
