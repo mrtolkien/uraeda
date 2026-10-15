@@ -68,6 +68,12 @@ fn which_paragraphs_embed_a_story() {
             None,
         ),
         ("a dash", "[A](/a.stories.tsx#Drag-ging)", None),
+        ("a non-ASCII export", "[A](/a.stories.tsx#A²)", None),
+        (
+            "an option's paragraph",
+            "- **A**: thin\n\n  [A](/a.stories.tsx#A)\n",
+            Some(("a.stories.tsx", "A", "A")),
+        ),
         ("text around", "See [A](/a.stories.tsx#A).", None),
         (
             "two links",
@@ -147,4 +153,21 @@ fn an_embed_names_its_paragraph() {
 
     assert_eq!(stories.len(), 1);
     assert_eq!(stories[0].block, paragraphs[1]);
+}
+
+/// A round option's second paragraph, nested in its list item, embeds its story and names its own
+/// block.
+#[test]
+fn an_options_paragraph_embeds() {
+    let doc = parse("- **A**: thin\n\n  [A](/a.stories.tsx#A)\n", "specs/x");
+    let paragraph = doc
+        .blocks
+        .iter()
+        .find(|block| block.kind == BlockKind::Paragraph)
+        .unwrap();
+
+    let stories = story_links(&doc);
+
+    assert_eq!(stories.len(), 1);
+    assert_eq!(stories[0].block, paragraph.id);
 }
