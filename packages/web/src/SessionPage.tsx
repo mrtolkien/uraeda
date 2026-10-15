@@ -12,8 +12,21 @@ import { useFateClient, useView } from "react-fate";
 import type { Session, SessionStatus as Status, StatusReason, Trigger } from "uraeda-server/fate";
 import { Composer } from "./Composer.tsx";
 import { Crumbs } from "./Crumbs.tsx";
-import { useAgent, useFeature, useSession, useWorkflowMessage, useWorkspace } from "./data.ts";
-import { composerDraft, type Draft, takeBackInto, useDraft } from "./useDraft.ts";
+import {
+  MAIN_CHECKOUT,
+  useAgent,
+  useFeature,
+  useSession,
+  useWorkflowMessage,
+  useWorkspace,
+} from "./data.ts";
+import {
+  composerDraft,
+  type Draft,
+  storyCommentsInto,
+  takeBackInto,
+  useDraft,
+} from "./useDraft.ts";
 import { EditableLine } from "./EditableLine.tsx";
 import { JumpToLatest } from "./JumpToLatest.tsx";
 import { useFollowEnd, useOpenAtEnd } from "./following.ts";
@@ -26,6 +39,7 @@ import { navigate, redirect, useRepoPath, useRestoreScroll, useSearch } from "./
 import { sessionPath } from "./sessions.ts";
 import { type ChatControls, useSessionControls } from "./useSessionControls.ts";
 import { StatusMark } from "./StatusMark.tsx";
+import { StoriesProvider } from "./stories.tsx";
 import { Transcript } from "./Transcript.tsx";
 import { useKeepPlace } from "./useKeepPlace.ts";
 import { useOpenKeys } from "./useOpenKeys.ts";
@@ -209,13 +223,19 @@ function SessionLog({
       />
       {crumbs !== undefined && <ProgressLine folder={crumbs} session={id} />}
       <div ref={log}>
-        <Transcript
-          canAllow={!working}
-          groups={groups}
-          onAllow={allow}
-          onTakenBack={takeBackInto(draft)}
-          session={session}
-        />
+        <StoriesProvider
+          comment={storyCommentsInto(draft, `session:${id}`)}
+          folder={crumbs ?? MAIN_CHECKOUT}
+          stories={[]}
+        >
+          <Transcript
+            canAllow={!working}
+            groups={groups}
+            onAllow={allow}
+            onTakenBack={takeBackInto(draft)}
+            session={session}
+          />
+        </StoriesProvider>
       </div>
       {attention && (
         <Banner

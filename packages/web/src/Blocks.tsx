@@ -14,7 +14,7 @@ import { useStaticImages } from "./ImageView.tsx";
 import { After, Selectable, type Selection, useSelect } from "./Selection.tsx";
 import { opensImage, Spans } from "./Spans.tsx";
 import { StoryEmbed } from "./StoryEmbed.tsx";
-import { StoryContext, storyEmbedId, useStoryAt } from "./stories.tsx";
+import { embedComment, StoryContext, storyEmbedId, useStoryAt } from "./stories.tsx";
 
 const SIGNS: Record<string, string> = {
   ask: "?",
@@ -345,20 +345,13 @@ function StoryNode({ block, context }: { block: Block; context: Context }) {
   const stories = useContext(StoryContext)!;
   const story = useStoryAt(block)!;
   const after = context.selection?.after?.(block);
-  const key = `${stories.folder}:${story.path}#${story.export}`;
-  const comment = stories.comment;
   return (
     <>
       <StoryEmbed
-        comment={
-          comment && {
-            field: `${comment.path}#story:${key}`,
-            save: (text) => comment.save(story, text, block),
-          }
-        }
+        comment={embedComment(stories, story, block)}
         folder={stories.folder}
         id={storyEmbedId(block.id)}
-        key={key}
+        key={`${stories.folder}:${story.path}#${story.export}`}
         removed={stories.removed}
         story={story}
       />

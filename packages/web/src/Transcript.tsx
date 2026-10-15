@@ -15,6 +15,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { ChatImage, Item } from "uraeda-server/fate";
+import { agentStories, StoryShown } from "./AgentStories.tsx";
 import { useAgent, useTurn, useTurnLog } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { stepLabel } from "./labels.ts";
@@ -141,6 +142,25 @@ function Message({
 }
 
 /**
+ * An agent's message, as markdown, with the stories it links: its bubble takes the column's width
+ * once a story shows in it, so the story's two widths have room.
+ */
+function AgentMessage({ text }: { text: string }) {
+  const [stories, setStories] = useState(false);
+  return (
+    <ChatMessage sender="assistant">
+      <ChatMessageBubble width={stories ? "100%" : undefined}>
+        <StoryShown value={() => setStories(true)}>
+          <Markdown components={agentStories} density="compact" headingLevelStart={4}>
+            {text}
+          </Markdown>
+        </StoryShown>
+      </ChatMessageBubble>
+    </ChatMessage>
+  );
+}
+
+/**
  * An action `auto` mode blocked, with "Allow and retry", disabled while the session works: it
  * reopens the process. An action no allow rule can match alone, like a command with a `*`, says so
  * instead.
@@ -238,15 +258,7 @@ function TranscriptItems({
         <Message actions={actions} canTakeBack={canTakeBack} item={item} key={item.seq} />,
       );
     } else if (item.kind === "text") {
-      shown.push(
-        <ChatMessage key={item.seq} sender="assistant">
-          <ChatMessageBubble>
-            <Markdown density="compact" headingLevelStart={4}>
-              {item.text}
-            </Markdown>
-          </ChatMessageBubble>
-        </ChatMessage>,
-      );
+      shown.push(<AgentMessage key={item.seq} text={item.text} />);
     } else if (item.kind === "system") {
       shown.push(
         <ChatSystemMessage key={item.seq} xstyle={styles.notice}>

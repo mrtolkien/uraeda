@@ -546,3 +546,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   visible text in place of a name, which the spec keeps out of the comment.
 - **If wrong**: one line of `element` in `storyComment.ts`.
 - **Where**: task 9, `packages/web/src/storyComment.ts`.
+
+## R39: An agent's message reads its stories from the session's `StoryContext`
+
+- **Decision**: `Transcript` keeps its props: `SessionLog` wraps it in `StoriesProvider`, with the
+  feature's folder, or `main` for a chat, and a comment that adds its line to the composer, as a
+  workflow file's page does. `AgentStories.tsx` gives the markdown's `link` and `paragraph`
+  components; `Transcript.tsx`'s `AgentMessage`, which keeps the only import of Astryx's `Markdown`
+  as the stack test asks, draws the message, its bubble taking the column's width once a story shows
+  in it. An agent's story link stays a plain link where the checkout has no preview decision, as in
+  a workflow file. Each link, and each paragraph holding a link alone, asks for its `StoryHref`
+  inside a `Suspense` of its own, drawn as a plain link or paragraph meanwhile.
+- **Rationale**: the plan named both a `folder` and an `onStoryComment` prop on `Transcript` and a
+  `StoriesProvider` around it; the context alone reaches the markdown's components without a prop
+  through every turn and page. In Astryx's bubble, capped at 80% of the column, both widths left the
+  desktop frame about 120 px wide, its elements too small to pick.
+- **Alternatives considered**: the two props through `Turn`, `TurnPage`, and `TranscriptItems`;
+  every agent bubble at the column's width, which changes every message; the embed outside the
+  bubble, which splits the message's markdown.
+- **If wrong**: `AgentStories.tsx`, `AgentMessage` in `Transcript.tsx`, and the provider in
+  `SessionLog`.
+- **Where**: task 11, `packages/web/src/AgentStories.tsx`, `packages/web/src/Transcript.tsx`,
+  `packages/web/src/SessionPage.tsx`.

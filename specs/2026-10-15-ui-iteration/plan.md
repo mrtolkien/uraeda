@@ -2119,25 +2119,33 @@ git commit -m "feat(ui-iteration): variants as stories in a round"
 
 **Files:**
 
-- Create: `packages/web/src/AgentMarkdown.tsx`
-- Modify: `packages/web/src/Transcript.tsx` (`TranscriptItems`, `Transcript`'s props),
-  `packages/web/src/SessionPage.tsx` (`SessionLog`), `packages/web/src/data.ts` (`useStoryHref`)
+- Create: `packages/web/src/AgentStories.tsx`
+- Modify: `packages/web/src/Transcript.tsx` (`AgentMessage`, `TranscriptItems`),
+  `packages/web/src/SessionPage.tsx` (`SessionLog`), `packages/web/src/data.ts` (`useStoryHref`),
+  `packages/web/src/views.ts` (`StoryHrefView`), `packages/web/src/useDraft.ts`
+  (`storyCommentsInto`), `packages/web/src/stories.tsx` (`embedComment`, shared with `Blocks`)
 - Test: `packages/web/src/__browser__/story-chat.test.tsx`
 
 **Interfaces:**
 
 - Consumes: `StoryHref` from task 6; `StoryEmbed`, `StoriesProvider`, `storybookHref` from tasks 7
   and 9.
-- Produces: `AgentMarkdown({ text }: { text: string })`, Astryx `Markdown` with `components.link`,
-  which looks its `href` up through `useStoryHref` without suspending, a plain link meanwhile, and
-  links a story to `storybookHref`; and `components.paragraph`, which draws `StoryEmbed` for a
+- Produces: `agentStories`, the `components` of Astryx `Markdown` for an agent's message: `link`,
+  which looks its `href` up through `useStoryHref` inside a `Suspense` of its own, a plain link
+  meanwhile, and links a story to `storybookHref`; and `paragraph`, which draws `StoryEmbed` for a
   paragraph whose only child, whitespace aside, is a link to a story
-  ([R3](rulings.md#r3-an-agents-link-is-checked-through-a-storyhref-record)).
-- Changes: `Transcript` takes `folder: string` (a feature's, or `main` for a chat) and
-  `onStoryComment?: (line: string) => void`; `SessionLog` adds the line to the composer:
-  `setText((now) => (now.trim() ? \`${now}\n${line}\` : line))`.
+  ([R3](rulings.md#r3-an-agents-link-is-checked-through-a-storyhref-record)). Both read the
+  checkout's folder, its preview decision, and the comment from `StoryContext`: without a preview
+  decision, links stay plain. In `Transcript.tsx`, which alone imports `Markdown`, as the stack test
+  checks, `AgentMessage({ text })` draws an agent's message and its bubble, the column's width once
+  a story shows in it
+  ([R39](rulings.md#r39-an-agents-message-reads-its-stories-from-the-sessions-storycontext)).
+- Changes: `Transcript`'s props do not change. `SessionLog` wraps it in `StoriesProvider`, its
+  folder the feature's, or `main` for a chat, and its comment `storyCommentsInto(draft, path)`,
+  which adds the line to the composer: `setText((now) => (now.trim() ? \`${now}\n${line}\` :
+  line))`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 // packages/web/src/__browser__/story-chat.test.tsx
@@ -2153,18 +2161,20 @@ test("a story link alone in an agent's message shows the story (US4.1)", async (
   );
 
   const embed = await screen.findByRole("figure", { name: "Dragging the handle" });
-  expect(within(embed).getByTitle("Dragging the handle, desktop").getAttribute("src")).toContain(
+  const frame = await within(embed).findByTitle("Dragging the handle, desktop", {}, READY);
+  expect(frame.getAttribute("src")).toContain(
     "/preview/2026-10-20-sidebar-resize/iframe.html?id=sidebarhandle--dragging",
   );
 });
 
 test("a comment on a story in the chat goes to the composer, unsent (US4.3)", async () => {
-  // Pick the separator in the desktop frame, type "Larger hit area.", Ctrl+Enter.
-  expect(composer()).toHaveValue(
-    expect.stringContaining(
-      "Story SidebarHandle.stories.tsx#Dragging, desktop, separator: Larger hit area.",
-    ),
-  );
+  // Type "Also, the colours." in the composer; pick the separator in the desktop frame, type
+  // "Larger hit area.", Ctrl+Enter. The composer is an editable region: its text is read as shown.
+  await expect
+    .poll(composerText)
+    .toBe(
+      "Also, the colours.\nStory SidebarHandle.stories.tsx#Dragging, desktop, separator: Larger hit area.",
+    );
   expect(await commands.agentSent()).toHaveLength(1);
 });
 ```
@@ -2175,8 +2185,8 @@ Also:
   starts with `/r/<name>/preview/main/`.
 - `a story link inside a sentence opens Uraeda's Storybook page (US4.4)`: "See
   [the handle](/packages/web/src/SidebarHandle.stories.tsx#Dragging) now." is a link to
-  `/f/2026-10-20-sidebar-resize/storybook?story=packages%2Fweb%2Fsrc%2FSidebarHandle.stories.tsx%23Dragging`,
-  and no figure shows.
+  `/f/2026-10-20-sidebar-resize/storybook?story=packages/web/src/SidebarHandle.stories.tsx%23Dragging`,
+  as `storybookHref` writes it, under the repository's path, and no figure shows.
 
 `startTurn(text, events, path?)` gains its optional path, shown before the message is sent;
 `composer()` is the composer's text field, by its label.
@@ -2189,24 +2199,24 @@ The break each test catches:
   text.
 - US4.4: an inline link embedded, or sent to the raw file.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test --project desktop src/__browser__/story-chat.test.tsx`
 - Expected: FAIL, `Unable to find role="figure" and name "Dragging the handle"`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-`TranscriptItems` renders `<AgentMarkdown text={item.text} />` in place of its `Markdown`, so its
-length does not change. `SessionLog` wraps the transcript in `StoriesProvider` with its folder and
-the composer's `comment`.
+`TranscriptItems` renders `<AgentMessage text={item.text} />` in place of its message, bubble, and
+`Markdown`, so its length does not grow. `SessionLog` wraps the transcript in `StoriesProvider` with
+its folder and the composer's `comment`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run:
   `vp test --project desktop && vp test --project phone && vp test --project uraeda-web && vp check`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web
