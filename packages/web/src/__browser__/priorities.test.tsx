@@ -96,24 +96,111 @@ afterEach(async () => {
 /** Waits for an announcement: the page shows the last message only. */
 const announced = (text: string) => expect.poll(() => document.body.textContent).toContain(text);
 
-test("dragging with a mouse makes room and moves the line (US4 5)", async () => {
-  await show("/priorities", "Git listener process");
-  const handle = middle(screen.getByRole("button", { name: "Move Git listener process" }));
-  const runner = screen.getByRole("link", { name: /Claude Code runner/ });
-  const before = top(/Claude Code runner/);
-  const above = runner.getBoundingClientRect().top + 2;
+describe("on the desktop, with a mouse", () => {
+  atSize("desktop");
 
-  await commands.mouse([
-    { type: "move", x: handle.x, y: handle.y },
-    { type: "down" },
-    { type: "move", x: handle.x, y: handle.y - 10 },
-    { type: "move", x: handle.x, y: above },
-  ]);
-  // The line passed over slides down to make room.
-  await expect.poll(() => top(/Claude Code runner/)).toBeGreaterThan(before + 10);
-  await commands.mouse([{ type: "up" }]);
+  test("dragging with a mouse makes room and moves the line (US4 5)", async () => {
+    await show("/priorities", "Git listener process");
+    const handle = middle(screen.getByRole("button", { name: "Move Git listener process" }));
+    const runner = screen.getByRole("link", { name: /Claude Code runner/ });
+    const before = top(/Claude Code runner/);
+    const above = runner.getBoundingClientRect().top + 2;
 
-  await expect.poll(() => commands.readRepo(), { timeout: 10_000 }).toContain(NEXT_SWAPPED);
+    await commands.mouse([
+      { type: "move", x: handle.x, y: handle.y },
+      { type: "down" },
+      { type: "move", x: handle.x, y: handle.y - 10 },
+      { type: "move", x: handle.x, y: above },
+    ]);
+    // The line passed over slides down to make room.
+    await expect.poll(() => top(/Claude Code runner/)).toBeGreaterThan(before + 10);
+    await commands.mouse([{ type: "up" }]);
+
+    await expect.poll(() => commands.readRepo(), { timeout: 10_000 }).toContain(NEXT_SWAPPED);
+  });
+
+  test("Escape cancels a drag, and nothing is written", async () => {
+    const moveSent = watchMoves();
+    await show("/priorities", "Git listener process");
+    const original = await commands.readRepo();
+    const handle = middle(screen.getByRole("button", { name: "Move Git listener process" }));
+    const above = screen.getByRole("link", { name: /Claude Code runner/ }).getBoundingClientRect();
+
+    await commands.mouse([
+      { type: "move", x: handle.x, y: handle.y },
+      { type: "down" },
+      { type: "move", x: handle.x, y: handle.y - 10 },
+      { type: "move", x: handle.x, y: above.top + 2 },
+    ]);
+    // The drag has started: the line is announced where it is now.
+    await expect.poll(() => document.body.textContent).toMatch(/(Picked up|Moved:) Git listener/);
+    await userEvent.keyboard("[Escape]");
+    await expect.poll(() => document.body.textContent).toContain("Move cancelled: Git listener");
+    await commands.mouse([{ type: "up" }]);
+
+    // A move is asked for as soon as it is dropped, by then: none was.
+    await drawn();
+    expect(moveSent()).toBe(false);
+    expect(await commands.readRepo()).toBe(original);
+  });
+
+  test("a live update during a drag waits for its end (review focus 4)", async () => {
+    const live = watchLiveUpdates();
+    await show("/priorities", "Git listener process");
+    const original = await commands.readRepo();
+    const handle = middle(screen.getByRole("button", { name: "Move Git listener process" }));
+
+    await commands.mouse([
+      { type: "move", x: handle.x, y: handle.y },
+      { type: "down" },
+      { type: "move", x: handle.x, y: handle.y - 10 },
+    ]);
+    await commands.writeRepo(
+      original
+        .replace("## Next\n\n", "## Next\n\n- Live line\n")
+        .replace("Claude Code runner (triggered manually)", "Claude Code runner, renamed"),
+    );
+    // Once the live update has reached the page, and the page has drawn: the list does not change
+    // under the pointer.
+    await expect.poll(() => live.received("Live line"), { timeout: 10_000 }).toBe(true);
+    live.stop();
+    await drawn();
+    expect(screen.queryByText("Live line")).toBeNull();
+    expect(
+      screen.getByRole("link", { name: /Claude Code runner \(triggered manually\)/ }),
+    ).toBeTruthy();
+    await userEvent.keyboard("[Escape]");
+    await commands.mouse([{ type: "up" }]);
+
+    // Once the drag is over, the update applies.
+    expect(await screen.findByText("Live line", {}, { timeout: 10_000 })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Claude Code runner, renamed/ })).toBeTruthy();
+  });
+});
+
+describe("on the desktop, with the keyboard", () => {
+  atSize("desktop");
+
+  test("Space, ↓, ↓, Space moves a line two places, announced (US4 7)", async () => {
+    await show("/priorities", "Git listener process");
+    const handle = screen.getByRole("button", { name: "Move Web UI for the workflow files" });
+    handle.focus();
+
+    // Each key is announced once the drag has taken it, with the line's place.
+    await userEvent.keyboard("[Space]");
+    await announced("Web UI for the workflow files, 1 of 4 in Now.");
+    await userEvent.keyboard("[ArrowDown]");
+    await announced("Web UI for the workflow files, 2 of 4 in Now.");
+    await userEvent.keyboard("[ArrowDown]");
+    await announced("Web UI for the workflow files, 3 of 4 in Now.");
+    await userEvent.keyboard("[Space]");
+    await announced("Dropped: Web UI for the workflow files, 3 of 4 in Now.");
+    await expect
+      .poll(() => commands.readRepo(), { timeout: 10_000 })
+      .toContain(
+        "## Now\n\n- [Recurring tasks](/specs/2026-10-06-recurring-tasks/proposal.md)\n- [CLI TUIs](/specs/2026-10-12-cli-tuis/proposal.md)\n- [Web UI for the workflow files](/specs/2026-10-11-web-ui/proposal.md)\n",
+      );
+  });
 });
 
 describe("on the phone", () => {
@@ -154,123 +241,36 @@ describe("on the phone", () => {
 
     await expect.poll(() => commands.readRepo(), { timeout: 10_000 }).toContain(NEXT_SWAPPED);
   });
-});
 
-describe("on the desktop", () => {
-  atSize("desktop");
+  test("committing closes the page's toasts", async () => {
+    await show("/priorities/nix-docker-based-execution-environments", "Delete");
+    await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(await screen.findByRole("button", { name: "Undo" })).toBeTruthy();
 
-  test("Space, ↓, ↓, Space moves a line two places, announced (US4 7)", async () => {
-    await show("/priorities", "Git listener process");
-    const handle = screen.getByRole("button", { name: "Move Web UI for the workflow files" });
-    handle.focus();
+    await userEvent.click(await screen.findByRole("button", { name: "Commit" }));
 
-    // Each key is announced once the drag has taken it, with the line's place.
-    await userEvent.keyboard("[Space]");
-    await announced("Web UI for the workflow files, 1 of 4 in Now.");
-    await userEvent.keyboard("[ArrowDown]");
-    await announced("Web UI for the workflow files, 2 of 4 in Now.");
-    await userEvent.keyboard("[ArrowDown]");
-    await announced("Web UI for the workflow files, 3 of 4 in Now.");
-    await userEvent.keyboard("[Space]");
-    await announced("Dropped: Web UI for the workflow files, 3 of 4 in Now.");
+    // Closed by the commit, well before the toast would close by itself, after 5 seconds.
     await expect
-      .poll(() => commands.readRepo(), { timeout: 10_000 })
-      .toContain(
-        "## Now\n\n- [Recurring tasks](/specs/2026-10-06-recurring-tasks/proposal.md)\n- [CLI TUIs](/specs/2026-10-12-cli-tuis/proposal.md)\n- [Web UI for the workflow files](/specs/2026-10-11-web-ui/proposal.md)\n",
-      );
+      .poll(() => screen.queryByRole("button", { name: "Undo" }), { timeout: 2000 })
+      .toBeNull();
+    // Committed: nothing is left to commit.
+    await expect.poll(() => screen.queryByRole("button", { name: "Commit" })).toBeNull();
   });
-});
 
-test("Escape cancels a drag, and nothing is written", async () => {
-  const moveSent = watchMoves();
-  await show("/priorities", "Git listener process");
-  const original = await commands.readRepo();
-  const handle = middle(screen.getByRole("button", { name: "Move Git listener process" }));
-  const above = screen.getByRole("link", { name: /Claude Code runner/ }).getBoundingClientRect();
-
-  await commands.mouse([
-    { type: "move", x: handle.x, y: handle.y },
-    { type: "down" },
-    { type: "move", x: handle.x, y: handle.y - 10 },
-    { type: "move", x: handle.x, y: above.top + 2 },
-  ]);
-  // The drag has started: the line is announced where it is now.
-  await expect.poll(() => document.body.textContent).toMatch(/(Picked up|Moved:) Git listener/);
-  await userEvent.keyboard("[Escape]");
-  await expect.poll(() => document.body.textContent).toContain("Move cancelled: Git listener");
-  await commands.mouse([{ type: "up" }]);
-
-  // A move is asked for as soon as it is dropped, by then: none was.
-  await drawn();
-  expect(moveSent()).toBe(false);
-  expect(await commands.readRepo()).toBe(original);
-});
-
-test("committing closes the page's toasts", async () => {
-  await show("/priorities/nix-docker-based-execution-environments", "Delete");
-  await userEvent.click(screen.getByRole("button", { name: "Delete" }));
-  expect(await screen.findByRole("button", { name: "Undo" })).toBeTruthy();
-
-  await userEvent.click(await screen.findByRole("button", { name: "Commit" }));
-
-  // Closed by the commit, well before the toast would close by itself, after 5 seconds.
-  await expect
-    .poll(() => screen.queryByRole("button", { name: "Undo" }), { timeout: 2000 })
-    .toBeNull();
-  // Committed: nothing is left to commit.
-  await expect.poll(() => screen.queryByRole("button", { name: "Commit" })).toBeNull();
-});
-
-test("discarding closes the page's toasts", async () => {
-  const original = await commands.readRepo();
-  await show("/priorities/nix-docker-based-execution-environments", "Delete");
-  await userEvent.click(screen.getByRole("button", { name: "Delete" }));
-  expect(await screen.findByRole("button", { name: "Undo" })).toBeTruthy();
-
-  await userEvent.click(await screen.findByRole("button", { name: "Discard" }));
-  await userEvent.click(await screen.findByRole("button", { name: "Discard them" }));
-
-  // Discarded: the line is back, and no Undo is left to insert it a second time, well before the
-  // toast would close by itself, after 5 seconds.
-  await expect.poll(() => commands.readRepo()).toBe(original);
-  await expect
-    .poll(() => screen.queryByRole("button", { name: "Undo" }), { timeout: 2000 })
-    .toBeNull();
-});
-
-describe("on the desktop", () => {
-  atSize("desktop");
-
-  test("a live update during a drag waits for its end (review focus 4)", async () => {
-    const live = watchLiveUpdates();
-    await show("/priorities", "Git listener process");
+  test("discarding closes the page's toasts", async () => {
     const original = await commands.readRepo();
-    const handle = middle(screen.getByRole("button", { name: "Move Git listener process" }));
+    await show("/priorities/nix-docker-based-execution-environments", "Delete");
+    await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(await screen.findByRole("button", { name: "Undo" })).toBeTruthy();
 
-    await commands.mouse([
-      { type: "move", x: handle.x, y: handle.y },
-      { type: "down" },
-      { type: "move", x: handle.x, y: handle.y - 10 },
-    ]);
-    await commands.writeRepo(
-      original
-        .replace("## Next\n\n", "## Next\n\n- Live line\n")
-        .replace("Claude Code runner (triggered manually)", "Claude Code runner, renamed"),
-    );
-    // Once the live update has reached the page, and the page has drawn: the list does not change
-    // under the pointer.
-    await expect.poll(() => live.received("Live line"), { timeout: 10_000 }).toBe(true);
-    live.stop();
-    await drawn();
-    expect(screen.queryByText("Live line")).toBeNull();
-    expect(
-      screen.getByRole("link", { name: /Claude Code runner \(triggered manually\)/ }),
-    ).toBeTruthy();
-    await userEvent.keyboard("[Escape]");
-    await commands.mouse([{ type: "up" }]);
+    await userEvent.click(await screen.findByRole("button", { name: "Discard" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Discard them" }));
 
-    // Once the drag is over, the update applies.
-    expect(await screen.findByText("Live line", {}, { timeout: 10_000 })).toBeTruthy();
-    expect(screen.getByRole("link", { name: /Claude Code runner, renamed/ })).toBeTruthy();
+    // Discarded: the line is back, and no Undo is left to insert it a second time, well before the
+    // toast would close by itself, after 5 seconds.
+    await expect.poll(() => commands.readRepo()).toBe(original);
+    await expect
+      .poll(() => screen.queryByRole("button", { name: "Undo" }), { timeout: 2000 })
+      .toBeNull();
   });
 });

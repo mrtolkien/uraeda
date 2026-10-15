@@ -91,7 +91,7 @@ test("＋'s Undo refuses once the line it added is gone", async () => {
   expect(read(repo)).toBe(edited);
 });
 
-test("no ＋ on a round or a review (US6 6)", async () => {
+test("no ＋ on a round (US6 6)", async () => {
   await renderPage("/f/2026-10-11-web-ui/clarifications-01.md");
   await screen.findByText("How does your iPhone reach the server?");
   expect(screen.queryByRole("button", { name: "Add a priority" })).toBeNull();
