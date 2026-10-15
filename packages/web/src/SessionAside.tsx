@@ -1,6 +1,6 @@
 // A feature's session's column: its step and the plan's tasks, its running sub-agents, the files
-// changed on its branch, and its pages. A change's column is drawn by `ChangeAside.tsx`. Beside the transcript on wide screens, foldable, the choice
-// kept in the browser.
+// changed on its branch, and its pages. A change's column is drawn by `ChangeAside.tsx`. Beside
+// the transcript on wide screens, foldable, the choice kept in the browser.
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Layout, LayoutPanel } from "@astryxdesign/core/Layout";

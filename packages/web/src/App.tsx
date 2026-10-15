@@ -144,7 +144,6 @@ function useListPosition() {
   }, [wide, opener, scroll]);
 }
 
-/** A feature's session: a page of its own at every width. */
 /** A feature's page, or a change's, which is its session. */
 function ItemPage({ folder }: { folder: string }) {
   const feature = useFeature(folder);
@@ -155,6 +154,7 @@ function ItemPage({ folder }: { folder: string }) {
   );
 }
 
+/** A feature's session: a page of its own at every width. */
 function SessionRoute({ folder }: { folder: string }) {
   return <SessionPage folder={folder} />;
 }
