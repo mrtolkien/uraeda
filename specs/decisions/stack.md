@@ -129,3 +129,64 @@ and approving or starting a feature must be a deliberate act
 - [`crates/`](/crates/) and [`packages/`](/packages/), and every feature that adds logic, a command,
   an endpoint, or a page
 - [`editors/`](/editors/), and every feature that adds an editor integration
+
+## Proposed change (2026-10-15-ui-iteration)
+
+Proposed by the [spec](../2026-10-15-ui-iteration/spec.md). The server may run a project's
+Storybook, from its active preview decision, in a feature's worktree, and the web UI embeds its
+stories from that separate origin, which keeps the server's own `Origin` rule unchanged.
+
+The rules become:
+
+- Workflow logic, parsing, validation, and workflow states MUST live in the Rust core,
+  [`crates/core`](/crates/core/). Checked by review.
+- The CLI MUST be written in Rust, in [`crates/cli`](/crates/cli/), build the binary `ura`, and MUST
+  NOT need Node or any other runtime to run. Checked by review.
+- The server MUST be written in TypeScript, run on Node, and live in
+  [`packages/server`](/packages/server/). Checked by review.
+- TypeScript code MUST reach the core only through the binding,
+  [`packages/binding`](/packages/binding/), and MUST NOT reimplement its parsing, validation, or
+  states. Checked by review.
+- The TypeScript types of core data MUST come from the declarations napi-rs generates for the
+  binding. They MUST NOT be redeclared by hand in TypeScript. Checked by review.
+- The web UI MUST use React and Astryx components, live in [`packages/web`](/packages/web/), and get
+  its data only from the server, through fate. Checked by review.
+- The web UI MUST draw workflow files from the document tree the core sends, and MUST NOT parse
+  their markdown, with a library or by hand. It MAY render an agent's messages, which are not
+  workflow files, with Astryx's `Markdown` component. Checked by review.
+- The server MUST listen on 127.0.0.1 only. It MUST reject requests whose `Host` is not `127.0.0.1`
+  or `localhost` on its port, or a host name listed in `URAEDA_ALLOWED_HOSTS`, and requests whose
+  `Origin`, when present, is not the server's own, `https://` and a listed host name, or an allowed
+  origin. Checked by the guard's tests.
+- The server MAY start the command of a project's active [preview](preview.md) decision, read from a
+  feature's worktree, in that worktree, bound to 127.0.0.1 on a free port. It MUST NOT serve or
+  proxy that preview's files itself, and MUST stop the process when the server stops. Checked by the
+  preview runner's tests.
+- The web UI MAY embed a preview's stories in frames from the preview's own origin. It MUST accept
+  messages only from those frames, checked by both their origin and their window, and MUST NOT give
+  a frame any data beyond the story to show, its colour mode, and whether pick mode is on. Checked
+  by the embed's tests.
+- The language server MUST live in `crates/lsp`, run as `ura lsp` over stdio, and reach workflow
+  files only through the core. Checked by review.
+- The language server MUST be built on the `lsp-server` and `lsp-types` crates, without an async
+  runtime. Checked by review.
+- Editor plugins MUST live in `editors/<editor>/`, and MUST reach workflow files only through
+  `ura lsp`. They MUST NOT parse workflow files, their frontmatter, or their structure, with a
+  library or by hand. Checked by review.
+- The language server's completions and code actions MUST only edit the open document. Actions that
+  write another file or commit MUST be commands the user runs explicitly, never code actions.
+  Checked by review.
+
+Why: you chose live mockups run by Uraeda, from the project's own Storybook
+([Q5](../2026-10-15-ui-iteration/clarifications-01.md#q5-how-do-you-see-interactions-not-only-a-still),
+[round 02](../2026-10-15-ui-iteration/clarifications-02.md)). Products that run generated or project
+UI next to a host put it on another origin and broker what it may do
+([running untrusted UI](../2026-10-15-ui-iteration/discovery-02.md#running-untrusted-ui-next-to-a-host)).
+Serving the preview from the server itself would need it to accept `Origin: null`, which would open
+its API to any sandboxed page.
+
+New consequences:
+
+- The server runs project code: the preview command a human approved in the project's decision.
+- A preview binds to 127.0.0.1 only, so its stories embed only on the computer that runs Uraeda, not
+  from another device reaching the server through a listed host name.
