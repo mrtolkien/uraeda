@@ -76,6 +76,8 @@ task that carries it out. State which spec clause it supersedes when it explicit
 
 **Files:**
 
+- Start from: [Optional: for a view whose mockups are the project's own stories, the picked story,
+  `path#Export`, whose component this task starts from]
 - Create: `exact/path`
 - Modify: `exact/path` ([function or lines])
 - Test: `tests/exact/path`
