@@ -377,3 +377,44 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `crates/core/src/files/inbox.rs`, `crates/core/src/files/lines.rs`,
   `crates/core/src/files/priorities.rs`, `crates/lsp/src/commands/note.rs`,
   `editors/nvim/lua/uraeda/actions.lua`, `editors/nvim/lua/uraeda/client.lua`
+
+## R19: The sidebar's forms are drawn beside the shell, and the top bar's ＋ tests follow the sidebar
+
+- **Decision**:
+  - The forms the sidebar's ＋ buttons open are drawn by `SidebarAddForms`, around the shell, not in
+    the navigation's rows, each from its first opening on. On the phone, ＋ closes the drawer and
+    opens its form once the drawer is closed.
+  - The note's field is the app's one-line text area, `TextField` of kind `line`, as the priorities'
+    form has; Enter adds, as SC-001 asks. On the phone, Astryx's bottom sheet takes the focus
+    itself, so the browser test of SC-001 taps the field first there. The add form's sheet is as
+    tall as its content.
+  - The Category menu is Astryx's `Selector`, a popover on wide screens and a bottom sheet on narrow
+    ones. "New category…" with a blank name keeps Add disabled, as blank text does.
+  - Undo finds the note it added by its lines, its key first, as the priorities' Undo finds a line
+    by its text.
+  - The inbox page hides its count while it is empty, and says "1 note" for one. Its notes are not
+    links yet, and `/inbox/<key>` and `/inbox/triage` show the inbox page: task 10 adds the note's
+    view, and task 12 the triage's. "Organize with an agent" is task 12's, and "Attach an image"
+    task 11's.
+  - US1 4's test adds from `/f/2026-10-12-cli-tuis`, a feature of the fixture, and expects
+    `[cli-tuis]`: the fixture has no `2026-10-14-run-ui`.
+  - The tests that opened the top bar's "Add a priority" open the sidebar's "Add to the priorities"
+    instead: `priorities.test.tsx`, `shell.test.tsx`, `round.test.tsx`, and the browser's
+    `fields.test.tsx`. The browser's folded navigation test checks that the ＋ buttons show only
+    while it is unfolded. The two tests "no ＋ on a round" and "no ＋ on a review" of
+    `shell.test.tsx` are removed: they guarded the web UI's rule that ＋ shows on home and the
+    priorities page only, which this spec replaces with a ＋ in the sidebar on every page.
+  - The browser tests run `checkLayout`, which holds `checkPage`, on the inbox page, the empty
+    inbox, and the add form.
+- **Rationale**: Astryx's `DialogHeader` focuses its title as it is drawn: two closed dialogs drawn
+  on every page took the focus from a round's question. On the phone, the drawer is a native dialog,
+  which gives the focus back to its menu button as it closes, and a form drawn inside the drawer
+  would close with it. The spec asks for the top bar's ＋ to go and for the sidebar's to open "the
+  one ＋ opened from the top bar, unchanged".
+- **Alternatives considered**: The forms inside the navigation's rows, as the plan's file list read:
+  lost with the phone's drawer. A form drawn closed on every page: it took the focus. Keeping the
+  two removed tests with the new button's name: they would fail on every page by design.
+- **If wrong**: `SidebarAddForms` moves into `SessionNav.tsx`'s rows, a few lines, once Astryx's
+  dialogs stop taking the focus while closed.
+- **Where**: task 9, `packages/web/src/SidebarAdd.tsx`, `AddNote.tsx`, `InboxPage.tsx`, `Shell.tsx`,
+  and the tests named above

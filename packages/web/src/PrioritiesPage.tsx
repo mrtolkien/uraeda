@@ -35,9 +35,7 @@ import { dropMove, type Order, orderOf, type Priorities, spotOf } from "./drop.t
 import { EditableLine } from "./EditableLine.tsx";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
-import { TopBarSlot } from "./layout/TopBarSlot.tsx";
 import { closeUndoToasts } from "./layout/useUndoToast.ts";
-import { QuickAdd } from "./QuickAdd.tsx";
 import { useLocalPath, useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { plain } from "./Spans.tsx";
 import { PrioritiesView } from "./views.ts";
@@ -323,9 +321,6 @@ export function PrioritiesPage() {
   const announcements = announcer(() => after.current ?? order);
   return (
     <Page>
-      <TopBarSlot>
-        <QuickAdd />
-      </TopBarSlot>
       <VStack gap={2}>
         <Heading level={1}>Priorities</Heading>
         {message && <Banner collapsible={false} status="error" title={message} />}

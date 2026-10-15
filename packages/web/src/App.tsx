@@ -17,6 +17,7 @@ import { pruneUnsaved } from "./fields/unsaved.ts";
 import { EditorPage } from "./EditorPage.tsx";
 import { FilePage } from "./FilePage.tsx";
 import { Home } from "./Home.tsx";
+import { InboxPage } from "./InboxPage.tsx";
 import { MockupPage } from "./MockupPage.tsx";
 import { NewChangePage } from "./NewChangePage.tsx";
 import { PrioritiesPage } from "./PrioritiesPage.tsx";
@@ -91,6 +92,11 @@ function Page({ route }: { route: Route }) {
       return <PrioritiesPage />;
     case "task":
       return <TaskRoute entryKey={route.key} />;
+    // A note's view, and the triage's, come with their own tasks: until then, the inbox.
+    case "inbox":
+    case "note":
+    case "triage":
+      return <InboxPage />;
     case "edit":
       return <EditorPage key={route.path} path={route.path} />;
     case "mockup":

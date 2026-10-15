@@ -18,6 +18,9 @@ export type Route =
   | { folder: string; name: string; page: "file" }
   | { page: "priorities" }
   | { key: string; page: "task" }
+  | { page: "inbox" }
+  | { key: string; page: "note" }
+  | { page: "triage" }
   | { page: "edit"; path: string }
   | { folder: string; name: string; page: "mockup" }
   | { folder: string; page: "session" }
@@ -127,6 +130,12 @@ export function parseRoute(pathname: string): Route {
   }
   if (parts[0] === "priorities" && parts.length === 2) {
     return { key: parts[1], page: "task" };
+  }
+  if (parts[0] === "inbox" && parts.length === 1) {
+    return { page: "inbox" };
+  }
+  if (parts[0] === "inbox" && parts.length === 2) {
+    return parts[1] === "triage" ? { page: "triage" } : { key: parts[1], page: "note" };
   }
   if (parts[0] === "edit" && parts.length > 1) {
     return { page: "edit", path: parts.slice(1).join("/") };
