@@ -16,6 +16,9 @@ const noteOf = (inbox: Data, text: string) =>
     .flatMap((category: { notes: Array<{ text: string }> }) => category.notes)
     .find((note: { text: string }) => note.text === text);
 
+/** A note's lines as written, which an Undo puts back. */
+const lines = (note: unknown) => (note as { lines: Array<string> }).lines;
+
 const read = (repo: string, path: string) => readFileSync(join(repo, path), "utf8");
 
 /** A repository whose main checkout holds the fixture's triage, committed. */
@@ -314,4 +317,64 @@ test("a triage changed since the page read it is not submitted", async () => {
   expect(result.error?.code).toBe("BAD_REQUEST");
   expect(result.error?.message).toMatch(/^conflict: INBOX-TRIAGE\.md changed/);
   expect(git(repo, "log", "-1", "--format=%s").trim()).toBe("chore: propose an inbox triage");
+});
+
+test("an Undo of each move puts both files back in one call", async () => {
+  const repo = fixtureRepo();
+  const { app } = await testApp(repo);
+  const before = ["specs/INBOX.md", "specs/PRIORITIES.md", "specs/drafts/git-listener.md"].map(
+    (path) => read(repo, path),
+  );
+  const inbox = await readInbox(app);
+  const [priorities] = await byId(app, "Priorities", ["priorities"], ["id", "hash"]);
+  const moved = noteOf(inbox, "Draft to proposal on mobile went 404") as { id: string };
+  const added = noteOf(inbox, "Make sure agents are resumable");
+  const homed = noteOf(inbox, "We need a home icon");
+
+  const toNext = await mutate(
+    app,
+    "inbox.toPriorities",
+    { hash: inbox.hash, note: moved.id, prioritiesHash: priorities.hash, section: "next" },
+    INBOX,
+  );
+  const toDraft = await mutate(
+    app,
+    "inbox.toDraft",
+    {
+      draft: "specs/drafts/git-listener.md",
+      hash: toNext.data.hash,
+      note: noteOf(toNext.data, "Make sure agents are resumable").id,
+    },
+    INBOX,
+  );
+  await mutate(
+    app,
+    "inbox.category",
+    {
+      category: "CLI",
+      hash: toDraft.data.hash,
+      note: noteOf(toDraft.data, "We need a home icon").id,
+    },
+    INBOX,
+  );
+  await mutate(app, "inbox.undoCategory", { index: 2, lines: lines(homed) }, INBOX);
+  await mutate(
+    app,
+    "inbox.undoToDraft",
+    { category: "CLI", draft: "specs/drafts/git-listener.md", index: 1, lines: lines(added) },
+    INBOX,
+  );
+  const undone = await mutate(
+    app,
+    "inbox.undoToPriorities",
+    { category: "UI", index: 1, lines: lines(moved), section: "next" },
+    INBOX,
+  );
+
+  expect(undone.data.changes).toBe(0);
+  expect(
+    ["specs/INBOX.md", "specs/PRIORITIES.md", "specs/drafts/git-listener.md"].map((path) =>
+      read(repo, path),
+    ),
+  ).toEqual(before);
 });

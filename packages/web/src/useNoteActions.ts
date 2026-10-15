@@ -1,23 +1,21 @@
 // What a note's view does to its note: edit its text, move it to a category, into the priorities
 // or a draft, or delete it, each written at once over the inbox as read, with a toast and Undo.
+// Each Undo of a move is one call to the core, which changes both files or neither.
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
-import {
-  readDraftText,
-  readInbox,
-  readPriorities,
-  readPrioritiesHash,
-  rereadChanges,
-} from "./data.ts";
+import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { useUndoToast } from "./layout/useUndoToast.ts";
 import { TITLES } from "./QuickAdd.tsx";
-import { navigate, redirect, useRepoPath } from "./routes.tsx";
-import { DraftView, InboxView, PrioritiesView } from "./views.ts";
+import { currentEntry, localPath, navigate, redirect, useRepoPath } from "./routes.tsx";
+import { DraftView, InboxView } from "./views.ts";
 
 /** A note, and its place: its category, none for the notes before the first, and its index in it. */
 export type Placed = { category?: string; index: number; note: InboxNote };
+
+/** The note's id while its text is saved, and that text: see `NoteView`. */
+export type Renaming = { id: string; text: string };
 
 type Fate = ReturnType<typeof useFateClient>;
 
@@ -26,92 +24,35 @@ export function categoryName(category: string | undefined) {
   return category ?? "No category";
 }
 
-/** A note's lines, as one text: what tells two notes apart. */
-const linesOf = (note: InboxNote) => note.lines.join("\n");
+/** A note's lines as written, and its place, which an Undo puts it back to. */
+function at({ category, index, note }: Placed) {
+  return { index, lines: note.lines, ...(category === undefined ? {} : { category }) };
+}
 
-/**
- * Writes a note's lines back at its place, over the inbox as it is now: the Undo of a change that
- * took it out of the inbox. Resolves with the refusal, if any.
- */
-async function putBack(fate: Fate, { category, index, note }: Placed) {
-  const now = await readInbox(fate);
-  const result = await fate.mutations.inbox.insert({
-    input: {
-      hash: now.hash,
-      index,
-      lines: note.lines,
-      ...(category === undefined ? {} : { category }),
-    },
-    view: InboxView,
-  });
+/** An Undo's write: its refusal, if any, once both files are read again for the commit bar. */
+async function undone(fate: Fate, call: Promise<{ error?: unknown }>) {
+  const result = await call;
+  rereadChanges(fate);
   return result.error ? refusal(result.error).message : undefined;
 }
 
-/**
- * The Undo of a move to another category: the note, found by its lines, its key first, goes back
- * to its place, or the Undo is refused once the note changed or left the inbox.
- */
-async function moveBack(fate: Fate, placed: Placed) {
-  const { note } = placed;
+/** The Undo of a Delete: the note's lines go back to its place, over the inbox as it is now. */
+async function putBack(fate: Fate, placed: Placed) {
   const now = await readInbox(fate);
-  const same = now.categories
-    .flatMap((c) => c.notes)
-    .filter((one) => linesOf(one) === linesOf(note));
-  const found = same.find((one) => one.key === note.key) ?? (same.length === 1 ? same[0] : null);
-  if (!found) {
-    return `Could not undo: "${note.text}" is no longer in INBOX.md.`;
-  }
-  const removed = await fate.mutations.inbox.remove({
-    input: { hash: now.hash, note: found.id },
-    view: InboxView,
-  });
-  return removed.error ? refusal(removed.error).message : putBack(fate, placed);
+  return undone(
+    fate,
+    fate.mutations.inbox.insert({ input: { hash: now.hash, ...at(placed) }, view: InboxView }),
+  );
 }
 
 /**
- * The Undo of a move into a priorities section: the note goes back to its place, then the line
- * the move added, the section's last of the same text, leaves the section, whose file the first
- * write left as it was. Refused, with nothing
- * written, once that line is gone.
+ * The key of the line a move just wrote at the end of a section: the last of the note's text. An
+ * Undo tells it by that key from a line of the same text the human writes later.
  */
-async function takeBackFromPriorities(fate: Fate, placed: Placed, section: string) {
+async function movedKey(fate: Fate, section: string, text: string) {
   const now = await readPriorities(fate);
   const entries = now.sections.find((s) => s.section === section)?.entries ?? [];
-  const entry = entries.findLast((e) => e.text === placed.note.text);
-  if (!entry) {
-    return `Could not undo: "${placed.note.text}" is no longer in PRIORITIES.md.`;
-  }
-  const failed = await putBack(fate, placed);
-  if (failed) {
-    return failed;
-  }
-  const removed = await fate.mutations.priorities.remove({
-    input: { entry: entry.id, hash: now.hash },
-    view: PrioritiesView,
-  });
-  rereadChanges(fate);
-  return removed.error ? refusal(removed.error).message : undefined;
-}
-
-/**
- * The Undo of an add to a draft: the draft's text before the move is written back, over its text
- * just after it, so an edit made since refuses it; then the note goes back to its place.
- */
-async function takeBackFromDraft(
-  fate: Fate,
-  placed: Placed,
-  draft: { after: string; before: string; path: string },
-) {
-  const restored = await fate.mutations.text.save({
-    input: { hash: draft.after, path: draft.path, text: draft.before },
-    view: DraftView,
-  });
-  if (restored.error) {
-    return refusal(restored.error).message;
-  }
-  const failed = await putBack(fate, placed);
-  rereadChanges(fate);
-  return failed;
+  return entries.findLast((entry) => entry.text === text)?.key;
 }
 
 /** A note's change, run as `useNoteActions` runs it: its refusal shown, a conflict read again. */
@@ -119,8 +60,9 @@ type Run = <R extends { error?: unknown }>(call: () => Promise<R>) => Promise<R>
 
 /**
  * The moves out of the inbox, into the priorities, a new draft, or an existing draft, over the
- * note's `input`, its id and the inbox's hash as read. `left` follows a move that leaves the note's
- * view; a new draft opens in the editor instead.
+ * note's `input`, its id and the inbox's hash as read. The view shows no priorities: their hash is
+ * read just before the move. `left` follows a move that leaves the note's view; a new draft opens
+ * in the editor instead.
  */
 function useMovesOut(
   placed: Placed,
@@ -140,12 +82,20 @@ function useMovesOut(
         view: InboxView,
       }),
     );
-    if (!result.error) {
-      toast(`Moved to ${TITLES.get(section)}, not committed`, () =>
-        takeBackFromPriorities(fate, placed, section),
-      );
-      left();
+    if (result.error) {
+      return;
     }
+    left();
+    const entryKey = await movedKey(fate, section, placed.note.text);
+    toast(`Moved to ${TITLES.get(section)}, not committed`, () =>
+      undone(
+        fate,
+        fate.mutations.inbox.undoToPriorities({
+          input: { ...at(placed), section, ...(entryKey === undefined ? {} : { entryKey }) },
+          view: InboxView,
+        }),
+      ),
+    );
   };
 
   const toNewDraft = async (section: string) => {
@@ -156,22 +106,23 @@ function useMovesOut(
         view: DraftView,
       }),
     );
-    const path = (result as { result?: { path?: unknown } }).result?.path;
-    if (!result.error && typeof path === "string") {
+    const path = result.result?.path;
+    if (!result.error && path !== undefined) {
       rereadChanges(fate);
       navigate(here(`/edit/${path}`));
     }
   };
 
-  const toDraft = async (path: string, title: string) => {
-    const before = await readDraftText(fate, path);
+  const toDraft = async (draft: string, title: string) => {
     const result = await run(() =>
-      fate.mutations.inbox.toDraft({ input: { ...input, draft: path }, view: InboxView }),
+      fate.mutations.inbox.toDraft({ input: { ...input, draft }, view: InboxView }),
     );
     if (!result.error) {
-      const after = (await readDraftText(fate, path)).hash;
       toast(`Added to ${title}, not committed`, () =>
-        takeBackFromDraft(fate, placed, { after, before: before.text, path }),
+        undone(
+          fate,
+          fate.mutations.inbox.undoToDraft({ input: { ...at(placed), draft }, view: InboxView }),
+        ),
       );
       left();
     }
@@ -181,14 +132,35 @@ function useMovesOut(
 }
 
 /**
- * The note's actions, over the inbox's hash as read. A refusal shows as `message`, and a conflict
- * reads the inbox and the priorities again. A move out of the inbox returns to it. `onRenaming`
- * holds the note's id while its text, and so its key, changes.
+ * Back to the inbox once the note left it, only while its view is still shown: Back, to the list
+ * it was opened from, so the history holds the list once; otherwise the list in its place.
+ */
+function useLeave(key: string) {
+  const fate = useFateClient();
+  const here = useRepoPath();
+  return () => {
+    rereadChanges(fate);
+    if (localPath(window.location.pathname) !== `/inbox/${key}`) {
+      return;
+    }
+    if (currentEntry().from === "/inbox") {
+      window.history.back();
+    } else {
+      redirect(here("/inbox"));
+    }
+  };
+}
+
+/**
+ * The note's actions, over the inbox's hash as read. A refusal shows as `message`, or under the
+ * field for an edit, and a conflict reads the inbox and the priorities again. A move out of the
+ * inbox returns to it. `onRenaming` holds the note's id and new text while its text, and so its
+ * key, changes.
  */
 export function useNoteActions(
   placed: Placed,
   hash: string,
-  onRenaming: (id: string | undefined) => void,
+  onRenaming: (renaming: Renaming | undefined) => void,
 ) {
   const fate = useFateClient();
   const toast = useUndoToast();
@@ -196,6 +168,7 @@ export function useNoteActions(
   const [message, setMessage] = useState<string>();
   const { note } = placed;
   const input = { hash, note: note.id };
+  const left = useLeave(note.key);
 
   /** Runs a change: its refusal shows, and a conflict reads both files again. */
   const run: Run = async (call) => {
@@ -211,18 +184,16 @@ export function useNoteActions(
     return result;
   };
 
-  /** Once the note left the inbox, the inbox shows, and the commit bar counts the other file. */
-  const left = () => {
-    rereadChanges(fate);
-    redirect(here("/inbox"));
-  };
-
   const edit = async (text: string) => {
-    onRenaming(note.id);
+    onRenaming({ id: note.id, text });
     const result = await fate.mutations.inbox.edit({ input: { ...input, text }, view: InboxView });
     if (result.error) {
       onRenaming(undefined);
-      return refusal(result.error).message;
+      const failed = refusal(result.error);
+      if (failed.kind === "conflict") {
+        rereadChanges(fate);
+      }
+      return failed.message;
     }
     const key = result.result?.categories
       .flatMap((c) => c.notes)
@@ -230,6 +201,7 @@ export function useNoteActions(
     if (key && key !== note.key) {
       redirect(here(`/inbox/${key}`));
     }
+    onRenaming(undefined);
     return undefined;
   };
 
@@ -241,7 +213,9 @@ export function useNoteActions(
       }),
     );
     if (!result.error) {
-      toast(`Moved to ${categoryName(category)}, not committed`, () => moveBack(fate, placed));
+      toast(`Moved to ${categoryName(category)}, not committed`, () =>
+        undone(fate, fate.mutations.inbox.undoCategory({ input: at(placed), view: InboxView })),
+      );
     }
   };
 

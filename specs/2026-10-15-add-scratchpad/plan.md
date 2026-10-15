@@ -1193,8 +1193,13 @@ git commit -m "feat(add-scratchpad): capture notes from the sidebar, see them in
 - Modify: `packages/web/src/PrioritiesPage.tsx` (the bar extracted, its marker removed),
   `packages/web/src/InboxPage.tsx`, `packages/web/src/App.tsx` (a note in `Panes` beside the inbox),
   `packages/web/src/EditableLine.tsx` (`LineField` exported), `packages/web/src/useLineSave.ts`
-  (`empty`), `packages/web/src/data.ts` (`useDraftTitles`, `readDraftText`, `rereadChanges`),
-  `packages/web/src/views.ts` (`DraftTitleView`, `DraftTextView`) (ruling R20)
+  (`empty`), `packages/web/src/data.ts` (`useDraftTitles`, `rereadChanges`),
+  `packages/web/src/views.ts` (`DraftTitleView`) (ruling R20); in its review, the Undos in the core:
+  `crates/core/src/actions/inbox/undo.rs`, `files/inbox/found.rs`, `files/priorities.rs`
+  (`remove_written`), `files/proposal.rs` (`without_item`, from `actions/changes.rs`),
+  `files/lines.rs` (`markdown_of`), `api/inbox_edits.rs`, the binding's `inbox_writes.rs`, and the
+  server's `fate/inbox-mutations.ts`
+- Test (review): `crates/core/tests/inbox_undo.rs`, `packages/server/src/__tests__/inbox.test.ts`
 - Test: `packages/web/src/__tests__/inbox.test.tsx`, `packages/web/src/__browser__/inbox.test.tsx`
 
 **Interfaces:**
@@ -1206,7 +1211,13 @@ git commit -m "feat(add-scratchpad): capture notes from the sidebar, see them in
     reads the inbox and the priorities again once done (`rereadChanges`);
   - `Marks({ note })`, exported from `InboxPage.tsx`, and `LineField({ label, line })` from
     `EditableLine.tsx`;
-  - `useDraftTitles(paths)`, the drafts' titles in one request (ruling R20).
+  - `useDraftTitles(paths)`, the drafts' titles in one request (ruling R20);
+  - in the core, each Undo of a move as one call that changes both files or neither:
+    `api::undo_note_to_priorities(repo, lines, category, index, section_id, entry_key)`,
+    `api::undo_note_to_draft(repo, draft, lines, category, index)`, and
+    `api::undo_note_category(repo, lines, category, index)`, each returning the `Inbox`; the
+    binding's functions of the same names; and the mutations `inbox.undoToPriorities`,
+    `inbox.undoToDraft`, and `inbox.undoCategory` (ruling R20).
 
 - [x] **Step 1: Extract `CommitBar` from `PrioritiesPage`, and remove its marker**
 

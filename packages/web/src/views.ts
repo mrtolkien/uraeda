@@ -171,13 +171,6 @@ export const DraftTitleView = view<Draft>()({
   title: true,
 });
 
-/** A draft's text and its hash, for an Undo that writes it back. */
-export const DraftTextView = view<Draft>()({
-  hash: true,
-  id: true,
-  text: true,
-});
-
 export const AgentView = view<Agent>()({
   available: true,
   capabilities: {
