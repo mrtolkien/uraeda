@@ -913,7 +913,10 @@ test("removing a thumbnail moves the focus to the next one, then to the message"
   await click(first);
 
   await thumbnails(1);
-  expect(document.activeElement?.getAttribute("aria-label")).toBe("Remove two.png");
+  // The drawer's focus effect can follow the asynchronous thumbnail update.
+  await waitFor(() =>
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Remove two.png"),
+  );
   await click(document.activeElement as HTMLElement);
   await waitFor(async () => expect(document.activeElement).toBe(await composer()));
 });

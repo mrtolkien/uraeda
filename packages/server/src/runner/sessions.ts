@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Binding } from "../fate/context.ts";
 import type { Adapter, Outgoing } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
-import type { TurnActivity, TurnKind } from "./events.ts";
+import type { TurnActivity, TurnKind, UsageLimit } from "./events.ts";
 import { LiveSessions } from "./live-sessions.ts";
 import { chatOpening, chatTitle, retryMessage } from "./message.ts";
 import { Processes } from "./processes.ts";
@@ -66,6 +66,7 @@ export class Sessions {
     // Each part reaches the others through the context, filled once they are all made.
     const context = {
       adapter: options.adapter,
+      agentChanged: () => options.onChange({ agent: true }),
       binding: options.binding,
       cache: options.cache,
       changed: (live, turn, state) =>
@@ -94,8 +95,8 @@ export class Sessions {
   }
 
   /** Whether the agent worked at the last check, and its version. */
-  status(): { available: boolean; version: string | null } {
-    return { ...this.#status };
+  status(): { available: boolean; fiveHourLimit: UsageLimit | null; version: string | null } {
+    return { ...this.#status, fiveHourLimit: this.#context.processes.fiveHourLimit() };
   }
 
   /** Asks the agent for its version, and reports a change of availability. */

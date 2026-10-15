@@ -14,7 +14,14 @@ import type {
   WorkspaceView,
 } from "uraeda-binding";
 import type { Capabilities } from "../runner/adapter.ts";
-import type { Item, Trigger, TurnActivity, TurnKind, TurnState } from "../runner/events.ts";
+import type {
+  Item,
+  Trigger,
+  TurnActivity,
+  TurnKind,
+  TurnState,
+  UsageLimit,
+} from "../runner/events.ts";
 import type { SessionStatus, StatusReason } from "../runner/status.ts";
 
 type Record_<T> = { [Key in keyof T]: T[Key] };
@@ -99,6 +106,7 @@ export type AgentRecord = {
   available: boolean;
   /** What the UI may offer, and nothing more. */
   capabilities: Capabilities;
+  fiveHourLimit: UsageLimit | null;
   id: string;
   /** Its kind, stored with its sessions: `claude`. */
   kind: string;
@@ -322,6 +330,7 @@ export const draftDataView = dataView<DraftRecord>("Draft")({
 export const agentDataView = dataView<AgentRecord>("Agent")({
   available: true,
   capabilities: true,
+  fiveHourLimit: true,
   id: true,
   kind: true,
   name: true,

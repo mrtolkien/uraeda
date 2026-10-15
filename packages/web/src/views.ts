@@ -159,6 +159,7 @@ export const AgentView = view<Agent>()({
     subagents: true,
     takeBack: true,
   },
+  fiveHourLimit: { percentUsed: true, resetsAt: true },
   id: true,
   kind: true,
   name: true,

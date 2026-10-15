@@ -3,7 +3,7 @@ import { toolTarget } from "./message.ts";
 
 /**
  * The line types Claude Code prints in stream-json output. Those the adapter has no use for, like
- * hooks, rate limit status, and the answers to its control requests, give no event; any other type
+ * hooks and the answers to its control requests, give no event; any other type
  * is skipped and counted.
  */
 const KNOWN_TYPES = new Set([
@@ -146,9 +146,41 @@ export function parseLine(
       );
     case "result":
       return [resultEvent(message)];
+    case "rate_limit_event":
+      return usageEvents(message.rate_limit_info);
     default:
       return [];
   }
+}
+
+/** Five-hour usage is a fraction in Claude's output; status-only notices give no percentage. */
+function usageEvents(info: unknown): Array<AgentEvent> {
+  if (!isObject(info)) {
+    return [];
+  }
+  const window = isObject(info.unifiedWindows) ? info.unifiedWindows.five_hour : undefined;
+  const limit = isObject(window) ? window : info.rateLimitType === "five_hour" ? info : undefined;
+  if (
+    !limit ||
+    typeof limit.utilization !== "number" ||
+    !Number.isFinite(limit.utilization) ||
+    limit.utilization < 0 ||
+    typeof limit.resetsAt !== "number"
+  ) {
+    return [];
+  }
+  const reset = new Date(limit.resetsAt * 1000);
+  return Number.isFinite(reset.getTime())
+    ? [
+        {
+          fiveHour: {
+            percentUsed: Math.min(100, Math.round(limit.utilization * 1000) / 10),
+            resetsAt: reset.toISOString(),
+          },
+          type: "usage",
+        },
+      ]
+    : [];
 }
 
 function toolStart(

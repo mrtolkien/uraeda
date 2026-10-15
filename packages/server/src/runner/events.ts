@@ -3,6 +3,9 @@ import type { ChatImage } from "./images.ts";
 /** An action `auto` mode blocked, from a result's `permission_denials`. */
 export type Denial = { input: Record<string, unknown>; tool: string };
 
+/** Usage of the account's five-hour allowance, with its reset time in ISO 8601. */
+export type UsageLimit = { percentUsed: number; resetsAt: string };
+
 /** What an adapter reads from its agent's output, whatever the agent. */
 export type AgentEvent =
   /** The agent's session, at the start of each turn. */
@@ -35,6 +38,8 @@ export type AgentEvent =
   /** A message was taken back before the agent read it. */
   | { id: string; type: "cancelled" }
   | { attempt: number; delayMs: number; error: string; type: "retry" }
+  /** A usage report, shared by the account rather than added across sessions. */
+  | { fiveHour: UsageLimit; type: "usage" }
   /**
    * The tool calls of the agent's background sub-agents still running, after one started or
    * ended. The agent goes on by itself when one reports back.

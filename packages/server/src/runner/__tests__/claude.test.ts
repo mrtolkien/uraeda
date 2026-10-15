@@ -183,8 +183,16 @@ test.each<[string, Array<AgentEvent>]>([
       },
     ],
   ],
-  // Hooks, rate limit status, thinking tokens, the denial notice, a push: nothing to show.
-  ["ignored.jsonl", []],
+  // Hooks, thinking tokens, the denial notice and a push give no transcript items.
+  [
+    "ignored.jsonl",
+    [
+      {
+        fiveHour: { percentUsed: 43, resetsAt: new Date(1_791_798_000 * 1000).toISOString() },
+        type: "usage",
+      },
+    ],
+  ],
   ["unknown.jsonl", [{ type: "skipped" }]],
 ])("the lines of %s", (file, events) => {
   expect(recorded(file).flatMap((line) => parseLine(line))).toEqual(events);
