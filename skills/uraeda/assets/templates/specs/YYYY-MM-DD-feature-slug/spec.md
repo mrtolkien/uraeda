@@ -45,9 +45,11 @@ and the tradeoffs. Links to the decisions and discovery topics behind it.]
 
 ## Mockups
 
-[Optional, UI work only: remove this section otherwise.]
+[Optional, UI work only: remove this section otherwise. With an active preview decision, each story
+of the spec, also embedded alone in its paragraph where it illustrates.]
 
-- [[Screen or state](mockups/screen-name.html): what it shows]
+- [[State](/path/to/Component.stories.tsx#State) or [Screen](mockups/screen-name.html): what it
+  shows]
 
 ## Assumptions
 

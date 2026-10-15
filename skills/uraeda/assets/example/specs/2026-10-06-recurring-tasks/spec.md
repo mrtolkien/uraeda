@@ -35,6 +35,8 @@ date. See the [proposal](proposal.md), [discovery](discovery-01.md), and
 In a task's edit panel, a repeat menu offers: never, daily, weekdays, weekends, weekly, monthly,
 yearly, and custom. Repeating tasks show a repeat icon in the list.
 
+[Repeat menu, open](/src/tasks/RepeatMenu.stories.tsx#Open)
+
 Why this priority: it is the proposal's path, and every other story builds on it.
 
 Acceptance scenarios:
@@ -50,6 +52,8 @@ Acceptance scenarios:
 
 Completing a repeating task moves it to its next due date instead of marking it done. The row says
 so for 5 seconds, with an undo button.
+
+[Repeating task, completed](/src/tasks/RepeatMenu.stories.tsx#Completed)
 
 Why this priority: this is what saves users from recreating tasks.
 
@@ -68,6 +72,8 @@ Acceptance scenarios:
 
 The repeat menu's "custom" entry opens a screen to repeat every N days, weeks, months, or years,
 and, for weeks, on chosen days.
+
+[Custom repeat screen](/src/tasks/RepeatMenu.stories.tsx#Custom)
 
 Why this priority: the human needs weekdays against weekends, and intervals like "every 2 weeks"
 ([Q1](clarifications-01.md#q1-how-should-users-pick-when-a-task-repeats)).
@@ -138,8 +144,12 @@ menu, the custom screen, and the title parser all produce the same rule. See the
 
 ## Mockups
 
-- [Repeat](mockups/repeat.html): the repeat menu open in the edit panel, the custom repeat screen,
-  and a task row just after a completion, with its undo.
+- [Repeat menu, open](/src/tasks/RepeatMenu.stories.tsx#Open): the repeat menu open in the edit
+  panel of a task due Monday the 5th, with its eight entries.
+- [Repeating task, completed](/src/tasks/RepeatMenu.stories.tsx#Completed): a task row just after a
+  completion, reading "Next: Monday 12", with its undo button.
+- [Custom repeat screen](/src/tasks/RepeatMenu.stories.tsx#Custom): the custom repeat screen, set to
+  every 2 weeks on Monday and Thursday.
 
 ## Assumptions
 
@@ -177,6 +187,8 @@ Relied on:
   with upgrade 2.
 - [UI components](../decisions/ui-components.md): the menu uses `Select`, and the custom screen is
   built in the project.
+- [Preview](../decisions/preview.md): the mockups are stories of the real components, in
+  `src/tasks/RepeatMenu.stories.tsx`, one export per state.
 
 ## Constitution check
 

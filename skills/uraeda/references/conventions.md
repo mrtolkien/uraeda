@@ -16,6 +16,11 @@ GitHub Flavored Markdown, plus these extensions, which stay readable where they 
 - **Links**: markdown links, with a relative path (`[spec](spec.md)`) or a path from the repository
   root (`[auth](/src/auth.ts)`). Humans may write wikilinks (`[[due-dates]]`): read them, but do not
   write them. Link to what a file relies on: decisions, discovery, code.
+- **Story links**: a link to a `*.stories.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, or `.svelte` file,
+  from the repository root or relative, then `#` and the story's export name, an ASCII identifier:
+  `[Repeat menu, open](/src/tasks/RepeatMenu.stories.tsx#Open)`. With an active preview decision, a
+  story link alone in its paragraph shows the story live in Uraeda, and anywhere else opens it in
+  Storybook. A variant's story link is a paragraph of its option.
 - **Images**: `![alt](images/name.webp)`, saved in the `images/` folder next to the file, and
   committed with it. Each is re-encoded once as WebP, with no metadata and at most 2576 pixels on
   its long edge (JPEG and lossy WebP at quality 80, the rest near-lossless); an animated GIF stays a
@@ -50,27 +55,31 @@ its numbered rounds and questions, and its opening `> [!NOTE]` block; `PRIORITIE
 category named once, when the file exists; `specs/INBOX-TRIAGE.md` as a round of questions, with its
 template's title and sections, its `status`, its answers, and its block; links and images to
 markdown files and into `specs/` that resolve, anchors included, except links from `PRIORITIES.md`
-and `INBOX.md` into a started feature's or change's folder, whose files live on its branch; and the
-[review files](#review-files) rules.
+and `INBOX.md` into a started feature's or change's folder, whose files live on its branch; the
+[review files](#review-files) rules; and the preview decision's two fields, both or neither, a
+`preview-folder` that is `.` or a relative path without `..`, and a `preview-command` holding
+`{port}`.
 
 ## Workflow status
 
 Workflow files track their state in frontmatter fields.
 
-| File                   | Field            | Set by the agent                      | Set by the human                  |
-| ---------------------- | ---------------- | ------------------------------------- | --------------------------------- |
-| `proposal.md`          | `discovery`      |                                       | `low`, `medium`, or `high`        |
-| `clarifications-NN.md` | `status`         | `awaiting-human`                      | `answered`                        |
-| `spec.md`              | `status`         | `awaiting-human`                      | `approved` or `changes-requested` |
-| `spec.md`              | `revision`       | `1`, then `+1` at every change        | `+1` when editing it              |
-| `spec.md`              | `clarifications` | the last round it includes: `2`       |                                   |
-| `spec.md`              | `risk-tier`      | `low`, `medium`, or `high`            | may change it on approval         |
-| `spec.md`              | `plan-review`    | `false`                               | may change it on approval         |
-| `plan.md`              | `status`         | `awaiting-human` or `auto-approved`   | `approved` or `changes-requested` |
-| `plan.md`              | `spec-revision`  | the spec `revision` it implements     |                                   |
-| `decisions/*.md`       | `status`         | `proposed`, then `active` on approval | `active`                          |
-| `decisions/*.md`       | `approved-by`    | the approver, on approval, if known   | the approver                      |
-| `INBOX-TRIAGE.md`      | `status`         | `awaiting-human`                      | `answered`                        |
+| File                   | Field             | Set by the agent                      | Set by the human                  |
+| ---------------------- | ----------------- | ------------------------------------- | --------------------------------- |
+| `proposal.md`          | `discovery`       |                                       | `low`, `medium`, or `high`        |
+| `clarifications-NN.md` | `status`          | `awaiting-human`                      | `answered`                        |
+| `spec.md`              | `status`          | `awaiting-human`                      | `approved` or `changes-requested` |
+| `spec.md`              | `revision`        | `1`, then `+1` at every change        | `+1` when editing it              |
+| `spec.md`              | `clarifications`  | the last round it includes: `2`       |                                   |
+| `spec.md`              | `risk-tier`       | `low`, `medium`, or `high`            | may change it on approval         |
+| `spec.md`              | `plan-review`     | `false`                               | may change it on approval         |
+| `plan.md`              | `status`          | `awaiting-human` or `auto-approved`   | `approved` or `changes-requested` |
+| `plan.md`              | `spec-revision`   | the spec `revision` it implements     |                                   |
+| `decisions/*.md`       | `status`          | `proposed`, then `active` on approval | `active`                          |
+| `decisions/*.md`       | `approved-by`     | the approver, on approval, if known   | the approver                      |
+| `INBOX-TRIAGE.md`      | `status`          | `awaiting-human`                      | `answered`                        |
+| `decisions/preview.md` | `preview-folder`  | where Storybook runs: `.`, `web`      |                                   |
+| `decisions/preview.md` | `preview-command` | its command, with `{port}`            |                                   |
 
 A change's folder has no other status: its rounds are `clarifications-NN.md`, as a feature's are.
 See [Change](change.md).
@@ -96,6 +105,11 @@ source of truth.
   `Lines 50–52, under "<heading>"`, `Line 50, under "<heading>"`, or `General`: the line numbers are
   those of the version at `commit`, and the heading is the nearest one above them. A line comment
   quotes its lines, as a quote block, then says what it has to say.
+- **A comment on a story**, written from Uraeda, starts with `Story <file name>#<export>`. When the
+  human picked an element, `, <phone or desktop>, <role> “<name>”` follows: the width only while
+  both showed, and the role alone when the element has no name. Then `: ` and the text:
+  `Story RepeatMenu.stories.tsx#Open, phone, button “Weekly”: Too small to tap.` On a question's
+  variant, the same line is added to its answer, and in a session to the human's message.
 - **Changes requested** need at least one comment.
 - **Approved with comments**: the comments do not change the approved file. The next step carries
   them out, and says how: the plan, in its `## Review comments` section, for a spec; the

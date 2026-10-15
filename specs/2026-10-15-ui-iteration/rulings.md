@@ -668,3 +668,33 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `pnpm-workspace.yaml`, the `Preset` typedef and `run` in `uraeda-preview.js`.
 - **Where**: task 12, `packages/web/package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`,
   `skills/uraeda/assets/storybook/uraeda-preview.js`, `packages/binding/test-utils.ts`.
+
+## R45: The discovery's link to the example's mockup follows it to the fixtures
+
+- **Decision**: `discovery-01.md`'s link to the example's `repeat.html` points to
+  `/fixtures/mockups/repeat.html`, where task 13 moves it. Its text is unchanged.
+- **Rationale**: `ura check specs`, which task 13 runs, fails on a link to a file that no longer
+  exists. The plan's file list missed the round, which is otherwise never edited: the link names the
+  same file, at its new place, as finishing a feature rewrites links into a folder to its record.
+- **Alternatives considered**: keeping the HTML mockup in the example, which the spec removes; a
+  link to the file at an older commit, which `ura check` does not read.
+- **If wrong**: the round's link names a fixture rather than the example's file, as it was when the
+  round was written; git keeps the original.
+- **Where**: task 13, `specs/2026-10-15-ui-iteration/discovery-01.md`.
+
+## R46: The editors' tests that read the example follow its lines
+
+- **Decision**: the story links US1 and US2 now embed move the example spec's US2 two lines down.
+  The language server's `a_comment_quotes_its_lines` and Neovim's "a selection gets a comment"
+  comment on lines 52 to 54, the same three lines of US2 they commented on as 50 to 52. Neovim's two
+  screenshots of the example's US2, a comment's window and the inline comments, are taken again: the
+  gutter's numbers and the story link's line change, nothing else.
+- **Rationale**: the plan named the core's tests of the example's lines, not the editors'. The tests
+  keep what they check: the anchor's heading and quoted lines, and how the window and the inline
+  comment draw.
+- **Alternatives considered**: the story links after US2's scenarios, which still moves its lines by
+  US1's link; the expected heading changed to US1, which no longer quotes US2's text.
+- **If wrong**: the screenshots show the example's new lines; their references are two files of
+  `editors/nvim/tests/screenshots/`.
+- **Where**: task 13, `crates/lsp/tests/commands.rs`, `editors/nvim/tests/test_comment.lua`, and
+  `editors/nvim/tests/screenshots/`.

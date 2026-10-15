@@ -88,6 +88,10 @@ session's history. Otherwise, implement it yourself.
    passing and satisfy explicit architectural constraints. After five rounds, rule on what remains,
    in `rulings.md`, and go on.
 
+In the messages that report your work, link each story you wrote or changed, alone on a line, as a
+[story link](conventions.md#markdown): Uraeda shows it live in the session, where the human can try
+it and comment on it.
+
 ### Rulings
 
 Settle implementation details yourself: the spec with the human's approval comments is the
