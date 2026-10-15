@@ -37,24 +37,36 @@ export type StoryHrefRecord = { export: string | null; id: string; path: string 
 export const MAIN = "main";
 
 /**
+ * A checkout's folder, resolved from the main checkout, which the session manager keeps: a
+ * feature's worktree, or the main checkout without one; undefined in a repository the core finds
+ * no main checkout of.
+ */
+export async function checkoutDir(
+  ctx: RepoContext,
+  worktree?: string | null,
+): Promise<string | undefined> {
+  const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
+  return root === undefined ? undefined : resolve(root, worktree ?? ".");
+}
+
+/**
  * The checkout a folder's stories run in: the main checkout for `main`, else the feature's
- * worktree, resolved from the main checkout; null for a feature without one, a folder that is no
- * feature's, or a repository the core finds no main checkout of. A feature is never given a
- * checkout of its own here: the git decision leaves worktrees to the workflow.
+ * worktree; null for a feature without one, a folder that is no feature's, or a repository the core
+ * finds no main checkout of. A feature is never given a checkout of its own here: the git decision
+ * leaves worktrees to the workflow.
  */
 export async function checkoutOf(
   ctx: RepoContext,
   folder: string,
 ): Promise<{ dir: string } | null> {
-  const root = await ctx.binding.mainRoot(ctx.repo).catch(() => undefined);
-  if (root === undefined) {
-    return null;
-  }
   if (folder === MAIN) {
-    return { dir: root };
+    const dir = await checkoutDir(ctx);
+    return dir === undefined ? null : { dir };
   }
   const feature = await ctx.binding.readFeature(ctx.repo, folder).catch(() => undefined);
-  return feature?.worktree === undefined ? null : { dir: resolve(root, feature.worktree) };
+  const dir =
+    feature?.worktree === undefined ? undefined : await checkoutDir(ctx, feature.worktree);
+  return dir === undefined ? null : { dir };
 }
 
 /** Whether the checkout at `dir` has an active preview decision: false when it cannot be read. */
@@ -67,6 +79,8 @@ type Watched = { folder: string; live: LiveBus; stories: Set<string> };
 
 /** Each runner's watched bases. */
 const watched = new WeakMap<Previews, Map<string, Watched>>();
+/** The bases a restart stops: their watched records stay, for the start that follows. */
+const restarting = new Set<string>();
 
 /** Records that `ctx` read the base's `Preview`, and the story `story` when given. */
 function watch(ctx: RepoContext, base: string, folder: string, story?: string) {
@@ -85,16 +99,20 @@ function watch(ctx: RepoContext, base: string, folder: string, story?: string) {
 }
 
 /**
- * The records read for a base whose state changed, forgotten once its Storybook is stopped: their
- * live updates read them again, which watches them again.
+ * The records read for a base whose state changed, to send live updates to; none once its Storybook
+ * is stopped. fate reads a record again for its live update, and a read is a view, which would
+ * start it again: a stopped Storybook's records are forgotten without an update, and a page's next
+ * read watches them again. A restart's stop keeps them, for its start's updates.
  */
 export function changedRecords(previews: Previews, base: string): Watched | undefined {
   const bases = watched.get(previews);
-  const entry = bases?.get(base);
-  if (previews.state(base) === undefined) {
+  if (previews.state(base) !== undefined) {
+    return bases?.get(base);
+  }
+  if (!restarting.has(base)) {
     bases?.delete(base);
   }
-  return entry;
+  return undefined;
 }
 
 /** A folder's checkout to run, under its base, or null without one or without a decision. */
@@ -141,13 +159,26 @@ export async function restartPreview(ctx: RepoContext, folder: string): Promise<
     return { id: folder, ...NO_PREVIEW };
   }
   watch(ctx, checkout.base, folder);
-  return previewRecord(folder, checkout, ctx.previews.restart(checkout));
+  restarting.add(checkout.base);
+  try {
+    return previewRecord(folder, checkout, ctx.previews.restart(checkout));
+  } finally {
+    restarting.delete(checkout.base);
+  }
 }
 
-/** The parts of a story's id, `<folder>:<path>#<export>`: undefined when it has none. */
-function storyParts(id: string) {
-  const match = /^([^:]+):(.+)#([^#]+)$/.exec(id);
-  return match ? { export: match[3]!, folder: match[1]!, path: match[2]! } : undefined;
+/**
+ * The parts of a story's id, `<folder>:<path>#<export>`, its link checked by the core's rule, as
+ * written from the repository's top level: undefined when it names no story.
+ */
+function storyParts(ctx: RepoContext, id: string) {
+  const at = id.indexOf(":");
+  const link = id.slice(at + 1);
+  const target = at > 0 ? ctx.binding.storyLink(link) : null;
+  if (target === null || `${target.path}#${target.export}` !== link) {
+    return undefined;
+  }
+  return { export: target.export, folder: id.slice(0, at), path: target.path };
 }
 
 /**
@@ -156,7 +187,7 @@ function storyParts(id: string) {
  */
 export async function readStory(ctx: RepoContext, id: string): Promise<StoryRecord> {
   const none: StoryRecord = { error: null, frame: null, id, state: "none", storybook: null };
-  const parts = storyParts(id);
+  const parts = storyParts(ctx, id);
   const checkout = parts && (await runnable(ctx, parts.folder));
   if (!parts || !checkout) {
     return none;
@@ -175,7 +206,8 @@ export async function readStory(ctx: RepoContext, id: string): Promise<StoryReco
   if (story === undefined) {
     return { ...none, state: "missing" };
   }
-  const page = parts.folder === MAIN ? "/storybook" : `/f/${parts.folder}/storybook`;
+  const page =
+    parts.folder === MAIN ? "/storybook" : `/f/${encodeURIComponent(parts.folder)}/storybook`;
   return {
     ...none,
     frame: `${checkout.base}iframe.html?id=${encodeURIComponent(story)}&viewMode=story`,
