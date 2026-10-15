@@ -16,12 +16,13 @@
 // column at 1440 px (SC-001, SC-004 of the session view), and at 1024 px with the sidebar open (its
 // edge case).
 import { act, fireEvent, screen, within } from "@testing-library/react";
-import { afterEach, expect, test } from "vite-plus/test";
+import { afterEach, describe, expect, test } from "vite-plus/test";
 import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
 import { navigate } from "../routes.tsx";
 import {
   atRepo,
+  atSize,
   agent,
   attached,
   checkAccessibility,
@@ -133,95 +134,90 @@ async function checkCase(
   await checkAccessibility();
 }
 
-test("a comment being typed keeps its text and focus when the window narrows (US7 2)", async () => {
-  if (window.innerWidth < 768) {
-    return;
-  }
-  await page.viewport(800, 900);
-  try {
-    await show(ROUND, "How does your iPhone reach the server?");
-    const field = screen.getAllByRole("textbox", { name: "Comment" })[2] as HTMLTextAreaElement;
-    await userEvent.click(field);
-    await userEvent.keyboard("Only from home");
-    await page.viewport(700, 900);
-    // The narrow layout is drawn: the round's index leaves its column for the bar.
-    await expect.poll(() => screen.queryByRole("navigation", { name: "Questions" })).toBeNull();
-    expect(field.isConnected).toBe(true);
-    expect(field.value).toBe("Only from home");
-    expect(document.activeElement).toBe(field);
-  } finally {
-    await page.viewport(1440, 900);
-  }
-});
+describe("on the desktop", () => {
+  atSize("desktop");
 
-test("a task view keeps its address as the window crosses 768 px", async () => {
-  if (window.innerWidth < 768) {
-    return;
-  }
-  try {
-    await show("/", "Claude Code runner");
-    await act(async () => {
-      fireEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
-    });
-    await screen.findByRole("radio", { checked: true, name: "Next" });
-    // A pane beside home.
-    expect(screen.getByRole("link", { name: /Git listener process/ })).toBeTruthy();
+  test("a comment being typed keeps its text and focus when the window narrows (US7 2)", async () => {
+    await page.viewport(800, 900);
+    try {
+      await show(ROUND, "How does your iPhone reach the server?");
+      const field = screen.getAllByRole("textbox", { name: "Comment" })[2] as HTMLTextAreaElement;
+      await userEvent.click(field);
+      await userEvent.keyboard("Only from home");
+      await page.viewport(700, 900);
+      // The narrow layout is drawn: the round's index leaves its column for the bar.
+      await expect.poll(() => screen.queryByRole("navigation", { name: "Questions" })).toBeNull();
+      expect(field.isConnected).toBe(true);
+      expect(field.value).toBe("Only from home");
+      expect(document.activeElement).toBe(field);
+    } finally {
+      await page.viewport(1440, 900);
+    }
+  });
 
-    await page.viewport(700, 900);
-    await expect.poll(() => window.innerWidth).toBe(700);
-    // A page of its own, at the same address.
-    await expect
-      .poll(() => screen.queryByRole("link", { name: /Git listener process/ }))
-      .toBeNull();
-    expect(screen.getByRole("radio", { checked: true, name: "Next" })).toBeTruthy();
-    expect(window.location.pathname).toBe(atRepo(TASK));
+  test("a task view keeps its address as the window crosses 768 px", async () => {
+    try {
+      await show("/", "Claude Code runner");
+      await act(async () => {
+        fireEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
+      });
+      await screen.findByRole("radio", { checked: true, name: "Next" });
+      // A pane beside home.
+      expect(screen.getByRole("link", { name: /Git listener process/ })).toBeTruthy();
 
-    await page.viewport(1440, 900);
-    await expect.poll(() => window.innerWidth).toBe(1440);
-    // A pane again.
-    expect(await screen.findByRole("link", { name: /Git listener process/ })).toBeTruthy();
-    expect(screen.getByRole("radio", { checked: true, name: "Next" })).toBeTruthy();
-    expect(window.location.pathname).toBe(atRepo(TASK));
-  } finally {
-    await page.viewport(1440, 900);
-  }
-});
+      await page.viewport(700, 900);
+      await expect.poll(() => window.innerWidth).toBe(700);
+      // A page of its own, at the same address.
+      await expect
+        .poll(() => screen.queryByRole("link", { name: /Git listener process/ }))
+        .toBeNull();
+      expect(screen.getByRole("radio", { checked: true, name: "Next" })).toBeTruthy();
+      expect(window.location.pathname).toBe(atRepo(TASK));
 
-test("the folded navigation keeps ＋, Home, and the repository menu (US6 4, 5; US1)", async () => {
-  if (window.innerWidth < 768) {
-    return;
-  }
-  try {
-    await show("/priorities", "Claude Code runner");
-    await userEvent.click(within(nav()).getByRole("button", { name: "Collapse sidebar" }));
-    await expect
-      .poll(() => within(nav()).queryByRole("button", { name: "Expand sidebar" }))
-      .toBeTruthy();
+      await page.viewport(1440, 900);
+      await expect.poll(() => window.innerWidth).toBe(1440);
+      // A pane again.
+      expect(await screen.findByRole("link", { name: /Git listener process/ })).toBeTruthy();
+      expect(screen.getByRole("radio", { checked: true, name: "Next" })).toBeTruthy();
+      expect(window.location.pathname).toBe(atRepo(TASK));
+    } finally {
+      await page.viewport(1440, 900);
+    }
+  });
 
-    expect(within(nav()).getByRole("button", { name: "Add a priority" })).toBeTruthy();
-    // Folded, the heading's icon opens the menu.
-    await userEvent.click(within(nav()).getByRole("button", { name: `Uraeda ${repository()}` }));
-    const menu = await screen.findByRole("dialog", { name: "Repositories" });
-    expect(within(menu).getByRole("list", { name: "Repositories" })).toBeTruthy();
-    await userEvent.keyboard("{Escape}");
-    await expect.poll(() => screen.queryByRole("dialog", { name: "Repositories" })).toBeNull();
-    await userEvent.click(within(nav()).getByRole("link", { name: "Home" }));
-    await expect.poll(() => window.location.pathname).toBe(atRepo("/"));
+  test("the folded navigation keeps ＋, Home, and the repository menu (US6 4, 5; US1)", async () => {
+    try {
+      await show("/priorities", "Claude Code runner");
+      await userEvent.click(within(nav()).getByRole("button", { name: "Collapse sidebar" }));
+      await expect
+        .poll(() => within(nav()).queryByRole("button", { name: "Expand sidebar" }))
+        .toBeTruthy();
 
-    await userEvent.click(within(nav()).getByRole("button", { name: "Expand sidebar" }));
-    // Unfolded: the heading again, "Uraeda" over the repository's name, and ＋ beside it.
-    await expect
-      .poll(() => within(nav()).queryByRole("button", { name: `Uraeda ${repository()}` }))
-      .toBeTruthy();
-    expect(within(nav()).getByRole("button", { name: "Add a priority" })).toBeTruthy();
-  } finally {
-    // The navigation's state is kept in the browser: the next tests start unfolded.
-    for (const key of Object.keys(window.localStorage)) {
-      if (key.includes("uraeda.nav")) {
-        window.localStorage.removeItem(key);
+      expect(within(nav()).getByRole("button", { name: "Add a priority" })).toBeTruthy();
+      // Folded, the heading's icon opens the menu.
+      await userEvent.click(within(nav()).getByRole("button", { name: `Uraeda ${repository()}` }));
+      const menu = await screen.findByRole("dialog", { name: "Repositories" });
+      expect(within(menu).getByRole("list", { name: "Repositories" })).toBeTruthy();
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(() => screen.queryByRole("dialog", { name: "Repositories" })).toBeNull();
+      await userEvent.click(within(nav()).getByRole("link", { name: "Home" }));
+      await expect.poll(() => window.location.pathname).toBe(atRepo("/"));
+
+      await userEvent.click(within(nav()).getByRole("button", { name: "Expand sidebar" }));
+      // Unfolded: the heading again, "Uraeda" over the repository's name, and ＋ beside it.
+      await expect
+        .poll(() => within(nav()).queryByRole("button", { name: `Uraeda ${repository()}` }))
+        .toBeTruthy();
+      expect(within(nav()).getByRole("button", { name: "Add a priority" })).toBeTruthy();
+    } finally {
+      // The navigation's state is kept in the browser: the next tests start unfolded.
+      for (const key of Object.keys(window.localStorage)) {
+        if (key.includes("uraeda.nav")) {
+          window.localStorage.removeItem(key);
+        }
       }
     }
-  }
+  });
 });
 
 // The agents decision: the tests `vp run ready` runs use the fake adapter, never Claude Code.

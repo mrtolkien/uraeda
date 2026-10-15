@@ -224,3 +224,77 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   sleep, but the search cannot tell.
 - **If wrong**: none changes what a test checks.
 - **Where**: task 4.
+
+## R15: `atSize` reads the instance's viewport, and skips through its scope's options
+
+- **Decision**: `atSize` takes the size from the instance's configured viewport
+  (`server.config.browser.viewport`, under 768 px the phone), and at the other size sets `skip` in
+  the options of the block it is called in (`TestRunner.getCurrentSuite()`), which every test and
+  block declared after it inherits, as `describe.skip` does. A file whose tests are all of one size
+  calls it at its top (`round.test.tsx`, `task.test.tsx`); the others in a `describe` around their
+  tests.
+- **Rationale**: Vitest's `skipIf` decides per test or per block at the call that declares it, so a
+  call at the top of a scope cannot use it; the options are where `describe.skip` puts the same
+  flag. The configured viewport does not move when a test resizes the window, as `layout.test.tsx`
+  and `round.test.tsx` do. The helper's test failed with `{ hooked: 3 }` when the skip was a hook's
+  `context.skip()`, and on the width assertions when the sizes were swapped; the full runs skip 11
+  tests on the phone and 4 on the desktop, exactly the early returns' and the helper's.
+- **Alternatives considered**: `describe.skipIf(size !== "desktop")` at each call site: the
+  condition repeated in every file; `context.skip()` in a `beforeEach`: the file's own hooks run
+  first, taking a repository.
+- **If wrong**: the options are the runner's, typed but rarely used: a Vitest upgrade that stops
+  reading them fails the helper's test. At a file's top, the options belong to the runner's default
+  block, which is not reset between files: each browser file runs in a frame of its own (Vitest's
+  default `isolate`), so nothing leaks today; turning isolation off would need the `describe` form.
+- **Where**: task 5.
+
+## R16: The round's scroll offsets were a test behind the product, not a flake
+
+- **Decision**: `round.test.tsx` keeps its waits; only `atSize("desktop")` replaces its early
+  returns.
+- **Rationale**: both CI failures (runs 38519227740 and 38527830753, on `main` at 9290d4b and
+  30e0356) failed the same two polls with the same values, 326.721874 and 863.378124: deterministic,
+  not timing. Commit a1a0286 opened a round not started on its intro, at the top, while the tests
+  still expected it at Q1; 4b8de71 fixed the tests after both runs. The test of 30e0356, run on
+  today's code, fails with exactly those two values; the current test passed 10 runs out of 10
+  beside `vp run --no-cache ready:rust`, and 10 out of 10 with 48 busy loops on 32 cores (load 52).
+- **Alternatives considered**: waiting for `scrollStopped()` before each offset poll: slower, and
+  for a race that the evidence does not show.
+- **If wrong**: a real scroll race would fail one poll with a varying offset; its failure screenshot
+  and value would tell it from this one.
+- **Where**: task 5.
+
+## R17: The attachments' negative waits set the clock or follow a sentinel
+
+- **Decision**: "text typed at the cursor during an upload…" types under fake `setTimeout` and
+  `clearTimeout`, advances them 1 s, and asserts no save request was sent; "a paste of text with a
+  picture of it…" pastes an image alone after it, as a sentinel, and asserts that only the
+  sentinel's upload was sent, replacing its "Adding pasted image" and images folder checks; the
+  SC-002 test loses its duration and its 10 ms poll, and is named "SC-002: a 1440×900 screenshot
+  dropped is linked" until task 6 removes it (R5).
+- **Rationale**: the debounce is a timer of the page, which the test's clock can pass at once; a
+  paste is uploaded in order, so once the sentinel's link shows, any upload the first paste started
+  was sent before it. The count fails for the upload the old checks saw, and also for one started
+  without cancelling the paste. Breaks seen: saving while an upload holds the text fails with
+  `expected 1 to be +0`; uploading a text paste fails with `expected 2 to be 1`.
+- **Alternatives considered**: waiting for the save state shown on the page: an unscheduled save
+  shows nothing to wait for.
+- **If wrong**: fake timers stop the page's other timers for 1 s of fake time, which the test does
+  not depend on; a page that uploads pastes out of order would pass the paste test wrongly.
+- **Where**: task 5.
+
+## R18: Task 5's commands, as run
+
+- **Decision**: the helper's test runs from the root
+  (`vp test --project phone packages/web/src/__browser__/sizes-helper.test.tsx`); both sizes run at
+  once as two processes, after `vp run binding:touch`:
+  `vp run --no-cache --ignore-depends-on browser:phone` and the same for `browser:desktop`; the
+  search for early returns is a multi-line one, apart from the sleeps' and clocks'.
+- **Rationale**: from `packages/web`, `vp test` reads that package's config, which has no `phone`
+  project; `vp run` takes one task, and passes a second one to the first as an argument, so the
+  plan's command ran the phone only; without `--ignore-depends-on`, two `--no-cache` runs would
+  build the binding at the same time. The plan's `innerWidth\s*[<>]` also finds the tests at both
+  sizes that branch on the width, which task 5 keeps.
+- **Alternatives considered**: `vp run ready`: every other check too.
+- **If wrong**: none changes what runs on CI, whose two browser jobs are two machines.
+- **Where**: task 5.
