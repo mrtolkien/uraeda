@@ -29,6 +29,12 @@ async function storyShown(title: string, options = READY) {
   await expect.poll(() => commands.frameText(title), options).toContain("Dragging");
 }
 
+/** The texts of the embed's live regions, which a screen reader says as they change. */
+const statuses = () =>
+  within(embed())
+    .queryAllByRole("status")
+    .map((region) => region.textContent);
+
 /** A frame's height on the page, in px. */
 const heightOf = (title: string) => screen.getByTitle(title).getBoundingClientRect().height;
 
@@ -40,6 +46,8 @@ describe("on a desktop", () => {
     await show(SPEC, "Resize the sidebar");
 
     expect(await within(embed()).findByText("Starting Storybook for this branch…")).toBeTruthy();
+    // Said, as it changes, to a screen reader too.
+    expect(statuses()).toContain("Starting Storybook for this branch…");
     const phone = await within(embed()).findByTitle(PHONE, {}, READY);
     const desktop = within(embed()).getByTitle(DESKTOP);
     expect([phone.getAttribute("src"), desktop.getAttribute("src")]).toEqual([
@@ -177,6 +185,59 @@ describe("on a desktop, the frames and their messages", () => {
   });
 });
 
+describe("on a desktop, the embed among other windows and boxes", () => {
+  atSize("desktop");
+
+  test("a size from any window other than one of the embed's frames is ignored (edge case)", async () => {
+    await commands.addStoryFeature();
+    // A second embed on the page, the proposal's, as on disk in the worktree.
+    const proposal = `.worktrees/${FEATURE}/specs/${FEATURE}/proposal.md`;
+    const text = await commands.readRepo(proposal);
+    await commands.writeRepo(`${text}\n[Thin line](/${STORIES}#ThinLine)\n`, proposal);
+    await show(PROPOSAL, "Long feature names are cut");
+    for (const title of [PHONE, "Thin line, phone"]) {
+      await expect
+        .poll(() => commands.frameAttribute(title, "html", "data-mode"), READY)
+        .toBe("light");
+    }
+    const before = heightOf(PHONE);
+    expect(before).not.toBe(300);
+
+    // The page itself: the embed's listener reads it before this one, added after it.
+    const seen = new Promise((resolve) =>
+      window.addEventListener("message", resolve, { once: true }),
+    );
+    window.postMessage({ height: 300, uraeda: "size" }, "*");
+    await seen;
+    expect(heightOf(PHONE)).toBe(before);
+
+    // The other embed's frame: its own embed takes it, and this one does not.
+    await commands.frameRun(
+      "Thin line, phone",
+      `window.parent.postMessage({ uraeda: "size", height: 300 }, "*");`,
+    );
+    await expect.poll(() => heightOf("Thin line, phone")).toBe(300);
+    expect(heightOf(PHONE)).toBe(before);
+  });
+
+  test("in a pane too narrow for both widths, Both shows the phone's alone, within the pane", async () => {
+    await commands.addStoryFeature();
+    // The main checkout's draft embeds the story, and opens in a pane beside the priorities.
+    const draft = "specs/drafts/git-listener.md";
+    const text = await commands.readRepo(draft);
+    await commands.writeRepo(`${text}\n[${LABEL}](/${STORIES}#Dragging)\n`, draft);
+    await show("/priorities/git-listener", "So agents start without me.");
+
+    const phone = await within(embed()).findByTitle(PHONE, {}, READY);
+    await storyShown(PHONE);
+    expect(within(embed()).getByRole("radio", { checked: true, name: "Both" })).toBeTruthy();
+    expect(within(embed()).queryByTitle(DESKTOP)).toBeNull();
+    expect(phone.getBoundingClientRect().right).toBeLessThanOrEqual(
+      embed().getBoundingClientRect().right,
+    );
+  });
+});
+
 describe("on the phone", () => {
   atSize("phone");
 
@@ -214,6 +275,8 @@ test("each state says why the story does not show", async () => {
       READY,
     ),
   ).toBeTruthy();
+
+  expect(statuses()).toContain("Storybook did not start: Error: Cannot find module 'storybook'");
 
   await userEvent.click(within(embed()).getByRole("button", { name: "Try again" }));
 

@@ -350,7 +350,7 @@ function StoryNode({ block, context }: { block: Block; context: Context }) {
       <StoryEmbed
         comment={stories.comment && ((text) => stories.comment!(story, text, block))}
         folder={stories.folder}
-        key={`${story.path}#${story.export}`}
+        key={`${stories.folder}:${story.path}#${story.export}`}
         removed={stories.removed}
         story={story}
       />
