@@ -766,3 +766,36 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   spec does not ask for.
 - **If wrong**: The function is in git history, with its tests.
 - **Where**: final review, `crates/core/src/actions/inbox.rs`, `crates/core/tests/inbox_moves.rs`
+
+## R31: This repository's scratchpad moves in the finish commit, not as the reference says
+
+- **Decision**: `references/inbox.md`'s "Setting it up" stays as it is: a project adopting the inbox
+  moves its `## Scratchpad`, or any other list of notes, in one commit on its default branch. This
+  repository follows its approved spec instead: the feature's last commit, the finish, moves the
+  default branch's scratchpad into `INBOX.md`, after catching up with it, as the spec's "Settled
+  while writing this spec" and SC-005 say.
+- **Rationale**: The final review found the two disagree. They describe two different moves: the
+  reference, a project that adopts the inbox once it exists, with no feature branch to carry the
+  move; the spec, the one feature that builds the inbox, whose notes must not leave `PRIORITIES.md`
+  before the inbox that takes them merges. The spec offered the exception to "feature branches only
+  remove their own entry" for the human to refuse; they approved it, asking to move the scratchpad
+  as it is ([C1](spec-review.md)).
+- **Alternatives considered**: A reference that also describes a move in a feature's finish, a rule
+  for one feature, which no other project has.
+- **If wrong**: The finish commit's move becomes a default-branch commit once this merges.
+- **Where**: final review, `skills/uraeda/references/inbox.md`, unchanged; the finish step
+
+## R32: The answered round and the approved spec had links edited, not words
+
+- **Decision**: Commit 28c252f edited `clarifications-01.md`, answered, `discovery-01.md`, and the
+  approved `spec.md`: the links `main`'s merge of the bugfixing feature broke, its draft and
+  `references/bug.md`, point at its record or name the old path as code, as ruling R23 says. No word
+  of a question, an answer, or the spec changed, and the spec's `revision` stays.
+- **Rationale**: Answered rounds stay as they were, and an approved spec changes only with the
+  human: both protect what the human read and decided. A link to a file `main` deleted fails
+  `ura check specs`, and its replacement says what the human read, to the same feature.
+- **Alternatives considered**: Leaving the links broken, and the checks failing. A new round or a
+  spec revision for a link, which asks the human to read again what did not change.
+- **If wrong**: Revert the link edits of 28c252f, and exempt these files from the check.
+- **Where**: final review, commit 28c252f, `specs/2026-10-15-add-scratchpad/clarifications-01.md`,
+  `discovery-01.md`, `spec.md`

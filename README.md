@@ -136,6 +136,7 @@ specs/
   README.md                    # the folder layout, for any agent or human
   CONSTITUTION.md              # the project's principles, by priority, written with you at setup
   PRIORITIES.md                # Now, Next, Later, Blocked
+  INBOX.md                     # notes jotted down, waiting to be organized
   drafts/                      # upcoming features, free form: one becomes a dated folder when you
                                # say "start it"
   backlog/                     # nice-to-have features, not scheduled
@@ -163,6 +164,11 @@ in the web UI, and its agent works in its own branch and worktree. It investigat
 you must decide, makes the change with tests that fail first, has a fresh reviewer check it, and
 opens a pull request: no spec, no plan, and often nothing to answer before the review. A change that
 turns out too big is offered to you as a feature.
+
+Small things you notice while working, a misaligned icon or a confusing command, go in the inbox,
+`specs/INBOX.md`, in a few seconds: from the web UI's ＋, or with `ura note`, which agents use too.
+You organize the notes later into priorities, drafts, or changes, by hand or by answering an agent's
+proposed triage.
 
 To start in a project, run `ura init`, or ask the agent to "set up specs/": either creates the
 folder, and the agent drafts the constitution with you. `ura init` also offers to install the skill
@@ -221,6 +227,7 @@ ura check                                  # every workflow file against the ski
 ura add                                    # this repository, to the web UI's list
 ura draft "listener"                       # a line of PRIORITIES.md becomes a draft
 ura start git-listener-process             # a draft becomes a started feature; --change, a change
+ura note "Blurry icons" --category UI      # a note in the inbox, committed on the default branch
 ura answer cli-core Q3 "B, simpler"        # one answer; --submit sends the round
 ura review cli-core --comment 50-52 "Why?" # a comment; --approve or --request-changes
 ```
