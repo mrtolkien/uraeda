@@ -203,10 +203,11 @@ pub fn start_change(
     job(move || api::start_change(Path::new(&repo), &text, &images, slug.as_deref()))
 }
 
-/// The slug proposed for a change typed with this title.
+/// The slug proposed for a change typed as this text, from the title its start reads in it: empty
+/// when it has none.
 #[napi]
-pub fn propose_slug(title: String) -> String {
-    api::propose_slug(&title)
+pub fn propose_slug(text: String) -> String {
+    api::propose_slug(&text)
 }
 
 /// Adds a line at the end of a section of the priorities.

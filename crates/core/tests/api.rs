@@ -439,13 +439,25 @@ fn a_start_is_of_a_feature_or_a_change() {
     );
 }
 
-/// R1: the slug a typed change is offered, from its title.
+/// R1, R14: the slug a typed change is offered, from the title `start_change` reads in its text.
 #[test]
-fn a_typed_title_proposes_its_slug() {
-    assert_eq!(
-        api::propose_slug("Centre the x in failure circles"),
-        "centre-x"
-    );
+fn a_typed_text_proposes_the_slug_of_its_title() {
+    let long = format!("Crash {} dialog", "on the ".repeat(20));
+    let cases = [
+        ("Centre the x in failure circles", "centre-x"),
+        ("Centre the x\n\nIn failures the x sits low.", "centre-x"),
+        (
+            "\n   \n## Centre the x\n\nIn failures it sits low.",
+            "centre-x",
+        ),
+        ("#\nCrash\n\nWhen saving", "crash"),
+        ("#123 crashes\n\nOn save", "123-crashes"),
+        (long.as_str(), "crash"),
+        ("  \n##\n", ""),
+    ];
+    for (text, slug) in cases {
+        assert_eq!(api::propose_slug(text), slug, "{text:?}");
+    }
 }
 
 /// Review focus 4: a change's proposal opens, saves, and commits on its branch.

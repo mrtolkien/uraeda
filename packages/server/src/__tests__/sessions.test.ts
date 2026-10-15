@@ -923,17 +923,13 @@ test("change.start refuses a taken slug with the core's message", async () => {
   });
 });
 
-test("SlugProposal proposes the core's slug for a typed title", async () => {
+test("SlugProposal proposes the core's slug for a typed text, from its title", async () => {
   const server = await testServer();
+  const typed = "\n## Crash\n\nWhen saving, the app closes.";
 
-  const [proposal] = await byId(
-    server.app,
-    "SlugProposal",
-    ["Centre the x in failure circles"],
-    ["id", "slug"],
-  );
+  const [proposal] = await byId(server.app, "SlugProposal", [typed], ["id", "slug"]);
 
-  expect(proposal).toEqual({ id: "Centre the x in failure circles", slug: "centre-x" });
+  expect(proposal).toEqual({ id: typed, slug: "crash" });
 });
 
 test("a change's files are writable until its agent runs", async () => {

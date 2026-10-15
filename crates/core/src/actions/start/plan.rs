@@ -140,7 +140,7 @@ impl Start<'_> {
         let slug = slug.map_or_else(
             || match &origin {
                 Origin::Draft(drafted) => crate::slug::short(draft_name(drafted.draft)),
-                Origin::Text(typed, _) => crate::slug::propose(&typed.title),
+                Origin::Text(typed, _) => typed.proposed_slug(),
             },
             str::to_string,
         );
