@@ -46,9 +46,9 @@ them into the inbox in one commit on the default branch, from the files as they 
 - Allow no selection in responses (after a warning)
 ```
 
-- **Note**: a line starting with `- ` or `* ` at column 0, with the lines indented under it. Its
-  text is the line after the marker and the marks. A note linking a draft is a markdown link
-  covering its whole text.
+- **Note**: an item at column 0, a line starting with `- `, `* `, or a number and `. ` like `1. `,
+  with the lines indented under it; tools write `- `. Its text is the line after the marker and the
+  marks. A note linking a draft is a markdown link covering its whole text.
 - **Marks**: leading groups `[agent]`, then `[<slug>]`, each followed by one space. A slug is
   lowercase letters, digits, and `-`. Any other bracket, like `[!]`, is text.
 - **Category**: a `## ` heading; its name is the heading's text, without closing `#`s: `## UI ##` is
@@ -139,7 +139,7 @@ checkout, and need no feature.
    - The `> [!IMPORTANT]` block, as in
      [Coming back to the human](../SKILL.md#coming-back-to-the-human): its first line gives the
      questions, the notes they cover, and the time, about two minutes a question: "8 questions on 11
-     notes, about 15 minutes".
+     notes, about 16 minutes".
    - **Context**: how many notes the inbox holds, how many the triage covers, and what you read.
      Cover every note; when they are too many for one sitting, cover whole categories, and say which
      wait for a later triage.
