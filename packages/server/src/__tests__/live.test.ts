@@ -103,6 +103,7 @@ test("a feature's change through git is published to its session, its branch's c
   watcher!({
     features: ["2026-10-12-cli-tuis", "2026-10-11-web-ui"],
     files: [],
+    inbox: false,
     priorities: false,
     workspace: false,
   });
@@ -193,7 +194,7 @@ test("two changes published in one millisecond have different event IDs", () => 
   vi.spyOn(Date, "now").mockReturnValue(1000);
   const host = hostAt("/repo");
   const update = vi.spyOn(host.live, "update");
-  const changes = { features: [], files: [], priorities: false, workspace: true };
+  const changes = { features: [], files: [], inbox: false, priorities: false, workspace: true };
 
   publish(changes, host);
   publish(changes, host);

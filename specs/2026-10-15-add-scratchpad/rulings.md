@@ -159,3 +159,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: None that keep the plan's expected outputs.
 - **If wrong**: Each is a line or two.
 - **Where**: task 2
+
+## R12: The inbox is read without a worktree, and the workspace holds both files' texts
+
+- **Decision**:
+  - `api::read_inbox` reads `INBOX.md` and `INBOX-TRIAGE.md` like `read_priorities`, from the
+    default branch's checkout or its tip, without the write lock or a worktree. Only the edits go
+    through `write_lock` and `reach_default`.
+  - `actions::inbox::of(text, committed, triage)` builds the `Inbox` for both reads. Until task 4,
+    `changes` counts `inbox::diff` against the committed file.
+  - `Workspace` holds the texts of `INBOX.md` and `INBOX-TRIAGE.md`, not the triage's status, and
+    skips both in `ura status --json`.
+  - `add_note` refuses an `about` that is not a feature or bug folder name, without checking that
+    the feature exists.
+- **Rationale**: A read that creates `.worktrees/main` would be a write, against the priorities'
+  pattern. The watch flag must fire when the triage's answers change, not only its status, so the
+  snapshot hashes the text. The JSON of `ura status` is a documented output that no story changes.
+- **Alternatives considered**: `read_inbox` through `reach_default`, as the plan's interface said,
+  which creates a worktree on a read. Storing the status, which misses answers typed in the file.
+- **If wrong**: `read_inbox` takes the lock and reaches the default branch, a few lines; the
+  workspace's fields gain `Serialize`.
+- **Where**: task 3, `api/inbox_edits.rs`, `actions/inbox.rs`, `workspace.rs`, `watch.rs`

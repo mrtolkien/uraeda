@@ -7,6 +7,7 @@ pub mod clean;
 pub mod commit;
 pub mod draft;
 pub mod images;
+pub mod inbox;
 pub mod init;
 pub mod install;
 pub mod place;

@@ -113,3 +113,10 @@ pub fn switch_back(git: &Git, place: &Place, previous: Option<&str>) {
         let _ = git.switch(previous);
     }
 }
+
+/// A file's committed text, at `HEAD` of the working tree, from its top level.
+pub fn committed(place: &Place, path: &str) -> Option<String> {
+    let git = Git::open(&place.root).ok()?;
+    let bytes = git.read_file(git.head()?, path).ok()??;
+    String::from_utf8(bytes).ok()
+}
