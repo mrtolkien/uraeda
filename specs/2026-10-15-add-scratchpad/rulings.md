@@ -426,3 +426,43 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: task 9 and its review, `packages/web/src/SidebarAdd.tsx`, `AddNote.tsx`,
   `InboxPage.tsx`, `Shell.tsx`, `crates/core/src/files/inbox.rs` and `files/lines.rs`, and the tests
   named above
+
+## R20: The note's view: Astryx menus, Undo by move, and one bar that reads both files again
+
+- **Decision**:
+  - "Move to priorities" and "Make a draft" are Astryx `DropdownMenu`s of the four sections, a
+    popover on wide screens and a sheet of buttons on narrow ones. "Category" is a `Selector`
+    showing the note's category, like the add form's. "Add to a draft" is a `Selector` with
+    `hasSearch`, its search field's placeholder "Find a draft", whose trigger is a button named "Add
+    to a draft". The workspace lists drafts by path only, a folder by its folder: the view reads
+    their titles in one request of `drafts` by ids (`useDraftTitles`), a folder's at
+    `<folder>/proposal.md`. A note's own draft is not offered.
+  - "Edit" opens the note's text in place through `useLineSave` and `EditableLine`'s field, now
+    exported as `LineField`; `useLineSave` takes the empty text's refusal, "A note needs text.".
+  - Make a draft shows no toast: it opens the editor, as the task view's Draft does, and the spec
+    lists no toast for it.
+  - Undo, for each move: Delete puts the note's lines back at its place with `inbox.insert`. A
+    category move finds the note by its lines, its key first, removes it, and inserts it back at its
+    place, or is refused with "Could not undo: "<note>" is no longer in INBOX.md.". A move to the
+    priorities puts the note back, then removes the section's last line of the note's text, or is
+    refused with "Could not undo: "<note>" is no longer in PRIORITIES.md." when that line is gone,
+    nothing written. An add to a draft writes the draft's text from before the move back over its
+    hash just after it, so an edit made since refuses it with the core's conflict, then puts the
+    note back.
+  - `CommitBar` shows its refusal, a hook's included, in the bar, not above the page's list. After
+    Commit, Discard, and every move across files, the inbox and the priorities are read again
+    (`rereadChanges`), as both carry the bar's count and only one comes back with the answer.
+  - The narrow note page has no ‹ in the top bar, as the task view has none: Back returns.
+  - Review focus 2's tests are in the browser, at the desktop's size, with the page's clock faked,
+    as the priorities' toasts tests are: happy-dom keeps a dismissed toast's text drawn.
+- **Rationale**: The UI layout decision asks for popovers on wide screens and sheets on narrow ones,
+  which these components give. The core takes nothing back out of a draft but Discard, so the
+  draft's Undo restores the text it saw, guarded by its hash, without the UI reading markdown. Two
+  writes in an Undo put the note back first: a failure then leaves a duplicate, never a lost note.
+- **Alternatives considered**: An overlay with a filter field and a list for the drafts, a second
+  picker where Astryx has one. Undo of a category move with `inbox.category`, which puts the note at
+  the category's end, not its place. Removing the priorities line first, which loses the note when
+  the second write fails.
+- **If wrong**: Each is local to `NoteView.tsx`, `useNoteActions.ts`, or `CommitBar.tsx`.
+- **Where**: task 10, `packages/web/src/NoteView.tsx`, `useNoteActions.ts`, `CommitBar.tsx`,
+  `EditableLine.tsx`, `useLineSave.ts`, `data.ts`, `views.ts`, `InboxPage.tsx`, `App.tsx`

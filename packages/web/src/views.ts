@@ -164,6 +164,20 @@ export const DraftView = view<Draft>()({
   written: true,
 });
 
+/** A draft's title, for the lists that offer drafts by title, like "Add to a draft". */
+export const DraftTitleView = view<Draft>()({
+  id: true,
+  path: true,
+  title: true,
+});
+
+/** A draft's text and its hash, for an Undo that writes it back. */
+export const DraftTextView = view<Draft>()({
+  hash: true,
+  id: true,
+  text: true,
+});
+
 export const AgentView = view<Agent>()({
   available: true,
   capabilities: {

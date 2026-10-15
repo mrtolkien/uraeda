@@ -7,6 +7,7 @@ import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tok
 import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
+import { rereadChanges } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { closeUndoToasts } from "./layout/useUndoToast.ts";
 import { PrioritiesView } from "./views.ts";
@@ -27,7 +28,9 @@ const styles = stylex.create({
 });
 
 /**
- * The commit bar: how many changes wait for a commit, with Commit, and Discard, which asks first.
+ * The commit bar, on the inbox and the priorities pages: how many changes wait for a commit, in
+ * `INBOX.md`, `PRIORITIES.md`, and the drafts notes went into, with Commit, and Discard, which asks
+ * first.
  * Both close the Undo toasts once done: an Undo would write a change back over the committed file.
  * A refusal, like a hook's, shows in the bar, and the changes stay. Hidden while nothing changed.
  */
@@ -47,6 +50,8 @@ export function CommitBar({ changes }: { changes: number }) {
       return;
     }
     closeUndoToasts();
+    // Both pages show the count: the one the answer did not update reads it again.
+    rereadChanges(fate);
   };
 
   const commit = () =>

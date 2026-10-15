@@ -5,10 +5,11 @@ import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import type { InboxNote } from "uraeda-binding";
+import { CommitBar } from "./CommitBar.tsx";
 import { useInbox } from "./data.ts";
 import { Page } from "./layout/Page.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
-import { useRestoreScroll } from "./routes.tsx";
+import { useLocalPath, useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { Spans } from "./Spans.tsx";
 
 /** "1 note", "10 notes". */
@@ -17,7 +18,7 @@ export function notes(count: number) {
 }
 
 /** A note's marks, as tags before its text: `agent` in a colour of its own, then its feature's. */
-function Marks({ note }: { note: InboxNote }) {
+export function Marks({ note }: { note: InboxNote }) {
   if (!note.agent && !note.about) {
     return null;
   }
@@ -29,10 +30,13 @@ function Marks({ note }: { note: InboxNote }) {
   );
 }
 
-/** A note: its marks, then its text. */
-function Note({ note }: { note: InboxNote }) {
+/** A note: its marks, then its text; tapped, it opens its view. */
+function Note({ isSelected, note }: { isSelected: boolean; note: InboxNote }) {
+  const here = useRepoPath();
   return (
     <ListItem
+      href={here(`/inbox/${note.key}`)}
+      isSelected={isSelected}
       // Nodes, not strings, so long notes wrap instead of being cut.
       label={
         <HStack align="center" gap={1} wrap="wrap">
@@ -48,10 +52,13 @@ function Note({ note }: { note: InboxNote }) {
 
 /**
  * The inbox: `INBOX.md`'s notes under their categories, the notes without one first, then in the
- * file's order; a category with no note is hidden.
+ * file's order; a category with no note is hidden. Each note opens its view; the commit bar commits
+ * the inbox's changes with the priorities'.
  */
 export function InboxPage() {
   const inbox = useInbox();
+  // The note open beside the list, on wide screens.
+  const pathname = useLocalPath();
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   if (!inbox) {
@@ -81,11 +88,12 @@ export function InboxPage() {
                 key={category.name === undefined ? "none" : `category:${name}`}
               >
                 {category.notes.map((note) => (
-                  <Note key={note.id} note={note} />
+                  <Note isSelected={pathname === `/inbox/${note.key}`} key={note.id} note={note} />
                 ))}
               </List>
             );
           })}
+        <CommitBar changes={inbox.changes} />
       </VStack>
     </Page>
   );
