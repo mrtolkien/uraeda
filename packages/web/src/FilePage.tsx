@@ -8,8 +8,12 @@ import { Page } from "./layout/Page.tsx";
 import { ReviewPage } from "./ReviewPage.tsx";
 import { RoundPage } from "./RoundPage.tsx";
 import { useRepoPath, useRestoreScroll } from "./routes.tsx";
+import { StoriesProvider } from "./stories.tsx";
 
-/** A workflow file, on the page its kind needs: a round to answer, or a document to read. */
+/**
+ * A workflow file, on the page its kind needs: a round to answer, a file to review, or a document to
+ * read, its story links embedded.
+ */
 export function FilePage({ folder, name }: { folder: string; name: string }) {
   const file = useFile(folder, name);
   const here = useRepoPath();
@@ -34,12 +38,14 @@ export function FilePage({ folder, name }: { folder: string; name: string }) {
       </Page>
     );
   }
-  if (file.kind === "clarifications") {
-    return <RoundPage file={file} target={{ folder }} />;
-  }
   const reviewed = ["spec", "plan"].includes(file.kind);
   if (reviewed && file.status === "awaiting-human") {
     return <ReviewPage file={file} />;
   }
-  return <DocumentPage file={file} />;
+  // A round and a document draw the file as it is now, with the stories it embeds.
+  return (
+    <StoriesProvider folder={file.folder} stories={file.current.stories}>
+      {file.kind === "clarifications" ? <RoundPage file={file} target={{ folder }} /> : <DocumentPage file={file} />}
+    </StoriesProvider>
+  );
 }

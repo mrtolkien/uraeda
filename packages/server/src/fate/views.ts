@@ -356,6 +356,7 @@ export const draftDataView = dataView<DraftRecord>("Draft")({
   path: true,
   priorityChanges: true,
   slug: true,
+  stories: true,
   text: true,
   title: true,
   written: true,

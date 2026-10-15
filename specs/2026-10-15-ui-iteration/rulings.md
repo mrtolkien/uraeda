@@ -365,3 +365,45 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: an export written while its page is open shows missing for up to 5 minutes; an index
   poll in the runner calling `onChange` would send it.
 - **Where**: task 6's review's fix, `packages/server/src/fate/preview.ts`.
+
+## R26: A draft's record carries its stories
+
+- **Decision**: task 7 also changes `packages/server/src/fate/views.ts`: the `Draft` record's data
+  view gains `stories`, which the core's `DraftView` already holds, so the editor's preview and a
+  task view's draft embed their story links.
+- **Rationale**: the plan's task 7 reads `stories` from the draft, but fate sends only the fields a
+  data view lists, and the server's draft view, written before story links, lists none.
+- **Alternatives considered**: drafts without embeds, against the spec's "every workflow file the UI
+  draws".
+- **If wrong**: nothing for the user: one field more in each draft's answer.
+- **Where**: task 7, `packages/server/src/fate/views.ts`.
+
+## R27: The fake preview opens Storybook's channel, and the tests post to its frames
+
+- **Decision**: the fake preview's story script opens a WebSocket at `storybook-server-channel`,
+  beside its page, and shows "Channel open" once it answers, which SC-006's test reads. The browser
+  commands gain `frameRun(title, script)`, which runs a script in a frame as its story would, and
+  `frameReload(title)`, which task 9 reuses. `frameAttribute` reads the mode on `html`, where the
+  fake sets it. The forwarding proxy of [R12](#r12-sc-006-runs-webkit-through-a-forwarding-proxy)
+  also forwards upgrades sent in absolute form, which WebKit sends for sockets.
+- **Rationale**: the plan's SC-006 test reads "Channel open", which no fake page showed; a malformed
+  `size` can only come from a frame's own window, which the embed checks; and WebKit proxies `ws://`
+  without `CONNECT`.
+- **Alternatives considered**: a second fake page for the channel, which the embed never frames; a
+  test-only message source, which the embed must refuse.
+- **If wrong**: nothing for the user: test code only.
+- **Where**: task 7, `fixtures/preview/serve.mjs`, `fixtures/preview/feature/`,
+  `packages/web/vite.browser.config.ts`.
+
+## R28: Whether a checkout has a preview is read once per provider
+
+- **Decision**: `usePreviewOn(folder)` lives in `data.ts`, with the other records' reads, and reads
+  the feature's record, or the workspace's for `main`, from the cache when there. `StoriesProvider`
+  reads it once and puts it in `StoryContext` as `preview`, which `useStoryAt` and `Spans` read.
+  `MAIN_CHECKOUT`, `main`, is exported by `data.ts`.
+- **Rationale**: each paragraph and link of a page asking for the flag would subscribe to the same
+  record once per block; and the hook reads records, as `data.ts`'s others do.
+- **Alternatives considered**: `usePreviewOn` in `stories.tsx`, as the plan placed it, which would
+  hold the only record read outside `data.ts`.
+- **If wrong**: task 8 imports it from `data.ts` instead; one line.
+- **Where**: task 7, `packages/web/src/data.ts` and `packages/web/src/stories.tsx`.

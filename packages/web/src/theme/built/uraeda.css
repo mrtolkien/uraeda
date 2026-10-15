@@ -338,6 +338,9 @@
     --size-session-aside: 320px;
     --size-form: 560px;
     --size-menu: 360px;
+    --size-story-desktop: 1440px;
+    --size-story-height: 560px;
+    --size-story-phone: 402px;
     --color-selection: var(--color-background-yellow);
     --color-selection-edge: var(--color-border-yellow);
   }

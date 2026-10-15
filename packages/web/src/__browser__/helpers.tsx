@@ -492,6 +492,9 @@ export const LIVE = { timeout: 10_000 };
 /** The agent of the test server, which the tests drive as Claude Code would print. */
 export const agent = commands;
 
+/** The test server's commands: the repository's files, the test feature, and the page's frames. */
+export { commands };
+
 /** Types a message in the composer and presses Send, as the human does. */
 export async function sendMessage(text: string) {
   const sent = (await commands.agentSent()).length;

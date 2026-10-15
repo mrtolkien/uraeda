@@ -1,9 +1,10 @@
 import { Code } from "@astryxdesign/core/Code";
 import { Link } from "@astryxdesign/core/Link";
-import type { ReactNode } from "react";
+import { type ReactNode, useContext } from "react";
 import type { Span } from "uraeda-binding";
 import { ImageView } from "./ImageView.tsx";
 import { pathLink, repoPath, useRepository } from "./routes.tsx";
+import { StoryContext, storybookHref } from "./stories.tsx";
 
 function Marked({ span }: { span: Span }) {
   let node: React.ReactNode = span.text;
@@ -23,13 +24,26 @@ function Marked({ span }: { span: Span }) {
 }
 
 /**
- * A link of the document: a workflow file or a draft in the UI, other files and the web in a new
- * tab. It shows its text, or `children`, like an image it holds.
+ * A link of the document: a workflow file or a draft in the UI, a story in its checkout's Storybook
+ * page when the checkout has a preview decision, other files and the web in a new tab. It shows its
+ * text, or `children`, like an image it holds.
  */
 function SpanLink({ children, span }: { children?: ReactNode; span: Span }) {
   const link = span.link!;
   const repo = useRepository();
+  const stories = useContext(StoryContext);
   const text = children ?? <Marked span={span} />;
+  if (link.story && stories?.preview) {
+    return (
+      <Link
+        hasUnderline
+        href={repoPath(repo, storybookHref(stories.folder, link.story))}
+        type="inherit"
+      >
+        {text}
+      </Link>
+    );
+  }
   if (link.path) {
     const { href, inApp } = pathLink(link.path, repo);
     return inApp ? (

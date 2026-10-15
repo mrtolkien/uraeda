@@ -14,7 +14,7 @@
 // your comment?" confirmations. So do a feature's session at its implementation, its column shown
 // and hidden, the phone's progress line open, and a chat, the transcript 760 px wide beside the
 // column at 1440 px (SC-001, SC-004 of the session view), and at 1024 px with the sidebar open (its
-// edge case).
+// edge case). So does a spec with a story embedded, ready (the UI iteration flow's UI checks).
 import { act, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vite-plus/test";
 import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
@@ -603,6 +603,16 @@ async function proposalWithImage() {
   await screen.findByRole("img", { name: "login" });
   await imagesLoaded();
 }
+
+test.each(MODES)("a spec with a story embedded, ready, in $mode", async ({ mode }) => {
+  window.localStorage.setItem("uraeda.theme", mode);
+  await commands.addStoryFeature();
+  await show("/f/2026-10-20-sidebar-resize/spec.md", "Resize the sidebar");
+  await expect
+    .poll(() => commands.frameText("Dragging the handle, phone"), { timeout: 20_000 })
+    .toContain("Dragging");
+  await checkLayout();
+});
 
 test.each(MODES)("a proposal with an image, in $mode", async ({ mode }) => {
   window.localStorage.setItem("uraeda.theme", mode);
