@@ -6,7 +6,6 @@
 >
 > Features for v1.0.0
 
-- [UI iteration flow](drafts/ui-iteration.md)
 - [Look and feel pass](drafts/look-and-feel.md)
 
 - [Add a bugfixing/low impact change flow](/specs/2026-10-15-add-bugfixing/proposal.md)
@@ -18,6 +17,7 @@
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
+- [UI iteration flow](/specs/2026-10-15-ui-iteration/proposal.md)
 
 ## Next
 
