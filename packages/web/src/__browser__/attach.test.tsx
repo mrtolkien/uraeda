@@ -1,28 +1,15 @@
-// US1 scenarios 1 to 3 and 8, the edge cases of drops, and SC-002: images dropped anywhere on the
-// editor's page, pasted, or picked with "Add image", saved by the core, and linked at the cursor.
-// US2 scenario 1 and the page's drop on a session: images pasted or dropped join the message.
-// US3 scenarios 1 and 2, US4 scenarios 1 and 2, and Review focus 11: review comments, answers, and
-// notes take images too, and a verdict never deletes the image of a comment not added yet.
+// US1 scenarios 1, 2 and 8, and the edge cases of drops: images dropped anywhere on the editor's
+// page or pasted, saved by the core, and linked at the cursor. A chat's message not read yet has
+// its images dimmed. US3 scenarios 1 and 2, US4 scenarios 1 and 2: review comments, answers, and
+// notes take images too. On the phone: the drops and pastes do not depend on the layout.
 // Files come from `fixtures/images/`, dropped and pasted through an in-page `DataTransfer`.
 import { screen, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
-import { createFateClient } from "react-fate/client";
-import type { ChatImage } from "uraeda-server/fate";
-import { sendMessage } from "../sessions.ts";
-import {
-  agent,
-  atRepo,
-  carrying,
-  drawn,
-  drop,
-  image,
-  LIVE,
-  paste,
-  show,
-  startTurn,
-} from "./helpers.tsx";
+import { atRepo, atSize, carrying, drop, image, LIVE, paste, show, startTurn } from "./helpers.tsx";
+
+atSize("phone");
 
 const commands = browserCommands as unknown as RepoCommands;
 
@@ -159,23 +146,6 @@ test('US1.2: a pasted image is linked as "pasted image"', async () => {
   await saved("![pasted image]");
 });
 
-test('US1.3: "Add image" picks a file', async () => {
-  const field = await editProposal();
-  cursorAt(field, TEXT.indexOf(LEAD) + LEAD.length);
-  expect(screen.getByRole("button", { name: "Add image" })).toBeTruthy();
-
-  await userEvent.upload(
-    screen.getByLabelText("Add image", { selector: "input" }),
-    await image("phone.png", "login.png"),
-  );
-
-  await expect.poll(() => field.value).toContain(`${LEAD}\n\n![login](images/login.webp)\n\n`);
-  expect(
-    await commands.repoFileSize("specs/drafts/login-banner/images/login.webp"),
-  ).toBeGreaterThan(0);
-  await saved("![login](images/login.webp)");
-});
-
 test("US1.8: an SVG is refused under the field", async () => {
   const field = await editProposal();
 
@@ -264,30 +234,6 @@ test("a drop outside every field stays in the app", async () => {
   // The browser opens a dropped file unless the page cancels the drop.
   expect(event.defaultPrevented).toBe(true);
   expect(window.location.pathname).toBe(atRepo("/f/2026-10-06-recurring-tasks"));
-});
-
-test("a file dragged over the editor shows it is taken", async () => {
-  await editProposal();
-  const dataTransfer = carrying([await image("phone.png")]);
-  const init = { bubbles: true, cancelable: true, dataTransfer };
-  document.body.dispatchEvent(new DragEvent("dragenter", init));
-  const over = new DragEvent("dragover", init);
-  document.body.dispatchEvent(over);
-
-  expect(over.defaultPrevented).toBe(true);
-  expect(await screen.findByText("Drop to add to proposal.md")).toBeTruthy();
-  document.body.dispatchEvent(new DragEvent("dragleave", init));
-});
-
-test("SC-002: a 1440×900 screenshot dropped is linked", async () => {
-  const field = await editProposal();
-  cursorAt(field, TEXT.indexOf(LEAD) + LEAD.length);
-  const file = await image("desktop.png", "desktop.png");
-
-  drop([file]);
-  await expect.poll(() => field.value.includes("![desktop](images/desktop.webp)")).toBe(true);
-
-  await saved("![desktop](images/desktop.webp)");
 });
 
 /** Review focus 8 and R44: typing at the cursor itself goes after the links. */
@@ -444,44 +390,7 @@ async function thumbnails(count: number) {
     .toBe(false);
 }
 
-test("US2.1: two images pasted in the composer are thumbnails, sent with the message", async () => {
-  await show("/f/2026-10-12-cli-tuis/session", "Message Claude Code");
-  const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
-  const sent = (await commands.agentSent()).length;
-
-  paste([await image("phone.png", "image.png"), await image("desktop.png", "two.png")], box);
-
-  await thumbnails(2);
-  expect(screen.getByRole("button", { name: "Add images" })).toBeTruthy();
-  await userEvent.fill(box, "What is wrong here?");
-  await userEvent.click(screen.getByRole("button", { name: "Send" }));
-  await expect
-    .poll(async () => (await commands.agentSent()).length, { timeout: 10_000 })
-    .toBe(sent + 1);
-  const [message] = (await commands.agentSent()).slice(-1);
-  expect(message.text).toContain("What is wrong here?");
-  expect(message.images).toHaveLength(2);
-});
-
-test("a file dropped anywhere on a session's page joins the message", async () => {
-  await show("/f/2026-10-12-cli-tuis/session", "Message Claude Code");
-  await screen.findByRole("textbox", { name: "Message Claude Code" });
-
-  const event = drop([await image("phone.png", "image.png")]);
-
-  expect(event.defaultPrevented).toBe(true);
-  await thumbnails(1);
-});
-
 const SESSION = "/f/2026-10-12-cli-tuis/session";
-
-/** What scrolls the transcript: the pane beside the feature page, or the window. */
-function scroller() {
-  return (
-    document.querySelector<HTMLElement>('section[aria-label="Detail"]') ??
-    document.scrollingElement!
-  );
-}
 
 /** Pastes images in the composer and sends them with a text, once saved. */
 async function sendImages(files: Array<File>, text: string) {
@@ -493,73 +402,6 @@ async function sendImages(files: Array<File>, text: string) {
   await userEvent.click(screen.getByRole("button", { name: "Send" }));
   await expect.poll(async () => (await commands.agentSent()).length, LIVE).toBe(sent + 1);
 }
-
-/** Saves an image for a chat, as the composer does, without showing it on the page. */
-async function chatImage(file: File): Promise<ChatImage> {
-  const body = new FormData();
-  body.append("file", file);
-  const response = await realFetch(atRepo(`/attach?chat=1&name=${encodeURIComponent(file.name)}`), {
-    body,
-    method: "POST",
-  });
-  return (await response.json()) as ChatImage;
-}
-
-/**
- * Review: the images of the last message load after the view showed the transcript's end. They
- * are sent outside the page, and served late: an image this page already loaded, or one loaded
- * before the view is drawn, is drawn at once, at its size.
- */
-test("a chat whose last message has images opens at its end", async () => {
-  await show("/", "Priorities");
-  const fate = createFateClient({ url: atRepo("/fate") });
-  const ended = {
-    denials: [],
-    errors: [],
-    interrupted: false,
-    ok: true,
-    type: "result" as const,
-  };
-  const first = await sendMessage(fate, { text: "Plan the CLI." });
-  if (!first.ok) {
-    throw new Error(first.message);
-  }
-  await agent.agentAccept();
-  await agent.agentEmit([
-    ...Array.from({ length: 40 }, (_, index) => ({
-      text: `Line ${index + 1}.`,
-      type: "text" as const,
-    })),
-    ended,
-  ]);
-  const images = [
-    await chatImage(await image("phone.png", "one.png")),
-    await chatImage(await image("desktop.png", "two.png")),
-  ];
-  // The turn's end is recorded before the next message goes.
-  await expect
-    .poll(async () => {
-      const next = await sendMessage(fate, { images, session: first.session, text: "These two." });
-      return next.ok;
-    }, LIVE)
-    .toBe(true);
-  await agent.agentAccept();
-  await agent.agentEmit([ended]);
-
-  // Over a slow network, its images come after the view opened.
-  await commands.slowChatImages(1000);
-  await show(`/chats/${first.session}`, "These two.");
-
-  const log = await screen.findByRole("log", { name: "Conversation" });
-  const drawnImages = [...log.querySelectorAll<HTMLImageElement>('a[href*="/chat-images/"] img')];
-  expect(drawnImages).toHaveLength(2);
-  await expect
-    .poll(() => drawnImages.every((one) => one.complete && one.naturalWidth > 0), LIVE)
-    .toBe(true);
-  await drawn();
-  const box = scroller();
-  expect(box.scrollHeight - box.scrollTop - box.clientHeight).toBeLessThanOrEqual(1);
-});
 
 test("a message not read yet has its images dimmed, as its text", async () => {
   await show(SESSION, "Message Claude Code");
@@ -623,28 +465,6 @@ test("US3.2: a pasted image goes to the open line comment at its cursor", async 
     .toMatch(/^Before\n\n!\[pasted image\]\(images\/pasted-\d{8}-\d{6}\.webp\)\n\n after$/);
   expect(selected(field)).toBe("pasted image");
   expect(screen.getByText(/^Lines? \d+/)).toBeTruthy();
-});
-
-/** Review focus 11: a verdict deletes the images no file links, as a comment not added yet. */
-test("a verdict waits for a comment holding an image to be added or cancelled", async () => {
-  await reviewSpec();
-  drop([await image("phone.png", "shot.png")]);
-  const field = await commentField();
-  await expect.poll(() => field.value).toContain("![shot](images/shot.webp)");
-
-  // By keyboard: on the phone, the comment's sheet lies over the page's end.
-  screen.getByRole("button", { name: "Approve only" }).focus();
-  await userEvent.keyboard("{Enter}");
-
-  const refusal = "Add or cancel your comment first.";
-  await expect.poll(() => shown(refusal).length).toBe(1);
-  // In the comment's sheet on the phone, which lies over the page's end; under the verdict else.
-  const form = screen.getByRole("form", { name: "Comment" });
-  expect(form.contains(shown(refusal)[0]!)).toBe(window.innerWidth < 768);
-  expect(await commands.repoFileSize(`${REVIEW_FOLDER}/images/shot.webp`)).toBeGreaterThan(0);
-  expect(await commands.readRepo(`${REVIEW_FOLDER}/spec.md`)).toMatch(
-    /^---\nstatus: awaiting-human/,
-  );
 });
 
 const ROUND = "2026-10-11-web-ui";

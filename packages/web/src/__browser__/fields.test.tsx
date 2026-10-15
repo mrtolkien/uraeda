@@ -3,9 +3,9 @@
 // comment and the review's summary 7, the chat composer 4, quick add 3. Past it, the field scrolls,
 // and the page's layout never moves as the human types; the resize handle still drags it taller.
 import { screen, within } from "@testing-library/react";
-import { expect, test } from "vite-plus/test";
+import { describe, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
-import { drawn, show } from "./helpers.tsx";
+import { atSize, drawn, show } from "./helpers.tsx";
 
 const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";
 const QUESTION = "How does your iPhone reach the server?";
@@ -196,25 +196,30 @@ test("the chat composer is 4 rows, empty or with 10 lines, and scrolls past them
   expect(input.scrollHeight).toBeGreaterThan(input.clientHeight);
 });
 
-// The browser's resize handle cannot be dragged from the tests: WebKit ignores Playwright's mouse on
-// it (R28). Its handle is checked to be there, and a height set as dragging it does to be kept.
-test("a comment keeps its resize handle, and a height dragged while typing (US6 8)", async () => {
-  await show(ROUND, QUESTION);
-  const field = questionComment();
-  expect(getComputedStyle(field).resize).toBe("vertical");
-  const before = field.getBoundingClientRect().height;
+// A resize handle is dragged with a mouse: the desktop's.
+describe("on the desktop", () => {
+  atSize("desktop");
 
-  // What dragging the handle down 100 px does: the field's own height, set on it.
-  field.style.height = `${before + 100}px`;
-  await drawn();
-  const dragged = field.getBoundingClientRect().height;
-  expect(dragged).toBeGreaterThan(before + 50);
+  // The browser's resize handle cannot be dragged from the tests: WebKit ignores Playwright's mouse on
+  // it (R28). Its handle is checked to be there, and a height set as dragging it does to be kept.
+  test("a comment keeps its resize handle, and a height dragged while typing (US6 8)", async () => {
+    await show(ROUND, QUESTION);
+    const field = questionComment();
+    expect(getComputedStyle(field).resize).toBe("vertical");
+    const before = field.getBoundingClientRect().height;
 
-  await userEvent.click(field);
-  await userEvent.keyboard("Taller");
-  await drawn();
-  expect(field.value).toBe("Taller");
-  expect(field.getBoundingClientRect().height).toBe(dragged);
+    // What dragging the handle down 100 px does: the field's own height, set on it.
+    field.style.height = `${before + 100}px`;
+    await drawn();
+    const dragged = field.getBoundingClientRect().height;
+    expect(dragged).toBeGreaterThan(before + 50);
+
+    await userEvent.click(field);
+    await userEvent.keyboard("Taller");
+    await drawn();
+    expect(field.value).toBe("Taller");
+    expect(field.getBoundingClientRect().height).toBe(dragged);
+  });
 });
 
 // The mockup's sections 1 and 6: on a wide screen, a multi-line field's Save says its key beside it,
