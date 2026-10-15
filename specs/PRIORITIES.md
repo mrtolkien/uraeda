@@ -22,6 +22,7 @@
   actually ongoing, and if there’s no code changes there should be no issue
 - When adding a priority from home screen on mobile we need to go to the priorities page manually to
   commit…
+- Review pull request management and flow
 
 ## Next
 
