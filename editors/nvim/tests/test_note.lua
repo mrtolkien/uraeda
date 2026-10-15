@@ -142,6 +142,30 @@ T["a note in an existing category opens at its line"] = function()
   eq(child.lua_get("vim.api.nvim_win_get_cursor(0)"), { line, 0 })
 end
 
+T["a note that cannot open the inbox leaves the cursor alone"] = function()
+  local repo = with_inbox()
+  child.cmd("cd " .. vim.fn.fnameescape(repo))
+  helpers.edit(child, repo .. "/README.md")
+  -- An unsaved buffer that cannot be hidden: `:edit` of the inbox fails.
+  child.lua([[
+    vim.o.hidden = false
+    local lines = {}
+    for i = 1, 40 do
+      lines[i] = "line " .. i
+    end
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+  ]])
+  child.lua("_G.inputs, _G.picks = ...", { { "Hints flicker on save" }, { "UI" } })
+
+  child.cmd("Uraeda note")
+
+  eq(wait("#_G.notes >= 2"), true)
+  eq(line_of(repo .. "/specs/INBOX.md", "- Hints flicker on save") ~= nil, true)
+  child.lua("vim.wait(200)")
+  eq(child.lua_get("vim.fs.basename(vim.api.nvim_buf_get_name(0))"), "README.md")
+  eq(child.lua_get("vim.api.nvim_win_get_cursor(0)"), { 1, 0 })
+end
+
 T["a cancelled note writes nothing"] = function()
   local repo = with_inbox()
   child.cmd("cd " .. vim.fn.fnameescape(repo))

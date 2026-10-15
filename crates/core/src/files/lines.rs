@@ -141,17 +141,19 @@ fn is_fence(line: &str) -> bool {
 
 /// Adds `item`, the lines of an item, after `last`, the last item of a section, or else after the
 /// heading at line `heading`, from 1, or else at the end of the text under `new_heading`. Takes
-/// and gives `\n` line endings, and a text ending with a line ending keeps it.
+/// and gives `\n` line endings, and a text ending with a line ending keeps it. Gives the text, and
+/// the index of the item's first line, from 0.
 pub(crate) fn append_to_section(
     text: &str,
     last: Option<&Item>,
     heading: Option<usize>,
     new_heading: &str,
     item: &[String],
-) -> String {
+) -> (String, usize) {
     let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
-    if let Some(last) = last {
+    let at = if let Some(last) = last {
         lines.splice(last.end..last.end, item.iter().cloned());
+        last.end
     } else if let Some(heading) = heading {
         let mut at = heading;
         if lines.get(at).is_some_and(|line| line.trim().is_empty()) {
@@ -167,15 +169,18 @@ pub(crate) fn append_to_section(
             None => lines.push(String::new()),
             Some(_) => {}
         }
+        at
     } else {
         if lines.last().is_some_and(|line| line.is_empty()) {
             lines.pop();
         }
         lines.extend(["".into(), new_heading.into(), "".into()]);
+        let at = lines.len();
         lines.extend(item.iter().cloned());
         lines.push(String::new());
-    }
-    lines.join("\n")
+        at
+    };
+    (lines.join("\n"), at)
 }
 
 /// Replaces the lines of an item's text with `lines`, its sub-items kept. Takes and gives `\n`

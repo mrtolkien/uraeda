@@ -995,6 +995,9 @@ git commit -m "feat(add-scratchpad): ura note"
 
 - Create: `crates/lsp/src/commands/note.rs`, `editors/nvim/tests/test_note.lua`
 - Modify:
+  - core: `api/inbox_edits.rs` (`add_note_at`), `actions/inbox.rs` (`add` gives the line),
+    `files/inbox.rs` and `files/lines.rs` (the inserted line's index), `files/priorities.rs` (ruling
+    R18);
   - language server: `crates/lsp/src/commands.rs`, which gets `COMMANDS` and `Outcome.line` and
     moves `commit` into `commands/commit.rs` to stay at or under 500 lines; `commands/attach.rs` and
     `commands/draft.rs` (`line: None`); `crates/lsp/src/requests.rs` and `server.rs`
@@ -1002,22 +1005,25 @@ git commit -m "feat(add-scratchpad): ura note"
   - Neovim: `editors/nvim/lua/uraeda/actions.lua`, `client.lua` (`command_checkout`, sharing
     `execute` with `command`), `editors/nvim/README.md`, and `editors/nvim/doc/uraeda.txt` (ruling
     R18)
-- Test: `crates/lsp/tests/commands.rs`, `editors/nvim/tests/test_keys.lua`, and the refusal text in
+- Test: `crates/core/tests/inbox_actions.rs` and `inbox.rs` (the line),
+  `crates/lsp/tests/commands.rs`, `editors/nvim/tests/test_keys.lua`, and the refusal text in
   `test_actions.lua` and `test_client.lua`
 
 **Interfaces:**
 
-- Consumes: `api::add_note`, `api::read_inbox`, and `api::commit_changes` (tasks 3 and 4).
+- Consumes: `api::read_inbox` and `api::commit_changes` (tasks 3 and 4), and `actions::inbox::add`,
+  through a new `api::add_note_at` that gives the note's line (ruling R18).
 - Produces:
   - The request `uraeda/inboxCategories` returns `string[]`, the default branch's category names.
   - The command `uraeda.note { text, category? }` returns `{ opened, written, line }`:
     - `opened` is the default branch's `INBOX.md`;
-    - `line` is the 1-based line of the note, the first note that differs from the inbox read before
-      the write (ruling R18).
+    - `line` is the 1-based line of the note, where the core's add put it, written without a hash
+      (ruling R18).
   - `uraeda.commit` on `INBOX.md` commits the change list. Its refusal becomes "Only drafts, backlog
     files, proposals, PRIORITIES.md, and INBOX.md are committed from the editor."
   - In Neovim, the action `note`, desc "Uraeda: add a note to the inbox", key `o`, global. An empty
-    answer cancels; a text of spaces is refused by the server (ruling R18).
+    answer cancels; a text of spaces is refused by the server. The cursor moves to the note only
+    when the opened inbox is the current buffer (ruling R18).
 
 - [x] **Step 1: Move `commit` out of `commands.rs` into `commands/commit.rs`**
 

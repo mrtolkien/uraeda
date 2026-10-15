@@ -53,13 +53,22 @@ pub fn add_note(
     let marks = marks(about)?;
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    Ok(edits::add(
-        &place,
-        category.as_deref(),
-        &marks,
-        text,
-        Some(previous),
-    )?)
+    let (inbox, _) = edits::add(&place, category.as_deref(), &marks, text, Some(previous))?;
+    Ok(inbox)
+}
+
+/// Adds a note as [`add_note`] does, over the inbox as it is now, without a hash, as `ura note`
+/// does, and gives the note's line, from 1: what the editor opens at.
+pub fn add_note_at(
+    repo: &Path,
+    category: Option<String>,
+    about: Option<String>,
+    text: &str,
+) -> Result<(Inbox, u32)> {
+    let marks = marks(about)?;
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    Ok(edits::add(&place, category.as_deref(), &marks, text, None)?)
 }
 
 /// Replaces a note's text, its marks kept.
