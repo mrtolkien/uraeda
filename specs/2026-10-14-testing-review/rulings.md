@@ -780,3 +780,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   until it is excluded; a project named another way than the check reads is reported as unknown, and
   the check is taught its name.
 - **Where**: the final review, finding I1.
+
+## R40: The smoke test times the first page only under `--timed`, which `bench` and the release pass
+
+- **Decision**: `smoke.ts` waits for each start's first 200 up to its `WAIT_MS` (10 s), a bound only
+  a broken server reaches, and asserts no duration; the outside-git start waits the same way, where
+  it read `/` once. `--timed` keeps the run-ui feature's SC-002 ("the server answers its first
+  request within 2 seconds"), now checked on the answer itself, not only on the polls before it, and
+  prints how long it took. `vp run bench` runs it with `--timed`, after `ui:build`, and `npm.yml`'s
+  release gate passes `--timed`, so the gate is unchanged. `ui:smoke` in `ready` runs it untimed.
+- **Rationale**: since R29 `ready` runs the smoke test under the load of its other checks, and its
+  2-second deadline was a duration check outside a benchmark, against the code quality decision and
+  this feature's SC-005. With a preload answering 503 for the server's first 3 seconds, the old
+  script failed ("/ did not answer 200 within 2000 ms of the start"); the new one passes untimed and
+  fails under `--timed` ("…(SC-002), but 503"). `vp run --no-cache ui:smoke` passed, and
+  `vp run bench` passed with "the repository's page answered 165 ms after the start". The release
+  gate runs on a runner of its own, not under `ready`'s load, and is where the distribution decision
+  checks the package before publishing, so it keeps SC-002.
+- **Alternatives considered**: a separate benchmark script for SC-002: a second install of the
+  package for one number. Dropping SC-002 from the gate: the run-ui feature measured it there.
+- **If wrong**: a start slower than 2 seconds passes `ready` and shows only in `vp run bench` or the
+  release gate; a slow runner can fail the gate, which stops the release before anything is
+  published.
+- **Where**: the final review, finding I2.

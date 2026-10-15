@@ -1,14 +1,19 @@
 /**
- * `node packages/uraeda/scripts/smoke.ts [--binding <.node or folder> | --platform <tarball>]`: packs
- * `@uraeda/ui`, installs it with npm in a new temporary folder outside the repository, and runs it as a
- * user would: its version, help, an unknown option, a start in a new git repository whose `.env`
- * must be ignored, a start outside git, and the package's contents.
+ * `node packages/uraeda/scripts/smoke.ts [--binding <.node or folder> | --platform <tarball>]
+ * [--timed]`: packs `@uraeda/ui`, installs it with npm in a new temporary folder outside the
+ * repository, and runs it as a user would: its version, help, an unknown option, a start in a new
+ * git repository whose `.env` must be ignored, a start outside git, and the package's contents.
  *
  * `--binding` gives the native binding through `NAPI_RS_NATIVE_LIBRARY_PATH`, as `vp run ready`
  * does with the checkout's build: a `.node` file, or a folder holding one `uraeda-binding.*.node`,
  * as `vp run` expands no glob; `--platform` installs a platform package's tarball next to the
  * package, as the release does. With neither, only the checks that need no binding run, and the
  * command must fail with its own message.
+ *
+ * A start waits for the server's first answers, up to a bound only a broken server reaches, and
+ * asserts no duration, as `vp run ready` runs it under the load of its other checks. `--timed` adds
+ * the run-ui feature's SC-002, the repository's page answering within 2 seconds of the start, for
+ * the release workflow's gate and `vp run bench`.
  *
  * It prints one line per check, `ok <name>` or `failed <name>: <why>`, and exits 1 on the first
  * failure. Every server it starts is stopped, whatever happens, and the temporary folder removed.
@@ -37,9 +42,9 @@ import { cargoVersion } from "./release.ts";
 const PACKAGE = resolve(import.meta.dirname, "..");
 /** The checkout, for the Cargo workspace's version and the loader napi-rs generated. */
 const ROOT = resolve(PACKAGE, "../..");
-/** SC-002: the repository's page answers within this long of the start. */
+/** Under `--timed`, the run-ui feature's SC-002: the repository's page answers this soon. */
 const START_MS = 2000;
-/** How long a server may take to print its line, or to exit once stopped. */
+/** How long a server may take to print its line, to answer, or to exit once stopped. */
 const WAIT_MS = 10_000;
 /** The port the project's `.env` asks for, which the package must not read. */
 const ENV_PORT = 5000;
@@ -70,6 +75,37 @@ type Install = {
   folder: string;
   root: string;
 };
+
+/**
+ * Waits for `GET path` to answer 200: by `deadline` (from `Date.now()`) when given, and within
+ * `WAIT_MS` of now otherwise. Returns how long it took from `since`.
+ */
+async function answers(
+  check: string,
+  port: number,
+  path: string,
+  since: number,
+  deadline?: number,
+) {
+  const until = deadline ?? Date.now() + WAIT_MS;
+  let last: number | null = null;
+  await waitFor(async () => (last = await status(port, path)) === 200, until, "").catch(() => {
+    throw new Failure(
+      check,
+      deadline === undefined
+        ? `${path} still answered ${last} after ${WAIT_MS} ms`
+        : `${path} did not answer 200 within ${START_MS} ms of the start (SC-002), but ${last}`,
+    );
+  });
+  const took = Date.now() - since;
+  if (deadline !== undefined && Date.now() > deadline) {
+    throw new Failure(
+      check,
+      `${path} answered 200 ${took} ms after the start, not within ${START_MS} ms (SC-002)`,
+    );
+  }
+  return took;
+}
 
 const children = new Set<ChildProcess>();
 
@@ -278,8 +314,11 @@ function commands(install: Install) {
   }
 }
 
-/** A start in a new git repository whose `.env` asks for another port and another host name. */
-async function startInRepository(install: Install) {
+/**
+ * A start in a new git repository whose `.env` asks for another port and another host name; under
+ * `timed`, its pages answer within `START_MS` of the start.
+ */
+async function startInRepository(install: Install, timed: boolean) {
   const check = "start";
   const repository = join(install.folder, "todo");
   mkdirSync(repository);
@@ -290,18 +329,14 @@ async function startInRepository(install: Install) {
   );
   const envPortUsed = await listening(ENV_PORT);
   const port = await freePort();
+  const since = Date.now();
   const started = start(install, ["--no-open", "--port", String(port)], repository);
-  const deadline = Date.now() + START_MS;
+  const deadline = timed ? since + START_MS : undefined;
   try {
     await line(check, started, port);
+    let took = 0;
     for (const path of ["/", "/r/todo/"]) {
-      await waitFor(
-        async () => (await status(port, path)) === 200,
-        deadline,
-        `${path} did not answer 200 within ${START_MS} ms of the start`,
-      ).catch((error: Error) => {
-        throw new Failure(check, error.message);
-      });
+      took = await answers(check, port, path, since, deadline);
     }
     const evil = await status(port, "/", `evil.test:${port}`);
     if (evil !== 403) {
@@ -310,7 +345,7 @@ async function startInRepository(install: Install) {
     if (!envPortUsed && (await listening(ENV_PORT))) {
       throw new Failure(check, `something listens on ${ENV_PORT}: the .env was read`);
     }
-    pass(check);
+    pass(check, timed ? `the repository's page answered ${took} ms after the start` : undefined);
   } finally {
     await stop(started);
   }
@@ -329,8 +364,8 @@ async function startOutsideGit(install: Install) {
     if (!started.stderr().includes(message)) {
       throw new Failure(check, `stderr: ${started.stderr().trim()}`);
     }
-    const root = await status(port, "/");
-    expect(check, root === 200, `/ answered ${root}`);
+    await answers(check, port, "/", Date.now());
+    pass(check);
   } finally {
     await stop(started);
   }
@@ -360,7 +395,11 @@ function contents(install: Install) {
 
 async function main() {
   const { values } = parseArgs({
-    options: { binding: { type: "string" }, platform: { type: "string" } },
+    options: {
+      binding: { type: "string" },
+      platform: { type: "string" },
+      timed: { default: false, type: "boolean" },
+    },
   });
   const folder = realpathSync(mkdtempSync(join(tmpdir(), "uraeda-smoke-")));
   try {
@@ -374,7 +413,7 @@ async function main() {
     contents(installed);
     commands(installed);
     if (installed.binding) {
-      await startInRepository(installed);
+      await startInRepository(installed, values.timed);
       await startOutsideGit(installed);
     }
   } finally {

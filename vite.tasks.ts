@@ -67,8 +67,10 @@ export const tasks = {
     command: [
       `${isolatedGit} cargo nextest run --run-ignored only -E 'test(/^bench_/)'`,
       `${isolatedGit} vp test bench --run`,
+      // The run-ui feature's SC-002: the installed package's first page within 2 seconds.
+      `${isolatedGit} node packages/uraeda/scripts/smoke.ts --binding packages/binding --timed`,
     ],
-    dependsOn: ["binding:touch"],
+    dependsOn: ["binding:touch", "ui:build"],
   },
   // A hit restores the built binding, and its generated files, which are committed.
   "binding:build": {
@@ -246,7 +248,7 @@ export const tasks = {
     cwd: "packages/uraeda",
     dependsOn: ["web:build", "binding:build"],
   },
-  // The package, installed and run as a user would, on the checkout's binding.
+  // The package, installed and run as a user would, on the checkout's binding: timed by `bench` only.
   "ui:smoke": {
     cache: {
       input: ["packages/uraeda/**", "packages/binding/*.node", "!**/node_modules/**"],
