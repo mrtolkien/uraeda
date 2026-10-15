@@ -62,6 +62,7 @@ export function FeaturePage({ folder }: { folder: string }) {
       ? ["spec.md", "plan.md"].filter((name) => !feature.files.some((f) => f.name === name))
       : [];
   const problemFiles = new Set(feature.problems.map((p) => p.file));
+  const path = feature.kind === "change" ? `specs/changes/${folder}` : `specs/${folder}`;
   return (
     <Page>
       <Crumbs folder={folder} />
@@ -124,7 +125,7 @@ export function FeaturePage({ folder }: { folder: string }) {
             <ListItem
               endContent={
                 <HStack gap={2}>
-                  {problemFiles.has(`specs/${folder}/${file.name}`) && (
+                  {problemFiles.has(`${path}/${file.name}`) && (
                     <Badge label="problem" variant="error" />
                   )}
                   <Badge

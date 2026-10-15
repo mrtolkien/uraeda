@@ -8,7 +8,7 @@ import { uraedaTheme } from "./theme/built/uraeda.js";
 import { Component, type ReactNode, Suspense, useLayoutEffect, useState } from "react";
 import { FateClient } from "react-fate";
 import type { FateClient as Client } from "./clients.ts";
-import { useRepositories } from "./data.ts";
+import { useFeature, useRepositories } from "./data.ts";
 import { useDropGuard } from "./attach/useImageDrop.ts";
 import { FeaturePage } from "./FeaturePage.tsx";
 import { ConfirmHost } from "./fields/Confirm.tsx";
@@ -83,7 +83,7 @@ function Page({ route }: { route: Route }) {
     case "home":
       return <Home />;
     case "feature":
-      return <FeaturePage folder={route.folder} />;
+      return <ItemPage folder={route.folder} />;
     case "file":
       return <FilePage folder={route.folder} name={route.name} />;
     case "priorities":
@@ -145,6 +145,16 @@ function useListPosition() {
 }
 
 /** A feature's session: a page of its own at every width. */
+/** A feature's page, or a change's, which is its session. */
+function ItemPage({ folder }: { folder: string }) {
+  const feature = useFeature(folder);
+  return feature?.kind === "change" ? (
+    <SessionPage folder={folder} />
+  ) : (
+    <FeaturePage folder={folder} />
+  );
+}
+
 function SessionRoute({ folder }: { folder: string }) {
   return <SessionPage folder={folder} />;
 }

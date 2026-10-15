@@ -194,3 +194,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   apart from the change's record; refusing when the message is missing, after the change exists.
 - **If wrong**: add the view, and select it from the web UI's "New change".
 - **Where**: task 7, `packages/server/src/fate/mutations.ts`, `packages/server/src/fate/views.ts`.
+
+## R13: A change's sidebar tag sits beside its link
+
+- **Decision**: the "Change" badge is drawn in `SideNavItem`'s `actions`, beside the row's link, not
+  in its `endContent`, inside it. The link's text stays the slug, and its accessible name is the
+  spec's "centred-x, Centre the x in failure circles, change, Working". Hidden in the folded
+  navigation, as `actions` are.
+- **Rationale**: inside the link, the badge's text joins the link's visible text, "centred-x
+  Change", which is not a run of words of the spec's name. axe's `label-content-name-mismatch` rule,
+  WCAG's label in name, refuses it, and the [UI checks](../decisions/ui-checks.md) run axe on every
+  page. `aria-hidden` does not help: the rule reads the text shown on screen.
+- **Alternatives considered**: the name "centred-x Change, …", which changes the spec's exact text;
+  the badge in `endContent`, which fails the axe check.
+- **If wrong**: move the badge into `endContent`, with a name that starts with the slug and the tag.
+- **Where**: task 8, `packages/web/src/SessionNavRows.tsx`.
