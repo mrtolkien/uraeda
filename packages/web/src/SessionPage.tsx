@@ -9,17 +9,10 @@ import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFateClient, useView } from "react-fate";
-import type { Session, SessionStatus as Status, StatusReason, Trigger } from "uraeda-server/fate";
+import type { Session, SessionStatus as Status, Trigger } from "uraeda-server/fate";
 import { Composer } from "./Composer.tsx";
 import { Crumbs } from "./Crumbs.tsx";
-import {
-  MAIN_CHECKOUT,
-  useAgent,
-  useFeature,
-  useSession,
-  useWorkflowMessage,
-  useWorkspace,
-} from "./data.ts";
+import { MAIN_CHECKOUT, useAgent, useFeature, useSession, useWorkflowMessage } from "./data.ts";
 import {
   composerDraft,
   type Draft,
@@ -32,6 +25,7 @@ import { JumpToLatest } from "./JumpToLatest.tsx";
 import { useFollowEnd, useOpenAtEnd } from "./following.ts";
 import { type AsideShown, AsideToggle, useAsideShown, WithAside } from "./SessionAside.tsx";
 import { SessionAnnouncer, useCreatedHere } from "./SessionAnnouncer.tsx";
+import { Attention } from "./SessionAttention.tsx";
 import { Page } from "./layout/Page.tsx";
 import { ProgressLine } from "./ProgressLine.tsx";
 import { statusStyles } from "./Question.tsx";
@@ -123,34 +117,6 @@ type Handing = {
 };
 
 /**
- * What a session that needs attention tells the human, by why it needs it, its item named as a
- * feature or a change.
- */
-const ATTENTION: Partial<
-  Record<
-    StatusReason,
-    { status: "error" | "warning"; text: string | ((item: string) => string); title: string }
-  >
-> = {
-  failed: {
-    status: "error",
-    text: "Read how it ended, then tell the agent how to go on.",
-    title: "The agent's run failed.",
-  },
-  halted: {
-    status: "warning",
-    text: (item) =>
-      `The ${item} still waits on the agent. Read its last message, then tell it how to go on.`,
-    title: "The agent stopped before a human gate.",
-  },
-  stopped: {
-    status: "warning",
-    text: "Tell the agent how to go on when you are ready.",
-    title: "You stopped the agent.",
-  },
-};
-
-/**
  * A session's header, transcript, and errors, or why there is no session `id`. While the human
  * reads above its end, it gives the pane the jump back to the latest.
  */
@@ -172,7 +138,6 @@ function SessionLog({
   const fate = useFateClient();
   const here = useRepoPath();
   const session = useSession(id);
-  const workspace = useWorkspace();
   const { allow, chat, error } = useSessionControls(id, session);
   const groups = useOpenKeys();
   const log = useRef<HTMLDivElement>(null);
@@ -207,11 +172,6 @@ function SessionLog({
       />
     );
   }
-  const attention =
-    session.status === "attention" && session.statusReason
-      ? ATTENTION[session.statusReason]
-      : undefined;
-  const item = workspace?.features.find((feature) => feature.folder === crumbs)?.kind ?? "feature";
   return (
     <VStack gap={3}>
       <Header
@@ -237,14 +197,7 @@ function SessionLog({
           />
         </StoriesProvider>
       </div>
-      {attention && (
-        <Banner
-          collapsible={false}
-          description={typeof attention.text === "string" ? attention.text : attention.text(item)}
-          status={attention.status}
-          title={attention.title}
-        />
-      )}
+      <Attention folder={crumbs} session={session} />
       {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
     </VStack>
   );
