@@ -5,10 +5,11 @@ import { unplugin as stylex } from "@stylexjs/unplugin";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { fate } from "react-fate/vite";
 import { checkBinding, devHandler, devServer, loadEnv, stopDevRuns } from "uraeda-server/dev";
+import { layout } from "uraeda-server/paths";
 import { defineConfig, type Plugin } from "vite-plus";
 
 /** The repository's root, where `.env` lives and `vp dev` runs. */
-const root = fileURLToPath(new URL("../..", import.meta.url));
+const root = layout().checkout;
 
 /**
  * The server's routes, in Vite's own server, on Claude Code unless `adapter` says otherwise. The
@@ -17,7 +18,9 @@ const root = fileURLToPath(new URL("../..", import.meta.url));
 export function uraedaServer(options: Parameters<typeof devHandler>[1] = {}): Plugin {
   return {
     configureServer(server) {
-      checkBinding();
+      if (root !== null) {
+        checkBinding(root);
+      }
       server.middlewares.use(devHandler(root, options));
       server.httpServer?.once("close", () => void stopDevRuns());
     },

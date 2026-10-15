@@ -1,11 +1,8 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { layout } from "./paths.ts";
 
 type Binding = typeof import("uraeda-binding");
-
-/** The repository's root, where the binding's package and the Rust it is built from live. */
-const ROOT = fileURLToPath(new URL("../../..", import.meta.url));
 
 /**
  * What the binding is built from: the core, the binding's crate, and the skill the core embeds. Not
@@ -37,7 +34,7 @@ function latest(path: string): number {
  * server would read the files with the old core, and the UI would read what it no longer writes.
  * Outside a checkout of the repository, with no Rust to compare to, any binding is taken.
  */
-export function checkBinding(root: string = ROOT): void {
+export function checkBinding(root: string): void {
   const folder = join(root, "packages/binding");
   const built = existsSync(folder)
     ? readdirSync(folder).filter((name) => name.endsWith(".node"))
@@ -55,14 +52,18 @@ export function checkBinding(root: string = ROOT): void {
 }
 
 /**
- * Loads the native binding, with a message that says how to build it when it is missing or older
- * than the Rust core.
+ * Loads the native binding. In a checkout, it refuses a binding older than the Rust core, and says
+ * how to build a missing one. In the package, which has no Rust to build from, a missing binding
+ * shows the loader's own error, which names the platform package to install.
  */
 export async function loadBinding(
   load: () => Promise<Binding> = () => import("uraeda-binding"),
-  check: () => void = checkBinding,
+  checkout: string | null = layout().checkout,
 ): Promise<Binding> {
-  check();
+  if (checkout === null) {
+    return load();
+  }
+  checkBinding(checkout);
   try {
     return await load();
   } catch {

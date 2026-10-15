@@ -6,7 +6,8 @@ import { chatImages } from "./attach.ts";
 import { checkBinding, loadBinding } from "./binding.ts";
 import { type Env, loadDataDir, loadEnv } from "./env.ts";
 import type { Adapter } from "./runner/adapter.ts";
-import { ClaudeAdapter, PLUGIN_DIR } from "./runner/claude.ts";
+import { layout } from "./paths.ts";
+import { ClaudeAdapter } from "./runner/claude.ts";
 import { type Server, startServer } from "./server.ts";
 
 export { checkBinding, loadEnv };
@@ -22,11 +23,11 @@ export function devServer(env: Env) {
 }
 
 /**
- * The paths the server answers, a repository's and the global ones; Vite serves everything else.
- * A repository's images and uploads are only under its prefix.
+ * The paths the server answers, a repository's and the global ones, and the handoff, `/open`; Vite
+ * serves everything else. A repository's images and uploads are only under its prefix.
  */
 const SERVER_PATHS =
-  /^\/((r\/[^/?]+\/)?(fate|raw|mockups)|r\/[^/?]+\/(attach|images|chat-images))(\/|\?|$)/;
+  /^\/(open|(r\/[^/?]+\/)?(fate|raw|mockups)|r\/[^/?]+\/(attach|images|chat-images))(\/|\?|$)/;
 
 type Listener = (req: IncomingMessage, res: ServerResponse) => Promise<void>;
 
@@ -69,17 +70,18 @@ export async function reloadRepositories(): Promise<void> {
  * `adapter` says otherwise. A start that fails answers 500 with its reason, and the next request
  * tries again.
  */
-export function devHandler(root: string, { adapter }: { adapter?: Adapter } = {}) {
+export function devHandler(root: string | null, { adapter }: { adapter?: Adapter } = {}) {
   const env = loadEnv(root);
   const start = async (port: number): Promise<Started> => {
     const binding = await loadBinding();
-    const dataDir = loadDataDir(root);
+    const dataDir = loadDataDir(root, binding);
     // Read with the first request, as the data folder is: the browser tests' setup sets them after
     // Vite's server is made.
     const server = await startServer({
       ...loadEnv(root),
       adapter:
-        adapter ?? new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: PLUGIN_DIR }),
+        adapter ??
+        new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: layout().plugin }),
       allowOrigins: [],
       binding,
       dataDir,

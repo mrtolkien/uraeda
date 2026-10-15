@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { fixture, temporaryFolder } from "uraeda-binding/test-utils";
 import { allowRule, type Blocks, lines, parseLine } from "../claude-events.ts";
-import { ClaudeAdapter, claudeArgs, PLUGIN_DIR } from "../claude.ts";
+import { layout } from "../../paths.ts";
+import { ClaudeAdapter, claudeArgs } from "../claude.ts";
 import type { AgentEvent, Denial } from "../events.ts";
 import { chatOpening } from "../message.ts";
 
@@ -995,8 +996,10 @@ test("a session's process and the processes it started end with the server", asy
 });
 
 test("the plugin folder holds the skill", () => {
-  expect(
-    JSON.parse(readFileSync(join(PLUGIN_DIR, ".claude-plugin", "plugin.json"), "utf8")),
-  ).toEqual({ name: "uraeda" });
-  expect(existsSync(join(PLUGIN_DIR, "skills", "uraeda", "SKILL.md"))).toBe(true);
+  const { plugin } = layout();
+
+  expect(JSON.parse(readFileSync(join(plugin, ".claude-plugin", "plugin.json"), "utf8"))).toEqual({
+    name: "uraeda",
+  });
+  expect(existsSync(join(plugin, "skills", "uraeda", "SKILL.md"))).toBe(true);
 });

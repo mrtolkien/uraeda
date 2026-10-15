@@ -25,7 +25,8 @@ import type { Readable, Writable } from "node:stream";
 import { fixtureRepo } from "uraeda-binding/test-utils";
 import type { AgentProcess } from "../src/runner/adapter.ts";
 import { allowRule, lines } from "../src/runner/claude-events.ts";
-import { ClaudeAdapter, PLUGIN_DIR } from "../src/runner/claude.ts";
+import { layout } from "../src/paths.ts";
+import { ClaudeAdapter } from "../src/runner/claude.ts";
 import type { AgentEvent } from "../src/runner/events.ts";
 import { imageChecks, imagesFolder, wrappedAdapter } from "./validate-claude-images.ts";
 
@@ -40,7 +41,7 @@ const outside = mkdtempSync(join(tmpdir(), "uraeda-outside-"));
 const adapter = new ClaudeAdapter({
   configDir,
   imagesDir: imagesFolder(outside),
-  pluginDir: PLUGIN_DIR,
+  pluginDir: layout().plugin,
 });
 const cwd = fixtureRepo();
 /** An empty folder for the stdin checks. */
@@ -100,7 +101,7 @@ const summary = (events: Array<AgentEvent>) =>
 /** Whether the session's transcript shows the skill loaded from the plugin's copy. */
 function skillLoaded(sessionId: string): boolean {
   const projects = join(configDir, "projects");
-  const base = `Base directory for this skill: ${join(PLUGIN_DIR, "skills", "uraeda")}`;
+  const base = `Base directory for this skill: ${join(layout().plugin, "skills", "uraeda")}`;
   return readdirSync(projects).some((folder) => {
     try {
       return readFileSync(join(projects, folder, `${sessionId}.jsonl`), "utf8").includes(base);

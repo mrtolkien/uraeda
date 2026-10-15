@@ -10,6 +10,7 @@ import {
   readImage,
   readWorkspace,
   saveAnswer,
+  version,
   watch,
   workDir,
   type Changes,
@@ -153,3 +154,24 @@ test("does not read a markdown file as an image", async () => {
     "refused: specs/README.md: no such file",
   );
 });
+
+test("the binding's version is the Cargo workspace's", () => {
+  const cargo = readFileSync(new URL("../../Cargo.toml", import.meta.url), "utf8");
+  const workspace = /\[workspace\.package\][^[]*?\nversion = "([^"]+)"/.exec(cargo)![1];
+
+  expect(version()).toBe(workspace);
+});
+
+test.each(["linux-x64-gnu", "linux-arm64-gnu", "darwin-x64", "darwin-arm64"])(
+  "the %s package is named as the loader looks for it",
+  (platform) => {
+    const manifest = JSON.parse(
+      readFileSync(new URL(`./npm/${platform}/package.json`, import.meta.url), "utf8"),
+    );
+
+    expect(manifest.name).toBe(`@uraeda/binding-${platform}`);
+    expect(readFileSync(new URL("./index.js", import.meta.url), "utf8")).toContain(
+      `require('@uraeda/binding-${platform}')`,
+    );
+  },
+);

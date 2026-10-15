@@ -1,0 +1,28 @@
+{
+  "name": "@uraeda/ui",
+  "version": "0.0.0",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrtolkien/uraeda.git",
+    "directory": "packages/uraeda"
+  },
+  "bin": {
+    "uraeda": "dist/uraeda.mjs"
+  },
+  "files": [
+    "dist",
+    "web",
+    "plugin"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.1"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
