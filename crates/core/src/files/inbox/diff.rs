@@ -42,26 +42,12 @@ fn signature(text: &str) -> Vec<lines::Signed<Option<String>>> {
         .collect()
 }
 
-/// Whether two texts share at least half their words, counted on both sides: an edit, rather
-/// than another note.
-fn similar(a: &str, b: &str) -> bool {
-    let words = |text: &str| -> std::collections::HashSet<String> {
-        text.split(|c: char| !c.is_alphanumeric())
-            .filter(|w| !w.is_empty())
-            .map(str::to_lowercase)
-            .collect()
-    };
-    let (a, b) = (words(a), words(b));
-    let common = a.intersection(&b).count();
-    !a.is_empty() && !b.is_empty() && 4 * common >= a.len() + b.len()
-}
-
-/// The changes between two texts, in the order of `after`, as the priorities' diff finds them.
-/// Then a removed note and an added one with a similar text are one move with the new text, so
-/// a note edited, then moved, is one change.
+/// The changes between two texts, in the order of `after`, as the priorities' diff finds them: a
+/// move keeps the note's markdown, marks included, and an edit keeps its place. A note edited, then
+/// moved, is a removal and an addition.
 pub fn diff(before: &str, after: &str) -> Vec<NoteChange> {
     use lines::Change;
-    let mut changes: Vec<NoteChange> = lines::diff(&signature(before), &signature(after))
+    lines::diff(&signature(before), &signature(after))
         .into_iter()
         .map(|change| match change {
             Change::Added { section, text } => NoteChange::Added {
@@ -83,29 +69,5 @@ pub fn diff(before: &str, after: &str) -> Vec<NoteChange> {
                 after,
             },
         })
-        .collect();
-    let mut index = 0;
-    while index < changes.len() {
-        let NoteChange::Removed { category, text } = &changes[index] else {
-            index += 1;
-            continue;
-        };
-        let pair = changes.iter().position(
-            |change| matches!(change, NoteChange::Added { text: added, .. } if similar(text, added)),
-        );
-        let Some(pair) = pair else {
-            index += 1;
-            continue;
-        };
-        let from = category.clone();
-        if let NoteChange::Added { category, text } = changes[pair].clone() {
-            changes[pair] = NoteChange::Moved {
-                from,
-                to: category,
-                text,
-            };
-        }
-        changes.remove(index);
-    }
-    changes
+        .collect()
 }

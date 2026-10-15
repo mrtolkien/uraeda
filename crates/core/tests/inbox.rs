@@ -15,7 +15,7 @@ type Row<'a> = (
 );
 
 /// Texts and the notes `parse` finds in them.
-const PARSE: [(&str, &[Row<'static>]); 7] = [
+const PARSE: [(&str, &[Row<'static>]); 8] = [
     (
         DATA,
         &[
@@ -60,6 +60,10 @@ const PARSE: [(&str, &[Row<'static>]); 7] = [
                 (13, 13),
             ),
         ],
+    ),
+    (
+        "# Inbox\n\n- [café] x\n",
+        &[(None, "[café] x", false, None, None, (3, 3))],
     ),
     (
         "# Inbox\n\n- [!] text\n",
@@ -212,6 +216,13 @@ fn add() {
             "# Inbox\n\n## UI\n\n- a\n\n## Editor\n\n- note\n",
         ),
         ("", None, "# Inbox\n\n- note\n"),
+        // A file without a title gets one, so the note is a note.
+        ("- a\n", None, "# Inbox\n\n- a\n- note\n"),
+        (
+            "## UI\n\n- a\n",
+            None,
+            "# Inbox\n\n- note\n\n## UI\n\n- a\n",
+        ),
         ("", Some("UI"), "# Inbox\n\n## UI\n\n- note\n"),
         ("# Inbox\n", None, "# Inbox\n\n- note\n"),
         (
@@ -242,6 +253,8 @@ fn add() {
             after,
             "{before:?} {category:?}"
         );
+        let notes = inbox::parse(after);
+        assert!(notes.iter().any(|n| n.text == "note"), "{after:?}");
     }
 }
 
@@ -350,14 +363,19 @@ fn diff() {
                 after: "Specs are too long".into(),
             }],
         ),
-        // Review focus 4: an edit, then a move, is one move with the new text.
+        // Review focus 4: an edit, then a move, is two changes, named with their own texts.
         (
             "# Inbox\n\n- Home icon\n\n## UI\n\n- Blurry icons\n- Specs are too long\n",
-            vec![NoteChange::Moved {
-                from: None,
-                to: ui("UI"),
-                text: "Specs are too long".into(),
-            }],
+            vec![
+                NoteChange::Removed {
+                    category: None,
+                    text: "Specs are still way too long and hard to read".into(),
+                },
+                NoteChange::Added {
+                    category: ui("UI"),
+                    text: "Specs are too long".into(),
+                },
+            ],
         ),
     ];
     for (after, expected) in cases {
@@ -367,4 +385,47 @@ fn diff() {
     // A removal and an unrelated addition elsewhere stay two changes.
     let two = "# Inbox\n\n- Specs are still way too long and hard to read\n\n## UI\n\n- Blurry icons\n- Dark mode\n";
     assert_eq!(inbox::diff(before, two).len(), 2);
+}
+
+/// R10: a note deleted and a similar one added elsewhere are not a move.
+#[test]
+fn a_deletion_and_a_similar_addition_are_two_changes() {
+    let before =
+        "# Inbox\n\n## UI\n\n- Icons are blurry on retina screens\n- Text input feels laggy\n";
+    let after = "# Inbox\n\n## UI\n\n- Text input feels laggy\n- Icons are blurry on the sidebar\n";
+
+    let ui = Some("UI".to_string());
+    assert_eq!(
+        inbox::diff(before, after),
+        [
+            NoteChange::Removed {
+                category: ui.clone(),
+                text: "Icons are blurry on retina screens".into(),
+            },
+            NoteChange::Added {
+                category: ui,
+                text: "Icons are blurry on the sidebar".into(),
+            },
+        ]
+    );
+}
+
+/// A fence indented under a note, with a blank line in it, does not hide what follows.
+#[test]
+fn indented_fences_do_not_hide_later_notes() {
+    let text = "# Inbox\n\n- a note\n  ```\n  x\n\n  y\n  ```\n- next\n\n## UI\n\n- b\n";
+
+    let notes: Vec<(Option<String>, String)> = inbox::parse(text)
+        .into_iter()
+        .map(|n| (n.category, n.text))
+        .filter(|(_, t)| !t.starts_with("a note"))
+        .collect();
+    assert_eq!(
+        notes,
+        [
+            (None, "next".to_string()),
+            (Some("UI".to_string()), "b".to_string())
+        ]
+    );
+    assert_eq!(inbox::category_names(text), ["UI"]);
 }

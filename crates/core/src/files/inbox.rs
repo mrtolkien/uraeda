@@ -59,7 +59,7 @@ fn slug_mark(text: &str) -> Option<(&str, &str)> {
     let (slug, rest) = text.strip_prefix('[')?.split_once("] ")?;
     let valid = slug
         .chars()
-        .all(|c| c.is_lowercase() || c.is_numeric() || c == '-');
+        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-');
     (!slug.is_empty() && valid && !rest.trim().is_empty()).then_some((slug, rest))
 }
 
@@ -296,6 +296,11 @@ fn find(text: &str, id: &str) -> Option<Item> {
 /// Notes without one go before the first `##` heading.
 fn insert_at(text: &str, category: Option<&str>, index: usize, item: &[String]) -> String {
     let category = category.map(str::trim);
+    let titled = match category {
+        Some(_) => text.to_string(),
+        None => titled(text),
+    };
+    let text = titled.as_str();
     let headings: Vec<(usize, &str)> = lines::headings(text).collect();
     let heading = match category {
         Some(name) => headings
@@ -319,24 +324,28 @@ fn insert_at(text: &str, category: Option<&str>, index: usize, item: &[String]) 
         lines.splice(before.line - 1..before.line - 1, item.iter().cloned());
         return lines.join("\n");
     }
-    if category.is_none() && heading.is_none() && notes.is_empty() {
-        // No title: before the first category, or at the end.
-        let at = headings
-            .first()
-            .map_or(lines.len(), |(number, _)| number - 1);
-        lines.splice(at..at, item.iter().cloned().chain([String::new()]));
-        return lines.join("\n");
-    }
     let new_heading = format!("## {}", category.unwrap_or_default());
     lines::append_to_section(text, notes.last(), heading, &new_heading, item)
 }
 
-/// Adds a note's line at the end of a category, or of the notes without one. An empty text gets
-/// the title `# Inbox` first.
+/// The text with the title `# Inbox` first when it has no `# ` heading, so a note added without a
+/// category is under a heading, and so a note.
+fn titled(text: &str) -> String {
+    if lines::headings(text).any(|(_, line)| line.starts_with("# ")) {
+        text.to_string()
+    } else if text.trim().is_empty() {
+        TITLE.to_string()
+    } else {
+        format!("{TITLE}\n{text}")
+    }
+}
+
+/// Adds a note's line at the end of a category, or of the notes without one. A text without a
+/// title gets `# Inbox` first.
 pub fn add(text: &str, category: Option<&str>, line: &str) -> String {
     let result: Result<String, ()> = super::with_unix_newlines(text, |text| {
-        let text = if text.trim().is_empty() { TITLE } else { text };
-        Ok(insert_at(text, category, usize::MAX, &[line.to_string()]))
+        let text = titled(text);
+        Ok(insert_at(&text, category, usize::MAX, &[line.to_string()]))
     });
     result.unwrap_or_else(|()| text.to_string())
 }

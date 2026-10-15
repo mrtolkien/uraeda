@@ -80,7 +80,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: Task 1's `lines::items` scans exactly as the priorities' parser did, fenced code
   included. Task 2 adds the fenced-code skip, with its inbox test, and the priorities share it from
-  then on.
+  then on. Only a fence at column 0 opens or closes code, in `items` and `headings` alike: a fence
+  indented under an item is part of the item, and a blank line inside it would otherwise leave its
+  closing fence to open code that hides every later item.
 - **Rationale**: Task 1 only restructures: its tests pass unchanged before and after. The
   priorities' parser never skipped fenced code, so skipping it in task 1 would change what
   `PRIORITIES.md` entries are, inside a structural commit.
@@ -95,7 +97,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `last`, the section's last item, or else after the heading at line `heading`, or else under a new
   heading at the end. `lines::items` gives its closure each heading's line number, and
   `lines::headings` lists the headings outside fenced code. Adding under a heading at the end of the
-  file keeps the file's last line ending.
+  file keeps the file's last line ending, and adds one when the file had none.
 - **Rationale**: Task 1's helper took a predicate and the last item under any heading it accepted,
   so it could not tell two `## UI` headings apart, and review focus 6 requires the inbox to add to
   the first. The priorities pass the last entry of their section and the first matching heading,
@@ -119,19 +121,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: The closure in `inbox::scan` returns `None` for other headings.
 - **Where**: task 2, `files/inbox.rs`
 
-## R10: The inbox's diff pairs a removed note and a similar added one as a move
+## R10: A note moves only with the same markdown; an edited then moved note is two changes
 
-- **Decision**: `inbox::diff` runs the priorities' diff, moved into `lines::diff` as a generic over
-  the section type, then pairs a removed note with an added one whose words are at least half shared
-  (`4 × common ≥ words before + words after`), as one `Moved` with the new text.
-- **Rationale**: Review focus 4 counts a note edited, then moved, as one change. Its markdown
-  changed, so the exact match that finds moves misses it, and it is not in the same place, so the
-  edit rule misses it too. A note deleted and an unrelated note added stay two changes.
-- **Alternatives considered**: Pairing any removal with any addition, which merges unrelated
-  changes. Tracking edits in the UI, which a change made by hand does not have.
-- **If wrong**: An edit that rewrites most words counts as a removal and an addition; tune the
-  threshold in `inbox::diff::similar`.
-- **Where**: task 2, `files/lines.rs` and `files/inbox/diff.rs`
+- **Decision**: `inbox::diff` is the priorities' diff, moved into `lines::diff` as a generic over
+  the section type. A removed note and an added one are a `Moved` only when their markdown, marks
+  included, is exactly equal. A removal and an addition at the same place of the same category are
+  an `Edited`. A note edited, then moved to another category or place, is two changes, a removal and
+  an addition, each named with its own text.
+- **Rationale**: No rule can tell an edit followed by a move from a deletion and an unrelated
+  addition: both remove one text and add another elsewhere. Exact markdown keeps the change list
+  honest, names the deleted text in the commit, and lets task 4 pair notes across files by text.
+- **Alternatives considered**: Pairing a removed and an added note sharing half their words (Dice
+  pairing), rejected: deleting "Icons are blurry on retina screens" and adding "Icons are blurry on
+  the sidebar" became a move, hiding the deleted text, and the pairing crossed categories and was
+  greedy, which task 4's cross-file matching could not follow.
+- **If wrong**: The commit lists two changes for an edited move. The same-place rule, inherited from
+  the priorities, also reads a deletion and an addition at the same place as an edit: deleting the
+  last note of a category and adding a new one there, in the same uncommitted change, is one
+  `Edited`.
+- **Where**: task 2, `files/lines.rs` and `files/inbox/diff.rs`; task 4's change list
 
 ## R11: Task 2's smaller corrections to the plan
 
@@ -141,7 +149,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
     lines.
   - `add` writes `# Inbox\n`, the template, into an empty text, which gives `"# Inbox\n\n- note\n"`
     as the plan expects, and `"# Inbox\n\n## Editor\n\n- note\n"` for a new category, with no second
-    blank line.
+    blank line. A text without a `# ` title gets `# Inbox` and a blank line first, so the added note
+    is under a heading, and so a note. `insert` and `move_to` without a category do the same.
   - `Inbox.names` lists each category's name once, for the add form; `category_names` keeps the
     repeated ones, for `ura check`.
   - The priorities' fenced-code test is in `tests/priorities.rs`.

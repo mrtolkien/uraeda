@@ -9,4 +9,4 @@
 
 ## Storage
 
-- [agent] [tasks-reappear] Completing a task rewrites every task in IndexedDB: 300 ms with 5,000
+- [agent] [tasks-reappear] Completing a task rewrites all 5,000 tasks in IndexedDB, in 300 ms
