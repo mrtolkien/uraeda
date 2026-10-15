@@ -2,8 +2,10 @@
  * What the screenshots' views are taken with: opening a page and waiting for it to settle, saving
  * a view at each size and theme, and the spec's folds, a group of views of their own.
  */
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { BrowserContext, Page } from "playwright";
+import { encodeImage } from "uraeda-binding";
 
 export type Size = "phone" | "desktop";
 type Mode = "light" | "dark";
@@ -38,10 +40,12 @@ export async function settle(page: Page) {
   await wait(500);
 }
 
+/** Saves a shot as WebP, re-encoded by the core as an attached image is: a quarter of a PNG. */
 async function save(shot: Shot, out: string, view: string) {
-  const path = join(out, `${view}-${shot.size}-${shot.mode}.png`);
-  await shot.page.screenshot({ path });
-  process.stdout.write(`  ${view}-${shot.size}-${shot.mode}.png\n`);
+  const name = `${view}-${shot.size}-${shot.mode}.webp`;
+  const { bytes } = await encodeImage(await shot.page.screenshot(), name);
+  writeFileSync(join(out, name), bytes);
+  process.stdout.write(`  ${name}\n`);
 }
 
 /** Takes a view, at both sizes and in both themes, or on one size when only it shows it. */
