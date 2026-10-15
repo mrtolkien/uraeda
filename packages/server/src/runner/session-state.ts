@@ -133,6 +133,8 @@ export type Live = {
  */
 export type SessionContext = {
   adapter: Adapter;
+  /** Reports a change of the account's usage or the agent's availability. */
+  agentChanged: () => void;
   binding: Binding;
   cache: SessionCache;
   /** Reports a change of the session, with its turn and that turn's new state. */

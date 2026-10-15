@@ -6,6 +6,7 @@ import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, startTransition, useEffect, useState } from "react";
 import type { SessionStatus } from "uraeda-server/fate";
+import { AgentsAtWork } from "./AgentsAtWork.tsx";
 import { type useNavigation, useSessionSearch } from "./data.ts";
 import { ProgressRing } from "./ProgressRing.tsx";
 import { navigate, useRepoPath } from "./routes.tsx";
@@ -290,22 +291,20 @@ function FeatureGroup({
   statuses: Map<string, Status>;
   title: string;
 }) {
-  if (list.length === 0) {
-    return null;
-  }
-  return (
-    <SideNavSection title={title}>
-      {list.map((feature) => (
-        <FeatureRow
-          feature={feature}
-          key={feature.folder}
-          pathname={pathname}
-          row={byFolder.get(feature.folder)}
-          status={statuses.get(feature.folder)!}
-        />
-      ))}
-    </SideNavSection>
-  );
+  const rows = list.map((feature) => (
+    <FeatureRow
+      feature={feature}
+      key={feature.folder}
+      pathname={pathname}
+      row={byFolder.get(feature.folder)}
+      status={statuses.get(feature.folder)!}
+    />
+  ));
+  return title === "Agents at work" ? (
+    <AgentsAtWork empty={list.length === 0}>{rows}</AgentsAtWork>
+  ) : list.length > 0 ? (
+    <SideNavSection title={title}>{rows}</SideNavSection>
+  ) : null;
 }
 
 /** The chats' section: "New chat" outside a search, the open chats, then the archived ones. */

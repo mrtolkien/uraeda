@@ -495,6 +495,10 @@ test.each(
   await show(`/f/${CLI}/session`, "CLI TUIs");
   await startTurn("Plan the CLI.", [
     {
+      fiveHour: { percentUsed: 43, resetsAt: new Date(Date.now() + 3_600_000).toISOString() },
+      type: "usage",
+    },
+    {
       id: "task",
       input: {},
       kind: "other",
@@ -505,6 +509,7 @@ test.each(
   ]);
   const nav = await navigation();
   await within(nav as HTMLElement).findByText("Map the runner code", undefined, LIVE);
+  await within(nav as HTMLElement).findByText(/57% left · reset/, undefined, LIVE);
   if (query) {
     await userEvent.fill(within(nav as HTMLElement).getByRole("searchbox"), query);
     await within(nav as HTMLElement).findByText(

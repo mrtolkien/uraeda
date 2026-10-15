@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { AgentEvent } from "./events.ts";
+import type { AgentEvent, UsageLimit } from "./events.ts";
 import {
   type Live,
   type Proc,
@@ -21,9 +21,37 @@ type Exit = Extract<AgentEvent, { type: "exit" }>;
  */
 export class Processes {
   #context: SessionContext;
+  /** In report order: the newest open process's report wins, even when usage decreased. */
+  #limits = new Map<Proc, UsageLimit>();
+  #expiry: ReturnType<typeof setTimeout> | undefined;
 
   constructor(context: SessionContext) {
     this.#context = context;
+  }
+
+  /** The freshest unexpired five-hour report from an open process, across repositories. */
+  fiveHourLimit(): UsageLimit | null {
+    return (
+      [...this.#limits.values()]
+        .filter((limit) => Date.parse(limit.resetsAt) > Date.now())
+        .at(-1) ?? null
+    );
+  }
+
+  /** Drops expired reports, and publishes expiry even when no process prints another event. */
+  #usageChanged() {
+    clearTimeout(this.#expiry);
+    for (const [proc, limit] of this.#limits) {
+      if (Date.parse(limit.resetsAt) <= Date.now()) {
+        this.#limits.delete(proc);
+      }
+    }
+    const next = Math.min(...[...this.#limits.values()].map((limit) => Date.parse(limit.resetsAt)));
+    this.#expiry = Number.isFinite(next)
+      ? setTimeout(() => this.#usageChanged(), Math.min(next - Date.now(), 2_147_483_647))
+      : undefined;
+    this.#expiry?.unref();
+    this.#context.agentChanged();
   }
 
   /**
@@ -85,6 +113,9 @@ export class Processes {
   close(proc: Proc) {
     if (!proc.closing) {
       proc.closing = true;
+      if (this.#limits.delete(proc)) {
+        this.#usageChanged();
+      }
       proc.agent.close();
       proc.terminate.push(
         setTimeout(() => proc.agent.kill("SIGTERM"), TERMINATE_AFTER_MS),
@@ -101,6 +132,14 @@ export class Processes {
           this.#exited(live, proc, event);
           return;
         }
+        if (event.type === "usage") {
+          if (!proc.closing) {
+            this.#limits.delete(proc);
+            this.#limits.set(proc, event.fiveHour);
+            this.#usageChanged();
+          }
+          continue;
+        }
         this.#context.transcript.record(live, proc, event);
       } catch (error) {
         // A cache write that fails does not stop the session.
@@ -115,6 +154,9 @@ export class Processes {
   /** The process exited: its turn ends, and the queued turns start on a new one. */
   #exited(live: Live, proc: Proc, exit: Exit) {
     const { adapter, cache, turns } = this.#context;
+    if (this.#limits.delete(proc)) {
+      this.#usageChanged();
+    }
     proc.terminate.forEach(clearTimeout);
     if (live.proc !== proc) {
       return;

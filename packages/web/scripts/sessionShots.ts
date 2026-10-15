@@ -173,6 +173,10 @@ async function takeWorking(each: Each, first: Page, adapter: FakeAdapter) {
   await show(first, `${AGENT}/session`, "CLI TUIs");
   const id = await send(adapter, first, "Plan the CLI.");
   adapter.emit({ id, type: "accepted" });
+  adapter.emit({
+    fiveHour: { percentUsed: 43, resetsAt: new Date(Date.now() + 3_600_000).toISOString() },
+    type: "usage",
+  });
   adapter.emit({ text: `Reading **the answers** of round 01 in \`${LONG}\`.`, type: "text" });
   adapter.emit({
     id: "a",
