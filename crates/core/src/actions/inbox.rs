@@ -1,14 +1,16 @@
 //! Editing `INBOX.md` on the default branch: each edit written at once over the version it was
-//! read at, as the priorities are.
+//! read at, as the priorities are, and the moves of notes into the priorities and drafts.
 
 use std::fs;
 
 use crate::files::document::hash;
 use crate::files::frontmatter;
 use crate::files::inbox::{self, Inbox};
+use crate::files::priorities::{self, Section};
+use crate::files::proposal;
 
-use super::place::{self, Place};
-use super::{ActionError, STALE};
+use super::place::Place;
+use super::{ActionError, STALE, changes, draft};
 
 pub const PATH: &str = "specs/INBOX.md";
 /// The agent's proposed triage, answered like a round of questions.
@@ -23,22 +25,27 @@ pub struct Marks {
     pub about: Option<String>,
 }
 
-/// The file's text: empty when it is missing, an error when it cannot be read, so that an edit
+/// A file's text: empty when it is missing, an error when it cannot be read, so that an edit
 /// does not overwrite it.
-fn text(place: &Place) -> Result<String, ActionError> {
-    match fs::read_to_string(place.root.join(PATH)) {
+fn file(place: &Place, path: &str) -> Result<String, ActionError> {
+    match fs::read_to_string(place.root.join(path)) {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(String::new()),
         result => Ok(result?),
     }
 }
 
-/// The inbox of `text`, with its changes since `committed` and the status of the triage `triage`.
-pub fn of(text: &str, committed: Option<&str>, triage: Option<&str>) -> Inbox {
+fn text(place: &Place) -> Result<String, ActionError> {
+    file(place, PATH)
+}
+
+/// The inbox of `text`, with the status of the triage `triage`, and `changes`, the count of the
+/// commit bar's change list.
+pub fn of(text: &str, triage: Option<&str>, changes: u32) -> Inbox {
     let status = triage
         .and_then(|triage| frontmatter::parse(triage).ok())
         .and_then(|front| front.text("status").map(String::from));
     Inbox {
-        changes: inbox::diff(committed.unwrap_or_default(), text).len() as u32,
+        changes,
         triage: status,
         ..inbox::read(text)
     }
@@ -46,11 +53,7 @@ pub fn of(text: &str, committed: Option<&str>, triage: Option<&str>) -> Inbox {
 
 fn read_text(place: &Place, written: &str) -> Inbox {
     let triage = fs::read_to_string(place.root.join(TRIAGE)).ok();
-    of(
-        written,
-        place::committed(place, PATH).as_deref(),
-        triage.as_deref(),
-    )
+    of(written, triage.as_deref(), changes::list(place).count)
 }
 
 /// The inbox, with its changes since the last commit and the triage's status. A file that cannot
@@ -78,15 +81,8 @@ fn apply(
 
 const NO_TEXT: &str = "A note needs text.";
 
-/// Adds a note at the end of a category, or of the notes without one, creating the file or the
-/// category when missing. `previous` is `None` when nothing was read before, as from the CLI.
-pub fn add(
-    place: &Place,
-    category: Option<&str>,
-    marks: &Marks,
-    text: &str,
-    previous: Option<&str>,
-) -> Result<Inbox, ActionError> {
+/// Refuses a blank note, and a mark that would not parse back as one.
+fn checked_note(marks: &Marks, text: &str) -> Result<(), ActionError> {
     if text.trim().is_empty() {
         return Err(ActionError::Refused(NO_TEXT.to_string()));
     }
@@ -99,6 +95,19 @@ pub fn add(
             "{about} is not a slug: lowercase letters, digits, and -"
         )));
     }
+    Ok(())
+}
+
+/// Adds a note at the end of a category, or of the notes without one, creating the file or the
+/// category when missing. `previous` is `None` when nothing was read before, as from the CLI.
+pub fn add(
+    place: &Place,
+    category: Option<&str>,
+    marks: &Marks,
+    text: &str,
+    previous: Option<&str>,
+) -> Result<Inbox, ActionError> {
+    checked_note(marks, text)?;
     let line = inbox::note_line(marks.agent, marks.about.as_deref(), text);
     apply(
         place,
@@ -166,4 +175,136 @@ pub fn insert(
         |current| inbox::insert(current, category, index, lines),
         "Nothing to put back.",
     )
+}
+
+/// A file's text, refused when it changed since it was read at `previous`.
+fn current(place: &Place, path: &str, previous: &str) -> Result<String, ActionError> {
+    let text = file(place, path)?;
+    if hash(&text) != previous {
+        let name = path.rsplit('/').next().unwrap_or(path);
+        return Err(ActionError::Refused(format!("{name} {STALE}")));
+    }
+    Ok(text)
+}
+
+fn no_note(id: &str) -> ActionError {
+    ActionError::Refused(format!("no note {id}"))
+}
+
+/// Writes `edited` over `target`, then `inbox` over `INBOX.md`, and puts `target` back as it was
+/// when the second write fails, so a note is never in neither file.
+fn write_both(place: &Place, target: &str, edited: &str, inbox: &str) -> Result<(), ActionError> {
+    let path = place.root.join(target);
+    let before = fs::read_to_string(&path).ok();
+    fs::write(&path, edited)?;
+    if let Err(error) = fs::write(place.root.join(PATH), inbox) {
+        let _ = match before {
+            Some(before) => fs::write(&path, before),
+            None => fs::remove_file(&path),
+        };
+        return Err(error.into());
+    }
+    Ok(())
+}
+
+/// The inbox and the priorities, each refused when it changed since it was read.
+fn both(
+    place: &Place,
+    previous: &str,
+    priorities_previous: &str,
+) -> Result<(String, String), ActionError> {
+    let inbox = current(place, PATH, previous)?;
+    let priorities = current(place, super::priorities::PATH, priorities_previous)?;
+    Ok((inbox, priorities))
+}
+
+/// Moves a note's lines, without its marks, to the end of a section of `PRIORITIES.md`. Both files
+/// are checked against the versions read before either is written.
+pub fn to_priorities(
+    place: &Place,
+    id: &str,
+    section: Section,
+    previous: &str,
+    priorities_previous: &str,
+) -> Result<(), ActionError> {
+    let (inbox, priorities) = both(place, previous, priorities_previous)?;
+    let (lines, _) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
+    let edited = priorities::insert_entry(&priorities, section, usize::MAX, &lines)
+        .ok_or_else(|| no_note(id))?;
+    let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
+    write_both(place, super::priorities::PATH, &edited, &without)
+}
+
+/// Makes a note a new draft, `specs/drafts/<slug>.md` or the next free name, linked from the end of
+/// a section of `PRIORITIES.md`, and returns the draft's path. A note that links a draft is one.
+pub fn to_new_draft(
+    place: &Place,
+    id: &str,
+    section: Section,
+    previous: &str,
+    priorities_previous: &str,
+) -> Result<String, ActionError> {
+    let (inbox, priorities) = both(place, previous, priorities_previous)?;
+    let note = inbox::note(&inbox, id).ok_or_else(|| no_note(id))?;
+    if let Some(link) = note.link.as_deref() {
+        return Err(ActionError::Refused(format!(
+            "{} already links {link}",
+            note.text
+        )));
+    }
+    let (lines, text_lines) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
+    let path = draft::free_path(place, &note.text);
+    let entry = format!("- [{}]({})", note.text, path.trim_start_matches("specs/"));
+    let edited = priorities::insert_entry(&priorities, section, usize::MAX, &[entry])
+        .ok_or_else(|| no_note(id))?;
+    let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
+    draft::write_new(place, &path, &note.text, &lines[text_lines..])?;
+    if let Err(error) = write_both(place, super::priorities::PATH, &edited, &without) {
+        let _ = fs::remove_file(place.root.join(&path));
+        return Err(error);
+    }
+    Ok(path)
+}
+
+/// Adds a note's lines, without its marks, at the end of the `## What` section of the draft at
+/// `draft`, from the top level.
+pub fn to_draft(place: &Place, id: &str, draft: &str, previous: &str) -> Result<(), ActionError> {
+    let inbox = current(place, PATH, previous)?;
+    let plain = !draft.split('/').any(|part| part == ".." || part.is_empty());
+    let text = (crate::target::is_draft(draft) && plain && draft.ends_with(".md"))
+        .then(|| fs::read_to_string(place.root.join(draft)).ok())
+        .flatten()
+        .ok_or_else(|| ActionError::Refused(format!("no draft {draft}")))?;
+    let (lines, _) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
+    let edited = proposal::append_to_what(&text, &lines)
+        .ok_or_else(|| ActionError::Refused(format!("{draft} has no ## What section")))?;
+    let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
+    write_both(place, draft, &edited, &without)
+}
+
+/// Adds a note as a new draft, `specs/drafts/<slug>.md` or the next free name, written from its
+/// text, with the note linking it at the end of a category. Returns the draft's path.
+pub fn add_as_draft(
+    place: &Place,
+    category: Option<&str>,
+    marks: &Marks,
+    text: &str,
+    previous: Option<&str>,
+) -> Result<String, ActionError> {
+    checked_note(marks, text)?;
+    let current = match previous {
+        Some(previous) => current(place, PATH, previous)?,
+        None => self::text(place)?,
+    };
+    let title = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    let path = draft::free_path(place, &title);
+    let link = format!("[{title}]({})", path.trim_start_matches("specs/"));
+    let line = inbox::note_line(marks.agent, marks.about.as_deref(), &link);
+    let edited = inbox::add(&current, category, &line);
+    draft::write_new(place, &path, &title, &[])?;
+    if let Err(error) = fs::write(place.root.join(PATH), edited) {
+        let _ = fs::remove_file(place.root.join(&path));
+        return Err(error.into());
+    }
+    Ok(path)
 }

@@ -284,6 +284,54 @@ fn main_place(repo: &TestRepo) -> place::Place {
     place::reach(&Git::discover(repo.path()).unwrap(), "main").unwrap()
 }
 
+/// The priorities' Commit and Discard are the inbox's: a note moved into the priorities is one
+/// change, committed with `INBOX.md`, and Discard restores both files.
+#[test]
+fn the_priorities_commit_holds_the_inbox() {
+    let repo = repo();
+    repo.write("specs/INBOX.md", "# Inbox\n\n- An idea\n- A typo\n");
+    repo.commit("chore: inbox");
+    let place = main_place(&repo);
+    let inbox = uraeda_core::actions::inbox::read(&place);
+    let read = actions::read(&place);
+    uraeda_core::actions::inbox::to_priorities(
+        &place,
+        "note-1",
+        Section::Next,
+        &inbox.hash,
+        &read.hash,
+    )
+    .unwrap();
+    let read = actions::read(&place);
+    actions::edit(&place, "next-1", "Git listener", &read.hash).unwrap();
+
+    assert_eq!(actions::read(&place).changes, 2);
+    let committed = actions::commit(&place).unwrap();
+
+    assert_eq!(
+        committed.change.subject,
+        "chore: move \"An idea\" from the inbox to Next, and 1 more"
+    );
+    assert_eq!(
+        committed.change.body.as_deref(),
+        Some(
+            "- Move from the inbox to Next: An idea\n- Edit in Next: Git listener process -> Git listener"
+        )
+    );
+    assert_eq!(
+        repo.changed_in("main"),
+        ["specs/INBOX.md", "specs/PRIORITIES.md"]
+    );
+
+    let inbox = uraeda_core::actions::inbox::read(&place);
+    uraeda_core::actions::inbox::remove(&place, "note-1", Some(&inbox.hash)).unwrap();
+    let read = actions::read(&place);
+    actions::remove(&place, "next-1", &read.hash).unwrap();
+    let read = api::discard_priorities(repo.path()).unwrap();
+    assert_eq!(read.changes, 0);
+    assert_eq!(repo.porcelain(), "");
+}
+
 /// US7.6 and US7.7
 #[test]
 fn changes_are_committed_alone_or_discarded() {

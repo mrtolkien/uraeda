@@ -1,29 +1,31 @@
 //! Editing `PRIORITIES.md` on the default branch: each edit written at once over the version it
-//! was read at, then one commit when the human is done.
+//! was read at, then one commit when the human is done, with the inbox's: see [`changes`].
 
 use std::fs;
 
 use crate::files::document::hash;
 use crate::files::priorities::{self, EntryChange, Priorities, Section};
-use crate::git::Git;
 
-use super::place::{self, Place};
-use super::{ActionError, Change, Committed, STALE, commit};
+use super::place::Place;
+use super::{ActionError, Committed, STALE, changes};
 
 pub const PATH: &str = "specs/PRIORITIES.md";
-
-/// The file's committed text, at `HEAD` of the working tree.
-fn committed(place: &Place) -> Option<String> {
-    place::committed(place, PATH)
-}
 
 fn text(place: &Place) -> String {
     fs::read_to_string(place.root.join(PATH)).unwrap_or_default()
 }
 
-/// The priorities, with the number of changes since the last commit.
+/// The priorities of `text`, with the count of the commit bar's change list.
+fn counted(place: &Place, text: &str) -> Priorities {
+    Priorities {
+        changes: changes::list(place).count,
+        ..priorities::read(text, None)
+    }
+}
+
+/// The priorities, with the number of changes the commit bar counts.
 pub fn read(place: &Place) -> Priorities {
-    priorities::read(&text(place), committed(place).as_deref())
+    counted(place, &text(place))
 }
 
 /// Applies an edit over the version read at `previous`, and returns the priorities as it wrote
@@ -41,7 +43,7 @@ fn apply(
     }
     let edited = edit(&current).ok_or_else(|| ActionError::Refused(refused.to_string()))?;
     fs::write(place.root.join(PATH), &edited)?;
-    Ok(priorities::read(&edited, committed(place).as_deref()))
+    Ok(counted(place, &edited))
 }
 
 /// Adds a line at the end of a section.
@@ -118,7 +120,7 @@ pub fn remove(place: &Place, id: &str, previous: &str) -> Result<Priorities, Act
 }
 
 /// An entry's text cut at a word, to keep a subject short.
-fn short(text: &str) -> String {
+pub(crate) fn short(text: &str) -> String {
     const MAX: usize = 40;
     if text.chars().count() <= MAX {
         return text.to_string();
@@ -134,7 +136,7 @@ fn short(text: &str) -> String {
 }
 
 /// A change as a subject's description, its entry's text shortened.
-fn describe(change: &EntryChange) -> String {
+pub(crate) fn describe(change: &EntryChange) -> String {
     match change {
         EntryChange::Added { section, text } => {
             format!("add \"{}\" to {}", short(text), section.title())
@@ -151,7 +153,7 @@ fn describe(change: &EntryChange) -> String {
 }
 
 /// A change as a line of the body, with its entry's whole text.
-fn line(change: &EntryChange) -> String {
+pub(crate) fn line(change: &EntryChange) -> String {
     match change {
         EntryChange::Added { section, text } => format!("- Add to {}: {text}", section.title()),
         EntryChange::Removed { section, text } => {
@@ -185,27 +187,12 @@ pub fn message(before: &str, after: &str) -> (String, Option<String>) {
     }
 }
 
-/// Commits `PRIORITIES.md` alone, with a message naming its changes.
+/// Commits the commit bar's changes: the priorities, the inbox, and the drafts notes went into.
 pub fn commit(place: &Place) -> Result<Committed, ActionError> {
-    let before = committed(place);
-    let after = text(place);
-    if before.as_deref() == Some(after.as_str()) {
-        return Err(ActionError::Refused(
-            "PRIORITIES.md has no change to commit".to_string(),
-        ));
-    }
-    let (subject, body) = message(before.as_deref().unwrap_or_default(), &after);
-    let change = Change {
-        paths: vec![PATH.to_string()],
-        subject,
-        body,
-    };
-    place::ensure_only_staged(place, &change.paths)?;
-    commit::commit(place, &change)
+    changes::commit(place)
 }
 
-/// Restores the committed `PRIORITIES.md`.
+/// Restores the committed priorities, inbox, and drafts notes went into.
 pub fn discard(place: &Place) -> Result<(), ActionError> {
-    Git::open(&place.root)?.restore(PATH)?;
-    Ok(())
+    changes::discard(place)
 }

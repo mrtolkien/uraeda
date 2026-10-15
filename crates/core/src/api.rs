@@ -8,7 +8,7 @@ use crate::actions::{ActionError, answer, place, priorities as edits};
 use crate::check;
 use crate::files::document::{self, hash};
 use crate::files::items::items;
-use crate::files::priorities::{self, Priorities};
+use crate::files::priorities;
 use crate::files::review::Verdict;
 use crate::gates::{AWAITING_HUMAN, Gate, gate_of};
 use crate::git::{Git, GitError};
@@ -38,7 +38,7 @@ pub use files::{attach_image, encode_image, read_image, read_raw};
 pub use inbox_edits::*;
 pub use priority_edits::{
     add_priority, commit_priorities, discard_priorities, edit_priority, insert_priority,
-    move_priority, remove_priority,
+    move_priority, read_priorities, remove_priority,
 };
 pub use repository_list::{
     add_repository, data_dir, open_repository, read_repositories, remove_repository,
@@ -580,16 +580,6 @@ fn default_checkout(git: &Git, default: &str) -> Option<PathBuf> {
             .find(|worktree| worktree.branch.as_deref() == Some(default))
             .map(|worktree| worktree.path)
     }
-}
-
-/// The priorities, with their changes since the last commit, without creating a worktree.
-pub fn read_priorities(repo: &Path) -> Result<Priorities> {
-    let (git, workspace) = open(repo)?;
-    let (text, committed) = on_default(&git, &workspace, edits::PATH);
-    Ok(priorities::read(
-        &text.unwrap_or_default(),
-        committed.as_deref(),
-    ))
 }
 
 /// Lets a tool act on a draft, a backlog file, or the priorities, at `path` from the root, open
