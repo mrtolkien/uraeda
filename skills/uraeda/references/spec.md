@@ -268,6 +268,10 @@ paragraph: Uraeda shows the story there, live, at a phone's width and a desktop'
 [Repeat menu, open](/src/tasks/RepeatMenu.stories.tsx#Open)
 ```
 
+Before linking a story, set the worktree up as the project's git decision asks, like its install: a
+new worktree has none of its dependencies, and its Storybook does not start without them. Then check
+that each story you link renders, in Uraeda or with the decision's `preview-command`.
+
 Story links need Storybook's Vite builder, which the decision requires. After a
 [visual question](discovery.md#visual-questions), the spec's commit keeps the picked variant's
 export and deletes the others, so the spec embeds the picked one.
