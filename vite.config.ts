@@ -201,6 +201,20 @@ const tasks = {
     command: `${isolatedGit} vp test --project phone`,
     dependsOn: ["binding:touch"],
   },
+  // A report of the lines the Rust tests and the TypeScript unit tests run, never a check: it is not
+  // cached, no task depends on it, and nothing fails when coverage drops.
+  coverage: {
+    cache: false,
+    command: [
+      // cargo-llvm-cov writes its lcov file into an existing folder only.
+      "mkdir -p coverage",
+      `${isolatedGit} cargo llvm-cov nextest --profile coverage --lcov --output-path coverage/rust.lcov`,
+      "cargo llvm-cov report --html --output-dir coverage/rust",
+      `${isolatedGit} vp test --project uraeda-binding --project uraeda-server --project @uraeda/ui --project uraeda-web --coverage`,
+      "node scripts/coverage-summary.ts",
+    ],
+    dependsOn: ["binding:touch", "web:build"],
+  },
   "lua:fmt": {
     cache: { input: ["editors/nvim/**"], output: [] },
     command: "stylua --check editors/nvim",
@@ -293,6 +307,8 @@ const tasks = {
         ".github/workflows/ci.yml",
         "crates/*/Cargo.toml",
         "crates/*/src/lib.rs",
+        // `vp run coverage`'s summary, tested with the server's tests.
+        "scripts/**",
         // The server's tests start it on the built web UI.
         "packages/web/dist/**",
       ],
@@ -455,6 +471,22 @@ export default {
     "*.rs": "rustfmt",
   },
   test: {
+    // `vp run coverage`'s report, so no thresholds. Under `--project`, Vitest matches these from
+    // each project's folder: every package's `src/` and `scripts/`, without the tests' helpers, the
+    // lint fixtures, and generated files, so the binding has none: its loader is napi's.
+    coverage: {
+      exclude: [
+        "**/__tests__/**",
+        "**/__browser__/**",
+        "**/__lint__/**",
+        "**/*.d.ts",
+        "src/theme/built/**",
+      ],
+      include: ["src/**/*.{ts,tsx}", "scripts/**/*.ts"],
+      provider: "v8",
+      reporter: ["lcov", "html", "text-summary"],
+      reportsDirectory: "coverage/typescript",
+    },
     // Each package runs with its own Vite config: the UI's needs React, fate, and happy-dom.
     projects: [
       "packages/binding",

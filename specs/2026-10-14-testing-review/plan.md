@@ -884,8 +884,8 @@ git commit -m "test(testing-review): the Neovim tests ignore the host's git, and
 
 - Modify: `vite.config.ts` (the `coverage` task; `test.coverage`), `.config/nextest.toml` (profile
   `coverage`), `pnpm-workspace.yaml` and `package.json` (`@vitest/coverage-v8` at `5.0.1`, the
-  bundled Vitest's version), `.gitignore` (`coverage/`)
-- Create: `scripts/coverage-summary.ts`
+  bundled Vitest's version; `package.json`'s `"type": "module"`), `.gitignore` (`coverage/`)
+- Create: `scripts/coverage-summary.ts`, `packages/server/src/__tests__/coverage-summary.test.ts`
 
 **Interfaces:**
 
@@ -893,14 +893,17 @@ git commit -m "test(testing-review): the Neovim tests ignore the host's git, and
   `coverage/typescript/lcov.info` and `coverage/typescript/index.html`, then printing the summary;
   task 9's `coverage` job runs it.
 
-- [ ] **Step 1: Add the provider, the Vitest coverage settings, and the `coverage` profile**
+- [x] **Step 1: Add the provider, the Vitest coverage settings, and the `coverage` profile**
 
 `test.coverage`: provider `v8`, reporters `lcov`, `html` and `text-summary`, `reportsDirectory`
 `coverage/typescript`, `include` the four packages' `src/**` and the binding's `*.ts`; no
 `thresholds`. The nextest profile `coverage` leaves out
-`test(an_iccp_bomb_is_read_in_bounded_memory)`.
+`test(an_iccp_bomb_is_read_in_bounded_memory)`. As built (R34): run with `--project`, Vitest matches
+`include` and `exclude` from each project's folder, so they are `src/**/*.{ts,tsx}` and
+`scripts/**/*.ts`, without `**/__tests__/**`, `**/__browser__/**`, `**/__lint__/**`, `**/*.d.ts` and
+`src/theme/built/**`; the binding's only `*.ts` is a test helper, so it adds no file.
 
-- [ ] **Step 2: Write the `coverage` task and its summary**
+- [x] **Step 2: Write the `coverage` task and its summary**
 
 The command runs
 `cargo llvm-cov nextest --profile coverage --lcov --output-path coverage/rust.lcov`, then
@@ -910,18 +913,30 @@ The command runs
 `TypeScript: <n>% of lines`, and under the Rust line "The `ura` binary run by the CLI tests is not
 counted." when no line of `crates/cli/src/main.rs` is covered.
 
-- [ ] **Step 3: Run it (US6.1, US6.3)**
+As built (R34): the command starts with `mkdir -p coverage`, since cargo-llvm-cov writes its lcov
+file into an existing folder only; the two test commands start with the `isolatedGit` prefix;
+`vp test` runs the `@uraeda/ui` project too, as `ts:test` does since R29; the task depends on
+`binding:touch` and `web:build`, as `ts:test` does. `cargo llvm-cov nextest` passes `--profile` to
+nextest. The summary's pure `summary(rust, typescript)` gets a table-driven test in
+`packages/server/src/__tests__/coverage-summary.test.ts`, written first, failing on the missing
+module; `ts:test` lists `scripts/**` in its inputs. The break each row catches: any `main.rs` taken
+for `ura`'s, a `main.rs` with no line covered taken as counted, and a mean of the files' percentages
+instead of the lines' total.
+
+- [x] **Step 3: Run it (US6.1, US6.3)**
 
 - Run: `nix develop -c vp run coverage`
 - Expected: the four outputs exist, and the summary prints both percentages; whether the spawned
   `ura` is counted is recorded in the commit body.
 - Run: `nix develop -c vp run ready`
-- Expected: PASS; no task depends on coverage.
+- Expected: PASS; no task depends on coverage. As run: the first `ready` failed on the desktop's
+  `session.test.tsx` "the column turns into the collapsed progress line across 768 px", a race of
+  `useFollowEnd` with `useKeepPlace` under load, fixed in its own commit (R35); then it passed.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
-git add vite.config.ts .config/nextest.toml pnpm-workspace.yaml package.json pnpm-lock.yaml .gitignore scripts/coverage-summary.ts
+git add vite.config.ts .config/nextest.toml pnpm-workspace.yaml package.json pnpm-lock.yaml .gitignore scripts/coverage-summary.ts packages/server/src/__tests__/coverage-summary.test.ts specs/2026-10-14-testing-review/plan.md specs/2026-10-14-testing-review/rulings.md
 git commit -m "build(testing-review): vp run coverage reports the Rust and TypeScript coverage"
 ```
 
