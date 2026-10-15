@@ -862,7 +862,7 @@ git commit -m "feat(add-bugfixing): the server starts a change and its first run
   - `useRoundQuestions(folder: string, file: string): number`;
   - `ChangeAside({ folder, session? })`.
 
-- [ ] **Step 1: Split `SessionNav.tsx`**, run `vp run ts:test`, PASS, and commit
+- [x] **Step 1: Split `SessionNav.tsx`**, run `vp run ts:test`, PASS, and commit
       `refactor(add-bugfixing): the sidebar's feature rows in a module of their own`.
 - [ ] **Step 2: Write the failing tests**
 
