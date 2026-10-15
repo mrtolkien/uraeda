@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: UI iteration flow
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 9 questions on visual iteration, about 40 minutes.
+> Answered on 2026-10-15.
 >
 > - **A gap in the proposal.** Its "what" is choosing between variants before the code. Its "why" is
 >   the small fixes after the code. The first question decides whether the feature covers both, and
@@ -93,7 +93,11 @@ are in it.
   - [pro] the smallest scope.
   - [con] leaves out the small fixes the proposal's "why" names.
 
-**Answer:**
+**Answer:** A: Claude already dropped claude design to put it inside claude chat btw.
+
+Also I want the ability to show UI mocks AS PART OF THE SPECS. There's not always a question coming
+with the mock: it's more to validate the behaviour and UX before it gets implemented. Right now the
+mockups are completely split files, which are very far from the actual behaviour + hard to comment.
 
 ### Q1.A: Where and how do you comment on the built UI?
 
@@ -130,7 +134,10 @@ C can come on top of A or B.
   - [pro] the most precise: the agent gets the element's component and file.
   - [con] one integration per stack, and no keyboard path in any product studied.
 
-**Answer:**
+**Answer:** A: I picked A because I need to pick one but I AM NOT LOOKING FOR SCREENSHOTS.
+
+I want REAL, INTERACTIVE MOCKUPS that PROPERLY show how the feature will BEHAVE. That's where the
+issues lie usually.
 
 ## Q2: What is a variant made of?
 
@@ -160,7 +167,11 @@ agent.
   - [pro] fast, and good for exploring a look.
   - [con] a picture, the furthest from the result, and it needs an image model.
 
-**Answer:**
+**Answer:** A: If it's too hard to generate components in the project's target language, can we use
+Astryx components dynamically here, in Uraeda?
+
+So instead of building the mocks with HTML, we'd build them with Astryx. It should have sane
+defaults and good behaviour.
 
 ### Q2.A: What happens to the variants' code after your pick?
 
@@ -183,7 +194,7 @@ Why it matters: it decides whether the code built after the spec starts from wha
   - [pro] the implementation stays fully test-first.
   - [con] the rebuild is where drift comes from.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: What does the skill ask of every project, for real states?
 
@@ -219,7 +230,11 @@ is what makes Q2's real variants possible.
   - [pro] no setup.
   - [con] recordings break when the UI or the API changes, and every feature pays again.
 
-**Answer:**
+**Answer:** A: This should be added only in projects that have a UI though, so not all projects.
+This is an optional decision, project-dependent.
+
+If you think Storybook/Lookbook/SwitUI would look better and be easier though, we can also go that
+way.
 
 ## Q4: Where do you pick between variants?
 
@@ -246,7 +261,7 @@ principles II and V require.
   - [pro] fast within a chat.
   - [con] nothing in git, and it does not work asynchronously.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: How do you see interactions, not only a still?
 
@@ -273,7 +288,8 @@ decision.
   - [pro] the motion itself, asynchronously.
   - [con] heavy files in git, and nothing to click.
 
-**Answer:**
+**Answer:** B: Related to my Q2 comment: could we embed full Astryx components and use it for
+functional mocks?
 
 ## Q6: What preview environment does Uraeda itself use?
 
@@ -300,7 +316,8 @@ Why it matters: it is where Uraeda's variants run, and what the look-and-feel pa
   - [pro] pages and components.
   - [con] two sets of states to keep up.
 
-**Answer:**
+**Answer:** B: I haven't tried Storybook, but if it's good I'd be down to use it. It might solve
+some of our issues to have a good, mature platform for this step.
 
 ## Q7: Where do variant and review screenshots live?
 
@@ -324,7 +341,7 @@ Why it matters: it changes two decisions, and puts agent-made images in every pr
   - [pro] a light repository.
   - [con] a round's options are unreadable from the repository, against principles II and III.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
