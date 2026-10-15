@@ -101,21 +101,32 @@ fn in_list(lines: &[String], at: usize) -> bool {
         .is_some_and(|line| super::lines::item_marker(line).is_some())
 }
 
+/// The `## What` section of a text with `\n` line endings: its heading's line, from 1, and the index,
+/// from 0, of the line after it ends, at the next `#` or `##` heading outside fenced code, a `###`
+/// subsection being part of it, or at the end of the text.
+fn what_section(text: &str) -> Option<(usize, usize)> {
+    let level = |line: &str| {
+        let hashes = line.len() - line.trim_start_matches('#').len();
+        let rest = &line[hashes..];
+        (rest.is_empty() || rest.starts_with([' ', '\t'])).then_some(hashes)
+    };
+    let mut headings =
+        super::lines::headings(text).filter(|(_, line)| level(line).is_some_and(|l| l <= 2));
+    let (what, _) = headings
+        .by_ref()
+        .find(|(_, line)| line.trim_end() == "## What")?;
+    let end = headings
+        .next()
+        .map_or(text.split('\n').count(), |(n, _)| n - 1);
+    Some((what, end))
+}
+
 /// The text with `item`, a list item's lines, at the end of its `## What` section: right after a
 /// list that ends it, or else after a blank line. `None` without a `## What` section.
 pub fn append_to_what(text: &str, item: &[String]) -> Option<String> {
     super::with_unix_newlines(text, |text| {
-        let headings: Vec<usize> = super::lines::headings(text).map(|(n, _)| n).collect();
-        let what = super::lines::headings(text)
-            .find(|(_, line)| line.trim_end() == "## What")
-            .map(|(n, _)| n)
-            .ok_or(())?;
+        let (what, end) = what_section(text).ok_or(())?;
         let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
-        // The section runs from the line after its heading to the next heading, 0-based.
-        let end = headings
-            .iter()
-            .find(|&&n| n > what)
-            .map_or(lines.len(), |n| n - 1);
         let last = (what..end).rev().find(|&i| !lines[i].trim().is_empty());
         let mut block = Vec::new();
         if !last.is_some_and(|i| in_list(&lines, i)) {
@@ -139,9 +150,10 @@ pub fn append_to_what(text: &str, item: &[String]) -> Option<String> {
 pub fn without_item(text: &str, markdown: &str) -> Option<String> {
     super::with_unix_newlines(text, |text| {
         let all: Vec<&str> = text.split('\n').collect();
-        let what = |_, heading: &str| (heading.trim_end() == "## What").then_some(());
-        let (_, item) = super::lines::items(text, what)
+        let (what, end) = what_section(text).ok_or(())?;
+        let (_, item) = super::lines::items(text, |_, _| Some(()))
             .into_iter()
+            .filter(|(_, item)| item.line > what && item.line <= end)
             .rfind(|(_, item)| super::lines::signed_markdown(&all, item) == markdown)
             .ok_or(())?;
         let mut kept: Vec<&str> = all.clone();
