@@ -19,9 +19,10 @@ export type Binding = typeof binding;
 
 export { fixture, fixtureRepo, git };
 
-// Saves wait 400 ms for typing to stop, then go through git: slower machines, like CI's, need
-// more than Testing Library's 1 s to see them.
-configure({ asyncUtilTimeout: 5000 });
+// Saves wait 400 ms for typing to stop, then go through git: a loaded CI runner took over 5 s to
+// show them. A wait's bound is no duration check, and 10 s fails no loaded machine (R9, R14 of
+// the testing review); the 20 s test timeout still stops a hang.
+configure({ asyncUtilTimeout: 10_000 });
 
 const port = 4310;
 const origin = `http://127.0.0.1:${port}`;
