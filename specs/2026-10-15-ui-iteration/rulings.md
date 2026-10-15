@@ -225,3 +225,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: nothing for the user: test helpers only.
 - **Where**: task 4, `packages/server/src/preview/__tests__/helpers.ts`,
   `packages/binding/test-utils.ts`.
+
+## R18: The helper refuses only webpack
+
+- **Decision**: `uraeda-preview.js` stops Storybook only on a webpack signal: a framework among
+  `@storybook/nextjs`, `@storybook/angular`, and `@storybook/ember`, or named `*-webpack5`, or a
+  `core.builder` other than `@storybook/builder-vite`. Its `webpackFinal` throws the same
+  `uraeda-preview.js needs Storybook's Vite builder.`, as a backstop. Names are matched with `\`
+  made `/`, for Windows paths.
+- **Rationale**: the spec stops a Storybook "on another builder than Vite"; the plan's
+  `@storybook/*-vite` also refused Vite frameworks named otherwise, such as `@storybook/sveltekit`
+  and community ones (`storybook-solidjs-vite`, `@analogjs/storybook-angular`). Storybook calls
+  `webpackFinal` only under webpack, so a webpack framework the list misses still stops.
+- **Alternatives considered**: the plan's `@storybook/*-vite` rule; a list of Vite frameworks, which
+  would miss community ones.
+- **If wrong**: a webpack framework off the list stops at `webpackFinal` instead of at once; a
+  builder neither Vite nor webpack, such as Rsbuild, starts and fails in the frame. The list is one
+  constant of the helper, with its tests.
+- **Where**: task 3, `skills/uraeda/assets/storybook/uraeda-preview.js`.
