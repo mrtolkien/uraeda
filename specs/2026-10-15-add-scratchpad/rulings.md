@@ -894,3 +894,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `crates/core/src/actions/draft.rs`, `actions/inbox.rs`, `actions/inbox/image.rs`,
   `actions/inbox/undo.rs`, `actions/changes.rs`, `actions/changes/drafts.rs`,
   `crates/core/tests/inbox_moves.rs`
+
+## R37: A committed draft an image made a folder is committed and discarded as a rename
+
+- **Decision**: The change list recognizes a committed single-file draft that an attached image
+  moved into a folder: the lists linked the old file at the last commit and link the folder's
+  `proposal.md` in its place, the old file is gone, and the folder is named after it, numbered when
+  the name was taken. Commit holds the old file's deletion with the folder and its linked images.
+  Discard restores the old file from `HEAD` and deletes the folder while its `proposal.md` holds the
+  old file's text, with at most images added at the end of its What, as `remove_written` does for a
+  draft a move wrote. A folder typed in is kept whole: the old file is not restored, and the
+  restored lists link the folder, as the attach wrote them.
+- **Rationale**: The final review found the folder counted as a new draft: Commit left the old
+  file's deletion uncommitted, and Discard restored the lists' link to the old file without the
+  file. Restoring the old file beside a kept folder would leave two copies of one draft, the
+  committed one linked by nothing; keeping the conversion whole loses nothing and leaves no link
+  dangling.
+- **Alternatives considered**: Restoring the old file in every case, beside a kept folder: a
+  duplicate draft. Recording the conversion outside git: state outside the files (constitution III).
+- **If wrong**: `converted_from` in `actions/changes/drafts.rs`, and Discard's `Undo::Converted` arm
+  in `actions/changes.rs`.
+- **Where**: third final review, `crates/core/src/actions/changes.rs`,
+  `crates/core/src/actions/changes/drafts.rs`, `crates/core/src/actions/attach.rs`,
+  `crates/core/tests/inbox_moves.rs`
