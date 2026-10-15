@@ -15,6 +15,10 @@ mod feature;
 
 pub use feature::{FeatureView, FileSummary, StartedView, StepView};
 
+mod version;
+
+pub use version::VersionView;
+
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -69,16 +73,6 @@ pub struct WorkspaceView {
     pub drafts: Vec<String>,
     /// The repository's path when it has no `specs/` folder: nothing else is read.
     pub no_specs: Option<String>,
-}
-
-/// A file's document and items, at one version.
-#[cfg_attr(feature = "napi", napi(object))]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct VersionView {
-    pub text: String,
-    pub document: Document,
-    pub items: Items,
 }
 
 /// A workflow file: the version on disk, the version committed at its branch's tip when it
