@@ -839,3 +839,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: `packages/server/src/main.ts`, `server.ts`, `preview/groups.ts`, `preview/runner.ts`,
   and their tests in `packages/server/src/__tests__/main.test.ts`, `server.test.ts`, and
   `preview/__tests__/runner.test.ts`.
+
+## R53: The agent sets a worktree up before linking its stories
+
+- **Decision**: the spec's assumption, "before a worktree's first preview, the project's setup
+  runs", is the agent's step. `spec.md`'s mockups, `discovery.md`'s visual questions, and
+  `change.md`'s UI work say, in the same words: before linking a story, set the worktree up as the
+  project's git decision asks, like its install, then check that each story linked renders, in
+  Uraeda or with the preview decision's `preview-command`. The server runs no setup. A worktree
+  without it still shows the runner's "Storybook did not start: <last line>", unchanged.
+- **Rationale**: the git decision asks the project's own setup of every worktree, and names no
+  command a server could run: each project has its own. The agent writing the stories already works
+  in the worktree, and is the one who can see its stories fail before the human does. A setup the
+  server ran would be a new decision field, which this feature does not add.
+- **Alternatives considered**: a `preview-setup` field in the preview decision, run by the runner
+  before its first start: a new decision rule, for the human; running the project's package manager
+  by guess, which the server cannot know.
+- **If wrong**: a worktree an agent did not set up shows "Storybook did not start: …", with the
+  missing package as its last line, until someone runs the install; the three references' sentence.
+- **Where**: `skills/uraeda/references/spec.md`, `discovery.md`, and `change.md`.

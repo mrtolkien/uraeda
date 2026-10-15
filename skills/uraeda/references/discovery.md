@@ -401,6 +401,10 @@ reading: a layout, a control, a motion, not a label's wording.
   - Why recommended: it keeps the sidebar quiet.
 ```
 
+Before linking a story, set the worktree up as the project's git decision asks, like its install: a
+new worktree has none of its dependencies, and its Storybook does not start without them. Then check
+that each story you link renders, in Uraeda or with the decision's `preview-command`.
+
 The human may answer with a mix, "A, with B's grip". Commit the variants with the round. The spec
 keeps the picked one, as [mockups](spec.md#mockups) describes.
 

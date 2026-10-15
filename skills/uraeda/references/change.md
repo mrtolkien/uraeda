@@ -218,7 +218,10 @@ time, one commit per item:
   and commit them in the change's `screenshots/` when the project's decisions ask for them. In the
   messages that report your work, link each story you wrote or changed, alone on a line, as a
   [story link](conventions.md#markdown): Uraeda shows it live in the session, where the human can
-  try it and comment on it.
+  try it and comment on it. Before linking a story, set the worktree up as the project's git
+  decision asks, like its install: a new worktree has none of its dependencies, and its Storybook
+  does not start without them. Then check that each story you link renders, in Uraeda or with the
+  decision's `preview-command`.
 - **Rulings.** The choices a later reader would want explained go in the change's `rulings.md`, from
   [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md), in the same commit,
   as the [implementation step](implementation.md#rulings) describes.
