@@ -725,3 +725,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `packages/server/src/app.ts`, `server.ts`, `dev.ts`, `packages/web/.storybook/fixture.ts` and
   `fateOverGet.ts`, `packages/web/src/__tests__/storybook-fate.test.ts`, and
   `packages/server/src/__tests__/locked-list.test.ts`.
+
+## R48: The catch-up's decisions: ui-checks, attachments, and cli name changes too
+
+- **Decision**: the catch-up with `main` brings three changed decisions, all from
+  `2026-10-15-add-bugfixing`, which replaced bugs with changes. None conflicts with the spec, the
+  plan, or the code, and the branch meets each as it is:
+  - [ui-checks](/specs/decisions/ui-checks.md): a UI test may guard a change's proposal, and a
+    change's screenshots go in its folder. This branch is a feature: its UI tests guard its spec's
+    scenarios, edge cases, and success criteria, as before.
+  - [attachments](/specs/decisions/attachments.md): "a bug's folder" becomes "a change's". The
+    branch adds no image to a workflow file: stories are code, and the chat's images are unchanged.
+  - [cli](/specs/decisions/cli.md): a command's target may be a change. The branch adds no command,
+    and `ura check`'s new preview decision checks are reached through the existing target.
+- **Rationale**: the three edits rename the bug flow, and add the change's folder where the bug's
+  stood. The code they reach, the change's flow, is `main`'s, which the branch keeps as is, apart
+  from R49.
+- **Alternatives considered**: none: no rule asks anything new of a feature.
+- **If wrong**: the decision's rule names the code to change. The rebase kept both sides where the
+  branch met `main`'s change code: the check's values, the fate records, the Storybook page's crumbs
+  and routes, and the session's imports.
+- **Where**: the catch-up, no code change for the decisions themselves.
