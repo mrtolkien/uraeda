@@ -1208,7 +1208,7 @@ input (to complete a partial release), and on `pull_request` with `paths` on `pa
 
 Format the workflow with `vp check`; it is not generated, unlike `release.yml`.
 
-- [ ] **Step 4: Run all checks**
+- [x] **Step 4: Run all checks**
 
 - Run: `vp test packages/uraeda && vp check`
 - Expected: PASS
@@ -1222,6 +1222,12 @@ then `release.ts prepare v0.4.0`, wrote `0.4.0` into the five packages and print
 placeholders for the three binaries not built here, and every change was then reverted. Not run
 here: the arm64 and macOS builds, `release.ts publish`, and the workflow itself, whose first run is
 this branch's pull request.
+
+The workflow's runs on the pull request: the first failed on the Linux arm64 build, fixed by R17;
+the second ([run 38657443064](https://github.com/mrtolkien/uraeda/actions/runs/38657443064)) was
+green up to **smoke**, with **publish** skipped: the four binaries built, the Linux ones needing at
+most `GLIBC_2.15` and `GLIBC_2.17`, and every smoke check `ok` on Linux x64 and macOS arm64, for a
+656,213-byte `uraeda` tarball.
 
 - [x] **Step 5: Commit**
 
