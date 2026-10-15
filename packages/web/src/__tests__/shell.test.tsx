@@ -1,5 +1,5 @@
-// US6: Home goes home, and ＋ shows on home and the priorities page only, its result confirmed
-// by a toast with Undo. Below them, the chat's US3 and US4: the sessions in the sidebar.
+// US6: Home goes home, and ＋, now the sidebar's next to Priorities (the inbox's spec), has its
+// result confirmed by a toast with Undo. Below them, the chat's US3 and US4: the sessions in the sidebar.
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
@@ -32,7 +32,7 @@ test("Home goes home (US6 4)", async () => {
  * written, and hides by itself after 5 seconds: a test takes its Undo at once, not after a wait.
  */
 async function addToLater(text: string) {
-  await click(await screen.findByRole("button", { name: "Add a priority" }));
+  await click(await screen.findByRole("button", { name: "Add to the priorities" }));
   await type(await screen.findByLabelText("Priority"), text);
   await click(screen.getByRole("radio", { name: "Later" }));
   await click(screen.getByRole("button", { name: "Add" }));
@@ -41,9 +41,9 @@ async function addToLater(text: string) {
 
 test("＋ adds to Later with a toast and Undo, and the bar does not change (US6 5)", async () => {
   const { repo } = await renderPage("/");
-  // The bar: the repository menu, and the page's controls beside it.
+  // The navigation, from the repository menu to ＋.
   let bar = (await screen.findAllByRole("button", { name: /^Uraeda \S/ }))[0]!;
-  while (!within(bar).queryByRole("button", { name: "Add a priority" })) {
+  while (!within(bar).queryByRole("button", { name: "Add to the priorities" })) {
     bar = bar.parentElement!;
   }
   const before = bar.textContent;
@@ -55,7 +55,8 @@ test("＋ adds to Later with a toast and Undo, and the bar does not change (US6 
     screen.getByText("Added to Later, not committed", { ignore: "script, style, [aria-live]" }),
   ).toBeTruthy();
   expect(read(repo)).toContain("  - with a cache\n- Show the agent's last commit\n");
-  // The toast alone says where the line went: no count of changes or Commit shows in the bar.
+  // The toast alone says where the line went: no count of changes or Commit shows in the
+  // navigation.
   expect(bar.textContent).toBe(before);
   await click(undo);
   await waitFor(() => expect(read(repo)).not.toContain("Show the agent's last commit"));
@@ -93,18 +94,6 @@ test("＋'s Undo refuses once the line it added is gone", async () => {
     ),
   ).toBeTruthy();
   expect(read(repo)).toBe(edited);
-});
-
-test("no ＋ on a round (US6 6)", async () => {
-  await renderPage("/f/2026-10-11-web-ui/clarifications-01.md");
-  await screen.findByText("How does your iPhone reach the server?");
-  expect(screen.queryByRole("button", { name: "Add a priority" })).toBeNull();
-});
-
-test("no ＋ on a review (US6 6)", async () => {
-  await renderPage("/f/2026-10-06-recurring-tasks/spec.md");
-  await screen.findAllByText(/Complete a repeating task/);
-  expect(screen.queryByRole("button", { name: "Add a priority" })).toBeNull();
 });
 
 const CLI = "2026-10-12-cli-tuis";

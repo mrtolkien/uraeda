@@ -13,6 +13,7 @@ import { useWidthClass } from "./layout/useWidthClass.ts";
 import { RepositoryMenu } from "./RepositoryMenu.tsx";
 import { currentEntry, useLocalPath, useRepository } from "./routes.tsx";
 import { SearchField, SessionNav, useSessionQuery } from "./SessionNav.tsx";
+import { SidebarAddForms } from "./SidebarAdd.tsx";
 import { type ThemeMode, useThemeMode } from "./theme.tsx";
 
 const styles = stylex.create({
@@ -112,7 +113,8 @@ function ThemeSwitch() {
 }
 
 /**
- * The navigation: a search over the sessions, home, priorities, every feature by what it waits for
+ * The navigation: a search over the sessions, home, priorities and the inbox with their ＋, every
+ * feature by what it waits for
  * with its session's status, the chats, then the theme. Its heading goes home and ends with the
  * page's own controls; on wide screens it folds away and resizes, its width and state kept in the
  * browser.
@@ -169,10 +171,17 @@ function UndoErrors() {
 export function Shell({ children }: { children: ReactNode }) {
   const [slot, setSlot] = useState<ReactNode>(null);
   return (
-    <AppShell contentPadding={0} height="auto" sideNav={<Nav slot={slot} />} xstyle={styles.shell}>
-      <UndoErrors />
-      <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
-    </AppShell>
+    <SidebarAddForms>
+      <AppShell
+        contentPadding={0}
+        height="auto"
+        sideNav={<Nav slot={slot} />}
+        xstyle={styles.shell}
+      >
+        <UndoErrors />
+        <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
+      </AppShell>
+    </SidebarAddForms>
   );
 }
 

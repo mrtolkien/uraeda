@@ -185,7 +185,8 @@ describe("on the desktop", () => {
     }
   });
 
-  test("the folded navigation keeps ＋, Home, and the repository menu (US6 4, 5; US1)", async () => {
+  // The inbox's spec: the sidebar's ＋ buttons show only while it is unfolded.
+  test("the folded navigation keeps Home and the repository menu, its ＋ unfolded (US6 4; US1)", async () => {
     try {
       await show("/priorities", "Claude Code runner");
       await userEvent.click(within(nav()).getByRole("button", { name: "Collapse sidebar" }));
@@ -193,7 +194,7 @@ describe("on the desktop", () => {
         .poll(() => within(nav()).queryByRole("button", { name: "Expand sidebar" }))
         .toBeTruthy();
 
-      expect(within(nav()).getByRole("button", { name: "Add a priority" })).toBeTruthy();
+      expect(within(nav()).queryByRole("button", { name: "Add to the priorities" })).toBeNull();
       // Folded, the heading's icon opens the menu.
       await userEvent.click(within(nav()).getByRole("button", { name: `Uraeda ${repository()}` }));
       const menu = await screen.findByRole("dialog", { name: "Repositories" });
@@ -204,11 +205,12 @@ describe("on the desktop", () => {
       await expect.poll(() => window.location.pathname).toBe(atRepo("/"));
 
       await userEvent.click(within(nav()).getByRole("button", { name: "Expand sidebar" }));
-      // Unfolded: the heading again, "Uraeda" over the repository's name, and ＋ beside it.
+      // Unfolded: the heading again, "Uraeda" over the repository's name, and the ＋ buttons.
       await expect
         .poll(() => within(nav()).queryByRole("button", { name: `Uraeda ${repository()}` }))
         .toBeTruthy();
-      expect(within(nav()).getByRole("button", { name: "Add a priority" })).toBeTruthy();
+      expect(within(nav()).getByRole("button", { name: "Add to the priorities" })).toBeTruthy();
+      expect(within(nav()).getByRole("button", { name: "Add a note to the inbox" })).toBeTruthy();
     } finally {
       // The navigation's state is kept in the browser: the next tests start unfolded.
       for (const key of Object.keys(window.localStorage)) {

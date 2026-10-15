@@ -57,7 +57,7 @@ test("an Add row adds and stays ready (US4 4)", async () => {
 test("＋ jots a line down at the end of Next", async () => {
   const { repo } = await renderPage("/");
 
-  await click(await screen.findByRole("button", { name: "Add a priority" }));
+  await click(await screen.findByRole("button", { name: "Add to the priorities" }));
   await type(
     await screen.findByLabelText("Priority"),
     "Show the agent's last commit on the feature page",
@@ -76,7 +76,7 @@ test("＋ jots a line down at the end of Next", async () => {
 test("a line can go to Later instead", async () => {
   const { repo } = await renderPage("/");
 
-  await click(await screen.findByRole("button", { name: "Add a priority" }));
+  await click(await screen.findByRole("button", { name: "Add to the priorities" }));
   await type(await screen.findByLabelText("Priority"), "An idea");
   await click(screen.getByRole("radio", { name: "Later" }));
   await click(screen.getByRole("button", { name: "Add" }));
@@ -199,7 +199,7 @@ const priorityField = () => screen.getByLabelText("Priority") as HTMLTextAreaEle
 /** R2 and R25: quick add's Cancel asks; its text stays when it closes, and after a reload. */
 test("＋ keeps its text: Cancel asks, Close keeps it, a reload restores it", async () => {
   const repo = (await renderPage("/")).repo;
-  await click(await screen.findByRole("button", { name: "Add a priority" }));
+  await click(await screen.findByRole("button", { name: "Add to the priorities" }));
   await type(await screen.findByLabelText("Priority"), "An idea");
 
   await click(screen.getByRole("button", { name: "Cancel" }));
@@ -214,7 +214,7 @@ test("＋ keeps its text: Cancel asks, Close keeps it, a reload restores it", as
 
   forgetUnsaved();
   await renderPage("/", repo, { reload: true });
-  await click(await screen.findByRole("button", { name: "Add a priority" }));
+  await click(await screen.findByRole("button", { name: "Add to the priorities" }));
   await screen.findByLabelText("Priority");
   expect(priorityField().value).toBe("An idea");
   expect(screen.getByText(/^Unsaved text restored from \d\d:\d\d\.$/)).toBeTruthy();
@@ -222,7 +222,7 @@ test("＋ keeps its text: Cancel asks, Close keeps it, a reload restores it", as
   await click(screen.getByRole("button", { name: "Cancel" }));
   await answer("Discard");
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "New priority" })).toBeNull());
-  await click(screen.getByRole("button", { name: "Add a priority" }));
+  await click(screen.getByRole("button", { name: "Add to the priorities" }));
   expect((await screen.findByLabelText("Priority")).textContent).toBe("");
   expect(priorityField().value).toBe("");
 });

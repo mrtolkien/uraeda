@@ -7,6 +7,7 @@ import type {
   Draft,
   Feature,
   FolderSuggestions,
+  Inbox,
   Priorities,
   ProposalHints,
   Repositories,
@@ -122,6 +123,17 @@ export const PrioritiesView = view<Priorities>()({
   hash: true,
   id: true,
   sections: true,
+});
+
+/** The inbox: its notes by category, every category's name, and the changes to commit. */
+export const InboxView = view<Inbox>()({
+  categories: true,
+  changes: true,
+  count: true,
+  hash: true,
+  id: true,
+  names: true,
+  triage: true,
 });
 
 export const DraftView = view<Draft>()({

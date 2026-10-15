@@ -169,9 +169,11 @@ test("the editor is 20 rows, whatever its text (US6 5)", async () => {
 
 test("quick add's field is 3 rows (US6 6)", async () => {
   await show("/priorities", "Git listener process");
-  // The page's ＋, not the navigation's, which the phone may still hold while its drawer closes.
-  const adds = screen.getAllByRole("button", { name: "Add a priority" });
-  await userEvent.click(adds.find((add) => !add.closest("nav")) ?? adds[0]!);
+  // The sidebar's ＋, in the phone's drawer, opened from its menu first.
+  if (window.innerWidth < 768) {
+    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+  }
+  await userEvent.click(await screen.findByRole("button", { name: "Add to the priorities" }));
   const overlay = await screen.findByRole("dialog", { name: "New priority" });
   await checkRows(area("Priority", overlay), 3);
 });

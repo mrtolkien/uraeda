@@ -2,7 +2,7 @@
 // read again when the page is shown again, as iOS may have dropped its connection.
 import { useEffect } from "react";
 import { useFateClient, useLiveView, useRequest, useView } from "react-fate";
-import type { Priorities, Trigger } from "uraeda-server/fate";
+import type { Inbox, Priorities, Trigger } from "uraeda-server/fate";
 import {
   AgentView,
   BranchChangesView,
@@ -10,6 +10,7 @@ import {
   FeatureView,
   FileView,
   FolderSuggestionsView,
+  InboxView,
   PrioritiesView,
   ProposalHintsView,
   RepositoriesView,
@@ -26,6 +27,7 @@ import {
 /** The ids of the records there is one of, as the server names them. */
 const WORKSPACE_ID = "workspace";
 const PRIORITIES_ID = "priorities";
+const INBOX_ID = "inbox";
 const AGENT_ID = "agent";
 const SESSION_LIST_ID = "all";
 const PROPOSAL_HINTS_ID = "proposal";
@@ -100,6 +102,27 @@ export async function readPriorities(
 /** The hash of the priorities as they are now on disk: see `readPriorities`. */
 export async function readPrioritiesHash(fate: ReturnType<typeof useFateClient>): Promise<string> {
   return (await readPriorities(fate)).hash;
+}
+
+/** `INBOX.md`'s notes, by category, as the default branch has them. */
+export function useInbox() {
+  const request = { inbox: { id: INBOX_ID, view: InboxView } };
+  const { inbox } = useRequest(request);
+  useRefreshOnShow(request);
+  return useLiveView(InboxView, inbox);
+}
+
+/** The inbox as it is now on disk, read outside a component: for an Undo, as `readPriorities`. */
+export async function readInbox(
+  fate: ReturnType<typeof useFateClient>,
+): Promise<Pick<Inbox, "categories" | "hash">> {
+  const { inbox } = await fate.request(
+    { inbox: { id: INBOX_ID, view: InboxView } },
+    { mode: "network-only" },
+  );
+  const { data } = await fate.readView(InboxView, inbox);
+  // fate types the request's root as any entity: the view gives the inbox's fields.
+  return data as unknown as Pick<Inbox, "categories" | "hash">;
 }
 
 export function useDraft(path: string) {

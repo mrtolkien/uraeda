@@ -480,7 +480,7 @@ test("the bar counts and offers Next, without ＋ (US1 1)", async () => {
   await renderPage(PAGE, answered({ Q1: "A" }));
   expect(await screen.findByRole("button", { name: "1/3" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Next" })).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Add a priority" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Add to the priorities" })).toBeNull();
 });
 
 /** US1 2, 3; SC-005 */
