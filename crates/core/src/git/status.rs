@@ -1,8 +1,38 @@
 //! What differs from `HEAD` under a path, and which paths of a commit git can add.
 
 use super::{Git, GitError, others_staged, read_error};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 
 impl Git {
+    /// gix asserts when recreating its object store if the directory disappeared during a read.
+    /// Keep that panic inside the status read instead of letting it abort the Node binding.
+    pub(super) fn status_items(
+        &self,
+        what: &str,
+        untracked: gix::status::UntrackedFiles,
+    ) -> Result<gix::status::Iter, GitError> {
+        catch_unwind(AssertUnwindSafe(|| {
+            self.repo
+                .status(gix::progress::Discard)
+                .map_err(read_error(what))?
+                .untracked_files(untracked)
+                .index_worktree_rewrites(None)
+                .into_iter(None)
+                .map_err(read_error(what))
+        }))
+        .map_err(|panic| {
+            let message = panic
+                .downcast_ref::<String>()
+                .map(String::as_str)
+                .or_else(|| panic.downcast_ref::<&str>().copied())
+                .unwrap_or("git status panicked");
+            GitError::Read {
+                what: what.into(),
+                message: message.into(),
+            }
+        })?
+    }
+
     /// The paths of a commit git can add: a deletion already staged, after a refused commit, is
     /// not one, whether a file or a folder whose files the index no longer holds.
     pub(super) fn addable<'a>(

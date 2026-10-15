@@ -396,16 +396,13 @@ impl Git {
     /// Whether this working tree has changes to tracked files, staged or not, or untracked files.
     /// Ignored files do not count.
     pub fn has_local_changes(&self) -> Result<bool, GitError> {
-        let status = self
-            .repo
-            .status(gix::progress::Discard)
+        let mut items =
+            self.status_items("the working tree", gix::status::UntrackedFiles::Files)?;
+        Ok(items
+            .next()
+            .transpose()
             .map_err(read_error("the working tree"))?
-            .untracked_files(gix::status::UntrackedFiles::Files)
-            .index_worktree_rewrites(None);
-        let mut items = status
-            .into_iter(None)
-            .map_err(read_error("the working tree"))?;
-        Ok(items.next().is_some())
+            .is_some())
     }
 
     /// Drops the records of worktrees whose folder is gone.
@@ -454,17 +451,8 @@ impl Git {
     /// The tracked files that differ from `HEAD` here, staged or not, sorted. Untracked files are
     /// not listed.
     pub fn changed_files(&self) -> Result<Vec<String>, GitError> {
-        let status = self
-            .repo
-            .status(gix::progress::Discard)
-            .map_err(read_error("the working tree"))?
-            .untracked_files(gix::status::UntrackedFiles::None)
-            .index_worktree_rewrites(None);
         let mut files: Vec<String> = Vec::new();
-        for item in status
-            .into_iter(None)
-            .map_err(read_error("the working tree"))?
-        {
+        for item in self.status_items("the working tree", gix::status::UntrackedFiles::None)? {
             let item = item.map_err(read_error("the working tree"))?;
             files.push(item.location().to_string());
         }
@@ -518,14 +506,8 @@ impl Git {
 
     /// The files staged here: those whose index entry differs from `HEAD`, sorted.
     pub fn staged_files(&self) -> Result<Vec<String>, GitError> {
-        let status = self
-            .repo
-            .status(gix::progress::Discard)
-            .map_err(read_error("the index"))?
-            .untracked_files(gix::status::UntrackedFiles::None)
-            .index_worktree_rewrites(None);
         let mut files = Vec::new();
-        for item in status.into_iter(None).map_err(read_error("the index"))? {
+        for item in self.status_items("the index", gix::status::UntrackedFiles::None)? {
             let item = item.map_err(read_error("the index"))?;
             if let gix::status::Item::TreeIndex(change) = &item {
                 files.push(change.location().to_string());
