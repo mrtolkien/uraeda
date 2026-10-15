@@ -437,3 +437,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a test in the file of the view it checks rather than the feature it came with;
   moving it back takes a `describe` per group of phone tests.
 - **Where**: task 6.
+
+## R27: The Neovim tests' hostile git configuration adds a failing template hook
+
+- **Decision**: task 7's run with a hostile `HOME` adds `init.templateDir`, pointing at a template
+  whose `commit-msg` hook exits 1, to the plan's `commit.gpgSign` and `init.defaultBranch`, and sets
+  `HOME` inside the dev shell. The README's development section drops `cargo build -p uraeda-cli`,
+  which `test:nvim` runs itself.
+- **Rationale**: `helpers.repo` sets `commit.gpgSign = false` and `core.hooksPath` in each
+  repository, and its `--initial-branch main` beats `init.defaultBranch`, so the plan's
+  configuration passes with or without the isolation and proves nothing. The template's hook reaches
+  every repository `git init` makes, and `ura`'s own commits run it: without the isolation 5 cases
+  fail, with `minimal_init.lua`'s none. Nix itself reads `HOME`, so it is changed for the task only.
+- **Alternatives considered**: the plan's configuration alone: a run that cannot fail.
+- **If wrong**: a global setting no local one overrides and the template does not reach could still
+  leak; `GIT_CONFIG_GLOBAL=/dev/null` ignores the whole file, so none can.
+- **Where**: task 7.

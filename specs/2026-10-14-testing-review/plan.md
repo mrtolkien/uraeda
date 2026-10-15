@@ -839,7 +839,7 @@ git commit -m "test(testing-review): browser tests trimmed to the scenarios only
 
 - Consumes: task 3's `test:nvim` task, out of `ready`.
 
-- [ ] **Step 1: Ignore the host's git configuration in every Neovim the tests start**
+- [x] **Step 1: Ignore the host's git configuration in every Neovim the tests start**
 
 `minimal_init.lua` (R2), which the runner and every child load, sets `GIT_CONFIG_GLOBAL=/dev/null`
 and `GIT_CONFIG_NOSYSTEM=1`, and clears `GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE` and
@@ -847,7 +847,7 @@ and `GIT_CONFIG_NOSYSTEM=1`, and clears `GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_F
 tests are started. `test_actions.lua`'s and `test_verdict.lua`'s dates are set in their files'
 `pre_case` and restored in `post_case`, so each file's dates apply to its own cases only.
 
-- [ ] **Step 2: Run them with a hostile git configuration (US5.3)**
+- [x] **Step 2: Run them with a hostile git configuration (US5.3)**
 
 - Run:
   `HOME=$(mktemp -d) && git config --file "$HOME/.gitconfig" commit.gpgSign true && git config --file "$HOME/.gitconfig" init.defaultBranch master && nix develop -c vp run test:nvim`
@@ -855,7 +855,13 @@ tests are started. `test_actions.lua`'s and `test_verdict.lua`'s dates are set i
 - Run: `nix develop -c vp run -v ready`
 - Expected: no Neovim test runs (US5.1); `lua:fmt` runs.
 
-- [ ] **Step 3: Commit**
+As run (R27): `HOME` is set inside the dev shell (`nix develop -c env HOME=… vp run test:nvim`), and
+the hostile configuration also sets `init.templateDir` to a template whose `commit-msg` hook fails:
+`helpers.repo` already sets `commit.gpgSign` to `false` in each repository, so signing alone does
+not show the isolation. Without the isolation (the task's command and `minimal_init.lua` both
+without it), 5 cases fail; with `minimal_init.lua`'s alone, none.
+
+- [x] **Step 3: Commit**
 
 ```bash
 git add editors/nvim
