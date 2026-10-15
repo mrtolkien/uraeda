@@ -98,8 +98,10 @@ test("every response allows any origin, and is sandboxed", async () => {
   expect(response.status).toBe(200);
   expect(await response.text()).toContain("<h1>Dragging</h1>");
   expect(response.headers.get("access-control-allow-origin")).toBe("*");
+  // No `frame-ancestors`: Storybook's own interface, sandboxed, frames its story, and `'self'`
+  // refuses a sandboxed ancestor (R29).
   expect(response.headers.get("content-security-policy")).toBe(
-    "sandbox allow-scripts allow-popups; frame-ancestors 'self'",
+    "sandbox allow-scripts allow-popups",
   );
 });
 

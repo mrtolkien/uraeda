@@ -41,6 +41,7 @@ import {
 import { ListClientContext, useOpenRepository } from "./RepositoryMenu.tsx";
 import { FirstRun, MissingFolder, UnknownRepository } from "./RepositoryPages.tsx";
 import { SessionPage } from "./SessionPage.tsx";
+import { StorybookPage } from "./StorybookPage.tsx";
 import { TaskView } from "./TaskView.tsx";
 import { TriagePage } from "./TriagePage.tsx";
 import { Shell } from "./Shell.tsx";
@@ -106,6 +107,8 @@ function Page({ route }: { route: Route }) {
       return <MockupPage folder={route.folder} name={route.name} />;
     case "session":
       return <SessionRoute folder={route.folder} />;
+    case "storybook":
+      return <StorybookPage folder={route.folder} />;
     case "run":
       return <RunRedirect folder={route.folder} id={route.id} />;
     case "chat":

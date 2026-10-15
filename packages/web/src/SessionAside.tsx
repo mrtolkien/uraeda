@@ -19,6 +19,7 @@ import { useWidthClass } from "./layout/useWidthClass.ts";
 import { statusStyles } from "./Question.tsx";
 import { useRepoPath } from "./routes.tsx";
 import { StatusMark } from "./StatusMark.tsx";
+import { storybookHref } from "./stories.tsx";
 
 const styles = stylex.create({
   added: { color: colorVars["--color-text-green"] },
@@ -367,8 +368,11 @@ export function Changes({
   );
 }
 
-/** The feature's page, then its workflow files but its reviews, each a row that opens it. */
-function Pages({ feature }: { feature: Pick<Feature, "files" | "folder"> }) {
+/**
+ * The feature's page, its Storybook when it has a preview decision, then its workflow files but its
+ * reviews, each a row that opens it.
+ */
+function Pages({ feature }: { feature: Pick<Feature, "files" | "folder" | "preview"> }) {
   const here = useRepoPath();
   const files = feature.files.filter((file) => file.kind !== "review");
   return (
@@ -376,6 +380,9 @@ function Pages({ feature }: { feature: Pick<Feature, "files" | "folder"> }) {
       <SectionHeading>Feature</SectionHeading>
       <List aria-label="Feature" density="compact">
         <ListItem href={here(`/f/${feature.folder}`)} label="Feature page" />
+        {feature.preview && (
+          <ListItem href={here(storybookHref(feature.folder))} label="Storybook" />
+        )}
         {files.map((file) => (
           <ListItem
             href={here(`/f/${feature.folder}/${file.name}`)}

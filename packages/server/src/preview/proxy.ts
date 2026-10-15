@@ -11,7 +11,7 @@ import { type guardCheck, PREVIEW_PATH } from "../guard.ts";
 import { NOT_RUNNING, type Previews } from "./runner.ts";
 
 /** The `Content-Security-Policy` of every forwarded response, replacing Storybook's own. */
-export const SANDBOX = "sandbox allow-scripts allow-popups; frame-ancestors 'self'";
+export const SANDBOX = "sandbox allow-scripts allow-popups";
 
 /** Headers of one connection, which a proxy does not pass on. */
 const HOP_BY_HOP = new Set([

@@ -407,3 +407,46 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   hold the only record read outside `data.ts`.
 - **If wrong**: task 8 imports it from `data.ts` instead; one line.
 - **Where**: task 7, `packages/web/src/data.ts` and `packages/web/src/stories.tsx`.
+
+## R29: The proxy sets no frame-ancestors
+
+- **Decision**: the proxy replaces Storybook's `Content-Security-Policy` with
+  `sandbox allow-scripts allow-popups`, without the spec's `; frame-ancestors 'self'`.
+- **Rationale**: Storybook's interface frames its story. Sandboxed, its document has an opaque
+  origin, which `'self'` never matches: WebKit refused the story's frame inside the Storybook page,
+  which stayed empty until the directive was removed. The stack decision requires the sandbox policy
+  only, and the sandbox, not `frame-ancestors`, is what keeps a story from Uraeda's origin.
+- **Alternatives considered**: `frame-ancestors *`, which says the same with one more directive;
+  keeping `'self'` on the story's frame only, which needs the proxy to tell Storybook's pages apart,
+  and still blocks any page Storybook frames inside a frame.
+- **If wrong**: another site can frame a running Storybook's pages, sandboxed and on 127.0.0.1, as
+  it could frame Storybook run by hand; the directive is one string in `preview/proxy.ts`.
+- **Where**: task 8, `packages/server/src/preview/proxy.ts` and its test.
+
+## R30: The fake preview draws Storybook's interface
+
+- **Decision**: the fake preview serves, at `/`, a page listing its stories and framing the story
+  its `?path=/story/<id>` names, or its first, titled "storybook-preview-iframe", as Storybook's
+  own. The browser commands gain `innerFrameText(title, inner)`, the text of a frame inside a frame.
+- **Rationale**: US5.2 and R29 are about the story shown inside Storybook's interface: a test of the
+  outer frame alone passed with the story's frame refused.
+- **Alternatives considered**: checking only the frame's `src`, which never sees the refusal.
+- **If wrong**: nothing for the user: test code only.
+- **Where**: task 8, `fixtures/preview/serve.mjs`, `packages/web/vite.browser.config.ts`.
+
+## R31: The Storybook page says why it cannot show a story
+
+- **Decision**: on the Storybook page, a `?story=` its Storybook's index does not hold reads the
+  embed's "No story “<export>” in <path> on this branch.", with "Open in Storybook" to the page
+  without it. Without a preview decision, the page reads "Nothing here.", as an unknown address. The
+  rows read `preview` from the feature's record their component already holds, rather than
+  `usePreviewOn`, which reads the same field. The `story-pick` screenshot comes with pick mode, in
+  task 9.
+- **Rationale**: the spec names no missing story for the page; a frame at Storybook's first story
+  would hide that the link is wrong. The spec says no page shows without a decision. A second read
+  of the record gives nothing more. Task 8 cannot shoot a pick mode task 9 builds.
+- **Alternatives considered**: opening Storybook at its first story; a text of its own for a page
+  without a decision.
+- **If wrong**: one branch of `StorybookPage.tsx` each.
+- **Where**: task 8, `packages/web/src/StorybookPage.tsx`, `FeaturePage.tsx`, `SessionAside.tsx`;
+  task 9, `packages/web/scripts/screenshots.ts`.
