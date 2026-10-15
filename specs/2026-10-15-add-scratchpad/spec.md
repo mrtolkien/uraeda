@@ -389,8 +389,7 @@ Settled while writing this spec:
 Changed, applied when this spec is approved:
 
 - [Git](../decisions/git.md): `INBOX.md` and `INBOX-TRIAGE.md` are written on the default branch,
-  from every tool and from any checkout, like drafts, backlog files, and `PRIORITIES.md`. See its
-  [proposed change](../decisions/git.md#proposed-change-2026-10-15-add-scratchpad).
+  from every tool and from any checkout, like drafts, backlog files, and `PRIORITIES.md`.
 
 Relied on:
 
