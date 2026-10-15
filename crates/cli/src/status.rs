@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use uraeda_core::files::priorities::Section;
 use uraeda_core::steps::{PullRequest, StepName, WaitsOn};
-use uraeda_core::workspace::{Feature, Kind, PriorityEntry, Workspace};
+use uraeda_core::workspace::{Feature, PriorityEntry, Workspace, folder_branch};
 
 use crate::output::{self, Style};
 
@@ -26,10 +26,7 @@ struct Row {
 
 /// A feature's name in the table: its folder, or its branch for a change.
 pub fn name(feature: &Feature) -> String {
-    match feature.kind {
-        Kind::Feature => feature.folder.clone(),
-        Kind::Change => format!("change/{}", feature.folder),
-    }
+    folder_branch(feature.kind, &feature.folder)
 }
 
 /// What a merged feature left behind, in words: `worktree and branch`, `worktree`, or `branch`.
