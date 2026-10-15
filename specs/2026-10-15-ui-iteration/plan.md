@@ -1169,7 +1169,7 @@ git commit -m "feat(ui-iteration): the preview runner"
   test.
 - Changes: `testApp` and `testServer` create a `Previews`, stopped after each test.
 
-- [ ] **Step 1: Split `createApp` before it grows**
+- [x] **Step 1: Split `createApp` before it grows**
 
 Move the repositories' routes (`hosted` and its paths) and the fate endpoints into two functions of
 `app.ts`, without changing what they do.
