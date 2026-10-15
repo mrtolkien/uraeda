@@ -63,8 +63,10 @@ Turn the answered round's `> [!IMPORTANT]` block into a record, as described in
 ## Is the scope clear?
 
 Start a new round, following [Discovery](discovery.md), when an answer raises a new unknown, when an
-answer is ambiguous in a way that matters, or when the human asked for more options. Otherwise,
-propose the decisions, then write the spec.
+answer is ambiguous in a way that matters, or when the human asked for more options. A folder from
+an [upgraded change](change.md#upgrading) has rounds with no discovery file, that settled the
+change, not the feature's scope: start a new round for it. Otherwise, propose the decisions, then
+write the spec.
 
 ## Propose decisions
 
