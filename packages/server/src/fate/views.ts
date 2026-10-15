@@ -24,6 +24,7 @@ import type {
   UsageLimit,
 } from "../runner/events.ts";
 import type { SessionStatus, StatusReason } from "../runner/status.ts";
+import type { PreviewRecord, StoryHrefRecord, StoryRecord } from "./preview.ts";
 
 type Record_<T> = { [Key in keyof T]: T[Key] };
 
@@ -43,6 +44,8 @@ export type WorkspaceRecord = Omit<Record_<WorkspaceView>, "features"> & {
   /** Its features, each step sent as `sentStep` sends it. */
   features: Array<Omit<FeatureView, "step"> & { step: StepRecord }>;
   id: string;
+  /** Whether the main checkout has an active preview decision. */
+  preview: boolean;
   /** The folders whose session has a turn running or queued. */
   running: Array<string>;
 };
@@ -51,6 +54,11 @@ export type WorkspaceRecord = Omit<Record_<WorkspaceView>, "features"> & {
 export type FeatureRecord = Omit<Record_<FeatureView>, "step"> & {
   id: string;
   missing?: boolean;
+  /**
+   * Whether its worktree, or the main checkout for a feature without one, has an active preview
+   * decision (R7).
+   */
+  preview: boolean;
   /** Its session's ID, null before its first message. */
   session: string | null;
   step: StepRecord;
@@ -264,6 +272,7 @@ export const workspaceDataView = dataView<WorkspaceRecord>("Workspace")({
   features: true,
   id: true,
   noSpecs: true,
+  preview: true,
   priorities: true,
   prioritiesHash: true,
   root: true,
@@ -282,6 +291,7 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
   missing: true,
   mockups: true,
   path: true,
+  preview: true,
   problems: true,
   pullRequest: true,
   session: true,
@@ -437,6 +447,27 @@ export const folderSuggestionsDataView = dataView<FolderSuggestionsRecord>("Fold
   rows: true,
 });
 
+export const storyDataView = dataView<StoryRecord>("Story")({
+  error: true,
+  frame: true,
+  id: true,
+  state: true,
+  storybook: true,
+});
+
+export const previewDataView = dataView<PreviewRecord>("Preview")({
+  base: true,
+  error: true,
+  id: true,
+  state: true,
+});
+
+export const storyHrefDataView = dataView<StoryHrefRecord>("StoryHref")({
+  export: true,
+  id: true,
+  path: true,
+});
+
 /** The ids of the records there is one of. */
 export const WORKSPACE_ID = "workspace";
 export const PRIORITIES_ID = "priorities";
@@ -456,6 +487,7 @@ export const Root = {
   features: list(featureDataView),
   folderSuggestionsList: list(folderSuggestionsDataView),
   inboxes: list(inboxDataView),
+  previews: list(previewDataView),
   prioritiesList: list(prioritiesDataView),
   proposalHintsList: list(proposalHintsDataView),
   repositoriesList: list(repositoriesDataView),
@@ -463,6 +495,8 @@ export const Root = {
   sessions: list(sessionDataView),
   sessionSearches: list(sessionSearchDataView),
   slugProposals: list(slugProposalDataView),
+  stories: list(storyDataView),
+  storyHrefs: list(storyHrefDataView),
   turnLogs: list(turnLogDataView),
   turns: list(turnDataView),
   workflowFiles: list(fileDataView),

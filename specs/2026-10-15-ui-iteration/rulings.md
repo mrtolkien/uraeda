@@ -293,3 +293,37 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: nothing for the user: tests and one test-only export.
 - **Where**: task 5, `packages/server/src/dev.ts`, `packages/server/src/preview/__tests__/`,
   `fixtures/preview/serve.mjs`, `packages/web/src/__tests__/helpers.tsx`.
+
+## R22: A live update of a story is a view
+
+- **Decision**: `livePreviews` builds the runner whose `onChange` sends the live updates, on the bus
+  of the repository that read each base; the server, and the server's and the UI's test helpers, all
+  use it. fate reads a record again for each live update it sends, so an update of a `Story` or
+  `Preview` is a view too: a page subscribed to a story when its Storybook stops after 30 minutes
+  starts it again. A base's watched records are forgotten when its Storybook stops, and watched
+  again by that read.
+- **Rationale**: fate's live updates carry the record as the source reads it, and the only read of a
+  story is a view. A page that shows an embed asks again every 5 minutes anyway, so a subscribed
+  page keeps its Storybook running either way; a closed page subscribes to nothing. A runner built
+  in one place cannot be created without its live updates, as the plan's `onChange` in `server.ts`
+  alone would leave the tests' runners.
+- **Alternatives considered**: a read that does not view for live updates, which fate cannot tell
+  apart from a read; `onChange` written in `server.ts` and again in each test helper.
+- **If wrong**: a forgotten tab keeps its Storybook running until it closes; a live update could
+  read the runner's `state` without viewing, in `fate/preview.ts`.
+- **Where**: task 6, `packages/server/src/live.ts` and `packages/server/src/fate/preview.ts`.
+
+## R23: A ready Storybook whose index cannot be read fails its stories
+
+- **Decision**: a `Story` whose Storybook is ready, but whose index fails or does not answer within
+  5 seconds, is `failed` with "Storybook's index could not be read.", and "Try again" restarts it. A
+  `Preview`'s `base` is set only when ready, as a story's `frame` is. The record types live in
+  `fate/preview.ts`, with their reads, so `views.ts` keeps room below its 500 lines.
+- **Rationale**: the spec has this sentence for an index that cannot be read, and neither `ready`
+  nor `missing` would be true; a frame or Storybook page under a base that serves nothing yet would
+  show the proxy's 503.
+- **Alternatives considered**: `starting` until the index answers, which waits with no end once the
+  runner already called it ready; `missing`, which tells the human the story is gone.
+- **If wrong**: a slow index shows the failure for one read; the next read after "Try again" shows
+  the story. One branch in `readStory`.
+- **Where**: task 6, `packages/server/src/fate/preview.ts`.

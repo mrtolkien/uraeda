@@ -1,5 +1,6 @@
 import type { Changes } from "uraeda-binding";
 import type { Binding } from "./fate/context.ts";
+import { changedRecords } from "./fate/preview.ts";
 import { pages } from "./fate/sessions.ts";
 import {
   AGENT_ID,
@@ -10,6 +11,7 @@ import {
   WORKSPACE_ID,
 } from "./fate/views.ts";
 import { type LiveBus, live } from "./fate.ts";
+import { Previews } from "./preview/runner.ts";
 import type { Host, Hosts } from "./repositories.ts";
 import type { Adapter } from "./runner/adapter.ts";
 import type { SessionCache } from "./runner/cache.ts";
@@ -66,6 +68,29 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
       }
     }
   }
+}
+
+/**
+ * A Storybook runner whose changes are sent live: when a checkout's state changes, its `Preview`
+ * record and every `Story` record read for it, on the bus of the repository that read them.
+ */
+export function livePreviews(
+  options: Omit<ConstructorParameters<typeof Previews>[0] & {}, "onChange"> = {},
+): Previews {
+  const previews: Previews = new Previews({
+    ...options,
+    onChange: (base) => {
+      const changed = changedRecords(previews, base);
+      if (changed !== undefined) {
+        const update = sender(changed.live);
+        update("Preview", changed.folder);
+        for (const id of changed.stories) {
+          update("Story", id);
+        }
+      }
+    },
+  });
+  return previews;
 }
 
 type Timer = ReturnType<typeof setTimeout>;
