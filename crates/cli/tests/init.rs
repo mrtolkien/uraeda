@@ -41,6 +41,7 @@ fn sets_up_specs_only_from_a_subfolder() {
         "specs/README.md",
         "specs/CONSTITUTION.md",
         "specs/PRIORITIES.md",
+        "specs/INBOX.md",
         "specs/drafts/.gitkeep",
         "specs/backlog/.gitkeep",
         "specs/decisions/.gitkeep",
@@ -80,6 +81,34 @@ fn keeps_existing_files() {
         "{}",
         output.stdout
     );
+}
+
+/// A project set up before the inbox gets it from a second run, and a human's inbox is kept.
+#[test]
+fn adds_the_inbox_and_keeps_it() {
+    let repo = TestRepo::new();
+    repo.write("specs/PRIORITIES.md", "# Priorities\n\n## Now\n");
+
+    let first = ura(&repo, &["init"]);
+
+    assert!(
+        first.stdout.contains("created specs/INBOX.md\n"),
+        "{}",
+        first.stdout
+    );
+    assert_eq!(repo.read("specs/INBOX.md"), "# Inbox\n");
+    assert_eq!(repo.read("specs/PRIORITIES.md"), "# Priorities\n\n## Now\n");
+    repo.write("specs/INBOX.md", "# Inbox\n\n- Ours\n");
+
+    let second = ura(&repo, &["init"]);
+
+    assert_eq!(repo.read("specs/INBOX.md"), "# Inbox\n\n- Ours\n");
+    assert!(
+        second.stdout.contains("kept    specs/INBOX.md\n"),
+        "{}",
+        second.stdout
+    );
+    assert_eq!(second.code, 0, "{}", second.stderr);
 }
 
 #[test]

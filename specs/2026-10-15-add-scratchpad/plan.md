@@ -779,20 +779,24 @@ git commit -m "feat(add-scratchpad): moves out of the inbox, committed in one ch
 - Modify: `crates/core/src/check/mod.rs` (`Checked::Inbox`, `Checked::Triage`, `kind_of`),
   `crates/core/src/check/sections.rs` (templates), `crates/core/src/check/values.rs` (triage
   statuses), `crates/core/src/check/links.rs` (the exemption extends to `INBOX.md`),
-  `crates/core/src/actions/init.rs`
+  `crates/core/src/actions/init.rs`, `crates/core/src/files/inbox.rs` (`category_headings`),
+  `skills/uraeda/references/conventions.md` (the `ura check` paragraph) and `projects.md`
+  (`ura init`'s output) (ruling R15)
 - Test: `crates/core/tests/check.rs`, `crates/cli/tests/init.rs`, `crates/cli/tests/check.rs`
 
 **Interfaces:**
 
-- Consumes: `files::inbox::category_names` (task 2), and the templates (task 2).
+- Consumes: `files::inbox::category_names` (task 2), through `category_headings`, which gives each
+  `##` heading's line with its name (ruling R15), and the templates (task 2).
 - Produces:
   - the rules `inbox.title`, which requires `# Inbox`, and `inbox.category`, which reports "the
     category \"UI\" is repeated";
   - `INBOX-TRIAGE.md` checked like a round of questions, with its title, statuses, answers, and the
-    awaiting block;
+    awaiting block; `check::fields` gives its `status` with `answered` as `Action::Submit`, as for a
+    round (ruling R15);
   - `ura init` creates `specs/INBOX.md`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - **Review focus 6:** two `## UI` headings report `inbox.category` on the second's line.
 - A file titled `# Notes` reports `inbox.title`.
@@ -806,23 +810,23 @@ The break each test catches:
 - The triage checked as a free file, so blank answers pass.
 - `init` overwriting a human's inbox.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `cargo nextest run -p uraeda-core --test check && cargo nextest run -p uraeda-cli --test init`
 - Expected: FAIL, the duplicate category not reported
 
-- [ ] **Step 3: Implement the two kinds, and `init`'s template**
+- [x] **Step 3: Implement the two kinds, and `init`'s template**
 
-- [ ] **Step 4: Run all tests, and the specs check of the repository and the example**
+- [x] **Step 4: Run all tests, and the specs check of the repository and the example**
 
 - Run: `cargo nextest run -p uraeda-core -p uraeda-cli && cargo run -q -p uraeda-cli -- check specs`
 - Expected: PASS, and "no problems"
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add crates specs/2026-10-15-add-scratchpad/plan.md
+git add crates skills specs/2026-10-15-add-scratchpad
 git commit -m "feat(add-scratchpad): ura check and ura init know the inbox and its triage"
 ```
 

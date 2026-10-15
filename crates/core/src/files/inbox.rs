@@ -151,8 +151,16 @@ pub fn parse(text: &str) -> Vec<Note> {
 
 /// The name of every `##` heading, in order, empty and repeated ones included.
 pub fn category_names(text: &str) -> Vec<String> {
+    category_headings(text)
+        .into_iter()
+        .map(|(_, name)| name)
+        .collect()
+}
+
+/// Every `##` heading's line, from 1, and name, in order, empty and repeated ones included.
+pub fn category_headings(text: &str) -> Vec<(usize, String)> {
     lines::headings(text)
-        .filter_map(|(_, line)| category_of(line))
+        .filter_map(|(line, heading)| Some((line, category_of(heading)?)))
         .collect()
 }
 

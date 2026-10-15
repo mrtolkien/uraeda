@@ -45,8 +45,13 @@ at most its last round, and a plan's `spec-revision` at most the spec's `revisio
 title, sections, and order, and no level-2 section the template does not have; the structured items
 above; an answer for every question that applies once a round is `answered`; the `> [!IMPORTANT]`
 block of a file waiting for the human; a record's name, `YYYY-MM-DD-<slug>.md`, its `finished` date,
-its numbered rounds and questions, and its opening `> [!NOTE]` block; links and images to markdown
-files and into `specs/` that resolve, anchors included; and the [review files](#review-files) rules.
+its numbered rounds and questions, and its opening `> [!NOTE]` block; `PRIORITIES.md`'s `## Now`,
+`## Next`, `## Later`, and `## Blocked`; `INBOX.md`'s title, `# Inbox`, and each category named
+once, when the file exists; `INBOX-TRIAGE.md` as a round of questions, with its template's title and
+sections, its `status`, its answers, and its block; links and images to markdown files and into
+`specs/` that resolve, anchors included, except links from `PRIORITIES.md` and `INBOX.md` into a
+started feature's folder, whose files live on its branch; and the [review files](#review-files)
+rules.
 
 ## Workflow status
 

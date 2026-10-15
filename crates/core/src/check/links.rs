@@ -82,11 +82,14 @@ pub(super) fn check_links(file: &File<'_>, document: &Document, problems: &mut V
             continue;
         }
         let target = file.root.join(&resolved);
-        // PRIORITIES.md links to started features, whose files live on their own branches.
-        let on_a_branch = file.kind == super::Checked::Priorities
-            && resolved
-                .split('/')
-                .any(|part| crate::workspace::folder_slug(part).is_some());
+        // PRIORITIES.md and INBOX.md link to started features, whose files live on their own
+        // branches.
+        let on_a_branch = matches!(
+            file.kind,
+            super::Checked::Priorities | super::Checked::Inbox
+        ) && resolved
+            .split('/')
+            .any(|part| crate::workspace::folder_slug(part).is_some());
         if !target.exists() && on_a_branch {
             continue;
         }
