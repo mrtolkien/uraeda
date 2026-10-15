@@ -73,6 +73,7 @@ pub fn check(root: &Path, target: &Path) -> Result<Vec<Problem>, CheckError> {
         let name = target.file_name().unwrap_or_default().to_string_lossy();
         let mut found = check_folder_files(&root, dir, true, &mut problems);
         problems.extend(found.remove(name.as_ref()).unwrap_or_default());
+        names::check_change_file(&root, &target, &mut problems);
         problems.retain(|p| p.file == relative(&root, &target));
     } else {
         walk(&root, &target, &mut problems);
@@ -91,6 +92,7 @@ pub fn check_text(root: &Path, path: &Path, text: &str) -> Vec<Problem> {
     let mut problems = Vec::new();
     let mut found = check_folder_files_with(&root, dir, true, Some((&name, text)), &mut problems);
     problems.extend(found.remove(name.as_ref()).unwrap_or_default());
+    names::check_change_file(&root, &path, &mut problems);
     problems.retain(|p| p.file == relative(&root, &path));
     problems.sort_by(|a, b| (&a.file, a.line).cmp(&(&b.file, b.line)));
     problems
@@ -132,7 +134,8 @@ fn canonical_file(path: &Path) -> PathBuf {
     }
 }
 
-/// Checks every folder under `dir`.
+/// Checks every folder under `dir`. A change's folder is checked as a whole, so the problems of
+/// `names::check_change_file`, which checks one file of it, are reported once.
 fn walk(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
     names::check_folder_names(root, dir, problems);
     names::check_change_files(root, dir, problems);
