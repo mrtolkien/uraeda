@@ -199,6 +199,23 @@ function FeatureGroup({
   ) : null;
 }
 
+/** "New change", after "Priorities": a composer that starts a change. */
+function NewChange({ pathname }: { pathname: string }) {
+  const here = useRepoPath();
+  return (
+    <SideNavItem
+      href={here("/changes/new")}
+      icon={<span aria-hidden="true">＋</span>}
+      isSelected={pathname === "/changes/new"}
+      label="New change"
+      onClick={(event: React.MouseEvent) => {
+        event.preventDefault();
+        navigate(here("/changes/new"));
+      }}
+    />
+  );
+}
+
 /** The chats' section: "New chat" outside a search, the open chats, then the archived ones. */
 function Chats({
   chats,
@@ -304,6 +321,7 @@ function Sessions({
         />
       )}
       {!found && <Item label="Priorities" pathname={pathname} to="/priorities" />}
+      {!found && <NewChange pathname={pathname} />}
       {groups.slice(0, 2).map(group)}
       <Chats chats={chats} pathname={pathname} searching={!!found} />
       {groups.slice(2).map(group)}
@@ -319,8 +337,8 @@ function Found({ data, pathname, query }: { data: Data; pathname: string; query:
 }
 
 /**
- * The navigation's rows below its search: Home, Priorities, the features by what they wait for,
- * and the chats; during a search, only the features and chats it found.
+ * The navigation's rows below its search: Home, Priorities, New change, the features by what they
+ * wait for, and the chats; during a search, only the features and chats it found.
  */
 export function SessionNav({
   pathname,

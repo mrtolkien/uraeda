@@ -950,14 +950,18 @@ git commit -m "feat(add-bugfixing): a change's page, column, phone line, and sid
   its send button row extracted, so the new props fit. This is its own commit.
 - Modify:
   - `packages/web/src/Composer.tsx`, with the props
-    `onSend?: (text: string, images: ReadonlyArray<DraftImage>) => Promise<{ ok: true } | { ok: false; message: string }>`
-    and `sendLabel?: string`;
+    `onSend?: (text: string, images: ReadonlyArray<DraftImage>) => Promise<boolean>`, whether it was
+    sent, the page showing its own refusal
+    ([R17](rulings.md#r17-new-changes-refusal-its-text-and-its-slug-are-the-pages)), and
+    `sendLabel?: string`;
   - `packages/web/src/routes.tsx` (`/changes/new` → `{ page: "new-change" }`),
     `packages/web/src/App.tsx`, and `packages/web/src/SessionNav.tsx` (the "＋ New change" row after
     "Priorities", outside a search, selected at `/changes/new`).
 - Create: `packages/web/src/NewChangePage.tsx`
 - Test: `packages/web/src/__browser__/new-change.test.tsx`,
-  `packages/web/src/__tests__/routes.test.ts`
+  `packages/web/src/__tests__/new-change.test.tsx` (jsdom: without the agent, which the browser
+  tests' server always has, R17), `packages/web/src/__tests__/routes.test.ts`, and
+  `packages/web/src/__tests__/links.test.ts` (`/changes/new` among every page's links)
 
 **Interfaces:**
 
@@ -966,8 +970,9 @@ git commit -m "feat(add-bugfixing): a change's page, column, phone line, and sid
   - the heading "New change", and the line "Describe the bug or the change. The first line is its
     title.";
   - the `Composer`, with `sendLabel="Start the change"`, its text kept by
-    `useTextField("new-change", "")`;
-  - `SlugField`, with `useTextField("new-change#slug", proposed)`. `proposed` is read from
+    `useTextField("new-change", "", { drawn: false })`, so leaving the page does not ask (R17);
+  - `SlugField`, with `useTextField("new-change#slug", proposed, { drawn: false })`, sent only when
+    it holds a slug: the core proposes its own otherwise (R17). `proposed` is read from
     `SlugProposal` for the whole typed text, which the core reads the title in (R14), 200 ms after
     typing stops, as the sidebar's search waits;
   - the line "Creates its branch and worktree, and adds it to Now. The agent asks only what it must,
@@ -976,9 +981,9 @@ git commit -m "feat(add-bugfixing): a change's page, column, phone line, and sid
     `handOver(folder, "start")`. A refusal shows under the slug field, and the composer keeps its
     text.
 
-- [ ] **Step 1: Split `Composer`**, run `vp run ts:test`, PASS, and commit
+- [x] **Step 1: Split `Composer`**, run `vp run ts:test`, PASS, and commit
       `refactor(add-bugfixing): the composer's send row in a function of its own`.
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```tsx
 // packages/web/src/__browser__/new-change.test.tsx, atSize("both") unless named
@@ -1020,18 +1025,18 @@ The break each test catches:
 - The leaving test: the text kept in memory only, as a new chat's is today.
 - The images test: images sent to the chat's data folder instead of the change.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp run browser:desktop`
 - Expected: FAIL, no link "New change".
 
-- [ ] **Step 4: Implement the page, the route, the row, and the composer's props.**
-- [ ] **Step 5: Run the UI checks**
+- [x] **Step 4: Implement the page, the route, the row, and the composer's props.**
+- [x] **Step 5: Run the UI checks**
 
 - Run: `vp run ts:check && vp run ts:test && vp run browser:desktop && vp run browser:phone`
 - Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web

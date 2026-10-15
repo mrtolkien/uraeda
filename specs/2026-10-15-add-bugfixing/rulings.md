@@ -255,3 +255,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   rule.
 - **If wrong**: the core names the gate either way; read the latest round again in `roundOf`.
 - **Where**: task 8 review, `packages/web/src/ChangeAside.tsx`.
+
+## R17: New change's refusal, its text, and its slug are the page's
+
+- **Decision**:
+  - the composer's `onSend` answers whether it was sent, a `boolean`, not a refusal's message: the
+    page shows its own refusal under the slug field, and the composer keeps the text and the images
+    until it is sent;
+  - with `onSend`, the composer needs text, not the agent, and takes images whatever the agent
+    reads;
+  - the text and the slug are kept with `useTextField(…, { drawn: false })`: leaving the page keeps
+    them without asking "Leave page?";
+  - an empty slug is not sent: the core proposes its own, as before the page's proposal arrives;
+  - "without the agent" is a jsdom test, `__tests__/new-change.test.tsx`.
+- **Rationale**: the spec puts a start's refusal "under the slug field", below the composer, so the
+  composer's status is the wrong place, and a message it would not show has no reason to be
+  returned. The spec's "No agent on this machine" starts the change, and its images go into the
+  repository (R15). A new chat's text never asks before leaving, and the spec keeps New change's "as
+  a new chat's is". A Start pressed within the proposal's 200 ms sent an empty slug, which the core
+  refused as `"" is not a slug`. The browser tests' server always has its fake agent.
+- **Alternatives considered**: the plan's `{ ok, message }`, shown in the composer's status, above
+  the slug field; a browser command that takes the agent away, for one test.
+- **If wrong**: return the message, and show it in the composer's status; drop `drawn: false`.
+- **Where**: task 9, `packages/web/src/Composer.tsx`, `packages/web/src/NewChangePage.tsx`.
