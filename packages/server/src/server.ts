@@ -7,6 +7,7 @@ import type { Binding } from "./fate/context.ts";
 import { createSessions, type HostsOf } from "./live.ts";
 import { NOT_A_REPOSITORY, openFolder, type OpenRequest } from "./open.ts";
 import type { Options } from "./options.ts";
+import { Previews } from "./preview/runner.ts";
 import { Hosts } from "./repositories.ts";
 import type { Adapter } from "./runner/adapter.ts";
 import { SessionCache } from "./runner/cache.ts";
@@ -15,6 +16,9 @@ import type { Sessions } from "./runner/sessions.ts";
 
 /** How often the server checks that the agent still works. */
 export const CHECK_EVERY_MS = 60_000;
+
+/** How often the server stops the Storybooks without a view, or whose checkout is gone. */
+export const SWEEP_EVERY_MS = 60_000;
 
 /**
  * The server's session manager: its cache opened in the data folder, the turns a stopped server
@@ -52,14 +56,18 @@ export async function startSessions(options: {
 }
 
 /**
- * A started server: its app, the hosts and the session manager it serves, the page of the
- * repository it started in, and how to stop them.
+ * A started server: its app, the hosts, the session manager, and the Storybooks it serves, the page
+ * of the repository it started in, and how to stop them.
  */
 export type Server = {
   app: ReturnType<typeof createApp>;
   hosts: Hosts;
+  previews: Previews;
   sessions: Sessions;
-  /** Closes the hosts' watches, stops the sessions' turns, and closes their processes. */
+  /**
+   * Closes the hosts' watches, stops the sessions' turns, closes their processes, and stops every
+   * Storybook.
+   */
   stop: () => Promise<void>;
   /** The started repository's page, `/r/<name>/`, or `/` when the server started outside git. */
   url: string;
@@ -114,6 +122,9 @@ export async function startServer(
     throw error;
   }
   const opened = hosts;
+  const previews = new Previews();
+  const sweeping = setInterval(() => previews.sweep(), SWEEP_EVERY_MS);
+  sweeping.unref();
   let stopping: Promise<void> | undefined;
   return {
     app: createApp({
@@ -124,11 +135,13 @@ export async function startServer(
       sessions: sessions.sessions,
     }),
     hosts: opened,
+    previews,
     sessions: sessions.sessions,
     stop: () => {
       stopping ??= (async () => {
+        clearInterval(sweeping);
         opened.close();
-        await sessions.stop();
+        await Promise.all([sessions.stop(), previews.stopAll()]);
       })();
       return stopping;
     },

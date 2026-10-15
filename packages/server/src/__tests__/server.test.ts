@@ -1,9 +1,15 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, expect, test, vi } from "vite-plus/test";
-import { fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
+import { afterEach, expect, onTestFinished, test, vi } from "vite-plus/test";
+import {
+  addPreview,
+  fixtureRepo,
+  git,
+  previewStarts,
+  temporaryFolder,
+} from "uraeda-binding/test-utils";
 import { FakeAdapter } from "../runner/fake.ts";
-import { startServer } from "../server.ts";
+import { startServer, SWEEP_EVERY_MS } from "../server.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
@@ -188,3 +194,46 @@ test("stopping closes the hosts and the session manager", async () => {
   expect(closeAll).toHaveBeenCalled();
   expect(server.hosts.all()).toEqual([]);
 });
+
+/** SC-005 */
+test("stopping stops every Storybook", async () => {
+  const repo = fixtureRepo();
+  const log = addPreview(repo, { folder: "." });
+  const server = await start(repo, temporaryFolder("uraeda-data"));
+  const base = "/r/repo/preview/main/";
+  server.previews.view({
+    base,
+    command: (await binding.preview(repo))!.command,
+    dir: repo,
+    folder: ".",
+  });
+  await expect.poll(() => server.previews.state(base)?.state, { timeout: 10_000 }).toBe("ready");
+
+  await server.stop();
+
+  expect(server.previews.state(base)).toBeUndefined();
+  await expect.poll(() => running(previewStarts(log)[0]!.pid), { timeout: 10_000 }).toBe(false);
+});
+
+test("the server sweeps its Storybooks every minute", async () => {
+  vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+  onTestFinished(() => {
+    vi.useRealTimers();
+  });
+  const server = await start(fixtureRepo(), temporaryFolder("uraeda-data"));
+  const sweep = vi.spyOn(server.previews, "sweep");
+
+  vi.advanceTimersByTime(SWEEP_EVERY_MS);
+
+  expect(sweep).toHaveBeenCalledOnce();
+});
+
+/** Whether the process is running. */
+function running(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}

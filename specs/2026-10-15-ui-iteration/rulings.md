@@ -182,3 +182,46 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   patch is one function of the helper, with its test.
 - **Where**: task 3, `skills/uraeda/assets/storybook/uraeda-preview.js`,
   `packages/web/tsconfig.json`.
+
+## R15: The runner writes the last line when the command cannot
+
+- **Decision**: a `preview-folder` missing from the checkout is failed at once, with "Storybook did
+  not start: <folder> is not a folder of this checkout.", without running the command. A process
+  that printed nothing ends with "The command exited with code <code>." or "The command was stopped
+  by <signal>.", after "Storybook did not start: ".
+- **Rationale**: [R5](#r5-the-preview-folder-is-checked-by-its-form-only) leaves the folder's
+  existence to the runner, and Node reports a missing working folder as `spawn sh ENOENT`, which
+  names neither the folder nor the cause. The spec's sentence needs a last line, and a silent
+  process has none.
+- **Alternatives considered**: the spawn error as it comes; an empty line after the colon.
+- **If wrong**: the embed's sentence differs; each line is one string in `preview/runner.ts`, with
+  its test.
+- **Where**: task 4, `packages/server/src/preview/runner.ts`.
+
+## R16: A starting Storybook is read every 500 ms, whatever its reads do
+
+- **Decision**: `readIndex` rejects with `Storybook's index could not be read.` only on a 200 that
+  is not an index; a refused connection or another status is "not yet". The runner's tick, every 500
+  ms, checks the 2 minutes first, and starts a read only when none is pending. The fake's `hang`
+  mode holds every request for the index open.
+- **Rationale**: Storybook may hold `index.json` open while it builds its index: a 2-minute check
+  made after each read would wait forever on a read that never ends.
+- **Alternatives considered**: a timeout per read, which adds a second delay to tune; checking the
+  time only when a read ends, which a held request defeats.
+- **If wrong**: a Storybook whose index answers a non-200 for good shows the 2-minute failure
+  instead of its own; the status could fail it in `readIndex`.
+- **Where**: task 4, `packages/server/src/preview/index.ts` and `runner.ts`.
+
+## R17: The runner's test helpers read the decision through the binding
+
+- **Decision**: the runner's tests build a checkout with `storyCheckout`, asynchronous, which reads
+  the worktree's decision through the binding's `preview`, as the server will. `previewStarts` also
+  returns each start's `pid`, which the plan's SC-005 test reads. The fake's command ends in
+  `&& true`, so its shell waits for it, and only a signal to the process group stops the fake.
+- **Rationale**: a command copied into the test would not prove the decision the core reads runs;
+  the plan's test reads `pid`; and with a shell that `exec`s a lone command, killing the shell alone
+  would pass the SC-005 test.
+- **Alternatives considered**: the plan's synchronous `storyCheckout`, building the command by hand.
+- **If wrong**: nothing for the user: test helpers only.
+- **Where**: task 4, `packages/server/src/preview/__tests__/helpers.ts`,
+  `packages/binding/test-utils.ts`.

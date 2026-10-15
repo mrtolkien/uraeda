@@ -861,7 +861,9 @@ git commit -m "feat(ui-iteration): the skill's Storybook helper and pick script"
 - Modify: `packages/binding/test-utils.ts` (`addPreview`, `addStoryFeature`, `previewStarts`),
   `packages/server/src/server.ts` (`startServer`, `Server`)
 - Test: `packages/server/src/preview/__tests__/runner.test.ts`,
-  `packages/server/src/preview/__tests__/index.test.ts`
+  `packages/server/src/preview/__tests__/index.test.ts`, their helpers in
+  `packages/server/src/preview/__tests__/helpers.ts` (`previews`, `fakeClock`, `storyCheckout`,
+  `checkoutOf`, `ready`, `alive`, `WAIT`), and `packages/server/src/__tests__/server.test.ts`
 
 **Interfaces:**
 
@@ -870,7 +872,12 @@ git commit -m "feat(ui-iteration): the skill's Storybook helper and pick script"
   - `type PreviewState = { state: "starting" } | { state: "ready"; port: number } | { state: "failed"; error: string }`,
     where `error` is the sentence the embed shows: `Storybook did not start: <last line>` for a
     process that exits, or the runner's own `Storybook did not start within 2 minutes.`,
-    `No free port for Storybook.`, or `Storybook's index could not be read.`;
+    `No free port for Storybook.`, or `Storybook's index could not be read.`; a `preview-folder`
+    missing from the checkout is
+    `Storybook did not start: <folder> is not a folder of this checkout.`, and a process that
+    printed nothing ends with `The command exited with code <code>.` or
+    `The command was stopped by <signal>.`
+    ([R15](rulings.md#r15-the-runner-writes-the-last-line-when-the-command-cannot));
   - `type Checkout = { base: string; dir: string; folder: string; command: string }`, where `dir` is
     the checkout, `folder` the decision's `preview-folder`, and `base` the path
     `/r/<name>/preview/<folder>/`;
@@ -880,14 +887,18 @@ git commit -m "feat(ui-iteration): the skill's Storybook helper and pick script"
     and records the view; `state(base: string): PreviewState | undefined`;
     `restart(checkout: Checkout): PreviewState`;
     `index(base: string): Promise<StoryIndex | undefined>`; `sweep(): void`;
-    `stopAll(): Promise<void>`.
-- Produces, in `preview/index.ts`: `type StoryIndex` (the entries of `index.json` v5);
-  `readIndex(port: number): Promise<StoryIndex>`, which rejects with
-  `Storybook's index could not be read.` on a 200 that is not JSON;
+    `stopAll(): Promise<void>`. A view leaves a failed Storybook failed: only `restart` starts it
+    again. Also `freePort(): Promise<number>`, and the constants `POLL_MS`, `START_MS`, `IDLE_MS`,
+    `KILL_MS`, `TIMED_OUT`, and `NO_PORT`.
+- Produces, in `preview/index.ts`: `type StoryIndex` (the entries of `index.json` v5) and
+  `type IndexEntry`; `readIndex(port: number, signal?: AbortSignal): Promise<StoryIndex>`, which
+  rejects with `Storybook's index could not be read.` (`UNREADABLE_INDEX`) on a 200 that is not
+  JSON, and with the request's own error while nothing answers, or not with a 200
+  ([R16](rulings.md#r16-a-starting-storybook-is-read-every-500-ms-whatever-its-reads-do));
   `matchStory(index: StoryIndex, folder: string, story: { path: string; export: string }): string | undefined`,
   the entry's id ([R1](rulings.md#r1-a-story-is-matched-by-its-import-path-and-export-name)).
-- Produces: `Server.previews: Previews`; `startServer` sweeps every 60 seconds, and `stop` awaits
-  `previews.stopAll()`.
+- Produces: `Server.previews: Previews`; `startServer` sweeps every 60 seconds (`SWEEP_EVERY_MS`),
+  and `stop` awaits `previews.stopAll()`, with the sessions' stop.
 - Produces, in `test-utils.ts`:
   `addPreview(repo: string, options?: { folder?: string; mode?: FakeMode; delay?: number }): string`,
   which commits `specs/decisions/preview.md`, active, running the fake preview, on `main` and every
@@ -898,7 +909,10 @@ git commit -m "feat(ui-iteration): the skill's Storybook helper and pick script"
   `Grip`) on `main`, then the branch `2026-10-20-sidebar-resize` with the files of
   `fixtures/preview/feature/`, and checks it out in `.worktrees/2026-10-20-sidebar-resize` unless
   `worktree` is false;
-  `previewStarts(log: string): Array<{ base: string; cwd: string; port: number }>`.
+  `previewStarts(log: string): Array<{ base: string; cwd: string; pid: number; port: number }>`; and
+  the constants `STORY_FEATURE` (`2026-10-20-sidebar-resize`) and `STORIES_FILE`
+  (`packages/web/src/SidebarHandle.stories.tsx`). The fake's command ends in `&& true`
+  ([R17](rulings.md#r17-the-runners-test-helpers-read-the-decision-through-the-binding)).
 - Produces, `fixtures/preview/feature/specs/2026-10-20-sidebar-resize/`: `proposal.md`, holding the
   `Dragging` embed; `spec.md`, `awaiting-human` with its `> [!IMPORTANT]` block, whose
   `### US1: Resize the sidebar (P1)` holds the paragraph
@@ -914,22 +928,26 @@ git commit -m "feat(ui-iteration): the skill's Storybook helper and pick script"
   start, then serves, from its working folder: `index.json`, one story entry per `export const X` of
   each `*.stories.*` file (id `<title>--<export>` in lowercase, `importPath` `./<relative path>`,
   `exportName`); `iframe.html?id=<id>`, a page holding the export's name, a button "Hide the
-  sidebar" counting its clicks ("Clicked 1 time"), an unnamed `role="separator"`, the mode it was
-  sent as `data-mode`, a module script `story.js`, and the skill's `uraeda-pick.js` but in
-  `no-pick`; a WebSocket at `/storybook-server-channel`, refused with 403 when its `Origin` is
-  `null`, and one under its `URAEDA_PREVIEW_BASE` for the `vite-hmr` protocol; `/__echo` (the path,
-  `Host`, and `Origin` it got, as JSON) and `/__events` (a first chunk, then held open). `fail`
-  prints `Error: Cannot find module 'storybook'` and exits 1; `hang` never serves the index;
-  `bad-index` serves `not json`; a taken port prints `Port <port> is not available` and exits 1.
+  sidebar" counting its clicks ("Clicked 1 time"), an unnamed `role="separator"`, the colour mode a
+  `mode` message sent it, as `data-mode` on its root and the text "Mode: <mode>", a module script
+  `story.js`, and the skill's `uraeda-pick.js` but in `no-pick`; a WebSocket at
+  `/storybook-server-channel`, refused with 403 when its `Origin` is `null`, and one under its
+  `URAEDA_PREVIEW_BASE` for the `vite-hmr` protocol, each sending one text message, the path,
+  `Host`, and `Origin` it got, as JSON; `/__echo` (the same JSON), `/__index-reads` (how many
+  requests for the index it got), and `/__events` (a first chunk, then held open). Once listening,
+  it prints `Storybook ready on http://127.0.0.1:<port>/`. `fail` prints
+  `Error: Cannot find module 'storybook'` and exits 1; `hang` holds every request for the index
+  open; `bad-index` serves `not json`; `--delay` waits before listening; a taken port prints
+  `Port <port> is not available` and exits 1.
 
-- [ ] **Step 1: Write the failing tests, and the helpers they use**
+- [x] **Step 1: Write the failing tests, and the helpers they use**
 
 ```ts
 // packages/server/src/preview/__tests__/runner.test.ts
 // The runner on the fake preview, with a clock the test moves: `previews()` stops what it started
 // after each test.
 test("a view starts the command in the checkout's folder, on a free port, under its path (US1.1)", async () => {
-  const { checkout, log } = storyCheckout();
+  const { checkout, log } = await storyCheckout();
   const runner = previews();
 
   runner.view(checkout);
@@ -953,14 +971,14 @@ test.each([
   ],
   ["an index that is not JSON", "bad-index", "Storybook's index could not be read."],
 ])("%s is failed, with why", async (_, mode, error) => {
-  const { checkout } = storyCheckout({ mode });
+  const { checkout } = await storyCheckout({ mode });
   const runner = previews();
   runner.view(checkout);
   await expect.poll(() => runner.state(checkout.base)).toEqual({ error, state: "failed" });
 });
 
 test("a Storybook not ready after 2 minutes is failed", async () => {
-  const { checkout } = storyCheckout({ mode: "hang" });
+  const { checkout } = await storyCheckout({ mode: "hang" });
   const clock = fakeClock();
   const runner = previews({ now: clock.now });
   runner.view(checkout);
@@ -976,7 +994,7 @@ test("a Storybook not ready after 2 minutes is failed", async () => {
 });
 
 test("30 minutes without a view stops its process group (SC-005)", async () => {
-  const { checkout, log } = storyCheckout();
+  const { checkout, log } = await storyCheckout();
   const clock = fakeClock();
   const runner = previews({ now: clock.now });
   runner.view(checkout);
@@ -1012,6 +1030,12 @@ Also in `runner.test.ts`:
 - `each checkout has its own Storybook`: the main checkout and the feature's worktree, two ports,
   two starts.
 - `a state change is told`: `onChange` gets the base on `starting`, `ready`, and when stopped.
+- `a preview folder missing from the checkout is failed, with why`: no start logged
+  ([R15](rulings.md#r15-the-runner-writes-the-last-line-when-the-command-cannot)).
+- `a view keeps a failed Storybook failed until it is restarted`, and
+  `a ready Storybook's index is read`.
+- In `server.test.ts`: `stopping stops every Storybook`, and
+  `the server sweeps its Storybooks every minute`.
 
 ```ts
 // packages/server/src/preview/__tests__/index.test.ts: one row per entry and link
@@ -1074,20 +1098,21 @@ The break each test catches:
 - Matching: ids rebuilt from titles, which a renamed title breaks, or `importPath` compared without
   the preview folder.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test --project uraeda-server src/preview`
-- Expected: FAIL, `Failed to load url ../runner.ts`.
+- Expected: FAIL, `Cannot find module '../runner.ts'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 - `view`: one entry per base; a new entry takes `freePort()` (bind `127.0.0.1:0`, read the port,
   close), replaces every `{port}`, and spawns the command with `sh -c` in `<dir>/<folder>`,
   `detached` so it leads a process group, with `URAEDA_PREVIEW_BASE` set to the base. Output, both
   streams, goes to a ring of 50 lines, without colour codes.
-- Readiness: every 500 ms, `readIndex(port)`; ready on its first JSON answer; failed on its
-  rejection; failed with "Storybook did not start within 2 minutes." when `now()` passed 120 000 ms
-  since the start.
+- Readiness: every 500 ms, `readIndex(port)`, unless a read is still pending; ready on its first
+  JSON answer; failed on its `UNREADABLE_INDEX` rejection; failed with "Storybook did not start
+  within 2 minutes." when, at any tick, `now()` passed 120 000 ms since the first view, even while a
+  read hangs.
 - An exit before ready: when its port is taken now, start once more on a new port, else failed,
   `Storybook did not start: <last line>`; after one retry, "No free port for Storybook.". An exit
   after ready: failed the same way, and its port forgotten.
@@ -1097,12 +1122,12 @@ The break each test catches:
 - `startServer` builds `Previews`, runs `sweep` every 60 seconds (unref'd), and `stop` awaits
   `stopAll()`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp test --project uraeda-server && vp check`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/src fixtures/preview packages/binding/test-utils.ts
