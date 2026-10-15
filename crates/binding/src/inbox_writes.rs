@@ -4,7 +4,7 @@
 
 use std::path::Path;
 
-use napi::bindgen_prelude::AsyncTask;
+use napi::bindgen_prelude::{AsyncTask, Buffer};
 use napi_derive::napi;
 use uraeda_core::api;
 use uraeda_core::files::inbox::Inbox;
@@ -124,36 +124,31 @@ pub fn note_to_draft(
     job(move || api::note_to_draft(Path::new(&repo), &id, &draft, &previous))
 }
 
-/// Adds a note as a new draft written from its text, linked from the end of a category. Returns
-/// the draft's path, from the top level.
+/// Adds a note as a new draft folder holding its text and the image `bytes`, linked from the end
+/// of a category, all written or none. `name` is the image's file name. Returns the draft's path.
 #[napi(ts_return_type = "Promise<string>")]
-pub fn add_note_as_draft(
+pub fn add_note_with_image(
     repo: String,
     text: String,
     previous: String,
+    bytes: Buffer,
+    name: Option<String>,
     category: Option<String>,
     about: Option<String>,
 ) -> AsyncTask<Job<String>> {
-    job(move || api::add_note_as_draft(Path::new(&repo), category, about, &text, &previous))
-}
-
-/// Links an image attached to the draft a note was added as, `link` as the attach gave it, at the
-/// end of the draft's `## What`, over the draft as read at `previous`.
-#[napi(ts_return_type = "Promise<void>")]
-pub fn link_note_image(
-    repo: String,
-    draft: String,
-    link: String,
-    previous: String,
-) -> AsyncTask<Job<()>> {
-    job(move || api::link_note_image(Path::new(&repo), &draft, &link, &previous))
-}
-
-/// Takes back a note added as a draft: the note, found by its lines, leaves the inbox, and its
-/// draft goes with it, image included, unless a commit has it or the human typed in it.
-#[napi(ts_return_type = "Promise<Inbox>")]
-pub fn undo_note_as_draft(repo: String, lines: Vec<String>) -> AsyncTask<Job<Inbox>> {
-    job(move || api::undo_note_as_draft(Path::new(&repo), &lines))
+    let bytes = Vec::<u8>::from(bytes);
+    job(move || {
+        let (_, draft) = api::add_note_with_image(
+            Path::new(&repo),
+            category,
+            about,
+            &text,
+            &bytes,
+            name.as_deref(),
+            &previous,
+        )?;
+        Ok(draft)
+    })
 }
 
 /// Commits the commit bar's changes: `INBOX.md`, `PRIORITIES.md`, and the drafts notes went into.
@@ -252,4 +247,11 @@ pub fn undo_note_category(
     category: Option<String>,
 ) -> AsyncTask<Job<Inbox>> {
     job(move || api::undo_note_category(Path::new(&repo), &lines, category, index))
+}
+
+/// Takes back a note added as a draft: the note, found by its lines, leaves the inbox, and its
+/// draft goes with it, images included, unless a commit has it or the human typed in it.
+#[napi(ts_return_type = "Promise<Inbox>")]
+pub fn undo_note_as_draft(repo: String, lines: Vec<String>) -> AsyncTask<Job<Inbox>> {
+    job(move || api::undo_note_as_draft(Path::new(&repo), &lines))
 }

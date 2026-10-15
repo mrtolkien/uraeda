@@ -230,6 +230,45 @@ test("an image the core refuses shows its message, and the note keeps its text",
 });
 
 /**
+ * Ruling R21 and the UI behaviour decision: Remove drops the image, and Add is back; Cancel with
+ * only an image asks first.
+ */
+test("Remove drops the image, and Cancel asks first with only an image", async () => {
+  await show("/inbox", "10 notes");
+  const form = await openForm();
+  attachImage(form, await image("phone.png", "spec-headings.png"));
+
+  await userEvent.click(
+    await within(form).findByRole("button", { name: "Remove spec-headings.png" }),
+  );
+
+  expect(within(form).queryByText("spec-headings.png")).toBeNull();
+  expect(within(form).getByRole("button", { name: "Add" })).toBeTruthy();
+  attachImage(form, await image("phone.png", "spec-headings.png"));
+  await within(form).findByText("spec-headings.png");
+  await userEvent.click(within(form).getByRole("button", { name: "Cancel" }));
+  const confirm = await screen.findByRole("dialog", { name: "Discard your changes?" });
+  await userEvent.click(within(confirm).getByRole("button", { name: "Discard" }));
+  await expect.poll(() => screen.queryByRole("dialog", { name: "Add a note" })).toBeNull();
+});
+
+/** The toast's Undo of a note added with an image takes the note out, with its draft. */
+test("Undo of a note added with an image takes it out, with its draft", async () => {
+  const inbox = await commands.readRepo(PATH);
+  await show("/inbox", "10 notes");
+  const form = await openForm();
+  await typeNote(form, NOTE);
+  attachImage(form, await image("phone.png", "spec-headings.png"));
+  await userEvent.click(await within(form).findByRole("button", { name: "Add as a draft" }));
+  await expect.poll(() => commands.repoFileSize(DRAFT)).toBeGreaterThan(0);
+
+  await userEvent.click(await screen.findByRole("button", { name: "Undo" }));
+
+  await expect.poll(() => commands.readRepo(PATH)).toBe(inbox);
+  await expect.poll(() => commands.repoFileSize(`specs/drafts/${SLUG}`)).toBe(-1);
+});
+
+/**
  * A button once it shows, waited for by Vitest's own clock: Testing Library's `findBy` waits on the
  * page's `setTimeout`, which the toasts' tests fake.
  */

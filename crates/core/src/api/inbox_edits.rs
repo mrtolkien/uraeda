@@ -171,25 +171,33 @@ pub fn note_to_draft(repo: &Path, id: &str, draft: &str, previous: &str) -> Resu
     Ok(edits::to_draft(&place, id, draft, previous)?)
 }
 
-/// Adds a note as a new draft written from its text, linked from the end of a category. Returns
-/// the draft's path, from the top level.
-pub fn add_note_as_draft(
+/// Adds a note as a new draft folder, `specs/drafts/<slug>/proposal.md`, holding its text and the
+/// image `bytes`, linked from the end of a category: all written or none. The image is checked and
+/// encoded first, so a refused one writes nothing. `name` is its original file name. Returns the
+/// inbox and the draft's path, from the top level.
+pub fn add_note_with_image(
     repo: &Path,
     category: Option<String>,
     about: Option<String>,
     text: &str,
+    bytes: &[u8],
+    name: Option<&str>,
     previous: &str,
-) -> Result<String> {
+) -> Result<(Inbox, String)> {
     let marks = marks(about)?;
+    edits::checked_note(&marks, text)?;
+    let encoded = super::encode_image(bytes, name.unwrap_or("pasted image"))?;
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    Ok(edits::add_as_draft(
+    let draft = edits::add_with_image(
         &place,
         category.as_deref(),
         &marks,
         text,
-        Some(previous),
-    )?)
+        (&encoded, name),
+        previous,
+    )?;
+    Ok((edits::read(&place), draft))
 }
 
 /// Commits the commit bar's changes: `INBOX.md`, `PRIORITIES.md`, and the drafts notes went into.
@@ -262,14 +270,6 @@ pub fn undo_note_category(
     let place = reach_default(repo)?;
     edits::undo_category(&place, lines, category.as_deref(), index as usize)?;
     Ok(edits::read(&place))
-}
-
-/// Links an image attached to the draft a note was added as, `link` as the attach gave it, at the
-/// end of the draft's `## What`, over the draft as read at `previous`.
-pub fn link_note_image(repo: &Path, draft: &str, link: &str, previous: &str) -> Result<()> {
-    let _lock = write_lock();
-    let place = reach_default(repo)?;
-    Ok(edits::link_image(&place, draft, link, previous)?)
 }
 
 /// Takes back a note added as a draft: the note, found by its lines as written, leaves the inbox,

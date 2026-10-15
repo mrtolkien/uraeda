@@ -1,16 +1,22 @@
 // A note with an image (US6): the image picked in the add form, and the add that makes the note a
-// draft holding it, through the core's attach and its encoding (the attachments decision).
+// draft folder holding it, in one call to the core, which encodes the image (the attachments
+// decision).
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { Thumbnail } from "@astryxdesign/core/Thumbnail";
+import { useAnnounce } from "@astryxdesign/core/hooks";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
-import type { AttachedView, InboxNote } from "uraeda-binding";
-import { useAttach } from "./attach/useAttach.ts";
+import type { InboxNote } from "uraeda-binding";
+import { IMAGE_LIMIT, overLimit } from "uraeda-server/limits";
+import { useServerFetch } from "./attach/ServerFetch.tsx";
+import type { AttachStatus } from "./attach/useAttach.ts";
 import { readInbox, rereadChanges } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
-import { DraftView, InboxView } from "./views.ts";
+import { repoPath, useRepository } from "./routes.tsx";
+import { plain } from "./Spans.tsx";
+import { InboxView } from "./views.ts";
 
 type Fate = ReturnType<typeof useFateClient>;
 
@@ -62,7 +68,31 @@ export async function noteOfDraft(fate: Fate, path: string): Promise<InboxNote |
   return inbox.categories.flatMap((category) => category.notes).find((note) => note.draft === path);
 }
 
-/** Takes back a note added as a draft, with its draft unless the human typed in it. */
+/** A note's lines, as one text: what tells two notes apart. */
+const linesOf = (note: InboxNote) => note.lines.join("\n");
+
+/** The inbox's notes, in every category. */
+export type Notes = ReadonlyArray<{ notes: ReadonlyArray<InboxNote> }>;
+
+/** The note an add wrote: the one of `after` that `before` does not hold. */
+export function addedNote(before: Notes, after: Notes): InboxNote | undefined {
+  const left = before.flatMap((category) => category.notes.map(linesOf));
+  return after
+    .flatMap((category) => category.notes)
+    .find((note) => {
+      const index = left.indexOf(linesOf(note));
+      if (index < 0) {
+        return true;
+      }
+      left.splice(index, 1);
+      return false;
+    });
+}
+
+/**
+ * Takes back a note added as a draft, by its lines as the add wrote them, with its draft unless the
+ * human typed in it: refused by the core once the note changed or left.
+ */
 export async function undoAsDraft(fate: Fate, note: InboxNote) {
   const result = await fate.mutations.inbox.undoAsDraft({
     input: { lines: [...note.lines] },
@@ -80,49 +110,101 @@ export type AddedAsDraft =
   | { draft: string; note?: InboxNote; ok: true }
   | (Refusal & { byImage?: boolean; ok: false });
 
-/**
- * Adds a note as a draft holding an image: the note as a draft linked from the inbox first, then
- * the image attached to that draft, which makes it a folder, then its link at the end of the
- * draft's What. An image the core refuses takes the note and its draft back out: the form keeps
- * the text, and shows the core's message under the image, as image attachments do.
- */
-export function useAddAsDraft() {
-  const fate = useFateClient();
-  // The draft's path is known once it is written: each upload names it.
-  const { attach, status } = useAttach({ path: "" });
-  // The image the status is about: another one picked since shows none.
-  const [tried, setTried] = useState<File>();
+/** The add's input to the core: the note's text, its category, and its feature or bug. */
+export type AddInput = { about?: string; category?: string; hash: string; text: string };
 
-  const add = async (
-    input: { about?: string; category?: string; hash: string; text: string },
-    image: File,
-  ): Promise<AddedAsDraft> => {
-    const made = await fate.mutations.inbox.addAsDraft({ input, view: DraftView });
-    const written = made.result as { hash: string; path: string } | undefined;
-    if (made.error || !written) {
-      return { ...refusal(made.error), ok: false };
-    }
-    setTried(image);
-    const [uploaded] = await attach([image], written.path);
-    if (!uploaded?.ok) {
-      const note = await noteOfDraft(fate, written.path);
-      if (note) {
-        await undoAsDraft(fate, note);
-      }
-      return { byImage: true, kind: "refused", message: uploaded?.message ?? "", ok: false };
-    }
-    const attached = uploaded.value as AttachedView;
-    const draft = attached.moved ?? written.path;
-    const linked = await fate.mutations.inbox.linkImage({
-      input: { draft, hash: written.hash, link: attached.link },
-      view: DraftView,
-    });
-    rereadChanges(fate);
-    if (linked.error) {
-      return { ...refusal(linked.error), ok: false };
-    }
-    return { draft, note: await noteOfDraft(fate, draft), ok: true };
+/**
+ * How long the add may take, the core's encoding included, as an image's upload (R72). One the
+ * server never answers ends then.
+ */
+const UPLOAD_TIMEOUT = 120_000;
+
+/**
+ * The note an add whose answer was lost wrote after all: one of the inbox now, not in `before`,
+ * that links a draft and reads `text`. The server may finish an add the page stopped waiting for.
+ */
+async function addedAfterAll(fate: Fate, before: Notes, text: string) {
+  const now = await readInbox(fate).catch(() => undefined);
+  const note = now && addedNote(before, now.categories);
+  const typed = text.split(/\s+/).filter(Boolean).join(" ");
+  return note?.draft !== undefined && note.draft !== null && plain(note.spans) === typed
+    ? { draft: note.draft, note }
+    : undefined;
+}
+
+/**
+ * Adds a note with an image in one request to the repository's `POST /r/<name>/inbox/note-image`:
+ * the core encodes the image and writes the draft folder holding the note and the image, linked
+ * from the inbox, all or nothing, so a refusal leaves nothing to clean up. Its status shows under
+ * the image: "Adding <name>…", then the refusal, which a conflict leaves to the form. A request
+ * whose answer is lost is done when the inbox now holds its note, so a retry never adds it twice.
+ */
+export function useAddWithImage() {
+  const fate = useFateClient();
+  const fetch = useServerFetch();
+  const repo = useRepository();
+  const announce = useAnnounce();
+  // The image the status is about: another one picked since shows none.
+  const [shown, setShown] = useState<{ image: File; status: AttachStatus }>();
+
+  const show = (image: File, text: string, error = false) => {
+    setShown({ image, status: { error, text } });
+    announce(text, error ? "assertive" : "polite");
   };
 
-  return { add, statusOf: (image: File) => (image === tried ? status : undefined) };
+  const refused = (image: File, message: string): AddedAsDraft => {
+    show(image, message, true);
+    return { byImage: true, kind: "refused", message, ok: false };
+  };
+
+  const send = async (input: AddInput, image: File) => {
+    const body = new FormData();
+    for (const [key, value] of Object.entries(input)) {
+      body.append(key, value);
+    }
+    body.append("file", image);
+    const query = new URLSearchParams(image.name ? { name: image.name } : {});
+    const response = await fetch(`${repoPath(repo, "/inbox/note-image")}?${query}`, {
+      body,
+      method: "POST",
+      signal: AbortSignal.timeout(UPLOAD_TIMEOUT),
+    });
+    const answer = (await response.json().catch(() => ({}))) as { draft?: string; error?: string };
+    return answer.draft ?? refusal(answer.error ?? `HTTP ${response.status}`);
+  };
+
+  const add = async (input: AddInput, image: File, before: Notes): Promise<AddedAsDraft> => {
+    const name = image.name || "pasted image";
+    if (image.size > IMAGE_LIMIT) {
+      return refused(image, overLimit(name, image.size));
+    }
+    show(image, `Adding ${name}…`);
+    let sent: string | Refusal;
+    try {
+      sent = await send(input, image);
+    } catch (error) {
+      const done = await addedAfterAll(fate, before, input.text);
+      if (done) {
+        rereadChanges(fate);
+        return { ...done, ok: true };
+      }
+      const timedOut = (error as { name?: unknown } | null)?.name === "TimeoutError";
+      return refused(image, timedOut ? TIMED_OUT : "Could not reach the Uraeda server.");
+    }
+    if (typeof sent !== "string") {
+      if (sent.kind === "conflict") {
+        setShown(undefined);
+        return { ...sent, ok: false };
+      }
+      return refused(image, sent.message);
+    }
+    rereadChanges(fate);
+    return { draft: sent, note: await noteOfDraft(fate, sent), ok: true };
+  };
+
+  const statusOf = (image: File) => (shown?.image === image ? shown.status : undefined);
+  return { add, statusOf };
 }
+
+/** The refusal of an add the server did not answer in time. */
+const TIMED_OUT = "The note could not be added: the server did not answer in time.";

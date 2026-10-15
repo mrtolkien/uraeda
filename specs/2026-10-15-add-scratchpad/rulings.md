@@ -40,19 +40,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: Rename the request to a command, a few lines on both sides.
 - **Where**: task 8
 
-## R4: A note with an image is a single-file draft first, then a folder through the attach endpoint
+## R4: A note with an image is one core call that writes the draft folder, the image, and the note
 
-- **Decision**: "Add as a draft" calls `inbox.addAsDraft`, which writes `specs/drafts/<slug>.md` and
-  its linked note. Then the existing `/attach` upload turns the draft into `<slug>/proposal.md`.
-  `retarget` is extended to rewrite `INBOX.md`'s link.
-- **Rationale**: It reuses the one image path the
-  [attachments decision](../decisions/attachments.md) allows, with its encoding in the core, rather
-  than a second mutation that takes bytes.
-- **Alternatives considered**: One mutation that takes the note and the image bytes, a second upload
-  path to maintain.
-- **If wrong**: A failed upload leaves a text-only draft linked from the inbox, which the human can
-  still attach an image to from the editor.
-- **Where**: tasks 4 and 11
+- **Decision**: "Add as a draft" sends the note and the image in one request,
+  `POST /r/<name>/inbox/note-image`, beside `/attach`, with its limits. The server passes the bytes
+  to the core's `api::add_note_with_image`, which encodes the image first, so a refused one writes
+  nothing, then, under the write lock and over the inbox's hash, writes the draft folder
+  `specs/drafts/<slug>/proposal.md` with the image's link at the end of its What, the image in its
+  `images/`, and the linked note, all or none.
+- **Rationale**: The plan's first version, `inbox.addAsDraft`, then the `/attach` upload, then a
+  link, left things behind on every failure between the calls: a refused link left a note, a draft,
+  and an unlinked image, which a retry doubled; an upload the page stopped waiting for, though the
+  server finished it, left the note and the draft, which the page then looked for at the old path;
+  and a refused clean-up was lost. One call has nothing in between to fail. The image is still
+  encoded by the core alone, as the [attachments decision](../decisions/attachments.md) asks.
+- **Alternatives considered**: The three calls with an Undo of the add on a refusal, the first
+  version of task 11, for the reasons above.
+- **If wrong**: The endpoint and `add_note_with_image` are about 100 lines; the web UI's add is
+  local to `NoteImage.tsx`.
+- **Where**: tasks 4 and 11, and task 11's review
 
 ## R5: The triage template has no "Settled without the human"
 
@@ -493,52 +499,60 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `files/inbox/found.rs`, `files/priorities.rs`, `files/proposal.rs`, `files/lines.rs`; the
   binding's `inbox_writes.rs`; the server's `fate/inbox-mutations.ts`
 
-## R21: A note with an image: the core links it, a refusal leaves nothing, and the image waits for Add
+## R21: A note with an image: one call, Discard and Undo take the whole draft, the image waits for Add
 
 - **Decision**:
   - A draft made from a note takes the slug of `slug::from_text`, as `ura draft` does: "The spec
     page's headings are body-sized" is `the-spec-page-s-headings-are-body-sized`. The spec's US6
     path, `the-spec-pages-...`, is illustrative; the tests use the real slug.
-  - "Add as a draft" calls `inbox.addAsDraft`, then the existing `/attach` upload to the draft it
-    wrote, which makes it a folder and rewrites the inbox's link (review focus 7), then
-    `inbox.linkImage { draft, hash, link }`: the core puts the image's link on a line of its own at
-    the end of the draft's What, through `proposal::append_to_what`, over the draft as read, and
-    only for an image saved in that draft's own `images/`. The web UI places no link in a draft's
-    markdown.
-  - An image the core refuses takes the note and its draft back out, through `inbox.undoAsDraft`:
-    the form shows the core's message under the image, as image attachments do, keeps the text, and
-    the inbox and the drafts are as before. The toast's Undo makes the same call.
-  - `inbox.undoAsDraft { lines }` removes the note found by its lines, and its draft while no commit
-    has it and it holds only what the add wrote, with at most a note's images. Discard deletes such
-    a draft the same way, through `draft::remove_written`: the draft's file, the images its added
-    lines link, then its `images/` and its folder once empty. A draft typed in is kept, its images
-    with it (ruling R14).
+  - The add is one core call (ruling R4): a refusal, the image's or a conflict, leaves nothing to
+    clean up. The image's refusal shows under it, as image attachments' do, and the text stays; a
+    conflict shows in the form and reads the inbox again, as a text note's does.
+  - An add whose answer is lost, by a time-out or a dropped connection, reads the inbox again: a
+    note it did not hold before, linking a draft, with the note's text, means the server finished
+    it, and the add is done, so pressing Add again never adds it twice. Otherwise the refusal shows
+    under the image.
+  - The toast's Undo calls `inbox.undoAsDraft { lines }` with the lines the add wrote, as a text
+    note's Undo finds its note by them: the core removes the note holding exactly those lines, and
+    refuses once it changed or left. With it goes its draft while no commit has it and it holds only
+    what the add wrote, the image's link included.
+  - Discard and that Undo delete such a draft through `draft::remove_written`, with its whole
+    `images/`, then its folder once empty: only the add filled it, since an image attached since
+    would have changed the text, so no unlinked image is ever left. A draft typed in is kept, its
+    images with it (ruling R14). `proposal::image_file` reads only a line the core writes, an image
+    of `images/` whose alt text holds no bracket and whose name is a WebP or a GIF.
   - The commit bar's Commit holds a draft folder's linked images, those no file of the folder links
     deleted, as a draft's own commit does.
   - The picked image waits for Add, as the text does: the form's overlay holds it in memory, so it
     is shown again as the form opens again, until Add, Remove, or a confirmed Cancel; it counts as a
-    change for Cancel's "Discard your changes?". It is lost on a reload. The UI behaviour decision's
-    "Adding an image to a field MAY save that field at once" is not used: saving it would make the
-    draft, which "Add as a draft" decides, and Cancel could no longer leave nothing behind.
+    change for Cancel's "Discard your changes?". The UI behaviour decision's "Adding an image to a
+    field MAY save that field at once" is not used: saving it would make the draft, which "Add as a
+    draft" decides, and Cancel could no longer leave nothing behind.
+  - After a reload, the restored text's notice does not mention a lost image: a `File` is not kept
+    in the browser's storage, and the form shows no image row, so the human sees that none is
+    attached. A notice of its own would need the image's name kept beside the unsaved text, for
+    little.
   - The image's row shows a decorative thumbnail, its name, and "Remove", whose name is "Remove
     <name>". "Attach an image" is `AttachButton` with a `text` that replaces its "Add image".
   - An inbox row draws its note's text without its links: the row is one link, and a draft's link
     nested in it took the tap on the phone. The note's view still shows the link.
-  - `retarget` puts `PRIORITIES.md` back when the write of `INBOX.md` fails, so neither list links a
-    path that does not exist.
+  - `retarget` rewrites `INBOX.md`'s links too, for an image attached to a note's draft from the
+    editor, and puts `PRIORITIES.md` back when the write of `INBOX.md` fails.
+  - `inbox.addAsDraft` and the binding's `addNoteAsDraft` are removed, as nothing calls them;
+    `actions::inbox::add_as_draft` stays, which the change list's tests use.
 - **Rationale**: The plan names the upload but not where the image's link goes, and the spec puts it
   right after the What paragraph: a rule about a proposal's markdown, which the stack decision puts
-  in the core. Creating the draft before the upload is R4's order, so a refusal must undo the add
-  for the human to find nothing changed. A `File` is not text the browser's unsaved store keeps.
+  in the core. Task 11's review found the three calls left a note, a draft, or an image behind on
+  their failures (ruling R4).
 - **Alternatives considered**: Inserting the link in the web UI and saving the draft with
-  `text.save`, which needs the UI to find the What paragraph in the markdown. One mutation taking
-  the note and the image's bytes, R4's rejected alternative. Leaving a text-only draft after a
-  refused image, which R4's "If wrong" accepted: the human would find a draft and a note they did
-  not mean to add. Keeping the image in the browser's storage, as large as 20 MB.
-- **If wrong**: `link_note_image` and `undo_note_as_draft` are a few lines each over existing
-  operations; the pending image is local to `NoteOverlay`.
-- **Where**: task 11, `crates/core/src/actions/attach.rs`, `actions/changes.rs`, `actions/draft.rs`,
-  `actions/inbox.rs`, `actions/inbox/undo.rs`, `files/proposal.rs`, `files/retarget.rs`,
-  `api/inbox_edits.rs`; the binding's `inbox_writes.rs`; the server's `fate/inbox-mutations.ts`;
+  `text.save`, which needs the UI to find the What paragraph in the markdown. Three calls with a
+  clean-up on refusal, the first version. Keeping the image in the browser's storage, as large as 20
+  MB. Deleting only the images the draft links, which left an image copied into the folder.
+- **If wrong**: `add_note_with_image` and `undo_note_as_draft` are small over existing operations;
+  the pending image is local to `NoteOverlay`.
+- **Where**: task 11 and its review, `crates/core/src/actions/attach.rs`, `actions/changes.rs`,
+  `actions/draft.rs`, `actions/inbox.rs`, `actions/inbox/image.rs`, `actions/inbox/undo.rs`,
+  `files/proposal.rs`, `files/retarget.rs`, `api/inbox_edits.rs`; the binding's `inbox_writes.rs`;
+  the server's `attach.ts`, `app.ts`, `dev.ts`, and `fate/inbox-mutations.ts`;
   `packages/web/src/AddNote.tsx`, `NoteImage.tsx`, `SidebarAdd.tsx`, `InboxPage.tsx`,
   `attach/AttachButton.tsx`

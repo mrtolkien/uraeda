@@ -716,11 +716,11 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { WatchHandle, addComment, addNote, addNoteAsDraft, addPriority, addRepository, addSettledComment, approve, attachImage, branchChanges, commitChanges, commitPriorities, commitText, createDraft, dataDir, discardChanges, discardPriorities, editComment, editNote, editPriority, editSettledComment, encodeImage, insertNote, insertPriority, linkNoteImage, mainRoot, moveNoteToCategory, movePriority, nextStep, noteToDraft, noteToNewDraft, noteToPriorities, openRepository, pathFolder, proposalHints, proposeSlug, readDraft, readFeature, readFile, readImage, readInbox, readPriorities, readRaw, readRepositories, readText, readTriage, readWorkspace, removeComment, removeNote, removePriority, removeRepository, removeSettledComment, requestChanges, retryCommit, saveAnswer, saveNotes, saveText, saveTriageAnswer, saveTriageNotes, setDiscovery, startChange, startFeature, startOver, submitAnswers, submitTriage, undoNoteAsDraft, undoNoteCategory, undoNoteToDraft, undoNoteToPriorities, version, watch, workDir, BlockKind, CalloutKind, ItemMarker } = nativeBinding
+const { WatchHandle, addComment, addNote, addNoteWithImage, addPriority, addRepository, addSettledComment, approve, attachImage, branchChanges, commitChanges, commitPriorities, commitText, createDraft, dataDir, discardChanges, discardPriorities, editComment, editNote, editPriority, editSettledComment, encodeImage, insertNote, insertPriority, mainRoot, moveNoteToCategory, movePriority, nextStep, noteToDraft, noteToNewDraft, noteToPriorities, openRepository, pathFolder, proposalHints, proposeSlug, readDraft, readFeature, readFile, readImage, readInbox, readPriorities, readRaw, readRepositories, readText, readTriage, readWorkspace, removeComment, removeNote, removePriority, removeRepository, removeSettledComment, requestChanges, retryCommit, saveAnswer, saveNotes, saveText, saveTriageAnswer, saveTriageNotes, setDiscovery, startChange, startFeature, startOver, submitAnswers, submitTriage, undoNoteAsDraft, undoNoteCategory, undoNoteToDraft, undoNoteToPriorities, version, watch, workDir, BlockKind, CalloutKind, ItemMarker } = nativeBinding
 export { WatchHandle }
 export { addComment }
 export { addNote }
-export { addNoteAsDraft }
+export { addNoteWithImage }
 export { addPriority }
 export { addRepository }
 export { addSettledComment }
@@ -741,7 +741,6 @@ export { editSettledComment }
 export { encodeImage }
 export { insertNote }
 export { insertPriority }
-export { linkNoteImage }
 export { mainRoot }
 export { moveNoteToCategory }
 export { movePriority }
