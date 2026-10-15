@@ -184,8 +184,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: `change.start` is a mutation of type `Feature`, answering with the started change's
   record, as `feature.start` does; the client selects its `folder` and `session`, which is `null`
   when no run was sent. The run is sent only when the agent is available and the workflow message
-  for `<folder>:start` has a text; otherwise the change stays started and nothing is refused. The
-  slug's proposal is the read `SlugProposal`, under the root `slugProposals`.
+  for `<folder>:start` has a text; otherwise the change stays started and nothing is refused. Once
+  the change is started, a failure of its session or its send is logged on stderr, and the record
+  answers with `session: null`, so the client hands it over unsent. The slug's proposal is the read
+  `SlugProposal`, under the root `slugProposals`.
 - **Rationale**: fate's mutations answer with a record of a view's type, and the `Feature` record
   already holds `folder` and `session`, so the web UI's cache gets the new change without a second
   read. A change exists once the core has started it, so a refusal after it would tell the human it
