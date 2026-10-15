@@ -23,9 +23,10 @@ use crate::requests::{WorkflowFile, api_error, refused, workflow_file};
 mod attach;
 mod commit;
 mod draft;
+mod note;
 
 /// Every command the server runs.
-pub(crate) const COMMANDS: [&str; 9] = [
+pub(crate) const COMMANDS: [&str; 10] = [
     "uraeda.draft",
     "uraeda.start",
     "uraeda.comment",
@@ -35,6 +36,7 @@ pub(crate) const COMMANDS: [&str; 9] = [
     "uraeda.submit",
     "uraeda.commit",
     "uraeda.attachImage",
+    "uraeda.note",
 ];
 
 const NOT_WORKFLOW: &str = "This file is not a Uraeda workflow file.";
@@ -47,6 +49,9 @@ pub(crate) struct Outcome {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub opened: Option<String>,
     pub written: Vec<String>,
+    /// The line to put the cursor on in `opened`, 1-based.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub line: Option<u32>,
 }
 
 /// A command done: its outcome, and the message its progress ends with.
@@ -130,6 +135,7 @@ pub(crate) fn title(documents: &Documents, command: &str, args: &Value) -> Strin
         "uraeda.requestChanges" => format!("Requesting changes on {}…", file()),
         "uraeda.submit" => format!("Submitting {}…", file()),
         "uraeda.attachImage" => attach::title(args),
+        "uraeda.note" => "Adding a note…".to_string(),
         _ => format!("Committing {}…", file()),
     }
 }
@@ -150,6 +156,7 @@ pub(crate) fn run(
         "uraeda.submit" => submit(documents, parse(args)?).map(Done::from),
         "uraeda.commit" => commit::commit(documents, parse(args)?).map(Done::from),
         "uraeda.attachImage" => attach::attach_image(documents, parse(args)?),
+        "uraeda.note" => note::note(documents, parse(args)?),
         command => Err(crate::server::error(
             lsp_server::ErrorCode::InvalidParams,
             format!("unknown command {command}"),
@@ -248,6 +255,7 @@ fn start(documents: &Documents, args: FileArgs) -> Result<Done, ResponseError> {
         outcome: Outcome {
             opened: Some(absolute(proposal)),
             written,
+            line: None,
         },
         message: Some(format!("Started {}", started.folder)),
         link: None,
@@ -376,6 +384,7 @@ fn comment(documents: &Documents, args: CommentArgs) -> Result<Outcome, Response
     Ok(Outcome {
         opened: None,
         written: in_checkout(documents, &folder, &view, &[review_name(&file.name)])?,
+        line: None,
     })
 }
 
@@ -398,6 +407,7 @@ fn edit_comment(documents: &Documents, args: EditCommentArgs) -> Result<Outcome,
     Ok(Outcome {
         opened: None,
         written: in_checkout(documents, &folder, &view, &[review_name(&file.name)])?,
+        line: None,
     })
 }
 
@@ -420,6 +430,7 @@ fn approve(documents: &Documents, args: ApproveArgs) -> Result<Outcome, Response
     Ok(Outcome {
         opened: None,
         written: in_checkout(documents, &folder, &view, &names)?,
+        line: None,
     })
 }
 
@@ -447,6 +458,7 @@ fn request_changes(
     Ok(Outcome {
         opened: None,
         written: in_checkout(documents, &folder, &view, &names)?,
+        line: None,
     })
 }
 
@@ -471,5 +483,6 @@ fn submit(documents: &Documents, args: FileArgs) -> Result<Outcome, ResponseErro
     Ok(Outcome {
         opened: None,
         written: in_checkout(documents, &folder, &view, std::slice::from_ref(&view.name))?,
+        line: None,
     })
 }

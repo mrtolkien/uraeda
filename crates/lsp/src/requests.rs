@@ -52,6 +52,8 @@ pub(crate) const COMMENTS: &str = "uraeda/comments";
 pub(crate) const VERDICT: &str = "uraeda/verdict";
 /// `uraeda/waiting`.
 pub(crate) const WAITING: &str = "uraeda/waiting";
+/// `uraeda/inboxCategories`.
+pub(crate) const INBOX_CATEGORIES: &str = "uraeda/inboxCategories";
 
 /// A place to jump to: a question of a round, or a comment of a pending review.
 #[derive(Serialize)]
@@ -287,6 +289,12 @@ pub(crate) fn waiting(documents: &Documents) -> Result<Vec<Waiting>, ResponseErr
             text: file.text,
         })
         .collect())
+}
+
+/// `uraeda/inboxCategories {}`: the names of the default branch's inbox categories, once each, in
+/// file order, empty ones included: where `uraeda.note` can add a note.
+pub(crate) fn inbox_categories(documents: &Documents) -> Result<Vec<String>, ResponseError> {
+    Ok(api::read_inbox(&documents.root).map_err(api_error)?.names)
 }
 
 /// A request refused, with the core's code `refused` in `data`.

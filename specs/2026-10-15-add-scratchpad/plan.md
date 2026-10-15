@@ -995,11 +995,14 @@ git commit -m "feat(add-scratchpad): ura note"
 - Create: `crates/lsp/src/commands/note.rs`, `editors/nvim/tests/test_note.lua`
 - Modify:
   - language server: `crates/lsp/src/commands.rs`, which gets `COMMANDS` and `Outcome.line` and
-    moves `commit` into `commands/commit.rs` to stay at or under 500 lines;
-    `crates/lsp/src/requests.rs` and `server.rs` (`uraeda/inboxCategories`);
-  - Neovim: `editors/nvim/lua/uraeda/actions.lua`, `client.lua` (`command_checkout`), and
-    `editors/nvim/README.md`
-- Test: `crates/lsp/tests/commands.rs`
+    moves `commit` into `commands/commit.rs` to stay at or under 500 lines; `commands/attach.rs` and
+    `commands/draft.rs` (`line: None`); `crates/lsp/src/requests.rs` and `server.rs`
+    (`uraeda/inboxCategories`);
+  - Neovim: `editors/nvim/lua/uraeda/actions.lua`, `client.lua` (`command_checkout`, sharing
+    `execute` with `command`), `editors/nvim/README.md`, and `editors/nvim/doc/uraeda.txt` (ruling
+    R18)
+- Test: `crates/lsp/tests/commands.rs`, `editors/nvim/tests/test_keys.lua`, and the refusal text in
+  `test_actions.lua` and `test_client.lua`
 
 **Interfaces:**
 
@@ -1008,10 +1011,12 @@ git commit -m "feat(add-scratchpad): ura note"
   - The request `uraeda/inboxCategories` returns `string[]`, the default branch's category names.
   - The command `uraeda.note { text, category? }` returns `{ opened, written, line }`:
     - `opened` is the default branch's `INBOX.md`;
-    - `line` is the 1-based line of the note.
+    - `line` is the 1-based line of the note, the first note that differs from the inbox read before
+      the write (ruling R18).
   - `uraeda.commit` on `INBOX.md` commits the change list. Its refusal becomes "Only drafts, backlog
     files, proposals, PRIORITIES.md, and INBOX.md are committed from the editor."
-  - In Neovim, the action `note`, desc "Uraeda: add a note to the inbox", key `o`, global.
+  - In Neovim, the action `note`, desc "Uraeda: add a note to the inbox", key `o`, global. An empty
+    answer cancels; a text of spaces is refused by the server (ruling R18).
 
 - [x] **Step 1: Move `commit` out of `commands.rs` into `commands/commit.rs`**
 
@@ -1025,7 +1030,7 @@ git add crates/lsp specs/2026-10-15-add-scratchpad/plan.md
 git commit -m "refactor(add-scratchpad): the editor's commit command in its own file"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 - **Language server:**
   - `uraeda/inboxCategories` on the fixture returns `["UI", "CLI"]`;
@@ -1046,19 +1051,19 @@ The break each test catches:
 - The plugin parsing the file for categories.
 - Opening the file without moving the cursor.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `cargo nextest run -p uraeda-lsp --test commands && vp run test:nvim`
-- Expected: FAIL, `unknown command uraeda.note`
+- Expected: FAIL, `unknown command uraeda.note`, and in Neovim `unknown action "note"`
 
-- [ ] **Step 4: Implement the request, the command, and the action**
+- [x] **Step 4: Implement the request, the command, and the action**
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run: `cargo nextest run && vp run test:nvim && vp run lua:fmt`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/lsp editors/nvim specs/2026-10-15-add-scratchpad/plan.md

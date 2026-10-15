@@ -214,36 +214,19 @@ local function show_progress(client, token)
   return stop
 end
 
---- Runs the server's command `name` with `args` (`uri` defaults to the buffer's): saves the buffer
---- first when `opts.save`, shows the server's progress, reloads the buffers of `written`, redraws
---- the inline comments next to them, edits `opened` in the current window, then calls
---- `cb(result)`. Errors are notified, after `opts.prefix` when given, after reloading the files
---- they list in `data.written`, and `cb` is not called. `opts.finally()` runs last on every
---- outcome: success, error, no client, or a request that could not be sent.
+--- Sends the command `name` with `args` to `client`, about `bufnr` when given: shows the server's
+--- progress, reloads the buffers of `written`, redraws the inline comments next to them, edits
+--- `opened` in the current window, then calls `cb(result)`. Errors are notified, after
+--- `opts.prefix` when given, after reloading the files they list in `data.written`, and `cb` is not
+--- called. `opts.finally()` runs last on every outcome.
+--- @param client vim.lsp.Client
 --- @param bufnr integer?
 --- @param name string
---- @param args table?
---- @param opts { save?: boolean, prefix?: string, finally?: fun() }?
---- @param cb fun(result: { opened?: string, written: string[], link?: string })?
-function M.command(bufnr, name, args, opts, cb)
-  bufnr = resolve(bufnr)
-  opts = opts or {}
+--- @param args table
+--- @param opts { prefix?: string, finally?: fun() }
+--- @param cb fun(result: { opened?: string, written: string[], link?: string, line?: integer })?
+local function execute(client, bufnr, name, args, opts, cb)
   local finally = opts.finally or function() end
-  local client = M.get(bufnr)
-  if client == nil then
-    no_client()
-    return finally()
-  end
-  if opts.save then
-    local saved, message = pcall(vim.api.nvim_buf_call, bufnr, function()
-      vim.cmd("silent update")
-    end)
-    if not saved then
-      notify_error(message)
-      return finally()
-    end
-  end
-  args = vim.tbl_extend("keep", args or {}, { uri = vim.uri_from_bufnr(bufnr) })
   tokens = tokens + 1
   local token = ("uraeda/nvim/%d"):format(tokens)
   local stop = show_progress(client, token)
@@ -287,6 +270,48 @@ function M.command(bufnr, name, args, opts, cb)
     no_client()
     finally()
   end
+end
+
+--- Runs the server's command `name` with `args` (`uri` defaults to the buffer's), as `execute`
+--- does, saving the buffer first when `opts.save`. `opts.finally()` runs last on every outcome:
+--- success, error, no client, or a request that could not be sent.
+--- @param bufnr integer?
+--- @param name string
+--- @param args table?
+--- @param opts { save?: boolean, prefix?: string, finally?: fun() }?
+--- @param cb fun(result: { opened?: string, written: string[], link?: string })?
+function M.command(bufnr, name, args, opts, cb)
+  bufnr = resolve(bufnr)
+  opts = opts or {}
+  local finally = opts.finally or function() end
+  local client = M.get(bufnr)
+  if client == nil then
+    no_client()
+    return finally()
+  end
+  if opts.save then
+    local saved, message = pcall(vim.api.nvim_buf_call, bufnr, function()
+      vim.cmd("silent update")
+    end)
+    if not saved then
+      notify_error(message)
+      return finally()
+    end
+  end
+  args = vim.tbl_extend("keep", args or {}, { uri = vim.uri_from_bufnr(bufnr) })
+  execute(client, bufnr, name, args, opts, cb)
+end
+
+--- Runs the server's command `name` with `args`, about no buffer, on the `uraeda` client of the
+--- current checkout, as `request_checkout` finds it, as `execute` does: for the commands that work
+--- from any buffer, such as `uraeda.note`.
+--- @param name string
+--- @param args table
+--- @param cb fun(result: { opened?: string, written: string[], line?: integer })?
+function M.command_checkout(name, args, cb)
+  checkout_client(function(client)
+    execute(client, nil, name, args, {}, cb)
+  end)
 end
 
 return M

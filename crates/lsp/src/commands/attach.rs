@@ -96,6 +96,10 @@ pub(super) fn attach_image(
     let opened = (attached.moved.is_some() || elsewhere).then(|| absolute(checkout.join(file)));
     Ok(Done {
         link: Some(attached.link),
-        ..Done::from(Outcome { opened, written })
+        ..Done::from(Outcome {
+            opened,
+            written,
+            line: None,
+        })
     })
 }
