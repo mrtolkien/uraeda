@@ -117,7 +117,7 @@ export const tasks = {
       "mkdir -p coverage",
       `${isolatedGit} cargo llvm-cov nextest --profile coverage --lcov --output-path coverage/rust.lcov`,
       "cargo llvm-cov report --html --output-dir coverage/rust",
-      `${isolatedGit} vp test --project uraeda-binding --project uraeda-server --project @uraeda/ui --project uraeda-web --coverage`,
+      `${isolatedGit} vp test --project '!phone' --project '!desktop' --coverage`,
       "node scripts/coverage-summary.ts",
     ],
     dependsOn: ["binding:touch", "web:build"],
@@ -222,7 +222,8 @@ export const tasks = {
       output: [],
       untrackedEnv: testEnv,
     },
-    command: `${isolatedGit} vp test --project uraeda-binding --project uraeda-server --project @uraeda/ui --project uraeda-web`,
+    // Every project but the browser's, by exclusion: a package added to `test.projects` runs here.
+    command: `${isolatedGit} vp test --project '!phone' --project '!desktop'`,
     dependsOn: ["binding:touch", "web:build"],
   },
   // `@uraeda/ui`, built from the web UI, the server, the binding's loader, and the skill.

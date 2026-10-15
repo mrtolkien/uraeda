@@ -177,6 +177,84 @@ function libraryManifests(): Record<string, string> {
   );
 }
 
+/**
+ * The `--project` options of each `vp test` a command runs, quotes removed. A run with none runs
+ * every project.
+ */
+function projectOptions(command: string | Array<string>): Array<Array<string>> {
+  return [command].flat().flatMap((line) => {
+    const words = [...line.matchAll(/'([^']*)'|"([^"]*)"|(\S+)/g)].map(
+      ([, single, double, bare]) => single ?? double ?? bare,
+    );
+    const start = words.findIndex((word, index) => word === "vp" && words[index + 1] === "test");
+    if (start === -1 || ["bench", "list"].includes(words[start + 2])) {
+      return [];
+    }
+    const end = words.findIndex((word, index) => index > start && /^(&&|\|\|?|;)$/.test(word));
+    const args = words.slice(start + 2, end === -1 ? undefined : end);
+    return [
+      args.flatMap((word, index) =>
+        word === "--project"
+          ? [args[index + 1]]
+          : word.startsWith("--project=")
+            ? [word.slice("--project=".length)]
+            : [],
+      ),
+    ];
+  });
+}
+
+/** Whether Vitest's `--project` options select the project: by name, `*` wildcards, `!` to exclude. */
+function selects(options: Array<string>, project: string): boolean {
+  const matches = (pattern: string) =>
+    new RegExp(
+      `^${pattern
+        .split("*")
+        .map((part) => part.replaceAll(/[.+?^${}()|[\]\\/]/g, String.raw`\$&`))
+        .join(".*")}$`,
+    ).test(project);
+  const included = options.filter((option) => !option.startsWith("!"));
+  const excluded = options
+    .filter((option) => option.startsWith("!"))
+    .map((option) => option.slice(1));
+  return (!included.length || included.some(matches)) && !excluded.some(matches);
+}
+
+/**
+ * The Vitest projects no `vp test` of the tasks runs. A task naming each project with `--project`
+ * drops a project added later: one selecting the others by exclusion runs it.
+ */
+function unselected(projects: Array<string>, tasks: Record<string, Task>): Array<string> {
+  const runs = Object.values(tasks).flatMap(({ command }) => projectOptions(command));
+  return projects
+    .filter((project) => !runs.some((options) => selects(options, project)))
+    .map(
+      (project) =>
+        `\`${project}\` is in \`test.projects\`, but no task of \`ready\` runs it: select the unit projects by exclusion in \`ts:test\` (\`--project '!phone'\`), or add a task running it.`,
+    );
+}
+
+/**
+ * The names of the root config's Vitest projects: a package's is its `package.json` name, and a
+ * config file's are its browser instances' names.
+ */
+function projectNames(): Array<string> {
+  const projects = (config as { test?: { projects?: Array<string> } }).test?.projects ?? [];
+  return projects.flatMap((project) => {
+    if (!project.endsWith(".ts")) {
+      const manifest = readFileSync(join(ROOT, project, "package.json"), "utf8");
+      return [(JSON.parse(manifest) as { name: string }).name];
+    }
+    const text = uncommented(project, readFileSync(join(ROOT, project), "utf8"));
+    const instances = /\binstances:\s*\[([\s\S]*?)\n\s*\]/.exec(text)?.[1] ?? "";
+    const names = [...instances.matchAll(/\bname:\s*"([^"]+)"/g)].map(([, name]) => name);
+    if (!names.length) {
+      throw new Error(`no browser instance names in ${project}: teach \`projectNames\` its names`);
+    }
+    return names;
+  });
+}
+
 test.each([
   [
     "a task without inputs",
@@ -252,6 +330,17 @@ test.each([
     withDoctests({ "uraeda-core": '[package]\nname = "uraeda-core"\n' }),
     ["`uraeda-core` must set `doctest = false`: cargo-nextest does not run doctests."],
   ],
+  [
+    "a Vitest project no task selects",
+    unselected(["uraeda-binding", "uraeda-server", "phone"], {
+      "browser:phone": { command: "vp test --project phone" },
+      ready: { command: "true", dependsOn: ["ts:test", "browser:phone"] },
+      "ts:test": { command: "env -u GIT_DIR vp test --project uraeda-binding" },
+    }),
+    [
+      "`uraeda-server` is in `test.projects`, but no task of `ready` runs it: select the unit projects by exclusion in `ts:test` (`--project '!phone'`), or add a task running it.",
+    ],
+  ],
 ])("%s is reported", (_name, problems, expected) => expect(problems).toEqual(expected));
 
 test("a comment naming a retry setting is not reported", () =>
@@ -283,4 +372,14 @@ test("the repository's toolchain follows the decision", () => {
   expect(retried(runnerConfigs())).toEqual([]);
   expect(retriedTasks(allTasks())).toEqual([]);
   expect(withDoctests(libraryManifests())).toEqual([]);
+  expect(unselected(projectNames(), readyTasks())).toEqual([]);
 });
+
+test("a project added to test.projects is run by a task selecting the others by exclusion", () =>
+  expect(
+    unselected(["uraeda-binding", "uraeda-new", "phone", "desktop"], {
+      "browser:desktop": { command: "vp test --project desktop" },
+      "browser:phone": { command: "vp test --project phone" },
+      "ts:test": { command: "vp test --project '!phone' --project '!desktop'" },
+    }),
+  ).toEqual([]));
