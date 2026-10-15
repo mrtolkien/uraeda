@@ -205,6 +205,21 @@ export function useNoteActions(
     return undefined;
   };
 
+  /**
+   * Keeps the view on its note once a move put it at the end of a category, `notes`: its key may
+   * have changed, as keys of the same text are numbered in file order. Back to the list without it.
+   */
+  const follow = (notes: ReadonlyArray<InboxNote> | undefined) => {
+    const same = (one: InboxNote) =>
+      one.lines.length === note.lines.length && one.lines.every((l, i) => l === note.lines[i]);
+    const moved = notes?.findLast(same);
+    if (!moved) {
+      left();
+    } else if (moved.key !== note.key) {
+      redirect(here(`/inbox/${moved.key}`));
+    }
+  };
+
   const toCategory = async (category: string | undefined) => {
     const result = await run(() =>
       fate.mutations.inbox.category({
@@ -213,6 +228,7 @@ export function useNoteActions(
       }),
     );
     if (!result.error) {
+      follow(result.result?.categories.find((c) => c.name === category)?.notes);
       toast(`Moved to ${categoryName(category)}, not committed`, () =>
         undone(fate, fate.mutations.inbox.undoCategory({ input: at(placed), view: InboxView })),
       );
