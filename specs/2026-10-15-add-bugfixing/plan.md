@@ -744,8 +744,8 @@ git commit -m "feat(add-bugfixing): a finished item's view carries its pull requ
     `{ text: string; images?: Array<SentImage-shaped input>; slug?: string }`. It returns the
     change's `Feature` record, as `feature.start` does, whose `folder` and `session` (`null` without
     the agent) the client selects (R12):
-    - the images go through `sentImages(ctx, images, false)`, and their files' bytes are read and
-      passed to `startChange`;
+    - the images go through `changeImages(ctx, images)`, at most 10 and whatever images the agent
+      reads, and their files' bytes, a file gone refused, are passed to `startChange` (R15);
     - with the agent available, the change's session is `ctx.sessions.featureSession(repo, folder)`,
       and the first run is sent with
       `ctx.sessions.send(repo, id, { text, workflow: { trigger: "start" } })`, its text from

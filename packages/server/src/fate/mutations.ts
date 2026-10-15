@@ -1,10 +1,9 @@
-import { readFile } from "node:fs/promises";
 import type { Trigger } from "../runner/events.ts";
 import { REFUSALS } from "../runner/sessions.ts";
 import { type Context, inRepository, type RepoContext, type Resolver } from "./context.ts";
 import { fileMutations } from "./file-mutations.ts";
 import type { ChatImage } from "../runner/images.ts";
-import { sentImages } from "./chat-images.ts";
+import { changeImages, sentImages } from "./chat-images.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { featureRecord, readSession, readWorkflowMessage, TRIGGERS, writable } from "./sessions.ts";
 import { type ListResolver, listMutations, refusedOn } from "./list-mutations.ts";
@@ -66,17 +65,15 @@ async function sendFirstRun(ctx: RepoContext, folder: string): Promise<string | 
 }
 
 /**
- * Starts a change from a typed text and its images, then sends its first run. The images are
- * checked as a change's, and the core writes them into the change's folder: the workflow's message
- * carries none. Once the change exists, a run that could not be sent is logged, not refused (R12):
- * the change's page offers its message unsent.
+ * Starts a change from a typed text and its images, then sends its first run. The core writes the
+ * images into the change's folder: the workflow's message carries none. Once the change exists, a
+ * run that could not be sent is logged, not refused (R12): the change's page offers it unsent.
  */
 async function startTypedChange(
   ctx: RepoContext,
   input: { images?: Array<ChatImage>; slug?: string; text: string },
 ): Promise<{ folder: string; sent: boolean }> {
-  const images = await sentImages(ctx, input.images, false);
-  const bytes = await Promise.all(images.map(({ path }) => readFile(path)));
+  const bytes = await changeImages(ctx, input.images);
   const { folder } = await refusable(() =>
     ctx.binding.startChange(ctx.repo, input.text, bytes, input.slug),
   );
