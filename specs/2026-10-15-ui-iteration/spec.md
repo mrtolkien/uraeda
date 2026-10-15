@@ -542,7 +542,7 @@ Changed, applied when this spec is approved:
   accept `Origin: null`, and every other route keeps the rule. The web UI embeds stories in
   sandboxed frames, accepting messages only from them. See its [rules](../decisions/stack.md#rules).
   Its consequence on who reaches the previews now names any website open in the human's browser. See
-  its [proposed change](../decisions/stack.md#proposed-change-2026-10-15-ui-iteration).
+  its [consequences](../decisions/stack.md#consequences).
 
 Relied on:
 
