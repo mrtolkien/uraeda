@@ -790,7 +790,8 @@ git commit -m "feat(add-scratchpad): moves out of the inbox, committed in one ch
   `##` heading's line with its name (ruling R15), and the templates (task 2).
 - Produces:
   - the rules `inbox.title`, which requires `# Inbox`, and `inbox.category`, which reports "the
-    category \"UI\" is repeated";
+    category \"UI\" is repeated", skipping empty headings, and reading `## UI ##` as `UI`, for the
+    edits too; both files are checked only directly in `specs/` (ruling R15);
   - `INBOX-TRIAGE.md` checked like a round of questions, with its title, statuses, answers, and the
     awaiting block; `check::fields` gives its `status` with `answered` as `Action::Submit`, as for a
     round (ruling R15);

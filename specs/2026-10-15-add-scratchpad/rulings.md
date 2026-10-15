@@ -257,10 +257,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   - `files::inbox::category_headings` gives each `##` heading's line and name, outside fenced code;
     `category_names` maps it. `inbox.category` reports the second and later headings of a name on
     their line, and `inbox.title` the first `#` heading that is not `# Inbox`, or no line when the
-    file has none.
-  - `INBOX.md` and `INBOX-TRIAGE.md` are recognized by name in any folder, as `PRIORITIES.md` is.
-    The triage takes the clarifications statuses, and `check::fields` gives `answered` the `Submit`
-    action, as for a round.
+    file has none. An empty heading, `## ` or `##`, names no category, so it is never reported as
+    repeated.
+  - A category's name drops a closing run of `#` after a space, as CommonMark does, in
+    `inbox::category_of`, which both the edits and the check use: `## UI ##` repeats `## UI`, and an
+    add to `UI` goes under it.
+  - `INBOX.md` and `INBOX-TRIAGE.md` are the inbox and its triage only directly in a `specs/`
+    folder: a file of that name in a feature folder, a draft folder, or outside `specs/` is the
+    human's, and is not checked as one. The triage takes the clarifications statuses, and
+    `check::fields` gives `answered` the `Submit` action, as for a round.
   - The `ura check` paragraph of `conventions.md` names the inbox's checks, the priorities' four
     sections, and the started-feature exemption of links, which it did not; `projects.md` says what
     `ura init` prints and that a second run only adds what is missing.
@@ -268,7 +273,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the heading to rename. The CLI decision requires every checked rule in the skill, and the
   priorities' sections and the exemption were checked without being written there.
 - **Alternatives considered**: Finding the repeated heading through the markdown parser's headings,
-  a second rule for what a category is.
+  a second rule for what a category is. Recognizing both files in any folder, as `PRIORITIES.md` is,
+  which made a human's `INBOX.md` elsewhere fail the check. Reporting an empty heading, which no
+  tool writes and which names nothing to rename.
 - **If wrong**: `category_headings` folds back into `category_names`, and the check reports no line.
 - **Where**: task 5, `files/inbox.rs`, `check/`, `references/conventions.md`, `projects.md`
 
