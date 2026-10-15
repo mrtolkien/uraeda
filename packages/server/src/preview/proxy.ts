@@ -175,10 +175,28 @@ function upgradeHead(request: IncomingMessage, path: string, port: number): stri
   return `${lines.join("\r\n")}\r\n\r\n`;
 }
 
+/** Storybook's channel, at the root of its own address. */
+const CHANNEL = "/storybook-server-channel";
+
+/**
+ * An upgrade's query for Storybook: to its channel, always a preview's, `page=preview`, whatever
+ * `page` it asked, as Storybook gives a manager's channel, or one without a page or an `Origin`, the
+ * right to write files in the worktree (R51). Its token, and the rest, go as asked.
+ */
+function upstreamSearch(path: string, url: URL): string {
+  if (path !== CHANNEL) {
+    return url.search;
+  }
+  const query = new URLSearchParams(url.searchParams);
+  query.set("page", "preview");
+  return `?${query}`;
+}
+
 /**
  * The server's upgrades: refused by the guard's rule, `check`; WebSocket GETs under a preview's
  * path piped to the Storybook the runner has ready, with the full path for Vite's `vite-hmr`
- * protocol and the rest only otherwise; anything else is closed with a 404.
+ * protocol and the rest only otherwise, Storybook's channel as a preview's; anything else is closed
+ * with a 404.
  */
 export function previewUpgrade({
   check,
@@ -214,7 +232,7 @@ export function previewUpgrade({
     }
     const protocols = (request.headers["sec-websocket-protocol"] ?? "").split(",");
     const hmr = protocols.some((protocol) => protocol.trim() === "vite-hmr");
-    const path = `${hmr ? url.pathname : found.rest}${url.search}`;
+    const path = `${hmr ? url.pathname : found.rest}${upstreamSearch(found.rest, url)}`;
     let connected = false;
     const upstream = connect(state.port, "127.0.0.1", () => {
       connected = true;

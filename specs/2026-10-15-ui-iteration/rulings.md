@@ -784,3 +784,33 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: `specs/done/2026-10-15-claude-usage.md`.
 - **At the catch-up**: `main`'s commit 7a46122 made the same fix, the screenshots named in words;
   its text is kept, and this branch no longer changes the record.
+
+## R51: Storybook's channel is forwarded only as a preview's
+
+- **Decision**: the proxy forwards an upgrade to `storybook-server-channel` with `page=preview` in
+  its query, whatever `page` it asked, or none, and keeps its token and the rest. Storybook 10.6.2
+  gives a channel client the role its `page` names, and a client with no page and no `Origin`, which
+  the proxy removes, the server's; a `manager` or server client may send `SAVE_STORY_REQUEST`,
+  `CREATE_NEW_STORYFILE_REQUEST`, `TOGGLE_WHATS_NEW_NOTIFICATIONS`, which rewrites
+  `.storybook/main.ts`, and `OPEN_IN_EDITOR_REQUEST`. A `preview` client's events of the manager or
+  the server are dropped, and logged once, by Storybook's own `isEventAllowedFrom`.
+- **Rationale**: with a story's page read through Uraeda, its `wsToken` is readable too, so any
+  website open in the human's browser could open the channel as the manager and write files in the
+  worktree. The stack decision requires the upgrades to be forwarded, not every role. Through
+  Uraeda, the channel can still do what a story's page needs: Storybook's events about rendering,
+  args, globals, and hot updates, sent by any role, and the server's own messages, sent to every
+  client. Its open services, docgen and review, keep their state in memory and write no file.
+- **Accepted risk**: what is left of the hole the
+  [basic security draft](/specs/drafts/basic-security.md) holds: any website open in the human's
+  browser can read a running preview's code, and open its channel as a preview, to send the events
+  any role may send, such as updating a story's args, until basic security.
+- **Alternatives considered**: refusing every channel upgrade, which breaks the embeds' live args
+  and Storybook's own interface; keeping `page` from Uraeda's own page, which every website can send
+  as well.
+- **If wrong**: Storybook's interface, opened through Uraeda, cannot save a story from its controls,
+  create a story, open a file in the editor, or show "What's new": these stay available on
+  Storybook's own port, locally. A later Storybook that gives `preview` a write, or derives the role
+  otherwise, needs `upstreamSearch` in `packages/server/src/preview/proxy.ts` changed.
+- **Where**: `packages/server/src/preview/proxy.ts`, its test in
+  `packages/server/src/preview/__tests__/proxy.test.ts`, and `fixtures/preview/serve.mjs`, whose
+  echo reports the query.

@@ -18,9 +18,10 @@ this feature lands:
   Storybook's channel refuses `null`.
 - **Who can use it.** Any web page can send `Origin: null` by creating a sandboxed frame. So, while
   a Storybook runs (up to 30 minutes after its last view), any website open in the human's browser
-  can read the project's source code through Uraeda. It can also open Storybook's live channel. The
-  addresses are guessable: Uraeda's port defaults to 4310, `main` is a fixed folder, and a
-  repository's name is its folder's name.
+  can read the project's source code through Uraeda. It can also open Storybook's live channel, as a
+  story's page only: the proxy forces its `page=preview`, so it cannot write files. The addresses
+  are guessable: Uraeda's port defaults to 4310, `main` is a fixed folder, and a repository's name
+  is its folder's name.
 - **The same hole, elsewhere.** Vite closed it in January 2025, as CVE-2025-24010
   (https://github.com/vitejs/vite/security/advisories/GHSA-vg6x-rcgg-rjx6): websites could read a
   dev server's responses and hijack its live socket.
