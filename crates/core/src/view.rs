@@ -9,7 +9,7 @@ use crate::files::document::{Document, Span};
 use crate::files::items::Items;
 use crate::files::markdown;
 use crate::steps::{Step, TaskProgress};
-use crate::workspace::{Feature, Problem, Workspace};
+use crate::workspace::{Feature, FileKind, Problem, Workspace};
 
 mod feature;
 
@@ -104,6 +104,16 @@ pub struct FileView {
     pub review: Option<Items>,
     /// Whether the pending review comments on an older version of the file than its tip's.
     pub review_stale: bool,
+    /// Whether images can be attached to it: a feature's or a change's file can, the inbox's
+    /// triage, committed alone, cannot.
+    pub takes_images: bool,
+}
+
+/// The name of a file's kind, as the web UI reads it: empty for none.
+pub(crate) fn kind_name(kind: Option<FileKind>) -> String {
+    kind.and_then(|kind| serde_json::to_value(kind).ok())
+        .and_then(|value| value.as_str().map(String::from))
+        .unwrap_or_default()
 }
 
 /// A draft or a postponed proposal, for its editor.

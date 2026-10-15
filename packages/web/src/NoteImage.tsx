@@ -15,7 +15,6 @@ import type { AttachStatus } from "./attach/useAttach.ts";
 import { readInbox, rereadChanges } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
 import { repoPath, useRepository } from "./routes.tsx";
-import { plain } from "./Spans.tsx";
 import { InboxView } from "./views.ts";
 
 type Fate = ReturnType<typeof useFateClient>;
@@ -119,15 +118,18 @@ export type AddInput = { about?: string; category?: string; hash: string; text: 
  */
 const UPLOAD_TIMEOUT = 120_000;
 
+/** The words of a text: what tells a draft's title from another, however the core spaces it. */
+const words = (text: string) => text.split(/\s+/).filter(Boolean).join(" ");
+
 /**
  * The note an add whose answer was lost wrote after all: one of the inbox now, not in `before`,
- * that links a draft and reads `text`. The server may finish an add the page stopped waiting for.
+ * that links a draft whose title, as the core reads it, has the words of `text`. The server may
+ * finish an add the page stopped waiting for.
  */
 async function addedAfterAll(fate: Fate, before: Notes, text: string) {
   const now = await readInbox(fate).catch(() => undefined);
   const note = now && addedNote(before, now.categories);
-  const typed = text.split(/\s+/).filter(Boolean).join(" ");
-  return note?.draft !== undefined && note.draft !== null && plain(note.spans) === typed
+  return note?.draft && note.draftTitle && words(note.draftTitle) === words(text)
     ? { draft: note.draft, note }
     : undefined;
 }

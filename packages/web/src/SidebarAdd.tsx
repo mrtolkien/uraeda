@@ -8,7 +8,7 @@ import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { AddNote } from "./AddNote.tsx";
 import { undoAsDraft, usePickedImage } from "./NoteImage.tsx";
-import { readInbox, readPriorities } from "./data.ts";
+import { readPriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { Overlay } from "./layout/Overlay.tsx";
 import { useUndoToast } from "./layout/useUndoToast.ts";
@@ -97,19 +97,16 @@ function PriorityOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   );
 }
 
-/** Undo of the note just added: it leaves the inbox, found by its lines wherever it is now. */
+/**
+ * Undo of the note just added: the core takes it out, found by its lines wherever it is now, and
+ * refuses once it changed or left, or when two notes hold its lines.
+ */
 async function undoAdd(fate: ReturnType<typeof useFateClient>, note: InboxNote | undefined) {
-  const now = await readInbox(fate);
-  const lines = note?.lines.join("\n");
-  const same = now.categories
-    .flatMap((category) => category.notes)
-    .filter((one) => one.lines.join("\n") === lines);
-  const found = same.find((one) => one.key === note?.key) ?? (same.length === 1 ? same[0] : null);
-  if (!note || !found) {
-    return `Could not undo: "${note?.text ?? ""}" is no longer in INBOX.md.`;
+  if (!note) {
+    return "Could not undo: the note is no longer in INBOX.md.";
   }
-  const result = await fate.mutations.inbox.remove({
-    input: { hash: now.hash, note: found.id },
+  const result = await fate.mutations.inbox.undoAdd({
+    input: { lines: [...note.lines] },
     view: InboxView,
   });
   return result.error ? refusal(result.error).message : undefined;
@@ -127,9 +124,8 @@ function NoteOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
   const toast = useUndoToast();
   const { route } = useRoute();
   const [image, setImage] = usePickedImage();
-  // A feature's or a change's folder starts with its date: another `/f/<name>` is about nothing.
-  const about =
-    "folder" in route && /^\d{4}-\d{2}-\d{2}-./.test(route.folder) ? route.folder : undefined;
+  // The page's folder: the core marks the note with its slug when it is a feature's or a change's.
+  const about = "folder" in route ? route.folder : undefined;
 
   const added = (note: InboxNote | undefined, draft?: string) => {
     onClose();

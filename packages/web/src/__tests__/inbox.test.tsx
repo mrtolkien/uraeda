@@ -289,6 +289,28 @@ test("an add with an image whose answer is lost is found in the inbox, once", as
   expect(existsSync(join(repo, "specs/drafts/headings-are-flat-2"))).toBe(false);
 });
 
+/** A lost answer's note is found by its markdown as typed: inline code and brackets included. */
+test("an add with an image whose answer is lost is found with its inline code", async () => {
+  const repo = fixtureRepo();
+  const server = serverFetch(repo);
+  const fetch: typeof globalThis.fetch = async (input, init) => {
+    const response = await server(input, init);
+    if (urlOf(input).includes("/inbox/note-image")) {
+      throw new DOMException("The operation timed out.", "TimeoutError");
+    }
+    return response;
+  };
+  await renderPage("/inbox", repo, { fetch });
+  const form = await openForm();
+  await type(form.getByPlaceholderText("What did you notice?"), "The `[x]`  heading is flat");
+  await attachImage(form);
+
+  await click(form.getByRole("button", { name: "Add as a draft" }));
+
+  await toast("Added to the inbox as a draft, not committed");
+  expect(read(repo, PATH).match(/heading is flat/g)).toHaveLength(1);
+});
+
 /** An add with an image that never reached the server says so under the image, and keeps all. */
 test("an add with an image that gets no answer says so, and keeps the note", async () => {
   const repo = fixtureRepo();

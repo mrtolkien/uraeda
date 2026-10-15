@@ -272,3 +272,10 @@ pub fn undo_note_category(
 pub fn undo_note_as_draft(repo: String, lines: Vec<String>) -> AsyncTask<Job<Inbox>> {
     job(move || api::undo_note_as_draft(Path::new(&repo), &lines))
 }
+
+/// Takes back a note's add: the note, found by its lines, leaves the inbox wherever it is now.
+/// Refused once it changed or left, or when two notes hold its lines.
+#[napi(ts_return_type = "Promise<Inbox>")]
+pub fn undo_note_add(repo: String, lines: Vec<String>) -> AsyncTask<Job<Inbox>> {
+    job(move || api::undo_note_add(Path::new(&repo), &lines))
+}

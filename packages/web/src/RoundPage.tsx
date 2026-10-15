@@ -113,6 +113,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
               path={file.path}
               question={question}
               readOnly={readOnly}
+              takes={file.takesImages}
               target={target}
               {...(agent?.available && !triage ? { onAsk: ask } : {})}
             />

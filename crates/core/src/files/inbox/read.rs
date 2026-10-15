@@ -1,7 +1,7 @@
 //! `INBOX.md` read for editing: its notes by category, with what the web UI shows and writes back.
 
 use super::super::lines::Item;
-use super::{Note, body, category_names, parse, scan};
+use super::{Note, body, category_names, link_text, parse, scan};
 
 /// A note of `INBOX.md`, for editing.
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
@@ -20,6 +20,9 @@ pub struct InboxNote {
     pub about: Option<String>,
     /// The path of the draft its whole text links to, from the repository's top level.
     pub draft: Option<String>,
+    /// The markdown of that link's text, unescaped: a note added as a draft as it was typed, which
+    /// an add whose answer was lost finds it by.
+    pub draft_title: Option<String>,
     pub start_line: u32,
     pub end_line: u32,
     /// Its lines as written, sub-items included: what an Undo of its removal writes back.
@@ -64,6 +67,7 @@ fn inbox_note(lines: &[&str], note: Note, item: &Item) -> InboxNote {
         .as_deref()
         .and_then(|link| crate::workspace::resolve("specs", link))
         .filter(|path| path.starts_with("specs/drafts/"));
+    let draft_title = draft.as_ref().and_then(|_| link_text(&markdown));
     InboxNote {
         id: note.id,
         key: note.key,
@@ -75,6 +79,7 @@ fn inbox_note(lines: &[&str], note: Note, item: &Item) -> InboxNote {
             .unwrap_or_default(),
         agent: note.agent,
         about: note.about,
+        draft_title,
         draft,
         start_line: note.line as u32,
         end_line: note.end as u32,
