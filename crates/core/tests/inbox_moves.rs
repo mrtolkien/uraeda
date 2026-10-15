@@ -757,3 +757,34 @@ fn a_drafts_commit_holds_the_other_drafts_its_lists_link() {
     );
     assert_eq!(repo.porcelain(), "");
 }
+
+/// A commit a hook refuses leaves the index as it found it, and Discard after it leaves nothing
+/// staged: no deleted file stays in the index to block the next commit or come back.
+#[test]
+fn a_refused_commit_and_discard_leave_nothing_staged() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    let path = add_with_image(&repo, None, "Dark mode");
+    repo.set_hook("exit 1");
+
+    let refused = changes::commit(&place).unwrap_err();
+
+    assert!(matches!(
+        refused,
+        uraeda_core::actions::ActionError::Hook { .. }
+    ));
+    assert_eq!(
+        repo.porcelain(),
+        " M specs/INBOX.md\n?? specs/drafts/dark-mode/\n"
+    );
+    repo.git(&["add", "--all", "--", "specs"]);
+
+    changes::discard(&place).unwrap();
+
+    assert!(!repo.exists(&path));
+    assert_eq!(repo.porcelain(), "");
+    repo.set_hook("exit 0");
+    actions::add(&place, None, &Marks::default(), "Light mode", None).unwrap();
+    changes::commit(&place).unwrap();
+    assert_eq!(repo.changed_in("main"), [INBOX]);
+}
