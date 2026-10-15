@@ -12,8 +12,9 @@ what it changed and commits them for the human's review.
 
 ## Rules
 
-- Every UI test MUST guard a spec's acceptance scenario, edge case, or success criterion, or a rule
-  of a UI decision. A test that guards neither MUST NOT be added.
+- Every UI test MUST guard a spec's acceptance scenario, edge case, or success criterion, the
+  expected behaviour stated in a change's proposal, or a rule of a UI decision. A test that guards
+  none of them MUST NOT be added.
 - UI tests MUST drive the UI as a user does, through roles, labels, and visible text, and assert
   what the user sees or what is written to the repository. They MUST NOT assert markup structure,
   class names, or snapshots of rendered output.
@@ -24,9 +25,10 @@ what it changed and commits them for the human's review.
   [UI layout](ui-layout.md) decision, and axe-core's WCAG 2.1 A and AA rules in light and dark.
 - Pixel comparisons of screenshots MUST NOT be used.
 - Before handing over a UI change, the agent MUST take screenshots of every changed view at both
-  sizes and in both themes, review them against the UI decisions and the spec's mockups, fix what it
-  finds, and commit them in the feature's folder under `screenshots/`, where the pull request shows
-  them. The finish step removes them with the folder.
+  sizes and in both themes, review them against the UI decisions and the spec's mockups, or the
+  change's proposal, fix what it finds, and commit them in the feature's or the change's folder
+  under `screenshots/`, where the pull request shows them. The finish step removes them with the
+  folder.
 
 ## Why
 
@@ -53,38 +55,5 @@ reviewed by the agent, then by the human, catch what no rule names.
 
 ## Applies to
 
-- [`packages/web/`](/packages/web/), its tests, and every feature that adds or changes a view
-
-## Proposed change (2026-10-15-add-bugfixing)
-
-Proposed by the [spec](../2026-10-15-add-bugfixing/spec.md). A change, the light flow for bugs and
-small changes, has no spec: its UI tests guard the expected behaviour its proposal states, and its
-screenshots go in its own folder.
-
-The rules become:
-
-- Every UI test MUST guard a spec's acceptance scenario, edge case, or success criterion, the
-  expected behaviour stated in a change's proposal, or a rule of a UI decision. A test that guards
-  none of them MUST NOT be added.
-- UI tests MUST drive the UI as a user does, through roles, labels, and visible text, and assert
-  what the user sees or what is written to the repository. They MUST NOT assert markup structure,
-  class names, or snapshots of rendered output.
-- A test that no longer matches the spec MUST be changed or removed with the spec, never kept
-  passing by loosening its assertion.
-- `vp run ready` MUST run, in WebKit, at 402 × 874 and at 1440 × 900, on every page a UI decision
-  governs: no text cut, no sideways scroll, the text sizes and control heights of the
-  [UI layout](ui-layout.md) decision, and axe-core's WCAG 2.1 A and AA rules in light and dark.
-
-- Pixel comparisons of screenshots MUST NOT be used.
-- Before handing over a UI change, the agent MUST take screenshots of every changed view at both
-  sizes and in both themes, review them against the UI decisions and the spec's mockups, or the
-  change's proposal, fix what it finds, and commit them in the feature's or the change's folder
-  under `screenshots/`, where the pull request shows them. The finish step removes them with the
-  folder.
-
-Why: a change's tests have no spec to guard, and its proposal states the expected behaviour
-([Q6](../2026-10-15-add-bugfixing/clarifications-01.md#q6-how-does-a-small-ui-change-meet-the-ui-decisions),
-[UI changes without a spec](../2026-10-15-add-bugfixing/discovery-01.md#ui-changes-without-a-spec)).
-
-The applies-to line becomes: [`packages/web/`](/packages/web/), its tests, and every feature or
-change that adds or changes a view.
+- [`packages/web/`](/packages/web/), its tests, and every feature or change that adds or changes a
+  view
