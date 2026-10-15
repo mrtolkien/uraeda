@@ -692,3 +692,70 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a flake that fails one CI run in ten shows on the pull request's runs instead; the
   clean tree check's failure path is untested until a job leaves a file changed.
 - **Where**: task 10.
+
+## R38: The tests follow `main`'s new workflow prompts and statuses, and following the end follows a run's ending
+
+- **Decision**: `main`'s d25a7e7 ("new auto-filled prompts for the UI") changed the workflow's
+  message, the session statuses, and the feature page's agent panel, and updated only the runner's
+  own tests: 19 tests of `vp run ready` failed, and one browser test failed on the phone. Each was
+  judged against d25a7e7's code and its tests (`runner/__tests__/message.test.ts`, `status.test.ts`,
+  `crates/core/tests/steps.rs`):
+  - **(a) Expectation outdated, updated to the new behaviour exactly**, each still checking what it
+    checked:
+    - `sessions.test.ts` "US2.1: WorkflowMessage gives the message…": the message is now the run's
+      goal and where it stops; the fixture's `cli-tuis` spec has `plan-review: true`, so "Write the
+      plan, starting with …plan.md. Stop when the plan waits for my review, …", the exact text.
+    - `sessions.test.ts` "US3.6: SessionList … needs you first" and `shell.test.tsx` "US3.6: needs
+      you sorts first in its group": a failed session is now `attention`, "Needs attention"; the
+      order is unchanged (`attention` takes `failed`'s rank, after `needs-you`), and both still
+      check it.
+    - `sessions.test.ts` "session.stop stops the turn, and keeps the session": a stopped latest turn
+      is now "Needs attention", reason `stopped`, before and after `session.seen` (status.test's "a
+      stopped turn, seen"), where it was "New reply" then "Stopped". It still checks the interrupt,
+      the turn's `stopped` state, that the session's record stays, and `session.seen`.
+    - `agent-panel.test.tsx` "Review and start the agent opens the session…" and "US2.5: during a
+      chat turn…", and `commit-actions.test.tsx` "US2.1", "US2.2", both "US2.4", "the workflow's
+      message goes before what the human typed", "Try again after a refused hook…", and "a refused
+      hand-over says why…": the `MANUAL` and `ANSWERED` messages, exact, in the new form. US2.2's
+      sent message now contains the whole `ANSWERED` instead of the trigger's sentence, which no
+      message has any more ("the message does not say what the human did").
+    - `commit-actions.test.tsx` "approving a spec…", "requesting changes…", and "committing a
+      proposal and starting a feature…": they matched the trigger's sentence ("The human approved
+      the spec."), now gone; they match the step's goal and stop the commit leads to instead: the
+      plan (`recurring-tasks` has `plan-review: true`), the spec's revision, and discovery for the
+      proposal and the started feature.
+    - `agent-panel.test.tsx` "the feature page shows the session's status and Open the session": a
+      workflow run that ends while the step still waits on the agent is now "Needs attention",
+      reason `halted` (status.test's "a workflow turn that ended while the step still waits on the
+      agent"); the test checks that label and its dot instead of "New reply".
+    - `agent-panel.test.tsx` "Stop stops the turn, and Review and try again…" and "Review and try
+      again after a failure…": "Review and try again" is gone by design (AgentPanel's comment: no
+      start "when its latest turn needs the human's attention, which they answer in the session").
+      Renamed "Stop stops the turn, and the session then says the agent was stopped" and "a failed
+      run needs attention, and the session says it failed", they check the run's line (`Stopped`,
+      `Failed`), "Needs attention", that the panel offers no start, that "Open the session" leads to
+      the session, which shows the new banner ("You stopped the agent.", "The agent's run failed."),
+      and that nothing more was sent.
+  - **(b) A bug in the new code, fixed**: the browser test `session.test.tsx` "an ended session
+    scrolled up also offers Jump to the latest", on the phone. The fake agent's exit fails the run,
+    and d25a7e7's banner ("The agent's run failed.") is drawn below the transcript in the commit
+    that ends the session's work. `useFollowEnd` follows only while the session works: the commit
+    that turns it off also drew the banner, so a human reading the end was left 96 px above it, the
+    banner out of view, with "Jump to the latest" shown though they never scrolled. The test then
+    scrolled to the end and found the button still there two frames later. Alone, it failed 3 runs
+    out of 3, and 8 out of 8 under 48 busy loops on 32 cores; after the file's other tests, it
+    passed. `useFollowEnd` now follows once more as the session stops working. The new test "a run
+    that fails while the human is at its end keeps how it ended in view" failed first on the phone
+    (the banner never came into view); with the fix, both tests passed 10 runs out of 10, 8 of them
+    under the same load.
+- **Rationale**: the [implementation reference](/skills/uraeda/references/implementation.md)'s
+  catch-up: a failure the default branch brings in is fixed like a final review finding. d25a7e7's
+  updated runner tests state the new messages and statuses, so the old expectations describe
+  behaviour that was replaced on purpose, not a regression; the banner left out of view is behaviour
+  no test of d25a7e7 asked for, and it breaks US4.4 (at the end, no button).
+- **Alternatives considered**: drawing the banner inside the transcript's observed element: the
+  observer is disconnected in the same commit, so it would not follow either. Keeping a way to retry
+  from the panel: d25a7e7 removed it on purpose.
+- **If wrong**: a banner or a line that comes in a later commit than the end of the work is not
+  followed; its failure shows "Jump to the latest" after a run ends.
+- **Where**: the rebase onto `main` with d25a7e7.
