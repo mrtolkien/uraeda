@@ -8,9 +8,12 @@ import { files } from "./files.ts";
 import { guard } from "./guard.ts";
 import { openRoute } from "./open.ts";
 import type { Options } from "./options.ts";
+import { previewRoutes } from "./preview/proxy.ts";
+import type { Previews } from "./preview/runner.ts";
 import type { Hosts } from "./repositories.ts";
 
 export { Hosts } from "./repositories.ts";
+export { Previews } from "./preview/runner.ts";
 import type { Sessions } from "./runner/sessions.ts";
 
 type Context = HonoContext<{ Variables: FateVariables }>;
@@ -28,6 +31,8 @@ type AppOptions = Omit<Options, "given" | "open" | "repo" | "show"> & {
   binding: Binding;
   dataDir: string;
   hosts: Hosts;
+  /** The server's Storybooks, which `/r/<name>/preview/<folder>/` forwards to. */
+  previews: Previews;
   sessions: Sessions;
   /** The built UI, served as static files when set. */
   webRoot?: string;
@@ -39,7 +44,7 @@ type App = Hono<{ Variables: FateVariables }>;
  * A repository's routes take its host's context, its folder looked at now; an unknown name or a
  * missing folder is a 404, so the core never looks for a repository above it.
  */
-function hostedRoutes(app: App, { binding, dataDir, hosts, sessions }: AppOptions) {
+function hostedRoutes(app: App, { binding, dataDir, hosts, previews, sessions }: AppOptions) {
   const hosted = async (context: Context, next: Next) => {
     const name = context.req.param("name")!;
     const host = await hosts.current(name);
@@ -49,7 +54,7 @@ function hostedRoutes(app: App, { binding, dataDir, hosts, sessions }: AppOption
     if (host.missing) {
       return context.text(`Folder not found: ${host.path}`, 404);
     }
-    context.set("fate", { binding, dataDir, hosts, repo: host.path, sessions });
+    context.set("fate", { binding, dataDir, hosts, previews, repo: host.path, sessions });
     await next();
   };
   for (const path of [
@@ -88,14 +93,15 @@ function fateRoutes(app: App, hosts: Hosts) {
  * The server's routes: each listed repository's under `/r/<name>/`, with its host's context and
  * fate server; the global `/fate`, which serves the list and refuses a repository's records; and
  * `/raw/*` and `/mockups/*`, links from before repositories had names, sent on to the most recently
- * opened repository's; and `POST /open`, a second start's handoff.
+ * opened repository's; `/r/<name>/preview/<folder>/`, each checkout's Storybook; and `POST /open`,
+ * a second start's handoff.
  */
 export function createApp(options: AppOptions) {
-  const { binding, dataDir, hosts, sessions } = options;
+  const { binding, dataDir, hosts, previews, sessions } = options;
   const app: App = new Hono<{ Variables: FateVariables }>();
   app.use(guard(options));
   app.use(async (context, next) => {
-    context.set("fate", { binding, dataDir, hosts, repo: null, sessions });
+    context.set("fate", { binding, dataDir, hosts, previews, repo: null, sessions });
     await next();
   });
   hostedRoutes(app, options);
@@ -111,6 +117,7 @@ export function createApp(options: AppOptions) {
   };
   app.get("/raw/*", moved);
   app.get("/mockups/*", moved);
+  app.route("/r/:name", previewRoutes());
   app.route("/r/:name", files());
   app.route("/r/:name", attach());
   app.route("/", openRoute());

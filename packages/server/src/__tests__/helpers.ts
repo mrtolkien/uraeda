@@ -11,6 +11,7 @@ import {
 } from "uraeda-binding/test-utils";
 import { createApp } from "../app.ts";
 import type { Binding } from "../fate/context.ts";
+import { Previews } from "../preview/runner.ts";
 import { Hosts } from "../repositories.ts";
 import { SessionCache } from "../runner/cache.ts";
 import type { Sessions } from "../runner/sessions.ts";
@@ -27,15 +28,25 @@ export const port = 4310;
 const managers: Array<Sessions> = [];
 /** The hosts of a test, whose watches are closed after it. */
 const opened: Array<Hosts> = [];
+/** The Storybook runners of a test, stopped after it. */
+const runners: Array<Previews> = [];
 
-afterEach(() => {
+afterEach(async () => {
   for (const sessions of managers.splice(0)) {
     sessions.close();
   }
   for (const hosts of opened.splice(0)) {
     hosts.close();
   }
+  await Promise.all(runners.splice(0).map((runner) => runner.stopAll()));
 });
+
+/** A Storybook runner for a test's app, stopped after the test. */
+export function testPreviews(): Previews {
+  const runner = new Previews();
+  runners.push(runner);
+  return runner;
+}
 
 type App = ReturnType<typeof createApp>;
 
@@ -84,6 +95,7 @@ function app(
     dataDir,
     hosts,
     port,
+    previews: testPreviews(),
     sessions,
   });
   names.set(created, name);

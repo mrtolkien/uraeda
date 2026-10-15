@@ -25,6 +25,7 @@ import {
   port,
   testApp,
   testHosts,
+  testPreviews,
   testServer,
 } from "./helpers.ts";
 import { createApp } from "../app.ts";
@@ -58,6 +59,7 @@ async function twoRepositories() {
     dataDir: opened.dataDir,
     hosts: opened.hosts,
     port,
+    previews: testPreviews(),
     sessions: opened.sessions,
   });
   return { app, ...opened };
@@ -453,6 +455,7 @@ test("opening a repository moves it first", async () => {
     dataDir: opened.dataDir,
     hosts: opened.hosts,
     port,
+    previews: testPreviews(),
     sessions: opened.sessions,
   });
   const last = opened.hosts.rows().at(-1)!.name;
@@ -631,6 +634,7 @@ test("an old raw link without any repository is not found", async () => {
     dataDir: opened.dataDir,
     hosts: opened.hosts,
     port,
+    previews: testPreviews(),
     sessions: opened.sessions,
   });
 

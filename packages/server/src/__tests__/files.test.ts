@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { attachImage } from "uraeda-binding";
 import { expect, test, vi } from "vite-plus/test";
 import { createApp } from "../app.ts";
-import { fixture, fixtureRepo, git, port, testApp, testHosts } from "./helpers.ts";
+import { fixture, fixtureRepo, git, port, testApp, testHosts, testPreviews } from "./helpers.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
@@ -57,6 +57,7 @@ test("a file that cannot be read for another reason than its absence is a server
     dataDir,
     hosts,
     port,
+    previews: testPreviews(),
     sessions,
   });
   const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);

@@ -1,4 +1,5 @@
 import { expect, test } from "vite-plus/test";
+import { guardCheck } from "../guard.ts";
 import { port, testApp } from "./helpers.ts";
 
 const tailnet = "mac.tail1234.ts.net";
@@ -58,4 +59,38 @@ test.each(cases)("a request to %s", async (_, host, headers, status, body) => {
   if (body) {
     expect(await response.text()).toBe(body);
   }
+});
+
+// SC-004: a sandboxed frame's requests carry `Origin: null`, which only reads and live connections
+// under a preview's path accept.
+const check = guardCheck({ allowOrigins: [], port });
+const preview = "/r/repo/preview/2026-10-20-sidebar-resize/iframe.html";
+const previewCases: Array<[string, string, string, Record<string, string>, string | undefined]> = [
+  ["a frame's read", "GET", preview, { origin: "null" }, undefined],
+  ["a frame's HEAD", "HEAD", preview, { origin: "null" }, undefined],
+  ["a frame's write", "POST", preview, { origin: "null" }, "Forbidden origin"],
+  ["a frame reading the API", "POST", "/r/repo/fate", { origin: "null" }, "Forbidden origin"],
+  [
+    "a frame reading a file",
+    "GET",
+    "/r/repo/raw/specs/README.md",
+    { origin: "null" },
+    "Forbidden origin",
+  ],
+  ["a frame reading the global API", "GET", "/fate/live", { origin: "null" }, "Forbidden origin"],
+  ["another site on a preview", "GET", preview, { origin: "https://evil.com" }, "Forbidden origin"],
+];
+
+test.each(previewCases)("%s", (_, method, path, headers, refusal) => {
+  expect(
+    check({ host: `127.0.0.1:${port}`, method, origin: headers.origin, path, upgrade: false }),
+  ).toBe(refusal);
+});
+
+test.each([
+  ["a frame's socket on a preview", `127.0.0.1:${port}`, preview, undefined],
+  ["a frame's socket elsewhere", `127.0.0.1:${port}`, "/r/repo/fate/live", "Forbidden origin"],
+  ["a socket to another host", `evil.com:${port}`, preview, "Forbidden host"],
+])("an upgrade: %s", (_, host, path, refusal) => {
+  expect(check({ host, method: "GET", origin: "null", path, upgrade: true })).toBe(refusal);
 });

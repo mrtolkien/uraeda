@@ -1,12 +1,13 @@
 import { createServer } from "node:http";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { afterEach, expect, test, vi } from "vite-plus/test";
-import { devHandler, devServer, stopDevRuns } from "../dev.ts";
+import { afterEach, expect, onTestFinished, test, vi } from "vite-plus/test";
+import { devHandler, devPreviews, devServer, devUpgrade, stopDevRuns } from "../dev.ts";
 import { loadEnv } from "../env.ts";
 import { FakeAdapter } from "../runner/fake.ts";
+import { checkoutOf, ready, socketOpens } from "../preview/__tests__/helpers.ts";
 import { fixture, fixtureRepo } from "./helpers.ts";
-import { temporaryFolder } from "uraeda-binding/test-utils";
+import { addStoryFeature, STORY_FEATURE, temporaryFolder } from "uraeda-binding/test-utils";
 
 // The tests set the server's variables for its handler: the next tests get the process's back.
 afterEach(() => {
@@ -137,4 +138,35 @@ test("the dev server serves a repository's image routes, its uploads in the data
   expect(existsSync(join(data, "images", id))).toBe(true);
   // Outside a repository's prefix, the path is Vite's.
   expect(await outside.text()).toBe("vite");
+});
+
+test("vp dev sends preview paths and their sockets to the server", async () => {
+  const repo = fixtureRepo();
+  addStoryFeature(repo);
+  vi.stubEnv("URAEDA_REPO", repo);
+  vi.stubEnv("URAEDA_DATA_DIR", temporaryFolder("uraeda-data"));
+  const handler = devHandler(temporaryFolder("uraeda-dev"), { adapter: new FakeAdapter() });
+  const server = createServer((req, res) => handler(req, res, () => res.end("vite")));
+  server.on("upgrade", devUpgrade());
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  // Its Storybook stops even when the test fails.
+  onTestFinished(async () => {
+    server.closeAllConnections();
+    server.close();
+    await stopDevRuns();
+  });
+  const { port } = server.address() as { port: number };
+  const url = `http://127.0.0.1:${port}`;
+  const base = `/r/${basename(repo)}/preview/${STORY_FEATURE}/`;
+  // The first request starts the dev server's server, whose runner then views the checkout.
+  await fetch(`${url}/r/${basename(repo)}/raw/specs/README.md`);
+  const previews = (await devPreviews(port))!;
+  const checkout = await checkoutOf(join(repo, ".worktrees", STORY_FEATURE), base);
+  previews.view(checkout);
+  await ready(previews, checkout);
+
+  const echo = await fetch(`${url}${base}__echo`, { headers: { origin: "null" } });
+
+  expect(((await echo.json()) as { path: string }).path).toBe("/__echo");
+  expect(await socketOpens(`${url}${base}storybook-server-channel`, { origin: "null" })).toBe(true);
 });

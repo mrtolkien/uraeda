@@ -99,6 +99,7 @@ async function main(argv: Array<string>): Promise<number> {
     });
   }
   attach(getRequestListener(server.app.fetch));
+  http.on("upgrade", server.upgrade);
   const address = `http://127.0.0.1:${options.port}`;
   process.stdout.write(`Uraeda server on ${address}\n`);
   if (options.open) {

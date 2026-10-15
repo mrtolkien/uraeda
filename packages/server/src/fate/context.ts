@@ -1,3 +1,4 @@
+import type { Previews } from "../preview/runner.ts";
 import type { Hosts } from "../repositories.ts";
 import type { Sessions } from "../runner/sessions.ts";
 import { callSiteError } from "./errors.ts";
@@ -8,12 +9,13 @@ export type Binding = typeof import("uraeda-binding");
 /**
  * fate's request context: the repository the server reads and writes, through the binding, null on
  * the global endpoint; the session manager that talks to agents about its features; the hosts of
- * every listed repository; and the data folder holding their list.
+ * every listed repository; the data folder holding their list; and the server's Storybooks.
  */
 export type Context = {
   binding: Binding;
   dataDir: string;
   hosts: Hosts;
+  previews: Previews;
   repo: string | null;
   sessions: Sessions;
 };
