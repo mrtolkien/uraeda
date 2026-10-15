@@ -47,7 +47,8 @@ The handle is a component of the sidebar, `SidebarHandle`, which keeps the width
 
 ## Mockups
 
-- [Dragging the handle](/packages/web/src/SidebarHandle.stories.tsx#Dragging)
+- [Dragging the handle](/packages/web/src/SidebarHandle.stories.tsx#Dragging): the handle as the
+  human drags it.
 
 ## Assumptions
 

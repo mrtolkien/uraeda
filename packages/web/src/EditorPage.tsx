@@ -13,8 +13,9 @@ import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
 import { asTyped, readDraft, useEditorImages, useMovedText } from "./attach/useEditorImages.ts";
 import { Blocks } from "./Blocks.tsx";
+import { StoriesProvider } from "./stories.tsx";
 import { CommitActions } from "./CommitActions.tsx";
-import { useDraft, useProposalHints } from "./data.ts";
+import { MAIN_CHECKOUT, useDraft, useProposalHints } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { SaveStatus } from "./fields/SaveStatus.tsx";
@@ -175,7 +176,9 @@ function EditorText({
       )}
       {drawn ? (
         <DropHint hint={images.hint}>
-          <Blocks document={draft.document} ids={ids} />
+          <StoriesProvider folder={MAIN_CHECKOUT} stories={draft.stories}>
+            <Blocks document={draft.document} ids={ids} />
+          </StoriesProvider>
         </DropHint>
       ) : (
         <>

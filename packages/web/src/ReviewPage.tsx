@@ -27,6 +27,7 @@ import { reviewHeadings } from "./ReviewHeadings.tsx";
 import { ReviewMockups } from "./ReviewMockups.tsx";
 import { useRefusals } from "./ReviewVerdict.tsx";
 import { useRepositoryPath } from "./routes.tsx";
+import { StoriesProvider } from "./stories.tsx";
 import { unsavedKey } from "./fields/unsaved.ts";
 import { type Range, useCommentDraft } from "./useCommentDraft.ts";
 import { useSpecFolds } from "./useOpenKeys.ts";
@@ -285,12 +286,14 @@ export function ReviewPage({ file }: { file: File }) {
             onStartOver={actions.startOver}
             wide={wide}
           />
-          <Blocks
-            document={tree}
-            folds={folds}
-            override={reviewHeadings(version.items, wide)}
-            selection={blocksSelection}
-          />
+          <StoriesProvider folder={file.folder} stories={version.stories}>
+            <Blocks
+              document={tree}
+              folds={folds}
+              override={reviewHeadings(version.items, wide)}
+              selection={blocksSelection}
+            />
+          </StoriesProvider>
           <YourReview
             comments={comments}
             file={file}

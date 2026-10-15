@@ -6,7 +6,8 @@
 // - `/index.json`: one story entry per `export const X` of each `*.stories.*` file;
 // - `/iframe.html?id=<id>`: a page holding the export's name, a button counting its clicks, a
 //   separator, the colour mode it was sent, the module script `/story.js`, and the skill's pick
-//   script, with a `Content-Security-Policy` that forbids framing it, which the proxy replaces;
+//   script, with a `Content-Security-Policy` that forbids framing it, which the proxy replaces. Its
+//   script opens Storybook's channel, beside the page, and shows "Channel open" once it answers;
 // - WebSockets at `/storybook-server-channel`, refused when their `Origin` is `null`, and under
 //   `URAEDA_PREVIEW_BASE` for the `vite-hmr` protocol, which each send one message: the path,
 //   `Host`, `Origin`, and headers they got, as JSON;
@@ -115,6 +116,12 @@ document.getElementById("hide").addEventListener("click", () => {
   document.getElementById("clicks").textContent =
     "Clicked " + clicks + (clicks === 1 ? " time" : " times");
 });
+const channel = new WebSocket(new URL("storybook-server-channel", location.href).href.replace(/^http/, "ws"));
+channel.addEventListener("message", () => {
+  const open = document.createElement("p");
+  open.textContent = "Channel open";
+  document.body.append(open);
+}, { once: true });
 window.addEventListener("message", (event) => {
   if (event.data && event.data.uraeda === "mode") {
     document.documentElement.dataset.mode = event.data.mode;

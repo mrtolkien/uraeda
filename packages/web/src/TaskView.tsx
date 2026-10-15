@@ -13,7 +13,8 @@ import { Suspense, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { Span } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
-import { readPrioritiesHash, useDraft, usePriority } from "./data.ts";
+import { StoriesProvider } from "./stories.tsx";
+import { MAIN_CHECKOUT, readPrioritiesHash, useDraft, usePriority } from "./data.ts";
 import { EditableLine } from "./EditableLine.tsx";
 import { useTextField } from "./fields/useTextField.ts";
 import { refusal } from "./errors.ts";
@@ -102,7 +103,9 @@ function DraftPart({ path }: { path: string }) {
       <Text color="secondary" type="supporting">
         {path.replace(/^specs\//, "")} · {draft.committed ? "committed" : "not committed"}
       </Text>
-      <Blocks document={draft.document} ids={ids} />
+      <StoriesProvider folder={MAIN_CHECKOUT} stories={draft.stories}>
+        <Blocks document={draft.document} ids={ids} />
+      </StoriesProvider>
       <SlugField field={slug} />
       <HStack gap={2}>
         <Button label="Edit" onClick={() => navigate(here(`/edit/${path}`))} />

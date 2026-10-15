@@ -8,6 +8,7 @@ import type {
   Feature,
   FolderSuggestions,
   Inbox,
+  Preview,
   Priorities,
   ProposalHints,
   Repositories,
@@ -15,6 +16,7 @@ import type {
   SessionList,
   SessionSearch,
   SlugProposal,
+  Story,
   Turn,
   TurnLog,
   WorkflowFile,
@@ -57,6 +59,7 @@ const ItemsSelection = {
 const VersionSelection = {
   document: DocumentSelection,
   items: ItemsSelection,
+  stories: true,
   text: true,
 } as const;
 
@@ -67,6 +70,7 @@ export const WorkspaceView = view<Workspace>()({
   features: true,
   id: true,
   noSpecs: true,
+  preview: true,
   priorities: true,
   prioritiesHash: true,
   root: true,
@@ -85,6 +89,7 @@ export const FeatureView = view<Feature>()({
   missing: true,
   mockups: true,
   path: true,
+  preview: true,
   problems: true,
   pullRequest: true,
   session: true,
@@ -160,6 +165,7 @@ export const DraftView = view<Draft>()({
   path: true,
   priorityChanges: true,
   slug: true,
+  stories: true,
   text: true,
   title: true,
   written: true,
@@ -266,4 +272,24 @@ export const FolderSuggestionsView = view<FolderSuggestions>()({
 export const SlugProposalView = view<SlugProposal>()({
   id: true,
   slug: true,
+});
+
+/**
+ * A story link of a checkout, `<folder>:<path>#<export>`: its Storybook's state, and its frame and
+ * Storybook page once ready. Reading it is a view of the checkout's Storybook.
+ */
+export const StoryView = view<Story>()({
+  error: true,
+  frame: true,
+  id: true,
+  state: true,
+  storybook: true,
+});
+
+/** A checkout's Storybook, by its folder or `main`: its state, and its base path once ready. */
+export const PreviewView = view<Preview>()({
+  base: true,
+  error: true,
+  id: true,
+  state: true,
 });

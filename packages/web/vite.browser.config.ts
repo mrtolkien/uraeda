@@ -3,15 +3,19 @@
 // runs never start Claude Code. The root's config lists this project next to the others.
 import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { createServer, request as forward } from "node:http";
+import { connect, type AddressInfo } from "node:net";
 import { dirname, join } from "node:path";
 import type { Frame, Page } from "playwright";
 import { addRepository, removeRepository } from "uraeda-binding";
 import {
   addChange,
   addPlan,
+  addStoryFeature,
   commitOnBranch,
   ELEVEN,
   fixture,
+  previewStarts,
   temporaryFolder,
 } from "uraeda-binding/test-utils";
 import { reloadRepositories } from "uraeda-server/dev";
@@ -53,6 +57,81 @@ type AgentEvent = Parameters<FakeAdapter["emit"]>[0];
 /** How long the server waits before it serves a chat image: a slow network, for a test. */
 let chatImageDelay = 0;
 
+/** The log of the test feature's fake preview, which records each start, once it is added. */
+let previewLog: string | undefined;
+
+/** The host name SC-006's test reaches the test server through, listed as an allowed host. */
+const LISTED_HOST = "uraeda.test";
+process.env.URAEDA_ALLOWED_HOSTS = LISTED_HOST;
+
+/**
+ * The frame of the test's page whose element's `title` is `title`, as Playwright reaches it: a
+ * sandboxed frame too, which the page itself cannot read.
+ */
+async function frameTitled(context: Context, title: string): Promise<Frame> {
+  const page = await context.frame();
+  const element = await page.locator(`iframe[title="${title}"]`).elementHandle({ timeout: 10_000 });
+  const frame = await element?.contentFrame();
+  if (!frame) {
+    throw new Error(`No frame titled ${title}`);
+  }
+  return frame;
+}
+
+/**
+ * A forwarding proxy to the test server's port, for a browser that sends every request through it:
+ * absolute-form requests, and `CONNECT` tunnels for its sockets. The host name the browser asked
+ * for stays in each request's `Host`.
+ */
+async function forwardingProxy(port: number) {
+  const proxy = createServer((request, response) => {
+    const url = new URL(request.url ?? "/");
+    const upstream = forward(
+      {
+        headers: request.headers,
+        host: "127.0.0.1",
+        method: request.method,
+        path: url.pathname + url.search,
+        port,
+      },
+      (answer) => {
+        response.writeHead(answer.statusCode ?? 502, answer.headers);
+        answer.pipe(response);
+      },
+    );
+    upstream.on("error", () => response.destroy());
+    request.pipe(upstream);
+  });
+  proxy.on("connect", (_request, socket, head) => {
+    const upstream = connect(port, "127.0.0.1", () => {
+      socket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
+      upstream.write(head);
+      upstream.pipe(socket);
+      socket.pipe(upstream);
+    });
+    upstream.on("error", () => socket.destroy());
+    socket.on("error", () => upstream.destroy());
+  });
+  // WebKit sends a socket's upgrade in absolute form too: it goes on as the same request.
+  proxy.on("upgrade", (request, socket, head) => {
+    const url = new URL(request.url ?? "/");
+    const upstream = connect(port, "127.0.0.1", () => {
+      const lines = [`${request.method} ${url.pathname}${url.search} HTTP/1.1`];
+      for (let index = 0; index < request.rawHeaders.length; index += 2) {
+        lines.push(`${request.rawHeaders[index]}: ${request.rawHeaders[index + 1]}`);
+      }
+      upstream.write(`${lines.join("\r\n")}\r\n\r\n`);
+      upstream.write(head);
+      upstream.pipe(socket);
+      socket.pipe(upstream);
+    });
+    upstream.on("error", () => socket.destroy());
+    socket.on("error", () => upstream.destroy());
+  });
+  await new Promise<void>((resolve) => proxy.listen(0, "127.0.0.1", resolve));
+  return { close: () => proxy.close(), port: (proxy.address() as AddressInfo).port };
+}
+
 /** Holds the chat images' answers for `chatImageDelay`, before the server answers them. */
 const slowChatImages: Plugin = {
   configureServer(server) {
@@ -87,6 +166,7 @@ const commands = {
     shared.uraedaRepo = { name: repository.name, path };
     agent.sent = [];
     chatImageDelay = 0;
+    previewLog = undefined;
     // A turn whose test gave up waiting for it is never released by that test: it ends once longer
     // than any test and its hooks, so one stuck test does not hold up every one after it.
     setTimeout(() => void commands.releaseRepo(undefined, token), 120_000).unref();
@@ -160,6 +240,72 @@ const commands = {
   addChange(_context: unknown, folder: string, files: Record<string, string>) {
     addChange(repoFolder(), folder, files);
   },
+  /**
+   * Adds the test feature, `2026-10-20-sidebar-resize`, whose spec and proposal link a story, with
+   * a preview decision on the fake preview, as `addStoryFeature` does.
+   */
+  addStoryFeature(_context: unknown, options: Parameters<typeof addStoryFeature>[1] = {}) {
+    previewLog = addStoryFeature(repoFolder(), options).log;
+  },
+  /** Each start of the test feature's fake preview: its base path, folder, process, and port. */
+  previewStarts() {
+    return previewLog === undefined ? [] : previewStarts(previewLog);
+  },
+  /** The text of a frame of the page, by its `title`, or "" while it has none. */
+  async frameText(context: Context, title: string) {
+    const frame = await frameTitled(context, title);
+    return frame
+      .locator("body")
+      .innerText({ timeout: 1000 })
+      .catch(() => "");
+  },
+  /** Clicks the element of a role and name in a frame of the page, by its `title`. */
+  async frameClick(context: Context, title: string, role: "button", name: string) {
+    await (await frameTitled(context, title)).getByRole(role, { name }).click();
+  },
+  /** An attribute of the element `selector` finds in a frame of the page, by its `title`. */
+  async frameAttribute(context: Context, title: string, selector: string, name: string) {
+    const frame = await frameTitled(context, title);
+    return frame
+      .locator(selector)
+      .getAttribute(name, { timeout: 1000 })
+      .catch(() => null);
+  },
+  /** Runs a script in a frame of the page, by its `title`, as the story's own code would. */
+  async frameRun(context: Context, title: string, script: string) {
+    await (await frameTitled(context, title)).evaluate(script);
+  },
+  /** Reloads a frame of the page, by its `title`, as Storybook does, and waits for its load. */
+  async frameReload(context: Context, title: string) {
+    const frame = await frameTitled(context, title);
+    await Promise.all([
+      frame.waitForNavigation({ waitUntil: "load" }),
+      frame.evaluate(() => setTimeout(() => window.location.reload())),
+    ]);
+  },
+  /**
+   * Opens a page of the test's repository in a new browser whose requests all go through a
+   * forwarding proxy, under the listed host name, and gives the text of a frame of it, by its
+   * `title`, once it holds `text`.
+   */
+  async openThroughHost(context: Context, path: string, title: string, text: string) {
+    const port = Number(new URL(context.page.url()).port);
+    const proxy = await forwardingProxy(port);
+    const browser = context.page.context().browser()!;
+    const opened = await browser.newContext({
+      proxy: { server: `http://127.0.0.1:${proxy.port}` },
+    });
+    try {
+      const page = await opened.newPage();
+      await page.goto(`http://${LISTED_HOST}:${port}/r/${shared.uraedaRepo!.name}${path}`);
+      const body = page.locator(`iframe[title="${title}"]`).contentFrame().locator("body");
+      await body.filter({ hasText: text }).waitFor({ timeout: 20_000 });
+      return await body.innerText();
+    } finally {
+      await opened.close();
+      proxy.close();
+    }
+  },
   /** The messages sent to the agent during the test, in order. */
   agentSent() {
     return agent.sent.map(({ id, images, text, when }) => ({
@@ -219,6 +365,7 @@ const commands = {
 export type RepoCommands = {
   addChange: (folder: string, files: Record<string, string>) => Promise<void>;
   addPlan: (folder: string) => Promise<void>;
+  addStoryFeature: (options?: Parameters<typeof addStoryFeature>[1]) => Promise<void>;
   agentAccept: (index?: number) => Promise<void>;
   agentEmit: (events: Array<AgentEvent>) => Promise<void>;
   agentFinish: (code?: number, stderr?: string) => Promise<void>;
@@ -229,9 +376,16 @@ export type RepoCommands = {
   committedFiles: (at: string, path: string) => Promise<Array<string>>;
   fixtureImage: (name: string) => Promise<string>;
   fixtureText: (name: string) => Promise<string>;
+  frameAttribute: (title: string, selector: string, name: string) => Promise<string | null>;
+  frameClick: (title: string, role: "button", name: string) => Promise<void>;
+  frameReload: (title: string) => Promise<void>;
+  frameRun: (title: string, script: string) => Promise<void>;
+  frameText: (title: string) => Promise<string>;
   mouse: (
     steps: Array<{ ms?: number; type: "move" | "down" | "up" | "wait"; x?: number; y?: number }>,
   ) => Promise<void>;
+  openThroughHost: (path: string, title: string, text: string) => Promise<string>;
+  previewStarts: () => Promise<Array<{ base: string; cwd: string; pid: number; port: number }>>;
   readRepo: (path?: string) => Promise<string>;
   releaseRepo: (token: number) => Promise<void>;
   repoFileSize: (path: string) => Promise<number>;
@@ -242,10 +396,15 @@ export type RepoCommands = {
 
 export default defineConfig({
   ...base,
-  plugins: [...plugins, slowChatImages, uraedaServer({ adapter: agent })],
+  plugins: [
+    ...plugins,
+    slowChatImages,
+    // SC-006's page, under the listed host name, is its own origin, which the guard allows.
+    uraedaServer({ adapter: agent, allowOrigins: (port) => [`http://${LISTED_HOST}:${port}`] }),
+  ],
   // The dev server's fixed port is for `vp dev`: the tests take the next free port when another
-  // checkout's tests hold theirs.
-  server: { ...base.server, strictPort: false },
+  // checkout's tests hold theirs. Vite answers the listed host name too (R12).
+  server: { ...base.server, allowedHosts: [LISTED_HOST], strictPort: false },
   // StyleX's runtime injection is imported by the compiled styles, which Vite finds only once the
   // tests run: bundled late, on a cold cache, it reloads the browser and fails the test files.
   optimizeDeps: { include: ["@stylexjs/stylex/lib/stylex-inject"] },

@@ -1,7 +1,8 @@
 // The records each page reads: requested by id, kept up to date by the server's live updates, and
 // read again when the page is shown again, as iOS may have dropped its connection.
 import { useEffect, useState } from "react";
-import { useFateClient, useLiveView, useRequest, useView } from "react-fate";
+import type { StoryTarget } from "uraeda-binding";
+import { useFateClient, useLiveView, useRequest, useView, type ViewRef } from "react-fate";
 import type { Draft, Inbox, Priorities, Trigger } from "uraeda-server/fate";
 import {
   AgentView,
@@ -19,6 +20,7 @@ import {
   SessionSearchView,
   SessionView,
   SlugProposalView,
+  StoryView,
   TurnLogView,
   TurnView,
   WorkflowMessageView,
@@ -378,4 +380,59 @@ export function useSessionFollowed(id: string) {
 export function useTurnFollowed(id: string) {
   const { turn } = useRequest({ turn: { id, view: TurnView } });
   return useLiveView(TurnView, turn);
+}
+
+/** How often a record drawn on screen is read again, so the server knows it is still viewed. */
+export const STILL_VIEWED_MS = 5 * 60_000;
+
+/**
+ * Reads a request again, from the server, every 5 minutes while its component is drawn: a read is a
+ * view, and a Storybook stops after 30 minutes without one. The request is its first draw's: a
+ * component that reads another record is drawn anew, under another key.
+ */
+export function useStillViewed(request: Parameters<typeof useRequest>[0]) {
+  const fate = useFateClient();
+  const [first] = useState(request);
+  useEffect(() => {
+    const timer = setInterval(
+      () => void fate.request(first as never, { mode: "network-only" }).catch(() => {}),
+      STILL_VIEWED_MS,
+    );
+    return () => clearInterval(timer);
+  }, [fate, first]);
+}
+
+/**
+ * A story link of a checkout, by its folder, `main` for the main checkout, kept up to date as its
+ * Storybook starts, fails, or stops. Each draw's first read goes to the server, as a view, while the
+ * cached record shows; it is read again while it is drawn.
+ */
+export function useStory(folder: string, story: StoryTarget) {
+  const request = { story: { id: `${folder}:${story.path}#${story.export}`, view: StoryView } };
+  const { story: record } = useRequest(request, { mode: "stale-while-revalidate" });
+  useRefreshOnShow(request);
+  useStillViewed(request);
+  return useLiveView(StoryView, record);
+}
+
+/** The folder of the main checkout's stories and Storybook, as the server names it. */
+export const MAIN_CHECKOUT = "main";
+
+/**
+ * Whether a checkout has an active preview decision, by its folder, `main` for the main checkout:
+ * its feature's, or the workspace's, from the cache when there. Reading it starts nothing.
+ */
+export function usePreviewOn(folder: string): boolean {
+  const main = folder === MAIN_CHECKOUT;
+  const request = main
+    ? { workspace: { id: WORKSPACE_ID, view: WorkspaceView } }
+    : { feature: { id: folder, view: FeatureView } };
+  // One request of either record: the hooks below are the same whichever it is.
+  const result = useRequest(request as never) as {
+    feature?: ViewRef<"Feature">;
+    workspace?: ViewRef<"Workspace">;
+  };
+  const feature = useLiveView(FeatureView, result.feature ?? null);
+  const workspace = useLiveView(WorkspaceView, result.workspace ?? null);
+  return (main ? workspace?.preview : feature?.preview) ?? false;
 }

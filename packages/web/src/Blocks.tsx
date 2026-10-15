@@ -7,12 +7,14 @@ import { Table, TableBody, TableCell, TableHeaderCell, TableRow } from "@astryxd
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useContext, useMemo } from "react";
 import type { Block, Document } from "uraeda-binding";
 import { type Fold, FoldNode, type Folds, useHashFold } from "./Folds.tsx";
 import { useStaticImages } from "./ImageView.tsx";
 import { After, Selectable, type Selection, useSelect } from "./Selection.tsx";
 import { opensImage, Spans } from "./Spans.tsx";
+import { StoryEmbed } from "./StoryEmbed.tsx";
+import { StoryContext, useStoryAt } from "./stories.tsx";
 
 const SIGNS: Record<string, string> = {
   ask: "?",
@@ -335,10 +337,36 @@ function blockElement(block: Block, context: Context): ReactNode {
   }
 }
 
+/**
+ * A paragraph that embeds a story: the story, then what follows the block in a review, like its
+ * pending comments. The embed is not selected as lines are: its comments come from its own controls.
+ */
+function StoryNode({ block, context }: { block: Block; context: Context }) {
+  const stories = useContext(StoryContext)!;
+  const story = useStoryAt(block)!;
+  const after = context.selection?.after?.(block);
+  return (
+    <>
+      <StoryEmbed
+        comment={stories.comment && ((text) => stories.comment!(story, text, block))}
+        folder={stories.folder}
+        key={`${story.path}#${story.export}`}
+        removed={stories.removed}
+        story={story}
+      />
+      {after && <After>{after}</After>}
+    </>
+  );
+}
+
 function BlockNode({ block, context }: { block: Block; context: Context }): ReactNode {
+  const story = useStoryAt(block);
   const own = context.override?.(block);
   if (own !== undefined) {
     return own;
+  }
+  if (story) {
+    return <StoryNode block={block} context={context} />;
   }
   const node = blockElement(block, context);
   return UNWRAPPED.has(block.kind) ? (
