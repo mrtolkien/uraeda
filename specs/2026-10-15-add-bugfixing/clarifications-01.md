@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Add a bugfixing/low impact change flow
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 10 questions on the light flow, about 35 minutes.
+> Answered on 2026-10-15.
 >
 > - The proposal names three flows: the first question splits them, with the UI iteration flow
 >   recommended as its own feature, later.
@@ -66,7 +66,7 @@ answer.
   - [pro] the smallest feature.
   - [con] most of the direct commits are small changes, not bugs: they keep bypassing the workflow.
 
-**Answer:**
+**Answer:** A: Create a draft for the feature on main, I'll start it in parallel.
 
 ## Q2: Do bugs and small changes share one flow?
 
@@ -96,7 +96,7 @@ learn.
   - [con] a spec and a plan stay files to read, the cost the proposal wants gone, and `feature_step`
     is already 85 lines of a 100-line limit.
 
-**Answer:**
+**Answer:** A: The bug flow was never used and just a placeholder so far
 
 ### Q2.A: What are the light flow's folder and branch called?
 
@@ -116,7 +116,7 @@ required a folder. More in [discovery](discovery-01.md#names-of-the-light-flow).
   - [pro] no rename.
   - [con] two names for one flow, and two kinds in every copy of the rule.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Does the agent stop for you before writing code?
 
@@ -143,7 +143,7 @@ C can come on top of A or B.
   - [pro] you choose per request, for a risky area.
   - [con] one more field in the request.
 
-**Answer:**
+**Answer:** A: Make sure the agent still works in a worktree every time
 
 ## Q4: When is a change too big for the light flow?
 
@@ -174,7 +174,11 @@ is.
   - [pro] the most predictable.
   - [con] misses small changes to contracts and data.
 
-**Answer:**
+**Answer:** A: Small decision changes should be ok for this flow _but_ require human approval before
+going through and making the PR
+
+Never forget: decisions are OK to change, they are here to store human intent. Is that clear in the
+skill and flow?
 
 ## Q5: What happens when you accept an upgrade to a feature?
 
@@ -200,7 +204,7 @@ Why it matters: it decides how quickly an upgraded change gets going, and whethe
   - [pro] nothing new to build.
   - [con] the investigation is lost, and you write the request twice.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: How does a small UI change meet the UI decisions?
 
@@ -228,7 +232,8 @@ Why it matters: it decides whether small UI tweaks can use the light flow at all
   - [pro] you see the change before it is built.
   - [con] two reviews per UI tweak, against Q3's answer.
 
-**Answer:**
+**Answer:** A: I'm not sure that it conflicts too much with the decisions though, it's about testing
+and specs, which should be pretty minimal for small fixes.
 
 ## Q7: How much review does a light change get before its pull request?
 
@@ -253,7 +258,7 @@ Why it matters: the proposal wants less review and no loss of quality; this sets
   - [pro] the cheapest.
   - [con] an author's review misses what a fresh one catches.
 
-**Answer:**
+**Answer:** A
 
 ## Q8: Can one request hold several small changes?
 
@@ -273,7 +278,8 @@ Why it matters: it decides how many pull requests you review for a list of tweak
   - [pro] the smallest diffs.
   - [con] a pull request per tweak.
 
-**Answer:**
+**Answer:** A: Most rows in the look and feel draft could indeed be a small feature as described
+here
 
 ## Q9: How much tooling does this feature build?
 
@@ -298,7 +304,9 @@ the light flow.
   - [pro] light changes stand apart from features.
   - [con] a larger UI feature, better decided after using A.
 
-**Answer:**
+**Answer:** A and C: Light changes will be a dedicated view that should focus on the session
+attached. The only change compared to a feature session will be what appears in the sidebar. It's a
+larger UI feature but it should stay pretty small, I hope.
 
 ## Settled without the human
 
@@ -331,4 +339,16 @@ the light flow.
 - **The UI iteration research** stays in this discovery, for its own feature: with A in Q1, the spec
   leaves it out.
 
-**Notes:**
+**Notes:** Honestly the "small feature flow" is just a small structure for the files and how they
+work together, but what they mostly do is build above the session/chat concept: chats (from the CLI)
+are what I used for small features.
+
+So make sure that the spec stays close to this: the small feature flow should look and feel like a
+chat with a light structure on top: a file as input for context, optional clarifications rounds, and
+then implementation and a PR.
+
+Normal chats can stay but should be aware of this flow.
+
+- **Questions inside a light change**: LGTM, let's make sure it's comfortable to see in the UI:
+  re-use the clarifications view with a link in the right sidebar from the small feature flow (since
+  the center column will be the agent)
