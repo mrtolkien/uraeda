@@ -277,13 +277,16 @@
     </p>
 
     <section class="shot">
-      <h2>1. A story embedded in a spec, 1440 × 900</h2>
+      <h2>1. A story embedded in a spec, 1440 × 900, at both widths</h2>
       <p class="caption">
         The spec's line
         <code>[Dragging the handle](/packages/web/src/SidebarHandle.stories.tsx#Dragging)</code>,
-        alone in its paragraph under US1, shows as the live story. "Desktop" draws the story 1440 px
-        wide, scaled to the reading column; "Phone" draws it 402 px wide, unscaled. "Pick an
-        element" appears once the story's frame says it has the pick script.
+        alone in its paragraph under US1, shows as the live story, twice: the phone width, 402 px
+        and unscaled, next to the desktop width, 1440 px scaled to the space left. Each frame runs
+        on its own. "Phone" and "Desktop" show one alone, the desktop scaled to the whole column.
+        Frames come from Uraeda's own address,
+        <code>/r/uraeda/preview/2026-10-20-sidebar-resize/</code>. "Pick an element" appears once
+        the frames say they have the pick script.
       </p>
       <div class="desktop">
         <div class="sidebar">
@@ -303,14 +306,23 @@
               <div class="bar">
                 <span class="label">Dragging the handle</span>
                 <span class="seg" role="radiogroup" aria-label="Width"
-                  ><span>Phone</span><span class="on">Desktop</span></span
+                  ><span class="on">Both</span><span>Phone</span><span>Desktop</span></span
                 >
                 <span class="btn">Pick an element</span>
                 <span class="btn">Comment</span>
-                <span class="btn">Open in Storybook ↗</span>
+                <span class="btn">Open in Storybook</span>
               </div>
-              <div class="frame">
-                <div class="app">
+              <div class="frame" style="display: flex; gap: 16px; align-items: flex-start">
+                <div
+                  class="app"
+                  style="width: 201px; height: 437px; flex-direction: column; flex: none"
+                >
+                  <div class="side" style="width: auto; height: 110px">
+                    sidebar-resize<br /><span class="hide">Hide the sidebar</span>
+                  </div>
+                  <div style="padding: 12px">Main content</div>
+                </div>
+                <div class="app" style="flex: 1; height: 300px">
                   <div class="side">
                     Priorities<br />sidebar-resize<br /><span class="hide">Hide the sidebar</span>
                     <div class="handle"></div>
@@ -347,7 +359,7 @@
                 <span class="seg"><span>Phone</span><span class="on">Desktop</span></span>
                 <span class="btn pressed">Pick an element</span>
                 <span class="btn">Comment</span>
-                <span class="btn">Open in Storybook ↗</span>
+                <span class="btn">Open in Storybook</span>
               </div>
               <div class="hint">Click an element to comment on it. Escape to stop.</div>
               <div class="frame">
@@ -381,8 +393,8 @@
       <p class="caption">
         In order: Storybook is starting for the worktree; it failed to start, with the last line it
         printed; the story is not on the branch; the round was answered and the variant removed; the
-        page is open from another device; the feature has no worktree. In each, "Open in Storybook"
-        is hidden when there is nothing to open.
+        feature has no worktree. In each, "Open in Storybook" is hidden when there is nothing to
+        open.
       </p>
       <div style="width: 1100px">
         <div class="embed">
@@ -399,8 +411,7 @@
         </div>
         <div class="embed">
           <div class="bar">
-            <span class="label">Dragging the handle</span
-            ><span class="btn">Open in Storybook ↗</span>
+            <span class="label">Dragging the handle</span><span class="btn">Open in Storybook</span>
           </div>
           <div class="state">
             No story “Dragging” in packages/web/src/SidebarHandle.stories.tsx on this branch.
@@ -409,10 +420,6 @@
         <div class="embed">
           <div class="bar"><span class="label">B: A handle with a grip</span></div>
           <div class="state">This variant was removed after your answer.</div>
-        </div>
-        <div class="embed">
-          <div class="bar"><span class="label">Dragging the handle</span></div>
-          <div class="state">Stories run only on the computer that runs Uraeda.</div>
         </div>
         <div class="embed">
           <div class="bar"><span class="label">Dragging the handle</span></div>
@@ -494,9 +501,9 @@
     <section class="shot">
       <h2>5. The phone, 402 × 874: an embed, then pick mode's comment sheet</h2>
       <p class="caption">
-        On a narrow screen the embed is as wide as the page, at "Phone" by default, and its buttons
-        are icons with names: width, pick, comment, open. The comment form opens as a bottom sheet.
-        Options of a visual question stack, each with its story under it.
+        On a narrow screen the embed is as wide as the page and shows the phone width only, also
+        through Tailscale. Its buttons are icons with names: pick, comment, open. The comment form
+        opens as a bottom sheet. Options of a visual question stack, each with its story under it.
       </p>
       <div style="display: flex; gap: 32px">
         <div class="phone">
@@ -505,7 +512,6 @@
             <div class="embed">
               <div class="bar">
                 <span class="label">Dragging the handle</span>
-                <span class="btn icon" aria-label="Width: Phone">▯</span>
                 <span class="btn icon" aria-label="Pick an element">⌖</span>
                 <span class="btn icon" aria-label="Comment">✎</span>
                 <span class="btn icon" aria-label="Open in Storybook">↗</span>
@@ -542,6 +548,94 @@
             <div class="field">Make it an icon.</div>
             <div class="right">
               <span class="btn">Cancel</span><span class="btn primary">Add comment</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="shot">
+      <h2>6. A story in an agent's message, 1440 × 900</h2>
+      <p class="caption">
+        In the session of sidebar-resize, the agent's message holds the story link alone on a line:
+        the transcript shows the same embed. A comment from it goes into the composer, unsent. The
+        session's column has a "Storybook" row.
+      </p>
+      <div class="desktop">
+        <div class="page" style="max-width: 1000px">
+          <p><strong>Agent</strong></p>
+          <p>I added the drag handle's states. Here is the drag:</p>
+          <div class="embed">
+            <div class="bar">
+              <span class="label">Dragging the handle</span>
+              <span class="seg"
+                ><span class="on">Both</span><span>Phone</span><span>Desktop</span></span
+              >
+              <span class="btn">Pick an element</span><span class="btn">Comment</span
+              ><span class="btn">Open in Storybook</span>
+            </div>
+            <div class="frame" style="display: flex; gap: 16px">
+              <div class="app" style="width: 160px; height: 300px; flex: none">
+                <div class="side" style="width: auto">sidebar</div>
+              </div>
+              <div class="app" style="flex: 1; height: 220px">
+                <div class="side">
+                  sidebar
+                  <div class="handle"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="field" style="min-height: 48px">
+            Story SidebarHandle.stories.tsx#Dragging, desktop, separator: Larger hit area.
+          </div>
+        </div>
+        <div
+          class="sidebar"
+          style="border-left: 1px solid var(--line); border-right: none; width: 300px"
+        >
+          <div><strong>Plan</strong> · Task 3 of 6</div>
+          <div>Changed on the branch</div>
+          <div class="on">Storybook</div>
+          <div>Files</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="shot">
+      <h2>7. Uraeda's Storybook page, 1440 × 900</h2>
+      <p class="caption">
+        <code>/f/2026-10-20-sidebar-resize/storybook?path=/story/sidebarhandle--dragging</code>:
+        Storybook's own interface, in one sandboxed frame as tall as the window, under the crumbs.
+        "Open in Storybook", the feature's page, and the session's column lead here.
+      </p>
+      <div class="desktop" style="flex-direction: column">
+        <div class="bar" style="background: var(--surface)">
+          <span class="label">sidebar-resize › Storybook</span>
+        </div>
+        <div style="display: flex; flex: 1">
+          <div class="sidebar" style="width: 240px">
+            <div>SidebarHandle</div>
+            <div class="on">&nbsp;&nbsp;Dragging</div>
+            <div>&nbsp;&nbsp;Hidden</div>
+            <div>StoryEmbed</div>
+          </div>
+          <div style="flex: 1; padding: 16px">
+            <div class="app" style="height: 420px">
+              <div class="side">
+                sidebar
+                <div class="handle"></div>
+              </div>
+              <div style="padding: 12px">Main content</div>
+            </div>
+            <div
+              style="
+                margin-top: 12px;
+                border-top: 1px solid var(--line);
+                padding-top: 8px;
+                color: var(--soft);
+              "
+            >
+              Controls · Actions · Interactions
             </div>
           </div>
         </div>

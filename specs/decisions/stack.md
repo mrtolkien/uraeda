@@ -133,8 +133,9 @@ and approving or starting a feature must be a deliberate act
 ## Proposed change (2026-10-15-ui-iteration)
 
 Proposed by the [spec](../2026-10-15-ui-iteration/spec.md). The server may run a project's
-Storybook, from its active preview decision, in a feature's worktree, and the web UI embeds its
-stories from that separate origin, which keeps the server's own `Origin` rule unchanged.
+Storybook, from its active preview decision, in a checkout, and forward it under its own address, so
+stories work wherever Uraeda is reached. The `Origin` rule is laxer on those paths only: it accepts
+the sandboxed frames' `Origin: null` for reads and live connections.
 
 The rules become:
 
@@ -155,17 +156,19 @@ The rules become:
   their markdown, with a library or by hand. It MAY render an agent's messages, which are not
   workflow files, with Astryx's `Markdown` component. Checked by review.
 - The server MUST listen on 127.0.0.1 only. It MUST reject requests whose `Host` is not `127.0.0.1`
-  or `localhost` on its port, or a host name listed in `URAEDA_ALLOWED_HOSTS`, and requests whose
-  `Origin`, when present, is not the server's own, `https://` and a listed host name, or an allowed
-  origin. Checked by the guard's tests.
+  or `localhost` on its port, or a host name listed in `URAEDA_ALLOWED_HOSTS`. It MUST reject
+  requests whose `Origin`, when present, is not the server's own, `https://` and a listed host name,
+  or an allowed origin, except GET and HEAD requests and WebSocket upgrades under
+  `/r/<repository>/preview/`, which MAY carry `Origin: null`. Checked by the guard's tests.
 - The server MAY start the command of a project's active [preview](preview.md) decision, read from a
-  feature's worktree, in that worktree, bound to 127.0.0.1 on a free port. It MUST NOT serve or
-  proxy that preview's files itself, and MUST stop the process when the server stops. Checked by the
-  preview runner's tests.
-- The web UI MAY embed a preview's stories in frames from the preview's own origin. It MUST accept
-  messages only from those frames, checked by both their origin and their window, and MUST NOT give
-  a frame any data beyond the story to show, its colour mode, and whether pick mode is on. Checked
-  by the embed's tests.
+  checkout, in that checkout, bound to 127.0.0.1 on a free port. It MUST forward only that process's
+  GET and HEAD requests and WebSocket upgrades, under `/r/<repository>/preview/<folder>/`, with
+  `Access-Control-Allow-Origin: *` and a `Content-Security-Policy` of
+  `sandbox allow-scripts allow-popups` on every response. It MUST stop the process when the server
+  stops. Checked by the preview proxy's and runner's tests.
+- The web UI MAY show a preview's pages only in frames sandboxed without `allow-same-origin`. It
+  MUST accept messages only from those frames' windows, and MUST NOT give a frame any data beyond
+  the story to show, its colour mode, and whether pick mode is on. Checked by the embed's tests.
 - The language server MUST live in `crates/lsp`, run as `ura lsp` over stdio, and reach workflow
   files only through the core. Checked by review.
 - The language server MUST be built on the `lsp-server` and `lsp-types` crates, without an async
@@ -179,14 +182,19 @@ The rules become:
 
 Why: you chose live mockups run by Uraeda, from the project's own Storybook
 ([Q5](../2026-10-15-ui-iteration/clarifications-01.md#q5-how-do-you-see-interactions-not-only-a-still),
-[round 02](../2026-10-15-ui-iteration/clarifications-02.md)). Products that run generated or project
-UI next to a host put it on another origin and broker what it may do
+[round 02](../2026-10-15-ui-iteration/clarifications-02.md)), and they must work remotely through
+Tailscale, with a laxer `Origin` rule allowed (C2 of the
+[spec's review](../2026-10-15-ui-iteration/spec-review.md)). Products that run generated or project
+UI next to a host give it no origin of its own, or another one
 ([running untrusted UI](../2026-10-15-ui-iteration/discovery-02.md#running-untrusted-ui-next-to-a-host)).
-Serving the preview from the server itself would need it to accept `Origin: null`, which would open
-its API to any sandboxed page.
+A frame sandboxed without `allow-same-origin` sends `Origin: null`, which every write and every
+other route still refuses.
 
 New consequences:
 
-- The server runs project code: the preview command a human approved in the project's decision.
-- A preview binds to 127.0.0.1 only, so its stories embed only on the computer that runs Uraeda, not
-  from another device reaching the server through a listed host name.
+- The server runs project code, the preview command a human approved in the project's decision, and
+  forwards its traffic.
+- Anyone who reaches the server reaches the previews it runs, as for the rest of the server, until
+  the basic security planned in Next.
+- A story's code can read any path under `/r/<repository>/preview/`, of any checkout, but nothing
+  else of the server.
