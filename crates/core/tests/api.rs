@@ -389,6 +389,65 @@ fn a_feature_starts_from_a_draft_only() {
     assert!(repo.path().join("specs/README.md").exists());
 }
 
+/// A typed change's images are checked before anything is written: one of the wrong type is
+/// refused by its name, and the repository is left as it was.
+#[test]
+fn a_change_with_an_image_of_the_wrong_type_writes_nothing() {
+    let repo = repo();
+    let still = std::fs::read(common::fixture("images/still.gif")).unwrap();
+    let drawing = std::fs::read(common::fixture("images/drawing.svg")).unwrap();
+    let before = (
+        repo.git(&["for-each-ref"]),
+        repo.porcelain(),
+        repo.subjects("main"),
+    );
+
+    let started = api::start_change(
+        repo.path(),
+        "Fix the crash",
+        &[still, drawing],
+        Some("crash"),
+    );
+
+    let Err(refused) = started else {
+        panic!("the start was not refused")
+    };
+    assert_eq!(
+        refused.message,
+        "Only PNG, JPEG, GIF, and WebP images can be added: image-2 is not one."
+    );
+    let after = (
+        repo.git(&["for-each-ref"]),
+        repo.porcelain(),
+        repo.subjects("main"),
+    );
+    assert_eq!(after, before);
+    assert!(!repo.path().join(".worktrees").exists());
+}
+
+/// The binding's kind: a feature when none is given, and nothing but a feature or a change.
+#[test]
+fn a_start_is_of_a_feature_or_a_change() {
+    assert_eq!(api::start_kind(None).ok(), Some(Kind::Feature));
+    assert_eq!(api::start_kind(Some("feature")).ok(), Some(Kind::Feature));
+    assert_eq!(api::start_kind(Some("change")).ok(), Some(Kind::Change));
+    assert_eq!(
+        api::start_kind(Some("bug"))
+            .err()
+            .map(|error| error.message),
+        Some("\"bug\" is not a kind: feature or change".to_string())
+    );
+}
+
+/// R1: the slug a typed change is offered, from its title.
+#[test]
+fn a_typed_title_proposes_its_slug() {
+    assert_eq!(
+        api::propose_slug("Centre the x in failure circles"),
+        "centre-x"
+    );
+}
+
 /// Review focus 4: a change's proposal opens, saves, and commits on its branch.
 #[test]
 fn a_change_proposal_is_edited_on_its_branch() {
