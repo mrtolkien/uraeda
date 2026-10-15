@@ -926,7 +926,8 @@ The break each test catches:
   transcript.
 
 - [x] **Step 4: Implement the change's page, column, line, row, links, and labels.** A round's row
-      takes the highest `round` among the files of kind `clarifications`. The count is "1 question"
+      is the step's gate, the file `step.file` names, when it is of kind `clarifications`, with its
+      `round` ([R16](rulings.md#r16-a-changes-round-is-its-steps-gate)). The count is "1 question"
       or "N questions". The empty changes text is "Nothing outside the change's folder yet." for a
       change, and unchanged for a feature.
 - [x] **Step 5: Run the UI checks**
