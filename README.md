@@ -251,6 +251,7 @@ vp run ready       # every check and test, as CI runs them
 vp dev             # the web UI on http://127.0.0.1:4310, opening this repository first
 vp run dev         # the same, rebuilding the Rust core and restarting as it or the server changes
 vp run --filter @uraeda/ui build  # the npm package, in packages/uraeda, after the web UI's build
+vp run release 0.5.0  # on an up-to-date main: notes in CHANGELOG.md, version, tag, push
 cargo run -p uraeda-cli -- status
 ```
 
