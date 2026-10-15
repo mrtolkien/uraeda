@@ -4,6 +4,8 @@
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { addStoryFeature, previewStarts, STORY_FEATURE } from "uraeda-binding/test-utils";
+import { UNREADABLE_INDEX } from "../preview/index.ts";
+import { IDLE_MS } from "../preview/runner.ts";
 import { byId, type Data, fixtureRepo, mutate, testApp } from "./helpers.ts";
 import { connect, subscribe } from "./live-stream.ts";
 
@@ -21,8 +23,10 @@ async function liveUpdates(app: App, name: string, type: string, id: string) {
   expect(await stream.arrival("connected", 5000)).toBeDefined();
   await subscribe(app, name, "preview", { entityId: id, select: ["id", ...FIELDS], type });
   return {
-    arrival: (text: string) => stream.arrival(text, WAIT.timeout),
+    /** When the text came, after the `from` first characters of the stream. */
+    arrival: (text: string, from = 0) => stream.arrival(text, WAIT.timeout, from),
     close: () => stream.close(),
+    mark: () => stream.mark(),
   };
 }
 
@@ -162,4 +166,104 @@ test("an agent's link is checked through the core", async () => {
   expect(previews.state(`/r/${name}/preview/${STORY_FEATURE}/`)).toBeUndefined();
   expect(previews.state(`/r/${name}/preview/main/`)).toBeUndefined();
   expect(previewStarts(log!)).toEqual([]);
+});
+
+/** The live updates the repository's bus sends a record, counted as they are sent. */
+function sentUpdates(app: Awaited<ReturnType<typeof testApp>>, type: string, id: string) {
+  const bus = app.hosts.byPath(app.repo)!.live;
+  const sent: Array<string> = [];
+  const stop = new AbortController();
+  bus.listen!(type, id, (event) => sent.push(event.type), { signal: stop.signal });
+  return { sent, stop: () => stop.abort() };
+}
+
+test("a Storybook stopped without a view is not started again by a page subscribed to it (SC-005)", async () => {
+  const repo = fixtureRepo();
+  const { log } = addStoryFeature(repo);
+  const clock = { now: Date.now() };
+  const opened = await testApp(repo, { previewOptions: { now: () => clock.now } });
+  const { app, name, previews } = opened;
+  const updates = await liveUpdates(app, name, "Story", STORY);
+  await byId(app, "Story", [STORY], FIELDS);
+  expect(await updates.arrival('"state":"ready"'), "no live update to ready").toBeDefined();
+  const sent = sentUpdates(opened, "Story", STORY);
+  // The bus's listener is sent the record once as it subscribes.
+  await expect.poll(() => sent.sent.length, WAIT).toBe(1);
+
+  clock.now += IDLE_MS + 1;
+  previews.sweep();
+
+  // A stop's updates are sent as it happens: none was.
+  expect(previews.state(`/r/${name}/preview/${STORY_FEATURE}/`)).toBeUndefined();
+  expect(sent.sent, "a stop sent the story a live update").toHaveLength(1);
+  expect(previewStarts(log!)).toHaveLength(1);
+  // Its records are forgotten: the checkout's next start, read by its preview alone, is not the
+  // story's.
+  await byId(app, "Preview", [STORY_FEATURE], ["state"]);
+  await expect.poll(() => previewStarts(log!).length, WAIT).toBe(2);
+  expect(sent.sent, "a start the story did not read sent it a live update").toHaveLength(1);
+  sent.stop();
+  await updates.close();
+});
+
+test("a restart still updates the stories read before it", async () => {
+  const repo = fixtureRepo();
+  const { log } = addStoryFeature(repo);
+  const { app, name } = await testApp(repo);
+  const updates = await liveUpdates(app, name, "Story", STORY);
+  await byId(app, "Story", [STORY], FIELDS);
+  expect(await updates.arrival('"state":"ready"'), "no live update to ready").toBeDefined();
+  await expect.poll(() => previewStarts(log!).length, WAIT).toBe(1);
+
+  const before = updates.mark();
+
+  await mutate(app, "preview.restart", { folder: STORY_FEATURE }, ["id", "state"]);
+
+  expect(
+    await updates.arrival('"state":"starting"', before),
+    "no update to starting",
+  ).toBeDefined();
+  expect(await updates.arrival('"state":"ready"', before), "no update to ready").toBeDefined();
+  expect(previewStarts(log!)).toHaveLength(2);
+  await updates.close();
+});
+
+test("a story's id is checked by the core's rule: another file's link runs nothing", async () => {
+  const repo = fixtureRepo();
+  const { log } = addStoryFeature(repo);
+  const { app, name, previews } = await testApp(repo);
+
+  const stories = await byId(
+    app,
+    "Story",
+    [
+      "main:README.md#Foo",
+      `${STORY_FEATURE}:x.stories.tsx#not-an-export`,
+      // Another spelling of a story's path is not its id: one story, one record.
+      "main:packages/web/../web/src/SidebarHandle.stories.tsx#Dragging",
+    ],
+    FIELDS,
+  );
+
+  expect(stories.map((story) => story.state)).toEqual(["none", "none", "none"]);
+  expect(previews.state(`/r/${name}/preview/main/`)).toBeUndefined();
+  expect(previewStarts(log!)).toEqual([]);
+});
+
+test("a ready Storybook whose index cannot be read fails its stories (R23)", async () => {
+  const repo = fixtureRepo();
+  addStoryFeature(repo, { preview: { mode: "hang-later" } });
+  const { app } = await testApp(repo, { previewOptions: { indexMs: 200 } });
+  await expect
+    .poll(async () => (await settled(app, "Preview", STORY_FEATURE)).state, WAIT)
+    .toBe("ready");
+
+  const [story] = await byId(app, "Story", [STORY], FIELDS);
+
+  expect(story).toMatchObject({
+    error: UNREADABLE_INDEX,
+    frame: null,
+    state: "failed",
+    storybook: null,
+  });
 });
