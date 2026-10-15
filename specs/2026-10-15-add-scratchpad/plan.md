@@ -757,8 +757,8 @@ The change list is built like this:
 - Diff `INBOX.md` and `PRIORITIES.md` against `HEAD`.
 - Pair a removed note with an added priorities entry, or with a line added to a changed draft under
   `specs/drafts/` or `specs/backlog/`, when their text is the same. Each pair is one move.
-- Hold the draft files of those moves in the commit, and any uncommitted draft that an added note
-  links to.
+- Hold the draft files of those moves in the commit, any uncommitted draft that an added note links
+  to, and any draft no commit has that the lists link (ruling R33).
 
 The messages follow the global constraints. Priorities-only changes keep today's messages.
 

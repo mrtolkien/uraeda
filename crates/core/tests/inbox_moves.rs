@@ -664,3 +664,73 @@ fn a_note_with_code_made_a_draft_is_one_move() {
     assert_eq!(repo.changed_in("main"), [INBOX, PRIORITIES, path.as_str()]);
     assert_eq!(repo.porcelain(), "");
 }
+
+/// A note added since the last commit, then made a draft, leaves no trace in the inbox: the commit
+/// still holds the draft its new entry links, and Discard deletes the draft while untouched.
+#[test]
+fn a_new_note_made_a_draft_is_committed_and_discarded_with_its_draft() {
+    let made = |repo: &TestRepo| {
+        let place = main_place(repo);
+        actions::add(&place, None, &Marks::default(), "Dark mode", None).unwrap();
+        let inbox = actions::read(&place);
+        let priorities = uraeda_core::actions::priorities::read(&place);
+        let note = id(&inbox, "Dark mode");
+        let path =
+            actions::to_new_draft(&place, &note, Section::Later, &inbox.hash, &priorities.hash)
+                .unwrap();
+        (place, path)
+    };
+    let repo = fixture_repo();
+    let (place, path) = made(&repo);
+    assert_eq!(changes::list(&place).count, 1);
+
+    changes::commit(&place).unwrap();
+
+    assert_eq!(repo.changed_in("main"), [PRIORITIES, path.as_str()]);
+    assert_eq!(repo.porcelain(), "");
+
+    let repo = fixture_repo();
+    let (place, path) = made(&repo);
+    changes::discard(&place).unwrap();
+    assert!(!repo.exists(&path));
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// A new draft the priorities link, typed in, is kept by Discard, and committed with them.
+#[test]
+fn a_typed_draft_a_new_entry_links_is_kept_and_committed() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    let hash = uraeda_core::actions::priorities::read(&place).hash;
+    uraeda_core::actions::priorities::add(&place, Section::Later, "Dark mode", &hash).unwrap();
+    let drafted = draft::run(&place, "Dark mode").unwrap();
+    let linked = repo.read(PRIORITIES);
+    let typed = format!("{}\nMy eyes.\n", repo.read(&drafted.path));
+    repo.write(&drafted.path, &typed);
+
+    changes::discard(&place).unwrap();
+    assert_eq!(repo.read(&drafted.path), typed);
+
+    repo.write(PRIORITIES, &linked);
+    changes::commit(&place).unwrap();
+    assert_eq!(repo.changed_in("main"), [PRIORITIES, drafted.path.as_str()]);
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// A note added since the last commit, then added to a committed draft, leaves the same files as
+/// a bullet typed in the draft: the commit bar counts neither, and Discard keeps the note's text.
+#[test]
+fn a_new_note_added_to_a_draft_stays_in_the_draft() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    actions::add(&place, None, &Marks::default(), "Dark mode", None).unwrap();
+    let inbox = actions::read(&place);
+    actions::to_draft(&place, &id(&inbox, "Dark mode"), LOOK, &inbox.hash).unwrap();
+    let grown = repo.read(LOOK);
+
+    assert_eq!(changes::list(&place).count, 0);
+    changes::discard(&place).unwrap();
+
+    assert_eq!(repo.read(LOOK), grown);
+    assert!(grown.contains("- Dark mode\n"));
+}
