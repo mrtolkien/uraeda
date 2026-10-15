@@ -7,7 +7,7 @@
 //
 // Uraeda sets `URAEDA_PREVIEW_BASE` to that path when it starts the preview decision's command.
 // Without it, the config is left as it is, so `storybook dev` runs as usual. It needs Storybook's
-// Vite builder.
+// Vite builder, and stops a Storybook built with webpack.
 
 import process from "node:process";
 
@@ -47,15 +47,15 @@ const NEEDS_VITE = "uraeda-preview.js needs Storybook's Vite builder.";
  * @template {StorybookConfig} T
  * @param {T} config
  * @param {Record<string, string | undefined>} [env]
- * @returns {T & { previewHead: (head: string, options: unknown) => Promise<string>, managerHead: (head: string, options: unknown) => Promise<string>, viteFinal: (config: any, options: unknown) => Promise<any> }}
+ * @returns {T & { previewHead: (head: string, options: unknown) => Promise<string>, managerHead: (head: string, options: unknown) => Promise<string>, viteFinal: (config: any, options: unknown) => Promise<any>, webpackFinal: (config: unknown, options: unknown) => never }}
  */
 export default function uraedaPreview(config, env = process.env) {
   const base = env.URAEDA_PREVIEW_BASE;
   if (!base) {
     return /** @type {any} */ (config);
   }
-  if (!isVite(config)) {
-    throw new Error(NEEDS_VITE);
+  if (isWebpack(config)) {
+    refuseWebpack();
   }
   const patch = socketPatch(base);
   return {
@@ -67,31 +67,49 @@ export default function uraedaPreview(config, env = process.env) {
       const own = config.viteFinal ? await config.viteFinal(vite, options) : vite;
       return { ...own, base, plugins: [...(own.plugins ?? []), basePlugin(base)] };
     },
+    webpackFinal: refuseWebpack,
   };
 }
 
 /**
- * Whether Storybook builds with Vite: a framework named `@storybook/<name>-vite`, and no other
- * builder.
+ * The frameworks that build with webpack: Storybook's own Next.js, Angular, and Ember, and any
+ * framework named `<name>-webpack5`. Any other framework may build with Vite, such as
+ * `@storybook/sveltekit`, `@storybook/nextjs-vite`, or `storybook-solidjs-vite`.
+ */
+const WEBPACK_FRAMEWORK = /(?:^|\/)@storybook\/(?:nextjs|angular|ember)\/?$|-webpack5\/?$/;
+
+/**
+ * Whether Storybook says it builds with webpack: a webpack framework, or a builder other than
+ * `@storybook/builder-vite`. A webpack build it does not say so of reaches `webpackFinal`.
  *
  * @param {StorybookConfig} config
  */
-function isVite(config) {
-  const framework = nameOf(config.framework);
+function isWebpack(config) {
   const builder = nameOf(config.core?.builder);
   return (
-    /(?:^|\/)@storybook\/[\w-]+-vite\/?$/.test(framework) &&
-    (builder === "" || /(?:^|\/)@storybook\/builder-vite\/?$/.test(builder))
+    WEBPACK_FRAMEWORK.test(nameOf(config.framework)) ||
+    (builder !== "" && !/(?:^|\/)@storybook\/builder-vite\/?$/.test(builder))
   );
 }
 
 /**
- * The name of a framework or a builder, written as a string or as an object.
+ * Stops Storybook: Uraeda serves only a Vite build. Storybook calls it as `webpackFinal` only when
+ * it builds with webpack.
+ *
+ * @returns {never}
+ */
+function refuseWebpack() {
+  throw new Error(NEEDS_VITE);
+}
+
+/**
+ * The name of a framework or a builder, written as a string or as an object, its Windows
+ * separators made `/`.
  *
  * @param {string | { name: string } | undefined} value
  */
 function nameOf(value) {
-  return (typeof value === "string" ? value : value?.name) ?? "";
+  return ((typeof value === "string" ? value : value?.name) ?? "").replaceAll("\\", "/");
 }
 
 /**

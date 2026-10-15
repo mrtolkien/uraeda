@@ -18,9 +18,10 @@ afterEach(async () => {
 
 /**
  * A frame showing `html` with the pick script loaded, in a page of its own: what it posts to its
- * parent is recorded, and messages reach it from its parent or from another window.
+ * parent is recorded, and messages reach it from its parent or from another window. `before` runs
+ * on the frame's document before the script loads.
  */
-async function pickFrame(html: string) {
+async function pickFrame(html: string, before?: (document: BrowserWindow["document"]) => void) {
   const page = new Window({
     settings: {
       enableJavaScriptEvaluation: true,
@@ -36,12 +37,17 @@ async function pickFrame(html: string) {
   page.document.body.append(iframe);
   await page.happyDOM.waitUntilComplete();
   const frame = iframe.contentWindow as BrowserWindow;
+  before?.(frame.document);
   const tag = frame.document.createElement("script");
   tag.textContent = script;
   frame.document.head.append(tag);
 
   return {
     click: (selector: string) => (frame.document.querySelector(selector) as FrameElement).click(),
+    dispatch: (selector: string, type: string) =>
+      frame.document
+        .querySelector(selector)!
+        .dispatchEvent(new frame.Event(type, { bubbles: true, cancelable: true })),
     document: frame.document,
     key: (key: string) =>
       frame.document.dispatchEvent(new frame.KeyboardEvent("keydown", { bubbles: true, key })),
@@ -50,6 +56,11 @@ async function pickFrame(html: string) {
       frame.dispatchEvent(new frame.MessageEvent("message", { data, source: source as never })),
     text: () => frame.document.body.textContent ?? "",
   };
+}
+
+/** A stand-in for `getBoundingClientRect`, of `height` alone: happy-dom lays nothing out. */
+function boxOf(height: number) {
+  return () => ({ height }) as never;
 }
 
 /** Counts the clicks that reach the story's button, in its paragraph. */
@@ -150,4 +161,80 @@ test("a message from another window than its parent is ignored", async () => {
 
   expect(frame.posted()).not.toContainEqual(expect.objectContaining({ uraeda: "picked" }));
   expect(frame.text()).toContain("Clicked 1 times");
+});
+
+test("its height is the story's, not the centered layout's full page", async () => {
+  const frame = await pickFrame(
+    '<body style="margin: 0; padding: 16px"><div id="storybook-root"><button>Hide</button></div></body>',
+    (document) => {
+      document.body.getBoundingClientRect = boxOf(900);
+      document.querySelector("#storybook-root")!.getBoundingClientRect = boxOf(120);
+    },
+  );
+
+  expect(frame.posted()).toContainEqual({ height: 152, uraeda: "size" });
+});
+
+test("a click inside a dialog picks what it hits, not the dialog", async () => {
+  const frame = await pickFrame(
+    '<div role="dialog" aria-label="Settings"><p>Sidebar width</p></div>',
+  );
+
+  frame.send({ on: true, uraeda: "pick" });
+  frame.click("p");
+
+  expect(frame.posted()).toContainEqual({
+    name: "",
+    role: "paragraph",
+    text: "Sidebar width",
+    uraeda: "picked",
+  });
+});
+
+test("a touch reaches no story's handler in pick mode", async () => {
+  const frame = await pickFrame("<button>Hide the sidebar</button><p>Touched 0 times</p>");
+  let touches = 0;
+  for (const type of ["touchstart", "touchmove", "touchend", "contextmenu"]) {
+    frame.document.querySelector("button")!.addEventListener(type, () => {
+      touches += 1;
+    });
+  }
+
+  frame.send({ on: true, uraeda: "pick" });
+  frame.dispatch("button", "touchstart");
+  frame.dispatch("button", "touchmove");
+  const tapClicks = frame.dispatch("button", "touchend");
+  const menu = frame.dispatch("button", "contextmenu");
+
+  expect(touches).toBe(0);
+  expect(tapClicks).toBe(true);
+  expect(menu).toBe(false);
+});
+
+test.each([
+  [
+    "a label pointing at nothing gives way to the text",
+    '<button aria-labelledby="missing">Save</button>',
+    "button",
+    { name: "Save", role: "button", text: "Save" },
+  ],
+  [
+    "a label clicked picks its control",
+    '<label for="q">Search tasks</label><input id="q" type="search">',
+    "label",
+    { name: "Search tasks", role: "searchbox", text: "" },
+  ],
+  [
+    "a text box without a label is named by its placeholder",
+    '<input placeholder="Filter by tag">',
+    "input",
+    { name: "Filter by tag", role: "textbox", text: "" },
+  ],
+])("%s", async (_, html, selector, picked) => {
+  const frame = await pickFrame(html);
+
+  frame.send({ on: true, uraeda: "pick" });
+  frame.click(selector);
+
+  expect(frame.posted()).toContainEqual({ ...picked, uraeda: "picked" });
 });

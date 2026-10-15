@@ -69,8 +69,33 @@ test("without the variable, the config is left as it is", () => {
 test.each([
   ["the webpack framework", { framework: "@storybook/react-webpack5" }],
   ["a webpack builder", { ...vite, core: { builder: "@storybook/builder-webpack5" } }],
+  ["Next.js on webpack", { framework: "@storybook/nextjs" }],
+  [
+    "a webpack framework at a Windows path",
+    { framework: { name: "C:\\app\\node_modules\\@storybook\\angular" } },
+  ],
 ])("%s stops Storybook", (_, config) => {
   expect(() => uraedaPreview(config, { URAEDA_PREVIEW_BASE: BASE })).toThrow(
+    "uraeda-preview.js needs Storybook's Vite builder.",
+  );
+});
+
+test.each([
+  ["SvelteKit", { framework: "@storybook/sveltekit" }],
+  ["a community Vite framework", { framework: "storybook-solidjs-vite" }],
+  ["Next.js on Vite", { framework: "@storybook/nextjs-vite" }],
+  [
+    "a Vite framework at a Windows path",
+    { framework: { name: "C:\\app\\node_modules\\@storybook\\react-vite" } },
+  ],
+  ["the Vite builder named", { ...vite, core: { builder: "@storybook/builder-vite" } }],
+])("%s is served", (_, config) => {
+  expect(() => uraedaPreview(config, { URAEDA_PREVIEW_BASE: BASE })).not.toThrow();
+});
+
+test("a webpack build the config does not show stops Storybook", () => {
+  const wrapped = uraedaPreview(vite, { URAEDA_PREVIEW_BASE: BASE });
+  expect(() => wrapped.webpackFinal({}, {})).toThrow(
     "uraeda-preview.js needs Storybook's Vite builder.",
   );
 });
