@@ -13,6 +13,7 @@ import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { AddingNote, CommentHost, FormSlot, type ReviewField } from "./ReviewCommentForm.tsx";
 import { PendingComment, usePlacedComments } from "./ReviewComments.tsx";
+import type { Selection } from "./Selection.tsx";
 import {
   holderOf,
   reanchor,
@@ -172,29 +173,26 @@ function fieldOf(
 }
 
 /**
- * A spec or a plan to review, as committed at its branch's tip: tapping blocks selects lines to
- * comment on, pending comments show under their blocks, and the end of the page holds the verdict.
- * The comment field opens under the last tapped block on wide screens, and in a sheet on the phone,
- * the block kept in view above it. The field is drawn apart from the document, by `CommentHost`, so
- * typing renders the field alone; the comment holding unsaved text when the page is drawn opens
- * again.
+ * What a review's blocks show and do: tapping one selects its lines, and under it come its pending
+ * comments, the comment being added, and the comment field on wide screens. Also gives the field in
+ * the page, and a pending comment's note, which the general comments use too.
  */
-export function ReviewPage({ file }: { file: File }) {
-  const wide = useWidthClass() === "wide";
-  const version = file.committed ?? file.current;
-  const tree = version.document;
-  const review = file.review?.review;
-  const comments = useMemo(() => (review?.verdict === "pending" ? review.comments : []), [review]);
-  const refusals = useRefusals();
-  const commentDraft = useReviewDraft(file, comments, wide, refusals);
-  // The comment form's element, which each place it shows takes in turn.
-  const [container] = useState(() => document.createElement("div"));
-  const { draft, last, selection, start, tap } = commentDraft;
-  const actions = useReviewActions(file, commentDraft, refusals);
+function useReviewSelection({
+  actions,
+  commentDraft: { draft, last, selection, start, tap },
+  container,
+  placed,
+  tree,
+  wide,
+}: {
+  actions: ReturnType<typeof useReviewActions>;
+  commentDraft: ReturnType<typeof useCommentDraft>;
+  container: HTMLElement;
+  placed: ReturnType<typeof usePlacedComments>;
+  tree: Document;
+  wide: boolean;
+}) {
   const { adding } = actions;
-  const placed = usePlacedComments(comments, tree);
-  const folds = useSpecFolds(version.items.spec, shownFolds(tree, placed, selection));
-  const field = fieldOf(file, comments, commentDraft);
   const addingUnder = adding?.range && holderOf(tree, adding.range.end)?.id;
 
   /** The comment field, in the page on wide screens: on the phone, it is in the sheet. */
@@ -212,6 +210,60 @@ export function ReviewPage({ file }: { file: File }) {
         onRemove={() => void actions.remove(comment.number)}
       />
     );
+
+  const blocks: Selection = {
+    after: (block) => (
+      <>
+        {placed.get(block.id)?.map(pendingNote)}
+        {adding && addingUnder === block.id && <AddingNote adding={adding} />}
+        {inPage(draft?.kind === "lines" && block.id === last)}
+      </>
+    ),
+    isSelected: (block) =>
+      selection !== undefined &&
+      block.startLine >= selection.start &&
+      block.endLine <= selection.end,
+    onTap: tap,
+  };
+  return { inPage, pendingNote, selection: blocks };
+}
+
+/**
+ * A spec or a plan to review, as committed at its branch's tip: tapping blocks selects lines to
+ * comment on, pending comments show under their blocks, and the end of the page holds the verdict.
+ * The comment field opens under the last tapped block on wide screens, and in a sheet on the phone,
+ * the block kept in view above it. The field is drawn apart from the document, by `CommentHost`, so
+ * typing renders the field alone; the comment holding unsaved text when the page is drawn opens
+ * again.
+ */
+export function ReviewPage({ file }: { file: File }) {
+  const wide = useWidthClass() === "wide";
+  const version = file.committed ?? file.current;
+  const tree = version.document;
+  const review = file.review?.review;
+  const comments = useMemo(() => (review?.verdict === "pending" ? review.comments : []), [review]);
+  const refusals = useRefusals();
+  const commentDraft = useReviewDraft(file, comments, wide, refusals);
+  // The comment form's element, which each place it shows takes in turn.
+  const [container] = useState(() => document.createElement("div"));
+  const { draft, selection, start } = commentDraft;
+  const actions = useReviewActions(file, commentDraft, refusals);
+  const { adding } = actions;
+  const placed = usePlacedComments(comments, tree);
+  const folds = useSpecFolds(version.items.spec, shownFolds(tree, placed, selection));
+  const field = fieldOf(file, comments, commentDraft);
+  const {
+    inPage,
+    pendingNote,
+    selection: blocksSelection,
+  } = useReviewSelection({
+    actions,
+    commentDraft,
+    container,
+    placed,
+    tree,
+    wide,
+  });
 
   return (
     <CommentHost
@@ -237,20 +289,7 @@ export function ReviewPage({ file }: { file: File }) {
             document={tree}
             folds={folds}
             override={reviewHeadings(version.items, wide)}
-            selection={{
-              after: (block) => (
-                <>
-                  {placed.get(block.id)?.map(pendingNote)}
-                  {adding && addingUnder === block.id && <AddingNote adding={adding} />}
-                  {inPage(draft?.kind === "lines" && block.id === last)}
-                </>
-              ),
-              isSelected: (block) =>
-                selection !== undefined &&
-                block.startLine >= selection.start &&
-                block.endLine <= selection.end,
-              onTap: tap,
-            }}
+            selection={blocksSelection}
           />
           <YourReview
             comments={comments}
