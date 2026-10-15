@@ -658,3 +658,126 @@ fn a_change_file_alone_is_checked_against_its_folder() {
         assert_eq!(flagged(as_text), expected, "{name} as a text");
     }
 }
+
+const INBOX: &str = "specs/INBOX.md";
+const TRIAGE: &str = "specs/INBOX-TRIAGE.md";
+
+/// Review focus 6: a repeated category is reported on its second heading.
+#[test]
+fn a_repeated_category_is_reported_on_its_second_heading() {
+    let example = Example::new();
+    example.write(
+        INBOX,
+        "# Inbox\n\n## UI\n\n- a\n\n## CLI\n\n- b\n\n## UI\n\n- c\n",
+    );
+
+    assert_eq!(
+        summary(&example.problems()),
+        vec![format!("{INBOX}:11: the category \"UI\" is repeated")]
+    );
+}
+
+#[test]
+fn the_inbox_is_titled_inbox() {
+    let example = Example::new();
+    example.edit(INBOX, "# Inbox\n", "# Notes\n");
+
+    assert_eq!(
+        summary(&example.problems()),
+        vec![format!("{INBOX}:1: the title is \"# Inbox\"")]
+    );
+    let rules: Vec<String> = example.problems().into_iter().map(|p| p.rule).collect();
+    assert_eq!(rules, vec!["inbox.title"]);
+}
+
+/// A project set up before the inbox has none, and is asked for none.
+#[test]
+fn a_missing_inbox_is_no_problem() {
+    let example = Example::new();
+    fs::remove_file(example.root().join(INBOX)).unwrap();
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+}
+
+/// The inbox links started features like the priorities do: their files live on their branches.
+#[test]
+fn the_inbox_may_link_a_started_feature() {
+    let example = Example::new();
+    example.write(
+        INBOX,
+        "# Inbox\n\n- [Run UI](2026-10-20-run-ui/spec.md)\n- [Gone](drafts/gone.md)\n",
+    );
+
+    assert_eq!(
+        summary(&example.problems()),
+        vec![format!("{INBOX}:4: no file drafts/gone.md")]
+    );
+}
+
+fn triage() -> String {
+    repository_file("fixtures/INBOX-TRIAGE.md")
+}
+
+#[test]
+fn an_awaiting_triage_has_no_problems() {
+    let example = Example::new();
+    example.write(TRIAGE, &triage());
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+}
+
+/// The triage is checked as a round of questions, not as a free file.
+#[test]
+fn a_triage_is_checked_like_a_round() {
+    let answered = triage()
+        .replace("status: awaiting-human", "status: answered")
+        .replacen("**Answer:**\n", "**Answer:** A\n", 1);
+    let blank_line = answered
+        .lines()
+        .position(|line| line == "**Answer:**")
+        .unwrap()
+        + 1;
+    let rows: Vec<(&str, String, String)> = vec![
+        (
+            "a blank answer",
+            answered,
+            format!("{TRIAGE}:{blank_line}: Q2 has no answer"),
+        ),
+        (
+            "an unknown status",
+            triage().replace("status: awaiting-human", "status: approved"),
+            format!("{TRIAGE}:2: status \"approved\" is not one of awaiting-human, answered"),
+        ),
+        (
+            "another title",
+            triage().replace("# Inbox triage", "# Triage"),
+            format!("{TRIAGE}:5: the title starts with \"Inbox triage\""),
+        ),
+        (
+            "no block while awaiting",
+            triage().replace("> [!IMPORTANT]", "> [!NOTE]"),
+            format!("{TRIAGE}: a file waiting for the human opens with a \"> [!IMPORTANT]\" block"),
+        ),
+        (
+            "a question without its answer line",
+            triage().replacen("**Answer:**\n\n## Q2", "## Q2", 1),
+            format!("{TRIAGE}:19: Q1 has no **Answer:** line"),
+        ),
+        (
+            "an unknown section",
+            triage().replace("## Context", "## Background"),
+            format!("{TRIAGE}:14: unknown section \"## Background\""),
+        ),
+    ];
+    for (name, text, expected) in rows {
+        let example = Example::new();
+        example.write(TRIAGE, &text);
+
+        let problems = summary(&example.problems());
+
+        assert!(
+            problems.contains(&expected),
+            "{name}: {expected}\nin {problems:#?}"
+        );
+    }
+}

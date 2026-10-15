@@ -18,15 +18,16 @@ config if it has one, and today's offenders marked in place, as
 [setting up checks](code-quality.md#setting-up-checks) describes. It stays `proposed` until the
 human approves it; then configure the linters and mark the offenders, in a commit of their own.
 
-With `ura`, `ura init` does it, and writes nothing outside `specs/`. When it finds no Uraeda skill,
-for the user or in the repository, it offers to install this skill for the user. `ura install`
-installs or updates this skill, for the user in the home folder (`--user`) or in the repository's
-top level (`--repo`), in `.agents/skills/uraeda/` (`--agents`), `.claude/skills/uraeda`
-(`--claude`), or both, the second then a link to the first. It writes a `.ura-manifest` of the
-files' hashes, so running it again updates the files nobody edited, and it never writes into a
-folder it did not install, nor through a link. `ura install --update` updates every copy it
-installed. Agents always pass these flags and `--no-input`: an agent's terminal can pass the
-terminal check, yet no one presses its keys.
+With `ura`, `ura init` does it, and writes nothing outside `specs/`. It prints `created` or `kept`
+for each template it copies: run again, it only adds what is missing, like `INBOX.md` in a project
+set up before it. When it finds no Uraeda skill, for the user or in the repository, it offers to
+install this skill for the user. `ura install` installs or updates this skill, for the user in the
+home folder (`--user`) or in the repository's top level (`--repo`), in `.agents/skills/uraeda/`
+(`--agents`), `.claude/skills/uraeda` (`--claude`), or both, the second then a link to the first. It
+writes a `.ura-manifest` of the files' hashes, so running it again updates the files nobody edited,
+and it never writes into a folder it did not install, nor through a link. `ura install --update`
+updates every copy it installed. Agents always pass these flags and `--no-input`: an agent's
+terminal can pass the terminal check, yet no one presses its keys.
 
 ## Starting, postponing, and dropping a feature
 
