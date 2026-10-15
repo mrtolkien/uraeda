@@ -1,6 +1,6 @@
 ---
 status: auto-approved
-spec-revision: 2
+spec-revision: 3
 ---
 
 # Plan: UI iteration flow
@@ -1328,6 +1328,49 @@ The break each test catches:
 ```bash
 git add packages/server packages/web/vite.config.ts
 git commit -m "feat(ui-iteration): the preview proxy, and the guard's exception"
+```
+
+### The proxy's narrower edges (spec revision 3)
+
+Settled in [round 03](clarifications-03.md#settled-without-the-human), and in the spec's details of
+`preview/proxy.ts`, `guard.ts`, and `preview/runner.ts`.
+
+- [ ] **Step 7: Write the failing tests**
+
+In `guard.test.ts`'s table and the proxy's and runner's tests:
+
+- `an upgrade is a read only as a WebSocket GET`: a POST with `Upgrade: foo` and `Origin: null`
+  under a preview path is refused with 403, and nothing reaches the fake preview.
+- `the guard needs a folder`: `/r/repo/preview/` and `/r/repo/preview//a` with `Origin: null` are
+  refused; the pattern is one export, used by the guard and the proxy.
+- `storybook's cookies and site data stay out`: a forwarded answer with `Set-Cookie` and
+  `Clear-Site-Data` reaches the browser without either.
+- `headers named in Connection are removed`: `Connection: x-custom` with `x-custom: 1`, both ways,
+  reaches the other side without `x-custom`.
+- `the proxy's own answers are sandboxed`: the 503, 301, and 405 carry
+  `Access-Control-Allow-Origin: *` and the sandbox policy.
+- `a storybook that exits is failed at once`: a fake whose child keeps the output open, killed after
+  ready, is `failed` from its `exit`, and the proxy answers 503.
+
+The break each catches: an upgrade counted as a read whatever its method; a guard pattern without a
+folder; the response headers copied as they are; `Connection` tokens kept; headers set only on
+forwarded answers; failure noticed only on `close`.
+
+- [ ] **Step 8: Run them to check they fail**
+
+- Run: `vp test --project uraeda-server src/__tests__/guard.test.ts src/preview`
+- Expected: FAIL, first on `an upgrade is a read only as a WebSocket GET`, answered 101.
+
+- [ ] **Step 9: Implement them, then run all tests**
+
+- Run: `vp test --project uraeda-server && vp check`
+- Expected: PASS.
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add packages/server
+git commit -m "fix(ui-iteration): the proxy forwards only what embeds need"
 ```
 
 ## Task 6: Stories and previews in fate
