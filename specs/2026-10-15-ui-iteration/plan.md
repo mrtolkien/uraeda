@@ -405,6 +405,7 @@ The decisions this plan relies on, and where it follows them:
 | `fixtures/preview/serve.mjs`, `addPreview` and `addStoryFeature`, and the browser commands | One fake preview and one feature shared by the server's and the browser's tests                                          | Each test writing its own repository would bury what it checks                                          |
 | The fate GET transport of Uraeda's Storybook (`.storybook/fateOverGet.ts`)                 | Review focus 1: the proxy forwards only reads, and fate queries are POSTs                                                | Forwarding POSTs breaks the stack decision; stories without data break the preview decision             |
 | The test forwarding proxy for SC-006, and `devHandler`'s `allowOrigins`                    | WebKit cannot map a host name; the page must run under `uraeda.test`                                                     | A Chromium-only test leaves WebKit, the UI checks decision's browser, unchecked                         |
+| An option's raw `button` in `Question.tsx` (an Astryx gap)                                 | An option is a full-width toggle holding rich content: its letter, paragraphs, lists, images; no Astryx component fits   | `Button` and `ToggleButton` take a label; `SelectableCard` is a bordered card named by one string       |
 | Splits: `BlockNode`, `ReviewPage`, `Question`, `FeaturePage` (marker removed), `createApp` | Each grows in this feature and is at or over 100 lines                                                                   | Growing them breaks the limits                                                                          |
 
 No constitution exception, and no new marker.
@@ -2032,9 +2033,10 @@ git commit -m "feat(ui-iteration): pick mode, and comments on stories in reviews
   ([R36](rulings.md#r36-a-comment-on-a-variant-also-follows-the-answers-unsaved-text)).
 - Produces: `storyIn(context, block)` in `stories.tsx`, `useStoryAt`'s rule without the hook, for a
   list of blocks.
-- Changes: an option draws its `other` blocks that embed a story after its button, never inside it,
-  in its row
-  ([R37](rulings.md#r37-an-options-stories-sit-in-its-row-and-a-questions-stories-comment-on-its-answer));
+- Changes: an option draws its `other` blocks that embed a story, or hold one at any depth, after
+  its button, never inside it, in its row
+  ([R37](rulings.md#r37-an-options-stories-sit-in-its-row-and-a-questions-stories-comment-on-its-answer),
+  [R40](rulings.md#r40-options-with-stories-stack-at-every-width-and-a-story-nested-in-an-option-leaves-its-button));
   `FilePage` gives a round's `StoriesProvider` `removed` when the round is `answered`, and
   `StoryEmbed` reads it for a missing story only.
 

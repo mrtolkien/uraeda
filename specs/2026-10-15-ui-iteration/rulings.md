@@ -568,3 +568,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `SessionLog`.
 - **Where**: task 11, `packages/web/src/AgentStories.tsx`, `packages/web/src/Transcript.tsx`,
   `packages/web/src/SessionPage.tsx`.
+
+## R40: Options with stories stack at every width, and a story nested in an option leaves its button
+
+- **Decision**: a round's options stay one under the other at every width, stories or not: each
+  option's stories are under its button, as wide as the question. A block of an option that holds a
+  story at any depth, like a quote or a list's item, is drawn after the button with the option's
+  other stories, not only a paragraph that is the story itself; a list's item drawn alone, as an
+  option's plain bullet, shows its text and its blocks.
+- **Rationale**: the spec says only that each story is "embedded under its option's button". The
+  mockup's fourth shot draws the options of a visual question in two columns at 1440 px, which would
+  halve each embed's width: stacked, each embed keeps room for its two frames, the phone's unscaled
+  and the desktop's readable. The core's `story_links` finds a story paragraph wherever it is
+  nested, so a story in a quote inside an option was drawn inside the button, its frames inert. An
+  option's plain bullet was drawn by nothing: `Blocks` left an item to its list.
+- **Alternatives considered**: the mockup's two columns, where each desktop frame shrinks to about a
+  quarter of its width; moving only the story paragraph out of its quote or item, which splits the
+  block and loses its text.
+- **If wrong**: the `options` style and `Option` in `Question.tsx`, `holdsStory` in `stories.tsx`,
+  and the `item` case of `blockElement` in `Blocks.tsx`.
+- **Where**: task 10, `packages/web/src/Question.tsx`, `packages/web/src/stories.tsx`,
+  `packages/web/src/Blocks.tsx`.

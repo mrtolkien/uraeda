@@ -289,8 +289,13 @@ function blockElement(block: Block, context: Context): ReactNode {
     case "list":
       return <ListNode block={block} context={context} />;
     case "item":
-      // Drawn by its list.
-      return null;
+      // Drawn by its list, or alone, as an option's plain bullet: its text, then its blocks.
+      return (
+        <div {...stylex.props(styles.item)}>
+          {spans}
+          <Children block={block} context={context} />
+        </div>
+      );
     case "callout": {
       const kind = block.calloutKind ?? "note";
       return (

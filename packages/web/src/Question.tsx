@@ -20,7 +20,7 @@ import { useWidthClass } from "./layout/useWidthClass.ts";
 import { useAnswer } from "./useAnswer.ts";
 import { AnswerComment } from "./QuestionComment.tsx";
 import type { RoundTarget } from "./roundTarget.ts";
-import { storyIn, StoryContext } from "./stories.tsx";
+import { holdsStory, StoryContext } from "./stories.tsx";
 
 const styles = stylex.create({
   belowBar: {
@@ -176,9 +176,10 @@ function Option({
   onToggle: () => void;
   selected: boolean;
 }) {
-  // A story is drawn after the button, never inside it, where its frames would be inert.
+  // A story, or a block holding one, is drawn after the button, never inside it, where its frames
+  // would be inert.
   const stories = useContext(StoryContext);
-  const isStory = (id: number) => storyIn(stories, document.blocks[id]) !== undefined;
+  const isStory = (id: number) => holdsStory(stories, document, id);
   const other = choice.other.filter((id) => !isStory(id));
   const variants = choice.other.filter(isStory);
   const spans = (id: number) => <Spans spans={document.blocks[id]?.spans ?? []} />;
