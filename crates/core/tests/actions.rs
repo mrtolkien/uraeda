@@ -1511,6 +1511,23 @@ fn a_long_first_line_is_cut_for_the_title_and_kept_whole() {
     );
 }
 
+/// A title typed as a heading loses its marks: the proposal has one heading.
+#[test]
+fn a_title_typed_as_a_heading_drops_its_marks() {
+    let repo = draft_repo();
+
+    start_text(&repo, "## Centre the x\n\nMore.", &[], Some("centred-x")).unwrap();
+
+    assert_eq!(
+        in_change(&repo, &format!("specs/changes/{CHANGE_FOLDER}/proposal.md")),
+        "# Centre the x\n\nMore.\n"
+    );
+    assert_eq!(
+        repo.subjects("main")[0],
+        "chore(centred-x): start Centre the x"
+    );
+}
+
 #[test]
 fn a_text_with_no_written_line_is_refused() {
     let repo = draft_repo();
