@@ -347,7 +347,7 @@ fn insert(text: &str, section: Section, index: usize, item: &[String]) -> String
             .map(|(number, _)| number);
         let last = entries.last().map(|entry| &entry.item);
         let title = format!("## {}", section.title());
-        return lines::append_to_section(text, last, heading, &title, item);
+        return lines::append_to_section(text, last, heading, &title, item).0;
     };
     let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
     let at = before.line - 1;

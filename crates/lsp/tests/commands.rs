@@ -1312,3 +1312,28 @@ fn the_inbox_is_committed() {
     assert_eq!(repo.changed_in("HEAD"), [INBOX]);
     assert_eq!(repo.porcelain(), "");
 }
+
+/// C2: the note's line is where the add put it, in an untitled inbox, whose title moves every line
+/// down, and next to a note of the same text.
+#[test]
+fn a_note_opens_at_its_own_line() {
+    let repo = with_priorities(LATER);
+    repo.write(INBOX, "## UI\n\n- a\n- Same\n");
+    repo.commit("chore: inbox");
+    let mut session = start(repo.path());
+
+    let cli = session
+        .command("uraeda.note", json!({ "text": "b", "category": "CLI" }))
+        .unwrap();
+    let same = session
+        .command("uraeda.note", json!({ "text": "Same", "category": "UI" }))
+        .unwrap();
+
+    let text = repo.read(INBOX);
+    assert_eq!(
+        text,
+        "# Inbox\n\n## UI\n\n- a\n- Same\n- Same\n\n## CLI\n\n- b\n"
+    );
+    assert_eq!(cli["line"], json!(10));
+    assert_eq!(same["line"], json!(7));
+}

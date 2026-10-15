@@ -131,8 +131,8 @@ validated when the plugin starts. The defaults: >lua
 :Uraeda commit                                                *:Uraeda-commit*
     Commits the current draft, backlog file, proposal, `PRIORITIES.md`, or
     `INBOX.md`. On `PRIORITIES.md` or `INBOX.md`, commits the changes of
-    both, with the web UI's messages. Your git hooks run: a failing hook
-    shows its output.
+    both files and the drafts notes went into, with the web UI's messages.
+    Your git hooks run: a failing hook shows its output.
 
 :Uraeda image [{file}]                                         *:Uraeda-image*
     In a draft, a backlog file, or a markdown file of a feature's or a change's

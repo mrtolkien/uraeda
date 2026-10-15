@@ -122,22 +122,25 @@ pub fn checked_note(marks: &Marks, text: &str) -> Result<(), ActionError> {
 }
 
 /// Adds a note at the end of a category, or of the notes without one, creating the file or the
-/// category when missing. `previous` is `None` when nothing was read before, as from the CLI.
+/// category when missing, and gives the inbox and the note's line, from 1. `previous` is `None`
+/// when nothing was read before, as from the CLI.
 pub fn add(
     place: &Place,
     category: Option<&str>,
     marks: &Marks,
     text: &str,
     previous: Option<&str>,
-) -> Result<Inbox, ActionError> {
+) -> Result<(Inbox, u32), ActionError> {
     checked_note(marks, text)?;
     let line = inbox::note_line(marks.agent, marks.about.as_deref(), text);
-    apply(
-        place,
-        previous,
-        |current| Some(inbox::add(current, category, &line)),
-        NO_TEXT,
-    )
+    let mut at = 0;
+    let edit = |current: &str| {
+        let (edited, line) = inbox::add(current, category, &line);
+        at = line;
+        Some(edited)
+    };
+    let inbox = apply(place, previous, edit, NO_TEXT)?;
+    Ok((inbox, at))
 }
 
 /// What [`note`] did once the note was written.
@@ -374,7 +377,7 @@ pub fn add_as_draft(
     let path = draft::free_path(place, &title);
     let link = inbox::link_to(&title, path.trim_start_matches("specs/"));
     let line = inbox::note_line(marks.agent, marks.about.as_deref(), &link);
-    let edited = inbox::add(&current, category, &line);
+    let (edited, _) = inbox::add(&current, category, &line);
     draft::write_new(place, &path, &title, &[])?;
     if let Err(error) = fs::write(place.root.join(PATH), edited) {
         let _ = fs::remove_file(place.root.join(&path));
