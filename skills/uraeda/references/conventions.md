@@ -65,9 +65,9 @@ Workflow files track their state in frontmatter fields.
 | `plan.md`              | `spec-revision`  | the spec `revision` it implements     |                                   |
 | `decisions/*.md`       | `status`         | `proposed`, then `active` on approval | `active`                          |
 | `decisions/*.md`       | `approved-by`    | the approver, on approval, if known   | the approver                      |
-| `bugs/*/assessment.md` | `status`         | `awaiting-human`                      | `approved` or `changes-requested` |
 
-The bug flow is an agent-authored draft that needs human review: see [Bug](bug.md).
+A change's folder has no other status: its rounds are `clarifications-NN.md`, as a feature's are.
+See [Change](change.md).
 
 Only set a human status when the human expressly asks you to in the session, for example "the spec
 is approved". Commit with the message `ura` would write, `spec(recurring-tasks): approve`, and say
@@ -78,11 +78,11 @@ the human's feedback is in the file's [review file](#review-files).
 
 ## Review files
 
-A review of `spec.md`, `plan.md`, or `assessment.md` writes its comments in `spec-review.md`,
-`plan-review.md`, or `assessment-review.md`, next to it, from
-[the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/spec-review.md). The file exists
-only when the latest review has comments: the next review replaces it, and a review without comments
-deletes it. Git keeps the earlier ones. The reviewed file keeps its `status`, the source of truth.
+A review of `spec.md` or `plan.md` writes its comments in `spec-review.md` or `plan-review.md`, next
+to it, from [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/spec-review.md). The
+file exists only when the latest review has comments: the next review replaces it, and a review
+without comments deletes it. Git keeps the earlier ones. The reviewed file keeps its `status`, the
+source of truth.
 
 - **Frontmatter**: `verdict`, `pending` while the human writes it, then `approved` or
   `changes-requested`; and `commit`, the short hash of the commit holding the version reviewed.
@@ -93,7 +93,7 @@ deletes it. Git keeps the earlier ones. The reviewed file keeps its `status`, th
 - **Changes requested** need at least one comment.
 - **Approved with comments**: the comments do not change the approved file. The next step carries
   them out, and says how: the plan, in its `## Review comments` section, for a spec; the
-  implementation, in the pull request's description, for a plan or an assessment.
+  implementation, in the pull request's description, for a plan.
 
 With `ura`, `ura review` writes the comments, `--comment 50-52 "<text>"` or
 `--comment general "<text>"`, then records the verdict, `--approve` or `--request-changes`, with the
@@ -105,35 +105,39 @@ Each feature lives on its own branch, named after its folder (`2026-10-06-recurr
 the proposal to the code: discovery, questions, spec, decisions, plan, and implementation, until its
 folder is [finished](projects.md#finishing-a-feature) into a record. Its pull request merges all of
 it at once. Decisions become active on the branch when its spec is approved, and bind the rest of
-the project once the branch is merged. A bug lives on `fix/YYYY-MM-DD-<slug>`, named after its
-folder. Run every step on the target's branch: the human answers and approves on it too.
+the project once the branch is merged. A change lives on `change/YYYY-MM-DD-<slug>`, named after its
+folder, `specs/changes/YYYY-MM-DD-<slug>/`. Run every step on the target's branch: the human answers
+and approves on it too.
 
 Never switch the human's checkout to reach a branch. Write where the branch is checked out, the
-checkout itself or a worktree, or else in a worktree at `.worktrees/<branch>/`, at the root of the
-main checkout, created with `git worktree add`. Keep `.worktrees/` out of `git status` through the
-repository's `.git/info/exclude`, never a tracked file. When `core.hooksPath` is a relative path,
-commit in a worktree with it made absolute from the main checkout, so the same hooks run. Worktrees
-stay until removed with `git worktree remove`. `ura` does all of this.
+checkout itself or a worktree, or else in a worktree at `.worktrees/<folder>/`, named after the
+item's folder, at the root of the main checkout, created with `git worktree add`. Keep `.worktrees/`
+out of `git status` through the repository's `.git/info/exclude`, never a tracked file. When
+`core.hooksPath` is a relative path, commit in a worktree with it made absolute from the main
+checkout, so the same hooks run. Worktrees stay until removed with `git worktree remove`. `ura` does
+all of this.
 
 ## Commits
 
 One commit per step, and one per task during the implementation, plus one for a task's structural
 step, containing only its files. Messages follow
 [Conventional Commits](https://www.conventionalcommits.org/), with one extra type per workflow step.
-The scope is the feature's or the bug's slug, its folder's name without the date. The description is
-the feature name for a first version, and what changed for later commits.
+The scope is the feature's or the change's slug, its folder's name without the date. The description
+is the feature name for a first version, and what changed for later commits.
 
-| Type          | Step                                     | Example                                            |
-| ------------- | ---------------------------------------- | -------------------------------------------------- |
-| `discovery:`  | A discovery and questions round          | `discovery(recurring-tasks): recurring tasks`      |
-| `decision:`   | Apply approved decisions                 | `decision(recurring-tasks): apply due dates`       |
-| `spec:`       | Write or revise a spec and its decisions | `spec(recurring-tasks): recurring tasks`           |
-| `plan:`       | Write or revise a plan                   | `plan(recurring-tasks): split the store migration` |
-| `assessment:` | Assess a bug                             | `assessment(tasks-reappear): stale copy saved`     |
-| `finish:`     | Replace the folder with its record       | `finish(recurring-tasks): recurring tasks`         |
+| Type         | Step                                     | Example                                            |
+| ------------ | ---------------------------------------- | -------------------------------------------------- |
+| `discovery:` | A discovery and questions round          | `discovery(recurring-tasks): recurring tasks`      |
+| `decision:`  | Apply approved decisions                 | `decision(recurring-tasks): apply due dates`       |
+| `spec:`      | Write or revise a spec and its decisions | `spec(recurring-tasks): recurring tasks`           |
+| `plan:`      | Write or revise a plan                   | `plan(recurring-tasks): split the store migration` |
+| `finish:`    | Replace the folder with its record       | `finish(recurring-tasks): recurring tasks`         |
 
 Code commits use the plan's messages, with the standard types and the same scope:
-`feat(recurring-tasks): repeat menu`, `fix(tasks-reappear): save new tasks as they are`.
+`feat(recurring-tasks): repeat menu`. A change has no plan: its code commits use `fix(<slug>):` for
+a bug and `feat(<slug>):` for a change, `fix(tasks-reappear): save new tasks as they are`; its
+rounds use `discovery(<slug>):`, and an approved change to a decision
+`decision(<slug>): apply <topic>`.
 
 The human's commits, and the agent's when the human asks, use the step's type for what they answer
 and `chore:` for the rest. `ura` and the web UI write the same messages.

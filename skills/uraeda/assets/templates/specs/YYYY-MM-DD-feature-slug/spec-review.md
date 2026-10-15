@@ -3,7 +3,7 @@ verdict: pending
 commit: [the short hash of the commit holding the version reviewed]
 ---
 
-# Review: [Spec, Plan, or Assessment], [Feature name]
+# Review: [Spec or Plan], [Feature name]
 
 [Optional: a summary of the review, for its record and its commit.]
 

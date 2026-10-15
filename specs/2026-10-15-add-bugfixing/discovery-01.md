@@ -27,12 +27,11 @@ The [proposal](proposal.md) asks for the light path, for both bugs and small cha
 - the agent offers to upgrade a change that is too big;
 - possibly, a third, visual flow for iterating on UI.
 
-Uraeda has an agent-written bug flow, [`bug.md`](/skills/uraeda/references/bug.md), that was never
-reviewed and never used. It always stops at a human gate on its assessment. Its tooling is
-half-built: `ura start` panics on a bug, and the web UI cannot start one. Meanwhile, about 24 small
-changes went straight to `main` in five days, with no record, test evidence, or review, next to 15
-features through the full flow. The smallest of those features still wrote a 446-line spec and a
-616-line plan.
+Uraeda has an agent-written bug flow, `bug.md`, that was never reviewed and never used. It always
+stops at a human gate on its assessment. Its tooling is half-built: `ura start` panics on a bug, and
+the web UI cannot start one. Meanwhile, about 24 small changes went straight to `main` in five days,
+with no record, test evidence, or review, next to 15 features through the full flow. The smallest of
+those features still wrote a 446-line spec and a 616-line plan.
 
 ## How other products do it
 
@@ -363,7 +362,7 @@ These are the tools behind the proposal's third flow.
 
 ### Important reads
 
-- [`bug.md`](/skills/uraeda/references/bug.md), 111 lines:
+- `bug.md`, 111 lines:
   - it carries a warning: "Agent-authored draft, not reviewed by a human yet";
   - a bug starts by hand on `fix/YYYY-MM-DD-<slug>`;
   - the agent assesses: reproduce, root cause, then plan the fix;
@@ -471,9 +470,8 @@ These are the tools behind the proposal's third flow.
 ### Rules and their owners
 
 - **Which step comes next**: [`steps.rs`](/crates/core/src/steps.rs) owns it, written in prose in
-  [SKILL.md's table](/skills/uraeda/SKILL.md#finding-the-next-step) and
-  [`bug.md`'s table](/skills/uraeda/references/bug.md#finding-the-step). Each table exists twice, in
-  Rust and in the skill, as the [CLI decision](/specs/decisions/cli.md) requires.
+  [SKILL.md's table](/skills/uraeda/SKILL.md#finding-the-next-step) and `bug.md`'s table. Each table
+  exists twice, in Rust and in the skill, as the [CLI decision](/specs/decisions/cli.md) requires.
 - **A branch's kind and its folder**: `branch_folder` and `folder_path` in
   [`workspace.rs`](/crates/core/src/workspace.rs) own it. It is copied as a `specs/bugs` pattern in
   [`sessions.ts`](/packages/server/src/fate/sessions.ts) and
@@ -529,9 +527,9 @@ tools, not about the workflow's steps.
 
 ### The bug flow exists, unreviewed
 
-[`bug.md`](/skills/uraeda/references/bug.md) says it "will get its own spec once the feature flow
-works". This feature is that spec. Its gate on every assessment goes against the proposal's "by
-default there should be no need for clarifications or specs".
+`bug.md` says it "will get its own spec once the feature flow works". This feature is that spec. Its
+gate on every assessment goes against the proposal's "by default there should be no need for
+clarifications or specs".
 
 ### What counts as small is not defined
 

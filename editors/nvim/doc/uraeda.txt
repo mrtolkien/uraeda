@@ -133,7 +133,7 @@ validated when the plugin starts. The defaults: >lua
     Your git hooks run: a failing hook shows its output.
 
 :Uraeda image [{file}]                                         *:Uraeda-image*
-    In a draft, a backlog file, or a markdown file of a feature's or a bug's
+    In a draft, a backlog file, or a markdown file of a feature's or a change's
     folder: saves the image on the clipboard, or {file}, in the `images/`
     folder next to the file, and inserts its link after the character under
     the cursor, as |p| puts text, in one undo step, without committing. The commit of the file takes the
@@ -163,7 +163,7 @@ validated when the plugin starts. The defaults: >lua
     `approved`, open the verdict window instead.
 
 :Uraeda verdict                                              *:Uraeda-verdict*
-    In a spec, a plan, or an assessment waiting for your review: asks
+    In a spec or a plan waiting for your review: asks
     whether you approve or request changes, then opens the verdict window.
     In a round of questions: opens it to submit your answers. See
     |uraeda-verdict-window|.

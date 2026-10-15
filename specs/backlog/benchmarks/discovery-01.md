@@ -620,7 +620,7 @@ Only with A or C of [what a run measures](#what-a-run-measures). Relies on
 - **A fresh session per step**: the workflow is designed for it (principle III), and it avoids
   counting resumed costs twice.
 - **Bug flow**: the proposal asks for the full flow, so only features are benchmarked. The
-  [bug](/skills/uraeda/references/bug.md) flow stays out.
+  [bug](/skills/uraeda/references/change.md) flow stays out.
 
 ## Not checked
 
