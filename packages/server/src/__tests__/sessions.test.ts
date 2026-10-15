@@ -1,9 +1,10 @@
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { chatImages } from "../attach.ts";
 import type { AgentEvent } from "../runner/events.ts";
 import { imagesInUse } from "../runner/image-uses.ts";
-import { byId, type Data, mutate, testServer } from "./helpers.ts";
+import { addChange, byId, type Data, fixture, git, mutate, testServer } from "./helpers.ts";
 
 /** Waits on an agent, at step `plan`. */
 const AGENT = "2026-10-12-cli-tuis";
@@ -813,4 +814,119 @@ test("session.send refuses too many images, or images the agent cannot read, bef
   const [feature] = await byId(server.app, "Feature", [AGENT], ["id", "session"]);
   expect(feature.session).toBeNull();
   expect(server.adapter.opens).toEqual([]);
+});
+
+/** The change US1.1 types: its title, a blank line, and its text. */
+const TYPED = "Centre the x in failure circles\n\nIn failures the x sits low in its circle.";
+const STARTED_FIELDS = ["id", "folder", "kind", "session"];
+
+test("US1.1: change.start starts a change and sends its first run, its images in its folder", async () => {
+  const server = await testServer();
+  const bytes = readFileSync(fixture("images/lossy.webp"));
+  const image = await chatImages(server.dataDir).save({
+    bytes,
+    extension: "webp",
+    height: 874,
+    width: 402,
+  });
+  server.adapter.script([]);
+
+  const started = await mutate(
+    server.app,
+    "change.start",
+    { images: [image], text: TYPED },
+    STARTED_FIELDS,
+  );
+
+  expect(started.error).toBeUndefined();
+  const { folder } = started.data as Record<string, Data>;
+  expect(folder).toMatch(/^\d{4}-\d{2}-\d{2}-centre-x$/);
+  expect(started.data).toMatchObject({ id: folder, kind: "change" });
+  const branch = `change/${folder}`;
+  expect(git(server.repo, "ls-tree", "-r", "--name-only", branch, `specs/changes/${folder}/`)).toBe(
+    `specs/changes/${folder}/images/image-1.webp\nspecs/changes/${folder}/proposal.md\n`,
+  );
+  const [session] = await byId(server.app, "Session", [started.data.session], SESSION_FIELDS);
+  expect(session).toMatchObject({ folder, place: `branch ${branch}` });
+  await settle(server, session);
+  expect(server.adapter.sent).toEqual([
+    expect.objectContaining({
+      images: [],
+      text:
+        `/uraeda:uraeda Continue the change specs/changes/${folder}/ on branch ${branch}: ` +
+        "Investigate it, then make the change, starting with skills/uraeda/references/change.md.\n" +
+        "Stop when the pull request is ready for review, and earlier only if you need a decision from me.\n",
+    }),
+  ]);
+  const [turn] = await byId(server.app, "Turn", session.turns, TURN_FIELDS);
+  expect(turn).toMatchObject({ kind: "workflow", step: "change", trigger: "start" });
+});
+
+test("change.start without the agent starts the change and sends nothing", async () => {
+  const server = await testServer(undefined, { installed: false });
+
+  const started = await mutate(
+    server.app,
+    "change.start",
+    { slug: "centred-x", text: TYPED },
+    STARTED_FIELDS,
+  );
+
+  expect(started.error).toBeUndefined();
+  expect(started.data).toMatchObject({
+    folder: expect.stringMatching(/-centred-x$/),
+    session: null,
+  });
+  expect(git(server.repo, "branch", "--list", "change/*")).toMatch(/-centred-x\n$/);
+  expect(server.adapter.sent).toEqual([]);
+});
+
+test("change.start refuses a taken slug with the core's message", async () => {
+  const server = await testServer(undefined, { installed: false });
+  const first = await mutate(server.app, "change.start", { slug: "centred-x", text: TYPED }, [
+    "id",
+  ]);
+
+  const again = await mutate(server.app, "change.start", { slug: "centred-x", text: TYPED }, [
+    "id",
+  ]);
+
+  expect(again.error).toEqual({
+    code: "BAD_REQUEST",
+    message: `refused: ${first.data.id} exists: choose another slug with --slug`,
+  });
+});
+
+test("SlugProposal proposes the core's slug for a typed title", async () => {
+  const server = await testServer();
+
+  const [proposal] = await byId(
+    server.app,
+    "SlugProposal",
+    ["Centre the x in failure circles"],
+    ["id", "slug"],
+  );
+
+  expect(proposal).toEqual({ id: "Centre the x in failure circles", slug: "centre-x" });
+});
+
+test("a change's files are writable until its agent runs", async () => {
+  const server = await testServer();
+  const folder = "2026-10-16-centred-x";
+  const path = `specs/changes/${folder}/proposal.md`;
+  addChange(server.repo, folder, { "proposal.md": "# Centre the x\n" });
+  const [before] = await byId(server.app, "Draft", [path], ["id", "hash"]);
+  const saved = await mutate(
+    server.app,
+    "text.save",
+    { hash: before.hash, path, text: "# Centre the x\n\nIt sits low.\n" },
+    ["id"],
+  );
+  expect(saved.error).toBeUndefined();
+  const session = await send(server, { folder, text: "Look at it" });
+
+  const refused = await mutate(server.app, "text.commit", { path }, ["id"]);
+
+  expect(refused.error).toEqual(REFUSED);
+  await stop(server, session);
 });
