@@ -18,11 +18,10 @@
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
 - [UI iteration flow](/specs/2026-10-15-ui-iteration/proposal.md)
-- Specs, clarifications, and related files should be on main. It will be easier to see what’s
-  actually ongoing, and if there’s no code changes there should be no issue
 - When adding a priority from home screen on mobile we need to go to the priorities page manually to
   commit…
 - Review pull request management and flow
+- [Specs, clarifications, and related files should be on main. It will be easier to see what’s actually ongoing, and if there’s no code changes there should be no issue](/specs/2026-10-15-specs-clarifications/proposal.md)
 
 ## Next
 
