@@ -1,7 +1,7 @@
 // The layout's checks, in WebKit at an iPhone 17's size and at a desktop's, against the server
 // mounted in the test server (see `vite.config.ts`), on the fake agent: the tests `vp run ready`
 // runs never start Claude Code. The root's config lists this project next to the others.
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Frame, Page } from "playwright";
 import { addRepository, removeRepository } from "uraeda-binding";
@@ -83,8 +83,9 @@ const commands = {
     return { name: repository.name, token };
   },
   /**
-   * Ends a test's turn: its repository leaves the list, which closes its watch, its copy is
-   * deleted, and the next test takes its turn.
+   * Ends a test's turn: its repository leaves the list, which closes its watch, and the next
+   * test takes its turn. The fixture's exit cleanup removes its files: requests that already
+   * started may still be reading them after the page unmounts.
    */
   async releaseRepo(_context: unknown, token: number) {
     const holder = shared.uraedaRepoHolder;
@@ -93,12 +94,11 @@ const commands = {
     }
     // The agent's process ends with the test: the next test's session opens one of its own.
     agent.exit(1, "ended by the test");
-    const { name, path } = shared.uraedaRepo!;
+    const { name } = shared.uraedaRepo!;
     try {
       await removeRepository(process.env.URAEDA_DATA_DIR!, name);
       await reloadRepositories();
     } finally {
-      rmSync(path, { force: true, recursive: true });
       shared.uraedaRepo = undefined;
       shared.uraedaRepoHolder = undefined;
       holder.release();

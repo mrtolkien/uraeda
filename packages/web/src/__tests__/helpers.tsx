@@ -109,7 +109,8 @@ export type Fake = ReturnType<typeof fakeSessions>;
 
 const managers: Array<Fake["sessions"]> = [];
 
-afterEach(() => {
+afterEach(async () => {
+  await settleRequests();
   // Turns left going keep their watchdog's timer.
   for (const sessions of managers.splice(0)) {
     sessions.close();
@@ -190,6 +191,15 @@ afterEach(async () => {
 /** The name of each server's repository, as its list holds it. */
 const names = new WeakMap<typeof globalThis.fetch, Promise<string | undefined>>();
 
+/** The requests started by the page, which refresh and teardown wait for. */
+const pending = new Set<Promise<Response>>();
+
+async function settleRequests() {
+  while (pending.size > 0) {
+    await Promise.allSettled(pending);
+  }
+}
+
 /**
  * The server's app in process, as a `fetch`, on sessions whose agent is not installed by default,
  * with a list in a temporary data folder holding `repo`; or, given `dataDir`, the list already
@@ -221,7 +231,7 @@ export function serverFetch(
       sessions,
     }),
   );
-  const fetch: typeof globalThis.fetch = async (input, init) => {
+  const send: typeof globalThis.fetch = async (input, init) => {
     const app = await created;
     // The UI's plain requests, like uploads, name a path of the page's own server.
     const url = new URL(
@@ -246,6 +256,15 @@ export function serverFetch(
       headers: { "content-type": response.headers.get("content-type") ?? "application/json" },
       status: response.status,
     });
+  };
+  const fetch: typeof globalThis.fetch = (input, init) => {
+    const response = send(input, init);
+    pending.add(response);
+    void response.then(
+      () => pending.delete(response),
+      () => pending.delete(response),
+    );
+    return response;
   };
   names.set(fetch, added);
   return fetch;
@@ -297,15 +316,15 @@ export function repoAt(path: string): string {
 
 /**
  * Reads the page again, as when it comes back to the foreground, until `check` passes: live
- * updates do not reach these tests, so a run's later state is read this way. Each try waits a
- * moment inside its act, so the read's answer is most often drawn within it; a slower answer is
- * seen by a later try.
+ * updates do not reach these tests, so a run's later state is read this way. Each try lets the
+ * requests start, then waits for their answers inside its act before checking the page.
  */
 export async function refreshUntil(check: () => void) {
   await waitFor(async () => {
     await act(async () => {
       document.dispatchEvent(new Event("visibilitychange"));
       await new Promise((resolve) => setTimeout(resolve, 20));
+      await settleRequests();
     });
     check();
   });
