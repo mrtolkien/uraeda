@@ -734,3 +734,26 @@ fn a_new_note_added_to_a_draft_stays_in_the_draft() {
     assert_eq!(repo.read(LOOK), grown);
     assert!(grown.contains("- Dark mode\n"));
 }
+
+/// A draft's commit from its editor holds the inbox, and so every draft no commit has that it
+/// links: two notes added with images are committed together, no link left without its file.
+#[test]
+fn a_drafts_commit_holds_the_other_drafts_its_lists_link() {
+    let repo = fixture_repo();
+    let dark = add_with_image(&repo, None, "Dark mode");
+    let light = add_with_image(&repo, None, "Light mode");
+
+    api::commit_text(repo.path(), &dark).unwrap();
+
+    assert_eq!(
+        repo.changed_in("main"),
+        [
+            INBOX,
+            "specs/drafts/dark-mode/images/phone.webp",
+            dark.as_str(),
+            "specs/drafts/light-mode/images/phone.webp",
+            light.as_str(),
+        ]
+    );
+    assert_eq!(repo.porcelain(), "");
+}
