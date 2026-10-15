@@ -2,17 +2,22 @@
 // HEAD requests and WebSocket upgrades, and fate's queries, mutations, and live controls are POSTs.
 // The preview's fate client sends each as `GET …/fate?request=<JSON>` or `GET …/fate/live?…`, with
 // no header that needs a preflight, and its live stream without credentials, which the proxy's
-// `Access-Control-Allow-Origin: *` refuses. This Storybook's middleware turns each GET back into the
-// POST Uraeda's server in Storybook expects. That server is the fixture's: nothing of the user's
-// repository is reachable through it.
-import type { IncomingMessage } from "node:http";
+// `Access-Control-Allow-Origin: *` refuses. This Storybook's middleware turns each GET of the
+// fixture's endpoint back into the POST Uraeda's server in Storybook expects, and refuses any other
+// GET carrying a request. Any web page can send such a GET, without a preflight, and through Uraeda's
+// proxy, so the server in Storybook locks its list (R47): it serves the fixture alone, and reaches
+// no other folder.
+import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin } from "vite-plus";
 
 /** The query parameter holding a POST's body. */
 const REQUEST = "request";
 
-/** fate's endpoints: a repository's or the global one, and their live streams. */
-const ENDPOINT = /\/fate(\/live)?$/;
+/**
+ * The fixture's fate endpoint and its live stream, the only paths the middleware changes: the
+ * preview's fate client reaches the fixture's repository and the global list, which needs no GET.
+ */
+const FIXTURE_ENDPOINTS = new Set(["/r/fixture/fate", "/r/fixture/fate/live"]);
 
 /**
  * The preview's `fetch` for fate: a POST is sent as a GET to the same address, its body in
@@ -43,17 +48,20 @@ export function liveWithoutCredentials() {
 }
 
 /**
- * A Vite plugin of Uraeda's Storybook: its middleware, before the server's, turns a GET of fate's
- * with `?request=` back into a POST of that body, and removes the `Origin` and `Sec-Fetch-Site` of
- * the frame that sent any GET of fate's, as the server's guard would refuse them.
+ * A Vite plugin of Uraeda's Storybook: its middleware, before the server's, turns a GET of the
+ * fixture's fate endpoint with `?request=` back into a POST of that body, and removes the `Origin`
+ * and `Sec-Fetch-Site` of the frame that sent a GET of that endpoint or its live stream, as the
+ * server's guard would refuse them. It answers 403 to any other GET carrying `?request=`, and
+ * leaves every other request as it is.
  */
 export function fateOverGet(): Plugin {
   return {
     apply: "serve",
     configureServer(server) {
-      server.middlewares.use((request, _response, next) => {
-        asPost(request);
-        next();
+      server.middlewares.use((request, response, next) => {
+        if (asPost(request, response)) {
+          next();
+        }
       });
     },
     name: "uraeda-fate-over-get",
@@ -61,20 +69,29 @@ export function fateOverGet(): Plugin {
 }
 
 /**
- * Makes a GET of fate's with `?request=` the POST it stands for, in place. Every request of fate's
- * loses the `Origin` and `Sec-Fetch-Site` of the sandboxed frame that sent it, its live stream's
- * too: the server's guard refuses `Origin: null` outside a preview's path.
+ * Makes a GET of the fixture's fate endpoint with `?request=` the POST it stands for, in place. A
+ * GET of that endpoint or its live stream loses the `Origin` and `Sec-Fetch-Site` of the sandboxed
+ * frame that sent it: the server's guard refuses `Origin: null` outside a preview's path. Any other
+ * GET carrying `?request=` is answered 403, and false returned; true otherwise.
  */
-function asPost(request: IncomingMessage) {
+function asPost(request: IncomingMessage, response: ServerResponse): boolean {
+  if (request.method !== "GET") {
+    return true;
+  }
   const url = new URL(request.url ?? "/", "http://storybook");
-  if (request.method !== "GET" || !ENDPOINT.test(url.pathname)) {
-    return;
+  const body = url.searchParams.get(REQUEST);
+  if (!FIXTURE_ENDPOINTS.has(url.pathname)) {
+    if (body === null) {
+      return true;
+    }
+    response.statusCode = 403;
+    response.end("Forbidden: only the fixture's fate endpoint takes a request in a GET");
+    return false;
   }
   delete request.headers.origin;
   delete request.headers["sec-fetch-site"];
-  const body = url.searchParams.get(REQUEST);
   if (body === null) {
-    return;
+    return true;
   }
   url.searchParams.delete(REQUEST);
   const bytes = Buffer.from(body);
@@ -85,4 +102,5 @@ function asPost(request: IncomingMessage) {
   // The server's Node adapter reads a request's body from `rawBody` when it is set: this GET's
   // stream has none.
   (request as IncomingMessage & { rawBody?: Buffer }).rawBody = bytes;
+  return true;
 }

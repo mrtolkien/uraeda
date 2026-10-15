@@ -2254,10 +2254,13 @@ git commit -m "feat(ui-iteration): stories in the chat"
   `addStoryFeature` and one checkout per state of `StoryEmbed.stories.tsx`, named in `CHECKOUTS` of
   `.storybook/checkouts.ts`; built by `storybook dev` only, not by the build.
 - Produces: `fateOverGet()`, a Vite plugin of Uraeda's Storybook only, whose middleware turns
-  `GET …/fate?request=<JSON>` and `GET …/fate/live?request=<JSON>` back into the POST the server
-  expects, and removes `Origin` and `Sec-Fetch-Site` from every GET of fate's; the preview's fate
-  client, whose `fetch` sends every POST that way
-  ([R4](rulings.md#r4-uraedas-storybook-sends-fates-requests-as-gets)); and
+  `GET /r/fixture/fate?request=<JSON>` and `GET /r/fixture/fate/live?request=<JSON>` back into the
+  POST the server expects, removes `Origin` and `Sec-Fetch-Site` from the GETs of those two paths
+  only, and answers 403 to any other GET carrying `?request=`; the preview's fate client, whose
+  `fetch` sends every POST that way
+  ([R4](rulings.md#r4-uraedas-storybook-sends-fates-requests-as-gets)); the server in Storybook, its
+  list locked to the fixture
+  ([R47](rulings.md#r47-the-server-in-uraedas-storybook-locks-its-list-to-the-fixture)); and
   `liveWithoutCredentials()`, which opens fate's live stream without credentials
   ([R41](rulings.md#r41-uraedas-storybook-opens-fates-live-stream-without-credentials-and-without-origin)).
 

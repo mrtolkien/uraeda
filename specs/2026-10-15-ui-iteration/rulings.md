@@ -47,12 +47,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R4: Uraeda's Storybook sends fate's requests as GETs
 
 - **Decision**: in Uraeda's own Storybook only, the preview's fate client sends each request as
-  `GET …/fate?request=<JSON>`, and a Vite middleware of `.storybook/` turns it back into the POST
-  the server in Storybook expects, without `Origin` and `Sec-Fetch-Site`.
+  `GET …/fate?request=<JSON>`, and a Vite middleware of `.storybook/` turns a GET of the fixture's
+  endpoint, `/r/fixture/fate`, back into the POST the server in Storybook expects, without `Origin`
+  and `Sec-Fetch-Site`. It answers 403 to any other GET carrying `?request=`.
 - **Rationale**: the stack decision lets the proxy forward only GET and HEAD requests and upgrades,
   and fate's queries are POSTs: embedded in Uraeda, a story would show no data, against the preview
-  decision's "stories get their data only from the server, through fate" (review focus 1). The
-  server in Storybook is the fixture's, so nothing of the user's repository is reachable.
+  decision's "stories get their data only from the server, through fate" (review focus 1). Such a
+  GET is a write any web page can send, without a preflight and without the headers the guard reads,
+  and Uraeda's proxy forwards it: the server in Storybook is not limited to the fixture by itself,
+  since its global endpoint adds any folder to its list, which its `/r/<name>/` routes then read and
+  write. A security review reached a scratch repository that way. The middleware converts the
+  fixture's endpoint alone, and the server's list is locked (R47).
 - **Alternatives considered**: forwarding POSTs, which the stack decision forbids; a fate transport
   over the forwarded WebSocket, more code for the same result.
 - **If wrong**: a request larger than Node's 16 KB header limit fails; the validation script shows
@@ -594,8 +599,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: besides sending fate's POSTs as GETs (R4), the preview of Uraeda's Storybook opens
   fate's live stream, an `EventSource`, without credentials, and the Storybook-only middleware of
-  `.storybook/fateOverGet.ts` removes `Origin` and `Sec-Fetch-Site` from every GET of fate's, the
-  live stream's included, not only from the GETs it turns back into POSTs.
+  `.storybook/fateOverGet.ts` removes `Origin` and `Sec-Fetch-Site` from every GET of the fixture's
+  endpoint, its live stream's included, not only from the GETs it turns back into POSTs. Any other
+  request keeps them (R4).
 - **Rationale**: embedded through Uraeda, a story's page is sandboxed, its origin opaque. fate opens
   its stream with credentials, which the proxy's `Access-Control-Allow-Origin: *` refuses, and the
   stream's `Origin: null` is refused by the guard of the server in Storybook, whose path is not a
@@ -698,3 +704,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `editors/nvim/tests/screenshots/`.
 - **Where**: task 13, `crates/lsp/tests/commands.rs`, `editors/nvim/tests/test_comment.lua`, and
   `editors/nvim/tests/screenshots/`.
+
+## R47: The server in Uraeda's Storybook locks its list to the fixture
+
+- **Decision**: the server takes a `lockedList` option, which `devHandler`, `startServer`, and
+  `createApp` pass to fate's context, and which only `.storybook/fixture.ts` sets. With it, every
+  endpoint refuses `repositories.add`, `repositories.remove`, and `repositories.open`, and the
+  `FolderSuggestions` query, with "refused: this server's list is locked". The server still lists
+  the repository it starts in, the fixture, in a temporary data folder, and reads the list.
+- **Rationale**: the GETs of R4 are writes any web page can send, through Uraeda's proxy too, and
+  the server in Storybook answers its global endpoint, whose list mutations reach any folder, and
+  whose suggestions read the home folder. The middleware sends only the fixture's endpoint on, but
+  the lock is the server's own rule, so it holds whatever reaches the server. The story embeds read
+  the fixture's endpoint only: the global list is not reachable through a GET in this Storybook.
+- **Alternatives considered**: refusing the list's operations by name in the middleware, which
+  parses fate's request a second time and misses a request that reaches the server another way.
+- **If wrong**: `unlockedList` in `packages/server/src/fate/context.ts`; a story of the repository
+  menu would need the global endpoint's reads converted too.
+- **Where**: `packages/server/src/fate/context.ts`, `list-mutations.ts`, `sources.ts`,
+  `packages/server/src/app.ts`, `server.ts`, `dev.ts`, `packages/web/.storybook/fixture.ts` and
+  `fateOverGet.ts`, `packages/web/src/__tests__/storybook-fate.test.ts`, and
+  `packages/server/src/__tests__/locked-list.test.ts`.
