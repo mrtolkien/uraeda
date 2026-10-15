@@ -23,10 +23,9 @@ targeted fixes, and visual feedback.
 
 ## Notes
 
-- Split out of
-  [Add a bugfixing/low impact change flow](/specs/2026-10-15-add-bugfixing/proposal.md), Q1 of its
-  first round: that feature builds the light flow for bugs and small changes, and this one builds on
-  it.
+- Split out of [Add a bugfixing/low impact change flow](/specs/done/2026-10-15-add-bugfixing.md), Q1
+  of its first round: that feature builds the light flow for bugs and small changes, and this one
+  builds on it.
 - Its research on visual tools (v0, Lovable, Figma Make, Stitch, Claude Design, Cursor's design
   mode, preview comments, mapping an element to its code) is in the section "Visual iteration on UI"
   of that feature's first discovery:
