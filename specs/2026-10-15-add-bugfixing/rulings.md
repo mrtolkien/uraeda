@@ -401,3 +401,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   once the folder is finished.
 - **If wrong**: `save` in `packages/web/scripts/shots.ts` writes Playwright's PNG again.
 - **Where**: Task 11, `packages/web/scripts/shots.ts`.
+
+## R24: An upgraded change's branch and worktree are removed by hand
+
+- **Decision**: once an upgraded change's branch is merged, the agent removes its worktree and
+  deletes its branch with the git commands of finish's
+  [after the merge](/skills/uraeda/references/finish.md#after-the-merge), never forced, or gives the
+  human those commands. `ura clean` is not named for it.
+- **Rationale**: `ura clean` finds a merged item by its record or its folder, and the upgrade's
+  merge leaves neither for the change: its folder becomes `specs/drafts/<slug>/`. The git decision
+  lets tools remove a merged item's worktree and branch when a human asks
+  ([rules](/specs/decisions/git.md#rules)): the human's "A" to the upgrade asks for it. The spec's
+  "Branches are deleted only by `ura clean`" summarizes the decision for the finished change, whose
+  record `ura clean` finds.
+- **Alternatives considered**: teaching `ura clean` the upgrade, a change to the CLI that the spec
+  does not ask for.
+- **If wrong**: `ura clean` finds a merged `change/` branch whose folder moved to `specs/drafts/`,
+  and `change.md` names it again.
+- **Where**: final review, `skills/uraeda/references/change.md`.
