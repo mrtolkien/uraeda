@@ -20,6 +20,7 @@ import { Home } from "./Home.tsx";
 import { InboxPage } from "./InboxPage.tsx";
 import { MockupPage } from "./MockupPage.tsx";
 import { NewChangePage } from "./NewChangePage.tsx";
+import { NoteView } from "./NoteView.tsx";
 import { PrioritiesPage } from "./PrioritiesPage.tsx";
 import { Page as PageLayout } from "./layout/Page.tsx";
 import { Panes } from "./layout/Panes.tsx";
@@ -92,9 +93,10 @@ function Page({ route }: { route: Route }) {
       return <PrioritiesPage />;
     case "task":
       return <TaskRoute entryKey={route.key} />;
-    // A note's view, and the triage's, come with their own tasks: until then, the inbox.
-    case "inbox":
     case "note":
+      return <NoteRoute noteKey={route.key} />;
+    // The triage's view comes with its own task: until then, the inbox.
+    case "inbox":
     case "triage":
       return <InboxPage />;
     case "edit":
@@ -133,6 +135,19 @@ function TaskRoute({ entryKey }: { entryKey: string }) {
       detail={<TaskView entryKey={entryKey} />}
       list={list === "/" ? <Home /> : <PrioritiesPage />}
       onCloseDetail={() => navigate(here(list))}
+    />
+  );
+}
+
+/** A note's view: on wide screens, in a pane beside the inbox; on narrow screens, a page of its own. */
+function NoteRoute({ noteKey }: { noteKey: string }) {
+  const here = useRepoPath();
+  useListPosition();
+  return (
+    <Panes
+      detail={<NoteView noteKey={noteKey} />}
+      list={<InboxPage />}
+      onCloseDetail={() => navigate(here("/inbox"))}
     />
   );
 }

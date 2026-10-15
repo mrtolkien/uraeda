@@ -1,11 +1,13 @@
 // The records each page reads: requested by id, kept up to date by the server's live updates, and
 // read again when the page is shown again, as iOS may have dropped its connection.
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useFateClient, useLiveView, useRequest, useView } from "react-fate";
 import type { Inbox, Priorities, Trigger } from "uraeda-server/fate";
 import {
   AgentView,
   BranchChangesView,
+  DraftTextView,
+  DraftTitleView,
   DraftView,
   FeatureView,
   FileView,
@@ -123,6 +125,70 @@ export async function readInbox(
   const { data } = await fate.readView(InboxView, inbox);
   // fate types the request's root as any entity: the view gives the inbox's fields.
   return data as unknown as Pick<Inbox, "categories" | "hash">;
+}
+
+/**
+ * The commit bar's count, which `Inbox` and `Priorities` both carry, read again with both files
+ * after a change of the other, like a move across them, a commit, or a discard.
+ */
+export function rereadChanges(fate: ReturnType<typeof useFateClient>) {
+  void fate
+    .request(
+      {
+        inbox: { id: INBOX_ID, view: InboxView },
+        priorities: { id: PRIORITIES_ID, view: PrioritiesView },
+      },
+      { mode: "network-only" },
+    )
+    .catch(() => {});
+}
+
+/**
+ * The titles of the drafts and backlog files at `paths`, read in one request once they are asked
+ * for, and again when the list changes; `undefined` while they load.
+ */
+export function useDraftTitles(
+  paths: ReadonlyArray<string>,
+): ReadonlyArray<{ path: string; title: string }> | undefined {
+  const fate = useFateClient();
+  const [titles, setTitles] = useState<{
+    key: string;
+    rows: Array<{ path: string; title: string }>;
+  }>();
+  // The list, as one value, so a new array of the same paths reads nothing again.
+  const key = paths.join("\n");
+  useEffect(() => {
+    let current = true;
+    const ids = key === "" ? [] : key.split("\n");
+    void (async () => {
+      const { drafts } = await fate.request({ drafts: { ids, view: DraftTitleView } });
+      const rows = await Promise.all(
+        (drafts as ReadonlyArray<Parameters<typeof fate.readView>[1]>).map(
+          async (draft) => (await fate.readView(DraftTitleView, draft)).data,
+        ),
+      );
+      if (current) {
+        setTitles({ key, rows: rows as unknown as Array<{ path: string; title: string }> });
+      }
+    })().catch(() => {});
+    return () => {
+      current = false;
+    };
+  }, [fate, key]);
+  return titles?.key === key ? titles.rows : undefined;
+}
+
+/** A draft's text and hash as they are now on disk, read outside a component, for an Undo. */
+export async function readDraftText(
+  fate: ReturnType<typeof useFateClient>,
+  path: string,
+): Promise<{ hash: string; text: string }> {
+  const { draft } = await fate.request(
+    { draft: { id: path, view: DraftTextView } },
+    { mode: "network-only" },
+  );
+  const { data } = await fate.readView(DraftTextView, draft);
+  return data as unknown as { hash: string; text: string };
 }
 
 export function useDraft(path: string) {
