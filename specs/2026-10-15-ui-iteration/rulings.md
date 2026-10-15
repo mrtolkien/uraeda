@@ -764,3 +764,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   change's mockups in such a project show only once that glob is widened.
 - **Where**: `crates/core/src/check/names.rs`, `crates/core/tests/check.rs`,
   `skills/uraeda/references/change.md`, and `skills/uraeda/SKILL.md`.
+
+## R50: The claude-usage record links no screenshot
+
+- **Decision**: the record `specs/done/2026-10-15-claude-usage.md` loses its "Screenshots:" list,
+  four links to `2026-10-15-claude-usage/screenshots/*.png`. Its text still says what the browser
+  checks cover.
+- **Rationale**: the failure came from the default branch, not from this feature: `main`'s commit
+  66006fd deleted the four screenshots, so `ura check specs` reported the record's links as broken.
+  The [attachments decision](/specs/decisions/attachments.md) says a record MUST NOT link to an
+  image, so the links go rather than the images coming back.
+- **Alternatives considered**: restoring the screenshots from history, which keeps a record linking
+  images, against the attachments decision.
+- **If wrong**: the record's last lines, in one commit; the images are in history before 66006fd.
+- **Where**: `specs/done/2026-10-15-claude-usage.md`.
+- **At the catch-up**: `main`'s commit 7a46122 made the same fix, the screenshots named in words;
+  its text is kept, and this branch no longer changes the record.
