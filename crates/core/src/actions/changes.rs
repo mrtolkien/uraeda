@@ -281,7 +281,59 @@ fn pair(place: &Place, texts: &Texts) -> (Vec<Described>, Drafts) {
         subject: describe(&entry),
         line: line(&entry),
     }));
+    never_committed(place, texts, &mut found);
     (changes, found)
+}
+
+/// The links of the lists' texts to drafts, each with the markdown of its text when it is the
+/// whole entry or note, as a tool writes it.
+fn draft_links(inbox: &str, priorities: &str) -> Vec<(String, Option<String>)> {
+    let lines: Vec<&str> = priorities.lines().collect();
+    let entries = priorities::parse(priorities)
+        .into_iter()
+        .filter_map(|entry| {
+            let first = lines
+                .get(entry.line - 1)
+                .and_then(|l| lines::item_marker(l));
+            let title = first.and_then(|(_, rest)| inbox::link_text(rest));
+            Some((entry.link?, title))
+        });
+    let notes = inbox::parse(inbox).into_iter().filter_map(|note| {
+        let title = inbox::link_title(inbox, &note.id);
+        Some((note.link?, title))
+    });
+    entries
+        .chain(notes)
+        .filter_map(|(link, title)| Some((crate::workspace::resolve("specs", &link)?, title)))
+        .filter(|(path, _)| crate::target::is_draft(path))
+        .collect()
+}
+
+/// Holds in the commit every draft the lists link that no commit has, so none of their links points
+/// at a file the commit lacks: a note added and moved since the last commit leaves no trace in the
+/// inbox to pair. One linked since the last commit Discard deletes while it holds what a tool wrote
+/// for the link, the proposal titled by its text.
+fn never_committed(place: &Place, texts: &Texts, found: &mut Drafts) {
+    if texts.inbox.0 == texts.inbox.1 && texts.priorities.0 == texts.priorities.1 {
+        return;
+    }
+    let text = |version: &Option<String>| version.clone().unwrap_or_default();
+    let then = draft_links(&text(&texts.inbox.1), &text(&texts.priorities.1));
+    for (path, title) in draft_links(&text(&texts.inbox.0), &text(&texts.priorities.0)) {
+        if found.paths.contains(&path)
+            || !place.root.join(&path).is_file()
+            || place::committed(place, &path).is_some()
+        {
+            continue;
+        }
+        if let Some(title) = title.filter(|_| !then.iter().any(|(was, _)| *was == path)) {
+            found.undo.push(Undo::Created {
+                path: path.clone(),
+                written: super::draft::proposal(&title, &[]),
+            });
+        }
+        found.paths.push(path);
+    }
 }
 
 /// The files the commit holds: each list that changed, then the drafts.

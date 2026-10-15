@@ -232,7 +232,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   - a draft a note was added to loses that note's lines, and the blank line added before them, and
     keeps every other edit;
   - an entry's or an added note's link to an uncommitted draft does not otherwise bring the draft
-    into Discard. Commit still holds the drafts of the moves and those an added note links.
+    into Discard. Commit still holds the drafts of the moves and those an added note links. Amended
+    by ruling R33: a never-committed draft the lists link since the last commit is deleted while it
+    holds what a tool wrote for the link.
 
   With it:
   - A new draft's title, What, and link text are the note's markdown, marks dropped, not its plain
@@ -799,3 +801,32 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: Revert the link edits of 28c252f, and exempt these files from the check.
 - **Where**: final review, commit 28c252f, `specs/2026-10-15-add-scratchpad/clarifications-01.md`,
   `discovery-01.md`, `spec.md`
+
+## R33: The commit holds every never-committed draft the lists link; a new note added to a draft is a draft edit
+
+- **Decision**:
+  - The commit bar's Commit holds, besides the drafts of the paired moves, every draft that
+    `INBOX.md` or `PRIORITIES.md` links once committed and that no commit has, whatever made it: a
+    note added since the last commit and then made a draft leaves no trace in the inbox to pair, and
+    its entry's link would otherwise be committed without its file.
+  - Discard deletes such a draft, linked since the last commit, while it holds what a tool wrote for
+    the link, the proposal titled by the link's text, with at most a note's images, as
+    `remove_written` does for a paired move: Make a draft of a note without nested lines, or the
+    Draft button. One typed in, or a draft holding a note's nested lines, is kept.
+  - A note added since the last commit and then added to a committed draft is not counted by the
+    commit bar, nor committed or taken back by it: the draft's edit is committed from its editor,
+    and Discard keeps the note's text in the draft.
+- **Rationale**: The second review found the pairing missed a note added and moved within the
+  uncommitted change, leaving a dangling committed link. A link's draft is in the files, so the
+  commit can hold it with no state outside git (constitution III). A new note added to a committed
+  draft leaves files byte for byte the same as a bullet the human typed in the draft's What:
+  counting it would sweep the human's draft edits into the inbox's commit, and Discard would delete
+  their typing (ruling R14). Nothing dangles and nothing is lost: the note's text stays in the
+  draft.
+- **Alternatives considered**: Recording the moves somewhere outside the two lists, state outside
+  git. Counting every bullet added to a draft's What as a move, which takes the human's typing.
+  Leaving the lines out of the commit instead, which leaves the draft untracked once the lists move
+  on.
+- **If wrong**: `never_committed` in `actions/changes.rs`.
+- **Where**: second final review, `crates/core/src/actions/changes.rs`,
+  `crates/core/src/files/inbox.rs`, `crates/core/tests/inbox_moves.rs`
