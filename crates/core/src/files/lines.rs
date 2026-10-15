@@ -56,20 +56,31 @@ pub(crate) fn item_text<'a>(lines: &[&'a str], item: &Item) -> Vec<&'a str> {
 }
 
 /// Every item at column 0 under a heading `heading` accepts, with what it returned for that
-/// heading. Any line starting with `#` is a heading. An item runs on over its indented lines, up
-/// to a blank or unindented line; its text ends at its first sub-item.
+/// heading, which it gets with its line number, from 1. Any line starting with `#` is a heading.
+/// Lines inside fenced code are neither. An item runs on over its indented lines, up to a blank or
+/// unindented line; its text ends at its first sub-item.
 pub(crate) fn items<S: Clone>(
     text: &str,
-    mut heading: impl FnMut(&str) -> Option<S>,
+    mut heading: impl FnMut(usize, &str) -> Option<S>,
 ) -> Vec<(S, Item)> {
     let lines: Vec<&str> = text.lines().collect();
     let mut items = Vec::new();
     let mut section = None;
+    let mut in_code = false;
     let mut index = 0;
     while index < lines.len() {
         let line = lines[index];
+        if super::is_fence(line) {
+            in_code = !in_code;
+            index += 1;
+            continue;
+        }
+        if in_code {
+            index += 1;
+            continue;
+        }
         if line.starts_with('#') {
-            section = heading(line);
+            section = heading(index + 1, line);
             index += 1;
             continue;
         }
@@ -77,51 +88,59 @@ pub(crate) fn items<S: Clone>(
             index += 1;
             continue;
         };
-        let mut text_end = index;
-        let mut end = index;
-        let mut in_text = true;
-        for (offset, next) in lines[index + 1..].iter().enumerate() {
-            let indented = next.starts_with(' ') || next.starts_with('\t');
-            if !indented || next.trim().is_empty() {
-                break;
-            }
-            end = index + 1 + offset;
-            if item_marker(next.trim_start()).is_some() {
-                in_text = false;
-            }
-            if in_text {
-                text_end = end;
-            }
-        }
-        let item = Item {
-            line: index + 1,
-            text_end: text_end + 1,
-            end: end + 1,
-            marker,
-        };
+        let item = item_at(&lines, index, marker);
+        index = item.end;
         items.push((current.clone(), item));
-        index = end + 1;
     }
     items
 }
 
-/// Adds `item`, the lines of an item, after the last item under the first heading `is_heading`
-/// accepts, or after that heading, or at the end of the text under `new_heading`. Takes and gives
-/// `\n` line endings.
+/// The item starting at `index`, from 0, with its indented lines.
+fn item_at(lines: &[&str], index: usize, marker: Marker) -> Item {
+    let mut text_end = index;
+    let mut end = index;
+    let mut in_text = true;
+    for (offset, next) in lines[index + 1..].iter().enumerate() {
+        let indented = next.starts_with(' ') || next.starts_with('\t');
+        if !indented || next.trim().is_empty() {
+            break;
+        }
+        end = index + 1 + offset;
+        if item_marker(next.trim_start()).is_some() {
+            in_text = false;
+        }
+        if in_text {
+            text_end = end;
+        }
+    }
+    Item {
+        line: index + 1,
+        text_end: text_end + 1,
+        end: end + 1,
+        marker,
+    }
+}
+
+/// The headings of a text outside fenced code, with their line numbers, from 1.
+pub(crate) fn headings(text: &str) -> impl Iterator<Item = (usize, &str)> {
+    super::lines_outside_code(text).filter(|(_, line)| line.starts_with('#'))
+}
+
+/// Adds `item`, the lines of an item, after `last`, the last item of a section, or else after the
+/// heading at line `heading`, from 1, or else at the end of the text under `new_heading`. Takes
+/// and gives `\n` line endings, and a text ending with a line ending keeps it.
 pub(crate) fn append_to_section(
     text: &str,
-    is_heading: impl Fn(&str) -> bool,
+    last: Option<&Item>,
+    heading: Option<usize>,
     new_heading: &str,
     item: &[String],
 ) -> String {
     let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
-    let last = items(text, |line| Some(is_heading(line)))
-        .into_iter()
-        .rfind(|(under, _)| *under);
-    if let Some((_, last)) = last {
+    if let Some(last) = last {
         lines.splice(last.end..last.end, item.iter().cloned());
-    } else if let Some(heading) = lines.iter().position(|line| is_heading(line)) {
-        let mut at = heading + 1;
+    } else if let Some(heading) = heading {
+        let mut at = heading;
         if lines.get(at).is_some_and(|line| line.trim().is_empty()) {
             at += 1;
         } else {
@@ -130,11 +149,10 @@ pub(crate) fn append_to_section(
         }
         let count = item.len();
         lines.splice(at..at, item.iter().cloned());
-        if lines
-            .get(at + count)
-            .is_some_and(|line| !line.trim().is_empty())
-        {
-            lines.insert(at + count, String::new());
+        match lines.get(at + count) {
+            Some(line) if !line.trim().is_empty() => lines.insert(at + count, String::new()),
+            None => lines.push(String::new()),
+            Some(_) => {}
         }
     } else {
         if lines.last().is_some_and(|line| line.is_empty()) {
@@ -160,6 +178,132 @@ pub(crate) fn remove(text: &str, item: &Item) -> String {
     let mut lines: Vec<&str> = text.split('\n').collect();
     lines.drain(item.line - 1..item.end);
     lines.join("\n")
+}
+
+/// An item compared across two texts: its section, its whole markdown, nested lines included,
+/// and its text without markdown.
+pub(crate) struct Signed<S> {
+    pub section: S,
+    pub markdown: String,
+    pub text: String,
+}
+
+/// An item's markdown after its marker, nested lines included, to compare it across texts.
+pub(crate) fn signed_markdown(lines: &[&str], item: &Item) -> String {
+    let (_, first) = item_marker(lines[item.line - 1]).unwrap_or((Marker::Bullet('-'), ""));
+    let rest = lines[item.line..item.end].join("\n");
+    format!("{first}\n{rest}")
+}
+
+/// A change to one item between two texts, each item named by its text without markdown.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum Change<S> {
+    Added {
+        section: S,
+        text: String,
+    },
+    Removed {
+        section: S,
+        text: String,
+    },
+    /// To another section, or to another place in the same one.
+    Moved {
+        from: S,
+        to: S,
+        text: String,
+    },
+    Edited {
+        section: S,
+        before: String,
+        after: String,
+    },
+}
+
+use Change::{Added, Edited, Moved, Removed};
+
+/// The changes between two lists of items, in the order of `new`. The items outside their longest
+/// common sequence are moves when their markdown is the same, edits when one replaces another in
+/// the same section and place, and otherwise additions and removals, so a swap of two items is
+/// one move.
+pub(crate) fn diff<S: Clone + PartialEq>(old: &[Signed<S>], new: &[Signed<S>]) -> Vec<Change<S>> {
+    let same =
+        |i: usize, j: usize| old[i].section == new[j].section && old[i].markdown == new[j].markdown;
+    let mut table = vec![vec![0u32; new.len() + 1]; old.len() + 1];
+    for i in (0..old.len()).rev() {
+        for j in (0..new.len()).rev() {
+            table[i][j] = if same(i, j) {
+                table[i + 1][j + 1] + 1
+            } else {
+                table[i + 1][j].max(table[i][j + 1])
+            };
+        }
+    }
+    // Each item left out, with its gap, counted by the items kept before it, and its place in
+    // `new`.
+    let (mut removed, mut added) = (Vec::new(), Vec::new());
+    let (mut i, mut j, mut gap) = (0, 0, 0);
+    while i < old.len() || j < new.len() {
+        if i < old.len() && j < new.len() && same(i, j) {
+            i += 1;
+            j += 1;
+            gap += 1;
+        } else if j < new.len() && (i == old.len() || table[i][j + 1] >= table[i + 1][j]) {
+            added.push((gap, j));
+            j += 1;
+        } else {
+            removed.push((gap, j, i));
+            i += 1;
+        }
+    }
+    let mut changes = Vec::new();
+    // The same markdown elsewhere: a move.
+    removed.retain(|&(_, _, i)| {
+        let Some(at) = added
+            .iter()
+            .position(|&(_, j)| old[i].markdown == new[j].markdown)
+        else {
+            return true;
+        };
+        let (_, j) = added.remove(at);
+        let (from, to, text) = (
+            old[i].section.clone(),
+            new[j].section.clone(),
+            new[j].text.clone(),
+        );
+        changes.push((j, Moved { from, to, text }));
+        false
+    });
+    // Another item in the same gap and section: an edit.
+    removed.retain(|&(gap, _, i)| {
+        let Some(at) = added
+            .iter()
+            .position(|&(other, j)| other == gap && new[j].section == old[i].section)
+        else {
+            return true;
+        };
+        let (_, j) = added.remove(at);
+        let (before, after) = (old[i].text.clone(), new[j].text.clone());
+        let section = new[j].section.clone();
+        changes.push((
+            j,
+            Edited {
+                section,
+                before,
+                after,
+            },
+        ));
+        false
+    });
+    changes.extend(added.into_iter().map(|(_, j)| {
+        let (section, text) = (new[j].section.clone(), new[j].text.clone());
+        (j, Added { section, text })
+    }));
+    changes.extend(removed.into_iter().map(|(_, at, i)| {
+        let (section, text) = (old[i].section.clone(), old[i].text.clone());
+        (at, Removed { section, text })
+    }));
+    changes.sort_by_key(|(at, _)| *at);
+    changes.into_iter().map(|(_, change)| change).collect()
 }
 
 /// The text of each item of nested lines, read as markdown.

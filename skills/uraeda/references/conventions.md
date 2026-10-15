@@ -65,6 +65,7 @@ Workflow files track their state in frontmatter fields.
 | `plan.md`              | `spec-revision`  | the spec `revision` it implements     |                                   |
 | `decisions/*.md`       | `status`         | `proposed`, then `active` on approval | `active`                          |
 | `decisions/*.md`       | `approved-by`    | the approver, on approval, if known   | the approver                      |
+| `INBOX-TRIAGE.md`      | `status`         | `awaiting-human`                      | `answered`                        |
 
 A change's folder has no other status: its rounds are `clarifications-NN.md`, as a feature's are.
 See [Change](change.md).
@@ -151,11 +152,20 @@ and `chore:` for the rest. `ura` and the web UI write the same messages.
 | A proposal, then its edits     | `chore(recurring-tasks): proposal`, `chore(recurring-tasks): edit the proposal`                     |
 | Start, postpone                | `chore(recurring-tasks): start Recurring tasks`, `chore(recurring-tasks): postpone Recurring tasks` |
 | `PRIORITIES.md` alone          | `chore: move "Recurring tasks" to Next`                                                             |
+| A note                         | `chore: add "Sort completed tasks" to the inbox`                                                    |
+| `INBOX.md`, and where notes go | `chore: move "Sort completed tasks" from the inbox to Next`                                         |
+| The inbox triage               | `chore: propose an inbox triage`, `chore: answer the inbox triage`, `chore: apply the inbox triage` |
 
 A commit of `PRIORITIES.md` alone names its one change: `add "<entry>" to <section>`,
 `remove "<entry>"`, `edit "<entry>"`, `move "<entry>" to <section>`, or
 `move "<entry>" within <section>`, with the start of the entry's text. With more changes, the
 subject names the first one and ends with `, and <count> more`, and the body lists every change, one
 per line: `- Add to Now: <entry>`.
+
+A commit of `INBOX.md`, with the `PRIORITIES.md` and drafts its notes went into, names its changes
+the same way: `add "<note>" to the inbox`, `edit "<note>" in the inbox`,
+`remove "<note>" from the inbox`, `move "<note>" to <Category> in the inbox`,
+`move "<note>" from the inbox to <Section>`, or `move "<note>" from the inbox to the draft <title>`.
+See [Inbox](inbox.md).
 
 The commit type is only a label: the `status` fields and the checkboxes are the source of truth.

@@ -121,7 +121,8 @@ three sides below.
   exposes. List every place that reads or writes data the feature may change.
 - Trace the proposal's user path through the code, step by step, then every existing action that
   meets the new feature: undo, delete, uncheck, edit, empty fields. Each one that behaves
-  differently with the feature is a finding.
+  differently with the feature is a finding. A problem you meet outside the feature, like a slow
+  page, is not a finding: note it in the inbox, as [agents' notes](inbox.md#agents-notes) says.
 - List who owns each rule the feature touches, and where it is copied: see
   [one home per rule](code-quality.md#one-home-per-rule).
 - Find the existing patterns the feature should follow, and the problems in the way: a function or

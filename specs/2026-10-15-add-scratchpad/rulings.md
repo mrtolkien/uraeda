@@ -88,3 +88,65 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   flag on `items` to skip or not, two rules for one scan.
 - **If wrong**: Gate the skip behind a parameter, so the priorities keep reading fenced bullets.
 - **Where**: tasks 1 and 2
+
+## R8: `append_to_section` takes the section's last item and heading from its caller
+
+- **Decision**: `lines::append_to_section(text, last, heading, new_heading, item)` adds after
+  `last`, the section's last item, or else after the heading at line `heading`, or else under a new
+  heading at the end. `lines::items` gives its closure each heading's line number, and
+  `lines::headings` lists the headings outside fenced code. Adding under a heading at the end of the
+  file keeps the file's last line ending.
+- **Rationale**: Task 1's helper took a predicate and the last item under any heading it accepted,
+  so it could not tell two `## UI` headings apart, and review focus 6 requires the inbox to add to
+  the first. The priorities pass the last entry of their section and the first matching heading,
+  which is what the predicate found, so their behaviour is unchanged. `"# Inbox\n\n## UI\n"` lost
+  its final newline when a note was added.
+- **Alternatives considered**: A second helper for the inbox, a copy of the splicing rule. Keeping
+  the predicate and filtering in `inbox.rs`, which still needs the heading's line.
+- **If wrong**: Only the two callers of `append_to_section` change.
+- **Where**: task 2, in `files/lines.rs`, `files/priorities.rs`, and `files/inbox.rs`
+
+## R9: Only a `##` heading changes a note's category
+
+- **Decision**: A `#` or `###` heading inside the inbox is kept and ignored: notes under a
+  `### aside` of `## UI` are UI notes. Bullets before the first heading, above `# Inbox`, are not
+  notes.
+- **Rationale**: The spec says "Other headings and text are kept and ignored": a heading that ended
+  its category would file the notes after it nowhere. Task 1's scan reset the section at every
+  heading, so the inbox's closure keeps the current category instead.
+- **Alternatives considered**: Ending the category at any heading, which hides the notes under a
+  sub-heading from every tool.
+- **If wrong**: The closure in `inbox::scan` returns `None` for other headings.
+- **Where**: task 2, `files/inbox.rs`
+
+## R10: The inbox's diff pairs a removed note and a similar added one as a move
+
+- **Decision**: `inbox::diff` runs the priorities' diff, moved into `lines::diff` as a generic over
+  the section type, then pairs a removed note with an added one whose words are at least half shared
+  (`4 × common ≥ words before + words after`), as one `Moved` with the new text.
+- **Rationale**: Review focus 4 counts a note edited, then moved, as one change. Its markdown
+  changed, so the exact match that finds moves misses it, and it is not in the same place, so the
+  edit rule misses it too. A note deleted and an unrelated note added stay two changes.
+- **Alternatives considered**: Pairing any removal with any addition, which merges unrelated
+  changes. Tracking edits in the UI, which a change made by hand does not have.
+- **If wrong**: An edit that rewrites most words counts as a removal and an addition; tune the
+  threshold in `inbox::diff::similar`.
+- **Where**: task 2, `files/lines.rs` and `files/inbox/diff.rs`
+
+## R11: Task 2's smaller corrections to the plan
+
+- **Decision**:
+  - The spec's Data example holds 5 notes, not 4: `None`, then `UI` three times, then `CLI`.
+  - The diff lives in `files/inbox/diff.rs`, re-exported from `files::inbox`, which stays under 500
+    lines.
+  - `add` writes `# Inbox\n`, the template, into an empty text, which gives `"# Inbox\n\n- note\n"`
+    as the plan expects, and `"# Inbox\n\n## Editor\n\n- note\n"` for a new category, with no second
+    blank line.
+  - `Inbox.names` lists each category's name once, for the add form; `category_names` keeps the
+    repeated ones, for `ura check`.
+  - The priorities' fenced-code test is in `tests/priorities.rs`.
+- **Rationale**: Each follows the spec, or the plan's expected output, where the plan's text was
+  off.
+- **Alternatives considered**: None that keep the plan's expected outputs.
+- **If wrong**: Each is a line or two.
+- **Where**: task 2

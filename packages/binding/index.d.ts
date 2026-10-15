@@ -476,6 +476,51 @@ export interface FileView {
   reviewStale: boolean
 }
 
+/** `INBOX.md` read for editing. */
+export interface Inbox {
+  /** The SHA-256 of the text, to refuse edits over a change made elsewhere. */
+  hash: string
+  /**
+   * The categories that hold notes, the notes without one first, then in file order. Notes
+   * under two headings of the same name are in one category.
+   */
+  categories: Array<InboxCategory>
+  /** Every category's name, once, in file order, empty ones included: what the add form offers. */
+  names: Array<string>
+  /** How many notes it holds. */
+  count: number
+  /** How many changes wait for a commit. */
+  changes: number
+  /** The status of `INBOX-TRIAGE.md`, when there is one. */
+  triage?: string
+}
+
+export interface InboxCategory {
+  /** `None` for the notes before the first category. */
+  name?: string
+  notes: Array<InboxNote>
+}
+
+/** A note of `INBOX.md`, for editing. */
+export interface InboxNote {
+  /** `note-3`: its place in the file, from 1. */
+  id: string
+  /** Its address: the slug of its text, made unique. */
+  key: string
+  /** The markdown of its text, after its marker and marks, on one line. */
+  text: string
+  spans: Array<Span>
+  agent: boolean
+  /** The slug of the feature or bug it is about. */
+  about?: string
+  /** The path of the draft its whole text links to, from the repository's top level. */
+  draft?: string
+  startLine: number
+  endLine: number
+  /** Its lines as written, sub-items included: what an Undo of its removal writes back. */
+  lines: Array<string>
+}
+
 /**
  * What a list item is, from its marker: a task, a typed bullet (`[pro]`, `[con]`, `[?]`, `[!]`),
  * or a list callout (`!`, `?`, `&`).

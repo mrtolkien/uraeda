@@ -66,6 +66,8 @@ specs/
   README.md                 # layout and conventions, links to this skill
   CONSTITUTION.md           # project principles, by priority: always binding
   PRIORITIES.md             # Now, Next, Later, Blocked
+  INBOX.md                  # notes to organize later, by category
+  INBOX-TRIAGE.md           # an agent's proposed outcome for each note, answered like questions
   drafts/                   # upcoming features, human-written, free form
   backlog/                  # nice-to-have features, not scheduled
                             # in both, a folder is a postponed feature, or a draft with images:
@@ -236,6 +238,8 @@ Read a step's reference before running it, and the others when the step needs th
   how a project sets up its checks.
 - [Conventions](references/conventions.md): markdown, the status table, review files, branches and
   worktrees, and commits; read it before writing or committing a workflow file.
+- [Inbox](references/inbox.md): the inbox's format, writing notes, organizing them by hand or with a
+  triage, and noting a problem found outside your task.
 - [Projects](references/projects.md): setting up a project, starting, postponing, or dropping a
   feature, and finishing one; read it when the human asks for one of these.
 - [The `ura` CLI](references/cli.md): every command and what it refuses; read it before running
