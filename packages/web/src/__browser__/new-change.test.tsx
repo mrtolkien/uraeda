@@ -146,6 +146,9 @@ test("the text comes back after leaving the page", async () => {
   const back = screen.getByRole("textbox", { name: "Message Claude Code" });
   expect(back.textContent).toBe(`${TITLE}\n\n${BODY}`);
   expect(slug().value).toBe("centred-x");
+  // The draft editor's notice says nothing true of a page kept as a new chat's is.
+  await drawn();
+  expect(screen.queryByText(/^Unsaved text restored/)).toBeNull();
 });
 
 // US1.2
