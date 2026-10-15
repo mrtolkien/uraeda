@@ -68,8 +68,9 @@ export function Item({
       isSelected={selects(pathname, to) && !(except && selects(pathname, except))}
       label={label}
       // Beside the link, not inside it: the name reads the tag where it fits the sentence, and the
-      // link's visible text stays the start of its name, as WCAG's label in name asks (R13).
-      {...(tag ? { actions: <Badge label={tag} variant="neutral" /> } : {})}
+      // link's visible text stays the start of its name, as WCAG's label in name asks (R13). Hidden
+      // from screen readers, which read it in the name.
+      {...(tag ? { actions: <Badge aria-hidden label={tag} variant="neutral" /> } : {})}
       // The title and the status are read with the label, also when the folded navigation shows
       // only the dot.
       {...(name === label ? {} : { "aria-label": name })}
