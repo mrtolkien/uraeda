@@ -1,12 +1,29 @@
 ---
-status: changes-requested
-revision: 1
+status: awaiting-human
+revision: 2
 clarifications: 1
 risk-tier: medium
 plan-review: false
 ---
 
 # Spec: Add a bugfixing/low impact change flow
+
+> [!IMPORTANT]
+>
+> Spec to review again, about 10 minutes: only starting a change changed.
+>
+> - **C1: done.** A "New change" row in the sidebar opens a composer page, `/changes/new`, like "New
+>   chat". There is no draft and no line in the priorities first. What you type becomes the change's
+>   proposal. "Start the change" creates its branch and worktree, opens its page, and sends the
+>   agent its first run in one press.
+> - **C2: done.** The draft editor's "Start as" choice is gone. The composer is the change's start,
+>   on a page as small as a new chat's. A draft still starts as a change with `ura start --change`,
+>   which is how a chat's agent starts one.
+> - **Your question: the fastest first message in today's UI.** It reuses the new chat's page: the
+>   same composer, with its images, Enter to send, and a slug field under it, filled from the first
+>   line. The agent runs at once, since you wrote the request yourself. A feature's hand-over
+>   instead leaves its message unsent for review.
+> - **A new view.** The composer page is mocked up at both widths, as the UI layout decision asks.
 
 > [!NOTE]
 >
@@ -40,54 +57,63 @@ plan-review: false
 > - **Risk tier `medium`.** It renames a folder kind that users' projects may hold, and changes
 >   `ura start`, the core's step table, and the web UI. The plan does not wait for your review.
 
-A change is the light flow for bug fixes and small changes. The human writes a draft and starts it
-as a change. In the change's own worktree, the agent investigates, asks only what the human must
-decide, makes the change with tests that fail first, has a fresh reviewer check it, and opens a pull
-request. A change that turns out too big is offered as a feature. It replaces the unused bug flow,
-and gives the small changes that went straight to `main` a light path with a record, tests, and a
-review. See the [proposal](proposal.md), [discovery](discovery-01.md), and
+A change is the light flow for bug fixes and small changes. The human types the request in a "New
+change" composer, and starts it. In the change's own worktree, the agent investigates, asks only
+what the human must decide, makes the change with tests that fail first, has a fresh reviewer check
+it, and opens a pull request. A change that turns out too big is offered as a feature. It replaces
+the unused bug flow, and gives the small changes that went straight to `main` a light path with a
+record, tests, and a review. See the [proposal](proposal.md), [discovery](discovery-01.md), and
 [clarifications](clarifications-01.md).
 
 ## User stories
 
-### US1: Start a draft as a change, and get a pull request (P1)
+### US1: Type a change, and get a pull request (P1)
 
-From a draft's editor, the human chooses "Change" and starts it with its agent. In the change's
-worktree, the agent investigates, makes the change with its tests, has the diff reviewed, and opens
-the pull request, without stopping when it has nothing to ask.
+From the sidebar's "New change", the human types the bug or the change in a composer, as they would
+start a chat, and starts it. In the change's worktree, the agent investigates, makes the change with
+its tests, has the diff reviewed, and opens the pull request, without stopping when it has nothing
+to ask.
 
 Why this priority: it is the light flow itself, and replaces both the unused bug flow and the direct
 commits to `main`.
 
 Acceptance scenarios:
 
-1. **Given** the draft `specs/drafts/centred-x.md`, "Centre the x in failure circles", linked from
-   Now, **When** the human chooses "Change", keeps the slug `centred-x`, and presses "Start the
-   change and the agent" on 2026-10-16, **Then** the branch `change/2026-10-16-centred-x` exists,
-   checked out at `.worktrees/2026-10-16-centred-x/`, holding
-   `specs/changes/2026-10-16-centred-x/proposal.md` with the draft's text unchanged; Now's entry
-   reads `[Centre the x in failure circles](/specs/changes/2026-10-16-centred-x/proposal.md)`; and
-   the change's session opens with the message "/uraeda:uraeda Continue the change
-   specs/changes/2026-10-16-centred-x/ on branch change/2026-10-16-centred-x: Investigate it, then
-   make the change, starting with skills/uraeda/references/change.md. Stop when the pull request is
-   ready for review, and earlier only if you need a decision from me."
-2. **Given** the same draft, **When** the human runs
-   `ura start centred-x --slug centred-x --change`, **Then** the same branch, worktree, folder, and
-   entry exist, and `ura` prints `Next: change`.
-3. **Given** a started change whose proposal leaves nothing for the human to decide, **When** its
+1. **Given** the web UI at 1440 × 900 on 2026-10-16, **When** the human presses "New change" in the
+   sidebar, types "Centre the x in failure circles", a blank line, and "In failures the x sits low
+   in its circle.", keeps the slug `centred-x` proposed under the composer, and presses "Start the
+   change", **Then**:
+   - the branch `change/2026-10-16-centred-x` exists, checked out at
+     `.worktrees/2026-10-16-centred-x/`;
+   - it holds `specs/changes/2026-10-16-centred-x/proposal.md`, reading
+     `# Centre the x in failure circles`, a blank line, and "In failures the x sits low in its
+     circle.";
+   - Now's entry reads
+     `[Centre the x in failure circles](/specs/changes/2026-10-16-centred-x/proposal.md)`;
+   - `/f/2026-10-16-centred-x` opens, its agent running with the message "/uraeda:uraeda Continue
+     the change specs/changes/2026-10-16-centred-x/ on branch change/2026-10-16-centred-x:
+     Investigate it, then make the change, starting with skills/uraeda/references/change.md. Stop
+     when the pull request is ready for review, and earlier only if you need a decision from me."
+2. **Given** the composer holding two pasted screenshots, **When** the human starts the change,
+   **Then** the proposal ends with links to both, `![Image 1](images/image-1.webp)` and
+   `![Image 2](images/image-2.webp)`, committed in the change's `images/` folder.
+3. **Given** the draft `specs/drafts/centred-x.md`, **When** the human or an agent runs
+   `ura start centred-x --slug centred-x --change`, **Then** the same branch, worktree, and entry
+   exist, with the draft moved unchanged as the proposal, and `ura` prints `Next: change`.
+4. **Given** a started change whose proposal leaves nothing for the human to decide, **When** its
    agent runs, **Then** no file of the change has `status: awaiting-human` before its draft pull
    request exists, and its folder holds no `spec.md`, `plan.md`, or `discovery-01.md`.
-4. **Given** a change that fixes a bug, **When** the agent commits the fix, **Then** the commit
+5. **Given** a change that fixes a bug, **When** the agent commits the fix, **Then** the commit
    holds a test that fails on the commit before it. The commit's body states the root cause and the
    behaviour that stays unchanged.
-5. **Given** a proposal listing three related tweaks to the sidebar, **When** the agent makes them,
+6. **Given** a proposal listing three related tweaks to the sidebar, **When** the agent makes them,
    **Then** the branch has one commit per tweak, each with its own test, and one pull request.
-6. **Given** every item is committed, **When** the agent finishes, **Then** it has caught up with
+7. **Given** every item is committed, **When** the agent finishes, **Then** it has caught up with
    the default branch, a fresh reviewer has reviewed the whole diff, and
    `specs/done/2026-10-16-centred-x.md` has `kind: change`. The pull request is marked ready, and
    its description opens with "Pull request to review, about 5 minutes." It lists the points the
    agent settled, the size of each function and file it grew, and the minor findings left.
-7. **Given** a change session stopped halfway, after two of three items were committed, **When**
+8. **Given** a change session stopped halfway, after two of three items were committed, **When**
    another session runs `ura next centred-x`, **Then** it prints the step `change`, and the agent
    continues from the commits on the branch.
 
@@ -228,8 +254,13 @@ Acceptance scenarios:
   the folder.
 - **A branch `fix/<folder>` or `change/<folder>` without its folder or record.** It is not a change,
   as today for branches without a folder. The old remote `fix/` branches no longer show anywhere.
-- **Starting a draft as a change when the folder or branch name is taken.** The same refusal as for
-  a feature.
+- **Starting a change when the folder or branch name is taken.** The same refusal as for a feature,
+  under the slug field, and the composer keeps its text.
+- **An empty composer.** "Start the change" is disabled until it holds text.
+- **No agent on this machine.** "Start the change" starts it, and its page opens with the workflow's
+  message in its composer, unsent, as a feature's hand-over does.
+- **Leaving the composer page before starting.** Its text is kept as a new chat's is, and comes back
+  when "New change" opens again.
 - **A change's session opened from a chat.** The chat stays a chat. The change has its own session,
   since an item has one session.
 - **A file in a change's folder that the light flow does not use**, like `spec.md`, `plan.md`,
@@ -241,8 +272,8 @@ Acceptance scenarios:
 - **SC-001**: A change whose proposal leaves nothing to ask goes from its start to a ready pull
   request with one human action left: the review of the pull request. Checked by the core's step
   sequence over the change's states in a test.
-- **SC-002**: Starting a draft as a change, with its agent, takes two clicks from the draft's
-  editor: "Change", then "Start the change and the agent".
+- **SC-002**: Starting a change with its agent takes two clicks and the typing, from any page: "New
+  change", then "Start the change", or Enter in the composer on wide screens.
 - **SC-003**: A change's folder holds only `proposal.md`, `clarifications-NN.md`, `rulings.md`,
   `images/`, and `screenshots/`. Checked by `ura check`.
 - **SC-004**: The skill's change reference, `change.md`, is shorter than the
@@ -279,7 +310,7 @@ how the web UI shows it ([one flow or two](discovery-01.md#one-flow-or-two),
   - the item's kind, from its branch and folder, in `workspace.rs`;
   - the step table, in `steps.rs`, with `change_step` replacing `bug_step`;
   - which files a change's folder may hold, in `check/`;
-  - starting a draft as a change, in `actions/start.rs`.
+  - starting a change from a typed text or a draft, in `actions/start.rs`.
 
   The first file of every item is now `proposal.md`, which removes the three places that chose
   between `proposal.md` and `report.md`.
@@ -319,7 +350,8 @@ caption:
 2. The column while a round waits on the human: "Answer questions", and its round's row.
 3. The column once the pull request is ready: "Pull request", and the record.
 4. The phone, 402 × 874: the progress line over the transcript.
-5. A draft's editor: the "Start as" choice, its buttons, and the line under them.
+5. The "New change" page at 1440 × 900: the composer, the slug field, and "Start the change".
+6. The same page on the phone, 402 × 874.
 
 ## Assumptions
 
@@ -394,8 +426,21 @@ Settled while writing this spec:
   page. Its heading is the change's title, with no crumbs, since it has no other page to go back to.
 - **The "Change" tag** is the only mark in the left sidebar. The groups stay as they are, so what
   waits on the human comes first, whatever its kind.
-- **"Start as"** is offered wherever the UI starts a draft: the draft's editor, and the priorities'
-  task view. "Feature" is chosen when the editor opens.
+- **"New change"** is a row of the sidebar, after "Priorities", outside a search. It opens
+  `/changes/new`, a page shaped like a new chat's: the heading "New change", the line "Describe the
+  bug or the change. The first line is its title.", the chat's composer with its images, and a slug
+  field under it. The core proposes the slug from the first line, as `ura start` does from a draft's
+  name, until the human edits it. The page reads best as one column: it holds one field to type in,
+  like a new chat, at both widths.
+- **The first line is the title.** The proposal is `# <first line>`, then the rest of the text as
+  typed, then the images, each `![Image N](images/image-N.webp)`, re-encoded by the core into the
+  change's `images/` folder, as the [attachments](/specs/decisions/attachments.md) decision
+  requires. A first line longer than 80 characters is cut there for the title, and kept whole in the
+  text below it.
+- **The agent runs at once.** The human wrote the request, so the change's first run is sent, not
+  left in the composer for review as a feature's hand-over is.
+- **Drafts in the UI stay features.** The draft editor and the priorities' task view keep "Start the
+  feature" alone. A draft becomes a change with `ura start --change`, or by asking an agent.
 - **The CLI** gets `ura start --change`, and no command of its own. Editors reach changes through
   the core only: the LSP's start command still starts features
   ([Q9](clarifications-01.md#q9-how-much-tooling-does-this-feature-build)).
@@ -531,8 +576,9 @@ core's step table, and the web UI, with no data to convert.
   - [`steps.rs`](/crates/core/src/steps.rs): `change_step`.
   - [`check/`](/crates/core/src/check/): a change's folder files, the `specs/bugs/` message, and no
     assessment template.
-  - [`actions/start.rs`](/crates/core/src/actions/start.rs): the kind to start, after a structural
-    split.
+  - [`actions/start.rs`](/crates/core/src/actions/start.rs), after a structural split: the kind to
+    start a draft as, and starting a change from a typed text and its images, with the slug proposed
+    from its first line.
   - [`actions/init.rs`](/crates/core/src/actions/init.rs): `changes/`.
   - [`actions/clean.rs`](/crates/core/src/actions/clean.rs): the `change/` branch.
   - [`actions/review.rs`](/crates/core/src/actions/review.rs): no assessment.
@@ -540,7 +586,8 @@ core's step table, and the web UI, with no data to convert.
   - [`view.rs`](/crates/core/src/view.rs): `kind`.
 - **The CLI** ([`crates/cli`](/crates/cli/)): `start --change`, and `status` showing
   `change/<folder>`.
-- **The binding**: `startFeature(draft, slug, kind)`.
+- **The binding**: `startFeature(draft, slug, kind)`, `startChange(text, images, slug)`, and
+  `proposeSlug(title)`.
 - **The LSP and Neovim**: `bugs/` becomes `changes/`, and the assessment's verdict and the report's
   commit go.
 - **The server** ([`packages/server`](/packages/server/)):
@@ -548,7 +595,8 @@ core's step table, and the web UI, with no data to convert.
     specs/changes/<folder>/"; the step `change`, whose work is "Investigate it, then make the
     change" and whose stop is "the pull request is ready for review"; and the chat's opening, "about
     the change ...".
-  - The `feature.start` mutation takes the kind.
+  - A `change.start` mutation: it starts the change from the composer's text and images, then sends
+    its first run through the runner, as the composer's send does, and returns the change's folder.
   - [`fate/sessions.ts`](/packages/server/src/fate/sessions.ts): `specs/changes/` paths.
 - **The web UI** ([`packages/web`](/packages/web/)):
   - **The routes**: a change's `/f/<folder>` draws its session page, and
@@ -566,19 +614,21 @@ core's step table, and the web UI, with no data to convert.
     change's row. Its accessible name is "<slug>, <title>, change, <status>".
   - **[`ProgressLine.tsx`](/packages/web/src/ProgressLine.tsx)**: for a change, the step's title,
     with "N question(s)" on a round.
-  - **[`EditorPage.tsx`](/packages/web/src/EditorPage.tsx) and
-    [`TaskView.tsx`](/packages/web/src/TaskView.tsx)**: the shared start piece with Astryx's
-    `SegmentedControl`, "Start as", "Feature" and "Change". For a change, the buttons read "Start
-    the change and the agent" and "Start only", or "Start the change" without an agent. The line
-    under them reads "Creates its branch and worktree, and moves the line to Now. The agent asks
-    only what it must, then opens a pull request."
+  - **`NewChangePage.tsx`** (new): the "New change" page, at `/changes/new`, built from the chat's
+    [`Composer.tsx`](/packages/web/src/Composer.tsx) and
+    [`SlugField.tsx`](/packages/web/src/SlugField.tsx). Its send button reads "Start the change".
+    Under it, the line "Creates its branch and worktree, and adds it to Now. The agent asks only
+    what it must, then opens a pull request." Once started, it navigates to `/f/<folder>`.
+  - **[`SessionNav.tsx`](/packages/web/src/SessionNav.tsx)**, again: the "＋ New change" row.
   - **[`labels.ts`](/packages/web/src/labels.ts)**: the step label "Change", and no assessment or
     report.
 
 ### Error handling
 
-- **Starting a draft as a change fails** because its folder or branch exists, or the default branch
-  has moved. It shows the same messages as starting a feature, unchanged.
+- **Starting a change fails** because its folder or branch exists, or the default branch has moved.
+  The page shows the same messages as starting a feature, under the slug field, and keeps the text.
+- **An image the core refuses**, by its type or size. The composer shows the attachments decision's
+  refusal, as it does for a chat, before the change starts.
 - **The upgrade's merge into the default branch conflicts.** The agent stops and asks in the
   session, as postponing a feature would. It never forces the merge.
 - **The pull request's number cannot be read** before the record exists. The column shows the step's
@@ -592,16 +642,18 @@ flow's tests do. The CLI tests run `ura` on them. The server tests use the fake 
 web UI's browser tests drive the app in WebKit at both sizes, on a fixture repository holding a
 change in each state.
 
-| What                                               | Test                                                                                                 |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| US1.1, SC-002                                      | Browser test: start a draft as a change and its agent, counting clicks                               |
-| US1.2                                              | CLI test: `ura start --change` on a fixture draft                                                    |
-| US1.3, US1.7, US2.1, US2.2, SC-001                 | Core steps test: the change table over every state of a fixture change                               |
-| US1.4, US1.5, US1.6, US2.3–US2.5, US3.1–US3.5, US5 | Checked by review of `change.md` and of the example, the agent's own behaviour                       |
-| US1.1's message                                    | Server test: `runMessage` and `chatOpening` for a change                                             |
-| US4.1–US4.6                                        | Browser tests: the change's page, column, sidebar row, phone line, and routes, in each fixture state |
-| SC-003, the folder's extra files                   | Core check test, table-driven: one row per file a change's folder may or may not hold                |
-| `specs/bugs/`, branches without their folder       | Core workspace and check tests                                                                       |
-| The kinds of records and `ura clean` on `change/`  | Core record and clean tests                                                                          |
-| SC-004                                             | Checked by review: the line counts in the pull request                                               |
-| Layout and axe checks                              | The UI checks decision's runs, with the change's page added                                          |
+| What                                              | Test                                                                                                 |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| US1.1, SC-002, the composer's edge cases          | Browser test: type a change and start it, counting clicks, on the fake agent                         |
+| US1.2, an image refused                           | Browser test: a change started with two images, and one refused                                      |
+| US1.3                                             | CLI test: `ura start --change` on a fixture draft                                                    |
+| US1.4, US1.8, US2.1, US2.2, SC-001                | Core steps test: the change table over every state of a fixture change                               |
+| US1.5–US1.7, US2.3–US2.5, US3.1–US3.5, US5        | Checked by review of `change.md` and of the example, the agent's own behaviour                       |
+| US1.1's message                                   | Server test: `runMessage` and `chatOpening` for a change, and `change.start` sending it              |
+| The proposal from a typed text                    | Core start test, table-driven: one row per text, title, and slug proposed                            |
+| US4.1–US4.6                                       | Browser tests: the change's page, column, sidebar row, phone line, and routes, in each fixture state |
+| SC-003, the folder's extra files                  | Core check test, table-driven: one row per file a change's folder may or may not hold                |
+| `specs/bugs/`, branches without their folder      | Core workspace and check tests                                                                       |
+| The kinds of records and `ura clean` on `change/` | Core record and clean tests                                                                          |
+| SC-004                                            | Checked by review: the line counts in the pull request                                               |
+| Layout and axe checks                             | The UI checks decision's runs, with the change's page added                                          |
