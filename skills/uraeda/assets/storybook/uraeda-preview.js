@@ -1,0 +1,160 @@
+// Lets Uraeda serve a Storybook under its own address, `/r/<repository>/preview/<folder>/`.
+//
+// Wrap the config of `.storybook/main.ts` with it:
+//
+//   import uraedaPreview from "<path to the skill>/assets/storybook/uraeda-preview.js";
+//   export default uraedaPreview({ framework: "@storybook/react-vite", stories: [...] });
+//
+// Uraeda sets `URAEDA_PREVIEW_BASE` to that path when it starts the preview decision's command.
+// Without it, the config is left as it is, so `storybook dev` runs as usual. It needs Storybook's
+// Vite builder.
+
+import process from "node:process";
+
+/**
+ * A preset value of Storybook's config: the value itself, or a function of the value the earlier
+ * presets made.
+ *
+ * @template T
+ * @typedef {T | ((value: T, options: unknown) => T | Promise<T>)} Preset
+ */
+
+/**
+ * A Vite config, as far as the helper reads and writes it.
+ *
+ * @typedef {{ base?: string, plugins?: Array<unknown> }} ViteConfig
+ */
+
+/**
+ * A Storybook config, as far as the helper reads and writes it.
+ *
+ * @typedef {object} StorybookConfig
+ * @property {string | { name: string }} [framework]
+ * @property {{ builder?: string | { name: string } }} [core]
+ * @property {Preset<string>} [previewHead]
+ * @property {Preset<string>} [managerHead]
+ * @property {(config: any, options: any) => any} [viteFinal]
+ */
+
+const NEEDS_VITE = "uraeda-preview.js needs Storybook's Vite builder.";
+
+/**
+ * The config of a Storybook that Uraeda serves under `env.URAEDA_PREVIEW_BASE`, or `config` itself
+ * when it is unset. With it, Vite's `base` is the path, the two script tags Storybook adds after
+ * Vite's own rewriting take it too, and both live sockets, Storybook's channel and Vite's hot
+ * reload, open on the page's own address, the channel under the path.
+ *
+ * @template {StorybookConfig} T
+ * @param {T} config
+ * @param {Record<string, string | undefined>} [env]
+ * @returns {T & { previewHead: (head: string, options: unknown) => Promise<string>, managerHead: (head: string, options: unknown) => Promise<string>, viteFinal: (config: any, options: unknown) => Promise<any> }}
+ */
+export default function uraedaPreview(config, env = process.env) {
+  const base = env.URAEDA_PREVIEW_BASE;
+  if (!base) {
+    return /** @type {any} */ (config);
+  }
+  if (!isVite(config)) {
+    throw new Error(NEEDS_VITE);
+  }
+  const patch = socketPatch(base);
+  return {
+    ...config,
+    managerHead: async (head, options) => patch + (await run(config.managerHead, head, options)),
+    previewHead: async (head, options) => patch + (await run(config.previewHead, head, options)),
+    viteFinal: async (vite, options) => {
+      /** @type {ViteConfig} */
+      const own = config.viteFinal ? await config.viteFinal(vite, options) : vite;
+      return { ...own, base, plugins: [...(own.plugins ?? []), basePlugin(base)] };
+    },
+  };
+}
+
+/**
+ * Whether Storybook builds with Vite: a framework named `@storybook/<name>-vite`, and no other
+ * builder.
+ *
+ * @param {StorybookConfig} config
+ */
+function isVite(config) {
+  const framework = nameOf(config.framework);
+  const builder = nameOf(config.core?.builder);
+  return (
+    /(?:^|\/)@storybook\/[\w-]+-vite\/?$/.test(framework) &&
+    (builder === "" || /(?:^|\/)@storybook\/builder-vite\/?$/.test(builder))
+  );
+}
+
+/**
+ * The name of a framework or a builder, written as a string or as an object.
+ *
+ * @param {string | { name: string } | undefined} value
+ */
+function nameOf(value) {
+  return (typeof value === "string" ? value : value?.name) ?? "";
+}
+
+/**
+ * The value a preset makes of `value`.
+ *
+ * @param {Preset<string> | undefined} preset
+ * @param {string} value
+ * @param {unknown} options
+ * @returns {Promise<string>}
+ */
+async function run(preset, value, options) {
+  if (preset === undefined) {
+    return value;
+  }
+  return typeof preset === "function" ? preset(value, options) : preset;
+}
+
+/**
+ * A Vite plugin giving the path to root-absolute `src` and `href` values in the HTML, after Vite's
+ * own rewriting: Storybook adds `/vite-inject-mocker-entry.js` and its app's module after it.
+ * Protocol-relative URLs and values under the path already are left alone.
+ *
+ * @param {string} base
+ */
+function basePlugin(base) {
+  return {
+    name: "uraeda-preview",
+    transformIndexHtml: {
+      /** @param {string} html */
+      handler: (html) =>
+        html.replaceAll(/\b(src|href)=(["'])(\/(?!\/)[^"']*)\2/g, (tag, name, quote, url) =>
+          url.startsWith(base) ? tag : `${name}=${quote}${base}${url.slice(1)}${quote}`,
+        ),
+      order: /** @type {const} */ ("post"),
+    },
+  };
+}
+
+/**
+ * A script replacing the page's `WebSocket` with a subclass: Storybook's channel, which ignores
+ * Vite's `base`, opens under the path, and both it and Vite's hot reload socket (`vite-hmr`) open
+ * on the page's own host, with `wss:` under `https:`. Other sockets are left as they are.
+ *
+ * @param {string} base
+ */
+function socketPatch(base) {
+  return `<script>(() => {
+  const base = ${JSON.stringify(base)};
+  const Native = window.WebSocket;
+  window.WebSocket = class extends Native {
+    constructor(url, protocols) {
+      const target = new URL(url, location.href);
+      const channel = target.pathname === "/storybook-server-channel";
+      if (channel || [protocols].flat().includes("vite-hmr")) {
+        if (channel) {
+          target.pathname = base + "storybook-server-channel";
+        }
+        target.protocol = location.protocol === "https:" ? "wss:" : "ws:";
+        target.hostname = location.hostname;
+        target.port = location.port;
+      }
+      super(target.href, protocols);
+    }
+  };
+})();</script>`;
+}
