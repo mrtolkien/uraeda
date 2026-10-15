@@ -15,7 +15,6 @@
   - Setup with agent (checks project and creates relevant files)
 
 - [Testing review](/specs/2026-10-14-testing-review/proposal.md)
-- [Run the UI easily](/specs/2026-10-14-run-ui/proposal.md)
 
 ## Next
 

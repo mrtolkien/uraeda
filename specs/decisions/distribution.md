@@ -43,23 +43,21 @@ are released from the same tag, with the same version.
 The human chose the npm package over single executables built with Node or Bun, and over a desktop
 app: it is 3.5 MB where the executables were 159 MB and 90 MB, it uses stable tooling, and the
 server runs on the Node its tests run on
-([Q1](../2026-10-14-run-ui/clarifications-01.md#q1-how-does-uraeda-ship),
-[how the server ships](../2026-10-14-run-ui/discovery-01.md#how-the-server-ships),
-[the spikes](../2026-10-14-run-ui/discovery-01.md#the-spikes)). `ura` stays separate, so the
+([Q1](../done/2026-10-14-run-ui.md#q1-how-does-uraeda-ship),
+[how the server ships](../done/2026-10-14-run-ui.md#q1-how-does-uraeda-ship),
+[the spikes](../done/2026-10-14-run-ui.md#q1-how-does-uraeda-ship)). `ura` stays separate, so the
 [stack](stack.md) decision's CLI keeps needing no runtime
-([Q2](../2026-10-14-run-ui/clarifications-01.md#q2-does-ura-start-the-web-ui)). The platform
-packages take the names the generated loader already looks for
-([Q3](../2026-10-14-run-ui/clarifications-01.md#q3-which-names-does-uraeda-take-on-npm)), and CI
-publishes them without a stored secret
-([Q6](../2026-10-14-run-ui/clarifications-01.md#q6-how-are-releases-published-to-npm)).
+([Q2](../done/2026-10-14-run-ui.md#q2-does-ura-start-the-web-ui)). The platform packages take the
+names the generated loader already looks for
+([Q3](../done/2026-10-14-run-ui.md#q3-which-names-does-uraeda-take-on-npm)), and CI publishes them
+without a stored secret ([Q6](../done/2026-10-14-run-ui.md#q6-how-are-releases-published-to-npm)).
 
 npm releases cannot be replaced, and are not atomic: a missing platform package breaks every user of
 that platform, so the gate and the order come from napi-rs's own release guide
-([napi-rs publishing](../2026-10-14-run-ui/discovery-01.md#napi-rs-publishing)). Install scripts are
-skipped or restricted by `pnpm dlx`, and `optionalDependencies` are not
-([npm and npx](../2026-10-14-run-ui/discovery-01.md#npm-and-npx)). Started by `npx` in a project, a
-`.env` would come from that project, and a cloned repository could widen the host names the server
-accepts ([a project's `.env`](../2026-10-14-run-ui/discovery-01.md#a-projects-env)).
+([napi-rs publishing](../done/2026-10-14-run-ui.md)). Install scripts are skipped or restricted by
+`pnpm dlx`, and `optionalDependencies` are not ([npm and npx](../done/2026-10-14-run-ui.md)).
+Started by `npx` in a project, a `.env` would come from that project, and a cloned repository could
+widen the host names the server accepts ([a project's `.env`](../done/2026-10-14-run-ui.md)).
 
 ## Alternatives considered
 
