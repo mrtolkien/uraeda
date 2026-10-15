@@ -1082,14 +1082,19 @@ git commit -m "feat(add-scratchpad): notes from Neovim"
 **Files:**
 
 - Create: `packages/web/src/InboxPage.tsx`, `packages/web/src/AddNote.tsx`,
-  `packages/web/src/SidebarAdd.tsx` (both ＋ buttons and their overlays),
-  `packages/web/src/__tests__/inbox.test.tsx`, `packages/web/src/__browser__/inbox.test.tsx`
+  `packages/web/src/SidebarAdd.tsx` (both ＋ buttons, and their overlays, drawn beside the shell by
+  `SidebarAddForms`, ruling R19), `packages/web/src/__tests__/inbox.test.tsx`,
+  `packages/web/src/__browser__/inbox.test.tsx`
 - Modify:
   - `packages/web/src/Home.tsx`: a structural split first, then the Inbox group, with `QuickAdd`
     removed;
   - `packages/web/src/PrioritiesPage.tsx`: `QuickAdd` removed;
   - `packages/web/src/QuickAdd.tsx`: `AddForm` exported; `QuickAdd` deleted;
   - `packages/web/src/SessionNav.tsx`: an `actions` prop on `Item`, and the Inbox row;
+  - `packages/web/src/Shell.tsx`: the shell inside `SidebarAddForms`;
+  - the tests that opened the top bar's "Add a priority": `__tests__/priorities.test.tsx`,
+    `shell.test.tsx`, `round.test.tsx`, `__browser__/layout.test.tsx`, and `fields.test.tsx` (ruling
+    R19);
   - `packages/web/src/routes.tsx`: `{ page: "inbox" }`, `{ key, page: "note" }`, and
     `{ page: "triage" }`;
   - `packages/web/src/App.tsx`, `packages/web/src/data.ts` (`useInbox`, `readInbox`), and
@@ -1100,9 +1105,12 @@ git commit -m "feat(add-scratchpad): notes from Neovim"
 - Consumes: the `Inbox` view and the `inbox.add` mutation (task 6).
 - Produces:
   - `InboxPage()`;
-  - `AddNoteButton()` and `AddPriorityButton()`, the sidebar's ＋ buttons;
+  - `AddNoteButton()` and `AddPriorityButton()`, the sidebar's ＋ buttons, and
+    `SidebarAddForms({ children })`, which draws the forms they open;
+  - `AddNote({ about?, onAdded, onCancel })`, the form, and `notes(count)`, "1 note" or "N notes";
   - `useInbox()` and `readInbox(fate)`;
-  - the routes `/inbox`, `/inbox/<key>`, and `/inbox/triage`.
+  - the routes `/inbox`, `/inbox/<key>`, and `/inbox/triage`; the last two show the inbox page until
+    tasks 10 and 12 give them their views.
 
 - [x] **Step 1: Split `Home` into a component per group, and remove its marker**
 
@@ -1116,7 +1124,7 @@ git add packages/web/src/Home.tsx specs/2026-10-15-add-scratchpad/plan.md
 git commit -m "refactor(add-scratchpad): Home's groups as components"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Unit tests in `__tests__/inbox.test.tsx`, through `renderPage`:
 
@@ -1124,7 +1132,8 @@ Unit tests in `__tests__/inbox.test.tsx`, through `renderPage`:
   `read(repo, "specs/INBOX.md")` has the line last in `## UI`, the toast reads "Added to the inbox,
   not committed", and the page lists it under "UI".
 - **US1 2, 3, and 7:** "No category", "New category…" with "Editor", and Undo.
-- **US1 4:** adding from `/f/2026-10-14-run-ui` writes `[run-ui]`.
+- **US1 4:** adding from `/f/2026-10-12-cli-tuis`, a feature of the fixture, writes `[cli-tuis]`
+  (ruling R19).
 - **Blank text:** the "Add" button is disabled.
 - **US3:** Home shows "10 notes to organize" for the fixture with 10 notes, and "1 note to organize"
   with one. With none, there is no Inbox group.
@@ -1137,8 +1146,10 @@ Browser tests, in `__browser__/inbox.test.tsx`, at both sizes:
 
 - adding a note;
 - the add form as a dialog or a sheet;
-- `checkPage` on `/inbox` and on the empty inbox;
-- **SC-001:** one tap on ＋, the text, and Enter.
+- `checkLayout`, which runs `checkPage` and the other checks, on `/inbox`, on the empty inbox, and
+  on the add form;
+- **SC-001:** one tap on ＋, the text, and Enter. On the phone, whose sheet takes the focus itself,
+  a tap on the field comes first (ruling R19).
 
 The break each test catches:
 
@@ -1146,24 +1157,24 @@ The break each test catches:
 - The slug missing from a feature's page.
 - Plural text broken at 1.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/inbox.test.tsx`
 - Expected: FAIL, `Unable to find role="button" name "Add a note to the inbox"`
 
-- [ ] **Step 4: Implement the pages, form, sidebar, routes, and Home group**
+- [x] **Step 4: Implement the pages, form, sidebar, routes, and Home group**
 
 Follow the strings and layout of the spec's [Components](spec.md#components) and the
 [mockups](mockups/inbox.html), frames 1, 2, 4, 5, 7, and 8. `AddNote` reuses `Overlay` and
 `useTextField("inbox-add", "")`.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run:
   `vp check && vp test --project '!phone' --project '!desktop' && vp test --project desktop packages/web/src/__browser__/inbox.test.tsx && vp test --project phone packages/web/src/__browser__/inbox.test.tsx`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web specs/2026-10-15-add-scratchpad/plan.md

@@ -5,11 +5,10 @@ import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import type { ReactNode } from "react";
-import { useWorkspace } from "./data.ts";
+import { useInbox, useWorkspace } from "./data.ts";
+import { notes } from "./InboxPage.tsx";
 import { stepLabel, waiting } from "./labels.ts";
 import { Page } from "./layout/Page.tsx";
-import { TopBarSlot } from "./layout/TopBarSlot.tsx";
-import { QuickAdd } from "./QuickAdd.tsx";
 import { useLocalPath, useRepoPath, useRestoreScroll } from "./routes.tsx";
 
 /** A row that leads somewhere, tapped as a whole. */
@@ -135,6 +134,21 @@ function AgentsGroup({ features, running }: { features: Array<Feature>; running:
   );
 }
 
+/** How many notes wait in the inbox, opening it; nothing when it holds none. */
+function InboxGroup() {
+  const inbox = useInbox();
+  const here = useRepoPath();
+  const count = inbox?.count ?? 0;
+  if (!count) {
+    return null;
+  }
+  return (
+    <Group title="Inbox">
+      <Row href={here("/inbox")} title={`${notes(count)} to organize`} />
+    </Group>
+  );
+}
+
 /** The Now and Next lines not started, each opening its task view, then all the priorities. */
 function PrioritiesGroup({
   priorities,
@@ -180,7 +194,10 @@ function DoneGroup({ features }: { features: Array<Feature> }) {
   );
 }
 
-/** The home screen: what waits on the human, what agents do, the next priorities, what is done. */
+/**
+ * The home screen: what waits on the human, what agents do, the notes to organize, the next
+ * priorities, and what is done.
+ */
 export function Home() {
   const workspace = useWorkspace();
   // Its data is read before it draws: the position comes back at once.
@@ -214,13 +231,11 @@ export function Home() {
 
   return (
     <Page>
-      <TopBarSlot>
-        <QuickAdd />
-      </TopBarSlot>
       <VStack gap={6}>
         <WaitingGroup features={human} />
         <ProblemsGroup features={invalid} />
         <AgentsGroup features={agents} running={workspace.running} />
+        <InboxGroup />
         <PrioritiesGroup priorities={priorities} />
         <DoneGroup features={done} />
       </VStack>

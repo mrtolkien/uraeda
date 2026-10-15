@@ -37,6 +37,7 @@ function selects(pathname: string, to: string) {
  * those pages has a row of its own (`except`).
  */
 export function Item({
+  actions,
   except,
   foldedIcon,
   label,
@@ -46,6 +47,8 @@ export function Item({
   title,
   to,
 }: {
+  /** Its controls at the row's end, like ＋, shown while the navigation is unfolded. */
+  actions?: ReactNode;
   /** A page under its own whose row is selected instead of it. */
   except?: string;
   /** Its icon in the folded navigation, which shows only rows with one. */
@@ -70,7 +73,7 @@ export function Item({
       // Beside the link, not inside it: the name reads the tag where it fits the sentence, and the
       // link's visible text stays the start of its name, as WCAG's label in name asks (R13). Hidden
       // from screen readers, which read it in the name.
-      {...(tag ? { actions: <Badge aria-hidden label={tag} variant="neutral" /> } : {})}
+      {...(tag ? { actions: <Badge aria-hidden label={tag} variant="neutral" /> } : { actions })}
       // The title and the status are read with the label, also when the folded navigation shows
       // only the dot.
       {...(name === label ? {} : { "aria-label": name })}

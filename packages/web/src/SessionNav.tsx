@@ -17,6 +17,7 @@ import {
   type Status,
   Subagents,
 } from "./SessionNavRows.tsx";
+import { AddNoteButton, AddPriorityButton } from "./SidebarAdd.tsx";
 
 /** How long typing must stop before a search is read (R2). */
 const SEARCH_DELAY = 200;
@@ -308,8 +309,16 @@ function Sessions({
           to="/"
         />
       )}
-      {!found && <Item label="Priorities" pathname={pathname} to="/priorities" />}
-      {/* "New change", after "Priorities": a composer that starts a change. */}
+      {!found && (
+        <Item
+          actions={<AddPriorityButton />}
+          label="Priorities"
+          pathname={pathname}
+          to="/priorities"
+        />
+      )}
+      {!found && <Item actions={<AddNoteButton />} label="Inbox" pathname={pathname} to="/inbox" />}
+      {/* "New change", after "Inbox": a composer that starts a change. */}
       {!found && <NewRow label="New change" path="/changes/new" pathname={pathname} />}
       {groups.slice(0, 2).map(group)}
       <Chats chats={chats} pathname={pathname} searching={!!found} />
@@ -326,8 +335,8 @@ function Found({ data, pathname, query }: { data: Data; pathname: string; query:
 }
 
 /**
- * The navigation's rows below its search: Home, Priorities, New change, the features by what they
- * wait for, and the chats; during a search, only the features and chats it found.
+ * The navigation's rows below its search: Home, Priorities, Inbox, New change, the features by
+ * what they wait for, and the chats; during a search, only the features and chats it found.
  */
 export function SessionNav({
   pathname,
