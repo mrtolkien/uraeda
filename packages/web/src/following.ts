@@ -67,8 +67,14 @@ export function useFollowEnd(ref: RefObject<HTMLElement | null>, enabled: boolea
   const box = useRef<HTMLElement | undefined>(undefined);
   const width = useWidthClass();
   const drawn = useRef(width);
+  // The positions are the human's again a frame after the layout for the width commits, once
+  // `useKeepPlace` has put the place back: until then, the end the new layout's height clamps the
+  // window at is not one the human scrolled to.
   useLayoutEffect(() => {
-    drawn.current = width;
+    const frame = requestAnimationFrame(() => {
+      drawn.current = width;
+    });
+    return () => cancelAnimationFrame(frame);
   }, [width]);
 
   // Only a scroll sets whether the human follows: growing does not, so a message sent from the end
