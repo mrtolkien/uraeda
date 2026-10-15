@@ -228,6 +228,36 @@ pub fn message(place: &Place) -> (String, Option<String>) {
     message_of(&gather(place))
 }
 
+/// The drafts a commit of the two lists holds: those the moves went into, and those the lists link
+/// that no commit has. A draft's commit from its editor holding the lists holds them too.
+pub(super) fn drafts(place: &Place) -> Vec<String> {
+    let mut paths = gather(place).paths;
+    paths.retain(|path| path != INBOX && path != PRIORITIES);
+    paths
+}
+
+/// The `images/` folders of the folder drafts among `paths`, which their commit may stage.
+pub(super) fn images_folders(paths: &[String]) -> Vec<String> {
+    paths
+        .iter()
+        .filter_map(|path| path.strip_suffix("/proposal.md"))
+        .map(images::images_folder)
+        .collect()
+}
+
+/// The images the folder drafts among `paths` link, which go with them as the attachments decision
+/// says, the others deleted: called once the staged files are checked.
+pub(super) fn linked_images(place: &Place, paths: &[String]) -> Result<Vec<String>, ActionError> {
+    let mut linked = Vec::new();
+    for folder in paths
+        .iter()
+        .filter_map(|path| path.strip_suffix("/proposal.md"))
+    {
+        linked.extend(images::linked_images(place, folder)?);
+    }
+    Ok(linked)
+}
+
 /// Commits `INBOX.md`, `PRIORITIES.md`, and the drafts notes went into, a draft folder with its
 /// images, with a message naming their changes.
 pub fn commit(place: &Place) -> Result<Committed, ActionError> {
@@ -238,20 +268,11 @@ pub fn commit(place: &Place) -> Result<Committed, ActionError> {
         ));
     }
     let (subject, body) = message_of(&listed);
-    // A draft folder's images go with it, as the attachments decision says: those its files link,
-    // the others deleted, once the staged files are checked.
-    let folders: Vec<&str> = listed
-        .paths
-        .iter()
-        .filter_map(|path| path.strip_suffix("/proposal.md"))
-        .collect();
     let mut candidates = listed.paths.clone();
-    candidates.extend(folders.iter().map(|folder| images::images_folder(folder)));
+    candidates.extend(images_folders(&listed.paths));
     place::ensure_only_staged(place, &candidates)?;
     let mut paths = listed.paths.clone();
-    for folder in folders {
-        paths.extend(images::linked_images(place, folder)?);
-    }
+    paths.extend(linked_images(place, &listed.paths)?);
     commit::commit(
         place,
         &Change {
