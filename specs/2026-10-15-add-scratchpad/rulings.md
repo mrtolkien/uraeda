@@ -181,3 +181,38 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `read_inbox` takes the lock and reaches the default branch, a few lines; the
   workspace's fields gain `Serialize`.
 - **Where**: task 3, `api/inbox_edits.rs`, `actions/inbox.rs`, `workspace.rs`, `watch.rs`
+
+## R13: Moves leave the marks in the inbox; the change list's lines and Discard
+
+- **Decision**:
+  - A note moved into `PRIORITIES.md` or a draft drops its `[agent]` and `[<slug>]` marks: they
+    describe the note in the inbox, and the change list pairs a removed note with an entry or a
+    draft's line by their text without marks. Its nested lines follow it: into the entry or the
+    draft's What, and, for a new draft, after the What paragraph.
+  - A note that is a whole link is not made a new draft: "<note> already links <target>".
+  - The body's lines of inbox changes are `- Add to the inbox: <note>`,
+    `- Remove from the inbox: <note>`, `- Move to <Category> in the inbox: <note>`,
+    `- Move within <Category> in the inbox: <note>`, `- Edit in the inbox: <before> -> <after>`,
+    `- Move from the inbox to <Section>: <note>`, and
+    `- Move from the inbox to the draft <title>: <note>`, the inbox's changes first, then the
+    priorities' own, as today. `<Category>` is `No category` for none, and a reorder within a
+    category, made by hand, is `move "<note>" within <Category> in the inbox`.
+  - Commit with nothing changed is refused with "INBOX.md and PRIORITIES.md have no change to
+    commit". Discard restores `INBOX.md`, `PRIORITIES.md`, and the list's drafts from `HEAD`, and
+    deletes those with no committed version, like a draft made from a note.
+  - `read_priorities` moved to `api/priority_edits.rs`, next to `read_inbox`'s count, which `api.rs`
+    had no room for; its `LARGE` row is lowered to 634.
+- **Rationale**: The plan names the messages' subjects but not their bodies, nor what happens to the
+  marks. Keeping the marks in `PRIORITIES.md` would show `[run-ui]` as an entry's text, and break
+  the pairing by text that ruling R10 relies on.
+- **Alternatives considered**: Keeping the marks in the moved lines, and pairing by text with marks
+  stripped on one side only: the priorities would read the marks as text.
+- **If wrong**: `inbox::unmarked_lines` returns the lines as written, and the pairing compares the
+  note's markdown, a few lines.
+- **Open for task 11**: the spec's US6 path `the-spec-pages-headings-are-body-sized` drops the
+  apostrophe, while `slug::from_text` turns it into a hyphen, `the-spec-page-s-...`, as `ura draft`
+  does. Task 4's test of `add_as_draft` avoids the apostrophe; task 11 decides the slug rule.
+  Discard deletes only the file of an uncommitted folder draft, `<slug>/proposal.md`, not its
+  images: task 11 extends it with the images.
+- **Where**: task 4, `actions/inbox.rs`, `actions/changes.rs`, `files/inbox.rs`,
+  `api/priority_edits.rs`

@@ -90,3 +90,39 @@ pub fn empty_sections(text: &str) -> Vec<String> {
         .filter_map(|section| section.heading)
         .collect()
 }
+
+/// Whether a line belongs to a list: an item at column 0, or a line indented under one.
+fn in_list(line: &str) -> bool {
+    super::lines::item_marker(line).is_some() || line.starts_with([' ', '\t'])
+}
+
+/// The text with `item`, a list item's lines, at the end of its `## What` section: right after a
+/// list that ends it, or else after a blank line. `None` without a `## What` section.
+pub fn append_to_what(text: &str, item: &[String]) -> Option<String> {
+    super::with_unix_newlines(text, |text| {
+        let headings: Vec<usize> = super::lines::headings(text).map(|(n, _)| n).collect();
+        let what = super::lines::headings(text)
+            .find(|(_, line)| line.trim_end() == "## What")
+            .map(|(n, _)| n)
+            .ok_or(())?;
+        let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
+        // The section runs from the line after its heading to the next heading, 0-based.
+        let end = headings
+            .iter()
+            .find(|&&n| n > what)
+            .map_or(lines.len(), |n| n - 1);
+        let last = (what..end).rev().find(|&i| !lines[i].trim().is_empty());
+        let mut block = Vec::new();
+        if !last.is_some_and(|i| in_list(&lines[i])) {
+            block.push(String::new());
+        }
+        block.extend(item.iter().cloned());
+        let at = last.unwrap_or(what - 1) + 1;
+        if lines.get(at).is_some_and(|line| !line.trim().is_empty()) {
+            block.push(String::new());
+        }
+        lines.splice(at..at, block);
+        Ok::<_, ()>(lines.join("\n"))
+    })
+    .ok()
+}

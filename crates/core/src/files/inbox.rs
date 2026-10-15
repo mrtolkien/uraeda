@@ -385,6 +385,24 @@ pub fn note_lines(text: &str, id: &str) -> Option<Vec<String>> {
     )
 }
 
+/// The note with the id `id`.
+pub fn note(text: &str, id: &str) -> Option<Note> {
+    parse(text).into_iter().find(|note| note.id == id)
+}
+
+/// A note's lines as another file takes them, its marks dropped from its first line, and how many
+/// of them are its text: the others are its nested lines.
+pub fn unmarked_lines(text: &str, id: &str) -> Option<(Vec<String>, usize)> {
+    let unix = text.replace("\r\n", "\n");
+    let item = find(&unix, id)?;
+    let lines: Vec<&str> = unix.split('\n').collect();
+    let (_, first) = item_marker(lines[item.line - 1])?;
+    let (_, _, rest) = marks(first);
+    let mut unmarked = vec![format!("{} {rest}", item.marker.render())];
+    unmarked.extend(lines[item.line..item.end].iter().map(|l| l.to_string()));
+    Some((unmarked, item.text_end + 1 - item.line))
+}
+
 /// Replaces a note's text with `new_text`, its marker, marks, and sub-items kept. `None` when the
 /// note is gone or the text is blank.
 pub fn edit(text: &str, id: &str, new_text: &str) -> Option<String> {

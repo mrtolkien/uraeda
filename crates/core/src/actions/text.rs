@@ -13,6 +13,7 @@ use super::place::{self, Place};
 use super::{ActionError, Change, Committed, commit, images};
 
 const PRIORITIES: &str = "specs/PRIORITIES.md";
+const INBOX: &str = "specs/INBOX.md";
 
 /// A file's text from the top level of a working tree, empty when it does not exist.
 fn read(place: &Place, path: &str) -> String {
@@ -125,7 +126,7 @@ fn moved_from(place: &Place, git: &Git, path: &str, text: &str) -> Option<String
 
 /// Every path a file's commit may hold, for the check of the staged files before any write.
 fn candidates(path: &str) -> Vec<String> {
-    let mut paths = vec![path.to_string(), PRIORITIES.to_string()];
+    let mut paths = vec![path.to_string(), PRIORITIES.to_string(), INBOX.to_string()];
     paths.extend(folder(path).map(images::images_folder));
     paths.extend(single_files(path));
     paths
@@ -133,10 +134,10 @@ fn candidates(path: &str) -> Vec<String> {
 
 /// The commit of a draft, `chore: draft <title>`, or `chore: edit the draft <title>` once
 /// committed, and of a backlog file, `chore: add <title> to the backlog`, or
-/// `chore: edit <title> in the backlog`, both with `PRIORITIES.md` when it changed; of a proposal,
-/// `chore(<slug>): proposal`, or `chore(<slug>): edit the proposal` once committed, a feature's or
-/// a change's. The commit holds the images the file's folder links, the others deleted
-/// from disk, and a folder draft's single file, committed before it became a folder, as deleted.
+/// `chore: edit <title> in the backlog`, both with `PRIORITIES.md` and `INBOX.md` when they
+/// changed; of a proposal, `chore(<slug>): proposal`, or `chore(<slug>): edit the proposal` once
+/// committed, a feature's or a change's. The commit holds the images the file's folder links, the
+/// others deleted from disk, and a folder draft's single file, committed before it became a folder, as deleted.
 pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
     checked(path)?;
     let git = Git::open(&place.root)?;
@@ -148,9 +149,12 @@ pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
     let title = title_of(&text).unwrap_or_else(|| path.to_string());
     let mut paths = vec![path.to_string()];
     let subject = if path.starts_with("specs/drafts/") || path.starts_with("specs/backlog/") {
-        let priorities = read(place, PRIORITIES);
-        if committed(PRIORITIES).is_some_and(|bytes| bytes != priorities.as_bytes()) {
-            paths.push(PRIORITIES.to_string());
+        // The lists a draft is made from or linked in, when they changed.
+        for list in [PRIORITIES, INBOX] {
+            let text = read(place, list);
+            if committed(list).is_some_and(|bytes| bytes != text.as_bytes()) {
+                paths.push(list.to_string());
+            }
         }
         // A draft committed as one file, then made a folder by an image.
         let moved = moved_from(place, &git, path, &text);

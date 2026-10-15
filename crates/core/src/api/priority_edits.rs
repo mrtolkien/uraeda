@@ -3,12 +3,41 @@
 
 use std::path::Path;
 
-use super::{Result, reach_default, refused, write_lock};
-use crate::actions::priorities as edits;
-use crate::files::priorities::{Priorities, Section};
+use super::{Result, default_checkout, on_default, open, reach_default, refused, write_lock};
+use crate::actions::{changes, place, priorities as edits};
+use crate::files::priorities::{self, Priorities, Section};
+use crate::git::Git;
+use crate::workspace::Workspace;
 
-fn section(id: &str) -> Result<Section> {
+pub(super) fn section(id: &str) -> Result<Section> {
     Section::from_id(id).ok_or_else(|| refused(format!("no section {id}")))
+}
+
+/// How many changes the commit bar counts, in the default branch's checkout: none without one,
+/// since the branch's tip has no uncommitted change.
+pub(super) fn change_count(git: &Git, workspace: &Workspace) -> u32 {
+    let checkout = workspace
+        .default_branch
+        .as_deref()
+        .and_then(|default| default_checkout(git, default));
+    checkout.map_or(0, |root| {
+        changes::list(&place::Place {
+            root,
+            created: false,
+            switched: None,
+        })
+        .count
+    })
+}
+
+/// The priorities, with the count of the commit bar's changes, without creating a worktree.
+pub fn read_priorities(repo: &Path) -> Result<Priorities> {
+    let (git, workspace) = open(repo)?;
+    let (text, _) = on_default(&git, &workspace, edits::PATH);
+    Ok(Priorities {
+        changes: change_count(&git, &workspace),
+        ..priorities::read(&text.unwrap_or_default(), None)
+    })
 }
 
 /// Adds a line at the end of a section.
@@ -76,18 +105,16 @@ pub fn remove_priority(repo: &Path, id: &str, previous: &str) -> Result<Prioriti
     Ok(edits::remove(&place, id, previous)?)
 }
 
-/// Commits the priorities alone.
+/// Commits the commit bar's changes, the priorities' and the inbox's, as
+/// [`commit_changes`](super::commit_changes) does.
 pub fn commit_priorities(repo: &Path) -> Result<Priorities> {
-    let _lock = write_lock();
-    let place = reach_default(repo)?;
-    edits::commit(&place)?;
-    Ok(edits::read(&place))
+    super::commit_changes(repo)?;
+    read_priorities(repo)
 }
 
-/// Restores the committed priorities.
+/// Restores the committed priorities, inbox, and drafts notes went into, as
+/// [`discard_changes`](super::discard_changes) does.
 pub fn discard_priorities(repo: &Path) -> Result<Priorities> {
-    let _lock = write_lock();
-    let place = reach_default(repo)?;
-    edits::discard(&place)?;
-    Ok(edits::read(&place))
+    super::discard_changes(repo)?;
+    read_priorities(repo)
 }

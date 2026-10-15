@@ -1,5 +1,5 @@
-//! Drafting a line of `PRIORITIES.md`: a draft file from the proposal template, linked from the
-//! line.
+//! Drafting a line of `PRIORITIES.md`, or a note of the inbox: a draft file from the proposal
+//! template, linked from the line.
 
 use std::fs;
 
@@ -93,7 +93,7 @@ fn draft_entry(place: &Place, text: &str, entry: &Entry) -> Result<Drafted, Acti
     if draft.exists() {
         return Err(ActionError::Refused(format!("{path} exists")));
     }
-    let content = proposal(&entry.text);
+    let content = proposal(&entry.text, &[]);
     if content.is_empty() {
         return Err(ActionError::Refused("no proposal template".into()));
     }
@@ -109,9 +109,47 @@ fn draft_entry(place: &Place, text: &str, entry: &Entry) -> Result<Drafted, Acti
     })
 }
 
+/// A path for a new draft named after `text` that no draft has: `specs/drafts/<slug>.md`, then
+/// with `-2`, `-3`, ... when a file or a folder draft has the name.
+pub fn free_path(place: &Place, text: &str) -> String {
+    let slug = Some(slug::from_text(text))
+        .filter(|slug| !slug.is_empty())
+        .unwrap_or_else(|| "note".to_string());
+    let taken = |name: &str| {
+        let base = place.root.join("specs/drafts");
+        base.join(format!("{name}.md")).exists() || base.join(name).exists()
+    };
+    let name = (1..)
+        .map(|n| match n {
+            1 => slug.clone(),
+            n => format!("{slug}-{n}"),
+        })
+        .find(|name| !taken(name))
+        .unwrap_or(slug);
+    format!("specs/drafts/{name}.md")
+}
+
+/// Writes a new draft at `path` from the proposal template, with `line` as its title and the
+/// paragraph of What, and `nested`, a note's nested lines, after it.
+pub fn write_new(
+    place: &Place,
+    path: &str,
+    line: &str,
+    nested: &[String],
+) -> Result<(), ActionError> {
+    let content = proposal(line, nested);
+    if content.is_empty() {
+        return Err(ActionError::Refused("no proposal template".into()));
+    }
+    let draft = place.root.join(path);
+    fs::create_dir_all(draft.parent().unwrap_or(&place.root))?;
+    fs::write(&draft, content)?;
+    Ok(())
+}
+
 /// The proposal template with `line` as its title and as the paragraph of What, and no other
-/// placeholder: each section keeps its heading, empty.
-fn proposal(line: &str) -> String {
+/// placeholder: each section keeps its heading, empty. `nested` lines follow the paragraph.
+fn proposal(line: &str, nested: &[String]) -> String {
     let mut paragraphs: Vec<String> = Vec::new();
     for paragraph in embedded::proposal_paragraphs() {
         if paragraph.starts_with("# ") {
@@ -120,6 +158,9 @@ fn proposal(line: &str) -> String {
             paragraphs.push(paragraph.to_string());
         } else if paragraphs.last().is_some_and(|last| last == "## What") {
             paragraphs.push(line.to_string());
+            if !nested.is_empty() {
+                paragraphs.push(nested.join("\n"));
+            }
         }
     }
     if paragraphs.is_empty() {

@@ -543,7 +543,7 @@ git commit -m "feat(add-scratchpad): the inbox's format, in the core and the ski
     - `pub const PATH: &str = "specs/INBOX.md"`, `pub const TRIAGE: &str = "specs/INBOX-TRIAGE.md"`,
       and `pub fn read(place: &Place) -> Inbox`, with `triage` from `specs/INBOX-TRIAGE.md`'s status
       and `changes` from `inbox::diff` against `HEAD`, which task 4 replaces with the merged count;
-    - `pub fn of(text: &str, committed: Option<&str>, triage: Option<&str>) -> Inbox`, shared by
+    - `pub fn of(text: &str, triage: Option<&str>, changes: u32) -> Inbox`, since task 4, shared by
       `read` and `api::read_inbox` (ruling R12);
     - `pub struct Marks { pub agent: bool, pub about: Option<String> }`;
     - `pub fn add(place, category: Option<&str>, marks: &Marks, text: &str, previous: Option<&str>) -> Result<Inbox, ActionError>`,
@@ -643,8 +643,11 @@ git commit -m "feat(add-scratchpad): inbox edits on the default branch"
 - Modify: `crates/core/src/actions/inbox.rs`, `crates/core/src/actions/draft.rs` (drafts from a
   note's text), `crates/core/src/actions/text.rs` (`INBOX.md` in a draft's commit),
   `crates/core/src/actions/priorities.rs` (`commit` and `discard` delegate to `changes`),
-  `crates/core/src/api/inbox_edits.rs`, `crates/core/src/api/priority_edits.rs`,
-  `crates/core/src/api.rs` (`read_priorities` reports the merged count)
+  `crates/core/src/api/inbox_edits.rs`, `crates/core/src/api/priority_edits.rs`, which now holds
+  `read_priorities`, reporting the merged count, `crates/core/src/api.rs`, which loses it,
+  `crates/core/src/files/inbox.rs` (`note`, `unmarked_lines`), `crates/core/src/files/proposal.rs`
+  (`append_to_what`), `crates/cli/tests/structure.rs` (`api.rs` row lowered),
+  `skills/uraeda/references/inbox.md` (marks dropped, the body's lines) (ruling R13)
 - Test: `crates/core/tests/inbox_moves.rs`, `crates/core/tests/priorities.rs` (commit messages)
 
 **Interfaces:**
@@ -658,21 +661,38 @@ git commit -m "feat(add-scratchpad): inbox edits on the default branch"
     - `to_draft(place, id, draft: &str, previous) -> Result<(), ActionError>`, which appends the
       note's lines at the end of the draft's `## What`;
     - `add_as_draft(place, category, marks, text, previous) -> Result<String, ActionError>`, which
-      writes `specs/drafts/<slug>.md` from the proposal template and links it as a whole-line note.
+      writes `specs/drafts/<slug>.md` from the proposal template and links it as a whole-line note;
+    - a note moved into the priorities or a draft leaves its marks in the inbox, and its nested
+      lines follow it: after the What paragraph of a new draft. A note that is a whole link is not
+      made a draft (ruling R13).
+  - In `actions::draft`: `free_path(place, text) -> String`, the next free `specs/drafts/<slug>.md`,
+    and `write_new(place, path, line, nested)`.
+  - In `files::inbox`: `note(text, id) -> Option<Note>` and
+    `unmarked_lines(text, id) -> Option<(Vec<String>, usize)>`, a note's lines without its marks,
+    and how many are its text. In `files::proposal`: `append_to_what(text, item) -> Option<String>`.
   - In `actions::changes`:
     - `pub struct Changes { pub count: u32, pub lines: Vec<String> }`;
     - `pub fn list(place: &Place) -> Changes`;
     - `pub fn message(place: &Place) -> (String, Option<String>)`;
-    - `pub fn commit(place) -> Result<Committed, ActionError>` and
-      `pub fn discard(place) -> Result<(), ActionError>`.
-  - `Priorities.changes` and `Inbox.changes` both carry `changes::list(...).count`.
+    - `pub fn commit(place) -> Result<Committed, ActionError>`, refused with "INBOX.md and
+      PRIORITIES.md have no change to commit", and
+      `pub fn discard(place) -> Result<(), ActionError>`, which deletes the files of the list that
+      have no committed version, like a new draft;
+    - `lines` are the body's lines: the priorities' as before, then `- Add to the inbox: <note>`,
+      `- Remove from the inbox: <note>`, `- Move to <Category> in the inbox: <note>`,
+      `- Move within <Category> in the inbox: <note>`, `- Edit in the inbox: <before> -> <after>`,
+      `- Move from the inbox to <Section>: <note>`, and
+      `- Move from the inbox to the draft <title>: <note>`, the inbox's changes first (ruling R13).
+  - `Priorities.changes` and `Inbox.changes` both carry `changes::list(...).count`, counted in the
+    default branch's checkout, and 0 without one.
   - API: `note_to_priorities(repo, id, section_id, previous, priorities_previous)`,
     `note_to_new_draft(...) -> Result<String>`, `note_to_draft(repo, id, draft, previous)`,
     `add_note_as_draft(repo, category, about, text, previous) -> Result<String>`, and
-    `commit_changes(repo)` and `discard_changes(repo)`, which return `()`.
+    `commit_changes(repo)` and `discard_changes(repo)`, which return `()`, as `note_to_priorities`
+    and `note_to_draft` do.
   - `commit_priorities` and `discard_priorities` call the same two functions.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Moves:
 
@@ -685,7 +705,8 @@ Moves:
   - with that file already there, `we-need-a-home-icon-2.md`.
 - **US2 3:** "Icons are blurry on retina screens" added to `look-and-feel.md` is the last line of
   its `## What`.
-- **US6 2, core half:** `add_as_draft` writes the draft and the note `- [<text>](drafts/<slug>.md)`.
+- **US6 2, core half:** `add_as_draft` writes the draft and the note `- [<text>](drafts/<slug>.md)`,
+  on a text without an apostrophe: see ruling R13.
 - **Review focus 3:** when only `PRIORITIES.md`'s hash is stale, the move is refused with the
   `PRIORITIES.md` message, and `INBOX.md` is unchanged.
 
@@ -708,12 +729,12 @@ The break each test catches:
 - A draft's commit leaving `INBOX.md` uncommitted.
 - A change list counting a move as two changes.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo nextest run -p uraeda-core --test inbox_moves`
 - Expected: FAIL to compile, `no function to_priorities in actions::inbox`
 
-- [ ] **Step 3: Implement the moves and `actions/changes.rs`**
+- [x] **Step 3: Implement the moves and `actions/changes.rs`**
 
 Each cross-file move does these, in order:
 
@@ -732,15 +753,15 @@ The change list is built like this:
 
 The messages follow the global constraints. Priorities-only changes keep today's messages.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo nextest run -p uraeda-core -p uraeda-cli`
 - Expected: PASS, the existing priorities commit tests included
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add crates specs/2026-10-15-add-scratchpad
+git add crates skills specs/2026-10-15-add-scratchpad
 git commit -m "feat(add-scratchpad): moves out of the inbox, committed in one change list"
 ```
 
