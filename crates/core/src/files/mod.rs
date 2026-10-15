@@ -5,6 +5,7 @@ pub mod clarifications;
 pub mod document;
 pub mod frontmatter;
 pub mod items;
+pub(crate) mod lines;
 pub mod markdown;
 pub mod outline;
 pub mod plan;
