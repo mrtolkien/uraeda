@@ -716,7 +716,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { WatchHandle, addComment, addPriority, addRepository, addSettledComment, approve, attachImage, branchChanges, commitPriorities, commitText, createDraft, dataDir, discardPriorities, editComment, editPriority, editSettledComment, encodeImage, insertPriority, mainRoot, movePriority, nextStep, openRepository, proposalHints, proposeSlug, readDraft, readFeature, readFile, readImage, readPriorities, readRaw, readRepositories, readText, readWorkspace, removeComment, removePriority, removeRepository, removeSettledComment, requestChanges, retryCommit, saveAnswer, saveNotes, saveText, setDiscovery, startChange, startFeature, startOver, submitAnswers, version, watch, workDir, BlockKind, CalloutKind, ItemMarker } = nativeBinding
+const { WatchHandle, addComment, addPriority, addRepository, addSettledComment, approve, attachImage, branchChanges, commitPriorities, commitText, createDraft, dataDir, discardPriorities, editComment, editPriority, editSettledComment, encodeImage, insertPriority, mainRoot, movePriority, nextStep, openRepository, pathFolder, proposalHints, proposeSlug, readDraft, readFeature, readFile, readImage, readPriorities, readRaw, readRepositories, readText, readWorkspace, removeComment, removePriority, removeRepository, removeSettledComment, requestChanges, retryCommit, saveAnswer, saveNotes, saveText, setDiscovery, startChange, startFeature, startOver, submitAnswers, version, watch, workDir, BlockKind, CalloutKind, ItemMarker } = nativeBinding
 export { WatchHandle }
 export { addComment }
 export { addPriority }
@@ -739,6 +739,7 @@ export { mainRoot }
 export { movePriority }
 export { nextStep }
 export { openRepository }
+export { pathFolder }
 export { proposalHints }
 export { proposeSlug }
 export { readDraft }

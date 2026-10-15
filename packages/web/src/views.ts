@@ -83,6 +83,7 @@ export const FeatureView = view<Feature>()({
   leftWorktree: true,
   missing: true,
   mockups: true,
+  path: true,
   problems: true,
   pullRequest: true,
   session: true,

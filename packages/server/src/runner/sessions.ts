@@ -246,11 +246,7 @@ export class Sessions {
     const kind: TurnKind = workflow ? "workflow" : "chat";
     const opening =
       kind === "chat" && live.folder !== null && branch !== undefined && this.#opens(live)
-        ? chatOpening({
-            branch,
-            change: (await binding.readFeature(live.repo, live.folder)).kind === "change",
-            folder: live.folder,
-          })
+        ? chatOpening({ branch, feature: await binding.readFeature(live.repo, live.folder) })
         : undefined;
     const item: Message = {
       ...messageItem(id, origin, text),

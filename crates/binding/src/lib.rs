@@ -210,6 +210,14 @@ pub fn propose_slug(text: String) -> String {
     api::propose_slug(&text)
 }
 
+/// The folder of the feature or the change that a path from the top level is in: `<folder>` for
+/// `specs/<folder>/...` and `specs/changes/<folder>/...`, and none outside `specs/`. It reads
+/// nothing.
+#[napi]
+pub fn path_folder(path: String) -> Option<String> {
+    uraeda_core::workspace::path_folder(&path).map(|(_, folder, _)| folder.to_string())
+}
+
 /// Adds a line at the end of a section of the priorities.
 #[napi(ts_return_type = "Promise<Priorities>")]
 pub fn add_priority(

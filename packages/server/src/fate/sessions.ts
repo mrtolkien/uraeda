@@ -320,14 +320,16 @@ export async function readWorkflowMessage(
     return { id, refusal, step: step.name, text: "" };
   }
   const feature = await featureOf(ctx, folder);
+  if (!feature) {
+    return undefined;
+  }
   return {
     id,
     refusal: null,
     step: step.name,
     text: runMessage({
       branch,
-      change: feature?.kind === "change",
-      folder,
+      feature,
       reference: step.reference,
       step: step.name,
       ...(step.planReview === undefined ? {} : { planReview: step.planReview }),
@@ -373,12 +375,8 @@ export async function writable(
   ctx: RepoContext,
   target: { folder: string } | { path: string },
 ): Promise<void> {
-  const folder =
-    "folder" in target
-      ? target.folder
-      : (/^specs\/changes\/([^/]+)\//.exec(target.path) ??
-          /^specs\/([^/]+)\//.exec(target.path))?.[1];
-  if (folder !== undefined && (await working(ctx)).includes(folder)) {
+  const folder = "folder" in target ? target.folder : ctx.binding.pathFolder(target.path);
+  if (folder !== null && (await working(ctx)).includes(folder)) {
     throw callSiteError(`refused: ${REFUSALS.working}`);
   }
 }

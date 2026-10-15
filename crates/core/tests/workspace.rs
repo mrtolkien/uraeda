@@ -307,6 +307,8 @@ fn a_merged_changes_worktree_is_one_folder_deeper() {
     let change = feature(&repo, CHANGE);
 
     assert_eq!(change.kind, Kind::Change);
+    let path = FeatureView::new(&change, &[]).path;
+    assert_eq!(path, format!("specs/changes/{CHANGE}"));
     assert_eq!(change.left_branch.as_deref(), Some(CHANGE_BRANCH));
     assert_eq!(
         change.left_worktree.as_deref(),
