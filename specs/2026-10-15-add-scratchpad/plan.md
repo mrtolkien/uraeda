@@ -1453,7 +1453,7 @@ git commit -m "feat(add-scratchpad): an agent's inbox triage, answered in the we
 
 - Consumes: `references/inbox.md` (task 2), and `ura note` (task 7).
 
-- [ ] **Step 1: Run the triage by the reference, on a scratch copy of the fixture repository**
+- [x] **Step 1: Run the triage by the reference, on a scratch copy of the fixture repository**
 
 Use `/tmp`, never the human's repository.
 
@@ -1465,7 +1465,7 @@ Use `/tmp`, never the human's repository.
   - a second triage is refused with the reference's message;
   - `ura check` reports no problems.
 
-- [ ] **Step 2: Fix the reference where it was unclear, and commit**
+- [x] **Step 2: Fix the reference where it was unclear, and commit**
 
 ```bash
 git add skills/uraeda/references/inbox.md specs/2026-10-15-add-scratchpad/plan.md
