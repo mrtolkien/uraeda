@@ -298,7 +298,9 @@ fn waiting_gate(feature: &Feature) -> Option<Step> {
 }
 
 /// A change's step: a gate until its proposal is committed, and on a round waiting for the human;
-/// otherwise its agent's, then the pull request's, as a feature's after its last task.
+/// otherwise its agent's, then the pull request's, as a feature's after its last task. An unknown
+/// pull request is the agent's step, `change` until the draft pull request exists, since the
+/// workspace reads every change without asking `gh`.
 fn change_step(feature: &Feature, pull_request: PullRequest) -> Step {
     if !feature.proposal_committed {
         return Step::gate("proposal.md");
@@ -306,7 +308,14 @@ fn change_step(feature: &Feature, pull_request: PullRequest) -> Step {
     if let Some(gate) = waiting_gate(feature) {
         return gate;
     }
-    after_the_last_step(pull_request, StepName::Change, "change")
+    let known = match pull_request {
+        PullRequest::Unknown => PullRequest::NoPullRequest,
+        known => known,
+    };
+    Step {
+        pull_request: Some(pull_request),
+        ..after_the_last_step(known, StepName::Change, "change")
+    }
 }
 
 /// A branch's pull request in the repository at `repo`, through `gh` when it is installed and

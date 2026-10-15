@@ -93,19 +93,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: restore the report's view on a change's proposal in `text_view`.
 - **Where**: task 2.
 
-## R7: Without `gh`, a change's status reads its pull request as unknown
+## R7: Without `gh`, a change with only its proposal is at its `change` step
 
-- **Decision**: `ura status` and the Neovim hint show a change with only its proposal as
-  `pull-request (pull request state unknown)` and `pull-request · waits on agent` when `gh` gives no
-  answer, as they show a feature past its last task. The CLI's `branch_with_a_slash` row and the
-  Neovim test's hint expect these texts.
-- **Rationale**: the change's table shares the feature's pull request tail,
-  `after_the_last_step(pull_request, Change, "change")`, so an unknown pull request is the
-  `pull-request` row, as for a feature. The tests run without a logged-in `gh`.
-- **Alternatives considered**: a change step that ignores an unknown pull request, which would make
-  a change's tail differ from a feature's.
-- **If wrong**: map `PullRequest::Unknown` to `StepName::Change` in `change_step`.
-- **Where**: task 3, `crates/cli/tests/status.rs`, and `editors/nvim/tests/test_inline.lua`.
+- **Decision**: reversed from Task 3's first reading, which showed an unknown pull request as the
+  `pull-request` row. `change_step` reads `PullRequest::Unknown` as no pull request: a change with
+  only its proposal is at `change`, waiting on the agent with the reference `change.md`, and its
+  step keeps `pull_request: Unknown`, so `next` still asks `gh`. `ura status` says
+  `pull request state unknown` only on the `pull-request` row. The CLI's `branch_with_a_slash` row
+  expects `["agent", "change"]`, and the Neovim test's hint `change · waits on agent`. A feature's
+  tail is unchanged.
+- **Rationale**: the spec's Data says a change's tail is "`change` until the draft pull request
+  exists, then `finish`, then the pull request's gates". `Workspace::read` computes every step with
+  an unknown pull request, and only `next` asks `gh`, so the first reading showed a fresh change as
+  `pull-request` in the web UI, the LSP, and `ura status`.
+- **Alternatives considered**: the feature's `pull-request` row for an unknown pull request, which
+  hides the change's own step everywhere but `next`; asking `gh` in `Workspace::read`, which makes
+  every read wait on the network.
+- **If wrong**: a change with an open pull request and no `gh` shows `change` until `next` runs;
+  `next` corrects it.
+- **Where**: task 3 review, `crates/core/src/steps.rs`, `crates/core/tests/steps.rs`,
+  `crates/cli/src/status.rs`, `crates/cli/tests/status.rs`, and
+  `editors/nvim/tests/test_inline.lua`.
 
 ## R8: Task 4's failing run selects the `check` test binary
 
