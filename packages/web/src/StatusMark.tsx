@@ -41,7 +41,7 @@ const styles = stylex.create({
 
 /** Each status's colour, and its mark beside the colour, so it never reads by colour alone. */
 const DOTS = {
-  failed: { mark: "×", variant: "error" },
+  attention: { mark: "!", variant: "error" },
   idle: { mark: undefined, variant: "neutral" },
   "needs-you": { mark: "!", variant: "warning" },
   unread: { mark: "✓", variant: "success" },
@@ -50,8 +50,8 @@ const DOTS = {
 
 /**
  * A session's status as a dot, named by its label for screen readers: a pulsing blue dot while it
- * works, a warning "!" when it needs the human, an error "×" when it failed, a success "✓" for a
- * reply not seen yet, and a grey ring when idle.
+ * works, a warning "!" when it needs the human, an error "!" when it needs their attention, a
+ * success "✓" for a reply not seen yet, and a grey ring when idle.
  */
 export function StatusMark({
   label,

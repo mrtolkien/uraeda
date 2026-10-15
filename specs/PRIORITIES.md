@@ -9,7 +9,7 @@
 - [Look and feel pass](drafts/look-and-feel.md)
 
 - [Add a bugfixing/low impact change flow](drafts/add-a-bugfixing-low-impact-change-flow.md)
-- Add a "scratchpad" concept: quick notes about the system, small issues, ...
+- [Add a "scratchpad" concept: quick notes about the system, small issues, ...](drafts/add-a-scratchpad-concept-quick-notes-about-the.md)
 
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Setup with agent (checks project and creates relevant files)

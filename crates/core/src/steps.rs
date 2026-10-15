@@ -96,6 +96,9 @@ pub struct Step {
     /// assessment, is done, and the feature is past them, at its final review or after.
     pub implemented: bool,
     pub pull_request: Option<PullRequest>,
+    /// The approved spec's `plan-review`, for the steps before the plan is approved: whether the
+    /// plan waits for the human's review.
+    pub plan_review: Option<bool>,
 }
 
 /// The plan's progress during the implementation: the first task with an unchecked step.
@@ -122,6 +125,7 @@ impl Step {
             progress: None,
             implemented: false,
             pull_request: None,
+            plan_review: None,
         }
     }
 
@@ -225,11 +229,23 @@ fn feature_step(feature: &Feature, pull_request: PullRequest) -> Step {
         Some("approved") => {}
         _ => return Step::none(),
     }
+    // A spec without `plan-review` has `false`.
+    let plan_review = spec_text
+        .and_then(|text| crate::files::frontmatter::parse(text).ok())
+        .and_then(|front| match front.get("plan-review") {
+            Some(crate::files::frontmatter::Value::Bool(value)) => Some(*value),
+            _ => None,
+        })
+        .unwrap_or(false);
+    let before_the_plan = |name: StepName, reference: &str| Step {
+        plan_review: Some(plan_review),
+        ..Step::agent(name, reference)
+    };
     if feature.decisions_pending {
-        return Step::agent(StepName::Approval, "approval");
+        return before_the_plan(StepName::Approval, "approval");
     }
     let Some(plan_file) = feature.file(FileKind::Plan) else {
-        return Step::agent(StepName::Plan, "plan");
+        return before_the_plan(StepName::Plan, "plan");
     };
     let plan_text = feature.text("plan.md").unwrap_or_default();
     let plan_revision = crate::files::frontmatter::parse(plan_text)
@@ -237,10 +253,10 @@ fn feature_step(feature: &Feature, pull_request: PullRequest) -> Step {
         .and_then(|front| front.integer("spec-revision"))
         .unwrap_or(0);
     if plan_revision < spec_number("revision").unwrap_or(1) {
-        return Step::agent(StepName::PlanRevision, "plan");
+        return before_the_plan(StepName::PlanRevision, "plan");
     }
     match plan_file.status.as_deref() {
-        Some("changes-requested") => return Step::agent(StepName::PlanRevision, "plan"),
+        Some("changes-requested") => return before_the_plan(StepName::PlanRevision, "plan"),
         Some("approved" | "auto-approved") => {}
         _ => return Step::none(),
     }

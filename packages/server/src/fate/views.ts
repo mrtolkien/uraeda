@@ -15,7 +15,7 @@ import type {
 } from "uraeda-binding";
 import type { Capabilities } from "../runner/adapter.ts";
 import type { Item, Trigger, TurnActivity, TurnKind, TurnState } from "../runner/events.ts";
-import type { SessionStatus } from "../runner/status.ts";
+import type { SessionStatus, StatusReason } from "../runner/status.ts";
 
 type Record_<T> = { [Key in keyof T]: T[Key] };
 
@@ -121,10 +121,13 @@ export type SessionRecord = {
   /** Where it works: "branch <branch>", or "main checkout, branch <branch>" for a chat. */
   place: string;
   status: SessionStatus;
-  /** "Working", "Needs you", "Failed", "New reply", "Idle", or "Stopped". */
+  /** "Working", "Needs you", "Needs attention", "New reply", or "Idle". */
   statusLabel: string;
-  /** Why it needs you: a blocked action, or the feature's step. */
-  statusReason: "blocked" | "step" | null;
+  /**
+   * Why it needs you: a blocked action, the feature's step, or a latest turn that failed, was
+   * stopped, or ended before a human gate.
+   */
+  statusReason: StatusReason | null;
   /** The sub-agents of its running turn that have not ended. */
   subagents: Array<SubagentRecord>;
   /** A chat's title, "New chat" before its first message, or its feature's title. */

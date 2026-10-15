@@ -73,7 +73,7 @@ export type { Trigger } from "./runner/events.ts";
 /** A turn's item, as a `TurnLog` page lists it. */
 export type { Item } from "./runner/events.ts";
 export type { Capabilities } from "./runner/adapter.ts";
-export type { SessionStatus } from "./runner/status.ts";
+export type { SessionStatus, StatusReason } from "./runner/status.ts";
 /** A chat image, as `POST /attach` answers it and `session.send` takes it. */
 export type { ChatImage } from "./runner/images.ts";
 
