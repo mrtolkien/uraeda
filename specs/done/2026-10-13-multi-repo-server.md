@@ -18,7 +18,7 @@ The server served one repository, the folder it started in. The human wanted Ura
 several repositories from one web UI, with a repository selector at the top left and any folder of
 the machine addable, since a packaged Uraeda needs a flow to pick its first repository anyway.
 Running the UI easily, with `npx`, was split into its own feature,
-[Run the web UI with npx](../2026-10-14-run-ui/proposal.md).
+[Run the web UI with npx](2026-10-14-run-ui.md).
 
 ## Behaviour
 
