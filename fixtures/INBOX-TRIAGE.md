@@ -13,7 +13,7 @@ status: awaiting-human
 
 ## Context
 
-The inbox holds 11 notes: this triage covers the 5 under UI. I read the web UI's code, the
+The inbox holds 10 notes: this triage covers the 5 under UI. I read the web UI's code, the
 priorities, and the drafts. The other notes wait for a later triage.
 
 ## Q1: What to do with the notes about how the UI looks
