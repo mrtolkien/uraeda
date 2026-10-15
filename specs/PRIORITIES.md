@@ -33,7 +33,7 @@
   ready, see [backlog](backlog/benchmarks/proposal.md), with a discovery round and partial answers.
   - Speed up the process: iteration speed is too slow atm
   - This only doable once we have a good benchmark!
-- Auth and login for basic security
+- [Auth and login for basic security](drafts/basic-security.md)
 
 - CLI auto-expand in fish and ?zsh?
 - Ping user when input is needed
