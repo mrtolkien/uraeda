@@ -407,18 +407,98 @@ fn implemented_once_past_the_implementation() {
     }
 }
 
-/// Until the change's own table: a change gates on its proposal only, then waits on its agent.
+/// A change table's row: its name, files, pull request, and expected step, waits on, and file.
+type ChangeRow = (
+    &'static str,
+    Files,
+    PullRequest,
+    StepName,
+    WaitsOn,
+    Option<&'static str>,
+);
+
+/// SC-001: a change's only human gate without a round is its pull request.
 #[test]
-fn bug_table() {
-    let proposal = || ("proposal.md", "# Crash\n\nIt breaks.\n".to_string());
-    let rows: Vec<(&str, Files, StepName)> = vec![
-        ("no proposal", vec![], StepName::HumanGate),
-        ("proposal only", vec![proposal()], StepName::Assess),
+fn change_table() {
+    let rows: Vec<ChangeRow> = vec![
+        (
+            "no proposal",
+            vec![],
+            PullRequest::NoPullRequest,
+            StepName::HumanGate,
+            WaitsOn::Human,
+            Some("proposal.md"),
+        ),
+        (
+            "proposal only, no pull request",
+            vec![("proposal.md", proposal())],
+            PullRequest::NoPullRequest,
+            StepName::Change,
+            WaitsOn::Agent,
+            None,
+        ),
+        (
+            "a round waiting",
+            vec![
+                ("proposal.md", proposal()),
+                ("clarifications-01.md", waiting()),
+            ],
+            PullRequest::NoPullRequest,
+            StepName::HumanGate,
+            WaitsOn::Human,
+            Some("clarifications-01.md"),
+        ),
+        (
+            "the round answered",
+            vec![
+                ("proposal.md", proposal()),
+                ("clarifications-01.md", answered()),
+            ],
+            PullRequest::NoPullRequest,
+            StepName::Change,
+            WaitsOn::Agent,
+            None,
+        ),
+        (
+            "a draft pull request",
+            vec![("proposal.md", proposal())],
+            PullRequest::Draft,
+            StepName::Finish,
+            WaitsOn::Agent,
+            None,
+        ),
+        (
+            "changes requested",
+            vec![("proposal.md", proposal())],
+            PullRequest::ChangesRequested,
+            StepName::PullRequestChanges,
+            WaitsOn::Agent,
+            None,
+        ),
+        (
+            "ready for review",
+            vec![("proposal.md", proposal())],
+            PullRequest::Open,
+            StepName::PullRequest,
+            WaitsOn::Human,
+            None,
+        ),
     ];
-    for (name, files, expected) in rows {
-        let feature = feature(Kind::Change, &files);
+    for (name, files, pull_request, expected, waits_on, file) in rows {
+        let mut feature = feature(Kind::Change, &files);
+
+        feature.with_pull_request(pull_request);
 
         assert_eq!(feature.step.name, expected, "{name}");
+        assert_eq!(feature.step.waits_on, waits_on, "{name}");
+        assert_eq!(feature.step.file.as_deref(), file, "{name}");
+        if matches!(expected, StepName::Change | StepName::PullRequestChanges) {
+            assert_eq!(
+                feature.step.reference.as_deref(),
+                Some("skills/uraeda/references/change.md"),
+                "{name}"
+            );
+        }
     }
 }
 
