@@ -1,6 +1,6 @@
 //! The entries of `PRIORITIES.md`, by section, and the edits drafting and starting make.
 
-use super::lines::{self, Item, Marker, item_marker};
+use super::lines::{self, Item, Marker};
 
 use super::markdown::link_text as escaped;
 
@@ -71,11 +71,9 @@ pub struct Entry {
 /// Every entry of `PRIORITIES.md`, in order.
 pub fn parse(text: &str) -> Vec<Entry> {
     let lines: Vec<&str> = text.lines().collect();
-    // Each heading counts, so an entry's position restarts under a repeated heading.
-    let mut headings = 0;
-    let found = lines::items(text, |line| {
-        headings += 1;
-        Section::from_heading(line).map(|section| (section, headings))
+    // Each heading counts, by its line, so an entry's position restarts under a repeated heading.
+    let found = lines::items(text, |number, line| {
+        Section::from_heading(line).map(|section| (section, number))
     });
     let mut entries: Vec<Entry> = Vec::new();
     let mut previous = None;
@@ -268,28 +266,15 @@ pub fn read(text: &str, committed: Option<&str>) -> Priorities {
     }
 }
 
-/// An entry compared across two texts: its section, its whole markdown, nested lines included,
-/// and its text without markdown.
-struct Signed {
-    section: Section,
-    markdown: String,
-    text: String,
-}
-
-fn signature(text: &str) -> Vec<Signed> {
+fn signature(text: &str) -> Vec<lines::Signed<Section>> {
     let unix = text.replace("\r\n", "\n");
     let lines: Vec<&str> = unix.split('\n').collect();
     parse(&unix)
         .into_iter()
-        .map(|entry| {
-            let (_, first) =
-                item_marker(lines[entry.line - 1]).unwrap_or((Marker::Bullet('-'), ""));
-            let rest = lines[entry.line..entry.item.end].join("\n");
-            Signed {
-                section: entry.section,
-                markdown: format!("{first}\n{rest}"),
-                text: entry.text,
-            }
+        .map(|entry| lines::Signed {
+            section: entry.section,
+            markdown: lines::signed_markdown(&lines, &entry.item),
+            text: entry.text,
         })
         .collect()
 }
@@ -318,89 +303,26 @@ pub enum EntryChange {
     },
 }
 
-use EntryChange::{Added, Edited, Moved, Removed};
-
-/// The changes between two texts, in the order of `after`. The entries outside their longest
-/// common sequence are moves when their markdown is the same, edits when one replaces another in
-/// the same section and place, and otherwise additions and removals, so a swap of two entries is
-/// one move.
+/// The changes between two texts, in the order of `after`, as [`lines::diff`] finds them.
 pub fn diff(before: &str, after: &str) -> Vec<EntryChange> {
-    let old = signature(before);
-    let new = signature(after);
-    let same =
-        |i: usize, j: usize| old[i].section == new[j].section && old[i].markdown == new[j].markdown;
-    let mut table = vec![vec![0u32; new.len() + 1]; old.len() + 1];
-    for i in (0..old.len()).rev() {
-        for j in (0..new.len()).rev() {
-            table[i][j] = if same(i, j) {
-                table[i + 1][j + 1] + 1
-            } else {
-                table[i + 1][j].max(table[i][j + 1])
-            };
-        }
-    }
-    // Each entry left out, with its gap, counted by the entries kept before it, and its place
-    // in `after`.
-    let (mut removed, mut added) = (Vec::new(), Vec::new());
-    let (mut i, mut j, mut gap) = (0, 0, 0);
-    while i < old.len() || j < new.len() {
-        if i < old.len() && j < new.len() && same(i, j) {
-            i += 1;
-            j += 1;
-            gap += 1;
-        } else if j < new.len() && (i == old.len() || table[i][j + 1] >= table[i + 1][j]) {
-            added.push((gap, j));
-            j += 1;
-        } else {
-            removed.push((gap, j, i));
-            i += 1;
-        }
-    }
-    let mut changes = Vec::new();
-    // The same markdown elsewhere: a move.
-    removed.retain(|&(_, _, i)| {
-        let Some(at) = added
-            .iter()
-            .position(|&(_, j)| old[i].markdown == new[j].markdown)
-        else {
-            return true;
-        };
-        let (_, j) = added.remove(at);
-        let (from, to, text) = (old[i].section, new[j].section, new[j].text.clone());
-        changes.push((j, Moved { from, to, text }));
-        false
-    });
-    // Another entry in the same gap and section: an edit.
-    removed.retain(|&(gap, _, i)| {
-        let Some(at) = added
-            .iter()
-            .position(|&(other, j)| other == gap && new[j].section == old[i].section)
-        else {
-            return true;
-        };
-        let (_, j) = added.remove(at);
-        let (before, after) = (old[i].text.clone(), new[j].text.clone());
-        let section = new[j].section;
-        changes.push((
-            j,
-            Edited {
+    use lines::Change;
+    lines::diff(&signature(before), &signature(after))
+        .into_iter()
+        .map(|change| match change {
+            Change::Added { section, text } => EntryChange::Added { section, text },
+            Change::Removed { section, text } => EntryChange::Removed { section, text },
+            Change::Moved { from, to, text } => EntryChange::Moved { from, to, text },
+            Change::Edited {
+                section,
+                before,
+                after,
+            } => EntryChange::Edited {
                 section,
                 before,
                 after,
             },
-        ));
-        false
-    });
-    changes.extend(added.into_iter().map(|(_, j)| {
-        let (section, text) = (new[j].section, new[j].text.clone());
-        (j, Added { section, text })
-    }));
-    changes.extend(removed.into_iter().map(|(_, at, i)| {
-        let (section, text) = (old[i].section, old[i].text.clone());
-        (at, Removed { section, text })
-    }));
-    changes.sort_by_key(|(at, _)| *at);
-    changes.into_iter().map(|(_, change)| change).collect()
+        })
+        .collect()
 }
 
 /// How many entries were added, moved, edited, or removed between two texts, as [`diff`] finds
@@ -415,14 +337,17 @@ fn find(text: &str, id: &str) -> Option<Entry> {
 
 /// Inserts `item`, lines of an entry, in `section` before its entry at `index`, or at its end.
 fn insert(text: &str, section: Section, index: usize, item: &[String]) -> String {
-    let before = parse(text)
+    let entries: Vec<Entry> = parse(text)
         .into_iter()
         .filter(|e| e.section == section)
-        .nth(index);
-    let Some(before) = before else {
-        let heading = format!("## {}", section.title());
-        let is_heading = |line: &str| Section::from_heading(line) == Some(section);
-        return lines::append_to_section(text, is_heading, &heading, item);
+        .collect();
+    let Some(before) = entries.get(index) else {
+        let heading = lines::headings(text)
+            .find(|(_, line)| Section::from_heading(line) == Some(section))
+            .map(|(number, _)| number);
+        let last = entries.last().map(|entry| &entry.item);
+        let title = format!("## {}", section.title());
+        return lines::append_to_section(text, last, heading, &title, item);
     };
     let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
     let at = before.line - 1;

@@ -56,7 +56,9 @@ session's history. Otherwise, implement it yourself.
    implement, and run every command the plan gives. Once a new test passes, make the break its step
    names, see the test fail, revert it, and report the failure seen in the task's commit body: see
    [tests that can fail](code-quality.md#tests-that-can-fail). Unit tests never sleep for a fixed
-   time. Compare each output with the step's **Expected** line:
+   time. A problem found outside the task is not fixed in passing: note it in the inbox, as
+   [agents' notes](inbox.md#agents-notes) says. Compare each output with the step's **Expected**
+   line:
    - **It matches**: go to the next step.
    - **The code is wrong**: find the root cause before changing anything: reproduce the failure,
      trace the wrong value back to where it first goes wrong, and test one hypothesis at a time, as

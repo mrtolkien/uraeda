@@ -305,13 +305,15 @@ markers in tasks 9 and 10, and `files/priorities.rs` drops under its cap in task
 - Produces, in `files::lines`, all `pub(crate)`:
   - `enum Marker`, with `render()`, and `item_marker(line: &str) -> Option<(Marker, &str)>`;
   - `struct Item { line: usize, text_end: usize, end: usize, marker: Marker }`, all 1-based;
-  - `items<S: Clone>(text: &str, heading: impl FnMut(&str) -> Option<S>) -> Vec<(S, Item)>`: bullets
-    at column 0 under a heading the closure accepts. Any line starting with `#` is a heading. It
-    does not skip fenced code yet: task 2 adds that, with its test (ruling R7);
+  - `items<S: Clone>(text: &str, heading: impl FnMut(usize, &str) -> Option<S>) -> Vec<(S, Item)>`:
+    bullets at column 0 under a heading the closure accepts, given its line number. Any line
+    starting with `#` is a heading. Task 2 added the fenced-code skip and the line number, with
+    their tests (rulings R7 and R8);
   - `item_text<'a>(lines: &[&'a str], item: &Item) -> Vec<&'a str>`: the first line after its
     marker, then the continuation lines, trimmed;
   - `nested_spans(lines: &[&str]) -> Vec<Vec<Span>>`: the text of each item of nested lines;
-  - `append_to_section(text: &str, is_heading: impl Fn(&str) -> bool, new_heading: &str, item: &[String]) -> String`;
+  - `append_to_section(text: &str, last: Option<&Item>, heading: Option<usize>, new_heading: &str, item: &[String]) -> String`,
+    since task 2 (ruling R8), with `headings(text)`, the headings outside fenced code;
   - `replace(text: &str, item: &Item, lines: &[String]) -> String` and
     `remove(text: &str, item: &Item) -> String`;
   - `plain(markdown: &str) -> (String, Option<String>)`, `one_line(line: &str) -> String`, and
@@ -346,47 +348,56 @@ git commit -m "refactor(add-scratchpad): the priorities' line splicing in files/
 
 **Files:**
 
-- Create: `crates/core/src/files/inbox.rs`, `skills/uraeda/references/inbox.md`,
-  `skills/uraeda/assets/templates/specs/INBOX.md`,
+- Create: `crates/core/src/files/inbox.rs`, `crates/core/src/files/inbox/diff.rs` (ruling R11),
+  `skills/uraeda/references/inbox.md`, `skills/uraeda/assets/templates/specs/INBOX.md`,
   `skills/uraeda/assets/templates/specs/INBOX-TRIAGE.md`,
   `skills/uraeda/assets/example/specs/INBOX.md`, `fixtures/repo/main/specs/INBOX.md`,
   `fixtures/INBOX-TRIAGE.md`
-- Modify: `crates/core/src/files/mod.rs`; `skills/uraeda/SKILL.md`, which gets the layout block and
-  the references list; `skills/uraeda/assets/templates/specs/README.md`, which gets a layout line;
-  `skills/uraeda/references/conventions.md`, which gets the commit tables and a status table row for
-  `INBOX-TRIAGE.md`; `skills/uraeda/references/projects.md`, which gets the setup list;
-  `skills/uraeda/references/implementation.md` and `discovery.md`, which get agents' notes
-- Test: `crates/core/tests/inbox.rs`
+- Modify: `crates/core/src/files/mod.rs`; `crates/core/src/files/lines.rs` and
+  `crates/core/src/files/priorities.rs` (rulings R7, R8, and R10); `skills/uraeda/SKILL.md`, which
+  gets the layout block and the references list; `skills/uraeda/assets/templates/specs/README.md`,
+  which gets a layout line; `skills/uraeda/references/conventions.md`, which gets the commit tables
+  and a status table row for `INBOX-TRIAGE.md`; `skills/uraeda/references/projects.md`, which gets
+  the setup list; `skills/uraeda/references/implementation.md` and `discovery.md`, which get agents'
+  notes
+- Test: `crates/core/tests/inbox.rs`, `crates/core/tests/priorities.rs` (the fenced-code test)
 
 **Interfaces:**
 
 - Consumes: `files::lines` (task 1). Adds the fenced-code skip to `lines::items`, which the
   priorities then share, with a test of a bullet inside a fence in both files (ruling R7).
+  `append_to_section` takes the section's last item and heading line (ruling R8). The priorities'
+  diff moves into `lines::diff`, generic over the section, with `lines::Signed` and `lines::Change`,
+  which both files map to their own change type (ruling R10).
 - Produces, in `uraeda_core::files::inbox`:
   - `pub struct Note { pub id: String, pub key: String, pub category: Option<String>, pub text: String, pub agent: bool, pub about: Option<String>, pub link: Option<String>, pub line: usize, pub end: usize }`.
     The id is `note-<n>`, counted from 1 in file order. The key is the text's slug, made unique.
   - `pub fn parse(text: &str) -> Vec<Note>`, and `pub fn category_names(text: &str) -> Vec<String>`,
-    every `##` heading in order, empty ones included.
+    every `##` heading in order, empty and repeated ones included. Only a `##` heading changes the
+    category: a `###` one inside a category keeps it (ruling R9).
   - `pub fn note_line(agent: bool, about: Option<&str>, text: &str) -> String`, which gives
     `- [agent] [run-ui] text`.
   - Napi objects, serde camelCase:
     - `InboxNote { id, key, text, spans: Vec<Span>, agent: bool, about: Option<String>, draft: Option<String>, start_line: u32, end_line: u32, lines: Vec<String> }`;
     - `InboxCategory { name: Option<String>, notes: Vec<InboxNote> }`, with no-category first and
       empty categories left out;
-    - `Inbox { hash: String, categories: Vec<InboxCategory>, names: Vec<String>, count: u32, changes: u32, triage: Option<String> }`.
+    - `Inbox { hash: String, categories: Vec<InboxCategory>, names: Vec<String>, count: u32, changes: u32, triage: Option<String> }`,
+      `names` holding each category's name once (ruling R11).
   - `pub fn read(text: &str) -> Inbox`, which leaves `changes` at 0 and `triage` at `None`; task 3
     fills them.
   - Edits, each `Option<String>`, `None` when the id is gone:
-    - `add(text, category: Option<&str>, line: &str) -> String`, which writes `# Inbox\n\n` into an
-      empty text first;
+    - `add(text, category: Option<&str>, line: &str) -> String`, which writes `# Inbox\n`, the
+      template, into an empty text first (ruling R11), and adds to the first heading of a repeated
+      category;
     - `edit(text, id, new_text)`, which keeps the marks;
     - `remove(text, id)`;
     - `move_to(text, id, category: Option<&str>)`;
     - `insert(text, category: Option<&str>, index: usize, lines: &[String])`, for Undo;
     - `note_lines(text, id) -> Option<Vec<String>>`.
   - `pub enum NoteChange { Added { category, text }, Removed { category, text }, Moved { from, to, text }, Edited { category, before, after } }`
-    and `pub fn diff(before: &str, after: &str) -> Vec<NoteChange>`. The `from` and `to` fields hold
-    `Option<String>` categories.
+    and `pub fn diff(before: &str, after: &str) -> Vec<NoteChange>`, in `files/inbox/diff.rs`. The
+    `from` and `to` fields hold `Option<String>` categories. A removed note and an added one sharing
+    half their words are one `Moved` with the new text (ruling R10).
 
 The fixture `fixtures/repo/main/specs/INBOX.md`, used by every later task, holds 11 notes:
 
@@ -417,13 +428,13 @@ repository itself has none. A test that needs the "Look and feel pass" draft wri
 `specs/drafts/look-and-feel.md` itself, with a `## What` section. Existing tests that list the
 fixture repository's files are updated for `INBOX.md`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `crates/core/tests/inbox.rs`, table-driven where the cases are many:
 
 - `parse` rows:
-  - the spec's [Data](spec.md#data) example gives 4 notes, with categories `None`, `UI`, `UI`,
-    `CLI`;
+  - the spec's [Data](spec.md#data) example gives 5 notes, with categories `None`, `UI`, `UI`, `UI`,
+    `CLI` (ruling R11);
   - `[agent] [session-view]` gives `agent: true, about: Some("session-view")`;
   - `[!] text` gives `agent: false, about: None`, text `[!] text`;
   - a note with an indented sub-bullet is one note, with `end` on the sub-bullet;
@@ -447,17 +458,17 @@ The break each test catches:
 - Byte-for-byte: an edit that renormalizes newlines or blank lines.
 - Diff: the review focus's edit-then-move counted as two changes.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo nextest run -p uraeda-core --test inbox`
 - Expected: FAIL to compile, `unresolved import uraeda_core::files::inbox`
 
-- [ ] **Step 3: Implement `files/inbox.rs` on `files::lines`**
+- [x] **Step 3: Implement `files/inbox.rs` on `files::lines`**
 
 The format rules of the [spec's Data](spec.md#data) are the reference. `read` builds `spans` the way
 `priorities::read` does, from `document::parse` of the note's markdown, with the marks stripped.
 
-- [ ] **Step 4: Write the skill's inbox reference, templates, and example**
+- [x] **Step 4: Write the skill's inbox reference, templates, and example**
 
 `references/inbox.md` covers these, in this order:
 
@@ -493,13 +504,13 @@ The two templates:
 
 The example's `INBOX.md` holds two categories and an agent's note.
 
-- [ ] **Step 5: Run all tests and the specs check**
+- [x] **Step 5: Run all tests and the specs check**
 
 - Run:
   `cargo nextest run -p uraeda-core && cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs`
 - Expected: PASS, and "no problems"
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates skills fixtures packages specs/2026-10-15-add-scratchpad/plan.md
