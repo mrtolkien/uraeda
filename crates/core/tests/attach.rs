@@ -329,6 +329,26 @@ fn every_link_to_a_moved_draft_is_retargeted() {
     }
 }
 
+/// Review focus 7: a note linking a draft that becomes a folder links its `proposal.md`, as the
+/// priorities' entries do, and the rest of the inbox stays as written.
+#[test]
+fn a_note_linking_a_moved_draft_is_retargeted() {
+    let repo = repo();
+    let inbox = "# Inbox\n\n## UI\n\n- [Login banner](drafts/login-banner.md)\n- [Other](drafts/other.md)\n";
+    repo.write("specs/INBOX.md", inbox);
+
+    api::attach_image(repo.path(), DRAFT, &image("still.gif"), Some("login.png")).unwrap();
+
+    assert_eq!(
+        repo.read("specs/INBOX.md"),
+        inbox.replace("drafts/login-banner.md", "drafts/login-banner/proposal.md")
+    );
+    assert_eq!(
+        repo.read("specs/PRIORITIES.md"),
+        PRIORITIES.replace("drafts/login-banner.md", "drafts/login-banner/proposal.md")
+    );
+}
+
 #[test]
 fn a_draft_not_linked_from_the_priorities_moves_alone() {
     let repo = repo();
@@ -405,6 +425,30 @@ fn a_failed_move_leaves_the_draft_as_it_was() {
     assert_eq!(repo.read(DRAFT), "# Login banner\n\nA banner.\n");
     assert!(!repo.exists("specs/drafts/login-banner"));
     assert_eq!(repo.read("specs/PRIORITIES.md"), PRIORITIES);
+}
+
+/// The priorities' link is put back when the inbox's cannot be written: no list links a path
+/// that does not exist.
+#[cfg(unix)]
+#[test]
+fn a_failed_inbox_write_leaves_both_lists_as_they_were() {
+    let repo = repo();
+    let inbox = "# Inbox\n\n- [Login banner](drafts/login-banner.md)\n";
+    repo.write("specs/INBOX.md", inbox);
+    let file = repo.path().join("specs/INBOX.md");
+    if !read_only(&file) {
+        return;
+    }
+
+    let error =
+        api::attach_image(repo.path(), DRAFT, &image("still.gif"), Some("login.png")).unwrap_err();
+    writable(&file);
+
+    assert_eq!(error.code, "refused");
+    assert_eq!(repo.read(DRAFT), "# Login banner\n\nA banner.\n");
+    assert!(!repo.exists("specs/drafts/login-banner"));
+    assert_eq!(repo.read("specs/PRIORITIES.md"), PRIORITIES);
+    assert_eq!(repo.read("specs/INBOX.md"), inbox);
 }
 
 #[cfg(unix)]

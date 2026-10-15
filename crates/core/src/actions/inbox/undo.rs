@@ -9,8 +9,8 @@ use crate::files::lines;
 use crate::files::priorities::{self, Section};
 use crate::files::proposal;
 
-use super::super::place::Place;
-use super::super::{ActionError, priorities as priority_edits};
+use super::super::place::{self, Place};
+use super::super::{ActionError, draft, priorities as priority_edits};
 use super::{PATH, draft_text, file, text, write_both};
 
 /// The refusal of an Undo whose note is no longer where the move put it.
@@ -93,5 +93,30 @@ pub fn undo_category(
     let without = inbox::remove(&current, id).ok_or_else(|| gone(&note, "INBOX.md"))?;
     let back = put_back(&without, category, index, lines)?;
     fs::write(place.root.join(PATH), back)?;
+    Ok(())
+}
+
+/// Takes back an add as a draft: the note, found by its lines as written, leaves the inbox, and the
+/// draft it links goes with it while no commit has it and it holds what the add wrote, with at
+/// most the note's image. A draft typed in is kept.
+pub fn undo_as_draft(place: &Place, lines: &[String]) -> Result<(), ActionError> {
+    let (note, _) = parts(lines)?;
+    let current = text(place)?;
+    let ids = inbox::ids_of_lines(&current, lines);
+    let [id] = ids.as_slice() else {
+        return Err(gone(&note, "INBOX.md"));
+    };
+    let linked = inbox::note(&current, id)
+        .and_then(|note| note.link)
+        .and_then(|link| crate::workspace::resolve("specs", &link))
+        .filter(|path| crate::target::is_draft(path));
+    let written = inbox::link_title(&current, id).map(|title| draft::proposal(&title, &[]));
+    let without = inbox::remove(&current, id).ok_or_else(|| gone(&note, "INBOX.md"))?;
+    fs::write(place.root.join(PATH), without)?;
+    if let (Some(path), Some(written)) = (linked, written)
+        && place::committed(place, &path).is_none()
+    {
+        draft::remove_written(place, &path, &written)?;
+    }
     Ok(())
 }

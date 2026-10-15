@@ -15,7 +15,7 @@ use super::{ActionError, Change, Committed, STALE, answer, changes, commit, draf
 
 mod undo;
 
-pub use undo::{undo_category, undo_to_draft, undo_to_priorities};
+pub use undo::{undo_as_draft, undo_category, undo_to_draft, undo_to_priorities};
 
 pub const PATH: &str = "specs/INBOX.md";
 /// The agent's proposed triage, answered like a round of questions.
@@ -393,4 +393,35 @@ pub fn add_as_draft(
         return Err(error.into());
     }
     Ok(path)
+}
+
+/// Links an image attached to the draft a note was added as, `link` as the attach gave it, on a
+/// line of its own at the end of the draft's `## What`, over the draft as read at `previous`. Only
+/// an image saved in the draft folder's own `images/` is linked.
+pub fn link_image(
+    place: &Place,
+    draft: &str,
+    link: &str,
+    previous: &str,
+) -> Result<(), ActionError> {
+    let text = draft_text(place, draft)?;
+    if hash(&text) != previous {
+        return Err(ActionError::changed(draft));
+    }
+    let saved = draft
+        .strip_suffix("/proposal.md")
+        .zip(proposal::image_file(link).filter(|_| !link.contains('\n')))
+        .is_some_and(|(folder, name)| {
+            let images = super::images::images_folder(folder);
+            place.root.join(images).join(name).is_file()
+        });
+    if !saved {
+        return Err(ActionError::Refused(format!(
+            "{link} is not an image of {draft}"
+        )));
+    }
+    let edited = proposal::append_to_what(&text, &[link.to_string()])
+        .ok_or_else(|| ActionError::Refused(format!("{draft} has no ## What section")))?;
+    fs::write(place.root.join(draft), edited)?;
+    Ok(())
 }

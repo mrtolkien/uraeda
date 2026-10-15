@@ -137,6 +137,25 @@ pub fn add_note_as_draft(
     job(move || api::add_note_as_draft(Path::new(&repo), category, about, &text, &previous))
 }
 
+/// Links an image attached to the draft a note was added as, `link` as the attach gave it, at the
+/// end of the draft's `## What`, over the draft as read at `previous`.
+#[napi(ts_return_type = "Promise<void>")]
+pub fn link_note_image(
+    repo: String,
+    draft: String,
+    link: String,
+    previous: String,
+) -> AsyncTask<Job<()>> {
+    job(move || api::link_note_image(Path::new(&repo), &draft, &link, &previous))
+}
+
+/// Takes back a note added as a draft: the note, found by its lines, leaves the inbox, and its
+/// draft goes with it, image included, unless a commit has it or the human typed in it.
+#[napi(ts_return_type = "Promise<Inbox>")]
+pub fn undo_note_as_draft(repo: String, lines: Vec<String>) -> AsyncTask<Job<Inbox>> {
+    job(move || api::undo_note_as_draft(Path::new(&repo), &lines))
+}
+
 /// Commits the commit bar's changes: `INBOX.md`, `PRIORITIES.md`, and the drafts notes went into.
 #[napi(ts_return_type = "Promise<void>")]
 pub fn commit_changes(repo: String) -> AsyncTask<Job<()>> {

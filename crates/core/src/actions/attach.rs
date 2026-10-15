@@ -12,7 +12,8 @@ use crate::images::Encoded;
 use super::ActionError;
 use super::place::Place;
 
-const PRIORITIES: &str = "specs/PRIORITIES.md";
+/// The lists that link drafts, from `specs/`.
+const LISTS: [&str; 2] = ["specs/PRIORITIES.md", "specs/INBOX.md"];
 
 /// The longest image name, without its extension.
 const NAME_LIMIT: usize = 60;
@@ -170,9 +171,9 @@ pub(crate) fn save(
 
 /// Moves the single-file draft `specs/<drafts|backlog>/<slug>.md` to
 /// `specs/<drafts|backlog>/<slug>/proposal.md`, numbering the folder when it exists, with the image
-/// in its `images/`, and points the links of the priorities to the new path. Claims the folder,
-/// saves the image, moves the draft, then edits the priorities: a failure undoes what was done.
-/// Returns the new path and the image's file name.
+/// in its `images/`, and points the links of the priorities and the inbox to the new path. Claims
+/// the folder, saves the image, moves the draft, then edits the lists: a failure undoes what was
+/// done. Returns the new path and the image's file name.
 fn into_folder(
     place: &Place,
     path: &str,
@@ -210,23 +211,33 @@ fn into_folder(
     result
 }
 
-/// Points the links of the priorities to the draft `from` at `to`, leaving the file as it was when
-/// the write fails.
+/// Points the links of the priorities and of the inbox to the draft `from` at `to`, leaving both
+/// files as they were when a write fails.
 fn retarget(place: &Place, from: &str, to: &str) -> Result<(), ActionError> {
-    let file = place.root.join(PRIORITIES);
-    let text = match fs::read_to_string(&file) {
-        Ok(text) => text,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
-        Err(error) => return Err(failed(error)),
-    };
-    let edited = retarget_links(&text, from, to);
-    if edited != text
-        && let Err(error) = fs::write(&file, edited)
-    {
-        let _ = fs::write(&file, &text);
-        return Err(failed(error));
+    let mut written: Vec<(std::path::PathBuf, String)> = Vec::new();
+    let result = (|| {
+        for list in LISTS {
+            let file = place.root.join(list);
+            let text = match fs::read_to_string(&file) {
+                Ok(text) => text,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+                Err(error) => return Err(failed(error)),
+            };
+            let edited = retarget_links(&text, from, to);
+            if edited == text {
+                continue;
+            }
+            written.push((file.clone(), text));
+            fs::write(&file, edited).map_err(failed)?;
+        }
+        Ok(())
+    })();
+    if result.is_err() {
+        for (file, text) in written {
+            let _ = fs::write(file, text);
+        }
     }
-    Ok(())
+    result
 }
 
 #[cfg(test)]

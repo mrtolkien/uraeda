@@ -168,3 +168,39 @@ pub(crate) fn proposal(line: &str, nested: &[String]) -> String {
     }
     paragraphs.join("\n\n") + "\n"
 }
+
+/// Deletes the draft at `path` while it holds what a move wrote, `written`, with at most the
+/// images of a note added at the end of its What: those images go with it, then its `images/`
+/// and its folder once empty. A draft typed in is kept. Returns whether it was deleted.
+pub(crate) fn remove_written(
+    place: &Place,
+    path: &str,
+    written: &str,
+) -> Result<bool, ActionError> {
+    let file = place.root.join(path);
+    let Ok(text) = fs::read_to_string(&file) else {
+        return Ok(false);
+    };
+    let Some(images) = crate::files::proposal::added_images(&text, written) else {
+        return Ok(false);
+    };
+    let folder = path.strip_suffix("/proposal.md");
+    if !images.is_empty() && folder.is_none() {
+        return Ok(false);
+    }
+    fs::remove_file(&file)?;
+    let Some(folder) = folder else {
+        return Ok(true);
+    };
+    let dir = super::images::images_folder(folder);
+    // Never deleted through a symbolic link: the files would be another folder's.
+    if super::images::in_place(&place.root, &dir) {
+        for name in images {
+            let _ = fs::remove_file(place.root.join(&dir).join(name));
+        }
+        let _ = fs::remove_dir(place.root.join(&dir));
+    }
+    // Fails while the folder holds anything else, as it should.
+    let _ = fs::remove_dir(place.root.join(folder));
+    Ok(true)
+}
