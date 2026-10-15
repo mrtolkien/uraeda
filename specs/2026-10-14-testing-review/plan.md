@@ -951,7 +951,7 @@ git commit -m "build(testing-review): vp run coverage reports the Rust and TypeS
 
 - Consumes: task 3's groups and `readyTasks()`; task 7's `test:nvim`; task 8's `coverage`.
 
-- [ ] **Step 1: Add the failing CI rows to the toolchain test (US3.3)**
+- [x] **Step 1: Add the failing CI rows to the toolchain test (US3.3)**
 
 ```ts
 test("a ready task no CI job runs is reported", () => {
@@ -971,14 +971,14 @@ test("CI runs every group of ready", () => {
 
 `readyGroups()` returns the tasks `ready` depends on directly.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run:
   `nix develop -c vp test --project uraeda-server packages/server/src/__tests__/toolchain.test.ts`
 - Expected: FAIL on the repository's row: today's `ci.yml` runs `vp run ready`, not the groups, so
   four messages are listed.
 
-- [ ] **Step 3: Write the setup action and the jobs**
+- [x] **Step 3: Write the setup action and the jobs**
 
 The setup action: `cachix/install-nix-action@v31`, `Swatinem/rust-cache@v2` with `shared-key: ci`
 and `save-if: ${{ github.ref == 'refs/heads/main' }}`, and the existing
@@ -992,7 +992,14 @@ the existing `dist plan` and release size steps; `coverage` runs `vp run coverag
 `concurrency: { group: ci-${{ github.ref }}, cancel-in-progress: ${{ github.ref != 'refs/heads/main' }} }`
 (R3); and `workflow_dispatch:` in `on`, so task 10 can run CI on the branch before its pull request.
 
-- [ ] **Step 4: Run the toolchain test, then `ready`**
+As built (R36): the dev shell has no `vp`, so each job runs
+`nix develop --command pnpm exec vp run --no-cache <task>`, as today's CI does, `neovim` and
+`coverage` included; `notInCi` counts a task as run only after `vp run --no-cache`, outside a
+comment. The jobs use `actions/checkout@v6` and `actions/upload-artifact@v7`, the versions of
+`npm.yml`; the workflow reads the repository only (`permissions: contents: read`); the `release` and
+`coverage` jobs end with the clean tree check too.
+
+- [x] **Step 4: Run the toolchain test, then `ready`**
 
 - Run:
   `nix develop -c vp test --project uraeda-server packages/server/src/__tests__/toolchain.test.ts`
@@ -1000,10 +1007,10 @@ the existing `dist plan` and release size steps; `coverage` runs `vp run coverag
 - Run: `nix develop -c vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add .github packages/server/src/__tests__/toolchain.test.ts
+git add .github packages/server/src/__tests__/toolchain.test.ts specs/2026-10-14-testing-review/plan.md specs/2026-10-14-testing-review/rulings.md
 git commit -m "ci(testing-review): CI runs ready's groups in parallel jobs"
 ```
 

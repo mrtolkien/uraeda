@@ -112,6 +112,32 @@ function readyTasks(): Record<string, Task> {
   return found;
 }
 
+/** The tasks `ready` depends on directly: its groups, the units CI's jobs run. */
+function readyGroups(): Record<string, Task> {
+  const tasks = allTasks();
+  return Object.fromEntries(
+    (readyTasks().ready.dependsOn ?? []).map((name) => [name, tasks[name]] as const),
+  );
+}
+
+/**
+ * The tasks CI's workflow runs by no job: a job runs a task with `vp run --no-cache <task>`, since
+ * CI runs every check without Vite Task's cache. A commented-out step runs nothing.
+ */
+function notInCi(tasks: Record<string, Task>, ci: string): Array<string> {
+  const run = new Set(
+    [...uncommented("ci.yml", ci).matchAll(/\bvp run --no-cache ([\w:@/.-]+)/g)].map(
+      ([, task]) => task,
+    ),
+  );
+  return Object.keys(tasks)
+    .filter((name) => !run.has(name))
+    .map(
+      (name) =>
+        `\`ready\` runs \`${name}\`, but no CI job does: add it to a job in \`.github/workflows/ci.yml\`.`,
+    );
+}
+
 /** nextest's configuration, CI's workflow, the root's Vitest config, and each package's. */
 function runnerConfigs(): Record<string, string> {
   const packages = readdirSync(join(ROOT, "packages"), { withFileTypes: true })
@@ -235,6 +261,22 @@ test("a comment naming a retry setting is not reported", () =>
       "vite.config.ts": "// No `retry: 2` here.\n/* nor retry: 3 */\nexport default {};\n",
     }),
   ).toEqual([]));
+
+test("a ready task no CI job runs is reported", () => {
+  const ci =
+    "jobs:\n  rust:\n    steps:\n      - run: nix develop -c vp run --no-cache ready:rust\n";
+  expect(
+    notInCi({ "ready:rust": { command: "true" }, "ready:typescript": { command: "true" } }, ci),
+  ).toEqual([
+    "`ready` runs `ready:typescript`, but no CI job does: add it to a job in `.github/workflows/ci.yml`.",
+  ]);
+});
+
+test("CI runs every group of ready", () => {
+  expect(
+    notInCi(readyGroups(), readFileSync(join(ROOT, ".github/workflows/ci.yml"), "utf8")),
+  ).toEqual([]);
+});
 
 test("the repository's toolchain follows the decision", () => {
   expect(untracked(readyTasks())).toEqual([]);
