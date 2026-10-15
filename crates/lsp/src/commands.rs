@@ -14,6 +14,7 @@ use uraeda_core::api::{self, ApiError};
 use uraeda_core::gates::{Gate, awaits_human, gate_of};
 use uraeda_core::target;
 use uraeda_core::view::FileView;
+use uraeda_core::workspace::path_folder;
 use uraeda_core::workspace::{FileKind, Kind};
 
 use crate::documents::Documents;
@@ -255,12 +256,10 @@ fn start(documents: &Documents, args: FileArgs) -> Result<Done, ResponseError> {
 /// A file of a feature or a change: its folder's name, and the file.
 fn feature_file(documents: &Documents, uri: &Uri) -> Result<(String, WorkflowFile), ResponseError> {
     let file = workflow_file(documents, uri).ok_or_else(|| refused(NOT_WORKFLOW))?;
-    let folder = file
-        .dir
-        .strip_prefix("specs/")
-        .map(|rest| rest.strip_prefix("changes/").unwrap_or(rest))
-        .filter(|folder| !folder.is_empty() && !folder.contains('/'))
+    let folder = path_folder(&file.dir)
+        .filter(|(_, _, inside)| inside.is_empty())
         .ok_or_else(|| refused(NOT_WORKFLOW))?
+        .1
         .to_string();
     Ok((folder, file))
 }

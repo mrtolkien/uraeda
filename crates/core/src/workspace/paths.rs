@@ -31,6 +31,19 @@ pub fn record_path(folder: &str) -> String {
     format!("specs/done/{folder}.md")
 }
 
+/// The feature or change a path under `specs/` is in, and the path inside its folder, empty for the
+/// folder itself: `specs/x/proposal.md` is in the feature `x`, and `specs/changes/x` is the change
+/// `x`. The inverse of [`folder_path`].
+pub fn path_folder(path: &str) -> Option<(Kind, &str, &str)> {
+    let rest = path.strip_prefix("specs/")?;
+    let (kind, rest) = match rest.strip_prefix("changes/") {
+        Some(rest) => (Kind::Change, rest),
+        None => (Kind::Feature, rest),
+    };
+    let (folder, inside) = rest.split_once('/').unwrap_or((rest, ""));
+    (!folder.is_empty()).then_some((kind, folder, inside))
+}
+
 /// The folder of a feature or a change, from the repository's root.
 pub(crate) fn folder_path(kind: Kind, folder: &str) -> String {
     match kind {

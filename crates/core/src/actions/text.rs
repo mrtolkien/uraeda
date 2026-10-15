@@ -7,7 +7,7 @@ use crate::files::document::hash;
 use crate::files::markdown::Document;
 use crate::files::retarget::retarget as retarget_links;
 use crate::git::Git;
-use crate::workspace::folder_slug;
+use crate::workspace::{folder_slug, path_folder};
 
 use super::place::{self, Place};
 use super::{ActionError, Change, Committed, commit, images};
@@ -162,11 +162,9 @@ pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
             (true, false) => format!("chore: edit the draft {title}"),
             (true, true) => format!("chore: edit {title} in the backlog"),
         }
-    } else if let Some(slug) = path
-        .strip_prefix("specs/")
-        .map(|rest| rest.strip_prefix("changes/").unwrap_or(rest))
-        .and_then(|rest| rest.strip_suffix("/proposal.md"))
-        .and_then(folder_slug)
+    } else if let Some(slug) = path_folder(path)
+        .filter(|(_, _, file)| *file == "proposal.md")
+        .and_then(|(_, folder, _)| folder_slug(folder))
     {
         if committed(path).is_some() {
             format!("chore({slug}): edit the proposal")
