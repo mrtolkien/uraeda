@@ -91,9 +91,9 @@ async function main(argv: Array<string>): Promise<number> {
     dataDir,
     webRoot: web,
   });
-  // The sessions end with the server: their turns are interrupted, their processes closed, then
-  // the server exits.
-  for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  // The sessions and Storybooks end with the server: their turns are interrupted, their processes
+  // closed, then the server exits. A closed terminal, SIGHUP, stops it the same way.
+  for (const signal of ["SIGHUP", "SIGINT", "SIGTERM"] as const) {
     process.once(signal, () => {
       void server.stop().finally(() => process.exit(0));
     });

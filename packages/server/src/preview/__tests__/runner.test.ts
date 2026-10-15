@@ -1,8 +1,10 @@
 // The runner on the fake preview, with a clock the test moves: `previews()` stops what it started
 // after each test.
+import { spawn } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:net";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect, onTestFinished, test } from "vite-plus/test";
 import {
   addPreview,
@@ -196,6 +198,41 @@ test("stopping the server stops every Storybook", async () => {
   for (const { pid } of previewStarts(log)) {
     await expect.poll(() => alive(pid), WAIT).toBe(false);
   }
+});
+
+/**
+ * A process that runs the runner, views `checkout`, and crashes with an uncaught error once its
+ * Storybook is ready: resolves with its exit code.
+ */
+function crashOnceReady(checkout: unknown): Promise<number | null> {
+  const runner = fileURLToPath(new URL("../runner.ts", import.meta.url));
+  const script = `
+    const { Previews } = await import(${JSON.stringify(runner)});
+    const checkout = JSON.parse(process.argv[1]);
+    const previews = new Previews();
+    previews.view(checkout);
+    setInterval(() => {
+      if (previews.state(checkout.base)?.state === "ready") throw new Error("crash");
+    }, 50);
+  `;
+  const child = spawn(
+    process.execPath,
+    ["--input-type=module", "-e", script, JSON.stringify(checkout)],
+    {
+      stdio: "ignore",
+    },
+  );
+  return new Promise((resolve) => child.once("exit", resolve));
+}
+
+test("a server that crashes kills its Storybooks' groups", async () => {
+  const { checkout, log } = await storyCheckout();
+
+  expect(await crashOnceReady(checkout)).toBe(1);
+
+  const [start] = previewStarts(log);
+  expect(start).toBeDefined();
+  await expect.poll(() => alive(start!.pid), WAIT).toBe(false);
 });
 
 test("restart starts a failed Storybook again", async () => {

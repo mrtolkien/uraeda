@@ -814,3 +814,28 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: `packages/server/src/preview/proxy.ts`, its test in
   `packages/server/src/preview/__tests__/proxy.test.ts`, and `fixtures/preview/serve.mjs`, whose
   echo reports the query.
+
+## R52: A killed server's Storybooks are killed at the next start
+
+- **Decision**: the server stops on SIGHUP as on SIGINT and SIGTERM. Each running Storybook's
+  process group is recorded in Uraeda's data folder, in `storybooks/<server's pid>.json`, with the
+  server's pid, and each group leader's pid, base, and start time as `ps -o lstart=` prints them;
+  the file goes once the server has no group left. At its start, a server kills, with SIGKILL, the
+  groups of every file whose server no longer runs, when their leader still runs with its recorded
+  start time, then removes the file. A file whose server still runs is left alone.
+- **Rationale**: a closed terminal sends SIGHUP, whose default ends Node without its `exit` hook,
+  and SIGKILL or a crash past the hook leave the detached groups running, against SC-005. The start
+  time tells a recorded leader from a later process given its pid, which must not be killed. One
+  file per server keeps two servers on one data folder, on two ports, from killing each other's
+  Storybooks or writing over each other's record. The record is not the runner's state, which the
+  spec keeps in memory: nothing reads it back but the next start, to kill what it names.
+- **Alternatives considered**: a single file for the data folder, which two servers race on;
+  matching the recorded command line instead of the start time, which two Storybooks of one command
+  share; a group whose leader died while others of it run is not killed, as its pid no longer proves
+  whose group it is.
+- **If wrong**: a Storybook left by a server killed with SIGKILL runs until the next start, or past
+  it when its leader exited first; the record is `preview/groups.ts`, which needs `ps`, as on Linux
+  and macOS.
+- **Where**: `packages/server/src/main.ts`, `server.ts`, `preview/groups.ts`, `preview/runner.ts`,
+  and their tests in `packages/server/src/__tests__/main.test.ts`, `server.test.ts`, and
+  `preview/__tests__/runner.test.ts`.

@@ -1,4 +1,5 @@
-import { writeFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, expect, onTestFinished, test, vi } from "vite-plus/test";
 import {
@@ -8,6 +9,7 @@ import {
   previewStarts,
   temporaryFolder,
 } from "uraeda-binding/test-utils";
+import { type GroupsFile, groupsFolder, startTime } from "../preview/groups.ts";
 import { FakeAdapter } from "../runner/fake.ts";
 import { startServer, SWEEP_EVERY_MS } from "../server.ts";
 
@@ -237,3 +239,89 @@ function running(pid: number): boolean {
     return false;
   }
 }
+
+/** A process leading a group of its own, as a Storybook does, killed after the test: its pid. */
+function groupLeader(): number {
+  const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1 << 30)"], {
+    detached: true,
+    stdio: "ignore",
+  });
+  child.unref();
+  onTestFinished(() => {
+    try {
+      process.kill(-child.pid!, "SIGKILL");
+    } catch {
+      // Already killed.
+    }
+  });
+  return child.pid!;
+}
+
+/**
+ * Writes the record a server leaves, naming `groups`: a server killed past its exit hook, or the
+ * running `server`.
+ */
+function leftRecord(dataDir: string, groups: GroupsFile["groups"], server?: number) {
+  const pid = server ?? spawnSync("true").pid;
+  const started = server === undefined ? "Thu Oct 15 09:00:00 2026" : startTime(server)!;
+  const folder = groupsFolder(dataDir);
+  mkdirSync(folder, { recursive: true });
+  const record: GroupsFile = { groups, server: { pid, started } };
+  writeFileSync(join(folder, `${pid}.json`), JSON.stringify(record));
+}
+
+test("a start kills the Storybooks a killed server left, and clears their record", async () => {
+  const dataDir = temporaryFolder("uraeda-data");
+  const pid = groupLeader();
+  leftRecord(dataDir, [{ base: "/r/repo/preview/main/", pid, started: startTime(pid)! }]);
+
+  await start(fixtureRepo(), dataDir);
+
+  await expect.poll(() => running(pid), { timeout: 10_000 }).toBe(false);
+  expect(readdirSync(groupsFolder(dataDir))).toEqual([]);
+});
+
+test("a start leaves a recorded pid that now names another process", async () => {
+  const dataDir = temporaryFolder("uraeda-data");
+  const pid = groupLeader();
+  leftRecord(dataDir, [
+    { base: "/r/repo/preview/main/", pid, started: "Thu Oct 15 09:00:00 2026" },
+  ]);
+
+  await start(fixtureRepo(), dataDir);
+
+  expect(running(pid)).toBe(true);
+  expect(readdirSync(groupsFolder(dataDir))).toEqual([]);
+});
+
+test("a start leaves the Storybooks of another server still running", async () => {
+  const dataDir = temporaryFolder("uraeda-data");
+  const pid = groupLeader();
+  const other = groupLeader();
+  leftRecord(dataDir, [{ base: "/r/repo/preview/main/", pid, started: startTime(pid)! }], other);
+
+  await start(fixtureRepo(), dataDir);
+
+  expect(running(pid)).toBe(true);
+  expect(readdirSync(groupsFolder(dataDir))).toEqual([`${other}.json`]);
+});
+
+test("a running Storybook is recorded until it stops", async () => {
+  const repo = fixtureRepo();
+  addPreview(repo, { folder: "." });
+  const dataDir = temporaryFolder("uraeda-data");
+  const server = await start(repo, dataDir);
+  const base = "/r/repo/preview/main/";
+  server.previews.view({
+    base,
+    command: (await binding.preview(repo))!.command,
+    dir: repo,
+    folder: ".",
+  });
+  await expect.poll(() => server.previews.state(base)?.state, { timeout: 10_000 }).toBe("ready");
+  const file = join(groupsFolder(dataDir), `${process.pid}.json`);
+
+  expect(existsSync(file)).toBe(true);
+  await server.stop();
+  expect(existsSync(file)).toBe(false);
+});
