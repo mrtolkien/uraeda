@@ -117,3 +117,17 @@ test("a feature's column keeps its plan, its page, and its words", async () => {
   expect(aside.getByText("No plan yet.")).toBeTruthy();
   expect(aside.getByRole("link", { name: "Feature page" })).toBeTruthy();
 });
+
+// US4.1 and US4.6: a change's page is its session, so its crumbs end with the change, not with a
+// link back to the page they are on and a "Session" below it.
+test("a change's crumbs end with the change itself", async () => {
+  const repo = fixtureRepo();
+  addChange(repo, FOLDER, { "proposal.md": "# A home logo\n" });
+
+  await renderPage(`/f/${FOLDER}`, repo, { agent: true });
+
+  const crumbs = within(await screen.findByRole("navigation", { name: "Breadcrumbs" }));
+  expect(crumbs.getAllByRole("link").map((link) => link.textContent)).toEqual(["Home"]);
+  expect(await crumbs.findByText("A home logo")).toBeTruthy();
+  expect(crumbs.queryByText("Session")).toBeNull();
+});
