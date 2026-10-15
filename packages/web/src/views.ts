@@ -17,6 +17,7 @@ import type {
   SessionSearch,
   SlugProposal,
   Story,
+  StoryHref,
   Turn,
   TurnLog,
   WorkflowFile,
@@ -292,4 +293,11 @@ export const PreviewView = view<Preview>()({
   error: true,
   id: true,
   state: true,
+});
+
+/** Whether an agent's link, by its href, is a story link, as the core reads it: not a view. */
+export const StoryHrefView = view<StoryHref>()({
+  export: true,
+  id: true,
+  path: true,
 });
