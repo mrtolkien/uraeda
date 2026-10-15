@@ -97,6 +97,7 @@ const styles = stylex.create({
   },
   phone: {
     flexShrink: 0,
+    maxWidth: "100%",
     width: "var(--size-story-phone)",
   },
   phoneNarrow: {
@@ -225,7 +226,39 @@ function DesktopFrame({
   );
 }
 
-/** The story's frames: the widths chosen on wide screens, the phone's alone on narrow ones. */
+/**
+ * Whether the frames' box holds the phone's frame, its padding, and the gap before the desktop's:
+ * a box narrower than the screen, as a pane's, may not.
+ */
+function useRoomForBoth(box: RefObject<HTMLDivElement | null>) {
+  const [room, setRoom] = useState(true);
+  useLayoutEffect(() => {
+    const outer = box.current;
+    if (!outer) {
+      return;
+    }
+    const measure = () => {
+      const style = getComputedStyle(outer);
+      const need = [
+        style.getPropertyValue("--size-story-phone"),
+        style.paddingLeft,
+        style.paddingRight,
+        style.columnGap,
+      ].reduce((sum, value) => sum + (Number.parseFloat(value) || 0), 0);
+      setRoom(outer.clientWidth >= need);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(outer);
+    return () => observer.disconnect();
+  }, [box]);
+  return room;
+}
+
+/**
+ * The story's frames: the widths chosen on wide screens, the phone's alone on narrow ones, and in
+ * place of both in a box too narrow for them.
+ */
 function StoryFrames({
   label,
   src,
@@ -238,9 +271,12 @@ function StoryFrames({
   widths: Widths;
 }) {
   const { desktop, heights, phone } = useFrames();
+  const box = useRef<HTMLDivElement>(null);
+  const room = useRoomForBoth(box);
+  const shown = widths === "both" && !room ? "phone" : widths;
   return (
-    <div {...stylex.props(styles.frames, !wide && styles.framesNarrow)}>
-      {(!wide || widths !== "desktop") && (
+    <div ref={box} {...stylex.props(styles.frames, !wide && styles.framesNarrow)}>
+      {(!wide || shown !== "desktop") && (
         <iframe
           ref={phone}
           sandbox={SANDBOX}
@@ -253,7 +289,7 @@ function StoryFrames({
           )}
         />
       )}
-      {wide && widths !== "phone" && (
+      {wide && shown !== "phone" && (
         <DesktopFrame
           frameRef={desktop}
           height={heights.desktop}
@@ -303,7 +339,7 @@ function Bar({
 /** Why the story does not show, or its Storybook: the Storybook page shows it too. */
 export function State({ children, error = false }: { children: ReactNode; error?: boolean }) {
   return (
-    <div {...stylex.props(styles.state, error && styles.error)}>
+    <div role="status" {...stylex.props(styles.state, error && styles.error)}>
       <Text color={error ? "error" : "secondary"}>{children}</Text>
     </div>
   );
