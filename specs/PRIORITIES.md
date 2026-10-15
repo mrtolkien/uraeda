@@ -11,7 +11,7 @@
 - [UI iteration flow](/specs/2026-10-15-ui-iteration/proposal.md)
 - [Add a "scratchpad" concept: quick notes about the system, small issues, ...](/specs/2026-10-15-add-scratchpad/proposal.md)
 
-- Settings page with selection of agent runner, config values, other run values
+- [Settings page with selection of agent runner, config values, other run values](drafts/settings-page-with-selection-of-agent-runner.md)
   - For example: does each step start with a new context or continues a "master session"? Should be
     a config flag, and able to toggle it per feature
   - Same for subagents in implementation, or review settings (command, model, count, ...)
@@ -42,8 +42,8 @@
   in
 
 - Monorepo support: multiple `specs` folders, principles per package, ...
-- Codex runtime
-- Adversarial review flow with a secondary model
+- Codex runtime + model settings
+- Adversarial review flow with a secondary model + review settings
 
 - Nix + Docker based execution environments
 - References (docs) querying and storing workflow -> our own local context8
@@ -104,3 +104,6 @@
   repos and not in a monorepo
 - Need a small "look at PR comments" button in features that restarts the agent and pushes it to
   check the comments
+- Need to be able to rename a project slug, at least in the UI
+- Priorities -> Draft should bring it children bullet point
+- Add run options: "master session" vs 1 session per step.
