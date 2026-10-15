@@ -11,7 +11,7 @@ const LIMIT: usize = 500;
 const LARGE: &[(&str, usize)] = &[
     ("crates/core/src/api.rs", 633),
     ("crates/core/src/files/document.rs", 686),
-    ("crates/core/src/git.rs", 625),
+    ("crates/core/src/git.rs", 528),
     ("crates/core/src/workspace.rs", 967),
 ];
 

@@ -6,7 +6,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::SystemTime;
 
+mod commit;
 mod status;
+
+pub use commit::others_staged;
 
 pub use gix::ObjectId;
 
@@ -165,19 +168,6 @@ impl Git {
             std::fs::write(&exclude, text)
         };
         write().map_err(read_error(".git/info/exclude"))
-    }
-
-    /// The configured `core.hooksPath`, made absolute from the main working tree when it is
-    /// relative and this is a linked worktree, where git would resolve it from here instead.
-    fn hooks_override(&self) -> Option<String> {
-        let configured = self
-            .repo
-            .config_snapshot()
-            .string("core.hooksPath")
-            .map(|value| value.to_string())?;
-        let main = self.main_root();
-        (Path::new(&configured).is_relative() && main != self.root)
-            .then(|| main.join(configured).to_string_lossy().into_owned())
     }
 
     /// The branch checked out here, or `None` on a detached `HEAD`.
@@ -493,74 +483,9 @@ impl Git {
         self.run("switch", &["switch", branch])
     }
 
-    /// Restores a file to its version at `HEAD` in this working tree and its index, dropping staged
-    /// changes too.
-    pub fn restore(&self, path: &str) -> Result<(), GitError> {
-        self.run("checkout", &["checkout", "--quiet", "HEAD", "--", path])
-    }
-
     /// Creates `branch` from `from`, and switches this working tree to it.
     pub fn switch_new(&self, branch: &str, from: &str) -> Result<(), GitError> {
         self.run("switch", &["switch", "--create", branch, from])
-    }
-
-    /// The files staged here: those whose index entry differs from `HEAD`, sorted.
-    pub fn staged_files(&self) -> Result<Vec<String>, GitError> {
-        let mut files = Vec::new();
-        for item in self.status_items("the index", gix::status::UntrackedFiles::None)? {
-            let item = item.map_err(read_error("the index"))?;
-            if let gix::status::Item::TreeIndex(change) = &item {
-                files.push(change.location().to_string());
-            }
-        }
-        files.sort();
-        files.dedup();
-        Ok(files)
-    }
-
-    /// Commits `paths` as they are in the working tree, running the hooks, which may reformat
-    /// them. Refuses when other files are staged, which the commit would carry along.
-    pub fn commit(
-        &self,
-        paths: &[String],
-        subject: &str,
-        body: Option<&str>,
-    ) -> Result<(), GitError> {
-        let staged = self.staged_files()?;
-        let others = others_staged(&staged, paths);
-        if !others.is_empty() {
-            return Err(GitError::OtherStagedFiles(others));
-        }
-        let addable = self.addable(paths, &staged)?;
-        if !addable.is_empty() {
-            let mut add = vec!["add", "--all", "--"];
-            add.extend(addable.iter().copied());
-            self.run("add", &add)?;
-        }
-        let hooks = self
-            .hooks_override()
-            .map(|path| format!("core.hooksPath={path}"));
-        let mut commit = Vec::new();
-        if let Some(hooks) = &hooks {
-            commit.extend(["-c", hooks.as_str()]);
-        }
-        commit.extend(["commit", "--quiet", "--message", subject]);
-        if let Some(body) = body {
-            commit.extend(["--message", body]);
-        }
-        // A refused commit takes back what it staged, so nothing it held blocks or rides along.
-        self.run("commit", &commit)
-            .inspect_err(|_| drop(self.unstage(&addable)))
-    }
-
-    /// Resets the index entries of `paths`, files or folders, to `HEAD`, the working tree kept.
-    pub fn unstage(&self, paths: &[&str]) -> Result<(), GitError> {
-        if paths.is_empty() {
-            return Ok(());
-        }
-        let mut reset = vec!["reset", "--quiet", "--"];
-        reset.extend(paths);
-        self.run("reset", &reset)
     }
 
     fn run(&self, subcommand: &str, args: &[&str]) -> Result<(), GitError> {
@@ -600,17 +525,4 @@ impl Git {
             output,
         })
     }
-}
-
-/// The staged files that are neither one of `paths` nor inside a folder of `paths`.
-pub fn others_staged(staged: &[String], paths: &[String]) -> Vec<String> {
-    staged
-        .iter()
-        .filter(|file| {
-            !paths.iter().any(|path| {
-                *file == path || file.starts_with(&format!("{}/", path.trim_end_matches('/')))
-            })
-        })
-        .cloned()
-        .collect()
 }
