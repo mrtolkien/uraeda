@@ -11,7 +11,7 @@
 - [Add a bugfixing/low impact change flow](/specs/2026-10-15-add-bugfixing/proposal.md)
 - [Add a "scratchpad" concept: quick notes about the system, small issues, ...](/specs/2026-10-15-add-scratchpad/proposal.md)
 
-- Option page with selection of agent runner, config values, other run values
+- Settings page with selection of agent runner, config values, other run values
   - For example: does each step start with a new context or continues a "master session"? Should be
     a config flag, and able to toggle it per feature
   - Same for subagents in implementation, or review settings (command, model, count, ...)
@@ -96,3 +96,5 @@
 - When the agent was blocked due to auto mode in claude code, there was no way to know except
   visiting the session page
 - Text input still feels a bit laggy on sessions page, might be due to the huge page height
+- We should have a way to have an agent be aware of multiple repos, for project spanning multiple
+  repos and not in a monorepo
