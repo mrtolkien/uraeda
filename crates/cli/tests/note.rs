@@ -151,7 +151,7 @@ fn an_about_that_matches_nothing_is_refused() {
 
     assert_eq!(
         output.stderr,
-        "ura: no feature or draft named nothing-here\n"
+        "ura: --about names a feature or a bug: none is named nothing-here\n"
     );
     assert_eq!(output.code, 1);
     assert_eq!(repo.porcelain(), "");
@@ -276,4 +276,70 @@ fn other_staged_files_are_refused_before_writing() {
     assert_eq!(output.code, 1);
     assert!(output.stderr.contains("README.md"), "{}", output.stderr);
     assert!(!repo.read(INBOX).contains("Hints flicker"));
+}
+
+/// A refused note leaves nothing behind: no `.worktrees/main` created for it.
+#[test]
+fn a_blank_note_creates_no_worktree() {
+    let repo = repo();
+    repo.switch(FEATURE);
+
+    let output = note(&repo, &["  "]);
+
+    assert_eq!(output.stderr, "ura: A note needs text.\n");
+    assert_eq!(output.code, 1);
+    assert!(!repo.exists(".worktrees/main"));
+}
+
+/// `--about` names a feature or a bug, never a draft.
+#[test]
+fn an_about_naming_a_draft_is_refused() {
+    let repo = repo();
+    repo.write("specs/drafts/idea.md", "# Idea\n");
+    repo.commit("chore: draft an idea");
+
+    let output = note(&repo, &["A note", "--about", "idea"]);
+
+    assert_eq!(
+        output.stderr,
+        "ura: --about names a feature or a bug: none is named idea\n"
+    );
+    assert_eq!(output.code, 1);
+    assert_eq!(repo.porcelain(), "");
+}
+
+#[test]
+fn an_about_naming_a_bug_writes_its_slug() {
+    let repo = repo();
+    feature(
+        &repo,
+        "fix/2026-10-14-broken-link",
+        &[("bug.md", "# Broken link\n".to_string())],
+    );
+
+    let output = note(&repo, &["Links break on rename", "--about", "broken-link"]);
+
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert!(
+        repo.read(INBOX)
+            .contains("- [broken-link] Links break on rename\n")
+    );
+}
+
+/// Staged files only matter to a commit: with `INBOX.md` already changed, the note is written.
+#[test]
+fn staged_files_do_not_refuse_a_note_that_is_not_committed() {
+    let repo = repo();
+    repo.write("README.md", "# Changed\n");
+    repo.git(&["add", "README.md"]);
+    let edited = repo
+        .read(INBOX)
+        .replace("home icon", "home icon in the sidebar");
+    repo.write(INBOX, &edited);
+
+    let output = note(&repo, &["Hints flicker on save"]);
+
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert_eq!(output.stderr, DIRTY);
+    assert!(repo.read(INBOX).contains("- Hints flicker on save\n"));
 }

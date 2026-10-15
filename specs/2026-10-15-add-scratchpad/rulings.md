@@ -322,11 +322,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   - `actions::inbox::note(place, category, marks, text, commit) -> Result<Noted, ActionError>` adds
     the note and commits `specs/INBOX.md` alone, as `chore: add "<note>" to the inbox`, unless
     `commit` is unset (`Noted::Written`) or the file differed from `HEAD` before the note
-    (`Noted::Uncommitted`). Other staged files are refused before anything is written.
-    `crates/cli/src/note.rs` only resolves the marks, reaches the default branch, and prints.
-  - `--about` resolves a target like other commands, and a draft is refused: a note is about a
-    feature or a bug. Without it, the slug comes from the branch of this checkout, a feature's or
-    `fix/` a bug's.
+    (`Noted::Uncommitted`). Only when it will commit are other staged files refused, before anything
+    is written. `crates/cli/src/note.rs` resolves the marks, checks the note through the core's
+    `inbox::checked_note` before reaching the default branch, so a refused note creates no
+    `.worktrees/main`, then reaches it and prints.
+  - `--about` resolves a target like other commands, among features and bugs only, since a note is
+    about one of them: a name that matches none, a draft's included, is refused with "--about names
+    a feature or a bug: none is named <name>". Without it, the slug comes from the branch of this
+    checkout, a feature's or `fix/` a bug's.
   - "No specs/ folder here." covers both a folder outside any git repository and a repository
     without `specs/`.
   - Where the note was written goes to stderr, with the message, through `output::place_message`,
@@ -341,7 +344,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   rule outside the core. Printing the place on stdout, as `ura draft` does: a message on the data
   stream.
 - **If wrong**: `inbox::note` folds into `note.rs`, about 30 lines.
-- **Where**: task 7, `actions/inbox.rs`, `crates/cli/src/note.rs`, `crates/cli/src/output.rs`
+- **Where**: task 7 and its review, `actions/inbox.rs`, `crates/cli/src/note.rs`,
+  `crates/cli/src/output.rs`
 
 ## R18: The note's line comes from the language server, and an empty text cancels
 

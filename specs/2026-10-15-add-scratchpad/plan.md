@@ -943,7 +943,8 @@ git commit -m "feat(add-scratchpad): the inbox and its triage through the bindin
   - inside a feature's or a bug's worktree, `--about` defaults to that folder;
   - the commit holds `specs/INBOX.md` alone, through
     `actions::inbox::note(place, category, marks, text, commit) -> Result<Noted, ActionError>`,
-    where `Noted` is `Committed`, `Written`, or `Uncommitted` (ruling R17);
+    where `Noted` is `Committed`, `Written`, or `Uncommitted`, and the text checked by
+    `actions::inbox::checked_note` before the default branch is reached (ruling R17);
   - `output::place_message`, where an action wrote, printed on stderr by `ura note`.
 
 - [x] **Step 1: Write the failing tests**
