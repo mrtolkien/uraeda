@@ -119,8 +119,9 @@ test("US1.4: the changed files, without the feature's folder", async () => {
   await renderPage(`/f/${CLI}/session`, specsBranch(), { agent: await fakeAgent() });
 
   const column = await findAside();
-  expect(column.getByRole("heading", { name: "Changed on the branch" })).toBeTruthy();
-  expect(await column.findByText("2 files · +42 −19")).toBeTruthy();
+  // The section draws once the branch's changes are read, after the column.
+  expect(await column.findByRole("heading", { name: "Changed on the branch" })).toBeTruthy();
+  expect(column.getByText("2 files · +42 −19")).toBeTruthy();
   const files = within(column.getByRole("list", { name: "Changed files" })).getAllByRole(
     "listitem",
   );

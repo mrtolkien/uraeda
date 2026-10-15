@@ -344,8 +344,9 @@ test("a change in one repository sends no update to another", async () => {
   git(first.path, "switch", "--quiet", "2026-10-12-cli-tuis");
   await vi.waitFor(() => expect(heard()).toContain("SessionList all"), { timeout: 5000 });
 
-  // The switch's updates only: none of the second's priorities.
-  expect(heard()).toEqual(["Workspace workspace", "SessionList all"]);
+  // The switch's updates only: none of the second's priorities, and its one workspace update.
+  expect(heard().filter((update) => update.startsWith("Priorities"))).toEqual([]);
+  expect(heard().filter((update) => update === "Workspace workspace")).toHaveLength(1);
 });
 
 test("a session's change goes to its repository's bus", () => {

@@ -70,10 +70,14 @@ test("＋'s Undo removes the line it added, wherever it is now (US6 5)", async (
     read(repo).replace("## Later\n\n", "## Later\n\n- Added elsewhere\n"),
   );
   await click(undo);
-  await waitFor(() => expect(read(repo)).not.toContain("Show the agent's last commit"));
-  expect(read(repo)).toContain(
-    "- Added elsewhere\n- Nix + Docker based execution environments\n  - with a cache\n",
-  );
+  // Waits for the undo's whole text: a read during the write sees an empty file.
+  await waitFor(() => {
+    const text = read(repo);
+    expect(text).not.toContain("Show the agent's last commit");
+    expect(text).toContain(
+      "- Added elsewhere\n- Nix + Docker based execution environments\n  - with a cache\n",
+    );
+  });
 });
 
 test("＋'s Undo refuses once the line it added is gone", async () => {
