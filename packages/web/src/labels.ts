@@ -25,7 +25,7 @@ export function stepLabel(name: string) {
  * path within the repository.
  */
 export function waiting(
-  feature: Pick<FeatureView, "folder" | "files" | "kind"> & {
+  feature: Pick<FeatureView, "folder" | "files" | "path"> & {
     step: Pick<StepView, "file" | "name">;
   },
 ) {
@@ -40,11 +40,9 @@ export function waiting(
         : kind === "proposal"
           ? { title: "Write the proposal", verb: "Write" }
           : { title: stepLabel(feature.step.name), verb: stepLabel(feature.step.name) };
-  // A change's folder is in `specs/changes/`, a feature's in `specs/`.
-  const folder = feature.kind === "change" ? `changes/${feature.folder}` : feature.folder;
   const href =
     kind === "proposal"
-      ? `/edit/specs/${folder}/${file}`
+      ? `/edit/${feature.path}/${file}`
       : file
         ? `/f/${feature.folder}/${file}`
         : `/f/${feature.folder}`;

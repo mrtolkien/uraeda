@@ -1,8 +1,11 @@
 import { isAbsolute, relative, sep } from "node:path";
 
+/** What a message is about: a feature's or a change's kind, and its folder's path. */
+type Subject = { kind: string; path: string };
+
 /** A feature's or a change's folder, and the word that names it. */
-function subject(folder: string, change?: boolean): string {
-  return change ? `change specs/changes/${folder}/` : `feature specs/${folder}/`;
+function subject({ kind, path }: Subject): string {
+  return `${kind} ${path}/`;
 }
 
 const READY = "the pull request is ready for review";
@@ -52,9 +55,7 @@ function goal(step: string, planReview?: boolean): { stop: string; work: string 
  */
 export function runMessage(input: {
   branch: string;
-  /** A change lives in `specs/changes/`. */
-  change?: boolean;
-  folder: string;
+  feature: Subject;
   /** The spec's `plan-review`, for the steps before the plan is approved. */
   planReview?: boolean;
   reference: string;
@@ -62,16 +63,16 @@ export function runMessage(input: {
 }): string {
   const { stop, work } = goal(input.step, input.planReview);
   return (
-    `/uraeda:uraeda Continue the ${subject(input.folder, input.change)} on branch ${input.branch}: ` +
+    `/uraeda:uraeda Continue the ${subject(input.feature)} on branch ${input.branch}: ` +
     `${work}, starting with ${input.reference}.\n` +
     `Stop when ${stop}, and earlier only if you need a decision from me.\n`
   );
 }
 
 /** The first message of a chat, which tells the agent to wait for the human's requests. */
-export function chatOpening(input: { branch: string; change?: boolean; folder: string }): string {
+export function chatOpening(input: { branch: string; feature: Subject }): string {
   return (
-    `A human is chatting with you about the ${subject(input.folder, input.change)}, on branch ` +
+    `A human is chatting with you about the ${subject(input.feature)}, on branch ` +
     `${input.branch}: answer, and change files, commit, or move the workflow only when they ask.`
   );
 }

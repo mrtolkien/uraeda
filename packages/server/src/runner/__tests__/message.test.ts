@@ -24,7 +24,7 @@ test.each<[string, Record<string, unknown>, string | undefined]>([
 
 const PLAN = {
   branch: "2026-10-12-cli-tuis",
-  folder: "2026-10-12-cli-tuis",
+  feature: { kind: "feature", path: "specs/2026-10-12-cli-tuis" },
   reference: "skills/uraeda/references/plan.md",
   step: "plan",
 };
@@ -64,8 +64,7 @@ test("a change's message names its folder under specs/changes/", () => {
   expect(
     runMessage({
       branch: "change/2026-10-16-centred-x",
-      change: true,
-      folder: "2026-10-16-centred-x",
+      feature: { kind: "change", path: "specs/changes/2026-10-16-centred-x" },
       reference: "skills/uraeda/references/change.md",
       step: "change",
     }),
@@ -87,7 +86,8 @@ test("the message does not say what the human did", () => {
 });
 
 test("the chat's opening line", () => {
-  expect(chatOpening({ branch: "2026-10-13-chat", folder: "2026-10-13-chat" })).toBe(
+  const feature = { kind: "feature", path: "specs/2026-10-13-chat" };
+  expect(chatOpening({ branch: "2026-10-13-chat", feature })).toBe(
     "A human is chatting with you about the feature specs/2026-10-13-chat/, on branch " +
       "2026-10-13-chat: answer, and change files, commit, or move the workflow only when they ask.",
   );
@@ -97,8 +97,7 @@ test("a change's chat opening names the change", () => {
   expect(
     chatOpening({
       branch: "change/2026-10-16-centred-x",
-      change: true,
-      folder: "2026-10-16-centred-x",
+      feature: { kind: "change", path: "specs/changes/2026-10-16-centred-x" },
     }),
   ).toBe(
     "A human is chatting with you about the change specs/changes/2026-10-16-centred-x/, on " +

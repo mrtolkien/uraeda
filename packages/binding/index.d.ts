@@ -114,6 +114,13 @@ export declare function nextStep(repo: string, folder: string): Promise<NextView
 /** Records that a repository was opened now, and returns it. */
 export declare function openRepository(dataDir: string, name: string): Promise<Repository>
 
+/**
+ * The folder of the feature or the change that a path from the top level is in: `<folder>` for
+ * `specs/<folder>/...` and `specs/changes/<folder>/...`, and none outside `specs/`. It reads
+ * nothing.
+ */
+export declare function pathFolder(path: string): string | null
+
 /** Each section of the proposal template, with the guidance the editor shows while it is empty. */
 export declare function proposalHints(): Promise<Array<ProposalHint>>
 
@@ -404,6 +411,11 @@ export interface FeatureView {
   /** `feature` or `change`. */
   kind: string
   folder: string
+  /**
+   * Its folder's path from the top level: `specs/<folder>`, or `specs/changes/<folder>` for a
+   * change, even once it is finished.
+   */
+  path: string
   slug: string
   /** The title of its proposal, or of its record. */
   title: string

@@ -273,6 +273,7 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
   leftWorktree: true,
   missing: true,
   mockups: true,
+  path: true,
   problems: true,
   pullRequest: true,
   session: true,

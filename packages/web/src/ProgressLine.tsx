@@ -91,6 +91,7 @@ function Line({
 }: {
   feature: Parameters<typeof stepTitle>[0] &
     Parameters<typeof roundOf>[0] & {
+      kind: string;
       step: { progress?: { position: number; title: string; total: number } | null };
     };
   folder: string;

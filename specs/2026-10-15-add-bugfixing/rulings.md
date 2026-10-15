@@ -419,3 +419,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `ura clean` finds a merged `change/` branch whose folder moved to `specs/drafts/`,
   and `change.md` names it again.
 - **Where**: final review, `skills/uraeda/references/change.md`.
+
+## R25: A folder's path comes from the core, and `pathLink` keeps the one TypeScript copy
+
+- **Decision**: the core's `FeatureView` carries its folder's `path`, `specs/<folder>` or
+  `specs/changes/<folder>`, from `workspace::folder_path`, and the binding's `pathFolder` wraps
+  `workspace::path_folder`. The run's message, the chat's opening line, the proposal gate's link,
+  and the server's `writable` read them. `pathLink` in `routes.tsx` keeps its own pattern for
+  `specs/<folder>/` and `specs/changes/<folder>/`, the one TypeScript copy of the rule.
+- **Rationale**: one home per rule ([code quality](/specs/decisions/code-quality.md)): five
+  TypeScript copies of the change folder's path would each need editing for a third kind of item.
+  `pathLink` maps a link's path to its page while the page draws, with no feature view at hand, and
+  the binding is the server's, not the browser's.
+- **Alternatives considered**: the core resolving each link's page in the document's spans, a change
+  to every view that carries links, which the spec does not ask for.
+- **If wrong**: the core's link spans carry their page, and `pathLink` reads it.
+- **Where**: final review, `crates/core/src/view/feature.rs`, `crates/binding/src/lib.rs`,
+  `packages/server/src/runner/message.ts`, `packages/server/src/fate/sessions.ts`,
+  `packages/web/src/labels.ts`, `packages/web/src/routes.tsx`.

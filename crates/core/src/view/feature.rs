@@ -58,6 +58,9 @@ pub struct FeatureView {
     /// `feature` or `change`.
     pub kind: String,
     pub folder: String,
+    /// Its folder's path from the top level: `specs/<folder>`, or `specs/changes/<folder>` for a
+    /// change, even once it is finished.
+    pub path: String,
     pub slug: String,
     /// The title of its proposal, or of its record.
     pub title: String,
@@ -113,6 +116,7 @@ impl FeatureView {
         FeatureView {
             kind: kebab(&feature.kind),
             folder: feature.folder.clone(),
+            path: crate::workspace::folder_path(feature.kind, &feature.folder),
             slug: feature.slug.clone(),
             title: match feature.file(FileKind::Record) {
                 Some(record) => feature
