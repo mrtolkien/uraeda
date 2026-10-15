@@ -758,7 +758,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   from the panel: d25a7e7 removed it on purpose.
 - **If wrong**: a banner or a line that comes in a later commit than the end of the work is not
   followed; its failure shows "Jump to the latest" after a run ends.
-- **Where**: the rebase onto `main` with d25a7e7.
+- **Where**: the rebase onto `main` with d25a7e7. Superseded for the test updates on the next
+  catch-up: `main`'s 5c5f104 ("run to the next human gate, and flag sessions that need attention")
+  updated the same tests itself, and its versions of `sessions.test.ts`, `agent-panel.test.tsx` and
+  `commit-actions.test.tsx` are kept; the fix of `following.ts` and its browser test stay.
 
 ## R39: The unit tests' tasks select their Vitest projects by exclusion
 
