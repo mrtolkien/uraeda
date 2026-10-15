@@ -77,7 +77,9 @@ pub fn describe(feature: &Feature) -> String {
             None => name.as_str().to_string(),
         },
     };
-    if step.pull_request == Some(PullRequest::Unknown) {
+    // A change's agent step stands whatever its pull request, so only the pull request row says
+    // its state is unknown.
+    if step.name == StepName::PullRequest && step.pull_request == Some(PullRequest::Unknown) {
         text.push_str(" (pull request state unknown)");
     }
     if let Some(behind) = feature.behind.filter(|behind| *behind > 0) {
