@@ -578,8 +578,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
     `triage.notes`, and the core's and the binding's `save_triage_answer` and `save_triage_notes`.
     The page keeps the hash in `Hashes`, provided by each `RoundPage`: its writes to the triage run
     one after another, each based on the hash the last one wrote, and the submit, over the same
-    hash, commits only what the page saw. A read of a text the page already had, drawn late, does
-    not replace it.
+    hash, commits only what the page saw. A read drawn while a write is sent waits for it (amended
+    by ruling R39).
   - The triage hides the feature's crumbs, "Ask the agent", and the hand-over: its Submit is one
     "Submit answers" button, which goes back to the inbox once committed, where "Apply the answers"
     waits. A hook's refusal of its commit offers "Try again", as a round's does, through
@@ -933,3 +933,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: third final review, `crates/core/src/files/inbox.rs`, `files/inbox/read.rs`,
   `actions/inbox.rs`, `actions/inbox/undo.rs`, `actions/changes.rs`, `actions/changes/drafts.rs`,
   `crates/core/tests/inbox_moves.rs`
+
+## R39: A read waits for the write it may be older than, and is otherwise taken
+
+- **Decision**: `Hashes` takes every read of the triage's text, a text the page had before included,
+  except one drawn while one of the page's writes is sent: that read may hold the text from before
+  the write, so it waits, and is dropped once the write wrote, the write's hash being as new, or
+  taken once the write wrote nothing, refused or failed.
+- **Rationale**: The final review found that ignoring any hash seen before kept the page on its own
+  last write once another page put the text back as it was first: every save was refused as a
+  conflict until the page was opened again. A read can only be older than the page's write while
+  that write is sent; any later read, pushed by the server once the file changed, is newer.
+- **Alternatives considered**: A version number from the server on each read, a new field of the
+  file's view for one page. Ignoring hashes seen before, the first version, which mistook a fresh
+  read for a stale one.
+- **If wrong**: `Hashes` in `packages/web/src/roundTarget.ts`. A stale read answered after the write
+  is taken, and the next save is refused as a conflict, until the next read.
+- **Where**: third final review, `packages/web/src/roundTarget.ts`,
+  `packages/web/src/__tests__/roundTarget.test.ts`
