@@ -1361,6 +1361,29 @@ fn a_typed_text_brings_its_images() {
     );
 }
 
+/// A failed typed start leaves the whole folder to write and commit: the proposal and its images.
+#[test]
+fn a_failed_typed_start_leaves_its_proposal_and_images() {
+    let repo = draft_repo();
+    repo.set_hook("exit 1");
+
+    let failed = start_text(&repo, TYPED, &[image()], Some("centred-x"));
+
+    let Err(start::StartError::Partial { left, .. }) = failed else {
+        panic!("not a partial failure")
+    };
+    let folder = format!("specs/changes/{CHANGE_FOLDER}");
+    assert_eq!(
+        left,
+        [
+            "commit specs/PRIORITIES.md on main as \"chore(centred-x): start Centre the x in failure circles\"".to_string(),
+            format!("create the branch change/{CHANGE_FOLDER}"),
+            format!("write {folder}/proposal.md from the text, and its images in {folder}/images/"),
+            format!("commit {folder}/ as \"chore(centred-x): proposal\""),
+        ]
+    );
+}
+
 /// Review focus 2: a feature and a change of the same slug and day, in both orders.
 #[test]
 fn a_slug_taken_by_a_feature_is_refused_for_a_change() {
