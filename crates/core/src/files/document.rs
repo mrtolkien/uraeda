@@ -17,6 +17,7 @@ use super::markdown::{Lines, options, slug};
 mod inline;
 
 use inline::Marks;
+pub use inline::{Span, SpanImage, SpanLink};
 
 /// Lines of a file, 1-based and inclusive.
 #[cfg_attr(feature = "napi", napi(object))]
@@ -90,43 +91,6 @@ pub enum CalloutKind {
     Warning,
     Caution,
     Question,
-}
-
-/// A link of a span: its target as written, and the file it points to in the repository.
-#[cfg_attr(feature = "napi", napi(object))]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SpanLink {
-    pub target: String,
-    pub wiki: bool,
-    /// The file from the repository's top level; absent for a web link, a URI, or an anchor in
-    /// the page.
-    pub path: Option<String>,
-}
-
-/// An image of a span: its target as written, and the file it shows in the repository.
-#[cfg_attr(feature = "napi", napi(object))]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SpanImage {
-    pub target: String,
-    /// The file from the repository's top level; absent for an image on the web or in a URI,
-    /// such as `data:`.
-    pub path: Option<String>,
-}
-
-/// A run of text with the same marks. An image's span holds its alt text.
-#[cfg_attr(feature = "napi", napi(object))]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Span {
-    pub text: String,
-    pub strong: bool,
-    pub emphasis: bool,
-    pub code: bool,
-    pub strike: bool,
-    pub link: Option<SpanLink>,
-    pub image: Option<SpanImage>,
 }
 
 /// A block, its place in the tree, its lines, and the fields of its kind.

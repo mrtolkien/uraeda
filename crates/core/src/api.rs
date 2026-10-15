@@ -261,16 +261,6 @@ fn feature_of<'a>(workspace: &'a Workspace, path: &str) -> Option<&'a Feature> {
         .find(|feature| feature.owns(path).is_some())
 }
 
-fn version(name: &str, text: String, dir: &str) -> VersionView {
-    let document = document::parse(&text, dir);
-    let items = items(name, &text, &document);
-    VersionView {
-        text,
-        document,
-        items,
-    }
-}
-
 /// A file of a feature: its version as read, the version at its branch's tip when it differs, and
 /// its pending review.
 pub fn read_file(repo: &Path, folder: &str, name: &str) -> Result<FileView> {
@@ -299,7 +289,7 @@ fn file_view(
         .and_then(|tip| git.read_file(tip, &path).ok().flatten())
         .and_then(|bytes| String::from_utf8(bytes).ok())
         .filter(|committed| *committed != text)
-        .map(|committed| version(name, committed, &feature.path));
+        .map(|committed| VersionView::new(name, committed, &feature.path));
     let review = (gate_of(name) == Some(Gate::Review))
         .then(|| review::review_name(name))
         .and_then(|review_name| {
@@ -336,7 +326,7 @@ fn file_view(
         path,
         kind,
         status,
-        current: version(name, text, &feature.path),
+        current: VersionView::new(name, text, &feature.path),
         tip: tip.map(|tip| tip.to_hex_with_len(7).to_string()),
         committed,
         review,
