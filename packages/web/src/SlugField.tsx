@@ -10,9 +10,17 @@ const SLUG_CHANGED = "The draft's name changed since.";
 /**
  * A draft's slug, which Start names its folder and branch with: a field of the store, by the
  * draft's path, `<draft path>#slug`, over the slug the draft's name gives, kept as typed until the
- * feature starts. Escape on a changed slug asks "Discard your changes?" first.
+ * feature starts. Escape on a changed slug asks "Discard your changes?" first. `restoreNotice:
+ * false` leaves out the draft editor's notice of a restored slug, for a page whose text comes back
+ * as a new chat's does, like "New change".
  */
-export function SlugField({ field }: { field: ReturnType<typeof useTextField> }) {
+export function SlugField({
+  field,
+  restoreNotice = true,
+}: {
+  field: ReturnType<typeof useTextField>;
+  restoreNotice?: boolean;
+}) {
   const confirm = useConfirm();
   const cancel = async () => {
     if (field.dirty && (await confirm(DISCARD_CHANGES))) {
@@ -21,7 +29,7 @@ export function SlugField({ field }: { field: ReturnType<typeof useTextField> })
   };
   return (
     <>
-      {field.restored && (
+      {restoreNotice && field.restored && (
         <RestoreNotice changed={SLUG_CHANGED} onDiscard={field.discard} restored={field.restored} />
       )}
       <TextInput
