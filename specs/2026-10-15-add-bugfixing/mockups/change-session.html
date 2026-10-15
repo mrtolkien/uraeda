@@ -266,8 +266,8 @@
     <p class="note">
       Static mockup, in the web UI's existing layout: Astryx's side navigation, the session page,
       and its 320 px column. Only what differs from a feature is new: the "Change" tag in the
-      sidebar, the column's sections, and the kind choice when starting a draft. The spec's text
-      wins where the two disagree.
+      sidebar, the column's sections, and the "New change" page. The spec's text wins where the two
+      disagree.
     </p>
 
     <!-- 1. Wide: the agent at work -->
@@ -280,6 +280,7 @@
         <nav class="side" aria-label="Sessions">
           <div class="row">⌂ Home</div>
           <div class="row">Priorities</div>
+          <div class="row">＋ New change</div>
           <div class="group">Waiting on you</div>
           <div class="row">
             <span class="dot you"></span>header-logo<span class="tag">Change</span>
@@ -467,35 +468,65 @@
       </div>
     </div>
 
-    <!-- 5. Starting a draft -->
+    <!-- 5. New change, wide -->
     <div class="frame">
       <div class="caption">
-        5. Wide: a draft's editor, its end. "Start as" chooses the kind; the buttons and the line
-        under them follow it. "Feature" is chosen when the editor opens.
+        5. Wide, 1440 × 900: "New change", at <code>/changes/new</code>, shaped like a new chat. The
+        slug follows the first line until the human edits it. Enter, or "Start the change", starts
+        it and its agent, then opens the change's page.
       </div>
-      <div class="editor">
-        <div class="crumbs">Drafts</div>
-        <h2 style="margin: 4px 0 12px">Centre the x in failure circles</h2>
-        <textarea>
-## What
+      <div class="wide" style="grid-template-columns: 260px 1fr; min-height: 520px">
+        <nav class="side">
+          <div class="row">⌂ Home</div>
+          <div class="row">Priorities</div>
+          <div class="row selected">＋ New change</div>
+          <div class="group">Agents at work</div>
+          <div class="row"><span class="dot work"></span>testing-review</div>
+          <div class="group">Chats</div>
+          <div class="row">＋ New chat</div>
+        </nav>
+        <main style="max-width: 900px">
+          <div class="head"><h2>New change</h2></div>
+          <p class="muted" style="margin: 0 0 16px">
+            Describe the bug or the change. The first line is its title.
+          </p>
+          <div class="composer" style="margin-top: 0; color: var(--fg); min-height: 120px">
+            Centre the x in failure circles<br /><br />In failures the x sits low in its circle.
+            <div style="margin-top: 14px; display: flex; gap: 8px; align-items: center">
+              <span class="tag" style="margin: 0">failure-mark.png</span>
+              <span style="margin-left: auto" class="btn primary">Start the change</span>
+            </div>
+          </div>
+          <label for="slug">Slug</label>
+          <input id="slug" value="centred-x" />
+          <p class="muted" style="font-size: 15px; margin: 10px 0 0">
+            Creates its branch and worktree, and adds it to Now. The agent asks only what it must,
+            then opens a pull request.
+          </p>
+        </main>
+      </div>
+    </div>
 
-In failures the `x` is not centred in the circle.</textarea>
-        <hr style="border: 0; border-top: 1px solid var(--line); margin: 18px 0" />
-        <label for="slug">Slug</label>
-        <input id="slug" value="centred-x" />
-        <label>Start as</label>
-        <div class="seg" role="radiogroup" aria-label="Start as">
-          <span role="radio" aria-checked="false">Feature</span>
-          <span role="radio" aria-checked="true" class="on">Change</span>
+    <!-- 6. New change, narrow -->
+    <div class="frame" style="width: 404px">
+      <div class="caption">6. Narrow, 402 × 874: the same page, the composer at full width.</div>
+      <div class="narrow" style="padding: 12px 16px; box-sizing: border-box">
+        <div style="font-size: 22px; font-weight: 600; margin: 4px 0 6px">New change</div>
+        <p class="muted" style="margin: 0 0 12px">
+          Describe the bug or the change. The first line is its title.
+        </p>
+        <div class="composer" style="color: var(--fg); min-height: 140px">
+          Centre the x in failure circles<br /><br />In failures the x sits low in its circle.
+          <div style="margin-top: 14px; text-align: right">
+            <span class="btn primary">Start the change</span>
+          </div>
         </div>
-        <div class="btns">
-          <span class="btn primary">Start the change and the agent</span>
-          <span class="btn">Start only</span>
-        </div>
-        <div class="muted" style="font-size: 15px">
-          Creates its branch and worktree, and moves the line to Now. The agent asks only what it
-          must, then opens a pull request.
-        </div>
+        <label for="slug2">Slug</label>
+        <input id="slug2" value="centred-x" style="width: 100%; box-sizing: border-box" />
+        <p class="muted" style="font-size: 15px">
+          Creates its branch and worktree, and adds it to Now. The agent asks only what it must,
+          then opens a pull request.
+        </p>
       </div>
     </div>
   </body>
