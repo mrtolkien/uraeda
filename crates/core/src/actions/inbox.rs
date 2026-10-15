@@ -392,13 +392,22 @@ fn draft_text(place: &Place, draft: &str) -> Result<String, ActionError> {
         .ok_or_else(|| ActionError::Refused(format!("no draft {draft}")))
 }
 
+/// A note's lines as written in the draft at `draft`, their relative links rebased to its folder.
+fn into_draft(lines: &[String], draft: &str) -> Vec<String> {
+    let folder = draft.rsplit_once('/').map_or("", |(folder, _)| folder);
+    crate::files::retarget::rebase(&lines.join("\n"), draft::INBOX_FOLDER, folder)
+        .split('\n')
+        .map(String::from)
+        .collect()
+}
+
 /// Adds a note's lines, without its marks, at the end of the `## What` section of the draft at
 /// `draft`, from the top level.
 pub fn to_draft(place: &Place, id: &str, draft: &str, previous: &str) -> Result<(), ActionError> {
     let inbox = current(place, PATH, previous)?;
     let text = draft_text(place, draft)?;
     let (lines, _) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
-    let edited = proposal::append_to_what(&text, &lines)
+    let edited = proposal::append_to_what(&text, &into_draft(&lines, draft))
         .ok_or_else(|| ActionError::Refused(format!("{draft} has no ## What section")))?;
     let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
     write_both(place, draft, &edited, &without)

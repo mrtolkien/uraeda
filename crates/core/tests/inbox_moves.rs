@@ -788,3 +788,93 @@ fn a_refused_commit_and_discard_leave_nothing_staged() {
     changes::commit(&place).unwrap();
     assert_eq!(repo.changed_in("main"), [INBOX]);
 }
+
+/// A note's relative links, written from `specs/`, point at the same files from the draft it goes
+/// into: rebased, its rooted links, URLs, and anchors kept.
+const LINKED: &str = "See [readme](../README.md), ![shot](images/a.png), [top](/README.md), \
+                      [web](https://example.com), and [here](#why)";
+
+fn linked_from(folder: &str) -> String {
+    format!(
+        "See [readme]({folder}../README.md), ![shot]({folder}images/a.png), [top](/README.md), \
+         [web](https://example.com), and [here](#why)"
+    )
+}
+
+/// A note with relative links, nested lines included, made a draft.
+#[test]
+fn a_notes_relative_links_are_rebased_into_a_new_draft() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    let note = format!("{LINKED}\n  - [spec](2026-10-06-x/spec.md)\n");
+    repo.write(INBOX, &format!("{}- {note}", repo.read(INBOX)));
+    repo.commit("chore: a note with links");
+    let inbox = actions::read(&place);
+    let priorities = uraeda_core::actions::priorities::read(&place);
+    let id = inbox
+        .categories
+        .last()
+        .unwrap()
+        .notes
+        .last()
+        .unwrap()
+        .id
+        .clone();
+
+    let path =
+        actions::to_new_draft(&place, &id, Section::Later, &inbox.hash, &priorities.hash).unwrap();
+
+    let draft = repo.read(&path);
+    let rebased = linked_from("../");
+    assert!(
+        draft.contains(&format!(
+            "# {rebased}\n\n## What\n\n{rebased}\n\n- [spec](../2026-10-06-x/spec.md)\n"
+        )),
+        "{draft}"
+    );
+}
+
+/// A note added to a folder draft gets its links rebased two folders down, and its Undo takes it
+/// back out.
+#[test]
+fn a_notes_relative_links_are_rebased_into_a_folder_draft() {
+    let repo = fixture_repo();
+    let folder = "specs/drafts/look/proposal.md";
+    repo.write(folder, LOOK_TEXT);
+    repo.commit("chore: a folder draft");
+    let place = main_place(&repo);
+    actions::add(&place, None, &Marks::default(), LINKED, None).unwrap();
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let note = inbox.categories[0].notes.last().unwrap().clone();
+    let index = u32::try_from(inbox.categories[0].notes.len() - 1).unwrap();
+
+    actions::to_draft(&place, &note.id, folder, &inbox.hash).unwrap();
+
+    let rebased = linked_from("../../");
+    assert!(
+        repo.read(folder).contains(&format!("- {rebased}\n")),
+        "{}",
+        repo.read(folder)
+    );
+    api::undo_note_to_draft(repo.path(), folder, &note.lines, None, index).unwrap();
+    assert_eq!(repo.read(folder), LOOK_TEXT);
+}
+
+/// A note with links added with an image: its draft folder's title and What link the same files,
+/// and Discard still deletes it untouched.
+#[test]
+fn a_note_with_links_added_with_an_image_links_the_same_files() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+
+    let path = add_with_image(&repo, None, "Like [readme](../README.md)");
+
+    let draft = repo.read(&path);
+    assert!(
+        draft.contains("\n# Like [readme](../../../README.md)\n\n## What\n\nLike [readme](../../../README.md)\n"),
+        "{draft}"
+    );
+    changes::discard(&place).unwrap();
+    assert!(!repo.exists(&path));
+    assert_eq!(repo.porcelain(), "");
+}

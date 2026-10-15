@@ -120,7 +120,7 @@ fn pair(place: &Place, texts: &Texts) -> (Vec<Described>, Drafts) {
                     .iter()
                     .find(|e| e.section == section && &e.text == text)
                     .and_then(|e| e.link.as_deref());
-                found.linked(place, link, || written_from(inbox_then, text));
+                found.linked(place, link, |path| written_from(inbox_then, text, path));
                 changes.push(moved_out(text, section.title()));
                 continue;
             }
@@ -140,7 +140,7 @@ fn pair(place: &Place, texts: &Texts) -> (Vec<Described>, Drafts) {
                 .iter()
                 .find(|note| &note.text == text && note.link.is_some())
         {
-            let written = || written_for_link(inbox_now, &note.id);
+            let written = |path: &str| written_for_link(inbox_now, &note.id, path);
             found.linked(place, note.link.as_deref(), written);
         }
         changes.push(note_change(&change));

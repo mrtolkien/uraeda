@@ -7,6 +7,7 @@ use crate::files::inbox;
 use crate::files::lines;
 use crate::files::priorities;
 
+use super::super::draft;
 use super::super::place::{self, Place};
 use super::{Texts, versions};
 
@@ -112,17 +113,17 @@ pub(super) struct Drafts {
 
 impl Drafts {
     /// Holds the draft `link` in the commit when it changed; when no commit has it, Discard deletes
-    /// it while it holds `written`, what the move wrote.
+    /// it while it holds what the move wrote at its path, `written`.
     pub(super) fn linked(
         &mut self,
         place: &Place,
         link: Option<&str>,
-        written: impl FnOnce() -> Option<String>,
+        written: impl FnOnce(&str) -> Option<String>,
     ) {
         let Some((path, committed)) = link.and_then(|link| uncommitted_draft(place, link)) else {
             return;
         };
-        if !committed && let Some(written) = written() {
+        if !committed && let Some(written) = written(&path) {
             self.undo.push(Undo::Created {
                 path: path.clone(),
                 written,
@@ -132,22 +133,20 @@ impl Drafts {
     }
 }
 
-/// What a draft made from the note of the text `text` in `inbox`, not a link, held when a move
-/// wrote it.
-pub(super) fn written_from(inbox: &str, text: &str) -> Option<String> {
+/// What a draft at `path` made from the note of the text `text` in `inbox`, not a link, held when
+/// a move wrote it.
+pub(super) fn written_from(inbox: &str, text: &str, path: &str) -> Option<String> {
     let note = inbox::parse(inbox)
         .into_iter()
         .find(|note| note.text == text && note.link.is_none())?;
     let (title, nested) = inbox::draft_parts(inbox, &note.id)?;
-    Some(super::super::draft::proposal(&title, &nested))
+    Some(draft::from_note(path, &title, &nested))
 }
 
-/// What the draft a note added as a draft links held when it was written: its link's text.
-pub(super) fn written_for_link(inbox: &str, id: &str) -> Option<String> {
-    Some(super::super::draft::proposal(
-        &inbox::link_title(inbox, id)?,
-        &[],
-    ))
+/// What the draft at `path` a note added as a draft links held when it was written: its link's
+/// text.
+pub(super) fn written_for_link(inbox: &str, id: &str, path: &str) -> Option<String> {
+    Some(draft::from_note(path, &inbox::link_title(inbox, id)?, &[]))
 }
 
 /// The links of the lists' texts to drafts, each with the markdown of its text when it is the
@@ -194,7 +193,7 @@ pub(super) fn never_committed(place: &Place, texts: &Texts, found: &mut Drafts) 
         if let Some(title) = title.filter(|_| !then.iter().any(|(was, _)| *was == path)) {
             found.undo.push(Undo::Created {
                 path: path.clone(),
-                written: super::super::draft::proposal(&title, &[]),
+                written: draft::from_note(&path, &title, &[]),
             });
         }
         found.paths.push(path);

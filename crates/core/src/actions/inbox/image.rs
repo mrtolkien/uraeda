@@ -59,7 +59,7 @@ fn write_draft(
     (encoded, name): (&Encoded, Option<&str>),
 ) -> Result<(), ActionError> {
     let link = attach::save_in(place, folder, encoded, name, crate::today::stamp)?;
-    let text = proposal::append_to_what(&draft::proposal(title, &[]), &[link])
+    let text = proposal::append_to_what(&draft::from_note(path, title, &[]), &[link])
         .ok_or_else(|| ActionError::Refused("no proposal template".to_string()))?;
     fs::write(place.root.join(path), text)?;
     Ok(())
