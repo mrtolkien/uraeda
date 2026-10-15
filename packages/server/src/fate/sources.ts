@@ -1,7 +1,7 @@
 import { homedir } from "node:os";
 import { homePath, suggest } from "../folders.ts";
 import { type Context, inRepository, type RepoContext } from "./context.ts";
-import { hasPreview, readPreview, readStory, readStoryHref } from "./preview.ts";
+import { checkoutDir, hasPreview, readPreview, readStory, readStoryHref } from "./preview.ts";
 import {
   agentRecord,
   featureRecord,
@@ -71,7 +71,7 @@ async function found<T>(
 
 async function workspace(ctx: RepoContext): Promise<WorkspaceRecord> {
   const read = await ctx.binding.readWorkspace(ctx.repo);
-  const root = await ctx.binding.mainRoot(ctx.repo).catch(() => undefined);
+  const root = await checkoutDir(ctx);
   return {
     id: WORKSPACE_ID,
     ...read,

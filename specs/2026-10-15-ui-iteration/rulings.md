@@ -89,7 +89,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   cannot run here."
 - **Rationale**: without a checkout, there is no copy of the decision to read, and the spec's text
   for this case needs an embed to show in.
-- **Alternatives considered**: plain links for such a feature, which never shows the spec's text.
+- **Alternatives considered**: plain links for such a feature, which never shows the spec's text. A
+  feature whose worktree git still lists, but whose folder was deleted, has no decision to read: its
+  links show plain.
 - **If wrong**: one condition in `featureRecord`.
 - **Where**: task 6.
 
@@ -294,24 +296,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: task 5, `packages/server/src/dev.ts`, `packages/server/src/preview/__tests__/`,
   `fixtures/preview/serve.mjs`, `packages/web/src/__tests__/helpers.tsx`.
 
-## R22: A live update of a story is a view
+## R22: A live update of a story never starts its Storybook
 
 - **Decision**: `livePreviews` builds the runner whose `onChange` sends the live updates, on the bus
   of the repository that read each base; the server, and the server's and the UI's test helpers, all
-  use it. fate reads a record again for each live update it sends, so an update of a `Story` or
-  `Preview` is a view too: a page subscribed to a story when its Storybook stops after 30 minutes
-  starts it again. A base's watched records are forgotten when its Storybook stops, and watched
-  again by that read.
-- **Rationale**: fate's live updates carry the record as the source reads it, and the only read of a
-  story is a view. A page that shows an embed asks again every 5 minutes anyway, so a subscribed
-  page keeps its Storybook running either way; a closed page subscribes to nothing. A runner built
-  in one place cannot be created without its live updates, as the plan's `onChange` in `server.ts`
-  alone would leave the tests' runners.
-- **Alternatives considered**: a read that does not view for live updates, which fate cannot tell
-  apart from a read; `onChange` written in `server.ts` and again in each test helper.
-- **If wrong**: a forgotten tab keeps its Storybook running until it closes; a live update could
-  read the runner's `state` without viewing, in `fate/preview.ts`.
-- **Where**: task 6, `packages/server/src/live.ts` and `packages/server/src/fate/preview.ts`.
+  use it. A live update is not a view: only a page's read starts a stopped Storybook or keeps one
+  running. When a base's Storybook stops, after 30 minutes without a view or with its worktree, its
+  watched records are forgotten and sent no update; a page's next read watches them again. A
+  restart's stop keeps them, so the start's "starting" and "ready" reach the stories open on it.
+- **Rationale**: the spec counts a query as a view, and an embed on screen asks again every 5
+  minutes, so a page in view keeps its Storybook running; SC-005 stops one after 30 minutes without
+  a view. fate reads a record again for each live update it sends, through the read a page uses,
+  which views: an update at the stop would start the Storybook again for a page merely subscribed,
+  forever. A runner built in one place cannot be created without its live updates.
+- **Alternatives considered**: an update at the stop, read as a view, which restarts every Storybook
+  a forgotten tab subscribed to; a read that does not view for live updates, which fate cannot tell
+  apart from a page's.
+- **If wrong**: the read of a running Storybook's own update, at its ready or its failure, still
+  counts as a view, which can keep it up to 2 minutes past the 30 after a page's last read; telling
+  live reads apart needs a flag in the live endpoint's context, read in `fate/preview.ts`.
+- **Where**: task 6 and its review's fix, `packages/server/src/live.ts` and
+  `packages/server/src/fate/preview.ts`.
 
 ## R23: A ready Storybook whose index cannot be read fails its stories
 
@@ -346,3 +351,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   timer after `exit` in `#watch` of `preview/runner.ts` would bound it.
 - **Where**: task 5's revision 3, `packages/server/src/preview/runner.ts` and `proxy.ts`,
   `fixtures/preview/serve.mjs`.
+
+## R25: A story added or removed while its Storybook runs shows at the next ask
+
+- **Decision**: a story's own change between `missing` and `ready`, an export added to or removed
+  from its file while its Storybook runs, is not sent live: its embed shows it at its next read,
+  which the embed asks for every 5 minutes, or a reload.
+- **Rationale**: the runner's changes are its Storybook's states; a story's presence is read from
+  the index at each read, and watching the index for each base would poll it the whole time a
+  Storybook runs. The frame itself reloads its story through Storybook's hot reload.
+- **Alternatives considered**: polling each ready Storybook's index for live updates, a second timer
+  per base for a rare change.
+- **If wrong**: an export written while its page is open shows missing for up to 5 minutes; an index
+  poll in the runner calling `onChange` would send it.
+- **Where**: task 6's review's fix, `packages/server/src/fate/preview.ts`.

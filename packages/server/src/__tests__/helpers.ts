@@ -42,9 +42,12 @@ afterEach(async () => {
   await Promise.all(runners.splice(0).map((runner) => runner.stopAll()));
 });
 
+/** A runner's options a test may set: its clock, and how long its index may take. */
+export type PreviewOptions = Parameters<typeof livePreviews>[0];
+
 /** A Storybook runner for a test's app, stopped after the test. */
-export function testPreviews(): Previews {
-  const runner = livePreviews();
+export function testPreviews(options: PreviewOptions = {}): Previews {
+  const runner = livePreviews(options);
   runners.push(runner);
   return runner;
 }
@@ -88,8 +91,9 @@ function app(
   allowedHosts: Array<string>,
   { dataDir, hosts, names: [name], sessions }: Awaited<ReturnType<typeof testHosts>>,
   using: Binding = binding,
+  options: PreviewOptions = {},
 ) {
-  const previews = testPreviews();
+  const previews = testPreviews(options);
   const created = createApp({
     allowedHosts,
     allowOrigins: ["http://localhost:5173"],
@@ -107,17 +111,23 @@ function app(
 /**
  * The server's app, called in process, on a repository added to a temporary list, with sessions
  * that have no agent, on the core's binding or a fake of it. `name` is the repository's in the
- * list, and `previews` the app's Storybook runner.
+ * list, and `previews` the app's Storybook runner, built with `previewOptions`.
  */
 export async function testApp(
   repo = fixtureRepo(),
   {
     allowedHosts = [],
     binding: using = binding,
-  }: { allowedHosts?: Array<string>; binding?: Binding } = {},
+    previewOptions,
+  }: { allowedHosts?: Array<string>; binding?: Binding; previewOptions?: PreviewOptions } = {},
 ) {
   const opened = await testHosts([repo], { binding: using, installed: false });
-  return { ...opened, ...app(allowedHosts, opened, using), name: opened.names[0], repo };
+  return {
+    ...opened,
+    ...app(allowedHosts, opened, using, previewOptions),
+    name: opened.names[0],
+    repo,
+  };
 }
 
 /** The server's app with sessions on the fake adapter, checked once. */

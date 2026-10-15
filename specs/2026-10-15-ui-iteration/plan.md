@@ -1415,7 +1415,7 @@ git commit -m "fix(ui-iteration): the proxy forwards only what embeds need"
   `main`, else the feature's worktree resolved from the main checkout, `null` without one.
 - Produces: `livePreviews(options?)`, exported by `live.ts` and `uraeda-server`: the runner every
   server and test app uses, whose changes send the live updates
-  ([R22](rulings.md#r22-a-live-update-of-a-story-is-a-view)).
+  ([R22](rulings.md#r22-a-live-update-of-a-story-never-starts-its-storybook)).
 
 - [x] **Step 1: Write the failing tests**
 
