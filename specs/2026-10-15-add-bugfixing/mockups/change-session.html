@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Mockup: a change's session, its column, the sidebar, and starting a change</title>
+    <style>
+      :root {
+        --bg: #fff;
+        --fg: #1c1c1e;
+        --muted: #6b6b70;
+        --line: #e3e3e6;
+        --soft: #f5f5f7;
+        --accent: #2f5bd3;
+        --green: #1f7a3a;
+        --red: #b3261e;
+        --amber: #9a6100;
+        font-family: system-ui, sans-serif;
+        color: var(--fg);
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #ececef;
+      }
+      h1.page {
+        font-size: 20px;
+        margin: 0 0 6px;
+      }
+      p.note {
+        max-width: 110ch;
+        color: var(--muted);
+        margin: 0 0 24px;
+      }
+      .frame {
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        margin: 0 0 40px;
+        overflow: hidden;
+      }
+      .caption {
+        font-size: 13px;
+        color: var(--muted);
+        padding: 8px 14px;
+        border-bottom: 1px solid var(--line);
+        background: var(--soft);
+      }
+      .wide {
+        width: 1440px;
+        display: grid;
+        grid-template-columns: 260px 1fr 320px;
+        min-height: 760px;
+        font-size: 19px;
+      }
+      .narrow {
+        width: 402px;
+        min-height: 760px;
+        font-size: 17px;
+      }
+      nav.side {
+        border-right: 1px solid var(--line);
+        padding: 14px 10px;
+        font-size: 16px;
+      }
+      nav.side .group {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        margin: 18px 8px 6px;
+      }
+      nav.side .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border-radius: 6px;
+      }
+      nav.side .row.selected {
+        background: #e8edfb;
+      }
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        flex: none;
+      }
+      .dot.you {
+        background: var(--amber);
+      }
+      .dot.work {
+        background: var(--accent);
+      }
+      .dot.idle {
+        background: #b9b9bf;
+      }
+      .tag {
+        font-size: 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0 7px;
+        color: var(--muted);
+        margin-left: auto;
+      }
+      main {
+        padding: 18px 28px;
+        display: flex;
+        flex-direction: column;
+      }
+      .crumbs {
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .head {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+      }
+      .head h2 {
+        font-size: 26px;
+        margin: 4px 0 14px;
+      }
+      .head .ghost {
+        margin-left: auto;
+        font-size: 14px;
+        color: var(--accent);
+      }
+      .msg {
+        max-width: 120ch;
+        margin: 0 0 14px;
+        line-height: 1.45;
+      }
+      .msg.human {
+        background: var(--soft);
+        border-radius: 10px;
+        padding: 10px 14px;
+      }
+      .tool {
+        font-size: 14px;
+        color: var(--muted);
+        border-left: 3px solid var(--line);
+        padding-left: 10px;
+        margin: 0 0 14px;
+      }
+      .composer {
+        margin-top: auto;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px 14px;
+        color: var(--muted);
+      }
+      aside {
+        border-left: 1px solid var(--line);
+        padding: 18px 18px;
+        font-size: 16px;
+      }
+      aside h3 {
+        font-size: 16px;
+        margin: 0 0 8px;
+      }
+      aside section {
+        margin: 0 0 26px;
+      }
+      aside ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      aside li {
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+        padding: 3px 0;
+      }
+      aside a,
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      code {
+        font-size: 14px;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .status {
+        font-size: 13px;
+        margin-left: auto;
+      }
+      .status.you {
+        color: var(--amber);
+      }
+      .add {
+        color: var(--green);
+      }
+      .rem {
+        color: var(--red);
+      }
+      .line {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin: 10px 0 14px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .editor {
+        width: 900px;
+        padding: 24px 28px;
+        font-size: 19px;
+      }
+      .editor textarea {
+        width: 100%;
+        height: 170px;
+        font: inherit;
+        font-size: 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        box-sizing: border-box;
+      }
+      .seg {
+        display: inline-flex;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .seg span {
+        padding: 6px 16px;
+      }
+      .seg span.on {
+        background: #e8edfb;
+        font-weight: 600;
+      }
+      .btns {
+        display: flex;
+        gap: 10px;
+        margin: 14px 0 8px;
+      }
+      .btn {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 14px;
+      }
+      .btn.primary {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+      label {
+        display: block;
+        font-size: 15px;
+        margin: 14px 0 4px;
+      }
+      input {
+        font: inherit;
+        font-size: 16px;
+        padding: 6px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 class="page">Mockup: a change's session, its column, the sidebar, and starting a change</h1>
+    <p class="note">
+      Static mockup, in the web UI's existing layout: Astryx's side navigation, the session page,
+      and its 320 px column. Only what differs from a feature is new: the "Change" tag in the
+      sidebar, the column's sections, and the kind choice when starting a draft. The spec's text
+      wins where the two disagree.
+    </p>
+
+    <!-- 1. Wide: the agent at work -->
+    <div class="frame">
+      <div class="caption">
+        1. Wide, 1440 × 900: a change's page, <code>/f/2026-10-16-centred-x</code>, while the agent
+        works. No feature page, no plan: the session is the change's page.
+      </div>
+      <div class="wide">
+        <nav class="side" aria-label="Sessions">
+          <div class="row">⌂ Home</div>
+          <div class="row">Priorities</div>
+          <div class="group">Waiting on you</div>
+          <div class="row">
+            <span class="dot you"></span>header-logo<span class="tag">Change</span>
+          </div>
+          <div class="row"><span class="dot you"></span>add-scratchpad</div>
+          <div class="group">Agents at work</div>
+          <div
+            class="row selected"
+            aria-label="centred-x, Centre the x in failure circles, change, Working"
+          >
+            <span class="dot work"></span>centred-x<span class="tag">Change</span>
+          </div>
+          <div class="row"><span class="dot work"></span>testing-review</div>
+          <div class="group">Chats</div>
+          <div class="row">＋ New chat</div>
+        </nav>
+        <main>
+          <div class="head">
+            <h2>Centre the x in failure circles</h2>
+            <span class="ghost">Hide progress</span>
+          </div>
+          <div class="msg human">
+            /uraeda:uraeda Continue the change specs/changes/2026-10-16-centred-x/ on branch
+            change/2026-10-16-centred-x: Investigate it, then make the change, starting with
+            skills/uraeda/references/change.md. Stop when the pull request is ready for review, and
+            earlier only if you need a decision from me.
+          </div>
+          <div class="tool">Read <code>packages/web/src/StatusMark.tsx</code> · 3 more tools</div>
+          <div class="msg">
+            It's a bug: the failure mark's glyph sits on the text baseline, 2 px low in the 18 px
+            circle, while the other marks are centred. I wrote a test that fails on its vertical
+            offset at both widths, and now I'm fixing the mark.
+          </div>
+          <div class="tool">Edit <code>packages/web/src/StatusMark.tsx</code></div>
+          <div class="composer">Message the agent…</div>
+        </main>
+        <aside aria-label="Progress">
+          <section>
+            <h3>Change</h3>
+            <span class="muted">The agent is working.</span>
+          </section>
+          <section>
+            <h3>Changed on the branch</h3>
+            <div class="muted">
+              2 files · <span class="add">+18</span> <span class="rem">−3</span>
+            </div>
+            <ul>
+              <li>
+                <code>packages/web/src/StatusMark.tsx</code
+                ><span class="status"><span class="add">+4</span> <span class="rem">−3</span></span>
+              </li>
+              <li>
+                <code>packages/web/src/__browser__/status-mark.test.tsx</code
+                ><span class="status"><span class="add">+14</span></span>
+              </li>
+            </ul>
+          </section>
+          <section>
+            <h3>Files</h3>
+            <ul>
+              <li>
+                <a href="#"><code>proposal.md</code></a>
+              </li>
+            </ul>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <!-- 2. Wide: waiting on a round -->
+    <div class="frame">
+      <div class="caption">
+        2. Wide: the same column while a round of questions waits on the human. The round opens in
+        the existing clarifications view.
+      </div>
+      <div class="wide" style="min-height: 420px">
+        <nav class="side">
+          <div class="group">Waiting on you</div>
+          <div class="row selected">
+            <span class="dot you"></span>header-logo<span class="tag">Change</span>
+          </div>
+        </nav>
+        <main>
+          <div class="head">
+            <h2>A home logo in the header</h2>
+            <span class="ghost">Hide progress</span>
+          </div>
+          <div class="msg">
+            One question before I go on: the header has no room for a logo at 402 px without
+            dropping the repository's name. It's in clarifications-01.md.
+          </div>
+          <div class="composer">Message the agent…</div>
+        </main>
+        <aside>
+          <section>
+            <h3>Answer questions</h3>
+            <div class="line">
+              <a href="#">Questions, round 01</a><span class="status you">1 question</span>
+            </div>
+          </section>
+          <section>
+            <h3>Changed on the branch</h3>
+            <span class="muted">Nothing outside the change's folder yet.</span>
+          </section>
+          <section>
+            <h3>Files</h3>
+            <ul>
+              <li>
+                <a href="#"><code>proposal.md</code></a>
+              </li>
+              <li>
+                <a href="#"><code>clarifications-01.md</code></a>
+              </li>
+            </ul>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <!-- 3. Wide: pull request ready -->
+    <div class="frame">
+      <div class="caption">
+        3. Wide: the column once the pull request is ready, the folder finished into its record.
+      </div>
+      <div class="wide" style="min-height: 300px">
+        <nav class="side">
+          <div class="group">Waiting on you</div>
+          <div class="row selected">
+            <span class="dot you"></span>centred-x<span class="tag">Change</span>
+          </div>
+        </nav>
+        <main>
+          <div class="head"><h2>Centre the x in failure circles</h2></div>
+          <div class="msg">The pull request is ready for review: #31.</div>
+          <div class="composer">Message the agent…</div>
+        </main>
+        <aside>
+          <section>
+            <h3>Pull request</h3>
+            <div class="line">
+              <a href="#">Pull request #31</a><span class="status you">Ready</span>
+            </div>
+          </section>
+          <section>
+            <h3>Changed on the branch</h3>
+            <div class="muted">
+              2 files · <span class="add">+18</span> <span class="rem">−3</span>
+            </div>
+          </section>
+          <section>
+            <h3>Files</h3>
+            <ul>
+              <li>
+                <a href="#"><code>2026-10-16-centred-x.md</code></a>
+                <span class="muted">record</span>
+              </li>
+            </ul>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <!-- 4. Narrow -->
+    <div class="frame" style="width: 404px">
+      <div class="caption">
+        4. Narrow, 402 × 874: the progress line folds the column above the transcript, as for a
+        feature.
+      </div>
+      <div class="narrow">
+        <div style="padding: 12px 16px; border-bottom: 1px solid var(--line)">
+          <div style="font-size: 22px; font-weight: 600; margin: 4px 0 6px">
+            A home logo in the header
+          </div>
+          <div class="line" style="margin: 6px 0">
+            <span>▸ Answer questions</span><span class="status you">1 question</span>
+          </div>
+        </div>
+        <div style="padding: 12px 16px">
+          <div class="msg">
+            One question before I go on: the header has no room for a logo at 402 px without
+            dropping the repository's name. It's in clarifications-01.md.
+          </div>
+          <div class="composer">Message the agent…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Starting a draft -->
+    <div class="frame">
+      <div class="caption">
+        5. Wide: a draft's editor, its end. "Start as" chooses the kind; the buttons and the line
+        under them follow it. "Feature" is chosen when the editor opens.
+      </div>
+      <div class="editor">
+        <div class="crumbs">Drafts</div>
+        <h2 style="margin: 4px 0 12px">Centre the x in failure circles</h2>
+        <textarea>
+## What
+
+In failures the `x` is not centred in the circle.</textarea>
+        <hr style="border: 0; border-top: 1px solid var(--line); margin: 18px 0" />
+        <label for="slug">Slug</label>
+        <input id="slug" value="centred-x" />
+        <label>Start as</label>
+        <div class="seg" role="radiogroup" aria-label="Start as">
+          <span role="radio" aria-checked="false">Feature</span>
+          <span role="radio" aria-checked="true" class="on">Change</span>
+        </div>
+        <div class="btns">
+          <span class="btn primary">Start the change and the agent</span>
+          <span class="btn">Start only</span>
+        </div>
+        <div class="muted" style="font-size: 15px">
+          Creates its branch and worktree, and moves the line to Now. The agent asks only what it
+          must, then opens a pull request.
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
