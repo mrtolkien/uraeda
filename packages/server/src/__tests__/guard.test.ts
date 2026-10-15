@@ -94,3 +94,22 @@ test.each([
 ])("an upgrade: %s", (_, host, path, refusal) => {
   expect(check({ host, method: "GET", origin: "null", path, upgrade: true })).toBe(refusal);
 });
+
+test("an upgrade is a read only as a WebSocket GET", () => {
+  for (const method of ["POST", "PUT", "DELETE"]) {
+    expect(
+      check({ host: `127.0.0.1:${port}`, method, origin: "null", path: preview, upgrade: true }),
+    ).toBe("Forbidden origin");
+  }
+});
+
+test("the guard needs a folder", () => {
+  for (const path of ["/r/repo/preview/", "/r/repo/preview//a", "/r/repo/preview"]) {
+    for (const upgrade of [false, true]) {
+      expect(
+        check({ host: `127.0.0.1:${port}`, method: "GET", origin: "null", path, upgrade }),
+        path,
+      ).toBe("Forbidden origin");
+    }
+  }
+});

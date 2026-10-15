@@ -3,8 +3,14 @@ import { createMiddleware } from "hono/factory";
 /** What a browser's `Sec-Fetch-Site` says of a request the server's own page, or its user, sent. */
 const OWN_SITES = new Set(["same-origin", "none"]);
 
-/** The paths of the checkouts' Storybooks, `/r/<repository>/preview/<folder>/…`. */
-export const PREVIEW_PATH = /^\/r\/[^/]+\/preview\//;
+/**
+ * A path of a checkout's Storybook: its base, `/r/<repository>/preview/<folder>`, without its
+ * slash, and the rest, from the slash on, if any. The guard and the proxy read it alike.
+ */
+export const PREVIEW_PATH = /^(\/r\/[^/]+\/preview\/[^/]+)(\/.*)?$/;
+
+/** Whether `path` is under a preview's base, `/r/<repository>/preview/<folder>/`. */
+const underPreview = (path: string) => PREVIEW_PATH.exec(path)?.[2] !== undefined;
 
 /** A request, or an upgrade, as the guard reads it: its path is normalized, without its query. */
 export type GuardedRequest = {
@@ -16,9 +22,9 @@ export type GuardedRequest = {
   upgrade: boolean;
 };
 
-/** Whether the request only reads: a GET, a HEAD, or an upgrade. */
+/** Whether the request only reads: a GET or a HEAD, and an upgrade only as a GET. */
 const read = (request: GuardedRequest) =>
-  request.upgrade || ["GET", "HEAD"].includes(request.method);
+  request.upgrade ? request.method === "GET" : ["GET", "HEAD"].includes(request.method);
 
 /**
  * The guard's rule, for requests and upgrades alike: the refusal's text, or undefined when the
@@ -26,7 +32,7 @@ const read = (request: GuardedRequest) =>
  * server's own or an allowed host name, as in DNS rebinding, any `Origin` but theirs and the
  * allowed ones, and a write without an `Origin` that the browser says another site sent. A request
  * without either header, from a test or `curl`, passes. A sandboxed frame's `Origin: null` passes
- * only for reads and upgrades under a preview's path (SC-004).
+ * only for reads and upgrades, as GETs, under a preview's base (SC-004).
  */
 export function guardCheck({
   allowedHosts = [],
@@ -50,7 +56,7 @@ export function guardCheck({
       return "Forbidden host";
     }
     const { origin, site } = request;
-    const frame = origin === "null" && read(request) && PREVIEW_PATH.test(request.path);
+    const frame = origin === "null" && read(request) && underPreview(request.path);
     if (origin !== undefined && !origins.has(origin) && !frame) {
       return "Forbidden origin";
     }
