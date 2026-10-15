@@ -16,6 +16,10 @@
 - [Add a bugfixing/low impact change flow](/specs/2026-10-15-add-bugfixing/proposal.md)
 - [Add a "scratchpad" concept: quick notes about the system, small issues, ...](/specs/2026-10-15-add-scratchpad/proposal.md)
 
+- Option page with selection of agent runner, config values, other run values
+  - For example: does each step start with a new context? Should be a config flag, and able to
+    toggle it per feature
+
 ## Next
 
 > [!NOTE]

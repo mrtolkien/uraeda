@@ -16,7 +16,7 @@ by the build, not by hand.
 
 - `vp run ready` MUST run every check of the repository, except the CI-only checks below. A new
   language, package, crate, or tool MUST add its checks to it. Checked by review.
-- Each check of `ready` MUST be a task of `vite.config.ts`, cached by Vite Task, with its inputs
+- Each check of `ready` MUST be a task of `vite.tasks.ts`, cached by Vite Task, with its inputs
   listed in `cache.input`: a check MUST NOT rely on automatic input tracking. Checked by the test of
   the toolchain's configuration.
 - CI MUST run every check of `ready`, without Vite Task's cache, inside the `flake.nix` dev shell,
