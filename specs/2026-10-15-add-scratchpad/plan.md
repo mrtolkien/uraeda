@@ -303,10 +303,14 @@ markers in tasks 9 and 10, and `files/priorities.rs` drops under its cap in task
 **Interfaces:**
 
 - Produces, in `files::lines`, all `pub(crate)`:
-  - `enum Marker`, with `item_marker(line: &str) -> Option<(Marker, &str)>`;
+  - `enum Marker`, with `render()`, and `item_marker(line: &str) -> Option<(Marker, &str)>`;
   - `struct Item { line: usize, text_end: usize, end: usize, marker: Marker }`, all 1-based;
-  - `items<S>(text: &str, heading: impl FnMut(&str) -> Option<S>) -> Vec<(S, Item)>`: bullets at
-    column 0 under a heading the closure accepts, skipping fenced code;
+  - `items<S: Clone>(text: &str, heading: impl FnMut(&str) -> Option<S>) -> Vec<(S, Item)>`: bullets
+    at column 0 under a heading the closure accepts. Any line starting with `#` is a heading. It
+    does not skip fenced code yet: task 2 adds that, with its test (ruling R7);
+  - `item_text<'a>(lines: &[&'a str], item: &Item) -> Vec<&'a str>`: the first line after its
+    marker, then the continuation lines, trimmed;
+  - `nested_spans(lines: &[&str]) -> Vec<Vec<Span>>`: the text of each item of nested lines;
   - `append_to_section(text: &str, is_heading: impl Fn(&str) -> bool, new_heading: &str, item: &[String]) -> String`;
   - `replace(text: &str, item: &Item, lines: &[String]) -> String` and
     `remove(text: &str, item: &Item) -> String`;
@@ -314,24 +318,24 @@ markers in tasks 9 and 10, and `files/priorities.rs` drops under its cap in task
     `unique_keys(slugs: Vec<String>) -> Vec<String>` (`-2`, `-3`, empty becomes `line`).
 - `files::priorities` keeps every public signature and behaviour.
 
-- [ ] **Step 1: Run the priorities tests before the change**
+- [x] **Step 1: Run the priorities tests before the change**
 
 - Run: `cargo nextest run -p uraeda-core --test priorities --test files`
 - Expected: PASS
 
-- [ ] **Step 2: Move the generic helpers into `files/lines.rs`, and make `priorities.rs` use them**
+- [x] **Step 2: Move the generic helpers into `files/lines.rs`, and make `priorities.rs` use them**
 
 `priorities.rs` keeps `Section`, `Entry`, `link`, `move_to_now`, `add_to_now`, the napi types,
 `read`, `diff`, and the edits. The edits become calls to `lines`. It must end at 500 lines or fewer:
 delete its row from `LARGE`, since the structure test fails on a listed file under the limit. This
 step only restructures.
 
-- [ ] **Step 3: Run all Rust tests**
+- [x] **Step 3: Run all Rust tests**
 
 - Run: `cargo nextest run -p uraeda-core -p uraeda-cli`
 - Expected: PASS, the same tests as step 1, and `structure` passes without the `priorities.rs` row
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add crates/core/src/files crates/cli/tests/structure.rs specs/2026-10-15-add-scratchpad/plan.md
@@ -356,7 +360,8 @@ git commit -m "refactor(add-scratchpad): the priorities' line splicing in files/
 
 **Interfaces:**
 
-- Consumes: `files::lines` (task 1).
+- Consumes: `files::lines` (task 1). Adds the fenced-code skip to `lines::items`, which the
+  priorities then share, with a test of a bullet inside a fence in both files (ruling R7).
 - Produces, in `uraeda_core::files::inbox`:
   - `pub struct Note { pub id: String, pub key: String, pub category: Option<String>, pub text: String, pub agent: bool, pub about: Option<String>, pub link: Option<String>, pub line: usize, pub end: usize }`.
     The id is `note-<n>`, counted from 1 in file order. The key is the text's slug, made unique.
