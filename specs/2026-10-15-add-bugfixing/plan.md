@@ -592,12 +592,13 @@ git commit -m "feat(add-bugfixing): check a change's folder, and name the move o
     - `api::start_feature(repo, draft, slug, kind: Kind)`;
     - `api::start_change(repo, text: &str, images: &[Vec<u8>], slug: Option<&str>) -> Result<StartedView>`,
       which encodes each image with `images::encode(bytes, "image-N")`;
-    - `api::propose_slug(title: &str) -> String`;
+    - `api::propose_slug(text: &str) -> String`, the slug of the title `start_change` reads in the
+      whole typed text, empty when it has none (R14);
     - `api::start_kind(name: Option<&str>) -> Result<Kind>`, the binding's `kind` read by the core
       (R9).
   - **The binding**: `startFeature(repo, draft, slug?, kind?: "feature" | "change")`,
     `startChange(repo: string, text: string, images: Buffer[], slug?: string | null): Promise<StartedView>`,
-    and `proposeSlug(title: string): string`, synchronous.
+    and `proposeSlug(text: string): string`, synchronous.
   - **The CLI**: `ura start <draft> [--slug <slug>] [--change] [--switch]`. With `--change`, it
     prints `Next: change. Ask an agent, or run ura next.`
 
@@ -754,7 +755,8 @@ git commit -m "feat(add-bugfixing): a finished item's view carries its pull requ
     - once the change is started, a failure of its session or its send is logged on stderr, and
       `session` is `null` (R12);
     - refusals go through `refusable`.
-  - A read `SlugProposal`, `{ id: title, slug }`, for the web UI.
+  - A read `SlugProposal`, `{ id: text, slug }`, keyed by the whole typed text, for the web UI
+    (R14).
 
 - [x] **Step 1: Write the failing tests**
 
@@ -965,8 +967,8 @@ git commit -m "feat(add-bugfixing): a change's page, column, phone line, and sid
   - the `Composer`, with `sendLabel="Start the change"`, its text kept by
     `useTextField("new-change", "")`;
   - `SlugField`, with `useTextField("new-change#slug", proposed)`. `proposed` is read from
-    `SlugProposal` for the text's first non-blank line, 200 ms after typing stops, as the sidebar's
-    search waits;
+    `SlugProposal` for the whole typed text, which the core reads the title in (R14), 200 ms after
+    typing stops, as the sidebar's search waits;
   - the line "Creates its branch and worktree, and adds it to Now. The agent asks only what it must,
     then opens a pull request.";
   - after `change.start`, it navigates to `/f/<folder>`, or, without a session, calls

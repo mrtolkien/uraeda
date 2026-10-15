@@ -67,9 +67,10 @@ pub fn start_kind(name: Option<&str>) -> Result<Kind> {
     }
 }
 
-/// The slug proposed for a change typed with this title.
-pub fn propose_slug(title: &str) -> String {
-    crate::slug::propose(title)
+/// The slug proposed for a change typed as `text`, from the title `start_change` reads in it: empty
+/// when it has none.
+pub fn propose_slug(text: &str) -> String {
+    start::propose_slug(text)
 }
 
 /// A start's view, or its refusal: a failure after the first commit says what was done and what

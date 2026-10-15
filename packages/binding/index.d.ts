@@ -117,8 +117,11 @@ export declare function openRepository(dataDir: string, name: string): Promise<R
 /** Each section of the proposal template, with the guidance the editor shows while it is empty. */
 export declare function proposalHints(): Promise<Array<ProposalHint>>
 
-/** The slug proposed for a change typed with this title. */
-export declare function proposeSlug(title: string): string
+/**
+ * The slug proposed for a change typed as this text, from the title its start reads in it: empty
+ * when it has none.
+ */
+export declare function proposeSlug(text: string): string
 
 /** A draft, by its path from the top level. */
 export declare function readDraft(repo: string, path: string): Promise<DraftView>

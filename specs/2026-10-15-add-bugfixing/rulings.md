@@ -211,3 +211,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the badge in `endContent`, which fails the axe check.
 - **If wrong**: move the badge into `endContent`, with a name that starts with the slug and the tag.
 - **Where**: task 8, `packages/web/src/SessionNavRows.tsx`.
+
+## R14: The slug is proposed for the whole typed text
+
+- **Decision**: `api::propose_slug`, the binding's `proposeSlug`, and the read `SlugProposal` take
+  the whole typed text, not its title: the core reads the title as `start_change` does, with one
+  function, `Typed::read`, and proposes its slug, empty for a text with no title. `SlugProposal`'s
+  ID is the text. "New change" passes its composer's text as typed.
+- **Rationale**: the title's rule, the first line holding more than spaces and heading marks, its
+  marks dropped and cut at 80 characters, lives in the core
+  ([`typed.rs`](/crates/core/src/actions/start/typed.rs)). Keyed by a title, the web UI would have
+  to copy that rule to find it, and the two could drift: one home per rule.
+- **Alternatives considered**: a title keyed by the web UI's own reading of the first line, which
+  copies the rule; a `titleOf(text)` in the binding, which costs the page a second call.
+- **If wrong**: key `SlugProposal` by the title again, with the binding giving the title too.
+- **Where**: tasks 5, 7, and 9, `crates/core/src/actions/start/`, `crates/core/src/api/start.rs`,
+  `crates/binding/src/lib.rs`, `packages/server/src/fate/sources.ts`.
