@@ -255,16 +255,15 @@ function TableNode({ block, context }: { block: Block; context: Context }) {
   );
 }
 
-function BlockNode({ block, context }: { block: Block; context: Context }): ReactNode {
-  const own = context.override?.(block);
-  if (own !== undefined) {
-    return own;
-  }
+/** The kinds drawn whole by a node of their own, or by their parent's: never selected alone. */
+const UNWRAPPED = new Set<Block["kind"]>(["list", "item", "table", "row", "cell"]);
+
+/** A block's element, by its kind, without its selection. */
+function blockElement(block: Block, context: Context): ReactNode {
   const spans = <Spans spans={block.spans} />;
-  let node: ReactNode;
   switch (block.kind) {
     case "heading":
-      node = (
+      return (
         <Heading
           id={block.anchor}
           level={Math.min(Math.max(block.level ?? 2, 1), 6) as 1 | 2 | 3 | 4 | 5 | 6}
@@ -273,10 +272,9 @@ function BlockNode({ block, context }: { block: Block; context: Context }): Reac
           {spans}
         </Heading>
       );
-      break;
     case "paragraph":
       // A paragraph holding an image is a box: its lightbox, a dialog, cannot sit in a `<p>`.
-      node = (
+      return (
         <Text
           as={!context.staticImages && block.spans.some(opensImage) ? "div" : "p"}
           display="block"
@@ -286,7 +284,6 @@ function BlockNode({ block, context }: { block: Block; context: Context }): Reac
           {spans}
         </Text>
       );
-      break;
     case "list":
       return <ListNode block={block} context={context} />;
     case "item":
@@ -294,7 +291,7 @@ function BlockNode({ block, context }: { block: Block; context: Context }): Reac
       return null;
     case "callout": {
       const kind = block.calloutKind ?? "note";
-      node = (
+      return (
         <div role="note" {...stylex.props(styles.callout, CALLOUT_STYLES[kind])}>
           <span {...stylex.props(styles.calloutTitle)}>
             {block.spans.length ? spans : CALLOUT_TITLES[kind]}
@@ -302,15 +299,13 @@ function BlockNode({ block, context }: { block: Block; context: Context }): Reac
           <Children block={block} context={context} />
         </div>
       );
-      break;
     }
     case "quote":
-      node = (
+      return (
         <Blockquote xstyle={styles.block}>
           <Children block={block} context={context} />
         </Blockquote>
       );
-      break;
     case "table":
       return <TableNode block={block} context={context} />;
     case "row":
@@ -318,18 +313,16 @@ function BlockNode({ block, context }: { block: Block; context: Context }): Reac
       // Drawn by their table.
       return null;
     case "code":
-      node = (
+      return (
         <div {...stylex.props(styles.block)}>
           <CodeBlock code={block.text ?? ""} language={block.language} width="100%" />
         </div>
       );
-      break;
     case "rule":
-      node = <Divider xstyle={styles.block} />;
-      break;
+      return <Divider xstyle={styles.block} />;
     case "html":
       // Raw HTML is shown as text, never rendered.
-      node = (
+      return (
         <div {...stylex.props(styles.block)}>
           <CodeBlock
             code={block.text ?? ""}
@@ -339,9 +332,18 @@ function BlockNode({ block, context }: { block: Block; context: Context }): Reac
           />
         </div>
       );
-      break;
   }
-  return (
+}
+
+function BlockNode({ block, context }: { block: Block; context: Context }): ReactNode {
+  const own = context.override?.(block);
+  if (own !== undefined) {
+    return own;
+  }
+  const node = blockElement(block, context);
+  return UNWRAPPED.has(block.kind) ? (
+    node
+  ) : (
     <Selectable block={block} selection={context.selection}>
       {node}
     </Selectable>
