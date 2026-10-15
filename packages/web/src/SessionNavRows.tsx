@@ -1,4 +1,5 @@
 // The sidebar's rows: a page's, a feature's with its current task, and a session's sub-agents.
+import { Badge } from "@astryxdesign/core/Badge";
 import { SideNavItem, useSideNavCollapse } from "@astryxdesign/core/SideNav";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -41,6 +42,7 @@ export function Item({
   label,
   pathname,
   status,
+  tag,
   title,
   to,
 }: {
@@ -51,18 +53,23 @@ export function Item({
   label: string;
   pathname: string;
   status?: Status;
+  /** A tag after its label, as "Change": read in lower case in its name, before the status. */
+  tag?: string;
   /** What screen readers read after its label, when the label is short for it, like a slug. */
   title?: string;
   to: string;
 }) {
   const here = useRepoPath();
   const { isCollapsed } = useSideNavCollapse();
-  const name = [label, title, status?.label].filter(Boolean).join(", ");
+  const name = [label, title, tag?.toLowerCase(), status?.label].filter(Boolean).join(", ");
   return (
     <SideNavItem
       href={here(to)}
       isSelected={selects(pathname, to) && !(except && selects(pathname, except))}
       label={label}
+      // Beside the link, not inside it: the name reads the tag where it fits the sentence, and the
+      // link's visible text stays the start of its name, as WCAG's label in name asks (R13).
+      {...(tag ? { actions: <Badge label={tag} variant="neutral" /> } : {})}
       // The title and the status are read with the label, also when the folded navigation shows
       // only the dot.
       {...(name === label ? {} : { "aria-label": name })}
@@ -131,8 +138,8 @@ function ProgressRow({ feature, pathname }: { feature: Feature; pathname: string
 }
 
 /**
- * A feature's row, by its slug, with its session's status; under it, its current task, then its
- * running sub-agents.
+ * A feature's or a change's row, by its slug, with its session's status, a change's tagged "Change";
+ * under it, its current task, then its running sub-agents.
  */
 export function FeatureRow({
   feature,
@@ -156,6 +163,7 @@ export function FeatureRow({
         label={feature.slug}
         pathname={pathname}
         status={finished ? undefined : status}
+        {...(feature.kind === "change" ? { tag: "Change" } : {})}
         title={feature.title}
         to={`/f/${feature.folder}`}
       />

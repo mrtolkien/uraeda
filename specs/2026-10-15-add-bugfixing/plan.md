@@ -81,8 +81,9 @@ and starts a change's first run. The web UI only draws what the core says. The s
 - **[UI layout](../decisions/ui-layout.md)**: "Each row's accessible name MUST carry the full words:
   the feature's title, its status, and its task."
 - **[UI components](../decisions/ui-components.md)**: Astryx components only. The tag is
-  `@astryxdesign/core/Badge`, `variant="neutral"`, in `SideNavItem`'s `endContent`, as
-  [`AddRepository.tsx`](/packages/web/src/AddRepository.tsx) does.
+  `@astryxdesign/core/Badge`, `variant="neutral"`, as
+  [`AddRepository.tsx`](/packages/web/src/AddRepository.tsx) draws it, in `SideNavItem`'s `actions`,
+  beside the row's link ([R13](rulings.md#r13-a-changes-sidebar-tag-sits-beside-its-link)).
 - **The spec's exact texts**, copied in each task's tests. They are listed in
   [the spec's US4](spec.md#us4-follow-a-change-on-its-own-page-p2) and
   [components](spec.md#components).
@@ -849,8 +850,12 @@ git commit -m "feat(add-bugfixing): the server starts a change and its first run
   - `packages/web/src/ProgressLine.tsx`;
   - `packages/web/src/SessionNav.tsx` and `SessionNavRows.tsx`.
 - Create: `packages/web/src/ChangeAside.tsx` (the change's sections, and `useRoundQuestions`)
+- Modify: `packages/binding/test-utils.ts` (`commitOnBranch` removes a file given `null`, for a
+  finished change's record) and `packages/web/vite.browser.config.ts` (the browser commands
+  `addChange`, and `commitOnBranch` on any branch)
 - Test: `packages/web/src/__tests__/links.test.ts`, `packages/web/src/__tests__/change.test.tsx`
-  (jsdom), `packages/web/src/__browser__/change.test.tsx`
+  (jsdom: "2 questions", a record without a pull request, and a feature's column unchanged),
+  `packages/web/src/__browser__/change.test.tsx`
 
 **Interfaces:**
 
@@ -864,7 +869,7 @@ git commit -m "feat(add-bugfixing): the server starts a change and its first run
 
 - [x] **Step 1: Split `SessionNav.tsx`**, run `vp run ts:test`, PASS, and commit
       `refactor(add-bugfixing): the sidebar's feature rows in a module of their own`.
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```tsx
 // packages/web/src/__browser__/change.test.tsx (atSize("desktop") unless named)
@@ -872,7 +877,7 @@ test("a change's page is its session, with its column", async () => {
   // addChange(repo, "2026-10-16-centred-x", { "proposal.md": "# Centre the x in failure circles\n" })
   await show("/f/2026-10-16-centred-x", "Centre the x in failure circles");
   // the column (complementary "Progress") holds headings, in order:
-  // "Change" (with "The agent is working." while the fake agent's turn runs),
+  // "Change" (with "The agent is working." while the step waits on the agent),
   // "Changed on the branch", "Files"; its list "Files" holds "proposal.md";
   // no "Feature page" link and no "No plan yet."
 });
@@ -888,7 +893,7 @@ test("a finished change links its pull request", async () => {
   // link "Pull request #31" to the URL; "Files" lists "2026-10-16-centred-x.md"
 });
 test("the sidebar tags a change", async () => {
-  // its row "centred-x" with the badge "Change", accessible name
+  // its row "centred-x" with the badge "Change" beside its link (R13), accessible name
   // "centred-x, Centre the x in failure circles, change, Working", href /f/2026-10-16-centred-x
 });
 test("the phone's line names the round and its questions", async () => {
@@ -907,25 +912,25 @@ The break each test catches:
 - The page test: a change drawn as a feature page.
 - The column tests: the plan's section left on a change, or the wrong count.
 - The pull request test: a link built from the step instead of the record.
-- The sidebar test: a tag read by screen readers as a separate word list, or no "change" in the
-  name.
+- The sidebar test: a tag inside the link, which axe's label-in-name rule refuses, or no "change" in
+  the name.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp run browser:desktop && vp run browser:phone && vp run ts:test`
 - Expected: FAIL. `/f/2026-10-16-centred-x` shows the feature page's "Files" list without a
   transcript.
 
-- [ ] **Step 4: Implement the change's page, column, line, row, links, and labels.** A round's row
+- [x] **Step 4: Implement the change's page, column, line, row, links, and labels.** A round's row
       takes the highest `round` among the files of kind `clarifications`. The count is "1 question"
       or "N questions". The empty changes text is "Nothing outside the change's folder yet." for a
       change, and unchanged for a feature.
-- [ ] **Step 5: Run the UI checks**
+- [x] **Step 5: Run the UI checks**
 
 - Run: `vp run ts:check && vp run ts:test && vp run browser:desktop && vp run browser:phone`
 - Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web

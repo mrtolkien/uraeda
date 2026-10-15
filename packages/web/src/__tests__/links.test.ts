@@ -13,10 +13,10 @@ test("a feature's workflow file opens in the UI", () => {
   });
 });
 
-/** Codex review: a bug's files open in the UI too. */
-test("a bug's workflow file opens in the UI", () => {
-  expect(pathLink("specs/bugs/2026-10-11-crash/assessment.md", "uraeda")).toEqual({
-    href: "/r/uraeda/f/2026-10-11-crash/assessment.md",
+/** A change's files open in the UI too, at its page's address. */
+test("a change's workflow file opens in the UI", () => {
+  expect(pathLink("specs/changes/2026-10-11-crash/proposal.md", "uraeda")).toEqual({
+    href: "/r/uraeda/f/2026-10-11-crash/proposal.md",
     inApp: true,
   });
 });

@@ -92,17 +92,22 @@ export function fixtureRepo(name = "repo"): string {
 /**
  * Commits files on a branch of a fixture repository, their paths from its top level, in a
  * temporary worktree: the main checkout, its files, and its uncommitted changes are left as they
- * are, so a watcher of the repository never sees the branch's files there.
+ * are, so a watcher of the repository never sees the branch's files there. A file given `null` is
+ * removed.
  */
-export function commitOnBranch(repo: string, branch: string, files: Record<string, string>) {
+export function commitOnBranch(repo: string, branch: string, files: Record<string, string | null>) {
   const worktree = join(temporaryFolder("uraeda-branch"), "worktree");
   git(repo, "worktree", "add", "--quiet", worktree, branch);
   try {
     for (const [path, text] of Object.entries(files)) {
+      if (text === null) {
+        rmSync(join(worktree, path), { force: true });
+        continue;
+      }
       mkdirSync(dirname(join(worktree, path)), { recursive: true });
       writeFileSync(join(worktree, path), text);
     }
-    git(worktree, "add", "--", ...Object.keys(files));
+    git(worktree, "add", "--all", "--", ...Object.keys(files));
     git(worktree, "commit", "--quiet", "--no-verify", "--message", `work on ${branch}`);
   } finally {
     git(repo, "worktree", "remove", "--force", worktree);

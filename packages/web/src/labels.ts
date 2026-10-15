@@ -2,13 +2,11 @@ import type { FeatureView, StepView } from "uraeda-binding";
 
 const STEPS: Record<string, string> = {
   approval: "Approval",
-  assess: "Assessment",
-  "assess-revision": "Assessment revision",
+  change: "Change",
   discovery: "Discovery",
   done: "Done",
   "final-review": "Final review",
   finish: "Finish",
-  fix: "Fix",
   implementation: "Implementation",
   plan: "Plan",
   "plan-revision": "Plan revision",
@@ -23,11 +21,13 @@ export function stepLabel(name: string) {
 }
 
 /**
- * What a feature at a human gate asks: the action, and the page that does it, by its path within
- * the repository.
+ * What a feature or a change at a human gate asks: the action, and the page that does it, by its
+ * path within the repository.
  */
 export function waiting(
-  feature: Pick<FeatureView, "folder" | "files"> & { step: Pick<StepView, "file" | "name"> },
+  feature: Pick<FeatureView, "folder" | "files" | "kind"> & {
+    step: Pick<StepView, "file" | "name">;
+  },
 ) {
   const file = feature.step.file;
   const summary = feature.files.find((f) => f.name === file);
@@ -35,14 +35,15 @@ export function waiting(
   const action =
     kind === "clarifications"
       ? { title: "Answer questions", verb: "Answer" }
-      : kind === "spec" || kind === "plan" || kind === "assessment"
+      : kind === "spec" || kind === "plan"
         ? { title: `Review the ${kind}`, verb: "Review" }
-        : kind === "proposal" || kind === "report"
-          ? { title: `Write the ${kind}`, verb: "Write" }
+        : kind === "proposal"
+          ? { title: "Write the proposal", verb: "Write" }
           : { title: stepLabel(feature.step.name), verb: stepLabel(feature.step.name) };
-  const folder = kind === "report" ? `bugs/${feature.folder}` : feature.folder;
+  // A change's folder is in `specs/changes/`, a feature's in `specs/`.
+  const folder = feature.kind === "change" ? `changes/${feature.folder}` : feature.folder;
   const href =
-    kind === "proposal" || kind === "report"
+    kind === "proposal"
       ? `/edit/specs/${folder}/${file}`
       : file
         ? `/f/${feature.folder}/${file}`

@@ -1,5 +1,6 @@
-// The phone's progress line: under a feature's session's header, on narrow screens, one line of the
-// step and the progress, which opens the column's content in place, above the transcript.
+// The phone's progress line: under a feature's or a change's session's header, on narrow screens,
+// one line of the step and the progress, or of a change's round, which opens the column's content in
+// place, above the transcript.
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
@@ -11,7 +12,8 @@ import {
   spacingVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { QuestionCount, roundOf } from "./ChangeAside.tsx";
 import { useFeature } from "./data.ts";
 import { useWidthClass, widthClassNow } from "./layout/useWidthClass.ts";
 import { ProgressRing } from "./ProgressRing.tsx";
@@ -68,8 +70,9 @@ function useLineOpen(): [boolean, (open: boolean) => void] {
 }
 
 /**
- * "Implementation · 7/11 · Session column", beside a ring, or the step alone without progress: on
- * narrow screens only, where the column is not. Open, the column's content shows under it.
+ * "Implementation · 7/11 · Session column", beside a ring, "Answer questions · 1 question" for a
+ * change's round, or the step alone: on narrow screens only, where the column is not. Open, the
+ * column's content shows under it.
  */
 export function ProgressLine({ folder, session }: { folder: string; session?: string }) {
   const narrow = useWidthClass() === "narrow";
@@ -86,15 +89,17 @@ function Line({
   folder,
   session,
 }: {
-  feature: Parameters<typeof stepTitle>[0] & {
-    step: { progress?: { position: number; title: string; total: number } | null };
-  };
+  feature: Parameters<typeof stepTitle>[0] &
+    Parameters<typeof roundOf>[0] & {
+      step: { progress?: { position: number; title: string; total: number } | null };
+    };
   folder: string;
   session?: string;
 }) {
   const [open, setOpen] = useLineOpen();
   const step = stepTitle(feature);
   const progress = feature.step.progress ?? null;
+  const round = feature.kind === "change" ? roundOf(feature) : undefined;
   return (
     <Collapsible
       isOpen={open}
@@ -106,6 +111,11 @@ function Line({
             {progress
               ? `${step} · ${progress.position}/${progress.total} · ${progress.title}`
               : step}
+            {round && (
+              <Suspense fallback={null}>
+                <QuestionCount file={round.name} folder={folder} />
+              </Suspense>
+            )}
           </Text>
         </HStack>
       }

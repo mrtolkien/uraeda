@@ -1,5 +1,5 @@
 // A feature's session's column: its step and the plan's tasks, its running sub-agents, the files
-// changed on its branch, and its pages. Beside the transcript on wide screens, foldable, the choice
+// changed on its branch, and its pages. A change's column is drawn by `ChangeAside.tsx`. Beside the transcript on wide screens, foldable, the choice
 // kept in the browser.
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -12,6 +12,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { Component, Fragment, type ReactNode, Suspense, useState } from "react";
 import type { Feature } from "uraeda-server/fate";
+import { ChangeAside } from "./ChangeAside.tsx";
 import { useBranchChanges, useFeature, useFile, useSession } from "./data.ts";
 import { stepLabel, waiting } from "./labels.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
@@ -132,7 +133,7 @@ export function WithAside({
  * A section of the column whose read failed: left out, so the session and the other sections go
  * on. The read is tried again with the page.
  */
-class Section extends Component<{ children: ReactNode }, { failed: boolean }> {
+export class Section extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
 
   static getDerivedStateFromError() {
@@ -150,7 +151,7 @@ export function stepTitle(feature: Parameters<typeof waiting>[0] & { step: { wai
 }
 
 /** A section's heading: a level-2 heading, sized as a sidebar's. */
-function SectionHeading({ children }: { children: ReactNode }) {
+export function SectionHeading({ children }: { children: ReactNode }) {
   return (
     <Heading accessibilityLevel={2} level={4}>
       {children}
@@ -160,12 +161,15 @@ function SectionHeading({ children }: { children: ReactNode }) {
 
 /**
  * The column's sections: the step and the plan's tasks, the running sub-agents, the files changed
- * on the branch, and the feature's pages.
+ * on the branch, and the feature's pages. A change has sections of its own.
  */
 export function SessionAside({ folder, session }: { folder: string; session?: string }) {
   const feature = useFeature(folder);
   if (!feature || feature.missing) {
     return null;
+  }
+  if (feature.kind === "change") {
+    return <ChangeAside folder={folder} {...(session === undefined ? {} : { session })} />;
   }
   return (
     <VStack gap={6}>
@@ -253,7 +257,7 @@ function Tasks({
 }
 
 /** The session's running sub-agents, while any run. */
-function Subagents({ session }: { session: string }) {
+export function Subagents({ session }: { session: string }) {
   const subagents = useSession(session)?.subagents ?? [];
   if (subagents.length === 0) {
     return null;
@@ -311,10 +315,16 @@ function Lines({ added, removed }: { added: number | null; removed: number | nul
 }
 
 /**
- * The files changed on the branch, outside the feature's folder: the total, then the first 50 by
- * path. No section without a branch; the error, kept, when they could not be read.
+ * The files changed on the branch, outside the feature's or the change's folder: the total, then
+ * the first 50 by path. No section without a branch; the error, kept, when they could not be read.
  */
-function Changes({ folder }: { folder: string }) {
+export function Changes({
+  folder,
+  kind = "feature",
+}: {
+  folder: string;
+  kind?: "change" | "feature";
+}) {
   const read = useBranchChanges(folder);
   if (!read || (read.changes === null && !read.failed)) {
     return null;
@@ -327,7 +337,7 @@ function Changes({ folder }: { folder: string }) {
       {changes === null ? (
         <span {...stylex.props(statusStyles.error)}>The changes could not be read.</span>
       ) : changes.count === 0 ? (
-        <Text color="secondary">{"Nothing outside the feature's folder yet."}</Text>
+        <Text color="secondary">{`Nothing outside the ${kind}'s folder yet.`}</Text>
       ) : (
         <>
           <Text color="secondary" type="supporting">
