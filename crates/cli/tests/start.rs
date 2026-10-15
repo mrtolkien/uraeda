@@ -352,3 +352,28 @@ fn a_draft_starts_as_a_change() {
         )
     );
 }
+
+/// Edge case: a postponed feature's folder holds files a change has no place for, so `--change`
+/// refuses it, and nothing is committed.
+#[test]
+fn a_postponed_feature_is_refused_as_a_change() {
+    let repo = repo_with_a_draft();
+    let folder = "specs/backlog/benchmarks";
+    for name in ["proposal.md", "clarifications-01.md", "spec.md"] {
+        repo.write(&format!("{folder}/{name}"), &format!("# {name}\n"));
+    }
+    repo.commit("postponed");
+
+    let output = ura(&repo, &["start", folder, "--change"]);
+
+    assert_eq!(output.code, 1, "{}", output.stdout);
+    assert_eq!(
+        output.stderr,
+        format!(
+            "ura: {folder} holds spec.md, which has no place in a change: start it as a feature, \
+             without --change\n"
+        )
+    );
+    assert_eq!(repo.subjects("main")[0], "postponed");
+    assert_eq!(repo.git(&["branch", "--list", "change/*"]), "");
+}

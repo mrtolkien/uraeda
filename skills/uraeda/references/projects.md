@@ -67,9 +67,10 @@ Do these only when a human asks.
   steps under its own names: the folder `specs/changes/YYYY-MM-DD-<slug>/`, the branch
   `change/YYYY-MM-DD-<slug>`, and the worktree `.worktrees/YYYY-MM-DD-<slug>/`. In the web UI, "New
   change" starts one from a typed request, with no draft. With `ura`,
-  `ura start <draft> --slug <slug> --change` starts a draft as a change. By hand, the steps above,
-  with the entry linked to `/specs/changes/YYYY-MM-DD-<slug>/proposal.md`. Then run the
-  [change](change.md) step.
+  `ura start <draft> --slug <slug> --change` starts a draft as a change, and refuses a postponed
+  folder holding files a change's folder has no place for, like a feature's `spec.md`: start that
+  one as a feature. By hand, the steps above, with the entry linked to
+  `/specs/changes/YYYY-MM-DD-<slug>/proposal.md`. Then run the [change](change.md) step.
 - **Postpone or block**: on the feature's branch, move the whole folder to `specs/drafts/<slug>/` or
   `specs/backlog/<slug>/`, as the human prefers, without its date: the proposal, the discovery
   rounds, and the questions, answered or not, stay as they are. Delete the feature's `proposed`

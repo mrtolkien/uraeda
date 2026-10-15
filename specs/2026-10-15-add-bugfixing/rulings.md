@@ -443,3 +443,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: final review, `crates/core/src/view/feature.rs`, `crates/binding/src/lib.rs`,
   `packages/server/src/runner/message.ts`, `packages/server/src/fate/sessions.ts`,
   `packages/web/src/labels.ts`, `packages/web/src/routes.tsx`.
+
+## R26: `ura start --change` refuses a postponed feature's folder
+
+- **Decision**: `ura start <draft> --change` on a postponed folder holding a file or folder that a
+  change's folder has no place for refuses before anything is written, naming them:
+  `specs/drafts/x holds discovery-01.md, plan.md, and spec.md, which have no place in a change: start it as a feature, without --change`.
+  The rule of what a change's folder holds is `check::change_holds`, which `ura check`'s
+  `names.change-file` uses too. Hidden files, like `.gitkeep`, are skipped, as the check skips them.
+- **Rationale**: the spec's edge case makes `ura check` report such a file in a change's folder, so
+  starting the folder as a change made two commits that the check then rejected. One home per rule
+  ([code quality](/specs/decisions/code-quality.md)): the start and the check read one function.
+- **Alternatives considered**: moving only the change's files and leaving the rest in
+  `specs/drafts/`, which splits the human's postponed work across two folders; dropping the extra
+  files, which loses it.
+- **If wrong**: the start moves the files a change holds, and leaves the rest where they are.
+- **Where**: final review, `crates/core/src/check/names.rs`,
+  `crates/core/src/actions/start/plan.rs`, `skills/uraeda/references/projects.md`.
