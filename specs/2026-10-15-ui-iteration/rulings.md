@@ -136,16 +136,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: one condition in `StoryEmbed`.
 - **Where**: task 9.
 
-## R11: The change flow's reference gets the line when it merges
+## R11: The change flow's reference gets the line at the catch-up
 
 - **Decision**: "link the stories written or changed, alone on a line, in the messages that report
-  them" goes into `implementation.md` now. `references/change.md` is only on the
-  `2026-10-15-add-bugfixing` branch: whichever of the two features merges second adds the line to
-  it.
-- **Rationale**: editing a file that is not on `main` would create it on this branch, and conflict.
+  them" goes into `implementation.md`, and into `references/change.md`'s **UI work**, in the same
+  words, once the catch-up brought `change.md` from `main`, where `2026-10-15-add-bugfixing` merged
+  first.
+- **Rationale**: editing a file that is not on `main` would have created it on this branch, and
+  conflicted. The feature that merges second adds the line.
 - **Alternatives considered**: the line in `bug.md`, a different flow.
-- **If wrong**: agents on the change flow do not link their stories until the line is added.
-- **Where**: task 13.
+- **If wrong**: agents on the change flow do not link their stories, and their sessions show no
+  embeds.
+- **Where**: task 13, `skills/uraeda/references/implementation.md` and `change.md`.
 
 ## R12: SC-006 runs WebKit through a forwarding proxy
 
