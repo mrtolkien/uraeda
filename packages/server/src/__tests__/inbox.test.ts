@@ -1,7 +1,7 @@
-import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
-import { byId, type Data, fixture, fixtureRepo, git, mutate, testApp } from "./helpers.ts";
+import { byId, type Data, fixture, fixtureRepo, git, mutate, port, testApp } from "./helpers.ts";
 
 const INBOX = ["id", "hash", "categories", "names", "count", "changes", "triage"];
 const FILE = ["id", "folder", "name", "path", "kind", "status", "current", "missing"];
@@ -200,22 +200,60 @@ test("US2 3: adds a note to a draft's What", async () => {
   );
 });
 
-test("US6 2: adds a note as a draft, linked from the inbox", async () => {
+/** Posts a note with an image to the repository's `/inbox/note-image`, as the add form does. */
+async function noteImage(
+  served: Awaited<ReturnType<typeof testApp>>,
+  fields: Record<string, string>,
+  file: string,
+) {
+  const body = new FormData();
+  for (const [key, value] of Object.entries(fields)) {
+    body.set(key, value);
+  }
+  body.set("file", new File([readFileSync(fixture(`images/${file}`))], file));
+  const query = new URLSearchParams({ name: "spec-headings.png" });
+  return served.app.request(`http://127.0.0.1:${port}/r/${served.name}/inbox/note-image?${query}`, {
+    body,
+    method: "POST",
+  });
+}
+
+test("US6 2: adds a note with an image as a draft folder, linked from the inbox", async () => {
   const repo = fixtureRepo();
-  const { app } = await testApp(repo);
-  const { hash } = await readInbox(app);
+  const served = await testApp(repo);
+  const { hash } = await readInbox(served.app);
 
-  const result = await mutate(
-    app,
-    "inbox.addAsDraft",
-    { category: "UI", hash, text: "Headings are body-sized" },
-    ["id", "path"],
+  const response = await noteImage(
+    served,
+    { category: "UI", hash, text: "Headings are flat" },
+    "phone.png",
   );
 
-  expect(result.data.path).toBe("specs/drafts/headings-are-body-sized.md");
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ draft: "specs/drafts/headings-are-flat/proposal.md" });
+  expect(read(repo, "specs/drafts/headings-are-flat/proposal.md")).toContain(
+    "Headings are flat\n\n![spec-headings](images/spec-headings.webp)\n",
+  );
   expect(read(repo, "specs/INBOX.md")).toContain(
-    "- [Headings are body-sized](drafts/headings-are-body-sized.md)\n",
+    "- [Headings are flat](drafts/headings-are-flat/proposal.md)\n",
   );
+});
+
+test("US6: an image the core refuses adds nothing", async () => {
+  const repo = fixtureRepo();
+  const served = await testApp(repo);
+  const before = read(repo, "specs/INBOX.md");
+  const { hash } = await readInbox(served.app);
+
+  const response = await noteImage(served, { hash, text: "Headings are flat" }, "drawing.svg");
+
+  expect(response.status).toBe(400);
+  expect(await response.json()).toEqual({
+    error:
+      "refused: Only PNG, JPEG, GIF, and WebP images can be added: spec-headings.png is not one.",
+  });
+  expect(read(repo, "specs/INBOX.md")).toBe(before);
+  expect(existsSync(join(repo, "specs/drafts/headings-are-flat"))).toBe(false);
 });
 
 test("US2 7: the commit bar commits the inbox's changes", async () => {

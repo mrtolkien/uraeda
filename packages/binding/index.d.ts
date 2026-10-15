@@ -25,10 +25,10 @@ export declare function addComment(repo: string, folder: string, file: string, s
 export declare function addNote(repo: string, text: string, previous: string, category?: string | undefined | null, about?: string | undefined | null): Promise<Inbox>
 
 /**
- * Adds a note as a new draft written from its text, linked from the end of a category. Returns
- * the draft's path, from the top level.
+ * Adds a note as a new draft folder holding its text and the image `bytes`, linked from the end
+ * of a category, all written or none. `name` is the image's file name. Returns the draft's path.
  */
-export declare function addNoteAsDraft(repo: string, text: string, previous: string, category?: string | undefined | null, about?: string | undefined | null): Promise<string>
+export declare function addNoteWithImage(repo: string, text: string, previous: string, bytes: Buffer, name?: string | undefined | null, category?: string | undefined | null, about?: string | undefined | null): Promise<string>
 
 /** Adds a line at the end of a section of the priorities. */
 export declare function addPriority(repo: string, section: string, text: string, previous: string): Promise<Priorities>
@@ -131,12 +131,6 @@ export declare function insertNote(repo: string, index: number, lines: Array<str
  * section, or at its end: Undo of a removal.
  */
 export declare function insertPriority(repo: string, section: string, index: number, lines: Array<string>, previous: string): Promise<Priorities>
-
-/**
- * Links an image attached to the draft a note was added as, `link` as the attach gave it, at the
- * end of the draft's `## What`, over the draft as read at `previous`.
- */
-export declare function linkNoteImage(repo: string, draft: string, link: string, previous: string): Promise<void>
 
 /** The main checkout's path, from any of the repository's working trees. */
 export declare function mainRoot(repo: string): Promise<string>
@@ -288,7 +282,7 @@ export declare function submitTriage(repo: string, previous: string): Promise<Fi
 
 /**
  * Takes back a note added as a draft: the note, found by its lines, leaves the inbox, and its
- * draft goes with it, image included, unless a commit has it or the human typed in it.
+ * draft goes with it, images included, unless a commit has it or the human typed in it.
  */
 export declare function undoNoteAsDraft(repo: string, lines: Array<string>): Promise<Inbox>
 

@@ -1291,34 +1291,44 @@ git commit -m "feat(add-scratchpad): organize notes by hand, committed with the 
   `attach/AttachButton.tsx`, `crates/core/src/actions/attach.rs` (`retarget` rewrites `INBOX.md`
   links too), `actions/changes.rs`, `actions/draft.rs`, `actions/inbox.rs`, `actions/inbox/undo.rs`,
   `files/proposal.rs`, `api/inbox_edits.rs`, the binding's `inbox_writes.rs`, and the server's
-  `fate/inbox-mutations.ts`
-- Create: `packages/web/src/NoteImage.tsx`
+  `attach.ts`, `app.ts`, `dev.ts`, and `fate/inbox-mutations.ts`
+- Create: `packages/web/src/NoteImage.tsx`, `crates/core/src/actions/inbox/image.rs`
 - Test: `crates/core/tests/attach.rs`, `crates/core/tests/inbox_images.rs`,
-  `packages/web/src/__browser__/inbox.test.tsx`, `packages/web/src/__tests__/inbox.test.tsx`
+  `packages/server/src/__tests__/inbox.test.ts`, `packages/web/src/__browser__/inbox.test.tsx`,
+  `packages/web/src/__tests__/inbox.test.tsx`
 
 **Interfaces:**
 
-- Consumes: `inbox.addAsDraft` (task 6), and `useAttach({ path })` and `AttachButton`, which takes a
-  `text` to show.
-- Produces (ruling R21):
+- Consumes: `AttachButton`, which takes a `text` to show, and the core's image encoding.
+- Produces (rulings R4 and R21):
+  - `api::add_note_with_image(repo, category, about, text, bytes, name, previous) -> Result<(Inbox, String)>`,
+    which encodes the image first, then writes the draft folder with the image's link at the end of
+    its What, the image, and the linked note, all or none, through `actions::inbox::add_with_image`;
+    the binding's `addNoteWithImage`; and the server's `POST /r/<name>/inbox/note-image`, with
+    `text`, `hash`, `category`, `about`, and `file`, which answers `{ draft }`;
+  - `api::undo_note_as_draft(repo, lines) -> Result<Inbox>`, the binding's `undoNoteAsDraft`, and
+    the mutation `inbox.undoAsDraft { lines }`, which returns the `Inbox`;
   - `retarget` covers `specs/INBOX.md`, and puts both lists back when a write fails;
-  - `api::link_note_image(repo, draft, link, previous)`, the image's link at the end of the draft's
-    What, and `api::undo_note_as_draft(repo, lines) -> Result<Inbox>`; the binding's `linkNoteImage`
-    and `undoNoteAsDraft`; the mutations `inbox.linkImage { draft, hash, link }`, which returns the
-    `Draft`, and `inbox.undoAsDraft { lines }`, which returns the `Inbox`;
-  - `files::proposal::image_file` and `added_images`, and `actions::draft::remove_written`, which
-    Discard and the Undo share: a draft a move wrote goes with its images and folder while it holds
-    only what the move wrote and a note's images;
+  - `files::proposal::image_file` and `holds_written`, and `actions::draft::remove_written`, which
+    Discard and the Undo share: a draft a move wrote, never committed and untouched, goes with its
+    whole `images/` and its folder;
   - `changes::commit` holds a draft folder's linked images;
-  - in the web UI, `NoteImage.tsx`'s `PickedImage`, `usePickedImage`, `useAddAsDraft`,
-    `noteOfDraft`, and `undoAsDraft`.
+  - `inbox.addAsDraft` is removed;
+  - in the web UI, `NoteImage.tsx`'s `PickedImage`, `usePickedImage`, `useAddWithImage`,
+    `addedNote`, `noteOfDraft`, and `undoAsDraft`.
 
 - [x] **Step 1: Write the failing tests**
 
 - **Core, review focus 7:** attaching an image to a draft linked from `INBOX.md` rewrites the note's
   link to `drafts/<slug>/proposal.md`.
-- **Core, US6 2 and R14:** the draft holds the note, then the image's link; Commit holds the image;
-  Discard and Undo delete an untouched draft with its image, and keep one typed in.
+- **Core, US6 2 and R14:** the draft holds the note, then the image's link; a refused image, a stale
+  inbox, and a failed write leave nothing; Commit holds the image and prunes one nothing links;
+  Discard and Undo delete an untouched draft with its whole `images/`, and keep one typed in;
+  `image_file` reads only the core's links.
+- **Server:** the endpoint adds the note with its image, and adds nothing for a refused image.
+- **Unit:** Remove, Cancel, and the image kept as the form closes; the toast's Undo, and its refusal
+  once the note changed; an add whose answer is lost is found in the inbox, once; one that got no
+  answer says so and keeps everything.
 - **Browser, US6 1 and 2:** attach `image("phone.png", "spec-headings.png")`. The button reads "Add
   as a draft", and the line "With an image, the note is saved as a draft, linked from the inbox."
   shows. After Add:
@@ -1328,11 +1338,16 @@ git commit -m "feat(add-scratchpad): organize notes by hand, committed with the 
   - the toast reads "Added to the inbox as a draft, not committed".
 - **US6 3:** moving the linked note to Next keeps the link.
 - **An image the core refuses:** the core's message shows, and the text stays.
+- Remove, and Cancel asking with only an image; the toast's Undo of a note added with an image.
 
 The break each test catches:
 
 - A dangling link after the folder move.
 - The image uploaded before the draft exists.
+- A failed write leaving the draft folder behind.
+- An unlinked image left by Discard or Undo.
+- A retry after a lost answer adding the note twice.
+- An Undo that takes a note changed since.
 
 - [x] **Step 2: Run them to check they fail**
 
@@ -1341,8 +1356,8 @@ The break each test catches:
 
 - [x] **Step 3: Implement `retarget` for `INBOX.md`, and the image in `AddNote`**
 
-`AddNote` calls `inbox.addAsDraft`, then uploads through `useAttach({ path })`, then
-`inbox.linkImage`; a refused image calls `inbox.undoAsDraft` (ruling R21).
+`AddNote` sends the note and the image in one request to `/inbox/note-image`, which makes one core
+call (rulings R4 and R21).
 
 - [x] **Step 4: Run all tests**
 

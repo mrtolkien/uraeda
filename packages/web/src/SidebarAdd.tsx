@@ -7,7 +7,7 @@ import { createContext, type ReactNode, Suspense, useContext, useState } from "r
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { AddNote } from "./AddNote.tsx";
-import { noteOfDraft, undoAsDraft, usePickedImage } from "./NoteImage.tsx";
+import { undoAsDraft, usePickedImage } from "./NoteImage.tsx";
 import { readInbox, readPriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { Overlay } from "./layout/Overlay.tsx";
@@ -138,13 +138,12 @@ function NoteOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
       return;
     }
     setImage(undefined);
-    toast("Added to the inbox as a draft, not committed", async () => {
-      // The note as it is now, wherever it went: Undo refuses once it changed.
-      const now = (await noteOfDraft(fate, draft)) ?? note;
-      return now
-        ? undoAsDraft(fate, now)
-        : `Could not undo: "${note?.text ?? ""}" is no longer in INBOX.md.`;
-    });
+    // By the lines the add wrote, as `undoAdd` finds its note: the core refuses once it changed.
+    toast("Added to the inbox as a draft, not committed", async () =>
+      note
+        ? undoAsDraft(fate, note)
+        : `Could not undo: the note linking ${draft} is no longer in INBOX.md.`,
+    );
   };
 
   return (

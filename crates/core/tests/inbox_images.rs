@@ -1,5 +1,6 @@
-//! A note with an image (US6): added as a draft, which the image makes a folder, its link put at
-//! the end of the draft's What, and committed, discarded, or undone with the inbox.
+//! A note with an image (US6): added in one call as a draft folder holding the note and the
+//! image, linked from the inbox, all written or none; then committed, discarded, or undone with the
+//! inbox.
 
 mod common;
 
@@ -34,20 +35,37 @@ fn proposal() -> String {
     format!("specs/drafts/{SLUG}/proposal.md")
 }
 
-/// Adds the note as a draft under UI, attaches `spec-headings.png` to it, and links the image from
-/// the draft, as the add form does. Returns the draft's path once it is a folder.
+fn image(name: &str) -> Vec<u8> {
+    std::fs::read(common::fixture(&format!("images/{name}"))).unwrap()
+}
+
+/// Adds the note under UI with `spec-headings.png`, as the add form does. Returns the draft's path.
 fn add_with_image(repo: &TestRepo) -> String {
     let inbox = api::read_inbox(repo.path()).unwrap();
-    let draft =
-        api::add_note_as_draft(repo.path(), Some("UI".to_string()), None, NOTE, &inbox.hash)
-            .unwrap();
-    let written = api::read_text(repo.path(), &draft).unwrap();
-    let bytes = std::fs::read(common::fixture("images/phone.png")).unwrap();
-    let attached =
-        api::attach_image(repo.path(), &draft, &bytes, Some("spec-headings.png")).unwrap();
-    let moved = attached.moved.unwrap();
-    api::link_note_image(repo.path(), &moved, &attached.link, &written.hash).unwrap();
-    moved
+    let (after, draft) = api::add_note_with_image(
+        repo.path(),
+        Some("UI".to_string()),
+        None,
+        NOTE,
+        &image("phone.png"),
+        Some("spec-headings.png"),
+        &inbox.hash,
+    )
+    .unwrap();
+    assert_eq!(after.count, inbox.count + 1);
+    draft
+}
+
+/// The names in the drafts' folder.
+fn drafts(repo: &TestRepo) -> Vec<String> {
+    std::fs::read_dir(repo.path().join("specs/drafts"))
+        .map(|entries| {
+            entries
+                .flatten()
+                .map(|entry| entry.file_name().to_string_lossy().into_owned())
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 /// US6 2: the draft holds the note as its title and What, then the image; the inbox links the
@@ -84,32 +102,105 @@ fn a_note_with_an_image_is_a_linked_draft_committed_with_its_image() {
     assert_eq!(repo.porcelain(), "");
 }
 
-/// Only an image of the draft's own `images/` is linked, and only over the text the page read.
+/// An image the core refuses is refused before anything is written.
 #[test]
-fn an_image_link_is_refused_unless_it_is_the_drafts_image() {
+fn a_refused_image_writes_nothing() {
     let repo = fixture_repo();
-    let path = add_with_image(&repo);
-    let read = api::read_text(repo.path(), &path).unwrap();
+    let inbox = api::read_inbox(repo.path()).unwrap();
 
-    for link in [
-        "![x](images/missing.webp)",
-        "Some text",
-        "![x](../secret.webp)",
-    ] {
-        let error = api::link_note_image(repo.path(), &path, link, &read.hash).unwrap_err();
-        assert_eq!(error.code, "refused", "{link}");
-    }
-    let error = api::link_note_image(repo.path(), &path, LINK, "stale").unwrap_err();
-    assert_eq!(error.code, "conflict");
-    assert_eq!(repo.read(&path), read.text);
+    let error = api::add_note_with_image(
+        repo.path(),
+        Some("UI".to_string()),
+        None,
+        NOTE,
+        &image("drawing.svg"),
+        Some("diagram.svg"),
+        &inbox.hash,
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        error.message,
+        "Only PNG, JPEG, GIF, and WebP images can be added: diagram.svg is not one."
+    );
+    assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
+    assert!(drafts(&repo).is_empty());
 }
 
-/// Discard (ruling R14): a draft the add wrote, with only its image added, goes with its image
-/// and its folder.
+/// An inbox changed since it was read is refused as a conflict, and nothing is written.
+#[test]
+fn a_stale_inbox_writes_nothing() {
+    let repo = fixture_repo();
+
+    let error = api::add_note_with_image(
+        repo.path(),
+        None,
+        None,
+        NOTE,
+        &image("phone.png"),
+        Some("spec-headings.png"),
+        "stale",
+    )
+    .unwrap_err();
+
+    assert_eq!(error.code, "conflict");
+    assert!(drafts(&repo).is_empty());
+}
+
+/// A failed write of the inbox takes the draft folder back out: no draft is left unlinked.
+#[cfg(unix)]
+#[test]
+fn a_failed_inbox_write_leaves_no_draft() {
+    use std::os::unix::fs::PermissionsExt;
+    let repo = fixture_repo();
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let file = repo.path().join(INBOX);
+    std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o444)).unwrap();
+    if std::fs::OpenOptions::new().append(true).open(&file).is_ok() {
+        // Root writes anyway.
+        return;
+    }
+
+    let result = api::add_note_with_image(
+        repo.path(),
+        None,
+        None,
+        NOTE,
+        &image("phone.png"),
+        Some("spec-headings.png"),
+        &inbox.hash,
+    );
+    std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o644)).unwrap();
+
+    assert!(result.is_err());
+    assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
+    assert!(drafts(&repo).is_empty());
+}
+
+/// The commit bar's Commit deletes an image of the draft's folder that nothing links, as a
+/// draft's own commit does.
+#[test]
+fn commit_prunes_an_unlinked_image() {
+    let repo = fixture_repo();
+    add_with_image(&repo);
+    let stray = format!("specs/drafts/{SLUG}/images/stray.webp");
+    repo.write(&stray, "x");
+
+    api::commit_changes(repo.path()).unwrap();
+
+    assert!(!repo.exists(&stray));
+    assert!(!repo.changed_in("main").contains(&stray));
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// Discard (ruling R14): a draft the add wrote, untouched, goes with its whole `images/` and its
+/// folder.
 #[test]
 fn discard_deletes_an_untouched_draft_with_its_image() {
     let repo = fixture_repo();
     add_with_image(&repo);
+    // An image nothing links, as a copy into the folder leaves it: it goes with the folder.
+    repo.write(&format!("specs/drafts/{SLUG}/images/stray.webp"), "x");
 
     api::discard_changes(repo.path()).unwrap();
 
@@ -140,6 +231,7 @@ fn discard_keeps_a_draft_with_an_image_typed_in() {
 fn undo_takes_back_the_note_and_its_untouched_draft() {
     let repo = fixture_repo();
     add_with_image(&repo);
+    repo.write(&format!("specs/drafts/{SLUG}/images/stray.webp"), "x");
     let lines = vec![format!("- [{NOTE}](drafts/{SLUG}/proposal.md)")];
 
     let inbox = api::undo_note_as_draft(repo.path(), &lines).unwrap();
