@@ -173,8 +173,11 @@ When one item of a batch needs it, the round offers to split that item out inste
      removes the `## Proposed change (<folder>)` sections the change added, the ones the revert
      brought back included, and relinks **Now**'s entry to `drafts/<slug>/proposal.md`:
      `chore(<slug>): upgrade to a feature`.
-  3. Merge the branch into the default branch. The human starts the draft as a feature, and
-     `ura clean` removes the branch and its worktree.
+  3. Merge the branch into the default branch, from the main checkout. The human's "A" asks for the
+     cleanup too, and `ura clean` cannot do it, since the merge leaves no record or change folder:
+     remove the change's worktree and delete its branch as
+     [after the merge](finish.md#after-the-merge) says, never forced, or give the human those
+     commands when you cannot. The human starts the draft as a feature.
 
   The started feature has an answered round and no discovery file, so its first step is the
   [spec](spec.md#is-the-scope-clear): it reads the change's rounds, which settled the change, not
