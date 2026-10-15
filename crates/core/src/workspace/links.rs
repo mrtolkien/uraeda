@@ -1,6 +1,9 @@
-//! Where a link of a workflow file points, from the repository's top level.
+//! Where a link of a workflow file points, from the repository's top level, and the feature or
+//! the draft a priorities entry links.
 
 use std::path::{Path, PathBuf};
+
+use super::Feature;
 
 /// A link's file, from the top level, relative to the folder `dir` holding the linking file.
 /// `None` for an anchor in the page, a URI with a scheme (`https:`, `data:`, `mailto:`), or a
@@ -66,4 +69,29 @@ fn percent_decode(path: &str) -> String {
         }
     }
     String::from_utf8(decoded).unwrap_or_else(|_| path.to_string())
+}
+
+/// The draft a priorities entry's link points to, from the top level, when it links a file of
+/// `specs/drafts/`.
+pub fn linked_draft(link: &str) -> Option<String> {
+    resolve("specs", link).filter(|path| path.starts_with("specs/drafts/"))
+}
+
+/// The feature an entry's link points to: a path component or file name equal to its folder or
+/// its slug.
+pub(super) fn match_feature(link: &str, features: &[Feature]) -> Option<String> {
+    let path = link.split('#').next().unwrap_or(link);
+    let names: Vec<&str> = path
+        .split('/')
+        .map(|part| part.strip_suffix(".md").unwrap_or(part))
+        .filter(|part| !part.is_empty() && *part != "proposal")
+        .collect();
+    features
+        .iter()
+        .find(|feature| {
+            names
+                .iter()
+                .any(|name| *name == feature.folder || *name == feature.slug)
+        })
+        .map(|feature| feature.folder.clone())
 }
