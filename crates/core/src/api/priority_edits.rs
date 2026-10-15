@@ -108,13 +108,17 @@ pub fn remove_priority(repo: &Path, id: &str, previous: &str) -> Result<Prioriti
 /// Commits the commit bar's changes, the priorities' and the inbox's, as
 /// [`commit_changes`](super::commit_changes) does.
 pub fn commit_priorities(repo: &Path) -> Result<Priorities> {
-    super::commit_changes(repo)?;
-    read_priorities(repo)
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    changes::commit(&place)?;
+    Ok(edits::read(&place))
 }
 
-/// Restores the committed priorities, inbox, and drafts notes went into, as
+/// Restores the committed priorities and inbox, and takes the notes back out of drafts, as
 /// [`discard_changes`](super::discard_changes) does.
 pub fn discard_priorities(repo: &Path) -> Result<Priorities> {
-    super::discard_changes(repo)?;
-    read_priorities(repo)
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    changes::discard(&place)?;
+    Ok(edits::read(&place))
 }

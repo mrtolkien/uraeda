@@ -198,8 +198,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
     priorities' own, as today. `<Category>` is `No category` for none, and a reorder within a
     category, made by hand, is `move "<note>" within <Category> in the inbox`.
   - Commit with nothing changed is refused with "INBOX.md and PRIORITIES.md have no change to
-    commit". Discard restores `INBOX.md`, `PRIORITIES.md`, and the list's drafts from `HEAD`, and
-    deletes those with no committed version, like a draft made from a note.
+    commit". Discard restores `INBOX.md` and `PRIORITIES.md` from `HEAD`; what it does to drafts is
+    ruling R14's.
   - `read_priorities` moved to `api/priority_edits.rs`, next to `read_inbox`'s count, which `api.rs`
     had no room for; its `LARGE` row is lowered to 634.
 - **Rationale**: The plan names the messages' subjects but not their bodies, nor what happens to the
@@ -212,7 +212,41 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Open for task 11**: the spec's US6 path `the-spec-pages-headings-are-body-sized` drops the
   apostrophe, while `slug::from_text` turns it into a hyphen, `the-spec-page-s-...`, as `ura draft`
   does. Task 4's test of `add_as_draft` avoids the apostrophe; task 11 decides the slug rule.
-  Discard deletes only the file of an uncommitted folder draft, `<slug>/proposal.md`, not its
-  images: task 11 extends it with the images.
+  Discard deletes only the file of an untouched, uncommitted folder draft, `<slug>/proposal.md`, not
+  its images: task 11 extends it with the images.
 - **Where**: task 4, `actions/inbox.rs`, `actions/changes.rs`, `files/inbox.rs`,
   `api/priority_edits.rs`
+
+## R14: Discard never loses text the human typed
+
+- **Decision**: The commit bar's Discard restores `INBOX.md` and `PRIORITIES.md` from `HEAD`. For
+  drafts, it only takes back what the moves wrote:
+  - a draft a move created, by Make a draft or Add as a draft, and never committed, is deleted only
+    while its text is exactly what the move wrote; once typed in, it is kept;
+  - a draft a note was added to loses that note's lines, and the blank line added before them, and
+    keeps every other edit;
+  - an entry's or an added note's link to an uncommitted draft does not otherwise bring the draft
+    into Discard. Commit still holds the drafts of the moves and those an added note links.
+
+  With it:
+  - A new draft's title, What, and link text are the note's markdown, marks dropped, not its plain
+    text: inline code is kept, and `[`, `]`, and `\` are escaped outside code spans in the link's
+    text, so the link parses and pairs with the note.
+  - A draft's commit from the editor holds a first, never committed `INBOX.md`, as it holds a
+    changed one.
+  - `commit_priorities` and `discard_priorities` hold the write lock while they read back.
+  - `actions::priorities::message` is removed, having no caller. The tests
+    `one_change_is_the_subject` and `more_changes_are_counted_and_listed_in_the_body` of
+    `tests/priorities.rs` now check `changes::message` on a repository holding the same texts: the
+    same subjects and bodies, through the code that writes them.
+  - `append_to_what` adds a blank line before the note after indented code, which is not a list.
+
+- **Rationale**: The spec's "restores the drafts the commit would hold" would delete a draft made
+  with the Draft button from a moved entry, with the human's typing in it, and revert typing in a
+  draft a note went into. The human's decision tightens it: Discard never loses text the human
+  typed.
+- **Alternatives considered**: Restoring whole drafts from `HEAD`, the first version, which lost
+  that typing.
+- **If wrong**: `changes::discard` restores the drafts of `Listed.paths` again, a few lines.
+- **Where**: task 4's review, `actions/changes.rs`, `actions/inbox.rs`, `actions/text.rs`,
+  `files/inbox.rs`, `files/lines.rs`, `files/proposal.rs`, `api/priority_edits.rs`

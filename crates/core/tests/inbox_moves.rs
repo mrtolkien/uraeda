@@ -5,7 +5,7 @@ mod common;
 
 use common::repo::TestRepo;
 use uraeda_core::actions::inbox::{self as actions, Marks};
-use uraeda_core::actions::{changes, place};
+use uraeda_core::actions::{changes, draft, place};
 use uraeda_core::api;
 use uraeda_core::files::inbox::Inbox;
 use uraeda_core::files::priorities::Section;
@@ -469,4 +469,137 @@ fn a_drafts_commit_holds_the_inbox() {
 
     assert_eq!(repo.changed_in("main"), [INBOX, PRIORITIES, path.as_str()]);
     assert_eq!(repo.porcelain(), "");
+}
+
+/// Discard never loses the human's text: a draft made from a moved entry with the Draft button,
+/// then typed in, is kept.
+#[test]
+fn discard_keeps_a_draft_typed_in_after_a_move() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    to_priorities(&place, "We need a home icon", Section::Next);
+    let drafted = draft::create(&place, "next-3").unwrap();
+    let typed = format!("{}\nA house, in the top bar.\n", repo.read(&drafted.path));
+    repo.write(&drafted.path, &typed);
+
+    uraeda_core::actions::priorities::discard(&place).unwrap();
+
+    assert_eq!(repo.read(&drafted.path), typed);
+    assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
+    assert_eq!(
+        repo.read(PRIORITIES),
+        fixture_text("repo/main/specs/PRIORITIES.md")
+    );
+}
+
+/// Discard takes back the note added to a draft, and keeps what the human typed in it.
+#[test]
+fn discard_keeps_typing_in_a_draft_a_note_went_into() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    let typed = LOOK_TEXT.replace("It looks unfinished.", "It looks unfinished, and dated.");
+    repo.write(LOOK, &typed);
+    let inbox = actions::read(&place);
+    let note = id(&inbox, "Icons are blurry on retina screens");
+    actions::to_draft(&place, &note, LOOK, &inbox.hash).unwrap();
+
+    changes::discard(&place).unwrap();
+
+    assert_eq!(repo.read(LOOK), typed);
+    assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
+}
+
+/// A draft made from a note and typed in is kept by Discard too, and one left as written goes.
+#[test]
+fn discard_deletes_only_untouched_drafts_made_from_notes() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    let typed = actions::add_as_draft(&place, None, &Marks::default(), "Dark mode", None).unwrap();
+    let untouched =
+        actions::add_as_draft(&place, None, &Marks::default(), "Light mode", None).unwrap();
+    let text = repo
+        .read(&typed)
+        .replace("## Why\n", "## Why\n\nMy eyes.\n");
+    repo.write(&typed, &text);
+
+    changes::discard(&place).unwrap();
+
+    assert_eq!(repo.read(&typed), text);
+    assert!(!repo.exists(&untouched));
+    assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
+}
+
+/// A first `INBOX.md`, never committed, goes into the commit of the draft its note made.
+#[test]
+fn a_first_inbox_is_committed_with_its_draft() {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.commit("chore: specs");
+    let place = main_place(&repo);
+    let path = actions::add_as_draft(&place, None, &Marks::default(), "Dark mode", None).unwrap();
+
+    api::commit_text(repo.path(), &path).unwrap();
+
+    assert_eq!(repo.changed_in("main"), [INBOX, path.as_str()]);
+}
+
+/// A note with brackets and code keeps its markdown in the draft, and its link parses and pairs.
+#[test]
+fn a_note_with_brackets_and_code_is_linked_as_written() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    let text = "Fix [x] in the `a]b` view";
+    actions::add(&place, None, &Marks::default(), text, None).unwrap();
+    changes::commit(&place).unwrap();
+    let inbox = actions::read(&place);
+    let priorities = uraeda_core::actions::priorities::read(&place);
+    let note = id(&inbox, text);
+
+    let path = actions::to_new_draft(&place, &note, Section::Later, &inbox.hash, &priorities.hash)
+        .unwrap();
+
+    assert!(
+        repo.read(&path)
+            .contains(&format!("# {text}\n\n## What\n\n{text}\n"))
+    );
+    assert!(repo.read(PRIORITIES).contains(&format!(
+        "- [Fix \\[x\\] in the `a]b` view]({})\n",
+        path.trim_start_matches("specs/")
+    )));
+    assert_eq!(
+        changes::list(&place).lines,
+        ["- Move from the inbox to Later: Fix [x] in the a]b view"]
+    );
+    changes::discard(&place).unwrap();
+    assert!(!repo.exists(&path));
+
+    let added = actions::add_as_draft(&place, Some("UI"), &Marks::default(), text, None).unwrap();
+    let read = actions::read(&place);
+    let linked = &read.categories[1].notes.last().unwrap();
+    assert_eq!(linked.draft.as_deref(), Some(added.as_str()));
+    assert_eq!(
+        changes::list(&place).lines,
+        ["- Add to the inbox: Fix [x] in the a]b view"]
+    );
+    changes::discard(&place).unwrap();
+    assert!(!repo.exists(&added));
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// A What ending with indented code gets the note after a blank line, so it is not code.
+#[test]
+fn a_note_after_indented_code_is_a_list_item() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    let code = LOOK_TEXT.replace("icons.\n", "icons.\n\n    let x = 1;\n");
+    repo.write(LOOK, &code);
+    let inbox = actions::read(&place);
+    let note = id(&inbox, "Icons are blurry on retina screens");
+
+    actions::to_draft(&place, &note, LOOK, &inbox.hash).unwrap();
+
+    assert!(
+        repo.read(LOOK)
+            .contains("    let x = 1;\n\n- Icons are blurry on retina screens\n\n## Why")
+    );
 }
