@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 02: UI iteration flow
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 2 questions on live mockups, about 15 minutes.
+> Answered on 2026-10-15.
 >
 > - **The size of the feature.** The Astryx mockups you asked about need a runtime of their own.
 >   Building them now about doubles the feature, so the first question asks when to build them.
@@ -75,7 +75,8 @@ Why it matters: it sets this feature's size, and what projects without Storybook
   - [con] mockups no longer use the project's code, so the picked variant cannot be kept as the
     starting point, as your Q2.A answer asked.
 
-**Answer:**
+**Answer:** A: We don't really need a future feature, why not use Storybook too for non-storybook
+stacks? We could make mocks in React anyways?
 
 ## Q2: How precisely do you comment on a live mockup?
 
@@ -104,7 +105,7 @@ Why it matters: it decides whether your small, targeted fixes can point at the e
   - [con] a position on a live UI is lost as soon as the story changes or scrolls, and has no
     keyboard path.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -158,3 +159,9 @@ Why it matters: it decides whether your small, targeted fixes can point at the e
   frame inside a button is invalid. Its `Question` component, near its size limit, is split first.
 
 **Notes:**
+
+- **After the code.**: We don't really have a post-PR flow at the moment, so I'm not sure what this
+  covers. If I want to make changes post-PR at the moment I go back to the session directly, and I
+  don't see what would change here.
+- **Stories are previews, not tests.**: Create a "Next" task for that: review if we move tests to
+  Storybook's test format
