@@ -86,9 +86,9 @@ when the implementation shows a better fit.
   (rendering the app, seeding the store, setting the clock), so each test stays a few lines long.
   The spec's [Tests](spec.md#tests) rules apply: integration tests by default, Arrange, Act, Assert.
 - A view whose mockups are stories of the project's own Storybook starts from them: the picked
-  variant's component is the starting point, not a rewrite. The first task of that view adds the
-  tests of the view's scenarios, then wires the component into the app. A mockups Storybook's
-  stories are a reference only.
+  variant's component is the starting point, not a rewrite. The first task of that view names the
+  story in its **Files**, as `Start from`, adds the tests of the view's scenarios, then wires the
+  component into the app. A mockups Storybook's stories are a reference only.
 
 Put the ownership in **Architecture**, the affected callers in **Code read**, preserved guarantees
 in **Global constraints**, and the risky sequences in **Review focus** and their tasks. Scale this
