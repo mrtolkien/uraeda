@@ -200,7 +200,7 @@ test("a hook's refusal of the triage's commit is tried again", async () => {
   expect(git(repo, "status", "--porcelain").trim()).toBe("");
 });
 
-/** The core takes no image for the triage, which is no feature's, bug's, or draft's file. */
+/** The core takes no image for the triage, which is no feature's, change's, or draft's file. */
 test("the triage's comments and notes offer no image", async () => {
   await renderPage("/inbox/triage", withTriage(), { agent: true });
   await screen.findByRole("heading", { level: 1, name: "Inbox triage" });

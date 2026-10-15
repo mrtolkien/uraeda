@@ -54,7 +54,7 @@ enum Command {
         /// The category, a ## heading of INBOX.md, created when missing
         #[arg(long)]
         category: Option<String>,
-        /// The feature or bug the note is about, written as its slug; by default, the one of
+        /// The feature or change the note is about, written as its slug; by default, the one of
         /// this checkout's branch
         #[arg(long)]
         about: Option<String>,

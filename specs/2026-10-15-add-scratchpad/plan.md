@@ -1489,45 +1489,48 @@ git commit -m "docs(add-scratchpad): the inbox triage reference, checked by a ru
 
 **Files:**
 
-- Modify: `skills/uraeda/references/inbox.md`,
-  `skills/uraeda/assets/templates/specs/INBOX-TRIAGE.md`, `packages/web/src/NoteView.tsx` if the
-  change flow adds a start action that fits, and whatever catching up with `main` needs
-- Test: the tests above, after the rebase
+- Modify: `skills/uraeda/references/inbox.md`, `references/change.md`, `references/conventions.md`,
+  `skills/uraeda/assets/templates/specs/INBOX-TRIAGE.md`, `fixtures/INBOX-TRIAGE.md`,
+  `crates/cli/src/note.rs` and `main.rs`, the comments of the inbox's code that named bugs, and
+  whatever catching up with `main` needs (rulings R23 to R28). `packages/web/src/NoteView.tsx` is
+  unchanged: no start action fits it (ruling R28).
+- Test: `crates/cli/tests/note.rs`, `crates/core/tests/check.rs`,
+  `packages/web/src/__tests__/inbox.test.tsx`, and the tests above, after the rebase
 
 **Interfaces:**
 
 - Consumes: `main`, with `2026-10-15-add-bugfixing` merged.
 
-- [ ] **Step 1: Check that the bugfixing feature is merged**
+- [x] **Step 1: Check that the bugfixing feature is merged**
 
 - Run: `git fetch origin && git log origin/main --oneline | grep "finish(add-bugfixing)"`
 - Expected: a line. With none, stop here, and tell the human the feature waits for it, as the
   approval's general comment says.
 
-- [ ] **Step 2: Rebase on `main`, as the implementation step's catch-up says, and run the
+- [x] **Step 2: Rebase on `main`, as the implementation step's catch-up says, and run the
       validation**
 
 - Run: `git rebase origin/main && vp run ready`
 - Expected: PASS, once conflicts are resolved within both specs
 
-- [ ] **Step 3: Turn the triage's "Bug" outcome into a draft started as a change**
+- [x] **Step 3: Turn the triage's "Bug" outcome into a draft started as a change**
 
 Update the triage reference and template to say so, in the change flow's own words, and keep every
 inbox test passing. Write a ruling for each place where the two features meet.
 
-- [ ] **Step 4: Write down the scratchpad's move for the finish step**
+- [x] **Step 4: Write down the scratchpad's move for the finish step**
 
 Add to `references/inbox.md`'s setup section how a project moves notes from a `## Scratchpad`
 section into `INBOX.md`. This feature's finish commit applies it to this repository: it moves every
 bullet under `## Scratchpad` of the default branch's `PRIORITIES.md`, as it is then, under "No
 category" in `INBOX.md`, and removes the section (C1, SC-005).
 
-- [ ] **Step 5: Run all tests, and commit**
+- [x] **Step 5: Run all tests, and commit**
 
 - Run: `vp run ready`
 - Expected: PASS
 
 ```bash
-git add -A skills packages crates specs/2026-10-15-add-scratchpad
+git add -A skills packages crates fixtures specs/2026-10-15-add-scratchpad
 git commit -m "feat(add-scratchpad): the inbox's bugs become changes"
 ```

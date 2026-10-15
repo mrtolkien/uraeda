@@ -219,6 +219,9 @@ time, one commit per item:
 - **Rulings.** The choices a later reader would want explained go in the change's `rulings.md`, from
   [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md), in the same commit,
   as the [implementation step](implementation.md#rulings) describes.
+- **Findings outside the proposal.** A problem found outside the proposal's items is not fixed in
+  passing, and not dropped: note it in the inbox, as [agents' notes](inbox.md#agents-notes) says,
+  with the change's slug, and name it in the pull request's description.
 
 Run the project's validation before each commit. When something only the human can decide comes up
 midway, ask in a round: the items already committed stay.
@@ -248,7 +251,7 @@ in this order:
 6. **Screenshots** of a UI change.
 7. **Rulings**: a link to `rulings.md` at the commit before finishing, and the ones that change
    behaviour, one line each.
-8. **Minor findings** of the review.
+8. **Minor findings** of the review, and the notes added to the inbox.
 9. **Last line**: "Once merged, run `ura clean` to remove the worktree and the branch."
 
 Changes requested on the pull request are handled as for a feature, as

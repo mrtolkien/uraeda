@@ -9,7 +9,7 @@ status: awaiting-human
 > 3 questions on 5 notes, about 6 minutes.
 >
 > - Three UI notes may go together into the draft Look and feel pass
-> - "Draft to proposal on mobile went 404" may be a bug
+> - "Draft to proposal on mobile went 404" is a bug, to start as a change
 
 ## Context
 
@@ -40,9 +40,10 @@ Starting a draft from a phone opens a page that does not exist. It happens on ev
 
 Why it matters: a bug blocks starting features from a phone until it is fixed.
 
-- **A (recommended). Start a bug, `draft-404`.**
+- **A (recommended). Make it the draft Draft to proposal 404 on mobile, started as a change,
+  `draft-404`.**
   - [pro] it gets a root cause and a test.
-  - [con] a branch to review.
+  - [con] a pull request to review.
   - Why recommended: it is behaviour that differs from what users expect.
 - **B. Keep it in the inbox.**
   - [pro] nothing to do now.

@@ -20,7 +20,7 @@ export declare function addComment(repo: string, folder: string, file: string, s
 
 /**
  * Adds a note at the end of a category, or of the notes without one, marked with the slug of the
- * feature or bug folder `about`.
+ * feature or change folder `about`.
  */
 export declare function addNote(repo: string, text: string, previous: string, category?: string | undefined | null, about?: string | undefined | null): Promise<Inbox>
 
@@ -610,7 +610,7 @@ export interface InboxNote {
   text: string
   spans: Array<Span>
   agent: boolean
-  /** The slug of the feature or bug it is about. */
+  /** The slug of the feature or change it is about. */
   about?: string
   /** The path of the draft its whole text links to, from the repository's top level. */
   draft?: string

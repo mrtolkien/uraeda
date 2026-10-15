@@ -116,14 +116,14 @@ fn an_agents_note_about_a_feature() {
     assert_eq!(repo.porcelain(), "");
 }
 
-/// A bug's worktree marks its notes with the bug's slug.
+/// A change's worktree marks its notes with the change's slug, as a feature's does.
 #[test]
-fn a_note_from_a_bug_worktree_is_about_the_bug() {
+fn a_note_from_a_change_worktree_is_about_the_change() {
     let repo = repo();
     feature(
         &repo,
-        "fix/2026-10-14-broken-link",
-        &[("bug.md", "# Broken link\n".to_string())],
+        "change/2026-10-14-broken-link",
+        &[("proposal.md", "# Broken link\n".to_string())],
     );
     let worktree = repo.parent().join("broken-link");
     repo.git(&[
@@ -131,7 +131,7 @@ fn a_note_from_a_bug_worktree_is_about_the_bug() {
         "add",
         "--quiet",
         worktree.to_str().unwrap(),
-        "fix/2026-10-14-broken-link",
+        "change/2026-10-14-broken-link",
     ]);
 
     let output = ura_in(&worktree, &["note", "Links break on rename"], &[]);
@@ -151,7 +151,7 @@ fn an_about_that_matches_nothing_is_refused() {
 
     assert_eq!(
         output.stderr,
-        "ura: --about names a feature or a bug: none is named nothing-here\n"
+        "ura: --about names a feature or a change: none is named nothing-here\n"
     );
     assert_eq!(output.code, 1);
     assert_eq!(repo.porcelain(), "");
@@ -291,7 +291,7 @@ fn a_blank_note_creates_no_worktree() {
     assert!(!repo.exists(".worktrees/main"));
 }
 
-/// `--about` names a feature or a bug, never a draft.
+/// `--about` names a feature or a change, never a draft.
 #[test]
 fn an_about_naming_a_draft_is_refused() {
     let repo = repo();
@@ -302,19 +302,20 @@ fn an_about_naming_a_draft_is_refused() {
 
     assert_eq!(
         output.stderr,
-        "ura: --about names a feature or a bug: none is named idea\n"
+        "ura: --about names a feature or a change: none is named idea\n"
     );
     assert_eq!(output.code, 1);
     assert_eq!(repo.porcelain(), "");
 }
 
+/// `--about` names a change by its slug, as it names a feature.
 #[test]
-fn an_about_naming_a_bug_writes_its_slug() {
+fn an_about_naming_a_change_writes_its_slug() {
     let repo = repo();
     feature(
         &repo,
-        "fix/2026-10-14-broken-link",
-        &[("bug.md", "# Broken link\n".to_string())],
+        "change/2026-10-14-broken-link",
+        &[("proposal.md", "# Broken link\n".to_string())],
     );
 
     let output = note(&repo, &["Links break on rename", "--about", "broken-link"]);

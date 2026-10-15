@@ -110,7 +110,7 @@ export type AddedAsDraft =
   | { draft: string; note?: InboxNote; ok: true }
   | (Refusal & { byImage?: boolean; ok: false });
 
-/** The add's input to the core: the note's text, its category, and its feature or bug. */
+/** The add's input to the core: the note's text, its category, and its feature or change. */
 export type AddInput = { about?: string; category?: string; hash: string; text: string };
 
 /**
