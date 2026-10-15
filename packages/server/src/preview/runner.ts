@@ -29,11 +29,15 @@ export const START_MS = 120_000;
 export const IDLE_MS = 30 * 60_000;
 /** How long a stopped Storybook has to exit before it is killed. */
 export const KILL_MS = 5000;
+/** How long a ready Storybook's index may take to answer. */
+export const INDEX_MS = 5000;
 /** How many lines of a Storybook's output are kept. */
 const LINES_KEPT = 50;
 
 export const TIMED_OUT = "Storybook did not start within 2 minutes.";
 export const NO_PORT = "No free port for Storybook.";
+/** The state a stopped runner gives every view: it starts nothing (R19). */
+export const NOT_RUNNING = "Storybook is not running for this branch.";
 
 /** A free port of 127.0.0.1, which the system picks. */
 export function freePort(): Promise<number> {
@@ -136,10 +140,15 @@ export class Previews {
   readonly #now: () => number;
   readonly #freePort: () => Promise<number>;
   readonly #onChange: (base: string) => void;
+  readonly #indexMs: number;
+  /** Set by `stopAll`: the server stops, and nothing starts again. */
+  #closed = false;
 
   constructor(
     options: {
       freePort?: () => Promise<number>;
+      /** How long a ready Storybook's index may take to answer: `INDEX_MS`. */
+      indexMs?: number;
       now?: () => number;
       onChange?: (base: string) => void;
     } = {},
@@ -147,10 +156,17 @@ export class Previews {
     this.#now = options.now ?? Date.now;
     this.#freePort = options.freePort ?? freePort;
     this.#onChange = options.onChange ?? (() => {});
+    this.#indexMs = options.indexMs ?? INDEX_MS;
   }
 
-  /** The checkout's state, its Storybook started when none runs, and the view recorded. */
+  /**
+   * The checkout's state, its Storybook started when none runs, and the view recorded. Once the
+   * runner is stopped, failed with `NOT_RUNNING`, and nothing starts.
+   */
   view(checkout: Checkout): PreviewState {
+    if (this.#closed) {
+      return { error: NOT_RUNNING, state: "failed" };
+    }
     const entry = this.#entries.get(checkout.base) ?? this.#start(checkout);
     entry.lastView = this.#now();
     return entry.state;
@@ -170,14 +186,17 @@ export class Previews {
     return this.view(checkout);
   }
 
-  /** The index of the ready Storybook under `base`; undefined when none is ready or it fails. */
+  /**
+   * The index of the ready Storybook under `base`; undefined when none is ready, or it fails or
+   * does not answer within `INDEX_MS`.
+   */
   async index(base: string): Promise<StoryIndex | undefined> {
     const state = this.state(base);
     if (state?.state !== "ready") {
       return undefined;
     }
     try {
-      return await readIndex(state.port);
+      return await readIndex(state.port, AbortSignal.timeout(this.#indexMs));
     } catch {
       return undefined;
     }
@@ -192,8 +211,9 @@ export class Previews {
     }
   }
 
-  /** Stops every Storybook, once their processes exited. */
+  /** Stops every Storybook, once their processes exited; nothing starts afterwards. */
   async stopAll(): Promise<void> {
+    this.#closed = true;
     await Promise.all([...this.#entries.values()].map((entry) => this.#stop(entry)));
   }
 
@@ -268,6 +288,8 @@ export class Previews {
       done = true;
       run.running = false;
       if (child.pid !== undefined) {
+        // What the command started may outlive it: its whole group goes with it.
+        signalGroup(child.pid, "SIGKILL");
         groups.delete(child.pid);
       }
       close();

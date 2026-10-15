@@ -208,7 +208,7 @@ export function expectLogged(
 }
 
 /** How the fake preview, `fixtures/preview/serve.mjs`, behaves: see its header. */
-export type FakeMode = "ok" | "fail" | "hang" | "bad-index" | "no-pick";
+export type FakeMode = "ok" | "fail" | "hang" | "hang-later" | "bad-index" | "no-pick";
 
 /** The preview decision's path, from a checkout's top level. */
 const PREVIEW_DECISION = "specs/decisions/preview.md";
