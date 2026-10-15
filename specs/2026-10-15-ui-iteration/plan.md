@@ -2340,7 +2340,11 @@ git commit -m "feat(ui-iteration): Uraeda's own Storybook"
   that name the HTML mockup
 - Delete: `skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/mockups/repeat.html`
 - Modify: `packages/web/scripts/screenshots.ts` (the fixture mockup), `crates/core/tests/items.rs`
-  (`a_spec_has_its_mockups`, the folds' lines)
+  (`a_spec_has_its_mockups`, the folds' lines), `discovery-01.md` (its link to the moved mockup,
+  [R45](rulings.md#r45-the-discoverys-link-to-the-examples-mockup-follows-it-to-the-fixtures)),
+  `crates/lsp/tests/commands.rs`, `editors/nvim/tests/test_comment.lua`, and two of
+  `editors/nvim/tests/screenshots/` (the example's moved lines,
+  [R46](rulings.md#r46-the-editors-tests-that-read-the-example-follow-its-lines))
 - Test: `crates/core/tests/check.rs` (`the_example_has_no_problems`), `crates/core/tests/items.rs`
 
 **Interfaces:**
@@ -2348,18 +2352,19 @@ git commit -m "feat(ui-iteration): Uraeda's own Storybook"
 - Consumes: the field names and messages of task 2, the comment format of task 9, the helper and
   pick script of task 3.
 
-- [ ] **Step 1: Update the tests that read the example**
+- [x] **Step 1: Update the tests that read the example**
 
 `a_spec_has_its_mockups` reads the example's `## Mockups`: the `RepeatMenu.stories.tsx` exports as
 list items, each with `story` set and its `path` `src/tasks/RepeatMenu.stories.tsx`. The folds'
 lines follow the new spec. `screenshots.ts` copies `fixtures/mockups/repeat.html`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
-- Run: `cargo nextest run -p uraeda-core --test items a_spec_has_its_mockups`
-- Expected: FAIL, `assertion left == right failed`: the path is still `mockups/repeat.html`.
+- Run: `cargo nextest run -p uraeda-core --test items`
+- Expected: FAIL: `a_spec_has_its_mockups` finds no story on the example's `mockups/repeat.html`,
+  and `a_spec_has_its_folds` the folds' old lines.
 
-- [ ] **Step 3: Write the skill's changes**
+- [x] **Step 3: Write the skill's changes**
 
 Each rule once, where its step is read:
 
@@ -2392,20 +2397,21 @@ Each rule once, where its step is read:
   `active`, `preview-folder: .`; `mockups/repeat.html` moves to `fixtures/mockups/repeat.html` with
   `git mv`. The README names no mockup format, and stays.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run:
   `cargo nextest run && cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs && cargo run -q -p uraeda-cli -- check specs && vp check`
 - Expected: PASS, both folders without problems.
 
-- [ ] **Step 5: Run `vp run ready`**
+- [x] **Step 5: Run `vp run ready`**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add skills fixtures/mockups packages/web/scripts/screenshots.ts crates/core/tests/items.rs
+git add skills fixtures/mockups packages/web/scripts/screenshots.ts crates/core/tests/items.rs \
+  crates/lsp/tests/commands.rs editors/nvim/tests specs/2026-10-15-ui-iteration
 git commit -m "feat(ui-iteration): stories in the skill, its templates, and the example"
 ```

@@ -118,14 +118,14 @@ end
 T["a selection gets a comment"] = function() -- US4.1
   local repo, spec = waiting_spec()
   open(spec)
-  child.api.nvim_win_set_cursor(0, { 50, 0 })
+  child.api.nvim_win_set_cursor(0, { 52, 0 })
 
   child.type_keys("V2j", "\\am")
 
   eq(wait_window(), true)
   eq(window(), {
     relative = "win",
-    title = " Comment · lines 50–52 ",
+    title = " Comment · lines 52–54 ",
     footer = " :w save · q cancel ",
     lines = { "" },
   })
@@ -135,7 +135,7 @@ T["a selection gets a comment"] = function() -- US4.1
   local review = read(repo .. "/" .. feature .. "spec-review.md")
   eq(review:find("verdict: pending", 1, true) ~= nil, true)
   eq(
-    review:find('## C1: Lines 50–52, under "US2: Complete a repeating task (P1)"', 1, true) ~= nil,
+    review:find('## C1: Lines 52–54, under "US2: Complete a repeating task (P1)"', 1, true) ~= nil,
     true
   )
   eq(review:find("> Completing a repeating task moves it", 1, true) ~= nil, true)
