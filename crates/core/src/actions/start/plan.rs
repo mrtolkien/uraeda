@@ -81,10 +81,10 @@ impl<'a> Drafted<'a> {
     }
 }
 
-/// What a start starts from, read: a draft, or a typed change.
+/// What a start starts from, read: a draft, or a typed change and its number of images.
 enum Origin<'a> {
     Draft(Drafted<'a>),
-    Text(&'a Typed),
+    Text(&'a Typed, usize),
 }
 
 /// Everything a start writes, settled before anything is written.
@@ -116,7 +116,7 @@ pub(super) struct Plan {
 impl Plan {
     /// The proposal commit, as the step left to do by hand.
     pub(super) fn commit_left(&self) -> String {
-        if self.folder_draft {
+        if self.whole_folder {
             format!(
                 "commit {}/ as \"{}\"",
                 self.destination, self.proposal_subject
@@ -135,19 +135,19 @@ impl Start<'_> {
     pub(super) fn plan(&self, slug: Option<&str>, today: Date) -> Result<Plan, StartError> {
         let origin = match self.source {
             Source::Draft(draft) => Origin::Draft(Drafted::read(self.root, draft)?),
-            Source::Text { typed, .. } => Origin::Text(typed),
+            Source::Text { typed, images } => Origin::Text(typed, images.len()),
         };
         let slug = slug.map_or_else(
             || match &origin {
                 Origin::Draft(drafted) => crate::slug::short(draft_name(drafted.draft)),
-                Origin::Text(typed) => crate::slug::propose(&typed.title),
+                Origin::Text(typed, _) => crate::slug::propose(&typed.title),
             },
             str::to_string,
         );
         let (folder, worktree) = self.claim(&slug, today)?;
         let files = match &origin {
             Origin::Draft(drafted) => drafted.files.clone(),
-            Origin::Text(_) => Vec::new(),
+            Origin::Text(..) => Vec::new(),
         };
         // Which of the draft's files are committed, read before any write of ours.
         let tracked = self.tracked(&files);
@@ -162,17 +162,16 @@ impl Start<'_> {
                 let write_left = format!("move {} to {destination}", drafted.draft);
                 (name, priorities, write_left)
             }
-            Origin::Text(typed) => {
+            Origin::Text(typed, images) => {
                 let name = typed.title.clone();
                 let priorities = priorities::add_to_now(&priorities_text, &name, &target);
-                let write_left = format!("write {destination}/proposal.md from the text");
-                (name, priorities, write_left)
+                (name, priorities, typed_write_left(&destination, *images))
             }
         };
         let folder_draft = matches!(&origin, Origin::Draft(drafted) if drafted.folder_draft);
         Ok(Plan {
             folder_draft,
-            whole_folder: folder_draft || matches!(origin, Origin::Text(_)),
+            whole_folder: folder_draft || matches!(origin, Origin::Text(..)),
             files,
             tracked,
             start_subject: format!("chore({slug}): start {name}"),
@@ -265,6 +264,17 @@ impl Start<'_> {
             return Err(GitError::OtherStagedFiles(staged).into());
         }
         Ok(())
+    }
+}
+
+/// What puts a typed change's proposal, and its images, in `destination`, as the step left to do
+/// by hand.
+fn typed_write_left(destination: &str, images: usize) -> String {
+    let proposal = format!("write {destination}/proposal.md from the text");
+    if images == 0 {
+        proposal
+    } else {
+        format!("{proposal}, and its images in {destination}/images/")
     }
 }
 
