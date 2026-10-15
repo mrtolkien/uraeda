@@ -12,9 +12,9 @@
 //   script, with a `Content-Security-Policy` that forbids framing it, which the proxy replaces. Its
 //   script opens Storybook's channel, beside the page, and shows "Channel open" once it answers;
 // - WebSockets at `/storybook-server-channel`, refused when their `Origin` is `null`, and under
-//   `URAEDA_PREVIEW_BASE` for the `vite-hmr` protocol, which each send one message: the path,
-//   `Host`, `Origin`, and headers they got, as JSON;
-// - `/__echo`: the path, `Host`, `Origin`, and headers it got, as JSON;
+//   `URAEDA_PREVIEW_BASE` for the `vite-hmr` protocol, which each send one message: the path, the
+//   query's values by name, `Host`, `Origin`, and headers they got, as JSON;
+// - `/__echo`: the path, the query's values by name, `Host`, `Origin`, and headers it got, as JSON;
 // - `/__headers`: an answer with a cookie, `Clear-Site-Data`, and `x-custom`, which its
 //   `Connection` names;
 // - `/__index-reads`: how many requests for the index it got;
@@ -151,13 +151,18 @@ window.addEventListener("message", (event) => {
 });
 `;
 
-/** What a request got: its path, `Host`, `Origin`, and headers. */
+/** What a request got: its path, its query's values, `Host`, `Origin`, and headers. */
 function echo(request) {
+  const query = {};
+  for (const [name, value] of new URL(request.url, "http://localhost").searchParams) {
+    (query[name] ??= []).push(value);
+  }
   return JSON.stringify({
     headers: request.headers,
     host: request.headers.host ?? null,
     origin: request.headers.origin ?? null,
     path: request.url,
+    query,
   });
 }
 
