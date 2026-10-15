@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import type { Trigger } from "../runner/events.ts";
 import { REFUSALS } from "../runner/sessions.ts";
 import { type Context, inRepository, type RepoContext, type Resolver } from "./context.ts";
@@ -5,7 +6,7 @@ import { fileMutations } from "./file-mutations.ts";
 import type { ChatImage } from "../runner/images.ts";
 import { sentImages } from "./chat-images.ts";
 import { callSiteError, refusable } from "./errors.ts";
-import { featureRecord, readSession, TRIGGERS, writable } from "./sessions.ts";
+import { featureRecord, readSession, readWorkflowMessage, TRIGGERS, writable } from "./sessions.ts";
 import { type ListResolver, listMutations, refusedOn } from "./list-mutations.ts";
 import { sources } from "./sources.ts";
 import {
@@ -44,8 +45,48 @@ async function onSession<T>(ctx: RepoContext, call: () => T | Promise<T>): Promi
   });
 }
 
+/**
+ * Starts a change from a typed text and its images, then, with the agent available, sends its first
+ * run to the change's session, through the queue a running turn would hold it in (R3). The images are checked as a message's, and the core writes
+ * them into the change's folder: the workflow's message carries none.
+ */
+async function startChange(
+  ctx: RepoContext,
+  input: { images?: Array<ChatImage>; slug?: string; text: string },
+): Promise<string> {
+  const images = await sentImages(ctx, input.images, false);
+  const bytes = await Promise.all(images.map(({ path }) => readFile(path)));
+  const { folder } = await refusable(() =>
+    ctx.binding.startChange(ctx.repo, input.text, bytes, input.slug),
+  );
+  // Without the agent, or a run to start, the change's page offers its message unsent.
+  const message = ctx.sessions.status().available
+    ? await readWorkflowMessage(ctx, `${folder}:start`)
+    : undefined;
+  if (!message?.text) {
+    return folder;
+  }
+  const { id } = await onSession(ctx, () => ctx.sessions.featureSession(ctx.repo, folder));
+  await refusedOn(() =>
+    ctx.sessions.send(ctx.repo, id, { text: message.text, workflow: { trigger: "start" } }),
+  );
+  return folder;
+}
+
 const repositoryMutations = {
   ...fileMutations,
+  "change.start": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ images?: Array<ChatImage>; slug?: string; text: string }>) => {
+      const folder = await startChange(ctx, input);
+      const feature = await ctx.binding.readFeature(ctx.repo, folder);
+      return sources.masked(featureDataView, ctx, await featureRecord(ctx, feature), select);
+    },
+    type: "Feature",
+  },
   "draft.create": {
     resolve: async ({ ctx, input, select }: Resolver<{ hash: string; line: string }>) =>
       draft(

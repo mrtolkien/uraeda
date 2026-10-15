@@ -1,5 +1,6 @@
 import { afterEach } from "vite-plus/test";
 import {
+  addChange,
   addPlan,
   commitOnBranch,
   ELEVEN,
@@ -18,7 +19,7 @@ import { fakeSessions } from "../testing.ts";
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
 
-export { addPlan, binding, commitOnBranch, ELEVEN, fixture, fixtureRepo, git };
+export { addChange, addPlan, binding, commitOnBranch, ELEVEN, fixture, fixtureRepo, git };
 
 export const port = 4310;
 

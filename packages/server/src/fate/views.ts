@@ -101,6 +101,9 @@ export type DraftRecord = Record_<DraftView> & { id: string };
 /** The proposal template's guidance, by heading, which the editor shows in empty sections. */
 export type ProposalHintsRecord = { hints: Array<Record_<ProposalHint>>; id: string };
 
+/** The slug the core proposes for a change's title, which is its ID: "New change" shows it. */
+export type SlugProposalRecord = { id: string; slug: string };
+
 /** The agent sessions run on, and what it can do: one record, `agent`. */
 export type AgentRecord = {
   available: boolean;
@@ -397,6 +400,11 @@ export const proposalHintsDataView = dataView<ProposalHintsRecord>("ProposalHint
   id: true,
 });
 
+export const slugProposalDataView = dataView<SlugProposalRecord>("SlugProposal")({
+  id: true,
+  slug: true,
+});
+
 export const repositoriesDataView = dataView<RepositoriesRecord>("Repositories")({
   added: true,
   id: true,
@@ -430,6 +438,7 @@ export const Root = {
   sessionLists: list(sessionListDataView),
   sessions: list(sessionDataView),
   sessionSearches: list(sessionSearchDataView),
+  slugProposals: list(slugProposalDataView),
   turnLogs: list(turnLogDataView),
   turns: list(turnDataView),
   workflowFiles: list(fileDataView),

@@ -109,6 +109,22 @@ export function commitOnBranch(repo: string, branch: string, files: Record<strin
   }
 }
 
+/**
+ * Creates the change `folder` on its branch `change/<folder>`, from `main`, with each file committed
+ * at `specs/changes/<folder>/<file>`, without touching the main checkout.
+ */
+export function addChange(repo: string, folder: string, files: Record<string, string>) {
+  const branch = `change/${folder}`;
+  git(repo, "branch", branch, "main");
+  commitOnBranch(
+    repo,
+    branch,
+    Object.fromEntries(
+      Object.entries(files).map(([file, text]) => [`specs/changes/${folder}/${file}`, text]),
+    ),
+  );
+}
+
 /** A plan's task: its title, its checked steps, and its steps. */
 export type PlanTask = [title: string, done: number, total: number];
 

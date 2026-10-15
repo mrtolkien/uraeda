@@ -33,10 +33,16 @@ test("a record gives its kind, title, pull request, and first paragraph of what 
   });
 });
 
-test("the notes list features then fixes, linked at the tag", () => {
+test("the notes list features then changes, linked at the tag", () => {
   const feature = parseRecord("specs/done/a.md", RECORD);
-  const bug = { ...feature, kind: "bug", path: "specs/done/b.md", pullRequest: null, title: "B" };
-  expect(notes("0.5.0", "2026-10-15", [bug, feature])).toBe(
+  const change = {
+    ...feature,
+    kind: "change",
+    path: "specs/done/b.md",
+    pullRequest: null,
+    title: "B",
+  };
+  expect(notes("0.5.0", "2026-10-15", [change, feature])).toBe(
     [
       "## 0.5.0 - 2026-10-15",
       "",
@@ -44,7 +50,7 @@ test("the notes list features then fixes, linked at the tag", () => {
       "",
       "- **[Text inputs and comments](https://github.com/mrtolkien/uraeda/blob/v0.5.0/specs/done/a.md)** ([#16](https://github.com/mrtolkien/uraeda/pull/16)): Writing is most of what the human does in the web UI.",
       "",
-      "### Fixes",
+      "### Changes",
       "",
       "- **[B](https://github.com/mrtolkien/uraeda/blob/v0.5.0/specs/done/b.md)**: Writing is most of what the human does in the web UI.",
       "",
@@ -54,7 +60,7 @@ test("the notes list features then fixes, linked at the tag", () => {
 
 test("a release without records says so", () => {
   expect(notes("0.5.1", "2026-10-16", [])).toBe(
-    "## 0.5.1 - 2026-10-16\n\nNo feature or fix recorded in `specs/done/`.\n",
+    "## 0.5.1 - 2026-10-16\n\nNo feature or change recorded in `specs/done/`.\n",
   );
 });
 

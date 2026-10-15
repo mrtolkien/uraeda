@@ -18,6 +18,7 @@ import {
   sessionDataView,
   sessionListDataView,
   sessionSearchDataView,
+  slugProposalDataView,
   turnDataView,
   turnLogDataView,
   workflowMessageDataView,
@@ -37,6 +38,7 @@ export {
   sessionDataView,
   sessionListDataView,
   sessionSearchDataView,
+  slugProposalDataView,
   turnDataView,
   turnLogDataView,
   workflowMessageDataView,
@@ -67,6 +69,7 @@ export type SessionList = Entity<typeof sessionListDataView, "SessionList">;
 export type SessionSearch = Entity<typeof sessionSearchDataView, "SessionSearch">;
 export type WorkflowMessage = Entity<typeof workflowMessageDataView, "WorkflowMessage">;
 export type Repositories = Entity<typeof repositoriesDataView, "Repositories">;
+export type SlugProposal = Entity<typeof slugProposalDataView, "SlugProposal">;
 export type FolderSuggestions = Entity<typeof folderSuggestionsDataView, "FolderSuggestions">;
 /** What started a workflow turn, for `session.send`'s `workflow`. */
 export type { Trigger } from "./runner/events.ts";

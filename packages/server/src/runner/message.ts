@@ -1,8 +1,8 @@
 import { isAbsolute, relative, sep } from "node:path";
 
-/** A feature's or a bug's folder, and the word that names it. */
-function subject(folder: string, bug?: boolean): string {
-  return bug ? `bug specs/bugs/${folder}/` : `feature specs/${folder}/`;
+/** A feature's or a change's folder, and the word that names it. */
+function subject(folder: string, change?: boolean): string {
+  return change ? `change specs/changes/${folder}/` : `feature specs/${folder}/`;
 }
 
 const READY = "the pull request is ready for review";
@@ -38,18 +38,8 @@ function goal(step: string, planReview?: boolean): { stop: string; work: string 
       return { stop: READY, work: "Review the implementation" };
     case "pull-request-changes":
       return { stop: `${READY} again`, work: "Address the changes requested on the pull request" };
-    case "assess":
-      return {
-        stop: "the assessment waits for my review",
-        work: "Find the root cause and propose a fix",
-      };
-    case "assess-revision":
-      return {
-        stop: "the assessment waits for my review again",
-        work: "Revise the assessment from my review",
-      };
-    case "fix":
-      return { stop: READY, work: "Fix the bug" };
+    case "change":
+      return { stop: READY, work: "Investigate it, then make the change" };
     default:
       return { stop: READY, work: "Finish it" };
   }
@@ -62,8 +52,8 @@ function goal(step: string, planReview?: boolean): { stop: string; work: string 
  */
 export function runMessage(input: {
   branch: string;
-  /** A bug lives in `specs/bugs/`. */
-  bug?: boolean;
+  /** A change lives in `specs/changes/`. */
+  change?: boolean;
   folder: string;
   /** The spec's `plan-review`, for the steps before the plan is approved. */
   planReview?: boolean;
@@ -72,16 +62,16 @@ export function runMessage(input: {
 }): string {
   const { stop, work } = goal(input.step, input.planReview);
   return (
-    `/uraeda:uraeda Continue the ${subject(input.folder, input.bug)} on branch ${input.branch}: ` +
+    `/uraeda:uraeda Continue the ${subject(input.folder, input.change)} on branch ${input.branch}: ` +
     `${work}, starting with ${input.reference}.\n` +
     `Stop when ${stop}, and earlier only if you need a decision from me.\n`
   );
 }
 
 /** The first message of a chat, which tells the agent to wait for the human's requests. */
-export function chatOpening(input: { branch: string; bug?: boolean; folder: string }): string {
+export function chatOpening(input: { branch: string; change?: boolean; folder: string }): string {
   return (
-    `A human is chatting with you about the ${subject(input.folder, input.bug)}, on branch ` +
+    `A human is chatting with you about the ${subject(input.folder, input.change)}, on branch ` +
     `${input.branch}: answer, and change files, commit, or move the workflow only when they ask.`
   );
 }
