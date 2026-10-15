@@ -6,9 +6,11 @@
 >
 > Features for v1.0.0
 
+- [UI iteration flow](drafts/ui-iteration.md)
 - [Look and feel pass](drafts/look-and-feel.md)
 
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
+  - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
 
 - [Testing review](/specs/2026-10-14-testing-review/proposal.md)
@@ -85,3 +87,6 @@
 - We'll need a model selector for each step
 - Make sure agents are resumable! -> highlight crashed/stopped sessions
 - In failures the `x` is is not centered in the circle
+- When the agent was blocked due to auto mode in claude code, there was no way to know except
+  visiting the session page
+- Text input still feels a bit laggy on sessions page, might be due to the huge page height
