@@ -917,3 +917,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: third final review, `crates/core/src/actions/changes.rs`,
   `crates/core/src/actions/changes/drafts.rs`, `crates/core/src/actions/attach.rs`,
   `crates/core/tests/inbox_moves.rs`
+
+## R38: Only a note linking a draft is a draft already
+
+- **Decision**: `inbox::Note::draft` gives the draft or backlog file a note's whole text links, and
+  is the one place that says a note is a draft already: Make a draft refuses only such a note, the
+  change list pairs any other note made a draft with its entry, Undo of an add as a draft takes its
+  draft, and the inbox's view gives it as the note's `draft`, now a backlog file's too, so the note
+  view hides Make a draft for it as the core refuses it.
+- **Rationale**: The final review found Make a draft refused any whole-text link, though the note
+  view offers it for `[README](../README.md)`, and the change list could not pair such a move.
+- **Alternatives considered**: Hiding Make a draft for every link in the view: a note about a file
+  could not become a draft.
+- **If wrong**: `Note::draft` in `files/inbox.rs`.
+- **Where**: third final review, `crates/core/src/files/inbox.rs`, `files/inbox/read.rs`,
+  `actions/inbox.rs`, `actions/inbox/undo.rs`, `actions/changes.rs`, `actions/changes/drafts.rs`,
+  `crates/core/tests/inbox_moves.rs`
