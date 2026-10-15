@@ -24,16 +24,12 @@ function questionCount(count: number) {
 }
 
 /**
- * The round a change waits on the human for: its latest, the clarifications file of the highest
- * round, while its step is a gate on a round.
+ * The round a change waits on the human for: its step's gate, the file the core names, while that
+ * file is a round.
  */
 export function roundOf(item: Pick<Item, "files" | "step">) {
   const gate = item.files.find((file) => file.name === item.step.file);
-  if (item.step.waitsOn !== "human" || gate?.kind !== "clarifications") {
-    return undefined;
-  }
-  const rounds = item.files.filter((file) => file.kind === "clarifications");
-  return rounds.reduce((latest, file) => ((file.round ?? 0) > (latest.round ?? 0) ? file : latest));
+  return item.step.waitsOn === "human" && gate?.kind === "clarifications" ? gate : undefined;
 }
 
 /** " · N question(s)", after the step's title on the phone's progress line. */
