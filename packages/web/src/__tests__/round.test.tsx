@@ -475,12 +475,19 @@ function focused() {
 }
 
 /** US1 1 */
-test("the bar counts and offers Next, without ＋ (US1 1)", async () => {
+// The inbox's spec: the ＋ buttons are the sidebar's, never in the top bar.
+test("the bar counts and offers Next, with no ＋ in the top bar (US1 1)", async () => {
   atWidth(402);
   await renderPage(PAGE, answered({ Q1: "A" }));
   expect(await screen.findByRole("button", { name: "1/3" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Next" })).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Add to the priorities" })).toBeNull();
+  const bar = screen.getByRole("banner");
+  expect(within(bar).getByRole("button", { name: "Next" })).toBeTruthy();
+  expect(
+    within(bar)
+      .queryAllByRole("button")
+      .filter((button) => button.textContent?.includes("＋")),
+  ).toEqual([]);
 });
 
 /** US1 2, 3; SC-005 */

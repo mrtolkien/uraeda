@@ -114,10 +114,9 @@ function ThemeSwitch() {
 
 /**
  * The navigation: a search over the sessions, home, priorities and the inbox with their ＋, every
- * feature by what it waits for
- * with its session's status, the chats, then the theme. Its heading goes home and ends with the
- * page's own controls; on wide screens it folds away and resizes, its width and state kept in the
- * browser.
+ * feature by what it waits for with its session's status, the chats, then the theme. Its heading
+ * goes home and ends with the page's own controls; on wide screens it folds away and resizes, its
+ * width and state kept in the browser.
  */
 function Nav({ slot }: { slot: ReactNode }) {
   const { sessionList, workspace } = useNavigation();

@@ -105,7 +105,9 @@ function NoteOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
   const fate = useFateClient();
   const toast = useUndoToast();
   const { route } = useRoute();
-  const about = "folder" in route ? route.folder : undefined;
+  // A feature's or a bug's folder starts with its date: another `/f/<name>` is about nothing.
+  const about =
+    "folder" in route && /^\d{4}-\d{2}-\d{2}-./.test(route.folder) ? route.folder : undefined;
 
   const added = (note: InboxNote | undefined) => {
     onClose();
