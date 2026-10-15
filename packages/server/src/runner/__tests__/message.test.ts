@@ -55,25 +55,32 @@ test.each<[string, string]>([
   ["spec-revision", "the spec waits for my review again"],
   ["implementation", "the pull request is ready for review"],
   ["pull-request-changes", "the pull request is ready for review again"],
-  ["assess", "the assessment waits for my review"],
-  ["fix", "the pull request is ready for review"],
+  ["change", "the pull request is ready for review"],
 ])("the run of %s stops when %s", (step, stop) =>
   expect(runMessage({ ...PLAN, step })).toContain(`\nStop when ${stop}, `),
 );
 
-test("a bug's message names its folder under specs/bugs/", () => {
+test("a change's message names its folder under specs/changes/", () => {
   expect(
     runMessage({
-      branch: "fix/2026-10-14-lost-undo",
-      bug: true,
-      folder: "2026-10-14-lost-undo",
-      reference: "skills/uraeda/references/bug.md",
-      step: "assess",
+      branch: "change/2026-10-16-centred-x",
+      change: true,
+      folder: "2026-10-16-centred-x",
+      reference: "skills/uraeda/references/change.md",
+      step: "change",
     }),
-  ).toMatch(
-    /^\/uraeda:uraeda Continue the bug specs\/bugs\/2026-10-14-lost-undo\/ on branch fix\/2026-10-14-lost-undo: Find the root cause/,
+  ).toBe(
+    "/uraeda:uraeda Continue the change specs/changes/2026-10-16-centred-x/ on branch " +
+      "change/2026-10-16-centred-x: Investigate it, then make the change, starting with " +
+      "skills/uraeda/references/change.md.\n" +
+      "Stop when the pull request is ready for review, and earlier only if you need a decision from me.\n",
   );
 });
+
+test.each(["assess", "assess-revision", "fix"])(
+  "the old bug step %s has no goal of its own",
+  (step) => expect(runMessage({ ...PLAN, step })).toContain(": Finish it, starting with "),
+);
 
 test("the message does not say what the human did", () => {
   expect(runMessage(PLAN)).not.toMatch(/the human/i);
@@ -83,6 +90,20 @@ test("the chat's opening line", () => {
   expect(chatOpening({ branch: "2026-10-13-chat", folder: "2026-10-13-chat" })).toBe(
     "A human is chatting with you about the feature specs/2026-10-13-chat/, on branch " +
       "2026-10-13-chat: answer, and change files, commit, or move the workflow only when they ask.",
+  );
+});
+
+test("a change's chat opening names the change", () => {
+  expect(
+    chatOpening({
+      branch: "change/2026-10-16-centred-x",
+      change: true,
+      folder: "2026-10-16-centred-x",
+    }),
+  ).toBe(
+    "A human is chatting with you about the change specs/changes/2026-10-16-centred-x/, on " +
+      "branch change/2026-10-16-centred-x: answer, and change files, commit, or move the " +
+      "workflow only when they ask.",
   );
 });
 

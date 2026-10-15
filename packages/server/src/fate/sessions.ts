@@ -326,7 +326,7 @@ export async function readWorkflowMessage(
     step: step.name,
     text: runMessage({
       branch,
-      bug: feature?.kind === "bug",
+      change: feature?.kind === "change",
       folder,
       reference: step.reference,
       step: step.name,
@@ -366,8 +366,8 @@ export async function working(ctx: RepoContext): Promise<Array<string>> {
 
 /**
  * Refuses a write to a feature while an agent works on it, before the binding is called. `path` is
- * a file's path from the top level: a feature's when it is under `specs/<folder>/` or
- * `specs/bugs/<folder>/`.
+ * a file's path from the top level: a feature's when it is under `specs/<folder>/`, a change's
+ * under `specs/changes/<folder>/`.
  */
 export async function writable(
   ctx: RepoContext,
@@ -376,7 +376,8 @@ export async function writable(
   const folder =
     "folder" in target
       ? target.folder
-      : (/^specs\/bugs\/([^/]+)\//.exec(target.path) ?? /^specs\/([^/]+)\//.exec(target.path))?.[1];
+      : (/^specs\/changes\/([^/]+)\//.exec(target.path) ??
+          /^specs\/([^/]+)\//.exec(target.path))?.[1];
   if (folder !== undefined && (await working(ctx)).includes(folder)) {
     throw callSiteError(`refused: ${REFUSALS.working}`);
   }

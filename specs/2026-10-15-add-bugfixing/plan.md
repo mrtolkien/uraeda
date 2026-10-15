@@ -739,19 +739,21 @@ git commit -m "feat(add-bugfixing): a finished item's view carries its pull requ
   - `runMessage({ branch, change?: boolean, folder, planReview?, reference, step })` and
     `chatOpening({ branch, change?: boolean, folder })`.
   - `change.start`, a repository mutation. Its input is
-    `{ text: string; images?: Array<SentImage-shaped input>; slug?: string }`. It returns
-    `{ folder: string; session: string | null }`:
+    `{ text: string; images?: Array<SentImage-shaped input>; slug?: string }`. It returns the
+    change's `Feature` record, as `feature.start` does, whose `folder` and `session` (`null` without
+    the agent) the client selects (R12):
     - the images go through `sentImages(ctx, images, false)`, and their files' bytes are read and
       passed to `startChange`;
     - with the agent available, the change's session is `ctx.sessions.featureSession(repo, folder)`,
       and the first run is sent with
       `ctx.sessions.send(repo, id, { text, workflow: { trigger: "start" } })`, its text from
       `readWorkflowMessage(ctx, "<folder>:start")`;
-    - without the agent, `session` is `null` and nothing is sent;
+    - without the agent, or without a workflow message to send, `session` is `null` and nothing is
+      sent: the change is started either way (R12);
     - refusals go through `refusable`.
   - A read `SlugProposal`, `{ id: title, slug }`, for the web UI.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/server/src/runner/__tests__/message.test.ts
@@ -811,23 +813,23 @@ The break each test catches:
 - The start test: a change started without its run, or a run sent before the branch exists.
 - The no-agent test: a refusal instead of a started change.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server packages/uraeda`
 - Expected: FAIL. `runMessage` names "feature specs/2026-10-16-centred-x/", and `change.start` does
   not exist.
 
-- [ ] **Step 3: Implement the messages, `writable`, `change.start`, `SlugProposal`, `bump.ts`, and
+- [x] **Step 3: Implement the messages, `writable`, `change.start`, `SlugProposal`, `bump.ts`, and
       `addChange`.**
-- [ ] **Step 4: Run the TypeScript checks**
+- [x] **Step 4: Run the TypeScript checks**
 
 - Run: `vp run ts:check && vp run ts:test`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/server packages/uraeda packages/binding/test-utils.ts
+git add packages/server packages/uraeda packages/binding/test-utils.ts packages/web/.fate specs
 git commit -m "feat(add-bugfixing): the server starts a change and its first run"
 ```
 

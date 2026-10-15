@@ -38,6 +38,7 @@ import {
   sessionDataView,
   sessionListDataView,
   sessionSearchDataView,
+  slugProposalDataView,
   turnDataView,
   turnLogDataView,
   workflowMessageDataView,
@@ -293,5 +294,9 @@ export const sources = createSources<Context>([
       ids.includes(PROPOSAL_HINTS_ID)
         ? [{ hints: await binding.proposalHints(), id: PROPOSAL_HINTS_ID }]
         : [],
+  }),
+  fileSource(slugProposalDataView, {
+    byIds: async ({ binding }, ids) =>
+      ids.map((title) => ({ id: title, slug: binding.proposeSlug(title) })),
   }),
 ]);

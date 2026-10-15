@@ -178,3 +178,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: task 5 review, `crates/core/src/actions/start/typed.rs`,
   `crates/core/src/files/markdown.rs`, `crates/core/src/files/priorities.rs`,
   `crates/core/src/actions/attach.rs`.
+
+## R12: `change.start` answers with the change's `Feature` record
+
+- **Decision**: `change.start` is a mutation of type `Feature`, answering with the started change's
+  record, as `feature.start` does; the client selects its `folder` and `session`, which is `null`
+  when no run was sent. The run is sent only when the agent is available and the workflow message
+  for `<folder>:start` has a text; otherwise the change stays started and nothing is refused. The
+  slug's proposal is the read `SlugProposal`, under the root `slugProposals`.
+- **Rationale**: fate's mutations answer with a record of a view's type, and the `Feature` record
+  already holds `folder` and `session`, so the web UI's cache gets the new change without a second
+  read. A change exists once the core has started it, so a refusal after it would tell the human it
+  failed when it did not; its page then offers the message unsent, as without the agent.
+- **Alternatives considered**: a new `StartedChange` view of two fields, which the cache would keep
+  apart from the change's record; refusing when the message is missing, after the change exists.
+- **If wrong**: add the view, and select it from the web UI's "New change".
+- **Where**: task 7, `packages/server/src/fate/mutations.ts`, `packages/server/src/fate/views.ts`.

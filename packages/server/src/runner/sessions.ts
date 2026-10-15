@@ -248,7 +248,7 @@ export class Sessions {
       kind === "chat" && live.folder !== null && branch !== undefined && this.#opens(live)
         ? chatOpening({
             branch,
-            bug: (await binding.readFeature(live.repo, live.folder)).kind === "bug",
+            change: (await binding.readFeature(live.repo, live.folder)).kind === "change",
             folder: live.folder,
           })
         : undefined;

@@ -57,15 +57,15 @@ export function absoluteLinks(text: string, path: string, version: string): stri
   });
 }
 
-/** The version's section: features, then fixes, each record linked at the tag. */
+/** The version's section: features, then changes, each record linked at the tag. */
 export function notes(version: string, date: string, records: Array<Record>): string {
   const groups: Array<[string, Array<Record>]> = [
-    ["Features", records.filter(({ kind }) => kind !== "bug")],
-    ["Fixes", records.filter(({ kind }) => kind === "bug")],
+    ["Features", records.filter(({ kind }) => kind !== "change")],
+    ["Changes", records.filter(({ kind }) => kind === "change")],
   ];
   const lines = [`## ${version} - ${date}`, ""];
   if (records.length === 0) {
-    lines.push("No feature or fix recorded in `specs/done/`.", "");
+    lines.push("No feature or change recorded in `specs/done/`.", "");
   }
   for (const [heading, group] of groups) {
     if (group.length === 0) {
