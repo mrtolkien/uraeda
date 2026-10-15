@@ -8,7 +8,6 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Text } from "@astryxdesign/core/Text";
-import { useTheme } from "@astryxdesign/core/theme";
 import {
   borderVars,
   colorVars,
@@ -16,16 +15,7 @@ import {
   spacingVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import {
-  type ReactNode,
-  type RefObject,
-  Suspense,
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { type ReactNode, Suspense, useId, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { StoryTarget } from "uraeda-binding";
 import { useStory } from "./data.ts";
@@ -33,6 +23,7 @@ import { refusal } from "./errors.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { useRepoPath } from "./routes.tsx";
 import { storybookHref } from "./stories.tsx";
+import { StoryFrames, type Widths } from "./StoryFrames.tsx";
 import { PreviewView } from "./views.ts";
 
 const styles = stylex.create({
@@ -53,13 +44,6 @@ const styles = stylex.create({
     borderRadius: 0,
     marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
   },
-  desktop: {
-    insetBlockStart: 0,
-    insetInlineStart: 0,
-    position: "absolute",
-    transformOrigin: "0 0",
-    width: "var(--size-story-desktop)",
-  },
   embed: {
     backgroundColor: colorVars["--color-background-surface"],
     borderColor: colorVars["--color-border"],
@@ -74,232 +58,14 @@ const styles = stylex.create({
   error: {
     backgroundColor: colorVars["--color-background-red"],
   },
-  frame: {
-    borderWidth: 0,
-    display: "block",
-    height: "var(--size-story-height)",
-  },
-  frames: {
-    alignItems: "flex-start",
-    backgroundColor: colorVars["--color-background-muted"],
-    display: "flex",
-    gap: spacingVars["--spacing-4"],
-    padding: spacingVars["--spacing-4"],
-  },
-  framesNarrow: {
-    padding: 0,
-  },
-  // A frame's height, as its story reported it.
-  height: (height: string) => ({ height }),
-  hidden: { visibility: "hidden" },
   label: {
     marginInlineEnd: "auto",
-  },
-  phone: {
-    flexShrink: 0,
-    maxWidth: "100%",
-    width: "var(--size-story-phone)",
-  },
-  phoneNarrow: {
-    width: "100%",
-  },
-  scale: (transform: string) => ({ transform }),
-  // The desktop frame's box: the space left, as tall as the scaled frame.
-  scaledBox: {
-    flexGrow: 1,
-    minWidth: 0,
-    overflow: "hidden",
-    position: "relative",
   },
   state: {
     paddingBlock: spacingVars["--spacing-6"],
     paddingInline: spacingVars["--spacing-4"],
   },
 });
-
-/** The widths a wide screen shows a story at. */
-type Widths = "both" | "phone" | "desktop";
-
-/** The frames of a story, by width. */
-type Width = "phone" | "desktop";
-
-/** A message from a frame, which the embed reads only from its own frames' windows. */
-type FrameMessage = { height?: unknown; uraeda: unknown };
-
-const SANDBOX = "allow-scripts allow-popups";
-
-/** Whether a message is the pick script's: an object with a `uraeda` field. */
-function isFrameMessage(data: unknown): data is FrameMessage {
-  return typeof data === "object" && data !== null && "uraeda" in data;
-}
-
-/** A story's height, when its `size` message gives a finite number above 0. */
-function heightOf(message: FrameMessage): number | undefined {
-  const { height } = message;
-  return typeof height === "number" && Number.isFinite(height) && height > 0 ? height : undefined;
-}
-
-/**
- * The frames' windows, and the heights their stories report. A frame that says `ready`, again after
- * a reload, is sent the colour mode, which every frame is sent again when it changes.
- */
-function useFrames() {
-  const phone = useRef<HTMLIFrameElement>(null);
-  const desktop = useRef<HTMLIFrameElement>(null);
-  const [heights, setHeights] = useState<Partial<Record<Width, number>>>({});
-  const { mode } = useTheme();
-  useEffect(() => {
-    const frames: Record<Width, RefObject<HTMLIFrameElement | null>> = { desktop, phone };
-    const onMessage = (event: MessageEvent) => {
-      const width = (["phone", "desktop"] as const).find(
-        (name) => event.source !== null && frames[name].current?.contentWindow === event.source,
-      );
-      if (width === undefined || !isFrameMessage(event.data)) {
-        return;
-      }
-      if (event.data.uraeda === "ready") {
-        (event.source as Window).postMessage({ mode, uraeda: "mode" }, "*");
-      } else if (event.data.uraeda === "size") {
-        const height = heightOf(event.data);
-        if (height !== undefined) {
-          setHeights((known) => ({ ...known, [width]: height }));
-        }
-      }
-    };
-    window.addEventListener("message", onMessage);
-    for (const frame of [phone, desktop]) {
-      frame.current?.contentWindow?.postMessage({ mode, uraeda: "mode" }, "*");
-    }
-    return () => window.removeEventListener("message", onMessage);
-  }, [mode]);
-  return { desktop, heights, phone };
-}
-
-/** The desktop frame, 1440 px wide, scaled to the space left, its box as tall as it shows. */
-function DesktopFrame({
-  frameRef,
-  height,
-  src,
-  title,
-}: {
-  frameRef: RefObject<HTMLIFrameElement | null>;
-  height: number | undefined;
-  src: string;
-  title: string;
-}) {
-  const box = useRef<HTMLDivElement>(null);
-  const [fit, setFit] = useState<{ height: number; scale: number }>();
-  useLayoutEffect(() => {
-    const outer = box.current;
-    const frame = frameRef.current;
-    if (!outer || !frame) {
-      return;
-    }
-    const measure = () => {
-      const scale = outer.clientWidth / frame.offsetWidth;
-      const shown = frame.offsetHeight * scale;
-      setFit((known) =>
-        known?.scale === scale && known.height === shown ? known : { height: shown, scale },
-      );
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(outer);
-    observer.observe(frame);
-    return () => observer.disconnect();
-  }, [frameRef]);
-  return (
-    <div ref={box} {...stylex.props(styles.scaledBox, fit && styles.height(`${fit.height}px`))}>
-      <iframe
-        ref={frameRef}
-        sandbox={SANDBOX}
-        src={src}
-        title={title}
-        {...stylex.props(
-          styles.frame,
-          styles.desktop,
-          height !== undefined && styles.height(`${height}px`),
-          fit ? styles.scale(`scale(${fit.scale})`) : styles.hidden,
-        )}
-      />
-    </div>
-  );
-}
-
-/**
- * Whether the frames' box holds the phone's frame, its padding, and the gap before the desktop's:
- * a box narrower than the screen, as a pane's, may not.
- */
-function useRoomForBoth(box: RefObject<HTMLDivElement | null>) {
-  const [room, setRoom] = useState(true);
-  useLayoutEffect(() => {
-    const outer = box.current;
-    if (!outer) {
-      return;
-    }
-    const measure = () => {
-      const style = getComputedStyle(outer);
-      const need = [
-        style.getPropertyValue("--size-story-phone"),
-        style.paddingLeft,
-        style.paddingRight,
-        style.columnGap,
-      ].reduce((sum, value) => sum + (Number.parseFloat(value) || 0), 0);
-      setRoom(outer.clientWidth >= need);
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(outer);
-    return () => observer.disconnect();
-  }, [box]);
-  return room;
-}
-
-/**
- * The story's frames: the widths chosen on wide screens, the phone's alone on narrow ones, and in
- * place of both in a box too narrow for them.
- */
-function StoryFrames({
-  label,
-  src,
-  wide,
-  widths,
-}: {
-  label: string;
-  src: string;
-  wide: boolean;
-  widths: Widths;
-}) {
-  const { desktop, heights, phone } = useFrames();
-  const box = useRef<HTMLDivElement>(null);
-  const room = useRoomForBoth(box);
-  const shown = widths === "both" && !room ? "phone" : widths;
-  return (
-    <div ref={box} {...stylex.props(styles.frames, !wide && styles.framesNarrow)}>
-      {(!wide || shown !== "desktop") && (
-        <iframe
-          ref={phone}
-          sandbox={SANDBOX}
-          src={src}
-          title={`${label}, phone`}
-          {...stylex.props(
-            styles.frame,
-            wide ? styles.phone : styles.phoneNarrow,
-            heights.phone !== undefined && styles.height(`${heights.phone}px`),
-          )}
-        />
-      )}
-      {wide && shown !== "phone" && (
-        <DesktopFrame
-          frameRef={desktop}
-          height={heights.desktop}
-          src={src}
-          title={`${label}, desktop`}
-        />
-      )}
-    </div>
-  );
-}
 
 /** "Open in Storybook", at a page of Uraeda's: a named icon on narrow screens. */
 function OpenInStorybook({ href, wide }: { href: string; wide: boolean }) {
