@@ -1287,24 +1287,43 @@ git commit -m "feat(add-scratchpad): organize notes by hand, committed with the 
 
 **Files:**
 
-- Modify: `packages/web/src/AddNote.tsx`, `crates/core/src/actions/attach.rs` (`retarget` rewrites
-  `INBOX.md` links too)
-- Test: `crates/core/tests/attach.rs`, `packages/web/src/__browser__/inbox.test.tsx`
+- Modify: `packages/web/src/AddNote.tsx`, `SidebarAdd.tsx`, `InboxPage.tsx`,
+  `attach/AttachButton.tsx`, `crates/core/src/actions/attach.rs` (`retarget` rewrites `INBOX.md`
+  links too), `actions/changes.rs`, `actions/draft.rs`, `actions/inbox.rs`, `actions/inbox/undo.rs`,
+  `files/proposal.rs`, `api/inbox_edits.rs`, the binding's `inbox_writes.rs`, and the server's
+  `fate/inbox-mutations.ts`
+- Create: `packages/web/src/NoteImage.tsx`
+- Test: `crates/core/tests/attach.rs`, `crates/core/tests/inbox_images.rs`,
+  `packages/web/src/__browser__/inbox.test.tsx`, `packages/web/src/__tests__/inbox.test.tsx`
 
 **Interfaces:**
 
-- Consumes: `inbox.addAsDraft` (task 6), and `useAttach({ path })` and `AttachButton`.
-- Produces: `retarget` covers `specs/INBOX.md`.
+- Consumes: `inbox.addAsDraft` (task 6), and `useAttach({ path })` and `AttachButton`, which takes a
+  `text` to show.
+- Produces (ruling R21):
+  - `retarget` covers `specs/INBOX.md`, and puts both lists back when a write fails;
+  - `api::link_note_image(repo, draft, link, previous)`, the image's link at the end of the draft's
+    What, and `api::undo_note_as_draft(repo, lines) -> Result<Inbox>`; the binding's `linkNoteImage`
+    and `undoNoteAsDraft`; the mutations `inbox.linkImage { draft, hash, link }`, which returns the
+    `Draft`, and `inbox.undoAsDraft { lines }`, which returns the `Inbox`;
+  - `files::proposal::image_file` and `added_images`, and `actions::draft::remove_written`, which
+    Discard and the Undo share: a draft a move wrote goes with its images and folder while it holds
+    only what the move wrote and a note's images;
+  - `changes::commit` holds a draft folder's linked images;
+  - in the web UI, `NoteImage.tsx`'s `PickedImage`, `usePickedImage`, `useAddAsDraft`,
+    `noteOfDraft`, and `undoAsDraft`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - **Core, review focus 7:** attaching an image to a draft linked from `INBOX.md` rewrites the note's
   link to `drafts/<slug>/proposal.md`.
-- **Browser, US6 1 and 2:** attach `fixtureImage("screenshot.png")`. The button reads "Add as a
-  draft", and the line "With an image, the note is saved as a draft, linked from the inbox." shows.
-  After Add:
-  - `readRepo("specs/drafts/the-spec-pages-headings-are-body-sized/proposal.md")` holds
-    `![spec-headings](images/spec-headings.webp)`;
+- **Core, US6 2 and R14:** the draft holds the note, then the image's link; Commit holds the image;
+  Discard and Undo delete an untouched draft with its image, and keep one typed in.
+- **Browser, US6 1 and 2:** attach `image("phone.png", "spec-headings.png")`. The button reads "Add
+  as a draft", and the line "With an image, the note is saved as a draft, linked from the inbox."
+  shows. After Add:
+  - `readRepo("specs/drafts/the-spec-page-s-headings-are-body-sized/proposal.md")` holds
+    `![spec-headings](images/spec-headings.webp)` (the slug's rule is ruling R21's);
   - `INBOX.md` holds the linked note under `## UI`;
   - the toast reads "Added to the inbox as a draft, not committed".
 - **US6 3:** moving the linked note to Next keeps the link.
@@ -1315,24 +1334,25 @@ The break each test catches:
 - A dangling link after the folder move.
 - The image uploaded before the draft exists.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo nextest run -p uraeda-core --test attach`
 - Expected: FAIL, the note still links `drafts/<slug>.md`
 
-- [ ] **Step 3: Implement `retarget` for `INBOX.md`, and the image in `AddNote`**
+- [x] **Step 3: Implement `retarget` for `INBOX.md`, and the image in `AddNote`**
 
-`AddNote` calls `inbox.addAsDraft`, then uploads through `useAttach({ path })`.
+`AddNote` calls `inbox.addAsDraft`, then uploads through `useAttach({ path })`, then
+`inbox.linkImage`; a refused image calls `inbox.undoAsDraft` (ruling R21).
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo nextest run && vp test --project desktop packages/web/src/__browser__/inbox.test.tsx`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add crates packages/web specs/2026-10-15-add-scratchpad/plan.md
+git add crates packages/web packages/server packages/binding specs/2026-10-15-add-scratchpad
 git commit -m "feat(add-scratchpad): a note with an image becomes a linked draft"
 ```
 

@@ -132,6 +132,12 @@ export declare function insertNote(repo: string, index: number, lines: Array<str
  */
 export declare function insertPriority(repo: string, section: string, index: number, lines: Array<string>, previous: string): Promise<Priorities>
 
+/**
+ * Links an image attached to the draft a note was added as, `link` as the attach gave it, at the
+ * end of the draft's `## What`, over the draft as read at `previous`.
+ */
+export declare function linkNoteImage(repo: string, draft: string, link: string, previous: string): Promise<void>
+
 /** The main checkout's path, from any of the repository's working trees. */
 export declare function mainRoot(repo: string): Promise<string>
 
@@ -279,6 +285,12 @@ export declare function submitAnswers(repo: string, folder: string, name?: strin
  * hash `previous`.
  */
 export declare function submitTriage(repo: string, previous: string): Promise<FileView>
+
+/**
+ * Takes back a note added as a draft: the note, found by its lines, leaves the inbox, and its
+ * draft goes with it, image included, unless a commit has it or the human typed in it.
+ */
+export declare function undoNoteAsDraft(repo: string, lines: Array<string>): Promise<Inbox>
 
 /**
  * Takes back a note's move to another category, in one write: the note, found by its lines,

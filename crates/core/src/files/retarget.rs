@@ -1,11 +1,11 @@
-//! The links of `PRIORITIES.md` to a draft that moved, as it becomes a folder.
+//! The links of `PRIORITIES.md` and `INBOX.md` to a draft that moved, as it becomes a folder.
 
 use pulldown_cmark::{Event, LinkType, Parser, Tag, TagEnd};
 
-/// Points every link of `PRIORITIES.md` to the file `from` at `to` instead, both paths from the top
-/// level, `to` under the folder holding `from`: inline links and reference definitions, anywhere in
-/// the file. Only each destination's path changes: its `<…>`, its anchor, its title, and the rest of
-/// the text stay as written.
+/// Points every link of `PRIORITIES.md` or `INBOX.md` to the file `from` at `to` instead, both
+/// paths from the top level, `to` under the folder holding `from`: inline links and reference
+/// definitions, anywhere in the file. Only each destination's path changes: its `<…>`, its anchor,
+/// its title, and the rest of the text stay as written.
 pub fn retarget(text: &str, from: &str, to: &str) -> String {
     let Some((folder, file)) = from.rsplit_once('/') else {
         return text.to_string();
@@ -64,7 +64,7 @@ pub fn retarget(text: &str, from: &str, to: &str) -> String {
     edited
 }
 
-/// Whether a link's destination, written in `specs/PRIORITIES.md`, is the file `path`.
+/// Whether a link's destination, written in a file of `specs/`, is the file `path`.
 fn links_to(destination: &str, path: &str) -> bool {
     crate::workspace::resolve("specs", destination).as_deref() == Some(path)
 }

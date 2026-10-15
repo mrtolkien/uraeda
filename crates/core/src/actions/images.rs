@@ -106,7 +106,7 @@ fn prune(root: &Path, dir: &str, linked: &Linked) -> std::io::Result<()> {
 
 /// Whether `<folder>/images` is that folder itself, not reached through a symbolic link: files are
 /// never deleted elsewhere.
-fn in_place(root: &Path, images: &str) -> bool {
+pub(crate) fn in_place(root: &Path, images: &str) -> bool {
     let (Ok(root), Ok(found)) = (fs::canonicalize(root), fs::canonicalize(root.join(images)))
     else {
         return false;

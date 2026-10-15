@@ -95,6 +95,19 @@ export const inboxMutations = {
       ),
     type: "Inbox",
   },
+  "inbox.linkImage": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ draft: string; hash: string; link: string }>) => {
+      await refusable(() =>
+        ctx.binding.linkNoteImage(ctx.repo, input.draft, input.link, input.hash),
+      );
+      return draft(ctx, await ctx.binding.readText(ctx.repo, input.draft), select);
+    },
+    type: "Draft",
+  },
   "inbox.remove": {
     resolve: async ({ ctx, input, select }: Resolver<NoteInput>) =>
       inbox(
@@ -139,6 +152,11 @@ export const inboxMutations = {
       );
       return inbox(ctx, await ctx.binding.readInbox(ctx.repo), select);
     },
+    type: "Inbox",
+  },
+  "inbox.undoAsDraft": {
+    resolve: async ({ ctx, input, select }: Resolver<{ lines: Array<string> }>) =>
+      inbox(ctx, await refusable(() => ctx.binding.undoNoteAsDraft(ctx.repo, input.lines)), select),
     type: "Inbox",
   },
   "inbox.undoCategory": {

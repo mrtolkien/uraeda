@@ -153,3 +153,32 @@ pub fn without_item(text: &str, markdown: &str) -> Option<String> {
     })
     .ok()
 }
+
+/// The file name of the image a line links, when the line is only an image of the `images/`
+/// folder beside the file, `![alt](images/name.webp)`, as an attached image's link is written.
+pub fn image_file(line: &str) -> Option<&str> {
+    let inner = line.trim_end().strip_prefix("![")?.strip_suffix(')')?;
+    let (_, name) = inner.rsplit_once("](images/")?;
+    let plain = !name.is_empty()
+        && !name.starts_with('.')
+        && !name.contains(['/', '\\', ' ', '(', ')', '<', '>']);
+    plain.then_some(name)
+}
+
+/// The images of a draft a move wrote as `written`, when its text is `written` with only lines of
+/// images added at the end of its `## What`, as a note's image adds them: their file names, none
+/// when the text is `written` itself. `None` once anything else changed.
+pub fn added_images<'a>(text: &'a str, written: &str) -> Option<Vec<&'a str>> {
+    let images: Vec<&str> = text
+        .lines()
+        .filter(|line| image_file(line).is_some())
+        .collect();
+    let expected = match images.as_slice() {
+        [] => written.to_string(),
+        lines => {
+            let lines: Vec<String> = lines.iter().map(|line| line.to_string()).collect();
+            append_to_what(written, &lines)?
+        }
+    };
+    (expected == text).then(|| images.into_iter().filter_map(image_file).collect())
+}

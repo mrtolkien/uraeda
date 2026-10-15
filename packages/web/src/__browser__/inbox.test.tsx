@@ -5,7 +5,7 @@ import { screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 import { commands as browserCommands, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
-import { atRepo, atSize, checkLayout, drawn, show } from "./helpers.tsx";
+import { atRepo, atSize, carrying, checkLayout, drawn, image, show } from "./helpers.tsx";
 
 const commands = browserCommands as unknown as RepoCommands;
 
@@ -120,6 +120,113 @@ test("three taps from the inbox move a note to Next", async () => {
 test("a note's view passes the layout checks", async () => {
   await show("/inbox/in-failures-the-x-is-not-centered-in-the-circle", "Note, in UI");
   await checkLayout();
+});
+
+const NOTE = "The spec page's headings are body-sized";
+/** `slug::from_text`'s rule, as `ura draft` names drafts: the apostrophe is a hyphen. */
+const SLUG = "the-spec-page-s-headings-are-body-sized";
+const DRAFT = `specs/drafts/${SLUG}/proposal.md`;
+
+/** Picks an image with "Attach an image", as the system's picker gives it. */
+function attachImage(form: HTMLElement, file: File) {
+  const input = within(form).getByLabelText("Attach an image", {
+    selector: "input",
+  }) as HTMLInputElement;
+  input.files = carrying([file]).files;
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+/** Types a note in the open form, tapping its field first, as the phone's sheet asks. */
+async function typeNote(form: HTMLElement, text: string) {
+  await userEvent.click(within(form).getByPlaceholderText("What did you notice?"));
+  await userEvent.keyboard(text);
+}
+
+/**
+ * US6 1 and 2, and the attachments decision: with an image, the button says the note becomes a
+ * draft; the draft holds the note and the image, re-encoded in its `images/`, and the inbox links
+ * it under UI.
+ */
+test("a note with an image is added as a draft that holds it, linked from the inbox", async () => {
+  await show("/inbox", "10 notes");
+  const form = await openForm();
+  await typeNote(form, NOTE);
+  await userEvent.click(within(form).getByRole("combobox", { name: "Category" }));
+  await userEvent.click(await screen.findByRole("option", { name: "UI" }));
+
+  attachImage(form, await image("phone.png", "spec-headings.png"));
+
+  expect(await within(form).findByText("spec-headings.png")).toBeTruthy();
+  expect(
+    within(form).getByText("With an image, the note is saved as a draft, linked from the inbox."),
+  ).toBeTruthy();
+  expect(within(form).queryByRole("button", { name: "Add" })).toBeNull();
+  await checkLayout(form);
+  await userEvent.click(within(form).getByRole("button", { name: "Add as a draft" }));
+
+  expect(await screen.findByText("Added to the inbox as a draft, not committed")).toBeTruthy();
+  await expect
+    .poll(() => commands.readRepo(DRAFT))
+    .toContain(`## What\n\n${NOTE}\n\n![spec-headings](images/spec-headings.webp)\n\n## Why`);
+  expect(
+    await commands.repoFileSize(`specs/drafts/${SLUG}/images/spec-headings.webp`),
+  ).toBeGreaterThan(0);
+  expect(await commands.readRepo(PATH)).toContain(
+    `- Text input feels laggy on the sessions page\n- [${NOTE}](drafts/${SLUG}/proposal.md)\n\n## CLI`,
+  );
+  await expect.poll(() => screen.queryByRole("dialog", { name: "Add a note" })).toBeNull();
+});
+
+/** US6 3: the linked note, moved to Next, keeps its link there, as an entry linking a draft does. */
+test("a note linking a draft keeps its link once moved to Next", async () => {
+  const inbox = await commands.readRepo(PATH);
+  await commands.writeRepo(`# ${NOTE}\n\n## What\n\n${NOTE}\n`, DRAFT);
+  const laggy = "- Text input feels laggy on the sessions page\n";
+  await commands.writeRepo(
+    inbox.replace(laggy, `${laggy}- [${NOTE}](drafts/${SLUG}/proposal.md)\n`),
+    PATH,
+  );
+  await show("/inbox", "11 notes");
+
+  // The row is the note's one link: its draft's link does not nest in it.
+  await userEvent.click(screen.getByRole("link", { name: new RegExp(NOTE) }));
+  await userEvent.click(await screen.findByRole("button", { name: "Move to priorities" }));
+  await userEvent.click(
+    await screen.findByRole(narrow() ? "button" : "menuitem", { name: "Next" }),
+  );
+
+  await expect
+    .poll(() => commands.readRepo("specs/PRIORITIES.md"))
+    .toContain(`- [${NOTE}](drafts/${SLUG}/proposal.md)\n\n## Later`);
+  await expect.poll(() => window.location.pathname).toBe(atRepo("/inbox"));
+});
+
+/**
+ * An image the core refuses: the form shows the core's message, as image attachments do, and the
+ * note keeps its text; nothing is left in the inbox or the drafts.
+ */
+test("an image the core refuses shows its message, and the note keeps its text", async () => {
+  const inbox = await commands.readRepo(PATH);
+  await show("/inbox", "10 notes");
+  const form = await openForm();
+  await typeNote(form, "Headings are flat");
+
+  attachImage(form, await image("drawing.svg", "diagram.svg"));
+  await userEvent.click(within(form).getByRole("button", { name: "Add as a draft" }));
+
+  expect(
+    await within(form).findByText(
+      "Only PNG, JPEG, GIF, and WebP images can be added: diagram.svg is not one.",
+    ),
+  ).toBeTruthy();
+  expect(within(form).getByPlaceholderText("What did you notice?")).toHaveProperty(
+    "value",
+    "Headings are flat",
+  );
+  await expect.poll(() => commands.readRepo(PATH)).toBe(inbox);
+  // The core takes the note out, then its draft.
+  await expect.poll(() => commands.repoFileSize("specs/drafts/headings-are-flat.md")).toBe(-1);
+  expect(await commands.repoFileSize("specs/drafts/headings-are-flat")).toBe(-1);
 });
 
 /**
