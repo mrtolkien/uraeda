@@ -2,7 +2,7 @@
 // Inbox group; and the sidebar's ＋ next to Priorities, which replaces the top bar's. Adding with
 // Enter, and the form as a dialog or a sheet, are tested in the browser
 // (__browser__/inbox.test.tsx).
-import { writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
@@ -11,6 +11,7 @@ import {
   atRepo,
   atWidth,
   click,
+  fixture,
   fixtureRepo,
   git,
   quiet,
@@ -174,6 +175,63 @@ test("the form keeps its text when closed, and Cancel asks first", async () => {
   const confirm = await screen.findByRole("dialog", { name: "Discard your changes?" });
   await click(within(confirm).getByRole("button", { name: "Discard" }));
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add a note" })).toBeNull());
+});
+
+/** Picks an image with "Attach an image", as the system's picker gives it. */
+async function attachImage(form: ReturnType<typeof within>, name = "spec-headings.png") {
+  const bytes = readFileSync(fixture("images/phone.png"));
+  const input = form.getByLabelText("Attach an image", { selector: "input" });
+  await act(async () => {
+    fireEvent.change(input, {
+      target: { files: [new File([bytes], name, { type: "image/png" })] },
+    });
+  });
+}
+
+/**
+ * Ruling R21: the image waits for Add as the text does, kept as the form closes and opens again;
+ * Remove drops it, and Cancel asks first, then drops it.
+ */
+test("the form keeps its image when closed, Remove drops it, and Cancel asks first", async () => {
+  await renderPage("/inbox");
+  let form = await openForm();
+  await attachImage(form);
+  expect(form.getByRole("button", { name: "Add as a draft" })).toBeTruthy();
+
+  await click(form.getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add a note" })).toBeNull());
+  form = await openForm();
+  expect(form.getByText("spec-headings.png")).toBeTruthy();
+  await click(form.getByRole("button", { name: "Remove spec-headings.png" }));
+  expect(form.queryByText("spec-headings.png")).toBeNull();
+  expect(form.getByRole("button", { name: "Add" })).toBeTruthy();
+
+  await attachImage(form);
+  await click(form.getByRole("button", { name: "Cancel" }));
+  const confirm = await screen.findByRole("dialog", { name: "Discard your changes?" });
+  await click(within(confirm).getByRole("button", { name: "Discard" }));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add a note" })).toBeNull());
+  form = await openForm();
+  expect(form.queryByText("spec-headings.png")).toBeNull();
+});
+
+/** US6, and the UI behaviour decision's Undo: it takes the note back out, with its draft. */
+test("Undo of a note added with an image takes it back out, with its draft", async () => {
+  const { repo } = await renderPage("/inbox");
+  const before = read(repo, PATH);
+  const form = await openForm();
+  await type(form.getByPlaceholderText("What did you notice?"), "Headings are flat");
+  await attachImage(form);
+  await click(form.getByRole("button", { name: "Add as a draft" }));
+  await toast("Added to the inbox as a draft, not committed");
+  expect(read(repo, "specs/drafts/headings-are-flat/proposal.md")).toContain(
+    "Headings are flat\n\n![spec-headings](images/spec-headings.webp)\n",
+  );
+
+  await click(screen.getByRole("button", { name: "Undo" }));
+
+  await waitFor(() => expect(read(repo, PATH)).toBe(before));
+  await waitFor(() => expect(existsSync(join(repo, "specs/drafts/headings-are-flat"))).toBe(false));
 });
 
 /** US3 1, 2, 3: Home's Inbox group, and its plural. */

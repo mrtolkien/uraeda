@@ -42,7 +42,8 @@ function Note({ isSelected, note }: { isSelected: boolean; note: InboxNote }) {
         <HStack align="center" gap={1} wrap="wrap">
           <Marks note={note} />
           <span>
-            <Spans spans={note.spans} />
+            {/* The row is one link: a link of its text, like a note's draft, would nest in it. */}
+            <Spans spans={note.spans.map(({ link: _, ...span }) => span)} />
           </span>
         </HStack>
       }

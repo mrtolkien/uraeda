@@ -7,6 +7,7 @@ import { createContext, type ReactNode, Suspense, useContext, useState } from "r
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { AddNote } from "./AddNote.tsx";
+import { noteOfDraft, undoAsDraft, usePickedImage } from "./NoteImage.tsx";
 import { readInbox, readPriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { Overlay } from "./layout/Overlay.tsx";
@@ -96,44 +97,66 @@ function PriorityOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   );
 }
 
+/** Undo of the note just added: it leaves the inbox, found by its lines wherever it is now. */
+async function undoAdd(fate: ReturnType<typeof useFateClient>, note: InboxNote | undefined) {
+  const now = await readInbox(fate);
+  const lines = note?.lines.join("\n");
+  const same = now.categories
+    .flatMap((category) => category.notes)
+    .filter((one) => one.lines.join("\n") === lines);
+  const found = same.find((one) => one.key === note?.key) ?? (same.length === 1 ? same[0] : null);
+  if (!note || !found) {
+    return `Could not undo: "${note?.text ?? ""}" is no longer in INBOX.md.`;
+  }
+  const result = await fate.mutations.inbox.remove({
+    input: { hash: now.hash, note: found.id },
+    view: InboxView,
+  });
+  return result.error ? refusal(result.error).message : undefined;
+}
+
 /**
  * The inbox's form, "Add a note": a toast says the note was added, with Undo, which removes the
- * note it added, found by its lines wherever it is now. On a feature's or a bug's pages, the note is
- * about it.
+ * note it added, found by its lines wherever it is now; a note added as a draft goes with its
+ * draft, unless the human typed in it. On a feature's or a bug's pages, the note is about it. The
+ * image picked for a note is held here, so that the form gets it back as it opens again, until it
+ * is added, removed, or cancelled (ruling R21).
  */
 function NoteOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const fate = useFateClient();
   const toast = useUndoToast();
   const { route } = useRoute();
+  const [image, setImage] = usePickedImage();
   // A feature's or a bug's folder starts with its date: another `/f/<name>` is about nothing.
   const about =
     "folder" in route && /^\d{4}-\d{2}-\d{2}-./.test(route.folder) ? route.folder : undefined;
 
-  const added = (note: InboxNote | undefined) => {
+  const added = (note: InboxNote | undefined, draft?: string) => {
     onClose();
-    toast("Added to the inbox, not committed", async () => {
-      const now = await readInbox(fate);
-      const lines = note?.lines.join("\n");
-      const same = now.categories
-        .flatMap((category) => category.notes)
-        .filter((one) => one.lines.join("\n") === lines);
-      const found =
-        same.find((one) => one.key === note?.key) ?? (same.length === 1 ? same[0] : null);
-      if (!note || !found) {
-        return `Could not undo: "${note?.text ?? ""}" is no longer in INBOX.md.`;
-      }
-      const result = await fate.mutations.inbox.remove({
-        input: { hash: now.hash, note: found.id },
-        view: InboxView,
-      });
-      return result.error ? refusal(result.error).message : undefined;
+    if (draft === undefined) {
+      toast("Added to the inbox, not committed", () => undoAdd(fate, note));
+      return;
+    }
+    setImage(undefined);
+    toast("Added to the inbox as a draft, not committed", async () => {
+      // The note as it is now, wherever it went: Undo refuses once it changed.
+      const now = (await noteOfDraft(fate, draft)) ?? note;
+      return now
+        ? undoAsDraft(fate, now)
+        : `Could not undo: "${note?.text ?? ""}" is no longer in INBOX.md.`;
     });
   };
 
   return (
     <Overlay isOpen={isOpen} label="Add a note" onClose={onClose} sheetHeight="hug">
       <Suspense fallback={<Spinner label="Loading the inbox" />}>
-        <AddNote about={about} onAdded={added} onCancel={onClose} />
+        <AddNote
+          about={about}
+          image={image}
+          onAdded={added}
+          onCancel={onClose}
+          onImage={setImage}
+        />
       </Suspense>
     </Overlay>
   );

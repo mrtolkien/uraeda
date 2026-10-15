@@ -263,3 +263,20 @@ pub fn undo_note_category(
     edits::undo_category(&place, lines, category.as_deref(), index as usize)?;
     Ok(edits::read(&place))
 }
+
+/// Links an image attached to the draft a note was added as, `link` as the attach gave it, at the
+/// end of the draft's `## What`, over the draft as read at `previous`.
+pub fn link_note_image(repo: &Path, draft: &str, link: &str, previous: &str) -> Result<()> {
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    Ok(edits::link_image(&place, draft, link, previous)?)
+}
+
+/// Takes back a note added as a draft: the note, found by its lines as written, leaves the inbox,
+/// and its draft goes with it, image included, unless a commit has it or the human typed in it.
+pub fn undo_note_as_draft(repo: &Path, lines: &[String]) -> Result<Inbox> {
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    edits::undo_as_draft(&place, lines)?;
+    Ok(edits::read(&place))
+}

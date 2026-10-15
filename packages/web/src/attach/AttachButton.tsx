@@ -10,6 +10,7 @@ const ACCEPT = "image/png,image/jpeg,image/gif,image/webp";
  * phones its photos and camera, and hands the picked files over. Icon only where the space is
  * short, like the composer's bar. `name` tells the button apart where a page has several, as
  * "Add image to the notes": it starts with what the button shows, which stays "Add image".
+ * `text` replaces what it shows, as the add form's "Attach an image".
  */
 export function AttachButton({
   isDisabled = false,
@@ -17,15 +18,17 @@ export function AttachButton({
   multiple = false,
   name,
   onFiles,
+  text,
 }: {
   isDisabled?: boolean;
   isIconOnly?: boolean;
   multiple?: boolean;
   name?: string;
   onFiles: (files: Array<File>) => void;
+  text?: string;
 }) {
   const input = useRef<HTMLInputElement>(null);
-  const shown = multiple ? "Add images" : "Add image";
+  const shown = text ?? (multiple ? "Add images" : "Add image");
   const label = name ?? shown;
   const picker = (
     // oxlint-disable-next-line react/forbid-elements -- the system's file picker behind a button: Astryx's FileInput is a visible field (an Astryx gap, see the plan)

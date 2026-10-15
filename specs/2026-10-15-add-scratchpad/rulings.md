@@ -492,3 +492,53 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `App.tsx`; `crates/core/src/actions/inbox/undo.rs`, `actions/changes.rs`, `api/inbox_edits.rs`,
   `files/inbox/found.rs`, `files/priorities.rs`, `files/proposal.rs`, `files/lines.rs`; the
   binding's `inbox_writes.rs`; the server's `fate/inbox-mutations.ts`
+
+## R21: A note with an image: the core links it, a refusal leaves nothing, and the image waits for Add
+
+- **Decision**:
+  - A draft made from a note takes the slug of `slug::from_text`, as `ura draft` does: "The spec
+    page's headings are body-sized" is `the-spec-page-s-headings-are-body-sized`. The spec's US6
+    path, `the-spec-pages-...`, is illustrative; the tests use the real slug.
+  - "Add as a draft" calls `inbox.addAsDraft`, then the existing `/attach` upload to the draft it
+    wrote, which makes it a folder and rewrites the inbox's link (review focus 7), then
+    `inbox.linkImage { draft, hash, link }`: the core puts the image's link on a line of its own at
+    the end of the draft's What, through `proposal::append_to_what`, over the draft as read, and
+    only for an image saved in that draft's own `images/`. The web UI places no link in a draft's
+    markdown.
+  - An image the core refuses takes the note and its draft back out, through `inbox.undoAsDraft`:
+    the form shows the core's message under the image, as image attachments do, keeps the text, and
+    the inbox and the drafts are as before. The toast's Undo makes the same call.
+  - `inbox.undoAsDraft { lines }` removes the note found by its lines, and its draft while no commit
+    has it and it holds only what the add wrote, with at most a note's images. Discard deletes such
+    a draft the same way, through `draft::remove_written`: the draft's file, the images its added
+    lines link, then its `images/` and its folder once empty. A draft typed in is kept, its images
+    with it (ruling R14).
+  - The commit bar's Commit holds a draft folder's linked images, those no file of the folder links
+    deleted, as a draft's own commit does.
+  - The picked image waits for Add, as the text does: the form's overlay holds it in memory, so it
+    is shown again as the form opens again, until Add, Remove, or a confirmed Cancel; it counts as a
+    change for Cancel's "Discard your changes?". It is lost on a reload. The UI behaviour decision's
+    "Adding an image to a field MAY save that field at once" is not used: saving it would make the
+    draft, which "Add as a draft" decides, and Cancel could no longer leave nothing behind.
+  - The image's row shows a decorative thumbnail, its name, and "Remove", whose name is "Remove
+    <name>". "Attach an image" is `AttachButton` with a `text` that replaces its "Add image".
+  - An inbox row draws its note's text without its links: the row is one link, and a draft's link
+    nested in it took the tap on the phone. The note's view still shows the link.
+  - `retarget` puts `PRIORITIES.md` back when the write of `INBOX.md` fails, so neither list links a
+    path that does not exist.
+- **Rationale**: The plan names the upload but not where the image's link goes, and the spec puts it
+  right after the What paragraph: a rule about a proposal's markdown, which the stack decision puts
+  in the core. Creating the draft before the upload is R4's order, so a refusal must undo the add
+  for the human to find nothing changed. A `File` is not text the browser's unsaved store keeps.
+- **Alternatives considered**: Inserting the link in the web UI and saving the draft with
+  `text.save`, which needs the UI to find the What paragraph in the markdown. One mutation taking
+  the note and the image's bytes, R4's rejected alternative. Leaving a text-only draft after a
+  refused image, which R4's "If wrong" accepted: the human would find a draft and a note they did
+  not mean to add. Keeping the image in the browser's storage, as large as 20 MB.
+- **If wrong**: `link_note_image` and `undo_note_as_draft` are a few lines each over existing
+  operations; the pending image is local to `NoteOverlay`.
+- **Where**: task 11, `crates/core/src/actions/attach.rs`, `actions/changes.rs`, `actions/draft.rs`,
+  `actions/inbox.rs`, `actions/inbox/undo.rs`, `files/proposal.rs`, `files/retarget.rs`,
+  `api/inbox_edits.rs`; the binding's `inbox_writes.rs`; the server's `fate/inbox-mutations.ts`;
+  `packages/web/src/AddNote.tsx`, `NoteImage.tsx`, `SidebarAdd.tsx`, `InboxPage.tsx`,
+  `attach/AttachButton.tsx`

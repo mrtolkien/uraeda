@@ -12,7 +12,7 @@ use crate::git::Git;
 
 use super::place::{self, Place};
 use super::priorities::{describe, line, short};
-use super::{ActionError, Change, Committed, commit};
+use super::{ActionError, Change, Committed, commit, images};
 
 const INBOX: &str = super::inbox::PATH;
 const PRIORITIES: &str = super::priorities::PATH;
@@ -369,8 +369,8 @@ pub fn message(place: &Place) -> (String, Option<String>) {
     message_of(&gather(place))
 }
 
-/// Commits `INBOX.md`, `PRIORITIES.md`, and the drafts notes went into, with a message naming
-/// their changes.
+/// Commits `INBOX.md`, `PRIORITIES.md`, and the drafts notes went into, a draft folder with its
+/// images, with a message naming their changes.
 pub fn commit(place: &Place) -> Result<Committed, ActionError> {
     let listed = gather(place);
     if listed.paths.is_empty() {
@@ -379,18 +379,34 @@ pub fn commit(place: &Place) -> Result<Committed, ActionError> {
         ));
     }
     let (subject, body) = message_of(&listed);
-    let change = Change {
-        paths: listed.paths,
-        subject,
-        body,
-    };
-    place::ensure_only_staged(place, &change.paths)?;
-    commit::commit(place, &change)
+    // A draft folder's images go with it, as the attachments decision says: those its files link,
+    // the others deleted, once the staged files are checked.
+    let folders: Vec<&str> = listed
+        .paths
+        .iter()
+        .filter_map(|path| path.strip_suffix("/proposal.md"))
+        .collect();
+    let mut candidates = listed.paths.clone();
+    candidates.extend(folders.iter().map(|folder| images::images_folder(folder)));
+    place::ensure_only_staged(place, &candidates)?;
+    let mut paths = listed.paths.clone();
+    for folder in folders {
+        paths.extend(images::linked_images(place, folder)?);
+    }
+    commit::commit(
+        place,
+        &Change {
+            paths,
+            subject,
+            body,
+        },
+    )
 }
 
 /// Restores the committed `INBOX.md` and `PRIORITIES.md`, staged edits included, deleting one that
 /// no commit has. A draft is never lost: one a move wrote and nobody committed is deleted only while
-/// it holds what the move wrote, and one a note was added to loses that note's lines only.
+/// it holds what the move wrote, with at most a note's images, which go with it, and one a note was
+/// added to loses that note's lines only.
 pub fn discard(place: &Place) -> Result<(), ActionError> {
     let listed = gather(place);
     let git = Git::open(&place.root)?;
@@ -404,10 +420,7 @@ pub fn discard(place: &Place) -> Result<(), ActionError> {
     for undo in listed.undo {
         match undo {
             Undo::Created { path, written } => {
-                let file = place.root.join(&path);
-                if fs::read_to_string(&file).is_ok_and(|text| text == written) {
-                    fs::remove_file(file)?;
-                }
+                super::draft::remove_written(place, &path, &written)?;
             }
             Undo::Grown { path, markdown } => {
                 let file = place.root.join(&path);
