@@ -1,12 +1,28 @@
 ---
-status: approved
-revision: 2
-clarifications: 2
+status: awaiting-human
+revision: 3
+clarifications: 3
 risk-tier: high
 plan-review: false
 ---
 
 # Spec: UI iteration flow
+
+> [!IMPORTANT]
+>
+> Spec to review again, about 10 minutes.
+>
+> - **Round 03 answered C.** The preview paths keep their approved `Origin` rule until basic
+>   security. Until then, any website open in your browser can read a running preview's code and use
+>   Storybook's channel. The spec now says so, and the
+>   [basic security draft](/specs/drafts/basic-security.md) holds the hole and the fix considered.
+> - **A changed decision, stack.** Its consequence "Anyone who reaches the server reaches the
+>   previews" becomes "any website open in the human's browser", as found. Its rules do not change.
+> - **The review's other proxy findings** are in the details, as settled in round 03: upgrades only
+>   as WebSocket GETs, no cookies or site-data clearing from Storybook, no `Connection`-named
+>   headers, a guard pattern that needs a folder, headers on the proxy's own answers, and a
+>   Storybook failed as soon as it exits.
+> - **Tasks 1 to 6 are built.** The plan is revised after your approval, then the build goes on.
 
 > [!NOTE]
 >
@@ -64,8 +80,8 @@ on an element you pick inside it. A visual question offers variants as stories, 
 is the code that ships. Every project with a UI gets a Storybook, Uraeda's own included, with
 stories fed by its real server. This answers the proposal's complaint that HTML mockups end up "far
 from the actual results". See the [proposal](proposal.md), the discoveries [01](discovery-01.md) and
-[02](discovery-02.md), and the clarifications [01](clarifications-01.md) and
-[02](clarifications-02.md).
+[02](discovery-02.md), and [03](discovery-03.md), and the clarifications [01](clarifications-01.md),
+[02](clarifications-02.md), and [03](clarifications-03.md).
 
 ## User stories
 
@@ -375,8 +391,11 @@ A spike checked the forwarding:
 **Tradeoffs:**
 
 - Uraeda forwards the traffic of Storybook processes, and the `Origin` rule is laxer on their paths.
-  A story still cannot write through Uraeda, nor read anything outside its own path, until the basic
-  security that is planned in Next.
+  A story cannot write through Uraeda, nor read anything outside the preview paths. But any page can
+  send `Origin: null`, so any website open in the human's browser can read a running preview and
+  open Storybook's channel, until basic security
+  ([round 03](clarifications-03.md#q1-how-do-previews-stay-out-of-other-websites-reach),
+  [the hole](discovery-03.md#summary)).
 - The helper reaches into two Storybook internals: the channel socket's path, and two script tags. A
   Storybook upgrade may break it. Its tests run on the pinned version, and the decision pins
   Storybook.
@@ -412,7 +431,8 @@ become stories in US7.
 ## Assumptions
 
 Settled in the clarifications ([round 01](clarifications-01.md#settled-without-the-human),
-[round 02](clarifications-02.md#settled-without-the-human)):
+[round 02](clarifications-02.md#settled-without-the-human),
+[round 03](clarifications-03.md#settled-without-the-human)):
 
 - **When a question is visual**: only when seeing helps more than reading. Each one offers two to
   four distinct variants: if two could swap their text unnoticed, they are too alike. Each has a
@@ -434,11 +454,19 @@ Settled in the clarifications ([round 01](clarifications-01.md#settled-without-t
   `Question`.
 - **Before a worktree's first preview**, the project's setup runs, as the
   [git](/specs/decisions/git.md) decision asks of every worktree.
+- **The proxy's narrower edges**, from the review of its first build: an upgrade counts as a read
+  only as a GET asking for a WebSocket; Storybook's `Set-Cookie` and `Clear-Site-Data` are dropped;
+  headers named in `Connection` are removed; the guard's pattern needs a folder, shared with the
+  proxy; the proxy's own answers carry the CORS and sandbox headers; and a Storybook is failed as
+  soon as it exits.
 
 Changed by your answers since the rounds:
 
 - **Nothing new after the pull request**, besides stories in the chat: the review of the built UI,
   from round 01's Q1 and Q1.A, is left out, as your note on "After the code" says.
+- **The previews stay open to other websites until basic security**, as round 03's answer says. The
+  [basic security draft](/specs/drafts/basic-security.md) records the hole and the fix considered: a
+  random secret in every preview path.
 - **No HTML fallback for stacks without Storybook**: they get a mockups Storybook in React with
   Astryx, as round 02's Q1 answer asks. HTML stays only for projects that decline a preview.
 
@@ -513,6 +541,8 @@ Changed, applied when this spec is approved:
   forward its reads and live connections under `/r/<repository>/preview/<folder>/`. Those paths
   accept `Origin: null`, and every other route keeps the rule. The web UI embeds stories in
   sandboxed frames, accepting messages only from them. See its [rules](../decisions/stack.md#rules).
+  Its consequence on who reaches the previews now names any website open in the human's browser. See
+  its [proposed change](../decisions/stack.md#proposed-change-2026-10-15-ui-iteration).
 
 Relied on:
 
@@ -643,6 +673,7 @@ have changes.
       `URAEDA_PREVIEW_BASE` set to its path;
     - polls `index.json` every 500 ms, for up to 2 minutes;
     - keeps the last 50 lines of output, retries once on a taken port, and restarts on demand;
+    - fails a Storybook as soon as its process exits, and stops its process group;
     - stops a process group after 30 minutes without a view, when the worktree is removed, and at
       exit.
   - `preview/index.ts` (new): reads a ready Storybook's `index.json`, and matches a story link to an
@@ -650,15 +681,18 @@ have changes.
   - `preview/proxy.ts` (new), mounted at `/r/:name/preview/:folder/*`:
     - forwards GET and HEAD requests to the checkout's Storybook, without the path and with its own
       `Host`, and refuses other methods;
-    - forwards WebSocket upgrades, keeping the full path for Vite's `vite-hmr` protocol and removing
-      the path otherwise. It removes the `Origin` header, which Storybook's channel refuses as
-      `null`;
-    - adds `Access-Control-Allow-Origin: *` to every response;
+    - forwards WebSocket upgrades, only GETs asking for a WebSocket, keeping the full path for
+      Vite's `vite-hmr` protocol and removing the path otherwise. It removes the `Origin` header,
+      which Storybook's channel refuses as `null`;
+    - removes hop-by-hop headers and the headers `Connection` names, both ways, and drops
+      Storybook's `Set-Cookie` and `Clear-Site-Data`;
+    - adds `Access-Control-Allow-Origin: *` to every response, its own answers included;
     - replaces Storybook's `Content-Security-Policy` with
       `sandbox allow-scripts allow-popups; frame-ancestors 'self'`;
     - answers "Storybook is not running for this branch." with 503 when nothing runs there.
-  - [`guard.ts`](/packages/server/src/guard.ts): GET, HEAD, and upgrades under `/r/:name/preview/`
-    accept `Origin: null`. Everything else is unchanged.
+  - [`guard.ts`](/packages/server/src/guard.ts): GET, HEAD, and WebSocket upgrades under
+    `/r/:name/preview/:folder/`, a pattern shared with the proxy, accept `Origin: null`. Everything
+    else is unchanged.
   - The Node server passes upgrade requests to the proxy. The dev server's
     [`dev.ts`](/packages/server/src/dev.ts) sends `preview` paths to Hono.
   - fate: a `story` query of `{ folder, path, export }`, live, and a `preview.restart` mutation. A
@@ -751,29 +785,29 @@ fixture repository whose preview decision runs that fake preview. One validation
 like the agent's, starts Uraeda's real Storybook through the proxy and checks a story renders and
 reloads.
 
-| What                                                    | Test                                                                                          |
-| ------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| US1.1, US1.7, SC-001, starting and ready                | Browser test: open a spec with an embed; both frames; one process for two pages; ready in 2 s |
-| US1.2, US1.5                                            | Browser test: "Both", "Phone", "Desktop", and the phone's single frame and named icons        |
-| US1.3, US5.1, US5.2, US5.4                              | Browser test: "Open in Storybook" opens the Storybook page at the story                       |
-| US1.4                                                   | Browser test: the `mode` message on load and on change                                        |
-| US1.6, edge case: other workflow files                  | Browser test: an approved spec and a proposal with embeds                                     |
-| US2.1–US2.6, SC-002                                     | Browser test: pick mode in each frame, Escape, both comment texts, no pick script             |
-| US3.1, US3.2, US3.4                                     | Browser test: a round with embeds under options, a comment into the answer, a removed variant |
-| US4.1–US4.4                                             | Browser test: a session and a main-checkout chat, on the fake agent's messages                |
-| US4.5, US5.3                                            | Browser test: the "Storybook" rows                                                            |
-| US3.3, US3.5, US6.1–US6.3, US6.5                        | Checked by review of the skill, its templates, and the example: the agents' own behaviour     |
-| US6.4, the preview decision's fields                    | Core check test, table-driven: one row per field value                                        |
-| Story links, SC-003, `storyLink`, links in `## Mockups` | Core test, table-driven: one row per paragraph, link, path, and fragment                      |
-| US7.1                                                   | The validation script: Uraeda's Storybook through the proxy                                   |
-| US7.2, US7.3                                            | The `storybook:build` task in `vp run ready`                                                  |
-| SC-004, edge case: a story's own requests               | Guard test, table-driven: one row per method, path, and `Origin`                              |
-| SC-006                                                  | Browser test: the spec through `uraeda.test`                                                  |
-| The helper: base, script tags, sockets, other builders  | Test of `uraeda-preview.js`, table-driven: one row per Storybook config and variable          |
-| The proxy: path, `Host`, CORS, CSP, sockets, 503        | Server test: requests and upgrades through the proxy to the fake preview                      |
-| Edge cases: failures, 2 minutes, port, index            | Server test: the runner on fake previews that fail, hang, or serve a bad index                |
-| SC-005, edge cases: idle, server stop, `ura clean`      | Server test: the runner with a fake clock                                                     |
-| Edge cases: missing story, removed, no worktree         | Browser test: each state's text                                                               |
-| Edge case: messages from other windows                  | Browser test: a second frame posting `picked`                                                 |
-| Edge case: no preview decision, plain links             | Browser test: a story link in a list item and without an export                               |
-| Layout and axe checks                                   | The UI checks decision's runs, with a spec holding an embed and the Storybook page added      |
+| What                                                                                           | Test                                                                                          |
+| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| US1.1, US1.7, SC-001, starting and ready                                                       | Browser test: open a spec with an embed; both frames; one process for two pages; ready in 2 s |
+| US1.2, US1.5                                                                                   | Browser test: "Both", "Phone", "Desktop", and the phone's single frame and named icons        |
+| US1.3, US5.1, US5.2, US5.4                                                                     | Browser test: "Open in Storybook" opens the Storybook page at the story                       |
+| US1.4                                                                                          | Browser test: the `mode` message on load and on change                                        |
+| US1.6, edge case: other workflow files                                                         | Browser test: an approved spec and a proposal with embeds                                     |
+| US2.1–US2.6, SC-002                                                                            | Browser test: pick mode in each frame, Escape, both comment texts, no pick script             |
+| US3.1, US3.2, US3.4                                                                            | Browser test: a round with embeds under options, a comment into the answer, a removed variant |
+| US4.1–US4.4                                                                                    | Browser test: a session and a main-checkout chat, on the fake agent's messages                |
+| US4.5, US5.3                                                                                   | Browser test: the "Storybook" rows                                                            |
+| US3.3, US3.5, US6.1–US6.3, US6.5                                                               | Checked by review of the skill, its templates, and the example: the agents' own behaviour     |
+| US6.4, the preview decision's fields                                                           | Core check test, table-driven: one row per field value                                        |
+| Story links, SC-003, `storyLink`, links in `## Mockups`                                        | Core test, table-driven: one row per paragraph, link, path, and fragment                      |
+| US7.1                                                                                          | The validation script: Uraeda's Storybook through the proxy                                   |
+| US7.2, US7.3                                                                                   | The `storybook:build` task in `vp run ready`                                                  |
+| SC-004, edge case: a story's own requests                                                      | Guard test, table-driven: one row per method, path, and `Origin`                              |
+| SC-006                                                                                         | Browser test: the spec through `uraeda.test`                                                  |
+| The helper: base, script tags, sockets, other builders                                         | Test of `uraeda-preview.js`, table-driven: one row per Storybook config and variable          |
+| The proxy: path, `Host`, CORS, CSP, sockets, 503, the dropped headers, WebSocket-only upgrades | Server test: requests and upgrades through the proxy to the fake preview                      |
+| Edge cases: failures, 2 minutes, port, index                                                   | Server test: the runner on fake previews that fail, hang, or serve a bad index                |
+| SC-005, edge cases: idle, server stop, `ura clean`                                             | Server test: the runner with a fake clock                                                     |
+| Edge cases: missing story, removed, no worktree                                                | Browser test: each state's text                                                               |
+| Edge case: messages from other windows                                                         | Browser test: a second frame posting `picked`                                                 |
+| Edge case: no preview decision, plain links                                                    | Browser test: a story link in a list item and without an export                               |
+| Layout and axe checks                                                                          | The UI checks decision's runs, with a spec holding an embed and the Storybook page added      |
