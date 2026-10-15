@@ -10,7 +10,13 @@ import { handOff } from "../open-client.ts";
 import { HELP } from "../options.ts";
 import { SessionCache } from "../runner/cache.ts";
 import { readRepositories, version } from "uraeda-binding";
-import { fixtureRepo, temporaryFolder } from "uraeda-binding/test-utils";
+import {
+  addStoryFeature,
+  fixtureRepo,
+  previewStarts,
+  STORY_FEATURE,
+  temporaryFolder,
+} from "uraeda-binding/test-utils";
 
 const main = fileURLToPath(new URL("../main.ts", import.meta.url));
 
@@ -254,6 +260,60 @@ test("a handoff leaves the running server's turns in progress", async () => {
   const cache = SessionCache.open(join(data, "runner.sqlite"));
   expect(cache.turn(turn)?.state).toBe("running");
   cache.db.close();
+});
+
+/** Reads the feature's `Preview` record on the server at `port`, as a view, until it is ready. */
+async function viewUntilReady(port: number, name: string, folder: string): Promise<void> {
+  const origin = `http://127.0.0.1:${port}`;
+  await expect
+    .poll(
+      async () => {
+        const response = await fetch(`${origin}/r/${name}/fate`, {
+          body: JSON.stringify({
+            operations: [
+              { id: "1", ids: [folder], kind: "byId", select: ["state"], type: "Preview" },
+            ],
+            version: 1,
+          }),
+          headers: { "content-type": "application/json", origin },
+          method: "POST",
+        });
+        const payload = (await response.json()) as {
+          results: Array<{ data?: Array<{ state: string }> }>;
+        };
+        return payload.results[0]?.data?.[0]?.state;
+      },
+      { interval: 200, timeout: 10_000 },
+    )
+    .toBe("ready");
+}
+
+/** Whether the process is running. */
+function alive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+test("SIGHUP stops the server and its Storybooks", async () => {
+  const data = temporaryFolder("uraeda-data");
+  const repo = fixtureRepo();
+  const { log } = addStoryFeature(repo);
+  const port = await freePort();
+  const server = start(["--repo", repo, "--port", String(port)], {
+    env: { URAEDA_DATA_DIR: data },
+  });
+  await ready(server);
+  await viewUntilReady(port, (await listedName(data, repo))!, STORY_FEATURE);
+  const [storybook] = previewStarts(log!);
+
+  server.child.kill("SIGHUP");
+
+  expect(await server.exited).toBe(0);
+  await expect.poll(() => alive(storybook!.pid), { timeout: 10_000 }).toBe(false);
 });
 
 test("another program on the port names --port and exits 1", async () => {
