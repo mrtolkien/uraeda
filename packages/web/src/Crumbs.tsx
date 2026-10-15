@@ -16,18 +16,31 @@ const styles = stylex.create({
 
 /**
  * Where a page sits: Home, its feature, and the page itself when it is inside the feature, like a
- * file. The feature is named by its title, read with the navigation's workspace.
+ * file. The feature is named by its title, read with the navigation's workspace. A session's page
+ * is "Session" inside its feature, but a change's is the change's own page (US4.6), so its crumbs
+ * end with the change.
  */
-export function Crumbs({ current, folder }: { current?: string; folder: string }) {
+export function Crumbs({
+  current,
+  folder,
+  session = false,
+}: {
+  current?: string;
+  folder: string;
+  /** Whether the page is the item's session, named "Session" inside a feature. */
+  session?: boolean;
+}) {
   const workspace = useWorkspace();
   const here = useRepoPath();
-  const title = workspace?.features.find((feature) => feature.folder === folder)?.title ?? folder;
+  const item = workspace?.features.find((feature) => feature.folder === folder);
+  const title = item?.title ?? folder;
+  const page = session && item?.kind !== "change" ? "Session" : current;
   return (
     <Breadcrumbs label="Breadcrumbs" separator="›" xstyle={styles.crumbs}>
       <BreadcrumbItem href={here("/")} xstyle={styles.item}>
         Home
       </BreadcrumbItem>
-      {current === undefined ? (
+      {page === undefined ? (
         <BreadcrumbItem isCurrent xstyle={styles.item}>
           {title}
         </BreadcrumbItem>
@@ -37,7 +50,7 @@ export function Crumbs({ current, folder }: { current?: string; folder: string }
             {title}
           </BreadcrumbItem>
           <BreadcrumbItem isCurrent xstyle={styles.item}>
-            {current}
+            {page}
           </BreadcrumbItem>
         </>
       )}
