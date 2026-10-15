@@ -327,3 +327,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a slow index shows the failure for one read; the next read after "Try again" shows
   the story. One branch in `readStory`.
 - **Where**: task 6, `packages/server/src/fate/preview.ts`.
+
+## R24: A Storybook's exit stops its group, and its output's close fails it
+
+- **Decision**: when a Storybook's process exits, the runner kills its process group at once; the
+  output of what the group held closes with it, and the failure follows, with the last line read. An
+  upgrade under a preview's path that is not a WebSocket GET is closed with a 404, as an upgrade
+  outside one is ([R20](#r20-the-proxy-forwards-what-a-browser-sends-and-closes-the-rest)), whatever
+  its `Origin`. The fake preview's `child` mode starts a child that keeps its output open.
+- **Rationale**: the spec fails a Storybook "as soon as its process exits". At `exit`, the last
+  lines the process wrote may still wait in its output, which the failure's sentence needs; once the
+  group is killed, nothing in it holds the output open, so the close follows without a timer. The
+  stack rule forwards only WebSocket upgrades, which the guard alone checks only for a frame's
+  `Origin: null`.
+- **Alternatives considered**: failing at `exit` with the lines read so far, which loses the last
+  line at random; a 405 for a non-GET upgrade, which says nothing a refused upgrade needs.
+- **If wrong**: a process that left its group and kept the output open still delays the failure; a
+  timer after `exit` in `#watch` of `preview/runner.ts` would bound it.
+- **Where**: task 5's revision 3, `packages/server/src/preview/runner.ts` and `proxy.ts`,
+  `fixtures/preview/serve.mjs`.

@@ -82,33 +82,50 @@ export function alive(pid: number): boolean {
 }
 
 /**
- * Whether a WebSocket upgrade to `url` is switched, with the given `Origin` and protocol: false
- * when it is answered otherwise, or closed.
+ * The status an upgrade to `url` is answered with, 101 when it is switched, undefined when it is
+ * closed without an answer: a WebSocket GET, or another `method` and `upgrade`.
  */
-export function socketOpens(
+export function upgradeStatus(
   url: string,
-  { origin, protocol }: { origin?: string; protocol?: string },
-): Promise<boolean> {
+  {
+    method = "GET",
+    origin,
+    protocol,
+    upgrade = "websocket",
+  }: { method?: string; origin?: string; protocol?: string; upgrade?: string },
+): Promise<number | undefined> {
   return new Promise((resolve) => {
     const request = httpRequest(url, {
       headers: {
         connection: "Upgrade",
         "sec-websocket-key": randomBytes(16).toString("base64"),
         "sec-websocket-version": "13",
-        upgrade: "websocket",
+        upgrade,
         ...(origin === undefined ? {} : { origin }),
         ...(protocol === undefined ? {} : { "sec-websocket-protocol": protocol }),
       },
+      method,
     });
-    request.on("upgrade", (_, socket) => {
+    request.on("upgrade", (response, socket) => {
       socket.destroy();
-      resolve(true);
+      resolve(response.statusCode);
     });
     request.on("response", (response) => {
       response.resume();
-      resolve(false);
+      resolve(response.statusCode);
     });
-    request.on("error", () => resolve(false));
+    request.on("error", () => resolve(undefined));
     request.end();
   });
+}
+
+/**
+ * Whether a WebSocket upgrade to `url` is switched, with the given `Origin` and protocol: false
+ * when it is answered otherwise, or closed.
+ */
+export async function socketOpens(
+  url: string,
+  options: { origin?: string; protocol?: string },
+): Promise<boolean> {
+  return (await upgradeStatus(url, options)) === 101;
 }

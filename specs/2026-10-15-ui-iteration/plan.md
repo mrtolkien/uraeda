@@ -1335,12 +1335,13 @@ git commit -m "feat(ui-iteration): the preview proxy, and the guard's exception"
 Settled in [round 03](clarifications-03.md#settled-without-the-human), and in the spec's details of
 `preview/proxy.ts`, `guard.ts`, and `preview/runner.ts`.
 
-- [ ] **Step 7: Write the failing tests**
+- [x] **Step 7: Write the failing tests**
 
 In `guard.test.ts`'s table and the proxy's and runner's tests:
 
 - `an upgrade is a read only as a WebSocket GET`: a POST with `Upgrade: foo` and `Origin: null`
-  under a preview path is refused with 403, and nothing reaches the fake preview.
+  under a preview path is refused with 403, and nothing reaches the fake preview; without `Origin`,
+  the proxy forwards it neither.
 - `the guard needs a folder`: `/r/repo/preview/` and `/r/repo/preview//a` with `Origin: null` are
   refused; the pattern is one export, used by the guard and the proxy.
 - `storybook's cookies and site data stay out`: a forwarded answer with `Set-Cookie` and
@@ -1349,24 +1350,26 @@ In `guard.test.ts`'s table and the proxy's and runner's tests:
   reaches the other side without `x-custom`.
 - `the proxy's own answers are sandboxed`: the 503, 301, and 405 carry
   `Access-Control-Allow-Origin: *` and the sandbox policy.
-- `a storybook that exits is failed at once`: a fake whose child keeps the output open, killed after
-  ready, is `failed` from its `exit`, and the proxy answers 503.
+- `a storybook that exits is failed at once`: a fake whose child keeps the output open, the fake's
+  `child` mode, killed after ready, is `failed` from its `exit`, which kills its group, and the
+  proxy answers 503
+  ([R24](rulings.md#r24-a-storybooks-exit-stops-its-group-and-its-outputs-close-fails-it)).
 
 The break each catches: an upgrade counted as a read whatever its method; a guard pattern without a
 folder; the response headers copied as they are; `Connection` tokens kept; headers set only on
 forwarded answers; failure noticed only on `close`.
 
-- [ ] **Step 8: Run them to check they fail**
+- [x] **Step 8: Run them to check they fail**
 
 - Run: `vp test --project uraeda-server src/__tests__/guard.test.ts src/preview`
 - Expected: FAIL, first on `an upgrade is a read only as a WebSocket GET`, answered 101.
 
-- [ ] **Step 9: Implement them, then run all tests**
+- [x] **Step 9: Implement them, then run all tests**
 
 - Run: `vp test --project uraeda-server && vp check`
 - Expected: PASS.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add packages/server

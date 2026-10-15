@@ -1,10 +1,11 @@
 // The preview proxy: the server on a port, its upgrades too, with the fake preview behind it.
-import { createServer } from "node:http";
+import { createServer, type IncomingHttpHeaders, request as httpRequest } from "node:http";
 import { basename, join } from "node:path";
 import { getRequestListener } from "@hono/node-server";
 import { expect, onTestFinished, test } from "vite-plus/test";
 import {
   addStoryFeature,
+  type FakeMode,
   fixtureRepo,
   previewStarts,
   STORY_FEATURE,
@@ -12,18 +13,19 @@ import {
 } from "uraeda-binding/test-utils";
 import { FakeAdapter } from "../../runner/fake.ts";
 import { startServer } from "../../server.ts";
-import { checkoutOf, ready, socketOpens, WAIT } from "./helpers.ts";
+import { SANDBOX } from "../proxy.ts";
+import { checkoutOf, ready, socketOpens, upgradeStatus, WAIT } from "./helpers.ts";
 
 const binding = await import("uraeda-binding");
 
 /**
  * The server on a free port, its requests and upgrades, in a repository with the test feature,
- * whose Storybook is viewed and ready: its base path, its origin, and the fake's log of starts.
- * Everything is closed after the test.
+ * whose Storybook, the fake preview in `mode`, is viewed and ready: its base path, its origin, the
+ * fake's log of starts, and the server's runner. Everything is closed after the test.
  */
-async function runningPreview() {
+async function runningPreview(mode: FakeMode = "ok") {
   const repo = fixtureRepo();
-  const { log } = addStoryFeature(repo);
+  const { log } = addStoryFeature(repo, { preview: { mode } });
   const http = createServer();
   await new Promise<void>((resolve) => http.listen(0, "127.0.0.1", resolve));
   const { port } = http.address() as { port: number };
@@ -48,7 +50,30 @@ async function runningPreview() {
   const checkout = await checkoutOf(join(repo, ".worktrees", STORY_FEATURE), base);
   server.previews.view(checkout);
   await ready(server.previews, checkout);
-  return { base, log: log!, name: basename(repo), origin: `http://127.0.0.1:${port}` };
+  return {
+    base,
+    log: log!,
+    name: basename(repo),
+    origin: `http://127.0.0.1:${port}`,
+    previews: server.previews,
+  };
+}
+
+/** A GET of `url` with `headers`, through Node's client, which sends `Connection` as given. */
+function get(
+  url: string,
+  headers: Record<string, string> = {},
+): Promise<{ body: string; headers: IncomingHttpHeaders }> {
+  return new Promise((resolve, reject) => {
+    const request = httpRequest(url, { headers }, (response) => {
+      let body = "";
+      response.setEncoding("utf8");
+      response.on("data", (chunk: string) => (body += chunk));
+      response.on("end", () => resolve({ body, headers: response.headers }));
+    });
+    request.on("error", reject);
+    request.end();
+  });
 }
 
 test("a read reaches Storybook without the path, with its own Host", async () => {
@@ -147,4 +172,65 @@ test("an upgrade from another site is refused", async () => {
   expect(
     await socketOpens(`${origin}${base}storybook-server-channel`, { origin: "https://evil.com" }),
   ).toBe(false);
+});
+
+test("an upgrade is a read only as a WebSocket GET", async () => {
+  const { base, origin } = await runningPreview();
+  const channel = `${origin}${base}storybook-server-channel`;
+
+  expect(await upgradeStatus(channel, { method: "POST", origin: "null", upgrade: "foo" })).toBe(
+    403,
+  );
+  expect(await upgradeStatus(channel, { method: "POST", upgrade: "websocket" })).not.toBe(101);
+  expect(await upgradeStatus(channel, { upgrade: "foo" })).not.toBe(101);
+});
+
+test("storybook's cookies and site data stay out", async () => {
+  const { base, origin } = await runningPreview();
+
+  const response = await fetch(`${origin}${base}__headers`);
+
+  expect(await response.text()).toBe("headers");
+  expect(response.headers.get("set-cookie")).toBeNull();
+  expect(response.headers.get("clear-site-data")).toBeNull();
+});
+
+test("headers named in Connection are removed", async () => {
+  const { base, origin } = await runningPreview();
+
+  const sent = await get(`${origin}${base}__echo`, { connection: "x-custom", "x-custom": "1" });
+  const got = await get(`${origin}${base}__headers`);
+
+  expect((JSON.parse(sent.body) as { headers: IncomingHttpHeaders }).headers).not.toHaveProperty(
+    "x-custom",
+  );
+  expect(got.body).toBe("headers");
+  expect(got.headers).not.toHaveProperty("x-custom");
+});
+
+test("the proxy's own answers are sandboxed", async () => {
+  const { base, name, origin } = await runningPreview();
+
+  const answers = [
+    await fetch(`${origin}/r/${name}/preview/main/iframe.html`),
+    await fetch(`${origin}${base.slice(0, -1)}`, { redirect: "manual" }),
+    await fetch(`${origin}${base}__echo`, { body: "{}", method: "POST" }),
+  ];
+
+  expect(answers.map((answer) => answer.status)).toEqual([503, 301, 405]);
+  for (const answer of answers) {
+    expect(answer.headers.get("access-control-allow-origin")).toBe("*");
+    expect(answer.headers.get("content-security-policy")).toBe(SANDBOX);
+  }
+});
+
+test("a storybook that exits is failed at once", async () => {
+  const { base, log, origin, previews } = await runningPreview("child");
+
+  process.kill(previewStarts(log)[0]!.pid, "SIGKILL");
+
+  await expect.poll(() => previews.state(base)?.state, WAIT).toBe("failed");
+  const response = await fetch(`${origin}${base}__echo`);
+  expect(response.status).toBe(503);
+  expect(await response.text()).toBe("Storybook is not running for this branch.");
 });
