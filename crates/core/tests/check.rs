@@ -562,3 +562,60 @@ fn a_crlf_text_reports_the_same_lines() {
         )]
     );
 }
+
+const CHANGE: &str = "specs/changes/2026-10-14-tasks-reappear";
+
+/// A change's folder holds its proposal, rounds, rulings, images, and screenshots, and nothing of a
+/// feature's or of the old bug flow.
+#[test]
+fn a_changes_folder_holds_only_its_files() {
+    for (path, allowed) in [
+        ("proposal.md", true),
+        ("clarifications-01.md", true),
+        ("rulings.md", true),
+        ("images/a.webp", true),
+        ("screenshots/page.webp", true),
+        ("spec.md", false),
+        ("plan.md", false),
+        ("discovery-01.md", false),
+        ("report.md", false),
+        ("assessment.md", false),
+        ("notes/a.md", false),
+    ] {
+        let example = Example::new();
+        if path != "proposal.md" {
+            example.write(&format!("{CHANGE}/{path}"), "x\n");
+        }
+
+        let flagged: Vec<String> = example
+            .problems()
+            .into_iter()
+            .filter(|p| p.rule == "names.change-file")
+            .map(|p| format!("{}: {}", p.file, p.message))
+            .collect();
+
+        let name = path.split('/').next().unwrap();
+        let expected = if allowed {
+            vec![]
+        } else {
+            vec![format!(
+                "{CHANGE}/{name}: \"{name}\" has no place in a change: its folder holds proposal.md, clarifications-NN.md, rulings.md, images/, and screenshots/."
+            )]
+        };
+        assert_eq!(flagged, expected, "{path}");
+    }
+}
+
+/// Edge case: a project with a `specs/bugs/` folder from an older `ura init`.
+#[test]
+fn an_old_bugs_folder_says_how_to_move_it() {
+    let example = Example::new();
+    example.write("specs/bugs/.gitkeep", "");
+
+    assert_eq!(
+        summary(&example.problems()),
+        vec![
+            "specs/bugs: specs/bugs/ is no longer used: bugs are changes. Move its folders to specs/changes/, and delete it if empty."
+        ]
+    );
+}

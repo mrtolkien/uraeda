@@ -501,7 +501,7 @@ git commit -m "feat(add-bugfixing): the change's step table"
   - rule `names.bugs`, on `specs/bugs/`, with the message
     `specs/bugs/ is no longer used: bugs are changes. Move its folders to specs/changes/, and delete it if empty.`
 
-- [ ] **Step 1: Write the failing table-driven test**
+- [x] **Step 1: Write the failing table-driven test**
 
 ```rust
 // crates/core/tests/check.rs
@@ -511,7 +511,7 @@ fn a_changes_folder_holds_only_its_files() {
         ("proposal.md", true), ("clarifications-01.md", true), ("rulings.md", true),
         ("images/a.webp", true), ("screenshots/page.webp", true),
         ("spec.md", false), ("plan.md", false), ("discovery-01.md", false),
-        ("report.md", false), ("assessment.md", false),
+        ("report.md", false), ("assessment.md", false), ("notes/a.md", false),
     ] {
         // write specs/changes/2026-10-16-x/<name> with a valid proposal next to it, run check:
         // a names.change-file problem on <name> exactly when !allowed
@@ -529,18 +529,18 @@ The break each test catches:
 - The table: a list that forgets `screenshots/`, or lets `spec.md` through.
 - The bugs test: the folder reported as an undated feature folder instead.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
-- Run: `cargo nextest run -p uraeda-core check`
+- Run: `cargo nextest run -p uraeda-core --test check`
 - Expected: FAIL. `spec.md` gets no problem, and `specs/bugs` gets `names.folder`.
 
-- [ ] **Step 3: Implement both rules** in `check/names.rs`, called from `walk`.
-- [ ] **Step 4: Run all Rust checks**
+- [x] **Step 3: Implement both rules** in `check/names.rs`, called from `walk`.
+- [x] **Step 4: Run all Rust checks**
 
 - Run: `vp run ready:rust`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates

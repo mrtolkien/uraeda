@@ -106,3 +106,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   a change's tail differ from a feature's.
 - **If wrong**: map `PullRequest::Unknown` to `StepName::Change` in `change_step`.
 - **Where**: task 3, `crates/cli/tests/status.rs`, and `editors/nvim/tests/test_inline.lua`.
+
+## R8: Task 4's failing run selects the `check` test binary
+
+- **Decision**: Task 4's step 2 runs `cargo nextest run -p uraeda-core --test check`, not
+  `cargo nextest run -p uraeda-core check`. The table also checks a stray folder, `notes/a.md`,
+  reported as `notes`.
+- **Rationale**: nextest's bare `check` filters test names, and neither new test has `check` in its
+  name, so the plan's command ran 23 other tests and passed without them. A folder other than
+  `images/` and `screenshots/` is a case of the rule the table did not cover.
+- **Alternatives considered**: renaming the tests to hold `check`, which names them after the
+  command instead of the behaviour.
+- **If wrong**: the command only selects tests; the rule is unchanged.
+- **Where**: task 4, `crates/core/tests/check.rs`.
