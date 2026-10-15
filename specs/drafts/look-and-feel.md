@@ -33,6 +33,11 @@ Look and feel pass: components style, logo, favicon, ...
   great: show a hide bar button on hover + a handle to resize.
 - Add a constitution view, should not be part of the sidebar but should be there _somewhere_, maybe
   in the home or a "project overview"
+- In the "add a repo" modal, if there's a single option, enter should select it
+- Data model pages (data-model.md) should read like an actual table with proper table formatting. We
+  could force mermaid graph + rendering for example.
+  - Generally _all_ agent-generated pages need to have good formatting, adapted for the page. I'll
+    do page-by-page passes but things like cards for user stories, tables, ...
 
 ---
 
