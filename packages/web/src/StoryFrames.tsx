@@ -1,10 +1,19 @@
 // A story's frames, sandboxed without `allow-same-origin`, and the messages of their windows: the
 // widths a wide screen shows, the phone's alone on narrow ones, each frame as tall as its story says,
-// and in Uraeda's colour mode, which a frame is sent when it says it is ready and when it changes.
+// and in Uraeda's colour mode, which a frame is sent when it says it is ready and when it changes;
+// and pick mode, sent to every frame, and the elements their pick scripts report.
 import { useTheme } from "@astryxdesign/core/theme";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  type RefObject,
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import type { Picked } from "./storyComment.ts";
 
 const styles = stylex.create({
   desktop: {
@@ -57,7 +66,7 @@ export type Widths = "both" | "phone" | "desktop";
 type Width = "phone" | "desktop";
 
 /** A message from a frame, which the embed reads only from its own frames' windows. */
-type FrameMessage = { height?: unknown; uraeda: unknown };
+type FrameMessage = { height?: unknown; name?: unknown; role?: unknown; uraeda: unknown };
 
 const SANDBOX = "allow-scripts allow-popups";
 
@@ -72,39 +81,78 @@ function heightOf(message: FrameMessage): number | undefined {
   return typeof height === "number" && Number.isFinite(height) && height > 0 ? height : undefined;
 }
 
+/** The element a `picked` message names, when it gives its role and name as text. */
+function pickedOf({ name, role }: FrameMessage): Picked | undefined {
+  return typeof role === "string" && role !== "" && typeof name === "string"
+    ? { name, role }
+    : undefined;
+}
+
+/**
+ * Pick mode, as the embed holds it: whether it is on, and what the frames say. A frame says it is
+ * ready, which shows that its Storybook loads the pick script; that an element was picked in it,
+ * with its width; or that Escape inside it stopped pick mode.
+ */
+export type PickMode = {
+  onPicked: (picked: Picked & { width: Width }) => void;
+  onPickStopped: () => void;
+  onReady: () => void;
+  picking: boolean;
+};
+
+/** Sends a message to each frame shown. */
+function sendAll(frames: ReadonlyArray<RefObject<HTMLIFrameElement | null>>, message: object) {
+  for (const frame of frames) {
+    frame.current?.contentWindow?.postMessage(message, "*");
+  }
+}
+
 /**
  * The frames' windows, and the heights their stories report. A frame that says `ready`, again after
- * a reload, is sent the colour mode, which every frame is sent again when it changes.
+ * a reload, is sent the colour mode, which every frame is sent again when it changes, and pick mode
+ * when on; every frame is sent pick mode as it turns on or off.
  */
-function useFrames() {
+function useFrames(pick: PickMode) {
   const phone = useRef<HTMLIFrameElement>(null);
   const desktop = useRef<HTMLIFrameElement>(null);
   const [heights, setHeights] = useState<Partial<Record<Width, number>>>({});
   const { mode } = useTheme();
-  useEffect(() => {
+  const onMessage = useEffectEvent((event: MessageEvent) => {
     const frames: Record<Width, RefObject<HTMLIFrameElement | null>> = { desktop, phone };
-    const onMessage = (event: MessageEvent) => {
-      const width = (["phone", "desktop"] as const).find(
-        (name) => event.source !== null && frames[name].current?.contentWindow === event.source,
-      );
-      if (width === undefined || !isFrameMessage(event.data)) {
-        return;
-      }
-      if (event.data.uraeda === "ready") {
-        (event.source as Window).postMessage({ mode, uraeda: "mode" }, "*");
-      } else if (event.data.uraeda === "size") {
-        const height = heightOf(event.data);
-        if (height !== undefined) {
-          setHeights((known) => ({ ...known, [width]: height }));
-        }
-      }
-    };
-    window.addEventListener("message", onMessage);
-    for (const frame of [phone, desktop]) {
-      frame.current?.contentWindow?.postMessage({ mode, uraeda: "mode" }, "*");
+    const width = (["phone", "desktop"] as const).find(
+      (name) => event.source !== null && frames[name].current?.contentWindow === event.source,
+    );
+    if (width === undefined || !isFrameMessage(event.data)) {
+      return;
     }
-    return () => window.removeEventListener("message", onMessage);
-  }, [mode]);
+    const source = event.source as Window;
+    if (event.data.uraeda === "ready") {
+      source.postMessage({ mode, uraeda: "mode" }, "*");
+      if (pick.picking) {
+        source.postMessage({ on: true, uraeda: "pick" }, "*");
+      }
+      pick.onReady();
+    } else if (event.data.uraeda === "size") {
+      const height = heightOf(event.data);
+      if (height !== undefined) {
+        setHeights((known) => ({ ...known, [width]: height }));
+      }
+    } else if (event.data.uraeda === "picked") {
+      const picked = pickedOf(event.data);
+      if (picked) {
+        pick.onPicked({ ...picked, width });
+      }
+    } else if (event.data.uraeda === "pick-stopped") {
+      pick.onPickStopped();
+    }
+  });
+  useEffect(() => {
+    const listener = (event: MessageEvent) => onMessage(event);
+    window.addEventListener("message", listener);
+    return () => window.removeEventListener("message", listener);
+  }, []);
+  useEffect(() => sendAll([phone, desktop], { mode, uraeda: "mode" }), [mode]);
+  useEffect(() => sendAll([phone, desktop], { on: pick.picking, uraeda: "pick" }), [pick.picking]);
   return { desktop, heights, phone };
 }
 
@@ -190,23 +238,30 @@ function useRoomForBoth(box: RefObject<HTMLDivElement | null>) {
 
 /**
  * The story's frames: the widths chosen on wide screens, the phone's alone on narrow ones, and in
- * place of both in a box too narrow for them.
+ * place of both in a box too narrow for them. An element picked names its frame's width only while
+ * both show.
  */
 export function StoryFrames({
   label,
+  pick,
   src,
   wide,
   widths,
 }: {
   label: string;
+  pick: Omit<PickMode, "onPicked"> & { onPicked: (picked: Picked) => void };
   src: string;
   wide: boolean;
   widths: Widths;
 }) {
-  const { desktop, heights, phone } = useFrames();
   const box = useRef<HTMLDivElement>(null);
   const room = useRoomForBoth(box);
   const shown = widths === "both" && !room ? "phone" : widths;
+  const both = wide && shown === "both";
+  const { desktop, heights, phone } = useFrames({
+    ...pick,
+    onPicked: ({ width, ...picked }) => pick.onPicked(both ? { ...picked, width } : picked),
+  });
   return (
     <div ref={box} {...stylex.props(styles.frames, !wide && styles.framesNarrow)}>
       {(!wide || shown !== "desktop") && (

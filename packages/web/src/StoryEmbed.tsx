@@ -2,7 +2,7 @@
 // through Uraeda's own address, at a phone and a desktop width on wide screens and at the phone's
 // alone on narrow ones, in Uraeda's colour mode. Its frames are sandboxed without
 // `allow-same-origin`: the embed takes messages from their windows only, and sends them nothing
-// but the colour mode.
+// but the colour mode and pick mode. Where a comment can go, it offers pick mode and a comment.
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
@@ -24,6 +24,13 @@ import { useWidthClass } from "./layout/useWidthClass.ts";
 import { useRepoPath } from "./routes.tsx";
 import { storybookHref } from "./stories.tsx";
 import { StoryFrames, type Widths } from "./StoryFrames.tsx";
+import {
+  type EmbedComment,
+  PickControls,
+  PickHint,
+  StoryCommentForm,
+  useStoryPick,
+} from "./StoryPick.tsx";
 import { PreviewView } from "./views.ts";
 
 const styles = stylex.create({
@@ -139,13 +146,61 @@ export function TryAgain({ folder }: { folder: string }) {
   );
 }
 
+/** The story running: its widths, pick mode and the comment where one can go, and its frames. */
+function ReadyStory({
+  comment,
+  frame,
+  label,
+  labelId,
+  story,
+  storybook,
+}: {
+  comment?: EmbedComment;
+  frame: string;
+  label: string;
+  labelId: string;
+  story: StoryTarget;
+  storybook: string;
+}) {
+  const wide = useWidthClass() === "wide";
+  const [widths, setWidths] = useState<Widths>("both");
+  const pick = useStoryPick();
+  return (
+    <>
+      <Bar label={label} labelId={labelId}>
+        {wide && (
+          <SegmentedControl
+            label="Width"
+            onChange={(value: string) => setWidths(value as Widths)}
+            size="sm"
+            value={widths}
+          >
+            <SegmentedControlItem label="Both" value="both" />
+            <SegmentedControlItem label="Phone" value="phone" />
+            <SegmentedControlItem label="Desktop" value="desktop" />
+          </SegmentedControl>
+        )}
+        {comment && <PickControls pick={pick} wide={wide} />}
+        <OpenInStorybook href={storybook} wide={wide} />
+      </Bar>
+      {pick.picking && <PickHint />}
+      <StoryFrames label={label} pick={pick.frames} src={frame} wide={wide} widths={widths} />
+      {comment && (
+        <StoryCommentForm comment={comment} label={label} pick={pick} story={story} wide={wide} />
+      )}
+    </>
+  );
+}
+
 /** The story as its record says: starting, failed, missing, without a worktree, or running. */
 function LiveStory({
+  comment,
   folder,
   label,
   labelId,
   story,
 }: {
+  comment?: EmbedComment;
   folder: string;
   label: string;
   labelId: string;
@@ -153,27 +208,16 @@ function LiveStory({
 }) {
   const record = useStory(folder, story);
   const wide = useWidthClass() === "wide";
-  const [widths, setWidths] = useState<Widths>("both");
   if (record?.state === "ready" && record.frame && record.storybook) {
     return (
-      <>
-        <Bar label={label} labelId={labelId}>
-          {wide && (
-            <SegmentedControl
-              label="Width"
-              onChange={(value: string) => setWidths(value as Widths)}
-              size="sm"
-              value={widths}
-            >
-              <SegmentedControlItem label="Both" value="both" />
-              <SegmentedControlItem label="Phone" value="phone" />
-              <SegmentedControlItem label="Desktop" value="desktop" />
-            </SegmentedControl>
-          )}
-          <OpenInStorybook href={record.storybook} wide={wide} />
-        </Bar>
-        <StoryFrames label={label} src={record.frame} wide={wide} widths={widths} />
-      </>
+      <ReadyStory
+        comment={comment}
+        frame={record.frame}
+        label={label}
+        labelId={labelId}
+        story={story}
+        storybook={record.storybook}
+      />
     );
   }
   if (record?.state === "failed") {
@@ -212,15 +256,18 @@ function LiveStory({
  * A story link alone in its paragraph, by its checkout's folder, `main` for the main checkout: a
  * figure named by its label, showing the story live once its Storybook runs, or why it does not.
  * `removed`, for a variant removed after its round was answered, reads nothing. `comment` saves a
- * comment on the story, where the page can take one.
+ * comment on the story, where the page can take one. `id` lets a page scroll to it.
  */
 export function StoryEmbed({
+  comment,
   folder,
+  id,
   removed = false,
   story,
 }: {
-  comment?: (text: string) => Promise<string | undefined>;
+  comment?: EmbedComment;
   folder: string;
+  id?: string;
   removed?: boolean;
   story: StoryTarget & { label: string };
 }) {
@@ -228,7 +275,11 @@ export function StoryEmbed({
   const wide = useWidthClass() === "wide";
   const target = { export: story.export, path: story.path };
   return (
-    <figure aria-labelledby={labelId} {...stylex.props(styles.embed, !wide && styles.bleed)}>
+    <figure
+      aria-labelledby={labelId}
+      id={id}
+      {...stylex.props(styles.embed, !wide && styles.bleed)}
+    >
       {removed ? (
         <>
           <Bar label={story.label} labelId={labelId} />
@@ -236,7 +287,13 @@ export function StoryEmbed({
         </>
       ) : (
         <Suspense fallback={<Bar label={story.label} labelId={labelId} />}>
-          <LiveStory folder={folder} label={story.label} labelId={labelId} story={target} />
+          <LiveStory
+            comment={comment}
+            folder={folder}
+            label={story.label}
+            labelId={labelId}
+            story={target}
+          />
         </Suspense>
       )}
     </figure>

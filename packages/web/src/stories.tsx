@@ -13,13 +13,19 @@ export type StoryComment = (
 ) => Promise<string | undefined>;
 
 /**
+ * Where a page's comments on its stories go: `save` writes one, and `path`, the file it goes to,
+ * keys each embed's unsaved text, `<path>#story:<folder>:<story path>#<export>`.
+ */
+export type StoryComments = { path: string; save: StoryComment };
+
+/**
  * The stories of what a page draws: the checkout's folder, `main` for the main checkout; the story
  * links its paragraphs embed, as the core found them; where a comment goes, when one can; whether
  * its stories were removed, as a round's after its answer; and whether the checkout has a preview
  * decision, without which story links are plain links.
  */
 export type Stories = {
-  comment?: StoryComment;
+  comment?: StoryComments;
   folder: string;
   preview: boolean;
   removed?: boolean;
@@ -37,7 +43,7 @@ export function StoriesProvider({
   stories,
 }: {
   children: ReactNode;
-  comment?: StoryComment;
+  comment?: StoryComments;
   folder: string;
   removed?: boolean;
   stories: ReadonlyArray<StoryLink>;
@@ -69,4 +75,9 @@ export function storybookHref(folder: string, story?: StoryTarget): string {
   }
   const path = story.path.split("/").map(encodeURIComponent).join("/");
   return `${page}?story=${path}%23${encodeURIComponent(story.export)}`;
+}
+
+/** The element id of the embed a paragraph draws, by its block, for a page to scroll to it. */
+export function storyEmbedId(block: number): string {
+  return `story-${block}`;
 }

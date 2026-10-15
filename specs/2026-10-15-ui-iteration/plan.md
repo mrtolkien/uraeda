@@ -1863,13 +1863,18 @@ git commit -m "feat(ui-iteration): the Storybook page and its rows"
 
 **Files:**
 
-- Modify: `packages/web/src/StoryEmbed.tsx` (split first; toolbar, pick mode, comment form),
+- Modify: `packages/web/src/StoryEmbed.tsx` (split first; the toolbar),
   `packages/web/src/StoryFrames.tsx` (created by the split; pick mode in `useFrames`),
+  `packages/web/src/stories.tsx` (`StoryComments`, `storyEmbedId`), `packages/web/src/Blocks.tsx`,
+  `packages/web/src/CommentForm.tsx` (`hasAutoFocus`), `packages/web/src/theme/icons.ts`,
+  `fixtures/preview/serve.mjs` (the separator's size,
+  [R34](rulings.md#r34-pick-and-comment-are-the-apps-own-icons-and-the-fake-storys-separator-shows)),
   `packages/web/src/ReviewPage.tsx` (the review's `comment`, in `StoriesProvider`),
   `packages/web/src/ReviewMockups.tsx`, `packages/web/vite.browser.config.ts` (`frameOutlined`,
-  `framePress`, `frameReload`), `packages/web/scripts/screenshots.ts` (the `story-pick` view,
-  [R31](rulings.md#r31-the-storybook-page-says-why-it-cannot-show-a-story))
-- Create: `packages/web/src/storyComment.ts`
+  `framePress`, and `frameClick` with an optional name), `packages/web/scripts/screenshots.ts` (the
+  `story-pick` view, [R31](rulings.md#r31-the-storybook-page-says-why-it-cannot-show-a-story))
+- Create: `packages/web/src/storyComment.ts`, `packages/web/src/StoryPick.tsx` (the pick buttons,
+  the hint, and the form)
 - Test: `packages/web/src/__browser__/story-comments.test.tsx`
 
 **Interfaces:**
@@ -1883,7 +1888,12 @@ git commit -m "feat(ui-iteration): the Storybook page and its rows"
   ([R10](rulings.md#r10-pick-and-comment-show-only-where-a-comment-can-go)); the form is
   `CommentForm`, in place under the embed on wide screens and in an `Overlay` sheet on narrow ones,
   its field `<path>#story:<folder>:<path>#<export>`.
-- Changes: `ReviewMockups`' button for a story scrolls to its embed.
+- Changes: `ReviewMockups`' button for a story scrolls to its embed, else opens its Storybook page
+  ([R33](rulings.md#r33-a-mockups-button-scrolls-to-its-storys-embed-else-opens-its-storybook-page)).
+- Changes: `StoriesProvider`'s `comment` is `StoryComments`, `{ path, save }`, `save` the
+  `(story, text, block?)` function above, `path` the file the comments go to; `StoryEmbed`'s is
+  `{ field, save(text) }`, built by `Blocks`
+  ([R32](rulings.md#r32-a-pages-story-comments-carry-the-file-they-go-to)).
 
 - [x] **Step 1: Split `StoryEmbed` before it grows**
 
@@ -1900,7 +1910,7 @@ git add packages/web/src/StoryEmbed.tsx packages/web/src/StoryFrames.tsx
 git commit -m "refactor(ui-iteration): a story's frames in a file of their own"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```tsx
 // packages/web/src/__browser__/story-comments.test.tsx
@@ -1970,12 +1980,12 @@ The break each test catches:
 - Pending comments: the override dropping `selection.after`, so a comment on the embed vanishes.
 - Reload: a frame that came back from a reload ignoring the human's clicks no more.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test --project desktop src/__browser__/story-comments.test.tsx`
 - Expected: FAIL, `Unable to find role="button" and name "Pick an element"`.
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 - `StoryEmbed`: "Pick an element" sends `{ uraeda: "pick", on: true }` to each frame and shows the
   hint, "Tap an element to comment on it." under `(pointer: coarse)`; `picked` from a frame ends
@@ -1988,13 +1998,13 @@ The break each test catches:
 - `screenshots.ts`: the view `story-pick`, beside task 8's `story-embed` and `storybook-page`, in
   `takeStories`: the embed in pick mode.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run:
   `vp test --project desktop && vp test --project phone && vp test --project uraeda-web && vp check`
 - Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web
