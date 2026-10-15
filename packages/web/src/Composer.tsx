@@ -58,7 +58,15 @@ type ComposerProps = {
   notice?: string;
   onChange: (value: string) => void;
   onImagesChange: Dispatch<SetStateAction<ReadonlyArray<DraftImage>>>;
+  /**
+   * Sends the text and its images elsewhere than a session, like "New change" to the change it
+   * starts, with or without the agent: whether it was sent. A refusal is the caller's to show, and
+   * the composer keeps the text and the images.
+   */
+  onSend?: (text: string, images: ReadonlyArray<DraftImage>) => Promise<boolean>;
   onSent?: (session: string) => void;
+  /** The send button's label, a primary button's, instead of Send. */
+  sendLabel?: string;
   session?: string;
   value: string;
   /** The workflow's trigger, while the composer holds its message. */
@@ -92,14 +100,28 @@ function imageRefusal(agent: ReturnType<typeof useAgent>, unavailable?: string, 
  * (R67).
  */
 function useSend(
-  { folder, images, onChange, onImagesChange, onSent, session, value, workflow }: ComposerProps,
+  { folder, images, onChange, onImagesChange, onSend, onSent, session, workflow }: ComposerProps,
   { canSend, refused, sent }: { canSend: boolean; refused: boolean; sent: () => void },
 ) {
   const fate = useFateClient();
   const [error, setError] = useState<string>();
+  const [pending, setPending] = useState(false);
   const withImages = workflow === undefined;
   const submit = (text: string) => {
-    if (refused || !canSend) {
+    if (refused || !canSend || pending) {
+      return;
+    }
+    if (onSend) {
+      // The text stays until it is sent: a refusal leaves it as typed.
+      setPending(true);
+      void onSend(text, images).then((done) => {
+        setPending(false);
+        if (done) {
+          onChange("");
+          onImagesChange([]);
+          sent();
+        }
+      });
       return;
     }
     const sending = withImages ? images : [];
@@ -137,7 +159,7 @@ function useSend(
       });
     }
   };
-  return { error, stop, submit };
+  return { error, pending, stop, submit };
 }
 
 /**
@@ -182,31 +204,34 @@ function composerStatus(
 
 /**
  * The composer's send buttons, in its send row: Send, or "Start the agent" while it holds the
- * workflow's message, "Start once this turn ends" during a turn. During a chat's turn, Send steers
- * the message into it, beside Stop: shown, disabled, while its images are saved.
+ * workflow's message, "Start once this turn ends" during a turn, or the page's own `label`. During
+ * a chat's turn, Send steers the message into it, beside Stop: shown, disabled, while its images
+ * are saved.
  */
 function sendButtons({
   canSend,
   hasContent,
+  label,
   send,
   workflow,
   working,
 }: {
   canSend: boolean;
   hasContent: boolean;
+  label: string | undefined;
   send: () => void;
   workflow: boolean;
   working: boolean;
 }): { sendActions?: ReactNode; sendButton?: ReactNode } {
   // Astryx's Send takes text alone: this one takes a message of images too (an Astryx gap).
   const sendButton = <ChatSendButton isDisabled={!canSend} isStopShown={false} onSend={send} />;
-  if (workflow) {
+  if (workflow || label !== undefined) {
     return {
       sendButton: (
         <Button
           clickAction={send}
           isDisabled={!canSend}
-          label={working ? "Start once this turn ends" : "Start the agent"}
+          label={label ?? (working ? "Start once this turn ends" : "Start the agent")}
           variant="primary"
         />
       ),
@@ -231,18 +256,22 @@ function sendButtons({
  * workflow's message, "Start the agent" stays, disabled, so the message never goes as a chat.
  * `blocked` disables it, with why, as when the agent is not on this machine, which disables it
  * too. It is the session page's one field: a file dropped anywhere on the page joins the message.
+ * `onSend` sends elsewhere, as "New change" starts a change, under the button `sendLabel`: it needs
+ * text, not the agent, and takes images whatever the agent reads, since they go into the
+ * repository.
  */
 export function Composer(props: ComposerProps) {
-  const { blocked, images, onChange, value, workflow, working = false } = props;
+  const { blocked, images, onChange, onSend, value, workflow, working = false } = props;
   const agent = useAgent();
   const wide = useWidthClass() === "wide";
   const input = useRef<ChatComposerInputHandle>(null);
   const box = useRef<HTMLDivElement>(null);
   const focusAt = useFocusAfterRemove(box, input, images);
   const name = agent?.name ?? "the agent";
-  const unavailable = agent?.available ? blocked : `${name} is not available on this machine.`;
+  const unavailable =
+    onSend || agent?.available ? blocked : `${name} is not available on this machine.`;
   const refused = workflow !== undefined && props.notice !== undefined;
-  const refusedWith = imageRefusal(agent, unavailable, workflow);
+  const refusedWith = onSend ? unavailable : imageRefusal(agent, unavailable, workflow);
   const attaching = useChatImages({
     images,
     onImagesChange: props.onImagesChange,
@@ -255,14 +284,20 @@ export function Composer(props: ComposerProps) {
     ref: box,
   });
   const saving = !workflow && images.some((image) => !image.image);
-  const hasContent = value.trim() !== "" || (!workflow && images.length > 0);
+  // A started change needs its title: images alone are not one.
+  const hasContent = value.trim() !== "" || (!workflow && !onSend && images.length > 0);
   const canSend = hasContent && !saving && !unavailable;
-  const { error, stop, submit } = useSend(props, { canSend, refused, sent: attaching.sent });
+  const { error, pending, stop, submit } = useSend(props, {
+    canSend,
+    refused,
+    sent: attaching.sent,
+  });
   const onKeyDown = useEnter(input, wide, canSend ? () => submit(value.trim()) : undefined);
   const placeholder = `Message ${name}`;
   const buttons = sendButtons({
-    canSend: canSend && !refused,
+    canSend: canSend && !refused && !pending,
     hasContent,
+    label: props.sendLabel,
     send: () => submit(value.trim()),
     workflow: workflow !== undefined,
     working,
@@ -278,7 +313,7 @@ export function Composer(props: ComposerProps) {
             ) : undefined
           }
           footerActions={
-            agent?.capabilities.images && !workflow ? (
+            (onSend || agent?.capabilities.images) && !workflow ? (
               <AttachButton
                 isDisabled={Boolean(unavailable)}
                 isIconOnly

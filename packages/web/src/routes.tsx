@@ -24,6 +24,7 @@ export type Route =
   | { folder: string; id: string; page: "run" }
   | { id: string; page: "chat" }
   | { page: "new-chat" }
+  | { page: "new-change" }
   | { page: "first-run" }
   | { page: "missing"; path: string };
 
@@ -117,6 +118,9 @@ export function parseRoute(pathname: string): Route {
   }
   if (parts[0] === "chats" && parts.length === 2) {
     return parts[1] === "new" ? { page: "new-chat" } : { id: parts[1], page: "chat" };
+  }
+  if (parts[0] === "changes" && parts.length === 2 && parts[1] === "new") {
+    return { page: "new-change" };
   }
   if (parts[0] === "priorities" && parts.length === 1) {
     return { page: "priorities" };
