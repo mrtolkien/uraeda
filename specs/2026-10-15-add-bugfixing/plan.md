@@ -1131,18 +1131,21 @@ git commit -m "docs(add-bugfixing): change.md, the light flow, replacing bug.md"
 
 - Create: `specs/2026-10-15-add-bugfixing/screenshots/`. It holds the change's page with its agent
   at work, waiting on a round, and with a ready pull request, and "New change", each at 402 × 874
-  and 1440 × 900, in light and dark.
+  and 1440 × 900, in light and dark; on the phone, also the navigation with the changes' tags and
+  the round's progress line open. Each is WebP, re-encoded by the core (R23).
+- Create: `packages/web/scripts/change-shots.ts`, the changes' views, each change started from "New
+  change". Modify: `screenshots.ts`, which takes them, and `shots.ts`, which saves WebP (R23).
 
-- [ ] **Step 1: Take the screenshots** with the web UI's screenshot script
+- [x] **Step 1: Take the screenshots** with the web UI's screenshot script
       (`packages/web/scripts/screenshots.ts`), extended with the change's states, and review them
       against [the mockups](mockups/change-session.html) and the UI decisions. Fix what they show,
       in the task that owns the code, with its test.
-- [ ] **Step 2: Run everything**
+- [x] **Step 2: Run everything**
 
 - Run: `vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add specs/2026-10-15-add-bugfixing/screenshots packages/web/scripts
