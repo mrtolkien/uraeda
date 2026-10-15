@@ -10,6 +10,7 @@ pub(crate) mod lines;
 pub mod markdown;
 pub mod outline;
 pub mod plan;
+pub mod preview;
 pub mod priorities;
 pub mod proposal;
 pub mod retarget;
