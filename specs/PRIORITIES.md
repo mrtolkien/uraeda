@@ -37,6 +37,8 @@
 - Git listener process
 
 - Neovim plugin: an "open priorities" shortcut, and review its shortcuts, they are very bad atm
+- Review moving the UI tests to Storybook's test format, once the UI iteration flow brings Storybook
+  in
 
 - Monorepo support: multiple `specs` folders, principles per package, ...
 - Codex runtime
