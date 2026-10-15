@@ -18,6 +18,18 @@ export declare class WatchHandle {
 /** Comments on lines of a file as committed, or on the whole file without lines. */
 export declare function addComment(repo: string, folder: string, file: string, startLine: number | undefined | null, endLine: number | undefined | null, text: string): Promise<FileView>
 
+/**
+ * Adds a note at the end of a category, or of the notes without one, marked with the slug of the
+ * feature or bug folder `about`.
+ */
+export declare function addNote(repo: string, text: string, previous: string, category?: string | undefined | null, about?: string | undefined | null): Promise<Inbox>
+
+/**
+ * Adds a note as a new draft written from its text, linked from the end of a category. Returns
+ * the draft's path, from the top level.
+ */
+export declare function addNoteAsDraft(repo: string, text: string, previous: string, category?: string | undefined | null, about?: string | undefined | null): Promise<string>
+
 /** Adds a line at the end of a section of the priorities. */
 export declare function addPriority(repo: string, section: string, text: string, previous: string): Promise<Priorities>
 
@@ -46,6 +58,9 @@ export declare function attachImage(repo: string, path: string, bytes: Buffer, n
  */
 export declare function branchChanges(repo: string, folder: string): Promise<BranchChanges | null>
 
+/** Commits the commit bar's changes: `INBOX.md`, `PRIORITIES.md`, and the drafts notes went into. */
+export declare function commitChanges(repo: string): Promise<void>
+
 /** Commits the priorities alone. */
 export declare function commitPriorities(repo: string): Promise<Priorities>
 
@@ -61,11 +76,20 @@ export declare function createDraft(repo: string, id: string, previous: string):
  */
 export declare function dataDir(custom?: string | undefined | null): string
 
+/**
+ * Restores the committed `INBOX.md` and `PRIORITIES.md`, and takes the notes back out of drafts,
+ * keeping any text the human typed.
+ */
+export declare function discardChanges(repo: string): Promise<void>
+
 /** Restores the committed priorities. */
 export declare function discardPriorities(repo: string): Promise<Priorities>
 
 /** Replaces the text of a pending comment. */
 export declare function editComment(repo: string, folder: string, file: string, number: number, text: string): Promise<FileView>
+
+/** Replaces a note's text, its marks kept. */
+export declare function editNote(repo: string, id: string, text: string, previous: string): Promise<Inbox>
 
 /** Replaces a priority line's text. */
 export declare function editPriority(repo: string, id: string, text: string, previous: string): Promise<Priorities>
@@ -97,6 +121,12 @@ export interface ImageFile {
 }
 
 /**
+ * Inserts a note's lines, as written, before the note at `index` of a category, or at its end:
+ * Undo of a removal.
+ */
+export declare function insertNote(repo: string, index: number, lines: Array<string>, previous: string, category?: string | undefined | null): Promise<Inbox>
+
+/**
  * Inserts a priority line with its nested lines, as written, before the line at `index` of a
  * section, or at its end: Undo of a removal.
  */
@@ -105,11 +135,26 @@ export declare function insertPriority(repo: string, section: string, index: num
 /** The main checkout's path, from any of the repository's working trees. */
 export declare function mainRoot(repo: string): Promise<string>
 
+/** Moves a note to the end of a category, or of the notes without one. */
+export declare function moveNoteToCategory(repo: string, id: string, previous: string, category?: string | undefined | null): Promise<Inbox>
+
 /** Moves a priority line before the line at `index` of a section, or to its end. */
 export declare function movePriority(repo: string, id: string, section: string, index: number, previous: string): Promise<Priorities>
 
 /** A feature's next step, with its branch and the main checkout's path, for an agent's run. */
 export declare function nextStep(repo: string, folder: string): Promise<NextView>
+
+/** Adds a note at the end of the `## What` of the draft at `draft`, from the top level. */
+export declare function noteToDraft(repo: string, id: string, draft: string, previous: string): Promise<void>
+
+/**
+ * Makes a note a new draft, linked from the end of a section of the priorities. Returns the
+ * draft's path, from the top level.
+ */
+export declare function noteToNewDraft(repo: string, id: string, section: string, previous: string, prioritiesPrevious: string): Promise<string>
+
+/** Moves a note to the end of a section of the priorities, over both files as read. */
+export declare function noteToPriorities(repo: string, id: string, section: string, previous: string, prioritiesPrevious: string): Promise<void>
 
 /** Records that a repository was opened now, and returns it. */
 export declare function openRepository(dataDir: string, name: string): Promise<Repository>
@@ -145,6 +190,9 @@ export declare function readFile(repo: string, folder: string, name: string): Pr
  */
 export declare function readImage(repo: string, path: string): Promise<ImageFile>
 
+/** The inbox, with the count of the commit bar's changes and the triage's status. */
+export declare function readInbox(repo: string): Promise<Inbox>
+
 /** `PRIORITIES.md`, with its changes since the last commit. */
 export declare function readPriorities(repo: string): Promise<Priorities>
 
@@ -157,11 +205,17 @@ export declare function readRepositories(dataDir: string): Promise<Array<Reposit
 /** A draft or a proposal, for its editor, by its path from the top level. */
 export declare function readText(repo: string, path: string): Promise<DraftView>
 
+/** The inbox's triage, read as a round of questions, or null when there is none. */
+export declare function readTriage(repo: string): Promise<FileView | null>
+
 /** Every feature, change, and priority of the repository at `repo`. */
 export declare function readWorkspace(repo: string): Promise<WorkspaceView>
 
 /** Removes a pending comment. */
 export declare function removeComment(repo: string, folder: string, file: string, number: number): Promise<FileView>
+
+/** Removes a note, sub-items included. */
+export declare function removeNote(repo: string, id: string, previous: string): Promise<Inbox>
 
 /** Removes a priority line and its nested lines. */
 export declare function removePriority(repo: string, id: string, previous: string): Promise<Priorities>
@@ -190,6 +244,15 @@ export declare function saveNotes(repo: string, folder: string, notes: string, p
  */
 export declare function saveText(repo: string, path: string, text: string, previous: string): Promise<string>
 
+/**
+ * Saves one answer of the triage, from the letters picked and a comment, over the answer last
+ * read.
+ */
+export declare function saveTriageAnswer(repo: string, question: string, letters: Array<string>, comment: string, previous: string): Promise<FileView>
+
+/** Saves the triage's notes, over the notes last read. */
+export declare function saveTriageNotes(repo: string, notes: string, previous: string): Promise<FileView>
+
 /** Sets the discovery effort of a draft or a proposal, over the version read at `previous`. */
 export declare function setDiscovery(repo: string, path: string, level: string, previous: string): Promise<DraftView>
 
@@ -210,6 +273,9 @@ export declare function startOver(repo: string, folder: string, file: string): P
  * answered, is another.
  */
 export declare function submitAnswers(repo: string, folder: string, name?: string | undefined | null): Promise<FileView>
+
+/** Submits the triage, every question answered, and commits it. */
+export declare function submitTriage(repo: string): Promise<FileView>
 
 /** The binding's version, the Cargo workspace's. It reads nothing, so it returns at once. */
 export declare function version(): string

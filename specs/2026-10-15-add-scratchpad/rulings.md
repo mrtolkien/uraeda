@@ -271,3 +271,35 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   a second rule for what a category is.
 - **If wrong**: `category_headings` folds back into `category_names`, and the check reports no line.
 - **Where**: task 5, `files/inbox.rs`, `check/`, `references/conventions.md`, `projects.md`
+
+## R16: The triage's API under the answers, and an answer ends at the notes
+
+- **Decision**:
+  - The answer actions take a `RoundFile`: a `Feature`, for its latest round, or a `str`, a path
+    from the top level, for `specs/INBOX-TRIAGE.md`. `answer::record` writes a round answered,
+    shared by a feature's `submit` and `actions::inbox::submit_triage`, which commits it alone as
+    `chore: answer the inbox triage`.
+  - The triage's API is in `api/answers/triage.rs`, a module of the answers re-exported by them, not
+    `api/triage.rs`: `api.rs` is at its `LARGE` number and cannot take a `mod` and a `pub use` line.
+    Its `FileView` has the id `inbox-triage`, which the server uses as is, an empty folder, and the
+    clarifications' items, through `files::items::round`, now `pub(crate)`.
+  - An answer ends at the `**Notes:**` line, as at a heading, when it is read and when it is
+    written. The triage has no section between its last question and its notes, so the last answer
+    read the notes' marker as its text, and writing it erased the marker.
+  - The binding's inbox functions are in `crates/binding/src/inbox_writes.rs`, since `lib.rs` would
+    pass 500 lines; an optional `category` and `about` come last in their arguments, as TypeScript
+    requires.
+  - The server's inbox, changes, and triage mutations are in `fate/inbox-mutations.ts`; the masked
+    records the mutation files answer with, `priorities`, `draft`, and `inbox`, are in
+    `fate/masked.ts`. `inbox.toPriorities` and `inbox.toDraft` answer with the `Inbox`.
+  - `live.ts` sends `Inbox` and `Priorities` when either file changes, as both carry the commit
+    bar's count, and the `WorkflowFile` `inbox-triage` when the inbox does.
+- **Rationale**: One home for the answer rules, as the plan asks, within the files' limits. The
+  notes fix is the one the triage's format needs; rounds have a section before their notes.
+- **Alternatives considered**: Moving the default branch's helpers out of `api.rs` first, in a
+  structural commit, to make room: the two lines would still grow a file listed in `LARGE` after it.
+  A copy of the answer code for the triage: a second home for the rules.
+- **If wrong**: `api/answers/triage.rs` moves to `api/triage.rs` once `api.rs` has room, with two
+  lines.
+- **Where**: task 6, `actions/answer.rs`, `actions/inbox.rs`, `api/answers.rs`,
+  `api/answers/triage.rs`, `files/clarifications.rs`, `files/items.rs`, the binding, and the server

@@ -2,27 +2,15 @@ import type { Trigger } from "../runner/events.ts";
 import { REFUSALS } from "../runner/sessions.ts";
 import { type Context, inRepository, type RepoContext, type Resolver } from "./context.ts";
 import { fileMutations } from "./file-mutations.ts";
+import { inboxMutations } from "./inbox-mutations.ts";
 import type { ChatImage } from "../runner/images.ts";
 import { changeImages, sentImages } from "./chat-images.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { featureRecord, readSession, readWorkflowMessage, TRIGGERS, writable } from "./sessions.ts";
 import { type ListResolver, listMutations, refusedOn } from "./list-mutations.ts";
 import { sources } from "./sources.ts";
-import {
-  draftDataView,
-  featureDataView,
-  PRIORITIES_ID,
-  prioritiesDataView,
-  sessionDataView,
-  type DraftRecord,
-  type PrioritiesRecord,
-} from "./views.ts";
-
-const priorities = (ctx: Context, record: Omit<PrioritiesRecord, "id">, select: Array<string>) =>
-  sources.masked(prioritiesDataView, ctx, { id: PRIORITIES_ID, ...record }, select);
-
-const draft = (ctx: Context, record: Omit<DraftRecord, "id">, select: Array<string>) =>
-  sources.masked(draftDataView, ctx, { id: record.path, ...record }, select);
+import { draft, priorities } from "./masked.ts";
+import { featureDataView, sessionDataView } from "./views.ts";
 
 /** A session, masked to the fields the client selected. */
 const session = async (ctx: RepoContext, id: string, select: Array<string>) => {
@@ -105,6 +93,7 @@ const repositoryMutations = {
     },
     type: "Feature",
   },
+  ...inboxMutations,
   "draft.create": {
     resolve: async ({ ctx, input, select }: Resolver<{ hash: string; line: string }>) =>
       draft(

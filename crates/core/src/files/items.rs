@@ -12,7 +12,7 @@ use crate::workspace::FileKind;
 
 mod round;
 
-use round::round;
+pub(crate) use round::round;
 pub(crate) use round::settled_points;
 
 /// An option of a question.

@@ -73,7 +73,7 @@ fn leading_strong(block: &Block) -> Option<&str> {
         .map(|span| span.text.as_str())
 }
 
-pub(super) fn round(text: &str, doc: &Document) -> RoundItems {
+pub(crate) fn round(text: &str, doc: &Document) -> RoundItems {
     let status = frontmatter::parse(text)
         .ok()
         .and_then(|front| front.text("status").map(String::from));
