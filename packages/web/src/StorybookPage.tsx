@@ -66,7 +66,8 @@ function pathOf(search: string): string {
 
 /**
  * The page's box: from where it starts, under the phone's top bar, to the window's bottom, so the
- * frame inside it takes the height the crumbs leave.
+ * frame inside it takes the height the crumbs leave. What is above it changes as elements come and
+ * go, like a banner the human dismisses, so every element added or removed measures it again.
  */
 function useWindowHeight(shown: boolean) {
   const box = useRef<HTMLDivElement>(null);
@@ -80,7 +81,12 @@ function useWindowHeight(shown: boolean) {
     };
     measure();
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    const observer = new MutationObserver(measure);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      window.removeEventListener("resize", measure);
+      observer.disconnect();
+    };
   }, [shown]);
   const height = top === undefined ? undefined : `calc(var(--size-viewport-height) - ${top}px)`;
   return { box, height };
