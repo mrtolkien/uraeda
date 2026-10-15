@@ -340,6 +340,7 @@
     --size-menu: 360px;
     --size-story-desktop: 1440px;
     --size-story-height: 560px;
+    --size-story-max-height: 900px;
     --size-story-phone: 402px;
     --color-selection: var(--color-background-yellow);
     --color-selection-edge: var(--color-border-yellow);

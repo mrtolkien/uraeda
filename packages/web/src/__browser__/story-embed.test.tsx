@@ -175,6 +175,24 @@ describe("on a desktop, the frames and their messages", () => {
     expect(heightOf(PHONE)).toBe(560);
   });
 
+  test("a story as tall as its window stops growing at 900 px (edge case)", async () => {
+    await commands.addStoryFeature();
+    const worktree = `.worktrees/${FEATURE}`;
+    const stories = await commands.readRepo(`${worktree}/${STORIES}`);
+    await commands.writeRepo(`${stories}export const FullHeight = {};\n`, `${worktree}/${STORIES}`);
+    const proposal = `${worktree}/specs/${FEATURE}/proposal.md`;
+    const text = await commands.readRepo(proposal);
+    await commands.writeRepo(`${text}\n[Full height](/${STORIES}#FullHeight)\n`, proposal);
+    await show(PROPOSAL, "Long feature names are cut");
+    await expect
+      .poll(() => commands.frameText("Full height, phone"), READY)
+      .toContain("FullHeight");
+
+    // The story's root follows the frame's height: each size it reports grows the frame again.
+    await expect.poll(() => heightOf("Full height, phone"), READY).toBeGreaterThanOrEqual(900);
+    expect(heightOf("Full height, phone")).toBe(900);
+  });
+
   test("through a listed host name, the embed works as through 127.0.0.1 (SC-006)", async () => {
     await commands.addStoryFeature();
 

@@ -10,7 +10,9 @@
 // - `/iframe.html?id=<id>`: a page holding the export's name, a button counting its clicks, a
 //   separator, the colour mode it was sent, the module script `/story.js`, and the skill's pick
 //   script, with a `Content-Security-Policy` that forbids framing it, which the proxy replaces. Its
-//   script opens Storybook's channel, beside the page, and shows "Channel open" once it answers;
+//   script opens Storybook's channel, beside the page, and shows "Channel open" once it answers.
+//   The export `FullHeight` holds them in Storybook's root, `#storybook-root`, as tall as the
+//   window, `100dvh`, as a story sized to the viewport is;
 // - WebSockets at `/storybook-server-channel`, refused when their `Origin` is `null`, and under
 //   `URAEDA_PREVIEW_BASE` for the `vite-hmr` protocol, which each send one message: the path, the
 //   query's values by name, `Host`, `Origin`, and headers they got, as JSON;
@@ -101,11 +103,13 @@ function storyPage(id) {
 <html lang="en" data-mode="none">
 <head><meta charset="utf-8"><title>${entry.exportName}</title>${pick}</head>
 <body>
+${entry.exportName === "FullHeight" ? '<div id="storybook-root" style="height: 100dvh">' : "<div>"}
 <h1>${entry.exportName}</h1>
 <p id="mode">No mode</p>
 <button type="button" id="hide">Hide the sidebar</button>
 <p id="clicks">Clicked 0 times</p>
 <div role="separator" tabindex="0" style="height: 8px; background: gray"></div>
+</div>
 <script type="module" src="story.js"></script>
 </body>
 </html>
