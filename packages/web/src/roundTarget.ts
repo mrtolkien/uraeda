@@ -17,37 +17,60 @@ export function isTriage(target: RoundTarget): target is { triage: true } {
  * The hash of the round's text as the page last read or wrote it, `current`: the triage's saves
  * and its submit are based on it, and the core refuses them once the file holds anything else, as
  * another page's answer. The page's writes to the triage run one after another, each based on the
- * hash the last one left. A read of a text the page already had, drawn late, does not replace it.
+ * hash the last one left. A read drawn while a write is sent may hold the text from before it: it
+ * waits for the write, and is dropped once the write wrote, the write's hash being as new. Any
+ * other read is taken, a text the page had before included, as another page may write it back.
  */
 export class Hashes {
   current: string;
-  #seen = new Set<string>();
+  /** Whether a write is sent and not answered yet: one at a time. */
+  #sending = false;
+  /** The last read drawn while the write was sent, and whether the write wrote. */
+  #waiting: string | null = null;
+  #written = false;
   #queue: Promise<unknown> = Promise.resolve();
 
   constructor(current: string) {
     this.current = current;
-    this.#seen.add(current);
   }
 
   /** Takes the hash of a text the page wrote. */
   wrote(hash: string) {
     this.current = hash;
-    this.#seen.add(hash);
+    this.#written = true;
   }
 
-  /** Takes the hash of the text the page read, unless the page already had that text. */
+  /** Takes the hash of the text the page read, once no write it may be older than is sent. */
   read(hash: string) {
-    if (!this.#seen.has(hash)) {
+    if (this.#sending) {
+      this.#waiting = hash;
+    } else {
       this.current = hash;
-      this.#seen.add(hash);
     }
   }
 
   /** Runs a write after the page's writes before it, based on the hash the last one left. */
   serial<T>(write: (base: string) => Promise<T>): Promise<T> {
-    const next = this.#queue.then(() => write(this.current));
+    const next = this.#queue.then(async () => {
+      this.#sending = true;
+      this.#written = false;
+      try {
+        return await write(this.current);
+      } finally {
+        this.#settle();
+      }
+    });
     this.#queue = next.catch(() => undefined);
     return next;
+  }
+
+  /** Once the write is answered, takes the read drawn meanwhile unless the write wrote. */
+  #settle() {
+    this.#sending = false;
+    if (this.#waiting !== null && !this.#written) {
+      this.current = this.#waiting;
+    }
+    this.#waiting = null;
   }
 }
 
