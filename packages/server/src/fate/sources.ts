@@ -22,6 +22,8 @@ import {
   featureDataView,
   fileDataView,
   folderSuggestionsDataView,
+  INBOX_ID,
+  inboxDataView,
   PRIORITIES_ID,
   prioritiesDataView,
   PROPOSAL_HINTS_ID,
@@ -33,12 +35,14 @@ import {
   type FileRecord,
   sentChanges,
   sentFile,
+  sentInbox,
   sentStep,
   SESSION_LIST_ID,
   sessionDataView,
   sessionListDataView,
   sessionSearchDataView,
   slugProposalDataView,
+  TRIAGE_ID,
   turnDataView,
   turnLogDataView,
   workflowMessageDataView,
@@ -200,6 +204,11 @@ export const sources = createSources<Context>([
     repository({
       byIds: ({ binding, repo }, ids) =>
         each(ids, async (id): Promise<FileRecord> => {
+          if (id === TRIAGE_ID) {
+            // The triage has no feature: missing until an agent writes it.
+            const triage = await binding.readTriage(repo);
+            return sentFile(triage ?? missingFile(id, "", "INBOX-TRIAGE.md"));
+          }
           const [folder, name] = id.split("/");
           try {
             return sentFile(await binding.readFile(repo, folder, name));
@@ -227,6 +236,13 @@ export const sources = createSources<Context>([
         ids.includes(PRIORITIES_ID)
           ? [{ id: PRIORITIES_ID, ...(await binding.readPriorities(repo)) }]
           : [],
+    }),
+  ),
+  fileSource(
+    inboxDataView,
+    repository({
+      byIds: async ({ binding, repo }, ids) =>
+        ids.includes(INBOX_ID) ? [sentInbox(await binding.readInbox(repo))] : [],
     }),
   ),
   fileSource(

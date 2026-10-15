@@ -1,7 +1,14 @@
 import type { Changes } from "uraeda-binding";
 import type { Binding } from "./fate/context.ts";
 import { pages } from "./fate/sessions.ts";
-import { AGENT_ID, PRIORITIES_ID, SESSION_LIST_ID, WORKSPACE_ID } from "./fate/views.ts";
+import {
+  AGENT_ID,
+  INBOX_ID,
+  PRIORITIES_ID,
+  SESSION_LIST_ID,
+  TRIAGE_ID,
+  WORKSPACE_ID,
+} from "./fate/views.ts";
 import { type LiveBus, live } from "./fate.ts";
 import type { Host, Hosts } from "./repositories.ts";
 import type { Adapter } from "./runner/adapter.ts";
@@ -29,7 +36,7 @@ export type HostsOf = () => Pick<Hosts, "byPath" | "all"> | undefined;
  * Sends a repository's live updates, on its host's bus, for each change the core's watcher
  * reports. A feature's change may change its step, which its session's status reads, and its
  * branch's changes, and a feature that goes leaves the sidebar: the list and the features'
- * sessions go too.
+ * sessions go too. A change of the inbox sends its triage too.
  */
 export function publish(changes: Changes, host: Pick<Host, "path" | "live">, sessions?: Sessions) {
   const { live } = host;
@@ -41,8 +48,13 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
   for (const file of changes.files) {
     live.update("WorkflowFile", file, { eventId: eventId(`file:${file}`) });
   }
-  if (changes.priorities) {
+  // The inbox and the priorities share the commit bar's count, so a change of either sends both.
+  if (changes.priorities || changes.inbox) {
     live.update("Priorities", PRIORITIES_ID, { eventId: eventId("priorities") });
+    live.update("Inbox", INBOX_ID, { eventId: eventId("inbox") });
+  }
+  if (changes.inbox) {
+    live.update("WorkflowFile", TRIAGE_ID, { eventId: eventId(`file:${TRIAGE_ID}`) });
   }
   if (sessions && (changes.features.length > 0 || changes.workspace)) {
     live.update("SessionList", SESSION_LIST_ID, { eventId: eventId("sessions") });

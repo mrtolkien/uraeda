@@ -8,13 +8,32 @@ use crate::files::frontmatter;
 use crate::files::inbox::{self, Inbox};
 use crate::files::priorities::{self, Section};
 use crate::files::proposal;
+use crate::today::Date;
 
 use super::place::Place;
-use super::{ActionError, STALE, changes, draft};
+use super::{ActionError, Change, Committed, STALE, answer, changes, commit, draft};
 
 pub const PATH: &str = "specs/INBOX.md";
 /// The agent's proposed triage, answered like a round of questions.
 pub const TRIAGE: &str = "specs/INBOX-TRIAGE.md";
+
+/// The subject of the commit submitting the triage's answers.
+pub const TRIAGE_ANSWERED: &str = "chore: answer the inbox triage";
+
+/// Submits the triage, answered as a round is, and commits it alone, refused before anything is
+/// written when other files are staged.
+pub fn submit_triage(place: &Place, today: Date) -> Result<Committed, ActionError> {
+    super::place::ensure_only_staged(place, &[TRIAGE.to_string()])?;
+    answer::record(place, TRIAGE, today)?;
+    commit::commit(
+        place,
+        &Change {
+            paths: vec![TRIAGE.to_string()],
+            subject: TRIAGE_ANSWERED.to_string(),
+            body: None,
+        },
+    )
+}
 
 /// The marks a tool writes before a note's text.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
