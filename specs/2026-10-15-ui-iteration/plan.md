@@ -1514,7 +1514,11 @@ git commit -m "feat(ui-iteration): stories and previews in fate"
   (`useStory`, `useStillViewed`), `packages/web/src/theme/theme.ts` and its built files
   (`--size-story-phone` 402px, `--size-story-desktop` 1440px, `--size-story-height` 560px)
 - Modify: `packages/web/vite.browser.config.ts` (commands),
-  `packages/web/src/__browser__/helpers.tsx`
+  `packages/web/src/__browser__/helpers.tsx`, `fixtures/preview/serve.mjs` (Storybook's channel) and
+  `fixtures/preview/feature/` (the Mockups item's description,
+  [R27](rulings.md#r27-the-fake-preview-opens-storybooks-channel-and-the-tests-post-to-its-frames)),
+  `packages/server/src/fate/views.ts` (the draft's `stories`,
+  [R26](rulings.md#r26-a-drafts-record-carries-its-stories))
 - Test: `packages/web/src/__browser__/story-embed.test.tsx`,
   `packages/web/src/__browser__/layout.test.tsx`, `packages/web/src/__tests__/stories.test.tsx`
 
@@ -1523,9 +1527,11 @@ git commit -m "feat(ui-iteration): stories and previews in fate"
 - Consumes: the `Story` record, `FeatureRecord.preview`, `WorkspaceRecord.preview` from task 6;
   `StoryLink`, `SpanLink.story` from task 1.
 - Produces, in `stories.tsx`: `StoryContext`, holding
-  `{ folder: string; stories: ReadonlyArray<StoryLink>; comment?: (story: StoryLink, text: string, block?: Block) => Promise<string | undefined>; removed?: boolean }`;
+  `{ folder: string; stories: ReadonlyArray<StoryLink>; comment?: (story: StoryLink, text: string, block?: Block) => Promise<string | undefined>; removed?: boolean; preview: boolean }`;
   `StoriesProvider(props: { folder: string; stories: ReadonlyArray<StoryLink>; comment?: …; removed?: boolean; children: ReactNode })`;
-  `usePreviewOn(folder: string): boolean`, from the feature's or the workspace's `preview`;
+  in `data.ts`, `usePreviewOn(folder: string): boolean`, from the feature's or the workspace's
+  `preview`, and `MAIN_CHECKOUT`
+  ([R28](rulings.md#r28-whether-a-checkout-has-a-preview-is-read-once-per-provider));
   `useStoryAt(block: Block): StoryLink | undefined`, the embed of a paragraph when the checkout has
   a preview; `storybookHref(folder: string, story?: StoryTarget): string`, `/f/<folder>/storybook`
   or `/storybook`, with `?story=<path>%23<export>`
@@ -1538,9 +1544,10 @@ git commit -m "feat(ui-iteration): stories and previews in fate"
   its component is drawn, used by `useStory` and by task 8's `usePreview`.
 - Produces, browser commands: `addStoryFeature(options)`, `previewStarts()`, `frameText(title)`,
   `frameClick(title, role, name)`, `frameAttribute(title, selector, name)`,
-  `openThroughHost(path, host)`.
+  `frameRun(title, script)`, `frameReload(title)`, `openThroughHost(path, title, text)`; `commands`,
+  exported by the browser helpers.
 
-- [ ] **Step 1: Split `BlockNode` before it grows**
+- [x] **Step 1: Split `BlockNode` before it grows**
 
 Move its `switch` into a `blockElement(block, context)` function returning the node, so `BlockNode`
 keeps the override and the `Selectable` wrap.
@@ -1553,7 +1560,7 @@ git add packages/web/src/Blocks.tsx
 git commit -m "refactor(ui-iteration): BlockNode draws a block's element apart"
 ```
 
-- [ ] **Step 2: Split `ReviewPage` before it grows**
+- [x] **Step 2: Split `ReviewPage` before it grows**
 
 `ReviewPage` is at 99 lines, and this task and task 9 add to it. Move its `Blocks` selection (the
 `after`, `isSelected`, and `onTap` functions) into a `useReviewSelection` hook of `ReviewPage.tsx`,
@@ -1567,7 +1574,7 @@ git add packages/web/src/ReviewPage.tsx
 git commit -m "refactor(ui-iteration): ReviewPage's selection in a hook"
 ```
 
-- [ ] **Step 3: Write the failing tests, and the commands they use**
+- [x] **Step 3: Write the failing tests, and the commands they use**
 
 ```tsx
 // packages/web/src/__browser__/story-embed.test.tsx
@@ -1631,7 +1638,7 @@ describe("on a desktop", () => {
 Also in `story-embed.test.tsx`, each naming its scenario:
 
 - `the story is drawn in Uraeda's colour mode, and follows it (US1.4)`: dark stored, then
-  `frameAttribute(…, "main", "data-mode")` is `dark`; "Light" pressed in the "Theme" control, it is
+  `frameAttribute(…, "html", "data-mode")` is `dark`; "Light" pressed in the "Theme" control, it is
   `light`.
 - `on the phone, the embed is as wide as the page, at the phone width, with named icons (US1.5)`:
   `atSize("phone")`; one frame, titled "Dragging the handle, phone", as wide as `window.innerWidth`;
@@ -1649,15 +1656,16 @@ Also in `story-embed.test.tsx`, each naming its scenario:
 - `after Storybook reloads a frame, it gets the colour mode again` (review focus 2): reload the
   frame through Playwright; `data-mode` is the page's again.
 - `a size that is not a number above 0 is ignored` (review focus 6): a frame posting
-  `{ uraeda: "size", height: -1 }` keeps its height.
+  `{ uraeda: "size", height: -1 }`, and other malformed heights, then `ready`, keeps its height once
+  the mode comes back.
 - `without a preview decision, a story link is a plain link` (edge case): `preview: false`; a link
   "Dragging the handle" to `/r/<name>/raw/packages/web/src/SidebarHandle.stories.tsx`, no figure.
 - `a story link in a list item, or without an export, is a link` (edge case): the fixture's
   `## Mockups` item links to `storybookHref` with `?story=`; its link without an export links to
   `/raw/`.
 - `through a listed host name, the embed works as through 127.0.0.1 (SC-006)`:
-  `openThroughHost(SPEC, "uraeda.test")` returns the desktop frame's text with "Dragging" and
-  "Channel open".
+  `openThroughHost(SPEC, "Dragging the handle, desktop", "Channel open")`, under `uraeda.test`,
+  returns the desktop frame's text with "Dragging" and "Channel open".
 
 `layout.test.tsx` gains the spec with its embed, ready, at both sizes, in light and dark.
 
@@ -1687,12 +1695,12 @@ The break each test catches:
   Storybook page; SC-006: a socket pointed at 127.0.0.1, or a guard that knows only loopback.
 - Every 5 minutes: an embed left on screen whose Storybook stops after 30 minutes.
 
-- [ ] **Step 4: Run them to check they fail**
+- [x] **Step 4: Run them to check they fail**
 
 - Run: `vp test --project desktop src/__browser__/story-embed.test.tsx`
 - Expected: FAIL, `Unable to find role="figure" and name "Dragging the handle"`.
 
-- [ ] **Step 5: Implement**
+- [x] **Step 5: Implement**
 
 - `BlockNode`: a paragraph with `useStoryAt(block)` draws `StoryEmbed`, then
   `selection?.after?.(block)` under it. `Spans`' `SpanLink`: a link with `story`, where the checkout
@@ -1710,13 +1718,13 @@ The break each test catches:
   it shows, `file.committed ?? file.current`; `EditorPage` and `DraftPart` with `main` and the
   draft's.
 
-- [ ] **Step 6: Run all tests**
+- [x] **Step 6: Run all tests**
 
 - Run:
   `vp test --project desktop && vp test --project phone && vp test --project uraeda-web && vp check`
 - Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/web

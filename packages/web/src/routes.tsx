@@ -404,7 +404,7 @@ function inApp(href: string | undefined, target: string | undefined): href is st
     !!href &&
     href.startsWith("/") &&
     !href.startsWith("//") &&
-    !/^\/(r\/[^/]+\/)?(raw|mockups|images|chat-images)\//.test(href) &&
+    !/^\/(r\/[^/]+\/)?(raw|mockups|images|chat-images|preview)\//.test(href) &&
     (!target || target === "_self")
   );
 }
