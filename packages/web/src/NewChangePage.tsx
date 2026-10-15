@@ -5,7 +5,7 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { startTransition, useEffect, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { DraftImage } from "./attach/chatImages.ts";
 import { Composer } from "./Composer.tsx";
@@ -36,12 +36,20 @@ function useSettled(text: string) {
 /**
  * Starts the change from the composer's text and images, under the slug typed: its page opens, or,
  * when no run was sent, its session with the workflow's message unsent (R12). A refusal is shown
- * under the slug field, and the text stays.
+ * under the slug field, and the text stays. A change started once the human left the page opens
+ * nothing: its text and slug still go, since it started.
  */
 function useStart(slug: ReturnType<typeof useTextField>) {
   const fate = useFateClient();
   const here = useRepoPath();
   const [error, setError] = useState<string>();
+  const shown = useRef(true);
+  useEffect(() => {
+    shown.current = true;
+    return () => {
+      shown.current = false;
+    };
+  }, []);
   const start = async (text: string, images: ReadonlyArray<DraftImage>) => {
     setError(undefined);
     const result = await fate.mutations.change.start({
@@ -59,6 +67,9 @@ function useStart(slug: ReturnType<typeof useTextField>) {
       return false;
     }
     slug.discard();
+    if (!shown.current) {
+      return true;
+    }
     if (result.result?.session === null) {
       handOver(folder, "start");
     } else {

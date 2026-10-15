@@ -206,12 +206,13 @@ function composerStatus(
  * The composer's send buttons, in its send row: Send, or "Start the agent" while it holds the
  * workflow's message, "Start once this turn ends" during a turn, or the page's own `label`. During
  * a chat's turn, Send steers the message into it, beside Stop: shown, disabled, while its images
- * are saved.
+ * are saved. While `onSend` is `pending`, the page's button is busy, its spinner shown.
  */
 function sendButtons({
   canSend,
   hasContent,
   label,
+  pending,
   send,
   workflow,
   working,
@@ -219,18 +220,22 @@ function sendButtons({
   canSend: boolean;
   hasContent: boolean;
   label: string | undefined;
+  pending: boolean;
   send: () => void;
   workflow: boolean;
   working: boolean;
 }): { sendActions?: ReactNode; sendButton?: ReactNode } {
   // Astryx's Send takes text alone: this one takes a message of images too (an Astryx gap).
-  const sendButton = <ChatSendButton isDisabled={!canSend} isStopShown={false} onSend={send} />;
+  const sendButton = (
+    <ChatSendButton isDisabled={!canSend || pending} isStopShown={false} onSend={send} />
+  );
   if (workflow || label !== undefined) {
     return {
       sendButton: (
         <Button
           clickAction={send}
           isDisabled={!canSend}
+          isLoading={pending}
           label={label ?? (working ? "Start once this turn ends" : "Start the agent")}
           variant="primary"
         />
@@ -295,9 +300,10 @@ export function Composer(props: ComposerProps) {
   const onKeyDown = useEnter(input, wide, canSend ? () => submit(value.trim()) : undefined);
   const placeholder = `Message ${name}`;
   const buttons = sendButtons({
-    canSend: canSend && !refused && !pending,
+    canSend: canSend && !refused,
     hasContent,
     label: props.sendLabel,
+    pending,
     send: () => submit(value.trim()),
     workflow: workflow !== undefined,
     working,
