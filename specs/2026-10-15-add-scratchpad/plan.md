@@ -1104,7 +1104,7 @@ git commit -m "feat(add-scratchpad): notes from Neovim"
   - `useInbox()` and `readInbox(fate)`;
   - the routes `/inbox`, `/inbox/<key>`, and `/inbox/triage`.
 
-- [ ] **Step 1: Split `Home` into a component per group, and remove its marker**
+- [x] **Step 1: Split `Home` into a component per group, and remove its marker**
 
 This is a structural step.
 
