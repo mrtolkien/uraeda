@@ -1,7 +1,8 @@
 // A story's frames, sandboxed without `allow-same-origin`, and the messages of their windows: the
 // widths a wide screen shows, the phone's alone on narrow ones, each frame as tall as its story says,
-// and in Uraeda's colour mode, which a frame is sent when it says it is ready and when it changes;
-// and pick mode, sent to every frame, and the elements their pick scripts report.
+// up to the theme's maximum, and in Uraeda's colour mode, which a frame is sent when it says it is
+// ready and when it changes; and pick mode, sent to every frame, and the elements their pick scripts
+// report.
 import { useTheme } from "@astryxdesign/core/theme";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -23,10 +24,12 @@ const styles = stylex.create({
     transformOrigin: "0 0",
     width: "var(--size-story-desktop)",
   },
+  // A frame's height, at most the theme's: a story sized to its window reports more at each resize.
   frame: {
     borderWidth: 0,
     display: "block",
     height: "var(--size-story-height)",
+    maxHeight: "var(--size-story-max-height)",
   },
   frames: {
     alignItems: "flex-start",

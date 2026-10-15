@@ -871,3 +871,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   too, which changes the approved rule for every workflow file.
 - **If wrong**: the two references' sentence.
 - **Where**: `skills/uraeda/references/implementation.md` and `change.md`.
+
+## R55: A story's frame is at most 900 px tall
+
+- **Decision**: every frame of an embed is at most `--size-story-max-height` tall, a new theme size
+  of 900 px, the height of a desktop window at the desktop frame's 1440 px width. The frame's height
+  still comes from the `size` message, or is 560 px; a story taller than 900 px scrolls inside its
+  frame. The pick script's measure is unchanged.
+- **Rationale**: a story sized to its window, such as a root of `100dvh`, measures the frame's own
+  height, and the pick script adds the body's margins: each size it reported grew the frame, which
+  grew the story, without end. At the cap, the frame no longer grows, so the story's height, and the
+  size it reports, stop changing, and the script sends nothing more. A page holds the frame whole on
+  a desktop, and 900 px is about a phone's height at the phone frame's 402 px width too.
+- **Alternatives considered**: a maximum from the viewport, such as `80dvh`, which shrinks the embed
+  on a short window and makes a desktop story's frame depend on the reader's screen; telling the
+  script's growth from the embed's own resize, which a story whose content really grows after a
+  resize, as a wrapping layout does, makes ambiguous; measuring the story without its viewport-sized
+  parts, which the script cannot tell from its CSS.
+- **If wrong**: a long story, such as a page, shows its first 900 px and scrolls; the token in
+  `packages/web/src/theme/theme.ts`.
+- **Where**: `packages/web/src/theme/theme.ts` and its built files,
+  `packages/web/src/StoryFrames.tsx`, `fixtures/preview/serve.mjs`, whose `FullHeight` export is
+  sized to its window, and `packages/web/src/__browser__/story-embed.test.tsx`.
