@@ -249,7 +249,7 @@ pub(super) fn check_priorities(file: &File<'_>, document: &Document, problems: &
 }
 
 /// `inbox.*`: the inbox is titled `# Inbox`, and names each category once. Tools add to a repeated
-/// category's first heading, so the second is reported.
+/// category's first heading, so the second is reported. An empty heading names no category.
 pub(super) fn check_inbox(file: &File<'_>, document: &Document, problems: &mut Vec<Problem>) {
     let title = document.headings.iter().find(|h| h.level == 1);
     if title.is_none_or(|title| title.text != "Inbox") {
@@ -261,6 +261,9 @@ pub(super) fn check_inbox(file: &File<'_>, document: &Document, problems: &mut V
     }
     let mut seen = Vec::new();
     for (line, name) in inbox::category_headings(file.text) {
+        if name.is_empty() {
+            continue;
+        }
         if seen.contains(&name) {
             problems.push(file.problem(
                 Some(line),
