@@ -383,6 +383,11 @@ describe("on the phone", () => {
     await userEvent.click(line);
     expect(line.getAttribute("aria-expanded")).toBe("true");
     const plan = await screen.findByRole("link", { name: "plan.md" }, LIVE);
+    // The sections above the link draw once their files are read, the plan's 11 tasks moving it
+    // down: the position is read once they are drawn, or the click scrolls to the link first.
+    const open = screen.getByRole("region", { name: "Progress" });
+    await within(open).findByRole("list", { name: "Tasks" }, LIVE);
+    await within(open).findByText("Nothing outside the feature's folder yet.", undefined, LIVE);
     await drawn();
     // Scrolled to the plan's link, in the column's open content.
     const box = scroller();
