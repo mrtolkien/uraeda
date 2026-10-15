@@ -13,6 +13,10 @@ use crate::today::Date;
 use super::place::Place;
 use super::{ActionError, Change, Committed, STALE, answer, changes, commit, draft};
 
+mod undo;
+
+pub use undo::{undo_category, undo_to_draft, undo_to_priorities};
+
 pub const PATH: &str = "specs/INBOX.md";
 /// The agent's proposed triage, answered like a round of questions.
 pub const TRIAGE: &str = "specs/INBOX-TRIAGE.md";
@@ -343,15 +347,20 @@ pub fn to_new_draft(
     Ok(path)
 }
 
+/// The text of the draft or backlog file at `draft`, from the top level, refused when it is none.
+fn draft_text(place: &Place, draft: &str) -> Result<String, ActionError> {
+    let plain = !draft.split('/').any(|part| part == ".." || part.is_empty());
+    (crate::target::is_draft(draft) && plain && draft.ends_with(".md"))
+        .then(|| fs::read_to_string(place.root.join(draft)).ok())
+        .flatten()
+        .ok_or_else(|| ActionError::Refused(format!("no draft {draft}")))
+}
+
 /// Adds a note's lines, without its marks, at the end of the `## What` section of the draft at
 /// `draft`, from the top level.
 pub fn to_draft(place: &Place, id: &str, draft: &str, previous: &str) -> Result<(), ActionError> {
     let inbox = current(place, PATH, previous)?;
-    let plain = !draft.split('/').any(|part| part == ".." || part.is_empty());
-    let text = (crate::target::is_draft(draft) && plain && draft.ends_with(".md"))
-        .then(|| fs::read_to_string(place.root.join(draft)).ok())
-        .flatten()
-        .ok_or_else(|| ActionError::Refused(format!("no draft {draft}")))?;
+    let text = draft_text(place, draft)?;
     let (lines, _) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
     let edited = proposal::append_to_what(&text, &lines)
         .ok_or_else(|| ActionError::Refused(format!("{draft} has no ## What section")))?;

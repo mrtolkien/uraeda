@@ -15,6 +15,7 @@ import {
   git,
   quiet,
   read,
+  refreshUntil,
   renderPage,
   type,
 } from "./helpers.tsx";
@@ -665,5 +666,107 @@ test("a move over a change made elsewhere is refused, and the inbox reads again"
     await screen.findByText("INBOX.md changed on disk. Your change was not applied."),
   ).toBeTruthy();
   expect(read(repo)).not.toContain("Draft to proposal on mobile went 404");
+  expect(await (await main()).findByText("A home icon")).toBeTruthy();
+});
+
+/** Review: an Undo writes over the inbox as it is now, so a change made meanwhile stays. */
+test("Undo of a move to the priorities keeps a change made meanwhile", async () => {
+  const { repo } = await renderPage("/inbox/draft-to-proposal-on-mobile-went-404");
+  const inbox = read(repo, PATH);
+  const priorities = read(repo);
+  await choose("Move to priorities", "Next");
+  await toast("Moved to Next, not committed");
+  writeFileSync(join(repo, PATH), read(repo, PATH).replace("We need a home icon", "A home icon"));
+
+  await click(screen.getByRole("button", { name: "Undo" }));
+
+  await waitFor(() =>
+    expect([read(repo, PATH), read(repo)]).toEqual([
+      inbox.replace("We need a home icon", "A home icon"),
+      priorities,
+    ]),
+  );
+});
+
+/** Review: a line of the same text the human wrote in the section after the move is theirs. */
+test("Undo of a move to the priorities leaves the human's line of the same text", async () => {
+  const { repo } = await renderPage("/inbox/draft-to-proposal-on-mobile-went-404");
+  const inbox = read(repo, PATH);
+  await choose("Move to priorities", "Next");
+  await toast("Moved to Next, not committed");
+  const line = "- Draft to proposal on mobile went 404\n";
+  writeFileSync(join(repo, "specs/PRIORITIES.md"), read(repo).replace(line, `${line}${line}`));
+
+  await click(screen.getByRole("button", { name: "Undo" }));
+
+  await waitFor(() => expect(read(repo, PATH)).toBe(inbox));
+  expect(section(read(repo), "Next").split(line).length - 1).toBe(1);
+});
+
+/** Review: an Undo takes the note's lines back out of the draft, and keeps the human's typing. */
+test("Undo of an add to a draft keeps what the human typed in it since", async () => {
+  const { repo } = await renderPage("/inbox/icons-are-blurry-on-retina-screens", withLookDraft());
+  const inbox = read(repo, PATH);
+  await addToDraft("Look", "Look and feel pass");
+  await toast("Added to Look and feel pass, not committed");
+  writeFileSync(
+    join(repo, LOOK),
+    read(repo, LOOK).replace("unfinished.", "unfinished, and dated."),
+  );
+
+  await click(screen.getByRole("button", { name: "Undo" }));
+
+  await waitFor(() =>
+    expect([read(repo, PATH), read(repo, LOOK)]).toEqual([
+      inbox,
+      LOOK_TEXT.replace("unfinished.", "unfinished, and dated."),
+    ]),
+  );
+});
+
+/** Review: an id is a place: once the note is gone, the view never shows the note now there. */
+test("a note edited, then removed elsewhere, is not taken for the note at its place", async () => {
+  const { repo } = await renderPage("/inbox/we-need-a-home-icon");
+  await click(await screen.findByRole("button", { name: "Edit" }));
+  const field = screen.getByRole("textbox", { name: "Note" });
+  await type(field, "We need a home icon!");
+  await act(async () => {
+    fireEvent.keyDown(field, { key: "Enter" });
+  });
+  await waitFor(() => expect(read(repo, PATH)).toContain("- We need a home icon!\n"));
+  await waitFor(() => expect(screen.queryByRole("textbox", { name: "Note" })).toBeNull());
+  writeFileSync(join(repo, PATH), read(repo, PATH).replace("- We need a home icon!\n", ""));
+
+  await refreshUntil(() =>
+    expect(detail().getByText("This note is no longer in INBOX.md.")).toBeTruthy(),
+  );
+  expect(detail().queryByRole("button", { name: "Delete" })).toBeNull();
+});
+
+/** Review: a note opened from the inbox returns to it once moved, so Back leaves the inbox. */
+test("a note deleted from the inbox's pane goes back to the inbox's own entry", async () => {
+  await renderPage("/inbox");
+  const list = window.history.state?.id;
+  await click(await (await main()).findByRole("link", { name: /Draft to proposal/ }));
+  await click(await screen.findByRole("button", { name: "Delete" }));
+
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/inbox")));
+  expect(window.history.state?.id).toBe(list);
+});
+
+/** Edge case: an edit from a stale page is refused, and the page reads the inbox again. */
+test("an edit over a change made elsewhere is refused, and the inbox reads again", async () => {
+  const { repo } = await renderPage("/inbox/draft-to-proposal-on-mobile-went-404");
+  await click(await screen.findByRole("button", { name: "Edit" }));
+  writeFileSync(join(repo, PATH), read(repo, PATH).replace("We need a home icon", "A home icon"));
+  const field = screen.getByRole("textbox", { name: "Note" });
+  await type(field, "Draft to proposal 404s on mobile");
+  await act(async () => {
+    fireEvent.keyDown(field, { key: "Enter" });
+  });
+
+  expect(
+    (await screen.findAllByText("INBOX.md changed on disk. Your change was not applied.")).length,
+  ).toBeGreaterThan(0);
   expect(await (await main()).findByText("A home icon")).toBeTruthy();
 });

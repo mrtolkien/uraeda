@@ -2,11 +2,10 @@
 // read again when the page is shown again, as iOS may have dropped its connection.
 import { useEffect, useState } from "react";
 import { useFateClient, useLiveView, useRequest, useView } from "react-fate";
-import type { Inbox, Priorities, Trigger } from "uraeda-server/fate";
+import type { Draft, Inbox, Priorities, Trigger } from "uraeda-server/fate";
 import {
   AgentView,
   BranchChangesView,
-  DraftTextView,
   DraftTitleView,
   DraftView,
   FeatureView,
@@ -149,11 +148,11 @@ export function rereadChanges(fate: ReturnType<typeof useFateClient>) {
  */
 export function useDraftTitles(
   paths: ReadonlyArray<string>,
-): ReadonlyArray<{ path: string; title: string }> | undefined {
+): ReadonlyArray<Pick<Draft, "path" | "title">> | undefined {
   const fate = useFateClient();
   const [titles, setTitles] = useState<{
     key: string;
-    rows: Array<{ path: string; title: string }>;
+    rows: Array<Pick<Draft, "path" | "title">>;
   }>();
   // The list, as one value, so a new array of the same paths reads nothing again.
   const key = paths.join("\n");
@@ -168,7 +167,8 @@ export function useDraftTitles(
         ),
       );
       if (current) {
-        setTitles({ key, rows: rows as unknown as Array<{ path: string; title: string }> });
+        // fate types a root's records as any entity: the view gives the drafts' fields.
+        setTitles({ key, rows: rows as unknown as Array<Pick<Draft, "path" | "title">> });
       }
     })().catch(() => {});
     return () => {
@@ -176,19 +176,6 @@ export function useDraftTitles(
     };
   }, [fate, key]);
   return titles?.key === key ? titles.rows : undefined;
-}
-
-/** A draft's text and hash as they are now on disk, read outside a component, for an Undo. */
-export async function readDraftText(
-  fate: ReturnType<typeof useFateClient>,
-  path: string,
-): Promise<{ hash: string; text: string }> {
-  const { draft } = await fate.request(
-    { draft: { id: path, view: DraftTextView } },
-    { mode: "network-only" },
-  );
-  const { data } = await fate.readView(DraftTextView, draft);
-  return data as unknown as { hash: string; text: string };
 }
 
 export function useDraft(path: string) {

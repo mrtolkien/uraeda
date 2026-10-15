@@ -131,3 +131,25 @@ pub fn append_to_what(text: &str, item: &[String]) -> Option<String> {
     })
     .ok()
 }
+
+/// A draft's text without the last list item whose markdown is `markdown`, nested lines included,
+/// and the blank line its addition put before it: a note's lines taken back out of the draft it
+/// went into, every other edit kept. `None` when no item has that markdown.
+pub fn without_item(text: &str, markdown: &str) -> Option<String> {
+    super::with_unix_newlines(text, |text| {
+        let all: Vec<&str> = text.split('\n').collect();
+        let (_, item) = super::lines::items(text, |_, _| Some(()))
+            .into_iter()
+            .rfind(|(_, item)| super::lines::signed_markdown(&all, item) == markdown)
+            .ok_or(())?;
+        let mut kept: Vec<&str> = all.clone();
+        let at = item.line - 1;
+        kept.drain(at..item.end);
+        let blank = |i: usize| kept.get(i).is_none_or(|line| line.trim().is_empty());
+        if at > 0 && blank(at - 1) && blank(at) && at < kept.len() {
+            kept.remove(at - 1);
+        }
+        Ok::<_, ()>(kept.join("\n"))
+    })
+    .ok()
+}

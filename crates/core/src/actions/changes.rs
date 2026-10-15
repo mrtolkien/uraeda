@@ -7,6 +7,7 @@ use std::fs;
 use crate::files::inbox::{self, NoteChange};
 use crate::files::lines;
 use crate::files::priorities::{self, EntryChange, Section};
+use crate::files::proposal;
 use crate::git::Git;
 
 use super::place::{self, Place};
@@ -387,27 +388,6 @@ pub fn commit(place: &Place) -> Result<Committed, ActionError> {
     commit::commit(place, &change)
 }
 
-/// A draft's text without the list item of the markdown `markdown`, and the blank line its
-/// addition put before it.
-fn without_item(text: &str, markdown: &str) -> Option<String> {
-    crate::files::with_unix_newlines(text, |text| {
-        let all: Vec<&str> = text.split('\n').collect();
-        let (_, item) = lines::items(text, |_, _| Some(()))
-            .into_iter()
-            .find(|(_, item)| lines::signed_markdown(&all, item) == markdown)
-            .ok_or(())?;
-        let mut kept: Vec<&str> = all.clone();
-        let at = item.line - 1;
-        kept.drain(at..item.end);
-        let blank = |i: usize| kept.get(i).is_none_or(|line| line.trim().is_empty());
-        if at > 0 && blank(at - 1) && blank(at) && at < kept.len() {
-            kept.remove(at - 1);
-        }
-        Ok::<_, ()>(kept.join("\n"))
-    })
-    .ok()
-}
-
 /// Restores the committed `INBOX.md` and `PRIORITIES.md`, staged edits included, deleting one that
 /// no commit has. A draft is never lost: one a move wrote and nobody committed is deleted only while
 /// it holds what the move wrote, and one a note was added to loses that note's lines only.
@@ -432,7 +412,7 @@ pub fn discard(place: &Place) -> Result<(), ActionError> {
             Undo::Grown { path, markdown } => {
                 let file = place.root.join(&path);
                 let text = fs::read_to_string(&file)?;
-                if let Some(without) = without_item(&text, &markdown) {
+                if let Some(without) = proposal::without_item(&text, &markdown) {
                     fs::write(file, without)?;
                 }
             }

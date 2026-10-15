@@ -208,3 +208,58 @@ pub fn discard_changes(repo: &Path) -> Result<()> {
     changes::discard(&place)?;
     Ok(())
 }
+
+/// Takes back a note's move to a section of the priorities, in one write of both files or none:
+/// the line the move wrote leaves the section, found by the note's lines and, among several of
+/// them, by `entry_key`, the key it had once moved; the note, `lines` as written, goes back
+/// before the note at `index` of its category, over the inbox as it is now.
+pub fn undo_note_to_priorities(
+    repo: &Path,
+    lines: &[String],
+    category: Option<String>,
+    index: u32,
+    section_id: &str,
+    entry_key: Option<String>,
+) -> Result<Inbox> {
+    let section = section(section_id)?;
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    edits::undo_to_priorities(
+        &place,
+        lines,
+        category.as_deref(),
+        index as usize,
+        section,
+        entry_key.as_deref(),
+    )?;
+    Ok(edits::read(&place))
+}
+
+/// Takes back a note's add to the draft at `draft`, in one write of both files or none: the note's
+/// lines leave the draft, every other edit kept, and the note goes back to its place.
+pub fn undo_note_to_draft(
+    repo: &Path,
+    draft: &str,
+    lines: &[String],
+    category: Option<String>,
+    index: u32,
+) -> Result<Inbox> {
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    edits::undo_to_draft(&place, draft, lines, category.as_deref(), index as usize)?;
+    Ok(edits::read(&place))
+}
+
+/// Takes back a note's move to another category, in one write: the note, found by its lines as
+/// written, goes back before the note at `index` of `category`, or none.
+pub fn undo_note_category(
+    repo: &Path,
+    lines: &[String],
+    category: Option<String>,
+    index: u32,
+) -> Result<Inbox> {
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    edits::undo_category(&place, lines, category.as_deref(), index as usize)?;
+    Ok(edits::read(&place))
+}

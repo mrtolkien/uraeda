@@ -415,6 +415,43 @@ pub fn edit(text: &str, id: &str, line: &str) -> Option<String> {
     .ok()
 }
 
+/// Removes the entry of `section` whose lines, nested ones included, are exactly `lines`: the one
+/// there is, or among several, the one whose key is `key`. `None` when there is none, or several
+/// and none has that key: an entry of the same text the human wrote is never taken for it.
+pub fn remove_written(
+    text: &str,
+    section: Section,
+    lines: &[String],
+    key: Option<&str>,
+) -> Option<String> {
+    super::with_unix_newlines(text, |text| {
+        let all: Vec<&str> = text.split('\n').collect();
+        let entries = parse(text);
+        let keys = keys(&entries);
+        let same: Vec<(&Entry, &String)> = entries
+            .iter()
+            .zip(&keys)
+            .filter(|(entry, _)| {
+                entry.section == section
+                    && all[entry.item.line - 1..entry.item.end]
+                        .iter()
+                        .copied()
+                        .eq(lines.iter().map(String::as_str))
+            })
+            .collect();
+        let found = match same.as_slice() {
+            [(one, _)] => *one,
+            _ => same
+                .iter()
+                .find(|(_, found)| key == Some(found.as_str()))
+                .map(|(entry, _)| *entry)
+                .ok_or(())?,
+        };
+        Ok::<_, ()>(lines::remove(text, &found.item))
+    })
+    .ok()
+}
+
 /// Removes an entry, with its nested lines.
 pub fn remove(text: &str, id: &str) -> Option<String> {
     super::with_unix_newlines(text, |text| {

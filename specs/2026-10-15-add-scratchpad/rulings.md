@@ -427,7 +427,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `InboxPage.tsx`, `Shell.tsx`, `crates/core/src/files/inbox.rs` and `files/lines.rs`, and the tests
   named above
 
-## R20: The note's view: Astryx menus, Undo by move, and one bar that reads both files again
+## R20: The note's view: Astryx menus, one core call per Undo, and one bar that reads both files
 
 - **Decision**:
   - "Move to priorities" and "Make a draft" are Astryx `DropdownMenu`s of the four sections, a
@@ -439,30 +439,56 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
     `<folder>/proposal.md`. A note's own draft is not offered.
   - "Edit" opens the note's text in place through `useLineSave` and `EditableLine`'s field, now
     exported as `LineField`; `useLineSave` takes the empty text's refusal, "A note needs text.".
+    While the text is saved, the view finds the note by its id only while that note holds the text
+    saved, and forgets the id once the save is done: an id is a place, which another note takes once
+    this one goes.
   - Make a draft shows no toast: it opens the editor, as the task view's Draft does, and the spec
     lists no toast for it.
-  - Undo, for each move: Delete puts the note's lines back at its place with `inbox.insert`. A
-    category move finds the note by its lines, its key first, removes it, and inserts it back at its
-    place, or is refused with "Could not undo: "<note>" is no longer in INBOX.md.". A move to the
-    priorities puts the note back, then removes the section's last line of the note's text, or is
-    refused with "Could not undo: "<note>" is no longer in PRIORITIES.md." when that line is gone,
-    nothing written. An add to a draft writes the draft's text from before the move back over its
-    hash just after it, so an edit made since refuses it with the core's conflict, then puts the
-    note back.
-  - `CommitBar` shows its refusal, a hook's included, in the bar, not above the page's list. After
-    Commit, Discard, and every move across files, the inbox and the priorities are read again
-    (`rereadChanges`), as both carry the bar's count and only one comes back with the answer.
+  - Move to priorities and Make a draft read the priorities' hash just before they write: the view
+    shows no priorities, so a `PRIORITIES.md` changed since the view was drawn is not refused from
+    it; one changed between that read and the write is.
+  - Every Undo of a move is one call to the core, under the write lock, over the files as they are
+    now, which changes both files or neither, and never writes a whole draft's text:
+    - `inbox.undoToPriorities { lines, category?, index, section, entryKey? }` removes the line of
+      the section whose lines are exactly the note's, marks dropped, and puts the note back at its
+      place. With several such lines, it takes the one whose key is `entryKey`, read right after the
+      move, or refuses: a line of the same text the human wrote is never taken. Once none is left,
+      it refuses with "Could not undo: "<note>" is no longer in PRIORITIES.md.", a message the
+      spec's INBOX.md one is the model for.
+    - `inbox.undoToDraft { draft, lines, category?, index }` takes the note's lines out of the
+      draft, every other edit kept, through `proposal::without_item`, the operation Discard uses,
+      moved there from `actions/changes.rs`, then puts the note back. Both now take the last item of
+      that markdown, the one a move appended, so a same bullet the human wrote above stays.
+    - `inbox.undoCategory { lines, category?, index }` finds the note by its lines, and puts it back
+      at its place in one write, or refuses with the spec's "Could not undo: "<note>" is no longer
+      in INBOX.md." when no note, or two, hold those lines.
+    - Delete's Undo is `inbox.insert` over the inbox read just before, one file.
+    - They live in `actions/inbox/undo.rs`, with `files::inbox::of_lines` and `ids_of_lines` in
+      `files/inbox/found.rs`, `priorities::remove_written`, and `lines::markdown_of`.
+  - A note's view, once its note left the inbox, returns to the inbox only while it is still shown:
+    by Back, when it was opened from the inbox, so the history holds the inbox once; otherwise in
+    its place, as the task view does.
+  - `CommitBar` shows its refusal, a hook's included, in the bar: the refactor 6c85be4 moved it
+    there from above the priorities' list, and dropped the conflict reload the page's `run` did,
+    which Commit and Discard, taking no hash, never needed. After Commit and Discard, refused or
+    not, and after every move across files, the inbox and the priorities are read again
+    (`rereadChanges`), as both carry the bar's count and only one comes back with the answer. A
+    refused edit of a note's text reads them again on a conflict too.
   - The narrow note page has no ‹ in the top bar, as the task view has none: Back returns.
   - Review focus 2's tests are in the browser, at the desktop's size, with the page's clock faked,
-    as the priorities' toasts tests are: happy-dom keeps a dismissed toast's text drawn.
+    as the priorities' toasts tests are: in happy-dom, a dismissed toast's text stayed drawn.
 - **Rationale**: The UI layout decision asks for popovers on wide screens and sheets on narrow ones,
-  which these components give. The core takes nothing back out of a draft but Discard, so the
-  draft's Undo restores the text it saw, guarded by its hash, without the UI reading markdown. Two
-  writes in an Undo put the note back first: a failure then leaves a duplicate, never a lost note.
+  which these components give. An Undo made of several calls from the web UI could lose a note
+  between them, write over a change made meanwhile, or take a line the human wrote: in the core,
+  under the lock, it checks everything before it writes either file, as the moves do.
 - **Alternatives considered**: An overlay with a filter field and a list for the drafts, a second
-  picker where Astryx has one. Undo of a category move with `inbox.category`, which puts the note at
-  the category's end, not its place. Removing the priorities line first, which loses the note when
-  the second write fails.
-- **If wrong**: Each is local to `NoteView.tsx`, `useNoteActions.ts`, or `CommitBar.tsx`.
-- **Where**: task 10, `packages/web/src/NoteView.tsx`, `useNoteActions.ts`, `CommitBar.tsx`,
-  `EditableLine.tsx`, `useLineSave.ts`, `data.ts`, `views.ts`, `InboxPage.tsx`, `App.tsx`
+  picker where Astryx has one. The first Undo, a sequence of web calls, and the draft's text from
+  before the move written back over its hash, which refused, or lost, the human's typing. Undo of a
+  category move with `inbox.category`, which puts the note at the category's end, not its place.
+- **If wrong**: The UI's parts are local to `NoteView.tsx`, `useNoteActions.ts`, or `CommitBar.tsx`;
+  the Undo's rules to `actions/inbox/undo.rs`.
+- **Where**: task 10 and its review, `packages/web/src/NoteView.tsx`, `useNoteActions.ts`,
+  `CommitBar.tsx`, `EditableLine.tsx`, `useLineSave.ts`, `data.ts`, `views.ts`, `InboxPage.tsx`,
+  `App.tsx`; `crates/core/src/actions/inbox/undo.rs`, `actions/changes.rs`, `api/inbox_edits.rs`,
+  `files/inbox/found.rs`, `files/priorities.rs`, `files/proposal.rs`, `files/lines.rs`; the
+  binding's `inbox_writes.rs`; the server's `fate/inbox-mutations.ts`
