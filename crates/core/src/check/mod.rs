@@ -134,6 +134,7 @@ fn canonical_file(path: &Path) -> PathBuf {
 /// Checks every folder under `dir`.
 fn walk(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
     names::check_folder_names(root, dir, problems);
+    names::check_change_files(root, dir, problems);
     let found = check_folder_files(root, dir, false, problems);
     problems.extend(found.into_values().flatten());
     let mut subfolders: Vec<PathBuf> = fs::read_dir(dir)
