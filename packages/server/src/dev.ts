@@ -98,16 +98,22 @@ export async function devPreviews(port: number): Promise<Previews | undefined> {
  * A Connect middleware serving the server's routes, on the server `startServer` starts with the
  * first request to its port, in the repository of the settings read then, on Claude Code unless
  * `adapter` says otherwise, from `.env` too unless `file` is false. `allowOrigins` gives the
- * origins the server of a port allows besides its own, none by default. A start that fails answers
- * 500 with its reason, and the next request tries again.
+ * origins the server of a port allows besides its own, none by default. `lockedList` locks the
+ * server's list, as Uraeda's own Storybook does: see `unlockedList`. A start that fails answers 500
+ * with its reason, and the next request tries again.
  */
 export function devHandler(
   root: string | null,
   {
     adapter,
     allowOrigins,
+    lockedList = false,
     ...sources
-  }: { adapter?: Adapter; allowOrigins?: (port: number) => Array<string> } & Sources = {},
+  }: {
+    adapter?: Adapter;
+    allowOrigins?: (port: number) => Array<string>;
+    lockedList?: boolean;
+  } & Sources = {},
 ) {
   const env = loadEnv(root, process.env, sources);
   const start = async (port: number): Promise<Started> => {
@@ -123,6 +129,7 @@ export function devHandler(
       allowOrigins: allowOrigins?.(port) ?? [],
       binding,
       dataDir,
+      lockedList,
       port,
     });
     return { listener: getRequestListener(server.app.fetch), server };

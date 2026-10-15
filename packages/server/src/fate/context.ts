@@ -10,11 +10,13 @@ export type Binding = typeof import("uraeda-binding");
  * fate's request context: the repository the server reads and writes, through the binding, null on
  * the global endpoint; the session manager that talks to agents about its features; the hosts of
  * every listed repository; the data folder holding their list; and the server's Storybooks.
+ * `lockedList` locks the list, as Uraeda's own Storybook does: see `unlockedList`.
  */
 export type Context = {
   binding: Binding;
   dataDir: string;
   hosts: Hosts;
+  lockedList?: boolean;
   previews: Previews;
   repo: string | null;
   sessions: Sessions;
@@ -35,4 +37,14 @@ export function inRepository(ctx: Context): RepoContext {
     throw callSiteError("refused: no repository");
   }
   return ctx as RepoContext;
+}
+
+/**
+ * Refuses a change of the list, or a folder suggestion, on a server whose list is locked: it serves
+ * the repositories it started with, and reaches no other folder.
+ */
+export function unlockedList(ctx: Context) {
+  if (ctx.lockedList) {
+    throw callSiteError("refused: this server's list is locked");
+  }
 }

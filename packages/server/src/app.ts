@@ -32,6 +32,8 @@ type AppOptions = Omit<Options, "given" | "open" | "repo" | "show"> & {
   binding: Binding;
   dataDir: string;
   hosts: Hosts;
+  /** Whether the list is locked, as Uraeda's own Storybook locks it: see `unlockedList`. */
+  lockedList?: boolean;
   /** The server's Storybooks, which `/r/<name>/preview/<folder>/` forwards to. */
   previews: Previews;
   sessions: Sessions;
@@ -45,7 +47,10 @@ type App = Hono<{ Variables: FateVariables }>;
  * A repository's routes take its host's context, its folder looked at now; an unknown name or a
  * missing folder is a 404, so the core never looks for a repository above it.
  */
-function hostedRoutes(app: App, { binding, dataDir, hosts, previews, sessions }: AppOptions) {
+function hostedRoutes(
+  app: App,
+  { binding, dataDir, hosts, lockedList, previews, sessions }: AppOptions,
+) {
   const hosted = async (context: Context, next: Next) => {
     const name = context.req.param("name")!;
     const host = await hosts.current(name);
@@ -55,7 +60,15 @@ function hostedRoutes(app: App, { binding, dataDir, hosts, previews, sessions }:
     if (host.missing) {
       return context.text(`Folder not found: ${host.path}`, 404);
     }
-    context.set("fate", { binding, dataDir, hosts, previews, repo: host.path, sessions });
+    context.set("fate", {
+      binding,
+      dataDir,
+      hosts,
+      lockedList,
+      previews,
+      repo: host.path,
+      sessions,
+    });
     await next();
   };
   for (const path of [
@@ -98,11 +111,11 @@ function fateRoutes(app: App, hosts: Hosts) {
  * a second start's handoff.
  */
 export function createApp(options: AppOptions) {
-  const { binding, dataDir, hosts, previews, sessions } = options;
+  const { binding, dataDir, hosts, lockedList, previews, sessions } = options;
   const app: App = new Hono<{ Variables: FateVariables }>();
   app.use(guard(options));
   app.use(async (context, next) => {
-    context.set("fate", { binding, dataDir, hosts, previews, repo: null, sessions });
+    context.set("fate", { binding, dataDir, hosts, lockedList, previews, repo: null, sessions });
     await next();
   });
   hostedRoutes(app, options);
