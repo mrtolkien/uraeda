@@ -25,3 +25,5 @@ allowBuilds:
   # Their postinstalls only print a nudge to run Astryx's setup CLI.
   "@astryxdesign/cli": false
   "@astryxdesign/core": false
+  # Storybook's: its postinstall only checks the binary its platform package already installs.
+  esbuild: false

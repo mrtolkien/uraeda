@@ -2230,12 +2230,17 @@ git commit -m "feat(ui-iteration): stories in the chat"
 **Files:**
 
 - Create: `packages/web/.storybook/main.ts`, `packages/web/.storybook/preview.tsx`,
-  `packages/web/.storybook/fixture.ts`, `packages/web/.storybook/fateOverGet.ts`,
+  `packages/web/.storybook/fixture.ts`, `packages/web/.storybook/checkouts.ts` (the fixture's
+  checkouts by state), `packages/web/.storybook/fateOverGet.ts`,
   `packages/web/src/StoryEmbed.stories.tsx`, `packages/web/scripts/validate-storybook.ts`
 - Modify: `packages/web/package.json` (`storybook` and `@storybook/react-vite` at `10.6.2`, script
-  `storybook`), `pnpm-lock.yaml`, `vite.tasks.ts` (`storybook:build` in `ready:typescript`),
-  `vite.config.ts` (ignore `packages/web/storybook-static/**` in lint and format), `.gitignore`
-  (`packages/web/storybook-static/`)
+  `storybook`), `pnpm-lock.yaml`, `pnpm-workspace.yaml` (`esbuild: false` in `allowBuilds`),
+  `vite.tasks.ts` (`storybook:build` in `ready:typescript`), `vite.config.ts` (ignore
+  `packages/web/storybook-static/**` in lint and format), `.gitignore`
+  (`packages/web/storybook-static/`), `packages/web/tsconfig.json` (`.storybook`),
+  `packages/binding/test-utils.ts` (`previewDecision` exported),
+  `skills/uraeda/assets/storybook/uraeda-preview.js` (its `Preset` type,
+  [R44](rulings.md#r44-storybooks-install-and-the-helpers-types))
 - Test: `packages/server/src/__tests__/toolchain.test.ts` (unchanged, must pass), the
   `storybook:build` task, the validation script
 
@@ -2246,26 +2251,34 @@ git commit -m "feat(ui-iteration): stories in the chat"
 - Produces: `storybookFixture(): { dataDir: string; repo: string }`, in `.storybook/fixture.ts`: a
   fresh copy of `fixtures/repo` at `<temporary folder>/fixture` (listed as `fixture`), committed
   with fixed dates (`GIT_AUTHOR_DATE` and `GIT_COMMITTER_DATE` `2026-10-16T09:00:00Z`), with
-  `addStoryFeature` and one checkout per state of `StoryEmbed.stories.tsx`.
+  `addStoryFeature` and one checkout per state of `StoryEmbed.stories.tsx`, named in `CHECKOUTS` of
+  `.storybook/checkouts.ts`; built by `storybook dev` only, not by the build.
 - Produces: `fateOverGet()`, a Vite plugin of Uraeda's Storybook only, whose middleware turns
   `GET …/fate?request=<JSON>` and `GET …/fate/live?request=<JSON>` back into the POST the server
-  expects, without `Origin` and `Sec-Fetch-Site`; and the preview's fate client, whose `fetch` sends
-  every POST that way ([R4](rulings.md#r4-uraedas-storybook-sends-fates-requests-as-gets)).
+  expects, and removes `Origin` and `Sec-Fetch-Site` from every GET of fate's; the preview's fate
+  client, whose `fetch` sends every POST that way
+  ([R4](rulings.md#r4-uraedas-storybook-sends-fates-requests-as-gets)); and
+  `liveWithoutCredentials()`, which opens fate's live stream without credentials
+  ([R41](rulings.md#r41-uraedas-storybook-opens-fates-live-stream-without-credentials-and-without-origin)).
 
-- [ ] **Step 1: Write the failing check: the `storybook:build` task**
+- [x] **Step 1: Write the failing check: the `storybook:build` task**
 
 Add `storybook:build` to `vite.tasks.ts`:
-`vp exec storybook build --quiet --output-dir storybook-static` in `packages/web`, with
-`cache.input` `packages/web/src/**`, `packages/web/.storybook/**`, the two skill files,
-`pnpm-lock.yaml`, and `!packages/web/node_modules/.cache/storybook/**`, and output
-`packages/web/storybook-static/**`; depends on `binding:build`; listed in `ready:typescript`.
+`node_modules/.bin/storybook build --quiet --output-dir storybook-static` in `packages/web` (Vite
+Task never caches `vp exec`), with `cache.input` `packages/web/src/**`,
+`packages/web/.storybook/**`, `packages/web/vite.config.ts`, `packages/web/package.json`,
+`packages/server/src/**`, the two skill files, `pnpm-lock.yaml`, and
+`!packages/web/node_modules/.cache/storybook/**`
+([R42](rulings.md#r42-storybookbuild-fails-a-story-that-does-not-build-a-type-error-fails-tscheck)),
+and output `packages/web/storybook-static/**`; depends on `binding:build`; listed in
+`ready:typescript`.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp run storybook:build`
-- Expected: FAIL: `vp exec` finds no `storybook` binary in `packages/web`.
+- Expected: FAIL: no `storybook` binary in `packages/web`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 - Install `storybook` and `@storybook/react-vite`, exactly `10.6.2`, as development dependencies of
   `packages/web`; no `@storybook/addon-vitest`.
@@ -2275,36 +2288,40 @@ Add `storybook:build` to `vite.tasks.ts`:
   `storybookFixture()`, replaces the base config's `uraeda-server` plugin with
   `uraedaServer({ adapter: new FakeAdapter(), file: false })` and `fateOverGet()`, and, under
   `URAEDA_PREVIEW_BASE`, rewrites `'/virtual:stylex.css'` in `virtual:stylex:runtime` to the base,
-  as the spike did.
+  as the spike did. It sets `optimizeDeps.holdUntilCrawlEnd: false`, as Astryx's own Storybook does.
 - `preview.tsx`: Astryx's reset, core, and theme stylesheets; `tags: ["!test"]`; a decorator with
-  `Theme`, its mode from `{ uraeda: "mode" }` messages of `window.parent`, `LinkProvider`, the
-  repository's contexts for `fixture`, and a fate client at
-  `${import.meta.env.BASE_URL}r/fixture/fate` with the GET `fetch`;
+  `Theme`, its mode from `{ uraeda: "mode" }` messages of `window.parent`, the repository's contexts
+  for `fixture`, and a fate client at `${import.meta.env.BASE_URL}r/fixture/fate` with the GET
+  `fetch`; links stay plain anchors, as a story's frame has no app router;
   `import "../../../skills/uraeda/assets/storybook/uraeda-pick.js"`.
 - `StoryEmbed.stories.tsx`: `Ready`, `Starting`, `Failed`, `Missing`, `Removed`, and `NoWorktree`,
   each a `StoryEmbed` of a checkout of the fixture in that state.
 - `scripts/validate-storybook.ts`, run by hand, like the agent's
   (`node packages/web/scripts/validate-storybook.ts`): it serves the checkout's own repository with
   the server on the fake agent, opens a story of `StoryEmbed.stories.tsx` through
-  `/r/<name>/preview/main/iframe.html?id=storyembed--ready&viewMode=story` in WebKit, checks it
-  renders with the fixture's data, edits the stories file, checks the frame shows the edit without a
-  reload, and restores the file. It prints each check and exits 1 on the first failure.
+  `/r/<name>/preview/<folder>/iframe.html?id=storyembed--ready&viewMode=story` in WebKit, `<folder>`
+  the feature's in its worktree, `main` otherwise
+  ([R43](rulings.md#r43-the-validation-script-opens-its-own-checkouts-storybook-and-nested-frames-load-only-on-storybooks-own-address)),
+  checks it renders with the fixture's data, edits the stories file, checks the frame shows the edit
+  without a reload, and restores the file. It prints each check and exits 1 on the first failure.
 
-- [ ] **Step 4: Run all checks**
+- [x] **Step 4: Run all checks**
 
 - Run:
   `vp install && vp run storybook:build && vp test --project uraeda-server src/__tests__/toolchain.test.ts && vp check`
-- Expected: PASS: the build lists every `*.stories.tsx` of `packages/web/src`; a story with a type
-  error in a scratch copy fails the build, naming its file (US7.2), then is removed.
+- Expected: PASS: the build lists every `*.stories.tsx` of `packages/web/src`; a story that does not
+  build, a syntax error or an import it lacks, in a scratch copy fails the build, naming its file
+  (US7.2), then is removed; a type error fails `vp check` instead
+  ([R42](rulings.md#r42-storybookbuild-fails-a-story-that-does-not-build-a-type-error-fails-tscheck)).
 - Run by hand:
   `cd packages/web && pnpm exec storybook dev --ci --no-open --exact-port --host 127.0.0.1 --port 6006`,
   then `http://127.0.0.1:6006/` lists `StoryEmbed`'s six stories, each showing its state (US7.1,
   US7.3); then `node scripts/validate-storybook.ts` passes (US7.1, review focus 1).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/web/.storybook packages/web/src/StoryEmbed.stories.tsx packages/web/scripts/validate-storybook.ts packages/web/package.json pnpm-lock.yaml vite.tasks.ts vite.config.ts .gitignore
+git add packages/web/.storybook packages/web/src/StoryEmbed.stories.tsx packages/web/scripts/validate-storybook.ts packages/web/package.json packages/web/tsconfig.json packages/binding/test-utils.ts skills/uraeda/assets/storybook/uraeda-preview.js pnpm-lock.yaml pnpm-workspace.yaml vite.tasks.ts vite.config.ts .gitignore specs/2026-10-15-ui-iteration
 git commit -m "feat(ui-iteration): Uraeda's own Storybook"
 ```
 

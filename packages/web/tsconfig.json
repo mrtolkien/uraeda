@@ -6,5 +6,12 @@
     "lib": ["es2024", "dom", "dom.iterable"],
     "types": ["node"]
   },
-  "include": ["src", "scripts", "vite.config.ts", "vite.browser.config.ts", ".fate/*.ts"]
+  "include": [
+    "src",
+    "scripts",
+    ".storybook",
+    "vite.config.ts",
+    "vite.browser.config.ts",
+    ".fate/*.ts"
+  ]
 }

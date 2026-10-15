@@ -7,9 +7,10 @@
     "#theme-icons": "./src/theme/icons.ts"
   },
   "scripts": {
-    "dev": "vp dev",
     "build": "vp build",
+    "dev": "vp dev",
     "screenshots": "node scripts/screenshots.ts",
+    "storybook": "storybook dev --host 127.0.0.1 --port 6006",
     "theme": "astryx theme build src/theme/theme.ts --out src/theme/built/uraeda.css"
   },
   "dependencies": {
@@ -29,6 +30,7 @@
     "@astryxdesign/cli": "0.6.8",
     "@babel/core": "catalog:",
     "@rolldown/plugin-babel": "catalog:",
+    "@storybook/react-vite": "10.6.2",
     "@stylexjs/eslint-plugin": "0.19.1",
     "@stylexjs/unplugin": "0.19.1",
     "@testing-library/react": "16.3.3",
@@ -41,6 +43,7 @@
     "babel-plugin-react-compiler": "catalog:",
     "happy-dom": "20.14.6",
     "playwright": "1.63.0",
+    "storybook": "10.6.2",
     "uraeda-binding": "workspace:*"
   }
 }

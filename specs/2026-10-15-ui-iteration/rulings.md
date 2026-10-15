@@ -589,3 +589,82 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   and the `item` case of `blockElement` in `Blocks.tsx`.
 - **Where**: task 10, `packages/web/src/Question.tsx`, `packages/web/src/stories.tsx`,
   `packages/web/src/Blocks.tsx`.
+
+## R41: Uraeda's Storybook opens fate's live stream without credentials, and without `Origin`
+
+- **Decision**: besides sending fate's POSTs as GETs (R4), the preview of Uraeda's Storybook opens
+  fate's live stream, an `EventSource`, without credentials, and the Storybook-only middleware of
+  `.storybook/fateOverGet.ts` removes `Origin` and `Sec-Fetch-Site` from every GET of fate's, the
+  live stream's included, not only from the GETs it turns back into POSTs.
+- **Rationale**: embedded through Uraeda, a story's page is sandboxed, its origin opaque. fate opens
+  its stream with credentials, which the proxy's `Access-Control-Allow-Origin: *` refuses, and the
+  stream's `Origin: null` is refused by the guard of the server in Storybook, whose path is not a
+  preview's. Without the stream, a story stays as its first read found it: the validation script's
+  `Ready` story stayed "Starting Storybook for this branch…" for 2 minutes, with either fix removed.
+- **Alternatives considered**: fate's live updates left out of Uraeda's Storybook, so a story never
+  follows the server; a fate option for the stream's credentials, which fate 1.7.7's generated
+  client does not take.
+- **If wrong**: `liveWithoutCredentials` and `asPost` in `packages/web/.storybook/fateOverGet.ts`.
+- **Where**: task 12, `packages/web/.storybook/fateOverGet.ts`,
+  `packages/web/.storybook/preview.tsx`.
+
+## R42: `storybook:build` fails a story that does not build; a type error fails `ts:check`
+
+- **Decision**: the plan's check that "a story with a type error" fails the `storybook:build` task
+  becomes a story that does not build: a syntax error, or an import of a file or export that does
+  not exist. A type error in a story fails `vp run ready` through `ts:check`, which type-checks
+  `packages/web/src` and `packages/web/.storybook`, naming the file. The task runs
+  `node_modules/.bin/storybook`, not `vp exec storybook`, and its inputs add the web UI's Vite
+  config and `package.json`, and the server's sources, which the config loads and fate's client is
+  generated from.
+- **Rationale**: Storybook builds with Vite, which strips types without checking them: a scratch
+  story assigning a string to a `number` built ("Storybook build completed successfully"), while one
+  importing `./Nothing.tsx`, and one with a syntax error ("Unable to index
+  ./src/Scratch.stories.tsx"), failed it, naming the file. Vite Task never caches a `vp exec`
+  command ("cache disabled"), against the toolchain decision's cached checks. A change to the Vite
+  config Storybook extends must rebuild it.
+- **Alternatives considered**: a type check inside `storybook:build`, which `ts:check` already runs
+  on the same files.
+- **If wrong**: the `storybook:build` task in `vite.tasks.ts`.
+- **Where**: task 12, `vite.tasks.ts`, `packages/web/tsconfig.json`.
+
+## R43: The validation script opens its own checkout's Storybook, and nested frames load only on Storybook's own address
+
+- **Decision**: `validate-storybook.ts` serves the repository with the server as `vp dev` mounts it
+  (`devHandler` on the fake agent, a temporary data folder) and opens the `Ready` story under the
+  checkout it runs in: the feature's folder in a feature's worktree, `main` otherwise. Through
+  Uraeda, the `Ready` story of `StoryEmbed.stories.tsx` shows its state, its toolbar, and its frames
+  from the fixture's data, but its frames' own pages do not load: their paths,
+  `/r/fixture/preview/<folder>/…`, are from the root, so they reach Uraeda, which has no `fixture`
+  repository. On Storybook's own address, `http://127.0.0.1:6006/`, they load. Storybook runs Vite
+  without an HTTP server of its own, so the server plugin attaches no upgrade handler there: the
+  nested frames' sockets are not forwarded, and their fake Storybooks stop through the runner's exit
+  hook when Storybook stops, as every run of the script left none.
+- **Rationale**: the server lists a repository's main checkout, whose branch may not have Uraeda's
+  Storybook yet: run in this feature's worktree, `main` would run `main`'s files. The frames' paths
+  come from the server's `Story` record, and rewriting them in the preview would fake the server's
+  answers, which the preview decision forbids. A story of the embed inside an embed is the one case.
+- **Alternatives considered**: the plan's `/r/<name>/preview/main/` always; rewriting the fixture's
+  paths under Storybook's base.
+- **If wrong**: `checkoutFolder` in `packages/web/scripts/validate-storybook.ts`; a story of
+  `StoryEmbed` embedded in a spec shows its frames' error pages.
+- **Where**: task 12, `packages/web/scripts/validate-storybook.ts`.
+
+## R44: Storybook's install and the helper's types
+
+- **Decision**: `storybook` and `@storybook/react-vite` are pinned at `10.6.2`, released 2026-10-12,
+  which the lockfile's supply-chain policy accepts. `esbuild`, which Storybook brings, is listed in
+  `allowBuilds` as `false`: its postinstall only checks the binary its platform package installs.
+  The lockfile keeps Node's runtime at 24.21.0, which `pnpm install` re-resolved to 24.22.0 while
+  adding the packages. Storybook's optional `vite-plus` peer range stops at 0.2, a warning. The
+  helper's `Preset` type follows Storybook's, whose presets may give `undefined`, and a preset that
+  gives none adds nothing, not `"undefined"`. `previewDecision` of the binding's test utilities is
+  exported, for the fixture's checkouts.
+- **Rationale**: Storybook's own `StorybookConfig` was refused by the helper's narrower type. A
+  runtime upgrade does not belong in this feature. The fixture's failing and starting checkouts need
+  the fake preview's other modes, which `addPreview` gives every branch at once.
+- **Alternatives considered**: allowing esbuild's script; a cast in `main.ts`; a second copy of the
+  decision's text in `.storybook/fixture.ts`.
+- **If wrong**: `pnpm-workspace.yaml`, the `Preset` typedef and `run` in `uraeda-preview.js`.
+- **Where**: task 12, `packages/web/package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`,
+  `skills/uraeda/assets/storybook/uraeda-preview.js`, `packages/binding/test-utils.ts`.
