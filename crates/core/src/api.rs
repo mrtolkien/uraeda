@@ -25,6 +25,7 @@ use crate::{steps, today};
 mod answers;
 mod drafts;
 mod files;
+mod inbox_edits;
 mod priority_edits;
 mod repository_list;
 mod start;
@@ -34,7 +35,7 @@ pub use drafts::{
     commit_text, create_draft, proposal_hints, read_draft, read_text, save_text, set_discovery,
 };
 pub use files::{attach_image, encode_image, read_image, read_raw};
-
+pub use inbox_edits::*;
 pub use priority_edits::{
     add_priority, commit_priorities, discard_priorities, edit_priority, insert_priority,
     move_priority, remove_priority,
@@ -70,23 +71,21 @@ fn refused(message: impl Into<String>) -> ApiError {
 impl From<ActionError> for ApiError {
     fn from(error: ActionError) -> ApiError {
         match error {
-            ActionError::Changed { .. } => ApiError {
-                code: "conflict",
-                message: error.to_string(),
-                output: None,
-            },
+            // A save or an edit over a file changed since it was read.
+            ActionError::Changed { .. } | ActionError::Refused(_)
+                if error.to_string().contains(" changed on disk") =>
+            {
+                ApiError {
+                    code: "conflict",
+                    message: error.to_string(),
+                    output: None,
+                }
+            }
             ActionError::Hook { message, output } => ApiError {
                 code: "hook",
                 message: format!("git commit failed: {message}"),
                 output: Some(output),
             },
-            ActionError::Refused(message) if message.starts_with("PRIORITIES.md changed") => {
-                ApiError {
-                    code: "conflict",
-                    message,
-                    output: None,
-                }
-            }
             error => refused(error.to_string()),
         }
     }

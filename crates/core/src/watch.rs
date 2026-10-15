@@ -1,6 +1,6 @@
 //! Watching a repository for changes to its workflow files and branches: after 200 ms without
-//! file events, the workspace is read again, and the features, files, and priorities that changed
-//! are reported. The server and the TUI share it.
+//! file events, the workspace is read again, and the features, files, priorities, and inbox that
+//! changed are reported. The server and the TUI share it.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -31,13 +31,19 @@ pub struct Changes {
     pub files: Vec<String>,
     /// Whether `PRIORITIES.md` or the drafts changed.
     pub priorities: bool,
+    /// Whether the default branch's `INBOX.md` or `INBOX-TRIAGE.md` changed.
+    pub inbox: bool,
     /// Whether a feature, a branch, or a worktree appeared or went.
     pub workspace: bool,
 }
 
 impl Changes {
     fn is_empty(&self) -> bool {
-        self.features.is_empty() && self.files.is_empty() && !self.priorities && !self.workspace
+        self.features.is_empty()
+            && self.files.is_empty()
+            && !self.priorities
+            && !self.inbox
+            && !self.workspace
     }
 }
 
@@ -51,6 +57,7 @@ struct Snapshot {
     features: BTreeMap<String, String>,
     files: BTreeMap<String, String>,
     priorities: String,
+    inbox: String,
     workspace: String,
     /// The folders to watch: `specs/` of every working tree, and git's references.
     folders: BTreeSet<(PathBuf, bool)>,
@@ -129,6 +136,9 @@ fn snapshot(root: &Path) -> Snapshot {
         priorities: hash(
             &serde_json::to_string(&(&workspace.priorities, &workspace.drafts)).unwrap_or_default(),
         ),
+        inbox: hash(
+            &serde_json::to_string(&(&workspace.inbox, &workspace.triage)).unwrap_or_default(),
+        ),
         workspace: hash(
             &serde_json::to_string(&(listing, worktrees, branches)).unwrap_or_default(),
         ),
@@ -150,6 +160,7 @@ fn compare(before: &Snapshot, after: &Snapshot) -> Changes {
         features: differing(&before.features, &after.features),
         files: differing(&before.files, &after.files),
         priorities: before.priorities != after.priorities,
+        inbox: before.inbox != after.inbox,
         workspace: before.workspace != after.workspace,
     }
 }

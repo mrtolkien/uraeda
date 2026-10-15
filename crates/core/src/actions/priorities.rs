@@ -14,9 +14,7 @@ pub const PATH: &str = "specs/PRIORITIES.md";
 
 /// The file's committed text, at `HEAD` of the working tree.
 fn committed(place: &Place) -> Option<String> {
-    let git = Git::open(&place.root).ok()?;
-    let bytes = git.read_file(git.head()?, PATH).ok()??;
-    String::from_utf8(bytes).ok()
+    place::committed(place, PATH)
 }
 
 fn text(place: &Place) -> String {

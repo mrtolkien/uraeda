@@ -237,6 +237,19 @@ fn an_edit_of_the_priorities_is_reported() {
 }
 
 #[test]
+fn an_edit_of_the_inbox_is_reported() {
+    let repo = repo();
+    let (_watcher, receiver) = watching(&repo);
+
+    repo.write("specs/INBOX.md", "# Inbox\n\n- A note\n");
+
+    let changes = next(&receiver);
+    assert!(changes.inbox);
+    assert!(!changes.priorities);
+    assert!(changes.features.is_empty());
+}
+
+#[test]
 fn a_new_worktree_is_reported_then_watched() {
     let repo = repo();
     let (_watcher, receiver) = watching(&repo);
