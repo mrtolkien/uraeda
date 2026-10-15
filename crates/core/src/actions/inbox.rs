@@ -360,9 +360,9 @@ pub fn to_new_draft(
 ) -> Result<String, ActionError> {
     let (inbox, priorities) = both(place, previous, priorities_previous)?;
     let note = inbox::note(&inbox, id).ok_or_else(|| no_note(id))?;
-    if let Some(link) = note.link.as_deref() {
+    if let Some(draft) = note.draft() {
         return Err(ActionError::Refused(format!(
-            "{} already links {link}",
+            "{} already links {draft}",
             note.text
         )));
     }

@@ -108,10 +108,7 @@ pub fn undo_category(
 pub fn undo_as_draft(place: &Place, lines: &[String]) -> Result<(), ActionError> {
     let (note, current, id) = found(place, lines)?;
     let id = id.as_str();
-    let linked = inbox::note(&current, id)
-        .and_then(|note| note.link)
-        .and_then(|link| crate::workspace::resolve("specs", &link))
-        .filter(|path| crate::target::is_draft(path));
+    let linked = inbox::note(&current, id).and_then(|note| note.draft());
     let title = inbox::link_title(&current, id);
     let without = inbox::remove(&current, id).ok_or_else(|| gone(&note, "INBOX.md"))?;
     fs::write(place.root.join(PATH), without)?;

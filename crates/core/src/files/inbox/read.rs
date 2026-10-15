@@ -62,11 +62,7 @@ fn inbox_note(lines: &[&str], note: Note, item: &Item) -> InboxNote {
     let (_, _, text) = body(lines, item);
     let markdown = text.join(" ");
     let doc = super::super::document::parse(&markdown, "specs");
-    let draft = note
-        .link
-        .as_deref()
-        .and_then(|link| crate::workspace::resolve("specs", link))
-        .filter(|path| path.starts_with("specs/drafts/"));
+    let draft = note.draft();
     let draft_title = draft.as_ref().and_then(|_| link_text(&markdown));
     InboxNote {
         id: note.id,

@@ -141,7 +141,7 @@ impl Drafts {
 pub(super) fn written_from(inbox: &str, text: &str, path: &str) -> Option<String> {
     let note = inbox::parse(inbox)
         .into_iter()
-        .find(|note| note.text == text && note.link.is_none())?;
+        .find(|note| note.text == text && note.draft().is_none())?;
     let (title, nested) = inbox::draft_parts(inbox, &note.id)?;
     Some(draft::from_note(path, &title, &nested))
 }
