@@ -1,5 +1,5 @@
 //! The whole `specs/` folder across branches: the priorities from the default branch, each feature
-//! and bug from its own branch, and the current branch from the working tree.
+//! and change from its own branch, and the current branch from the working tree.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -31,7 +31,7 @@ pub enum WorkspaceError {
 #[serde(rename_all = "kebab-case")]
 pub enum Kind {
     Feature,
-    Bug,
+    Change,
 }
 
 /// Where a feature's files were read from.
@@ -48,16 +48,14 @@ pub enum Source {
 #[serde(rename_all = "kebab-case")]
 pub enum FileKind {
     Proposal,
-    Report,
     Discovery,
     Clarifications,
     Spec,
     Plan,
-    Assessment,
     Rulings,
     DataModel,
     Review,
-    /// The record of a finished feature or bug, `specs/done/<folder>.md`: decided by its folder,
+    /// The record of a finished feature or change, `specs/done/<folder>.md`: decided by its folder,
     /// never by `FileKind::of`.
     Record,
 }
@@ -67,13 +65,11 @@ impl FileKind {
     pub fn of(name: &str) -> Option<(FileKind, Option<u32>)> {
         let fixed = match name {
             "proposal.md" => Some(FileKind::Proposal),
-            "report.md" => Some(FileKind::Report),
             "spec.md" => Some(FileKind::Spec),
             "plan.md" => Some(FileKind::Plan),
-            "assessment.md" => Some(FileKind::Assessment),
             "rulings.md" => Some(FileKind::Rulings),
             "data-model.md" => Some(FileKind::DataModel),
-            "spec-review.md" | "plan-review.md" | "assessment-review.md" => Some(FileKind::Review),
+            "spec-review.md" | "plan-review.md" => Some(FileKind::Review),
             _ => None,
         };
         if let Some(kind) = fixed {
@@ -99,9 +95,7 @@ impl FileKind {
     pub fn statuses(&self) -> &'static [&'static str] {
         match self {
             FileKind::Clarifications => &["awaiting-human", "answered"],
-            FileKind::Spec | FileKind::Assessment => {
-                &["awaiting-human", "approved", "changes-requested"]
-            }
+            FileKind::Spec => &["awaiting-human", "approved", "changes-requested"],
             FileKind::Plan => &[
                 "awaiting-human",
                 "auto-approved",
@@ -137,7 +131,7 @@ pub struct Problem {
     pub message: String,
 }
 
-/// A started feature or bug.
+/// A started feature or change.
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Feature {
@@ -255,34 +249,34 @@ pub fn folder_slug(folder: &str) -> Option<&str> {
         .then_some(slug)
 }
 
-/// The feature or bug a branch is for: `2026-10-10-cli-core`, or `fix/2026-10-14-x`.
+/// The feature or change a branch is for: `2026-10-10-cli-core`, or `change/2026-10-14-x`.
 pub fn branch_folder(branch: &str) -> Option<(Kind, &str)> {
-    match branch.strip_prefix("fix/") {
-        Some(folder) => folder_slug(folder).map(|_| (Kind::Bug, folder)),
+    match branch.strip_prefix("change/") {
+        Some(folder) => folder_slug(folder).map(|_| (Kind::Change, folder)),
         None => folder_slug(branch).map(|_| (Kind::Feature, branch)),
     }
 }
 
-/// The branch of a feature or a bug.
+/// The branch of a feature or a change.
 pub fn folder_branch(kind: Kind, folder: &str) -> String {
     match kind {
         Kind::Feature => folder.to_string(),
-        Kind::Bug => format!("fix/{folder}"),
+        Kind::Change => format!("change/{folder}"),
     }
 }
 
-/// Where a finished feature's or bug's record lives.
+/// Where a finished feature's or change's record lives.
 pub fn record_path(folder: &str) -> String {
     format!("specs/done/{folder}.md")
 }
 
-/// A record's kind, from its frontmatter: a feature unless it says `bug`.
+/// A record's kind, from its frontmatter: a feature unless it says `change`.
 fn record_kind(text: &str) -> Kind {
     match frontmatter::parse(text)
         .ok()
         .and_then(|f| f.text("kind").map(String::from))
     {
-        Some(kind) if kind == "bug" => Kind::Bug,
+        Some(kind) if kind == "change" => Kind::Change,
         _ => Kind::Feature,
     }
 }
@@ -290,8 +284,14 @@ fn record_kind(text: &str) -> Kind {
 pub(crate) fn folder_path(kind: Kind, folder: &str) -> String {
     match kind {
         Kind::Feature => format!("specs/{folder}"),
-        Kind::Bug => format!("specs/bugs/{folder}"),
+        Kind::Change => format!("specs/changes/{folder}"),
     }
+}
+
+/// The first file of a feature's or a change's folder, its proposal: committed, it starts the
+/// workflow.
+pub fn first_file(_kind: Kind) -> &'static str {
+    "proposal.md"
 }
 
 /// Where files are read from: a commit, or the working tree.
@@ -393,10 +393,10 @@ impl Reader<'_> {
         records
     }
 
-    /// The feature and bug folders under `specs/`.
+    /// The feature and change folders under `specs/`.
     fn folders(&self, from: ReadFrom) -> BTreeSet<(Kind, String)> {
         let mut folders = BTreeSet::new();
-        for (kind, dir) in [(Kind::Feature, "specs"), (Kind::Bug, "specs/bugs")] {
+        for (kind, dir) in [(Kind::Feature, "specs"), (Kind::Change, "specs/changes")] {
             let names: Vec<String> = match from {
                 ReadFrom::Commit(commit) => self
                     .git
@@ -432,7 +432,7 @@ impl Reader<'_> {
 struct Merged {
     records: Vec<BTreeMap<(Kind, String), String>>,
     folders: Vec<(ObjectId, BTreeSet<(Kind, String)>)>,
-    /// Every feature and bug with a folder or a record there.
+    /// Every feature and change with a folder or a record there.
     keys: BTreeSet<(Kind, String)>,
 }
 
@@ -742,14 +742,14 @@ impl Workspace {
         })
     }
 
-    /// The feature or bug in a folder.
+    /// The feature or change in a folder.
     pub fn feature(&self, folder: &str) -> Option<&Feature> {
         self.features
             .iter()
             .find(|feature| feature.folder == folder)
     }
 
-    /// The feature or bug a priorities entry's link points to.
+    /// The feature or change a priorities entry's link points to.
     pub fn linked_feature(&self, link: &str) -> Option<&Feature> {
         match_feature(link, &self.features).and_then(|folder| self.feature(&folder))
     }
@@ -815,11 +815,7 @@ fn read_feature(
     }
     feature.branch = branch;
     feature.source = source_of(from);
-    let first_file = match kind {
-        Kind::Feature => "proposal.md",
-        Kind::Bug => "report.md",
-    };
-    let first_path = format!("{path}/{first_file}");
+    let first_path = format!("{path}/{}", first_file(kind));
     feature.proposal_committed = committed.is_some_and(|commit| {
         reader
             .git
@@ -837,7 +833,7 @@ fn read_feature(
 }
 
 impl Feature {
-    /// A feature or bug from its files' texts, by name, with their statuses and problems. It is
+    /// A feature or change from its files' texts, by name, with their statuses and problems. It is
     /// taken as committed, on its own branch, with no pending decision.
     pub fn from_texts(kind: Kind, folder: &str, texts: BTreeMap<String, String>) -> Feature {
         let path = folder_path(kind, folder);
@@ -889,10 +885,6 @@ impl Feature {
             });
         }
         files.sort_by_key(|file| (file.kind, file.round));
-        let first_file = match kind {
-            Kind::Feature => "proposal.md",
-            Kind::Bug => "report.md",
-        };
         let mut feature = Feature {
             kind,
             folder: folder.to_string(),
@@ -909,7 +901,7 @@ impl Feature {
             left_worktree: None,
             left_branch: None,
             path,
-            proposal_committed: texts.contains_key(first_file),
+            proposal_committed: texts.contains_key(first_file(kind)),
             decisions_pending: false,
             texts,
         };
@@ -919,19 +911,19 @@ impl Feature {
 }
 
 impl Feature {
-    /// A finished feature or bug, from its record's text: its only file.
+    /// A finished feature or change, from its record's text: its only file.
     pub fn from_record(kind: Kind, folder: &str, text: String) -> Feature {
         let name = format!("{folder}.md");
         let path = record_path(folder);
         let mut problems = Vec::new();
         match frontmatter::parse(&text) {
             Ok(front) => {
-                if !matches!(front.text("kind"), Some("feature" | "bug")) {
+                if !matches!(front.text("kind"), Some("feature" | "change")) {
                     problems.push(Problem {
                         file: path.clone(),
                         line: front.line("kind"),
                         rule: "frontmatter.kind".into(),
-                        message: "kind is not one of feature, bug".into(),
+                        message: "kind is not one of feature, change".into(),
                     });
                 }
             }

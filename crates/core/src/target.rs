@@ -11,9 +11,9 @@ use crate::workspace::{Workspace, branch_folder};
 pub enum Purpose {
     /// A round of questions waiting for answers.
     Answers,
-    /// A spec, plan, or assessment waiting for a review.
+    /// A spec or a plan waiting for a review.
     Review,
-    /// Any feature or bug, to read it.
+    /// Any feature or change, to read it.
     Inspect,
     /// A draft to start.
     Start,
@@ -21,9 +21,9 @@ pub enum Purpose {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Target {
-    /// A feature or bug, by its index in the workspace.
+    /// A feature or change, by its index in the workspace.
     Feature(usize),
-    /// A file of a feature or bug, by name.
+    /// A file of a feature or change, by name.
     File(usize, String),
     /// A draft file or postponed folder, from the top level: `specs/drafts/x.md`.
     Draft(String),
@@ -202,7 +202,7 @@ fn waiting(workspace: &Workspace, purpose: Purpose) -> Result<Target, TargetErro
         step.name == StepName::HumanGate
             && match purpose {
                 Purpose::Answers => file.starts_with("clarifications-"),
-                Purpose::Review => ["spec.md", "plan.md", "assessment.md"].contains(&file),
+                Purpose::Review => ["spec.md", "plan.md"].contains(&file),
                 _ => false,
             }
     };
@@ -211,9 +211,9 @@ fn waiting(workspace: &Workspace, purpose: Purpose) -> Result<Target, TargetErro
         [index] => Ok(Target::Feature(*index)),
         [] => Err(TargetError::NothingWaits(match purpose {
             Purpose::Answers => "no round of questions waits for answers",
-            Purpose::Review => "no spec, plan, or assessment waits for a review",
+            Purpose::Review => "no spec or plan waits for a review",
             Purpose::Start => "name a draft: ura start <draft>",
-            Purpose::Inspect => "name a feature or a bug",
+            Purpose::Inspect => "name a feature or a change",
         })),
         several => Err(TargetError::SeveralWaiting(
             several

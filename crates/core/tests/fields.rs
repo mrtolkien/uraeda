@@ -178,15 +178,16 @@ fn every_kind_lists_the_fields_check_requires() {
         (
             "specs/done/2026-10-11-x.md".into(),
             vec![
-                ("kind", choice(&["feature", "bug"])),
+                ("kind", choice(&["feature", "change"])),
                 ("finished", plain(FieldKind::Date)),
                 ("pull-request", plain(FieldKind::Text)),
             ],
         ),
         (
-            "specs/bugs/2026-10-12-y/assessment.md".into(),
-            vec![("status", choice(&human))],
+            "specs/changes/2026-10-12-y/clarifications-01.md".into(),
+            vec![("status", choice(&["awaiting-human", "answered"]))],
         ),
+        ("specs/changes/2026-10-12-y/assessment.md".into(), vec![]),
         ("specs/PRIORITIES.md".into(), vec![]),
         ("specs/drafts/an-idea.md".into(), vec![]),
         (format!("{FEATURE}/rulings.md"), vec![]),
@@ -202,13 +203,9 @@ fn every_kind_lists_the_fields_check_requires() {
 }
 
 #[test]
-fn verdicts_of_specs_plans_and_assessments_are_actions() {
+fn verdicts_of_specs_and_plans_are_actions() {
     let (_dir, root) = root();
-    for path in [
-        format!("{FEATURE}/spec.md"),
-        format!("{FEATURE}/plan.md"),
-        "specs/bugs/2026-10-12-y/assessment.md".to_string(),
-    ] {
+    for path in [format!("{FEATURE}/spec.md"), format!("{FEATURE}/plan.md")] {
         let fields = fields_of(&root, &path, "");
         let actions: Vec<(&str, Option<Action>)> = fields[0]
             .values

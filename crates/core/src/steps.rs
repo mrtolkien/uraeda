@@ -92,8 +92,8 @@ pub struct Step {
     pub task: Option<String>,
     /// Where the implementation is in the plan's tasks, for implementation.
     pub progress: Option<TaskProgress>,
-    /// Whether the implementation is over: every task of the plan, or every box of a bug's
-    /// assessment, is done, and the feature is past them, at its final review or after.
+    /// Whether the implementation is over: every task of the plan is done, and the feature is past
+    /// them, at its final review or after.
     pub implemented: bool,
     pub pull_request: Option<PullRequest>,
     /// The approved spec's `plan-review`, for the steps before the plan is approved: whether the
@@ -161,7 +161,7 @@ impl Step {
     }
 }
 
-/// The step of a feature or a bug, from the skill's tables.
+/// The step of a feature or a change, from the skill's tables.
 pub fn step(feature: &Feature, pull_request: PullRequest) -> Step {
     if !feature.problems.is_empty() {
         return Step::none();
@@ -171,11 +171,11 @@ pub fn step(feature: &Feature, pull_request: PullRequest) -> Step {
     }
     match feature.kind {
         Kind::Feature => feature_step(feature, pull_request),
-        Kind::Bug => bug_step(feature, pull_request),
+        Kind::Change => bug_step(feature),
     }
 }
 
-/// A feature or bug whose folder was replaced by its record: what is left of finishing, then the
+/// A feature or change whose folder was replaced by its record: what is left of finishing, then the
 /// pull request.
 fn finished_step(pull_request: PullRequest) -> Step {
     let step = match pull_request {
@@ -294,24 +294,12 @@ fn after_the_last_step(pull_request: PullRequest, without: StepName, reference: 
     }
 }
 
-fn bug_step(feature: &Feature, pull_request: PullRequest) -> Step {
+/// A change's step: a gate until its proposal is committed, then its agent's.
+fn bug_step(feature: &Feature) -> Step {
     if !feature.proposal_committed {
-        return Step::gate("report.md");
+        return Step::gate("proposal.md");
     }
-    let Some(assessment) = feature.file(FileKind::Assessment) else {
-        return Step::agent(StepName::Assess, "bug");
-    };
-    match assessment.status.as_deref() {
-        Some("awaiting-human") => return Step::gate("assessment.md"),
-        Some("changes-requested") => return Step::agent(StepName::AssessRevision, "bug"),
-        Some("approved") => {}
-        _ => return Step::none(),
-    }
-    let (done, total) = plan::checkboxes(feature.text("assessment.md").unwrap_or_default());
-    if done < total {
-        return Step::agent(StepName::Fix, "bug");
-    }
-    after_the_last_step(pull_request, StepName::Fix, "bug")
+    Step::agent(StepName::Assess, "bug")
 }
 
 /// A branch's pull request in the repository at `repo`, through `gh` when it is installed and

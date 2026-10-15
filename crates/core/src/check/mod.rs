@@ -28,7 +28,7 @@ pub(crate) enum Checked {
     Workflow(FileKind),
     Decision,
     Priorities,
-    /// The record of a finished feature or bug, in `specs/done/`.
+    /// The record of a finished feature or change, in `specs/done/`.
     Record,
 }
 

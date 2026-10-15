@@ -1,5 +1,5 @@
 ---
-kind: [feature | bug]
+kind: [feature | change]
 finished: [YYYY-MM-DD: the day of the finishing commit]
 pull-request: [Optional: the pull request's URL]
 ---
@@ -8,28 +8,28 @@ pull-request: [Optional: the pull request's URL]
 
 > [!NOTE]
 >
-> The record of a merged [feature | bug], not instructions to follow. Started on [YYYY-MM-DD],
+> The record of a merged [feature | change], not instructions to follow. Started on [YYYY-MM-DD],
 > finished on [YYYY-MM-DD], in [its pull request](https://...). Its full files are in git:
 > `git log -- specs/YYYY-MM-DD-feature-slug/`.
 
 ## What and why
 
-[Two to four sentences from the proposal or the report: what it does, for whom, and why.]
+[Two to four sentences from the proposal: what it does, for whom, and why.]
 
 ## Behaviour
 
-- [One line per user story: what users get, with the rules a later feature must keep. For a bug, the
-  behaviour fixed. Kept true to the merged code.]
+- [One line per user story: what users get, with the rules a later feature must keep. For a change,
+  what was fixed or changed. Kept true to the merged code.]
 
 ## Design
 
-[The approach in a few sentences, then the main components, each with a link to its code. For a bug,
-the root cause and the fix.]
+[The approach in a few sentences, then the main components, each with a link to its code. For a
+change, the root cause or the approach, and the code it touched.]
 
 ## Questions
 
-[Optional, absent for a bug: every round, every question with its heading as it was, so links keep
-their anchors.]
+[Optional, absent for a change without rounds: every round, every question with its heading as it
+was, so links keep their anchors.]
 
 ### Round [NN]
 

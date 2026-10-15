@@ -288,8 +288,9 @@ fn approve_with_a_comment_and_a_new_risk_tier() {
     );
 }
 
+/// An assessment is no workflow file any more: `ura review` refuses it.
 #[test]
-fn a_bug_assessment() {
+fn an_assessment_is_not_reviewed() {
     let repo = TestRepo::new();
     specs(
         &repo,
@@ -297,27 +298,36 @@ fn a_bug_assessment() {
     );
     feature(
         &repo,
-        "fix/2026-10-14-tasks-reappear",
+        "change/2026-10-14-tasks-reappear",
         &[
-            ("report.md", "# Report\n\nIt breaks.\n".to_string()),
+            ("proposal.md", "# Reappear\n\nIt breaks.\n".to_string()),
             (
                 "assessment.md",
-                "---\nstatus: awaiting-human\n---\n\n# Assessment: Reappear\n\n> [!IMPORTANT]\n>\n> Assessment to review, about 5 minutes.\n>\n> - A point.\n\n## Fix\n\n- [ ] Step 1\n".to_string(),
+                "---\nstatus: awaiting-human\n---\n\n# Assessment: Reappear\n".to_string(),
             ),
         ],
     );
 
-    let output = ura(&repo, &["review", "tasks-reappear", "--approve"]);
+    let output = ura(
+        &repo,
+        &[
+            "review",
+            "specs/changes/2026-10-14-tasks-reappear/assessment.md",
+            "--approve",
+        ],
+    );
 
-    assert_eq!(output.code, 0, "{}", output.stderr);
-    assert_eq!(repo.current_branch(), "main");
+    assert_ne!(output.code, 0);
     assert!(
-        repo.read(".worktrees/fix/2026-10-14-tasks-reappear/specs/bugs/2026-10-14-tasks-reappear/assessment.md")
-            .contains("status: approved\n")
+        output
+            .stderr
+            .contains("assessment.md is not a spec or a plan"),
+        "{}",
+        output.stderr
     );
     assert_eq!(
-        repo.subjects("fix/2026-10-14-tasks-reappear")[0],
-        "assessment(tasks-reappear): approve"
+        repo.subjects("change/2026-10-14-tasks-reappear")[0],
+        "work on change/2026-10-14-tasks-reappear"
     );
 }
 

@@ -1,5 +1,5 @@
-//! Reading a feature's or a bug's folder: its files' texts, its record, and whether it differs from
-//! its commit.
+//! Reading a feature's or a change's folder: its files' texts, its record, and whether it differs
+//! from its commit.
 
 use std::collections::BTreeMap;
 
@@ -32,7 +32,7 @@ pub(super) fn read_texts(
     (texts, unreadable)
 }
 
-/// A finished feature or bug from its record's text, with a problem when the record's kind is not
+/// A finished feature or change from its record's text, with a problem when the record's kind is not
 /// its branch's.
 pub(super) fn read_record(
     reader: &Reader<'_>,
@@ -48,8 +48,8 @@ pub(super) fn read_record(
     let mut feature = Feature::from_record(kind, folder, text);
     if recorded != kind && feature.problems.is_empty() {
         let (said, branch) = match kind {
-            Kind::Feature => ("bug", "feature's"),
-            Kind::Bug => ("feature", "bug's"),
+            Kind::Feature => ("change", "feature's"),
+            Kind::Change => ("feature", "change's"),
         };
         feature.problems.push(Problem {
             file: record_path(folder),

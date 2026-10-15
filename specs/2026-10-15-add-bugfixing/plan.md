@@ -304,13 +304,17 @@ git commit -m "refactor(add-bugfixing): split read_feature, start, the API's sta
   - `crates/core/src/workspace/read.rs`: `read_record`'s kind check;
   - `crates/core/src/view.rs` and `crates/core/src/view/feature.rs`;
   - `crates/core/src/gates.rs`, `target.rs`, `actions/review.rs`, `check/values.rs`,
-    `check/sections.rs`, `actions/text.rs`, `actions/clean.rs`, `actions/init.rs`, `changes.rs`,
-    `api.rs`, `api/files.rs`, `actions/attach.rs`, and their doc comments;
+    `check/sections.rs`, `check/names.rs` (`changes` replaces `bugs` among `specs/`'s folders),
+    `actions/text.rs`, `actions/clean.rs`, `actions/init.rs`, `changes.rs`, `api.rs`,
+    `api/files.rs`, `actions/attach.rs`, and their doc comments;
   - `crates/cli/src/start.rs`, which removes `is_bug` and the `unimplemented!`, `status.rs`, and
     `main.rs`'s docs;
   - `crates/lsp/src/commands.rs` and `commands/attach.rs` (`changes/`), `requests.rs`:243, whose
     message becomes "Only a spec, a plan, or a round of questions gets a verdict.";
-  - `crates/binding/src/*.rs` doc comments.
+  - `crates/binding/src/*.rs` doc comments, and the regenerated `packages/binding/index.d.ts`;
+  - `specs/2026-10-15-add-bugfixing/discovery-01.md`, whose links to the deleted bug templates and
+    assessment become plain paths, since `ura check specs` refuses links to missing files
+    ([R6](rulings.md#r6-tests-of-the-removed-bug-files-change-with-them)).
 - Move: `skills/uraeda/assets/example/specs/bugs/2026-10-14-tasks-reappear/report.md` →
   `skills/uraeda/assets/example/specs/changes/2026-10-14-tasks-reappear/proposal.md`, keeping its
   text. Delete the example's `assessment.md`, and `skills/uraeda/assets/templates/specs/bugs/`. The
@@ -319,7 +323,7 @@ git commit -m "refactor(add-bugfixing): split read_feature, start, the API's sta
   `skills/uraeda/assets/templates/specs/done/YYYY-MM-DD-feature-slug.md`, whose `kind` becomes
   `[feature | change]` and whose bug lines say "change".
 - Test:
-  - `crates/core/tests/{workspace,clean,check,api,fields,branch_changes,steps}.rs`;
+  - `crates/core/tests/{workspace,clean,check,api,fields,branch_changes,steps,document}.rs`;
   - `crates/core/tests/common/texts.rs` (`record("change", …)`);
   - `crates/cli/tests/{common/mod.rs,start,review,status,init,check}.rs`;
   - `crates/lsp/tests/reads.rs`:220;
@@ -338,10 +342,11 @@ git commit -m "refactor(add-bugfixing): split read_feature, start, the API's sta
   - `FileKind` has no `Report` or `Assessment`, so `assessment.md` and `report.md` are no workflow
     file;
   - `bug_step` stays until Task 3, keyed on `Kind::Change`, with no assessment, so it only gates on
-    the proposal;
+    the proposal: `Step::gate("proposal.md")` until it is committed, then `assess`, without the pull
+    request's tail ([R5](rulings.md#r5-until-task-3-a-change-gates-on-its-proposal-then-assesses));
   - `ura start` on `specs/changes/...` resolves no draft, with the existing "not a draft" refusal.
 
-- [ ] **Step 1: Rename the tests' bugs to changes, and write the new ones**
+- [x] **Step 1: Rename the tests' bugs to changes, and write the new ones**
 
 ```rust
 // crates/core/tests/workspace.rs
@@ -358,6 +363,10 @@ fn an_old_fix_branch_is_no_item() {
 
 #[test]
 fn a_changes_folder_without_its_branch_is_no_item() { /* review focus 1 */ }
+
+#[test]
+fn a_change_is_read_from_its_folder_on_its_branch() { /* `specs/changes/<folder>`, its proposal
+    committed */ }
 ```
 
 ```rust
@@ -375,28 +384,31 @@ fn a_changes_folder_without_its_branch_is_no_item() { /* review focus 1 */ }
 
 The break each test catches:
 
-- The worktree test: a change read from `specs/<folder>` instead of `specs/changes/<folder>`.
-- The old fix branch test: a leftover `fix/` prefix, which would show the remote's old branches.
+- The folder test: a change read from `specs/<folder>` instead of `specs/changes/<folder>`. The
+  merged change's worktree test reads the change from its record, so it does not catch it.
+- The old fix branch test, its branch checked out in its worktree as the bug flow left it: a
+  leftover `fix/` prefix, which would show the old branches.
 - The edited proposal test: a commit refused because `text.rs` still requires `specs/<folder>/`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo nextest run -p uraeda-core -p uraeda-cli -p uraeda-lsp`
 - Expected: FAIL, first with `no variant named Change` at compile time.
 
-- [ ] **Step 3: Implement the rename** in the files above, with the first file in one function,
+- [x] **Step 3: Implement the rename** in the files above, with the first file in one function,
       `pub fn first_file(kind: Kind) -> &'static str`, which returns `"proposal.md"` for both kinds,
       so its callers stop matching on the kind. The CLI's `status::name` gives `change/<folder>`,
       and `describe` drops `report.md`. Lower the `LARGE` entries the rename shrinks.
-- [ ] **Step 4: Run all Rust checks, and the Neovim test**
+- [x] **Step 4: Run all Rust checks, and the Neovim test**
 
 - Run: `vp run ready:rust && vp run test:nvim`
-- Expected: PASS. `ura check skills/uraeda/assets/example/specs` prints no problems.
+- Expected: PASS. `ura check skills/uraeda/assets/example/specs` prints no problems. The Neovim
+  test's hint on the change's priority line is `assess · waits on agent`, its step until Task 3.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add crates editors/nvim/tests skills/uraeda/assets
+git add crates editors/nvim/tests skills/uraeda/assets packages/binding/index.d.ts specs/2026-10-15-add-bugfixing
 git commit -m "feat(add-bugfixing): bugs become changes, in specs/changes on change/ branches"
 ```
 
@@ -406,7 +418,9 @@ git commit -m "feat(add-bugfixing): bugs become changes, in specs/changes on cha
 
 - Modify: `crates/core/src/steps.rs` (`StepName::Change`, `change_step` replacing `bug_step`,
   without `Assess`, `AssessRevision`, and `Fix`)
-- Test: `crates/core/tests/steps.rs` (`change_table` replacing `bug_table`, the finishing rows)
+- Test: `crates/core/tests/steps.rs` (`change_table` replacing `bug_table`, the finishing rows), and
+  `editors/nvim/tests/test_inline.lua`, whose change's hint, `assess · waits on agent` since Task 2,
+  follows the new step
 
 **Interfaces:**
 

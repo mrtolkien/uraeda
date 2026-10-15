@@ -65,7 +65,7 @@ pub fn version() -> String {
     env!("CARGO_PKG_VERSION").to_owned()
 }
 
-/// Every feature, bug, and priority of the repository at `repo`.
+/// Every feature, change, and priority of the repository at `repo`.
 #[napi(ts_return_type = "Promise<WorkspaceView>")]
 pub fn read_workspace(repo: String) -> AsyncTask<Job<WorkspaceView>> {
     job(move || api::read_workspace(Path::new(&repo)))

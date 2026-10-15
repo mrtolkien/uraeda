@@ -147,7 +147,7 @@ pub fn start_over(repo: String, folder: String, file: String) -> AsyncTask<Job<F
     job(move || api::start_over(Path::new(&repo), &folder, &file))
 }
 
-/// Approves a spec, a plan, or an assessment, and commits it.
+/// Approves a spec or a plan, and commits it.
 #[napi(ts_return_type = "Promise<FileView>")]
 pub fn approve(
     repo: String,
@@ -169,7 +169,7 @@ pub fn approve(
     })
 }
 
-/// Requests changes on a spec, a plan, or an assessment, and commits it.
+/// Requests changes on a spec or a plan, and commits it.
 #[napi(ts_return_type = "Promise<FileView>")]
 pub fn request_changes(
     repo: String,
