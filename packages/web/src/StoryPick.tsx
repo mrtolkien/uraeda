@@ -13,8 +13,10 @@ import * as stylex from "@stylexjs/stylex";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { StoryTarget } from "uraeda-binding";
 import { CommentForm } from "./CommentForm.tsx";
+import { readUnsaved, unsavedKey } from "./fields/unsaved.ts";
 import { Overlay } from "./layout/Overlay.tsx";
 import { type Picked, storyAnchor, storyComment } from "./storyComment.ts";
+import { useRepositoryPath } from "./routes.tsx";
 import type { PickMode } from "./StoryFrames.tsx";
 
 const styles = stylex.create({
@@ -42,12 +44,18 @@ export type StoryPick = ReturnType<typeof useStoryPick>;
 
 /**
  * Whether the frames said they have the pick script, whether pick mode is on, and the form when
- * open; Escape in the page ends pick mode.
+ * open; Escape in the page ends pick mode. The form opens at once, on its element, when the
+ * comment's field, `field`, holds unsaved text, as after a reload: the embed keeps it while its
+ * story stops and starts again.
  */
-export function useStoryPick() {
+export function useStoryPick(field?: string) {
+  const repo = useRepositoryPath();
   const [pickable, setPickable] = useState(false);
   const [picking, setPicking] = useState(false);
-  const [form, setForm] = useState<{ picked?: Picked }>();
+  const [form, setForm] = useState<{ picked?: Picked } | undefined>(() => {
+    const kept = field === undefined ? undefined : readUnsaved(unsavedKey(repo, field));
+    return kept && { picked: kept.picked };
+  });
   useEffect(() => {
     if (!picking) {
       return;
@@ -174,7 +182,8 @@ export function StoryCommentForm({
     }
     return error;
   };
-  // Drawn again for each element picked, so its field takes the focus.
+  // Drawn again for each element picked, so its field takes the focus; the element is kept with
+  // its unsaved text.
   const fields = form && (
     <CommentForm
       anchor={anchor}
@@ -183,6 +192,7 @@ export function StoryCommentForm({
       key={anchor}
       onCancel={close}
       onSubmit={send}
+      picked={form.picked}
     />
   );
   if (wide) {

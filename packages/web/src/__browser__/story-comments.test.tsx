@@ -8,7 +8,8 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
-import { atRepo, atSize, commands, drawn, show } from "./helpers.tsx";
+import { hasDrawnUnsaved } from "../fields/unsaved.ts";
+import { atRepo, atSize, commands, drawn, reload, show } from "./helpers.tsx";
 
 const FEATURE = "2026-10-20-sidebar-resize";
 const SPEC = `/f/${FEATURE}/spec.md`;
@@ -328,5 +329,40 @@ describe("on the phone", () => {
     expect(
       within(sheet).getByText("Comment on Dragging the handle, button “Hide the sidebar”"),
     ).toBeTruthy();
+  });
+});
+
+describe("on a desktop, a comment kept unsaved", () => {
+  atSize("desktop");
+
+  test("a picked element's unsaved comment is back after a reload, and through a restart", async () => {
+    const anchor = "Comment on Dragging the handle, phone, button “Hide the sidebar”";
+    await readyEmbed();
+    await pick();
+    await commands.frameClick(PHONE, "button", "Hide the sidebar");
+    await screen.findByText(anchor);
+    await userEvent.keyboard("Keep this one.");
+
+    await reload("Resize the sidebar");
+
+    expect(await within(embed()).findByText(anchor)).toBeTruthy();
+    expect(within(form()!).getByRole("textbox")).toHaveProperty("value", "Keep this one.");
+
+    // Its Storybook stops: the form stays, with its text, while the story says why it is gone, and
+    // leaving the page asks first.
+    await commands.stopPreview();
+    await within(embed()).findByRole("button", { name: "Try again" }, READY);
+    expect(within(form()!).getByRole("textbox")).toHaveProperty("value", "Keep this one.");
+    expect(hasDrawnUnsaved()).toBe(true);
+    await userEvent.click(within(embed()).getByRole("button", { name: "Try again" }));
+    await storyShown(PHONE);
+
+    await userEvent.click(within(form()!).getByRole("textbox"));
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+    await expect
+      .poll(() => commands.readRepo(REVIEW), READY)
+      .toContain(
+        "Story SidebarHandle.stories.tsx#Dragging, phone, button “Hide the sidebar”: Keep this one.",
+      );
   });
 });
