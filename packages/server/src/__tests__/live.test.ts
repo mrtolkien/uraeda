@@ -188,9 +188,10 @@ test("a repository is watched once, until it leaves the list", async () => {
 
 /**
  * A feature's step changed through git, as a commit of its answers: its session's status reads
- * the step, so the sidebar's list and the session are sent with the feature.
+ * the step, so the sidebar's list and the session are sent with the feature, and a commit may
+ * change its branch's files.
  */
-test("a feature's change through git is published to its session and the list", async () => {
+test("a feature's change through git is published to its session, its branch's changes, and the list", async () => {
   const repo = fixtureRepo();
   let watcher: ((changes: Changes) => void) | undefined;
   const capturing = {
@@ -215,7 +216,9 @@ test("a feature's change through git is published to its session and the list", 
   expect(sent()).toEqual(
     expect.arrayContaining([
       "Feature 2026-10-12-cli-tuis",
+      "BranchChanges 2026-10-12-cli-tuis",
       "Feature 2026-10-11-web-ui",
+      "BranchChanges 2026-10-11-web-ui",
       "SessionList all",
       `Session ${session.id}`,
     ]),

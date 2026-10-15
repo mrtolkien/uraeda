@@ -3,7 +3,7 @@
 // message (US2). The transcript's tool calls, its long turns, and a blocked action (US5) are checked on the session.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import { expect, test, vi } from "vite-plus/test";
 import { startFeature } from "uraeda-binding";
 import {
@@ -96,15 +96,22 @@ function panel() {
   return within(screen.getByRole("region", { name: "Agent" }));
 }
 
+/** Opens the feature's page from the session's crumbs, and waits for its agent panel. */
+async function openFeaturePage(title: string) {
+  const crumbs = within(screen.getByRole("navigation", { name: "Breadcrumbs" }));
+  await click(crumbs.getByRole("link", { name: title }));
+  await screen.findByRole("region", { name: "Agent" });
+}
+
 /** The session's transcript, once drawn. */
 async function log() {
   return within(await screen.findByRole("log", { name: "Conversation" }));
 }
 
-/** The status a side navigation row shows, by its title. */
-function sidebarStatus(title: string) {
+/** The status a side navigation row shows, by its slug. */
+function sidebarStatus(slug: string) {
   const nav = within(screen.getByRole("navigation", { name: "Side navigation" }));
-  const link = nav.getByRole("link", { name: new RegExp(`^${title}, `) });
+  const link = nav.getByRole("link", { name: new RegExp(`^${slug}, `) });
   return within(link).getByRole("img").getAttribute("aria-label");
 }
 
@@ -282,7 +289,8 @@ test("US2.3: a run ending at a gate shows its closing text last, and Needs you",
   ).findByText("Asked you three questions in clarifications-01.md.");
   const text = screen.getByRole("log", { name: "Conversation" }).textContent ?? "";
   expect(text.trimEnd().endsWith(closing.textContent ?? "")).toBe(true);
-  expect(sidebarStatus("Web UI for the workflow files")).toBe("Needs you");
+  expect(sidebarStatus("web-ui")).toBe("Needs you");
+  await openFeaturePage("Web UI for the workflow files");
   expect(panel().getByText("Needs you")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Review and start the agent" })).toBeNull();
 });
@@ -305,8 +313,10 @@ test("US5.1: a blocked action shows Allow and retry, and Needs you", async () =>
   expect(
     await (await log()).findByText("Blocked by auto mode: Bash git push origin HEAD"),
   ).toBeTruthy();
-  expect(sidebarStatus("CLI TUIs")).toBe("Needs you");
+  expect(sidebarStatus("cli-tuis")).toBe("Needs you");
+  await openFeaturePage("CLI TUIs");
   expect(panel().getByText("Needs you")).toBeTruthy();
+  await act(async () => window.history.back());
 
   await click((await log()).getByRole("button", { name: "Allow and retry" }));
 

@@ -1,7 +1,16 @@
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readdirSync, realpathSync, rmSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 const fixtures = join(import.meta.dirname, "../../fixtures");
 
@@ -77,4 +86,68 @@ export function fixtureRepo(name = "repo"): string {
     git(repo, "switch", "--quiet", "main");
   }
   return repo;
+}
+
+/**
+ * Commits files on a branch of a fixture repository, their paths from its top level, in a
+ * temporary worktree: the main checkout, its files, and its uncommitted changes are left as they
+ * are, so a watcher of the repository never sees the branch's files there.
+ */
+export function commitOnBranch(repo: string, branch: string, files: Record<string, string>) {
+  const worktree = join(temporaryFolder("uraeda-branch"), "worktree");
+  git(repo, "worktree", "add", "--quiet", worktree, branch);
+  try {
+    for (const [path, text] of Object.entries(files)) {
+      mkdirSync(dirname(join(worktree, path)), { recursive: true });
+      writeFileSync(join(worktree, path), text);
+    }
+    git(worktree, "add", "--", ...Object.keys(files));
+    git(worktree, "commit", "--quiet", "--no-verify", "--message", `work on ${branch}`);
+  } finally {
+    git(repo, "worktree", "remove", "--force", worktree);
+  }
+}
+
+/** A plan's task: its title, its checked steps, and its steps. */
+export type PlanTask = [title: string, done: number, total: number];
+
+/** A plan of 11 tasks of 5 steps, the first 6 done: the 7th, "Session column", is current. */
+export const ELEVEN: Array<PlanTask> = [
+  "Plan progress in the core",
+  "One parser for plan tasks",
+  "Branch changes in the core",
+  "Branch changes on the server",
+  "Sidebar slugs and progress",
+  "The session's own page",
+  "Session column",
+  "Jump to the latest",
+  "The phone's progress line",
+  "Announcements",
+  "Layout decision checks",
+].map((title, index) => [title, index < 6 ? 5 : 0, 5]);
+
+/**
+ * Commits `specs/<folder>/plan.md` on the folder's branch, for spec revision 1, with its tasks'
+ * steps written `- [x] **Step N: Do**`, without touching the main checkout. Called again, it
+ * commits the plan's new text.
+ */
+export function addPlan(
+  repo: string,
+  folder: string,
+  tasks: Array<PlanTask>,
+  status = "auto-approved",
+) {
+  commitOnBranch(repo, folder, { [`specs/${folder}/plan.md`]: planText(tasks, status) });
+}
+
+/** A plan's text, for spec revision 1, with its tasks' steps written `- [x] **Step N: Do**`. */
+export function planText(tasks: Array<PlanTask>, status = "auto-approved") {
+  let text = `---\nstatus: ${status}\nspec-revision: 1\n---\n\n# Plan: Feature\n`;
+  for (const [index, [title, done, total]] of tasks.entries()) {
+    text += `\n## Task ${index + 1}: ${title}\n\n`;
+    for (let step = 0; step < total; step++) {
+      text += `- [${step < done ? "x" : " "}] **Step ${step + 1}: Do**\n`;
+    }
+  }
+  return text;
 }

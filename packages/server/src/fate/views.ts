@@ -2,11 +2,15 @@
 // mapped type turns napi-rs's interfaces into type literals, which fate's record constraint accepts.
 import { dataView, list } from "@nkzw/fate/server";
 import type {
+  BranchChanges,
+  ChangedFile,
   DraftView,
   FeatureView,
   FileView,
   Priorities,
   ProposalHint,
+  StepView,
+  TaskProgress,
   WorkspaceView,
 } from "uraeda-binding";
 import type { Capabilities } from "../runner/adapter.ts";
@@ -15,17 +19,33 @@ import type { SessionStatus } from "../runner/status.ts";
 
 type Record_<T> = { [Key in keyof T]: T[Key] };
 
-export type WorkspaceRecord = Record_<WorkspaceView> & {
+/** A feature's step, its progress sent as null when it has none. */
+export type StepRecord = Omit<StepView, "progress"> & { progress: TaskProgress | null };
+
+/**
+ * A step as it is sent: its progress, when absent, sent as null. fate merges a record's fields
+ * shallowly and replaces a nested object like `step` whole, so this is not for freshness: every
+ * step has one shape, `TaskProgress | null`, wherever the UI reads it.
+ */
+export function sentStep(step: StepView): StepRecord {
+  return { ...step, progress: step.progress ?? null };
+}
+
+export type WorkspaceRecord = Omit<Record_<WorkspaceView>, "features"> & {
+  /** Its features, each step sent as `sentStep` sends it. */
+  features: Array<Omit<FeatureView, "step"> & { step: StepRecord }>;
   id: string;
   /** The folders whose session has a turn running or queued. */
   running: Array<string>;
 };
+
 /** A feature, or `missing` alone when no feature has its folder. */
-export type FeatureRecord = Record_<FeatureView> & {
+export type FeatureRecord = Omit<Record_<FeatureView>, "step"> & {
   id: string;
   missing?: boolean;
   /** Its session's ID, null before its first message. */
   session: string | null;
+  step: StepRecord;
 };
 /** A workflow file, or `missing` alone when its feature has no such file. */
 export type FileRecord = Record_<FileView> & { missing?: boolean };
@@ -37,6 +57,37 @@ export type FileRecord = Record_<FileView> & { missing?: boolean };
 export function sentFile(record: FileRecord): FileRecord {
   const cleared = { committed: null, missing: null, review: null, status: null, tip: null };
   return { ...cleared, ...record } as unknown as FileRecord;
+}
+/** A file changed on a feature's branch, its lines null for a binary file. */
+export type ChangedFileRecord = Omit<ChangedFile, "added" | "removed"> & {
+  added: number | null;
+  removed: number | null;
+};
+/**
+ * A feature's branch changes, by its folder: null when it has no branch, is merged, or the default
+ * branch is unknown, and when they `failed` to be read.
+ */
+export type BranchChangesRecord = {
+  changes: (Omit<BranchChanges, "files"> & { files: Array<ChangedFileRecord> }) | null;
+  failed: boolean;
+  id: string;
+};
+
+/**
+ * Branch changes as they are sent: a binary file's lines sent as null, for the client's cache
+ * keeps a field an answer leaves out.
+ */
+export function sentChanges(changes: BranchChanges | null): BranchChangesRecord["changes"] {
+  return (
+    changes && {
+      ...changes,
+      files: changes.files.map((file) => ({
+        ...file,
+        added: file.added ?? null,
+        removed: file.removed ?? null,
+      })),
+    }
+  );
 }
 export type PrioritiesRecord = Record_<Priorities> & { id: string };
 export type DraftRecord = Record_<DraftView> & { id: string };
@@ -218,6 +269,12 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
   worktree: true,
 });
 
+export const branchChangesDataView = dataView<BranchChangesRecord>("BranchChanges")({
+  changes: true,
+  failed: true,
+  id: true,
+});
+
 export const fileDataView = dataView<FileRecord>("WorkflowFile")({
   committed: true,
   current: true,
@@ -350,6 +407,7 @@ export const REPOSITORIES_ID = "repositories";
 /** The roots: one list per type, so every type is read by id. */
 export const Root = {
   agents: list(agentDataView),
+  branchChangesList: list(branchChangesDataView),
   drafts: list(draftDataView),
   features: list(featureDataView),
   folderSuggestionsList: list(folderSuggestionsDataView),

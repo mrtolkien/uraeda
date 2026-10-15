@@ -4,11 +4,9 @@ import { Divider } from "@astryxdesign/core/Divider";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
-import { TextArea } from "@astryxdesign/core/TextArea";
 import { Text } from "@astryxdesign/core/Text";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useFateClient } from "react-fate";
 import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
@@ -18,11 +16,17 @@ import { Blocks } from "./Blocks.tsx";
 import { CommitActions } from "./CommitActions.tsx";
 import { useDraft, useProposalHints } from "./data.ts";
 import { refusal } from "./errors.ts";
+import { RestoreNotice } from "./fields/RestoreNotice.tsx";
+import { SaveStatus } from "./fields/SaveStatus.tsx";
+import { SaveKeys } from "./fields/SaveKeys.tsx";
+import { TextField } from "./fields/TextField.tsx";
+import { useTextField } from "./fields/useTextField.ts";
 import { Page } from "./layout/Page.tsx";
-import { navigate, useRepoPath, useRestoreScroll } from "./routes.tsx";
-import { handOver } from "./sessions.ts";
-import { useSave } from "./useSave.ts";
-import { DraftView, FeatureView } from "./views.ts";
+import { useRestoreScroll } from "./routes.tsx";
+import { useEditorActions } from "./useEditorActions.ts";
+import { SlugField } from "./SlugField.tsx";
+import { type SaveState, useSave } from "./useSave.ts";
+import { DraftView } from "./views.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
 
 const SECTIONS: Record<string, string> = {
@@ -37,26 +41,254 @@ function levelLabel(level: string) {
   return level.charAt(0).toUpperCase() + level.slice(1);
 }
 
+type Draft = NonNullable<ReturnType<typeof useDraft>>;
+type Hints = ReturnType<typeof useProposalHints>;
+
+/** The draft's file and what became of it, its title, and its line in the priorities. */
+function EditorHeading({ draft, path }: { draft: Draft; path: string }) {
+  return (
+    <>
+      <HStack gap={2} justify="between" wrap="wrap">
+        <Text type="code">{path.replace(/^specs\//, "")}</Text>
+        <Text color="secondary" type="supporting">
+          {draft.committed ? "committed" : "not committed"}
+        </Text>
+      </HStack>
+      <Heading level={1}>{draft.title}</Heading>
+      {draft.entry && (
+        <Text color="secondary" type="supporting">
+          {/* Committed or not shows beside the file's name already. */}
+          In Priorities, {SECTIONS[draft.entry.section] ?? draft.entry.section}
+        </Text>
+      )}
+    </>
+  );
+}
+
+/** A save refused as the file changed elsewhere: the text to copy, or the new version to load. */
+function ConflictBanner({
+  conflict,
+  onReload,
+  text,
+}: {
+  conflict: string;
+  onReload: () => Promise<void>;
+  text: string;
+}) {
+  return (
+    <Banner
+      collapsible={false}
+      description={
+        <VStack gap={2}>
+          <Button label="Copy my text" onClick={() => void navigator.clipboard?.writeText(text)} />
+          <Button clickAction={onReload} label="Load the new version" />
+        </VStack>
+      }
+      status="error"
+      title={conflict}
+    />
+  );
+}
+
+/** The discovery effort of a proposal that has one, set in its frontmatter. */
+function DiscoveryEffort({ draft, onChange }: { draft: Draft; onChange: (level: string) => void }) {
+  if (draft.discovery == null) {
+    return null;
+  }
+  return (
+    <VStack gap={1}>
+      <SegmentedControl label="Discovery effort" onChange={onChange} value={draft.discovery}>
+        {draft.discoveryLevels.map((level) => (
+          <SegmentedControlItem key={level} label={levelLabel(level)} value={level} />
+        ))}
+      </SegmentedControl>
+      <Text color="secondary" type="supporting">
+        How far the agent researches before asking: low reads the code and its docs, medium also
+        compares a few alternatives online, high looks far and wide.
+      </Text>
+    </VStack>
+  );
+}
+
+/** The template's guidance for each section the draft leaves empty. */
+function SectionHints({ draft, hints }: { draft: Draft; hints: Hints }) {
+  const shown = hints.filter((hint) => draft.emptySections.includes(hint.heading));
+  if (shown.length === 0) {
+    return null;
+  }
+  return (
+    <VStack gap={1}>
+      <Text color="secondary" type="supporting">
+        To write in the empty sections:
+      </Text>
+      {shown.map((hint) => (
+        <Paragraph color="secondary" key={hint.heading}>
+          <Text color="secondary" weight="semibold">
+            {hint.heading}
+          </Text>
+          {" · "}
+          <Text color="secondary">{hint.hint}</Text>
+        </Paragraph>
+      ))}
+    </VStack>
+  );
+}
+
+/** What the notice says when the file changed since its unsaved text was typed. */
+const EDITOR_CHANGED = "The file changed since: saving replaces it.";
+
+/**
+ * The draft drawn, or its text to edit, which takes images, with the empty sections' guidance; its
+ * unsaved text restored, and Save, or Ctrl+Enter, with what it did.
+ */
+function EditorText({
+  draft,
+  drawn,
+  field,
+  hints,
+  images,
+  onSave,
+  state,
+}: {
+  draft: Draft;
+  drawn: boolean;
+  field: ReturnType<typeof useTextField>;
+  hints: Hints;
+  images: ReturnType<typeof useEditorImages>;
+  onSave: () => void;
+  state: SaveState;
+}) {
+  // The title is the page's heading already.
+  const ids = draft.document.blocks
+    .filter(
+      (block) => block.parent === undefined && !(block.kind === "heading" && block.level === 1),
+    )
+    .map((block) => block.id);
+  return (
+    <VStack gap={2}>
+      {field.restored && (
+        <RestoreNotice
+          changed={EDITOR_CHANGED}
+          onDiscard={field.discard}
+          restored={field.restored}
+        />
+      )}
+      {drawn ? (
+        <DropHint hint={images.hint}>
+          <Blocks document={draft.document} ids={ids} />
+        </DropHint>
+      ) : (
+        <>
+          <DropHint hint={images.hint}>
+            <TextField
+              isLabelHidden
+              kind="editor"
+              label="Text"
+              onChange={field.change}
+              onSubmit={onSave}
+              value={field.text}
+              {...images.fieldProps}
+            />
+          </DropHint>
+          <AttachStatus status={images.status} />
+          <SectionHints draft={draft} hints={hints} />
+        </>
+      )}
+      <HStack align="center" gap={2} wrap="wrap">
+        <Button isDisabled={!field.dirty} label="Save" onClick={onSave} />
+        <SaveStatus dirty={field.dirty} state={state} />
+        <SaveKeys />
+      </HStack>
+    </VStack>
+  );
+}
+
+/** A draft's slug, and Start, which turns it into a feature. */
+function StartDraft({
+  slug,
+  start,
+}: {
+  slug: ReturnType<typeof useTextField>;
+  start: (continues: boolean) => Promise<void>;
+}) {
+  return (
+    <>
+      <Divider />
+      <SlugField field={slug} />
+      <CommitActions
+        continueLabel="Start the feature and the agent"
+        label="Start the feature"
+        onCommit={start}
+        onlyLabel="Start only"
+      />
+      <Text color="secondary" type="supporting">
+        Creates its branch and worktree, and moves the line to Now.
+      </Text>
+    </>
+  );
+}
+
+/** The editor's end: what Commit takes with it, Commit, a draft's Start, and what they did. */
+function EditorEnd({
+  actions,
+  draft,
+  leading,
+  slug,
+}: {
+  actions: ReturnType<typeof useEditorActions>;
+  draft: Draft;
+  leading: ReactNode;
+  slug: ReturnType<typeof useTextField>;
+}) {
+  const isDraft = draft.kind === "draft";
+  const changes = draft.priorityChanges;
+  return (
+    <>
+      {isDraft && changes > 0 && (
+        <Text color="secondary" type="supporting">
+          Your {changes} priority {changes === 1 ? "change is" : "changes are"} committed with it.
+        </Text>
+      )}
+      {isDraft ? (
+        <HStack gap={2} wrap="wrap">
+          {leading}
+          <Button clickAction={() => actions.commit(false)} label="Commit" variant="secondary" />
+        </HStack>
+      ) : (
+        <CommitActions label="Commit" onCommit={actions.commit}>
+          {leading}
+        </CommitActions>
+      )}
+      {isDraft && <StartDraft slug={slug} start={actions.start} />}
+      {actions.message && (
+        <Banner
+          collapsible={false}
+          status={actions.message.ok ? "success" : "error"}
+          title={actions.message.text}
+        />
+      )}
+    </>
+  );
+}
+
 /**
  * A draft or a proposal: drawn once written, with Edit, or edited as text, with the template's
- * guidance for each empty section; saved as typed over the version it was read at, committed, and,
- * for a draft, started as a feature.
+ * guidance for each empty section; saved with Save or Ctrl+Enter over the version it was read at,
+ * its unsaved text kept until then, committed, and, for a draft, started as a feature.
  */
-// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the commit, start, and discovery actions in a hook, and the form in components
 export function EditorPage({ path }: { path: string }) {
   const fate = useFateClient();
-  const here = useRepoPath();
   const draft = useDraft(path);
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   const moved = useMovedText(path);
-  const [text, setText] = useState(moved?.text ?? asTyped(draft?.text ?? ""));
   const hints = useProposalHints();
-  // A written proposal opens drawn; one that holds only its title and What opens to be written.
-  const [drawn, setDrawn] = useState(() => !moved && (draft?.written ?? false));
+  const field = useTextField(`${path}#editor`, asTyped(draft?.text ?? ""));
+  const slug = useTextField(`${path}#slug`, draft?.slug ?? "");
+  // A written proposal opens drawn, unless it holds unsaved text; one that holds only its title and
+  // What opens to be written.
+  const [drawn, setDrawn] = useState(() => !moved && !field.entry && (draft?.written ?? false));
   const [conflict, setConflict] = useState<string>();
-  const [message, setMessage] = useState<{ ok: boolean; text: string }>();
-  const [slug, setSlug] = useState(draft?.slug ?? "");
   const save = useSave<string>(async (value, previous) => {
     const result = await fate.mutations.text.save({
       input: { hash: previous, path, text: value },
@@ -69,17 +301,11 @@ export function EditorPage({ path }: { path: string }) {
       }
       return { message: failed.message, ok: false };
     }
+    field.saved(value);
     return { ok: true, saved: result.result?.hash ?? previous };
   }, draft?.hash ?? "");
-  const { holding, images } = useEditorImages({
-    draft,
-    moved,
-    path,
-    save,
-    setDrawn,
-    setText,
-    text,
-  });
+  const images = useEditorImages({ draft, field, moved, path, save, setDrawn });
+  const actions = useEditorActions({ draft, field, path, save, setConflict, slug });
 
   if (!draft) {
     return (
@@ -88,249 +314,52 @@ export function EditorPage({ path }: { path: string }) {
       </Page>
     );
   }
-  const isDraft = draft.kind === "draft";
-  const changes = draft.priorityChanges;
-  const takesPriorities =
-    isDraft && changes > 0
-      ? `Your ${changes} priority ${changes === 1 ? "change is" : "changes are"} committed with it.`
-      : undefined;
-
-  const commit = async (continues: boolean) => {
-    setMessage(undefined);
-    if (!(await save.flush())) {
-      setMessage({ ok: false, text: "Your text is not saved: nothing was committed." });
-      return;
-    }
-    const result = await fate.mutations.text.commit({ input: { path }, view: DraftView });
-    if (result.error) {
-      setMessage({ ok: false, text: refusal(result.error).message });
-      return;
-    }
-    const folder = draft.folder;
-    if (continues && folder) {
-      handOver(folder, "proposal", path.split("/").at(-1));
-    } else {
-      setMessage({ ok: true, text: "Committed." });
-    }
-  };
-  const start = async (continues: boolean) => {
-    setMessage(undefined);
-    if (!(await save.flush())) {
-      setMessage({ ok: false, text: "Your text is not saved: the feature was not started." });
-      return;
-    }
-    const result = await fate.mutations.feature.start({
-      input: { draft: path, slug },
-      view: FeatureView,
-    });
-    if (result.error) {
-      setMessage({ ok: false, text: refusal(result.error).message });
-    } else if (typeof result.result?.folder === "string") {
-      const folder = result.result.folder;
-      if (continues) {
-        handOver(folder, "start");
-      } else {
-        navigate(here(`/f/${folder}`));
-      }
-    }
-  };
-  /**
-   * Sets the discovery effort in the frontmatter, in the save queue: after the text shown is saved,
-   * and before a later save, commit, or start.
-   */
-  const setDiscovery = async (level: string) => {
-    setMessage(undefined);
-    let refused: string | undefined;
-    const wrote = await save.write(async (previous) => {
-      const result = await fate.mutations.text.discovery({
-        input: { hash: previous, level, path },
-        view: DraftView,
-      });
-      if (result.error) {
-        const failed = refusal(result.error);
-        if (failed.kind === "conflict") {
-          setConflict(failed.message);
-        } else {
-          refused = failed.message;
-        }
-        return { message: failed.message, ok: false };
-      }
-      if (result.result) {
-        setText(result.result.text);
-        return { ok: true, saved: result.result.hash };
-      }
-      return { ok: true, saved: previous };
-    });
-    if (!wrote) {
-      setMessage({
-        ok: false,
-        text: refused ?? "Your text is not saved: the discovery effort was not set.",
-      });
-    }
-  };
-  /** Reads the file again, and puts its text in place of the one that was not saved. */
+  /** Reads the file again, and shows its text in place of the one that was not saved. */
   const reload = async () => {
     setConflict(undefined);
     const fresh = await readDraft(fate, path);
     if (fresh) {
-      setText(asTyped(fresh.text));
+      field.discard();
       save.settle(fresh.hash, true);
     }
   };
-
-  const status =
-    save.state.kind === "saving" || images.busy
-      ? "saving…"
-      : save.state.kind === "saved"
-        ? "saved ✓"
-        : draft.committed
-          ? "committed"
-          : "not committed";
-  // The title is the page's heading already.
-  const drawnIds = draft.document.blocks
-    .filter(
-      (block) => block.parent === undefined && !(block.kind === "heading" && block.level === 1),
-    )
-    .map((block) => block.id);
-  const attachButton = <AttachButton onFiles={(files) => void images.addFiles(files)} />;
-  const shownHints = hints.filter((hint) => draft.emptySections.includes(hint.heading));
+  // A conflict says why the save was refused already.
+  const state: SaveState = images.busy
+    ? { kind: "saving" }
+    : conflict && save.state.kind === "error"
+      ? { kind: "idle" }
+      : save.state;
 
   return (
     <Page>
       <VStack gap={4}>
-        <HStack gap={2} justify="between" wrap="wrap">
-          <Text type="code">{path.replace(/^specs\//, "")}</Text>
-          <Text color="secondary" type="supporting">
-            {status}
-          </Text>
-        </HStack>
-        <Heading level={1}>{draft.title}</Heading>
-        {draft.entry && (
-          <Text color="secondary" type="supporting">
-            {/* Committed or not shows beside the file's name already. */}
-            In Priorities, {SECTIONS[draft.entry.section] ?? draft.entry.section}
-          </Text>
-        )}
-        {conflict && (
-          <Banner
-            collapsible={false}
-            description={
-              <VStack gap={2}>
-                <Button
-                  label="Copy my text"
-                  onClick={() => void navigator.clipboard?.writeText(text)}
-                />
-                <Button clickAction={reload} label="Load the new version" />
-              </VStack>
+        <EditorHeading draft={draft} path={path} />
+        {conflict && <ConflictBanner conflict={conflict} onReload={reload} text={field.text} />}
+        <DiscoveryEffort draft={draft} onChange={(level) => void actions.setDiscovery(level)} />
+        <EditorText
+          draft={draft}
+          drawn={drawn}
+          field={field}
+          hints={hints}
+          images={images}
+          onSave={() => {
+            if (field.dirty) {
+              void save.save(field.text);
             }
-            status="error"
-            title={conflict}
-          />
-        )}
-        {draft.discovery != null && (
-          <VStack gap={1}>
-            <SegmentedControl
-              label="Discovery effort"
-              onChange={(value: string) => void setDiscovery(value)}
-              value={draft.discovery}
-            >
-              {draft.discoveryLevels.map((level) => (
-                <SegmentedControlItem key={level} label={levelLabel(level)} value={level} />
-              ))}
-            </SegmentedControl>
-            <Text color="secondary" type="supporting">
-              How far the agent researches before asking: low reads the code and its docs, medium
-              also compares a few alternatives online, high looks far and wide.
-            </Text>
-          </VStack>
-        )}
-        {drawn ? (
-          <DropHint hint={images.hint}>
-            <Blocks document={draft.document} ids={drawnIds} />
-          </DropHint>
-        ) : (
-          <VStack gap={2}>
-            <DropHint hint={images.hint}>
-              <TextArea
-                isLabelHidden
-                label="Text"
-                onChange={(value: string) => {
-                  setText(value);
-                  if (!holding.current) {
-                    save.schedule(value);
-                  }
-                }}
-                rows={Math.max(16, text.split("\n").length + 2)}
-                value={text}
-                {...images.fieldProps}
-              />
-            </DropHint>
-            <AttachStatus status={images.status} />
-            {shownHints.length > 0 && (
-              <VStack gap={1}>
-                <Text color="secondary" type="supporting">
-                  To write in the empty sections:
-                </Text>
-                {shownHints.map((hint) => (
-                  <Paragraph color="secondary" key={hint.heading}>
-                    <Text color="secondary" weight="semibold">
-                      {hint.heading}
-                    </Text>
-                    {" · "}
-                    <Text color="secondary">{hint.hint}</Text>
-                  </Paragraph>
-                ))}
-              </VStack>
-            )}
-          </VStack>
-        )}
-        {save.state.kind === "error" && !conflict && (
-          <Banner collapsible={false} status="error" title={`Not saved: ${save.state.message}`} />
-        )}
-        {takesPriorities && (
-          <Text color="secondary" type="supporting">
-            {takesPriorities}
-          </Text>
-        )}
-        {isDraft ? (
-          <HStack gap={2} wrap="wrap">
-            <Button label={drawn ? "Edit" : "Preview"} onClick={() => setDrawn(!drawn)} />
-            {attachButton}
-            <Button clickAction={() => commit(false)} label="Commit" variant="secondary" />
-          </HStack>
-        ) : (
-          <CommitActions label="Commit" onCommit={commit}>
-            <Button label={drawn ? "Edit" : "Preview"} onClick={() => setDrawn(!drawn)} />
-            {attachButton}
-          </CommitActions>
-        )}
-        {isDraft && (
-          <>
-            <Divider />
-            <TextInput
-              description="Two words at most: it names the folder and the branch."
-              label="Slug"
-              onChange={(value: string) => setSlug(value)}
-              value={slug}
-            />
-            <CommitActions
-              continueLabel="Start the feature and the agent"
-              label="Start the feature"
-              onCommit={start}
-              onlyLabel="Start only"
-            />
-            <Text color="secondary" type="supporting">
-              Creates its branch and worktree, and moves the line to Now.
-            </Text>
-          </>
-        )}
-        {message && (
-          <Banner
-            collapsible={false}
-            status={message.ok ? "success" : "error"}
-            title={message.text}
-          />
-        )}
+          }}
+          state={state}
+        />
+        <EditorEnd
+          actions={actions}
+          draft={draft}
+          leading={
+            <>
+              <Button label={drawn ? "Edit" : "Preview"} onClick={() => setDrawn(!drawn)} />
+              <AttachButton onFiles={(files) => void images.addFiles(files)} />
+            </>
+          }
+          slug={slug}
+        />
       </VStack>
     </Page>
   );

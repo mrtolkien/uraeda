@@ -11,6 +11,9 @@ import type { FateClient as Client } from "./clients.ts";
 import { useRepositories } from "./data.ts";
 import { useDropGuard } from "./attach/useImageDrop.ts";
 import { FeaturePage } from "./FeaturePage.tsx";
+import { ConfirmHost } from "./fields/Confirm.tsx";
+import { LeaveGuard } from "./fields/LeaveGuard.tsx";
+import { pruneUnsaved } from "./fields/unsaved.ts";
 import { EditorPage } from "./EditorPage.tsx";
 import { FilePage } from "./FilePage.tsx";
 import { Home } from "./Home.tsx";
@@ -23,6 +26,7 @@ import {
   currentEntry,
   navigate,
   RepositoryContext,
+  RepositoryPathContext,
   repoPath,
   type Route,
   redirect,
@@ -140,20 +144,9 @@ function useListPosition() {
   }, [wide, opener, scroll]);
 }
 
-/**
- * A feature's session: on wide screens, in a pane beside its feature's page; on narrow screens, a
- * page of its own.
- */
+/** A feature's session: a page of its own at every width. */
 function SessionRoute({ folder }: { folder: string }) {
-  const here = useRepoPath();
-  useListPosition();
-  return (
-    <Panes
-      detail={<SessionPage folder={folder} />}
-      list={<FeaturePage folder={folder} />}
-      onCloseDetail={() => navigate(here(`/f/${encodeURIComponent(folder)}`))}
-    />
-  );
+  return <SessionPage folder={folder} />;
 }
 
 /** An old run's address: its feature's session, at the turn the run became. */
@@ -228,9 +221,11 @@ function InRepository({
   return (
     <ListClientContext value={clientFor(null)}>
       <RepositoryContext value={repo}>
-        <FateClient client={clientFor(repo)} key={repo}>
-          {children}
-        </FateClient>
+        <RepositoryPathContext value={row.path}>
+          <FateClient client={clientFor(repo)} key={repo}>
+            {children}
+          </FateClient>
+        </RepositoryPathContext>
       </RepositoryContext>
     </ListClientContext>
   );
@@ -244,6 +239,8 @@ function InRepository({
 export function App({ clientFor }: { clientFor: (repo: string | null) => Client }) {
   const { pathname, repo, route } = useRoute();
   const [attempt, setAttempt] = useState(0);
+  // Unsaved text older than 30 days goes as the app starts, before a field shows it.
+  useState(() => pruneUnsaved(new Date()));
   useDropGuard();
   return (
     <FateClient client={clientFor(null)}>
@@ -252,19 +249,22 @@ export function App({ clientFor }: { clientFor: (repo: string | null) => Client 
           <Theme mode={mode} theme={uraedaTheme}>
             <LinkProvider component={RouterAnchor}>
               <LayerProvider toast={{ position: "bottomEnd" }}>
-                <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
-                  <Suspense fallback={<Loading />}>
-                    <InRepository clientFor={clientFor} pathname={pathname} repo={repo}>
-                      <Suspense fallback={<Loading />}>
-                        <Shell>
-                          <Suspense fallback={<Loading />}>
-                            <Page key={pathname} route={route} />
-                          </Suspense>
-                        </Shell>
-                      </Suspense>
-                    </InRepository>
-                  </Suspense>
-                </ServerErrorBoundary>
+                <ConfirmHost>
+                  <LeaveGuard />
+                  <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
+                    <Suspense fallback={<Loading />}>
+                      <InRepository clientFor={clientFor} pathname={pathname} repo={repo}>
+                        <Suspense fallback={<Loading />}>
+                          <Shell>
+                            <Suspense fallback={<Loading />}>
+                              <Page key={pathname} route={route} />
+                            </Suspense>
+                          </Shell>
+                        </Suspense>
+                      </InRepository>
+                    </Suspense>
+                  </ServerErrorBoundary>
+                </ConfirmHost>
               </LayerProvider>
             </LinkProvider>
           </Theme>

@@ -229,3 +229,5 @@ Why it matters: it decides whether the quick path from Q6 works on every task.
   existing icons. See [discovery](discovery-01.md#important-reads).
 
 **Notes:**
+
+- **Repeating tasks show a repeat icon**: Yes, next to the due date.

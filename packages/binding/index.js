@@ -716,13 +716,15 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { WatchHandle, addComment, addPriority, addRepository, approve, attachImage, commitPriorities, commitText, createDraft, dataDir, discardPriorities, editComment, editPriority, encodeImage, insertPriority, mainRoot, movePriority, nextStep, openRepository, proposalHints, readDraft, readFeature, readFile, readImage, readPriorities, readRaw, readRepositories, readText, readWorkspace, removeComment, removePriority, removeRepository, requestChanges, retryCommit, saveAnswer, saveNotes, saveText, setDiscovery, startFeature, startOver, submitAnswers, version, watch, workDir, BlockKind, CalloutKind, ItemMarker } = nativeBinding
+const { WatchHandle, addComment, addPriority, addRepository, addSettledComment, approve, attachImage, branchChanges, commitPriorities, commitText, createDraft, dataDir, discardPriorities, editComment, editPriority, editSettledComment, encodeImage, insertPriority, mainRoot, movePriority, nextStep, openRepository, proposalHints, readDraft, readFeature, readFile, readImage, readPriorities, readRaw, readRepositories, readText, readWorkspace, removeComment, removePriority, removeRepository, removeSettledComment, requestChanges, retryCommit, saveAnswer, saveNotes, saveText, setDiscovery, startFeature, startOver, submitAnswers, version, watch, workDir, BlockKind, CalloutKind, ItemMarker } = nativeBinding
 export { WatchHandle }
 export { addComment }
 export { addPriority }
 export { addRepository }
+export { addSettledComment }
 export { approve }
 export { attachImage }
+export { branchChanges }
 export { commitPriorities }
 export { commitText }
 export { createDraft }
@@ -730,6 +732,7 @@ export { dataDir }
 export { discardPriorities }
 export { editComment }
 export { editPriority }
+export { editSettledComment }
 export { encodeImage }
 export { insertPriority }
 export { mainRoot }
@@ -749,6 +752,7 @@ export { readWorkspace }
 export { removeComment }
 export { removePriority }
 export { removeRepository }
+export { removeSettledComment }
 export { requestChanges }
 export { retryCommit }
 export { saveAnswer }

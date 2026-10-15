@@ -1,5 +1,7 @@
 //! The skill's tables of steps, as a function of a feature's files.
 
+#[cfg(feature = "napi")]
+use napi_derive::napi;
 use serde::Serialize;
 
 use crate::files::plan;
@@ -88,7 +90,25 @@ pub struct Step {
     pub file: Option<String>,
     /// The first unchecked task, for implementation.
     pub task: Option<String>,
+    /// Where the implementation is in the plan's tasks, for implementation.
+    pub progress: Option<TaskProgress>,
+    /// Whether the implementation is over: every task of the plan, or every box of a bug's
+    /// assessment, is done, and the feature is past them, at its final review or after.
+    pub implemented: bool,
     pub pull_request: Option<PullRequest>,
+}
+
+/// The plan's progress during the implementation: the first task with an unchecked step.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskProgress {
+    /// Its position among the plan's tasks, from 1, whatever its `## Task N` number.
+    pub position: u32,
+    /// The number of tasks in the plan.
+    pub total: u32,
+    /// Its title, as written after `## Task N:`.
+    pub title: String,
 }
 
 impl Step {
@@ -99,6 +119,8 @@ impl Step {
             reference: None,
             file: None,
             task: None,
+            progress: None,
+            implemented: false,
             pull_request: None,
         }
     }
@@ -123,7 +145,10 @@ impl Step {
 
     /// The step of a feature merged into the default branch.
     pub fn done() -> Step {
-        Step::new(StepName::Done, WaitsOn::Nobody)
+        Step {
+            implemented: true,
+            ..Step::new(StepName::Done, WaitsOn::Nobody)
+        }
     }
 
     /// Whether the pull request's state decides this step.
@@ -158,6 +183,7 @@ fn finished_step(pull_request: PullRequest) -> Step {
         PullRequest::Unknown => Step::agent(StepName::PullRequest, "finish"),
     };
     Step {
+        implemented: true,
         pull_request: Some(pull_request),
         ..step
     }
@@ -218,12 +244,19 @@ fn feature_step(feature: &Feature, pull_request: PullRequest) -> Step {
         Some("approved" | "auto-approved") => {}
         _ => return Step::none(),
     }
-    if let Some(task) = plan::tasks(plan_text)
-        .into_iter()
-        .find(|task| task.done < task.total)
+    let tasks = plan::tasks(plan_text, &feature.path);
+    if let Some((index, task)) = tasks
+        .iter()
+        .enumerate()
+        .find(|(_, task)| task.done < task.total)
     {
         return Step {
             task: Some(format!("Task {}: {}", task.number, task.title)),
+            progress: Some(TaskProgress {
+                position: index as u32 + 1,
+                total: tasks.len() as u32,
+                title: task.title.clone(),
+            }),
             ..Step::agent(StepName::Implementation, "implementation")
         };
     }
@@ -239,6 +272,7 @@ fn after_the_last_step(pull_request: PullRequest, without: StepName, reference: 
         PullRequest::Unknown => Step::agent(StepName::PullRequest, reference),
     };
     Step {
+        implemented: true,
         pull_request: Some(pull_request),
         ..step
     }

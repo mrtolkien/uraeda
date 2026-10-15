@@ -1,70 +1,80 @@
+import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
+import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, type RefObject, useCallback, useEffect, useRef } from "react";
+import {
+  type ReactNode,
+  type RefObject,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+} from "react";
 import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
 import { useImageText } from "./attach/useImageText.ts";
-import { GrowingTextArea } from "./Question.tsx";
+import { COMMENT_CHANGED } from "./CommentForm.tsx";
+import { RestoreNotice } from "./fields/RestoreNotice.tsx";
+import { SaveStatus } from "./fields/SaveStatus.tsx";
+import { SaveKeys } from "./fields/SaveKeys.tsx";
+import { TextField } from "./fields/TextField.tsx";
+import { Paragraph } from "./layout/Paragraph.tsx";
+import type { useAnswer } from "./useAnswer.ts";
 
 const styles = stylex.create({
   actions: {
     marginBlockStart: spacingVars["--spacing-2"],
   },
+  spaced: {
+    marginBlockStart: spacingVars["--spacing-3"],
+  },
 });
 
-/** An answer: its letters, and its comment. */
-type Answer = { comment: string; letters: ReadonlyArray<string> };
-
 /**
- * How a question's answer is saved, with its comment's images: at once with their links, as a file
- * with images is, and by Submit, which saves a comment still being written first, its images
- * added. The answer as shown is `local`; `pending` holds what Submit waits for.
+ * How a question's comment is saved by Submit, and by its images: `save` saves a comment at once,
+ * as its button and an image added do, through `commit`; Submit waits for the images being added,
+ * then saves the comment still unsaved, `unsaved()`, unless a save of it already runs, and waits
+ * for the saves; `pending` holds what Submit waits for.
  */
 export function useCommentSaves({
+  commit,
   flush,
-  initial,
-  local,
   pending,
-  schedule,
-  setComment,
+  unsaved,
 }: {
+  /** Saves the answer with this comment after the saves before it: resolves with whether it did. */
+  commit: (comment: string) => Promise<boolean>;
   flush: () => Promise<boolean>;
-  initial: string;
-  local: RefObject<Answer & { dirty: boolean }>;
   pending: Set<() => Promise<boolean>>;
-  schedule: (value: Answer, immediately?: boolean) => void;
-  setComment: (comment: string) => void;
+  /** The comment unsaved now, as the store holds it. */
+  unsaved: () => string | undefined;
 }) {
-  // The comment last handed to a save: Submit does not save it again while that save runs.
-  const committed = useRef(initial);
-  /** Saves the answer at once, with the comment as typed. */
-  const commit = useCallback(
-    (value: Answer) => {
-      committed.current = value.comment;
-      schedule(value, true);
-    },
-    [schedule],
-  );
+  // The comment handed to a save still running: Submit does not save it again meanwhile. Once
+  // the save returns, written or refused, Submit saves the comment the store still holds.
+  const committed = useRef<string | undefined>(undefined);
+  const save = (comment: string) => {
+    committed.current = comment;
+    return commit(comment).finally(() => {
+      if (committed.current === comment) {
+        committed.current = undefined;
+      }
+    });
+  };
+  // What Submit does once it waited for the images, with the comment as the store holds it then.
+  const saveUnsaved = useEffectEvent(() => {
+    const text = unsaved();
+    if (text !== undefined && text !== committed.current) {
+      void save(text);
+    }
+  });
   // The images being added to the comment, which a submit waits for.
   const settled = useRef<() => Promise<void>>(async () => {});
-  const onImages = useCallback(
-    (value: string, added: boolean) => {
-      setComment(value);
-      remember(local, value);
-      if (added) {
-        commit({ comment: value, letters: local.current.letters });
-      }
-    },
-    [commit, local, setComment],
-  );
   useEffect(() => {
     const before = async () => {
       await settled.current();
-      if (local.current.dirty && local.current.comment !== committed.current) {
-        commit({ comment: local.current.comment, letters: local.current.letters });
-      }
+      saveUnsaved();
       return flush();
     };
     pending.add(before);
@@ -76,16 +86,11 @@ export function useCommentSaves({
       pending.add(after);
       void after().finally(() => pending.delete(after));
     };
-  }, [pending, flush, commit, local]);
+  }, [pending, flush]);
   const onSettled = useCallback((wait: () => Promise<void>) => {
     settled.current = wait;
   }, []);
-  return { commit, onImages, onSettled };
-}
-
-/** Takes a comment as the answer's at once, before it is drawn: Submit may read it first. */
-function remember(local: RefObject<Answer & { dirty: boolean }>, comment: string) {
-  local.current = { ...local.current, comment };
+  return { onSettled, save };
 }
 
 /** What Submit waits for of a question gone: its images, then its last save. */
@@ -99,7 +104,8 @@ function afterRemoval(settled: RefObject<() => Promise<void>>, flush: () => Prom
 /**
  * A question's comment as it is written: it takes images pasted, dropped while it has the focus,
  * or picked with "Add image". `onImages` takes the text once they are added, to save at once.
- * `onSettled` takes how to wait for the images under way, as a submit does.
+ * `onSettled` takes how to wait for the images under way, as a submit does. Ctrl+Enter, or
+ * Cmd+Enter, calls `onSubmit`, as its Save button does.
  */
 export function CommentField({
   children,
@@ -108,6 +114,7 @@ export function CommentField({
   onChange,
   onImages,
   onSettled,
+  onSubmit,
   path,
 }: {
   children: ReactNode;
@@ -116,6 +123,7 @@ export function CommentField({
   onChange: (comment: string) => void;
   onImages: (comment: string, added: boolean) => void;
   onSettled: (settled: () => Promise<void>) => void;
+  onSubmit: () => void;
   path: string;
 }) {
   const images = useImageText({
@@ -132,9 +140,11 @@ export function CommentField({
   return (
     <>
       <DropHint hint={images.hint} isLabelled>
-        <GrowingTextArea
+        <TextField
+          kind="comment"
           label="Comment"
           onChange={onChange}
+          onSubmit={onSubmit}
           value={comment}
           {...images.fieldProps}
         />
@@ -148,5 +158,67 @@ export function CommentField({
         {children}
       </HStack>
     </>
+  );
+}
+
+/**
+ * A question's comment: its field, with "Save comment" and its status, and the notice of a
+ * comment restored; once the round is answered, the comment `saved`, and the notice of a comment
+ * left unsaved.
+ */
+export function AnswerComment({
+  answer,
+  id,
+  path,
+  readOnly,
+  saved,
+}: {
+  answer: ReturnType<typeof useAnswer>;
+  id: string;
+  path: string;
+  readOnly: boolean;
+  saved: string;
+}) {
+  const { field } = answer;
+  if (readOnly) {
+    return (
+      <>
+        {field.entry && (
+          <RestoreNotice
+            answered
+            changed={COMMENT_CHANGED}
+            onDiscard={field.discard}
+            restored={{ at: field.entry.at, changed: false }}
+          />
+        )}
+        {saved && <Paragraph xstyle={styles.spaced}>{saved}</Paragraph>}
+      </>
+    );
+  }
+  return (
+    <VStack gap={2} xstyle={styles.spaced}>
+      {field.restored && (
+        <RestoreNotice
+          changed={COMMENT_CHANGED}
+          onDiscard={field.discard}
+          restored={field.restored}
+        />
+      )}
+      <div>
+        <CommentField
+          comment={field.text}
+          id={id}
+          onChange={field.change}
+          onImages={answer.onImages}
+          onSettled={answer.onSettled}
+          onSubmit={answer.saveComment}
+          path={path}
+        >
+          <Button isDisabled={!field.dirty} label="Save comment" onClick={answer.saveComment} />
+          <SaveStatus dirty={field.dirty} state={answer.state} />
+          <SaveKeys />
+        </CommentField>
+      </div>
+    </VStack>
   );
 }

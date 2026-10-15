@@ -1,11 +1,11 @@
 // The layout's checks, in WebKit at an iPhone 17's size and at a desktop's, against the server
 // mounted in the test server (see `vite.config.ts`), on the fake agent: the tests `vp run ready`
 // runs never start Claude Code. The root's config lists this project next to the others.
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Frame, Page } from "playwright";
 import { addRepository, removeRepository } from "uraeda-binding";
-import { fixture, fixtureRepo } from "uraeda-binding/test-utils";
+import { addPlan, commitOnBranch, ELEVEN, fixture, fixtureRepo } from "uraeda-binding/test-utils";
 import { reloadRepositories } from "uraeda-server/dev";
 import { FakeAdapter } from "uraeda-server/testing";
 import { playwright } from "vite-plus/test/browser-playwright";
@@ -83,8 +83,9 @@ const commands = {
     return { name: repository.name, token };
   },
   /**
-   * Ends a test's turn: its repository leaves the list, which closes its watch, its copy is
-   * deleted, and the next test takes its turn.
+   * Ends a test's turn: its repository leaves the list, which closes its watch, and the next
+   * test takes its turn. The fixture's exit cleanup removes its files: requests that already
+   * started may still be reading them after the page unmounts.
    */
   async releaseRepo(_context: unknown, token: number) {
     const holder = shared.uraedaRepoHolder;
@@ -93,12 +94,11 @@ const commands = {
     }
     // The agent's process ends with the test: the next test's session opens one of its own.
     agent.exit(1, "ended by the test");
-    const { name, path } = shared.uraedaRepo!;
+    const { name } = shared.uraedaRepo!;
     try {
       await removeRepository(process.env.URAEDA_DATA_DIR!, name);
       await reloadRepositories();
     } finally {
-      rmSync(path, { force: true, recursive: true });
       shared.uraedaRepo = undefined;
       shared.uraedaRepoHolder = undefined;
       holder.release();
@@ -125,6 +125,14 @@ const commands = {
   /** Serves the chat images `ms` late, until the test ends. */
   slowChatImages(_context: unknown, ms: number) {
     chatImageDelay = ms;
+  },
+  /** Commits a plan of 11 tasks on a feature's branch, the 7th, "Session column", current. */
+  addPlan(_context: unknown, folder: string) {
+    addPlan(repoFolder(), folder, ELEVEN);
+  },
+  /** Commits files, by path, on a feature's branch. */
+  commitOnBranch(_context: unknown, folder: string, files: Record<string, string>) {
+    commitOnBranch(repoFolder(), folder, files);
   },
   /** The messages sent to the agent during the test, in order. */
   agentSent() {
@@ -183,12 +191,14 @@ const commands = {
 };
 
 export type RepoCommands = {
+  addPlan: (folder: string) => Promise<void>;
   agentAccept: (index?: number) => Promise<void>;
   agentEmit: (events: Array<AgentEvent>) => Promise<void>;
   agentFinish: (code?: number, stderr?: string) => Promise<void>;
   agentSent: () => Promise<
     Array<{ id: string; images: Array<string>; text: string; when: string }>
   >;
+  commitOnBranch: (folder: string, files: Record<string, string>) => Promise<void>;
   fixtureImage: (name: string) => Promise<string>;
   mouse: (
     steps: Array<{ ms?: number; type: "move" | "down" | "up" | "wait"; x?: number; y?: number }>,

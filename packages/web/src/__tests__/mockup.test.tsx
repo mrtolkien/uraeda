@@ -2,8 +2,9 @@
 // for review, on the spec's line that links them, or as a general comment.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
+import { forgetUnsaved } from "../fields/unsaved.ts";
 import { addMockup, atRepo, click, fixtureRepo, git, renderPage, today, type } from "./helpers.tsx";
 
 const FOLDER = "2026-10-06-recurring-tasks";
@@ -51,6 +52,21 @@ test("a mockup shows in the UI, and a comment lands on the line that links it (C
   expect(review(repo)).toContain("\nThe menu needs a Never option\n");
 });
 
+/** The spec's Ctrl+Enter, which saves every multi-line field. */
+test("Ctrl+Enter in a mockup's comment adds it", async () => {
+  const repo = specWithMockup();
+  await renderPage(`/f/${FOLDER}/mockups/repeat.html`, repo);
+  await click(await screen.findByRole("button", { name: "Comment" }));
+  const field = await screen.findByRole("textbox", { name: "Comment text" });
+  await type(field, "The menu needs a Never option");
+
+  await act(async () => {
+    fireEvent.keyDown(field, { ctrlKey: true, key: "Enter" });
+  });
+
+  await waitFor(() => expect(review(repo)).toContain("\nThe menu needs a Never option\n"));
+});
+
 /** Review focus 5 */
 test("a mockup no line links gets a general comment (review focus 5)", async () => {
   const repo = specWithMockup();
@@ -78,4 +94,53 @@ test("no Comment once the spec is approved", async () => {
 
   expect(await screen.findByTitle("repeat.html")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Comment" })).toBeNull();
+});
+
+/** The comment field of the mockup's overlay. */
+const commentField = () =>
+  screen.getByRole("textbox", { name: "Comment text" }) as HTMLTextAreaElement;
+
+/** Answers "Discard your comment?" with one of its buttons. */
+async function answer(button: "Discard" | "Keep editing") {
+  const dialog = await screen.findByRole("dialog", { name: "Discard your comment?" });
+  await click(within(dialog).getByRole("button", { name: button }));
+  await waitFor(() =>
+    expect(screen.queryByRole("dialog", { name: "Discard your comment?" })).toBeNull(),
+  );
+}
+
+/** US5 7 on the mockup page: Cancel asks first; "Keep editing" keeps the text, "Discard" drops it. */
+test("Cancel on a mockup's comment typed asks first", async () => {
+  await renderPage(`/f/${FOLDER}/mockups/repeat.html`, specWithMockup());
+  await click(await screen.findByRole("button", { name: "Comment" }));
+  await type(await screen.findByRole("textbox", { name: "Comment text" }), "Too dense");
+
+  await click(screen.getByRole("button", { name: "Cancel" }));
+  await answer("Keep editing");
+  expect(commentField().value).toBe("Too dense");
+
+  await click(screen.getByRole("button", { name: "Cancel" }));
+  await answer("Discard");
+  await waitFor(() => expect(screen.queryByRole("textbox", { name: "Comment text" })).toBeNull());
+  await click(screen.getByRole("button", { name: "Comment" }));
+  await screen.findByRole("textbox", { name: "Comment text" });
+  expect(commentField().value).toBe("");
+});
+
+/** SC-004 on the mockup page: the comment typed comes back after a reload. */
+test("a mockup's comment typed is restored after a reload", async () => {
+  const repo = specWithMockup();
+  const page = `/f/${FOLDER}/mockups/repeat.html`;
+  await renderPage(page, repo);
+  await click(await screen.findByRole("button", { name: "Comment" }));
+  await type(await screen.findByRole("textbox", { name: "Comment text" }), "Too dense");
+
+  forgetUnsaved();
+  await renderPage(page, repo, { reload: true });
+
+  await click(await screen.findByRole("button", { name: "Comment" }));
+  expect(
+    ((await screen.findByRole("textbox", { name: "Comment text" })) as HTMLTextAreaElement).value,
+  ).toBe("Too dense");
+  expect(screen.getByText("Unsaved text restored from", { exact: false })).toBeTruthy();
 });

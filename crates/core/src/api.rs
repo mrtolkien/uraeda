@@ -23,10 +23,12 @@ use crate::workspace::{
 };
 use crate::{steps, target, today};
 
+mod answers;
 mod files;
 mod priority_edits;
 mod repository_list;
 
+pub use answers::*;
 pub use files::{attach_image, encode_image, read_image, read_raw};
 
 pub use priority_edits::{
@@ -115,7 +117,7 @@ pub(crate) fn write_lock() -> std::sync::MutexGuard<'static, ()> {
         .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
-fn open(repo: &Path) -> Result<(Git, Workspace)> {
+pub(crate) fn open(repo: &Path) -> Result<(Git, Workspace)> {
     let git = Git::discover(repo)?;
     let workspace = Workspace::read(&git).map_err(|error| refused(error.to_string()))?;
     Ok((git, workspace))
@@ -239,7 +241,7 @@ pub fn priority_links(repo: &Path, text: &str) -> Result<Vec<PriorityLink>> {
         .collect())
 }
 
-fn find<'a>(workspace: &'a Workspace, folder: &str) -> Result<&'a Feature> {
+pub(crate) fn find<'a>(workspace: &'a Workspace, folder: &str) -> Result<&'a Feature> {
     workspace
         .feature(folder)
         .ok_or_else(|| refused(format!("no feature {folder}")))
@@ -413,47 +415,6 @@ pub fn main_root(repo: &Path) -> Result<String> {
         .main_root()
         .to_string_lossy()
         .into_owned())
-}
-
-fn round_name(feature: &Feature) -> Result<String> {
-    let path = answer::round_path(feature)?;
-    Ok(path.rsplit('/').next().unwrap_or_default().to_string())
-}
-
-/// Saves one answer, from the letters picked and a comment, over the answer last read.
-pub fn save_answer(
-    repo: &Path,
-    folder: &str,
-    question: &str,
-    letters: &[String],
-    comment: &str,
-    previous: &str,
-) -> Result<FileView> {
-    let _lock = write_lock();
-    let (git, feature, place) = reach(repo, folder)?;
-    let written = answer::save(&place, &feature, question, letters, comment, previous)?;
-    // A save writes an answer's text only: the round's status, read before it, stays right.
-    file_view(&git, &feature, &round_name(&feature)?, Some(written.text))
-}
-
-/// Saves the notes on the settled points, over the notes last read.
-pub fn save_notes(repo: &Path, folder: &str, notes: &str, previous: &str) -> Result<FileView> {
-    let _lock = write_lock();
-    let (git, feature, place) = reach(repo, folder)?;
-    let written = answer::save_notes(&place, &feature, notes, previous)?;
-    file_view(&git, &feature, &round_name(&feature)?, Some(written.text))
-}
-
-/// Submits the latest round and commits it; refused when `round`, the round the human answered,
-/// is another.
-pub fn submit_answers(repo: &Path, folder: &str, round: Option<&str>) -> Result<FileView> {
-    let _lock = write_lock();
-    let (_, feature, place) = reach(repo, folder)?;
-    if let Some(round) = round {
-        answer::ensure_latest(&feature, round)?;
-    }
-    answer::submit_and_commit(&place, &feature, today::today())?;
-    read_file(repo, folder, &round_name(&feature)?)
 }
 
 /// Commits again what a hook refused to commit, its files left written: a submitted round, or a

@@ -27,6 +27,22 @@ fn outside_a_repository() {
 }
 
 #[test]
+fn status_returns_an_error_when_the_object_directory_disappears() {
+    let repo = TestRepo::new();
+    // An unborn HEAD lets status reach the worktree without first reading a commit's tree.
+    repo.git(&["update-ref", "-d", "refs/heads/main"]);
+    let git = Git::discover(repo.path()).unwrap();
+    std::fs::remove_dir_all(repo.path().join(".git/objects")).unwrap();
+
+    assert!(matches!(
+        git.has_local_changes(),
+        Err(GitError::Read { .. })
+    ));
+    assert!(matches!(git.changed_files(), Err(GitError::Read { .. })));
+    assert!(matches!(git.staged_files(), Err(GitError::Read { .. })));
+}
+
+#[test]
 fn lists_local_and_remote_branches() {
     let repo = TestRepo::new();
     repo.branch("2026-10-10-a");

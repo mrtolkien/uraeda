@@ -12,12 +12,15 @@ use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{Env, Status, Task};
 use napi_derive::napi;
 use uraeda_core::api::{self, ApiError};
+use uraeda_core::changes::{self, BranchChanges};
 use uraeda_core::files::priorities::Priorities;
 use uraeda_core::view::{
     AddedView, AttachedView, CommitView, DraftView, FeatureView, FileView, NextView, ProposalHint,
     RepositoryView, StartedView, WorkspaceView,
 };
 use uraeda_core::watch::{self, Changes};
+
+pub mod file_writes;
 
 /// A core operation, run off the main thread.
 pub struct Job<T: Send + 'static> {
@@ -104,6 +107,13 @@ pub fn read_raw(repo: String, path: String) -> AsyncTask<Job<String>> {
     job(move || api::read_raw(Path::new(&repo), &path))
 }
 
+/// The files a feature's branch changed outside its folder, from the default branch's merge base,
+/// or `null` when it has no branch, is merged, or the default branch is unknown.
+#[napi(ts_return_type = "Promise<BranchChanges | null>")]
+pub fn branch_changes(repo: String, folder: String) -> AsyncTask<Job<Option<BranchChanges>>> {
+    job(move || changes::branch_changes(Path::new(&repo), &folder))
+}
+
 /// A feature's next step, with its branch and the main checkout's path, for an agent's run.
 #[napi(ts_return_type = "Promise<NextView>")]
 pub fn next_step(repo: String, folder: String) -> AsyncTask<Job<NextView>> {
@@ -120,132 +130,6 @@ pub fn work_dir(repo: String, folder: String) -> AsyncTask<Job<String>> {
 #[napi(ts_return_type = "Promise<string>")]
 pub fn main_root(repo: String) -> AsyncTask<Job<String>> {
     job(move || api::main_root(Path::new(&repo)))
-}
-
-/// Saves an answer from the letters picked and a comment, over the answer last read.
-#[napi(ts_return_type = "Promise<FileView>")]
-pub fn save_answer(
-    repo: String,
-    folder: String,
-    question: String,
-    letters: Vec<String>,
-    comment: String,
-    previous: String,
-) -> AsyncTask<Job<FileView>> {
-    job(move || {
-        api::save_answer(
-            Path::new(&repo),
-            &folder,
-            &question,
-            &letters,
-            &comment,
-            &previous,
-        )
-    })
-}
-
-/// Saves the notes on the settled points, over the notes last read.
-#[napi(ts_return_type = "Promise<FileView>")]
-pub fn save_notes(
-    repo: String,
-    folder: String,
-    notes: String,
-    previous: String,
-) -> AsyncTask<Job<FileView>> {
-    job(move || api::save_notes(Path::new(&repo), &folder, &notes, &previous))
-}
-
-/// Submits the latest round of questions, and commits it; refused when `name`, the round
-/// answered, is another.
-#[napi(ts_return_type = "Promise<FileView>")]
-pub fn submit_answers(
-    repo: String,
-    folder: String,
-    name: Option<String>,
-) -> AsyncTask<Job<FileView>> {
-    job(move || api::submit_answers(Path::new(&repo), &folder, name.as_deref()))
-}
-
-/// Commits again what a hook refused to commit: a submitted round, or a verdict.
-#[napi(ts_return_type = "Promise<CommitView>")]
-pub fn retry_commit(repo: String, folder: String, name: String) -> AsyncTask<Job<CommitView>> {
-    job(move || api::retry_commit(Path::new(&repo), &folder, &name))
-}
-
-/// Comments on lines of a file as committed, or on the whole file without lines.
-#[napi(ts_return_type = "Promise<FileView>")]
-pub fn add_comment(
-    repo: String,
-    folder: String,
-    file: String,
-    start_line: Option<u32>,
-    end_line: Option<u32>,
-    text: String,
-) -> AsyncTask<Job<FileView>> {
-    let lines = start_line.map(|start| (start, end_line.unwrap_or(start)));
-    job(move || api::add_comment(Path::new(&repo), &folder, &file, lines, &text))
-}
-
-/// Replaces the text of a pending comment.
-#[napi(ts_return_type = "Promise<FileView>")]
-pub fn edit_comment(
-    repo: String,
-    folder: String,
-    file: String,
-    number: u32,
-    text: String,
-) -> AsyncTask<Job<FileView>> {
-    job(move || api::edit_comment(Path::new(&repo), &folder, &file, number, &text))
-}
-
-/// Removes a pending comment.
-#[napi(ts_return_type = "Promise<FileView>")]
-pub fn remove_comment(
-    repo: String,
-    folder: String,
-    file: String,
-    number: u32,
-) -> AsyncTask<Job<FileView>> {
-    job(move || api::remove_comment(Path::new(&repo), &folder, &file, number))
-}
-
-/// Deletes the pending review of a file.
-#[napi(ts_return_type = "Promise<FileView>")]
-pub fn start_over(repo: String, folder: String, file: String) -> AsyncTask<Job<FileView>> {
-    job(move || api::start_over(Path::new(&repo), &folder, &file))
-}
-
-/// Approves a spec, a plan, or an assessment, and commits it.
-#[napi(ts_return_type = "Promise<FileView>")]
-pub fn approve(
-    repo: String,
-    folder: String,
-    file: String,
-    summary: Option<String>,
-    risk_tier: Option<String>,
-    plan_review: Option<bool>,
-) -> AsyncTask<Job<FileView>> {
-    job(move || {
-        api::approve(
-            Path::new(&repo),
-            &folder,
-            &file,
-            summary.as_deref(),
-            risk_tier,
-            plan_review,
-        )
-    })
-}
-
-/// Requests changes on a spec, a plan, or an assessment, and commits it.
-#[napi(ts_return_type = "Promise<FileView>")]
-pub fn request_changes(
-    repo: String,
-    folder: String,
-    file: String,
-    summary: Option<String>,
-) -> AsyncTask<Job<FileView>> {
-    job(move || api::request_changes(Path::new(&repo), &folder, &file, summary.as_deref()))
 }
 
 /// Drafts a priority line by its id, like `next-2`, over the priorities read at `previous`.

@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { useDraft } from "../data.ts";
-import { redirect, repoPath, useRepository } from "../routes.tsx";
+import { unsavedKey, writeUnsaved } from "../fields/unsaved.ts";
+import { redirect, repoPath, useRepository, useRepositoryPath } from "../routes.tsx";
+import type { useTextField } from "../fields/useTextField.ts";
 import type { useSave } from "../useSave.ts";
 import { DraftView } from "../views.ts";
 import type { AttachStatus } from "./useAttach.ts";
@@ -49,12 +51,14 @@ export function useMovedText(path: string) {
 }
 
 /**
- * Where a run of uploads that moved the draft ends: on its new page, or, once the human left, its
- * text with the links saved at the new path, over its version now.
+ * Where a run of uploads that moved the draft ends: on its new page, its text with the links kept
+ * there as the editor's unsaved text over `base`, the draft's text before, which that page saves at
+ * once; or, once the human left, its text saved at the new path, over its version now.
  */
-function useOnMoved(release: () => void) {
+function useOnMoved(release: () => void, base: string) {
   const fate = useFateClient();
   const repo = useRepository();
+  const repoFolder = useRepositoryPath();
   // An upload that ends after the human left saves its text, and leaves them where they went.
   const mounted = useRef(true);
   useEffect(() => {
@@ -68,6 +72,11 @@ function useOnMoved(release: () => void) {
       release();
       if (mounted.current) {
         movedTexts.set(next, { ...linked, status });
+        writeUnsaved(unsavedKey(repoFolder, `${next}#editor`), {
+          at: new Date().toISOString(),
+          base,
+          text: linked.text,
+        });
         redirect(repoPath(repo, `/edit/${next}`));
         return;
       }
@@ -81,105 +90,101 @@ function useOnMoved(release: () => void) {
         }
       })();
     },
-    [fate, release, repo],
+    [base, fate, release, repo, repoFolder],
   );
 }
 
 /**
- * The images of the editor's text: while they upload, the text is held, not saved, as a draft may
- * move into a folder meanwhile; once they are in, it is saved with their links. A text changed
- * elsewhere replaces the one shown when nothing of it waits to be saved, nor is held. Typing during
- * an upload is saved once it ends, and leaving before then asks first.
+ * The images of the editor's text, its field `field`: a run of uploads saves the text typed first,
+ * and holds the version the next save is made over, as a draft may move into a folder meanwhile;
+ * once the images are in, the text is saved at once with their links, and what was typed during
+ * the run with it. A draft read takes its version as the one the next save is made over when the
+ * field holds no unsaved text, nor a run holds it. Leaving during an upload asks first.
  */
 export function useEditorImages({
   draft,
+  field,
   moved,
   path,
   save,
   setDrawn,
-  setText,
-  text,
 }: {
   draft: Draft;
+  field: ReturnType<typeof useTextField>;
   moved: ReturnType<typeof useMovedText>;
   path: string;
   save: ReturnType<typeof useSave<string>>;
   setDrawn: (drawn: boolean) => void;
-  setText: (text: string) => void;
-  text: string;
 }) {
-  const { flush, idle, schedule, settle } = save;
+  const { idle, settle } = save;
   const holding = useRef(false);
-  // The text shown, and the draft read, for the callbacks to read.
-  const shown = useRef(text);
+  // The draft read, for the callbacks to read.
   const latestDraft = useRef(draft);
   useLayoutEffect(() => {
-    shown.current = text;
     latestDraft.current = draft;
   });
-  // The text saved as the upload started: a refused image leaves nothing new to save but typing.
-  const started = useRef(text);
+  // The text a draft that moved into a folder brought, with its images' links, kept as this
+  // field's unsaved text: saved here at once, as the page opens.
+  const saveMoved = useEffectEvent((text: string) => void save.save(text));
   useEffect(() => {
     if (moved) {
       movedTexts.delete(path);
-      schedule(moved.text, true);
+      saveMoved(moved.text);
     }
-  }, [moved, path, schedule]);
+  }, [moved, path]);
   /**
-   * Takes the draft's text in place of the one shown when nothing of it waits to be saved, and its
-   * hash as the version the next save is made over. Not while an upload holds the text: the save
-   * after it is made over the version the upload started from, and refused as a conflict if the
-   * file changed meanwhile.
+   * Takes the draft's version as the one the next save is made over, when nothing is unsaved or
+   * being saved. Not while an upload holds it: the save after it is made over the version the
+   * upload started from, and refused as a conflict if the file changed meanwhile. Nor while the
+   * field holds unsaved text, which a save over a file changed since would replace unseen.
    */
-  const adopt = useCallback(() => {
+  const adopt = () => {
     const current = latestDraft.current;
-    if (!current || holding.current) {
-      return;
+    if (current && !holding.current && idle() && !field.unsavedNow()) {
+      settle(current.hash);
     }
-    if (idle() && asTyped(current.text) !== shown.current) {
-      setText(asTyped(current.text));
-    }
-    settle(current.hash);
-  }, [idle, setText, settle]);
+  };
   const images = useImageText({
     initialSelection: moved?.selection,
     initialStatus: moved?.status,
     label: path.split("/").at(-1) ?? path,
-    onLinks: setText,
+    onLinks: field.change,
     onMoved: useOnMoved(
-      useCallback(() => {
+      () => {
         holding.current = false;
-      }, []),
+        // The text, typed during the run included, goes to the new path.
+        field.discard();
+      },
+      asTyped(draft?.text ?? ""),
     ),
-    onStart: useCallback(async () => {
+    onStart: async () => {
       holding.current = true;
-      started.current = shown.current;
       setDrawn(false);
-      if (await flush()) {
+      const unsaved = field.unsavedNow();
+      if (await (unsaved ? save.save(unsaved.text) : save.flush())) {
         return true;
       }
       holding.current = false;
       return false;
-    }, [flush, setDrawn]),
-    onText: useCallback(
-      (value: string, added: boolean) => {
-        holding.current = false;
-        setText(value);
-        // What was typed during the upload is saved too; with nothing to save, the draft read
-        // meanwhile is taken.
-        if (added || value !== started.current) {
-          schedule(value, added);
-        } else {
-          adopt();
-        }
-      },
-      [adopt, schedule, setText],
-    ),
+    },
+    onText: (value: string, added: boolean) => {
+      holding.current = false;
+      if (value !== field.text) {
+        field.change(value);
+      }
+      if (added) {
+        void save.save(value);
+      } else {
+        adopt();
+      }
+    },
     path,
     priority: 1,
-    text,
+    text: field.text,
   });
-  useEffect(adopt, [draft, adopt]);
+  const adoptRead = useEffectEvent(adopt);
+  // A draft read, or the field's unsaved text gone, as discarded.
+  useEffect(() => adoptRead(), [draft, field.dirty]);
   useEffect(() => {
     if (!images.busy) {
       return;
@@ -188,5 +193,5 @@ export function useEditorImages({
     window.addEventListener("beforeunload", ask);
     return () => window.removeEventListener("beforeunload", ask);
   }, [images.busy]);
-  return { holding, images };
+  return images;
 }

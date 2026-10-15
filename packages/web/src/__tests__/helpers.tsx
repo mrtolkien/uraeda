@@ -8,10 +8,14 @@ import { fakeSessions } from "uraeda-server/testing";
 import { App } from "../App.tsx";
 import { ServerFetch } from "../attach/ServerFetch.tsx";
 import { fateClients } from "../clients.ts";
+import { forgetUnsaved } from "../fields/unsaved.ts";
 import { forgetUndoToasts } from "../layout/useUndoToast.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
+
+/** The binding the server runs on: the core's, or a fake spreading it. */
+export type Binding = typeof binding;
 
 export { fixture, fixtureRepo, git };
 
@@ -48,6 +52,8 @@ beforeEach(() => {
   } catch {
     // No storage: nothing to clear.
   }
+  // The unsaved text of the last test, in memory, goes with its storage.
+  forgetUnsaved();
 });
 
 afterEach(cleanup);
@@ -106,7 +112,8 @@ export type Fake = ReturnType<typeof fakeSessions>;
 
 const managers: Array<Fake["sessions"]> = [];
 
-afterEach(() => {
+afterEach(async () => {
+  await settleRequests();
   // Turns left going keep their watchdog's timer.
   for (const sessions of managers.splice(0)) {
     sessions.close();
@@ -137,13 +144,15 @@ export function atRepo(path: string): string {
  * `raw` renders the path as given, like `/` or `/r/old-site/`; `dataDir` gives the server the list
  * already in that data folder, the repository left out of it. Without `agent`, the agent is not
  * installed, and the pages keep their single buttons; `true` gives a new fake agent, which a test
- * can also build first with `fakeAgent`.
+ * can also build first with `fakeAgent`. `binding` gives the server a binding of its own, as one
+ * whose call fails.
  */
 export async function renderPage(
   path = "/",
   repo = fixtureRepo(),
   options: {
     agent?: boolean | Fake;
+    binding?: Binding;
     dataDir?: string;
     fetch?: typeof globalThis.fetch;
     raw?: boolean;
@@ -156,7 +165,12 @@ export async function renderPage(
       : await fakeAgent({ installed: options.agent === true });
   const fetch =
     options.fetch ??
-    serverFetch(options.dataDir === undefined ? repo : null, fake.sessions, options.dataDir);
+    serverFetch(
+      options.dataDir === undefined ? repo : null,
+      fake.sessions,
+      options.dataDir,
+      options.binding,
+    );
   current = (await names.get(fetch)) ?? basename(repo);
   if (options.reload) {
     // A reload: the page goes, and its history entry, with its state, stays.
@@ -187,15 +201,25 @@ afterEach(async () => {
 /** The name of each server's repository, as its list holds it. */
 const names = new WeakMap<typeof globalThis.fetch, Promise<string | undefined>>();
 
+/** The requests started by the page, which refresh and teardown wait for. */
+const pending = new Set<Promise<Response>>();
+
+async function settleRequests() {
+  while (pending.size > 0) {
+    await Promise.allSettled(pending);
+  }
+}
+
 /**
  * The server's app in process, as a `fetch`, on sessions whose agent is not installed by default,
  * with a list in a temporary data folder holding `repo`; or, given `dataDir`, the list already
- * there, which `repo` is added to unless it is null.
+ * there, which `repo` is added to unless it is null; on the core's binding, or `server`'s.
  */
 export function serverFetch(
   repo: string | null,
   sessions?: Fake["sessions"],
   dataDir = temporaryFolder("uraeda-data"),
+  server: Binding = binding,
 ): typeof globalThis.fetch {
   if (!sessions) {
     sessions = fakeSessions({ installed: false }).sessions;
@@ -205,20 +229,20 @@ export function serverFetch(
     repo === null
       ? Promise.resolve(undefined)
       : binding.addRepository(dataDir, repo).then(({ repository }) => repository.name);
-  const hosts = added.then(() => Hosts.open({ binding, dataDir, sessions }));
+  const hosts = added.then(() => Hosts.open({ binding: server, dataDir, sessions }));
   opened.push(hosts);
   const created = hosts.then((hosts) =>
     createApp({
       allowedHosts: [],
       allowOrigins: [],
-      binding,
+      binding: server,
       dataDir,
       hosts,
       port,
       sessions,
     }),
   );
-  const fetch: typeof globalThis.fetch = async (input, init) => {
+  const send: typeof globalThis.fetch = async (input, init) => {
     const app = await created;
     // The UI's plain requests, like uploads, name a path of the page's own server.
     const url = new URL(
@@ -243,6 +267,15 @@ export function serverFetch(
       headers: { "content-type": response.headers.get("content-type") ?? "application/json" },
       status: response.status,
     });
+  };
+  const fetch: typeof globalThis.fetch = (input, init) => {
+    const response = send(input, init);
+    pending.add(response);
+    void response.then(
+      () => pending.delete(response),
+      () => pending.delete(response),
+    );
+    return response;
   };
   names.set(fetch, added);
   return fetch;
@@ -294,15 +327,15 @@ export function repoAt(path: string): string {
 
 /**
  * Reads the page again, as when it comes back to the foreground, until `check` passes: live
- * updates do not reach these tests, so a run's later state is read this way. Each try waits a
- * moment inside its act, so the read's answer is most often drawn within it; a slower answer is
- * seen by a later try.
+ * updates do not reach these tests, so a run's later state is read this way. Each try lets the
+ * requests start, then waits for their answers inside its act before checking the page.
  */
 export async function refreshUntil(check: () => void) {
   await waitFor(async () => {
     await act(async () => {
       document.dispatchEvent(new Event("visibilitychange"));
       await new Promise((resolve) => setTimeout(resolve, 20));
+      await settleRequests();
     });
     check();
   });

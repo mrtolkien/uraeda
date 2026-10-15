@@ -1,6 +1,7 @@
 import type { Trigger } from "../runner/events.ts";
 import { REFUSALS } from "../runner/sessions.ts";
-import { type Context, inRepository, type RepoContext } from "./context.ts";
+import { type Context, inRepository, type RepoContext, type Resolver } from "./context.ts";
+import { fileMutations } from "./file-mutations.ts";
 import type { ChatImage } from "../runner/images.ts";
 import { sentImages } from "./chat-images.ts";
 import { callSiteError, refusable } from "./errors.ts";
@@ -10,22 +11,12 @@ import { sources } from "./sources.ts";
 import {
   draftDataView,
   featureDataView,
-  fileDataView,
   PRIORITIES_ID,
   prioritiesDataView,
-  sentFile,
   sessionDataView,
   type DraftRecord,
-  type FileRecord,
   type PrioritiesRecord,
 } from "./views.ts";
-
-/** A repository's mutation's arguments: see `repositoryOnly`. */
-type Resolver<Input> = { ctx: RepoContext; input: Input; select: Array<string> };
-
-/** The file a mutation changed, masked to the fields the client selected. */
-const file = (ctx: Context, record: FileRecord, select: Array<string>) =>
-  sources.masked(fileDataView, ctx, sentFile(record), select);
 
 const priorities = (ctx: Context, record: Omit<PrioritiesRecord, "id">, select: Array<string>) =>
   sources.masked(prioritiesDataView, ctx, { id: PRIORITIES_ID, ...record }, select);
@@ -53,58 +44,8 @@ async function onSession<T>(ctx: RepoContext, call: () => T | Promise<T>): Promi
   });
 }
 
-type FileInput = { file: string; folder: string };
-
 const repositoryMutations = {
-  "answer.save": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{
-      comment: string;
-      folder: string;
-      letters: Array<string>;
-      previous: string;
-      question: string;
-    }>) => {
-      await writable(ctx, input);
-      return file(
-        ctx,
-        await refusable(() =>
-          ctx.binding.saveAnswer(
-            ctx.repo,
-            input.folder,
-            input.question,
-            input.letters,
-            input.comment,
-            input.previous,
-          ),
-        ),
-        select,
-      );
-    },
-    type: "WorkflowFile",
-  },
-  "answers.submit": {
-    resolve: async ({ ctx, input, select }: Resolver<{ file?: string; folder: string }>) => {
-      await writable(ctx, input);
-      return file(
-        ctx,
-        await refusable(() => ctx.binding.submitAnswers(ctx.repo, input.folder, input.file)),
-        select,
-      );
-    },
-    type: "WorkflowFile",
-  },
-  "commit.retry": {
-    resolve: async ({ ctx, input, select }: Resolver<FileInput>) => {
-      await writable(ctx, input);
-      await refusable(() => ctx.binding.retryCommit(ctx.repo, input.folder, input.file));
-      return file(ctx, await ctx.binding.readFile(ctx.repo, input.folder, input.file), select);
-    },
-    type: "WorkflowFile",
-  },
+  ...fileMutations,
   "draft.create": {
     resolve: async ({ ctx, input, select }: Resolver<{ hash: string; line: string }>) =>
       draft(
@@ -123,23 +64,6 @@ const repositoryMutations = {
       return sources.masked(featureDataView, ctx, await featureRecord(ctx, feature), select);
     },
     type: "Feature",
-  },
-  "notes.save": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{ folder: string; notes: string; previous: string }>) => {
-      await writable(ctx, input);
-      return file(
-        ctx,
-        await refusable(() =>
-          ctx.binding.saveNotes(ctx.repo, input.folder, input.notes, input.previous),
-        ),
-        select,
-      );
-    },
-    type: "WorkflowFile",
   },
   "priorities.add": {
     resolve: async ({
@@ -219,108 +143,6 @@ const repositoryMutations = {
         select,
       ),
     type: "Priorities",
-  },
-  "review.approve": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<FileInput & { planReview?: boolean; summary?: string; tier?: string }>) => {
-      await writable(ctx, input);
-      return file(
-        ctx,
-        await refusable(() =>
-          ctx.binding.approve(
-            ctx.repo,
-            input.folder,
-            input.file,
-            input.summary,
-            input.tier,
-            input.planReview,
-          ),
-        ),
-        select,
-      );
-    },
-    type: "WorkflowFile",
-  },
-  "review.comment": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<FileInput & { endLine?: number; startLine?: number; text: string }>) => {
-      await writable(ctx, input);
-      return file(
-        ctx,
-        await refusable(() =>
-          ctx.binding.addComment(
-            ctx.repo,
-            input.folder,
-            input.file,
-            input.startLine,
-            input.endLine,
-            input.text,
-          ),
-        ),
-        select,
-      );
-    },
-    type: "WorkflowFile",
-  },
-  "review.edit": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<FileInput & { number: number; text: string }>) => {
-      await writable(ctx, input);
-      return file(
-        ctx,
-        await refusable(() =>
-          ctx.binding.editComment(ctx.repo, input.folder, input.file, input.number, input.text),
-        ),
-        select,
-      );
-    },
-    type: "WorkflowFile",
-  },
-  "review.remove": {
-    resolve: async ({ ctx, input, select }: Resolver<FileInput & { number: number }>) => {
-      await writable(ctx, input);
-      return file(
-        ctx,
-        await refusable(() =>
-          ctx.binding.removeComment(ctx.repo, input.folder, input.file, input.number),
-        ),
-        select,
-      );
-    },
-    type: "WorkflowFile",
-  },
-  "review.requestChanges": {
-    resolve: async ({ ctx, input, select }: Resolver<FileInput & { summary?: string }>) => {
-      await writable(ctx, input);
-      return file(
-        ctx,
-        await refusable(() =>
-          ctx.binding.requestChanges(ctx.repo, input.folder, input.file, input.summary),
-        ),
-        select,
-      );
-    },
-    type: "WorkflowFile",
-  },
-  "review.startOver": {
-    resolve: async ({ ctx, input, select }: Resolver<FileInput>) => {
-      await writable(ctx, input);
-      return file(
-        ctx,
-        await refusable(() => ctx.binding.startOver(ctx.repo, input.folder, input.file)),
-        select,
-      );
-    },
-    type: "WorkflowFile",
   },
   "session.allow": {
     resolve: async ({

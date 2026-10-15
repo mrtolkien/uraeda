@@ -97,6 +97,7 @@ test("nextStep and workDir give where and what an agent runs", async () => {
     reference: "skills/uraeda/references/plan.md",
     waitsOn: "agent",
   });
+  expect(next.step.progress).toBeUndefined();
   expect(await workDir(repo, "2026-10-12-cli-tuis")).toBe(
     join(repo, ".worktrees", "2026-10-12-cli-tuis"),
   );

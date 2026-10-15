@@ -8,7 +8,7 @@ use serde::Serialize;
 use crate::files::document::{Document, Span};
 use crate::files::items::Items;
 use crate::files::markdown;
-use crate::steps::Step;
+use crate::steps::{Step, TaskProgress};
 use crate::workspace::{Feature, FileKind, Problem, WorkflowFile, Workspace};
 
 #[cfg_attr(feature = "napi", napi(object))]
@@ -44,6 +44,10 @@ pub struct StepView {
     pub file: Option<String>,
     /// The first unchecked task, for implementation.
     pub task: Option<String>,
+    /// Where the implementation is in the plan's tasks, for implementation.
+    pub progress: Option<TaskProgress>,
+    /// Whether the implementation is over: the final review or after.
+    pub implemented: bool,
 }
 
 #[cfg_attr(feature = "napi", napi(object))]
@@ -249,6 +253,8 @@ pub struct NextStepView {
     pub file: Option<String>,
     /// The first unchecked task, for implementation.
     pub task: Option<String>,
+    /// Where the implementation is in the plan's tasks, for implementation.
+    pub progress: Option<TaskProgress>,
     /// `open`, `draft`, `changes-requested`, `none`, or `unknown`, when the step depends on it.
     pub pull_request: Option<String>,
 }
@@ -260,6 +266,8 @@ impl From<&Step> for StepView {
             waits_on: kebab(&step.waits_on),
             file: step.file.clone(),
             task: step.task.clone(),
+            progress: step.progress.clone(),
+            implemented: step.implemented,
         }
     }
 }
@@ -272,6 +280,7 @@ impl From<&Step> for NextStepView {
             reference: step.reference.clone(),
             file: step.file.clone(),
             task: step.task.clone(),
+            progress: step.progress.clone(),
             pull_request: step.pull_request.as_ref().map(kebab),
         }
     }
