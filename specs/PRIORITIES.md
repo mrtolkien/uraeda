@@ -9,16 +9,15 @@
 - [UI iteration flow](drafts/ui-iteration.md)
 - [Look and feel pass](drafts/look-and-feel.md)
 
-- Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
-  - Easy to read human guide
-  - Setup with agent (checks project and creates relevant files)
-
 - [Add a bugfixing/low impact change flow](/specs/2026-10-15-add-bugfixing/proposal.md)
 - [Add a "scratchpad" concept: quick notes about the system, small issues, ...](/specs/2026-10-15-add-scratchpad/proposal.md)
 
 - Option page with selection of agent runner, config values, other run values
   - For example: does each step start with a new context? Should be a config flag, and able to
     toggle it per feature
+- Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
+  - Easy to read human guide
+  - Setup with agent (checks project and creates relevant files)
 
 ## Next
 
