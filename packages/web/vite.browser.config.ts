@@ -1,6 +1,7 @@
 // The layout's checks, in WebKit at an iPhone 17's size and at a desktop's, against the server
 // mounted in the test server (see `vite.config.ts`), on the fake agent: the tests `vp run ready`
 // runs never start Claude Code. The root's config lists this project next to the others.
+import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Frame, Page } from "playwright";
@@ -127,6 +128,14 @@ const commands = {
     const file = join(repoFolder(), path);
     return existsSync(file) ? statSync(file).size : -1;
   },
+  /** The files committed under `path` at the head of the repository's folder `at`, a worktree's. */
+  committedFiles(_context: unknown, at: string, path: string) {
+    const listed = execFileSync("git", ["ls-tree", "-r", "--name-only", "HEAD", "--", path], {
+      cwd: join(repoFolder(), at),
+      encoding: "utf8",
+    });
+    return listed.split("\n").filter(Boolean);
+  },
   /** A file of `fixtures/images/`, in base64: the tests drop and paste it as the human would. */
   fixtureImage(_context: unknown, name: string) {
     return readFileSync(join(fixture("images"), name)).toString("base64");
@@ -213,6 +222,7 @@ export type RepoCommands = {
     Array<{ id: string; images: Array<string>; text: string; when: string }>
   >;
   commitOnBranch: (branch: string, files: Record<string, string | null>) => Promise<void>;
+  committedFiles: (at: string, path: string) => Promise<Array<string>>;
   fixtureImage: (name: string) => Promise<string>;
   mouse: (
     steps: Array<{ ms?: number; type: "move" | "down" | "up" | "wait"; x?: number; y?: number }>,
