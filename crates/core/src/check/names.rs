@@ -66,11 +66,11 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
 }
 
 /// Whether a change's folder, `specs/changes/<folder>/`, holds an entry of this name: its proposal,
-/// its rounds, its rulings, and its `images/` and `screenshots/` folders. The one home of the rule,
-/// for `ura check` and for `ura start --change`.
+/// its rounds, its rulings, and its `images/`, `mockups/`, and `screenshots/` folders. The one home
+/// of the rule, for `ura check` and for `ura start --change`.
 pub(crate) fn change_holds(entry: &str, is_dir: bool) -> bool {
     if is_dir {
-        entry == "images" || entry == "screenshots"
+        entry == "images" || entry == "mockups" || entry == "screenshots"
     } else {
         entry == "proposal.md"
             || entry == "rulings.md"
@@ -94,7 +94,7 @@ fn change_file_problem(root: &Path, dir: &Path, entry: &str) -> Problem {
         rule: "names.change-file".into(),
         message: format!(
             "\"{entry}\" has no place in a change: its folder holds proposal.md, \
-             clarifications-NN.md, rulings.md, images/, and screenshots/."
+             clarifications-NN.md, rulings.md, images/, mockups/, and screenshots/."
         ),
     }
 }

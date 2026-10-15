@@ -75,7 +75,7 @@ specs/
   decisions/                # decision ledger, one file per topic: due-dates.md
   done/YYYY-MM-DD-<slug>.md # the record of a merged feature or change, in place of its folder
   changes/                  # one folder per change, YYYY-MM-DD-<slug>/: proposal.md (human),
-                            # clarifications-NN.md, rulings.md, images/, screenshots/
+                            # clarifications-NN.md, rulings.md, images/, mockups/, screenshots/
   YYYY-MM-DD-feature-slug/  # one folder per feature, dated the day it starts
     proposal.md             # human: what and why, in their own words
     discovery-01.md         # agent: findings and options, never decisions

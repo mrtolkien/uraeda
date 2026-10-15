@@ -666,8 +666,8 @@ fn a_crlf_text_reports_the_same_lines() {
 
 const CHANGE: &str = "specs/changes/2026-10-14-tasks-reappear";
 
-/// A change's folder holds its proposal, rounds, rulings, images, and screenshots, and nothing of a
-/// feature's or of the old bug flow.
+/// A change's folder holds its proposal, rounds, rulings, images, mockups, and screenshots, and
+/// nothing of a feature's or of the old bug flow.
 #[test]
 fn a_changes_folder_holds_only_its_files() {
     for (path, allowed) in [
@@ -675,6 +675,7 @@ fn a_changes_folder_holds_only_its_files() {
         ("clarifications-01.md", true),
         ("rulings.md", true),
         ("images/a.webp", true),
+        ("mockups/InvoiceList.stories.tsx", true),
         ("screenshots/page.webp", true),
         ("spec.md", false),
         ("plan.md", false),
@@ -700,7 +701,7 @@ fn a_changes_folder_holds_only_its_files() {
             vec![]
         } else {
             vec![format!(
-                "{CHANGE}/{name}: \"{name}\" has no place in a change: its folder holds proposal.md, clarifications-NN.md, rulings.md, images/, and screenshots/."
+                "{CHANGE}/{name}: \"{name}\" has no place in a change: its folder holds proposal.md, clarifications-NN.md, rulings.md, images/, mockups/, and screenshots/."
             )]
         };
         assert_eq!(flagged, expected, "{path}");
@@ -741,7 +742,7 @@ fn a_change_file_alone_is_checked_against_its_folder() {
             vec![]
         } else {
             vec![format!(
-                "{file}: \"{name}\" has no place in a change: its folder holds proposal.md, clarifications-NN.md, rulings.md, images/, and screenshots/."
+                "{file}: \"{name}\" has no place in a change: its folder holds proposal.md, clarifications-NN.md, rulings.md, images/, mockups/, and screenshots/."
             )]
         };
         let flagged = |problems: Vec<Problem>| -> Vec<String> {
