@@ -751,6 +751,8 @@ git commit -m "feat(add-bugfixing): a finished item's view carries its pull requ
       `readWorkflowMessage(ctx, "<folder>:start")`;
     - without the agent, or without a workflow message to send, `session` is `null` and nothing is
       sent: the change is started either way (R12);
+    - once the change is started, a failure of its session or its send is logged on stderr, and
+      `session` is `null` (R12);
     - refusals go through `refusable`.
   - A read `SlugProposal`, `{ id: title, slug }`, for the web UI.
 
