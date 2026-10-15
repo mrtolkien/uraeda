@@ -90,15 +90,25 @@ export function fixtureRepo(name = "repo"): string {
   return repo;
 }
 
+/** The worktree a branch is checked out in, if any. */
+function worktreeOf(repo: string, branch: string): string | undefined {
+  const entries = git(repo, "worktree", "list", "--porcelain").split("\n\n");
+  const entry = entries.find((lines) => lines.split("\n").includes(`branch refs/heads/${branch}`));
+  return entry?.match(/^worktree (.*)$/m)?.[1];
+}
+
 /**
- * Commits files on a branch of a fixture repository, their paths from its top level, in a
- * temporary worktree: the main checkout, its files, and its uncommitted changes are left as they
- * are, so a watcher of the repository never sees the branch's files there. A file given `null` is
- * removed.
+ * Commits files on a branch of a fixture repository, their paths from its top level, in the
+ * worktree holding the branch, or a temporary one: the main checkout, its files, and its
+ * uncommitted changes are left as they are, so a watcher of the repository never sees the branch's
+ * files there. A file given `null` is removed.
  */
 export function commitOnBranch(repo: string, branch: string, files: Record<string, string | null>) {
-  const worktree = join(temporaryFolder("uraeda-branch"), "worktree");
-  git(repo, "worktree", "add", "--quiet", worktree, branch);
+  const held = worktreeOf(repo, branch);
+  const worktree = held ?? join(temporaryFolder("uraeda-branch"), "worktree");
+  if (!held) {
+    git(repo, "worktree", "add", "--quiet", worktree, branch);
+  }
   try {
     for (const [path, text] of Object.entries(files)) {
       if (text === null) {
@@ -111,7 +121,9 @@ export function commitOnBranch(repo: string, branch: string, files: Record<strin
     git(worktree, "add", "--all", "--", ...Object.keys(files));
     git(worktree, "commit", "--quiet", "--no-verify", "--message", `work on ${branch}`);
   } finally {
-    git(repo, "worktree", "remove", "--force", worktree);
+    if (!held) {
+      git(repo, "worktree", "remove", "--force", worktree);
+    }
   }
 }
 

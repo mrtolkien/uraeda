@@ -7,7 +7,7 @@ import { useFateClient } from "react-fate";
 import type { Block, CommentItem, Document } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { Crumbs } from "./Crumbs.tsx";
-import { type Fold, foldOf } from "./Folds.tsx";
+import { type Fold, type Folds, foldOf } from "./Folds.tsx";
 import type { useFile } from "./data.ts";
 import { Overlay } from "./layout/Overlay.tsx";
 import { Page } from "./layout/Page.tsx";
@@ -123,11 +123,13 @@ function useStoryComments(file: File): StoryComments {
 function ReviewIntro({
   comments,
   file,
+  folds,
   onStartOver,
   wide,
 }: {
   comments: number;
   file: File;
+  folds: Folds | undefined;
   onStartOver: () => Promise<void>;
   wide: boolean;
 }) {
@@ -138,7 +140,9 @@ function ReviewIntro({
         <StaleBanner count={comments} kind={file.kind} onStartOver={onStartOver} />
       )}
       <ReviewMockups
+        document={version.document}
         folder={file.folder}
+        folds={folds}
         mockups={version.items.spec?.mockups}
         stories={version.stories}
         wide={wide}
@@ -311,6 +315,7 @@ export function ReviewPage({ file }: { file: File }) {
           <ReviewIntro
             comments={comments.length}
             file={file}
+            folds={folds}
             onStartOver={actions.startOver}
             wide={wide}
           />
