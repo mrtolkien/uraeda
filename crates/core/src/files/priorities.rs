@@ -177,7 +177,6 @@ pub fn move_to_now(text: &str, line: usize, link_text: &str, target: &str) -> Op
 /// Adds a link to `target` at the end of **Now**, in the style of its last item.
 pub fn add_to_now(text: &str, link_text: &str, target: &str) -> String {
     let result: Result<String, ()> = super::with_unix_newlines(text, |text| {
-        let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
         let entries = parse(text);
         let last = entries.iter().rfind(|e| e.section == Section::Now);
         let marker = match last.map(|entry| &entry.marker) {
@@ -186,33 +185,7 @@ pub fn add_to_now(text: &str, link_text: &str, target: &str) -> String {
             None => Marker::Bullet('-'),
         };
         let item = format!("{} [{link_text}]({target})", marker.render());
-        if let Some(last) = last {
-            lines.insert(last.end, item);
-        } else if let Some(heading) = lines
-            .iter()
-            .position(|line| Section::from_heading(line) == Some(Section::Now))
-        {
-            let mut at = heading + 1;
-            if lines.get(at).is_some_and(|line| line.trim().is_empty()) {
-                at += 1;
-            } else {
-                lines.insert(at, String::new());
-                at += 1;
-            }
-            lines.insert(at, item);
-            if lines
-                .get(at + 1)
-                .is_some_and(|line| !line.trim().is_empty())
-            {
-                lines.insert(at + 1, String::new());
-            }
-        } else {
-            if lines.last().is_some_and(|line| line.is_empty()) {
-                lines.pop();
-            }
-            lines.extend(["".into(), "## Now".into(), "".into(), item, "".into()]);
-        }
-        Ok(lines.join("\n"))
+        Ok(insert(text, Section::Now, usize::MAX, &[item]))
     });
     result.unwrap_or_else(|()| text.to_string())
 }
