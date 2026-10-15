@@ -125,7 +125,13 @@ test("a taken slug is refused under the slug field, and the text stays", async (
   await expect.poll(() => slug().value, LIVE).toBe("centre-x");
   await userEvent.click(screen.getByRole("button", { name: "Start the change" }));
 
-  await screen.findByText(`${folder} exists: choose another slug with --slug`, undefined, LIVE);
+  const refused = await screen.findByText(
+    `${folder} exists: choose another slug with --slug`,
+    undefined,
+    LIVE,
+  );
+  // Under the slug field, which follows the composer.
+  expect(slug().compareDocumentPosition(refused) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
   expect(window.location.pathname).toBe(atRepo("/changes/new"));
   expect(box.textContent).toBe(`${TITLE}\n\n${BODY}`);
 });
@@ -151,13 +157,37 @@ test("the text comes back after leaving the page", async () => {
   expect(screen.queryByText(/^Unsaved text restored/)).toBeNull();
 });
 
-// US1.2
-test("two pasted images go into the change's proposal", async () => {
+/** The attachments decision's refusal of an SVG, which the composer shows before any start. */
+const SVG_REFUSED = "Only PNG, JPEG, GIF, and WebP images can be added: diagram.svg is not one.";
+
+// US1.2, and the error "An image the core refuses": the composer refuses it as it is added, before
+// the change starts, and the change starts with the two others.
+test("a change started with two images, and one refused", async () => {
   const box = await newChange();
-  paste([await image("phone.png", "image.png"), await image("desktop.png", "desktop.png")], box);
+  paste(
+    [
+      await image("phone.png", "image.png"),
+      await image("drawing.svg", "diagram.svg"),
+      await image("desktop.png", "desktop.png"),
+    ],
+    box,
+  );
+  // Shown on the page, not only announced.
+  await expect
+    .poll(
+      () =>
+        screen
+          .queryAllByText(SVG_REFUSED)
+          .filter((element) => !element.closest("[data-astryx-live-region]")).length,
+      LIVE,
+    )
+    .toBe(1);
   await expect
     .poll(() => screen.queryAllByRole("button", { name: /^Remove / }).length, LIVE)
     .toBe(2);
+  // The refusal started nothing.
+  expect(window.location.pathname).toBe(atRepo("/changes/new"));
+  expect(await agent.agentSent()).toEqual([]);
   await typeChange(box);
   await expect.poll(() => slug().value, LIVE).toBe("centre-x");
   const start = screen.getByRole("button", { name: "Start the change" });
@@ -170,8 +200,28 @@ test("two pasted images go into the change's proposal", async () => {
   expect(proposal.trimEnd()).toMatch(
     /!\[Image 1\]\(images\/image-1\.webp\)\s+!\[Image 2\]\(images\/image-2\.webp\)$/,
   );
+  // The images themselves, committed in the change's folder, not only their links.
+  const images = `specs/changes/${folder}/images`;
+  expect(await agent.committedFiles(`.worktrees/${folder}`, images)).toEqual([
+    `${images}/image-1.webp`,
+    `${images}/image-2.webp`,
+  ]);
   // None went to the agent: its run carries no image.
   expect((await agent.agentSent()).at(-1)?.images).toEqual([]);
+});
+
+// The edge case "An empty composer": a change's title is text, so images alone are not one.
+test("images alone do not enable Start", async () => {
+  const box = await newChange();
+  paste([await image("phone.png", "image.png")], box);
+  // Saved: the thumbnail shows the saved chat image, not the file's own preview.
+  await expect
+    .poll(() => document.querySelector('img[src*="/chat-images/"]') !== null, LIVE)
+    .toBe(true);
+
+  expect(screen.getByRole("button", { name: "Start the change" }).hasAttribute("disabled")).toBe(
+    true,
+  );
 });
 
 const MODES = (["light", "dark"] as const).map((mode) => ({ mode }));
