@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import { migrations, SessionCache } from "../cache.ts";
 import { imageInUse, imagesInUse } from "../image-uses.ts";
-import { temporaryFolder } from "uraeda-binding/test-utils";
+import { expectLogged, temporaryFolder } from "uraeda-binding/test-utils";
 
 const REPO = "/repo/a";
 const FOLDER = "2026-10-12-cli-tuis";
@@ -383,8 +383,7 @@ test("reopening the file keeps the sessions", () => {
 test("a cache that cannot be opened is created again empty", () => {
   const path = tempPath();
   writeFileSync(path, "not a database, but long enough to be read as one's header".repeat(4));
-  const logged = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-  onTestFinished(() => logged.mockRestore());
+  const logged = expectLogged(process.stderr, "write", /^The runner's cache could not be read/);
 
   const cache = SessionCache.open(path);
 
@@ -411,8 +410,7 @@ test("a cache another process holds locked is kept, never replaced", () => {
   other.exec("CREATE TABLE lock (x)");
 
   // The lock outlasts the wait: this server keeps its sessions in memory.
-  const logged = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-  onTestFinished(() => logged.mockRestore());
+  const logged = expectLogged(process.stderr, "write", /^The runner's cache could not be opened/);
   const cache = SessionCache.open(path, { timeout: 50 });
   expect(logged).toHaveBeenCalledWith(
     "The runner's cache could not be opened, so this server keeps its sessions in memory: Error: database is locked\n",

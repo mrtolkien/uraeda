@@ -537,7 +537,8 @@ git commit -m "build(testing-review): ready is a graph of cached tasks"
   `packages/server/src/env.ts` and `packages/server/src/dev.ts` (`Sources`),
   `packages/server/vite.config.ts` (`testTimeout`), `packages/web/vite.config.ts` (no `.env` under
   Vitest), `packages/server/src/runner/__tests__/cache.test.ts` and
-  `packages/web/src/__tests__/repository-menu.test.tsx` (the expected errors captured),
+  `packages/web/src/__tests__/repository-menu.test.tsx` (the expected errors captured, through
+  `packages/binding/test-utils.ts`'s `expectLogged`),
   `packages/server/src/runner/__tests__/claude.test.ts` (its polls),
   `packages/web/src/__tests__/home.test.tsx` (the "Failed to fetch" at line 94),
   `packages/web/src/__tests__/document.test.tsx` and `links.test.ts`,
@@ -586,8 +587,10 @@ after each.
 The runner cache tests that make it fail on purpose, and `repository-menu.test.tsx`'s unreadable
 list, assert their message on a spy of `process.stderr.write` instead of printing it;
 `home.test.tsx:94`'s "Failed to fetch" is React reporting the error its boundary caught, which the
-test now asserts on a spy of `console.error`; the "suspended inside an `act` scope" warnings of
-`home.test.tsx` and `document.test.tsx` go with an awaited `click`. `editor.test.tsx`'s unhandled
+test now asserts on a spy of `console.error`. Each spy is `expectLogged(target, method, expected)`
+of `uraeda-binding/test-utils`, which keeps only the calls matching `expected` from the log, and
+passes any other through and fails the test with it. The "suspended inside an `act` scope" warnings
+of `home.test.tsx` and `document.test.tsx` go with an awaited `click`. `editor.test.tsx`'s unhandled
 `FateRequestError` came from the teardown's order: Vitest runs `afterEach` hooks last registered
 first, so the web helpers closed the hosts and the sessions before the page was unmounted, and the
 requests the page still sent, or sent as it left, failed with no page to show it. One hook now
