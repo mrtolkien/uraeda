@@ -47,9 +47,7 @@ export function EditableLine({
   stayOpen?: boolean;
   value: string;
 }) {
-  const wide = useWidthClass() === "wide";
   const line = useLineSave({ field: key, onSave, stayOpen, value });
-  const { field } = line;
 
   if (!line.open) {
     return (
@@ -61,6 +59,22 @@ export function EditableLine({
       </VStack>
     );
   }
+  return <LineField label={label} line={line} />;
+}
+
+/**
+ * A line's field, open: its text with Save and Cancel, Enter saving and Escape cancelling, the
+ * restore notice of its unsaved text, and its save's status.
+ */
+export function LineField({
+  label,
+  line,
+}: {
+  label: string;
+  line: ReturnType<typeof useLineSave>;
+}) {
+  const wide = useWidthClass() === "wide";
+  const { field } = line;
   return (
     <VStack gap={1}>
       {field.restored && (

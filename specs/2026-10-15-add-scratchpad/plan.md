@@ -1188,17 +1188,25 @@ git commit -m "feat(add-scratchpad): capture notes from the sidebar, see them in
 
 **Files:**
 
-- Create: `packages/web/src/NoteView.tsx`, `packages/web/src/CommitBar.tsx`
+- Create: `packages/web/src/NoteView.tsx`, `packages/web/src/useNoteActions.ts` (the moves and their
+  Undo), `packages/web/src/CommitBar.tsx`
 - Modify: `packages/web/src/PrioritiesPage.tsx` (the bar extracted, its marker removed),
-  `packages/web/src/InboxPage.tsx`, `packages/web/src/App.tsx` (a note in `Panes` beside the inbox)
+  `packages/web/src/InboxPage.tsx`, `packages/web/src/App.tsx` (a note in `Panes` beside the inbox),
+  `packages/web/src/EditableLine.tsx` (`LineField` exported), `packages/web/src/useLineSave.ts`
+  (`empty`), `packages/web/src/data.ts` (`useDraftTitles`, `readDraftText`, `rereadChanges`),
+  `packages/web/src/views.ts` (`DraftTitleView`, `DraftTextView`) (ruling R20)
 - Test: `packages/web/src/__tests__/inbox.test.tsx`, `packages/web/src/__browser__/inbox.test.tsx`
 
 **Interfaces:**
 
 - Consumes: the `inbox.*` and `changes.*` mutations (task 6).
 - Produces:
-  - `NoteView({ noteKey })`;
-  - `CommitBar({ changes })`, with Commit, Discard, the confirmation, and `closeUndoToasts`.
+  - `NoteView({ noteKey })`, and `useNoteActions(placed, hash, onRenaming)`;
+  - `CommitBar({ changes })`, with Commit, Discard, the confirmation, and `closeUndoToasts`, which
+    reads the inbox and the priorities again once done (`rereadChanges`);
+  - `Marks({ note })`, exported from `InboxPage.tsx`, and `LineField({ label, line })` from
+    `EditableLine.tsx`;
+  - `useDraftTitles(paths)`, the drafts' titles in one request (ruling R20).
 
 - [x] **Step 1: Extract `CommitBar` from `PrioritiesPage`, and remove its marker**
 
@@ -1214,13 +1222,14 @@ git add packages/web/src specs/2026-10-15-add-scratchpad/plan.md
 git commit -m "refactor(add-scratchpad): the priorities' commit bar as a component"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 - **US2 1:** "Move to priorities", then "Next", gives the file contents of task 4 and the toast
   "Moved to Next, not committed".
 - **US2 2:** "Make a draft", then "Later", opens `/edit/specs/drafts/we-need-a-home-icon.md`.
 - **US2 3:** "Add to a draft", filter "Look", pick "Look and feel pass", and the toast reads "Added
-  to Look and feel pass, not committed".
+  to Look and feel pass, not committed". Undo puts the note and the draft back; so does Undo of
+  US2 1.
 - **US2 4:** "Delete" asks nothing, the toast reads "Deleted, not committed", and Undo restores the
   note.
 - **US2 5:** "Category", then "UI".
@@ -1228,7 +1237,8 @@ git commit -m "refactor(add-scratchpad): the priorities' commit bar as a compone
 - **US2 7 and 8:** the bar reads "3 changes to commit" on both the inbox and the priorities pages.
   Commit gives the task 4 subject in `git log`.
 - **Discard:** "Discard them" restores every file.
-- **Review focus 2:** after Commit, the Undo toast is gone.
+- **Review focus 2:** after Commit, and after Discard, the Undo toast is gone: in the browser, at
+  the desktop's size, as the priorities' toasts tests are (ruling R20).
 - **A note linking a draft:** "Make a draft" is not offered.
 - **Stale file:** `writeRepo` changes `INBOX.md`, a move shows "INBOX.md changed on disk. Your
   change was not applied.", and the page reloads.
@@ -1242,20 +1252,20 @@ The break each test catches:
 - Delete with no Undo.
 - The pane not in the URL.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/inbox.test.tsx`
 - Expected: FAIL, `Unable to find role="button" name "Move to priorities"`
 
-- [ ] **Step 4: Implement `NoteView` and the pane, following frames 1 and 6 of the mockups**
+- [x] **Step 4: Implement `NoteView` and the pane, following frames 1 and 6 of the mockups**
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run:
   `vp check && vp test --project '!phone' --project '!desktop' && vp test --project desktop && vp test --project phone`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web specs/2026-10-15-add-scratchpad/plan.md

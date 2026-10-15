@@ -7,7 +7,17 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
-import { atRepo, atWidth, click, fixtureRepo, git, read, renderPage, type } from "./helpers.tsx";
+import {
+  atRepo,
+  atWidth,
+  click,
+  fixtureRepo,
+  git,
+  quiet,
+  read,
+  renderPage,
+  type,
+} from "./helpers.tsx";
 
 const PATH = "specs/INBOX.md";
 
@@ -365,4 +375,295 @@ test("a note added from a page whose folder is not dated has no mark", async () 
 
   await toast("Added to the inbox, not committed");
   expect(read(repo, PATH)).toContain("- We need a home icon\n- Plain note\n");
+});
+
+// US2: organizing a note by hand, in its view, and the one commit bar.
+
+const LOOK = "specs/drafts/look-and-feel.md";
+const LOOK_TEXT =
+  "# Look and feel pass\n\n## What\n\nA pass over the app's spacing and icons.\n\n## Why\n\nIt looks unfinished.\n";
+
+/** A copy of the fixture repository with the draft "Look and feel pass", committed. */
+function withLookDraft() {
+  const repo = fixtureRepo();
+  writeFileSync(join(repo, LOOK), LOOK_TEXT);
+  git(repo, "add", LOOK);
+  git(repo, "commit", "--quiet", "--no-verify", "--message", "docs: look and feel");
+  return repo;
+}
+
+/** The note's view, in the pane beside the inbox, as it is drawn now. */
+function detail() {
+  return within(screen.getByRole("region", { name: "Detail" }));
+}
+
+/** Opens a menu of the note's view, by its button, and picks one of its items. */
+async function choose(menu: string, item: string) {
+  await click(await screen.findByRole("button", { name: menu }));
+  await click(await screen.findByRole("menuitem", { name: item }));
+}
+
+/** Picks the category a note moves to, in its view's Category menu. */
+async function moveTo(category: string) {
+  await click(await screen.findByRole("combobox", { name: "Category" }));
+  await click(await screen.findByRole("option", { name: category }));
+}
+
+/** Picks a draft in the note's "Add to a draft" list, after filtering it with a text. */
+async function addToDraft(filter: string, title: string) {
+  await click(await screen.findByRole("button", { name: "Add to a draft" }));
+  await type(await screen.findByPlaceholderText("Find a draft"), filter);
+  await click(await screen.findByRole("option", { name: title }));
+}
+
+/** The text of the section `## <name>` of a file, up to the next `##` heading. */
+function section(text: string, name: string) {
+  return text.split(`## ${name}\n`)[1]?.split("\n## ")[0] ?? "";
+}
+
+/** The inbox's rows link to their note's view, which opens at `/inbox/<key>`. */
+test("a note's row opens its view", async () => {
+  await renderPage("/inbox");
+  const page = await main();
+
+  await click(await page.findByRole("link", { name: /Draft to proposal on mobile went 404/ }));
+
+  expect(window.location.pathname).toBe(atRepo("/inbox/draft-to-proposal-on-mobile-went-404"));
+  expect(await screen.findByText("Note, in UI")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Move to priorities" })).toBeTruthy();
+});
+
+/** US2 1 */
+test("Move to priorities, then Next, ends Next with the note", async () => {
+  const { repo } = await renderPage("/inbox/draft-to-proposal-on-mobile-went-404");
+
+  await choose("Move to priorities", "Next");
+
+  expect(await toast("Moved to Next, not committed")).toBeTruthy();
+  expect(read(repo)).toContain(
+    "- [Git listener process](drafts/git-listener.md)\n- Draft to proposal on mobile went 404\n\n## Later",
+  );
+  expect(read(repo, PATH)).not.toContain("Draft to proposal on mobile went 404");
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/inbox")));
+});
+
+/** US2 1, Undo: the note goes back to its place, and the line leaves Next. */
+test("Undo of a move to the priorities puts both files back", async () => {
+  const { repo } = await renderPage("/inbox/draft-to-proposal-on-mobile-went-404");
+  const inbox = read(repo, PATH);
+  const priorities = read(repo);
+  await choose("Move to priorities", "Next");
+  await toast("Moved to Next, not committed");
+
+  await click(screen.getByRole("button", { name: "Undo" }));
+
+  await waitFor(() => expect([read(repo, PATH), read(repo)]).toEqual([inbox, priorities]));
+});
+
+/** US2 2 */
+test("Make a draft, then Later, writes the draft and opens it in the editor", async () => {
+  const { repo } = await renderPage("/inbox/we-need-a-home-icon");
+
+  await choose("Make a draft", "Later");
+
+  await waitFor(() =>
+    expect(window.location.pathname).toBe(atRepo("/edit/specs/drafts/we-need-a-home-icon.md")),
+  );
+  expect(read(repo, "specs/drafts/we-need-a-home-icon.md")).toContain("# We need a home icon\n");
+  expect(section(read(repo), "Later")).toContain(
+    "- [We need a home icon](drafts/we-need-a-home-icon.md)\n",
+  );
+  expect(read(repo, PATH)).not.toContain("We need a home icon");
+});
+
+/** US2 3, with the "Find a draft" filter. */
+test("Add to a draft appends the note to the draft's What", async () => {
+  const { repo } = await renderPage("/inbox/icons-are-blurry-on-retina-screens", withLookDraft());
+
+  await addToDraft("Look", "Look and feel pass");
+
+  expect(await toast("Added to Look and feel pass, not committed")).toBeTruthy();
+  expect(read(repo, LOOK)).toBe(
+    "# Look and feel pass\n\n## What\n\nA pass over the app's spacing and icons.\n\n- Icons are blurry on retina screens\n\n## Why\n\nIt looks unfinished.\n",
+  );
+  expect(read(repo, PATH)).not.toContain("Icons are blurry on retina screens");
+});
+
+test("Undo of an add to a draft puts the note and the draft back", async () => {
+  const { repo } = await renderPage("/inbox/icons-are-blurry-on-retina-screens", withLookDraft());
+  const inbox = read(repo, PATH);
+  await addToDraft("Look", "Look and feel pass");
+  await toast("Added to Look and feel pass, not committed");
+
+  await click(screen.getByRole("button", { name: "Undo" }));
+
+  await waitFor(() => expect([read(repo, PATH), read(repo, LOOK)]).toEqual([inbox, LOOK_TEXT]));
+});
+
+/** US2 4 */
+test("Delete asks nothing, and Undo puts the note back at its place", async () => {
+  const { repo } = await renderPage("/inbox/draft-to-proposal-on-mobile-went-404");
+  const before = read(repo, PATH);
+
+  await click(await screen.findByRole("button", { name: "Delete" }));
+
+  expect(await toast("Deleted, not committed")).toBeTruthy();
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(read(repo, PATH)).not.toContain("Draft to proposal on mobile went 404");
+  await click(screen.getByRole("button", { name: "Undo" }));
+  await waitFor(() => expect(read(repo, PATH)).toBe(before));
+});
+
+/** US2 5 */
+test("Category, then UI, makes the note the last of UI", async () => {
+  const { repo } = await renderPage("/inbox/we-need-a-home-icon");
+
+  await moveTo("UI");
+
+  expect(await toast("Moved to UI, not committed")).toBeTruthy();
+  expect(read(repo, PATH)).toContain(
+    "- Text input feels laggy on the sessions page\n- We need a home icon\n\n## CLI\n",
+  );
+  expect(await screen.findByText("Note, in UI")).toBeTruthy();
+});
+
+/** Edge case: Undo after the note changed elsewhere is refused. */
+test("Undo of a moved note that changed since is refused", async () => {
+  const { repo } = await renderPage("/inbox/we-need-a-home-icon");
+  await moveTo("UI");
+  await toast("Moved to UI, not committed");
+  writeFileSync(join(repo, PATH), read(repo, PATH).replace("We need a home icon", "A home icon"));
+
+  await click(screen.getByRole("button", { name: "Undo" }));
+
+  expect(
+    await screen.findByText('Could not undo: "We need a home icon" is no longer in INBOX.md.'),
+  ).toBeTruthy();
+  expect(read(repo, PATH)).toContain("- A home icon\n\n## CLI\n");
+});
+
+/** US2 6 */
+test("Edit replaces the note's text, and keeps its marks", async () => {
+  const { repo } = await renderPage("/inbox/in-failures-the-x-is-not-centered-in-the-circle");
+  await click(await screen.findByRole("button", { name: "Edit" }));
+  const field = screen.getByRole("textbox", { name: "Note" });
+
+  await type(field, "Specs are too long");
+  await act(async () => {
+    fireEvent.keyDown(field, { key: "Enter" });
+  });
+
+  await waitFor(() => expect(read(repo, PATH)).toContain("- [run-ui] Specs are too long\n"));
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/inbox/specs-are-too-long")));
+  // The note's view, drawn again at its new address.
+  await waitFor(() => expect(detail().getByText("Specs are too long")).toBeTruthy());
+  expect(detail().getByText("run-ui")).toBeTruthy();
+});
+
+/** Edge case: a note that links a draft is one already. */
+test("a note that links a draft offers no Make a draft", async () => {
+  const repo = withLookDraft();
+  writeFileSync(
+    join(repo, PATH),
+    "# Inbox\n\n## UI\n\n- [Look and feel pass](drafts/look-and-feel.md)\n",
+  );
+  await renderPage("/inbox/look-and-feel-pass", repo);
+
+  expect(await screen.findByRole("button", { name: "Move to priorities" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Make a draft" })).toBeNull();
+});
+
+/** Shows a path of the repository the page is on, as a link followed in the app would. */
+async function open(repo: string, path: string) {
+  window.history.replaceState(null, "", atRepo(path));
+  await renderPage(path, repo, { reload: true });
+}
+
+/** Moves the note of a key to Next from its view, and waits for its toast. */
+async function moveToNext(repo: string, key: string) {
+  await open(repo, `/inbox/${key}`);
+  await choose("Move to priorities", "Next");
+  await toast("Moved to Next, not committed");
+}
+
+/** US2 7 and 8 */
+test("one bar on both pages counts and commits the moves, and the draft", async () => {
+  const repo = withLookDraft();
+  await renderPage("/inbox", repo);
+  await moveToNext(repo, "draft-to-proposal-on-mobile-went-404");
+  await moveToNext(repo, "text-input-feels-laggy-on-the-sessions-page");
+  await open(repo, "/inbox/make-sure-agents-are-resumable");
+  await click(await screen.findByRole("button", { name: "Delete" }));
+  await toast("Deleted, not committed");
+
+  expect(await screen.findByText("3 changes to commit")).toBeTruthy();
+  await open(repo, "/priorities");
+  expect(await screen.findByText("3 changes to commit")).toBeTruthy();
+  await click(screen.getByRole("button", { name: "Commit" }));
+
+  await waitFor(() =>
+    expect(git(repo, "log", "-1", "--format=%s").trim()).toBe(
+      'chore: move "Draft to proposal on mobile went 404" from the inbox to Next, and 2 more',
+    ),
+  );
+  expect(git(repo, "show", "--name-only", "--format=", "HEAD").trim().split("\n").sort()).toEqual([
+    PATH,
+    "specs/PRIORITIES.md",
+  ]);
+  await waitFor(() => expect(screen.queryByText("3 changes to commit")).toBeNull());
+});
+
+/** US2 8 */
+test("a note added to a draft is committed with the draft", async () => {
+  const repo = withLookDraft();
+  await renderPage("/inbox/icons-are-blurry-on-retina-screens", repo);
+  await addToDraft("Look", "Look and feel pass");
+  await toast("Added to Look and feel pass, not committed");
+  await open(repo, "/inbox");
+
+  await click(await screen.findByRole("button", { name: "Commit" }));
+
+  await waitFor(() =>
+    expect(git(repo, "log", "-1", "--format=%s").trim()).toBe(
+      'chore: move "Icons are blurry on retina screens" from the inbox to the draft Look and feel pass',
+    ),
+  );
+  expect(git(repo, "show", "--name-only", "--format=", "HEAD").trim().split("\n").sort()).toEqual([
+    PATH,
+    LOOK,
+  ]);
+});
+
+/** Edge case: Discard restores the inbox, the priorities, and the draft. */
+test("Discard them restores every file", async () => {
+  const repo = withLookDraft();
+  const before = [read(repo, PATH), read(repo), read(repo, LOOK)];
+  await renderPage("/inbox", repo);
+  await moveToNext(repo, "draft-to-proposal-on-mobile-went-404");
+  await open(repo, "/inbox/icons-are-blurry-on-retina-screens");
+  await addToDraft("Look", "Look and feel pass");
+  await toast("Added to Look and feel pass, not committed");
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/inbox")));
+  await quiet();
+
+  await click(await screen.findByRole("button", { name: "Discard" }));
+  await click(screen.getByRole("button", { name: "Discard them" }));
+
+  await waitFor(() => expect([read(repo, PATH), read(repo), read(repo, LOOK)]).toEqual(before));
+  expect(await (await main()).findByText("Draft to proposal on mobile went 404")).toBeTruthy();
+});
+
+/** Edge case: a move from a stale page is refused, and the page reads the inbox again. */
+test("a move over a change made elsewhere is refused, and the inbox reads again", async () => {
+  const { repo } = await renderPage("/inbox/draft-to-proposal-on-mobile-went-404");
+  await screen.findByRole("button", { name: "Move to priorities" });
+  writeFileSync(join(repo, PATH), read(repo, PATH).replace("We need a home icon", "A home icon"));
+
+  await choose("Move to priorities", "Next");
+
+  expect(
+    await screen.findByText("INBOX.md changed on disk. Your change was not applied."),
+  ).toBeTruthy();
+  expect(read(repo)).not.toContain("Draft to proposal on mobile went 404");
+  expect(await (await main()).findByText("A home icon")).toBeTruthy();
 });

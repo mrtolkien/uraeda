@@ -12,14 +12,17 @@ const EMPTY = "A priority cannot be empty.";
  * otherwise calls `onSave`, which resolves with the error to show, the typed text kept, or with
  * nothing once saved. `cancel`, from Escape or Cancel, asks "Discard your changes?" first when the
  * text changed. Leaving the field does nothing. With `stayOpen`, as an Add row, a saved field
- * empties and stays open for the next line.
+ * empties and stays open for the next line. `empty` is the refusal of an empty text, a priority's
+ * by default.
  */
 export function useLineSave({
+  empty = EMPTY,
   field: key,
   onSave,
   stayOpen,
   value,
 }: {
+  empty?: string;
   field: string;
   onSave: (text: string) => Promise<string | undefined>;
   stayOpen: boolean;
@@ -46,7 +49,7 @@ export function useLineSave({
       return;
     }
     if (!text.trim()) {
-      setError(EMPTY);
+      setError(empty);
       return;
     }
     if (!field.dirty) {
