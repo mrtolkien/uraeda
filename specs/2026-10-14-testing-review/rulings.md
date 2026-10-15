@@ -344,3 +344,96 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: an unrelated Markdown or toolchain edit reruns a check that would have passed, a few
   seconds each.
 - **Where**: task 3.
+
+## R21: The composer's two pasted images are checked in happy-dom
+
+- **Decision**: the browser test "US2.1: two images pasted in the composer are thumbnails, sent with
+  the message" is removed.
+- **Rationale**: it pasted two images in a session's composer, saw two thumbnails and "Add images",
+  and checked the agent got the text with both images. Happy-dom's `session.test.tsx` "US2.1: two
+  pasted images show as removable thumbnails" checks the thumbnails and the button, and "US2.2: a
+  message with images shows them above its text" checks the sent message's text and its two images,
+  through the same server. The paste is a synthetic event in both, so WebKit adds no real input.
+- **Alternatives considered**: keeping it at the phone size only: a second copy of the same
+  scenario, at 2 to 3 seconds a run.
+- **If wrong**: a WebKit-only failure of the composer's paste goes unseen; the editor's paste,
+  `US1.2: a pasted image is linked as "pasted image"`, still runs in WebKit.
+- **Where**: task 6.
+
+## R22: The session page's drop is checked in happy-dom
+
+- **Decision**: the browser test "a file dropped anywhere on a session's page joins the message" is
+  removed.
+- **Rationale**: it dropped an image on a session's page, checked the drop was cancelled, and saw
+  one thumbnail. Happy-dom's `session.test.tsx` "an image dropped anywhere on the session page joins
+  the message" drops on the same page and sees the thumbnail; the browser's own handling of a drop
+  outside a field, that the page cancels it, is `attach.test.tsx`'s "a drop outside every field
+  stays in the app", which still runs in WebKit.
+- **Alternatives considered**: keeping it for its `defaultPrevented` check: the same page handler as
+  the kept drop test's.
+- **If wrong**: a session page that lets WebKit open a dropped file goes unseen until used.
+- **Where**: task 6.
+
+## R23: A verdict held back by a comment's image is checked in happy-dom, at both widths
+
+- **Decision**: the browser test "a verdict waits for a comment holding an image to be added or
+  cancelled" is removed.
+- **Rationale**: it dropped an image in a review comment, pressed "Approve only", and checked the
+  refusal shows once, in the comment's form on the phone and under the verdict on the desktop, with
+  the image kept and the spec not approved. Happy-dom's `review.test.tsx` "at %i px, the verdict's
+  refusal is in the comment form", at 402 and 1440 px, checks the refusal, its place, its
+  announcement, and that no approval is committed; "a verdict after a comment with an image was
+  cancelled deletes the image" checks the image's fate once the comment is cancelled.
+- **Alternatives considered**: keeping it at the phone size, where the sheet lies over the page's
+  end: the happy-dom test already places the refusal by width, which is what the sheet changes.
+- **If wrong**: a refusal hidden under WebKit's real sheet goes unseen; the layout checks of the
+  review page with an open comment still run at both sizes.
+- **Where**: task 6.
+
+## R24: "Add image" is checked in happy-dom
+
+- **Decision**: the browser test 'US1.3: "Add image" picks a file' is removed.
+- **Rationale**: it chose a file through "Add image"'s input, and checked the link at the cursor and
+  the saved image. Happy-dom's `editor.test.tsx` "a draft that gets an image opens at its folder's
+  proposal" picks a file through the same input and checks the link, the saved image, and the draft
+  moved to its folder; `userEvent.upload` opens no real picker in WebKit either. The link's place at
+  the cursor is the drops' and pastes' code, checked in WebKit by "US1.1: a screenshot dropped
+  anywhere on the page is linked at the cursor".
+- **Alternatives considered**: none: the browser adds nothing a picker would need.
+- **If wrong**: a WebKit-only failure of the file input goes unseen; the input is a plain
+  `<input type="file">`.
+- **Where**: task 6.
+
+## R25: The editor's drop hint is checked by the layout checks
+
+- **Decision**: the browser test "a file dragged over the editor shows it is taken" is removed.
+- **Rationale**: it dragged an image over the editor's page, checked the drag was accepted, and saw
+  "Drop to add to proposal.md". `layout.test.tsx` "the editor with an image's link, a refusal, and
+  the drop hint", at both sizes and in both themes, drags an image over the editor and waits for the
+  same hint, then runs the layout checks on it; "a drop outside every field stays in the app" checks
+  that the page accepts a drag over its body.
+- **Alternatives considered**: keeping it for its drag over the page's body: the kept drop test
+  sends the same events to the page's body.
+- **If wrong**: a hint shown for a drag over the field but not over the rest of the editor's page
+  goes unseen.
+- **Where**: task 6.
+
+## R26: Task 6 as built
+
+- **Decision**: "a chat whose last message has images opens at its end", kept at both sizes, moves
+  from `attach.test.tsx` to the browser `session.test.tsx`, with its `chatImage` helper, so
+  `attach.test.tsx` declares the phone at its top. `sizes.test.tsx`, at the desktop only, loses its
+  phone branch (the 17 px text). The desktop's tests of `priorities.test.tsx` are two blocks, by
+  mouse and by keyboard. Both sizes ran as R18 runs them. The phone runs 94 tests and skips 14, the
+  desktop runs 70 and skips 38.
+- **Rationale**: with `attach.test.tsx`'s 21 phone tests in a `describe`, its callback was 372
+  lines, over Oxlint's `max-lines-per-function`; `session.test.tsx` is the file of the transcript's
+  end and its scrollers, which differ by size, and has the same `scroller`. The phone's 17 px is
+  checked on every page by the layout checks' `checkTextSizes`, at each size. One desktop block of
+  four tests was 102 lines. The plan's counts were made before task 5 added `sizes-helper.test.tsx`,
+  whose three tests run two and skip one at each size: 92 + 2 and 13 + 1, 68 + 2 and 37 + 1.
+- **Alternatives considered**: several `describe("on the phone")` blocks of under 100 lines in
+  `attach.test.tsx`: blocks that split the editor's tests at arbitrary lines.
+- **If wrong**: a test in the file of the view it checks rather than the feature it came with;
+  moving it back takes a `describe` per group of phone tests.
+- **Where**: task 6.

@@ -3,7 +3,9 @@
 import { act, screen } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
-import { atRepo, reload, show, watchFor } from "./helpers.tsx";
+import { atRepo, atSize, reload, show, watchFor } from "./helpers.tsx";
+
+atSize("phone");
 
 const SPEC = "/f/2026-10-06-recurring-tasks/spec.md";
 const TEXT = "Complete a repeating task";

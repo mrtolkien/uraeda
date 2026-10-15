@@ -220,18 +220,23 @@ describe("on the desktop", () => {
   });
 });
 
-// The agents decision: the tests `vp run ready` runs use the fake adapter, never Claude Code.
-test("the test server runs the fake agent", async () => {
-  const response = await fetch("/fate", {
-    body: JSON.stringify({
-      operations: [{ id: "1", ids: ["agent"], kind: "byId", select: ["version"], type: "Agent" }],
-      version: 1,
-    }),
-    headers: { "content-type": "application/json" },
-    method: "POST",
+// The agents decision: the tests `vp run ready` runs use the fake adapter, never Claude Code. Both
+// sizes' servers come from the same global setup, so one size checks it.
+describe("on the phone", () => {
+  atSize("phone");
+
+  test("the test server runs the fake agent", async () => {
+    const response = await fetch("/fate", {
+      body: JSON.stringify({
+        operations: [{ id: "1", ids: ["agent"], kind: "byId", select: ["version"], type: "Agent" }],
+        version: 1,
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    });
+    const { results } = (await response.json()) as { results: Array<{ data: Array<unknown> }> };
+    expect(results[0].data).toEqual([{ id: "agent", version: "0.0.0 (fake agent)" }]);
   });
-  const { results } = (await response.json()) as { results: Array<{ data: Array<unknown> }> };
-  expect(results[0].data).toEqual([{ id: "agent", version: "0.0.0 (fake agent)" }]);
 });
 
 const LONG =

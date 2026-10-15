@@ -746,7 +746,7 @@ and the UI decisions. Line numbers are as of the plan's commit; the test names a
 
 | Browser file            | Tests | Removed | phone / desktop / both | Why                                                                       |
 | ----------------------- | ----- | ------- | ---------------------- | ------------------------------------------------------------------------- |
-| `attach.test.tsx`       | 28    | 6       | 21 / 0 / 1             | Editor drops, pastes and cursor tracking exist only here; 6 repeat others |
+| `attach.test.tsx`       | 28    | 6       | 21 / 0 / 0             | Editor drops, pastes and cursor tracking exist only here; 6 repeat others |
 | `layout.test.tsx`       | 48    | 0       | 1 / 3 / 44             | The UI checks decision's layout and axe checks, at both sizes             |
 | `overlay.test.tsx`      | 3     | 0       | 2 / 0 / 1              | Sheet against dialog geometry; real history for Back                      |
 | `priorities.test.tsx`   | 7     | 0       | 3 / 4 / 0              | Real mouse, touch and keyboard drags; real toast transitions              |
@@ -754,7 +754,7 @@ and the UI decisions. Line numbers are as of the plan's commit; the test names a
 | `review.test.tsx`       | 8     | 0       | 8 / 0 / 0              | The phone's sheet geometry; folds across Back and hash links              |
 | `round.test.tsx`        | 3     | 0       | 0 / 3 / 0              | Real scroll, focus and width of the desktop's index                       |
 | `scroll.test.tsx`       | 2     | 0       | 2 / 0 / 0              | Real scroll position across Back and reload                               |
-| `session.test.tsx`      | 3     | 0       | 0 / 0 / 3              | The pane's and the window's scrollers differ by layout                    |
+| `session.test.tsx`      | 3     | 0       | 0 / 0 / 4              | The pane's and the window's scrollers differ by layout                    |
 | `sizes.test.tsx`        | 1     | 0       | 0 / 1 / 0              | The desktop's 19 px text and larger controls                              |
 | `task.test.tsx`         | 2     | 0       | 0 / 2 / 0              | The task view beside home                                                 |
 
@@ -797,22 +797,27 @@ The single-size browser tests, by the size their scenario is about:
   `review.test.tsx`'s eight; `scroll.test.tsx`'s two.
 - **both**: every other test.
 
-After the audit, the phone runs 92 tests and the desktop 68, against 111 each today.
+After the audit, the phone runs 92 tests and the desktop 68, against 111 each today. As built (R26),
+"a chat whose last message has images opens at its end" moved to the browser `session.test.tsx`,
+which the table counts, and `attach.test.tsx` declares the phone at its top.
 
-- [ ] **Step 1: Remove the six tests, each with its ruling**
+- [x] **Step 1: Remove the six tests, each with its ruling**
 
 Each ruling, from R6 on, names what the test checked, the covering test, and why that is enough, as
-above; R5 already covers the SC-002 test.
+above; R5 already covers the SC-002 test. As built, R21 to R25.
 
-- [ ] **Step 2: Put every kept browser test under `atSize` at its size, and rename
+- [x] **Step 2: Put every kept browser test under `atSize` at its size, and rename
       `shell.test.tsx`'s "no ＋ on a round or a review (US6 6)", which renders only a round, to
       "no ＋ on a round (US6 6)"**
 
-- [ ] **Step 3: Run both sizes, and count**
+- [x] **Step 3: Run both sizes, and count**
 
-- Run: `nix develop -c vp run --no-cache ready:browser-phone ready:browser-desktop`
-- Expected: PASS; the phone runs 92 tests and skips 13, the desktop runs 68 and skips 37 (US4.1 to
-  US4.3).
+- Run, as two processes at once (R18): `nix develop -c vp run binding:touch`, then
+  `nix develop -c vp run --no-cache --ignore-depends-on browser:phone` and
+  `nix develop -c vp run --no-cache --ignore-depends-on browser:desktop` in parallel.
+- Expected: PASS; the phone runs 94 tests and skips 14, the desktop runs 70 and skips 38 (US4.1 to
+  US4.3): the audit's 92 and 13, 68 and 37, plus `sizes-helper.test.tsx`'s three tests from task 5,
+  two run and one skipped at each size (R26).
 - Run: `nix develop -c vp run --no-cache ts:test`
 - Expected: PASS.
 
