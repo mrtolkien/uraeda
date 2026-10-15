@@ -860,8 +860,8 @@ git commit -m "feat(add-scratchpad): ura check and ura init know the inbox and i
     default branch:
     - `read_triage(repo) -> Result<Option<FileView>>`, kind `clarifications`, with
       `id: "inbox-triage"`, `folder: ""`, and `name: "INBOX-TRIAGE.md"`;
-    - `save_triage_answer(repo, question, letters, comment, previous) -> Result<FileView>`;
-    - `save_triage_notes(repo, notes, previous) -> Result<FileView>`;
+    - `save_triage_answer(repo, question, letters, comment, previous, base) -> Result<FileView>`;
+    - `save_triage_notes(repo, notes, previous, base) -> Result<FileView>`;
     - `submit_triage(repo, previous) -> Result<FileView>`, which commits
       `chore: answer the inbox triage`, refused as a conflict when the triage's hash is no longer
       `previous`.
@@ -879,9 +879,9 @@ git commit -m "feat(add-scratchpad): ura check and ura init know the inbox and i
     - `inbox.toDraft { note, hash, draft }`, which returns the `Inbox`, and
       `inbox.addAsDraft { hash, category?, about?, text }`, the second returning a `Draft`;
     - `changes.commit {}` and `changes.discard {}`, which return `Priorities`;
-    - `triage.answer { question, letters, comment, previous }`, `triage.notes { notes, previous }`,
-      and `triage.submit { previous }`, the hash of the triage as read, `current.document.hash`,
-      which return the `WorkflowFile` `inbox-triage`.
+    - `triage.answer { question, letters, comment, previous, base }`,
+      `triage.notes { notes, previous, base }`, and `triage.submit { previous }`, the hash of the
+      triage as read, `current.document.hash`, which return the `WorkflowFile` `inbox-triage`.
   - `live.ts` updates `Inbox` and `Priorities` when `changes.inbox` or `changes.priorities` is set,
     and the `WorkflowFile` `inbox-triage` when `changes.inbox` is.
 
