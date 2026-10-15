@@ -8,6 +8,7 @@ use serde::Serialize;
 use crate::files::document::{Document, Span};
 use crate::files::items::Items;
 use crate::files::markdown;
+use crate::files::stories::StoryLink;
 use crate::steps::{Step, TaskProgress};
 use crate::workspace::{Feature, FileKind, Problem, Workspace};
 
@@ -121,6 +122,8 @@ pub struct DraftView {
     pub text: String,
     pub hash: String,
     pub document: Document,
+    /// The stories its paragraphs embed.
+    pub stories: Vec<StoryLink>,
     /// Whether its current text is committed.
     pub committed: bool,
     /// The priority line linking it.

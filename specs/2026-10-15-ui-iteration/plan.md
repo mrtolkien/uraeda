@@ -419,7 +419,9 @@ No constitution exception, and no new marker.
   `crates/core/src/files/document/inline.rs` (`link()`), `crates/core/src/files/mod.rs`,
   `crates/core/src/files/spec.rs` (`mockups()`), `crates/core/src/files/items.rs` (`MockupLink`),
   `crates/core/src/view.rs` (`DraftView`), `crates/core/src/api.rs` (`version`, `text_view`)
-- Modify: `packages/binding/index.d.ts`, generated
+- Modify: `packages/binding/index.d.ts`, generated; `packages/server/src/fate/sources.ts`
+  (`missingFile`'s empty version gains `stories: []`,
+  [R13](rulings.md#r13-a-missing-files-empty-version-has-no-stories))
 - Test: `crates/core/tests/stories.rs`, `crates/core/tests/items.rs`, `crates/core/tests/check.rs`,
   `crates/core/tests/api.rs`
 
@@ -456,7 +458,7 @@ git add crates/core/src
 git commit -m "refactor(ui-iteration): spans in inline.rs, versions in view/version.rs"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```rust
 // crates/core/tests/stories.rs: one row per paragraph, link, path, and fragment
@@ -527,16 +529,17 @@ The break each test catches:
   heading.
 - Views: `stories` read on one version only.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `cargo nextest run -p uraeda-core --test stories`
 - Expected: FAIL to compile, `unresolved import uraeda_core::files::stories`.
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 - `story_target`: the target's `#` fragment is a JavaScript identifier (a letter, `$`, or `_`, then
-  letters, digits, `$`, or `_`); its path, resolved with `resolve(dir, …)`, has a file name holding
-  `.stories.` and ending in one of the six extensions. Web links, URIs, and anchors give `None`.
+  letters, digits, `$`, or `_`); its path, resolved with `resolve(dir, …)`, has a file name ending
+  in `.stories.` and one of the six extensions, as the spec's data says. Web links, URIs, and
+  anchors give `None`.
 - `link()` in `inline.rs` sets `story` for every non-wiki link.
 - `story_links`: a `Paragraph` block whose spans all carry the same link (several marks give several
   spans) with a `story`, except spans of whitespace only, and no image span. The label is the link's
@@ -546,16 +549,16 @@ The break each test catches:
   `mockups/<file>.html`, is a mockup, its block the holder as today.
 - Build the binding, so `index.d.ts` declares the new fields.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run:
   `vp run binding:build && cargo nextest run && cargo clippy --workspace --all-targets -- -D warnings`
 - Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add crates/core packages/binding/index.d.ts
+git add crates/core packages/binding/index.d.ts packages/server/src/fate/sources.ts
 git commit -m "feat(ui-iteration): story links in the core"
 ```
 

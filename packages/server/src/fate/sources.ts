@@ -97,7 +97,7 @@ export function repositoriesRecord(ctx: Context, added: string | null = null): R
 /** The record of a file its feature does not have: marked missing, its other fields empty. */
 function missingFile(id: string, folder: string, name: string): FileRecord {
   return {
-    current: { document: { blocks: [], hash: "" }, items: {}, text: "" },
+    current: { document: { blocks: [], hash: "" }, items: {}, stories: [], text: "" },
     folder,
     id,
     kind: "",
