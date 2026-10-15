@@ -132,13 +132,15 @@ pub fn append_to_what(text: &str, item: &[String]) -> Option<String> {
     .ok()
 }
 
-/// A draft's text without the last list item whose markdown is `markdown`, nested lines included,
-/// and the blank line its addition put before it: a note's lines taken back out of the draft it
-/// went into, every other edit kept. `None` when no item has that markdown.
+/// A draft's text without the last list item of its `## What` whose markdown is `markdown`, nested
+/// lines included, and the blank line its addition put before it: a note's lines taken back out of
+/// the section [`append_to_what`] put them in, every other edit kept, a same item elsewhere too.
+/// `None` when no item of the What has that markdown.
 pub fn without_item(text: &str, markdown: &str) -> Option<String> {
     super::with_unix_newlines(text, |text| {
         let all: Vec<&str> = text.split('\n').collect();
-        let (_, item) = super::lines::items(text, |_, _| Some(()))
+        let what = |_, heading: &str| (heading.trim_end() == "## What").then_some(());
+        let (_, item) = super::lines::items(text, what)
             .into_iter()
             .rfind(|(_, item)| super::lines::signed_markdown(&all, item) == markdown)
             .ok_or(())?;

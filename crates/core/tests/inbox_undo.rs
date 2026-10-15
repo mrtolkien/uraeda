@@ -245,3 +245,29 @@ fn undo_of_an_add_refuses_between_two_same_notes() {
     );
     assert_eq!(repo.read(INBOX), both);
 }
+
+/// The Undo of an add to a draft, and Discard, take the note's lines out of the draft's What,
+/// which the move wrote into: a same bullet the human wrote under another heading stays.
+#[test]
+fn an_add_to_a_draft_is_taken_back_from_its_what_only() {
+    let typed = LOOK_TEXT.replace(
+        "It looks unfinished.\n",
+        "It looks unfinished.\n\n- Icons are blurry on retina screens\n",
+    );
+    for discard in [false, true] {
+        let repo = fixture_repo();
+        repo.write(LOOK, &typed);
+        repo.commit("chore: a bullet under Why");
+        let inbox = api::read_inbox(repo.path()).unwrap();
+        let (note, category, index) = placed(&inbox, "Icons are blurry on retina screens");
+        api::note_to_draft(repo.path(), &note.id, LOOK, &inbox.hash).unwrap();
+
+        if discard {
+            api::discard_changes(repo.path()).unwrap();
+        } else {
+            api::undo_note_to_draft(repo.path(), LOOK, &note.lines, category, index).unwrap();
+        }
+
+        assert_eq!(repo.read(LOOK), typed, "discard: {discard}");
+    }
+}
