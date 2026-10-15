@@ -19,12 +19,12 @@ test("a tag that is not the workspace's version is refused", () => {
   );
 });
 
-test("the four platforms in order, before uraeda", () => {
+test("the four platforms in order, before @uraeda/ui", () => {
   expect(publishOrder()).toEqual([
-    "uraeda-binding-linux-x64-gnu",
-    "uraeda-binding-linux-arm64-gnu",
-    "uraeda-binding-darwin-x64",
-    "uraeda-binding-darwin-arm64",
-    "uraeda",
+    "@uraeda/binding-linux-x64-gnu",
+    "@uraeda/binding-linux-arm64-gnu",
+    "@uraeda/binding-darwin-x64",
+    "@uraeda/binding-darwin-arm64",
+    "@uraeda/ui",
   ]);
 });

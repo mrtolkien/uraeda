@@ -168,9 +168,9 @@ test.each(["linux-x64-gnu", "linux-arm64-gnu", "darwin-x64", "darwin-arm64"])(
       readFileSync(new URL(`./npm/${platform}/package.json`, import.meta.url), "utf8"),
     );
 
-    expect(manifest.name).toBe(`uraeda-binding-${platform}`);
+    expect(manifest.name).toBe(`@uraeda/binding-${platform}`);
     expect(readFileSync(new URL("./index.js", import.meta.url), "utf8")).toContain(
-      `require('uraeda-binding-${platform}')`,
+      `require('@uraeda/binding-${platform}')`,
     );
   },
 );

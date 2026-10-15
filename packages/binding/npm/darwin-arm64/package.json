@@ -1,5 +1,5 @@
 {
-  "name": "uraeda-binding-darwin-arm64",
+  "name": "@uraeda/binding-darwin-arm64",
   "version": "0.0.0",
   "cpu": [
     "arm64"

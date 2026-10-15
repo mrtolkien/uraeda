@@ -1,5 +1,5 @@
 /**
- * `vp run --filter uraeda build`: builds the `uraeda` package from the other packages' outputs. The
+ * `vp run --filter @uraeda/ui build`: builds the `@uraeda/ui` package from the other packages' outputs. The
  * server bundled into `dist/uraeda.mjs` by `vp pack`, the loader napi-rs generated copied unchanged
  * as `dist/binding.js`, the built web UI as `web/`, and the plugin as `plugin/`, with a copy of the
  * skill its symlink points to: npm leaves symlinked folders out of a package.

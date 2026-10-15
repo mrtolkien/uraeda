@@ -27,6 +27,7 @@
   },
   "napi": {
     "binaryName": "uraeda-binding",
+    "packageName": "@uraeda/binding",
     "targets": [
       "x86_64-unknown-linux-gnu",
       "aarch64-unknown-linux-gnu",

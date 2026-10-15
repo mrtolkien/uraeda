@@ -4,11 +4,11 @@
  * their `packages/binding/npm/` folders.
  *
  * `prepare` checks the tag is the Cargo workspace's version, writes that version into the four
- * platform packages and `uraeda`, lists the platform packages in `uraeda`'s `optionalDependencies`
+ * platform packages and `@uraeda/ui`, lists the platform packages in its `optionalDependencies`
  * at exactly that version, checks each platform package holds its binary, and prints the size of
  * each package, which is never a gate.
  *
- * `publish` publishes the platform packages, then `uraeda`, skipping each one npm already has at
+ * `publish` publishes the platform packages, then `@uraeda/ui`, skipping each one npm already has at
  * that version, so a release that stopped part way is completed by running it again with the same
  * tag. A version with a prerelease suffix goes to the `next` dist-tag, never `latest`.
  */
@@ -26,9 +26,9 @@ const PACKAGES = [
   ...PLATFORMS.map((platform) => ({
     binary: `uraeda-binding.${platform}.node`,
     folder: join(BINDING, "npm", platform),
-    name: `uraeda-binding-${platform}`,
+    name: `@uraeda/binding-${platform}`,
   })),
-  { binary: null, folder: join(ROOT, "packages/uraeda"), name: "uraeda" },
+  { binary: null, folder: join(ROOT, "packages/uraeda"), name: "@uraeda/ui" },
 ];
 
 /** The version a tag releases, and the dist-tag npm gives it. */
@@ -52,7 +52,7 @@ export function checkVersion(tag: string, workspaceVersion: string): Release {
   return release;
 }
 
-/** The packages' names in the order they are published: every platform before `uraeda`. */
+/** The packages' names in the order they are published: every platform before `@uraeda/ui`. */
 export function publishOrder(): Array<string> {
   return PACKAGES.map(({ name }) => name);
 }
