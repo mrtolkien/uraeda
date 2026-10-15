@@ -292,3 +292,54 @@ fn only_a_stale_edit_is_a_conflict() {
         "conflict"
     );
 }
+
+/// Adds `note` to `category` of a repository whose inbox is `text`, without a hash, as the
+/// editor's note command does; returns the new text and the note's line.
+fn added_at(text: &str, category: Option<&str>, note: &str) -> (String, u32) {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write(INBOX, text);
+    repo.commit("chore: specs");
+    let (inbox, line) =
+        api::add_note_at(repo.path(), category.map(String::from), None, note).unwrap();
+    assert_eq!(api::read_inbox(repo.path()).unwrap(), inbox);
+    (repo.read(INBOX), line)
+}
+
+/// The line of the added note, 1-based, from where the add put it: an untitled inbox gets its
+/// title, which moves every line down; a new category goes last.
+#[test]
+fn the_line_of_a_note_added_to_an_untitled_inbox() {
+    let (text, line) = added_at("## UI\n\n- a\n", Some("CLI"), "b");
+    assert_eq!(text, "# Inbox\n\n## UI\n\n- a\n\n## CLI\n\n- b\n");
+    assert_eq!(line, 9);
+
+    let (text, line) = added_at("## UI\n\n- a\n", None, "b");
+    assert_eq!(text.lines().nth(line as usize - 1), Some("- b"), "{text}");
+    let (text, line) = added_at("## UI\n\n- a\n", Some("UI"), "b");
+    assert_eq!(text.lines().nth(line as usize - 1), Some("- b"), "{text}");
+    assert_eq!(line, 6);
+}
+
+/// CRLF line endings keep their line count, and so the line.
+#[test]
+fn the_line_of_a_note_added_with_crlf() {
+    let (text, line) = added_at(
+        "# Inbox\r\n\r\n## UI\r\n\r\n- a\r\n\r\n## CLI\r\n",
+        Some("UI"),
+        "b",
+    );
+    assert_eq!(
+        text,
+        "# Inbox\r\n\r\n## UI\r\n\r\n- a\r\n- b\r\n\r\n## CLI\r\n"
+    );
+    assert_eq!(line, 6);
+}
+
+/// A note whose text is already in its category is the last one, not the first.
+#[test]
+fn the_line_of_a_note_added_twice() {
+    let (text, line) = added_at("# Inbox\n\n## UI\n\n- Same\n- b\n", Some("UI"), "Same");
+    assert_eq!(text, "# Inbox\n\n## UI\n\n- Same\n- b\n- Same\n");
+    assert_eq!(line, 7);
+}

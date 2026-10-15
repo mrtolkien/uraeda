@@ -320,7 +320,8 @@ fn find(text: &str, id: &str) -> Option<Item> {
 /// Inserts `item`, a note's lines, before the note at `index` of a category, or at its end. A
 /// category is the first `##` heading of its name, and a new one is added at the end of the text.
 /// Notes without one go before the first `##` heading.
-fn insert_at(text: &str, category: Option<&str>, index: usize, item: &[String]) -> String {
+/// Gives the text, and the index of the item's first line in it, from 0.
+fn insert_at(text: &str, category: Option<&str>, index: usize, item: &[String]) -> (String, usize) {
     let category = category.map(str::trim);
     let titled = match category {
         Some(_) => text.to_string(),
@@ -348,7 +349,7 @@ fn insert_at(text: &str, category: Option<&str>, index: usize, item: &[String]) 
     let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
     if let Some(before) = notes.get(index) {
         lines.splice(before.line - 1..before.line - 1, item.iter().cloned());
-        return lines.join("\n");
+        return (lines.join("\n"), before.line - 1);
     }
     let new_heading = format!("## {}", category.unwrap_or_default());
     lines::append_to_section(text, notes.last(), heading, &new_heading, item)
@@ -366,14 +367,16 @@ fn titled(text: &str) -> String {
     }
 }
 
-/// Adds a note's line at the end of a category, or of the notes without one. A text without a
-/// title gets `# Inbox` first.
-pub fn add(text: &str, category: Option<&str>, line: &str) -> String {
-    let result: Result<String, ()> = super::with_unix_newlines(text, |text| {
-        let text = titled(text);
-        Ok(insert_at(&text, category, usize::MAX, &[line.to_string()]))
-    });
-    result.unwrap_or_else(|()| text.to_string())
+/// Adds a note's line at the end of a category, or of the notes without one, and gives its line,
+/// from 1. A text without a title gets `# Inbox` first.
+pub fn add(text: &str, category: Option<&str>, line: &str) -> (String, u32) {
+    let unix = titled(&text.replace("\r\n", "\n"));
+    let (edited, at) = insert_at(&unix, category, usize::MAX, &[line.to_string()]);
+    let edited = match text.contains("\r\n") {
+        true => edited.replace('\n', "\r\n"),
+        false => edited,
+    };
+    (edited, u32::try_from(at + 1).unwrap_or(u32::MAX))
 }
 
 /// Inserts a note's lines, as written, before the note at `index` of a category, or at its end:
@@ -388,7 +391,7 @@ pub fn insert(
         return None;
     }
     super::with_unix_newlines(text, |text| {
-        Ok::<_, ()>(insert_at(text, category, index, lines))
+        Ok::<_, ()>(insert_at(text, category, index, lines).0)
     })
     .ok()
 }
@@ -485,7 +488,7 @@ pub fn move_to(text: &str, id: &str, category: Option<&str>) -> Option<String> {
             .map(|l| l.to_string())
             .collect();
         let without = lines::remove(text, &item);
-        Ok::<_, ()>(insert_at(&without, category, usize::MAX, &lines))
+        Ok::<_, ()>(insert_at(&without, category, usize::MAX, &lines).0)
     })
     .ok()
 }

@@ -167,14 +167,47 @@ function M.waiting()
 end
 
 --- Adds the note `text` to `category`, or to the notes without one, in the default branch's
---- `INBOX.md`, without committing, and opens the file at the note's line.
+--- `INBOX.md`, without committing, and opens the file at the note's line: the cursor moves only
+--- when the inbox is the current buffer, which it is not when `:edit` failed.
 --- @param text string
 --- @param category string?
 local function add_note(text, category)
   local args = { text = text, category = category }
   client().command_checkout("uraeda.note", args, function(result)
-    if result.opened and result.line then
+    local current = vim.fs.normalize(vim.api.nvim_buf_get_name(0))
+    if result.opened and result.line and current == vim.fs.normalize(result.opened) then
       pcall(vim.api.nvim_win_set_cursor, 0, { result.line, 0 })
+    end
+  end)
+end
+
+--- Picks a category among `names`, or none, or a new one typed, and calls `done(category)`, with
+--- nil for none; not called when cancelled.
+--- @param names string[]
+--- @param done fun(category: string?)
+local function pick_category(names, done)
+  local choices = { { label = "No category" } }
+  for _, name in ipairs(names) do
+    table.insert(choices, { label = name, name = name })
+  end
+  table.insert(choices, { label = "New category…", new = true })
+  local opts = {
+    prompt = "Category",
+    kind = "uraeda_category",
+    format_item = function(choice)
+      return choice.label
+    end,
+  }
+  vim.ui.select(choices, opts, function(choice)
+    if choice and not choice.new then
+      return done(choice.name)
+    end
+    if choice then
+      vim.ui.input({ prompt = "New category: " }, function(name)
+        if name ~= nil and name ~= "" then
+          done(name)
+        end
+      end)
     end
   end)
 end
@@ -187,29 +220,8 @@ function M.note()
       return
     end
     client().request_checkout("uraeda/inboxCategories", vim.empty_dict(), function(names)
-      local choices = { { label = "No category" } }
-      for _, name in ipairs(names or {}) do
-        table.insert(choices, { label = name, name = name })
-      end
-      table.insert(choices, { label = "New category…", new = true })
-      vim.ui.select(choices, {
-        prompt = "Category",
-        kind = "uraeda_category",
-        format_item = function(choice)
-          return choice.label
-        end,
-      }, function(choice)
-        if choice == nil then
-          return
-        end
-        if not choice.new then
-          return add_note(text, choice.name)
-        end
-        vim.ui.input({ prompt = "New category: " }, function(name)
-          if name ~= nil and name ~= "" then
-            add_note(text, name)
-          end
-        end)
+      pick_category(names or {}, function(category)
+        add_note(text, category)
       end)
     end)
   end)

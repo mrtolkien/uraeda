@@ -194,7 +194,7 @@ fn category_names_include_empty_and_repeated_ones() {
     assert_eq!(inbox::category_names(text), ["UI", "Empty", "UI"]);
     // Review focus 6: edits add to the first.
     assert_eq!(
-        inbox::add(text, Some("UI"), "- note"),
+        inbox::add(text, Some("UI"), "- note").0,
         "# Inbox\n\n## UI\n\n- a\n- note\n\n## Empty\n\n## UI\n\n- b\n"
     );
     let moved = inbox::move_to(text, "note-2", Some("UI")).unwrap();
@@ -248,11 +248,14 @@ fn add() {
         ),
     ];
     for (before, category, after) in cases {
+        let (text, line) = inbox::add(before, category, "- note");
+        // The line given is the note's, whatever the add wrote before it.
         assert_eq!(
-            inbox::add(before, category, "- note"),
-            after,
+            text.lines().nth(line as usize - 1),
+            Some("- note"),
             "{before:?} {category:?}"
         );
+        assert_eq!(text, after, "{before:?} {category:?}");
         let notes = inbox::parse(after);
         assert!(notes.iter().any(|n| n.text == "note"), "{after:?}");
     }
@@ -453,7 +456,7 @@ fn closing_hashes_are_not_part_of_a_category() {
     }
     let text = "# Inbox\n\n## UI ##\n\n- a\n";
     assert_eq!(
-        inbox::add(text, Some("UI"), "- note"),
+        inbox::add(text, Some("UI"), "- note").0,
         "# Inbox\n\n## UI ##\n\n- a\n- note\n"
     );
 }

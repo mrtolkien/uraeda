@@ -347,24 +347,33 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: task 7 and its review, `actions/inbox.rs`, `crates/cli/src/note.rs`,
   `crates/cli/src/output.rs`
 
-## R18: The note's line comes from the language server, and an empty text cancels
+## R18: The core gives the note's line, without a hash, and an empty text cancels
 
 - **Decision**:
-  - `uraeda.note` reads the inbox, adds the note against its hash, and takes `Outcome.line` from the
-    first note, in file order, whose line or text differs between the two reads. The core's
-    `add_note` is unchanged.
-  - In Neovim, an empty answer to "Note: " or "New category: " cancels, as `vim.ui.input` does for
-    Escape. A text of spaces goes to the server, which refuses it with "A note needs text.".
+  - `api::add_note_at(repo, category, about, text) -> Result<(Inbox, u32)>` adds the note over the
+    inbox as it is, without a hash, as `ura note` does, and gives its 1-based line from where the
+    splice put it: `files::inbox::add` and `lines::append_to_section` give the index of the line
+    they inserted. `uraeda.note` calls it, and sends that line as `Outcome.line`.
+  - `actions::inbox::add` gives `(Inbox, u32)`; `api::add_note`, which the binding uses, is
+    unchanged.
+  - In Neovim, the cursor moves only when the current buffer is the opened inbox: an `:edit` that
+    failed, over an unsaved buffer with 'nohidden', leaves the cursor where it was.
+  - An empty answer to "Note: " or "New category: " cancels, as `vim.ui.input` does for Escape. A
+    text of spaces goes to the server, which refuses it with "A note needs text.".
   - `client.lua`'s `command` and `command_checkout` share one local `execute`, which shows the
     progress, reloads, opens `opened`, and reports errors.
   - The help (`doc/uraeda.txt`), `test_keys.lua`, and the refusal text in `test_actions.lua` and
     `test_client.lua` change with the action and the command, as their tests require. Every
     `Outcome` literal of `commands/attach.rs` and `commands/draft.rs` gets `line: None`.
-- **Rationale**: Only the language server knows the line before and after the write, and the plugin
-  must not read the file. Returning the line from the core would change an API the binding and the
-  server share, for one caller. The refusal for blank text stays in the core, its one home.
-- **Alternatives considered**: A line in the core's `Inbox`, which the web UI does not need. The
+- **Rationale**: Only the add knows where it put the note. Diffing two reads gave the wrong line
+  when the add also wrote the title of an untitled inbox, and a hash read just before the write
+  protected nothing the human had seen: a write by another tool in between lost the typed note. The
+  plugin must not read the file, and the refusal for blank text stays in the core, its one home.
+- **Alternatives considered**: Diffing the inbox read before and after the add, in the language
+  server, which the title broke. A line in the core's `Inbox`, which the web UI does not need. The
   plugin refusing blank text itself, a second copy of the rule.
-- **If wrong**: `api::add_note` returns the line, and `added_line` goes, about 20 lines.
-- **Where**: task 8, `crates/lsp/src/commands/note.rs`, `editors/nvim/lua/uraeda/actions.lua`,
-  `editors/nvim/lua/uraeda/client.lua`
+- **If wrong**: `add_note_at` folds into `add_note` with an optional hash, a few lines.
+- **Where**: task 8, `crates/core/src/api/inbox_edits.rs`, `crates/core/src/actions/inbox.rs`,
+  `crates/core/src/files/inbox.rs`, `crates/core/src/files/lines.rs`,
+  `crates/core/src/files/priorities.rs`, `crates/lsp/src/commands/note.rs`,
+  `editors/nvim/lua/uraeda/actions.lua`, `editors/nvim/lua/uraeda/client.lua`
