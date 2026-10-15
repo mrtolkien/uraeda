@@ -8,9 +8,23 @@ are organized later.
 A misaligned icon, a confusing command, an idea: things worth keeping, noticed while doing something
 else, and not priorities yet. The human writes them down in a few seconds and goes back to what they
 were doing. Notes wait in `specs/INBOX.md`, grouped under categories the human names, until someone
-decides what each becomes: a priority, a draft, part of an existing draft, a bug, or nothing.
+decides what each becomes: a priority, a draft, part of an existing draft, a change, or nothing.
+
+## Setting it up
 
 The inbox is optional. A project without `INBOX.md` has no notes, and the first note creates it.
+[Setting up a project](projects.md#setting-up-a-project) copies its template, `# Inbox` alone.
+
+A project that kept its notes elsewhere, like a `## Scratchpad` section of `PRIORITIES.md`, moves
+them into the inbox in one commit on the default branch, from the files as they are then:
+
+1. **Move every note**: each bullet of the section, with the lines indented under it, goes to the
+   end of the notes without a category in `INBOX.md`, as it is, in the same order. Notes are not
+   fixed, merged, sorted, or given a category on the way: organizing them is the inbox's work,
+   later.
+2. **Remove the section** from `PRIORITIES.md`: its heading, its notes, and any other text under it,
+   every other line kept as it is.
+3. **Commit** `INBOX.md` and `PRIORITIES.md` alone, with `chore: move the scratchpad to the inbox`.
 
 ## The format
 
@@ -40,11 +54,12 @@ The inbox is optional. A project without `INBOX.md` has no notes, and the first 
 - **Category**: a `## ` heading; its name is the heading's text, without closing `#`s: `## UI ##` is
   `UI`. Notes before the first `##` have no category. Other headings and text are kept and ignored.
 
-The `[agent]` mark says an agent wrote the note. The slug is the folder of the feature or bug the
-note is about, without its date: `[run-ui]` for `2026-10-14-run-ui`. Lines inside fenced code are
-not notes, a fence indented under a note is part of it, and a `###` heading does not end a category.
-A category's name appears once: tools add to the first heading of a name, and `ura check` reports a
-repeated one. A category left empty keeps its heading.
+The `[agent]` mark says an agent wrote the note. The slug is the folder of the feature or
+[change](change.md) the note is about, without its date: `[run-ui]` for `specs/2026-10-14-run-ui/`
+or `specs/changes/2026-10-14-run-ui/`. Lines inside fenced code are not notes, a fence indented
+under a note is part of it, and a `###` heading does not end a category. A category's name appears
+once: tools add to the first heading of a name, and `ura check` reports a repeated one. A category
+left empty keeps its heading.
 
 Tools edit the file line by line: every line they do not change keeps its bytes. By hand, do the
 same.
@@ -61,17 +76,17 @@ add that title to a file without one.
   `chore: add "<note>" to the inbox`. When it has other uncommitted changes, write the note without
   committing: they are someone's work in progress.
 - **With `ura`**:
-  `ura note <text> [--category <name>] [--about <feature or bug>] [--agent] [--no-commit]` writes
+  `ura note <text> [--category <name>] [--about <feature or change>] [--agent] [--no-commit]` writes
   the note on the default branch, and commits `specs/INBOX.md` alone. When `INBOX.md` had other
   uncommitted changes, it writes without committing, and says "INBOX.md had uncommitted changes: the
   note is written but not committed." `--about` writes the slug of the target's folder; inside a
-  feature's or a bug's worktree, it defaults to that one. `--category` names the category, created
-  when missing; `--agent` adds the `[agent]` mark; `--no-commit` leaves the file for you to commit.
-  It refuses a blank note with "A note needs text.", and runs only in a repository with a `specs/`
-  folder.
-- **In the web UI**: the ＋ next to Inbox in the sidebar, from any page. From a feature's page, the
-  note gets that feature's slug. It stays uncommitted until the commit bar's Commit. A note with an
-  image becomes a draft that holds it, and the note links to the draft.
+  feature's or a change's worktree, it defaults to that one. `--category` names the category,
+  created when missing; `--agent` adds the `[agent]` mark; `--no-commit` leaves the file for you to
+  commit. It refuses a blank note with "A note needs text.", and runs only in a repository with a
+  `specs/` folder.
+- **In the web UI**: the ＋ next to Inbox in the sidebar, from any page. From a feature's or a
+  change's page, the note gets its slug. It stays uncommitted until the commit bar's Commit. A note
+  with an image becomes a draft that holds it, and the note links to the draft.
 - **In the editor**: the plugin's "Add a note" action, which writes without committing.
 
 ## Organizing by hand
@@ -86,6 +101,10 @@ commit as what it became:
   section. When the slug is taken, it gets `-2`, `-3`, ...
 - **A line of an existing draft**: the note's lines, marks dropped, at the end of the draft's
   `## What` section.
+- **A change**, for a bug or a small change: the note becomes a new draft, as above, which the human
+  then starts as a change, as [starting a change](change.md#starting-a-change) says. The note leaves
+  the inbox in the draft's commit. Starting makes a branch, which only the human asks for: the inbox
+  page has no action for it.
 - **Nothing**: the note is deleted. A note linking a draft loses its line only: the draft stays.
 
 A note can also have its text edited, its marks kept, or move to another category.
@@ -113,8 +132,8 @@ checkout, and need no feature.
 1. **Refuse a second triage.** When `specs/INBOX-TRIAGE.md` exists, stop and say: "An inbox triage
    already waits: answer or delete specs/INBOX-TRIAGE.md first."
 2. **Read every note against the project**: the code it is about, `PRIORITIES.md`, the drafts and
-   the backlog, and the open feature and bug branches. A note may be done already, a duplicate, or
-   part of a draft.
+   the backlog, and the open feature and change branches. A note may be done already, a duplicate,
+   or part of a draft.
 3. **Write `specs/INBOX-TRIAGE.md`** from [the template](../assets/templates/specs/INBOX-TRIAGE.md),
    with `status: awaiting-human`:
    - The `> [!IMPORTANT]` block, as in
@@ -127,10 +146,11 @@ checkout, and need no feature.
    - **One question per note, or per group of notes** that go to the same place. A question names
      its notes by their text, quoted, so the human, and the agent that applies it, find them without
      line numbers. Its options, the recommended one first, are among these: a priorities section, a
-     new draft, an existing draft named by its title, a bug, deletion, or keeping it in the inbox. A
-     new draft option names the draft's title and the priorities section that links it. A bug option
-     names the slug it would use.
-   - **Links** only to files on the default branch, such as drafts. A started feature's or bug's
+     new draft, an existing draft named by its title, a change, deletion, or keeping it in the
+     inbox. A new draft option names the draft's title and the priorities section that links it. A
+     change option, for a bug or a small change, names its draft's title and the slug it would start
+     with.
+   - **Links** only to files on the default branch, such as drafts. A started feature's or change's
      files live on its branch: name it by its title, or `ura check` reports the link.
    - **Notes:**, last, for the human. A triage has no points settled without the human: every
      outcome is theirs.
@@ -147,26 +167,30 @@ Once `INBOX-TRIAGE.md` is `answered`:
 
 1. **Carry out each answer** on the notes it names, found by their text in `INBOX.md` as it is now,
    as [organizing by hand](#organizing-by-hand) does. A new draft for a group of notes takes the
-   option's title, and the notes' lines, marks dropped, as its What. A note answered with a bug
-   leaves the inbox: its report holds it. A note kept in the inbox does not change. A note added
-   after the triage was written stays in the inbox, untouched. A note the triage names that is no
-   longer there is skipped.
+   option's title, and the notes' lines, marks dropped, as its What. A note answered with a change
+   becomes a new draft in the same way, linked from the end of **Now**, where starting puts it. A
+   note kept in the inbox does not change. A note added after the triage was written stays in the
+   inbox, untouched. A note the triage names that is no longer there is skipped.
 2. **Commit once**: `INBOX.md`, `PRIORITIES.md`, the drafts the notes went into, and the deletion of
    `INBOX-TRIAGE.md`, with `chore: apply the inbox triage`. The body lists every note the triage
    names, one per line, in the questions' order: `- Move from the inbox to <Section>: <note>`,
    `- Move from the inbox to the draft <title>: <note>`, `- Remove from the inbox: <note>`,
-   `- Start the bug <slug>: <note>`, `- Keep in the inbox: <note>`, and
+   `- Start the change <slug>: <note>`, `- Keep in the inbox: <note>`, and
    `- Skip, no longer in the inbox: <note>`.
-3. **Start each bug** an answer asked for, as [starting a bug](bug.md#starting-a-bug) says, with the
-   slug of its option: the answer is the human asking for it. Its report is the note, with what the
-   question's context found.
+3. **Start each change** an answer asked for, from its draft, with the slug of its option, as
+   **Start as a change** in [Projects](projects.md#starting-postponing-and-dropping-a-feature) says:
+   `ura start <draft> --slug <slug> --change`. The answer is the human asking for it, as
+   [starting a change](change.md#starting-a-change) requires. Its proposal is the draft, unchanged:
+   the human's note, not what the question's context found. Then say to open `/f/<folder>` in the
+   web UI, where the change's own session runs: this run does not make the change.
 
 ## Agents' notes
 
-An agent working on a feature or a bug that finds a problem outside its task, like a slow page or a
-confusing message, does not fix it in passing, and does not drop it. It adds a note:
+An agent working on a feature or a [change](change.md) that finds a problem outside its task or the
+change's proposal, like a slow page or a confusing message, does not fix it in passing, and does not
+drop it. It adds a note:
 
-- marked `[agent]`, then with the slug of the feature or bug the note is about;
+- marked `[agent]`, then with the slug of the feature or change the note is about;
 - under the category that fits, or a new one named like the others;
 - with `ura note <text> --agent --about <slug> --category <name>`, or by hand in the default
   branch's checkout, committed alone with `chore: add "<note>" to the inbox`.

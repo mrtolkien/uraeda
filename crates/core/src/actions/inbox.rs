@@ -83,7 +83,7 @@ pub fn retry_triage(place: &Place) -> Result<Committed, ActionError> {
 pub struct Marks {
     /// Whether an agent wrote the note.
     pub agent: bool,
-    /// The slug of the feature or bug it is about.
+    /// The slug of the feature or change it is about.
     pub about: Option<String>,
 }
 

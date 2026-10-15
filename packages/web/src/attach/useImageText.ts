@@ -246,7 +246,7 @@ function useRuns(field: Field, attaching: ReturnType<typeof useAttach>) {
 
 /**
  * Whether the core takes images for the markdown file at `path`: not for the inbox's triage, which
- * is no feature's, bug's, or draft's file, and is committed alone.
+ * is no feature's, change's, or draft's file, and is committed alone.
  */
 export function takesImages(path: string): boolean {
   return path !== "specs/INBOX-TRIAGE.md";

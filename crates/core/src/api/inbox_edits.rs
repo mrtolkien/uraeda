@@ -24,7 +24,7 @@ pub fn read_inbox(repo: &Path) -> Result<Inbox> {
     ))
 }
 
-/// The marks of a note added from the web UI: `about` is the folder of the feature or bug the
+/// The marks of a note added from the web UI: `about` is the folder of the feature or change the
 /// note is about, written as its slug. One that is not a dated folder is refused here, and a slug
 /// that would not parse back as a mark is refused by the action.
 fn marks(about: Option<String>) -> Result<Marks> {

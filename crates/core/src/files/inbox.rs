@@ -210,7 +210,7 @@ pub struct InboxNote {
     pub text: String,
     pub spans: Vec<super::document::Span>,
     pub agent: bool,
-    /// The slug of the feature or bug it is about.
+    /// The slug of the feature or change it is about.
     pub about: Option<String>,
     /// The path of the draft its whole text links to, from the repository's top level.
     pub draft: Option<String>,

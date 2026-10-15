@@ -621,7 +621,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
     [attachments](../decisions/attachments.md), [CLI](../decisions/cli.md), and
     [UI checks](../decisions/ui-checks.md), rename bugs to changes, and conflict with nothing here.
     The CLI's "without a target, the current branch's feature or change" applies to
-    `ura note --about`'s default (ruling R24); the other two do not apply to the inbox, whose images
+    `ura note --about`'s default (ruling R25); the other two do not apply to the inbox, whose images
     go in drafts' folders.
   - `workspace.rs`, which `main` split down to its `LARGE` number, 967, got room for the inbox's two
     fields in a structural commit: `linked_draft` and `match_feature` moved, unchanged, to
@@ -643,3 +643,87 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: Each is a few lines: the row order in `SessionNav.tsx`, the moved functions back.
 - **Where**: task 14, `crates/core/src/workspace.rs`, `workspace/links.rs`, `api/drafts.rs`,
   `packages/web/src/SessionNav.tsx`, `SessionNavRows.tsx`, the feature's spec files
+
+## R24: The triage's "Bug" outcome is a change, made a draft and started from it
+
+- **Decision**: A triage question's options offer "a change" in place of "a bug": its draft's title
+  and the slug it starts with. Applying it makes the note a new draft, as a new draft option does,
+  linked from the end of **Now**, in the apply commit, listed in its body as
+  `- Start the change <slug>: <note>`. Then the agent starts the draft with
+  `ura start <draft> --slug <slug> --change`, as **Start as a change** says, and tells the human to
+  open `/f/<folder>`: the triage's run does not make the change. The proposal is the draft as
+  written, the note's lines, without what the question's context found. By hand, a change is a new
+  draft that the human starts. The template, the fixture's Q2, and `references/inbox.md` say so.
+- **Rationale**: The spec's assumption: "whichever feature lands second turns the triage's 'Bug'
+  outcome into 'a draft started as a change'". The
+  [change flow](/skills/uraeda/references/change.md) starts only when a human asks, which the answer
+  is, and only from a draft or a typed text; its proposal "is the human's words", so the agent's
+  findings stay in the triage, which the change's agent can read in `git log`. Linking the draft
+  from **Now** is where starting puts its entry.
+- **Alternatives considered**: Running the change in the triage's chat, which the change flow keeps
+  in the change's own session. Writing the context's findings into the proposal, as the bug's report
+  did, which would put the agent's words in the human's scope.
+- **If wrong**: The text of `references/inbox.md`'s triage and the template, and the fixture's Q2:
+  no code reads the outcome.
+- **Where**: task 14, `skills/uraeda/references/inbox.md`,
+  `skills/uraeda/assets/templates/specs/INBOX-TRIAGE.md`, `fixtures/INBOX-TRIAGE.md`
+
+## R25: A note is about a feature or a change: `--about`, the slug mark, and the web UI
+
+- **Decision**: `ura note --about` resolves features and changes, as `main`'s target resolution
+  does, and refuses anything else with "--about names a feature or a change: none is named <name>".
+  Without it, a change's worktree, on its `change/` branch, marks the note with the change's slug,
+  as the CLI decision's "the current branch's feature or change" asks. A change's slug is its
+  folder's name without its date, the same mark as a feature's; the web UI marks a note added from a
+  change's page, `/f/<folder>`, with it. The two CLI tests of bugs and the web UI's test of a bug's
+  page now start a change, `change/2026-10-14-broken-link` and `2026-10-14-login-crash`, which
+  `main`'s fixtures can create; the bugs they tested no longer exist.
+- **Rationale**: `main` removed `specs/bugs/` and `fix/` branches: the old tests named folders no
+  tool reads now. The code already took changes through `target::resolve` and `branch_folder`; the
+  refusal and the help still said bug.
+- **Alternatives considered**: A distinct mark for a change, like `[change:x]`, a format change the
+  spec does not make: the slug finds the branch, a feature's or a change's.
+- **If wrong**: The refusal's text in `crates/cli/src/note.rs`, and the tests.
+- **Where**: task 14, `crates/cli/src/note.rs`, `crates/cli/src/main.rs`,
+  `crates/cli/tests/note.rs`, `packages/web/src/__tests__/inbox.test.tsx`, comments of the inbox's
+  code
+
+## R26: A change's agent notes what it finds outside its proposal
+
+- **Decision**: [Making the change](/skills/uraeda/references/change.md#making-the-change) gains
+  "Findings outside the proposal": a problem outside the proposal's items is noted in the inbox, as
+  [agents' notes](/skills/uraeda/references/inbox.md#agents-notes) says, with the change's slug, and
+  named in the pull request's description, whose "Minor findings" item lists the notes added.
+  Agents' notes now name changes, and link the change flow.
+- **Rationale**: The implementation step already sends findings outside a task to the inbox; a
+  change is the flow most likely to meet a neighbouring bug, and has no plan to note it in.
+- **Alternatives considered**: Adding the finding to the change as an item, which grows its scope
+  past what the human wrote.
+- **If wrong**: One bullet of `change.md`.
+- **Where**: task 14, `skills/uraeda/references/change.md`, `references/inbox.md`
+
+## R27: `ura check` of the inbox and a change's folder
+
+- **Decision**: The inbox may link a started change's proposal, `changes/<folder>/proposal.md`, as
+  it may a started feature's, through the same dated-folder exemption, which `conventions.md` now
+  says. An `INBOX.md` or `INBOX-TRIAGE.md` inside a change's folder is no inbox: `main`'s
+  `names.change-file` reports it, and nothing checks it as one. Both have a test.
+- **Rationale**: The exemption already covered any dated folder; no test showed it for changes. The
+  inbox's files are recognized only directly in `specs/` (ruling R15), and a change's folder holds
+  only its own files.
+- **Alternatives considered**: None that keep both rules.
+- **If wrong**: A test each, in `crates/core/tests/check.rs`.
+- **Where**: task 14, `crates/core/tests/check.rs`, `references/conventions.md`
+
+## R28: The inbox page has no action to start a change
+
+- **Decision**: `NoteView` offers no "Start as a change". A change from a note goes through Make a
+  draft, then a start, or through the triage, or the web UI's "New change" with the note's text.
+- **Rationale**: The spec keeps a bug off the inbox page, since it starts a branch the human asks
+  for; a change is the same. The web UI starts drafts as features only, and changes from a typed
+  text, so no start action fits the note's view without a new view or a new start path.
+- **Alternatives considered**: A "Start as a change" button opening "New change" with the note's
+  text, which leaves the note in the inbox once the change starts, with no commit removing it.
+- **If wrong**: A button in `NoteView.tsx` and a removal after the start, a small feature of its
+  own.
+- **Where**: task 14, `packages/web/src/NoteView.tsx`, unchanged

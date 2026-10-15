@@ -50,7 +50,7 @@ its numbered rounds and questions, and its opening `> [!NOTE]` block; `PRIORITIE
 category named once, when the file exists; `specs/INBOX-TRIAGE.md` as a round of questions, with its
 template's title and sections, its `status`, its answers, and its block; links and images to
 markdown files and into `specs/` that resolve, anchors included, except links from `PRIORITIES.md`
-and `INBOX.md` into a started feature's folder, whose files live on its branch; and the
+and `INBOX.md` into a started feature's or change's folder, whose files live on its branch; and the
 [review files](#review-files) rules.
 
 ## Workflow status
@@ -160,6 +160,7 @@ and `chore:` for the rest. `ura` and the web UI write the same messages.
 | A note                         | `chore: add "Sort completed tasks" to the inbox`                                                    |
 | `INBOX.md`, and where notes go | `chore: move "Sort completed tasks" from the inbox to Next`                                         |
 | The inbox triage               | `chore: propose an inbox triage`, `chore: answer the inbox triage`, `chore: apply the inbox triage` |
+| Notes moved into the inbox     | `chore: move the scratchpad to the inbox`                                                           |
 
 A commit of `PRIORITIES.md` alone names its one change: `add "<entry>" to <section>`,
 `remove "<entry>"`, `edit "<entry>"`, `move "<entry>" to <section>`, or

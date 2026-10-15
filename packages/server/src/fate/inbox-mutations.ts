@@ -13,7 +13,7 @@ import { fileDataView, type FileRecord, sentFile } from "./views.ts";
 /** A note's edit: the note's id, `note-3`, and the inbox's hash as read. */
 type NoteInput = { hash: string; note: string };
 
-/** A note to add: its text, its category, none when left out, and the feature or bug it is about. */
+/** A note to add: its text, its category, none when left out, and the feature or change it is about. */
 type AddInput = { about?: string; category?: string; hash: string; text: string };
 
 /**
