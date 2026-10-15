@@ -165,7 +165,7 @@ pub fn step(feature: &Feature, pull_request: PullRequest) -> Step {
         return Step::none();
     }
     if feature.is_finished() {
-        return finished_step(pull_request);
+        return finished_step(feature.kind, pull_request);
     }
     match feature.kind {
         Kind::Feature => feature_step(feature, pull_request),
@@ -174,13 +174,15 @@ pub fn step(feature: &Feature, pull_request: PullRequest) -> Step {
 }
 
 /// A feature or change whose folder was replaced by its record: what is left of finishing, then the
-/// pull request.
-fn finished_step(pull_request: PullRequest) -> Step {
+/// pull request, whose changes its own step's reference handles.
+fn finished_step(kind: Kind, pull_request: PullRequest) -> Step {
+    let changes = match kind {
+        Kind::Feature => "implementation",
+        Kind::Change => "change",
+    };
     let step = match pull_request {
         PullRequest::NoPullRequest | PullRequest::Draft => Step::agent(StepName::Finish, "finish"),
-        PullRequest::ChangesRequested => {
-            Step::agent(StepName::PullRequestChanges, "implementation")
-        }
+        PullRequest::ChangesRequested => Step::agent(StepName::PullRequestChanges, changes),
         PullRequest::Open => Step::new(StepName::PullRequest, WaitsOn::Human),
         PullRequest::Unknown => Step::agent(StepName::PullRequest, "finish"),
     };
