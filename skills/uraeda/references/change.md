@@ -28,8 +28,8 @@ A proposal that needs more than this is an [upgrade](#upgrading) to a feature, n
 Typos, formatting, and comments need no flow at all.
 
 A change's folder is `specs/changes/YYYY-MM-DD-<slug>/`. It holds `proposal.md`,
-`clarifications-NN.md`, `rulings.md`, `images/`, and `screenshots/`, nothing else: with `ura`,
-`ura check` reports any other file.
+`clarifications-NN.md`, `rulings.md`, `images/`, `mockups/`, and `screenshots/`, nothing else: with
+`ura`, `ura check` reports any other file.
 
 ## Starting a change
 
