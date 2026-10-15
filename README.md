@@ -196,6 +196,10 @@ npx @uraeda/ui --allowed-hosts mac.tail1234.ts.net  # host names accepted beside
 npm i -g @uraeda/ui@latest              # a lasting install, then `uraeda`; updated the same way
 ```
 
+In a repository whose `package.json` asks for another package manager in `devEngines`, npm refuses
+to run `npx`, with `EBADDEVENGINES`. In a pnpm project, run `pnpm dlx @uraeda/ui`; anywhere, install
+it once with `npm i -g @uraeda/ui@latest` and run `uraeda`.
+
 `uraeda --help` lists every option.
 
 ## The `ura` CLI
