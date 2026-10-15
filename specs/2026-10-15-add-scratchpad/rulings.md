@@ -830,3 +830,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `never_committed` in `actions/changes.rs`.
 - **Where**: second final review, `crates/core/src/actions/changes.rs`,
   `crates/core/src/files/inbox.rs`, `crates/core/tests/inbox_moves.rs`
+
+## R34: A draft's commit from its editor holds the drafts its lists need
+
+- **Decision**: A draft's commit from its editor that holds `INBOX.md` or `PRIORITIES.md` also holds
+  the drafts the commit bar's Commit would hold with them, those of the moves and those the lists
+  link that no commit has (ruling R33), each folder with its linked images. Its subject stays the
+  draft's. The check of the staged files before any write allows them and their `images/`.
+- **Rationale**: The second review found that, after two notes added with images, committing one
+  draft committed the inbox linking both, the other draft left untracked. The lists' changes are
+  committed whole, so the files they need go with them: no committed link points at a missing file,
+  and no move is committed half, the note gone from the inbox and not yet in its draft.
+- **Alternatives considered**: Leaving the other notes' lines out of the committed lists, which
+  stages a text no file holds, through the index, and leaves the commit bar a commit the human did
+  not see coming; a refusal, which leaves the human to find the other draft.
+- **If wrong**: `text::change` drops its call to `changes::drafts`.
+- **Where**: second final review, `crates/core/src/actions/text.rs`,
+  `crates/core/src/actions/changes.rs`, `crates/core/tests/inbox_moves.rs`

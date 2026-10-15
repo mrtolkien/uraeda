@@ -10,7 +10,7 @@ use crate::git::Git;
 use crate::workspace::{first_file, folder_slug, path_folder};
 
 use super::place::{self, Place};
-use super::{ActionError, Change, Committed, commit, images};
+use super::{ActionError, Change, Committed, changes, commit, images};
 
 const PRIORITIES: &str = "specs/PRIORITIES.md";
 const INBOX: &str = "specs/INBOX.md";
@@ -124,12 +124,22 @@ fn moved_from(place: &Place, git: &Git, path: &str, text: &str) -> Option<String
     })
 }
 
-/// Every path a file's commit may hold, for the check of the staged files before any write.
-fn candidates(path: &str) -> Vec<String> {
+/// Every path a file's commit may hold, for the check of the staged files before any write: a
+/// draft's, the drafts its lists need and their images too.
+fn candidates(place: &Place, path: &str) -> Vec<String> {
     let mut paths = vec![path.to_string(), PRIORITIES.to_string(), INBOX.to_string()];
     paths.extend(folder(path).map(images::images_folder));
     paths.extend(single_files(path));
+    if is_draft(path) {
+        let drafts = changes::drafts(place);
+        paths.extend(changes::images_folders(&drafts));
+        paths.extend(drafts);
+    }
     paths
+}
+
+fn is_draft(path: &str) -> bool {
+    path.starts_with("specs/drafts/") || path.starts_with("specs/backlog/")
 }
 
 /// The commit of a draft, `chore: draft <title>`, or `chore: edit the draft <title>` once
@@ -148,8 +158,9 @@ pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
     let text = read(place, path);
     let title = title_of(&text).unwrap_or_else(|| path.to_string());
     let mut paths = vec![path.to_string()];
-    let subject = if path.starts_with("specs/drafts/") || path.starts_with("specs/backlog/") {
-        // The lists a draft is made from or linked in, when they changed.
+    let subject = if is_draft(path) {
+        // The lists a draft is made from or linked in, when they changed, with the other drafts
+        // they need, so no committed link points at a file the commit lacks.
         for list in [PRIORITIES, INBOX] {
             let text = read(place, list);
             let changed = match committed(list) {
@@ -159,6 +170,14 @@ pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
             if changed {
                 paths.push(list.to_string());
             }
+        }
+        if paths.len() > 1 {
+            let others: Vec<String> = changes::drafts(place)
+                .into_iter()
+                .filter(|other| other != path)
+                .collect();
+            paths.extend(changes::linked_images(place, &others)?);
+            paths.extend(others);
         }
         // A draft committed as one file, then made a folder by an image.
         let moved = moved_from(place, &git, path, &text);
@@ -211,7 +230,7 @@ pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
 /// Commits a draft or a proposal, as [`change`] names it.
 pub fn commit(place: &Place, path: &str) -> Result<Committed, ActionError> {
     checked(path)?;
-    place::ensure_only_staged(place, &candidates(path))?;
+    place::ensure_only_staged(place, &candidates(place, path))?;
     let change = change(place, path)?;
     place::ensure_only_staged(place, &change.paths)?;
     commit::commit(place, &change)
