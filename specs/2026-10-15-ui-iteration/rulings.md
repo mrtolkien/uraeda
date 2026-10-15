@@ -858,3 +858,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a worktree an agent did not set up shows "Storybook did not start: …", with the
   missing package as its last line, until someone runs the install; the three references' sentence.
 - **Where**: `skills/uraeda/references/spec.md`, `discovery.md`, and `change.md`.
+
+## R54: A reported story link is alone in its paragraph, not on a line
+
+- **Decision**: `implementation.md` and `change.md` ask the agent to link each story it wrote or
+  changed "alone in its paragraph, with a blank line before and after", where the spec's list of
+  reference changes, and R11, say "alone on a line".
+- **Rationale**: the spec's own rule for embeds, in its architecture and its details, is "only a
+  link alone in its paragraph embeds". A link on a line of its own, inside a paragraph, stays an
+  inline link, so the line's wording sent agents to write links that show no story.
+- **Alternatives considered**: keeping "alone on a line", and embedding links alone on their line
+  too, which changes the approved rule for every workflow file.
+- **If wrong**: the two references' sentence.
+- **Where**: `skills/uraeda/references/implementation.md` and `change.md`.
