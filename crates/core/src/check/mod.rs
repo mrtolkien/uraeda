@@ -29,6 +29,10 @@ pub(crate) enum Checked {
     Workflow(FileKind),
     Decision,
     Priorities,
+    /// `INBOX.md`: its title and categories.
+    Inbox,
+    /// `INBOX-TRIAGE.md`: a round of questions about the inbox's notes.
+    Triage,
     /// The record of a finished feature or change, in `specs/done/`.
     Record,
 }
@@ -159,7 +163,8 @@ fn walk(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
     }
 }
 
-/// What kind of file a name is, in a folder: decisions in `decisions/`, priorities at the top.
+/// What kind of file a name is, in a folder: decisions in `decisions/`; priorities, the inbox, and
+/// its triage at the top.
 fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
     let parent = dir.file_name().map(|n| n.to_string_lossy().into_owned());
     if parent.as_deref() == Some("decisions") && name.ends_with(".md") {
@@ -172,8 +177,11 @@ fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
     {
         return Some(Checked::Record);
     }
-    if name == "PRIORITIES.md" {
-        return Some(Checked::Priorities);
+    match name {
+        "PRIORITIES.md" => return Some(Checked::Priorities),
+        "INBOX.md" => return Some(Checked::Inbox),
+        "INBOX-TRIAGE.md" => return Some(Checked::Triage),
+        _ => {}
     }
     if !any_folder && !names::is_workflow_folder(dir) {
         return None;
@@ -266,6 +274,7 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
     let document = markdown::Document::parse(file.text);
     match file.kind {
         Checked::Priorities => sections::check_priorities(file, &document, &mut problems),
+        Checked::Inbox => sections::check_inbox(file, &document, &mut problems),
         Checked::Workflow(FileKind::Review) => check_review(file, &mut problems),
         _ => sections::check_sections(file, &document, &mut problems),
     }
@@ -297,7 +306,7 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
             ));
         }
     }
-    if let Checked::Workflow(FileKind::Clarifications) = file.kind {
+    if let Checked::Workflow(FileKind::Clarifications) | Checked::Triage = file.kind {
         answers::check_answers(file, front.as_ref(), &mut problems);
     }
     if let Some(front) = &front {

@@ -250,3 +250,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `changes::discard` restores the drafts of `Listed.paths` again, a few lines.
 - **Where**: task 4's review, `actions/changes.rs`, `actions/inbox.rs`, `actions/text.rs`,
   `files/inbox.rs`, `files/lines.rs`, `files/proposal.rs`, `api/priority_edits.rs`
+
+## R15: The inbox's checks find a repeated category's line, and the triage's status submits
+
+- **Decision**:
+  - `files::inbox::category_headings` gives each `##` heading's line and name, outside fenced code;
+    `category_names` maps it. `inbox.category` reports the second and later headings of a name on
+    their line, and `inbox.title` the first `#` heading that is not `# Inbox`, or no line when the
+    file has none.
+  - `INBOX.md` and `INBOX-TRIAGE.md` are recognized by name in any folder, as `PRIORITIES.md` is.
+    The triage takes the clarifications statuses, and `check::fields` gives `answered` the `Submit`
+    action, as for a round.
+  - The `ura check` paragraph of `conventions.md` names the inbox's checks, the priorities' four
+    sections, and the started-feature exemption of links, which it did not; `projects.md` says what
+    `ura init` prints and that a second run only adds what is missing.
+- **Rationale**: `category_names` gives no lines, and a problem without a line would not point at
+  the heading to rename. The CLI decision requires every checked rule in the skill, and the
+  priorities' sections and the exemption were checked without being written there.
+- **Alternatives considered**: Finding the repeated heading through the markdown parser's headings,
+  a second rule for what a category is.
+- **If wrong**: `category_headings` folds back into `category_names`, and the check reports no line.
+- **Where**: task 5, `files/inbox.rs`, `check/`, `references/conventions.md`, `projects.md`

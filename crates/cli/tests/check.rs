@@ -120,3 +120,29 @@ fn a_finished_features_check_covers_its_record_only() {
     );
     assert_eq!(output.code, 0, "{}", output.stderr);
 }
+
+/// Two categories with the same name, written by hand.
+#[test]
+fn a_repeated_inbox_category_is_a_problem() {
+    let repo = TestRepo::new();
+    specs(
+        &repo,
+        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
+    );
+    repo.write(
+        "specs/INBOX.md",
+        "# Inbox\n\n## UI\n\n- a\n\n## UI\n\n- b\n",
+    );
+
+    let output = ura(&repo, &["check", "--json"]);
+
+    let json: serde_json::Value = serde_json::from_str(&output.stdout).unwrap();
+    assert_eq!(json["problems"][0]["file"], "specs/INBOX.md");
+    assert_eq!(json["problems"][0]["line"], 7);
+    assert_eq!(json["problems"][0]["rule"], "inbox.category");
+    assert_eq!(
+        json["problems"][0]["message"],
+        "the category \"UI\" is repeated"
+    );
+    assert_eq!(output.code, 1);
+}

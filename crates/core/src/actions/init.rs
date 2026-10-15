@@ -26,7 +26,7 @@ fn write(path: &Path, bytes: &[u8]) -> Result<(), ActionError> {
 /// Sets up `specs/` at `root`, writing only what is missing.
 pub fn run(root: &Path) -> Result<Vec<InitLine>, ActionError> {
     let mut lines = Vec::new();
-    for name in ["README.md", "CONSTITUTION.md", "PRIORITIES.md"] {
+    for name in ["README.md", "CONSTITUTION.md", "PRIORITIES.md", "INBOX.md"] {
         let shown = format!("specs/{name}");
         let path = root.join(&shown);
         if path.exists() {
