@@ -9,7 +9,7 @@ const LIMIT: usize = 500;
 /// The files over the limit when the code quality decision was approved, with their length then.
 /// A listed file may only shrink, and leaves the list once it is at or under the limit.
 const LARGE: &[(&str, usize)] = &[
-    ("crates/core/src/api.rs", 816),
+    ("crates/core/src/api.rs", 651),
     ("crates/core/src/files/document.rs", 686),
     ("crates/core/src/git.rs", 625),
     ("crates/core/src/workspace.rs", 967),

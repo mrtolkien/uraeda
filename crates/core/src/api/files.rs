@@ -3,9 +3,8 @@
 
 use std::path::Path;
 
-use super::{
-    Result, default_checkout, feature_dir, feature_of, open, plain, refused, text_place, write_lock,
-};
+use super::drafts::text_place;
+use super::{Result, default_checkout, feature_dir, feature_of, open, plain, refused, write_lock};
 use crate::actions::attach;
 use crate::git::Git;
 use crate::images::{self, Encoded};
