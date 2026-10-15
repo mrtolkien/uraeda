@@ -3,7 +3,8 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
-import { expect, onTestFinished, test, vi } from "vite-plus/test";
+import { expect, test } from "vite-plus/test";
+import { expectLogged } from "uraeda-binding/test-utils";
 import {
   click,
   fakeAgent,
@@ -243,8 +244,11 @@ test("an unreadable list shows its problem in the menu", async () => {
   await renderPage("/r/uraeda/", undefined, { dataDir, raw: true });
   const menu = await openMenu();
   // The server logs the problem too: expected here, so kept from the log.
-  const logged = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-  onTestFinished(() => logged.mockRestore());
+  const logged = expectLogged(
+    process.stderr,
+    "write",
+    /^uraeda-server: repositories\.json could not be read: /,
+  );
 
   writeFileSync(join(dataDir, "repositories.json"), "{ not json");
 
