@@ -759,11 +759,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   spec failed its check.
 - **Alternatives considered**: keeping `mockups/` out of changes, which drops round 01's settled
   point.
-- **If wrong**: `change_holds` in `crates/core/src/check/names.rs`. A mockups Storybook reads
-  `specs/*/mockups/*.stories.tsx`, as the spec says, which does not reach `specs/changes/`: a
-  change's mockups in such a project show only once that glob is widened.
+- **If wrong**: `change_holds` in `crates/core/src/check/names.rs`. The spec's mockups Storybook
+  reads `specs/*/mockups/*.stories.tsx`, which does not reach `specs/changes/`, so `projects.md` and
+  the preview decision's template add `specs/changes/*/mockups/*.stories.tsx` to its `stories`, an
+  array in Storybook's `main.ts`. A mockups Storybook set up with the spec's glob alone shows a
+  change's mockups only once that second glob is added.
 - **Where**: `crates/core/src/check/names.rs`, `crates/core/tests/check.rs`,
-  `skills/uraeda/references/change.md`, and `skills/uraeda/SKILL.md`.
+  `skills/uraeda/references/change.md`, `skills/uraeda/SKILL.md`,
+  `skills/uraeda/references/projects.md`, and
+  `skills/uraeda/assets/templates/specs/decisions/preview.md`.
 
 ## R50: The claude-usage record links no screenshot
 
