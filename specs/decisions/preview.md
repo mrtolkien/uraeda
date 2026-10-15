@@ -7,9 +7,10 @@ approved-by:
 
 Uraeda's UI states and the mockups of its planned UI are Storybook stories, written with its real
 components next to them in `packages/web/src`. Uraeda's own web UI runs this Storybook for a
-feature's worktree and embeds its stories, live, in specs and questions. The stories get their data
-from Uraeda's real server, run inside Storybook over a fresh copy of the fixture repository with the
-fake agent, so a story shows what the app shows.
+feature's worktree, serves it under its own address, and embeds its stories, live, in specs,
+questions, and sessions. The stories get their data from Uraeda's real server, run inside Storybook
+over a fresh copy of the fixture repository with the fake agent, so a story shows what the app
+shows.
 
 ## Rules
 
@@ -24,6 +25,9 @@ fake agent, so a story shows what the app shows.
   [`fixtures/repo`](/fixtures/repo/), on the fake agent, with `URA_TODAY` set to `2026-10-16` and
   fixed commit dates, so stories get their data only from the server, through fate. Stories MUST NOT
   fake the server's responses. Checked by review.
+- Storybook's `main.ts` MUST be wrapped by the skill's `uraeda-preview.js`, imported from
+  [`skills/uraeda/assets/storybook/`](/skills/uraeda/assets/storybook/), so Uraeda can serve it
+  under its own address. Checked by the validation script.
 - Storybook's preview MUST wrap every story in Uraeda's theme, with its colour mode from the
   embedding page, and MUST load the skill's pick script, `uraeda-pick.js`. Checked by review.
 - Stories MUST follow the [UI components](ui-components.md) decision: its lint rules cover
