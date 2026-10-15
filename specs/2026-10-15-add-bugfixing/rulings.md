@@ -227,3 +227,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: key `SlugProposal` by the title again, with the binding giving the title too.
 - **Where**: tasks 5, 7, and 9, `crates/core/src/actions/start/`, `crates/core/src/api/start.rs`,
   `crates/binding/src/lib.rs`, `packages/server/src/fate/sources.ts`.
+
+## R15: A typed change's images do not depend on the agent's
+
+- **Decision**: `change.start` checks its images with `changeImages`, not the chat's `sentImages`:
+  each an object of its ID and size, at most 10, and its file there. The agent's `images` capability
+  is not checked, and a file gone as its bytes are read is refused with "This image is gone: add it
+  again.", not an internal error.
+- **Rationale**: the core writes a change's images into its folder, in the repository; none goes to
+  the agent, so an agent that reads no images cannot refuse them. The chat's check also refused a
+  change's images without an agent at all.
+- **Alternatives considered**: `sentImages(ctx, images, false)`, which refuses a change's images for
+  an agent that reads none.
+- **If wrong**: check the agent's capability in `changeImages` too.
+- **Where**: task 7, `packages/server/src/fate/chat-images.ts`,
+  `packages/server/src/fate/mutations.ts`.
