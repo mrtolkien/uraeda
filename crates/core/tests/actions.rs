@@ -1528,6 +1528,22 @@ fn a_title_typed_as_a_heading_drops_its_marks() {
     );
 }
 
+/// A title's brackets are escaped in its **Now** link, so the link stays one.
+#[test]
+fn a_title_with_brackets_keeps_its_link_in_now() {
+    let repo = draft_repo();
+
+    start_text(&repo, "Fix the ] key [", &[], Some("centred-x")).unwrap();
+
+    let priorities = repo.git(&["show", "main:specs/PRIORITIES.md"]);
+    assert!(
+        priorities.contains(
+            "## Now\n\n- [Fix the \\] key \\[](/specs/changes/2026-10-16-centred-x/proposal.md)\n"
+        ),
+        "{priorities}"
+    );
+}
+
 #[test]
 fn a_text_with_no_written_line_is_refused() {
     let repo = draft_repo();

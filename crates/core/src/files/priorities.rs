@@ -2,6 +2,8 @@
 
 use pulldown_cmark::{Event, Parser, Tag};
 
+use super::markdown::link_text as escaped;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Section {
@@ -155,7 +157,11 @@ pub fn link(text: &str, line: usize, target: &str) -> Option<String> {
     super::with_unix_newlines(text, |text| {
         let entry = entry_at(text, line).ok_or(())?;
         let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
-        let item = format!("{} [{}]({target})", entry.marker.render(), entry.text);
+        let item = format!(
+            "{} [{}]({target})",
+            entry.marker.render(),
+            escaped(&entry.text)
+        );
         lines.splice(entry.line - 1..entry.text_end, [item]);
         Ok::<_, ()>(lines.join("\n"))
     })
@@ -184,7 +190,7 @@ pub fn add_to_now(text: &str, link_text: &str, target: &str) -> String {
             Some(Marker::Bullet(bullet)) => Marker::Bullet(*bullet),
             None => Marker::Bullet('-'),
         };
-        let item = format!("{} [{link_text}]({target})", marker.render());
+        let item = format!("{} [{}]({target})", marker.render(), escaped(link_text));
         Ok(insert(text, Section::Now, usize::MAX, &[item]))
     });
     result.unwrap_or_else(|()| text.to_string())

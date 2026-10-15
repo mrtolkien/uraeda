@@ -501,6 +501,23 @@ fn priorities_add_to_an_empty_now() {
     );
 }
 
+/// Brackets in an entry's text are escaped in its link, whichever writes it, so it stays a link.
+#[test]
+fn priorities_links_escape_brackets() {
+    let text = "# Priorities\n\n## Now\n\n## Next\n\n- Fix the \\] key\n";
+
+    let linked = priorities::link(text, 7, "drafts/key.md").unwrap();
+    let added = priorities::add_to_now(text, "Fix the [ key", "/specs/x/proposal.md");
+
+    assert!(
+        linked.contains("- [Fix the \\] key](drafts/key.md)\n"),
+        "{linked}"
+    );
+    let entries = priorities::parse(&added);
+    assert_eq!(entries[0].text, "Fix the [ key");
+    assert_eq!(entries[0].link.as_deref(), Some("/specs/x/proposal.md"));
+}
+
 #[test]
 fn priorities_follow_numbered_lists() {
     let text = "# Priorities\n\n## Now\n\n1. One\n2. Two\n\n## Next\n";

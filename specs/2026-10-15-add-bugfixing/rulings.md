@@ -156,3 +156,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   grows the file past its listed size.
 - **If wrong**: move the reading to a module of `workspace`; the field's value is unchanged.
 - **Where**: task 6, `crates/core/src/view/feature.rs`.
+
+## R11: A typed title drops its heading marks, and link texts are escaped where Now's links are written
+
+- **Decision**: a typed change's title line drops the marks of a heading typed as one: `## Fix x`
+  gives the title `Fix x`, and a line of marks alone, `###`, is not the title. Leading `#`s are only
+  marks when a space or the end of the line follows them, so `#123 crashes` stays whole. When the
+  title is cut, the body keeps the whole first line without its marks. The text of every link
+  `PRIORITIES.md` gains, by `ura draft`'s link, by a start's move to **Now**, or by a typed change's
+  new entry, has `[`, `]`, and `\` escaped with a backslash, by `markdown::link_text`, the escaping
+  image alt texts already used, moved from `attach.rs`. `add_to_now` inserts through the same
+  `insert` as the other entry edits, which brings `priorities.rs` from 685 to 664 lines.
+- **Rationale**: the proposal's heading is written as `# {title}`, so a typed `#` gave `# # Fix x`
+  and a start subject with marks. An unbalanced bracket in a title, `Fix the ] key`, ended the link
+  text early and broke the entry. An entry's text is read back as plain text, so a link written from
+  it loses its escapes unless the writer escapes again.
+- **Alternatives considered**: stripping every leading `#`, which loses `#123`; escaping only in the
+  typed start, which leaves `ura draft` and the move of a draft's entry broken on the same text.
+- **If wrong**: change `unmarked` in `typed.rs`, or `link_text` in `markdown.rs`; each is the one
+  place its rule lives.
+- **Where**: task 5 review, `crates/core/src/actions/start/typed.rs`,
+  `crates/core/src/files/markdown.rs`, `crates/core/src/files/priorities.rs`,
+  `crates/core/src/actions/attach.rs`.
