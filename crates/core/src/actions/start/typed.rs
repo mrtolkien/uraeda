@@ -76,15 +76,13 @@ impl Start<'_> {
     /// then its proposal linking them, in `target_root`.
     pub(super) fn write_text(
         &self,
+        typed: &Typed,
         plan: &Plan,
         images: &[Encoded],
         target_root: &Path,
         done: &[String],
     ) -> Result<(), StartError> {
         let left = || vec![plan.write_left.clone(), plan.commit_left()];
-        let Some(typed) = &plan.typed else {
-            return Err(partial(done, left(), "the change has no text"));
-        };
         let mut names = Vec::new();
         for (index, image) in images.iter().enumerate() {
             let base = format!("image-{}", index + 1);
