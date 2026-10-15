@@ -1,32 +1,100 @@
 name: CI
 
 on:
-  # Pull requests run it on their branch; pushes run it once merged.
+  # Pull requests run it on their branch; pushes run it once merged; a branch can run it by hand.
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
+# A newer run of a branch cancels the older one; `main`'s runs all finish, each keeping its coverage.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+# Each job runs one group of `vp run ready`, without Vite Task's cache, then fails when its checks
+# changed a file, such as a generated one left uncommitted. The toolchain test checks that every
+# group of `ready` has a job. Validation runs on Linux x64 only; the release matrix builds the other
+# platforms.
 jobs:
-  ready:
-    # Validation runs on Linux x64 only; release builds for every platform come with the CLI.
+  rust:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v31
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Install dependencies
-        # Without scripts: `prepare` runs `vp config`, which sets up git hooks and rewrites the
-        # Vite+ section of AGENTS.md unwrapped, failing the formatting check.
-        run: nix develop --command pnpm install --frozen-lockfile --ignore-scripts
-
-      - name: Run every check
-        run: nix develop --command pnpm exec vp run ready
-
-      - name: Check generated files are committed
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+      - name: Run the Rust checks
+        # nextest's `ci` profile reports every failure at once.
+        env:
+          NEXTEST_PROFILE: ci
+        run: nix develop --command pnpm exec vp run --no-cache ready:rust
+      - name: Check the working tree is unchanged
         run: |
           git status --porcelain
           test -z "$(git status --porcelain)"
+
+  typescript:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+      - name: Run the TypeScript checks
+        run: nix develop --command pnpm exec vp run --no-cache ready:typescript
+      - name: Check the working tree is unchanged
+        run: |
+          git status --porcelain
+          test -z "$(git status --porcelain)"
+
+  browser-phone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+      - name: Run the browser tests at the phone's size
+        run: nix develop --command pnpm exec vp run --no-cache ready:browser-phone
+      - name: Check the working tree is unchanged
+        run: |
+          git status --porcelain
+          test -z "$(git status --porcelain)"
+
+  browser-desktop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+      - name: Run the browser tests at the desktop's size
+        run: nix develop --command pnpm exec vp run --no-cache ready:browser-desktop
+      - name: Check the working tree is unchanged
+        run: |
+          git status --porcelain
+          test -z "$(git status --porcelain)"
+
+  neovim:
+    # CI only (see the toolchain decision): the Neovim plugin's tests, on the `ura` they build.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+      - name: Run the Neovim plugin's tests
+        run: nix develop --command pnpm exec vp run --no-cache test:nvim
+      - name: Check the working tree is unchanged
+        run: |
+          git status --porcelain
+          test -z "$(git status --porcelain)"
+
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
 
       - name: Check the release plan
         # The release workflow runs on tags only, so its plan is checked here.
@@ -40,3 +108,29 @@ jobs:
           nix develop --command cargo build --release -p uraeda-cli
           size=$(stat -c %s target/release/ura)
           echo "ura: $size bytes"
+
+      - name: Check the working tree is unchanged
+        run: |
+          git status --porcelain
+          test -z "$(git status --porcelain)"
+
+  coverage:
+    # A report kept for each push to `main`, never a check: a drop fails nothing.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+      - name: Report the coverage
+        run: nix develop --command pnpm exec vp run --no-cache coverage
+      - uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 30
+          if-no-files-found: error
+      - name: Check the working tree is unchanged
+        run: |
+          git status --porcelain
+          test -z "$(git status --porcelain)"

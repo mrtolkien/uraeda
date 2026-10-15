@@ -656,3 +656,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a human who scrolls to the end in the very frame the width class changes is read a
   frame late; the next scroll reads them again.
 - **Where**: task 8's `ready`, on `main`'s session view.
+
+## R36: CI's jobs run `vp` through pnpm, with the action versions of `npm.yml`
+
+- **Decision**: each job runs `nix develop --command pnpm exec vp run --no-cache <task>`, `neovim`'s
+  `test:nvim` and `coverage` included; `notInCi` counts a task as run only after
+  `vp run --no-cache`, outside a YAML comment. The jobs use `actions/checkout@v6` and
+  `actions/upload-artifact@v7` instead of `@v4`; the workflow declares
+  `permissions: contents: read`; the `release` and `coverage` jobs end with the clean tree check, as
+  the others do.
+- **Rationale**: the flake's dev shell has Node and pnpm but no `vp`, which comes from
+  `node_modules`: the plan's `nix develop --command vp run …` would fail with "command not found";
+  today's CI already runs `pnpm exec vp`. `test:nvim` and `coverage` are uncached, so `--no-cache`
+  changes nothing for them, and one pattern reads every job. `npm.yml`, added on `main`, uses
+  checkout `v6` and upload-artifact `v7`, both existing tags, checked with
+  `gh api repos/<owner>/<repo>/git/ref/tags/<tag>`; one version per action across the workflows. No
+  job writes to the repository.
+- **Alternatives considered**: adding `vite-plus` to the flake: a second pin of the version
+  `package.json` already pins.
+- **If wrong**: a job's step names a version that changes its inputs; actionlint 1.7.12 reports no
+  problem in `ci.yml` and the setup action.
+- **Where**: task 9.
