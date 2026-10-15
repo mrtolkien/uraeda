@@ -16,6 +16,8 @@ mod commits;
 mod plan;
 mod typed;
 
+use typed::Typed;
+
 /// What a start did.
 pub struct Started {
     pub default_branch: String,
@@ -77,7 +79,13 @@ pub fn run_text(
     today: Date,
     switch: bool,
 ) -> Result<Started, StartError> {
-    let source = Source::Text { text, images };
+    let typed = Typed::read(text).ok_or_else(|| {
+        StartError::Refused("a change needs a text: its first line is its title".into())
+    })?;
+    let source = Source::Text {
+        typed: &typed,
+        images,
+    };
     begin(git, workspace, source, Kind::Change, slug, today, switch)
 }
 
@@ -115,9 +123,9 @@ fn begin(
 enum Source<'a> {
     /// A draft's file or postponed folder, from the top level.
     Draft(&'a str),
-    /// A change typed as a text, with its encoded images.
+    /// A change typed as a text, read, with its encoded images.
     Text {
-        text: &'a str,
+        typed: &'a Typed,
         images: &'a [Encoded],
     },
 }
@@ -168,10 +176,7 @@ impl<'a> Start<'a> {
     }
 
     fn run(&self, slug: Option<&str>, today: Date) -> Result<Started, StartError> {
-        let plan = match self.source {
-            Source::Draft(draft) => self.plan(draft, slug, today)?,
-            Source::Text { text, .. } => self.plan_text(text, slug, today)?,
-        };
+        let plan = self.plan(slug, today)?;
         self.commit_start(&plan)?;
         let mut done = vec![format!("the start commit on {}", self.default)];
         let target_root = self.create_branch(&plan, &done)?;
@@ -182,8 +187,8 @@ impl<'a> Start<'a> {
                 done.push("the move of the draft".to_string());
                 moves
             }
-            Source::Text { images, .. } => {
-                self.write_text(&plan, images, &target_root, &done)?;
+            Source::Text { typed, images } => {
+                self.write_text(typed, &plan, images, &target_root, &done)?;
                 done.push(format!("the proposal in {}", plan.destination));
                 Vec::new()
             }

@@ -123,7 +123,7 @@ impl Start<'_> {
     ) -> Result<(), StartError> {
         // Folders as pathspecs, so files git ignores, like `.DS_Store`, stay out of the commit.
         let mut paths: Vec<String> = Vec::new();
-        if plan.folder_draft || plan.typed.is_some() {
+        if plan.whole_folder {
             paths.push(plan.destination.clone());
             if let Source::Draft(draft) = self.source
                 && !plan.tracked.is_empty()
