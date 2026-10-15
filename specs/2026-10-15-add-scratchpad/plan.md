@@ -1385,7 +1385,7 @@ git commit -m "feat(add-scratchpad): a note with an image becomes a linked draft
   - `packages/web/src/InboxPage.tsx` and `InboxTriage.tsx`: the banners and buttons, and without an
     agent the messages to copy;
   - `QuestionComment.tsx`, `RoundNotes.tsx`, and `attach/useImageText.ts` and `useImageDrop.ts`: no
-    image for the triage (`takesImages`);
+    image for the triage (the file view's `takesImages`, from the core);
   - the triage's saves based on the whole file, and its retry: `crates/core/src/actions/inbox.rs`,
     `api/answers/triage.rs`, the binding's `inbox_writes.rs`, and the server's
     `fate/inbox-mutations.ts`; `data.ts` (`useTriage`) and `App.tsx` (`/inbox/triage`);

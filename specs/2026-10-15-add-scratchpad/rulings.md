@@ -727,3 +727,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: A button in `NoteView.tsx` and a removal after the start, a small feature of its
   own.
 - **Where**: task 14, `packages/web/src/NoteView.tsx`, unchanged
+
+## R29: The core decides what the add form's page is about, and what takes images
+
+- **Decision**: The add form sends the folder of any `/f/<folder>` page as `about`; the core marks
+  the note with its slug when it is a dated folder, a feature's or a change's, and marks nothing
+  otherwise, instead of refusing it. A dated folder whose slug cannot be a mark is still refused.
+  The test that `run-ui` is refused now checks that it adds the note without a mark: the web UI's
+  own check, which the core's replaces, kept such a folder from reaching the core. Undo of an added
+  note is the core's `undo_add`, found by its lines as `undo_as_draft` finds its note, refused the
+  same way, also with two notes of the same lines, where the page picked one by its key. A file's
+  view says whether it takes images, `takesImages`, and a note linking a draft gives the draft's
+  title as the core reads it, `draftTitle`, which an add whose answer was lost compares by its
+  words.
+- **Rationale**: The final review found these rules copied in TypeScript: the dated-folder rule of
+  `workspace::folder_slug`, the lookup of a note by its lines, the triage's path, and the title an
+  add with an image writes, whose plain text dropped inline code. One home per rule.
+- **Alternatives considered**: An endpoint telling whether a folder is dated, a request per page.
+  Keeping the page's pick by key between two same notes, the copy the review asked to remove.
+- **If wrong**: `marks` in `api/inbox_edits.rs`; `undo_add` in `actions/inbox/undo.rs`.
+- **Where**: final review, `crates/core/src/api/inbox_edits.rs`,
+  `crates/core/src/actions/inbox/undo.rs`, `crates/core/src/files/inbox/read.rs`,
+  `crates/core/src/view.rs`, `packages/web/src/SidebarAdd.tsx`, `packages/web/src/NoteImage.tsx`,
+  `packages/web/src/attach/useImageText.ts`, `crates/core/tests/inbox_actions.rs`

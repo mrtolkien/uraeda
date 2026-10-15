@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
-import { takesImages, useImageText } from "./attach/useImageText.ts";
+import { useImageText } from "./attach/useImageText.ts";
 import type { useFile } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
@@ -72,12 +72,14 @@ export function useRoundNotes(file: File, target: RoundTarget, hashes: Hashes) {
 export function NotesField({
   notes,
   path,
+  takes,
 }: {
   notes: ReturnType<typeof useRoundNotes>;
   path: string;
+  /** Whether the round's file takes images, as the core says. */
+  takes: boolean;
 }) {
   const { commit, field, save, waitFor } = notes;
-  const takes = takesImages(path);
   const images = useImageText({
     label: "the notes",
     onText: (value: string, added: boolean) => {

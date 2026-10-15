@@ -41,10 +41,7 @@ fn view(text: String, committed: Option<String>, tip: Option<ObjectId>) -> FileV
     let status = frontmatter::parse(&text)
         .ok()
         .and_then(|front| front.text("status").map(String::from));
-    let kind = serde_json::to_value(FileKind::Clarifications)
-        .ok()
-        .and_then(|value| value.as_str().map(String::from))
-        .unwrap_or_default();
+    let kind = crate::view::kind_name(Some(FileKind::Clarifications));
     FileView {
         id: TRIAGE_ID.to_string(),
         folder: String::new(),
@@ -59,6 +56,7 @@ fn view(text: String, committed: Option<String>, tip: Option<ObjectId>) -> FileV
         tip: tip.map(short),
         review: None,
         review_stale: false,
+        takes_images: false,
     }
 }
 

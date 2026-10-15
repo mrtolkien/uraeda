@@ -328,10 +328,7 @@ fn file_view(
         .iter()
         .find(|file| file.name == name)
         .and_then(|file| file.status.clone());
-    let kind = FileKind::of(name)
-        .and_then(|(kind, _)| serde_json::to_value(kind).ok())
-        .and_then(|value| value.as_str().map(String::from))
-        .unwrap_or_default();
+    let kind = crate::view::kind_name(FileKind::of(name).map(|(kind, _)| kind));
     Ok(FileView {
         id: format!("{}/{name}", feature.folder),
         folder: feature.folder.clone(),
@@ -344,6 +341,7 @@ fn file_view(
         committed,
         review,
         review_stale,
+        takes_images: true,
     })
 }
 

@@ -97,7 +97,7 @@ type ImageTextOptions = {
   path: string;
   /** The field's rank among its page's drop targets when none holds the focus. */
   priority: number;
-  /** Whether the file takes images, as `takesImages` says: else no drop or paste attaches one. */
+  /** Whether the file takes images, as the core says: else no drop or paste attaches one. */
   takes?: boolean;
   /** The field's text now. */
   text: string;
@@ -242,14 +242,6 @@ function useRuns(field: Field, attaching: ReturnType<typeof useAttach>) {
   }, []);
 
   return { addFiles, busy, settled };
-}
-
-/**
- * Whether the core takes images for the markdown file at `path`: not for the inbox's triage, which
- * is no feature's, change's, or draft's file, and is committed alone.
- */
-export function takesImages(path: string): boolean {
-  return path !== "specs/INBOX-TRIAGE.md";
 }
 
 /**

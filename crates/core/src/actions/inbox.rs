@@ -17,7 +17,7 @@ mod image;
 mod undo;
 
 pub use image::add_with_image;
-pub use undo::{undo_as_draft, undo_category, undo_to_draft, undo_to_priorities};
+pub use undo::{undo_add, undo_as_draft, undo_category, undo_to_draft, undo_to_priorities};
 
 pub const PATH: &str = "specs/INBOX.md";
 /// The agent's proposed triage, answered like a round of questions.

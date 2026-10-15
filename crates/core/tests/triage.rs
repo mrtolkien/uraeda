@@ -66,6 +66,8 @@ fn the_triage_reads_as_a_round_of_questions() {
     assert_eq!(triage.name, "INBOX-TRIAGE.md");
     assert_eq!(triage.path, TRIAGE);
     assert_eq!(triage.kind, "clarifications");
+    // Committed alone, with no folder for its images: the page offers no attach.
+    assert!(!triage.takes_images);
     assert_eq!(triage.status.as_deref(), Some("awaiting-human"));
     let round = triage.current.items.clarifications.unwrap();
     let ids: Vec<_> = round.questions.iter().map(|q| q.id.as_str()).collect();

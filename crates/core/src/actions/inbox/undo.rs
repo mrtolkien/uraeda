@@ -76,6 +76,17 @@ pub fn undo_to_draft(
     write_both(place, draft, &without, &back)
 }
 
+/// The inbox as it is now, and the id of the one note whose lines are `lines` as written: refused
+/// once the note changed or left, or when two notes hold its lines.
+fn found(place: &Place, lines: &[String]) -> Result<(String, String, String), ActionError> {
+    let (note, _) = parts(lines)?;
+    let current = text(place)?;
+    match inbox::ids_of_lines(&current, lines).as_slice() {
+        [id] => Ok((note, current, id.clone())),
+        _ => Err(gone(&note, "INBOX.md")),
+    }
+}
+
 /// Takes back a move to another category: the note, found by its lines as written, goes back to
 /// its place, in one write. Refused once it changed or left, or when two notes hold its lines.
 pub fn undo_category(
@@ -84,13 +95,8 @@ pub fn undo_category(
     category: Option<&str>,
     index: usize,
 ) -> Result<(), ActionError> {
-    let (note, _) = parts(lines)?;
-    let current = text(place)?;
-    let ids = inbox::ids_of_lines(&current, lines);
-    let [id] = ids.as_slice() else {
-        return Err(gone(&note, "INBOX.md"));
-    };
-    let without = inbox::remove(&current, id).ok_or_else(|| gone(&note, "INBOX.md"))?;
+    let (note, current, id) = found(place, lines)?;
+    let without = inbox::remove(&current, &id).ok_or_else(|| gone(&note, "INBOX.md"))?;
     let back = put_back(&without, category, index, lines)?;
     fs::write(place.root.join(PATH), back)?;
     Ok(())
@@ -100,12 +106,8 @@ pub fn undo_category(
 /// draft it links goes with it while no commit has it and it holds what the add wrote, with at
 /// most the note's image. A draft typed in is kept.
 pub fn undo_as_draft(place: &Place, lines: &[String]) -> Result<(), ActionError> {
-    let (note, _) = parts(lines)?;
-    let current = text(place)?;
-    let ids = inbox::ids_of_lines(&current, lines);
-    let [id] = ids.as_slice() else {
-        return Err(gone(&note, "INBOX.md"));
-    };
+    let (note, current, id) = found(place, lines)?;
+    let id = id.as_str();
     let linked = inbox::note(&current, id)
         .and_then(|note| note.link)
         .and_then(|link| crate::workspace::resolve("specs", &link))
@@ -118,5 +120,14 @@ pub fn undo_as_draft(place: &Place, lines: &[String]) -> Result<(), ActionError>
     {
         draft::remove_written(place, &path, &written)?;
     }
+    Ok(())
+}
+
+/// Takes back an add: the note, found by its lines as written, leaves the inbox wherever it is now,
+/// in one write. Refused once it changed or left, or when two notes hold its lines.
+pub fn undo_add(place: &Place, lines: &[String]) -> Result<(), ActionError> {
+    let (note, current, id) = found(place, lines)?;
+    let without = inbox::remove(&current, &id).ok_or_else(|| gone(&note, "INBOX.md"))?;
+    fs::write(place.root.join(PATH), without)?;
     Ok(())
 }

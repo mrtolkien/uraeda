@@ -5,7 +5,7 @@
 use std::path::Path;
 
 use super::priority_edits::{change_count, section};
-use super::{Result, on_default, open, reach_default, refused, write_lock};
+use super::{Result, on_default, open, reach_default, write_lock};
 use crate::actions::changes;
 use crate::actions::inbox::{self as edits, Marks};
 use crate::files::inbox::Inbox;
@@ -24,21 +24,14 @@ pub fn read_inbox(repo: &Path) -> Result<Inbox> {
     ))
 }
 
-/// The marks of a note added from the web UI: `about` is the folder of the feature or change the
-/// note is about, written as its slug. One that is not a dated folder is refused here, and a slug
-/// that would not parse back as a mark is refused by the action.
-fn marks(about: Option<String>) -> Result<Marks> {
-    let about = about
-        .map(|folder| {
-            folder_slug(&folder)
-                .map(String::from)
-                .ok_or_else(|| refused(format!("no feature {folder}")))
-        })
-        .transpose()?;
-    Ok(Marks {
+/// The marks of a note added from the web UI: `about` is the folder of the page it was added from,
+/// written as its slug when it is a feature's or a change's, a dated folder; any other marks
+/// nothing. A slug that would not parse back as a mark is refused by the action.
+fn marks(about: Option<String>) -> Marks {
+    Marks {
         agent: false,
-        about,
-    })
+        about: about.and_then(|folder| folder_slug(&folder).map(String::from)),
+    }
 }
 
 /// Adds a note at the end of a category, or of the notes without one, marked with the slug of
@@ -50,7 +43,7 @@ pub fn add_note(
     text: &str,
     previous: &str,
 ) -> Result<Inbox> {
-    let marks = marks(about)?;
+    let marks = marks(about);
     let _lock = write_lock();
     let place = reach_default(repo)?;
     let (inbox, _) = edits::add(&place, category.as_deref(), &marks, text, Some(previous))?;
@@ -65,7 +58,7 @@ pub fn add_note_at(
     about: Option<String>,
     text: &str,
 ) -> Result<(Inbox, u32)> {
-    let marks = marks(about)?;
+    let marks = marks(about);
     let _lock = write_lock();
     let place = reach_default(repo)?;
     Ok(edits::add(&place, category.as_deref(), &marks, text, None)?)
@@ -184,7 +177,7 @@ pub fn add_note_with_image(
     name: Option<&str>,
     previous: &str,
 ) -> Result<(Inbox, String)> {
-    let marks = marks(about)?;
+    let marks = marks(about);
     edits::checked_note(&marks, text)?;
     let encoded = super::encode_image(bytes, name.unwrap_or("pasted image"))?;
     let _lock = write_lock();
@@ -278,5 +271,14 @@ pub fn undo_note_as_draft(repo: &Path, lines: &[String]) -> Result<Inbox> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
     edits::undo_as_draft(&place, lines)?;
+    Ok(edits::read(&place))
+}
+
+/// Takes back a note's add: the note, found by its lines as written, leaves the inbox wherever it
+/// is now. Refused once it changed or left, or when two notes hold its lines.
+pub fn undo_note_add(repo: &Path, lines: &[String]) -> Result<Inbox> {
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    edits::undo_add(&place, lines)?;
     Ok(edits::read(&place))
 }

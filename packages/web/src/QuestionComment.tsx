@@ -14,7 +14,7 @@ import {
 import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
-import { takesImages, useImageText } from "./attach/useImageText.ts";
+import { useImageText } from "./attach/useImageText.ts";
 import { COMMENT_CHANGED } from "./CommentForm.tsx";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { SaveStatus } from "./fields/SaveStatus.tsx";
@@ -116,6 +116,7 @@ export function CommentField({
   onSettled,
   onSubmit,
   path,
+  takes,
 }: {
   children: ReactNode;
   comment: string;
@@ -125,8 +126,9 @@ export function CommentField({
   onSettled: (settled: () => Promise<void>) => void;
   onSubmit: () => void;
   path: string;
+  /** Whether the file takes images, as the core says. */
+  takes: boolean;
 }) {
-  const takes = takesImages(path);
   const images = useImageText({
     label: `${id}'s comment`,
     path,
@@ -176,12 +178,14 @@ export function AnswerComment({
   path,
   readOnly,
   saved,
+  takes,
 }: {
   answer: ReturnType<typeof useAnswer>;
   id: string;
   path: string;
   readOnly: boolean;
   saved: string;
+  takes: boolean;
 }) {
   const { field } = answer;
   if (readOnly) {
@@ -217,6 +221,7 @@ export function AnswerComment({
           onSettled={answer.onSettled}
           onSubmit={answer.saveComment}
           path={path}
+          takes={takes}
         >
           <Button isDisabled={!field.dirty} label="Save comment" onClick={answer.saveComment} />
           <SaveStatus dirty={field.dirty} state={answer.state} />

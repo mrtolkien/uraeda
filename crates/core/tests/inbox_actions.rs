@@ -225,7 +225,7 @@ fn a_note_about_a_folder_that_is_not_a_slug_is_refused() {
     let before = repo.read(INBOX);
     let read = api::read_inbox(repo.path()).unwrap();
 
-    for folder in ["2026-10-14-Run UI", "2026-10-14-a]b", "run-ui"] {
+    for folder in ["2026-10-14-Run UI", "2026-10-14-a]b"] {
         let error = api::add_note(repo.path(), None, Some(folder.into()), "A note", &read.hash)
             .unwrap_err();
         assert_eq!(error.code, "refused", "{folder}");
@@ -342,4 +342,26 @@ fn the_line_of_a_note_added_twice() {
     let (text, line) = added_at("# Inbox\n\n## UI\n\n- Same\n- b\n", Some("UI"), "Same");
     assert_eq!(text, "# Inbox\n\n## UI\n\n- Same\n- b\n- Same\n");
     assert_eq!(line, 7);
+}
+
+/// The core decides what a page's folder is: one that is no feature's or change's, without its
+/// date, marks nothing, and the note is added without a mark.
+#[test]
+fn a_note_from_a_folder_without_a_date_has_no_mark() {
+    let repo = fixture_repo();
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    api::add_note(
+        repo.path(),
+        None,
+        Some("run-ui".into()),
+        "A note",
+        &read.hash,
+    )
+    .unwrap();
+
+    assert!(
+        repo.read(INBOX)
+            .contains("- We need a home icon\n- A note\n\n## UI")
+    );
 }
