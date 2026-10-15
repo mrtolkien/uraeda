@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Scratchpad
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 9 questions and 2 follow-ups on capturing and organizing notes, about 35 minutes.
+> Answered on 2026-10-15.
 >
 > - Where notes live is the choice that lasts: keeping them in `PRIORITIES.md` changes no decision,
 >   while a file or a folder of their own changes the git decision, and the attachments one for a
@@ -63,7 +63,19 @@ draft reuses what exists, and whether a note can hold a screenshot.
   - [con] a file and a commit per one-line note, a note format and its checks, a page; the git and
     attachments decisions change.
 
-**Answer:**
+**Answer:** B: I want a separate note, because they are _not_ priorities, by definition
+
+I also want to support arbitraries categories with markdown headers:
+
+```md
+## UI
+
+...
+
+## CLI
+
+...
+```
 
 ### Q1.C: How is a note file named and written?
 
@@ -102,7 +114,7 @@ Why it matters: the name appears in the file, the UI, the commit messages, and t
   - [pro] neutral and short.
   - [con] says nothing about sorting them later.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Who organizes the inbox?
 
@@ -135,7 +147,8 @@ C can come on top of A or B: the UI's actions stay available either way.
   - [pro] nothing new to build beyond the storage.
   - [con] no help finding duplicates, what is already fixed, or which draft a note belongs to.
 
-**Answer:**
+**Answer:** A and C: I'll mostly re-organize by hand but a small agent-driven workflow for when I
+need it is welcome
 
 ### Q3.A: Where does the agent's proposal live until you answer it?
 
@@ -153,7 +166,7 @@ the inbox is written on the default branch.
   - [pro] nothing on the default branch until you answer.
   - [con] a branch and a merge for every pass, and priorities edited off the default branch.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: What can a note become?
 
@@ -179,7 +192,7 @@ bugfixing one.
   - [con] no path for a note that is a bug, and no addition to an existing draft, the most common
     past outcome.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: May agents write notes?
 
@@ -200,7 +213,14 @@ finding.
   - [pro] the inbox stays your own.
   - [con] agents' findings stay buried in rulings.
 
-**Answer:**
+**Answer:** A: Yes, and they should pick or create the right category, with a clear provenance mark:
+
+Something like:
+
+- [claude] ...
+- [PR#17] ...
+
+Not sure what's best
 
 ## Q6: Where can a note be captured from?
 
@@ -223,7 +243,11 @@ Why it matters: capture has to be faster than the alternative, writing it nowher
   - [pro] capture from the editor too.
   - [con] grows a plugin you may drop.
 
-**Answer:**
+**Answer:** A and C: - We'll remove the `+` from the top, it kinda sucks -> add a `+` next to
+priorities and then another `+` next to inbox in the sidebar
+
+- I'm actually using the nvim plugin a bit, even though I'm phasing it out. It's still my entry
+  point for priorities management
 
 ## Q7: What does a note hold besides its text?
 
@@ -245,7 +269,7 @@ Why it matters: it decides what the organizer knows about a note, and how a note
   - [pro] the cleanest lines.
   - [con] "the x is not centered" says nothing about which page.
 
-**Answer:**
+**Answer:** A
 
 ## Q8: What keeps the inbox from growing unread?
 
@@ -265,7 +289,7 @@ Why it matters: an inbox nobody organizes becomes today's scratchpad, with more 
   - [pro] a prompt to act.
   - [con] a threshold to pick, and one more thing to dismiss.
 
-**Answer:**
+**Answer:** A
 
 ## Q9: How is a note with a screenshot captured?
 
@@ -282,7 +306,7 @@ this question needs no answer: write "-". More in [discovery](discovery-01.md#no
   - [pro] nothing to build.
   - [con] the screenshot is lost at capture, when it is easiest to take.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -304,3 +328,5 @@ this question needs no answer: write "-". More in [discovery](discovery-01.md#no
   deleted or gathered into the same draft. See [discovery](discovery-01.md#needs-no-choice).
 
 **Notes:**
+
+- **Three bugs of today's scratchpad**: Remove them
