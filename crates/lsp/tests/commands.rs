@@ -768,7 +768,7 @@ fn a_spec_is_not_committed() {
 
     assert_eq!(
         error.message,
-        "Only drafts, backlog files, proposals, and PRIORITIES.md are committed from the editor."
+        "Only drafts, backlog files, proposals, PRIORITIES.md, and INBOX.md are committed from the editor."
     );
     assert_eq!(error.data, Some(json!({ "code": "refused" })));
 }
@@ -1149,4 +1149,166 @@ fn an_image_of_an_edited_draft_copy_is_refused() {
         )
     );
     assert!(!repo.exists("specs/drafts/codex-runtime/images"));
+}
+
+const INBOX: &str = "specs/INBOX.md";
+
+/// A repository on `main` with the fixture's `INBOX.md`, under `## UI` and `## CLI`, committed.
+fn with_inbox() -> TestRepo {
+    let repo = with_priorities(LATER);
+    let inbox = std::fs::read_to_string(repository().join("fixtures/repo/main/specs/INBOX.md"));
+    repo.write(INBOX, &inbox.unwrap());
+    repo.commit("chore: inbox");
+    repo
+}
+
+/// The progress of the one command a session ran: its title, then its message.
+fn progress(session: &mut Session) -> Vec<Value> {
+    let created = session.server_requests("window/workDoneProgress/create");
+    let token = &created[0]["token"];
+    session
+        .notifications("$/progress")
+        .into_iter()
+        .filter(|params| &params["token"] == token)
+        .map(|params| params["value"].clone())
+        .collect()
+}
+
+/// Review comment C2: the categories a note can go to, read from the default branch's inbox.
+#[test]
+fn the_inbox_categories_are_mains() {
+    let repo = with_inbox();
+    let mut session = start(repo.path());
+
+    let categories = session.raw("uraeda/inboxCategories", json!({})).unwrap();
+
+    assert_eq!(categories, json!(["UI", "CLI"]));
+
+    let empty = with_priorities(LATER);
+    let mut session = start(empty.path());
+    let categories = session.raw("uraeda/inboxCategories", json!({})).unwrap();
+    assert_eq!(categories, json!([]));
+}
+
+/// US7.1, and C2: a note goes to a new category, uncommitted, and the file opens at its line.
+#[test]
+fn a_note_is_added_to_the_inbox() {
+    let repo = with_inbox();
+    let mut session = start(repo.path());
+    let inbox = abs(&repo.path().join(INBOX));
+
+    let result = session
+        .command(
+            "uraeda.note",
+            json!({ "text": "Hints flicker on save", "category": "Editor" }),
+        )
+        .unwrap();
+
+    let text = repo.read(INBOX);
+    assert!(
+        text.ends_with(
+            "- Make sure agents are resumable\n\n## Editor\n\n- Hints flicker on save\n"
+        ),
+        "{text}"
+    );
+    let line = text.lines().count();
+    assert_eq!(
+        result,
+        json!({ "opened": inbox, "written": [inbox], "line": line })
+    );
+    assert_eq!(repo.subjects("main")[0], "chore: inbox");
+    assert_eq!(
+        progress(&mut session),
+        [
+            json!({ "kind": "begin", "title": "Adding a note…" }),
+            json!({ "kind": "end", "message": "Added to the inbox, not committed" }),
+        ]
+    );
+
+    // A note in the middle of the file, and one without a category, before the first heading.
+    let result = session
+        .command(
+            "uraeda.note",
+            json!({ "text": "Hints flicker on save", "category": "UI" }),
+        )
+        .unwrap();
+    let lines: Vec<String> = repo.read(INBOX).lines().map(String::from).collect();
+    let at = result["line"].as_u64().unwrap() as usize;
+    assert_eq!(lines[at - 1], "- Hints flicker on save");
+    assert_eq!(
+        lines[at - 2],
+        "- Text input feels laggy on the sessions page"
+    );
+    let result = session
+        .command("uraeda.note", json!({ "text": "No heading" }))
+        .unwrap();
+    let lines: Vec<String> = repo.read(INBOX).lines().map(String::from).collect();
+    let at = result["line"].as_u64().unwrap() as usize;
+    assert_eq!(lines[at - 1], "- No heading");
+    assert_eq!(lines[at - 2], "- We need a home icon");
+
+    let error = session
+        .command("uraeda.note", json!({ "text": "  " }))
+        .unwrap_err();
+    assert_eq!(error.message, "A note needs text.");
+}
+
+/// US7.1: from a feature's worktree, the note is written in main's checkout, and opened there.
+#[test]
+fn a_note_from_a_worktree_goes_to_mains_inbox() {
+    let repo = with_inbox();
+    let worktree = repo.path().join(".worktrees/feat");
+    repo.git(&[
+        "worktree",
+        "add",
+        "--quiet",
+        "-b",
+        "feat",
+        worktree.to_str().unwrap(),
+    ]);
+    std::fs::write(worktree.join(INBOX), "# Inbox\n\n## Feat\n").unwrap();
+    let mut session = start(&worktree);
+
+    let categories = session.raw("uraeda/inboxCategories", json!({})).unwrap();
+    let result = session
+        .command(
+            "uraeda.note",
+            json!({ "text": "Hints flicker on save", "category": "CLI" }),
+        )
+        .unwrap();
+
+    assert_eq!(categories, json!(["UI", "CLI"]));
+    let inbox = abs(&repo.path().join(INBOX));
+    assert_eq!(result["opened"], json!(inbox));
+    assert!(repo.read(INBOX).ends_with("- Hints flicker on save\n"));
+    assert_eq!(
+        std::fs::read_to_string(worktree.join(INBOX)).unwrap(),
+        "# Inbox\n\n## Feat\n"
+    );
+}
+
+/// US7.2: the inbox's changes are committed from its file, with the commit bar's message.
+#[test]
+fn the_inbox_is_committed() {
+    let repo = with_inbox();
+    let mut session = start(repo.path());
+    session
+        .command(
+            "uraeda.note",
+            json!({ "text": "Hints flicker on save", "category": "Editor" }),
+        )
+        .unwrap();
+
+    let path = repo.path().join(INBOX);
+    let result = session
+        .command("uraeda.commit", json!({ "uri": uri(&path) }))
+        .unwrap();
+
+    assert_eq!(result, json!({ "written": [] }));
+    assert_eq!(
+        repo.subjects("main")[0],
+        "chore: add \"Hints flicker on save\" to the inbox"
+    );
+    assert_eq!(repo.changed_in("HEAD"), [INBOX]);
+    assert_eq!(repo.porcelain(), "");
 }

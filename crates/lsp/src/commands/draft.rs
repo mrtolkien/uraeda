@@ -48,6 +48,7 @@ pub(super) fn draft(documents: &Documents, args: DraftArgs) -> Result<Outcome, R
         return Ok(Outcome {
             opened: Some(absolute(default.join(linked))),
             written: Vec::new(),
+            line: None,
         });
     }
     let drafted = core(api::create_draft(root, &entry.id, &hash(&text)))?;
@@ -55,5 +56,6 @@ pub(super) fn draft(documents: &Documents, args: DraftArgs) -> Result<Outcome, R
     Ok(Outcome {
         opened: Some(opened.clone()),
         written: vec![opened, absolute(default.join(priorities_path()))],
+        line: None,
     })
 }

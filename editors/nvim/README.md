@@ -1,8 +1,8 @@
 # uraeda.nvim
 
 Uraeda's workflow files in Neovim: answer questions, comment on a spec, approve it or request
-changes, draft a line of `PRIORITIES.md`, start a draft, paste an image, and commit, without leaving
-the editor.
+changes, draft a line of `PRIORITIES.md`, start a draft, paste an image, add a note to the inbox,
+and commit, without leaving the editor.
 
 The plugin holds no workflow rules. It runs the `uraeda` language server, `ura lsp`, which gives
 diagnostics as you type, completion and code actions for frontmatter values, document symbols, and
@@ -45,21 +45,22 @@ vim.g.uraeda = {
 ## Keys
 
 Set in the workflow files the language server attaches to: the markdown files under a `specs/`
-folder that holds `PRIORITIES.md`. `<leader>aw` works from any buffer.
+folder that holds `PRIORITIES.md`. `<leader>aw` and `<leader>ao` work from any buffer.
 
-| Key          | Command            | Action                                                  |
-| ------------ | ------------------ | ------------------------------------------------------- |
-| `<leader>an` | `:Uraeda draft`    | Draft the `PRIORITIES.md` line under the cursor         |
-| `<leader>ap` | `:Uraeda start`    | Start the draft or backlog file as a feature            |
-| `<leader>ag` | `:Uraeda commit`   | Commit the draft, backlog file, proposal, or priorities |
-| `<leader>ai` | `:Uraeda image`    | Add the clipboard's image, or a file's, at the cursor   |
-| `<leader>am` | `:Uraeda comment`  | Comment on the line, or the visual selection            |
-| `<leader>ae` | `:Uraeda field`    | Set a frontmatter field                                 |
-| `<leader>av` | `:Uraeda verdict`  | Approve, request changes, or submit answers, and commit |
-| `<leader>at` | `:Uraeda comments` | Hide or show the comments drawn under their lines       |
-| `<leader>aw` | `:Uraeda waiting`  | List the files waiting on you                           |
-| `]u`         | `:Uraeda next`     | Jump to the next question or comment                    |
-| `[u`         | `:Uraeda prev`     | Jump to the previous question or comment                |
+| Key          | Command            | Action                                                         |
+| ------------ | ------------------ | -------------------------------------------------------------- |
+| `<leader>an` | `:Uraeda draft`    | Draft the `PRIORITIES.md` line under the cursor                |
+| `<leader>ap` | `:Uraeda start`    | Start the draft or backlog file as a feature                   |
+| `<leader>ag` | `:Uraeda commit`   | Commit the draft, backlog file, proposal, priorities, or inbox |
+| `<leader>ai` | `:Uraeda image`    | Add the clipboard's image, or a file's, at the cursor          |
+| `<leader>am` | `:Uraeda comment`  | Comment on the line, or the visual selection                   |
+| `<leader>ae` | `:Uraeda field`    | Set a frontmatter field                                        |
+| `<leader>av` | `:Uraeda verdict`  | Approve, request changes, or submit answers, and commit        |
+| `<leader>at` | `:Uraeda comments` | Hide or show the comments drawn under their lines              |
+| `<leader>aw` | `:Uraeda waiting`  | List the files waiting on you                                  |
+| `<leader>ao` | `:Uraeda note`     | Add a note to the inbox, and open it at the note               |
+| `]u`         | `:Uraeda next`     | Jump to the next question or comment                           |
+| `[u`         | `:Uraeda prev`     | Jump to the previous question or comment                       |
 
 Each action is also a `<Plug>` mapping, like `<Plug>(uraeda-verdict)`, to map keys of your own.
 

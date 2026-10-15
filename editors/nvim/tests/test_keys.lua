@@ -74,6 +74,7 @@ T["every action has a key, a subcommand, and a Plug mapping"] = function()
   eq(uraeda_keys("n", true)["]u"], "Uraeda: next question or comment")
   eq(uraeda_keys("n", true)["[u"], "Uraeda: previous question or comment")
   eq(uraeda_keys("n", false)["\\aw"], "Uraeda: files waiting on you")
+  eq(uraeda_keys("n", false)["\\ao"], "Uraeda: add a note to the inbox")
 end
 
 T["no key collides under <leader>a"] = function()

@@ -129,8 +129,10 @@ validated when the plugin starts. The defaults: >lua
     or a backlog file can be started.
 
 :Uraeda commit                                                *:Uraeda-commit*
-    Commits the current draft, backlog file, proposal, or `PRIORITIES.md`.
-    Your git hooks run: a failing hook shows its output.
+    Commits the current draft, backlog file, proposal, `PRIORITIES.md`, or
+    `INBOX.md`. On `PRIORITIES.md` or `INBOX.md`, commits the changes of
+    both, with the web UI's messages. Your git hooks run: a failing hook
+    shows its output.
 
 :Uraeda image [{file}]                                         *:Uraeda-image*
     In a draft, a backlog file, or a markdown file of a feature's or a change's
@@ -177,6 +179,14 @@ validated when the plugin starts. The defaults: >lua
     repository: the current file's, else the current folder's. Works from
     any buffer. Opens the one you pick at its line.
 
+:Uraeda note                                                    *:Uraeda-note*
+    Asks a note's text, then its category: "No category", one of the
+    inbox's categories, or "New category…", which asks its name. Adds the
+    note at the end of that category in the default branch's `INBOX.md`,
+    without committing, and opens the file at the note's line. Works from
+    any buffer, in any checkout of the repository: the current file's, else
+    the current folder's. |:Uraeda-commit| in `INBOX.md` commits it.
+
 :Uraeda next                                                    *:Uraeda-next*
     Jumps to the next question of a round, or comment of a review.
 
@@ -218,6 +228,9 @@ normal mode, `<Plug>(uraeda-comment)` in visual mode too. For example: >lua
 <Plug>(uraeda-waiting)                                *<Plug>(uraeda-waiting)*
     |:Uraeda-waiting|.
 
+<Plug>(uraeda-note)                                      *<Plug>(uraeda-note)*
+    |:Uraeda-note|.
+
 <Plug>(uraeda-next)                                      *<Plug>(uraeda-next)*
     |:Uraeda-next|.
 
@@ -228,10 +241,10 @@ normal mode, `<Plug>(uraeda-comment)` in visual mode too. For example: >lua
 7. Keys                                                          *uraeda-keys*
 
 When the `uraeda` server attaches to a buffer, the plugin sets these keys in
-it, under |vim.g.uraeda.prefix|, `<leader>a` by default. `<leader>aw` is set
-once, globally, so it works from any buffer. Their descriptions start with
-"Uraeda", for which-key. None collides with LazyVim's AI keys under
-`<leader>a`.
+it, under |vim.g.uraeda.prefix|, `<leader>a` by default. `<leader>aw` and
+`<leader>ao` are set once, globally, so they work from any buffer. Their
+descriptions start with "Uraeda", for which-key. None collides with LazyVim's
+AI keys under `<leader>a`.
 
 Key            Mode     Action ~
 `<leader>an`     n        |:Uraeda-draft|
@@ -243,6 +256,7 @@ Key            Mode     Action ~
 `<leader>av`     n        |:Uraeda-verdict|
 `<leader>at`     n        |:Uraeda-comments|
 `<leader>aw`     n        |:Uraeda-waiting|, global
+`<leader>ao`     n        |:Uraeda-note|, global
 `]u`             n        |:Uraeda-next|
 `[u`             n        |:Uraeda-prev|
 
