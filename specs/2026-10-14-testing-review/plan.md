@@ -722,7 +722,7 @@ all of one size (`round.test.tsx`, `task.test.tsx`).
 - Expected: none, except the `mouse` command's waits, which are part of a drag's gesture. The tests
   at both sizes that branch on `innerWidth` stay.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web/vite.browser.config.ts packages/web/src/__browser__
@@ -821,7 +821,7 @@ above; R5 already covers the SC-002 test. As built, R21 to R25.
 - Run: `nix develop -c vp run --no-cache ts:test`
 - Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-14-testing-review/rulings.md
