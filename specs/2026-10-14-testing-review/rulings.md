@@ -634,3 +634,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the TypeScript total counts tools no unit test runs, a few points lower; an
   `exclude` per tool lifts it.
 - **Where**: task 8.
+
+## R35: Following the end ignores the window's scrolls until the place is put back
+
+- **Decision**: `useFollowEnd` takes the window's position as the human's again a frame after the
+  layout for a new width class commits, in the frame where `useKeepPlace` puts the place back, not
+  at the commit. The test is unchanged.
+- **Rationale**: `session.test.tsx` "the column turns into the collapsed progress line across 768
+  px, at the same position" failed in `vp run ready` on the desktop with
+  `expected 1493.953125 to be less than 2`; with 48 busy loops on 32 cores, 3 runs out of 8 failed
+  with the same value, and alone it passed. A trace of the window's scrolls showed the cause: the
+  narrow layout, shorter, clamped the window at its end, and its scroll event came after React
+  committed the narrow layout but before `useKeepPlace`'s frame. `useFollowEnd` ignored a scroll
+  only while the drawn width class differed from the window's, so it took the clamp for the human
+  reaching the end: `useKeepPlace` put the place back, and in the same frame the transcript's resize
+  made `useFollowEnd` scroll to the end. A human reading a working session in the middle while
+  resizing the window across 768 px was thrown to its end the same way. With the fix, 16 runs out of
+  16 of the file's three tests across 768 px passed under the same load.
+- **Alternatives considered**: `useKeepPlace` telling `useFollowEnd` once it put the place back: a
+  shared state between two hooks for what one frame orders.
+- **If wrong**: a human who scrolls to the end in the very frame the width class changes is read a
+  frame late; the next scroll reads them again.
+- **Where**: task 8's `ready`, on `main`'s session view.
