@@ -302,6 +302,94 @@ fn a_spec_with_a_story_link_has_no_problem() {
     assert_eq!(summary(&example.problems()), Vec::<String>::new());
 }
 
+/// US6.4, the preview decision's fields: one row per field value.
+#[test]
+fn the_preview_decisions_fields() {
+    const PREVIEW: &str = "specs/decisions/preview.md";
+    let decision = |fields: &str| {
+        format!(
+            "---\nstatus: active\napproved-by: me\n{fields}---\n\n# Preview\n\n## Rules\n\n- A rule.\n\n\
+             ## Why\n\nWhy.\n\n## Alternatives considered\n\n- None.\n\n## Consequences\n\n- None.\n\n\
+             ## Applies to\n\n- `src/`\n"
+        )
+    };
+    let rows: &[(&str, String, Option<String>)] = &[
+        (
+            "both fields",
+            decision(
+                "preview-folder: packages/web\npreview-command: pnpm exec storybook dev --port {port}\n",
+            ),
+            None,
+        ),
+        ("neither field", decision(""), None),
+        (
+            "the root",
+            decision("preview-folder: .\npreview-command: npx storybook dev -p {port}\n"),
+            None,
+        ),
+        (
+            "no {port}",
+            decision("preview-folder: packages/web\npreview-command: npx storybook dev\n"),
+            Some(format!("{PREVIEW}: \"preview-command\" has no {{port}}")),
+        ),
+        (
+            "no command",
+            decision("preview-folder: packages/web\n"),
+            Some(format!("{PREVIEW}: no \"preview-command\" field")),
+        ),
+        (
+            "no folder",
+            decision("preview-command: x --port {port}\n"),
+            Some(format!("{PREVIEW}: no \"preview-folder\" field")),
+        ),
+        (
+            "a folder outside",
+            decision("preview-folder: ../web\npreview-command: x {port}\n"),
+            Some(format!(
+                "{PREVIEW}: \"preview-folder\" \"../web\" is not a folder of the repository"
+            )),
+        ),
+        (
+            "an absolute folder",
+            decision("preview-folder: /web\npreview-command: x {port}\n"),
+            Some(format!(
+                "{PREVIEW}: \"preview-folder\" \"/web\" is not a folder of the repository"
+            )),
+        ),
+    ];
+    for (case, text, expected) in rows {
+        let example = Example::new();
+        example.write(PREVIEW, text);
+
+        let problems: Vec<String> = summary(&example.problems())
+            .into_iter()
+            .filter(|p| p.starts_with(PREVIEW))
+            .collect();
+
+        assert_eq!(
+            problems,
+            expected.iter().cloned().collect::<Vec<_>>(),
+            "{case}"
+        );
+    }
+}
+
+/// The preview fields anywhere but the preview decision are unknown fields.
+#[test]
+fn preview_fields_belong_to_the_preview_decision() {
+    let example = Example::new();
+    example.edit(
+        "specs/decisions/due-dates.md",
+        "approved-by: mrtolkien\n",
+        "approved-by: mrtolkien\npreview-folder: web\n",
+    );
+
+    assert_eq!(
+        summary(&example.problems()),
+        ["specs/decisions/due-dates.md:4: unknown field \"preview-folder\""]
+    );
+}
+
 #[test]
 fn plan_review_on_any_tier() {
     let example = Example::new();

@@ -166,6 +166,12 @@ export declare function openRepository(dataDir: string, name: string): Promise<R
  */
 export declare function pathFolder(path: string): string | null
 
+/**
+ * The preview of the checkout at `checkout`, from its own active preview decision: `null`
+ * without one, or when its fields are wrong.
+ */
+export declare function preview(checkout: string): Promise<Preview | null>
+
 /** Each section of the proposal template, with the guidance the editor shows while it is empty. */
 export declare function proposalHints(): Promise<Array<ProposalHint>>
 
@@ -270,6 +276,12 @@ export declare function startFeature(repo: string, draft: string, slug?: string 
 
 /** Deletes the pending review of a file. */
 export declare function startOver(repo: string, folder: string, file: string): Promise<FileView>
+
+/**
+ * The story an agent's link names, read from the repository's top level: `null` for any other
+ * link. It reads nothing, so it returns at once.
+ */
+export declare function storyLink(href: string): StoryTarget | null
 
 /**
  * Submits the latest round of questions, and commits it; refused when `name`, the round
@@ -705,6 +717,14 @@ export interface NextView {
 
 export interface PlanItems {
   tasks: Array<TaskItem>
+}
+
+/** A checkout's preview, from its active preview decision. */
+export interface Preview {
+  /** The folder the command runs in, from the repository's top level: `.` for the top level. */
+  folder: string
+  /** The command, holding `{port}` where the port goes. */
+  command: string
 }
 
 /** `PRIORITIES.md` read for editing. */

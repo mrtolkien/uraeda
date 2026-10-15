@@ -26,6 +26,7 @@ mod answers;
 mod drafts;
 mod files;
 mod inbox_edits;
+mod preview;
 mod priority_edits;
 mod repository_list;
 mod start;
@@ -36,6 +37,7 @@ pub use drafts::{
 };
 pub use files::{attach_image, encode_image, read_image, read_raw};
 pub use inbox_edits::*;
+pub use preview::preview;
 pub use priority_edits::{
     add_priority, commit_priorities, discard_priorities, edit_priority, insert_priority,
     move_priority, read_priorities, remove_priority,

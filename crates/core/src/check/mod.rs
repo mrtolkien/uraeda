@@ -28,6 +28,8 @@ pub enum CheckError {
 pub(crate) enum Checked {
     Workflow(FileKind),
     Decision,
+    /// `decisions/preview.md`: a decision, with the preview fields.
+    PreviewDecision,
     Priorities,
     /// `INBOX.md`: its title and categories.
     Inbox,
@@ -167,6 +169,9 @@ fn walk(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
 /// priorities anywhere, and the inbox and its triage in `specs/`.
 fn kind_of(dir: &Path, name: &str, any_folder: bool) -> Option<Checked> {
     let parent = dir.file_name().map(|n| n.to_string_lossy().into_owned());
+    if parent.as_deref() == Some("decisions") && name == "preview.md" {
+        return Some(Checked::PreviewDecision);
+    }
     if parent.as_deref() == Some("decisions") && name.ends_with(".md") {
         return Some(Checked::Decision);
     }

@@ -716,7 +716,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { WatchHandle, addComment, addNote, addNoteWithImage, addPriority, addRepository, addSettledComment, approve, attachImage, branchChanges, commitChanges, commitPriorities, commitText, createDraft, dataDir, discardChanges, discardPriorities, editComment, editNote, editPriority, editSettledComment, encodeImage, insertNote, insertPriority, mainRoot, moveNoteToCategory, movePriority, nextStep, noteToDraft, noteToNewDraft, noteToPriorities, openRepository, pathFolder, proposalHints, proposeSlug, readDraft, readFeature, readFile, readImage, readInbox, readPriorities, readRaw, readRepositories, readText, readTriage, readWorkspace, removeComment, removeNote, removePriority, removeRepository, removeSettledComment, requestChanges, retryCommit, retryTriage, saveAnswer, saveNotes, saveText, saveTriageAnswer, saveTriageNotes, setDiscovery, startChange, startFeature, startOver, submitAnswers, submitTriage, undoNoteAdd, undoNoteAsDraft, undoNoteCategory, undoNoteToDraft, undoNoteToPriorities, version, watch, workDir, BlockKind, CalloutKind, ItemMarker } = nativeBinding
+const { WatchHandle, addComment, addNote, addNoteWithImage, addPriority, addRepository, addSettledComment, approve, attachImage, branchChanges, commitChanges, commitPriorities, commitText, createDraft, dataDir, discardChanges, discardPriorities, editComment, editNote, editPriority, editSettledComment, encodeImage, insertNote, insertPriority, mainRoot, moveNoteToCategory, movePriority, nextStep, noteToDraft, noteToNewDraft, noteToPriorities, openRepository, pathFolder, preview, proposalHints, proposeSlug, readDraft, readFeature, readFile, readImage, readInbox, readPriorities, readRaw, readRepositories, readText, readTriage, readWorkspace, removeComment, removeNote, removePriority, removeRepository, removeSettledComment, requestChanges, retryCommit, retryTriage, saveAnswer, saveNotes, saveText, saveTriageAnswer, saveTriageNotes, setDiscovery, startChange, startFeature, startOver, storyLink, submitAnswers, submitTriage, undoNoteAdd, undoNoteAsDraft, undoNoteCategory, undoNoteToDraft, undoNoteToPriorities, version, watch, workDir, BlockKind, CalloutKind, ItemMarker } = nativeBinding
 export { WatchHandle }
 export { addComment }
 export { addNote }
@@ -750,6 +750,7 @@ export { noteToNewDraft }
 export { noteToPriorities }
 export { openRepository }
 export { pathFolder }
+export { preview }
 export { proposalHints }
 export { proposeSlug }
 export { readDraft }
@@ -780,6 +781,7 @@ export { setDiscovery }
 export { startChange }
 export { startFeature }
 export { startOver }
+export { storyLink }
 export { submitAnswers }
 export { submitTriage }
 export { undoNoteAdd }
