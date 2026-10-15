@@ -1403,28 +1403,53 @@ fn a_slug_taken_by_a_feature_is_refused_for_a_change() {
     }
 }
 
-/// Review focus 1 and 2: a name held by a folder alone, of either kind, or by a branch alone.
+/// Review focus 1 and 2: a name held by a folder alone, of either kind, or by a branch alone, of
+/// either kind, for a start of either kind.
 #[test]
 fn a_folder_or_a_branch_alone_takes_the_name() {
-    let holders: [(&str, Option<&str>); 3] = [
-        ("specs/changes/2026-10-16-centred-x/proposal.md", None),
-        ("specs/2026-10-16-centred-x/proposal.md", None),
-        ("README.md", Some("change/2026-10-16-centred-x")),
+    let holders: [(&str, Option<&str>, Kind); 6] = [
+        (
+            "specs/changes/2026-10-16-centred-x/proposal.md",
+            None,
+            Kind::Change,
+        ),
+        ("specs/2026-10-16-centred-x/proposal.md", None, Kind::Change),
+        (
+            "README.md",
+            Some("change/2026-10-16-centred-x"),
+            Kind::Change,
+        ),
+        ("README.md", Some("2026-10-16-centred-x"), Kind::Change),
+        ("README.md", Some("2026-10-16-centred-x"), Kind::Feature),
+        (
+            "README.md",
+            Some("change/2026-10-16-centred-x"),
+            Kind::Feature,
+        ),
     ];
-    for (file, branch) in holders {
+    for (file, branch, kind) in holders {
         let repo = draft_repo();
         repo.write(file, "# Held\n");
         repo.commit("chore: hold the name");
         if let Some(branch) = branch {
             repo.branch(branch);
         }
+        let (git, workspace) = opened(&repo);
 
-        let refused = start_text(&repo, TYPED, &[], Some("centred-x"));
+        let refused = start::run(
+            &git,
+            &workspace,
+            DRAFT,
+            Some("centred-x"),
+            kind,
+            change_day(),
+            false,
+        );
 
         assert_eq!(
             refused.err().map(|error| error.to_string()).as_deref(),
             Some("2026-10-16-centred-x exists: choose another slug with --slug"),
-            "{file} {branch:?}"
+            "{file} {branch:?} {kind:?}"
         );
     }
 }
