@@ -1,7 +1,8 @@
 // The preview runner: the only code that starts, watches, and stops Storybook processes, one per
 // checkout's base path, `/r/<name>/preview/<folder>/`. A view starts the checkout's Storybook, which
 // is ready once its index answers; it stops after 30 minutes without a view, when its checkout is
-// removed, and with the server. Its state lives in memory only.
+// removed, and with the server. Its state lives in memory, and its process groups in a record the
+// next start reads, should the server be killed.
 import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
 import { createServer } from "node:net";
@@ -60,7 +61,13 @@ function portTaken(port: number): Promise<boolean> {
   });
 }
 
-/** The process groups every runner started, killed as the server exits, even on a crash. */
+/** Where a runner records its process groups: `GroupRecord`, in the data folder. */
+export type GroupRecorder = { add(pid: number, base: string): void; remove(pid: number): void };
+
+/**
+ * The process groups every runner started, killed as the server exits, even on a crash; a server
+ * killed past its exit hook leaves them to the next start, through the runner's record.
+ */
 const groups = new Set<number>();
 let ending = false;
 
@@ -141,6 +148,7 @@ export class Previews {
   readonly #freePort: () => Promise<number>;
   readonly #onChange: (base: string) => void;
   readonly #indexMs: number;
+  readonly #record: GroupRecorder | undefined;
   /** Set by `stopAll`: the server stops, and nothing starts again. */
   #closed = false;
 
@@ -151,12 +159,15 @@ export class Previews {
       indexMs?: number;
       now?: () => number;
       onChange?: (base: string) => void;
+      /** Where each running process group is recorded, for the next start to kill (R52). */
+      record?: GroupRecorder;
     } = {},
   ) {
     this.#now = options.now ?? Date.now;
     this.#freePort = options.freePort ?? freePort;
     this.#onChange = options.onChange ?? (() => {});
     this.#indexMs = options.indexMs ?? INDEX_MS;
+    this.#record = options.record;
   }
 
   /**
@@ -277,6 +288,7 @@ export class Previews {
     if (child.pid !== undefined) {
       groups.add(child.pid);
       endWithServer();
+      this.#record?.add(child.pid, entry.checkout.base);
     }
     keepLines(child.stdout, run.lines);
     keepLines(child.stderr, run.lines);
@@ -286,6 +298,7 @@ export class Previews {
       run.running = false;
       if (child.pid !== undefined && groups.delete(child.pid)) {
         signalGroup(child.pid, "SIGKILL");
+        this.#record?.remove(child.pid);
       }
     };
     child.once("exit", stopGroup);

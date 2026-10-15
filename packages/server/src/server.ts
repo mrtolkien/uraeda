@@ -10,6 +10,7 @@ import { createSessions, type HostsOf, livePreviews } from "./live.ts";
 import { NOT_A_REPOSITORY, openFolder, type OpenRequest } from "./open.ts";
 import type { Options } from "./options.ts";
 import { guardCheck } from "./guard.ts";
+import { GroupRecord, groupsFolder, killLeftGroups } from "./preview/groups.ts";
 import { previewUpgrade } from "./preview/proxy.ts";
 import type { Previews } from "./preview/runner.ts";
 import { Hosts } from "./repositories.ts";
@@ -130,7 +131,10 @@ export async function startServer(
     throw error;
   }
   const opened = hosts;
-  const previews = livePreviews();
+  // The Storybooks a killed server left run no more: their record's groups are killed first.
+  const record = groupsFolder(dataDir);
+  killLeftGroups(record);
+  const previews = livePreviews({ record: new GroupRecord(record) });
   const sweeping = setInterval(() => previews.sweep(), SWEEP_EVERY_MS);
   sweeping.unref();
   let stopping: Promise<void> | undefined;
