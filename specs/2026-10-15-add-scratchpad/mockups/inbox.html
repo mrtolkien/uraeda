@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>
+      Mockup: the inbox, adding a note, a note's actions, Home, and the agent's proposal
+    </title>
+    <style>
+      :root {
+        --bg: #fff;
+        --fg: #1c1c1e;
+        --muted: #6b6b70;
+        --line: #e3e3e6;
+        --soft: #f5f5f7;
+        --accent: #2f5bd3;
+        --red: #b3261e;
+        --amber: #9a6100;
+        font-family: system-ui, sans-serif;
+        color: var(--fg);
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        background: #ececef;
+      }
+      h1.page {
+        font-size: 20px;
+        margin: 0 0 6px;
+      }
+      p.note {
+        max-width: 110ch;
+        color: var(--muted);
+        margin: 0 0 24px;
+      }
+      .frame {
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        margin: 0 0 40px;
+        overflow: hidden;
+        position: relative;
+      }
+      .caption {
+        font-size: 13px;
+        color: var(--muted);
+        padding: 8px 14px;
+        border-bottom: 1px solid var(--line);
+        background: var(--soft);
+      }
+      .wide {
+        width: 1440px;
+        display: grid;
+        grid-template-columns: 260px 1fr 480px;
+        min-height: 640px;
+        font-size: 19px;
+      }
+      .wide.two {
+        grid-template-columns: 260px 1fr;
+      }
+      .narrow {
+        width: 402px;
+        min-height: 640px;
+        font-size: 17px;
+        position: relative;
+      }
+      nav.side {
+        border-right: 1px solid var(--line);
+        padding: 14px 10px;
+        font-size: 16px;
+      }
+      nav.side .group {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        margin: 18px 8px 6px;
+      }
+      nav.side .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border-radius: 6px;
+      }
+      nav.side .row.selected {
+        background: #e8edfb;
+      }
+      .plus {
+        margin-left: auto;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        display: grid;
+        place-items: center;
+        color: var(--accent);
+        border: 1px solid transparent;
+      }
+      .plus.focus {
+        border-color: var(--accent);
+      }
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #b9b9bf;
+      }
+      main {
+        padding: 18px 28px;
+      }
+      .head {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+      }
+      .head h2 {
+        font-size: 26px;
+        margin: 4px 0 4px;
+      }
+      .head .count {
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .head .btn {
+        margin-left: auto;
+      }
+      .btn {
+        display: inline-block;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 15px;
+        background: var(--bg);
+      }
+      .btn.primary {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+      .btn.ghost {
+        border-color: transparent;
+        color: var(--accent);
+      }
+      .btn.danger {
+        color: var(--red);
+      }
+      .btn[aria-disabled="true"] {
+        opacity: 0.45;
+      }
+      h3.cat {
+        font-size: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        margin: 22px 0 6px;
+      }
+      .item {
+        padding: 9px 10px;
+        border-radius: 6px;
+        border-bottom: 1px solid var(--line);
+        max-width: 120ch;
+      }
+      .item.selected {
+        background: #e8edfb;
+      }
+      .mark {
+        font-size: 13px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0 7px;
+        color: var(--muted);
+        margin-right: 6px;
+        white-space: nowrap;
+      }
+      .mark.agent {
+        color: var(--amber);
+        border-color: #ecd9b5;
+      }
+      a {
+        color: var(--accent);
+      }
+      .bar {
+        position: sticky;
+        bottom: 0;
+        margin-top: 24px;
+        padding: 10px 14px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--soft);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .bar .btns {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+      }
+      aside.pane {
+        border-left: 1px solid var(--line);
+        padding: 18px 22px;
+      }
+      aside.pane h4 {
+        margin: 0 0 10px;
+        font-size: 15px;
+        color: var(--muted);
+        font-weight: 500;
+      }
+      .text {
+        font-size: 19px;
+        line-height: 1.45;
+        margin: 0 0 14px;
+      }
+      .field {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 10px;
+        margin: 4px 0 12px;
+        background: var(--bg);
+      }
+      .field.placeholder {
+        color: var(--muted);
+      }
+      label.lbl {
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 8px 0 18px;
+      }
+      .menu {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: 0 6px 24px rgb(0 0 0 / 12%);
+        background: var(--bg);
+        width: 260px;
+        padding: 6px;
+        font-size: 16px;
+      }
+      .menu div {
+        padding: 6px 10px;
+        border-radius: 6px;
+      }
+      .menu div.on {
+        background: #e8edfb;
+      }
+      .menu .sep {
+        border-top: 1px solid var(--line);
+        margin: 4px 0;
+        padding: 0;
+      }
+      .dialog {
+        width: 560px;
+        margin: 40px auto;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        box-shadow: 0 12px 40px rgb(0 0 0 / 18%);
+        padding: 18px 20px;
+        background: var(--bg);
+        font-size: 19px;
+      }
+      .dialog h3,
+      .sheet h3 {
+        margin: 0 0 12px;
+        font-size: 20px;
+        display: flex;
+      }
+      .dialog h3 .x,
+      .sheet h3 .x {
+        margin-left: auto;
+        color: var(--muted);
+      }
+      .row-btns {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-top: 8px;
+      }
+      .row-btns .left {
+        margin-right: auto;
+      }
+      .scrim {
+        background: rgb(0 0 0 / 25%);
+        padding: 1px 0;
+      }
+      .sheet {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--bg);
+        border-radius: 14px 14px 0 0;
+        padding: 16px;
+        box-shadow: 0 -8px 30px rgb(0 0 0 / 18%);
+      }
+      .toast {
+        position: absolute;
+        bottom: 18px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #2c2c2e;
+        color: #fff;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 15px;
+        display: flex;
+        gap: 16px;
+      }
+      .toast b {
+        color: #9db4ff;
+        font-weight: 500;
+      }
+      .group-title {
+        font-size: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        margin: 20px 0 8px;
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 14px;
+        margin: 0 0 8px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        max-width: 120ch;
+      }
+      .card .go {
+        margin-left: auto;
+        color: var(--muted);
+      }
+      .q {
+        max-width: 120ch;
+        line-height: 1.45;
+      }
+      .opt {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 12px;
+        margin: 6px 0;
+      }
+      .opt.on {
+        border-color: var(--accent);
+        background: #f1f4fd;
+      }
+      .opt small {
+        display: block;
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--line);
+        font-size: 17px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 class="page">Inbox: mockups</h1>
+    <p class="note">
+      What users see of the inbox, at both widths. The spec's text is the reference for behaviour,
+      and wins where this page differs. Notes are the lines of <code>specs/INBOX.md</code>, grouped
+      by its <code>##</code> categories; notes before the first category show under "No category".
+      Marks like <code>[agent]</code> and <code>[run-ui]</code> show as small tags.
+    </p>
+
+    <!-- 1 -->
+    <div class="frame">
+      <div class="caption">
+        1. Wide: the inbox page, a note open in the pane beside it, with changes to commit. The
+        sidebar's ＋ buttons replace the top bar's.
+      </div>
+      <div class="wide">
+        <nav class="side">
+          <div class="row"><span aria-hidden="true">⌂</span> Home</div>
+          <div class="row">
+            Priorities <span class="plus" aria-label="Add to the priorities">＋</span>
+          </div>
+          <div class="row selected">
+            Inbox <span class="plus" aria-label="Add a note to the inbox">＋</span>
+          </div>
+          <div class="group">Waiting on you</div>
+          <div class="row"><span class="dot"></span> add-scratchpad</div>
+          <div class="row"><span class="dot"></span> add-bugfixing</div>
+        </nav>
+        <main>
+          <div class="head">
+            <h2>Inbox</h2>
+            <span class="count">11 notes</span>
+            <span class="btn">Organize with an agent</span>
+          </div>
+          <h3 class="cat">No category</h3>
+          <div class="item">
+            Specs are still way too long and hard to read, with tens of bullet points
+          </div>
+          <div class="item">We'll need a model selector for each step</div>
+          <h3 class="cat">UI</h3>
+          <div class="item selected">
+            <span class="mark">run-ui</span>In failures the <code>x</code> is not centered in the
+            circle
+          </div>
+          <div class="item">Draft to proposal on mobile went 404</div>
+          <div class="item">
+            <a href="#">We need a home icon/logo that goes back to the project root</a>
+          </div>
+          <div class="item">
+            <span class="mark agent">agent</span><span class="mark">session-view</span>Opening a
+            session with 2,000 messages takes 4 s
+          </div>
+          <h3 class="cat">CLI</h3>
+          <div class="item">Allow no selection in responses (after a warning)</div>
+          <div class="bar">
+            2 changes to commit
+            <span class="btns"
+              ><span class="btn ghost">Discard</span><span class="btn primary">Commit</span></span
+            >
+          </div>
+        </main>
+        <aside class="pane">
+          <h4>Note, in UI</h4>
+          <p class="text">
+            <span class="mark">run-ui</span>In failures the <code>x</code> is not centered in the
+            circle
+          </p>
+          <div class="actions">
+            <span class="btn">Edit</span>
+            <span class="btn">Category</span>
+          </div>
+          <h4>Organize</h4>
+          <div class="actions">
+            <span class="btn">Move to priorities</span>
+            <span class="btn">Make a draft</span>
+            <span class="btn">Add to a draft</span>
+            <span class="btn danger">Delete</span>
+          </div>
+          <div class="menu" style="margin-top: 6px">
+            <div>Now</div>
+            <div class="on">Next</div>
+            <div>Later</div>
+            <div>Blocked</div>
+          </div>
+          <p class="note" style="font-size: 15px; margin-top: 10px">
+            "Move to priorities" and "Make a draft" open this menu of sections. "Add to a draft"
+            opens a list of the drafts and backlog files, by title, with a filter field.
+          </p>
+        </aside>
+      </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="frame">
+      <div class="caption">
+        2. Wide: adding a note, from the sidebar's ＋ next to Inbox. The category menu is open.
+      </div>
+      <div class="scrim" style="min-height: 520px; width: 1440px">
+        <div class="dialog">
+          <h3>Add a note <span class="x" aria-label="Close">✕</span></h3>
+          <div class="field">The plan's task list scrolls under the top bar on Safari</div>
+          <label class="lbl">Category</label>
+          <div class="field">UI ▾</div>
+          <div class="menu">
+            <div>No category</div>
+            <div class="on">UI</div>
+            <div>CLI</div>
+            <div class="sep"></div>
+            <div>New category…</div>
+          </div>
+          <div class="row-btns">
+            <span class="btn left">Attach an image</span>
+            <span class="btn">Cancel</span>
+            <span class="btn primary">Add</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="frame">
+      <div class="caption">
+        3. Wide: adding a note with an image. The note becomes a draft; the button says so.
+      </div>
+      <div class="scrim" style="min-height: 420px; width: 1440px">
+        <div class="dialog">
+          <h3>Add a note <span class="x" aria-label="Close">✕</span></h3>
+          <div class="field">The spec page's headings are the same size as body text</div>
+          <label class="lbl">Category</label>
+          <div class="field">UI ▾</div>
+          <div class="field" style="display: flex; gap: 10px; align-items: center">
+            <span style="width: 64px; height: 40px; background: #dfe3ee; border-radius: 4px"></span>
+            spec-headings.webp <span class="btn ghost" style="margin-left: auto">Remove</span>
+          </div>
+          <p class="note" style="font-size: 15px; margin: 0 0 6px">
+            With an image, the note is saved as a draft, linked from the inbox.
+          </p>
+          <div class="row-btns">
+            <span class="btn left">Attach an image</span>
+            <span class="btn">Cancel</span>
+            <span class="btn primary">Add as a draft</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="frame" style="width: 1440px">
+      <div class="caption">
+        4. Wide: Home, with the inbox's count, and the toast after adding a note.
+      </div>
+      <div class="wide two" style="min-height: 420px">
+        <nav class="side">
+          <div class="row selected"><span aria-hidden="true">⌂</span> Home</div>
+          <div class="row">Priorities <span class="plus">＋</span></div>
+          <div class="row">Inbox <span class="plus">＋</span></div>
+        </nav>
+        <main style="position: relative">
+          <div class="group-title">Waiting on you</div>
+          <div class="card">Scratchpad: spec to review <span class="go">›</span></div>
+          <div class="group-title">Inbox</div>
+          <div class="card">12 notes to organize <span class="go">›</span></div>
+          <div class="group-title">Priorities</div>
+          <div class="card">Look and feel pass <span class="go">›</span></div>
+          <div class="toast">Added to the inbox, not committed <b>Undo</b></div>
+        </main>
+      </div>
+    </div>
+
+    <!-- 5 -->
+    <div style="display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap">
+      <div class="frame">
+        <div class="caption">5. Narrow: the inbox page.</div>
+        <div class="narrow">
+          <div class="topbar"><span aria-label="Menu">☰</span> Inbox</div>
+          <main style="padding: 12px 16px">
+            <div class="head">
+              <h2>Inbox</h2>
+              <span class="count">11 notes</span>
+            </div>
+            <span class="btn" style="margin: 6px 0 4px">Organize with an agent</span>
+            <h3 class="cat">No category</h3>
+            <div class="item">Specs are still way too long and hard to read</div>
+            <div class="item">We'll need a model selector for each step</div>
+            <h3 class="cat">UI</h3>
+            <div class="item">
+              <span class="mark">run-ui</span>In failures the <code>x</code> is not centered
+            </div>
+            <div class="item">Draft to proposal on mobile went 404</div>
+          </main>
+        </div>
+      </div>
+
+      <div class="frame">
+        <div class="caption">6. Narrow: a note, as its own page.</div>
+        <div class="narrow">
+          <div class="topbar"><span aria-label="Back">‹</span> Inbox</div>
+          <main style="padding: 12px 16px">
+            <h4 style="color: var(--muted); font-weight: 500; margin: 0 0 8px">Note, in UI</h4>
+            <p class="text" style="font-size: 17px">
+              <span class="mark">run-ui</span>In failures the <code>x</code> is not centered in the
+              circle
+            </p>
+            <div class="actions">
+              <span class="btn">Edit</span><span class="btn">Category</span>
+            </div>
+            <h4 style="color: var(--muted); font-weight: 500; margin: 0 0 8px">Organize</h4>
+            <div class="actions" style="flex-direction: column; align-items: stretch">
+              <span class="btn">Move to priorities</span>
+              <span class="btn">Make a draft</span>
+              <span class="btn">Add to a draft</span>
+              <span class="btn danger">Delete</span>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      <div class="frame">
+        <div class="caption">7. Narrow: adding a note, as a bottom sheet.</div>
+        <div class="narrow scrim">
+          <div class="sheet">
+            <h3>Add a note <span class="x" aria-label="Close">✕</span></h3>
+            <div class="field placeholder">What did you notice?</div>
+            <label class="lbl">Category</label>
+            <div class="field">No category ▾</div>
+            <div class="row-btns">
+              <span class="btn left">Attach an image</span>
+              <span class="btn">Cancel</span>
+              <span class="btn primary" aria-disabled="true">Add</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="frame">
+        <div class="caption">8. Narrow: the empty inbox.</div>
+        <div class="narrow">
+          <div class="topbar"><span aria-label="Menu">☰</span> Inbox</div>
+          <main style="padding: 12px 16px">
+            <div class="head"><h2>Inbox</h2></div>
+            <p style="color: var(--muted)">
+              The inbox is empty. Notes you add with ＋ next to Inbox land here.
+            </p>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9 -->
+    <div class="frame" style="width: 1440px">
+      <div class="caption">
+        9. Wide: the agent's proposal, <code>specs/INBOX-TRIAGE.md</code>, answered in the same view
+        as a round of questions. The inbox page links to it while it waits for you.
+      </div>
+      <div class="wide two" style="min-height: 520px">
+        <nav class="side">
+          <div class="row"><span aria-hidden="true">⌂</span> Home</div>
+          <div class="row">Priorities <span class="plus">＋</span></div>
+          <div class="row selected">Inbox <span class="plus">＋</span></div>
+        </nav>
+        <main class="q">
+          <div class="head"><h2>Inbox triage</h2></div>
+          <p style="color: var(--muted)">4 questions on 11 notes, about 8 minutes.</p>
+          <h3 style="font-size: 21px">Q1: What becomes of the three notes on reading specs?</h3>
+          <p>
+            "Specs are still way too long", "Allow no selection in responses", and "Only true uraeda
+            flows should show up in the UI" are all about reading and answering workflow files. The
+            <a href="#">look and feel</a> draft already gathers six such notes.
+          </p>
+          <div class="opt on">
+            <b>A (recommended). Add the three to the draft "Look and feel pass".</b>
+            <small>[pro] one place for UI polish. [con] the draft grows to nine items.</small>
+          </div>
+          <div class="opt">
+            <b>B. Make a new draft, "Reading workflow files", in Next, from the three notes.</b>
+            <small>[pro] a focused feature. [con] overlaps the look and feel pass.</small>
+          </div>
+          <div class="opt">
+            <b>C. Keep them in the inbox.</b>
+            <small>[pro] nothing changes. [con] they stay unsorted.</small>
+          </div>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>
