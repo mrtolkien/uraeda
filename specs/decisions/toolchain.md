@@ -70,19 +70,18 @@ check their own work: one command they cannot forget a part of keeps them honest
 
 An agent runs `ready` after every task, and `ready` reran every step one after the other, so a
 feature lost an hour to checks its changes could not affect; CI took up to 15 minutes in one job on
-4 vCPUs, and 43 of its last 100 runs failed ([proposal](../2026-10-14-testing-review/proposal.md),
-[what fails on CI](../2026-10-14-testing-review/discovery-01.md#what-fails-on-ci)). The human chose
-cached tasks over a narrower rule in the skill
-([Q4](../2026-10-14-testing-review/clarifications-01.md#q4-how-does-a-task-skip-the-work-its-change-cannot-affect)),
+4 vCPUs, and 43 of its last 100 runs failed ([proposal](../done/2026-10-14-testing-review.md),
+[what fails on CI](../done/2026-10-14-testing-review.md#q2-what-happens-when-a-test-fails-without-a-bug)).
+The human chose cached tasks over a narrower rule in the skill
+([Q4](../done/2026-10-14-testing-review.md#q4-how-does-a-task-skip-the-work-its-change-cannot-affect)),
 parallel CI jobs without path filters
-([Q5](../2026-10-14-testing-review/clarifications-01.md#q5-how-should-ci-run-the-checks)),
-cargo-nextest for its process per test and timeouts
-([Q6](../2026-10-14-testing-review/clarifications-01.md#q6-should-rust-tests-run-with-cargo-nextest)),
-no retries
-([Q2](../2026-10-14-testing-review/clarifications-01.md#q2-what-happens-when-a-test-fails-without-a-bug)),
-the Neovim tests out of the default run, and a coverage report without thresholds
-([Q1](../2026-10-14-testing-review/clarifications-01.md#q1-what-does-this-feature-cover),
-[Q1.A](../2026-10-14-testing-review/clarifications-01.md#q1a-what-does-coverage-do-once-it-is-measured)).
+([Q5](../done/2026-10-14-testing-review.md#q5-how-should-ci-run-the-checks)), cargo-nextest for its
+process per test and timeouts
+([Q6](../done/2026-10-14-testing-review.md#q6-should-rust-tests-run-with-cargo-nextest)), no retries
+([Q2](../done/2026-10-14-testing-review.md#q2-what-happens-when-a-test-fails-without-a-bug)), the
+Neovim tests out of the default run, and a coverage report without thresholds
+([Q1](../done/2026-10-14-testing-review.md#q1-what-does-this-feature-cover),
+[Q1.A](../done/2026-10-14-testing-review.md#q1a-what-does-coverage-do-once-it-is-measured)).
 
 The web UI is compiled with React Compiler: typing a review comment redrew the whole spec at each
 keystroke, and nothing in the web UI was memoized. The human chose to fix it for every page with
@@ -103,7 +102,7 @@ experimental.
 - `cargo test`, the first choice: no new tool, but tests share a process, so one test's environment
   races another's, and a hung test hangs the run.
 - Retries reporting flaky tests: they hide real races, which the tests had already found
-  ([Google](../2026-10-14-testing-review/discovery-01.md#google)).
+  ([Google](../done/2026-10-14-testing-review.md)).
 - The Rust port of the compiler, `oxc-transform-react`, through `react({ compiler: true })`: one
   package instead of three, but experimental.
 - Hand memoization of the slow pages only: no dependency, but each large page fixed one by one.
