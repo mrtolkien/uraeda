@@ -463,12 +463,13 @@ The break each test catches: a check that reports nothing, or the wrong text; a 
 
 In `vite.config.ts`'s `run.tasks`, every task of the spec's Data table, with its command, its
 `dependsOn`, its inputs (`binding:build`'s from `SOURCES`, plus `packages/binding/package.json`),
-and its outputs as the global constraints say. `ts:check`'s inputs are the files `vp check` formats
-or lints, by extension, outside `target/` and `node_modules/`, so a Rust or Lua change does not
-rerun it; the group tasks and `ready` run `true` and only depend on their tasks. The test tasks'
-commands start with `GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1` and their
-`cache.untrackedEnv` is the shared list. `rust:test` sets `NEXTEST_PROFILE` from the environment
-through `cache.untrackedEnv`, so CI picks `ci`. `ts:test` runs
+and its outputs as the global constraints say, with the inputs R20 adds to the Data table's.
+`ts:check`'s inputs are the files `vp check` formats or lints, by extension, outside `target/` and
+`node_modules/`, so a Rust or Lua change does not rerun it; the group tasks and `ready` run `true`
+and only depend on their tasks. The test tasks' commands start with
+`GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1` and their `cache.untrackedEnv` is the shared
+list. `rust:test` sets `NEXTEST_PROFILE` from the environment through `cache.untrackedEnv`, so CI
+picks `ci`. `ts:test` runs
 `vp test --project uraeda-binding --project uraeda-server --project uraeda-web`; `browser:phone` and
 `browser:desktop` run `vp test --project phone` and `vp test --project desktop`. `test:nvim`,
 `bench` and `coverage` are not cached (`cache: false`); `coverage`'s command comes in task 8.
