@@ -172,12 +172,12 @@ function fieldOf(
 }
 
 /**
- * A spec, a plan, or an assessment to review, as committed at its branch's tip: tapping blocks
- * selects lines to comment on, pending comments show under their blocks, and the end of the page
- * holds the verdict. The comment field opens under the last tapped block on wide screens, and in
- * a sheet on the phone, the block kept in view above it. The field is drawn apart from the
- * document, by `CommentHost`, so typing renders the field alone; the comment holding unsaved text
- * when the page is drawn opens again.
+ * A spec or a plan to review, as committed at its branch's tip: tapping blocks selects lines to
+ * comment on, pending comments show under their blocks, and the end of the page holds the verdict.
+ * The comment field opens under the last tapped block on wide screens, and in a sheet on the phone,
+ * the block kept in view above it. The field is drawn apart from the document, by `CommentHost`, so
+ * typing renders the field alone; the comment holding unsaved text when the page is drawn opens
+ * again.
  */
 export function ReviewPage({ file }: { file: File }) {
   const wide = useWidthClass() === "wide";
