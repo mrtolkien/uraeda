@@ -103,8 +103,9 @@ fn apply(
 
 const NO_TEXT: &str = "A note needs text.";
 
-/// Refuses a blank note, and a mark that would not parse back as one.
-fn checked_note(marks: &Marks, text: &str) -> Result<(), ActionError> {
+/// Refuses a blank note, and a mark that would not parse back as one: checked by every add, and
+/// by `ura note` before it reaches the default branch.
+pub fn checked_note(marks: &Marks, text: &str) -> Result<(), ActionError> {
     if text.trim().is_empty() {
         return Err(ActionError::Refused(NO_TEXT.to_string()));
     }
@@ -151,7 +152,8 @@ pub enum Noted {
 }
 
 /// Adds a note, as `ura note` does, and commits `INBOX.md` alone when `commit` is set and the file
-/// had no uncommitted change. Other staged files are refused before anything is written.
+/// had no uncommitted change. When it will commit, other staged files are refused before anything
+/// is written.
 pub fn note(
     place: &Place,
     category: Option<&str>,
@@ -160,17 +162,16 @@ pub fn note(
     commit: bool,
 ) -> Result<Noted, ActionError> {
     checked_note(marks, text)?;
-    if commit {
-        super::place::ensure_only_staged(place, &[PATH.to_string()])?;
-    }
     let before = fs::read_to_string(place.root.join(PATH)).ok();
     let clean = before == super::place::committed(place, PATH);
-    add(place, category, marks, text, None)?;
-    if !commit {
-        return Ok(Noted::Written);
+    if commit && clean {
+        super::place::ensure_only_staged(place, &[PATH.to_string()])?;
     }
-    if !clean {
-        return Ok(Noted::Uncommitted);
+    add(place, category, marks, text, None)?;
+    match (commit, clean) {
+        (false, _) => return Ok(Noted::Written),
+        (true, false) => return Ok(Noted::Uncommitted),
+        (true, true) => {}
     }
     let subject = format!(
         "chore: add \"{}\" to the inbox",

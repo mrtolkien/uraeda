@@ -179,3 +179,30 @@ fn candidates_of_the_blocked_section_are_spaced() {
         "ura: name the line: ura draft <text>\n  Now      Basic web UI for viewing\n  Blocked  Benchmarks\n"
     );
 }
+
+/// From another worktree, a draft written in the main checkout names its full path.
+#[test]
+fn from_a_worktree_it_names_the_main_checkout() {
+    let repo = repo();
+    repo.branch("2026-10-15-other");
+    let worktree = repo.parent().join("other");
+    repo.git(&[
+        "worktree",
+        "add",
+        "--quiet",
+        worktree.to_str().unwrap(),
+        "2026-10-15-other",
+    ]);
+
+    let output = ura_in(&worktree, &["draft", "listener"], &[]);
+
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert!(
+        output
+            .stdout
+            .starts_with(&format!("wrote in {}\ncreated ", repo.path().display())),
+        "{}",
+        output.stdout
+    );
+    assert!(repo.exists("specs/drafts/git-listener-process.md"));
+}

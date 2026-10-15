@@ -5,7 +5,7 @@ use std::process::ExitCode;
 use uraeda_core::actions::inbox::{self, Marks, Noted};
 use uraeda_core::actions::place;
 use uraeda_core::git::{Git, GitError};
-use uraeda_core::target::{Purpose, Target};
+use uraeda_core::target::{self, Purpose, Target, TargetError};
 use uraeda_core::workspace::{Workspace, WorkspaceError, branch_folder, folder_slug};
 
 use crate::output;
@@ -26,6 +26,7 @@ pub fn run(options: Options) -> Result<ExitCode, String> {
         agent: options.agent,
         about: about(&workspace, options.about.as_deref())?,
     };
+    inbox::checked_note(&marks, &options.text).map_err(|error| error.to_string())?;
     let default = workspace
         .default_branch
         .clone()
@@ -69,8 +70,8 @@ fn workspace() -> Result<(Git, Workspace), String> {
     Ok((git, workspace))
 }
 
-/// The slug the note is about: the target `--about` names, or the feature or bug of this
-/// checkout's branch, or none.
+/// The slug the note is about: the feature or bug `--about` names, or the one of this checkout's
+/// branch, or none. Drafts are no target here: `Purpose::Inspect` resolves features and bugs only.
 fn about(workspace: &Workspace, about: Option<&str>) -> Result<Option<String>, String> {
     let Some(about) = about else {
         return Ok(workspace
@@ -80,10 +81,14 @@ fn about(workspace: &Workspace, about: Option<&str>) -> Result<Option<String>, S
             .and_then(|(_, folder)| folder_slug(folder))
             .map(String::from));
     };
-    match output::target(workspace, Some(about), Purpose::Inspect)? {
-        Target::Feature(index) | Target::File(index, _) => {
+    let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
+    match target::resolve(workspace, &cwd, Some(about), Purpose::Inspect) {
+        Ok(Target::Feature(index) | Target::File(index, _)) => {
             Ok(Some(workspace.features[index].slug.clone()))
         }
-        Target::Draft(path) => Err(format!("{path} is a draft: name a feature or a bug")),
+        Ok(Target::Draft(_)) | Err(TargetError::NotFound(_) | TargetError::NoPath(_)) => Err(
+            format!("--about names a feature or a bug: none is named {about}"),
+        ),
+        Err(error) => Err(error.to_string()),
     }
 }
