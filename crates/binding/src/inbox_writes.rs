@@ -179,8 +179,9 @@ pub fn save_triage_notes(
     job(move || api::save_triage_notes(Path::new(&repo), &notes, &previous))
 }
 
-/// Submits the triage, every question answered, and commits it.
+/// Submits the triage, every question answered, and commits it, over the triage read with the
+/// hash `previous`.
 #[napi(ts_return_type = "Promise<FileView>")]
-pub fn submit_triage(repo: String) -> AsyncTask<Job<FileView>> {
-    job(move || api::submit_triage(Path::new(&repo)))
+pub fn submit_triage(repo: String, previous: String) -> AsyncTask<Job<FileView>> {
+    job(move || api::submit_triage(Path::new(&repo), &previous))
 }

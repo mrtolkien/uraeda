@@ -1,17 +1,14 @@
 /**
  * The mutations of the inbox, each written on the default branch over the hash it was read at: its
  * notes' edits, their moves into the priorities and drafts, the commit bar's Commit and Discard,
- * and the triage's answers.
+ * and the triage's answers. None writes a feature's files, so none is refused while an agent works:
+ * `writable` guards features only.
  */
 import type { Resolver } from "./context.ts";
 import { refusable } from "./errors.ts";
 import { draft, inbox, priorities } from "./masked.ts";
-import { writable } from "./sessions.ts";
 import { sources } from "./sources.ts";
 import { fileDataView, type FileRecord, sentFile } from "./views.ts";
-
-/** The triage's path, from the top level. */
-const TRIAGE_PATH = "specs/INBOX-TRIAGE.md";
 
 /** A note's edit: the note's id, `note-3`, and the inbox's hash as read. */
 type NoteInput = { hash: string; note: string };
@@ -103,7 +100,6 @@ export const inboxMutations = {
   },
   "inbox.toDraft": {
     resolve: async ({ ctx, input, select }: Resolver<NoteInput & { draft: string }>) => {
-      await writable(ctx, { path: input.draft });
       await refusable(() => ctx.binding.noteToDraft(ctx.repo, input.note, input.draft, input.hash));
       return inbox(ctx, await ctx.binding.readInbox(ctx.repo), select);
     },
@@ -150,7 +146,6 @@ export const inboxMutations = {
       previous: string;
       question: string;
     }>) => {
-      await writable(ctx, { path: TRIAGE_PATH });
       return triage(
         ctx,
         await refusable(() =>
@@ -169,7 +164,6 @@ export const inboxMutations = {
   },
   "triage.notes": {
     resolve: async ({ ctx, input, select }: Resolver<{ notes: string; previous: string }>) => {
-      await writable(ctx, { path: TRIAGE_PATH });
       return triage(
         ctx,
         await refusable(() => ctx.binding.saveTriageNotes(ctx.repo, input.notes, input.previous)),
@@ -179,10 +173,12 @@ export const inboxMutations = {
     type: "WorkflowFile",
   },
   "triage.submit": {
-    resolve: async ({ ctx, select }: Resolver<Record<string, never>>) => {
-      await writable(ctx, { path: TRIAGE_PATH });
-      return triage(ctx, await refusable(() => ctx.binding.submitTriage(ctx.repo)), select);
-    },
+    resolve: async ({ ctx, input, select }: Resolver<{ previous: string }>) =>
+      triage(
+        ctx,
+        await refusable(() => ctx.binding.submitTriage(ctx.repo, input.previous)),
+        select,
+      ),
     type: "WorkflowFile",
   },
 };

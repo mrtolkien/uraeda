@@ -49,7 +49,7 @@ impl RoundFile for str {
 }
 
 /// A file's name, the last part of its path.
-fn name_of(file: &str) -> &str {
+pub fn name_of(file: &str) -> &str {
     file.rsplit('/').next().unwrap_or(file)
 }
 

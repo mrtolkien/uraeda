@@ -20,9 +20,12 @@ pub const TRIAGE: &str = "specs/INBOX-TRIAGE.md";
 /// The subject of the commit submitting the triage's answers.
 pub const TRIAGE_ANSWERED: &str = "chore: answer the inbox triage";
 
-/// Submits the triage, answered as a round is, and commits it alone, refused before anything is
-/// written when other files are staged.
-pub fn submit_triage(place: &Place, today: Date) -> Result<Committed, ActionError> {
+/// Submits the triage, answered as a round is, and commits it alone. Refused before anything is
+/// written when it changed since it was read with the hash `previous`, or other files are staged.
+pub fn submit_triage(place: &Place, previous: &str, today: Date) -> Result<Committed, ActionError> {
+    if hash(&fs::read_to_string(place.root.join(TRIAGE))?) != previous {
+        return Err(ActionError::changed(TRIAGE));
+    }
     super::place::ensure_only_staged(place, &[TRIAGE.to_string()])?;
     answer::record(place, TRIAGE, today)?;
     commit::commit(
