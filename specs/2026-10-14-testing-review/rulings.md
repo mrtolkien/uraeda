@@ -203,7 +203,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   meets a deleted repository, which the teardown now avoids; each status read also opens the store
   again, as it did before this pull request. A gix that stops panicking there returns its own error
   instead, and fails the test's message.
-- **Where**: task 4.
+- **Where**: task 4. Superseded on the rebase onto `main`, which had fixed the same panic in
+  `9bec9f7` ("fix: small test bugfixes"), with the same `catch_unwind` in `status_items` and its own
+  core test, `status_returns_an_error_when_the_object_directory_disappears`: `main`'s code and test
+  are kept, and this branch's are dropped. The teardown order stays, merged into `main`'s request
+  settling (R29).
 
 ## R13: Every test task drops the git variables a hook exports
 
@@ -485,3 +489,42 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   their timeout, with a failure screenshot that shows it. Whether the phone's toast should leave
   Commit and Discard reachable is the human's to decide.
 - **Where**: task 6.
+
+## R29: The rebase onto `main` adds its new checks to the task graph
+
+- **Decision**: `main`'s `ready` gained the `@uraeda/ui` package's build and smoke test, and its
+  tests in `packages/uraeda`. They become the tasks `ui:build` (`node scripts/build.ts` in
+  `packages/uraeda`, after `web:build` and `binding:build`, its built `dist/`, `plugin/` and `web/`
+  as outputs) and `ui:smoke` (`smoke.ts --binding packages/binding`, after `ui:build` and
+  `binding:touch`), both in `ready:typescript`; `ts:test` runs the `@uraeda/ui` project too, depends
+  on `web:build`, and reads the built web UI, since `main.test.ts` now starts the server on it. The
+  web helpers keep `main`'s request settling, named `settleRequests`, with this branch's order: the
+  page unmounted, its requests settled, then the hosts and the sessions closed, in one `afterEach`.
+  The R10 `{ file: false }` option is added to `main`'s new `loadEnv(root: string | null, ...)` and
+  `loadDataDir(root, core, ...)`.
+- **Rationale**: the toolchain decision's `ready` runs every check; `main` added these while this
+  branch was open, and the first run after the rebase failed on `main.test.ts` "a server that
+  answers 404" with "the web UI is not built", because `ts:test` ran before `web:build`.
+- **Alternatives considered**: leaving the smoke test to CI only: the decision keeps CI-only checks
+  for slow or secondary ones, and `main` ran it in `ready`.
+- **If wrong**: a task reading a file outside its inputs replays a stale pass locally; CI's uncached
+  run still runs it.
+- **Where**: the rebase, after task 7.
+
+## R30: Three tests from `main` and this branch that failed under load, fixed on the rebase
+
+- **Decision**: `session-aside.test.tsx` "US1.4" waits for "Changed on the branch", which draws once
+  the branch's changes are read, after the column; `shell.test.tsx` "US6 5" waits for the undo's
+  whole text, since a read during the write sees an empty file; `live.test.ts` "a change in one
+  repository sends no update to another" checks that the first repository heard none of the second's
+  `Priorities` updates and one `Workspace` update, instead of an exact list, which `main`'s new
+  `Feature` and `BranchChanges` updates on a branch switch broke.
+- **Rationale**: each failed in `vp run ready` after the rebase and passed alone; the first two read
+  the page or the file before what they check was there, the third asserted more than its scenario,
+  as the task 3–4 review had warned.
+- **Alternatives considered**: none: the toolchain decision fixes a test that fails without a bug in
+  the pull request that finds it.
+- **If wrong**: a write that truncates `PRIORITIES.md` before writing it can also show a reader,
+  such as a live view, an empty file; that is the product's, not this test's, and is listed for the
+  human in the pull request.
+- **Where**: the rebase, after task 7.
