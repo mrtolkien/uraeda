@@ -9,16 +9,20 @@
 //   script, with a `Content-Security-Policy` that forbids framing it, which the proxy replaces;
 // - WebSockets at `/storybook-server-channel`, refused when their `Origin` is `null`, and under
 //   `URAEDA_PREVIEW_BASE` for the `vite-hmr` protocol, which each send one message: the path,
-//   `Host`, and `Origin` they got, as JSON;
-// - `/__echo`: the path, `Host`, and `Origin` it got, as JSON;
+//   `Host`, `Origin`, and headers they got, as JSON;
+// - `/__echo`: the path, `Host`, `Origin`, and headers it got, as JSON;
+// - `/__headers`: an answer with a cookie, `Clear-Site-Data`, and `x-custom`, which its
+//   `Connection` names;
 // - `/__index-reads`: how many requests for the index it got;
 // - `/__events`: a first chunk, then held open.
 //
 // Its modes: `ok`; `fail`, which prints `Error: Cannot find module 'storybook'` and exits 1; `hang`,
 // which never answers `/index.json`; `hang-later`, which answers it once, then never again;
-// `bad-index`, which serves `not json` as the index; `no-pick`, without the pick script. `--delay` waits before listening. A taken port prints
-// `Port <port> is not available` and exits 1.
+// `bad-index`, which serves `not json` as the index; `no-pick`, without the pick script; `child`,
+// which starts a child that keeps its output open, and outlives it. `--delay` waits before
+// listening. A taken port prints `Port <port> is not available` and exits 1.
 
+import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { appendFileSync, readdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
@@ -46,6 +50,12 @@ if (values.log) {
 if (mode === "fail") {
   process.stderr.write("Starting Storybook…\nError: Cannot find module 'storybook'\n");
   process.exit(1);
+}
+
+if (mode === "child") {
+  spawn(process.execPath, ["-e", "setInterval(() => {}, 1 << 30)"], {
+    stdio: ["ignore", "inherit", "inherit"],
+  });
 }
 
 /** The `*.stories.*` files under `folder`, without `node_modules` and hidden folders. */
@@ -113,9 +123,10 @@ window.addEventListener("message", (event) => {
 });
 `;
 
-/** What a request got: its path, `Host`, and `Origin`. */
+/** What a request got: its path, `Host`, `Origin`, and headers. */
 function echo(request) {
   return JSON.stringify({
+    headers: request.headers,
     host: request.headers.host ?? null,
     origin: request.headers.origin ?? null,
     path: request.url,
@@ -157,6 +168,14 @@ const server = createServer((request, response) => {
   }
   if (path === "/__echo") {
     return send(response, 200, "application/json", echo(request));
+  }
+  if (path === "/__headers") {
+    return send(response, 200, "text/plain", "headers", {
+      "Clear-Site-Data": '"cookies", "storage"',
+      Connection: "x-custom",
+      "Set-Cookie": "session=storybook; Path=/",
+      "x-custom": "1",
+    });
   }
   if (path === "/__index-reads") {
     return send(response, 200, "application/json", String(indexReads));

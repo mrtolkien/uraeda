@@ -280,18 +280,22 @@ export class Previews {
     }
     keepLines(child.stdout, run.lines);
     keepLines(child.stderr, run.lines);
+    // What the command started may outlive it, and keep its output open: its whole group goes
+    // as soon as it exits, so its output closes, and its end follows at once.
+    const stopGroup = () => {
+      run.running = false;
+      if (child.pid !== undefined && groups.delete(child.pid)) {
+        signalGroup(child.pid, "SIGKILL");
+      }
+    };
+    child.once("exit", stopGroup);
     let done = false;
     const ended = (why: string) => {
       if (done) {
         return;
       }
       done = true;
-      run.running = false;
-      if (child.pid !== undefined) {
-        // What the command started may outlive it: its whole group goes with it.
-        signalGroup(child.pid, "SIGKILL");
-        groups.delete(child.pid);
-      }
+      stopGroup();
       close();
       void this.#exited(entry, run, why);
     };
