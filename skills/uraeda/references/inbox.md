@@ -119,33 +119,47 @@ checkout, and need no feature.
    with `status: awaiting-human`:
    - The `> [!IMPORTANT]` block, as in
      [Coming back to the human](../SKILL.md#coming-back-to-the-human): its first line gives the
-     questions, the notes they cover, and the time, "8 questions on 11 notes, about 15 minutes".
-   - **Context**: how many notes the inbox holds, and what you read.
+     questions, the notes they cover, and the time, about two minutes a question: "8 questions on 11
+     notes, about 15 minutes".
+   - **Context**: how many notes the inbox holds, how many the triage covers, and what you read.
+     Cover every note; when they are too many for one sitting, cover whole categories, and say which
+     wait for a later triage.
    - **One question per note, or per group of notes** that go to the same place. A question names
      its notes by their text, quoted, so the human, and the agent that applies it, find them without
      line numbers. Its options, the recommended one first, are among these: a priorities section, a
      new draft, an existing draft named by its title, a bug, deletion, or keeping it in the inbox. A
-     bug option names the slug it would use.
+     new draft option names the draft's title and the priorities section that links it. A bug option
+     names the slug it would use.
+   - **Links** only to files on the default branch, such as drafts. A started feature's or bug's
+     files live on its branch: name it by its title, or `ura check` reports the link.
    - **Notes:**, last, for the human. A triage has no points settled without the human: every
      outcome is theirs.
 4. **Commit** `specs/INBOX-TRIAGE.md` alone, with `chore: propose an inbox triage`, and the block's
    first line as the body. Stop: the triage waits for the human.
 
-The human answers it like any round, and commits it with `chore: answer the inbox triage`. With
-`ura`, `ura answer` records the answers.
+The human answers it like any round: each `**Answer:**` filled, `status: answered`, and the file
+committed alone with `chore: answer the inbox triage`. In the web UI, the inbox page's "Answer it"
+opens it in the questions view, and Submit commits it. `ura answer` answers features' rounds only.
 
 ### Applying the answers
 
 Once `INBOX-TRIAGE.md` is `answered`:
 
 1. **Carry out each answer** on the notes it names, found by their text in `INBOX.md` as it is now,
-   as [organizing by hand](#organizing-by-hand) does. A note added after the triage was written
-   stays in the inbox, untouched. A note the triage names that is no longer there is skipped.
+   as [organizing by hand](#organizing-by-hand) does. A new draft for a group of notes takes the
+   option's title, and the notes' lines, marks dropped, as its What. A note answered with a bug
+   leaves the inbox: its report holds it. A note kept in the inbox does not change. A note added
+   after the triage was written stays in the inbox, untouched. A note the triage names that is no
+   longer there is skipped.
 2. **Commit once**: `INBOX.md`, `PRIORITIES.md`, the drafts the notes went into, and the deletion of
-   `INBOX-TRIAGE.md`, with `chore: apply the inbox triage`. The body lists what each note became,
-   one per line, and the notes skipped, with why.
-3. **Start each bug** an answer asked for, from its note, as [starting a bug](bug.md#starting-a-bug)
-   says, with the slug of its option: the answer is the human asking for it.
+   `INBOX-TRIAGE.md`, with `chore: apply the inbox triage`. The body lists every note the triage
+   names, one per line, in the questions' order: `- Move from the inbox to <Section>: <note>`,
+   `- Move from the inbox to the draft <title>: <note>`, `- Remove from the inbox: <note>`,
+   `- Start the bug <slug>: <note>`, `- Keep in the inbox: <note>`, and
+   `- Skip, no longer in the inbox: <note>`.
+3. **Start each bug** an answer asked for, as [starting a bug](bug.md#starting-a-bug) says, with the
+   slug of its option: the answer is the human asking for it. Its report is the note, with what the
+   question's context found.
 
 ## Agents' notes
 
