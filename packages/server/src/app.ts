@@ -68,6 +68,7 @@ export function createApp(
     "/r/:name/raw/*",
     "/r/:name/mockups/*",
     "/r/:name/attach",
+    "/r/:name/inbox/note-image",
     "/r/:name/images/*",
     "/r/:name/chat-images/*",
   ]) {

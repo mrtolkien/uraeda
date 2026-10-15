@@ -54,10 +54,7 @@ pub fn attach(
         }));
     }
 
-    let (base, alt) = match name.map(stem) {
-        Some(stem) => (file_name(stem), alt(stem)),
-        None => (format!("pasted-{}", stamp()), "pasted image".to_string()),
-    };
+    let (base, alt) = names(name, stamp);
 
     let (folder, image, moved) = if single_draft {
         let (moved, image) = into_folder(place, path, &base, encoded)?;
@@ -75,6 +72,29 @@ pub fn attach(
         link: format!("![{alt}](images/{image})"),
         moved,
     })
+}
+
+/// An image's file name without its extension, and its alt text: from its original file name, or,
+/// for a pasted image, from the time `stamp` gives.
+fn names(name: Option<&str>, stamp: impl FnOnce() -> String) -> (String, String) {
+    match name.map(stem) {
+        Some(stem) => (file_name(stem), alt(stem)),
+        None => (format!("pasted-{}", stamp()), "pasted image".to_string()),
+    }
+}
+
+/// Saves an image in the `images/` folder of `folder`, named as [`attach`] names it, and gives
+/// the markdown that links it from a file of `folder`.
+pub(crate) fn save_in(
+    place: &Place,
+    folder: &str,
+    encoded: &Encoded,
+    name: Option<&str>,
+    stamp: impl FnOnce() -> String,
+) -> Result<String, ActionError> {
+    let (base, alt) = names(name, stamp);
+    let image = save(&place.root, folder, &base, encoded)?;
+    Ok(format!("![{alt}](images/{image})"))
 }
 
 fn not_markdown(path: &str) -> ActionError {

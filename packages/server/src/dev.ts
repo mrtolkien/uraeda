@@ -27,7 +27,7 @@ export function devServer(env: Env) {
  * serves everything else. A repository's images and uploads are only under its prefix.
  */
 const SERVER_PATHS =
-  /^\/(open|(r\/[^/?]+\/)?(fate|raw|mockups)|r\/[^/?]+\/(attach|images|chat-images))(\/|\?|$)/;
+  /^\/(open|(r\/[^/?]+\/)?(fate|raw|mockups)|r\/[^/?]+\/(attach|images|chat-images|inbox\/note-image))(\/|\?|$)/;
 
 type Listener = (req: IncomingMessage, res: ServerResponse) => Promise<void>;
 

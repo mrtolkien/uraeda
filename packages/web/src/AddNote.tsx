@@ -17,33 +17,19 @@ import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
-import { AS_DRAFT, type Picked, PickedImage, useAddAsDraft } from "./NoteImage.tsx";
+import {
+  type AddInput,
+  addedNote,
+  AS_DRAFT,
+  type Picked,
+  PickedImage,
+  useAddWithImage,
+} from "./NoteImage.tsx";
 import { InboxView } from "./views.ts";
 
 /** The Category menu's values for no category and a new one; a category's is its name, after `:`. */
 const NONE = "none";
 const NEW = "new";
-
-/** A note's lines, as one text: what tells two notes apart. */
-const linesOf = (note: InboxNote) => note.lines.join("\n");
-
-/** The inbox's notes, in every category. */
-type Notes = ReadonlyArray<{ notes: ReadonlyArray<InboxNote> }>;
-
-/** The note an add wrote: the one of `after` that `before` does not hold. */
-function addedNote(before: Notes, after: Notes): InboxNote | undefined {
-  const left = before.flatMap((category) => category.notes.map(linesOf));
-  return after
-    .flatMap((category) => category.notes)
-    .find((note) => {
-      const index = left.indexOf(linesOf(note));
-      if (index < 0) {
-        return true;
-      }
-      left.splice(index, 1);
-      return false;
-    });
-}
 
 /**
  * The Category menu: "No category", the inbox's categories, and "New category…", which shows a
@@ -119,9 +105,6 @@ function useTypedNote() {
   };
 }
 
-/** The add form's input to the core: the note's text, its category, and its feature or bug. */
-type AddInput = { about?: string; category?: string; hash: string; text: string };
-
 /**
  * Add, or Add as a draft with an image: the note through the core, its refusal as the message to
  * show, and a conflict reading the inbox again, for the next try to add to it as it is now.
@@ -139,7 +122,7 @@ function useAdd({
 }) {
   const fate = useFateClient();
   const inbox = useInbox();
-  const asDraft = useAddAsDraft();
+  const withImages = useAddWithImage();
   const [message, setMessage] = useState<string>();
   const text = typed.note.text;
   const chosen = typed.chosen;
@@ -153,7 +136,7 @@ function useAdd({
   };
 
   const withImage = async (input: AddInput, file: File) => {
-    const result = await asDraft.add(input, file);
+    const result = await withImages.add(input, file, inbox?.categories ?? []);
     if (!result.ok) {
       if (!result.byImage) {
         refused(result);
@@ -194,7 +177,7 @@ function useAdd({
     message,
     names: inbox?.names ?? [],
     ready,
-    status: image && asDraft.statusOf(image.file),
+    status: image && withImages.statusOf(image.file),
   };
 }
 

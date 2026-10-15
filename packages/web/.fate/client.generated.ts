@@ -51,11 +51,6 @@ const mutations = {
     FateAPI['mutations']['inbox.add']['input'],
     FateAPI['mutations']['inbox.add']['output']
   >('Inbox'),
-  'inbox.addAsDraft': mutation<
-    Draft,
-    FateAPI['mutations']['inbox.addAsDraft']['input'],
-    FateAPI['mutations']['inbox.addAsDraft']['output']
-  >('Draft'),
   'inbox.category': mutation<
     Inbox,
     FateAPI['mutations']['inbox.category']['input'],
@@ -71,11 +66,6 @@ const mutations = {
     FateAPI['mutations']['inbox.insert']['input'],
     FateAPI['mutations']['inbox.insert']['output']
   >('Inbox'),
-  'inbox.linkImage': mutation<
-    Draft,
-    FateAPI['mutations']['inbox.linkImage']['input'],
-    FateAPI['mutations']['inbox.linkImage']['output']
-  >('Draft'),
   'inbox.remove': mutation<
     Inbox,
     FateAPI['mutations']['inbox.remove']['input'],

@@ -18,6 +18,7 @@ import {
   read,
   refreshUntil,
   renderPage,
+  serverFetch,
   type,
 } from "./helpers.tsx";
 
@@ -232,6 +233,88 @@ test("Undo of a note added with an image takes it back out, with its draft", asy
 
   await waitFor(() => expect(read(repo, PATH)).toBe(before));
   await waitFor(() => expect(existsSync(join(repo, "specs/drafts/headings-are-flat"))).toBe(false));
+});
+
+/** Undo of a draft note is refused once the note changed, and the draft stays. */
+test("Undo of a note added with an image is refused once the note changed", async () => {
+  const { repo } = await renderPage("/inbox");
+  const form = await openForm();
+  await type(form.getByPlaceholderText("What did you notice?"), "Headings are flat");
+  await attachImage(form);
+  await click(form.getByRole("button", { name: "Add as a draft" }));
+  await toast("Added to the inbox as a draft, not committed");
+  writeFileSync(
+    join(repo, PATH),
+    read(repo, PATH).replace("[Headings are flat]", "[Headings are flat, and dull]"),
+  );
+
+  await click(screen.getByRole("button", { name: "Undo" }));
+
+  expect(
+    await screen.findByText('Could not undo: "Headings are flat" is no longer in INBOX.md.', {
+      ignore: "script, style, [aria-live]",
+    }),
+  ).toBeTruthy();
+  expect(existsSync(join(repo, "specs/drafts/headings-are-flat/proposal.md"))).toBe(true);
+});
+
+/** The address of a request, whatever form it takes. */
+const urlOf = (input: RequestInfo | URL) =>
+  typeof input === "object" && "url" in input ? input.url : input.toString();
+
+/**
+ * A note with an image whose answer is lost, though the server added it: the note is added, once,
+ * as the inbox now shows, so pressing Add again cannot add it twice.
+ */
+test("an add with an image whose answer is lost is found in the inbox, once", async () => {
+  const repo = fixtureRepo();
+  const server = serverFetch(repo);
+  const fetch: typeof globalThis.fetch = async (input, init) => {
+    const response = await server(input, init);
+    if (urlOf(input).includes("/inbox/note-image")) {
+      throw new DOMException("The operation timed out.", "TimeoutError");
+    }
+    return response;
+  };
+  await renderPage("/inbox", repo, { fetch });
+  const form = await openForm();
+  await type(form.getByPlaceholderText("What did you notice?"), "Headings are flat");
+  await attachImage(form);
+
+  await click(form.getByRole("button", { name: "Add as a draft" }));
+
+  await toast("Added to the inbox as a draft, not committed");
+  expect(read(repo, PATH).match(/\[Headings are flat\]/g)).toHaveLength(1);
+  expect(existsSync(join(repo, "specs/drafts/headings-are-flat-2"))).toBe(false);
+});
+
+/** An add with an image that never reached the server says so under the image, and keeps all. */
+test("an add with an image that gets no answer says so, and keeps the note", async () => {
+  const repo = fixtureRepo();
+  const server = serverFetch(repo);
+  const fetch: typeof globalThis.fetch = async (input, init) => {
+    if (urlOf(input).includes("/inbox/note-image")) {
+      throw new TypeError("Failed to fetch");
+    }
+    return server(input, init);
+  };
+  await renderPage("/inbox", repo, { fetch });
+  const before = read(repo, PATH);
+  const form = await openForm();
+  await type(form.getByPlaceholderText("What did you notice?"), "Headings are flat");
+  await attachImage(form);
+
+  await click(form.getByRole("button", { name: "Add as a draft" }));
+
+  expect((await form.findAllByText("Could not reach the Uraeda server.")).length).toBeGreaterThan(
+    0,
+  );
+  expect(form.getByPlaceholderText("What did you notice?")).toHaveProperty(
+    "value",
+    "Headings are flat",
+  );
+  expect(form.getByText("spec-headings.png")).toBeTruthy();
+  expect(read(repo, PATH)).toBe(before);
 });
 
 /** US3 1, 2, 3: Home's Inbox group, and its plural. */

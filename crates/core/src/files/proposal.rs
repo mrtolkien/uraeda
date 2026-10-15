@@ -155,30 +155,57 @@ pub fn without_item(text: &str, markdown: &str) -> Option<String> {
 }
 
 /// The file name of the image a line links, when the line is only an image of the `images/`
-/// folder beside the file, `![alt](images/name.webp)`, as an attached image's link is written.
+/// folder beside the file, as the core writes an attached image's link: `![alt](images/name.webp)`,
+/// its alt text without brackets, and its name a WebP or a GIF, the core's encoded outputs.
 pub fn image_file(line: &str) -> Option<&str> {
     let inner = line.trim_end().strip_prefix("![")?.strip_suffix(')')?;
-    let (_, name) = inner.rsplit_once("](images/")?;
-    let plain = !name.is_empty()
-        && !name.starts_with('.')
-        && !name.contains(['/', '\\', ' ', '(', ')', '<', '>']);
+    let (alt, name) = inner.split_once("](images/")?;
+    let (stem, extension) = name.rsplit_once('.')?;
+    let plain = !alt.contains(['[', ']'])
+        && !stem.is_empty()
+        && !stem.starts_with('.')
+        && matches!(extension, "webp" | "gif")
+        && !name.contains(['/', '\\', ' ', '(', ')', '<', '>', '[', ']']);
     plain.then_some(name)
 }
 
-/// The images of a draft a move wrote as `written`, when its text is `written` with only lines of
-/// images added at the end of its `## What`, as a note's image adds them: their file names, none
-/// when the text is `written` itself. `None` once anything else changed.
-pub fn added_images<'a>(text: &'a str, written: &str) -> Option<Vec<&'a str>> {
-    let images: Vec<&str> = text
+/// Whether a draft a move wrote as `written` holds it still, with at most lines of images added at
+/// the end of its `## What`, as a note's image adds them: the human typed nothing in it.
+pub fn holds_written(text: &str, written: &str) -> bool {
+    let images: Vec<String> = text
         .lines()
         .filter(|line| image_file(line).is_some())
+        .map(String::from)
         .collect();
-    let expected = match images.as_slice() {
-        [] => written.to_string(),
-        lines => {
-            let lines: Vec<String> = lines.iter().map(|line| line.to_string()).collect();
-            append_to_what(written, &lines)?
+    if images.is_empty() {
+        return text == written;
+    }
+    append_to_what(written, &images).is_some_and(|expected| expected == text)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn an_image_line_is_one_the_core_encoded_beside_the_file() {
+        let cases = [
+            (
+                "![spec-headings](images/spec-headings.webp)",
+                Some("spec-headings.webp"),
+            ),
+            ("![a](images/a-2.gif)", Some("a-2.gif")),
+            ("![a](images/a.png)", None),
+            ("![a](images/a)", None),
+            ("![a\\]](images/a.webp)", None),
+            ("![a](x)](images/a.webp)", None),
+            ("![a](images/../a.webp)", None),
+            ("![a](images/.webp)", None),
+            ("![a](other/a.webp)", None),
+            ("Text ![a](images/a.webp)", None),
+        ];
+        for (line, name) in cases {
+            assert_eq!(image_file(line), name, "{line}");
         }
-    };
-    (expected == text).then(|| images.into_iter().filter_map(image_file).collect())
+    }
 }
