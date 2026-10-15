@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,10 @@ plan-review: false
 
 # Spec: Add a bugfixing/low impact change flow
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 30 minutes.
+> Changes requested on 2026-10-15: Evaluate my comments: what's the best way to type this first
+> message in a way that feels smooth and fast, in the current UI?
 >
 > - **A chat with a light structure on top**, as your notes ask. A change is a proposal, optional
 >   rounds of questions, then the code and a pull request, all in one session. There is no spec,
