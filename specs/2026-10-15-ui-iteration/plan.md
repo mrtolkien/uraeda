@@ -2016,8 +2016,11 @@ git commit -m "feat(ui-iteration): pick mode, and comments on stories in reviews
 **Files:**
 
 - Modify: `packages/web/src/Question.tsx` (split first), `packages/web/src/useAnswer.ts`
-  (`appendLine`), `packages/web/src/FilePage.tsx` (`removed`)
-- Test: `packages/web/src/__browser__/story-variants.test.tsx`
+  (`appendLine`), `packages/web/src/useSave.ts` (`SaveResult` exported),
+  `packages/web/src/FilePage.tsx` (`removed`), `packages/web/src/StoryEmbed.tsx` (`removed` only for
+  a missing story), `packages/web/src/stories.tsx` (`storyIn`)
+- Test: `packages/web/src/__browser__/story-variants.test.tsx`,
+  `packages/web/src/__browser__/layout.test.tsx` (a round whose options are stories)
 
 **Interfaces:**
 
@@ -2025,9 +2028,15 @@ git commit -m "feat(ui-iteration): pick mode, and comments on stories in reviews
 - Produces: `useAnswer(...).appendLine(line: string): Promise<string | undefined>`, which saves the
   answer with `line` after the saved comment, on a line of its own, and the letters as picked; the
   field's unsaved text stays unsaved
-  ([R9](rulings.md#r9-a-comment-on-a-variant-joins-the-answers-comment)).
-- Changes: an option draws its `other` blocks that embed a story after its button, never inside it;
-  `FilePage` gives a round's `StoriesProvider` `removed` when the round is `answered`.
+  ([R9](rulings.md#r9-a-comment-on-a-variant-joins-the-answers-comment)), with the line after it
+  ([R36](rulings.md#r36-a-comment-on-a-variant-also-follows-the-answers-unsaved-text)).
+- Produces: `storyIn(context, block)` in `stories.tsx`, `useStoryAt`'s rule without the hook, for a
+  list of blocks.
+- Changes: an option draws its `other` blocks that embed a story after its button, never inside it,
+  in its row
+  ([R37](rulings.md#r37-an-options-stories-sit-in-its-row-and-a-questions-stories-comment-on-its-answer));
+  `FilePage` gives a round's `StoriesProvider` `removed` when the round is `answered`, and
+  `StoryEmbed` reads it for a missing story only.
 
 - [x] **Step 1: Split `Question` before it grows**
 
@@ -2042,7 +2051,7 @@ git add packages/web/src/Question.tsx
 git commit -m "refactor(ui-iteration): a question's options in a component"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```tsx
 // packages/web/src/__browser__/story-variants.test.tsx
@@ -2053,7 +2062,7 @@ test("each variant shows under its option's button, which still picks it (US3.1)
   await commands.addStoryFeature();
   await show(ROUND, "Q2");
 
-  const a = screen.getByRole("button", { name: /^A / });
+  const a = screen.getByRole("button", { name: /A thin line/ });
   const thin = await screen.findByRole("figure", { name: "Thin line" });
   expect(a.contains(thin)).toBe(false);
   expect(a.compareDocumentPosition(thin) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -2082,24 +2091,24 @@ The break each test catches:
 - US3.2: the comment sent to the spec's review, or replacing the answer's comment.
 - US3.4: a removed variant shown as an unexplained missing story.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `vp test --project desktop src/__browser__/story-variants.test.tsx`
 - Expected: FAIL, `expected true to be false`: the variant's figure is inside its button.
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 `Option` filters `useStoryAt` out of `choice.other`, and the question draws those embeds after the
 option's button. `Question` provides `comment` through `appendLine`. `StoryEmbed`, with `removed`,
 reads "This variant was removed after your answer." in place of the missing text.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run:
   `vp test --project desktop && vp test --project phone && vp test --project uraeda-web && vp check`
 - Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web

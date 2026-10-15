@@ -504,3 +504,33 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   columns the spec shows it in.
 - **If wrong**: `useRoomForBoth` in `StoryFrames.tsx`.
 - **Where**: the fix after task 7's review, `packages/web/src/StoryFrames.tsx`.
+
+## R36: A comment on a variant also follows the answer's unsaved text
+
+- **Decision**: when a question's comment holds unsaved text, a comment on one of its variants is
+  saved after the comment saved, as R9 says, and also added after the unsaved text, on a line of its
+  own, which stays unsaved.
+- **Rationale**: the file never writes into a field holding unsaved text: saving that text later
+  would replace the saved comment, and drop the line the human already saved.
+- **Alternatives considered**: leaving the unsaved text as it was, which loses the line at its next
+  save; saving the unsaved text with the line, which R9 refuses.
+- **If wrong**: one line of `saveWithLine` in `useAnswer.ts`.
+- **Where**: task 10, `packages/web/src/useAnswer.ts`.
+
+## R37: An option's stories sit in its row, and a question's stories comment on its answer
+
+- **Decision**: an option's row holds its button, then its stories, at the option text's inset, and
+  the hairline under both. A story in a question's context comments on that question's answer too,
+  as a variant does. A story is missing as a removed variant only in an answered round: elsewhere,
+  and for the variant kept, the embed is as anywhere else. The plan's test found option A's button
+  by a name starting with "A ", which a recommended option's does not: it reads "Recommended A …",
+  so the tests find each option by its text.
+- **Rationale**: the spec asks for each story under its option's button, not inside it, and a
+  hairline between a button and its own story would split them. The question is where its stories'
+  comments can go. `StoryEmbed`'s `removed`, unused until this task, replaced every story with the
+  removed text, the variant kept too.
+- **Alternatives considered**: stories after the hairline, which reads as a row of their own; no
+  comment on a question's context stories, a button that cannot save, against R10.
+- **If wrong**: the `Option` component in `Question.tsx`, and one condition each in `Question` and
+  `StoryEmbed`.
+- **Where**: task 10, `packages/web/src/Question.tsx`, `packages/web/src/StoryEmbed.tsx`.
