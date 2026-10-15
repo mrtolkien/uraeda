@@ -2,7 +2,7 @@
 // request, the files changed on its branch, and its files (US4.1–US4.3, US4.6). The sidebar tags
 // its row "Change" (US4.4), and the phone's progress line names its round (US4.5). Its page passes
 // the UI checks at both sizes, in light and dark.
-import { screen, within } from "@testing-library/react";
+import { isInaccessible, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 import {
@@ -187,8 +187,9 @@ describe("on the desktop", () => {
     );
     expect(row.getAttribute("href")).toBe(atRepo(`/f/${CENTRED}`));
     expect(row.textContent).toBe("centred-x");
-    // Its tag, beside the link, in the same row.
-    expect(within(row.parentElement!).getByText("Change")).toBeTruthy();
+    // Its tag, beside the link, in the same row, shown but not read again after the name's.
+    const tag = within(row.parentElement!).getByText("Change");
+    expect(isInaccessible(tag)).toBe(true);
     // A feature's row has no tag, and its name no kind.
     const feature = nav.getByRole("link", { name: /^cli-tuis, / });
     expect(feature.getAttribute("aria-label")).not.toMatch(/change|feature/);
