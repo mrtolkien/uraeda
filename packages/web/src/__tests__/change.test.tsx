@@ -1,7 +1,7 @@
 // US4.2 and US4.3's edges: a change's column counts its round's questions in plural words, and a
 // record without a pull request leaves the step's title without a link (the spec's error
 // handling). A feature's column keeps its words.
-import { screen, within } from "@testing-library/react";
+import { cleanup, screen, within } from "@testing-library/react";
 import { addChange, commitOnBranch } from "uraeda-binding/test-utils";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { atWidth, fakeAgent, fixtureRepo, renderPage } from "./helpers.tsx";
@@ -118,18 +118,22 @@ test("a feature's column keeps its plan, its page, and its words", async () => {
   expect(aside.getByRole("link", { name: "Feature page" })).toBeTruthy();
 });
 
-// US4.1 and US4.6: a change's page is its session, so its crumbs end with the change, not with a
-// link back to the page they are on and a "Session" below it.
-test("a change's crumbs end with the change itself", async () => {
+// US4.1 and US4.6: a change's page is its session, with no other page to go back to: its heading
+// is the change's title, with no crumbs. A feature's session keeps its crumbs.
+test("a change's page has no crumbs, and a feature's session keeps them", async () => {
   const repo = fixtureRepo();
   addChange(repo, FOLDER, { "proposal.md": "# A home logo\n" });
 
   await renderPage(`/f/${FOLDER}`, repo, { agent: true });
 
+  expect(await screen.findByRole("heading", { level: 1, name: "A home logo" })).toBeTruthy();
+  expect(screen.queryByRole("navigation", { name: "Breadcrumbs" })).toBeNull();
+
+  cleanup();
+  await renderPage("/f/2026-10-12-cli-tuis/session", repo, { agent: true });
+
   const crumbs = within(await screen.findByRole("navigation", { name: "Breadcrumbs" }));
-  expect(crumbs.getAllByRole("link").map((link) => link.textContent)).toEqual(["Home"]);
-  expect(await crumbs.findByText("A home logo")).toBeTruthy();
-  expect(crumbs.queryByText("Session")).toBeNull();
+  expect(await crumbs.findByText("Session")).toBeTruthy();
 });
 
 // US4.1: a change's page says "change", not "feature", when its agent stopped while the step still
