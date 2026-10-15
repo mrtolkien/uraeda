@@ -9,7 +9,7 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import { expect, test, vi } from "vite-plus/test";
+import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import type { WatchHandle } from "uraeda-binding";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import { live } from "../fate.ts";
@@ -541,6 +541,10 @@ test("the hosts watch a data folder that does not exist yet", async () => {
   const dataDir = join(temporaryFolder("uraeda"), "data");
   const { sessions } = fakeSessions({ installed: false });
   const hosts = await Hosts.open({ binding, dataDir, sessions });
+  onTestFinished(() => {
+    hosts.close();
+    sessions.close();
+  });
 
   const { repository } = await binding.addRepository(dataDir, fixtureRepo());
 
@@ -548,8 +552,6 @@ test("the hosts watch a data folder that does not exist yet", async () => {
     interval: 10,
     timeout: 10_000,
   });
-  hosts.close();
-  sessions.close();
 });
 
 test("closed hosts stop following the file", async () => {
@@ -558,6 +560,10 @@ test("closed hosts stop following the file", async () => {
   // would have read the first.
   const { sessions } = fakeSessions({ installed: false });
   const following = await Hosts.open({ binding, dataDir: opened.dataDir, sessions });
+  onTestFinished(() => {
+    following.close();
+    sessions.close();
+  });
   opened.hosts.close();
 
   for (const repo of [fixtureRepo(), fixtureRepo()]) {
@@ -567,8 +573,6 @@ test("closed hosts stop following the file", async () => {
       timeout: 10_000,
     });
   }
-  following.close();
-  sessions.close();
 
   expect(opened.hosts.all()).toEqual([]);
 });
