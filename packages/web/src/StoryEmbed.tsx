@@ -15,7 +15,7 @@ import {
   spacingVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, Suspense, useId, useState } from "react";
+import { type ReactNode, Suspense, useEffect, useId, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { StoryTarget } from "uraeda-binding";
 import { useStory } from "./data.ts";
@@ -26,6 +26,7 @@ import { storybookHref } from "./stories.tsx";
 import { StoryFrames, type Widths } from "./StoryFrames.tsx";
 import {
   type EmbedComment,
+  type StoryPick,
   PickControls,
   PickHint,
   StoryCommentForm,
@@ -146,25 +147,27 @@ export function TryAgain({ folder }: { folder: string }) {
   );
 }
 
-/** The story running: its widths, pick mode and the comment where one can go, and its frames. */
+/** The story running: its widths, pick mode where a comment can go, and its frames. */
 function ReadyStory({
   comment,
   frame,
   label,
   labelId,
-  story,
+  pick,
   storybook,
 }: {
   comment?: EmbedComment;
   frame: string;
   label: string;
   labelId: string;
-  story: StoryTarget;
+  pick: StoryPick;
   storybook: string;
 }) {
   const wide = useWidthClass() === "wide";
   const [widths, setWidths] = useState<Widths>("both");
-  const pick = useStoryPick();
+  // Pick mode ends with the frames: a story stopped picks nothing.
+  const { setPicking } = pick;
+  useEffect(() => () => setPicking(false), [setPicking]);
   return (
     <>
       <Bar label={label} labelId={labelId}>
@@ -185,9 +188,6 @@ function ReadyStory({
       </Bar>
       {comment && <PickHint picking={pick.picking} />}
       <StoryFrames label={label} pick={pick.frames} src={frame} wide={wide} widths={widths} />
-      {comment && (
-        <StoryCommentForm comment={comment} label={label} pick={pick} story={story} wide={wide} />
-      )}
     </>
   );
 }
@@ -198,6 +198,7 @@ function LiveStory({
   folder,
   label,
   labelId,
+  pick,
   removed,
   story,
 }: {
@@ -205,6 +206,7 @@ function LiveStory({
   folder: string;
   label: string;
   labelId: string;
+  pick: StoryPick;
   removed: boolean;
   story: StoryTarget;
 }) {
@@ -217,7 +219,7 @@ function LiveStory({
         frame={record.frame}
         label={label}
         labelId={labelId}
-        story={story}
+        pick={pick}
         storybook={record.storybook}
       />
     );
@@ -281,6 +283,9 @@ export function StoryEmbed({
   const labelId = useId();
   const wide = useWidthClass() === "wide";
   const target = { export: story.export, path: story.path };
+  // Pick mode and the comment form outlive the story's state: a form holding text stays while
+  // its Storybook stops and starts again.
+  const pick = useStoryPick(comment?.field);
   return (
     <figure
       aria-labelledby={labelId}
@@ -293,10 +298,20 @@ export function StoryEmbed({
           folder={folder}
           label={story.label}
           labelId={labelId}
+          pick={pick}
           removed={removed}
           story={target}
         />
       </Suspense>
+      {comment && (
+        <StoryCommentForm
+          comment={comment}
+          label={story.label}
+          pick={pick}
+          story={target}
+          wide={wide}
+        />
+      )}
     </figure>
   );
 }
