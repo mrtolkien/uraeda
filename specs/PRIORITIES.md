@@ -8,7 +8,6 @@
 
 - [Look and feel pass](drafts/look-and-feel.md)
 
-- [Add a bugfixing/low impact change flow](/specs/2026-10-15-add-bugfixing/proposal.md)
 - [Add a "scratchpad" concept: quick notes about the system, small issues, ...](/specs/2026-10-15-add-scratchpad/proposal.md)
 
 - Settings page with selection of agent runner, config values, other run values
