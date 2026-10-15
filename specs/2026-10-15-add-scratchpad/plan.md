@@ -401,7 +401,7 @@ git commit -m "refactor(add-scratchpad): the priorities' line splicing in files/
     `from` and `to` fields hold `Option<String>` categories. A move keeps the note's markdown, marks
     included; a note edited, then moved, is a removal and an addition (ruling R10).
 
-The fixture `fixtures/repo/main/specs/INBOX.md`, used by every later task, holds 11 notes:
+The fixture `fixtures/repo/main/specs/INBOX.md`, used by every later task, holds 10 notes:
 
 ```md
 # Inbox
@@ -1059,7 +1059,7 @@ Unit tests in `__tests__/inbox.test.tsx`, through `renderPage`:
 - **US1 2, 3, and 7:** "No category", "New category…" with "Editor", and Undo.
 - **US1 4:** adding from `/f/2026-10-14-run-ui` writes `[run-ui]`.
 - **Blank text:** the "Add" button is disabled.
-- **US3:** Home shows "11 notes to organize" for the fixture with 11 notes, and "1 note to organize"
+- **US3:** Home shows "10 notes to organize" for the fixture with 10 notes, and "1 note to organize"
   with one. With none, there is no Inbox group.
 - **US5 3:** an agent's note shows an `agent` tag.
 - **The empty inbox:** "The inbox is empty. Notes you add with ＋ next to Inbox land here."
