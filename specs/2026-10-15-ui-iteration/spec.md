@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 3
 clarifications: 3
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: UI iteration flow
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review again, about 10 minutes.
+> Approved on 2026-10-15.
 >
 > - **Round 03 answered C.** The preview paths keep their approved `Origin` rule until basic
 >   security. Until then, any website open in your browser can read a running preview's code and use
