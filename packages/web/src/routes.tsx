@@ -67,6 +67,18 @@ export function useRepository(): string {
   return repo;
 }
 
+/** The folder of the page tree's repository, set by `App`: what keeps its unsaved text apart. */
+export const RepositoryPathContext = createContext<string | null>(null);
+
+/** The folder of the repository of the page drawn. */
+export function useRepositoryPath(): string {
+  const path = useContext(RepositoryPathContext);
+  if (path === null) {
+    throw new Error("A repository's page is drawn outside its repository");
+  }
+  return path;
+}
+
 /** Builds the paths of the current repository's pages and files, from their path within it. */
 export function useRepoPath(): (path: string) => string {
   const repo = useRepository();
@@ -122,15 +134,19 @@ export function parseRoute(pathname: string): Route {
  * What a history entry holds: its own id, the page's scroll position once left, the detail pane's
  * scroll position on wide screens (see `layout/Panes.tsx`), the path of the page it was opened
  * from and that page's scroll position then, an open overlay's label (see `layout/Overlay.tsx`),
- * and the groups of tool calls opened in a session's transcript, by their turn and first call.
+ * the groups of tool calls opened in a session's transcript, by their turn and first call, and
+ * whether the phone's progress line of a session is open (see `ProgressLine.tsx`).
  */
 type Entry = {
+  /** A chat its first message just created, on the page it left: its first turn is news. */
+  created?: boolean;
   from?: string;
   id?: string;
   open?: Array<string>;
   opener?: number;
   overlay?: string;
   pane?: number;
+  progress?: boolean;
   scroll?: number;
 };
 
@@ -155,6 +171,18 @@ if (!entry().id) {
   window.history.replaceState({ ...entry(), id: newId() }, "");
 }
 
+/**
+ * What asks before the page is left while it holds unsaved text, set by `fields/LeaveGuard.tsx`:
+ * `undefined` when leaving loses nothing, else the question, resolving with whether to leave.
+ */
+type LeaveGuard = () => Promise<boolean> | undefined;
+let guard: LeaveGuard | undefined;
+
+/** Sets what `navigate` and the links ask before leaving the page; `redirect` never asks. */
+export function setLeaveGuard(next: LeaveGuard | undefined) {
+  guard = next;
+}
+
 /** Merges values into the current history entry's state. */
 export function updateEntry(values: Entry) {
   window.history.replaceState({ ...entry(), ...values }, "");
@@ -175,8 +203,24 @@ const savers = new Set<() => void>();
  */
 let left: string | undefined;
 
-/** Opens a page of the UI: the positions on the current one are saved first, for Back. */
-export function navigate(path: string, state?: { from?: string }) {
+/**
+ * Opens a page of the UI: the positions on the current one are saved first, for Back. A page that
+ * holds unsaved text asks first, and stays if the human does.
+ */
+export function navigate(path: string, state?: { created?: boolean; from?: string }) {
+  const asking = guard?.();
+  if (asking) {
+    void asking.then((leave) => {
+      if (leave) {
+        openPage(path, state);
+      }
+    });
+    return;
+  }
+  openPage(path, state);
+}
+
+function openPage(path: string, state?: { created?: boolean; from?: string }) {
   const opener = window.scrollY;
   saveScroll();
   left = entry().id;
@@ -295,7 +339,8 @@ export function useRestorePaneScroll(ref: RefObject<HTMLElement | null>, enabled
   }, [ref, enabled]);
 }
 
-function subscribe(onChange: () => void) {
+/** Calls `onChange` each time the location changes, by Back or by the UI; returns the unsubscribe. */
+export function subscribeLocation(onChange: () => void) {
   window.addEventListener("popstate", onChange);
   window.addEventListener(CHANGE, onChange);
   return () => {
@@ -305,7 +350,7 @@ function subscribe(onChange: () => void) {
 }
 
 export function usePathname(): string {
-  return useSyncExternalStore(subscribe, () => window.location.pathname);
+  return useSyncExternalStore(subscribeLocation, () => window.location.pathname);
 }
 
 /** The location's path within its repository: what a page compares its links' paths with. */
@@ -315,7 +360,7 @@ export function useLocalPath(): string {
 
 /** The location's hash, `#…`, or "": a page scrolls to the block it names. */
 export function useHash(): string {
-  return useSyncExternalStore(subscribe, () => window.location.hash);
+  return useSyncExternalStore(subscribeLocation, () => window.location.hash);
 }
 
 /**
@@ -323,12 +368,12 @@ export function useHash(): string {
  * though the location does not.
  */
 export function useEntryId(): string | undefined {
-  return useSyncExternalStore(subscribe, () => entry().id);
+  return useSyncExternalStore(subscribeLocation, () => entry().id);
 }
 
 /** The location's query, `?…`, or "": a page reads its options from it, like the session's message. */
 export function useSearch(): string {
-  return useSyncExternalStore(subscribe, () => window.location.search);
+  return useSyncExternalStore(subscribeLocation, () => window.location.search);
 }
 
 /**

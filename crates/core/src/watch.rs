@@ -80,6 +80,12 @@ fn snapshot(root: &Path) -> Snapshot {
     let mut features = BTreeMap::new();
     let mut files = BTreeMap::new();
     let mut listing = Vec::new();
+    let default_tip = workspace
+        .default_branch
+        .as_deref()
+        .and_then(|branch| git.tip(branch))
+        .map(|id| id.to_string())
+        .unwrap_or_default();
     for feature in &workspace.features {
         let mut texts = String::new();
         for file in &feature.files {
@@ -90,9 +96,18 @@ fn snapshot(root: &Path) -> Snapshot {
         }
         let summary = serde_json::to_string(&(&feature.step, &feature.files, &feature.problems))
             .unwrap_or_default();
+        // A code commit moves the branch's tip without touching `specs/`, and a commit on the
+        // default branch may move the merge base its changes are counted from. A branch without a
+        // tip has no changes, so the default branch's commits do not report it.
+        let tip = feature
+            .branch
+            .as_deref()
+            .and_then(|branch| git.tip(branch))
+            .map(|id| format!("{id}{default_tip}"))
+            .unwrap_or_default();
         features.insert(
             feature.folder.clone(),
-            hash(&format!("{summary}{texts}{}", feature.uncommitted)),
+            hash(&format!("{summary}{texts}{}{tip}", feature.uncommitted)),
         );
         listing.push((&feature.folder, &feature.branch, &feature.worktree));
     }

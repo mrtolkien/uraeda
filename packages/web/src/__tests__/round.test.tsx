@@ -2,6 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
+import { forgetUnsaved } from "../fields/unsaved.ts";
 import {
   atRepo,
   answered as readAnswered,
@@ -10,6 +11,7 @@ import {
   fixture,
   fixtureRepo,
   git,
+  refreshUntil,
   renderPage,
   serverFetch,
   today,
@@ -186,6 +188,25 @@ test("the end of the page lists the questions left, and Submit waits for them", 
   );
 });
 
+/** Second review: a comment typed in a blank question answers it for Submit, which saves it. */
+test("a question left blank on disk with its comment typed is not left, and Submit saves it", async () => {
+  const repo = answered({ Q1: "A", Q2: "A" });
+  await renderPage(PAGE, repo);
+  expect(await screen.findByText("1 question left:", { exact: false })).toBeTruthy();
+  // A comment of spaces answers nothing.
+  await type(comment("Q3"), "   ");
+  expect(screen.getByText("1 question left:", { exact: false })).toBeTruthy();
+
+  await type(comment("Q3"), "keep it simple");
+
+  expect(screen.queryByText("1 question left:", { exact: false })).toBeNull();
+  const submit = screen.getByRole("button", { name: "Submit answers" });
+  expect(submit.hasAttribute("disabled")).toBe(false);
+  await tap(submit);
+  await waitFor(() => expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(SUBMITTED));
+  expect(git(repo, "show", `${FOLDER}:${ROUND}`)).toContain("**Answer:** keep it simple");
+});
+
 /** US2.9 */
 test("submitting commits the round and shows its record", async () => {
   const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
@@ -207,6 +228,7 @@ test("the notes are saved as the last line", async () => {
   await screen.findByText("Settled without you");
 
   await type(screen.getByLabelText("Notes"), "LGTM");
+  await tap(screen.getByRole("button", { name: "Save notes" }));
 
   await waitFor(() => expect(text(repo).trimEnd().endsWith("**Notes:** LGTM")).toBe(true));
 });
@@ -226,12 +248,13 @@ test("every question and option shows in full", async () => {
   expect(screen.queryByText("more")).toBeNull();
 });
 
-/** Review focus 5: a comment, then a tap before its save returns, is not a conflict. */
+/** Review focus 5: a comment saved, then a tap before its save returns, is not a conflict. */
 test("quick saves of one answer follow each other", async () => {
   const { repo } = await renderPage(PAGE);
   await screen.findByText("How does your iPhone reach the server?");
 
   await type(comment("Q2"), "first");
+  await tap(saveButton("Q2"));
   await tap(option("Q2", "B"));
 
   // Its state shows once the save's answer comes back, after the file is written.
@@ -387,6 +410,7 @@ test("notes changed elsewhere show when the page reads again", async () => {
 
   await waitFor(() => expect(notes.value).toBe("theirs"));
   await type(notes, "theirs, and mine");
+  await tap(screen.getByRole("button", { name: "Save notes" }));
   await waitFor(() =>
     expect(text(repo).trimEnd().endsWith("**Notes:** theirs, and mine")).toBe(true),
   );
@@ -407,6 +431,35 @@ test("Submit stops when an answer could not be saved", async () => {
   expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).not.toBe(
     "discovery(web-ui): answer round 01",
   );
+});
+
+/** Final review: a comment whose save was refused is saved by Submit once the page read again. */
+test("Submit saves a comment whose save was refused, once the page read the file again", async () => {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  await renderPage(PAGE, repo);
+  await screen.findByText("How does your iPhone reach the server?");
+  const path = join(repo, ".worktrees", FOLDER, ROUND);
+  writeFileSync(path, readFileSync(path, "utf8").replace("**Answer:** A", "**Answer:** A: theirs"));
+
+  await type(comment("Q1"), "mine");
+  await tap(saveButton("Q1"));
+  expect(await within(question("Q1")).findByText(/Not saved/)).toBeTruthy();
+  const from = answersSoFar();
+  await act(async () => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await readAnswered("WorkflowFile", from);
+  expect((comment("Q1") as HTMLTextAreaElement).value).toBe("mine");
+  expect(within(question("Q1")).getByText("Unsaved changes")).toBeTruthy();
+
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+
+  await waitFor(() =>
+    expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(
+      "discovery(web-ui): answer round 01",
+    ),
+  );
+  expect(git(repo, "show", `${FOLDER}:${ROUND}`)).toContain("**Answer:** A: mine");
 });
 
 /**
@@ -751,4 +804,268 @@ test("the bar's Submit focuses Submit answers", async () => {
   await tap(screen.getByRole("button", { name: "Submit" }));
 
   expect(document.activeElement).toBe(screen.getByRole("button", { name: "Submit answers" }));
+});
+
+/** US2 1 and 2 */
+test("a tap saves the letters with the comment as saved, and Save comment the comment typed", async () => {
+  const repo = answered({ Q2: "Fine" });
+  await renderPage(PAGE, repo);
+  await screen.findByText("How does your iPhone reach the server?");
+
+  await type(comment("Q2"), "Fine, but daily only");
+  await tap(option("Q2", "B"));
+
+  await waitFor(() => expect(answerLine(repo, "Q2")).toBe("**Answer:** B: Fine"));
+  expect(await within(question("Q2")).findByText("Unsaved changes")).toBeTruthy();
+  expect((comment("Q2") as HTMLTextAreaElement).value).toBe("Fine, but daily only");
+
+  await tap(saveButton("Q2"));
+
+  await waitFor(() => expect(answerLine(repo, "Q2")).toBe("**Answer:** B: Fine, but daily only"));
+  await waitFor(() => expect(within(question("Q2")).queryByText("Unsaved changes")).toBeNull());
+});
+
+/** The first point the fixture's round settled without the human, and the second. */
+const COMMITS = "The actions' commits move into the core";
+const WRITTEN = "An answer is written";
+
+/** A settled point's toggle, named by its text, which starts with its bold subject. */
+const settledPoint = (subject: string) =>
+  screen.findByRole("button", { name: new RegExp(`^${subject}`) });
+
+/** The comment field of the settled point's form open. */
+const settledField = () => screen.getByLabelText("Comment text") as HTMLTextAreaElement;
+
+/** US5 9 */
+test("Submit saves a comment, the notes, and a settled point's comment typed, then submits", async () => {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  await renderPage(PAGE, repo);
+  await screen.findByText("Which repositories does the UI open now?");
+  await type(comment("Q3"), "keep it simple");
+  await type(screen.getByLabelText("Notes"), "LGTM");
+  await tap(await settledPoint(COMMITS));
+  await type(settledField(), "Good.");
+
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+
+  await waitFor(() => expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(SUBMITTED));
+  const committed = git(repo, "show", `${FOLDER}:${ROUND}`);
+  expect(committed).toContain("**Answer:** A: keep it simple");
+  expect(committed.trimEnd()).toMatch(
+    /\*\*Notes:\*\* LGTM\n\n- \*\*The actions' commits move into the core\*\*: Good\.$/,
+  );
+});
+
+/** Review focus 5 */
+test("Submit adds no comment for a settled point's form left blank", async () => {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  const path = join(repo, ".worktrees", FOLDER, ROUND);
+  writeFileSync(
+    path,
+    readFileSync(path, "utf8").replace(
+      /\*\*Notes:\*\*\n?$/,
+      `**Notes:**\n\n- **${WRITTEN}**: Clear.\n`,
+    ),
+  );
+  await renderPage(PAGE, repo);
+  await tap(await settledPoint(COMMITS));
+  await type(settledField(), "   ");
+  // An edit cleared: the store keeps its blank text, unsaved.
+  const shown = screen.getByRole("group", { name: `Your comment on "${WRITTEN}"` });
+  await tap(within(shown).getByRole("button", { name: "Edit" }));
+  await type(settledField(), "");
+
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+
+  await waitFor(() => expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(SUBMITTED));
+  const committed = git(repo, "show", `${FOLDER}:${ROUND}`);
+  expect(committed.trimEnd()).toMatch(/\*\*Notes:\*\*\n\n- \*\*An answer is written\*\*: Clear\.$/);
+});
+
+/** The server in process, whose first write of a settled point's comment `text` waits. */
+function holdSettled(repo: string, text: string) {
+  let first = true;
+  return hold(repo, (body) => {
+    const now = first && body.includes(`"text":"${text}"`);
+    first &&= !now;
+    return now;
+  });
+}
+
+/** Second review: an Add comment still being written is not added again by Submit. */
+test("Submit during a settled point's Add comment adds the comment once", async () => {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  const held = holdSettled(repo, "Good.");
+  await renderPage(PAGE, repo, { fetch: held.fetch });
+  await tap(await settledPoint(COMMITS));
+  await type(settledField(), "Good.");
+  await tap(within(settledField().closest("form")!).getByRole("button", { name: "Add comment" }));
+  await waitFor(() => expect(held.waiting).toHaveLength(1));
+
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+  await held.release();
+
+  await waitFor(() => expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(SUBMITTED));
+  const committed = git(repo, "show", `${FOLDER}:${ROUND}`);
+  expect(committed.slice(committed.indexOf("**Notes:**")).trimEnd()).toBe(
+    `**Notes:**\n\n- **${COMMITS}**: Good.`,
+  );
+});
+
+/** Second review: Submit keeps the text typed in a settled point's form while it saved it. */
+test("Submit keeps a settled point's comment typed while it was saving it", async () => {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  const held = holdSettled(repo, "Good.");
+  await renderPage(PAGE, repo, { fetch: held.fetch });
+  await tap(await settledPoint(COMMITS));
+  await type(settledField(), "Good.");
+
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+  await waitFor(() => expect(held.waiting).toHaveLength(1));
+  await type(settledField(), "Good. And more.");
+  await held.release();
+
+  await waitFor(() => expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(SUBMITTED));
+  const kept = Object.keys(localStorage)
+    .filter((key) => key.endsWith(`#settled:${COMMITS}`))
+    .map((key) => JSON.parse(localStorage.getItem(key)!).text);
+  expect(kept).toEqual(["Good. And more."]);
+});
+
+/** A round answered, whose notes hold a comment on each settled point. */
+function withTwoComments() {
+  const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
+  const path = join(repo, ".worktrees", FOLDER, ROUND);
+  writeFileSync(
+    path,
+    readFileSync(path, "utf8").replace(
+      /\*\*Notes:\*\*\n?$/,
+      `**Notes:**\n\n- **${COMMITS}**: Undo comment.\n- **${WRITTEN}**: Delete comment.\n`,
+    ),
+  );
+  return { path, repo };
+}
+
+/** A settled point's comment shown, by its subject. */
+const settledComment = (subject: string) =>
+  screen.getByRole("group", { name: `Your comment on "${subject}"` });
+
+/** Edits a settled point's comment, then taps the other point: the edit stays unsaved. */
+async function editThenLeave(subject: string, text: string, other: string) {
+  await tap(
+    within(await waitFor(() => settledComment(subject))).getByRole("button", { name: "Edit" }),
+  );
+  await type(settledField(), text);
+  await tap(await settledPoint(other));
+}
+
+/** The round's notes as committed by Submit. */
+async function submittedNotes(repo: string) {
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+  await waitFor(() => expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(SUBMITTED));
+  const committed = git(repo, "show", `${FOLDER}:${ROUND}`);
+  return committed.slice(committed.indexOf("**Notes:**")).trimEnd();
+}
+
+/** Final review: an edit of a comment removed goes with it, never into the comment renumbered. */
+test("Submit does not write the edit of a comment removed into the next one", async () => {
+  const { repo } = withTwoComments();
+  await renderPage(PAGE, repo);
+  await editThenLeave(COMMITS, "Edited undo comment.", WRITTEN);
+
+  await tap(within(settledComment(COMMITS)).getByRole("button", { name: "Remove" }));
+  await waitFor(() =>
+    expect(screen.queryByRole("group", { name: `Your comment on "${COMMITS}"` })).toBeNull(),
+  );
+
+  expect(await submittedNotes(repo)).toBe(`**Notes:**\n\n- **${WRITTEN}**: Delete comment.`);
+});
+
+/** Final review: an edit pending on a later comment follows it as a removal renumbers it. */
+test("Submit writes the edit of a comment renumbered by a removal into that comment", async () => {
+  const { repo } = withTwoComments();
+  await renderPage(PAGE, repo);
+  await editThenLeave(WRITTEN, "Edited delete comment.", COMMITS);
+
+  await tap(within(settledComment(COMMITS)).getByRole("button", { name: "Remove" }));
+  await waitFor(() =>
+    expect(screen.queryByRole("group", { name: `Your comment on "${COMMITS}"` })).toBeNull(),
+  );
+
+  expect(await submittedNotes(repo)).toBe(`**Notes:**\n\n- **${WRITTEN}**: Edited delete comment.`);
+});
+
+/** Final review: a comment removed elsewhere renumbers the others: its edit is not written. */
+test("Submit does not write an edit into another comment after a removal made elsewhere", async () => {
+  const { path, repo } = withTwoComments();
+  await renderPage(PAGE, repo);
+  await editThenLeave(COMMITS, "Edited undo comment.", WRITTEN);
+
+  writeFileSync(path, readFileSync(path, "utf8").replace(`- **${COMMITS}**: Undo comment.\n`, ""));
+  await refreshUntil(() =>
+    expect(screen.queryByRole("group", { name: `Your comment on "${COMMITS}"` })).toBeNull(),
+  );
+
+  expect(await submittedNotes(repo)).toBe(`**Notes:**\n\n- **${WRITTEN}**: Delete comment.`);
+});
+
+/** Final review: an edit kept for a comment changed elsewhere since is not written over it. */
+test("Submit stops at the edit of a comment changed elsewhere since it began", async () => {
+  const { path, repo } = withTwoComments();
+  await renderPage(PAGE, repo);
+  await editThenLeave(COMMITS, "Edited undo comment.", WRITTEN);
+
+  writeFileSync(path, readFileSync(path, "utf8").replace("Undo comment.", "Theirs."));
+  await refreshUntil(() =>
+    expect(within(settledComment(COMMITS)).getByText("Theirs.")).toBeTruthy(),
+  );
+  await tap(screen.getByRole("button", { name: "Submit answers" }));
+
+  expect(await screen.findByText(/Some answers were not saved/)).toBeTruthy();
+  expect(readFileSync(path, "utf8")).toContain(`- **${COMMITS}**: Theirs.`);
+  expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).not.toBe(SUBMITTED);
+});
+
+/** US5 1, on a question's comment */
+test("a question's comment typed is restored after a reload", async () => {
+  const repo = answered({});
+  await renderPage(PAGE, repo);
+  await screen.findByText("Which repositories does the UI open now?");
+  await type(comment("Q3"), "Half typed");
+
+  forgetUnsaved();
+  await renderPage(PAGE, repo, { reload: true });
+
+  await screen.findByText("Which repositories does the UI open now?");
+  expect((comment("Q3") as HTMLTextAreaElement).value).toBe("Half typed");
+  expect(
+    within(question("Q3")).getByText("Unsaved text restored from", { exact: false }),
+  ).toBeTruthy();
+  expect(within(question("Q3")).getByText("Unsaved changes")).toBeTruthy();
+});
+
+/** The spec's edge case: the round answered elsewhere while a comment is unsaved. */
+test("an unsaved comment of a round answered elsewhere stays, with the notice", async () => {
+  const repo = answered({});
+  await renderPage(PAGE, repo);
+  await screen.findByText("Which repositories does the UI open now?");
+  await type(comment("Q3"), "Too late");
+
+  const path = join(repo, ".worktrees", FOLDER, ROUND);
+  writeFileSync(
+    path,
+    readFileSync(path, "utf8").replace("status: awaiting-human", "status: answered"),
+  );
+  await refreshUntil(() =>
+    expect(screen.queryByRole("button", { name: "Submit answers" })).toBeNull(),
+  );
+
+  expect(
+    within(question("Q3")).getByText("The round was answered.", { exact: false }),
+  ).toBeTruthy();
+  expect(within(question("Q3")).queryByText("Too late")).toBeNull();
+  await tap(within(question("Q3")).getByRole("button", { name: "Discard" }));
+  expect(
+    within(question("Q3")).queryByText("The round was answered.", { exact: false }),
+  ).toBeNull();
 });

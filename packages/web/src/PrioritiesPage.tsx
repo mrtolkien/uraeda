@@ -194,6 +194,7 @@ function Section({
               Add to {title}
             </>
           }
+          field={`priorities#add:${section}`}
           label={`Add to ${title}`}
           onSave={onAdd}
           stayOpen

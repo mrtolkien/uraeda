@@ -3,6 +3,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { addPlan, ELEVEN } from "uraeda-binding/test-utils";
 import { expect, test } from "vite-plus/test";
 import {
   atRepo,
@@ -109,9 +110,14 @@ function nav() {
   return within(screen.getByRole("navigation", { name: "Side navigation" }));
 }
 
-/** The navigation's link to a feature or a chat, by its title. */
-function row(title: string) {
-  return nav().getByRole("link", { name: new RegExp(`^${title}, `) });
+/** The navigation's link to a feature, by its slug, or a chat, by its title. */
+function row(name: string) {
+  return nav().getByRole("link", { name: new RegExp(`^${name}, `) });
+}
+
+/** Waits for the navigation's link to a feature or a chat. */
+function findRow(name: string) {
+  return waitFor(() => row(name));
 }
 
 /** The status a navigation row shows. */
@@ -162,7 +168,7 @@ test("US3.1: a feature waiting on you shows Needs you", async () => {
   await renderPage("/");
 
   await screen.findByRole("searchbox", { name: "Search sessions" });
-  expect(statusOf(row("Web UI for the workflow files"))).toBe("Needs you");
+  expect(statusOf(row("web-ui"))).toBe("Needs you");
 });
 
 test("US3.2: a working turn shows Working, then New reply", async () => {
@@ -172,12 +178,12 @@ test("US3.2: a working turn shows Working, then New reply", async () => {
   await fake.sessions.send(repo, session.id, { text: "Plan it." });
   await renderPage("/", repo, { agent: fake });
 
-  await waitFor(() => expect(statusOf(row("CLI TUIs"))).toBe("Working"));
+  await waitFor(() => expect(statusOf(row("cli-tuis"))).toBe("Working"));
   fake.adapter.emit({ id: fake.adapter.sent[0].id, type: "accepted" });
   fake.adapter.emit({ text: "Planned.", type: "text" });
   fake.adapter.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
 
-  await refreshUntil(() => expect(statusOf(row("CLI TUIs"))).toBe("New reply"));
+  await refreshUntil(() => expect(statusOf(row("cli-tuis"))).toBe("New reply"));
 });
 
 test("US3.4: a running sub-agent shows under its session, then leaves", async () => {
@@ -203,7 +209,7 @@ test("US3.4: a running sub-agent shows under its session, then leaves", async ()
   await refreshUntil(() =>
     expect(nav().queryByRole("link", { name: /Map the runner code/ })).toBeNull(),
   );
-  expect(row("CLI TUIs")).toBeTruthy();
+  expect(row("cli-tuis")).toBeTruthy();
 });
 
 test("US3.5: search filters features and chats by message text, 200 ms after typing", async () => {
@@ -217,8 +223,8 @@ test("US3.5: search filters features and chats by message text, 200 ms after typ
   await type(search, "wal");
 
   // Not at once: the search waits for typing to stop.
-  expect(row("CLI TUIs")).toBeTruthy();
-  await waitFor(() => expect(nav().queryByRole("link", { name: /^CLI TUIs/ })).toBeNull());
+  expect(row("cli-tuis")).toBeTruthy();
+  await waitFor(() => expect(nav().queryByRole("link", { name: /^cli-tuis/ })).toBeNull());
   expect(row(String.raw`How does the cache work\?`)).toBeTruthy();
   expect(nav().queryByRole("link", { name: /Why is CI slow/ })).toBeNull();
   expect(nav().queryByRole("link", { name: /Web UI for the workflow files/ })).toBeNull();
@@ -245,7 +251,7 @@ test("US3.6: needs you sorts first in its group", async () => {
       "Failed",
     ]),
   );
-  expect(done.getAllByRole("link")[0].textContent).toContain("Stack decision");
+  expect(done.getAllByRole("link")[0].textContent).toContain("stack-decision");
 });
 
 test("US4.1: New chat opens an empty chat, and its first message lists it in Chats", async () => {
@@ -318,4 +324,155 @@ test("US4.3: an archived chat moves under Archived, and a message brings it back
   await refreshUntil(() => expect(nav().queryByRole("button", { name: "Archived" })).toBeNull());
   expect(chats().getByRole("link", { name: /^List the open draft files, / })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Archive" })).toBeTruthy();
+});
+
+test("US2.1: a feature's row reads its slug, and its title for screen readers", async () => {
+  await renderPage("/", fixtureRepo(), { agent: await fakeAgent() });
+
+  const cli = await findRow("cli-tuis");
+  expect(cli.textContent).toContain("cli-tuis");
+  expect(cli.textContent).not.toContain("CLI TUIs");
+  expect(cli.getAttribute("aria-label")).toBe("cli-tuis, CLI TUIs, Idle");
+});
+
+test("US2.2, US2.3: a feature at its implementation has a progress row that opens its session", async () => {
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  await renderPage("/", repo, { agent: await fakeAgent() });
+
+  const progress = await screen.findByRole("link", { name: "7/11 · Session column, Task 7 of 11" });
+  expect(progress.textContent).toContain("7/11 · Session column");
+  await click(progress);
+
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/f/${CLI}/session`)));
+  expect(nav().getByRole("link", { current: "page" })).toBe(progress);
+});
+
+test("US2.4: an agent's checked boxes move the progress, its dot staying Idle", async () => {
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  await renderPage("/", repo, { agent: await fakeAgent() });
+  await screen.findByRole("link", { name: "7/11 · Session column, Task 7 of 11" });
+
+  addPlan(
+    repo,
+    CLI,
+    ELEVEN.map(([title], index) => [title, index < 7 ? 5 : 0, 5]),
+  );
+
+  await refreshUntil(() =>
+    expect(
+      screen.getByRole("link", { name: "8/11 · Jump to the latest, Task 8 of 11" }),
+    ).toBeTruthy(),
+  );
+  expect(statusOf(row("cli-tuis"))).toBe("Idle");
+});
+
+test("US2.5: a feature at its spec has no progress row", async () => {
+  await renderPage("/", fixtureRepo(), { agent: await fakeAgent() });
+
+  await findRow("cli-tuis");
+  expect(screen.queryByRole("link", { name: /^\d+\/\d+ · / })).toBeNull();
+});
+
+test("US2.6: the progress row comes before a running sub-agent's", async () => {
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  const fake = await fakeAgent();
+  const session = await fake.sessions.featureSession(repo, CLI);
+  await fake.sessions.send(repo, session.id, { text: "Implement it." });
+  fake.adapter.emit({ id: fake.adapter.sent[0].id, type: "accepted" });
+  fake.adapter.emit({
+    id: "task-1",
+    input: {},
+    kind: "other",
+    name: "Task",
+    subagent: { description: "Explore the tests" },
+    type: "toolStart",
+  });
+  await renderPage("/", repo, { agent: fake });
+
+  await findRow("Explore the tests");
+  await screen.findByRole("link", { name: "7/11 · Session column, Task 7 of 11" });
+  const links = nav()
+    .getAllByRole("link")
+    .map((link) => link.getAttribute("aria-label"));
+  expect(links.indexOf("7/11 · Session column, Task 7 of 11")).toBe(
+    links.indexOf("Explore the tests, Working") - 1,
+  );
+  expect(links.indexOf("7/11 · Session column, Task 7 of 11")).toBe(
+    links.findIndex((label) => label?.startsWith("cli-tuis, ")) + 1,
+  );
+});
+
+test("US2.7: search finds a feature by its title", async () => {
+  await renderPage("/", fixtureRepo(), { agent: await fakeAgent() });
+
+  await type(await screen.findByRole("searchbox", { name: "Search sessions" }), "CLI TUI");
+
+  await refreshUntil(() => expect(nav().queryByRole("link", { name: /^web-ui, / })).toBeNull());
+  expect(row("cli-tuis")).toBeTruthy();
+});
+
+test("search finds a feature by its slug", async () => {
+  await renderPage("/", fixtureRepo(), { agent: await fakeAgent() });
+
+  await type(await screen.findByRole("searchbox", { name: "Search sessions" }), "cli-tui");
+
+  await refreshUntil(() => expect(nav().queryByRole("link", { name: /^web-ui, / })).toBeNull());
+  expect(row("cli-tuis")).toBeTruthy();
+});
+
+test("a feature leaving its implementation loses its progress row", async () => {
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  await renderPage("/", repo, { agent: await fakeAgent() });
+  await screen.findByRole("link", { name: "7/11 · Session column, Task 7 of 11" });
+
+  addPlan(
+    repo,
+    CLI,
+    ELEVEN.map(([title]) => [title, 5, 5]),
+  );
+
+  await refreshUntil(() => expect(screen.queryByRole("link", { name: /^\d+\/\d+ · / })).toBeNull());
+  expect(row("cli-tuis")).toBeTruthy();
+});
+
+test("the folded sidebar hides progress rows", async () => {
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  await renderPage("/", repo, { agent: await fakeAgent() });
+  await screen.findByRole("link", { name: "7/11 · Session column, Task 7 of 11" });
+
+  await click(nav().getByRole("button", { name: "Collapse sidebar" }));
+
+  await waitFor(() => expect(nav().getByRole("button", { name: "Expand sidebar" })).toBeTruthy());
+  expect(screen.queryByRole("link", { name: /^\d+\/\d+ · / })).toBeNull();
+  expect(statusOf(row("cli-tuis"))).toBe("Idle");
+});
+
+test("on the session's page, the folded sidebar selects the feature's row", async () => {
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  await renderPage(`/f/${CLI}/session`, repo, { agent: await fakeAgent() });
+  const progress = await screen.findByRole("link", { name: "7/11 · Session column, Task 7 of 11" });
+  expect(nav().getByRole("link", { current: "page" })).toBe(progress);
+
+  await click(nav().getByRole("button", { name: "Collapse sidebar" }));
+
+  await waitFor(() => expect(nav().getByRole("button", { name: "Expand sidebar" })).toBeTruthy());
+  expect(nav().getByRole("link", { current: "page" })).toBe(row("cli-tuis"));
+});
+
+test.each([
+  ["page", `/f/${CLI}`],
+  ["file", `/f/${CLI}/spec.md`],
+])("on a feature's %s, its row is selected, not its progress row", async (_, path) => {
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  await renderPage(path, repo, { agent: await fakeAgent() });
+  await screen.findByRole("link", { name: "7/11 · Session column, Task 7 of 11" });
+
+  expect(nav().getByRole("link", { current: "page" })).toBe(row("cli-tuis"));
 });

@@ -3,7 +3,7 @@ mod common;
 use std::collections::BTreeMap;
 
 use common::texts::*;
-use uraeda_core::steps::{PullRequest, StepName, WaitsOn};
+use uraeda_core::steps::{PullRequest, StepName, TaskProgress, WaitsOn};
 use uraeda_core::workspace::{Feature, Kind};
 
 /// A feature's files: names and texts.
@@ -220,6 +220,165 @@ fn implementation_names_the_first_unchecked_task() {
     );
 
     assert_eq!(feature.step.task.as_deref(), Some("Task 2: Repeat menu"));
+}
+
+/// A plan's text with tasks numbered as given, each with its steps done out of total.
+fn numbered_plan(tasks: &[(u32, &str, usize, usize)], after: &str) -> String {
+    let mut text =
+        "---\nstatus: auto-approved\nspec-revision: 1\n---\n\n# Plan: Feature\n".to_string();
+    for (number, title, done, total) in tasks {
+        text.push_str(&format!("\n## Task {number}: {title}\n\n"));
+        for step in 0..*total {
+            let mark = if step < *done { "x" } else { " " };
+            text.push_str(&format!("- [{mark}] **Step {}: Do**\n", step + 1));
+        }
+    }
+    text + after
+}
+
+/// The step of a feature with an approved spec at revision 1 and this plan.
+fn at_plan(plan_text: String) -> Feature {
+    feature(
+        Kind::Feature,
+        &[
+            ("proposal.md", proposal()),
+            ("clarifications-01.md", answered()),
+            ("spec.md", spec("approved", 1, 1)),
+            ("plan.md", plan_text),
+        ],
+    )
+}
+
+fn progress(position: u32, total: u32, title: &str) -> Option<TaskProgress> {
+    Some(TaskProgress {
+        position,
+        total,
+        title: title.to_string(),
+    })
+}
+
+#[test]
+fn implementation_progress() {
+    let mut eleven: Vec<(String, usize, usize)> = (1..=11)
+        .map(|n| (format!("Task title {n}"), usize::from(n <= 6) * 2, 2))
+        .collect();
+    eleven[6].0 = "Session column".to_string();
+    eleven[6].1 = 1;
+    let eleven: Vec<(&str, usize, usize)> = eleven
+        .iter()
+        .map(|(title, done, total)| (title.as_str(), *done, *total))
+        .collect();
+    let title = "The `ura status` command, **bold**, and [a link](x.md)";
+    let rows: Vec<(&str, String, String, Option<TaskProgress>)> = vec![
+        (
+            "11 tasks, the first 6 done",
+            plan("auto-approved", 1, &eleven),
+            "Task 7: Session column".to_string(),
+            progress(7, 11, "Session column"),
+        ),
+        (
+            "tasks numbered 1, 3, 3",
+            numbered_plan(
+                &[(1, "One", 1, 1), (3, "Second", 0, 1), (3, "Third", 0, 1)],
+                "",
+            ),
+            "Task 3: Second".to_string(),
+            progress(2, 3, "Second"),
+        ),
+        (
+            "tasks finished out of order",
+            plan("auto-approved", 1, &[("One", 0, 1), ("Two", 1, 1)]),
+            "Task 1: One".to_string(),
+            progress(1, 2, "One"),
+        ),
+        (
+            "a task without steps before the current one",
+            plan(
+                "auto-approved",
+                1,
+                &[("One", 1, 1), ("Empty", 0, 0), ("Three", 0, 1)],
+            ),
+            "Task 3: Three".to_string(),
+            progress(3, 3, "Three"),
+        ),
+        (
+            "a title with markup",
+            plan("auto-approved", 1, &[(title, 0, 1)]),
+            format!("Task 1: {title}"),
+            progress(1, 1, title),
+        ),
+    ];
+    for (name, plan_text, task, progress) in rows {
+        let feature = at_plan(plan_text);
+
+        assert_eq!(feature.step.task.as_deref(), Some(task.as_str()), "{name}");
+        assert_eq!(feature.step.progress, progress, "{name}");
+    }
+}
+
+#[test]
+fn no_progress_outside_the_implementation() {
+    let rows: Vec<(&str, String)> = vec![
+        (
+            "every box checked",
+            plan("auto-approved", 1, &[("One", 2, 2), ("Two", 1, 1)]),
+        ),
+        ("no task heading", plan("auto-approved", 1, &[])),
+        (
+            "plan waiting for the human",
+            plan("awaiting-human", 1, &[("One", 0, 1)]),
+        ),
+        (
+            "plan behind the spec's revision",
+            plan("auto-approved", 0, &[("One", 0, 1)]),
+        ),
+        (
+            "unchecked boxes after the last task's section",
+            numbered_plan(
+                &[(1, "One", 1, 1), (2, "Two", 1, 1)],
+                "\n## Notes\n\n- [ ] Not a step\n- [ ] Nor this\n",
+            ),
+        ),
+    ];
+    for (name, plan_text) in rows {
+        let feature = at_plan(plan_text);
+
+        assert_eq!(feature.step.task, None, "{name}");
+        assert_eq!(feature.step.progress, None, "{name}");
+    }
+}
+
+#[test]
+fn implemented_once_past_the_implementation() {
+    let all = [("One", 2, 2), ("Two", 1, 1)];
+    let rows: Vec<(&str, String, bool)> = vec![
+        ("every box checked", plan("auto-approved", 1, &all), true),
+        (
+            "an unchecked box",
+            plan("auto-approved", 1, &[("One", 2, 2), ("Two", 0, 1)]),
+            false,
+        ),
+        (
+            "every box checked, plan waiting for the human",
+            plan("awaiting-human", 1, &all),
+            false,
+        ),
+        (
+            "every box checked, plan with changes requested",
+            plan("changes-requested", 1, &all),
+            false,
+        ),
+        (
+            "every box checked, plan behind the spec's revision",
+            plan("auto-approved", 0, &all),
+            false,
+        ),
+    ];
+    for (name, plan_text, implemented) in rows {
+        let feature = at_plan(plan_text);
+
+        assert_eq!(feature.step.implemented, implemented, "{name}");
+    }
 }
 
 fn assessment(status: &str, done: usize, total: usize) -> String {

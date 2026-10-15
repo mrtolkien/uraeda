@@ -1,74 +1,46 @@
-import { Button } from "@astryxdesign/core/Button";
 import { Code } from "@astryxdesign/core/Code";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import {
-  borderVars,
-  colorVars,
-  radiusVars,
-  spacingVars,
-} from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useLayoutEffect, useMemo, useState } from "react";
 import type { Block, CommentItem, Document } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
-import { CommentForm, quoteOf } from "./CommentForm.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { type Fold, foldOf } from "./Folds.tsx";
-import { type useFile, useAgent } from "./data.ts";
+import type { useFile } from "./data.ts";
 import { Overlay } from "./layout/Overlay.tsx";
 import { Page } from "./layout/Page.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
+import { AddingNote, CommentHost, FormSlot, type ReviewField } from "./ReviewCommentForm.tsx";
 import { PendingComment, usePlacedComments } from "./ReviewComments.tsx";
+import {
+  holderOf,
+  reanchor,
+  placeOf,
+  restoredComment,
+  reviewEditKey,
+  reviewKey,
+  writeStale,
+} from "./reviewField.ts";
 import { reviewHeadings } from "./ReviewHeadings.tsx";
 import { ReviewMockups } from "./ReviewMockups.tsx";
 import { useRefusals } from "./ReviewVerdict.tsx";
-import { selectable } from "./Selection.tsx";
-import { plain } from "./Spans.tsx";
+import { useRepositoryPath } from "./routes.tsx";
+import { unsavedKey } from "./fields/unsaved.ts";
 import { type Range, useCommentDraft } from "./useCommentDraft.ts";
 import { useSpecFolds } from "./useOpenKeys.ts";
 import { useReviewActions } from "./useReviewActions.ts";
-import { useReviewImages } from "./useReviewImages.ts";
+import { withoutCommentRefusal } from "./useReviewImages.ts";
 import { StaleBanner, YourReview } from "./YourReview.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
-type Draft = ReturnType<typeof useCommentDraft>;
-
 const styles = stylex.create({
-  inline: {
-    // The comment field under the block on wide screens.
-    borderColor: colorVars["--color-border"],
-    borderRadius: radiusVars["--radius-container"],
-    borderStyle: "solid",
-    borderWidth: borderVars["--border-width"],
-    marginBlockEnd: spacingVars["--spacing-4"],
-    padding: spacingVars["--spacing-3"],
-  },
   sheetRoom: {
     // Room at the page's end, so the last block can rise above the comment sheet.
     height: "var(--size-viewport-height)",
   },
 });
-
-/** Where a comment on lines goes, as the review writes it. */
-export function anchor(range: Range) {
-  const lines =
-    range.start === range.end ? `Line ${range.start}` : `Lines ${range.start}–${range.end}`;
-  return `${lines}, under "${range.heading}"`;
-}
-
-/** A block's text, a row's cells included. */
-export function textOf(tree: Document, block: Block) {
-  const own = plain(block.spans);
-  if (own || block.kind !== "row") {
-    return own;
-  }
-  return tree.blocks
-    .filter((cell) => cell.parent === block.id)
-    .map((cell) => plain(cell.spans))
-    .join(" | ");
-}
 
 /**
  * The folds a review opens: those holding a pending comment's block, or a block of the selection.
@@ -84,60 +56,128 @@ function shownFolds(tree: Document, placed: ReadonlyMap<number, unknown>, select
   };
 }
 
-/** The comment field of a review, on the selected lines, the whole file, or a comment edited. */
-function ReviewForm({
-  actions: { ask, send },
-  draft: { close, draft, selection, setText, text },
-  images,
-  tree,
-}: {
-  actions: ReturnType<typeof useReviewActions>;
-  draft: Draft;
-  images: ReturnType<typeof useReviewImages>;
-  tree: Document;
-}) {
-  const agent = useAgent();
-  if (!draft) {
-    return undefined;
-  }
-  // The selected lines' first block, quoted in the comment field.
-  const first =
-    selection &&
-    tree.blocks
-      .filter((b) => selectable(b) && b.startLine >= selection.start && b.endLine <= selection.end)
-      .sort((a, b) => a.startLine - b.startLine)[0];
-  return (
-    <CommentForm
-      action={
-        agent?.available &&
-        draft.kind === "lines" &&
-        selection && <Button label="Ask the agent" onClick={() => ask(selection)} />
-      }
-      anchor={
-        draft.kind === "lines" && selection
-          ? anchor(selection)
-          : draft.kind === "edit"
-            ? `Editing C${draft.number}`
-            : "General"
-      }
-      images={images.images}
-      key={draft.kind === "edit" ? `edit-${draft.number}` : draft.kind}
-      notice={images.notice}
-      onCancel={close}
-      onSubmit={send}
-      onTextChange={setText}
-      quote={draft.kind === "lines" && first ? quoteOf(textOf(tree, first)) : undefined}
-      submitLabel={draft.kind === "edit" ? "Save comment" : "Add comment"}
-      text={text}
-    />
+/**
+ * The comment being written, as `useCommentDraft` gives it: its lines kept with its unsaved text as
+ * they change, the comment whose text the store kept opened again as the page is drawn, written
+ * again as a general comment when its lines are of a commit no longer reviewed, and the verdict's
+ * refusal for it gone once it closes.
+ */
+function useReviewDraft(
+  file: File,
+  comments: ReadonlyArray<CommentItem>,
+  wide: boolean,
+  { setMessage }: ReturnType<typeof useRefusals>,
+) {
+  const repo = useRepositoryPath();
+  const tree = (file.committed ?? file.current).document;
+  const commit = file.tip ?? "";
+  const [restored] = useState(() => restoredComment(repo, file.path, commit, comments, tree));
+  useLayoutEffect(() => {
+    if (restored?.stale) {
+      writeStale(restored.stale);
+    }
+  }, [restored]);
+  const key = unsavedKey(repo, reviewKey(file.path));
+  const typed = useCommentDraft(
+    wide,
+    (range) => reanchor(key, range && { ...range, commit }),
+    restored,
   );
+  return {
+    ...typed,
+    close: () => {
+      setMessage(withoutCommentRefusal);
+      typed.close();
+    },
+  };
+}
+
+/**
+ * What a review says before its file: that the file changed under pending comments, its mockups,
+ * and which version it shows.
+ */
+function ReviewIntro({
+  comments,
+  file,
+  onStartOver,
+  wide,
+}: {
+  comments: number;
+  file: File;
+  onStartOver: () => Promise<void>;
+  wide: boolean;
+}) {
+  const version = file.committed ?? file.current;
+  return (
+    <>
+      {file.reviewStale && comments > 0 && (
+        <StaleBanner count={comments} kind={file.kind} onStartOver={onStartOver} />
+      )}
+      <ReviewMockups folder={file.folder} mockups={version.items.spec?.mockups} wide={wide} />
+      <Text color="secondary" type="supporting">
+        Tap a block to comment on it. Showing the version committed at <Code>{file.tip}</Code>
+        {file.committed && ", which differs from the file on disk"}.
+      </Text>
+    </>
+  );
+}
+
+/**
+ * On the phone, the comment form's sheet, which leaves the last tapped block in view above it, and
+ * room at the page's end, so the last block can rise above it.
+ */
+function CommentSheet({
+  container,
+  draft: { close, draft, sheet },
+  isOpen,
+}: {
+  container: HTMLElement;
+  draft: ReturnType<typeof useCommentDraft>;
+  isOpen: boolean;
+}) {
+  return (
+    <>
+      {draft && <div {...stylex.props(styles.sheetRoom)} />}
+      <Overlay
+        isModal={false}
+        isOpen={isOpen}
+        label="Comment"
+        onClose={close}
+        sheetHeight="capped"
+        sheetRef={sheet}
+      >
+        <FormSlot boxed={false} container={container} />
+      </Overlay>
+    </>
+  );
+}
+
+/** The field of the comment being written: an edit of a pending comment, or a new one. */
+function fieldOf(
+  file: File,
+  comments: ReadonlyArray<CommentItem>,
+  { draft, selection }: Pick<ReturnType<typeof useCommentDraft>, "draft" | "selection">,
+): ReviewField {
+  if (draft?.kind === "edit") {
+    const comment = comments.find((c) => c.number === draft.number);
+    return {
+      key: reviewEditKey(file.path, draft.number),
+      saved: comment?.text ?? "",
+      subject: comment && placeOf(comment),
+    };
+  }
+  const extra =
+    draft?.kind === "lines" && selection ? { ...selection, commit: file.tip ?? "" } : undefined;
+  return { extra, key: reviewKey(file.path), saved: "" };
 }
 
 /**
  * A spec, a plan, or an assessment to review, as committed at its branch's tip: tapping blocks
  * selects lines to comment on, pending comments show under their blocks, and the end of the page
  * holds the verdict. The comment field opens under the last tapped block on wide screens, and in
- * a sheet on the phone, the block kept in view above it.
+ * a sheet on the phone, the block kept in view above it. The field is drawn apart from the
+ * document, by `CommentHost`, so typing renders the field alone; the comment holding unsaved text
+ * when the page is drawn opens again.
  */
 export function ReviewPage({ file }: { file: File }) {
   const wide = useWidthClass() === "wide";
@@ -145,26 +185,21 @@ export function ReviewPage({ file }: { file: File }) {
   const tree = version.document;
   const review = file.review?.review;
   const comments = useMemo(() => (review?.verdict === "pending" ? review.comments : []), [review]);
-  const typed = useCommentDraft(wide);
   const refusals = useRefusals();
-  const images = useReviewImages(file, typed, refusals, wide);
-  // A comment closed takes its images' refusals with it.
-  const commentDraft = {
-    ...typed,
-    close: () => {
-      images.onClose();
-      typed.close();
-    },
-  };
-  const { close, draft, last, selection, sheet, start, tap } = commentDraft;
+  const commentDraft = useReviewDraft(file, comments, wide, refusals);
+  // The comment form's element, which each place it shows takes in turn.
+  const [container] = useState(() => document.createElement("div"));
+  const { draft, last, selection, start, tap } = commentDraft;
   const actions = useReviewActions(file, commentDraft, refusals);
+  const { adding } = actions;
   const placed = usePlacedComments(comments, tree);
   const folds = useSpecFolds(version.items.spec, shownFolds(tree, placed, selection));
+  const field = fieldOf(file, comments, commentDraft);
+  const addingUnder = adding?.range && holderOf(tree, adding.range.end)?.id;
 
-  const form = <ReviewForm actions={actions} draft={commentDraft} images={images} tree={tree} />;
   /** The comment field, in the page on wide screens: on the phone, it is in the sheet. */
   const inPage = (shown: boolean) =>
-    wide && shown && <div {...stylex.props(styles.inline)}>{form}</div>;
+    wide && shown && !adding && <FormSlot boxed container={container} />;
 
   const pendingNote = (comment: CommentItem): ReactNode =>
     draft?.kind === "edit" && draft.number === comment.number && wide ? (
@@ -173,67 +208,73 @@ export function ReviewPage({ file }: { file: File }) {
       <PendingComment
         comment={comment}
         key={comment.number}
-        onEdit={() => {
-          images.onEdit();
-          start({ kind: "edit", number: comment.number, text: comment.text });
-        }}
-        onRemove={() => actions.remove(comment.number)}
+        onEdit={() => start({ kind: "edit", number: comment.number })}
+        onRemove={() => void actions.remove(comment.number)}
       />
     );
 
   return (
-    <Page>
-      <Crumbs current={file.name} folder={file.folder} />
-      <VStack gap={3}>
-        {file.reviewStale && comments.length > 0 && (
-          <StaleBanner count={comments.length} kind={file.kind} onStartOver={actions.startOver} />
-        )}
-        <ReviewMockups folder={file.folder} mockups={version.items.spec?.mockups} wide={wide} />
-        <Text color="secondary" type="supporting">
-          Tap a block to comment on it. Showing the version committed at <Code>{file.tip}</Code>
-          {file.committed && ", which differs from the file on disk"}.
-        </Text>
-        <Blocks
-          document={tree}
-          folds={folds}
-          override={reviewHeadings(version.items, wide)}
-          selection={{
-            after: (block) => (
+    <CommentHost
+      actions={actions}
+      container={container}
+      draft={commentDraft}
+      field={field}
+      file={file}
+      refusals={refusals}
+      tree={tree}
+      wide={wide}
+    >
+      <Page>
+        <Crumbs current={file.name} folder={file.folder} />
+        <VStack gap={3}>
+          <ReviewIntro
+            comments={comments.length}
+            file={file}
+            onStartOver={actions.startOver}
+            wide={wide}
+          />
+          <Blocks
+            document={tree}
+            folds={folds}
+            override={reviewHeadings(version.items, wide)}
+            selection={{
+              after: (block) => (
+                <>
+                  {placed.get(block.id)?.map(pendingNote)}
+                  {adding && addingUnder === block.id && <AddingNote adding={adding} />}
+                  {inPage(draft?.kind === "lines" && block.id === last)}
+                </>
+              ),
+              isSelected: (block) =>
+                selection !== undefined &&
+                block.startLine >= selection.start &&
+                block.endLine <= selection.end,
+              onTap: tap,
+            }}
+          />
+          <YourReview
+            comments={comments}
+            file={file}
+            general={
               <>
-                {placed.get(block.id)?.map(pendingNote)}
-                {inPage(draft?.kind === "lines" && block.id === last)}
+                {adding && !adding.range && <AddingNote adding={adding} />}
+                {inPage(draft?.kind === "general")}
               </>
-            ),
-            isSelected: (block) =>
-              selection !== undefined &&
-              block.startLine >= selection.start &&
-              block.endLine <= selection.end,
-            onTap: tap,
-          }}
-        />
-        <YourReview
-          comments={comments}
-          file={file}
-          general={inPage(draft?.kind === "general")}
-          onGeneral={() => start({ kind: "general" })}
-          pendingNote={pendingNote}
-          refusals={{ ...refusals, hides: images.hides, hold: images.hold }}
-          wide={wide}
-        />
-      </VStack>
-      {!wide && draft && <div {...stylex.props(styles.sheetRoom)} />}
-      {!wide && (
-        <Overlay
-          isModal={false}
-          isOpen={draft !== undefined}
-          label="Comment"
-          onClose={close}
-          sheetHeight="capped"
-          sheetRef={sheet}
-        >
-          {form}
-        </Overlay>
-      )}
-    </Page>
+            }
+            onGeneral={() => start({ kind: "general" })}
+            pendingNote={pendingNote}
+            refusals={refusals}
+            wide={wide}
+          />
+        </VStack>
+        {!wide && (
+          <CommentSheet
+            container={container}
+            draft={commentDraft}
+            isOpen={draft !== undefined && !adding}
+          />
+        )}
+      </Page>
+    </CommentHost>
   );
 }

@@ -26,3 +26,5 @@ Look and feel pass: components style, logo, favicon, ...
 The UI works, but it does not look like a finished tool yet: it should look good before v1.0.0.
 
 ## Notes
+
+- Going to the priorities page is too slow, is this a UI or backend issue?

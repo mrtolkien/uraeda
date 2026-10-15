@@ -24,18 +24,21 @@ import { FakeAdapter } from "uraeda-server/testing";
 import { createServer, type PluginOption } from "vite-plus";
 import base, { uraedaServer } from "../vite.config.ts";
 import { takeImages } from "./image-shots.ts";
+import { takeTextInputs } from "./text-input-shots.ts";
 import {
   here,
   setPrefix,
   settle,
   shooter,
   show,
+  type Each,
   type Shot,
   type Size,
   SPEC,
   takeFolds,
   wait,
 } from "./shots.ts";
+import { AGENT, takeImplementation, takeSessions } from "./sessionShots.ts";
 
 const web = fileURLToPath(new URL("..", import.meta.url));
 const root = fileURLToPath(new URL("../../..", import.meta.url));
@@ -48,9 +51,7 @@ const out = join(root, "specs", folder, "screenshots");
 const views = process.argv.slice(3);
 
 const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";
-const AGENT = "/f/2026-10-12-cli-tuis";
 const MOCKUP = "/f/2026-10-06-recurring-tasks/mockups/repeat.html";
-const LONG = "specs/2026-10-12-cli-tuis/clarifications-01.md";
 
 /** The fixture, with the example's mockup committed on the recurring tasks' branch. */
 function repository() {
@@ -113,6 +114,7 @@ async function main() {
     const at = `/r/${encodeURIComponent(listed.name)}`;
     await take(shots, adapter, repo, at);
     await takeImages(shooter(shots, out, views), shots[0]!.page, adapter, repo, `${url}${at}`);
+    await takeTextInputs(shooter(shots, out, views));
   } finally {
     await browser?.close();
     await server.close();
@@ -142,14 +144,63 @@ async function repositories(page: Page) {
   await settle(page);
 }
 
+/** The PRIORITIES.md of the screenshots' repository. */
+const priorities = (repo: string) => readFileSync(join(repo, "specs/PRIORITIES.md"), "utf8");
+
 /** Every view, each at both sizes and in both themes, or on one size when only it shows it. */
-// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: each view's shots in a function of their own
 async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: string) {
   setPrefix(at);
   const each = shooter(shots, out, views);
   await takeFolds(each);
-  const priorities = () => readFileSync(join(repo, "specs/PRIORITIES.md"), "utf8");
-  const original = priorities();
+  const original = priorities(repo);
+  await takePriorities(each, shots, repo);
+  const first = shots[0]!.page;
+  await takeReviews(each, first);
+  await takeSessions(each, first, adapter);
+
+  await each("sidebar", ({ page, size }) => sidebar(page, size));
+
+  await each("repositories", ({ page }) => repositories(page));
+  await each("repositories-add", async ({ page }) => {
+    await repositories(page);
+    await page.getByText("Add a repository…").click();
+    await page.getByRole("textbox", { name: "Folder" }).fill("/");
+    await page.getByRole("list", { name: "Folders" }).waitFor();
+    await settle(page);
+  });
+  await each("sidebar-no-match", async ({ page, size }) => {
+    await sidebar(page, size);
+    await page.getByRole("searchbox", { name: "Search sessions" }).fill("zzz");
+    await page.getByText("No session matches “zzz”.").waitFor();
+    await settle(page);
+  });
+
+  // A refused Undo: the file changes before the Undo's insert reaches the server.
+  await each("undo-refused", async ({ page }) => {
+    await page.route("**/fate**", async (route) => {
+      if (route.request().postData()?.includes("priorities.insert")) {
+        writeFileSync(
+          join(repo, "specs/PRIORITIES.md"),
+          `${priorities(repo)}\n- Added elsewhere\n`,
+        );
+      }
+      await route.continue();
+    });
+    await show(page, "/priorities/nix-docker-based-execution-environments", "Nix + Docker");
+    await page.getByRole("button", { name: "Delete" }).click();
+    await page.getByRole("button", { name: "Undo" }).click();
+    await page.getByText(/Could not restore/).waitFor();
+    await settle(page);
+    await page.unroute("**/fate**");
+    writeFileSync(join(repo, "specs/PRIORITIES.md"), original);
+  });
+
+  await takeImplementation(each, adapter, repo);
+}
+
+/** Home, a task, and the priorities, dragged and added to. */
+async function takePriorities(each: Each, shots: Array<Shot>, repo: string) {
+  const original = priorities(repo);
 
   await each("home", ({ page }) => show(page, "/", "Waiting on you"));
 
@@ -223,7 +274,7 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
     await page.mouse.up();
   }
   await wait(300);
-  if (priorities() !== original) {
+  if (priorities(repo) !== original) {
     throw new Error("a drag was dropped: PRIORITIES.md changed");
   }
 
@@ -233,7 +284,10 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
     await page.getByRole("textbox", { name: "Priority" }).fill("Show the agent's last commit");
     await settle(page);
   });
+}
 
+/** Rounds, reviews, a mockup, a missing file, the editor, and the hand-over to the agent. */
+async function takeReviews(each: Each, first: Page) {
   await each(
     "round-index",
     async ({ page }) => {
@@ -285,7 +339,6 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
   );
 
   // A new draft, made once from its task view, then opened in the editor at every size.
-  const first = shots[0]!.page;
   await show(first, "/priorities/claude-code-runner-triggered-manually", "Claude Code runner");
   await first.getByRole("button", { name: "Draft" }).click();
   await first.waitForURL(/\/edit\//);
@@ -311,142 +364,6 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
       .getByRole("button", { name: "Approve and start the agent" })
       .evaluate((element) => element.scrollIntoView({ block: "center" }));
     await settle(page);
-  });
-
-  /** Sends a message from the composer, as the human does, and gives the message's ID. */
-  const send = async (page: Page, text: string) => {
-    const sent = adapter.sent.length;
-    await page.getByRole("textbox", { name: "Message Claude Code" }).fill(text);
-    await page.getByRole("button", { name: "Send" }).first().click();
-    while (adapter.sent.length === sent) {
-      await wait(50);
-    }
-    return adapter.sent.at(-1)!.id;
-  };
-  const result = { denials: [], errors: [], interrupted: false, ok: true, type: "result" as const };
-
-  // Two chats: one replied to, one whose action auto mode blocked.
-  await show(first, "/chats/new", "New chat");
-  let id = await send(first, "Why is CI slow on WebKit?");
-  adapter.emit({ id, type: "accepted" });
-  adapter.emit({
-    text: "WebKit draws without a GPU on CI: its animations take longer.",
-    type: "text",
-  });
-  adapter.emit(result);
-  await first.waitForURL(/\/chats\/(?!new)/);
-  await show(first, "/chats/new", "New chat");
-  id = await send(first, "Tag v0.3.0 and push the tag.");
-  adapter.emit({ id, type: "accepted" });
-  adapter.emit({
-    id: "tag",
-    input: { command: "git tag v0.3.0" },
-    kind: "execute",
-    name: "Bash",
-    target: "git tag v0.3.0",
-    type: "toolStart",
-  });
-  adapter.emit({ id: "tag", isError: false, output: "", type: "toolEnd" });
-  adapter.emit({
-    text: "I created the tag `v0.3.0`, but pushing it was blocked. Allow the push and I'll retry.",
-    type: "text",
-  });
-  adapter.emit({
-    ...result,
-    denials: [{ input: { command: "git push origin v0.3.0" }, tool: "Bash" }],
-  });
-  await first.waitForURL(/\/chats\/(?!new)/);
-  const chat = here(first);
-  await each("chat-blocked", ({ page }) => show(page, chat, "Allow and retry"));
-  await each("chat-new", ({ page }) => show(page, "/chats/new", "New chat"));
-
-  // A feature's session at work: a sub-agent's tools, a reply streaming, and a steered message.
-  await show(first, `${AGENT}/session`, "CLI TUIs");
-  id = await send(first, "Plan the CLI.");
-  adapter.emit({ id, type: "accepted" });
-  adapter.emit({ text: `Reading **the answers** of round 01 in \`${LONG}\`.`, type: "text" });
-  adapter.emit({
-    id: "a",
-    input: { file_path: LONG },
-    kind: "read",
-    name: "Read",
-    target: LONG,
-    type: "toolStart",
-  });
-  adapter.emit({ id: "a", isError: false, output: "…", type: "toolEnd" });
-  adapter.emit({
-    id: "task",
-    input: {},
-    kind: "other",
-    name: "Task",
-    subagent: { description: "Map the runner code" },
-    type: "toolStart",
-  });
-  adapter.emit({
-    id: "b",
-    input: {},
-    kind: "search",
-    name: "Grep",
-    parent: "task",
-    target: '"sessions" packages/server/src/runner/',
-    type: "toolStart",
-  });
-  adapter.emit({
-    text: "The runner already keeps one cache per repository. I'll key sessions by their own ID",
-    type: "textDelta",
-  });
-  await first.getByRole("button", { name: "Stop" }).first().waitFor();
-  await send(first, "Use the existing helper for the cache's paths.");
-  await wait(500);
-  await each("session-working", async ({ page }) => {
-    await show(page, `${AGENT}/session`, "Not read yet");
-  });
-  await each("agent-section", async ({ page }) => {
-    await show(page, AGENT, "Open the session");
-    // The section at the top, below the phone's top bar.
-    await page
-      .getByRole("region", { name: "Agent" })
-      .evaluate((element) =>
-        window.scrollBy(
-          0,
-          element.getBoundingClientRect().top - (window.innerWidth < 768 ? 64 : 16),
-        ),
-      );
-    await wait(300);
-  });
-
-  await each("sidebar", ({ page, size }) => sidebar(page, size));
-
-  await each("repositories", ({ page }) => repositories(page));
-  await each("repositories-add", async ({ page }) => {
-    await repositories(page);
-    await page.getByText("Add a repository…").click();
-    await page.getByRole("textbox", { name: "Folder" }).fill("/");
-    await page.getByRole("list", { name: "Folders" }).waitFor();
-    await settle(page);
-  });
-  await each("sidebar-no-match", async ({ page, size }) => {
-    await sidebar(page, size);
-    await page.getByRole("searchbox", { name: "Search sessions" }).fill("zzz");
-    await page.getByText("No session matches “zzz”.").waitFor();
-    await settle(page);
-  });
-
-  // A refused Undo: the file changes before the Undo's insert reaches the server.
-  await each("undo-refused", async ({ page }) => {
-    await page.route("**/fate**", async (route) => {
-      if (route.request().postData()?.includes("priorities.insert")) {
-        writeFileSync(join(repo, "specs/PRIORITIES.md"), `${priorities()}\n- Added elsewhere\n`);
-      }
-      await route.continue();
-    });
-    await show(page, "/priorities/nix-docker-based-execution-environments", "Nix + Docker");
-    await page.getByRole("button", { name: "Delete" }).click();
-    await page.getByRole("button", { name: "Undo" }).click();
-    await page.getByText(/Could not restore/).waitFor();
-    await settle(page);
-    await page.unroute("**/fate**");
-    writeFileSync(join(repo, "specs/PRIORITIES.md"), original);
   });
 }
 

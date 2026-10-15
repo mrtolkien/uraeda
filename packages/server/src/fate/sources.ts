@@ -16,6 +16,8 @@ import { createSources, fileSource, type FileSourceReaders } from "./source.ts";
 import {
   AGENT_ID,
   agentDataView,
+  type BranchChangesRecord,
+  branchChangesDataView,
   draftDataView,
   featureDataView,
   fileDataView,
@@ -29,7 +31,9 @@ import {
   type RepositoriesRecord,
   type FeatureRecord,
   type FileRecord,
+  sentChanges,
   sentFile,
+  sentStep,
   SESSION_LIST_ID,
   sessionDataView,
   sessionListDataView,
@@ -57,9 +61,11 @@ async function found<T>(
 }
 
 async function workspace(ctx: RepoContext): Promise<WorkspaceRecord> {
+  const read = await ctx.binding.readWorkspace(ctx.repo);
   return {
     id: WORKSPACE_ID,
-    ...(await ctx.binding.readWorkspace(ctx.repo)),
+    ...read,
+    features: read.features.map((feature) => ({ ...feature, step: sentStep(feature.step) })),
     running: await working(ctx),
   };
 }
@@ -110,10 +116,32 @@ function missingFeature(folder: string): FeatureRecord {
     session: null,
     slug: "",
     source: "",
-    step: { name: "none", waitsOn: "nobody" },
+    step: { implemented: false, name: "none", progress: null, waitsOn: "nobody" },
     title: "",
     uncommitted: false,
   };
+}
+
+/**
+ * A feature's branch changes. A folder that is no feature's has none, nor a repository without
+ * `specs/`, as one whose folder was removed under an open page. Changes that cannot be read,
+ * git missing or the diff failing, are answered as failed, so the page says so, and logged with
+ * the error's first line.
+ */
+async function branchChanges(
+  { binding, repo }: RepoContext,
+  id: string,
+): Promise<BranchChangesRecord> {
+  try {
+    return { changes: sentChanges(await binding.branchChanges(repo, id)), failed: false, id };
+  } catch (error) {
+    if (isMissing(error) || (error instanceof Error && /^no specs\/ folder /.test(error.message))) {
+      return { changes: null, failed: false, id };
+    }
+    const [line] = (error instanceof Error ? error.message : String(error)).split("\n");
+    process.stderr.write(`uraeda-server: the changes of ${id} could not be read: ${line}\n`);
+    return { changes: null, failed: true, id };
+  }
 }
 
 /** Whether the core refused a read for a file or a folder that is not there. */
@@ -182,6 +210,12 @@ export const sources = createSources<Context>([
             throw error;
           }
         }),
+    }),
+  ),
+  fileSource(
+    branchChangesDataView,
+    repository({
+      byIds: async (ctx, ids) => Promise.all(ids.map((id) => branchChanges(ctx, id))),
     }),
   ),
   fileSource(

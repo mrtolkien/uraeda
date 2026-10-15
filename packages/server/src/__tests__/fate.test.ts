@@ -1,8 +1,17 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test, vi } from "vite-plus/test";
+import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import { refusable } from "../fate/errors.ts";
-import { byId, fixtureRepo, mutate, testApp } from "./helpers.ts";
+import {
+  addPlan,
+  binding,
+  byId,
+  commitOnBranch,
+  ELEVEN,
+  fixtureRepo,
+  mutate,
+  testApp,
+} from "./helpers.ts";
 
 const ROUND = "2026-10-11-web-ui/clarifications-01.md";
 
@@ -49,6 +58,35 @@ test("saves an answer, and returns the file", async () => {
   expect(result.data.current.items.clarifications.questions[2].answer).toBe("A");
   const written = readFileSync(join(repo, ".worktrees/2026-10-11-web-ui/specs", ROUND), "utf8");
   expect(written).toContain("**Answer:** A\n");
+});
+
+test("comments on a settled point, and returns the file", async () => {
+  const repo = fixtureRepo();
+  const { app } = await testApp(repo);
+  const subject = "The actions' commits move into the core";
+
+  const result = await mutate(
+    app,
+    "settled.comment",
+    { folder: "2026-10-11-web-ui", subject, text: "Keep them in one place." },
+    ["id", "current"],
+  );
+  const gone = await mutate(
+    app,
+    "settled.comment",
+    { folder: "2026-10-11-web-ui", subject: "Gone", text: "Text." },
+    ["id"],
+  );
+
+  expect(result.data.current.items.clarifications.settledComments).toEqual([
+    expect.objectContaining({ number: 1, subject, text: "Keep them in one place." }),
+  ]);
+  const written = readFileSync(join(repo, ".worktrees/2026-10-11-web-ui/specs", ROUND), "utf8");
+  expect(written).toContain(`- **${subject}**: Keep them in one place.\n`);
+  expect(gone.error).toEqual({
+    code: "BAD_REQUEST",
+    message: "refused: That point is no longer in the round.",
+  });
 });
 
 test("refuses a stale answer at the call site, with its code", async () => {
@@ -147,4 +185,125 @@ test("a file without a review is sent with none, so a removed review leaves the 
     ["review"],
   );
   expect(read).toHaveProperty("review", null);
+});
+
+const CLI = "2026-10-12-cli-tuis";
+
+test("a feature at its implementation sends its progress, and null once every box is checked", async () => {
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  const { app } = await testApp(repo);
+
+  const [feature] = await byId(app, "Feature", [CLI], ["id", "step"]);
+  expect(feature.step.progress).toEqual({ position: 7, title: "Session column", total: 11 });
+
+  addPlan(
+    repo,
+    CLI,
+    ELEVEN.map(([title]) => [title, 5, 5]),
+  );
+  const [done] = await byId(app, "Feature", [CLI], ["id", "step"]);
+  // Sent as null, not left out: the client keeps a field an answer leaves out.
+  expect(done.step).toHaveProperty("progress", null);
+});
+
+test("the workspace's features send their progress, null when they have none", async () => {
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  const [workspace] = await byId(
+    (await testApp(repo)).app,
+    "Workspace",
+    ["workspace"],
+    ["features"],
+  );
+
+  const steps = Object.fromEntries(
+    workspace.features.map((f: { folder: string; step: unknown }) => [f.folder, f.step]),
+  );
+  expect(steps[CLI]).toHaveProperty("progress", {
+    position: 7,
+    title: "Session column",
+    total: 11,
+  });
+  expect(steps["2026-10-11-web-ui"]).toHaveProperty("progress", null);
+});
+
+test("a folder that is no feature's has no branch changes, and logs nothing", async () => {
+  const logged = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  onTestFinished(() => logged.mockRestore());
+
+  const [changes] = await byId(
+    (await testApp()).app,
+    "BranchChanges",
+    ["2026-01-01-none"],
+    ["changes", "failed"],
+  );
+  expect(changes).toEqual({ changes: null, failed: false, id: "2026-01-01-none" });
+  expect(logged).not.toHaveBeenCalled();
+});
+
+test("a repository without specs/ has no branch changes, and logs nothing", async () => {
+  const logged = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  onTestFinished(() => logged.mockRestore());
+  const { app } = await testApp(fixtureRepo(), {
+    binding: {
+      ...binding,
+      branchChanges: () => Promise.reject(new Error("no specs/ folder at /tmp/gone: run ura init")),
+    },
+  });
+
+  const [changes] = await byId(app, "BranchChanges", [CLI], ["changes", "failed"]);
+  expect(changes).toEqual({ changes: null, failed: false, id: CLI });
+  expect(logged).not.toHaveBeenCalled();
+});
+
+test("a feature that is no feature's folder is sent with no progress", async () => {
+  const [missing] = await byId((await testApp()).app, "Feature", ["2026-01-01-none"], ["step"]);
+
+  expect(missing.step).toHaveProperty("progress", null);
+});
+
+test("a feature's branch changes, and none for a feature without a branch", async () => {
+  const repo = fixtureRepo();
+  commitOnBranch(repo, CLI, { "src/cli.rs": "fn main() {}\n" });
+  const { app } = await testApp(repo);
+
+  const [changes] = await byId(app, "BranchChanges", [CLI], ["id", "changes", "failed"]);
+  expect(changes).toEqual({
+    changes: {
+      added: 1,
+      count: 1,
+      files: [{ added: 1, path: "src/cli.rs", removed: 0 }],
+      removed: 0,
+    },
+    failed: false,
+    id: CLI,
+  });
+  const [onMain] = await byId(app, "BranchChanges", ["2026-10-10-cli-core"], ["changes"]);
+  expect(onMain).toHaveProperty("changes", null);
+});
+
+test("a binary file is sent with null lines, not without them", async () => {
+  const repo = fixtureRepo();
+  commitOnBranch(repo, CLI, { "logo.png": "\0PNG\0" });
+  const { app } = await testApp(repo);
+
+  const [changes] = await byId(app, "BranchChanges", [CLI], ["changes"]);
+  expect(changes.changes.files).toEqual([{ added: null, path: "logo.png", removed: null }]);
+});
+
+test("a branch whose changes cannot be read is answered as failed, and logged", async () => {
+  const logged = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  onTestFinished(() => logged.mockRestore());
+  const { app } = await testApp(fixtureRepo(), {
+    binding: {
+      ...binding,
+      branchChanges: () => Promise.reject(new Error("git: not found\nsecond line")),
+    },
+  });
+
+  const [changes] = await byId(app, "BranchChanges", [CLI], ["changes", "failed"]);
+  expect(changes).toEqual({ changes: null, failed: true, id: CLI });
+  expect(logged.mock.calls.flat().join(" ")).toContain("git: not found");
+  expect(logged.mock.calls.flat().join(" ")).not.toContain("second line");
 });

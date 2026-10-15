@@ -27,14 +27,16 @@ export type HostsOf = () => Pick<Hosts, "byPath" | "all"> | undefined;
 
 /**
  * Sends a repository's live updates, on its host's bus, for each change the core's watcher
- * reports. A feature's change may change its step, which its session's status reads, and a
- * feature that goes leaves the sidebar: the list and the features' sessions go too.
+ * reports. A feature's change may change its step, which its session's status reads, and its
+ * branch's changes, and a feature that goes leaves the sidebar: the list and the features'
+ * sessions go too.
  */
 export function publish(changes: Changes, host: Pick<Host, "path" | "live">, sessions?: Sessions) {
   const { live } = host;
   live.update("Workspace", WORKSPACE_ID, { eventId: eventId("workspace") });
   for (const folder of changes.features) {
     live.update("Feature", folder, { eventId: eventId(`feature:${folder}`) });
+    live.update("BranchChanges", folder, { eventId: eventId(`changes:${folder}`) });
   }
   for (const file of changes.files) {
     live.update("WorkflowFile", file, { eventId: eventId(`file:${file}`) });

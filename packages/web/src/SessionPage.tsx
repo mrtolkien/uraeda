@@ -7,36 +7,33 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import {
-  type Dispatch,
-  type SetStateAction,
-  Suspense,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
-import { useFateClient } from "react-fate";
-import type { ChatImage, SessionStatus as Status, Trigger } from "uraeda-server/fate";
-import { type DraftImage, draftImage, forgetPreviews } from "./attach/chatImages.ts";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useFateClient, useView } from "react-fate";
+import type { Session, SessionStatus as Status, Trigger } from "uraeda-server/fate";
 import { Composer } from "./Composer.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import { useAgent, useFeature, useSession, useWorkflowMessage } from "./data.ts";
+import { composerDraft, type Draft, takeBackInto, useDraft } from "./useDraft.ts";
 import { EditableLine } from "./EditableLine.tsx";
-import { refusal } from "./errors.ts";
+import { JumpToLatest } from "./JumpToLatest.tsx";
+import { useFollowEnd, useOpenAtEnd } from "./following.ts";
+import { type AsideShown, AsideToggle, useAsideShown, WithAside } from "./SessionAside.tsx";
+import { SessionAnnouncer, useCreatedHere } from "./SessionAnnouncer.tsx";
 import { Page } from "./layout/Page.tsx";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { ProgressLine } from "./ProgressLine.tsx";
 import { statusStyles } from "./Question.tsx";
 import { navigate, redirect, useRepoPath, useRestoreScroll, useSearch } from "./routes.tsx";
 import { sessionPath } from "./sessions.ts";
+import { type ChatControls, useSessionControls } from "./useSessionControls.ts";
 import { StatusMark } from "./StatusMark.tsx";
-import { Transcript, useFollowEnd, useOpenAtEnd } from "./Transcript.tsx";
+import { Transcript } from "./Transcript.tsx";
+import { useKeepPlace } from "./useKeepPlace.ts";
 import { useOpenKeys } from "./useOpenKeys.ts";
 import { SessionView } from "./views.ts";
 
 const styles = stylex.create({
   composer: {
-    // The composer stays at the bottom of the pane or the window while the transcript scrolls.
+    // The composer stays at the bottom of the window while the transcript scrolls.
     backgroundColor: colorVars["--color-background-surface"],
     bottom: 0,
     paddingBlock: spacingVars["--spacing-3"],
@@ -54,36 +51,33 @@ export function SessionStatus({ label, status }: { label: string; status: Status
   );
 }
 
-/** A chat's title, renamed in place, and Archive, which hides it under "Archived" in the sidebar. */
-type ChatControls = {
-  archived: boolean;
-  onArchive: () => Promise<void>;
-  onRename: (title: string) => Promise<string | undefined>;
-};
-
 /**
  * A session's header: its title, then its status, agent, and place on one line. A chat's
- * title is renamed in place, and the chat archived or brought back.
+ * title is renamed in place, and the chat archived or brought back. A feature's folds its column.
  */
 function Header({
+  aside,
   chat,
   place,
   status,
   title,
 }: {
+  aside?: AsideShown | undefined;
   chat?: ChatControls;
   place?: string;
   status?: { label: string; status: Status };
   title: string;
 }) {
   const agent = useAgent();
-  const wide = useWidthClass() === "wide";
   const meta = [agent?.name, place].filter((part): part is string => Boolean(part));
   return (
     <VStack gap={1}>
-      {/* Beside the feature page on wide screens, whose title is the page's heading. */}
-      <Heading level={wide ? 2 : 1}>
-        {chat ? <EditableLine label="Title" onSave={chat.onRename} value={title} /> : title}
+      <Heading level={1}>
+        {chat ? (
+          <EditableLine field={chat.field} label="Title" onSave={chat.onRename} value={title} />
+        ) : (
+          title
+        )}
       </Heading>
       <HStack align="center" gap={2} wrap="wrap">
         {status && <SessionStatus label={status.label} status={status.status} />}
@@ -98,49 +92,10 @@ function Header({
             variant="secondary"
           />
         )}
+        {aside && <AsideToggle aside={aside} />}
       </HStack>
     </VStack>
   );
-}
-
-/**
- * The composer's text and images, kept by the view while its session is created under it: a new
- * chat's or a feature's first message draws a new composer once sent.
- */
-type Draft = {
-  images: ReadonlyArray<DraftImage>;
-  setImages: Dispatch<SetStateAction<ReadonlyArray<DraftImage>>>;
-  setText: Dispatch<SetStateAction<string>>;
-  text: string;
-};
-
-/** The composer's text and images, held by the draft. */
-function composerDraft({ images, setImages, setText, text }: Draft) {
-  return { images, onChange: setText, onImagesChange: setImages, value: text };
-}
-
-/** Puts a taken-back message's text and images back in the draft, before what it holds. */
-function takeBackInto({ setImages, setText }: Draft) {
-  return (back: string, images: ReadonlyArray<ChatImage>) => {
-    if (back.trim()) {
-      setText((now) => (now.trim() ? `${back}\n${now}` : back));
-    }
-    if (images.length > 0) {
-      setImages((now) => [...images.map(draftImage), ...now]);
-    }
-  };
-}
-
-function useDraft(): Draft {
-  const [text, setText] = useState("");
-  const [images, setImages] = useState<ReadonlyArray<DraftImage>>([]);
-  // The previews of images still being saved go with the page.
-  const kept = useRef(images);
-  useLayoutEffect(() => {
-    kept.current = images;
-  });
-  useEffect(() => () => forgetPreviews(kept.current), []);
-  return { images, setImages, setText, text };
 }
 
 /**
@@ -153,31 +108,40 @@ type Handing = {
   workflow?: { file?: string; trigger: Trigger };
 };
 
-/** A session that exists: its header, its transcript, and its composer. */
-// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the chat controls in a hook
-function Session({
-  blocked,
+/**
+ * A session's header, transcript, and errors, or why there is no session `id`. While the human
+ * reads above its end, it gives the pane the jump back to the latest.
+ */
+function SessionLog({
+  aside,
   crumbs,
   draft,
-  handing = {},
   id,
+  onJump,
 }: {
-  /** Why nothing can be sent to it, which disables the composer. */
-  blocked?: string;
-  crumbs?: string;
+  /** A feature's column, shown or not. */
+  aside?: AsideShown | undefined;
+  crumbs?: string | undefined;
   draft: Draft;
-  handing?: Handing;
   id: string;
+  /** Called with the jump to the latest while the page does not follow the end, or `undefined`. */
+  onJump?: (jump: (() => void) | undefined) => void;
 }) {
   const fate = useFateClient();
   const here = useRepoPath();
   const session = useSession(id);
+  const { allow, chat, error } = useSessionControls(id, session);
   const groups = useOpenKeys();
   const log = useRef<HTMLDivElement>(null);
-  const [error, setError] = useState<string>();
   const working = session?.status === "working";
   useOpenAtEnd(log);
-  useFollowEnd(log, working);
+  const { following, jumpToLatest } = useFollowEnd(log, working);
+  useKeepPlace(log);
+  useEffect(() => {
+    onJump?.(following ? undefined : jumpToLatest);
+    // Once per change of following: `onJump` is a new function at each draw.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [following, jumpToLatest]);
   // Shown with its latest turn ended: the human saw the reply, whatever the status shows, as "Needs
   // you" at a gate.
   const unseen = session?.unseen === true;
@@ -188,129 +152,138 @@ function Session({
   }, [fate, id, unseen]);
   if (!session) {
     return (
-      <Page>
-        <Banner
-          collapsible={false}
-          description={
-            <Link hasUnderline href={here("/")}>
-              Open home
-            </Link>
-          }
-          status="error"
-          title={`No session ${id}.`}
-        />
-      </Page>
+      <Banner
+        collapsible={false}
+        description={
+          <Link hasUnderline href={here("/")}>
+            Open home
+          </Link>
+        }
+        status="error"
+        title={`No session ${id}.`}
+      />
     );
   }
-  const chat: ChatControls | undefined =
-    session.folder === null
-      ? {
-          archived: session.archived,
-          onArchive: async () => {
-            setError(undefined);
-            const result = await fate.mutations.session.archive({
-              input: { archived: !session.archived, session: id },
-              view: SessionView,
-            });
-            if (result.error) {
-              setError(refusal(result.error).message);
-            }
-          },
-          onRename: async (title) => {
-            const result = await fate.mutations.session.rename({
-              input: { session: id, title },
-              view: SessionView,
-            });
-            return result.error ? refusal(result.error).message : undefined;
-          },
-        }
-      : undefined;
-  const allow = async (turn: string, seq: number) => {
-    setError(undefined);
-    const result = await fate.mutations.session.allow({
-      input: { seq, session: id, turn },
-      view: SessionView,
-    });
-    if (result.error) {
-      setError(refusal(result.error).message);
-    }
-  };
   return (
-    <Page>
-      {crumbs !== undefined && <Crumbs current="Session" folder={crumbs} />}
-      <VStack gap={3}>
-        <Header
-          place={session.place}
-          status={{ label: session.statusLabel, status: session.status }}
-          title={session.title}
-          {...(chat ? { chat } : {})}
-        />
-        <div ref={log}>
-          <Transcript
-            canAllow={!working}
-            groups={groups}
-            onAllow={allow}
-            onTakenBack={takeBackInto(draft)}
-            session={session}
-          />
-        </div>
-        {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
-      </VStack>
-      <div {...stylex.props(styles.composer)}>
-        <Composer
-          {...composerDraft(draft)}
-          session={id}
-          working={working}
-          {...handing}
-          {...(blocked === undefined ? {} : { blocked })}
+    <VStack gap={3}>
+      <Header
+        aside={aside}
+        place={session.place}
+        status={{ label: session.statusLabel, status: session.status }}
+        title={session.title}
+        {...(chat ? { chat } : {})}
+      />
+      {crumbs !== undefined && <ProgressLine folder={crumbs} session={id} />}
+      <div ref={log}>
+        <Transcript
+          canAllow={!working}
+          groups={groups}
+          onAllow={allow}
+          onTakenBack={takeBackInto(draft)}
+          session={session}
         />
       </div>
-    </Page>
+      {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
+    </VStack>
   );
 }
 
 /**
- * A session before its first message: a feature's, created by it, or a new chat, which opens at
- * its own address once sent.
+ * The session `id` names, as read by its view, or `undefined` before it exists, or `null` when
+ * there is none.
  */
-function NoSession({
+function useSessionRecord(id: string | undefined) {
+  const fate = useFateClient();
+  // The reference's identity is the view's subscription: one per session.
+  const ref = useMemo(
+    () => (id === undefined ? undefined : fate.ref<Session>("Session", id, SessionView)),
+    [fate, id],
+  );
+  return useView(SessionView, ref);
+}
+
+/**
+ * A session's pane: its header, transcript, and composer, and a feature's column, or, before its
+ * first message creates it, the title and the composer alone. A feature's or a new chat's first
+ * message creates the session under the same composer, which keeps the field typed in, its focus,
+ * and its text.
+ */
+function SessionPane({
+  aside,
   blocked,
   crumbs,
   draft,
   folder,
   handing = {},
+  id,
   onSent,
   title,
 }: {
+  /** A feature's column, shown or not. */
+  aside?: AsideShown;
   /** Why nothing can be sent to it, which disables the composer. */
   blocked?: string;
   crumbs?: string;
   draft: Draft;
   folder?: string;
   handing?: Handing;
-  onSent: (session: string) => void;
-  title: string;
+  /** The session, once it exists. */
+  id?: string;
+  /** Called with the session a message created, before it exists. */
+  onSent?: (session: string) => void;
+  /** The title before the session exists. */
+  title?: string;
 }) {
+  const session = useSessionRecord(id);
+  const composer = useRef<HTMLDivElement>(null);
+  const [jump, setJump] = useState<() => void>();
+  if (session === null) {
+    return (
+      <Page>
+        <SessionLog draft={draft} id={id!} />
+      </Page>
+    );
+  }
   return (
-    <Page>
-      {crumbs !== undefined && <Crumbs current="Session" folder={crumbs} />}
-      <VStack gap={3}>
-        <Header title={title} />
-        <Transcript session={{ id: "", turns: [] }} />
-      </VStack>
-      <div {...stylex.props(styles.composer)}>
-        <Composer
-          {...(folder === undefined ? {} : { folder })}
-          {...composerDraft(draft)}
-          {...handing}
-          {...(blocked === undefined ? {} : { blocked })}
-          onSent={(session) => {
-            onSent(session);
-            handing.onSent?.(session);
-          }}
-        />
-      </div>
-    </Page>
+    <WithAside aside={aside} folder={crumbs} {...(id === undefined ? {} : { session: id })}>
+      <Page>
+        {crumbs !== undefined && <Crumbs current="Session" folder={crumbs} />}
+        {id === undefined ? (
+          <VStack gap={3}>
+            <Header aside={aside} title={title ?? ""} />
+            {crumbs !== undefined && <ProgressLine folder={crumbs} />}
+            <Transcript session={{ id: "", turns: [] }} />
+          </VStack>
+        ) : (
+          // Read once the first message created the session: its title stays, and the composer, as
+          // it is read. The transcript waits for it: a page shows one log.
+          <Suspense fallback={title === undefined ? null : <Header aside={aside} title={title} />}>
+            <SessionLog
+              aside={aside}
+              crumbs={crumbs}
+              draft={draft}
+              id={id}
+              onJump={(next) => setJump(() => next)}
+            />
+          </Suspense>
+        )}
+        <div ref={composer} {...stylex.props(styles.composer)}>
+          {jump && <JumpToLatest composer={composer} onJump={jump} />}
+          <Composer
+            {...(folder === undefined ? {} : { folder })}
+            {...composerDraft(draft)}
+            {...(id === undefined ? {} : { session: id })}
+            working={session?.status === "working"}
+            {...handing}
+            {...(blocked === undefined ? {} : { blocked })}
+            onSent={(created) => {
+              onSent?.(created);
+              handing.onSent?.(created);
+            }}
+          />
+        </div>
+      </Page>
+    </WithAside>
   );
 }
 
@@ -357,7 +330,7 @@ function WorkflowMessage({
 function FeatureSession({ folder }: { folder: string }) {
   const feature = useFeature(folder);
   const here = useRepoPath();
-  const wide = useWidthClass() === "wide";
+  const aside = useAsideShown();
   // A session created here shows before the feature's live update names it.
   const [created, setCreated] = useState<string>();
   const draft = useDraft();
@@ -398,7 +371,6 @@ function FeatureSession({ folder }: { folder: string }) {
       </Page>
     );
   }
-  const crumbs = wide ? undefined : folder;
   // A feature whose proposal is not committed has no branch for the agent to work on: the server
   // refuses every message with the same words.
   const blocked = feature.branch ? undefined : NO_BRANCH;
@@ -425,32 +397,40 @@ function FeatureSession({ folder }: { folder: string }) {
           <WorkflowMessage folder={folder} key={search} onRead={read} workflow={workflow} />
         </Suspense>
       )}
-      {id === undefined ? (
-        <NoSession
-          crumbs={crumbs}
-          draft={draft}
-          folder={folder}
-          handing={handing}
-          title={feature.title}
-          {...(blocked === undefined ? {} : { blocked })}
-          onSent={setCreated}
-        />
-      ) : (
-        <Session
-          crumbs={crumbs}
-          draft={draft}
-          handing={handing}
-          id={id}
-          {...(blocked === undefined ? {} : { blocked })}
-        />
-      )}
+      <SessionPane
+        aside={aside}
+        crumbs={folder}
+        draft={draft}
+        folder={folder}
+        handing={handing}
+        title={feature.title}
+        {...(id === undefined ? {} : { id })}
+        {...(blocked === undefined ? {} : { blocked })}
+        onSent={setCreated}
+      />
+      <SessionAnnouncer
+        feature={folder}
+        key={folder}
+        {...(id === undefined ? {} : { session: id })}
+      />
+    </>
+  );
+}
+
+/** A chat, with its announcer. */
+function ChatSession({ draft, id }: { draft: Draft; id: string }) {
+  const created = useCreatedHere();
+  return (
+    <>
+      <SessionPane draft={draft} id={id} />
+      <SessionAnnouncer created={created} session={id} />
     </>
   );
 }
 
 /**
- * A session's view: a feature's, by its folder, beside its feature page on wide screens; a chat, by
- * its ID; or an empty chat, which its first message creates.
+ * A session's page: a feature's, by its folder; a chat, by its ID; or an empty chat, which its
+ * first message creates.
  */
 export function SessionPage(props: { folder: string } | { id: string } | { newChat: true }) {
   // Its data is read before it draws: the position comes back at once.
@@ -461,9 +441,13 @@ export function SessionPage(props: { folder: string } | { id: string } | { newCh
     return <FeatureSession folder={props.folder} />;
   }
   if ("id" in props) {
-    return <Session draft={draft} id={props.id} />;
+    return <ChatSession draft={draft} id={props.id} />;
   }
   return (
-    <NoSession draft={draft} onSent={(id) => navigate(here(`/chats/${id}`))} title="New chat" />
+    <SessionPane
+      draft={draft}
+      onSent={(id) => navigate(here(`/chats/${id}`), { created: true })}
+      title="New chat"
+    />
   );
 }

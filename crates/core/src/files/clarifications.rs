@@ -1,5 +1,9 @@
 //! The questions of a clarifications file, their options, and their answers.
 
+mod notes;
+
+pub use notes::{RoundNotes, join_notes, notes, round_notes, set_notes, split_notes};
+
 const ANSWER: &str = "**Answer:**";
 const NOTES: [&str; 2] = ["**Notes:**", "**Notes**:"];
 
@@ -123,11 +127,24 @@ fn option_letter(line: &str) -> Option<char> {
     (rest.starts_with(". ") || rest.starts_with(" (recommended).")).then_some(letter)
 }
 
-/// Every question and follow-up of a clarifications file, in order.
+/// Every question and follow-up of a clarifications file, in order. An answer keeps its code blocks
+/// as written; a line of code is no heading, marker, or option.
 pub fn parse(text: &str) -> Vec<Question> {
     let mut questions: Vec<Question> = Vec::new();
     let mut in_answer = false;
-    for (number, line) in super::lines_outside_code(text) {
+    let mut in_code = false;
+    for (index, line) in text.lines().enumerate() {
+        let number = index + 1;
+        let fence = super::is_fence(line);
+        let code = in_code || fence;
+        in_code ^= fence;
+        if code {
+            if let Some(question) = questions.last_mut().filter(|_| in_answer) {
+                question.answer.push('\n');
+                question.answer.push_str(line);
+            }
+            continue;
+        }
         if line.starts_with('#') {
             in_answer = false;
             if let Some((id, parent, title)) = heading(line) {
@@ -177,29 +194,6 @@ pub fn parse(text: &str) -> Vec<Question> {
     questions
 }
 
-/// The `**Notes:**` line and its text, when the file has one.
-pub fn notes(text: &str) -> Option<(usize, String)> {
-    let mut found: Option<(usize, String)> = None;
-    for (number, line) in super::lines_outside_code(text) {
-        if line.starts_with('#') {
-            if found.is_some() {
-                break;
-            }
-            continue;
-        }
-        if let Some((_, rest)) = NOTES
-            .iter()
-            .find_map(|marker| line.strip_prefix(marker).map(|rest| (marker, rest)))
-        {
-            found = Some((number, rest.trim().to_string()));
-        } else if let Some((_, notes)) = found.as_mut() {
-            notes.push('\n');
-            notes.push_str(line);
-        }
-    }
-    found.map(|(line, notes)| (line, notes.trim().to_string()))
-}
-
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum AnswerError {
     #[error("no question {0}")]
@@ -212,61 +206,123 @@ pub enum AnswerError {
     Structure,
 }
 
-/// Writes an answer after a question's `**Answer:**` marker, replacing the earlier one. The id
-/// `notes` writes after the `**Notes:**` marker.
-pub fn set_answer(text: &str, id: &str, answer: &str) -> Result<String, AnswerError> {
-    let answer = answer.replace("\r\n", "\n");
-    if answer.lines().any(|line| {
+/// Refuses an answer with a line that would end it: a heading, or another marker. A line of a code
+/// block is code, which ends nothing; a fence left open is not one, as the file's next headings
+/// would read as code.
+fn check_lines(answer: &str) -> Result<(), AnswerError> {
+    let lines: Vec<&str> = answer.lines().collect();
+    let mut code = vec![false; lines.len()];
+    let mut open = None;
+    for (index, line) in lines.iter().enumerate() {
+        if super::is_fence(line) {
+            match open.take() {
+                Some(start) => code[start..=index].fill(true),
+                None => open = Some(index),
+            }
+        }
+    }
+    let ends = |line: &str| {
         let line = line.trim_start();
         line.starts_with('#')
             || line.starts_with(ANSWER)
             || NOTES.iter().any(|m| line.starts_with(m))
-    }) {
+    };
+    if lines
+        .iter()
+        .zip(&code)
+        .any(|(line, &code)| !code && ends(line))
+    {
         return Err(AnswerError::Structure);
     }
+    Ok(())
+}
+
+/// The fence a text leaves open, `` ``` `` or `~~~`, if any.
+fn open_fence(text: &str) -> Option<&'static str> {
+    let mut open = None;
+    for line in text.lines().filter(|line| super::is_fence(line)) {
+        open = match open {
+            Some(_) => None,
+            None if line.trim_start().starts_with('~') => Some("~~~"),
+            None => Some("```"),
+        };
+    }
+    open
+}
+
+/// A text with the fence it leaves open closed on a line of its own, so what follows it in the file
+/// is not code.
+fn closed(text: &str) -> String {
+    match open_fence(text) {
+        Some(fence) => format!("{text}\n{fence}"),
+        None => text.to_string(),
+    }
+}
+
+/// Writes an answer after a question's `**Answer:**` marker, replacing the earlier one, with a fence
+/// it leaves open closed at its end, so the next questions are not code. The id `notes` writes the
+/// free notes after the `**Notes:**` marker, keeping the comments on settled points after them.
+pub fn set_answer(text: &str, id: &str, answer: &str) -> Result<String, AnswerError> {
+    let answer = answer.replace("\r\n", "\n");
+    check_lines(&answer)?;
     super::with_unix_newlines(text, |text| {
-        let (marker_line, marker) = if id == "notes" {
-            (notes(text).ok_or(AnswerError::NoNotesLine)?.0, NOTES[0])
-        } else {
-            let question = parse(text)
-                .into_iter()
-                .find(|question| question.id == id)
-                .ok_or_else(|| AnswerError::UnknownQuestion(id.to_string()))?;
-            if question.answer_line == 0 {
-                return Err(AnswerError::NoAnswerLine(id.to_string()));
-            }
-            (question.answer_line, ANSWER)
-        };
-        let mut lines: Vec<&str> = text.split('\n').collect();
-        let start = marker_line - 1;
-        let mut end = start + 1;
-        let mut in_code = false;
-        while end < lines.len() {
-            let line = lines[end];
-            if super::is_fence(line) {
-                in_code = !in_code;
-            }
-            if !in_code && line.starts_with('#') {
-                break;
-            }
-            end += 1;
+        if id == "notes" {
+            let notes = round_notes(text).ok_or(AnswerError::NoNotesLine)?;
+            return set_notes(text, &answer, &notes.comments);
         }
-        let answer = answer.trim();
-        let first = if answer.is_empty() {
-            marker.to_string()
-        } else {
-            format!("{marker} {answer}")
-        };
-        // A blank line before the next heading, or the file's last newline.
-        let replacement: Vec<&str> = first.split('\n').chain([""]).collect();
-        lines.splice(start..end, replacement);
-        let joined = lines.join("\n");
-        Ok(joined)
+        let question = parse(text)
+            .into_iter()
+            .find(|question| question.id == id)
+            .ok_or_else(|| AnswerError::UnknownQuestion(id.to_string()))?;
+        if question.answer_line == 0 {
+            return Err(AnswerError::NoAnswerLine(id.to_string()));
+        }
+        Ok(replace_after(
+            text,
+            question.answer_line,
+            ANSWER,
+            &closed(answer.trim()),
+        ))
     })
 }
 
+/// The text with the marker on line `marker_line` followed by `answer`, in place of the marker's
+/// line and the lines after it, up to the next heading. An answer starting with a code block
+/// starts on the line after the marker, after a blank line.
+fn replace_after(text: &str, marker_line: usize, marker: &str, answer: &str) -> String {
+    let mut lines: Vec<&str> = text.split('\n').collect();
+    let start = marker_line - 1;
+    let mut end = start + 1;
+    let mut in_code = false;
+    while end < lines.len() {
+        let line = lines[end];
+        if super::is_fence(line) {
+            in_code = !in_code;
+        }
+        if !in_code && line.starts_with('#') {
+            break;
+        }
+        end += 1;
+    }
+    let first = if answer.is_empty() {
+        marker.to_string()
+    } else if answer.starts_with('\n') {
+        format!("{marker}{answer}")
+    } else if answer.lines().next().is_some_and(super::is_fence) {
+        // A fence is one only at the start of its line: a code block starts below the marker.
+        format!("{marker}\n\n{answer}")
+    } else {
+        format!("{marker} {answer}")
+    };
+    // A blank line before the next heading, or the file's last newline.
+    let replacement: Vec<&str> = first.split('\n').chain([""]).collect();
+    lines.splice(start..end, replacement);
+    lines.join("\n")
+}
+
 /// An answer from the letters picked and a comment, as the web UI composes it: `A`, `B and C`,
-/// `A, B and C`, then `: <comment>`; a comment alone is written as it is.
+/// `A, B and C`, then `: <comment>`; a comment alone is written as it is. A comment starting with
+/// a code block starts on the line after the letters, after a blank line.
 pub fn compose_answer(letters: &[String], comment: &str) -> String {
     let mut letters: Vec<&str> = letters.iter().map(String::as_str).collect();
     letters.sort_unstable();
@@ -279,6 +335,9 @@ pub fn compose_answer(letters: &[String], comment: &str) -> String {
     };
     if comment.is_empty() {
         picked
+    } else if comment.lines().next().is_some_and(super::is_fence) {
+        // A fence is one only at the start of its line: a code block starts below the letters.
+        format!("{picked}:\n\n{comment}")
     } else {
         format!("{picked}: {comment}")
     }
@@ -331,4 +390,90 @@ pub fn option_heading(strong: &str) -> Option<(char, bool, &str)> {
     rest.strip_prefix(". ")
         .or_else(|| (rest == ".").then_some(""))
         .map(|text| (letter, false, text))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{AnswerError, compose_answer, parse, set_answer, split_answer};
+
+    #[test]
+    fn blank_notes_keep_their_comments_as_a_list() {
+        let text = "## Settled without the human\n\n- **A point** settled.\n\n**Notes:** Old.\n\n- **A point**: Keep it.\n";
+
+        assert_eq!(
+            set_answer(text, "notes", "").unwrap(),
+            "## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n\n- **A point**: Keep it.\n"
+        );
+    }
+
+    #[test]
+    fn a_heading_in_a_closed_code_block_ends_nothing() {
+        let text = "## Settled without the human\n\n- **A point** settled.\n\n**Notes:**\n";
+        let rows: [(&str, bool); 4] = [
+            ("```sh\n# a shell comment\n```", true),
+            ("~~~\n**Answer:** quoted\n~~~", true),
+            ("```\n# left open", false),
+            ("# a heading", false),
+        ];
+        for (notes, kept) in rows {
+            let written = set_answer(text, "notes", notes).map(|_| ());
+            let expected = if kept {
+                Ok(())
+            } else {
+                Err(AnswerError::Structure)
+            };
+            assert_eq!(written, expected, "{notes:?}");
+        }
+    }
+
+    #[test]
+    fn code_blocks_in_a_question_answer_are_kept_as_written() {
+        let text = "## Q1: Which?\n\n- **A. One**\n- **B. Two**\n\n**Answer:**\n\n## Q2: Next?\n\n**Answer:**\n";
+        let options = ['A', 'B'];
+        let comments = [
+            "See:\n\n```sh\n# a shell comment\n**Answer:** quoted\n```\n\nThen.",
+            "```\n## Not a heading\n```",
+        ];
+        for comment in comments {
+            for letters in [vec![], vec!["A".to_string()]] {
+                let written = set_answer(text, "Q1", &compose_answer(&letters, comment)).unwrap();
+                let questions = parse(&written);
+                assert_eq!(questions.len(), 2, "{written:?}");
+                let answer = &questions[0].answer;
+                assert_eq!(
+                    split_answer(answer, &options),
+                    (letters.clone(), comment.to_string()),
+                    "{written:?}"
+                );
+                // Saving the answer read keeps the file as it is.
+                assert_eq!(set_answer(&written, "Q1", answer).unwrap(), written);
+            }
+        }
+    }
+
+    #[test]
+    fn a_fence_left_open_in_an_answer_is_closed_before_the_next_question() {
+        let text =
+            "## Q1: Which?\n\n- **A. One**\n\n**Answer:**\n\n## Q2: Next?\n\n**Answer:** Kept.\n";
+        let rows = [
+            ("```\ncode", "```\ncode\n```"),
+            ("See:\n\n~~~sh\ncode", "See:\n\n~~~sh\ncode\n~~~"),
+        ];
+        for (comment, read) in rows {
+            for letters in [vec![], vec!["A".to_string()]] {
+                let written = set_answer(text, "Q1", &compose_answer(&letters, comment)).unwrap();
+                let questions = parse(&written);
+                assert_eq!(questions.len(), 2, "{written:?}");
+                assert_eq!(questions[1].answer, "Kept.", "{written:?}");
+                let answer = &questions[0].answer;
+                assert_eq!(
+                    split_answer(answer, &['A']),
+                    (letters.clone(), read.to_string()),
+                    "{written:?}"
+                );
+                // Saving the answer read keeps the file as it is.
+                assert_eq!(set_answer(&written, "Q1", answer).unwrap(), written);
+            }
+        }
+    }
 }

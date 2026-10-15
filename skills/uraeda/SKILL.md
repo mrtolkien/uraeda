@@ -199,7 +199,11 @@ is `answered` with questions left blank, set its status back to `awaiting-human`
 questions in the first line of its block, and commit.
 
 The human may also write under **Notes:**, at the end of the questions, about the points settled
-without them: the spec step reads the notes like answers.
+without them: the spec step reads the notes like answers. A comment on one settled point is a bullet
+at the end of the notes, starting with that point's bold subject:
+`- **Undoing a completion**: Keep the undo, but say what it restored.` Its further lines are
+indented by two spaces. The web UI writes comments on settled points this way, and a human can write
+them by hand.
 
 ## References
 

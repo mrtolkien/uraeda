@@ -1,5 +1,13 @@
 import { afterEach } from "vite-plus/test";
-import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
+import {
+  addPlan,
+  commitOnBranch,
+  ELEVEN,
+  fixture,
+  fixtureRepo,
+  git,
+  temporaryFolder,
+} from "uraeda-binding/test-utils";
 import { createApp } from "../app.ts";
 import type { Binding } from "../fate/context.ts";
 import { Hosts } from "../repositories.ts";
@@ -10,7 +18,7 @@ import { fakeSessions } from "../testing.ts";
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
 
-export { fixture, fixtureRepo, git };
+export { addPlan, binding, commitOnBranch, ELEVEN, fixture, fixtureRepo, git };
 
 export const port = 4310;
 
@@ -66,11 +74,12 @@ export async function testHosts(
 function app(
   allowedHosts: Array<string>,
   { dataDir, hosts, names: [name], sessions }: Awaited<ReturnType<typeof testHosts>>,
+  using: Binding = binding,
 ) {
   const created = createApp({
     allowedHosts,
     allowOrigins: ["http://localhost:5173"],
-    binding,
+    binding: using,
     dataDir,
     hosts,
     port,
@@ -82,11 +91,18 @@ function app(
 
 /**
  * The server's app, called in process, on a repository added to a temporary list, with sessions
- * that have no agent. `name` is the repository's in the list.
+ * that have no agent, on the core's binding or a fake of it. `name` is the repository's in the
+ * list.
  */
-export async function testApp(repo = fixtureRepo(), allowedHosts: Array<string> = []) {
-  const opened = await testHosts([repo], { installed: false });
-  return { ...opened, app: app(allowedHosts, opened), name: opened.names[0], repo };
+export async function testApp(
+  repo = fixtureRepo(),
+  {
+    allowedHosts = [],
+    binding: using = binding,
+  }: { allowedHosts?: Array<string>; binding?: Binding } = {},
+) {
+  const opened = await testHosts([repo], { binding: using, installed: false });
+  return { ...opened, app: app(allowedHosts, opened, using), name: opened.names[0], repo };
 }
 
 /** The server's app with sessions on the fake adapter, checked once. */

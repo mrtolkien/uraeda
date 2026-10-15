@@ -4,13 +4,14 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import type { ReactNode } from "react";
+import { type ReactNode, use } from "react";
 import type { CommentItem } from "uraeda-binding";
 import type { useFile } from "./data.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { where } from "./ReviewComments.tsx";
 import { Band } from "./ReviewHeadings.tsx";
 import { type Refusals, ReviewVerdict } from "./ReviewVerdict.tsx";
+import { ReviewImagesContext } from "./useReviewImages.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -37,7 +38,8 @@ export function StaleBanner({
 
 /**
  * The review's own part, after the file: its comments, each where it points, the general ones
- * with Edit and Remove, a general comment's field, and the verdict.
+ * with Edit and Remove, a general comment's field, and the verdict, which the comment being written
+ * may hold back.
  */
 export function YourReview({
   comments,
@@ -56,6 +58,7 @@ export function YourReview({
   refusals: Refusals;
   wide: boolean;
 }) {
+  const images = use(ReviewImagesContext);
   return (
     <>
       <Band wide={wide} />
@@ -82,7 +85,11 @@ export function YourReview({
         <Button label="Add a general comment" onClick={onGeneral} />
       </HStack>
       {general}
-      <ReviewVerdict comments={comments.length} file={file} refusals={refusals} />
+      <ReviewVerdict
+        comments={comments.length}
+        file={file}
+        refusals={{ ...refusals, hides: images?.hides, hold: images?.hold }}
+      />
     </>
   );
 }

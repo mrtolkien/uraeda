@@ -336,7 +336,7 @@ fn plan_tasks_count_checkboxes() {
     let text =
         repository_file("skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/plan.md");
 
-    let tasks = plan::tasks(&text);
+    let tasks = plan::tasks(&text, "specs/x");
 
     assert!(tasks.len() >= 3);
     assert_eq!(tasks[0].number, 1);
@@ -351,13 +351,37 @@ fn plan_tasks_count_checkboxes() {
 fn plan_first_unchecked_task() {
     let text = "# Plan\n\n## Task 1: One\n\n- [x] **Step 1**\n\n## Task 2: Two\n\n- [x] **Step 1**\n- [ ] **Step 2**\n";
 
-    let tasks = plan::tasks(text);
+    let tasks = plan::tasks(text, "specs/x");
 
     assert_eq!(
         tasks.iter().map(|t| (t.done, t.total)).collect::<Vec<_>>(),
         [(1, 1), (1, 2)]
     );
     assert_eq!(tasks[1].title, "Two");
+}
+
+#[test]
+fn plan_tasks_count_capital_x_and_skip_code() {
+    let text = "# Plan\n\n## Task 1: One\n\n- [X] **Step 1**\n\n```markdown\n- [ ] not a step\n```\n\n- [ ] **Step 2**\n";
+
+    let tasks = plan::tasks(text, "specs/x");
+
+    assert_eq!(
+        tasks.iter().map(|t| (t.done, t.total)).collect::<Vec<_>>(),
+        [(1, 2)]
+    );
+}
+
+#[test]
+fn plan_task_titles_as_written() {
+    let text = "---\nstatus: approved\n---\n\n# Plan\n\n## Task 1: The `ura status` command and [a link](x.md)\n\n- [ ] **Step 1**\n";
+
+    let tasks = plan::tasks(text, "specs/x");
+
+    assert_eq!(
+        tasks[0].title,
+        "The `ura status` command and [a link](x.md)"
+    );
 }
 
 const REVIEW: &str = "---\nverdict: changes-requested\ncommit: a1b2c3d\n---\n\n# Review: Spec, CLI core features\n\nName things.\n\n## C1: Lines 50–52, under \"US2: Edit a repeat (P1)\"\n\n> first line\n> second line\n> third line\n\nName the field.\n\n## C2: General\n\nShorter.\n";

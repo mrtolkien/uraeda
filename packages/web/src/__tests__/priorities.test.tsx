@@ -4,9 +4,10 @@
 // browser (__browser__/priorities.test.tsx), with committing closing the toasts.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { atRepo, click, git, read, renderPage, type } from "./helpers.tsx";
+import { forgetUnsaved } from "../fields/unsaved.ts";
+import { atRepo, click, git, read, renderPage, sent, type } from "./helpers.tsx";
 
 const PATH = "specs/PRIORITIES.md";
 
@@ -154,4 +155,74 @@ test("nested lines show their text", async () => {
   await renderPage("/priorities");
 
   expect(await screen.findByText("with a cache")).toBeTruthy();
+});
+
+/** Answers "Discard your changes?" with one of its buttons, and waits for it to close. */
+async function answer(button: "Discard" | "Keep editing") {
+  const dialog = await screen.findByRole("dialog", { name: "Discard your changes?" });
+  await click(within(dialog).getByRole("button", { name: button }));
+  await waitFor(() =>
+    expect(screen.queryByRole("dialog", { name: "Discard your changes?" })).toBeNull(),
+  );
+}
+
+const addLater = () => screen.getByRole("textbox", { name: "Add to Later" }) as HTMLInputElement;
+
+/** US2 5 and 7 on an Add row: leaving it keeps its text unsaved, Cancel asks once it holds text. */
+test("an Add row left for elsewhere keeps its text, and Cancel asks first", async () => {
+  const { repo } = await renderPage("/priorities");
+  const before = read(repo);
+  await click(await screen.findByRole("button", { name: "Add to Later" }));
+  await type(addLater(), "Ship a TUI");
+
+  await act(async () => {
+    fireEvent.blur(addLater());
+  });
+  expect(sent.filter((body) => body.includes("priorities.add"))).toEqual([]);
+  expect(addLater().value).toBe("Ship a TUI");
+  expect(read(repo)).toBe(before);
+
+  await click(screen.getByRole("button", { name: "Cancel" }));
+  await answer("Discard");
+  expect(screen.queryByRole("textbox", { name: "Add to Later" })).toBeNull();
+
+  // Empty, it closes without asking.
+  await click(screen.getByRole("button", { name: "Add to Later" }));
+  await click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByRole("textbox", { name: "Add to Later" })).toBeNull();
+});
+
+/** Quick add's field, in its overlay. */
+const priorityField = () => screen.getByLabelText("Priority") as HTMLTextAreaElement;
+
+/** R2 and R25: quick add's Cancel asks; its text stays when it closes, and after a reload. */
+test("＋ keeps its text: Cancel asks, Close keeps it, a reload restores it", async () => {
+  const repo = (await renderPage("/")).repo;
+  await click(await screen.findByRole("button", { name: "Add a priority" }));
+  await type(await screen.findByLabelText("Priority"), "An idea");
+
+  await click(screen.getByRole("button", { name: "Cancel" }));
+  await answer("Keep editing");
+  expect(priorityField().value).toBe("An idea");
+  expect(priorityField().getAttribute("rows")).toBe("3");
+
+  // Closed by its close button, it keeps the text, without asking.
+  const overlay = screen.getByRole("dialog", { name: "New priority" });
+  await click(within(overlay).getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "New priority" })).toBeNull());
+
+  forgetUnsaved();
+  await renderPage("/", repo, { reload: true });
+  await click(await screen.findByRole("button", { name: "Add a priority" }));
+  await screen.findByLabelText("Priority");
+  expect(priorityField().value).toBe("An idea");
+  expect(screen.getByText(/^Unsaved text restored from \d\d:\d\d\.$/)).toBeTruthy();
+
+  await click(screen.getByRole("button", { name: "Cancel" }));
+  await answer("Discard");
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "New priority" })).toBeNull());
+  await click(screen.getByRole("button", { name: "Add a priority" }));
+  expect((await screen.findByLabelText("Priority")).textContent).toBe("");
+  expect(priorityField().value).toBe("");
 });

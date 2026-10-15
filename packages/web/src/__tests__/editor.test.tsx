@@ -1,8 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { startFeature } from "uraeda-binding";
-import { expect, test } from "vite-plus/test";
+import { afterEach, expect, test, vi } from "vite-plus/test";
+import { forgetUnsaved } from "../fields/unsaved.ts";
 import { navigate } from "../routes.tsx";
 import {
   answered,
@@ -23,10 +24,23 @@ import {
 
 today("2026-10-12");
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 /** Taps Edit on a written proposal, drawn, and returns its text field (US5 5). */
 async function edit() {
   await click(await screen.findByRole("button", { name: "Edit" }));
   return screen.getByRole("textbox", { name: "Text" });
+}
+
+/** Presses the editor's Save. */
+const saveText = () => click(screen.getByRole("button", { name: "Save" }));
+
+/** The page shown again, as after a reload: the store reads `localStorage` anew. */
+async function reload(path: string, repo: string) {
+  forgetUnsaved();
+  await renderPage(path, repo, { reload: true });
 }
 
 /** US4.1 */
@@ -92,6 +106,7 @@ test("a draft is saved as typed, byte for byte", async () => {
 
   const typed = "# Git listener process\n\n## What\n\nRun  the next step,\twith tabs.\n";
   await type(field, typed);
+  await saveText();
 
   await waitFor(() =>
     expect(readFileSync(join(repo, "specs/drafts/git-listener.md"), "utf8")).toBe(typed),
@@ -196,7 +211,116 @@ test("a draft changed elsewhere shows when the page reads again", async () => {
 
   await waitFor(() => expect(field.value).toBe("# Theirs\n"));
   await type(field, "# Theirs, and mine\n");
+  await saveText();
   await waitFor(() => expect(readFileSync(file, "utf8")).toBe("# Theirs, and mine\n"));
+});
+
+/** US2 3: the text changed is kept, not saved, however long it waits. */
+test("the text changed is not saved as time passes, and says so (US2 3)", async () => {
+  const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
+  const file = join(repo, "specs/drafts/git-listener.md");
+  const before = read(repo, "specs/drafts/git-listener.md");
+  const field = await edit();
+
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  await type(field, "# Git listener process\n\n## What\n\nTyped.\n");
+  vi.advanceTimersByTime(5000);
+  vi.useRealTimers();
+  // Another file changes, and the page reads again.
+  writeFileSync(join(repo, "specs/PRIORITIES.md"), read(repo).replace("- Claude Code", "- Codex"));
+  const from = answersSoFar();
+  await act(async () => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await answered("Draft", from);
+
+  expect(readFileSync(file, "utf8")).toBe(before);
+  expect((field as HTMLTextAreaElement).value).toBe(
+    "# Git listener process\n\n## What\n\nTyped.\n",
+  );
+  expect(screen.getByText("Unsaved changes")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Save" })).toHaveProperty("disabled", false);
+});
+
+/** US2 4 */
+test("Commit saves the text typed, then commits it (US2 4)", async () => {
+  const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
+  const typed = "# Git listener process\n\n## What\n\nCommitted as typed.\n";
+  await type(await edit(), typed);
+
+  await click(screen.getByRole("button", { name: "Commit" }));
+
+  await waitFor(() =>
+    expect(git(repo, "log", "-1", "--format=%s").trim()).toBe(
+      "chore: edit the draft Git listener process",
+    ),
+  );
+  expect(git(repo, "show", "HEAD:specs/drafts/git-listener.md")).toBe(typed);
+  expect(screen.queryByText("Unsaved changes")).toBeNull();
+});
+
+/** US2 8, and the field's own key. */
+test("Save and Ctrl+Enter save the text, and Save waits for a change", async () => {
+  const { repo } = await renderPage("/edit/specs/drafts/git-listener.md");
+  const file = "specs/drafts/git-listener.md";
+  const field = await edit();
+  expect(screen.getByRole("button", { name: "Save" })).toHaveProperty("disabled", true);
+
+  await type(field, "# Git listener process\n\nSaved.\n");
+  await saveText();
+  await waitFor(() => expect(read(repo, file)).toBe("# Git listener process\n\nSaved.\n"));
+  expect(await screen.findByText("saved ✓")).toBeTruthy();
+
+  await type(field, "# Git listener process\n\nSaved with the key.\n");
+  await act(async () => {
+    fireEvent.keyDown(field, { ctrlKey: true, key: "Enter" });
+  });
+  await waitFor(() =>
+    expect(read(repo, file)).toBe("# Git listener process\n\nSaved with the key.\n"),
+  );
+});
+
+/** US5 1 and 2, for the editor: its text comes back after a reload, with the notice. */
+test("the editor's unsaved text is restored after a reload, with the notice", async () => {
+  const path = "/edit/specs/drafts/git-listener.md";
+  const { repo } = await renderPage(path);
+  await type(await edit(), "# Git listener process\n\nNot saved yet.\n");
+
+  await reload(path, repo);
+
+  // A restored text opens to be edited, not drawn.
+  const field = (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
+  expect(field.value).toBe("# Git listener process\n\nNot saved yet.\n");
+  expect(screen.getByText(/^Unsaved text restored from \d\d:\d\d\.$/)).toBeTruthy();
+  expect(screen.getByText("Unsaved changes")).toBeTruthy();
+
+  await click(screen.getByRole("button", { name: "Discard" }));
+  expect(field.value).toBe(read(repo, "specs/drafts/git-listener.md"));
+  await reload(path, repo);
+  expect(await screen.findByRole("button", { name: "Edit" })).toBeTruthy();
+  expect(screen.queryByText(/Unsaved text restored/)).toBeNull();
+});
+
+/** The slug, a field of the store too: typed, it is kept, here and on the line's page. */
+test("the slug typed is restored after a reload, and on the line's page", async () => {
+  const path = "/edit/specs/drafts/git-listener.md";
+  const { repo } = await renderPage(path);
+  await type(await screen.findByLabelText("Slug"), "listener");
+
+  await reload(path, repo);
+
+  expect(await screen.findByLabelText("Slug")).toHaveProperty("value", "listener");
+  expect(screen.getByText(/^Unsaved text restored from \d\d:\d\d\.$/)).toBeTruthy();
+  await act(async () => navigate(atRepo("/priorities/git-listener")));
+  // The slug is unsaved: leaving the editor asks first.
+  await click(
+    within(await screen.findByRole("dialog", { name: "Leave page?" })).getByRole("button", {
+      name: "Leave page",
+    }),
+  );
+  // The line's page, with its own Delete.
+  await screen.findByRole("button", { name: "Delete" });
+  expect(screen.getByLabelText("Slug")).toHaveProperty("value", "listener");
 });
 
 /** US4.4 */
@@ -261,6 +385,7 @@ test("a save over a change made elsewhere keeps the text, and offers the new ver
   writeFileSync(join(repo, "specs/drafts/git-listener.md"), "# Changed elsewhere\n");
 
   await type(field, "# Mine\n");
+  await saveText();
 
   expect(
     await screen.findByText(
@@ -280,6 +405,7 @@ test("Load the new version loads it", async () => {
   const field = await edit();
   writeFileSync(join(repo, "specs/drafts/git-listener.md"), "# Changed elsewhere\n");
   await type(field, "# Mine\n");
+  await saveText();
   await screen.findByRole("button", { name: "Load the new version" });
 
   await click(screen.getByRole("button", { name: "Load the new version" }));
@@ -290,6 +416,7 @@ test("Load the new version loads it", async () => {
     ),
   );
   await type(screen.getByRole("textbox", { name: "Text" }), "# Changed elsewhere\n\nMore.\n");
+  await saveText();
   await waitFor(() =>
     expect(readFileSync(join(repo, "specs/drafts/git-listener.md"), "utf8")).toBe(
       "# Changed elsewhere\n\nMore.\n",
@@ -488,6 +615,27 @@ test("typing during an upload shows saving, and leaving the page asks", async ()
   await held.release();
   await waitFor(() => expect(read(repo, path)).toContain("typed.\n\n![login](images/login.webp)"));
   await waitFor(() => expect(screen.getByText("saved ✓")).toBeTruthy());
+});
+
+/** Review focus 1, for the editor: an image saves the text typed with it, and keeps nothing. */
+test("an image saves the text typed with it, and leaves nothing unsaved", async () => {
+  const repo = fixtureRepo();
+  const path = proposal(repo);
+  await renderPage(`/edit/${path}`, repo);
+  const field = (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
+  await type(field, "# Login error banner\n\n## What\n\nTyped first.\n");
+  field.setSelectionRange(field.value.length, field.value.length);
+
+  await pick([png("login.png")]);
+
+  await waitFor(() =>
+    expect(read(repo, path)).toBe(
+      "# Login error banner\n\n## What\n\nTyped first.\n\n![login](images/login.webp)\n",
+    ),
+  );
+  await reload(`/edit/${path}`, repo);
+  await screen.findByRole("textbox", { name: "Text" });
+  expect(screen.queryByText(/Unsaved text restored/)).toBeNull();
 });
 
 /** Review: an image is not added over a text that could not be saved, and says so. */

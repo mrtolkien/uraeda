@@ -1,12 +1,19 @@
+import { Button } from "@astryxdesign/core/Button";
+import { HStack } from "@astryxdesign/core/HStack";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useRef, useState } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
+import { RestoreNotice } from "./fields/RestoreNotice.tsx";
+import { SaveStatus } from "./fields/SaveStatus.tsx";
+import { useWidthClass } from "./layout/useWidthClass.ts";
+import { useLineSave } from "./useLineSave.ts";
 
-const EMPTY = "A priority cannot be empty.";
+/** What the restore notice adds when the line changed since its unsaved text was typed. */
+const LINE_CHANGED = "The line changed since: saving replaces it.";
 
 const styles = stylex.create({
   text: {
@@ -17,119 +24,82 @@ const styles = stylex.create({
 });
 
 /**
- * A line edited in place: its text, a button; tapped, a field. Enter or leaving the field saves,
- * Escape cancels. An empty text is refused; `onSave` resolves with the error to show under the
- * field, which keeps the typed text, or with nothing once saved. `display` is what the button
+ * A line edited in place: its text, a button; tapped, a field with Save and Cancel. Enter or Save
+ * saves, Escape or Cancel cancels, asking first when the text changed; leaving the field leaves it
+ * open with its text. Its unsaved text is kept under `field`, its key in the unsaved store, and
+ * restored with a notice. An empty text is refused; `onSave` resolves with the error to show under
+ * the field, which keeps the typed text, or with nothing once saved. `display` is what the button
  * shows, the value by default. With `stayOpen`, as an Add row, a saved field empties and stays open
- * for the next line, and leaving it empty closes it.
+ * for the next line.
  */
-// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the save in a hook, and the field in a component
 export function EditableLine({
   display,
+  field: key,
   label,
   onSave,
   stayOpen = false,
   value,
 }: {
   display?: ReactNode;
+  field: string;
   label: string;
   onSave: (text: string) => Promise<string | undefined>;
   stayOpen?: boolean;
   value: string;
 }) {
-  const [text, setText] = useState<string>();
-  const [error, setError] = useState<string>();
-  const [status, setStatus] = useState<"saving" | "saved">();
-  // Escape and Enter end the edit before the field's blur, which then has nothing to do.
-  const done = useRef(false);
+  const wide = useWidthClass() === "wide";
+  const line = useLineSave({ field: key, onSave, stayOpen, value });
+  const { field } = line;
 
-  const save = async (blurred = false) => {
-    if (text === undefined || done.current) {
-      return;
-    }
-    if (!text.trim()) {
-      if (stayOpen && blurred) {
-        setError(undefined);
-        setText(undefined);
-      } else {
-        setError(EMPTY);
-      }
-      return;
-    }
-    if (text === value) {
-      setText(undefined);
-      return;
-    }
-    done.current = true;
-    setError(undefined);
-    setStatus("saving");
-    const failed = await onSave(text.trim());
-    done.current = false;
-    if (failed) {
-      setStatus(undefined);
-      setError(failed);
-    } else {
-      setStatus("saved");
-      setText(stayOpen ? "" : undefined);
-    }
-  };
-
-  if (text === undefined) {
+  if (!line.open) {
     return (
       <VStack gap={1}>
-        <Link
-          color="primary"
-          onClick={() => {
-            setStatus(undefined);
-            setText(value);
-          }}
-          type="inherit"
-          xstyle={styles.text}
-        >
+        <Link color="primary" onClick={line.openLine} type="inherit" xstyle={styles.text}>
           {display ?? value}
         </Link>
-        {status === "saved" && (
-          <Text color="secondary" type="supporting">
-            Saved
-          </Text>
-        )}
+        {line.state.kind === "saved" && <SaveStatus dirty={false} state={line.state} />}
       </VStack>
     );
   }
   return (
     <VStack gap={1}>
+      {field.restored && (
+        <RestoreNotice changed={LINE_CHANGED} onDiscard={line.drop} restored={field.restored} />
+      )}
       <TextInput
         hasAutoFocus
         isLabelHidden
-        isLoading={status === "saving"}
+        isLoading={line.state.kind === "saving"}
         label={label}
-        onBlur={() => void save(true)}
-        onChange={(next: string) => {
-          setText(next);
-          setError(undefined);
-          setStatus(undefined);
-        }}
-        onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
-          if (event.key === "Enter") {
+        onChange={line.change}
+        onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+          if (event.key === "Enter" && !event.nativeEvent.isComposing) {
             event.preventDefault();
-            void save();
+            void line.save();
           } else if (event.key === "Escape") {
             event.preventDefault();
-            done.current = false;
-            setError(undefined);
-            setText(undefined);
+            void line.cancel();
           }
         }}
-        status={error ? { message: error, type: "error" } : undefined}
-        value={text}
+        status={line.error ? { message: line.error, type: "error" } : undefined}
+        value={field.text}
       />
-      <Text color="secondary" type="supporting">
-        {status === "saving"
-          ? "Saving…"
-          : status === "saved"
-            ? "Saved"
-            : "Enter saves · Escape cancels"}
-      </Text>
+      <HStack align="center" gap={2} wrap="wrap">
+        <Button label="Cancel" onClick={() => void line.cancel()} size="sm" variant="secondary" />
+        <Button
+          isDisabled={!field.dirty}
+          label="Save"
+          onClick={() => void line.save()}
+          size="sm"
+          variant="primary"
+        />
+        <SaveStatus dirty={field.dirty} state={line.state} />
+        {wide && (
+          <Text color="secondary" type="supporting">
+            Enter saves · Escape cancels
+          </Text>
+        )}
+      </HStack>
     </VStack>
   );
 }

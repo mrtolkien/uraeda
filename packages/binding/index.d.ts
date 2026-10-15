@@ -27,6 +27,9 @@ export declare function addPriority(repo: string, section: string, text: string,
  */
 export declare function addRepository(dataDir: string, folder: string): Promise<Added>
 
+/** Adds a comment on the settled point starting with `subject`, at the end of the notes. */
+export declare function addSettledComment(repo: string, folder: string, subject: string, text: string): Promise<FileView>
+
 /** Approves a spec, a plan, or an assessment, and commits it. */
 export declare function approve(repo: string, folder: string, file: string, summary?: string | undefined | null, riskTier?: string | undefined | null, planReview?: boolean | undefined | null): Promise<FileView>
 
@@ -36,6 +39,12 @@ export declare function approve(repo: string, folder: string, file: string, summ
  * becomes a folder first.
  */
 export declare function attachImage(repo: string, path: string, bytes: Buffer, name?: string | undefined | null): Promise<AttachedView>
+
+/**
+ * The files a feature's branch changed outside its folder, from the default branch's merge base,
+ * or `null` when it has no branch, is merged, or the default branch is unknown.
+ */
+export declare function branchChanges(repo: string, folder: string): Promise<BranchChanges | null>
 
 /** Commits the priorities alone. */
 export declare function commitPriorities(repo: string): Promise<Priorities>
@@ -60,6 +69,9 @@ export declare function editComment(repo: string, folder: string, file: string, 
 
 /** Replaces a priority line's text. */
 export declare function editPriority(repo: string, id: string, text: string, previous: string): Promise<Priorities>
+
+/** Writes comment `number` on the settled point `subject` over its text last read. */
+export declare function editSettledComment(repo: string, folder: string, number: number, subject: string, text: string, previous: string): Promise<FileView>
 
 /**
  * An image checked and re-encoded by the core, for a chat message. Declared here, not in the core,
@@ -143,6 +155,9 @@ export declare function removePriority(repo: string, id: string, previous: strin
 
 /** Takes a repository off the list, leaving its folder and sessions as they are. */
 export declare function removeRepository(dataDir: string, name: string): Promise<void>
+
+/** Removes comment `number` on the settled point `subject`, over its text last read. */
+export declare function removeSettledComment(repo: string, folder: string, number: number, subject: string, previous: string): Promise<FileView>
 
 /** Requests changes on a spec, a plan, or an assessment, and commits it. */
 export declare function requestChanges(repo: string, folder: string, file: string, summary?: string | undefined | null): Promise<FileView>
@@ -240,7 +255,26 @@ export interface Block {
 
 export type BlockKind = 'heading' | 'paragraph' | 'list' | 'item' | 'callout' | 'quote' | 'table' | 'row' | 'cell' | 'code' | 'rule' | 'html'
 
+/** The changes of a feature's branch, outside the feature's own folder. */
+export interface BranchChanges {
+  /** The first 50 files, sorted by path, outside `specs/<folder>/`. */
+  files: Array<ChangedFile>
+  /** Every changed file outside the feature's folder, listed or not. */
+  count: number
+  added: number
+  removed: number
+}
+
 export type CalloutKind = 'note' | 'tip' | 'important' | 'warning' | 'caution' | 'question'
+
+/** A file changed on a feature's branch, from the default branch's merge base to its tip. */
+export interface ChangedFile {
+  /** From the repository's top level; the new path of a renamed file. */
+  path: string
+  /** Lines added and removed; `None` for a binary file. */
+  added?: number
+  removed?: number
+}
 
 /** What changed since the last report. */
 export interface Changes {
@@ -459,6 +493,8 @@ export interface NextStepView {
   file?: string
   /** The first unchecked task, for implementation. */
   task?: string
+  /** Where the implementation is in the plan's tasks, for implementation. */
+  progress?: TaskProgress
   /** `open`, `draft`, `changes-requested`, `none`, or `unknown`, when the step depends on it. */
   pullRequest?: string
 }
@@ -565,10 +601,15 @@ export interface RoundItems {
   /** The blocks of the round's context section. */
   context: Array<number>
   questions: Array<QuestionItem>
-  /** The blocks of the points settled without the human. */
+  /** The blocks of the points settled without the human, up to the `**Notes:**` line. */
   settled: Array<number>
+  /** The settled points that start in bold, which take comments. */
+  settledPoints: Array<SettledPoint>
+  /** The free notes, trimmed, without the comments on settled points. */
   notes?: string
   notesLine?: number
+  /** The comments on settled points, written at the end of the notes. */
+  settledComments: Array<SettledComment>
 }
 
 export interface Ruling {
@@ -589,6 +630,25 @@ export interface SectionItems {
   section: string
   title: string
   entries: Array<EntryItem>
+}
+
+/** A comment on a settled point: a bullet of the notes, `- **<subject>**: <text>`. */
+export interface SettledComment {
+  /** 1-based, in the notes' order. */
+  number: number
+  subject: string
+  /** The block of the first settled point with that subject. */
+  point: number
+  /** Its text, without the bullet, the subject, or the indentation. */
+  text: string
+}
+
+/** A point settled without the human, by its bold start. */
+export interface SettledPoint {
+  /** Its list item's block. */
+  block: number
+  /** Its bold start, trimmed. */
+  subject: string
 }
 
 /** A run of text with the same marks. An image's span holds its alt text. */
@@ -661,6 +721,10 @@ export interface StepView {
   file?: string
   /** The first unchecked task, for implementation. */
   task?: string
+  /** Where the implementation is in the plan's tasks, for implementation. */
+  progress?: TaskProgress
+  /** Whether the implementation is over: the final review or after. */
+  implemented: boolean
 }
 
 export interface Story {
@@ -686,6 +750,16 @@ export interface TaskItem {
   steps: Array<StepItem>
   done: number
   total: number
+}
+
+/** The plan's progress during the implementation: the first task with an unchecked step. */
+export interface TaskProgress {
+  /** Its position among the plan's tasks, from 1, whatever its `## Task N` number. */
+  position: number
+  /** The number of tasks in the plan. */
+  total: number
+  /** Its title, as written after `## Task N:`. */
+  title: string
 }
 
 /**

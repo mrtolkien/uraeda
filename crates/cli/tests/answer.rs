@@ -244,3 +244,26 @@ fn no_commit_names_the_images_to_commit() {
     );
     assert_eq!(repo.subjects("HEAD").len(), 3);
 }
+
+#[test]
+fn writing_notes_keeps_the_comments_on_settled_points() {
+    let repo = TestRepo::new();
+    specs(
+        &repo,
+        "# Priorities\n\n## Now\n\n- [CLI](/specs/2026-10-10-cli-core/proposal.md)\n\n## Next\n\n## Later\n\n## Blocked\n",
+    );
+    let round = std::fs::read_to_string(fixture("settled-comments/clarifications-01.md")).unwrap();
+    feature(
+        &repo,
+        "2026-10-10-cli-core",
+        &[("proposal.md", proposal()), ("clarifications-01.md", round)],
+    );
+    repo.switch("2026-10-10-cli-core");
+
+    let output = ura(&repo, &["answer", "cli-core", "notes", "New"]);
+
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert!(repo.read(FILE).ends_with(
+        "**Notes:** New\n\n- **Undoing a completion**: Keep the undo.\n  Also for deletes.\n- **Deleting a repeating task**: Ask first.\n"
+    ), "{}", repo.read(FILE));
+}

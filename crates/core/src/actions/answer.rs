@@ -2,7 +2,7 @@
 
 use std::fs;
 
-use crate::files::clarifications::{self, Applicability};
+use crate::files::clarifications::{self, Applicability, RoundNotes};
 use crate::files::{frontmatter, markdown};
 use crate::gates;
 use crate::today::Date;
@@ -69,12 +69,24 @@ pub fn write(
     id: &str,
     answer: &str,
 ) -> Result<Written, ActionError> {
+    edit(place, feature, |_, text| {
+        Ok(clarifications::set_answer(text, id, answer)?)
+    })
+}
+
+/// Edits the latest round, waiting for answers, with `change`, which takes the file's path and
+/// text and refuses or returns the text to write. Commits nothing.
+fn edit(
+    place: &Place,
+    feature: &Feature,
+    change: impl FnOnce(&str, &str) -> Result<String, ActionError>,
+) -> Result<Written, ActionError> {
     let (name, _) = latest_round(feature)?;
     let file = format!("{}/{name}", feature.path);
     let path = place.root.join(&file);
     let text = fs::read_to_string(&path)?;
     waiting(&text, &name)?;
-    let edited = clarifications::set_answer(&text, id, answer)?;
+    let edited = change(&file, &text)?;
     fs::write(&path, &edited)?;
     let questions = clarifications::parse(&edited);
     let applicable: Vec<_> = questions
@@ -163,22 +175,119 @@ pub fn save(
     )
 }
 
-/// Writes the notes over the ones the UI last read. Commits nothing.
+/// The notes of a round, split, or the refusal of a round without a `**Notes:**` line.
+fn round_notes(text: &str) -> Result<RoundNotes, ActionError> {
+    Ok(clarifications::round_notes(text).ok_or(clarifications::AnswerError::NoNotesLine)?)
+}
+
+/// Writes the free notes over the ones the UI last read, keeping the comments on settled points.
+/// Commits nothing.
 pub fn save_notes(
     place: &Place,
     feature: &Feature,
     notes: &str,
     previous: &str,
 ) -> Result<Written, ActionError> {
-    let file = round_path(feature)?;
-    let text = fs::read_to_string(place.root.join(&file))?;
-    let current = clarifications::notes(&text)
-        .map(|(_, notes)| notes)
-        .unwrap_or_default();
-    if current.trim() != previous.trim() {
-        return Err(ActionError::changed(&file));
-    }
-    write(place, feature, "notes", notes)
+    edit(place, feature, |file, text| {
+        let current = round_notes(text)?;
+        if current.free.trim() != previous.trim() {
+            return Err(ActionError::changed(file));
+        }
+        Ok(clarifications::set_notes(text, notes, &current.comments)?)
+    })
+}
+
+/// Adds a comment on the settled point starting with `subject`, after the round's other comments.
+/// Commits nothing.
+pub fn add_settled_comment(
+    place: &Place,
+    feature: &Feature,
+    subject: &str,
+    text: &str,
+) -> Result<Written, ActionError> {
+    edit(place, feature, |_, file_text| {
+        let mut notes = round_notes(file_text)?;
+        let subject = subject.trim();
+        if !notes.subjects.iter().any(|known| known == subject) {
+            return Err(ActionError::Refused(
+                "That point is no longer in the round.".to_string(),
+            ));
+        }
+        notes.comments.push((subject.to_string(), text.to_string()));
+        Ok(clarifications::set_notes(
+            file_text,
+            &notes.free,
+            &notes.comments,
+        )?)
+    })
+}
+
+/// Changes comment `number`, counted from 1 in the notes' order, with `change`, over its subject
+/// and its text the UI last read, `previous`: another subject or text, or no such comment, means
+/// the notes changed elsewhere, as a comment removed renumbers the ones after it.
+fn change_settled_comment(
+    place: &Place,
+    feature: &Feature,
+    number: u32,
+    (subject, previous): (&str, &str),
+    change: impl FnOnce(&mut Vec<(String, String)>, usize),
+) -> Result<Written, ActionError> {
+    edit(place, feature, |file, text| {
+        let mut notes = round_notes(text)?;
+        let index = (number as usize).wrapping_sub(1);
+        match notes.comments.get(index) {
+            Some((on, current))
+                if on.trim() == subject.trim() && current.trim() == previous.trim() => {}
+            _ => return Err(ActionError::changed(file)),
+        }
+        change(&mut notes.comments, index);
+        Ok(clarifications::set_notes(
+            text,
+            &notes.free,
+            &notes.comments,
+        )?)
+    })
+}
+
+/// Writes comment `number` on the settled point `subject` over its text last read. Commits
+/// nothing.
+pub fn edit_settled_comment(
+    place: &Place,
+    feature: &Feature,
+    number: u32,
+    subject: &str,
+    text: &str,
+    previous: &str,
+) -> Result<Written, ActionError> {
+    change_settled_comment(
+        place,
+        feature,
+        number,
+        (subject, previous),
+        |comments, index| {
+            comments[index].1 = text.to_string();
+        },
+    )
+}
+
+/// Removes comment `number` on the settled point `subject`, over its text last read. Commits
+/// nothing.
+pub fn remove_settled_comment(
+    place: &Place,
+    feature: &Feature,
+    number: u32,
+    subject: &str,
+    previous: &str,
+) -> Result<Written, ActionError> {
+    change_settled_comment(
+        place,
+        feature,
+        number,
+        (subject, previous),
+        |comments, index| {
+            comments.remove(index);
+        },
+    )
 }
 
 /// Submits the latest round and commits it, refused before anything is written when other files

@@ -5,20 +5,33 @@ approved-by: mrtolkien
 
 # UI layout
 
-The web UI has two layouts, split at Astryx's 768 px: on the phone, details are pages and menus and
-short forms are sheets; on wide screens, a detail opens in a pane beside its list, menus are
-popovers, and short forms are dialogs. Text is 17 px on the phone and 19 px on a desktop, with
-controls grown to match, in a reading column near 120 characters, left-aligned.
+Every layout choice in the web UI serves one goal first: the human reads and understands what is on
+screen. There are two layouts, split at Astryx's 768 px. On the phone, views are pages, and menus
+and short forms are sheets. On wide screens, each view takes the shape that reads best: a detail
+glanced at beside its list opens in a pane, while a view the human stays in and follows, like an
+agent's session, is a page of its own. Menus are popovers there, and short forms are dialogs. Text
+is 17 px on the phone and 19 px on a desktop, with controls grown to match, in a reading column near
+120 characters, left-aligned.
 
 ## Rules
 
+- Readability and clarity for the human MUST come first. A view's spec MUST say why its layout reads
+  best for what the view is for, and the rules below SHOULD give way to that, with the reason in the
+  spec.
 - The UI MUST have two width classes: narrow, under 768 px, and wide, from 768 px, taken from the
   theme's `md` breakpoint. A layout MUST be chosen by width, never by device type, user agent, or
   pointer.
 - Components MUST NOT write their own media queries with sizes. They read the width class from one
   shared hook, or the theme's adaptations.
-- On wide screens, a detail opened from a list MUST open in a pane beside the list, which stays
-  usable. On narrow screens, it MUST open as its own page.
+- On narrow screens, a view MUST open as its own page.
+- On wide screens, a detail the human checks while working through a list, like a task of the
+  priorities, SHOULD open in a pane beside the list, which stays usable. A view the human stays in
+  or follows, like an agent's session, SHOULD be a page of its own, and MAY have a column beside its
+  main content for what the human needs to keep in view. A column that takes room from the content
+  MUST be foldable, with the choice kept in the browser.
+- The sidebar SHOULD stay short and visual: a feature by its slug, its progress and status as icons
+  and counts. Each row's accessible name MUST carry the full words: the feature's title, its status,
+  and its task.
 - On wide screens, menus MUST be popovers and short forms dialogs. On narrow screens, both MUST be
   bottom sheets. Astryx's `presentation="adaptive"` SHOULD be used where a component offers it.
 - An open detail, tab, or sheet that can be returned to MUST be in the URL, so a reload, Back, or a
@@ -46,6 +59,19 @@ is at its worst on a phone's narrow lines
 ([Q6](../done/2026-10-12-ui-improvements.md#q6-should-paragraphs-be-justified),
 [justified text](../done/2026-10-12-ui-improvements.md)).
 
+Following an agent is one of the main things the UI is for, and the session's pane, about 480 px of
+a 1440 px window, was too small for it ([proposal](../done/2026-10-14-session-view.md)). The pane
+came from the old run view, and was never chosen for sessions
+([layout on wide screens](../done/2026-10-14-session-view.md#q1-where-does-a-features-session-open-on-a-desktop)).
+The human chose a page of its own with a column for the feature's progress, like the full-page
+sessions of Claude Code's desktop app, Devin, and Codex
+([Q1](../done/2026-10-14-session-view.md#q1-where-does-a-features-session-open-on-a-desktop)), and a
+sidebar that is "small and visual more than textual", with features by their slug
+([Q2](../done/2026-10-14-session-view.md#q2-how-does-the-current-task-show-in-the-sidebar)).
+Approving it, they asked for this decision to rest on concepts more than hard rules: "Goal #1 is
+always readability and clarity for the user. Some features will live well in a pane, others in a
+dedicated page" (C1 of the [spec's review](../done/2026-10-14-session-view.md)).
+
 ## Alternatives considered
 
 - A column near 70 characters, the usual print measure: the first choice, which left most of a
@@ -54,11 +80,21 @@ is at its worst on a phone's narrow lines
   covers the list it came from.
 - CSS `zoom: 1.2` on desktop: exactly the human's zoom, but it breaks the position math of dragging.
 - Justified paragraphs with hyphenation: asked for in the proposal, with rivers on the phone.
+- Every detail in a pane beside its list on wide screens, as a hard rule: the first version of this
+  decision. It put an agent's session in a pane too narrow to follow it, and was abandoned for a
+  choice made view by view, for readability (2026-10-14).
+- The session as a pane beside the feature page, with a Maximize button added: no change to this
+  decision, but an extra click every time an agent is followed.
 
 ## Consequences
 
-- Each view is designed, mocked up, and checked at two widths.
-- Details need an address, and a pane layout shared by the pages that list them.
+- Each view is designed, mocked up, and checked at two widths, and its spec says why its layout
+  reads best.
+- Details in panes need an address, and a pane layout shared by the pages that list them.
+- A session's page shows no list beside it: its feature's page is one link away, through its crumbs
+  and its column.
+- The sidebar's labels are slugs, which a reader learns once per feature. Screen readers still get
+  the titles.
 - Tablets between 768 and 1024 px get the wide layout with phone-sized text.
 - The theme is the app's own build of Astryx's neutral theme, not the prebuilt one.
 

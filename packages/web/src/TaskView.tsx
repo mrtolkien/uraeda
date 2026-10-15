@@ -6,7 +6,6 @@ import { Link } from "@astryxdesign/core/Link";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { fontWeightVars, typeScaleVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -16,6 +15,7 @@ import type { Span } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { readPrioritiesHash, useDraft, usePriority } from "./data.ts";
 import { EditableLine } from "./EditableLine.tsx";
+import { useTextField } from "./fields/useTextField.ts";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
 import { useUndoToast } from "./layout/useUndoToast.ts";
@@ -28,6 +28,7 @@ import {
   useRepository,
   useRestoreScroll,
 } from "./routes.tsx";
+import { SlugField } from "./SlugField.tsx";
 import { plain } from "./Spans.tsx";
 import { DraftView, FeatureView, PrioritiesView } from "./views.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
@@ -73,7 +74,7 @@ function DraftPart({ path }: { path: string }) {
   const draft = useDraft(path);
   const here = useRepoPath();
   const [message, setMessage] = useState<string>();
-  const [slug, setSlug] = useState(draft?.slug ?? "");
+  const slug = useTextField(`${path}#slug`, draft?.slug ?? "");
   if (!draft) {
     return <Paragraph>No draft {path}.</Paragraph>;
   }
@@ -86,12 +87,13 @@ function DraftPart({ path }: { path: string }) {
   const start = async () => {
     setMessage(undefined);
     const result = await fate.mutations.feature.start({
-      input: { draft: path, slug },
+      input: { draft: path, slug: slug.text },
       view: FeatureView,
     });
     if (result.error) {
       setMessage(refusal(result.error).message);
     } else if (typeof result.result?.folder === "string") {
+      slug.discard();
       navigate(here(`/f/${result.result.folder}`));
     }
   };
@@ -101,12 +103,7 @@ function DraftPart({ path }: { path: string }) {
         {path.replace(/^specs\//, "")} · {draft.committed ? "committed" : "not committed"}
       </Text>
       <Blocks document={draft.document} ids={ids} />
-      <TextInput
-        description="Two words at most: it names the folder and the branch."
-        label="Slug"
-        onChange={(value: string) => setSlug(value)}
-        value={slug}
-      />
+      <SlugField field={slug} />
       <HStack gap={2}>
         <Button label="Edit" onClick={() => navigate(here(`/edit/${path}`))} />
         <Button clickAction={start} label="Start the feature" variant="primary" />
@@ -248,7 +245,13 @@ export function TaskView({ entryKey }: { entryKey: string }) {
           {section.title} · {index + 1} of {entries.length}
         </Text>
         <div {...stylex.props(styles.line)}>
-          <EditableLine display={text} label="Line" onSave={rename} value={entry.text} />
+          <EditableLine
+            display={text}
+            field={`priorities#${entry.key}`}
+            label="Line"
+            onSave={rename}
+            value={entry.text}
+          />
         </div>
         <SegmentedControl
           label="Section"

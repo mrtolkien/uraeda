@@ -5,10 +5,12 @@ import type { Block } from "uraeda-binding";
 
 /**
  * How a review selects blocks: which are selected, what a tap does, given the block and the element
- * that draws it, and what follows a block.
+ * that draws it, and what follows a block. `canSelect` narrows the blocks a tap selects, every
+ * selectable one by default: the others still have what follows them.
  */
 export type Selection = {
   after?: (block: Block) => ReactNode;
+  canSelect?: (block: Block) => boolean;
   isSelected: (block: Block) => boolean;
   onTap: (block: Block, element: HTMLElement) => void;
 };
@@ -78,7 +80,7 @@ export function selectable(block: Block) {
  */
 export function useSelect(block: Block, selection: Selection | undefined) {
   const textId = useId();
-  if (!selection || !selectable(block)) {
+  if (!selection || !selectable(block) || selection.canSelect?.(block) === false) {
     return undefined;
   }
   const pressed = selection.isSelected(block);
@@ -143,7 +145,15 @@ export function Selectable({
 }) {
   const select = useSelect(block, selection);
   if (!select) {
-    return children;
+    // A block a tap does not select may still have something after it, like a comment.
+    return selection?.after && selectable(block) ? (
+      <>
+        {children}
+        <After>{selection.after(block)}</After>
+      </>
+    ) : (
+      children
+    );
   }
   return (
     <>

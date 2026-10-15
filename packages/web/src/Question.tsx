@@ -2,7 +2,6 @@ import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
-import { TextArea, type TextAreaProps } from "@astryxdesign/core/TextArea";
 import {
   borderVars,
   colorVars,
@@ -12,18 +11,13 @@ import {
   typeScaleVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { useFateClient } from "react-fate";
 import type { Choice, Document, QuestionItem } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
-import { refusal } from "./errors.ts";
 import { StaticImages } from "./ImageView.tsx";
 import { Spans } from "./Spans.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
-import { type SaveState, useSave } from "./useSave.ts";
-import { FileView } from "./views.ts";
-import { Paragraph } from "./layout/Paragraph.tsx";
-import { CommentField, useCommentSaves } from "./QuestionComment.tsx";
+import { useAnswer } from "./useAnswer.ts";
+import { AnswerComment } from "./QuestionComment.tsx";
 
 const styles = stylex.create({
   belowBar: {
@@ -153,62 +147,10 @@ const styles = stylex.create({
   why: { color: colorVars["--color-warning"] },
 });
 
-/** Where questions put what they still have to save, so Submit saves it first. */
-export const PendingSaves = createContext<Set<() => Promise<boolean>>>(new Set());
-
-/** The answer as the core writes it, to show while it saves. */
-export function composed(letters: ReadonlyArray<string>, comment: string) {
-  const sorted = [...new Set(letters)].sort();
-  const picked =
-    sorted.length <= 1
-      ? (sorted[0] ?? "")
-      : `${sorted.slice(0, -1).join(", ")} and ${sorted.at(-1)}`;
-  const text = comment.trim();
-  if (!picked) {
-    return text;
-  }
-  return text ? `${picked}: ${text}` : picked;
-}
-
 export const statusStyles = stylex.create({
   error: { color: colorVars["--color-error"] },
   saved: { color: colorVars["--color-success"] },
 });
-
-function Status({ state }: { state: SaveState }) {
-  switch (state.kind) {
-    case "saving":
-      return (
-        <Text color="secondary" type="supporting">
-          saving…
-        </Text>
-      );
-    case "saved":
-      return <span {...stylex.props(statusStyles.saved)}>saved ✓</span>;
-    case "error":
-      return <span {...stylex.props(statusStyles.error)}>Not saved: {state.message}</span>;
-    default:
-      return null;
-  }
-}
-
-/**
- * A text area as tall as its text, about 50 characters a row, two rows at least. Its ref and other
- * props go to the `TextArea`, as an image field's paste and outline do.
- */
-export function GrowingTextArea({
-  value,
-  ...props
-}: Omit<TextAreaProps, "rows" | "value" | "onChange"> & {
-  onChange?: (value: string) => void;
-  value: string;
-}) {
-  const rows = Math.max(
-    2,
-    value.split("\n").reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / 50)), 0),
-  );
-  return <TextArea {...props} rows={rows} value={value} />;
-}
 
 function Option({
   choice,
@@ -265,7 +207,6 @@ function Option({
  * alone saves with its button, or with Submit. With `onAsk`, it and its follow-ups offer "Ask the
  * agent".
  */
-// oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the answer's saving in a hook, and the options in a component
 export function Question({
   document,
   folder,
@@ -284,66 +225,8 @@ export function Question({
   question: QuestionItem;
   readOnly: boolean;
 }) {
-  const fate = useFateClient();
-  const [letters, setLetters] = useState<ReadonlyArray<string>>(question.letters);
-  const [comment, setComment] = useState(question.comment);
-  // The comment as last saved or read: a comment typed since is a draft, which its button saves.
-  const [savedComment, setSavedComment] = useState(question.comment);
-  const save = useSave<{ comment: string; letters: ReadonlyArray<string> }>(
-    async (value, previous) => {
-      const result = await fate.mutations.answer.save({
-        input: {
-          comment: value.comment,
-          folder,
-          letters: [...value.letters],
-          previous,
-          question: question.id,
-        },
-        view: FileView,
-      });
-      if (result.error) {
-        return { message: refusal(result.error).message, ok: false };
-      }
-      const saved = result.result?.current.items.clarifications?.questions.find(
-        (q) => q.id === question.id,
-      );
-      setSavedComment(value.comment);
-      return { ok: true, saved: saved?.answer ?? composed(value.letters, value.comment) };
-    },
-    question.answer,
-  );
-  const { flush, idle, schedule, settle } = save;
-  const dirty = comment !== savedComment;
-  const local = useRef({ comment, dirty, letters });
-  // oxlint-disable-next-line react/refs -- before the code quality decision: the local answer, kept for the effects to read
-  local.current = { comment, dirty, letters };
-  // An answer changed elsewhere replaces this one when nothing of it waits to be saved, and no
-  // comment is being written.
-  useEffect(() => {
-    const shown = composed(local.current.letters, local.current.comment);
-    if (idle() && !local.current.dirty && question.answer.trim() !== shown) {
-      setLetters(question.letters);
-      setComment(question.comment);
-      setSavedComment(question.comment);
-    }
-    settle(question.answer);
-  }, [question.answer, question.letters, question.comment, idle, settle]);
-  const { commit, onImages, onSettled } = useCommentSaves({
-    flush,
-    initial: question.comment,
-    local,
-    pending: useContext(PendingSaves),
-    schedule,
-    setComment,
-  });
-
-  const toggle = (letter: string) => {
-    const next = letters.includes(letter)
-      ? letters.filter((l) => l !== letter)
-      : [...letters, letter].sort();
-    setLetters(next);
-    commit({ comment, letters: next });
-  };
+  const answer = useAnswer(question, folder, path);
+  const { letters } = answer;
   const unclear = question.applies === "unclear";
   const parent = question.parent;
   const wide = useWidthClass() === "wide";
@@ -381,7 +264,7 @@ export function Question({
               disabled={readOnly}
               document={document}
               key={choice.letter}
-              onToggle={() => toggle(choice.letter)}
+              onToggle={() => answer.toggle(choice.letter)}
               selected={letters.includes(choice.letter)}
             />
           ))}
@@ -389,37 +272,16 @@ export function Question({
       )}
       {unclear && !readOnly && (
         <HStack gap={2} xstyle={styles.spaced}>
-          <Button
-            label="Does not apply"
-            onClick={() => {
-              setLetters([]);
-              setComment("-");
-              commit({ comment: "-", letters: [] });
-            }}
-          />
+          <Button label="Does not apply" onClick={answer.notApplying} />
         </HStack>
       )}
-      {readOnly ? (
-        comment && <Paragraph xstyle={styles.spaced}>{comment}</Paragraph>
-      ) : (
-        <div {...stylex.props(styles.spaced)}>
-          <CommentField
-            comment={comment}
-            id={question.id}
-            onChange={setComment}
-            onImages={onImages}
-            onSettled={onSettled}
-            path={path}
-          >
-            <Button
-              isDisabled={!dirty}
-              label="Save comment"
-              onClick={() => commit({ comment, letters })}
-            />
-            {(!dirty || save.state.kind === "error") && <Status state={save.state} />}
-          </CommentField>
-        </div>
-      )}
+      <AnswerComment
+        answer={answer}
+        id={question.id}
+        path={path}
+        readOnly={readOnly}
+        saved={question.comment}
+      />
       {followUps.map((followUp) => (
         <Question
           document={document}
