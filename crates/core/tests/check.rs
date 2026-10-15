@@ -714,6 +714,35 @@ fn the_inbox_may_link_a_started_feature() {
     );
 }
 
+/// A note may link a started change's proposal: its files live on its branch, as a feature's do.
+#[test]
+fn the_inbox_may_link_a_started_change() {
+    let example = Example::new();
+    example.write(
+        INBOX,
+        "# Inbox\n\n- [Login banner](changes/2026-10-20-login-banner/proposal.md)\n- [Gone](changes/gone/proposal.md)\n",
+    );
+
+    assert_eq!(
+        summary(&example.problems()),
+        vec![format!("{INBOX}:4: no file changes/gone/proposal.md")]
+    );
+}
+
+/// An `INBOX.md` or `INBOX-TRIAGE.md` in a change's folder is no inbox: the folder has no place
+/// for it.
+#[test]
+fn an_inbox_in_a_changes_folder_is_reported_as_out_of_place() {
+    for name in ["INBOX.md", "INBOX-TRIAGE.md"] {
+        let example = Example::new();
+        example.write(&format!("{CHANGE}/{name}"), "# Notes\n");
+
+        let rules: Vec<String> = example.problems().into_iter().map(|p| p.rule).collect();
+
+        assert_eq!(rules, vec!["names.change-file"], "{name}");
+    }
+}
+
 fn triage() -> String {
     repository_file("fixtures/INBOX-TRIAGE.md")
 }

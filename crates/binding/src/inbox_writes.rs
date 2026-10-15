@@ -19,7 +19,7 @@ pub fn read_inbox(repo: String) -> AsyncTask<Job<Inbox>> {
 }
 
 /// Adds a note at the end of a category, or of the notes without one, marked with the slug of the
-/// feature or bug folder `about`.
+/// feature or change folder `about`.
 #[napi(ts_return_type = "Promise<Inbox>")]
 pub fn add_note(
     repo: String,

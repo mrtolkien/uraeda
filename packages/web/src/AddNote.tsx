@@ -184,7 +184,7 @@ function useAdd({
 /**
  * The add form: a note's text, and its category, "No category" by default, one of the inbox's, or
  * a new one, named in its own field. It reads the inbox when it opens, for the version it adds to.
- * `about`, on a feature's or a bug's page, is its folder, which marks the note with its slug. Its
+ * `about`, on a feature's or a change's page, is its folder, which marks the note with its slug. Its
  * text is kept as the overlay closes and restored as it opens again (`useTypedNote`); Cancel asks
  * "Discard your changes?" first when it holds text or an image. Enter adds. With `image`, picked
  * with "Attach an image" and held by the overlay (`onImage`), Add becomes "Add as a draft".

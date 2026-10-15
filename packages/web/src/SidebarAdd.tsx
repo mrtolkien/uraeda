@@ -118,7 +118,7 @@ async function undoAdd(fate: ReturnType<typeof useFateClient>, note: InboxNote |
 /**
  * The inbox's form, "Add a note": a toast says the note was added, with Undo, which removes the
  * note it added, found by its lines wherever it is now; a note added as a draft goes with its
- * draft, unless the human typed in it. On a feature's or a bug's pages, the note is about it. The
+ * draft, unless the human typed in it. On a feature's or a change's pages, the note is about it. The
  * image picked for a note is held here, so that the form gets it back as it opens again, until it
  * is added, removed, or cancelled (ruling R21).
  */
@@ -127,7 +127,7 @@ function NoteOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
   const toast = useUndoToast();
   const { route } = useRoute();
   const [image, setImage] = usePickedImage();
-  // A feature's or a bug's folder starts with its date: another `/f/<name>` is about nothing.
+  // A feature's or a change's folder starts with its date: another `/f/<name>` is about nothing.
   const about =
     "folder" in route && /^\d{4}-\d{2}-\d{2}-./.test(route.folder) ? route.folder : undefined;
 

@@ -5,6 +5,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { addChange } from "uraeda-binding/test-utils";
 import { expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
 import {
@@ -498,9 +499,11 @@ test("a blank new category's name keeps Add disabled", async () => {
   expect(add()).toHaveProperty("disabled", false);
 });
 
-/** US1 4, for a bug: its folder is in `specs/bugs/`, its pages at `/f/<folder>` too. */
-test("a note added from a bug's page is marked with its slug", async () => {
-  const { repo } = await renderPage("/f/2026-10-14-login-crash");
+/** US1 4, for a change: its folder is in `specs/changes/`, its pages at `/f/<folder>` too. */
+test("a note added from a change's page is marked with its slug", async () => {
+  const changed = fixtureRepo();
+  addChange(changed, "2026-10-14-login-crash", { "proposal.md": "# Login crash\n" });
+  const { repo } = await renderPage("/f/2026-10-14-login-crash", changed);
 
   await addNote("The banner hides the button");
 
