@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
 import { chatImages } from "../attach.ts";
 import type { AgentEvent } from "../runner/events.ts";
 import { imagesInUse } from "../runner/image-uses.ts";
@@ -879,6 +879,32 @@ test("change.start without the agent starts the change and sends nothing", async
   });
   expect(git(server.repo, "branch", "--list", "change/*")).toMatch(/-centred-x\n$/);
   expect(server.adapter.sent).toEqual([]);
+});
+
+test("change.start answers with the started change when its first run cannot be sent", async () => {
+  const server = await testServer();
+  server.adapter.open = () => {
+    throw new Error("the agent could not start");
+  };
+  const logged = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+
+  const started = await mutate(
+    server.app,
+    "change.start",
+    { slug: "centred-x", text: TYPED },
+    STARTED_FIELDS,
+  );
+
+  expect(started.error).toBeUndefined();
+  expect(started.data).toMatchObject({
+    folder: expect.stringMatching(/-centred-x$/),
+    session: null,
+  });
+  expect(git(server.repo, "branch", "--list", "change/*")).toMatch(/-centred-x\n$/);
+  expect(logged).toHaveBeenCalledWith(
+    `uraeda: ${started.data.folder} started, but its first run was not sent: the agent could not start\n`,
+  );
+  logged.mockRestore();
 });
 
 test("change.start refuses a taken slug with the core's message", async () => {
