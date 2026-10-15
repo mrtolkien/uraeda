@@ -67,9 +67,15 @@ pub fn run(
     begin(git, workspace, source, kind, slug, today, switch)
 }
 
+/// The slug proposed for a change typed as `text`, from the title [`run_text`] reads in it: empty
+/// when no line holds more than spaces and heading marks.
+pub fn propose_slug(text: &str) -> String {
+    Typed::read(text).map_or_else(String::new, |typed| typed.proposed_slug())
+}
+
 /// Starts a change typed as a text: its first written line is the title, and its images are saved
 /// in the change's `images/` folder, linked at the end of the proposal. `slug` defaults to the one
-/// [`crate::slug::propose`] gives for the title.
+/// [`propose_slug`] gives for the text.
 pub fn run_text(
     git: &Git,
     workspace: &Workspace,

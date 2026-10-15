@@ -45,6 +45,11 @@ impl Typed {
         Some(Typed { title, body })
     }
 
+    /// The slug proposed for it: the short slug of its title's words.
+    pub(super) fn proposed_slug(&self) -> String {
+        crate::slug::propose(&self.title)
+    }
+
     /// The proposal: the title as its heading, the body, then a link to each image, by its file
     /// name in the change's `images/` folder.
     fn proposal(&self, images: &[String]) -> String {

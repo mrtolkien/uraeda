@@ -297,6 +297,6 @@ export const sources = createSources<Context>([
   }),
   fileSource(slugProposalDataView, {
     byIds: async ({ binding }, ids) =>
-      ids.map((title) => ({ id: title, slug: binding.proposeSlug(title) })),
+      ids.map((text) => ({ id: text, slug: binding.proposeSlug(text) })),
   }),
 ]);
