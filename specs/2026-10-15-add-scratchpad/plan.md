@@ -931,9 +931,9 @@ git commit -m "feat(add-scratchpad): the inbox and its triage through the bindin
 **Files:**
 
 - Create: `crates/cli/src/note.rs`, `crates/cli/tests/note.rs`
-- Modify: `crates/cli/src/main.rs`, `crates/cli/tests/performance.rs`,
-  `skills/uraeda/references/cli.md` (a row for `ura note`), `skills/uraeda/references/inbox.md` (its
-  flags)
+- Modify: `crates/cli/src/main.rs`, `crates/cli/src/output.rs`, `crates/cli/tests/performance.rs`,
+  `crates/core/src/actions/inbox.rs` (`note`, ruling R17), `skills/uraeda/references/cli.md` (a row
+  for `ura note`), `skills/uraeda/references/inbox.md` (its flags)
 
 **Interfaces:**
 
@@ -941,9 +941,12 @@ git commit -m "feat(add-scratchpad): the inbox and its triage through the bindin
 - Produces:
   - the command `ura note <text> [--category <name>] [--about <target>] [--agent] [--no-commit]`;
   - inside a feature's or a bug's worktree, `--about` defaults to that folder;
-  - the commit holds `specs/INBOX.md` alone.
+  - the commit holds `specs/INBOX.md` alone, through
+    `actions::inbox::note(place, category, marks, text, commit) -> Result<Noted, ActionError>`,
+    where `Noted` is `Committed`, `Written`, or `Uncommitted` (ruling R17);
+  - `output::place_message`, where an action wrote, printed on stderr by `ura note`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - **US1 5:** from a worktree of `2026-10-15-add-scratchpad`,
   `ura note "Status hangs on a broken worktree" --category CLI` commits on main with the subject
@@ -966,22 +969,22 @@ The break each test catches:
 - The note committed on the feature's branch.
 - Other dirty files committed with it.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `cargo nextest run -p uraeda-cli --test note`
 - Expected: FAIL, `error: unrecognized subcommand 'note'`
 
-- [ ] **Step 3: Implement `note.rs`, following `draft.rs`, and document it in the skill**
+- [x] **Step 3: Implement `note.rs`, following `draft.rs`, and document it in the skill**
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `cargo nextest run -p uraeda-cli -p uraeda-core`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add crates/cli skills specs/2026-10-15-add-scratchpad/plan.md
+git add crates/cli crates/core skills specs/2026-10-15-add-scratchpad
 git commit -m "feat(add-scratchpad): ura note"
 ```
 

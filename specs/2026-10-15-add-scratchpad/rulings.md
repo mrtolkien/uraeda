@@ -315,3 +315,30 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   lines.
 - **Where**: task 6, `actions/answer.rs`, `actions/inbox.rs`, `api/answers.rs`,
   `api/answers/triage.rs`, `files/clarifications.rs`, `files/items.rs`, the binding, and the server
+
+## R17: `ura note` commits through a core action, and says where it wrote on stderr
+
+- **Decision**:
+  - `actions::inbox::note(place, category, marks, text, commit) -> Result<Noted, ActionError>` adds
+    the note and commits `specs/INBOX.md` alone, as `chore: add "<note>" to the inbox`, unless
+    `commit` is unset (`Noted::Written`) or the file differed from `HEAD` before the note
+    (`Noted::Uncommitted`). Other staged files are refused before anything is written.
+    `crates/cli/src/note.rs` only resolves the marks, reaches the default branch, and prints.
+  - `--about` resolves a target like other commands, and a draft is refused: a note is about a
+    feature or a bug. Without it, the slug comes from the branch of this checkout, a feature's or
+    `fix/` a bug's.
+  - "No specs/ folder here." covers both a folder outside any git repository and a repository
+    without `specs/`.
+  - Where the note was written goes to stderr, with the message, through `output::place_message`,
+    which `say_place` now prints. When that place is the main checkout itself, from another
+    worktree, it names its full path: `say_place` printed `wrote in ` with nothing after it, for
+    `ura draft` and `ura answer` too.
+  - `place::switch_back` is not called: `place::reach` never switches the checkout.
+- **Rationale**: Committing alone unless the file had uncommitted changes is a workflow rule of
+  `references/inbox.md`, and the stack decision puts workflow logic in the core. The CLI decision
+  sends messages to stderr, and the spec names the two messages `ura note` prints there.
+- **Alternatives considered**: The commit logic in `note.rs`, as the plan's file list implied: a
+  rule outside the core. Printing the place on stdout, as `ura draft` does: a message on the data
+  stream.
+- **If wrong**: `inbox::note` folds into `note.rs`, about 30 lines.
+- **Where**: task 7, `actions/inbox.rs`, `crates/cli/src/note.rs`, `crates/cli/src/output.rs`
