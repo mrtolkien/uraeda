@@ -89,8 +89,9 @@ pub struct Step {
     pub task: Option<String>,
     /// Where the implementation is in the plan's tasks, for implementation.
     pub progress: Option<TaskProgress>,
-    /// Whether the implementation is over: every task of the plan is done, and the feature is past
-    /// them, at its final review or after.
+    /// Whether the implementation is over: for a feature, every task of the plan is done, and it is
+    /// past them, at its final review or after; for a change, it is past its gates, at its `change`
+    /// step or after.
     pub implemented: bool,
     pub pull_request: Option<PullRequest>,
     /// The approved spec's `plan-review`, for the steps before the plan is approved: whether the
