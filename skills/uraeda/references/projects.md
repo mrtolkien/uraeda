@@ -6,11 +6,11 @@ dropping a feature or a change. And how a feature ends, once its work is done.
 ## Setting up a project
 
 When asked to set up Uraeda in a project, copy `assets/templates/specs/README.md`,
-`CONSTITUTION.md`, and `PRIORITIES.md` into the project's `specs/` folder, and create its `drafts/`,
-`backlog/`, `decisions/`, and `changes/` folders, each with an empty `.gitkeep`, since git keeps no
-empty folder. Never overwrite a file that exists. The constitution is the human's: help them write
-it by asking about the project's goals and constraints, and propose principles with recommended
-wording. Do not copy the feature or decision templates: they stay in this skill.
+`CONSTITUTION.md`, `PRIORITIES.md`, and `INBOX.md` into the project's `specs/` folder, and create
+its `drafts/`, `backlog/`, `decisions/`, and `changes/` folders, each with an empty `.gitkeep`, since
+git keeps no empty folder. Never overwrite a file that exists. The constitution is the human's: help
+them write it by asking about the project's goals and constraints, and propose principles with
+recommended wording. Do not copy the feature or decision templates: they stay in this skill.
 
 Once the constitution is written, propose a code-quality decision,
 `specs/decisions/code-quality.md`, for the project's own linters: limits, the stack's shared lint

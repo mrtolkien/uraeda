@@ -64,6 +64,20 @@ fn a_line_is_added_to_an_empty_section() {
 }
 
 /// US7.3: a swap is one change.
+/// R7: bullets inside fenced code are not items, in the priorities as in the inbox.
+#[test]
+fn priorities_skip_fenced_code() {
+    let text = "# Priorities\n\n## Now\n\n```md\n- not an entry\n## Later\n```\n\n- An entry\n";
+
+    let texts: Vec<String> = priorities::parse(text)
+        .into_iter()
+        .map(|e| e.text)
+        .collect();
+    assert_eq!(texts, ["An entry"]);
+    let added = priorities::add(text, Section::Later, "Idea").unwrap();
+    assert_eq!(added, format!("{text}\n## Later\n\n- Idea\n"));
+}
+
 #[test]
 fn a_line_moves_above_another() {
     let moved = priorities::move_entry(TEXT, "next-2", Section::Next, 0).unwrap();
