@@ -4,3 +4,4 @@ target/
 dist/
 .env
 .vitest/
+coverage/

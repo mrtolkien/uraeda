@@ -2,6 +2,7 @@
   "name": "uraeda-workspace",
   "private": true,
   "license": "MIT OR Apache-2.0",
+  "type": "module",
   "scripts": {
     "prepare": "vp config",
     "dev": "node packages/server/scripts/dev.ts",
@@ -12,6 +13,7 @@
   "devDependencies": {
     "@nkzw/eslint-plugin": "catalog:",
     "@nkzw/oxlint-config": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "eslint-plugin-no-only-tests": "catalog:",
     "eslint-plugin-perfectionist": "catalog:",
     "vite-plus": "catalog:"

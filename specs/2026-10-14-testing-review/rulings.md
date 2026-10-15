@@ -607,3 +607,30 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: another control that fades in after its data comes fails the same way; its failure
   names the control.
 - **Where**: the rebase, task 6.
+
+## R34: `vp run coverage`, as built
+
+- **Decision**: Vitest's `coverage.include` is `src/**/*.{ts,tsx}` and `scripts/**/*.ts`, with the
+  tests' helpers (`__tests__/`, `__browser__/`), the lint fixtures (`__lint__/`), declaration files
+  and the generated theme excluded; every package's `scripts/` counts, the server's and the web UI's
+  tools with `@uraeda/ui`'s. The task runs `mkdir -p coverage` first, runs the `@uraeda/ui` project
+  with the other unit projects, and depends on `web:build` too. The summary's test lives with the
+  server's tests, and `ts:test` reads `scripts/**`. The root `package.json` declares
+  `"type": "module"`.
+- **Rationale**: run with `--project`, Vitest matches `include` from each project's folder, not the
+  root's: the plan's `packages/server/src/**` matched no file, and the report read `0/0`. A glob
+  cannot tell one package's `scripts/` from another's, and `@uraeda/ui`'s code is its `scripts/`.
+  The binding's only `*.ts` besides its tests is `test-utils.ts`, a helper: its code is Rust, and
+  its loader napi's. Without the exclusions, the lint fixtures and test helpers counted as code.
+  cargo-llvm-cov failed with "failed to create file `coverage/rust.lcov`" on a fresh checkout.
+  `ts:test` runs `@uraeda/ui` and needs the built web UI since R29. Node warned that the root's
+  `scripts/coverage-summary.ts` had no module type; the root's only other script is the ESM
+  `vite.config.ts`. The spawned `ura` is counted: the CLI tests keep the environment, so `ura`, an
+  instrumented build, writes its profile where `LLVM_PROFILE_FILE` says, and
+  `crates/cli/src/main.rs` reads 55 of 57 lines covered; `main.rs` has no tests of its own.
+- **Alternatives considered**: running `vp test --coverage` without `--project`, so globs match from
+  the root: it would run the browser instances; listing the server's and the web UI's tools by name
+  in `exclude`: a list to keep in step with the folders.
+- **If wrong**: the TypeScript total counts tools no unit test runs, a few points lower; an
+  `exclude` per tool lifts it.
+- **Where**: task 8.
