@@ -506,9 +506,16 @@ export async function sendMessage(text: string) {
 
 /**
  * Starts a turn with a message the agent reads, then sends `events` on it: the session works until
- * the test ends its turn.
+ * the test ends its turn. With `path`, the page at that path is shown first.
  */
-export async function startTurn(text: string, events: Parameters<RepoCommands["agentEmit"]>[0]) {
+export async function startTurn(
+  text: string,
+  events: Parameters<RepoCommands["agentEmit"]>[0],
+  path?: string,
+) {
+  if (path !== undefined) {
+    await show(path, "");
+  }
   await sendMessage(text);
   await commands.agentAccept();
   await commands.agentEmit(events);

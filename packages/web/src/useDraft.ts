@@ -9,6 +9,7 @@ import {
 } from "react";
 import type { ChatImage } from "uraeda-server/fate";
 import { type DraftImage, draftImage, forgetPreviews } from "./attach/chatImages.ts";
+import type { StoryComments } from "./stories.tsx";
 
 /**
  * The composer's text and images, kept by the view while its session is created under it: a new
@@ -35,6 +36,20 @@ export function takeBackInto({ setImages, setText }: Draft) {
     if (images.length > 0) {
       setImages((now) => [...images.map(draftImage), ...now]);
     }
+  };
+}
+
+/**
+ * Where a session's comments on the stories in its transcript go: on a line of their own at the end
+ * of the composer's text, unsent, their unsaved text kept under `path`.
+ */
+export function storyCommentsInto({ setText }: Draft, path: string): StoryComments {
+  return {
+    path,
+    save: async (_story, line) => {
+      setText((now) => (now.trim() ? `${now}\n${line}` : line));
+      return undefined;
+    },
   };
 }
 

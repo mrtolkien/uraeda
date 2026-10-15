@@ -21,6 +21,7 @@ import {
   SessionSearchView,
   SessionView,
   SlugProposalView,
+  StoryHrefView,
   StoryView,
   TurnLogView,
   TurnView,
@@ -439,6 +440,15 @@ export function usePreview(folder: string) {
   useRefreshOnShow(request);
   useStillViewed(request);
   return useLiveView(PreviewView, preview);
+}
+
+/** The story an agent's link, by its href, points to, as the core reads it, if any. */
+export function useStoryHref(href: string): StoryTarget | undefined {
+  const { storyHref } = useRequest({ storyHref: { id: href, view: StoryHrefView } });
+  const link = useView(StoryHrefView, storyHref);
+  return link.path === null || link.export === null
+    ? undefined
+    : { export: link.export, path: link.path };
 }
 
 /** The folder of the main checkout's stories and Storybook, as the server names it. */

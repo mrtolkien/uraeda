@@ -4,10 +4,11 @@
 import { createContext, type ReactNode, useContext } from "react";
 import type { Block, StoryLink, StoryTarget } from "uraeda-binding";
 import { MAIN_CHECKOUT, usePreviewOn } from "./data.ts";
+import type { EmbedComment } from "./StoryPick.tsx";
 
 /** Saves a comment on a story, from its embed's block: why it was refused, or nothing. */
 export type StoryComment = (
-  story: StoryLink,
+  story: StoryTarget,
   text: string,
   block?: Block,
 ) => Promise<string | undefined>;
@@ -51,6 +52,23 @@ export function StoriesProvider({
   const preview = usePreviewOn(folder);
   return (
     <StoryContext value={{ comment, folder, preview, removed, stories }}>{children}</StoryContext>
+  );
+}
+
+/**
+ * Where the comment on an embedded story goes, when its page takes one: its unsaved text kept under
+ * the page's path, its checkout, and the story, and saved with the embed's block, if any.
+ */
+export function embedComment(
+  { comment, folder }: Stories,
+  story: StoryTarget,
+  block?: Block,
+): EmbedComment | undefined {
+  return (
+    comment && {
+      field: `${comment.path}#story:${folder}:${story.path}#${story.export}`,
+      save: (text) => comment.save(story, text, block),
+    }
   );
 }
 
