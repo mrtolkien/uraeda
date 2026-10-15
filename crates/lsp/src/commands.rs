@@ -474,7 +474,7 @@ fn submit(documents: &Documents, args: FileArgs) -> Result<Outcome, ResponseErro
 }
 
 /// `uraeda.commit { uri }`: commits a draft, a backlog file, or a proposal, with the priorities
-/// when they changed, or the priorities alone.
+/// when they changed, or the priorities with the inbox's changes, as the commit bar does.
 fn commit(documents: &Documents, args: FileArgs) -> Result<Outcome, ResponseError> {
     const ONLY: &str =
         "Only drafts, backlog files, proposals, and PRIORITIES.md are committed from the editor.";

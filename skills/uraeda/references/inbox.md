@@ -75,21 +75,26 @@ add that title to a file without one.
 The human decides what each note becomes. Each outcome moves the note out of `INBOX.md`, in the same
 commit as what it became:
 
-- **A priority**: the note's lines become the last entry of a `PRIORITIES.md` section, links kept.
+- **A priority**: the note's lines become the last entry of a `PRIORITIES.md` section, links kept
+  and marks dropped.
 - **A new draft**: `specs/drafts/<slug>.md` from the proposal template, with the note as its title
   and the first paragraph of What, and no placeholder text, linked from the end of a priorities
   section. When the slug is taken, it gets `-2`, `-3`, ...
-- **A line of an existing draft**: the note's lines, at the end of the draft's `## What` section.
+- **A line of an existing draft**: the note's lines, marks dropped, at the end of the draft's
+  `## What` section.
 - **Nothing**: the note is deleted. A note linking a draft loses its line only: the draft stays.
 
 A note can also have its text edited, its marks kept, or move to another category.
 
 Commit `INBOX.md` with the files the notes went into, and nothing else. The message names the one
 change, with the note's text shortened like a priorities entry: `edit "<note>" in the inbox`,
-`remove "<note>" from the inbox`, `move "<note>" to <Category> in the inbox`,
-`move "<note>" from the inbox to <Section>`, or `move "<note>" from the inbox to the draft <title>`,
-each with `chore:`. With more changes, `PRIORITIES.md`'s included, the subject names the first one
-and ends with `, and <count> more`, and the body lists every change, one per line. See
+`remove "<note>" from the inbox`, `move "<note>" to <Category> in the inbox`, with `No category` for
+none, `move "<note>" from the inbox to <Section>`, or
+`move "<note>" from the inbox to the draft <title>`, each with `chore:`. A note counts as moved only
+when the entry or the draft's line has its exact text: one edited on the way is a removal and an
+addition. With more changes, `PRIORITIES.md`'s included, the subject names the first one and ends
+with `, and <count> more`, and the body lists every change, one per line, the inbox's first:
+`- Move from the inbox to Next: <note>`, `- Remove from the inbox: <note>`. See
 [Commits](conventions.md#commits).
 
 ## The triage
