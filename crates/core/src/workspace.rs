@@ -13,6 +13,9 @@ use crate::steps::{self, PullRequest, Step};
 use crate::today::{self, Date};
 
 mod links;
+mod read;
+
+use read::{folder_uncommitted, read_record, read_texts, source_of};
 
 pub use links::resolve;
 
@@ -786,50 +789,13 @@ fn read_feature(
     committed: Option<ObjectId>,
 ) -> Feature {
     let path = folder_path(kind, folder);
-    let mut texts = BTreeMap::new();
-    let mut unreadable = Vec::new();
-    for name in reader.files(from, &path) {
-        if FileKind::of(&name).is_none() {
-            continue;
-        }
-        match reader.read(from, &format!("{path}/{name}")) {
-            Some(text) => {
-                texts.insert(name, text);
-            }
-            None => unreadable.push(name),
-        }
-    }
+    let (texts, unreadable) = read_texts(reader, from, &path);
     if texts.is_empty()
         && unreadable.is_empty()
         && let Some(text) = reader.read(from, &record_path(folder))
     {
-        let committed_text = committed
-            .and_then(|commit| reader.read(ReadFrom::Commit(commit), &record_path(folder)));
-        let recorded = record_kind(&text);
-        let mut feature = Feature::from_record(kind, folder, text);
-        if recorded != kind && feature.problems.is_empty() {
-            let (said, branch) = match kind {
-                Kind::Feature => ("bug", "feature's"),
-                Kind::Bug => ("feature", "bug's"),
-            };
-            feature.problems.push(Problem {
-                file: record_path(folder),
-                line: None,
-                rule: "frontmatter.kind".into(),
-                message: format!(
-                    "kind is {said}, but {} is a {branch} branch",
-                    folder_branch(kind, folder)
-                ),
-            });
-            feature.step = Step::none();
-        }
-        feature.uncommitted = matches!(from, ReadFrom::Disk)
-            && committed_text.as_deref() != feature.text(&format!("{folder}.md"));
+        let mut feature = read_record(reader, kind, folder, text, from, committed);
         feature.branch = branch;
-        feature.source = match from {
-            ReadFrom::Disk => Source::WorkingTree,
-            ReadFrom::Commit(_) => Source::Local,
-        };
         return feature;
     }
     let mut feature = Feature::from_texts(kind, folder, texts);
@@ -848,10 +814,7 @@ fn read_feature(
         });
     }
     feature.branch = branch;
-    feature.source = match from {
-        ReadFrom::Disk => Source::WorkingTree,
-        ReadFrom::Commit(_) => Source::Local,
-    };
+    feature.source = source_of(from);
     let first_file = match kind {
         Kind::Feature => "proposal.md",
         Kind::Bug => "report.md",
@@ -865,18 +828,7 @@ fn read_feature(
             .flatten()
             .is_some()
     });
-    // Git's changes add the deleted files to the texts that differ from the commit.
-    let folder_prefix = format!("{path}/");
-    feature.uncommitted = matches!(from, ReadFrom::Disk)
-        && (feature.texts.iter().any(|(name, text)| {
-            let committed_text = committed.and_then(|commit| {
-                reader.read(ReadFrom::Commit(commit), &format!("{path}/{name}"))
-            });
-            committed_text.as_deref() != Some(text.as_str())
-        }) || reader
-            .git
-            .changed_files()
-            .is_ok_and(|files| files.iter().any(|file| file.starts_with(&folder_prefix))));
+    feature.uncommitted = folder_uncommitted(reader, &feature, &path, from, committed);
     feature.decisions_pending = feature
         .texts
         .get("spec.md")

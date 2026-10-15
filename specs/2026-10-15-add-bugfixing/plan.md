@@ -255,32 +255,37 @@ The decisions this plan relies on, and where it follows them:
 
 **Files:**
 
-- Modify: `crates/core/src/workspace.rs` (`read_feature`)
-- Create: `crates/core/src/actions/start/mod.rs`, `crates/core/src/actions/start/plan.rs` (or names
-  of the implementer's choice inside `actions/start/`), removing `crates/core/src/actions/start.rs`
+- Modify: `crates/core/src/workspace.rs` (`read_feature`); Create:
+  `crates/core/src/workspace/read.rs`, holding `read_feature`'s helpers `read_texts`, `read_record`
+  (the record branch, with its kind check), `folder_uncommitted`, and `source_of`
+  ([R4](rulings.md#r4-read_features-helpers-live-in-a-module-of-workspace))
+- Create: `crates/core/src/actions/start/mod.rs` (`run`, `Started`, `StartError`, `Start`),
+  `crates/core/src/actions/start/plan.rs` (`Plan`, the checks, `free_folder`, `moved_entry`), and
+  `crates/core/src/actions/start/commits.rs` (the two commits, the branch, the draft's move),
+  removing `crates/core/src/actions/start.rs`
 - Create: `crates/core/src/api/start.rs`; Modify: `crates/core/src/api.rs` (`start_feature` moves)
-- Modify: `crates/core/src/view.rs` (499 lines: move `StartedView` and the views Task 6 grows into a
-  module of their own, such as `view/feature.rs`)
+- Modify: `crates/core/src/view.rs` (499 lines: `StepView`, `FileSummary`, `FeatureView`, and
+  `StartedView` move into `view/feature.rs`, re-exported from `view`)
 
 **Interfaces:**
 
 - Produces: no behaviour change. `api::start_feature` keeps its signature and path through a
   re-export; `start::run` keeps its signature.
 
-- [ ] **Step 1: Split `read_feature` under 80 lines**, its record branch (:802-834) and its files'
+- [x] **Step 1: Split `read_feature` under 80 lines**, its record branch (:802-834) and its files'
       read in functions of their own, without changing behaviour.
-- [ ] **Step 2: Split `actions/start.rs` into a folder** of modules, each under 300 lines: the entry
+- [x] **Step 2: Split `actions/start.rs` into a folder** of modules, each under 300 lines: the entry
       and its errors, the plan of the move, and the git steps.
-- [ ] **Step 3: Move `start_feature` and its `draft_path` helper into `api/start.rs`**, re-exported
-      from `api`, and lower `api.rs`'s `LARGE` entry in
+- [x] **Step 3: Move `start_feature` and its `draft_path` helper into `api/start.rs`**, re-exported
+      from `api`, and lower `api.rs`'s `LARGE` entry (to 831) in
       [`structure.rs`](/crates/cli/tests/structure.rs) to its new size.
-- [ ] **Step 4: Split `view.rs`** so it is under 450 lines, moving whole views.
-- [ ] **Step 5: Run all Rust checks**
+- [x] **Step 4: Split `view.rs`** so it is under 450 lines, moving whole views.
+- [x] **Step 5: Run all Rust checks**
 
 - Run: `vp run ready:rust`
 - Expected: PASS, the same tests as before.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/core crates/cli/tests/structure.rs
@@ -295,8 +300,9 @@ git commit -m "refactor(add-bugfixing): split read_feature, start, the API's sta
   - `crates/core/src/workspace.rs`: `Kind::Change`; `branch_folder`, `folder_branch`, `record_kind`,
     and `folder_path`; `Reader::folders` reading `specs/changes`; `FileKind` without `Report` and
     `Assessment`; the first file always `proposal.md`, through one function used by `read_feature`,
-    `from_texts`, and `view.rs`; `from_record` accepting `feature` or `change`;
-  - `crates/core/src/view.rs`;
+    `from_texts`, and `view/feature.rs`; `from_record` accepting `feature` or `change`;
+  - `crates/core/src/workspace/read.rs`: `read_record`'s kind check;
+  - `crates/core/src/view.rs` and `crates/core/src/view/feature.rs`;
   - `crates/core/src/gates.rs`, `target.rs`, `actions/review.rs`, `check/values.rs`,
     `check/sections.rs`, `actions/text.rs`, `actions/clean.rs`, `actions/init.rs`, `changes.rs`,
     `api.rs`, `api/files.rs`, `actions/attach.rs`, and their doc comments;
@@ -646,7 +652,7 @@ git commit -m "feat(add-bugfixing): start a change from a draft or a typed text"
 
 **Files:**
 
-- Modify: `crates/core/src/view.rs` (or the module Task 1 moved `FeatureView` into),
+- Modify: `crates/core/src/view/feature.rs` (`FeatureView`, moved there by Task 1),
   `crates/core/src/workspace.rs` (the record's `pull-request`)
 - Regenerate: `packages/binding/index.js`, `index.d.ts`
 - Modify: `packages/server/src/fate/views.ts`, `packages/web/src/views.ts` (`pullRequest` selected)

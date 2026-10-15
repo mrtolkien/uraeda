@@ -4,7 +4,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::actions::review::{self, Tier};
-use crate::actions::{ActionError, answer, draft, place, priorities as edits, start, text};
+use crate::actions::{ActionError, answer, draft, place, priorities as edits, text};
 use crate::check;
 use crate::files::document::{self, hash};
 use crate::files::items::items;
@@ -16,7 +16,7 @@ use crate::git::{Git, GitError};
 use crate::repositories::ListError;
 use crate::view::{
     CommitView, DraftView, FeatureView, FileView, NextView, PriorityLink, PriorityView,
-    ProposalHint, StartedView, StepView, VersionView, WaitingFile, WorkspaceView, title,
+    ProposalHint, StepView, VersionView, WaitingFile, WorkspaceView, title,
 };
 use crate::workspace::{
     Feature, FileKind, Problem, Source, Workspace, WorkspaceError, linked_draft,
@@ -27,6 +27,7 @@ mod answers;
 mod files;
 mod priority_edits;
 mod repository_list;
+mod start;
 
 pub use answers::*;
 pub use files::{attach_image, encode_image, read_image, read_raw};
@@ -38,6 +39,9 @@ pub use priority_edits::{
 pub use repository_list::{
     add_repository, data_dir, open_repository, read_repositories, remove_repository,
 };
+pub use start::start_feature;
+
+use start::draft_path;
 
 /// An operation refused or failed: `code` is `refused`, `conflict` for a change made elsewhere,
 /// or `hook` for a commit a hook refused, with its whole `output`.
@@ -252,18 +256,6 @@ pub(crate) fn find<'a>(workspace: &'a Workspace, folder: &str) -> Result<&'a Fea
 fn plain(path: &str) -> bool {
     path.split('/')
         .all(|part| !part.is_empty() && !part.starts_with('.') && !part.contains(['\\', ':']))
-}
-
-/// Refuses any path but a draft's: a file or a postponed folder of `specs/drafts/` or
-/// `specs/backlog/`, or a file of that folder.
-fn draft_path(path: &str) -> Result<()> {
-    let rest = path
-        .strip_prefix("specs/drafts/")
-        .or_else(|| path.strip_prefix("specs/backlog/"));
-    match rest {
-        Some(rest) if plain(path) && rest.split('/').count() <= 2 => Ok(()),
-        _ => Err(refused(format!("{path} is not a draft"))),
-    }
 }
 
 /// The feature or bug whose folder holds `path`.
@@ -809,26 +801,6 @@ pub fn proposal_hints() -> Result<Vec<ProposalHint>> {
         .into_iter()
         .map(|(heading, hint)| ProposalHint { heading, hint })
         .collect())
-}
-
-/// Starts a drafted feature in its own worktree.
-pub fn start_feature(repo: &Path, draft: &str, slug: Option<&str>) -> Result<StartedView> {
-    draft_path(draft)?;
-    let _lock = write_lock();
-    let (git, workspace) = open(repo)?;
-    match start::run(&git, &workspace, draft, slug, today::today(), false) {
-        Ok(started) => Ok(StartedView {
-            folder: started.branch.clone(),
-            branch: started.branch,
-            worktree: started.worktree,
-        }),
-        Err(start::StartError::Partial { done, left, cause }) => Err(refused(format!(
-            "{cause}. Done: {}. Left: {}.",
-            done.join(", "),
-            left.join(", then ")
-        ))),
-        Err(error) => Err(refused(error.to_string())),
-    }
 }
 
 /// A draft or a proposal, for its editor: a draft from the default branch, a proposal from its
