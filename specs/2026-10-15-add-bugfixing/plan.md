@@ -418,9 +418,11 @@ git commit -m "feat(add-bugfixing): bugs become changes, in specs/changes on cha
 
 - Modify: `crates/core/src/steps.rs` (`StepName::Change`, `change_step` replacing `bug_step`,
   without `Assess`, `AssessRevision`, and `Fix`)
-- Test: `crates/core/tests/steps.rs` (`change_table` replacing `bug_table`, the finishing rows), and
-  `editors/nvim/tests/test_inline.lua`, whose change's hint, `assess · waits on agent` since Task 2,
-  follows the new step
+- Test: `crates/core/tests/steps.rs` (`change_table` replacing `bug_table`, the finishing rows),
+  `crates/cli/tests/status.rs` (`branch_with_a_slash`), and `editors/nvim/tests/test_inline.lua`,
+  whose change's hint, `assess · waits on agent` since Task 2, follows the new step: with no `gh`,
+  both read the pull request's tail, `pull-request (pull request state unknown)` and
+  `pull-request · waits on agent`, as a feature past its last task does ([R7](rulings.md))
 
 **Interfaces:**
 
@@ -431,7 +433,7 @@ git commit -m "feat(add-bugfixing): bugs become changes, in specs/changes on cha
   3. a file with `status: awaiting-human`: `Step::gate(that file)`;
   4. otherwise `after_the_last_step(pull_request, StepName::Change, "change")`.
 
-- [ ] **Step 1: Write the failing table-driven test**
+- [x] **Step 1: Write the failing table-driven test**
 
 ```rust
 // crates/core/tests/steps.rs
@@ -463,19 +465,19 @@ The break each row catches:
 
 SC-001 is this table: the only human gate without a round is the pull request.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `cargo nextest run -p uraeda-core change_table`
 - Expected: FAIL, `no variant named Change` on `StepName`.
 
-- [ ] **Step 3: Implement `change_step`** and remove the bug step names, updating `as_str` and the
+- [x] **Step 3: Implement `change_step`** and remove the bug step names, updating `as_str` and the
       CLI's step labels.
-- [ ] **Step 4: Run all Rust checks**
+- [x] **Step 4: Run all Rust checks**
 
 - Run: `vp run ready:rust`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates
