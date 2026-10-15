@@ -746,3 +746,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   branch met `main`'s change code: the check's values, the fate records, the Storybook page's crumbs
   and routes, and the session's imports.
 - **Where**: the catch-up, no code change for the decisions themselves.
+
+## R49: A change's folder may hold `mockups/`
+
+- **Decision**: `ura check` allows a `mockups/` folder in a change's folder, beside `images/` and
+  `screenshots/`, and its message lists it. `change.md` and `SKILL.md`'s layout list it too.
+- **Rationale**: round 01 settled that "a change's folder may also hold `mockups/`", and a change's
+  round can hold a visual question, whose variants are stories in `mockups/`. `main`'s change flow,
+  merged meanwhile, refused any folder but `images/` and `screenshots/`, so a change following this
+  spec failed its check.
+- **Alternatives considered**: keeping `mockups/` out of changes, which drops round 01's settled
+  point.
+- **If wrong**: `change_holds` in `crates/core/src/check/names.rs`. A mockups Storybook reads
+  `specs/*/mockups/*.stories.tsx`, as the spec says, which does not reach `specs/changes/`: a
+  change's mockups in such a project show only once that glob is widened.
+- **Where**: `crates/core/src/check/names.rs`, `crates/core/tests/check.rs`,
+  `skills/uraeda/references/change.md`, and `skills/uraeda/SKILL.md`.
