@@ -303,6 +303,8 @@ export interface Changes {
   files: Array<string>
   /** Whether `PRIORITIES.md` or the drafts changed. */
   priorities: boolean
+  /** Whether the default branch's `INBOX.md` or `INBOX-TRIAGE.md` changed. */
+  inbox: boolean
   /** Whether a feature, a branch, or a worktree appeared or went. */
   workspace: boolean
 }

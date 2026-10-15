@@ -242,6 +242,11 @@ pub struct Workspace {
     /// Drafts and postponed features, from the default branch: `specs/drafts/x.md`,
     /// `specs/backlog/y` for a folder.
     pub drafts: Vec<String>,
+    /// `INBOX.md` and `INBOX-TRIAGE.md`, from the default branch, as the priorities are read.
+    #[serde(skip)]
+    pub inbox: Option<String>,
+    #[serde(skip)]
+    pub triage: Option<String>,
     pub problems: Vec<Problem>,
     #[serde(skip)]
     pub fetched_ago: Option<String>,
@@ -702,6 +707,8 @@ impl Workspace {
             priorities: priority_entries(&priorities_text, &features),
             features,
             drafts: default_reader.drafts(priorities_from),
+            inbox: default_reader.read(priorities_from, "specs/INBOX.md"),
+            triage: default_reader.read(priorities_from, "specs/INBOX-TRIAGE.md"),
             problems: Vec::new(),
         })
     }

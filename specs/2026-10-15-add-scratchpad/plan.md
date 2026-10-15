@@ -527,9 +527,10 @@ git commit -m "feat(add-scratchpad): the inbox's format, in the core and the ski
 - Create: `crates/core/src/actions/inbox.rs`, `crates/core/src/api/drafts.rs`,
   `crates/core/src/api/inbox_edits.rs`
 - Modify: `crates/core/src/api.rs` (the draft functions move out; the `From<ActionError>` conflict
-  arm), `crates/core/src/actions/mod.rs`, `crates/core/src/workspace.rs` (inbox text),
-  `crates/core/src/watch.rs` (`Changes.inbox`), `crates/cli/tests/structure.rs` (`api.rs` row
-  lowered)
+  arm), `crates/core/src/actions/mod.rs`, `crates/core/src/actions/place.rs` (`committed`, shared
+  with the priorities), `crates/core/src/workspace.rs` (inbox text), `crates/core/src/watch.rs`
+  (`Changes.inbox`), `crates/cli/tests/structure.rs` (`api.rs` row lowered),
+  `packages/binding/index.d.ts` and `packages/server/src/__tests__/live.test.ts` (`Changes.inbox`)
 - Test: `crates/core/tests/inbox_actions.rs`, `crates/core/tests/watch.rs`
 
 **Interfaces:**
@@ -537,8 +538,11 @@ git commit -m "feat(add-scratchpad): the inbox's format, in the core and the ski
 - Consumes: `files::inbox` (task 2).
 - Produces:
   - In `actions::inbox`:
-    - `pub const PATH: &str = "specs/INBOX.md"` and `pub fn read(place: &Place) -> Inbox`, with
-      `triage` from `specs/INBOX-TRIAGE.md`'s status;
+    - `pub const PATH: &str = "specs/INBOX.md"`, `pub const TRIAGE: &str = "specs/INBOX-TRIAGE.md"`,
+      and `pub fn read(place: &Place) -> Inbox`, with `triage` from `specs/INBOX-TRIAGE.md`'s status
+      and `changes` from `inbox::diff` against `HEAD`, which task 4 replaces with the merged count;
+    - `pub fn of(text: &str, committed: Option<&str>, triage: Option<&str>) -> Inbox`, shared by
+      `read` and `api::read_inbox` (ruling R12);
     - `pub struct Marks { pub agent: bool, pub about: Option<String> }`;
     - `pub fn add(place, category: Option<&str>, marks: &Marks, text: &str, previous: Option<&str>) -> Result<Inbox, ActionError>`,
       where `previous` is `None` from the CLI;
@@ -547,12 +551,15 @@ git commit -m "feat(add-scratchpad): the inbox's format, in the core and the ski
       `insert(place, category, index, lines, previous)`, each returning
       `Result<Inbox, ActionError>`.
   - In `api::inbox_edits`, re-exported from `api`, each through `write_lock` and `reach_default`:
-    - `read_inbox(repo) -> Result<Inbox>`;
+    - `read_inbox(repo) -> Result<Inbox>`, which reads like `read_priorities`, without the lock or a
+      worktree (ruling R12);
     - `add_note(repo, category: Option<String>, about: Option<String>, text, previous) -> Result<Inbox>`,
       where `about` is a feature folder, written as its slug;
     - `edit_note`, `remove_note`, `move_note_to_category`, and `insert_note`.
   - In `watch`: `Changes.inbox: bool`, set when the default branch's `INBOX.md` or `INBOX-TRIAGE.md`
     changes.
+  - In `Workspace`: `inbox` and `triage`, the texts of both files from the default branch, kept out
+    of `ura status --json` (ruling R12).
 
 - [x] **Step 1: Move the draft functions out of `api.rs` into `api/drafts.rs`**
 
@@ -567,7 +574,7 @@ git add crates/core/src/api.rs crates/core/src/api crates/cli/tests/structure.rs
 git commit -m "refactor(add-scratchpad): the draft API in api/drafts.rs"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 `inbox_actions.rs`, on `TestRepo`, using the fixture repo pattern of
 [`tests/priorities.rs`](/crates/core/tests/priorities.rs):
@@ -591,29 +598,34 @@ The break each test catches:
 
 In `watch.rs`, writing `INBOX.md` on main gives `Changes { inbox: true, .. }`.
 
-- [ ] **Step 3: Run them to check they fail**
+Also: an agent's note added without a hash, with its marks, and a blank text refused with "A note
+needs text."; an edit then a move keeping the marks; the triage's status read from the fixture
+`INBOX-TRIAGE.md`.
+
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `cargo nextest run -p uraeda-core --test inbox_actions --test watch`
 - Expected: FAIL to compile, `could not find inbox in actions`
 
-- [ ] **Step 4: Implement the actions, the API, the workspace read, and the watch flag**
+- [x] **Step 4: Implement the actions, the API, the workspace read, and the watch flag**
 
-- The conflict arm of `From<ActionError>` matches any refusal containing " changed on disk.", so
-  `INBOX.md`'s maps to `conflict` like `PRIORITIES.md`'s.
-- `Workspace` reads the default branch's `INBOX.md` and triage status the way it reads
+- The conflict arm of `From<ActionError>` matches a `Changed` error or any refusal containing "
+  changed on disk", in one arm, so `INBOX.md`'s maps to `conflict` like `PRIORITIES.md`'s, and
+  `api.rs` shrinks by one line with the inbox's `mod` and `pub use` lines.
+- `Workspace` reads the default branch's `INBOX.md` and `INBOX-TRIAGE.md` texts the way it reads
   `PRIORITIES.md`, within its 19 lines of room.
 - The snapshot hashes them into the inbox flag.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run:
   `cargo nextest run -p uraeda-core -p uraeda-cli && cargo clippy --workspace --all-targets -- -D warnings`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add crates specs/2026-10-15-add-scratchpad/plan.md
+git add crates packages specs/2026-10-15-add-scratchpad
 git commit -m "feat(add-scratchpad): inbox edits on the default branch"
 ```
 

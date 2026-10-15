@@ -1,0 +1,218 @@
+mod common;
+
+use common::repo::TestRepo;
+use uraeda_core::actions::inbox::{self as actions, Marks};
+use uraeda_core::actions::{ActionError, place};
+use uraeda_core::api;
+use uraeda_core::git::Git;
+
+const INBOX: &str = "specs/INBOX.md";
+
+fn fixture_text(path: &str) -> String {
+    std::fs::read_to_string(common::fixture(path)).unwrap()
+}
+
+/// A repository on `main` with the fixture's `INBOX.md` and `PRIORITIES.md`.
+fn fixture_repo() -> TestRepo {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    for name in ["INBOX.md", "PRIORITIES.md"] {
+        repo.write(
+            &format!("specs/{name}"),
+            &fixture_text(&format!("repo/main/specs/{name}")),
+        );
+    }
+    repo.commit("chore: specs");
+    repo
+}
+
+fn main_place(repo: &TestRepo) -> place::Place {
+    place::reach(&Git::discover(repo.path()).unwrap(), "main").unwrap()
+}
+
+/// US1 1: a note added to a category is its last note. The priorities' hash differs from the
+/// inbox's, so a check against it refuses this add.
+#[test]
+fn a_note_is_added_last_in_its_category() {
+    let repo = fixture_repo();
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let added = api::add_note(
+        repo.path(),
+        Some("UI".into()),
+        None,
+        "The plan's task list scrolls under the top bar",
+        &read.hash,
+    )
+    .unwrap();
+
+    assert!(repo.read(INBOX).contains(
+        "- Text input feels laggy on the sessions page\n\
+         - The plan's task list scrolls under the top bar\n\n## CLI"
+    ));
+    assert_eq!(added.count, 11);
+    assert_eq!(added.changes, 1);
+    assert_eq!(api::read_inbox(repo.path()).unwrap(), added);
+}
+
+/// US1 6: the first note creates the file.
+#[test]
+fn the_first_note_creates_the_inbox() {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.commit("chore: specs");
+    let read = api::read_inbox(repo.path()).unwrap();
+    assert_eq!(read.count, 0);
+
+    api::add_note(repo.path(), None, None, "A first note", &read.hash).unwrap();
+
+    assert_eq!(repo.read(INBOX), "# Inbox\n\n- A first note\n");
+}
+
+/// US1 4: a note added from a feature's page is marked with its slug, not its folder.
+#[test]
+fn a_note_about_a_feature_is_marked_with_its_slug() {
+    let repo = fixture_repo();
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    api::add_note(
+        repo.path(),
+        None,
+        Some("2026-10-14-run-ui".into()),
+        "The x is not centered",
+        &read.hash,
+    )
+    .unwrap();
+
+    assert!(
+        repo.read(INBOX)
+            .contains("- We need a home icon\n- [run-ui] The x is not centered\n\n## UI")
+    );
+}
+
+/// The CLI's add: marks of its own, and no hash to check.
+#[test]
+fn an_agents_note_is_added_without_a_hash() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    let marks = Marks {
+        agent: true,
+        about: Some("session-view".into()),
+    };
+
+    actions::add(&place, Some("Editor"), &marks, "Scrolling stutters", None).unwrap();
+
+    assert!(
+        repo.read(INBOX)
+            .ends_with("\n## Editor\n\n- [agent] [session-view] Scrolling stutters\n")
+    );
+    let error = actions::add(&place, None, &marks, "  \n", None).unwrap_err();
+    assert_eq!(error.to_string(), "A note needs text.");
+}
+
+/// From a feature's checkout, the note lands in the default branch's checkout.
+#[test]
+fn from_a_feature_branch_notes_go_to_the_default_branchs_worktree() {
+    let repo = fixture_repo();
+    repo.switch_new("2026-10-15-add-scratchpad");
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    api::add_note(
+        repo.path(),
+        Some("CLI".into()),
+        None,
+        "Status hangs on a broken worktree",
+        &read.hash,
+    )
+    .unwrap();
+
+    assert!(
+        repo.read(".worktrees/main/specs/INBOX.md")
+            .ends_with("- Status hangs on a broken worktree\n")
+    );
+    assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
+    assert_eq!(repo.current_branch(), "2026-10-15-add-scratchpad");
+}
+
+#[test]
+fn an_edit_over_a_change_made_elsewhere_is_refused() {
+    let repo = fixture_repo();
+    let place = main_place(&repo);
+    let read = actions::read(&place);
+    repo.write(INBOX, &repo.read(INBOX).replace("home icon", "home button"));
+    let marks = Marks {
+        agent: false,
+        about: None,
+    };
+
+    let error = actions::add(&place, None, &marks, "An idea", Some(&read.hash)).unwrap_err();
+
+    assert_eq!(
+        error.to_string(),
+        "INBOX.md changed on disk. Your change was not applied."
+    );
+    assert!(matches!(error, ActionError::Refused(_)));
+    let error = api::add_note(repo.path(), None, None, "An idea", &read.hash).unwrap_err();
+    assert_eq!(error.code, "conflict");
+    assert!(!repo.read(INBOX).contains("An idea"));
+}
+
+/// US1 7: Undo of a removal puts the note back, byte for byte.
+#[test]
+fn remove_then_insert_restores_the_bytes() {
+    let repo = fixture_repo();
+    let before = repo.read(INBOX);
+    let read = api::read_inbox(repo.path()).unwrap();
+    let note = &read.categories[1].notes[2];
+    assert_eq!(note.text, "Icons are blurry on retina screens");
+
+    let removed = api::remove_note(repo.path(), &note.id, &read.hash).unwrap();
+    assert_eq!(removed.count, 9);
+    api::insert_note(
+        repo.path(),
+        Some("UI".into()),
+        2,
+        &note.lines,
+        &removed.hash,
+    )
+    .unwrap();
+
+    assert_eq!(repo.read(INBOX), before);
+}
+
+/// A note's text edited, and moved to another category, with its marks kept.
+#[test]
+fn a_note_is_edited_and_moved() {
+    let repo = fixture_repo();
+    let read = api::read_inbox(repo.path()).unwrap();
+    let id = &read.categories[1].notes[0].id;
+
+    let edited = api::edit_note(repo.path(), id, "The x is off center", &read.hash).unwrap();
+    api::move_note_to_category(repo.path(), id, Some("CLI".into()), &edited.hash).unwrap();
+
+    assert!(
+        repo.read(INBOX)
+            .ends_with("- Make sure agents are resumable\n- [run-ui] The x is off center\n")
+    );
+    let read = api::read_inbox(repo.path()).unwrap();
+    let error = api::remove_note(repo.path(), "note-99", &read.hash).unwrap_err();
+    assert_eq!(error.code, "refused");
+}
+
+/// The triage's status, read from `INBOX-TRIAGE.md` next to the inbox.
+#[test]
+fn the_triage_status_is_read() {
+    let repo = fixture_repo();
+    assert_eq!(api::read_inbox(repo.path()).unwrap().triage, None);
+
+    repo.write("specs/INBOX-TRIAGE.md", &fixture_text("INBOX-TRIAGE.md"));
+
+    assert_eq!(
+        api::read_inbox(repo.path()).unwrap().triage.as_deref(),
+        Some("awaiting-human")
+    );
+    assert_eq!(
+        actions::read(&main_place(&repo)).triage.as_deref(),
+        Some("awaiting-human")
+    );
+}
