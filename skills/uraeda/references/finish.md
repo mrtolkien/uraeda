@@ -21,17 +21,20 @@ keeps every file of the folder, and `git log -- specs/<folder>/` finds them, or
 
 Find the state of the branch in this table, and start at its step:
 
-| State of the branch                                                               | Start at                                                                  |
-| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Every step is checked, and there is no pull request                               | The [final review](implementation.md#final-review), then the next row     |
-| Every step is checked, or the change is reviewed, and the pull request is a draft | [Write the record](#write-the-record): the final review is done           |
-| The record, and the pull request is a draft                                       | [Mark the pull request ready](#mark-the-pull-request-ready)               |
-| The record, and no pull request                                                   | [Open the pull request](#open-the-draft-pull-request), then mark it ready |
+| State of the branch                                                               | Start at                                                                                         |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Every step is checked, and there is no pull request                               | The [final review](implementation.md#final-review), then the next row                            |
+| A change's folder came back, and a round answered since is not made yet           | [Make it](change.md#making-the-change), and [review it](change.md#the-review), then the next row |
+| Every step is checked, or the change is reviewed, and the pull request is a draft | [Write the record](#write-the-record): the final review is done                                  |
+| The record, and the pull request is a draft                                       | [Mark the pull request ready](#mark-the-pull-request-ready)                                      |
+| The record, and no pull request                                                   | [Open the pull request](#open-the-draft-pull-request), then mark it ready                        |
 
-For a change, the first row is [the review](change.md#the-review), and the second its draft pull
-request. With `ura`, `ura next` names the step, `finish` for every row but the first. Without `gh`,
-it cannot see the pull request, and names `pull-request` once the record is there: check the pull
-request yourself.
+For a change, the first row is [the review](change.md#the-review), and the third its draft pull
+request. A change's folder came back when the branch reverts its finishing commit, for
+[changes asked on the pull request](#changes-asked-on-the-pull-request): `git log` shows whether a
+round was answered after that revert. With `ura`, `ura next` names the step, `finish` for every row
+but the first. Without `gh`, it cannot see the pull request, and names `pull-request` once the
+record is there: check the pull request yourself.
 
 ## Open the draft pull request
 

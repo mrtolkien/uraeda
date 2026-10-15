@@ -330,8 +330,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
     round, the record's changes noted before the revert go into `rulings.md`, one ruling each;
   - a new question is a round of `clarifications-NN.md` alone; a new decision is the upgrade offer,
     and a change to an active decision is proposed in a round;
-  - once that round is answered, the draft pull request makes the table name finish: the agent first
-    makes the change from the answers and reviews it, then finishes.
+  - once that round is answered, the pull request is a draft, and `ura next` names finish: a row of
+    `finish.md`'s and of `change.md`'s tables, before the draft's, sends a change whose folder came
+    back, with a round answered since that is not made yet, to make the change from the answers and
+    review it first. The folder came back when the branch reverts its finishing commit, and
+    `git log` shows a round answered after that revert.
 
   `SKILL.md`'s "Going back to the human" and its rule on proposed decision changes link the change's
   exceptions, and finish's table row "the pull request is a draft" covers a reviewed change.
@@ -341,14 +344,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   without a discovery file", "Decisions are the human's intent"). The proposal stays the human's
   words, never rewritten ([projects](/skills/uraeda/references/projects.md)); `rulings.md` is where
   a change's choices live, and the record's **Changes after approval** lists the rulings that change
-  behaviour. The core's step for a change with a draft pull request is finish, with no row for an
-  answered round, so the reference carries that order.
+  behaviour. The core's step for a change with a draft pull request is finish: from the files alone,
+  a round answered after the folder came back looks like a round answered before the first review,
+  and only `git log` tells them apart, so the references' tables carry that row, and the core does
+  not guess. Before the final review, the row was a note under `change.md`'s pull request section,
+  which `finish.md`'s table, where `ura next` sends the agent, sent past.
 - **Alternatives considered**: carrying the noted changes into the proposal, which rewrites the
   human's words; a step of its own for an answered round after the pull request, which the core does
   not have.
-- **If wrong**: add a `change` row before finish for a round answered after the draft pull request,
-  in the core and in `change.md`'s table.
-- **Where**: review of task 10, `skills/uraeda/references/change.md`, `finish.md`, `SKILL.md`.
+- **If wrong**: the core reads the finishing commit's revert, and names `change` for a round
+  answered after it, in place of the tables' row.
+- **Where**: review of task 10, and the final review, `skills/uraeda/references/change.md`,
+  `finish.md`, `SKILL.md`.
 
 ## R21: An upgraded change's feature starts with a new discovery round
 
