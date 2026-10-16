@@ -1,13 +1,13 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
-import { loadDataDir, loadEnv } from "../env.ts";
+import { loadConfigDir, loadDataDir, loadEnv } from "../env.ts";
 import { parseOptions } from "../options.ts";
-import { dataDir } from "uraeda-binding";
+import { configDir, dataDir } from "uraeda-binding";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 
-/** The core's default data folder, as the binding gives it. */
-const core = { dataDir };
+/** The core's default data and config folders, as the binding gives them. */
+const core = { configDir, dataDir };
 
 function root(env?: string) {
   const dir = temporaryFolder("uraeda-env");
@@ -17,26 +17,25 @@ function root(env?: string) {
   return dir;
 }
 
-test("reads the allowed hosts, the port, and the repository from .env", () => {
+test("reads the allowed hosts, the port, and the repository from .env, with their names", () => {
   const dir = root(
     "URAEDA_ALLOWED_HOSTS=a.ts.net, b.ts.net\nURAEDA_PORT=4999\nURAEDA_REPO=../todo\n",
   );
 
   expect(loadEnv(dir, {})).toEqual({
-    allowedHosts: ["a.ts.net", "b.ts.net"],
+    allowedHosts: { name: "URAEDA_ALLOWED_HOSTS", value: ["a.ts.net", "b.ts.net"] },
     given: true,
-    port: 4999,
+    port: { name: "URAEDA_PORT", value: 4999 },
     repo: join(dir, "../todo"),
   });
 });
 
-test("defaults to port 4310 and the root itself", () => {
+test("reports no host names and no port when no variable gives them, and the root itself", () => {
   const dir = root();
 
-  expect(loadEnv(dir, {})).toEqual({
-    allowedHosts: [],
+  expect(loadEnv(dir, {})).toEqual({ given: false, repo: dir });
+  expect(loadEnv(dir, { URAEDA_ALLOWED_HOSTS: "", URAEDA_PORT: "" })).toEqual({
     given: false,
-    port: 4310,
     repo: dir,
   });
 });
@@ -45,8 +44,10 @@ test("the environment wins over .env, and the command line over both", () => {
   const dir = root("URAEDA_PORT=4999\n");
 
   const env = loadEnv(dir, { URAEDA_PORT: "5000" });
-  expect(env.port).toBe(5000);
-  expect(parseOptions(["--port", "5001"], env).port).toBe(5001);
+  expect(env.port).toEqual({ name: "URAEDA_PORT", value: 5000 });
+  expect(parseOptions(["--port", "5001"], env).port).toEqual({ name: "--port", value: 5001 });
+  expect(parseOptions([], env).port).toEqual({ name: "URAEDA_PORT", value: 5000 });
+  expect(parseOptions([], loadEnv(root(), {})).port).toBeUndefined();
 });
 
 test("the repository is given by URAEDA_REPO or --repo, not by the folder the server starts in", () => {
@@ -61,19 +62,26 @@ test("the repository is given by URAEDA_REPO or --repo, not by the folder the se
 test("--allowed-hosts replaces URAEDA_ALLOWED_HOSTS", () => {
   const env = loadEnv(null, { URAEDA_ALLOWED_HOSTS: "a.ts.net" });
 
-  expect(parseOptions(["--allowed-hosts", "b.ts.net, c.ts.net"], env).allowedHosts).toEqual([
-    "b.ts.net",
-    "c.ts.net",
-  ]);
+  expect(env.allowedHosts).toEqual({ name: "URAEDA_ALLOWED_HOSTS", value: ["a.ts.net"] });
+  expect(parseOptions(["--allowed-hosts", "b.ts.net, c.ts.net"], env).allowedHosts).toEqual({
+    name: "--allowed-hosts",
+    value: ["b.ts.net", "c.ts.net"],
+  });
+  // Given empty, the flag still overrides the file: no host name for this run.
+  expect(parseOptions(["--allowed-hosts", ""], env).allowedHosts).toEqual({
+    name: "--allowed-hosts",
+    value: [],
+  });
+  expect(parseOptions([], loadEnv(null, {})).allowedHosts).toBeUndefined();
 });
 
 test("--no-open, --new-key, --help, and --version", () => {
   const env = loadEnv(null, {});
 
-  expect(parseOptions([], env).open).toBe(true);
+  expect(parseOptions([], env).noOpen).toBe(false);
   expect(parseOptions([], env).newKey).toBe(false);
   expect(parseOptions(["--new-key"], env).newKey).toBe(true);
-  expect(parseOptions(["--no-open"], env).open).toBe(false);
+  expect(parseOptions(["--no-open"], env).noOpen).toBe(true);
   expect(parseOptions(["--help"], env).show).toBe("help");
   expect(parseOptions(["--version"], env).show).toBe("version");
 });
@@ -107,7 +115,7 @@ test("without a checkout, no .env is read", () => {
   const previous = process.cwd();
   process.chdir(dir);
   try {
-    expect(loadEnv(null, {})).toEqual({ allowedHosts: [], given: false, port: 4310, repo: dir });
+    expect(loadEnv(null, {})).toEqual({ given: false, repo: dir });
   } finally {
     process.chdir(previous);
   }
@@ -117,12 +125,25 @@ test("without a checkout, no .env is read", () => {
 test("without .env, the settings come from the environment only", () => {
   const dir = root("URAEDA_DATA_DIR=/tmp/elsewhere\nURAEDA_PORT=9999\nURAEDA_REPO=../todo\n");
 
-  expect(loadEnv(dir, {}, { file: false })).toEqual({
-    allowedHosts: [],
-    given: false,
-    port: 4310,
-    repo: dir,
+  expect(loadEnv(dir, {}, { file: false })).toEqual({ given: false, repo: dir });
+  expect(loadEnv(dir, { URAEDA_PORT: "5000" }, { file: false }).port).toEqual({
+    name: "URAEDA_PORT",
+    value: 5000,
   });
-  expect(loadEnv(dir, { URAEDA_PORT: "5000" }, { file: false }).port).toBe(5000);
   expect(loadDataDir(dir, core, {}, { file: false })).toBe(dataDir());
+});
+
+test("the config folder comes from the environment, then .env, then the core's default", () => {
+  const dir = root("URAEDA_CONFIG_DIR=/config/from-env-file\n");
+
+  expect(loadConfigDir(dir, core, {})).toBe("/config/from-env-file");
+  expect(loadConfigDir(dir, core, { URAEDA_CONFIG_DIR: "/config/env" })).toBe("/config/env");
+  expect(loadConfigDir(dir, core, {}, { file: false })).toBe(configDir());
+  // Relative, from the root, as the data folder is.
+  expect(loadConfigDir(dir, core, { URAEDA_CONFIG_DIR: "config" })).toBe(join(dir, "config"));
+  expect(loadConfigDir(null, core, { URAEDA_CONFIG_DIR: "/config/env" })).toBe("/config/env");
+});
+
+test("the tests' config folder is their own, never the developer's", () => {
+  expect(configDir()).toBe(join(process.env.TMPDIR!, "config"));
 });

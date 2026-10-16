@@ -246,15 +246,18 @@ function install(folder: string, binding?: string, platform?: string): Install {
     cwd: root,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  // The settings come from the checks alone, as a project's `.env` must not add any.
+  // The settings come from the checks alone, as a project's `.env` must not add any, and the
+  // settings file is an empty folder's, never the developer's own.
   const cleared = new Set([
     "NAPI_RS_NATIVE_LIBRARY_PATH",
     "URAEDA_ALLOWED_HOSTS",
     "URAEDA_PORT",
     "URAEDA_REPO",
   ]);
+  mkdirSync(join(folder, "config"));
   const env: NodeJS.ProcessEnv = {
     ...Object.fromEntries(Object.entries(process.env).filter(([name]) => !cleared.has(name))),
+    URAEDA_CONFIG_DIR: join(folder, "config"),
     URAEDA_DATA_DIR: join(folder, "data"),
     ...(binding && { NAPI_RS_NATIVE_LIBRARY_PATH: nodeFile(binding) }),
   };

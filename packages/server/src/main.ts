@@ -1,6 +1,6 @@
-// `uraeda`: takes the port first, then starts the server on it, or hands the repository to the
-// server already there, with the host token. The session cache and the sign-in file are opened
-// only once the port is this process's.
+// `uraeda`: reads the settings, takes their port first, then starts the server on it, or hands
+// the repository to the server already there, with the host token. The session cache and the
+// sign-in file are opened only once the port is this process's.
 import { rmSync } from "node:fs";
 import { createServer, type RequestListener, type Server as HttpServer } from "node:http";
 import { getRequestListener } from "@hono/node-server";
@@ -8,12 +8,13 @@ import { chatImages } from "./attach.ts";
 import { loadBinding } from "./binding.ts";
 import type { Binding } from "./fate/context.ts";
 import { browserOpens, openBrowser } from "./browser.ts";
-import { loadDataDir, loadEnv } from "./env.ts";
+import { loadConfigDir, loadDataDir, loadEnv } from "./env.ts";
 import { handOff, type HandOff, newKeyOn } from "./open-client.ts";
 import { HELP, type Options, parseOptions } from "./options.ts";
 import { layout, requireWeb } from "./paths.ts";
 import { ClaudeAdapter } from "./runner/claude.ts";
 import { keyLines, newKeyLines, startServer } from "./server.ts";
+import { ServerSettings } from "./settings.ts";
 import { readHostToken, removeHostToken, writeHostToken } from "./sign-in/host.ts";
 import { browserAddress, linkPages } from "./sign-in/links.ts";
 
@@ -43,13 +44,19 @@ function handOffError(answer: Exclude<HandOff, { kind: "opened" }>, port: number
   }
 }
 
+/** What a start works with besides its options: the data folder, and the settings in force. */
+type Settled = { dataDir: string; settings: ServerSettings };
+
 /**
  * Hands the repository to the server on the port, with the host token of the data folder: makes a
  * new key first with `--new-key`, then prints its page and opens the browser through a one-time
- * link, or prints why it could not. Returns the exit code.
+ * link, when the settings open one, or prints why it could not. Returns the exit code.
  */
-async function handOver(options: Options, dataDir: string): Promise<number> {
-  const { port } = options;
+async function handOver(options: Options, { dataDir, settings }: Settled): Promise<number> {
+  const {
+    openBrowser: open,
+    port: { inForce: port },
+  } = settings.view();
   const token = readHostToken(dataDir, port);
   if (options.newKey) {
     const key = token === undefined ? undefined : await newKeyOn(port, token);
@@ -59,7 +66,7 @@ async function handOver(options: Options, dataDir: string): Promise<number> {
     }
     process.stdout.write(newKeyLines(key));
   }
-  const opens = options.open && browserOpens();
+  const opens = open.inForce && browserOpens();
   const request = { folder: options.repo, given: options.given, signIn: opens };
   const answer = await handOff(port, request, token);
   if (answer.kind !== "opened") {
@@ -89,8 +96,11 @@ function serveWhenReady(http: HttpServer): (listener: RequestListener) => void {
   return resolve;
 }
 
-/** What the first start needs besides its options: the binding, and the paths it starts on. */
-type Start = { binding: Binding; dataDir: string; plugin: string; web: string };
+/**
+ * What the first start needs besides its options: the binding, the settings in force, and the
+ * paths it starts on.
+ */
+type Start = Settled & { binding: Binding; plugin: string; web: string };
 
 /**
  * Starts the server on the port this process took, with a new host token, removed at exit. Prints
@@ -98,20 +108,29 @@ type Start = { binding: Binding; dataDir: string; plugin: string; web: string };
  * opens the browser through a one-time link, made only when a browser opens.
  */
 async function serve(http: HttpServer, options: Options, start: Start): Promise<number> {
-  const { binding, dataDir, plugin, web } = start;
+  const { binding, dataDir, plugin, settings, web } = start;
+  const {
+    openBrowser: open,
+    port: { inForce: port },
+  } = settings.view();
   const attach = serveWhenReady(http);
-  const hostToken = writeHostToken(dataDir, options.port);
+  const hostToken = writeHostToken(dataDir, port);
   process.once("exit", () => {
-    removeHostToken(dataDir, options.port);
+    removeHostToken(dataDir, port);
     // The pages of one-time links, even after a crash; a stop removes them first.
-    rmSync(linkPages(dataDir, options.port), { force: true, recursive: true });
+    rmSync(linkPages(dataDir, port), { force: true, recursive: true });
   });
   const server = await startServer({
-    ...options,
     adapter: new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: plugin }),
+    allowedHosts: [...settings.allowedHosts()],
+    allowOrigins: options.allowOrigins,
     binding,
     dataDir,
+    given: options.given,
     hostToken,
+    port,
+    repo: options.repo,
+    settings,
     webRoot: web,
   });
   // The sessions and Storybooks end with the server: their turns are interrupted, their processes
@@ -125,11 +144,11 @@ async function serve(http: HttpServer, options: Options, start: Start): Promise<
   const key = server.key ?? (options.newKey ? server.newKey() : undefined);
   attach(getRequestListener(server.app.fetch));
   http.on("upgrade", server.upgrade);
-  const address = `http://127.0.0.1:${options.port}`;
+  const address = `http://127.0.0.1:${port}`;
   const shown = key === undefined ? "" : options.newKey ? newKeyLines(key) : keyLines(key);
   process.stdout.write(`Uraeda server on ${address}\n${shown}`);
   // A one-time link only for a browser that opens: none over SSH.
-  if (options.open && browserOpens()) {
+  if (open.inForce && browserOpens()) {
     openBrowser(server.signInPage(server.url));
   }
   return 0;
@@ -152,13 +171,20 @@ async function main(argv: Array<string>): Promise<number> {
   // Only a path: the second start reads its host token there, and never opens a file the running
   // server owns.
   const dataDir = loadDataDir(checkout, binding);
+  // The settings give the port, so they are read before it is taken.
+  const settings = await ServerSettings.open({
+    binding,
+    dir: loadConfigDir(checkout, binding),
+    options,
+  });
   // The port first: a second start must never open the session cache or the sign-in file, which
   // the running server owns.
-  const http = await takePort(options.port);
+  const http = await takePort(settings.view().port.inForce);
   if (!http) {
-    return handOver(options, dataDir);
+    settings.close();
+    return handOver(options, { dataDir, settings });
   }
-  return serve(http, options, { binding, dataDir, plugin, web });
+  return serve(http, options, { binding, dataDir, plugin, settings, web });
 }
 
 try {

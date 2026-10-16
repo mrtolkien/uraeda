@@ -15,15 +15,20 @@ import type { FrameSecret } from "./sign-in/frames.ts";
 import { ClaudeAdapter } from "./runner/claude.ts";
 import { SERVER_PATHS } from "./server-paths.ts";
 import { keyLines, type Server, startServer } from "./server.ts";
+import { DEFAULT_PORT } from "./settings.ts";
 
 export { checkBinding, loadEnv };
 
-/** Vite's server options from the settings: 127.0.0.1 only, on its port, with the allowed hosts. */
+/**
+ * Vite's server options from the variables: 127.0.0.1 only, on `URAEDA_PORT` or 4310, with the
+ * host names of `URAEDA_ALLOWED_HOSTS`. Vite reads them before the binding loads, so the settings
+ * file sets neither (R1, R2).
+ */
 export function devServer(env: Env) {
   return {
-    allowedHosts: env.allowedHosts,
+    allowedHosts: env.allowedHosts?.value ?? [],
     host: "127.0.0.1",
-    port: env.port,
+    port: env.port?.value ?? DEFAULT_PORT,
     strictPort: true,
   };
 }
@@ -136,16 +141,19 @@ export function devHandler(
     const dataDir = loadDataDir(root, binding, process.env, sources);
     // Read with the first request, as the data folder is: the browser tests' setup sets them after
     // Vite's server is made.
+    const { allowedHosts, given, repo } = loadEnv(root, process.env, sources);
     const server = await startServer({
-      ...loadEnv(root, process.env, sources),
       adapter:
         adapter ??
         new ClaudeAdapter({ imagesDir: chatImages(dataDir).dir, pluginDir: layout().plugin }),
+      allowedHosts: allowedHosts?.value ?? [],
       allowOrigins: allowOrigins?.(port) ?? [],
       binding,
       dataDir,
+      given,
       lockedList,
       port,
+      repo,
       ...(!signIn && { signIn: false as const }),
     });
     if (server.key !== undefined) {
@@ -170,7 +178,7 @@ export function devHandler(
       next();
       return;
     }
-    const port = req.socket.localPort ?? env.port;
+    const port = req.socket.localPort ?? env.port?.value ?? DEFAULT_PORT;
     void serverOf(port).then(
       ({ listener }) => listener(req, res),
       (error: Error) => {

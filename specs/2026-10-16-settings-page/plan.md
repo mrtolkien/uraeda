@@ -369,10 +369,13 @@ git commit -m "feat(settings-page): the settings file in the core"
 - Consumes: task 1's binding functions and `Settings` type.
 - Produces, in `env.ts`: `type Given<T> = { name: string; value: T }`;
   `Env = { allowedHosts?: Given<Array<string>>; given: boolean; port?: Given<number>; repo: string }`,
-  without defaults; `loadConfigDir(root, core: { configDir }, environment?, sources?): string`, like
-  `loadDataDir`.
+  without defaults, an empty variable as unset
+  ([R7](rulings.md#r7-an-empty-variable-is-unset-an-empty-flag-is-given));
+  `loadConfigDir(root, core: { configDir }, environment?, sources?): string`, like `loadDataDir`.
+  `DEFAULT_PORT` moves to `settings.ts`, with the other defaults.
 - Produces, in `options.ts`: `Options = Env & { allowOrigins; newKey; noOpen: boolean; show? }`,
-  `--allowed-hosts` and `--port` given with their flag's name; `open` is gone.
+  `--allowed-hosts` and `--port` given with their flag's name, `--allowed-hosts ""` given as `[]`;
+  `open` is gone.
 - Produces, in `settings.ts`:
   - `type Source`, `type Setting<T>`, as the spec's **Data**;
     `type ServerSettingsView = { allowedHosts: Setting<Array<string>>; openBrowser: Setting<boolean>; port: Setting<number> }`.
@@ -384,8 +387,13 @@ git commit -m "feat(settings-page): the settings file in the core"
     `reload(): Promise<void>`, `close(): void`. `open` reads the file once and watches the folder; a
     reload that finds the file broken keeps nothing of it, and prints, once per new problem,
     "uraeda: <problem> The server uses its defaults until the file is fixed.".
+- Produces, in `server.ts` and `app.ts`: `StartOptions` and `AppOptions` no longer derive from
+  `Options`: they list `allowedHosts?: Array<string>`, `allowOrigins`, `port: number`, and, for
+  `startServer`, `given`, `repo`, and `settings?: ServerSettings`, which its `stop` closes.
+  `main.ts` passes the host names in force at start, the port in force, and the settings; `dev.ts`
+  passes the variable's host names, as before, until task 3.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `settings.test.ts`, `inForce` (table, US2.1–2.5): each of flag, variable, file, default, alone and
   together, for each setting, gives the value and source the spec names; `noOpen: true` gives
@@ -406,24 +414,24 @@ The break each test catches: the variable read over the flag; the file read over
 default applied in `env.ts`, hiding the source; a start that writes the file; a test reading the
 developer's own `~/.config/uraeda`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test --project uraeda-server src/__tests__/settings.test.ts`
 - Expected: FAIL, `Failed to resolve import "../settings.ts"`
 
-- [ ] **Step 3: Implement `settings.ts`, the reporting `env.ts` and `options.ts`, and `main.ts`**
+- [x] **Step 3: Implement `settings.ts`, the reporting `env.ts` and `options.ts`, and `main.ts`**
 
 `main.ts` opens `ServerSettings` after loading the binding and before taking the port, takes the
 port and `openBrowser` from its view, closes it on a handover, and passes it to `startServer` (task
 3 consumes it there). The watcher copies `Hosts.#watchList`: the config folder, filtered by
 `config.toml`, debounced `LIST_QUIET_MS`, created if missing.
 
-- [ ] **Step 4: Run all server tests**
+- [x] **Step 4: Run all server tests**
 
 - Run: `vp test --project uraeda-server && vp check`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server packages/binding/test-setup.ts packages/uraeda/scripts/smoke.ts specs/2026-10-16-settings-page/plan.md

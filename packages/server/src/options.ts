@@ -2,14 +2,17 @@ import { parseArgs } from "node:util";
 import { resolve } from "node:path";
 import { type Env, hostNames } from "./env.ts";
 
-/** The server's options; `given` is also true when `--repo` named the repository. */
+/**
+ * The server's options, as given for this run: a flag replaces its variable, and keeps its own
+ * name; `given` is also true when `--repo` named the repository.
+ */
 export type Options = Env & {
   /** Origins allowed besides the server's own and the allowed hosts', like a dev server's. */
   allowOrigins: Array<string>;
   /** Whether the start makes a new access key, signing every device out: `--new-key`. */
   newKey: boolean;
-  /** Whether the start opens the browser: false with `--no-open`. */
-  open: boolean;
+  /** Whether `--no-open` turns off opening a browser for this run. */
+  noOpen: boolean;
   /** What to print instead of starting: `--help` or `--version`. */
   show?: "help" | "version";
 };
@@ -29,21 +32,24 @@ Starts Uraeda's web UI for the repository of the current folder.
 `;
 
 /**
- * The command line's options, over the settings of `.env` and the environment: each flag given
- * replaces its variable. Throws `unknown option --<name>; see uraeda --help` on an unknown option.
+ * The command line's options, over the variables of `.env` and the environment: each flag given
+ * replaces its variable, with its own name, and `--allowed-hosts` given empty still does. Throws
+ * `unknown option --<name>; see uraeda --help` on an unknown option.
  */
 export function parseOptions(argv: Array<string>, env: Env): Options {
   const values = parse(argv);
   const show = values.help ? "help" : values.version ? "version" : undefined;
+  const hosts = values["allowed-hosts"];
   return {
     ...env,
-    allowedHosts:
-      values["allowed-hosts"] === undefined ? env.allowedHosts : hostNames(values["allowed-hosts"]),
+    ...(hosts !== undefined && {
+      allowedHosts: { name: "--allowed-hosts", value: hostNames(hosts) },
+    }),
     allowOrigins: values["allow-origin"],
     given: Boolean(values.repo) || env.given,
     newKey: Boolean(values["new-key"]),
-    open: !values["no-open"],
-    port: values.port ? Number(values.port) : env.port,
+    noOpen: Boolean(values["no-open"]),
+    ...(values.port && { port: { name: "--port", value: Number(values.port) } }),
     repo: values.repo ? resolve(values.repo) : env.repo,
     ...(show && { show }),
   };
