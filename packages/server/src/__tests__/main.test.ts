@@ -535,6 +535,25 @@ test("the first start prints the key once", async () => {
   expect(file).toContain(hash(keyIn(server.output.stdout)));
 });
 
+/** A first start that fails shows no key: the next start makes one and shows it. */
+test("a first start that fails leaves no key, and the next start shows one", async () => {
+  const data = temporaryFolder("uraeda-data");
+  const port = await freePort();
+  const folder = temporaryFolder("uraeda-none");
+  const env = { URAEDA_DATA_DIR: data };
+
+  const failed = await run(["--repo", folder, "--port", String(port)], { env });
+  expect(failed.code).toBe(1);
+  expect(failed.stdout).toBe("");
+  expect(existsSync(join(data, "sign-in.json"))).toBe(false);
+
+  const next = start(["--repo", fixtureRepo(), "--port", String(port)], { env });
+  await ready(next);
+  await expect.poll(() => next.output.stdout).toMatch(/Access key, shown once: ura_/);
+  const key = keyIn(next.output.stdout);
+  expect(readFileSync(join(data, "sign-in.json"), "utf8")).toContain(hash(key));
+});
+
 /** The host token file: written with the port taken, `0600`, removed at exit. */
 test("the host token lives as long as the server", async () => {
   const { data, port, server } = await firstStart();
