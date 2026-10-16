@@ -15,7 +15,8 @@ export type StoryComment = (
 
 /**
  * Where a page's comments on its stories go: `save` writes one, and `path`, the file it goes to,
- * keys each embed's unsaved text, `<path>#story:<folder>:<story path>#<export>`.
+ * with a round's question id after a `#`, keys each embed's unsaved text,
+ * `<path>#story:<folder>:<story path>#<export>`.
  */
 export type StoryComments = { path: string; save: StoryComment };
 

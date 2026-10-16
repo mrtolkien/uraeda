@@ -3,11 +3,12 @@
 // variant joins the question's answer on a line of its own, keeping the comment saved and leaving
 // the one typed unsaved (US3.2, R9, R36), as a comment on a follow-up's story or a question's
 // context story joins that question's answer (R37); a variant removed after the answer says so, and
-// an answered round takes no comment (US3.4, R10).
+// an answered round takes no comment (US3.4, R10). Two questions embedding the same story keep their
+// own unsaved comments on it.
 import { screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
-import { atSize, commands, show } from "./helpers.tsx";
+import { atSize, commands, reload, show } from "./helpers.tsx";
 
 atSize("desktop");
 
@@ -199,4 +200,39 @@ test("an answered round's stories take no comment (US3.4, R10)", async () => {
   await expect.poll(() => commands.frameText("Thin line, desktop"), READY).toContain("ThinLine");
   expect(within(thin).queryByRole("button", { name: "Pick an element" })).toBeNull();
   expect(within(thin).queryByRole("button", { name: "Comment" })).toBeNull();
+});
+
+/** Q1's embed of the Grip story, in its context, after `editRound` put it there. */
+const inQ1 = () => screen.getByRole("figure", { name: "Handle grip" });
+
+/** Q2's embed of the Grip story, its option B's variant. */
+const inQ2 = () => screen.getByRole("figure", { name: "Grip" });
+
+/** The text of the comment form open in an embed. */
+const text = (figure: HTMLElement) =>
+  (within(figure).getByRole("textbox") as HTMLTextAreaElement).value;
+
+test("two questions embedding the same story keep their own unsaved comments on it", async () => {
+  await commands.addStoryFeature();
+  await editRound((round) =>
+    round.replace(
+      "Why it matters: a wide sidebar takes the reading column's room.",
+      "Why it matters: a wide sidebar takes the reading column's room.\n\n[Handle grip](/packages/web/src/SidebarHandle.stories.tsx#Grip)",
+    ),
+  );
+  await show(ROUND, Q2);
+
+  await userEvent.click(await within(inQ1()).findByRole("button", { name: "Comment" }, READY));
+  await userEvent.keyboard("For Q1.");
+  expect(within(inQ2()).queryByRole("form", { name: "Comment" })).toBeNull();
+  await userEvent.click(await within(inQ2()).findByRole("button", { name: "Comment" }, READY));
+  expect(text(inQ2())).toBe("");
+  await userEvent.keyboard("For Q2.");
+  expect(text(inQ1())).toBe("For Q1.");
+
+  await reload(Q2);
+
+  await within(inQ1()).findByRole("textbox", {}, READY);
+  expect(text(inQ1())).toBe("For Q1.");
+  expect(text(inQ2())).toBe("For Q2.");
 });
