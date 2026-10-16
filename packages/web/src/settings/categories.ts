@@ -53,8 +53,8 @@ export const CATEGORIES: ReadonlyArray<Category> = [
       { feature: "run options", label: "Sub-agents during the implementation" },
       { feature: "run options", label: "A different choice for one feature" },
     ],
-    settings: [],
-    summary: "Coming later",
+    settings: ["Build in a fresh session"],
+    summary: "Build in a fresh session, more later",
   },
   {
     id: "reviews",

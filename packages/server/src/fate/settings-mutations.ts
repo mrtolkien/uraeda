@@ -50,6 +50,11 @@ export const settingsMutations = {
       settingsChanged(call, (dir) => call.ctx.binding.removeAllowedHost(dir, input.name)),
     type: "Settings",
   },
+  "settings.setBuildInFreshSession": {
+    resolve: ({ input, ...call }: ListResolver<{ fresh: boolean }>) =>
+      settingsChanged(call, (dir) => call.ctx.binding.setBuildInFreshSession(dir, input.fresh)),
+    type: "Settings",
+  },
   "settings.setOpenBrowser": {
     resolve: ({ input, ...call }: ListResolver<{ open: boolean }>) =>
       settingsChanged(call, (dir) => call.ctx.binding.setOpenBrowser(dir, input.open)),

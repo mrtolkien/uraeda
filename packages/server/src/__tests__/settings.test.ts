@@ -13,7 +13,10 @@ const BUILD = "build.tail1234.ts.net";
 const LAPTOP = "laptop.tail1234.ts.net";
 
 /** A file holding every server setting. */
-const file: Settings = { server: { allowedHosts: [MAC], openBrowser: true, port: 4310 } };
+const file: Settings = {
+  runs: {},
+  server: { allowedHosts: [MAC], openBrowser: true, port: 4310 },
+};
 
 /** No flag and no variable. */
 const none = { noOpen: false };
@@ -36,7 +39,7 @@ test.each<{
     },
   },
   {
-    file: { server: {} },
+    file: { runs: {}, server: {} },
     name: "the defaults, for keys the file does not hold",
     options: none,
     view: {
@@ -46,7 +49,7 @@ test.each<{
     },
   },
   {
-    file: { server: { allowedHosts: [MAC], openBrowser: false, port: 4400 } },
+    file: { runs: {}, server: { allowedHosts: [MAC], openBrowser: false, port: 4400 } },
     name: "the file over the defaults",
     options: none,
     view: {
@@ -116,7 +119,19 @@ test.each<{
     },
   },
 ])("$name", ({ file, options, view }) => {
-  expect(inForce(options, file)).toEqual(view);
+  expect(inForce(options, file).server).toEqual(view);
+});
+
+test("the build starts in a fresh session by default, and the file's value turns it off", () => {
+  expect(inForce(none, null).runs.buildInFreshSession).toEqual({
+    inForce: true,
+    saved: null,
+    source: { kind: "default" },
+  });
+  expect(inForce(none, file).runs.buildInFreshSession.inForce).toBe(true);
+  expect(
+    inForce(none, { ...file, runs: { buildInFreshSession: false } }).runs.buildInFreshSession,
+  ).toEqual({ inForce: false, saved: false, source: { kind: "file" } });
 });
 
 /** Opens the settings of `dir`, closed after the test. */
@@ -148,7 +163,7 @@ test("a broken file gives the defaults and its problem, printed once", async () 
   const problem = `Cannot read ${binding.settingsFile(dir)}: line 2, port: The port is a number from 1 to 65535.`;
   expect(settings.problem).toBe(problem);
   expect(settings.view()).toEqual(
-    inForce({ noOpen: false, port: { name: "URAEDA_PORT", value: 4400 } }, null),
+    inForce({ noOpen: false, port: { name: "URAEDA_PORT", value: 4400 } }, null).server,
   );
   expect(write.mock.calls).toEqual([
     [`uraeda: ${problem} The server uses its defaults until the file is fixed.\n`],
@@ -207,7 +222,7 @@ test("a fixed file clears its problem, and a deleted one gives the defaults", as
   rmSync(join(dir, "config.toml"));
   await settings.reload();
   expect(settings.problem).toBeNull();
-  expect(settings.view()).toEqual(inForce(none, null));
+  expect(settings.view()).toEqual(inForce(none, null).server);
 });
 
 test("the file's path is written with ~ for the home folder", async () => {

@@ -233,6 +233,37 @@ test("a settings file that cannot be read shows its problem, and no control", as
   expect(screen.queryByRole("switch", { name: "Open a browser at start" })).toBeNull();
 });
 
+test("building in a fresh session is on by default, and turning it off writes it in the file at once", async () => {
+  const dir = configDir();
+  await renderPage("/settings/runs", fixtureRepo(), { settings: { dir } });
+  await screen.findByRole("heading", { name: "Runs" });
+  const fresh = await screen.findByRole<HTMLInputElement>("switch", {
+    name: "Build in a fresh session",
+  });
+  expect(fresh.checked).toBe(true);
+
+  await click(fresh);
+
+  await waitFor(() => expect(file(dir)).toContain("[runs]\nbuild_in_fresh_session = false"));
+  await waitFor(() =>
+    expect(
+      screen.getByRole<HTMLInputElement>("switch", { name: "Build in a fresh session" }).checked,
+    ).toBe(false),
+  );
+});
+
+test("the Runs category of a file that cannot be read shows its problem, and no switch", async () => {
+  const dir = configDir("[runs]\nbuild_in_fresh_session = 1\n");
+  await renderPage("/settings/runs", fixtureRepo(), { settings: { dir } });
+
+  expect(
+    await screen.findByText(
+      /^Cannot read .*config\.toml: line 2, build_in_fresh_session: Building in a fresh session is true or false\.$/,
+    ),
+  ).toBeTruthy();
+  expect(screen.queryByRole("switch", { name: "Build in a fresh session" })).toBeNull();
+});
+
 /** The side navigation, as drawn on a wide screen. */
 const nav = () => within(screen.getByRole("navigation", { name: "Side navigation" }));
 
@@ -256,7 +287,7 @@ const LISTED = [
   "AppearanceTheme, on this browser",
   "Sign-inSign out, here or everywhere",
   "AgentsComing later",
-  "RunsComing later",
+  "RunsBuild in a fresh session, more later",
   "ReviewsComing later",
 ];
 
@@ -362,6 +393,7 @@ test("an unknown category reads as none: on a desktop, Server beside the list", 
 
 test.each([
   ["host", [["Allowed host names", "Server"]]],
+  ["FRESH", [["Build in a fresh session", "Runs"]]],
   ["THEME", [["Theme", "Appearance"]]],
   [
     "  model ",

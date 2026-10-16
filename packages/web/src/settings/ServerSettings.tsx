@@ -15,20 +15,21 @@ import type { Settings } from "uraeda-server/fate";
 import { EditableLine, LineField } from "../EditableLine.tsx";
 import { useLineSave } from "../useLineSave.ts";
 
-/** The server's settings record, as the page reads it: the file, its problem, and the values. */
-export type ServerValues = Pick<Settings, "file" | "problem" | "server">;
+/** The settings record, as the page reads it: the file, its problem, and the values. */
+export type ServerValues = Pick<Settings, "file" | "problem" | "runs" | "server">;
 
 /** Where a value in force comes from, as the record says. */
 type Source = ServerValues["server"]["port"]["source"];
 
 /**
- * What the category changes, each through the server: each resolves with the error to show, or
- * with nothing once saved.
+ * What the categories of the settings file change, each through the server: each resolves with
+ * the error to show, or with nothing once saved.
  */
 export type ServerActions = {
   addHost: (name: string) => Promise<string | undefined>;
   editHost: (from: string, to: string) => Promise<string | undefined>;
   removeHost: (name: string) => Promise<string | undefined>;
+  setBuildInFreshSession: (fresh: boolean) => Promise<string | undefined>;
   setOpenBrowser: (open: boolean) => Promise<string | undefined>;
   setPort: (port: string) => Promise<string | undefined>;
 };
@@ -131,6 +132,21 @@ function OpenBrowser({ actions, values }: { actions: ServerActions; values: Serv
   );
 }
 
+/** A category of the settings file that cannot be read: its problem, and no control. */
+export function FileProblem({ label, problem }: { label: string; problem: string }) {
+  return (
+    <VStack gap={4}>
+      <Heading level={2}>{label}</Heading>
+      <Banner
+        collapsible={false}
+        description="Fix the file to change settings here. Until then, the server uses its defaults."
+        status="error"
+        title={problem}
+      />
+    </VStack>
+  );
+}
+
 /** The Server category, read-only with its problem when the file cannot be read. */
 export function ServerSettings({
   actions,
@@ -140,17 +156,7 @@ export function ServerSettings({
   values: ServerValues;
 }) {
   if (values.problem) {
-    return (
-      <VStack gap={4}>
-        <Heading level={2}>Server</Heading>
-        <Banner
-          collapsible={false}
-          description="Fix the file to change settings here. Until then, the server uses its defaults."
-          status="error"
-          title={values.problem}
-        />
-      </VStack>
-    );
+    return <FileProblem label="Server" problem={values.problem} />;
   }
   const { port } = values.server;
   const portNote = overridden(port, String);
