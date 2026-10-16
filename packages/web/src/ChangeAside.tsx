@@ -63,11 +63,6 @@ function RoundRow({ file, folder, round }: { file: string; folder: string; round
   );
 }
 
-/** The pull request's number, from its URL: none when the URL does not end with one. */
-function pullNumber(url: string) {
-  return /\/pull\/(\d+)\/?$/.exec(url)?.[1];
-}
-
 /**
  * What the change's step holds: its round's row, its pull request's, or "The agent is working."
  * while it waits on the agent; nothing otherwise.
@@ -77,11 +72,11 @@ function StepContent({ item }: { item: Item }) {
   if (round) {
     return <RoundRow file={round.name} folder={item.folder} round={round.round ?? 1} />;
   }
-  const number = item.pullRequest ? pullNumber(item.pullRequest) : undefined;
-  if (item.pullRequest && number) {
+  if (item.pullRequest) {
+    const { number, url } = item.pullRequest;
     return (
       <List aria-label="Pull request" density="compact">
-        <ListItem href={item.pullRequest} label={`Pull request #${number}`} />
+        <ListItem href={url} label={`Pull request #${number}`} />
       </List>
     );
   }

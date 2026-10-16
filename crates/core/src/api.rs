@@ -13,6 +13,7 @@ use crate::files::review::Verdict;
 use crate::gates::{AWAITING_HUMAN, Gate, gate_of};
 use crate::git::{Git, GitError};
 use crate::repositories::ListError;
+use crate::today;
 use crate::view::{
     CommitView, FeatureView, FileView, NextView, PriorityLink, StepView, VersionView, WaitingFile,
     WorkspaceView,
@@ -20,7 +21,6 @@ use crate::view::{
 use crate::workspace::{
     Feature, FileKind, Problem, Source, Workspace, WorkspaceError, linked_draft,
 };
-use crate::{steps, today};
 
 mod answers;
 mod drafts;
@@ -28,6 +28,7 @@ mod files;
 mod inbox_edits;
 mod preview;
 mod priority_edits;
+mod pulls;
 mod repository_list;
 mod start;
 
@@ -42,6 +43,7 @@ pub use priority_edits::{
     add_priority, commit_priorities, discard_priorities, edit_priority, insert_priority,
     move_priority, read_priorities, remove_priority,
 };
+pub use pulls::refresh_pull_requests;
 pub use repository_list::{
     add_repository, data_dir, open_repository, read_repositories, remove_repository,
 };
@@ -349,13 +351,11 @@ fn reach(repo: &Path, folder: &str) -> Result<(Git, Feature, place::Place)> {
     Ok((git, feature, place))
 }
 
-/// A feature's next step, as `ura next` gives it, with the pull request's state from `gh`.
+/// A feature's next step, as `ura next` gives it, with the latest pull requests the repository's
+/// refresh read from `gh`.
 pub fn next_step(repo: &Path, folder: &str) -> Result<NextView> {
     let (git, workspace) = open(repo)?;
-    let mut feature = find(&workspace, folder)?.clone();
-    steps::refresh_pull_request(&mut feature, |branch| {
-        steps::pull_request(git.root(), branch)
-    });
+    let feature = find(&workspace, folder)?;
     Ok(NextView {
         folder: feature.folder.clone(),
         branch: feature.branch.clone(),

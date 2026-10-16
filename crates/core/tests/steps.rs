@@ -3,7 +3,9 @@ mod common;
 use std::collections::BTreeMap;
 
 use common::texts::*;
-use uraeda_core::steps::{PullRequest, StepName, TaskProgress, WaitsOn};
+use uraeda_core::pulls::{PullRequestState, PullRequestView, PullRequests};
+use uraeda_core::steps::{PullRequest, Step, StepName, TaskProgress, WaitsOn};
+use uraeda_core::view::StepView;
 use uraeda_core::workspace::{Feature, Kind};
 
 /// A feature's files: names and texts.
@@ -152,30 +154,119 @@ fn finished() -> Files {
     ]
 }
 
+/// A snapshot of `gh` with one pull request on the test features' branch, or none.
+fn snapshot(state: Option<PullRequestState>) -> PullRequests {
+    snapshot_on("2026-10-10-x", state)
+}
+
+/// A snapshot of `gh` with pull request #31 on `branch`, or none.
+fn snapshot_on(branch: &str, state: Option<PullRequestState>) -> PullRequests {
+    let entry = state.map(|state| {
+        let view = PullRequestView {
+            number: 31,
+            url: "https://github.com/o/r/pull/31".to_string(),
+            state,
+        };
+        (branch.to_string(), view)
+    });
+    PullRequests::Known(entry.into_iter().collect())
+}
+
+/// US1.1 to US1.5
 #[test]
 fn pull_request_rows() {
     let rows = [
         (
-            PullRequest::NoPullRequest,
+            "no pull request",
+            snapshot(None),
             StepName::FinalReview,
             WaitsOn::Agent,
         ),
         (
-            PullRequest::ChangesRequested,
+            "draft #31",
+            snapshot(Some(PullRequestState::Draft)),
+            StepName::Finish,
+            WaitsOn::Agent,
+        ),
+        (
+            "changes requested",
+            snapshot(Some(PullRequestState::ChangesRequested)),
             StepName::PullRequestChanges,
             WaitsOn::Agent,
         ),
-        (PullRequest::Open, StepName::PullRequest, WaitsOn::Human),
-        (PullRequest::Unknown, StepName::PullRequest, WaitsOn::Agent),
+        (
+            "open #31",
+            snapshot(Some(PullRequestState::Open)),
+            StepName::PullRequest,
+            WaitsOn::Human,
+        ),
+        (
+            "without gh",
+            PullRequests::Unavailable,
+            StepName::PullRequestUnknown,
+            WaitsOn::Agent,
+        ),
     ];
-    for (pull_request, expected, waits_on) in rows {
+    for (name, pull_requests, expected, waits_on) in rows {
         let mut feature = feature(Kind::Feature, &finished());
 
-        feature.with_pull_request(pull_request);
+        pull_requests.apply(&mut feature);
 
-        assert_eq!(feature.step.name, expected, "{pull_request:?}");
-        assert_eq!(feature.step.waits_on, waits_on, "{pull_request:?}");
-        assert_eq!(feature.step.pull_request, Some(pull_request));
+        assert_eq!(feature.step.name, expected, "{name}");
+        assert_eq!(feature.step.waits_on, waits_on, "{name}");
+        let known = match &pull_requests {
+            PullRequests::Known(map) => map.get("2026-10-10-x").cloned(),
+            PullRequests::Unavailable => None,
+        };
+        assert_eq!(feature.pull_request, known, "{name}");
+    }
+}
+
+/// A step at a gate, or at an agent's step, for its order.
+fn step_at(name: StepName, file: Option<&str>) -> Step {
+    Step {
+        name,
+        waits_on: WaitsOn::Agent,
+        reference: None,
+        file: file.map(String::from),
+        task: None,
+        progress: None,
+        implemented: false,
+        pull_request: None,
+        plan_review: None,
+    }
+}
+
+/// Each step's position in the workflow, a gate placed by the file it waits on.
+#[test]
+fn order_follows_the_workflow() {
+    let gate = |file| step_at(StepName::HumanGate, Some(file));
+    let agent = |name| step_at(name, None);
+    let rows = [
+        (gate("proposal.md"), 0),
+        (agent(StepName::Discovery), 1),
+        (gate("clarifications-02.md"), 2),
+        (agent(StepName::Spec), 3),
+        (agent(StepName::SpecRevision), 3),
+        (gate("spec.md"), 4),
+        (agent(StepName::Approval), 5),
+        (agent(StepName::Plan), 6),
+        (agent(StepName::PlanRevision), 6),
+        (gate("plan.md"), 7),
+        (agent(StepName::Implementation), 8),
+        (agent(StepName::Change), 8),
+        (agent(StepName::FinalReview), 9),
+        (agent(StepName::Finish), 10),
+        (agent(StepName::PullRequestChanges), 11),
+        (agent(StepName::PullRequest), 12),
+        (agent(StepName::PullRequestUnknown), 12),
+        (agent(StepName::Done), 13),
+        (agent(StepName::None), 14),
+    ];
+    for (step, expected) in rows {
+        let name = format!("{} {:?}", step.name.as_str(), step.file);
+
+        assert_eq!(StepView::from(&step).order, expected, "{name}");
     }
 }
 
@@ -535,76 +626,90 @@ fn finished_record(kind: Kind) -> Feature {
     Feature::from_record(kind, "2026-10-10-x", text)
 }
 
-/// US1.3 to US1.6, US4.1, US4.2, US6.1, review focus 5
+/// A finished item's row: its name, the item, the snapshot, and the expected step and waits on.
+type FinishingRow = (&'static str, Feature, PullRequests, StepName, WaitsOn);
+
+/// US1.3 to US1.6, US4.1, US4.2, US6.1, review focus 5 of the finishing step; US1.5
 #[test]
 fn finishing_rows() {
-    let rows = [
+    let record = finished_record;
+    let rows: Vec<FinishingRow> = vec![
         (
             "record, no pull request",
-            finished_record(Kind::Feature),
-            PullRequest::NoPullRequest,
+            record(Kind::Feature),
+            snapshot(None),
             StepName::Finish,
             WaitsOn::Agent,
         ),
         (
             "record, draft",
-            finished_record(Kind::Feature),
-            PullRequest::Draft,
+            record(Kind::Feature),
+            snapshot(Some(PullRequestState::Draft)),
             StepName::Finish,
             WaitsOn::Agent,
         ),
         (
             "record, changes requested",
-            finished_record(Kind::Feature),
-            PullRequest::ChangesRequested,
+            record(Kind::Feature),
+            snapshot(Some(PullRequestState::ChangesRequested)),
             StepName::PullRequestChanges,
             WaitsOn::Agent,
         ),
         (
             "record, ready",
-            finished_record(Kind::Feature),
-            PullRequest::Open,
+            record(Kind::Feature),
+            snapshot(Some(PullRequestState::Open)),
             StepName::PullRequest,
             WaitsOn::Human,
         ),
         (
-            "record, unknown",
-            finished_record(Kind::Feature),
-            PullRequest::Unknown,
-            StepName::PullRequest,
+            "record, without gh",
+            record(Kind::Feature),
+            PullRequests::Unavailable,
+            StepName::PullRequestUnknown,
             WaitsOn::Agent,
         ),
         (
             "checked, draft",
             feature(Kind::Feature, &finished()),
-            PullRequest::Draft,
+            snapshot(Some(PullRequestState::Draft)),
             StepName::Finish,
             WaitsOn::Agent,
         ),
         (
             "checked, no pull request",
             feature(Kind::Feature, &finished()),
-            PullRequest::NoPullRequest,
+            snapshot(None),
             StepName::FinalReview,
             WaitsOn::Agent,
         ),
         (
+            "change, without gh",
+            feature(Kind::Change, &[("proposal.md", proposal())]),
+            PullRequests::Unavailable,
+            StepName::Change,
+            WaitsOn::Agent,
+        ),
+        (
             "change record, draft",
-            finished_record(Kind::Change),
-            PullRequest::Draft,
+            record(Kind::Change),
+            snapshot_on("change/2026-10-10-x", Some(PullRequestState::Draft)),
             StepName::Finish,
             WaitsOn::Agent,
         ),
         (
             "change record, changes requested",
-            finished_record(Kind::Change),
-            PullRequest::ChangesRequested,
+            record(Kind::Change),
+            snapshot_on(
+                "change/2026-10-10-x",
+                Some(PullRequestState::ChangesRequested),
+            ),
             StepName::PullRequestChanges,
             WaitsOn::Agent,
         ),
     ];
-    for (name, mut feature, pull_request, expected, waits_on) in rows {
-        feature.with_pull_request(pull_request);
+    for (name, mut feature, pull_requests, expected, waits_on) in rows {
+        pull_requests.apply(&mut feature);
 
         assert_eq!(feature.step.name, expected, "{name}");
         assert_eq!(feature.step.waits_on, waits_on, "{name}");
@@ -644,36 +749,4 @@ fn finish_follows_its_reference() {
         feature.step.reference.as_deref(),
         Some("skills/uraeda/references/finish.md")
     );
-}
-
-/// Pull request review: changes requested win over a draft.
-#[test]
-fn pull_request_states_from_gh() {
-    let rows = [
-        (r#"[]"#, PullRequest::NoPullRequest),
-        (
-            r#"[{"reviewDecision":"","isDraft":true}]"#,
-            PullRequest::Draft,
-        ),
-        (
-            r#"[{"reviewDecision":"CHANGES_REQUESTED","isDraft":true}]"#,
-            PullRequest::ChangesRequested,
-        ),
-        (
-            r#"[{"reviewDecision":"CHANGES_REQUESTED","isDraft":false}]"#,
-            PullRequest::ChangesRequested,
-        ),
-        (
-            r#"[{"reviewDecision":"","isDraft":false}]"#,
-            PullRequest::Open,
-        ),
-        (r#"not json"#, PullRequest::Unknown),
-    ];
-    for (json, expected) in rows {
-        assert_eq!(
-            uraeda_core::steps::pull_request_state(json.as_bytes()),
-            expected,
-            "{json}"
-        );
-    }
 }

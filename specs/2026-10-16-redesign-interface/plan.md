@@ -406,7 +406,7 @@ git commit -m "feat(redesign-interface): items and their steps come from their c
 
 Move `Git::output`'s process handling into `git/process.rs` as `run(program, args, dir)`, used by
 `output`, so `git.rs` shrinks. Then, in a second commit, move `priority_entries` from `workspace.rs`
-into `workspace/links.rs`, unchanged, and lower `workspace.rs`'s cap to its new length and the 8
+into `workspace/links.rs`, unchanged, and lower `workspace.rs`'s cap to its new length and the 9
 lines step 4 adds there
 ([R9](rulings.md#r9-priority_entries-moves-into-the-links-module-before-workspacers-grows)).
 
@@ -423,7 +423,7 @@ git add crates/core/src/git.rs crates/core/src/git/process.rs crates/cli/tests/s
 git commit -m "refactor(redesign-interface): run processes from the git module's runner"
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 - `crates/core/tests/pulls.rs`, table-driven `parse`: a draft, an open one, changes requested (which
   wins over draft), an empty list, invalid JSON (`None`), and a row of another branch name, kept by
@@ -445,26 +445,26 @@ The break each test catches:
 - Rows: `Unavailable` treated as no pull request, which would say "Final review" without `gh`.
 - Order: two steps given the same position.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run:
   `env GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 cargo nextest run -p uraeda-core -p uraeda-cli`
 - Expected: FAIL to compile: `pulls` not found
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 As in **Interfaces**. `Workspace::read` applies `pulls::latest(main_root)` to every in-flight
 feature and to records, in place of `PullRequest::Unknown`. `next_step` keeps asking `gh` only
 through the refresh. Regenerate the binding with `vp run binding:build`, and update its callers'
 types in `packages/web/src/ChangeAside.tsx` (the pull request is now an object).
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 - Run: the Rust command above, `cargo clippy --workspace --all-targets -- -D warnings`, `vp check`,
   `vp run ts:test`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates packages/binding packages/web/src/ChangeAside.tsx specs/2026-10-16-redesign-interface/plan.md

@@ -1,0 +1,67 @@
+use std::collections::BTreeMap;
+
+use uraeda_core::pulls::{self, PullRequestState, PullRequestView};
+
+/// A row of `gh pr list --json headRefName,number,url,isDraft,reviewDecision`.
+fn row(branch: &str, number: u32, draft: bool, decision: &str) -> String {
+    format!(
+        r#"{{"headRefName":"{branch}","number":{number},"url":"https://github.com/o/r/pull/{number}","isDraft":{draft},"reviewDecision":"{decision}"}}"#
+    )
+}
+
+fn view(number: u32, state: PullRequestState) -> PullRequestView {
+    PullRequestView {
+        number,
+        url: format!("https://github.com/o/r/pull/{number}"),
+        state,
+    }
+}
+
+/// US1.2 to US1.4, review focus 2: changes requested win over a draft, and each row is kept by its
+/// own branch name.
+#[test]
+fn parse_rows() {
+    let rows = [
+        (
+            "a draft",
+            format!("[{}]", row("2026-10-20-x", 31, true, "")),
+            Some(vec![("2026-10-20-x", view(31, PullRequestState::Draft))]),
+        ),
+        (
+            "an open one",
+            format!("[{}]", row("2026-10-20-x", 31, false, "REVIEW_REQUIRED")),
+            Some(vec![("2026-10-20-x", view(31, PullRequestState::Open))]),
+        ),
+        (
+            "changes requested on a draft",
+            format!("[{}]", row("2026-10-20-x", 31, true, "CHANGES_REQUESTED")),
+            Some(vec![(
+                "2026-10-20-x",
+                view(31, PullRequestState::ChangesRequested),
+            )]),
+        ),
+        ("an empty list", "[]".to_string(), Some(vec![])),
+        ("invalid JSON", "not json".to_string(), None),
+        (
+            "another branch's row",
+            format!(
+                "[{},{}]",
+                row("2026-10-20-other", 7, false, ""),
+                row("2026-10-20-x", 31, true, "")
+            ),
+            Some(vec![
+                ("2026-10-20-other", view(7, PullRequestState::Open)),
+                ("2026-10-20-x", view(31, PullRequestState::Draft)),
+            ]),
+        ),
+    ];
+    for (name, json, expected) in rows {
+        let expected: Option<BTreeMap<String, PullRequestView>> = expected.map(|rows| {
+            rows.into_iter()
+                .map(|(branch, view)| (branch.to_string(), view))
+                .collect()
+        });
+
+        assert_eq!(pulls::parse(json.as_bytes()), expected, "{name}");
+    }
+}

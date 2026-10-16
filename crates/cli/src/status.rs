@@ -9,7 +9,7 @@ use uraeda_core::workspace::{Feature, PriorityEntry, Workspace, first_file, fold
 use crate::output::{self, Style};
 
 pub fn run(json: bool) -> Result<ExitCode, String> {
-    let (_, workspace) = output::workspace()?;
+    let (_, workspace) = output::workspace_with_pull_requests()?;
     if json {
         output::print_json(&workspace);
     } else {
@@ -77,11 +77,6 @@ pub fn describe(feature: &Feature) -> String {
             None => name.as_str().to_string(),
         },
     };
-    // A change's agent step stands whatever its pull request, so only the pull request row says
-    // its state is unknown.
-    if step.name == StepName::PullRequest && step.pull_request == Some(PullRequest::Unknown) {
-        text.push_str(" (pull request state unknown)");
-    }
     if let Some(behind) = feature.behind.filter(|behind| *behind > 0) {
         text.push_str(&format!(" (behind origin by {behind})"));
     }

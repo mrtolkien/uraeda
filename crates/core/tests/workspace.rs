@@ -5,6 +5,7 @@ use common::texts::{clarifications, proposal, record};
 use uraeda_core::actions::place;
 use uraeda_core::api;
 use uraeda_core::git::Git;
+use uraeda_core::pulls::{self, PullRequestState, PullRequestView, PullRequests};
 use uraeda_core::steps::{StepName, WaitsOn};
 use uraeda_core::view::FeatureView;
 use uraeda_core::workspace::{Feature, Kind, Source, Workspace, path_folder};
@@ -487,14 +488,52 @@ fn a_finished_items_view_carries_its_pull_request() {
     repo.write(&format!("specs/done/{FOLDER}.md"), &text);
     repo.commit("finish: web ui");
     assert_eq!(
-        view(&repo).as_deref(),
-        Some("https://github.com/o/r/pull/31")
+        view(&repo),
+        Some(PullRequestView {
+            number: 31,
+            url: "https://github.com/o/r/pull/31".to_string(),
+            state: PullRequestState::Open,
+        })
     );
 
     let without = text.replace("pull-request: https://github.com/o/r/pull/31\n", "");
     repo.write(&format!("specs/done/{FOLDER}.md"), &without);
     repo.commit("record: no pull request");
     assert_eq!(view(&repo), None);
+}
+
+/// US1.2: the workspace reads the repository's latest snapshot of pull requests, by branch.
+#[test]
+fn the_workspace_reads_the_latest_pull_requests() {
+    let repo = repo();
+    repo.switch(FOLDER);
+    repo.git(&["rm", "-r", "--quiet", "specs/2026-10-11-web-ui"]);
+    repo.write(
+        &format!("specs/done/{FOLDER}.md"),
+        &record("feature", "Web UI"),
+    );
+    repo.commit("finish: web ui");
+    repo.switch("main");
+    assert_eq!(
+        feature(&repo, FOLDER).step.name,
+        StepName::PullRequestUnknown
+    );
+    let draft = PullRequestView {
+        number: 31,
+        url: "https://github.com/o/r/pull/31".to_string(),
+        state: PullRequestState::Draft,
+    };
+    let root = Git::discover(repo.path()).unwrap().main_root();
+
+    let changed = pulls::remember(
+        &root,
+        PullRequests::Known([(FOLDER.to_string(), draft.clone())].into()),
+    );
+
+    assert!(changed);
+    let read = feature(&repo, FOLDER);
+    assert_eq!(read.step.name, StepName::Finish);
+    assert_eq!(FeatureView::new(&read, &[]).pull_request, Some(draft));
 }
 
 /// US1.6: a branch checked out in a worktree, without its folder in its latest commit, is no item.
