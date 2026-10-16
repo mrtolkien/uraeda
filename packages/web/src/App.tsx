@@ -8,7 +8,7 @@ import { uraedaTheme } from "./theme/built/uraeda.js";
 import { Component, type ReactNode, Suspense, useLayoutEffect, useState } from "react";
 import { FateClient } from "react-fate";
 import type { FateClient as Client } from "./clients.ts";
-import { useFeature, useRepositories } from "./data.ts";
+import { useFeature, usePreview, useRepositories } from "./data.ts";
 import { useDropGuard } from "./attach/useImageDrop.ts";
 import { FeaturePage } from "./FeaturePage.tsx";
 import { ConfirmHost } from "./fields/Confirm.tsx";
@@ -85,7 +85,17 @@ class ServerErrorBoundary extends Component<
   }
 }
 
+/** The page of the route, and the Storybook of its feature started. */
 function Page({ route }: { route: Route }) {
+  return (
+    <>
+      <RoutePage route={route} />
+      <StartsStorybook route={route} />
+    </>
+  );
+}
+
+function RoutePage({ route }: { route: Route }) {
   switch (route.page) {
     case "home":
       return <Home />;
@@ -172,6 +182,32 @@ function useListPosition() {
       window.scrollTo(0, opener);
     }
   }, [wide, opener, scroll]);
+}
+
+/**
+ * Starts the Storybook of the feature or change whose page is shown, and keeps it running while one
+ * of its pages shows, so its stories are ready once one is embedded: a read of its record is a view.
+ * Draws nothing, and holds no page back while the record loads.
+ */
+function StartsStorybook({ route }: { route: Route }) {
+  const folder =
+    route.page === "feature" ||
+    route.page === "file" ||
+    route.page === "mockup" ||
+    route.page === "session"
+      ? route.folder
+      : undefined;
+  return folder === undefined ? null : (
+    <Suspense fallback={null}>
+      <ReadPreview folder={folder} />
+    </Suspense>
+  );
+}
+
+/** Reads a checkout's Storybook record, which starts it. */
+function ReadPreview({ folder }: { folder: string }) {
+  usePreview(folder);
+  return null;
 }
 
 /** A feature's page, or a change's, which is its session. */

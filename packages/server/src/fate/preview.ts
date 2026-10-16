@@ -1,7 +1,8 @@
 // Stories and previews in fate: the records of a story link of a checkout, `Story`, and of a
 // checkout's Storybook, `Preview`, each read a view of the runner; and of an agent's link,
 // `StoryHref`, checked by the core. The runner's changes reach the records read for each base.
-import { resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { dataView } from "@nkzw/fate/server";
 import { matchStory, UNREADABLE_INDEX } from "../preview/index.ts";
 import type { Checkout, PreviewState, Previews } from "../preview/runner.ts";
@@ -186,6 +187,18 @@ export async function readPreview(ctx: RepoContext, folder: string): Promise<Pre
   }
   watch(ctx, checkout.base, folder);
   return previewRecord(folder, checkout, ctx.previews.view(checkout));
+}
+
+/**
+ * Starts a checkout's Storybook ahead of any page, by its folder, once its preview folder has its
+ * dependencies, `node_modules`: without them it would only fail, and its stories show the failure.
+ * Nothing reads its record yet: a page that does finds it starting or ready.
+ */
+export async function warmPreview(ctx: RepoContext, folder: string): Promise<void> {
+  const checkout = await runnable(ctx, folder);
+  if (checkout !== null && existsSync(join(checkout.dir, checkout.folder, "node_modules"))) {
+    ctx.previews.view(checkout);
+  }
 }
 
 /** Restarts a checkout's Storybook, by its folder: none without a checkout or a decision. */
