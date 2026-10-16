@@ -53,3 +53,9 @@
 
 - Settings page didn't show as "finished" in the UI after the last message -> might be fixed by the
   interface review feature
+
+## Deferred fixes
+
+- [agent] [redesign-priorities] Decisions page: when the default branch is checked out nowhere, a
+  decision's links are checked against the current checkout, not the default branch's tree, so a
+  valid link can read as broken
