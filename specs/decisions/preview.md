@@ -45,16 +45,14 @@ shows.
 ## Why
 
 You asked for "REAL, INTERACTIVE MOCKUPS that PROPERLY show how the feature will BEHAVE", inside the
-spec, and chose Storybook for Uraeda
-([Q1, Q1.A, Q6](../2026-10-15-ui-iteration/clarifications-01.md),
-[round 02](../2026-10-15-ui-iteration/clarifications-02.md)). A mockup written with the real
-components is the code that ships, which removes the drift between mockups and code that every
-product studied suffers from
-([pitfalls](../2026-10-15-ui-iteration/discovery-01.md#known-complaints-and-pitfalls)). Storybook
-10.6 runs on this repository's Vite+, React Compiler, StyleX, and WebKit, and Astryx develops its
-own components in it ([Storybook 10](../2026-10-15-ui-iteration/discovery-02.md#storybook-10)).
-Running the real server inside Storybook keeps the [stack](stack.md) decision's "data only from the
-server, through fate" true, where faked responses would hand-write the server's output.
+spec, and chose Storybook for Uraeda ([Q1, Q1.A, Q6](../done/2026-10-15-ui-iteration.md),
+[round 02](../done/2026-10-15-ui-iteration.md)). A mockup written with the real components is the
+code that ships, which removes the drift between mockups and code that every product studied suffers
+from ([pitfalls](../done/2026-10-15-ui-iteration.md)). Storybook 10.6 runs on this repository's
+Vite+, React Compiler, StyleX, and WebKit, and Astryx develops its own components in it
+([Storybook 10](../done/2026-10-15-ui-iteration.md)). Running the real server inside Storybook keeps
+the [stack](stack.md) decision's "data only from the server, through fate" true, where faked
+responses would hand-write the server's output.
 
 ## Alternatives considered
 

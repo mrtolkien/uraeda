@@ -21,7 +21,7 @@ went straight to `main` in five days with no record, tests, or review, and the a
 flow was never used. The human wanted it to "look and feel like a chat with a light structure on
 top: a file as input for context, optional clarifications rounds, and then implementation and a PR".
 The visual UI iteration flow the proposal also floated became its own draft,
-[UI iteration flow](/specs/2026-10-15-ui-iteration/proposal.md).
+[UI iteration flow](/specs/done/2026-10-15-ui-iteration.md).
 
 ## Behaviour
 
