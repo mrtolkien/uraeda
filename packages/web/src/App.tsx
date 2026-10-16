@@ -185,18 +185,12 @@ function useListPosition() {
 }
 
 /**
- * Starts the Storybook of the feature or change whose page is shown, and keeps it running while one
- * of its pages shows, so its stories are ready once one is embedded: a read of its record is a view.
- * Draws nothing, and holds no page back while the record loads.
+ * Starts the Storybook of the feature or change whose page is shown, any page under its folder, and
+ * keeps it running while one of its pages shows, so its stories are ready once one is embedded: a
+ * read of its record is a view. Draws nothing, and holds no page back while the record loads.
  */
 function StartsStorybook({ route }: { route: Route }) {
-  const folder =
-    route.page === "feature" ||
-    route.page === "file" ||
-    route.page === "mockup" ||
-    route.page === "session"
-      ? route.folder
-      : undefined;
+  const folder = "folder" in route ? route.folder : undefined;
   return folder === undefined ? null : (
     <Suspense fallback={null}>
       <ReadPreview folder={folder} />
