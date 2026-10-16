@@ -337,6 +337,40 @@ function defaultBrowserPort(files: Record<string, string>): Array<string> {
     );
 }
 
+/**
+ * The Vitest configs loading the native binding whose first import is not `fresh-binding`: an
+ * import before it could load a binding older than the Rust core, which Node cannot reload once
+ * rebuilt.
+ */
+function staleBindingFirst(configs: Record<string, string>): Array<string> {
+  return Object.entries(configs)
+    .filter(([path, text]) => {
+      const first = /^import\s[^;]*?["']([^"']+)["'];?$/m.exec(uncommented(path, text))?.[1] ?? "";
+      return !/(^|\/)fresh-binding(\.ts)?$/.test(first);
+    })
+    .map(
+      ([path]) =>
+        `\`${path}\` may load the binding before it is rebuilt: import \`uraeda-server/fresh-binding\` first.`,
+    );
+}
+
+/** The Vitest configs of the root's projects whose package is the binding or depends on it. */
+function bindingConfigs(): Record<string, string> {
+  const projects = (config as { test?: { projects?: Array<string> } }).test?.projects ?? [];
+  return Object.fromEntries(
+    projects
+      .map((project) => (project.endsWith(".ts") ? project : `${project}/vite.config.ts`))
+      .filter((path) => {
+        const manifest = readFileSync(
+          join(ROOT, path.slice(0, path.lastIndexOf("/")), "package.json"),
+          "utf8",
+        );
+        return /"uraeda-binding"/.test(manifest);
+      })
+      .map((path) => [path, readFileSync(join(ROOT, path), "utf8")]),
+  );
+}
+
 /** The browser projects' names: the instances of the root's config file projects. */
 function browserProjects(): Array<string> {
   const projects = (config as { test?: { projects?: Array<string> } }).test?.projects ?? [];
@@ -478,6 +512,20 @@ test.each([
     ],
   ],
   [
+    "a config importing something before the binding is rebuilt",
+    staleBindingFirst({
+      "packages/binding/vite.config.ts":
+        '// A comment.\nimport "../server/src/fresh-binding.ts";\nimport { defineConfig } from "vite-plus";\n',
+      "packages/web/vite.browser.config.ts":
+        'import { addRepository } from "uraeda-binding";\nimport "uraeda-server/fresh-binding";\n',
+      "packages/web/vite.config.ts":
+        'import "uraeda-server/fresh-binding";\nimport {\n  devHandler,\n} from "uraeda-server/dev";\n',
+    }),
+    [
+      "`packages/web/vite.browser.config.ts` may load the binding before it is rebuilt: import `uraeda-server/fresh-binding` first.",
+    ],
+  ],
+  [
     "a browser config on Vitest's port",
     defaultBrowserPort({
       "a.config.ts": "export default { test: { browser: { enabled: true } } };\n",
@@ -525,6 +573,13 @@ test("the repository's toolchain follows the decision", () => {
   expect(unlockedBrowsers(allTasks(), browserProjects())).toEqual([]);
   expect(fixedPorts({ ...runnerConfigs(), ...taskCommands(allTasks()) })).toEqual([]);
   expect(defaultBrowserPort(runnerConfigs())).toEqual([]);
+  expect(staleBindingFirst(bindingConfigs())).toEqual([]);
+  expect(Object.keys(bindingConfigs()).sort()).toEqual([
+    "packages/binding/vite.config.ts",
+    "packages/server/vite.config.ts",
+    "packages/web/vite.browser.config.ts",
+    "packages/web/vite.config.ts",
+  ]);
 });
 
 test("the browser projects are the browser config's instances", () =>

@@ -1,3 +1,5 @@
+// First: a binding older than the Rust core is rebuilt before the imports below load it.
+import "uraeda-server/fresh-binding";
 import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import babel from "@rolldown/plugin-babel";
@@ -26,7 +28,8 @@ const sources = { file: !process.env.VITEST };
 
 /**
  * The server's routes, in Vite's own server, on Claude Code unless `adapter` says otherwise. The
- * agents' runs end with Vite's server. It does not start on a binding older than the Rust core.
+ * agents' runs end with Vite's server. It does not start on a binding older than the Rust core,
+ * which the import of `fresh-binding` above rebuilt.
  */
 export function uraedaServer(options: Parameters<typeof devHandler>[1] = {}): Plugin {
   return {

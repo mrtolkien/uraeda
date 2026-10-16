@@ -105,8 +105,9 @@ export const tasks = {
     cwd: "packages/binding",
   },
   // A hit restores the binding with the time it was built at, which a source saved since with the
-  // same content is newer than: the web configs' `checkBinding` would refuse it. The binding is
-  // built from its sources as they are, so it is marked as built now, on every run.
+  // same content is newer than: the configs loading it would rebuild it (`freshBinding`), from
+  // inside the task. The binding is built from its sources as they are, so it is marked as built
+  // now, on every run, before any task loading it.
   "binding:touch": {
     cache: false,
     // In a shell: Vite Task runs a plain command without expanding its globs.
@@ -222,7 +223,7 @@ export const tasks = {
     // `vp exec` is never cached: the binary itself is.
     command: "node_modules/.bin/storybook build --quiet --output-dir storybook-static",
     cwd: "packages/web",
-    dependsOn: ["binding:build"],
+    dependsOn: ["binding:touch"],
   },
   // CI only (see the toolchain decision): the Neovim plugin's tests, on the `ura` they build.
   "test:nvim": {
@@ -319,7 +320,7 @@ export const tasks = {
     },
     command: "vp build",
     cwd: "packages/web",
-    dependsOn: ["binding:build"],
+    dependsOn: ["binding:touch"],
   },
   "web:theme": {
     cache: { input: ["packages/web/src/theme/**"], output: [] },

@@ -1,6 +1,6 @@
 /**
  * `vp run dev`: `vp dev`, restarted when the code it runs in its own process changes. It builds the
- * binding first, as `vp dev` refuses one older than the Rust. A change to what the binding is built
+ * binding first, as `vp dev` does when it is older than the Rust. A change to what the binding is built
  * from rebuilds it, then restarts `vp dev`; a change to the server's code only restarts it. Node
  * cannot unload a native addon, and Vite loads the server once, with its config. The page reloads
  * once Vite's server is back, as its client does after a lost connection.
