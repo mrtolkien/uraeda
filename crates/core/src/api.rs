@@ -17,9 +17,7 @@ use crate::view::{
     CommitView, FeatureView, FileView, NextView, PriorityLink, StepView, VersionView, WaitingFile,
     WorkspaceView,
 };
-use crate::workspace::{
-    Feature, FileKind, Problem, Source, Workspace, WorkspaceError, linked_draft,
-};
+use crate::workspace::{Feature, FileKind, Problem, Source, Workspace, WorkspaceError};
 
 mod answers;
 mod default_branch;
@@ -242,14 +240,13 @@ pub fn priority_links(repo: &Path, text: &str) -> Result<Vec<PriorityLink>> {
     Ok(priorities::parse(text)
         .into_iter()
         .filter_map(|entry| {
-            let link = entry.link.as_deref()?;
-            let feature = workspace.linked_feature(link);
-            let draft = linked_draft(link);
-            (feature.is_some() || draft.is_some()).then(|| PriorityLink {
+            let linked = workspace.link(entry.link.as_deref()?);
+            let feature = linked.feature;
+            (feature.is_some() || linked.file.is_some()).then(|| PriorityLink {
                 line: entry.line as u32,
                 feature: feature.map(|feature| feature.folder.clone()),
                 step: feature.map(|feature| StepView::from(&feature.step)),
-                draft,
+                draft: linked.file.map(|file| file.path),
             })
         })
         .collect())
