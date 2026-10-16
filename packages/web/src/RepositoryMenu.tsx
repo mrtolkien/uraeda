@@ -183,6 +183,13 @@ function Menu({
         isLabelHidden
         label="Filter repositories"
         onChange={(value: string) => setFilter(value)}
+        onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
+          // The filter leaving one repository: Enter opens it.
+          if (event.key === "Enter" && rows.length === 1) {
+            event.preventDefault();
+            onPick(rows[0]!.name);
+          }
+        }}
         placeholder="Filter repositories"
         startIcon="search"
         value={filter}

@@ -27,6 +27,7 @@ import { takeChanges } from "./change-shots.ts";
 import { takeImages } from "./image-shots.ts";
 import { takeInbox } from "./inbox-shots.ts";
 import { type Serve, takeSettings } from "./settings-shots.ts";
+import { takeShell } from "./shell-shots.ts";
 import { takeSignIn } from "./sign-in-shots.ts";
 import { takeTextInputs } from "./text-input-shots.ts";
 import {
@@ -103,6 +104,13 @@ async function main() {
           // A touch screen, as the browser tests' phone has.
           hasTouch: size === "phone",
           reducedMotion: "reduce",
+        });
+        // The banner that asks to notify shows above every page until dismissed: its own shot
+        // names its tab "banner" to show it.
+        await context.addInitScript(() => {
+          if (window.name !== "banner") {
+            window.localStorage.setItem("uraeda.notifications", "dismissed");
+          }
         });
         shots.push({ context, mode, page: await context.newPage(), size });
       }
@@ -214,6 +222,7 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
   await takeSessions(each, first, adapter);
 
   await each("sidebar", ({ page, size }) => sidebar(page, size));
+  await takeShell(each, sidebar);
 
   await each("repositories", ({ page }) => repositories(page));
   await each("repositories-add", async ({ page }) => {
@@ -333,10 +342,17 @@ async function takePriorities(each: Each, shots: Array<Shot>, repo: string) {
     throw new Error("a drag was dropped: PRIORITIES.md changed");
   }
 
-  await each("quick-add", async ({ page }) => {
+  await each("quick-add", async ({ page, size }) => {
     await show(page, "/", "Waiting on you");
-    await page.getByRole("button", { name: "Add a priority" }).click();
-    await page.getByRole("textbox", { name: "Priority" }).fill("Show the agent's last commit");
+    // The sidebar's ＋, in the phone's drawer.
+    if (size === "phone") {
+      await page.getByRole("button", { name: "Open navigation" }).click();
+    }
+    await page.getByRole("button", { name: "Add to the priorities" }).click();
+    await page
+      .getByRole("dialog", { name: "New priority" })
+      .getByRole("textbox", { name: "Priority" })
+      .fill("Show the agent's last commit");
     await settle(page);
   });
 }

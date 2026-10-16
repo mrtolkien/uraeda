@@ -123,7 +123,7 @@ export async function takeImplementation(each: Each, adapter: FakeAdapter, repo:
     await implementation(page);
     if (size === "phone") {
       await page.getByRole("button", { name: "Open navigation" }).click();
-      await page.getByRole("link", { name: "7/11 · Session column, Task 7 of 11" }).waitFor();
+      await page.getByRole("link", { name: /Task 7 of 11, Session column/ }).waitFor();
     }
     await settle(page);
   });

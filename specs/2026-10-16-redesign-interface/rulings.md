@@ -272,3 +272,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   closed tab's last message to trust.
 - **If wrong**: the tag becomes the key, and the notifier moves up to the app.
 - **Where**: task 11.
+
+## R20: The shell's new states are checked in a file of their own
+
+- **Decision**: the folded rail, the feature settings, and the banner that asks to notify pass the
+  UI checks in `__browser__/shell-checks.test.tsx`, not in `layout.test.tsx`'s `CASES`, which take a
+  page by its address alone; home's cards, the Done area, and the session's column, shown and
+  hidden, pass them with their pages there already. A write in flight is checked by its behaviour in
+  `writes.test.tsx`, and shown by its stories, `Writes/Feedback#Committing` and
+  `Sidebar#Committing`: holding a real commit in the browser tests or the screenshots would commit
+  into the repository the next views read. The screenshots' new views are in
+  `scripts/shell-shots.ts`; every context starts with the banner dismissed, but for its own view.
+- **Rationale**: each new state needs a step after the page shows, which `CASES` has no room for,
+  and `layout.test.tsx` is already the longest test file.
+- **Alternatives considered**: a step per case in `CASES`: one more field every page sets.
+- **If wrong**: the cases move into `layout.test.tsx`.
+- **Where**: task 12.
