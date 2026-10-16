@@ -40,3 +40,8 @@
 - We need a "check decisions coherence" option, like "inbox triage"
   - It should read constitution and all decisions and raise if some of them are competing, and
     explain the options clearly (what are the 2 options to keep it clean)
+
+## UI
+
+- [agent] [redesign-priorities] Once the interface and priorities redesigns are merged, review the
+  sidebar: a grey count of inbox notes on the Inbox row, and a Decisions row above Done
