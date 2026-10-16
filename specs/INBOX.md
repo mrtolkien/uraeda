@@ -65,3 +65,5 @@
   C, blank line, 2. B)
 - [agent] [redesign-priorities] Home's Now count includes started entries, while the priorities
   page's Now · N leaves them out
+- [agent] [redesign-priorities] ura note still refuses when other files are staged, while the web
+  UI's Add and commit commits the file alone
