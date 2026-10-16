@@ -8,15 +8,20 @@
 
 - [UI iteration flow](/specs/2026-10-15-ui-iteration/proposal.md)
 
-- [Redesign clarifications](drafts/redesign-clarifications/proposal.md)
-- Redesign specs
+- [Auth and login for basic security](drafts/basic-security.md)
 
+- Redesign sidebars and global interface
+- [Redesign + reword clarifications](drafts/redesign-clarifications/proposal.md)
+- Redesign + reword specs
+- Redesign session
+- Redesign priorities
 - [Settings page with selection of agent runner, config values, other run values](drafts/settings-page-with-selection-of-agent-runner.md)
   - For example: does each step start with a new context or continues a "master session"? Should be
     a config flag, and able to toggle it per feature
   - Same for subagents in implementation, or review settings (command, model, count, ...)
 
 - [Look and feel pass](drafts/look-and-feel.md)
+
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
@@ -31,7 +36,6 @@
   ready, see [backlog](backlog/benchmarks/proposal.md), with a discovery round and partial answers.
   - Speed up the process: iteration speed is too slow atm
   - This only doable once we have a good benchmark!
-- [Auth and login for basic security](drafts/basic-security.md)
 
 - CLI auto-expand in fish and ?zsh?
 - Ping user when input is needed
