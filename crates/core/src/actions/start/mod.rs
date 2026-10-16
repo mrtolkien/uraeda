@@ -1,5 +1,5 @@
 //! Starting a drafted feature or change, as the skill's start section says: on the default
-//! branch, its `PRIORITIES.md` entry moves to the end of **Now** as a link and is committed; then
+//! branch, its `PRIORITIES.md` entry moves to the top of **Now** as a link and is committed; then
 //! its branch is created, and the draft moves into the dated folder, unchanged, in a second commit.
 //! A change typed as a text starts the same way, its proposal written from the text.
 

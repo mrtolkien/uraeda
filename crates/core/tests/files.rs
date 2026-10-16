@@ -476,9 +476,56 @@ fn priorities_link_an_entry() {
     ));
 }
 
+/// The lines of a `PRIORITIES.md` whose Now holds `now`, its lines, followed by a Next.
+fn with_now(now: &[&str]) -> String {
+    let now: String = now.iter().map(|line| format!("{line}\n")).collect();
+    let now = if now.is_empty() {
+        now
+    } else {
+        format!("{now}\n")
+    };
+    format!("# Priorities\n\n## Now\n\n{now}## Next\n\n- Runner\n")
+}
+
+const A: &str = "- [A](/specs/2026-10-16-a/proposal.md)";
+const B: &str = "- B";
+const C: &str = "- [C](/specs/2026-10-17-c/proposal.md)";
+const D: &str = "- [D](drafts/d.md)";
+
+/// US4 scenarios 4 and 5, review focus 2: a started entry goes after the other started entries of
+/// Now's first block, or first with a blank line before the rest, and no blank line ends Now.
 #[test]
-fn priorities_move_an_entry_to_the_end_of_now() {
-    let moved = priorities::move_to_now(
+fn started_entries_go_on_top() {
+    let changed_a = "- [A](/specs/changes/2026-10-16-a/proposal.md)";
+    let rows: [(&[&str], &[&str]); 8] = [
+        (&[A, "", B], &[A, C, "", B]),
+        (&[B, D], &[C, "", B, D]),
+        (&[], &[C]),
+        (&[A], &[A, C]),
+        (&[B, "", D], &[C, "", B, "", D]),
+        // An entry started before this feature, at the end of Now, stays there.
+        (&[B, "", A], &[C, "", B, "", A]),
+        (&[changed_a, B], &[changed_a, C, "", B]),
+        (
+            &["1. [A](/specs/2026-10-16-a/proposal.md)", "2. B"],
+            &[
+                "1. [A](/specs/2026-10-16-a/proposal.md)",
+                "2. [C](/specs/2026-10-17-c/proposal.md)",
+                "",
+                "2. B",
+            ],
+        ),
+    ];
+    for (now, expected) in rows {
+        let added = priorities::add_started(&with_now(now), "C", "/specs/2026-10-17-c/proposal.md");
+
+        assert_eq!(added, with_now(expected), "from {now:?}");
+    }
+}
+
+#[test]
+fn started_entries_move_from_next_without_their_children() {
+    let moved = priorities::move_to_started(
         PRIORITIES,
         11,
         "Git listener process",
@@ -486,19 +533,7 @@ fn priorities_move_an_entry_to_the_end_of_now() {
     )
     .unwrap();
 
-    assert!(moved.contains("  [draft](drafts/web-ui.md)\n- [Git listener process](/specs/2026-10-11-git-listener-process/proposal.md)\n\n## Next\n\n- Runner\n"), "{moved}");
-}
-
-#[test]
-fn priorities_add_to_an_empty_now() {
-    let text = "# Priorities\n\n## Now\n\n## Next\n";
-
-    let added = priorities::add_to_now(text, "Slack", "/specs/x/proposal.md");
-
-    assert_eq!(
-        added,
-        "# Priorities\n\n## Now\n\n- [Slack](/specs/x/proposal.md)\n\n## Next\n"
-    );
+    assert!(moved.contains("## Now\n\n- [CLI](/specs/2026-10-10-cli/proposal.md)\n- [Git listener process](/specs/2026-10-11-git-listener-process/proposal.md)\n\n- Web UI, see\n  [draft](drafts/web-ui.md)\n\n## Next\n\n- Runner\n"), "{moved}");
 }
 
 /// Brackets in an entry's text are escaped in its link, whichever writes it, so it stays a link.
@@ -507,7 +542,7 @@ fn priorities_links_escape_brackets() {
     let text = "# Priorities\n\n## Now\n\n## Next\n\n- Fix the \\] key\n";
 
     let linked = priorities::link(text, 7, "drafts/key.md").unwrap();
-    let added = priorities::add_to_now(text, "Fix the [ key", "/specs/x/proposal.md");
+    let added = priorities::add_started(text, "Fix the [ key", "/specs/x/proposal.md");
 
     assert!(
         linked.contains("- [Fix the \\] key](drafts/key.md)\n"),
@@ -516,18 +551,6 @@ fn priorities_links_escape_brackets() {
     let entries = priorities::parse(&added);
     assert_eq!(entries[0].text, "Fix the [ key");
     assert_eq!(entries[0].link.as_deref(), Some("/specs/x/proposal.md"));
-}
-
-#[test]
-fn priorities_follow_numbered_lists() {
-    let text = "# Priorities\n\n## Now\n\n1. One\n2. Two\n\n## Next\n";
-
-    let added = priorities::add_to_now(text, "Three", "/specs/x/proposal.md");
-
-    assert!(
-        added.contains("2. Two\n3. [Three](/specs/x/proposal.md)\n"),
-        "{added}"
-    );
 }
 
 #[test]

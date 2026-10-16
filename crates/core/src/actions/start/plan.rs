@@ -209,7 +209,7 @@ impl Start<'_> {
             }
             Origin::Text(typed, images) => {
                 let name = typed.title.clone();
-                let priorities = priorities::add_to_now(&priorities_text, &name, &target);
+                let priorities = priorities::add_started(&priorities_text, &name, &target);
                 (name, priorities, typed_write_left(&destination, *images))
             }
         };
@@ -323,7 +323,7 @@ fn typed_write_left(destination: &str, images: usize) -> String {
     }
 }
 
-/// The feature's name, and `PRIORITIES.md` with its entry moved to the end of **Now** as a link
+/// The feature's name, and `PRIORITIES.md` with its entry moved to the top of **Now** as a link
 /// to `target`, or added there when no entry links the draft.
 fn moved_entry(
     priorities_text: &str,
@@ -354,12 +354,13 @@ fn moved_entry(
                 .into_iter()
                 .find(|h| h.level == 1)
                 .map_or_else(|| slug.to_string(), |h| h.text);
-            let edited = priorities::add_to_now(priorities_text, &name, target);
+            let edited = priorities::add_started(priorities_text, &name, target);
             Ok((name, edited))
         }
         [entry] => {
-            let edited = priorities::move_to_now(priorities_text, entry.line, &entry.text, target)
-                .ok_or_else(|| StartError::Refused("cannot move the entry".into()))?;
+            let edited =
+                priorities::move_to_started(priorities_text, entry.line, &entry.text, target)
+                    .ok_or_else(|| StartError::Refused("cannot move the entry".into()))?;
             Ok((entry.text.clone(), edited))
         }
         several => {
