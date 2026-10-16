@@ -1,9 +1,7 @@
 // A feature's session's column: its step and the plan's tasks, its running sub-agents, the files
 // changed on its branch, and its pages. A change's column is drawn by `ChangeAside.tsx`. Beside
 // the transcript on wide screens, foldable, the choice kept in the browser.
-import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
-import { Layout, LayoutPanel } from "@astryxdesign/core/Layout";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { Text } from "@astryxdesign/core/Text";
@@ -15,7 +13,7 @@ import type { Feature } from "uraeda-server/fate";
 import { ChangeAside } from "./ChangeAside.tsx";
 import { useBranchChanges, useFeature, useFile, useSession } from "./data.ts";
 import { stepLabel, waiting } from "./labels.ts";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { SideColumn } from "./layout/SideColumn.tsx";
 import { statusStyles } from "./Question.tsx";
 import { useRepoPath } from "./routes.tsx";
 import { StatusMark } from "./StatusMark.tsx";
@@ -24,14 +22,6 @@ import { storybookHref } from "./stories.tsx";
 const styles = stylex.create({
   added: { color: colorVars["--color-text-green"] },
   // A long path breaks anywhere, rather than running under its lines' counts.
-  panel: {
-    // Beside the transcript, in view while the window scrolls, scrolling on its own when taller
-    // than the window.
-    alignSelf: "flex-start",
-    maxHeight: "var(--size-viewport-height)",
-    position: "sticky",
-    top: 0,
-  },
   path: { minWidth: 0, overflowWrap: "anywhere" },
   removed: { color: colorVars["--color-text-red"] },
 });
@@ -76,25 +66,9 @@ export function useAsideShown(): AsideShown {
   return [shown, set];
 }
 
-/** "Hide progress", or "Show progress" once hidden: on wide screens only, where the column is. */
-export function AsideToggle({ aside: [shown, setShown] }: { aside: AsideShown }) {
-  if (useWidthClass() !== "wide") {
-    return null;
-  }
-  return (
-    <Button
-      label={shown ? "Hide progress" : "Show progress"}
-      onClick={() => setShown(!shown)}
-      size="sm"
-      variant="ghost"
-    />
-  );
-}
-
 /**
- * A session's page, with a feature's column beside it at the window's edge, on wide screens while
- * it is shown. The page keeps its place in the tree as the column comes and goes, or the width
- * changes, so its transcript, focus, and errors stay.
+ * A session's page, with a feature's column beside it at the window's edge, on wide screens: shown
+ * or hidden from its button or `]`, its width kept in the browser.
  */
 export function WithAside({
   aside,
@@ -107,26 +81,20 @@ export function WithAside({
   folder: string | undefined;
   session?: string;
 }) {
-  const wide = useWidthClass() === "wide";
-  const shown = wide && aside?.[0] === true && folder !== undefined;
+  if (!aside || folder === undefined) {
+    return <>{children}</>;
+  }
+  const [shown, setShown] = aside;
   return (
-    <Layout
+    <SideColumn
       content={children}
-      end={
-        shown ? (
-          <LayoutPanel
-            hasDivider
-            label="Progress"
-            role="complementary"
-            width="var(--size-session-aside)"
-            xstyle={styles.panel}
-          >
-            <SessionAside folder={folder} {...(session === undefined ? {} : { session })} />
-          </LayoutPanel>
-        ) : undefined
-      }
-      height="auto"
-    />
+      isShown={shown}
+      label="Progress"
+      onShownChange={setShown}
+      storageKey="uraeda.column"
+    >
+      <SessionAside folder={folder} {...(session === undefined ? {} : { session })} />
+    </SideColumn>
   );
 }
 
