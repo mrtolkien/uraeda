@@ -1,7 +1,8 @@
 // The repository menu, in the navigation's heading: the repositories, most recently opened first,
-// the current one checked, a filter, each row's ⋯ menu with Remove, "Add a repository…", then
-// "Sign out" and "Sign out everywhere…". A popover on wide screens, a bottom sheet on narrow ones. Its reads and the list's mutations go
-// through the global client, which the repository gate reads too.
+// the current one checked, a filter, each row's ⋯ menu with Remove, and "Add a repository…".
+// Signing out is in the settings' Sign-in category. A popover on wide screens, a bottom sheet on
+// narrow ones. Its reads and the list's mutations go through the global client, which the
+// repository gate reads too.
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -23,8 +24,6 @@ import { refusal } from "./errors.ts";
 import { afterOverlayCloses, Overlay } from "./layout/Overlay.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { navigate, repoPath } from "./routes.tsx";
-import { SignOutList } from "./sign-in/SignOutList.tsx";
-import { useSignOutEverywhere } from "./sign-in/useSignOut.ts";
 import { RepositoriesView } from "./views.ts";
 
 const styles = stylex.create({
@@ -142,29 +141,22 @@ function RepositoryRow({
   );
 }
 
-/**
- * The menu's content: the filter, the list's problem, the rows, a refusal, Add, and the sign-out
- * items. `refusedFirst` is a refusal to show as it opens, as a failed "Sign out everywhere".
- */
+/** The menu's content: the filter, the list's problem, the rows, a refused removal, and Add. */
 function Menu({
   current,
   onAdd,
   onPick,
   onRemovedCurrent,
-  onSignOutEverywhere,
-  refusedFirst,
 }: {
   current: string | null;
   onAdd: () => void;
   onPick: (name: string) => void;
   onRemovedCurrent: () => void;
-  onSignOutEverywhere: () => void;
-  refusedFirst?: string;
 }) {
   const fate = useFateClient();
   const list = useRepositories();
   const [filter, setFilter] = useState("");
-  const [refused, setRefused] = useState(refusedFirst);
+  const [refused, setRefused] = useState<string>();
   const needle = filter.trim().toLowerCase();
   const rows = (list?.rows ?? []).filter(
     (row) => row.name.toLowerCase().includes(needle) || row.home.toLowerCase().includes(needle),
@@ -215,7 +207,6 @@ function Menu({
           startContent={<span aria-hidden="true">+</span>}
         />
       </List>
-      <SignOutList onRefused={setRefused} onSignOutEverywhere={onSignOutEverywhere} />
     </VStack>
   );
 }
@@ -277,8 +268,6 @@ function MenuTrigger({ current, isFolded }: { current: string | null; isFolded: 
   const wide = useWidthClass() === "wide";
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
-  // A failed "Sign out everywhere" opens the menu again, saying why.
-  const everywhere = useSignOutEverywhere(() => setOpen(true));
   const label = current === null ? "Uraeda" : `Uraeda ${current}`;
 
   /** Closes the menu, then runs what follows once its sheet's history entry is gone. */
@@ -297,8 +286,6 @@ function MenuTrigger({ current, isFolded }: { current: string | null; isFolded: 
         onAdd={() => closeThen(() => setAdding(true))}
         onPick={(name) => closeThen(() => navigate(repoPath(name, "/")))}
         onRemovedCurrent={() => closeThen(() => navigate("/"))}
-        onSignOutEverywhere={() => closeThen(everywhere.ask)}
-        refusedFirst={everywhere.failed}
       />
     </Suspense>
   );

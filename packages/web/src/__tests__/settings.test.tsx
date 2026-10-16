@@ -2,12 +2,14 @@
 // US1, the allowed host names added, edited, and removed, asking first only for this browser's own
 // while the file's names are in force (review focus 7); US2.4, a flag in force; US3, the port and
 // the browser at start; and a file that cannot be read. C2's borders are checked in screenshots.
+// US4: the page opened from the sidebar, its categories at a desktop's and a phone's width, the
+// later settings, and an unknown category.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
-import { click, fixtureRepo, refreshUntil, renderPage, type } from "./helpers.tsx";
+import { atRepo, atWidth, click, fixtureRepo, refreshUntil, renderPage, type } from "./helpers.tsx";
 
 const MAC = "mac.tail1234.ts.net";
 const PHONE = "phone.tail1234.ts.net";
@@ -228,4 +230,131 @@ test("a settings file that cannot be read shows its problem, and no control", as
   ).toBeTruthy();
   expect(screen.queryByRole("button", { name: "＋ Add a host name" })).toBeNull();
   expect(screen.queryByRole("switch", { name: "Open a browser at start" })).toBeNull();
+});
+
+/** The side navigation, as drawn on a wide screen. */
+const nav = () => within(screen.getByRole("navigation", { name: "Side navigation" }));
+
+/** The side navigation, once the page shows it. */
+const navShown = async () =>
+  within(await screen.findByRole("navigation", { name: "Side navigation" }));
+
+/** The list of categories, once it shows. */
+const categories = async () => within(await screen.findByRole("list", { name: "Categories" }));
+
+/** The names of the categories, in the order the list shows them. */
+async function categoryNames() {
+  return (await categories())
+    .getAllByRole("listitem")
+    .map((item) => within(item).getByRole("link").textContent);
+}
+
+/** The names, each with its summary, as the list shows them. */
+const LISTED = [
+  "ServerHost names, port, and start",
+  "AppearanceTheme, on this browser",
+  "Sign-inSign out, here or everywhere",
+  "AgentsComing later",
+  "RunsComing later",
+  "ReviewsComing later",
+];
+
+test("the sidebar's Settings opens the settings, selected there, folded too (US4 1)", async () => {
+  await renderPage("/");
+
+  await click(await (await navShown()).findByRole("link", { name: "Settings" }));
+
+  expect(window.location.pathname).toBe(atRepo("/settings"));
+  await screen.findByRole("heading", { level: 1, name: "Settings" });
+  expect(nav().getByRole("link", { current: "page", name: "Settings" })).toBeTruthy();
+
+  await click(nav().getByRole("button", { name: "Collapse sidebar" }));
+  await waitFor(() => expect(nav().getByRole("button", { name: "Expand sidebar" })).toBeTruthy());
+  expect(nav().getByRole("link", { current: "page", name: "Settings" })).toBeTruthy();
+});
+
+test("on a desktop, the categories in order, Server selected, its settings beside (US4 2)", async () => {
+  atWidth(1440);
+  await renderPage("/settings");
+
+  expect(await categoryNames()).toEqual(LISTED);
+  const selected = (await categories()).getByRole("listitem", { current: true });
+  expect(within(selected).getByRole("link").textContent).toBe(LISTED[0]);
+  expect(await screen.findByRole("heading", { level: 2, name: "Server" })).toBeTruthy();
+});
+
+test("on a phone, the categories alone; Runs opens its page, and ‹ Settings leads back (US4 3)", async () => {
+  atWidth(402);
+  await renderPage("/settings");
+
+  expect(await categoryNames()).toEqual(LISTED);
+  expect(screen.queryByRole("heading", { name: "Server" })).toBeNull();
+
+  await click((await categories()).getByRole("link", { name: /^Runs/ }));
+
+  expect(window.location.pathname).toBe(atRepo("/settings/runs"));
+  await screen.findByRole("heading", { name: "Runs" });
+  expect(screen.queryByRole("list", { name: "Categories" })).toBeNull();
+
+  await click(screen.getByRole("link", { name: "‹ Settings" }));
+
+  expect(window.location.pathname).toBe(atRepo("/settings"));
+  expect(await categoryNames()).toEqual(LISTED);
+});
+
+test.each([
+  [
+    "runs",
+    "Runs",
+    [
+      ["One session for the whole feature, or a new session at each step", "run options"],
+      ["Sub-agents during the implementation", "run options"],
+      ["A different choice for one feature", "run options"],
+    ],
+  ],
+  [
+    "agents",
+    "Agents",
+    [
+      ["The agent that runs each step", "the Codex runtime"],
+      ["The model and effort of each step", "the Codex runtime"],
+    ],
+  ],
+  [
+    "reviews",
+    "Reviews",
+    [
+      ["The review's command, model, and number of reviewers", "review settings"],
+      ["A second review by another model", "the adversarial review"],
+    ],
+  ],
+])(
+  "/settings/%s lists its later settings, each with its feature, and no control (US4 4-6)",
+  async (id, label, settings) => {
+    await renderPage(`/settings/${id}`);
+    const list = within(await screen.findByRole("list", { name: `${label}, coming later` }));
+
+    expect(list.getAllByRole("listitem").map((item) => item.textContent)).toEqual(
+      settings.map(([setting, feature]) => `${setting}Comes with ${feature}`),
+    );
+    for (const role of ["button", "link", "textbox", "switch", "radio", "checkbox"]) {
+      expect(list.queryAllByRole(role)).toEqual([]);
+    }
+  },
+);
+
+test("an unknown category reads as none: on a phone, the list of categories", async () => {
+  atWidth(402);
+  await renderPage("/settings/nope");
+
+  expect(await categoryNames()).toEqual(LISTED);
+  expect(screen.queryByRole("heading", { name: "Server" })).toBeNull();
+});
+
+test("an unknown category reads as none: on a desktop, Server beside the list", async () => {
+  atWidth(1440);
+  await renderPage("/settings/nope");
+
+  expect(await categoryNames()).toEqual(LISTED);
+  expect(await screen.findByRole("heading", { level: 2, name: "Server" })).toBeTruthy();
 });

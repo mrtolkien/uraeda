@@ -1,9 +1,9 @@
 // The settings page's layout: on wide screens, the list of categories beside the open one, Server
 // when none is named; on narrow screens, the list as a page, then each category as its own page.
+import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
-import { Link } from "@astryxdesign/core/Link";
+import { HStack } from "@astryxdesign/core/HStack";
 import { List, ListItem } from "@astryxdesign/core/List";
-import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -103,9 +103,10 @@ export function SettingsView({
     return (
       <Page>
         <VStack gap={4}>
-          <Link href={indexPath}>
-            <Text>‹ Settings</Text>
-          </Link>
+          {/* A button, not a link in text: the way back is as tall as a control for a finger. */}
+          <HStack>
+            <Button href={indexPath} label="‹ Settings" variant="ghost" />
+          </HStack>
           {settings}
         </VStack>
       </Page>

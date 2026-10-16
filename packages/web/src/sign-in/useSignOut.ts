@@ -1,4 +1,4 @@
-// Signing out, from the repository menu: this browser, or every device.
+// Signing out, from the settings' Sign-in category: this browser, or every device.
 import { useState } from "react";
 import { useServerFetch } from "../attach/ServerFetch.tsx";
 import { type ConfirmOptions, useConfirm } from "../fields/Confirm.tsx";
@@ -42,9 +42,9 @@ const SIGN_OUT_EVERYWHERE: ConfirmOptions = {
 
 /**
  * "Sign out everywhere…": `ask` asks first, then signs every device out. If the server could not,
- * `failed` says why, and `onFailed` opens the menu again to show it.
+ * `failed` says why, until the next ask.
  */
-export function useSignOutEverywhere(onFailed: () => void) {
+export function useSignOutEverywhere() {
   const confirm = useConfirm();
   const { signOutEverywhere } = useSignOut();
   const [failed, setFailed] = useState<string>();
@@ -56,7 +56,6 @@ export function useSignOutEverywhere(onFailed: () => void) {
     const error = await signOutEverywhere();
     if (error) {
       setFailed(error);
-      onFailed();
     }
   };
   return { ask: () => void ask(), failed };

@@ -195,3 +195,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: one string, or the Add row back to an `EditableLine` with `display`.
 - **Where**: task 6, `packages/web/src/settings/ServerSettings.tsx`,
   `packages/web/src/settings/SettingsPage.tsx`, `packages/web/src/EditableLine.tsx`
+
+## R16: The way back to the categories is a ghost button
+
+- **Decision**: on a phone, the way back from a category to the list is a ghost `Button` with the
+  list's address, "‹ Settings", rather than a `Link` around its text.
+- **Rationale**: the layout checks hold every control on its own line to 44 px under a finger; the
+  link alone was 20 px tall, which the moved browser test of the Sign-in category found.
+- **Alternatives considered**: a theme override growing every link alone on its line, a rule for one
+  place; the link kept, the check failing.
+- **If wrong**: one element in `packages/web/src/settings/SettingsView.tsx`.
+- **Where**: task 7, `packages/web/src/settings/SettingsView.tsx`
