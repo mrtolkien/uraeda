@@ -13,15 +13,11 @@ plan-review: false
 > Approved on 2026-10-16.
 >
 > - One new decision, [notifications](../decisions/notifications.md), and five changed:
->   [agents](../decisions/agents.md#proposed-change-2026-10-16-redesign-interface) (background
->   commands hold a run), [git](../decisions/git.md#proposed-change-2026-10-16-redesign-interface)
->   (the workflow's state comes from commits),
->   [UI layout](../decisions/ui-layout.md#proposed-change-2026-10-16-redesign-interface) (cards by
->   their name, the rail),
->   [UI behaviour](../decisions/ui-behaviour.md#proposed-change-2026-10-16-redesign-interface) (git
->   writes, actions shown at once), and
->   [repositories](../decisions/repositories.md#proposed-change-2026-10-16-redesign-interface)
->   (names and colours in `repositories.json`).
+>   [agents](../decisions/agents.md) (background commands hold a run), [git](../decisions/git.md)
+>   (the workflow's state comes from commits), [UI layout](../decisions/ui-layout.md) (cards by
+>   their name, the rail), [UI behaviour](../decisions/ui-behaviour.md) (git writes, actions shown
+>   at once), and [repositories](../decisions/repositories.md) (names and colours in
+>   `repositories.json`).
 > - Your answers read one way among several: "order the agents at work by active step" sorts the
 >   Changes and Features sections in the workflow's order, earliest step first; the "+1050 −250" of
 >   your note shows on every card in flight, counting the lines outside the feature's own folder, as
@@ -367,12 +363,11 @@ Acceptance scenarios:
 
 The core decides, the server publishes, and the web UI draws. Which items exist, their step, the
 order of the steps, and their pull request's state are the core's, read from each branch's commits,
-as the changed [git](../decisions/git.md#proposed-change-2026-10-16-redesign-interface) decision
-says. When a run is over is the server's runner, under the changed
-[agents](../decisions/agents.md#proposed-change-2026-10-16-redesign-interface) decision. The web UI
-only maps steps to icons and labels, as it does today, and never guesses a status, as the changed
-[UI behaviour](../decisions/ui-behaviour.md#proposed-change-2026-10-16-redesign-interface) decision
-says. See the [discovery](discovery-01.md#approaches).
+as the changed [git](../decisions/git.md) decision says. When a run is over is the server's runner,
+under the changed [agents](../decisions/agents.md) decision. The web UI only maps steps to icons and
+labels, as it does today, and never guesses a status, as the changed
+[UI behaviour](../decisions/ui-behaviour.md) decision says. See the
+[discovery](discovery-01.md#approaches).
 
 - **Main units**:
   - In the core: the workspace read, which counts a branch only with its folder or record and reads
@@ -517,20 +512,18 @@ Changed, applied when this spec is approved:
 
 - [Agents](../decisions/agents.md): every background task of a run, background commands included,
   holds its turn, and the process stays open while one runs
-  ([proposed change](../decisions/agents.md#proposed-change-2026-10-16-redesign-interface)).
+  ([proposed change](../decisions/agents.md)).
 - [Git](../decisions/git.md): a feature's or a change's existence and step are read from its
   branch's latest commit, with its folder or record required
-  ([proposed change](../decisions/git.md#proposed-change-2026-10-16-redesign-interface)).
+  ([proposed change](../decisions/git.md)).
 - [UI layout](../decisions/ui-layout.md): each item is a card by its name or slug, its step at the
   start, its status at the end; the sidebar folds to a rail from its top; a column resizes
-  ([proposed change](../decisions/ui-layout.md#proposed-change-2026-10-16-redesign-interface)).
+  ([proposed change](../decisions/ui-layout.md)).
 - [UI behaviour](../decisions/ui-behaviour.md): a git write shows at once and blocks the other
   writing buttons; a card shows the action in flight and never a guessed status; hover controls show
-  with the focus and on touch
-  ([proposed change](../decisions/ui-behaviour.md#proposed-change-2026-10-16-redesign-interface)).
+  with the focus and on touch ([proposed change](../decisions/ui-behaviour.md)).
 - [Repositories](../decisions/repositories.md): each entry holds its items' names and colours, and
-  the global endpoint may span repositories
-  ([proposed change](../decisions/repositories.md#proposed-change-2026-10-16-redesign-interface)).
+  the global endpoint may span repositories ([proposed change](../decisions/repositories.md)).
 
 Relied on:
 
