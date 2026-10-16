@@ -113,3 +113,62 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   only.
 - **If wrong**: a wording only.
 - **Where**: `plan.md`, task 2's step 2
+
+## R11: Task 3's tests first fail on the helpers' missing import
+
+- **Decision**: task 3's expected failure reads `Cannot find module '../sign-in/frames.ts'`.
+- **Rationale**: the test helpers give every test app its frame secret, so they import `frames.ts`
+  before `frames.test.ts` does, as in R10.
+- **Alternatives considered**: none: the cause is the same, the module not written yet.
+- **If wrong**: a wording only.
+- **Where**: `plan.md`, task 3's step 2
+
+## R12: The replacements of one turn restart the Storybooks once
+
+- **Decision**: `FrameSecret.replace()` makes the new secret at once, every time, and tells its
+  listeners once, in a microtask, for every replacement made in the same turn of the event loop.
+  `endAll` with five sessions replaces the secret five times, and `renewPreviews` runs once.
+- **Rationale**: the store calls `onEnded` once per ended session, synchronously. Restarting the
+  Storybooks once per call would start and stop them five times for one "sign out everywhere". The
+  old secret is still refused as soon as a session ends.
+- **Alternatives considered**: one replacement per batch, which leaves the old secret valid until
+  the microtask runs; a listener call per replacement, as the plan's review focus 4 read.
+- **If wrong**: two sign-outs in two requests still restart twice, as before; nothing else changes.
+- **Where**: task 3, `sign-in/frames.ts`; `plan.md`, review focus 4 and task 3
+
+## R13: `Origin: null` on a frame's path without the secret is a 404 from the guard
+
+- **Decision**: a read or a WebSocket GET with `Origin: null` on a path shaped like a preview's or a
+  mockup's whose secret `isFrame` refuses is refused by the guard with 404, `Not found`. Every other
+  refusal stays a 403.
+- **Rationale**: the spec's US2.1 asks 404 for the old address with `Origin: null`, and the guard
+  runs before every route; letting `Origin: null` through to the routes for any such path would
+  widen the stack decision's exception, which names the current frame secret.
+- **Alternatives considered**: a 403 there, against US2.1; the guard's exception on the path's shape
+  alone, leaving the secret to the routes.
+- **If wrong**: the status of a refusal only; no such request is ever served.
+- **Where**: task 3, `guard.ts` and `preview/proxy.ts`
+
+## R14: `createApp` replaces the frame secret as sessions end
+
+- **Decision**: `createApp`, given `signIn`, registers `frames.replace()` on the store's `onEnded`;
+  `startServer` registers `renewPreviews` on the frame secret's replacements.
+- **Rationale**: `createApp` holds both the store and the frame secret; `startServer` gets no store
+  until task 4, and every app with sign-in, tests included, then replaces the secret the same way.
+- **Alternatives considered**: `startServer` wiring both, as the plan's step 3 read, which task 3
+  cannot do without task 4's store.
+- **If wrong**: the registration moves; the behaviour is the same.
+- **Where**: task 3, `app.ts` and `server.ts`; `plan.md`, task 3's step 3
+
+## R15: The browser tests read the frame secret through a command
+
+- **Decision**: the browser tests build their expected frame addresses with a `frameSecret` command,
+  which reads the test server's secret through `devFrames`. The config's forwarding proxy moves to
+  `src/__browser__/forwarding-proxy.ts`, so the config stays under 500 lines.
+- **Rationale**: the tests compare frame addresses to the ones they expect, as before; only the
+  secret is new, and only the server knows it.
+- **Alternatives considered**: matching any secret with a pattern, which no longer checks the
+  address holds the server's secret; the base the fake Storybook logs, which is the server's own
+  value.
+- **If wrong**: test code only.
+- **Where**: task 3, `packages/web/vite.browser.config.ts` and the story browser tests

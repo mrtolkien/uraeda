@@ -1,6 +1,7 @@
 import type { Previews } from "../preview/runner.ts";
 import type { Hosts } from "../repositories.ts";
 import type { Sessions } from "../runner/sessions.ts";
+import type { FrameSecret } from "../sign-in/frames.ts";
 import { callSiteError } from "./errors.ts";
 
 /** The binding, as the server loads it. */
@@ -9,12 +10,14 @@ export type Binding = typeof import("uraeda-binding");
 /**
  * fate's request context: the repository the server reads and writes, through the binding, null on
  * the global endpoint; the session manager that talks to agents about its features; the hosts of
- * every listed repository; the data folder holding their list; and the server's Storybooks.
- * `lockedList` locks the list, as Uraeda's own Storybook does: see `unlockedList`.
+ * every listed repository; the data folder holding their list; the server's Storybooks; and the
+ * frame secret their paths carry. `lockedList` locks the list, as Uraeda's own Storybook does: see
+ * `unlockedList`.
  */
 export type Context = {
   binding: Binding;
   dataDir: string;
+  frames: FrameSecret;
   hosts: Hosts;
   lockedList?: boolean;
   previews: Previews;

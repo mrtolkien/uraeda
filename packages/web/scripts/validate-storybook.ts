@@ -2,7 +2,8 @@
  * Checks Uraeda's own Storybook as Uraeda serves it (US7.1, review focus 1): Uraeda's server, on the
  * fake agent, lists this checkout's repository and starts its preview decision's command, the real
  * Storybook of `packages/web`; WebKit opens the `Ready` story of `StoryEmbed.stories.tsx` through
- * Uraeda's address, `/r/<name>/preview/<folder>/iframe.html?id=storyembed--ready&viewMode=story`;
+ * Uraeda's address, `/r/<name>/preview/<secret>/<folder>/iframe.html?id=storyembed--ready&viewMode=story`,
+ * its base from the checkout's `Preview` record;
  * the story shows the fixture's data, which its fate client reads through GETs (R4), and its frame the
  * fixture's story, through Uraeda (R43); then an edit of
  * the stories file shows in the frame without a reload, and the file is restored.
@@ -61,16 +62,22 @@ function listen(http: HttpServer): Promise<number> {
 
 /**
  * Reads the checkout's `Preview` record through fate, as the Storybook page does, until it is ready:
- * each read is a view, and the first starts Storybook. Returns its last state and error.
+ * each read is a view, and the first starts Storybook. Returns its last state, error, and base.
  */
 async function waitForStorybook(address: string, name: string, folder: string) {
   const deadline = Date.now() + START_MS;
-  let last: { error?: string | null; state?: string } = {};
+  let last: { base?: string | null; error?: string | null; state?: string } = {};
   while (Date.now() < deadline) {
     const response = await fetch(`${address}/r/${encodeURIComponent(name)}/fate`, {
       body: JSON.stringify({
         operations: [
-          { id: "1", ids: [folder], kind: "byId", select: ["state", "error"], type: "Preview" },
+          {
+            id: "1",
+            ids: [folder],
+            kind: "byId",
+            select: ["state", "error", "base"],
+            type: "Preview",
+          },
         ],
         version: 1,
       }),
@@ -78,7 +85,9 @@ async function waitForStorybook(address: string, name: string, folder: string) {
       method: "POST",
     });
     const payload = (await response.json()) as {
-      results: Array<{ data?: Array<{ error: string | null; state: string }> }>;
+      results: Array<{
+        data?: Array<{ base: string | null; error: string | null; state: string }>;
+      }>;
     };
     last = payload.results[0]?.data?.[0] ?? {};
     if (last.state === "ready" || last.state === "failed") {
@@ -109,7 +118,7 @@ async function check(address: string, name: string, folder: string) {
   const browser = await webkit.launch();
   try {
     const page = await browser.newPage({ viewport: { height: 900, width: 1440 } });
-    const url = `${address}/r/${encodeURIComponent(name)}/preview/${encodeURIComponent(folder)}/iframe.html?id=storyembed--ready&viewMode=story`;
+    const url = `${address}${state.base}iframe.html?id=storyembed--ready&viewMode=story`;
     await page.goto(url);
     // The embed draws its frames only once its story is ready, which it reads through fate's GETs
     // and live stream, from the server in Storybook.

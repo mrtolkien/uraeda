@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { afterEach, expect, onTestFinished, test, vi } from "vite-plus/test";
-import { devHandler, devPreviews, devServer, devUpgrade, stopDevRuns } from "../dev.ts";
+import { devFrames, devHandler, devPreviews, devServer, devUpgrade, stopDevRuns } from "../dev.ts";
 import { loadEnv } from "../env.ts";
 import { FakeAdapter } from "../runner/fake.ts";
 import { checkoutOf, rawUpgrade, ready, socketOpens } from "../preview/__tests__/helpers.ts";
@@ -157,10 +157,10 @@ test("vp dev sends preview paths and their sockets to the server", async () => {
   });
   const { port } = server.address() as { port: number };
   const url = `http://127.0.0.1:${port}`;
-  const base = `/r/${basename(repo)}/preview/${STORY_FEATURE}/`;
   // The first request starts the dev server's server, whose runner then views the checkout.
   await fetch(`${url}/r/${basename(repo)}/raw/specs/README.md`);
   const previews = (await devPreviews(port))!;
+  const base = `/r/${basename(repo)}/preview/${(await devFrames(port))!.current()}/${STORY_FEATURE}/`;
   const checkout = await checkoutOf(join(repo, ".worktrees", STORY_FEATURE), base);
   previews.view(checkout);
   await ready(previews, checkout);

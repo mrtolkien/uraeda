@@ -15,7 +15,7 @@ import type { RepoContext } from "./context.ts";
  */
 export type StoryRecord = {
   error: string | null;
-  /** `/r/<name>/preview/<folder>/iframe.html?id=<id>&viewMode=story`. */
+  /** `/r/<name>/preview/<secret>/<folder>/iframe.html?id=<id>&viewMode=story`. */
   frame: string | null;
   id: string;
   state: "none" | "starting" | "ready" | "missing" | "failed";
@@ -97,7 +97,7 @@ export async function hasPreview(ctx: RepoContext, dir: string): Promise<boolean
 }
 
 /** The records read for one base: its repository's bus, its folder, and its stories' ids. */
-type Watched = { folder: string; live: LiveBus; stories: Set<string> };
+export type Watched = { folder: string; live: LiveBus; stories: Set<string> };
 
 /** Each runner's watched bases. */
 const watched = new WeakMap<Previews, Map<string, Watched>>();
@@ -137,7 +137,20 @@ export function changedRecords(previews: Previews, base: string): Watched | unde
   return undefined;
 }
 
-/** A folder's checkout to run, under its base, or null without one or without a decision. */
+/**
+ * Takes the records read for every base of the runner, as the frame secret is replaced: their
+ * Storybooks stop, and their updates, sent at once, have pages read them again under the new base.
+ */
+export function takeWatched(previews: Previews): Array<Watched> {
+  const bases = watched.get(previews);
+  watched.delete(previews);
+  return [...(bases?.values() ?? [])];
+}
+
+/**
+ * A folder's checkout to run, under its base, `/r/<name>/preview/<secret>/<folder>/`, with the
+ * current frame secret, or null without one or without a decision.
+ */
 async function runnable(ctx: RepoContext, folder: string): Promise<Checkout | null> {
   const checkout = await checkoutOf(ctx, folder);
   const name = ctx.hosts.byPath(ctx.repo)?.name;
@@ -148,7 +161,8 @@ async function runnable(ctx: RepoContext, folder: string): Promise<Checkout | nu
   if (found === null) {
     return null;
   }
-  const base = `/r/${encodeURIComponent(name)}/preview/${encodeURIComponent(folder)}/`;
+  const secret = ctx.frames.current();
+  const base = `/r/${encodeURIComponent(name)}/preview/${secret}/${encodeURIComponent(folder)}/`;
   return { base, command: found.command, dir: checkout.dir, folder: found.folder };
 }
 

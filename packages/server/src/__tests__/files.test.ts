@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { attachImage } from "uraeda-binding";
 import { expect, test, vi } from "vite-plus/test";
 import { createApp } from "../app.ts";
+import { FrameSecret } from "../sign-in/frames.ts";
 import { fixture, fixtureRepo, git, port, testApp, testHosts, testPreviews } from "./helpers.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
@@ -14,14 +15,15 @@ test("serves a mockup sandboxed, with its type", async () => {
   mkdirSync(join(repo, "specs/2026-10-11-web-ui/mockups"));
   writeFileSync(join(repo, "specs/2026-10-11-web-ui/mockups/ui.html"), "<p>UI</p>");
 
-  const { app, name } = await testApp(repo);
+  const { app, frames, name } = await testApp(repo);
 
   const response = await app.request(
-    `http://127.0.0.1:${port}/r/${name}/mockups/specs/2026-10-11-web-ui/mockups/ui.html`,
+    `http://127.0.0.1:${port}/r/${name}/mockups/${frames.current()}/specs/2026-10-11-web-ui/mockups/ui.html`,
   );
 
   expect(response.status).toBe(200);
   expect(response.headers.get("content-security-policy")).toBe("sandbox allow-scripts");
+  expect(response.headers.get("referrer-policy")).toBe("no-referrer");
   expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
   expect(await response.text()).toBe("<p>UI</p>");
 });
@@ -50,11 +52,13 @@ test("a file that cannot be read for another reason than its absence is a server
     ...binding,
     readRaw: () => Promise.reject(new Error("refused: disk unreadable")),
   };
+  const frames = new FrameSecret();
   const app = createApp({
     allowedHosts: [],
     allowOrigins: [],
     binding: failing,
     dataDir,
+    frames,
     hosts,
     port,
     previews: testPreviews(),
@@ -64,7 +68,7 @@ test("a file that cannot be read for another reason than its absence is a server
 
   const raw = await app.request(`http://127.0.0.1:${port}/r/${names[0]}/raw/specs/README.md`);
   const mockup = await app.request(
-    `http://127.0.0.1:${port}/r/${names[0]}/mockups/specs/README.md`,
+    `http://127.0.0.1:${port}/r/${names[0]}/mockups/${frames.current()}/specs/README.md`,
   );
 
   expect([raw.status, mockup.status]).toEqual([500, 500]);

@@ -1,13 +1,15 @@
-// The preview proxy: forwards the reads and WebSocket upgrades of `/r/<name>/preview/<folder>/` to
-// the Storybook the runner runs for that path, and nothing else. Every response, forwarded or its
-// own, is sandboxed, and readable from a sandboxed frame.
+// The preview proxy: forwards the reads and WebSocket upgrades of
+// `/r/<name>/preview/<secret>/<folder>/`, with the current frame secret, to the Storybook the runner
+// runs for that path, and nothing else, without Uraeda's credentials. Every response, forwarded or
+// its own, is sandboxed, readable from a sandboxed frame, and sends no referrer.
 import { request as httpRequest, type IncomingMessage } from "node:http";
 import { connect } from "node:net";
 import type { Duplex } from "node:stream";
 import { Readable } from "node:stream";
 import { type Context as HonoContext, Hono } from "hono";
 import type { FateVariables } from "../fate.ts";
-import { type guardCheck, PREVIEW_PATH } from "../guard.ts";
+import { type guardCheck, PREVIEW_PATH, refusalStatus } from "../guard.ts";
+import type { FrameSecret } from "../sign-in/frames.ts";
 import { NOT_RUNNING, type Previews } from "./runner.ts";
 
 /** The `Content-Security-Policy` of every forwarded response, replacing Storybook's own. */
@@ -29,6 +31,12 @@ const HOP_BY_HOP = new Set([
 /** Storybook's headers that would reach Uraeda's own origin: its cookies, and site data clearing. */
 const OWN_ORIGIN = new Set(["clear-site-data", "set-cookie", "set-cookie2"]);
 
+/**
+ * Uraeda's credentials, never sent to a Storybook: every cookie on Uraeda's origin is Uraeda's, as
+ * Storybook's own `Set-Cookie` never reaches it (R4).
+ */
+const CREDENTIALS = new Set(["authorization", "cookie"]);
+
 /** The headers a proxy does not pass on: hop-by-hop ones, and those `connection` names. */
 function notPassed(connection: string | Array<string> | null | undefined): Set<string> {
   const named = [connection ?? []]
@@ -44,15 +52,22 @@ const NO_BODY = new Set([101, 204, 205, 304]);
 /** The base and the rest of a preview's normalized path; undefined outside a preview. */
 function previewPath(path: string): { base: string; rest?: string } | undefined {
   const match = PREVIEW_PATH.exec(path);
-  return match === null ? undefined : { base: `${match[1]}/`, rest: match[2] };
+  return match === null ? undefined : { base: `${match[1]}/`, rest: match[3] };
 }
 
-/** The headers that open a response to any origin, and sandbox it. */
-const SANDBOXED = { "access-control-allow-origin": "*", "content-security-policy": SANDBOX };
+/**
+ * The headers that open a response to any origin, sandbox it, and keep its address, which holds the
+ * frame secret, out of the `Referer` of what it loads or links.
+ */
+const SANDBOXED = {
+  "access-control-allow-origin": "*",
+  "content-security-policy": SANDBOX,
+  "referrer-policy": "no-referrer",
+};
 
 /**
  * A forwarded response's headers: Storybook's, without those that are not passed on, or would
- * reach Uraeda's own origin, nor its `Content-Security-Policy`, which `SANDBOXED` replaces.
+ * reach Uraeda's own origin, nor those `SANDBOXED` replaces.
  */
 function forwarded(response: IncomingMessage): Headers {
   const dropped = notPassed(response.headers.connection);
@@ -71,14 +86,14 @@ function forwarded(response: IncomingMessage): Headers {
 const notRunning = () => new Response(NOT_RUNNING, { status: 503 });
 
 /**
- * Sends a read to the Storybook on `port` at `path`, with its own `Host`, and the response back as
- * it streams; 503 when the connection fails.
+ * Sends a read to the Storybook on `port` at `path`, with its own `Host` and without Uraeda's
+ * credentials, and the response back as it streams; 503 when the connection fails.
  */
 function forward(port: number, path: string, request: Request): Promise<Response> {
   const dropped = notPassed(request.headers.get("connection"));
   const headers: Record<string, string> = {};
   request.headers.forEach((value, name) => {
-    if (!dropped.has(name)) {
+    if (!dropped.has(name) && !CREDENTIALS.has(name)) {
       headers[name] = value;
     }
   });
@@ -102,14 +117,15 @@ function forward(port: number, path: string, request: Request): Promise<Response
 }
 
 /**
- * A preview's request: the path alone is sent to its slash; GET and HEAD go to the Storybook the
- * runner has ready for the base, without the base; other methods are refused.
+ * A preview's request: without the current frame secret, 404; the path alone is sent to its slash;
+ * GET and HEAD go to the Storybook the runner has ready for the base, without the base; other
+ * methods are refused.
  */
 async function preview(context: HonoContext<{ Variables: FateVariables }>) {
   const url = new URL(context.req.url);
   const found = previewPath(url.pathname);
-  if (found === undefined) {
-    return context.notFound();
+  if (found === undefined || !context.get("fate").frames.allows(url.pathname)) {
+    return context.text("Not found", 404);
   }
   if (found.rest === undefined) {
     return context.redirect(`${found.base}${url.search}`, 301);
@@ -133,8 +149,7 @@ export function previewRoutes() {
       context.res.headers.set(name, value);
     }
   });
-  app.all("/preview/:folder", preview);
-  app.all("/preview/:folder/*", preview);
+  app.all("/preview/*", preview);
   return app;
 }
 
@@ -167,7 +182,7 @@ const webSocket = (request: IncomingMessage) =>
 
 /**
  * The upgrade's request head for the Storybook on `port`: its own `Host`, no `Origin`, and of the
- * headers not passed on, only the upgrade's own.
+ * headers not passed on, only the upgrade's own: never Uraeda's credentials.
  */
 function upgradeHead(request: IncomingMessage, path: string, port: number): string {
   const lines = [
@@ -180,7 +195,8 @@ function upgradeHead(request: IncomingMessage, path: string, port: number): stri
   const raw = request.rawHeaders;
   for (let index = 0; index < raw.length; index += 2) {
     const name = raw[index]!;
-    if (!["host", "origin"].includes(name.toLowerCase()) && !dropped.has(name.toLowerCase())) {
+    const lower = name.toLowerCase();
+    if (!["host", "origin"].includes(lower) && !dropped.has(lower) && !CREDENTIALS.has(lower)) {
       lines.push(`${name}: ${raw[index + 1]}`);
     }
   }
@@ -206,15 +222,18 @@ function upstreamSearch(path: string, url: URL): string {
 
 /**
  * The server's upgrades: refused by the guard's rule, `check`; WebSocket GETs under a preview's
- * path piped to the Storybook the runner has ready, with the full path for Vite's `vite-hmr`
- * protocol and the rest only otherwise, Storybook's channel as a preview's; anything else is closed
- * with a 404, and a target that is not a URL with a 400.
+ * path with the current frame secret, which `frames` checks, piped to the Storybook the runner has
+ * ready, with the full path for Vite's `vite-hmr` protocol and the rest only otherwise, Storybook's
+ * channel as a preview's; anything else is closed with a 404, and a target that is not a URL with a
+ * 400.
  */
 export function previewUpgrade({
   check,
+  frames,
   previews,
 }: {
   check: ReturnType<typeof guardCheck>;
+  frames: Pick<FrameSecret, "allows">;
   previews: Previews;
 }): (request: IncomingMessage, socket: Duplex, head: Buffer) => void {
   return (request, socket, head) => {
@@ -233,11 +252,12 @@ export function previewUpgrade({
       upgrade: true,
     });
     if (refusal !== undefined) {
-      refuse(socket, "403 Forbidden", refusal);
+      const status = refusalStatus(refusal);
+      refuse(socket, `${status} ${status === 404 ? "Not Found" : "Forbidden"}`, refusal);
       return;
     }
     const found = previewPath(url.pathname);
-    if (found?.rest === undefined || !webSocket(request)) {
+    if (found?.rest === undefined || !webSocket(request) || !frames.allows(url.pathname)) {
       refuse(socket, "404 Not Found", "Not found");
       return;
     }

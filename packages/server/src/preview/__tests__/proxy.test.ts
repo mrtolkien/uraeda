@@ -1,65 +1,16 @@
 // The preview proxy: the server on a port, its upgrades too, with the fake preview behind it.
-import { createServer, type IncomingHttpHeaders, request as httpRequest } from "node:http";
-import { randomBytes } from "node:crypto";
-import { basename, join } from "node:path";
-import { getRequestListener } from "@hono/node-server";
-import { expect, onTestFinished, test } from "vite-plus/test";
-import {
-  addStoryFeature,
-  type FakeMode,
-  fixtureRepo,
-  previewStarts,
-  STORY_FEATURE,
-  temporaryFolder,
-} from "uraeda-binding/test-utils";
-import { FakeAdapter } from "../../runner/fake.ts";
-import { startServer } from "../../server.ts";
+import { type IncomingHttpHeaders, request as httpRequest } from "node:http";
+import { expect, test } from "vite-plus/test";
+import { previewStarts } from "uraeda-binding/test-utils";
 import { SANDBOX } from "../proxy.ts";
-import { checkoutOf, rawUpgrade, ready, socketOpens, upgradeStatus, WAIT } from "./helpers.ts";
-
-const binding = await import("uraeda-binding");
-
-/**
- * The server on a free port, its requests and upgrades, in a repository with the test feature,
- * whose Storybook, the fake preview in `mode`, is viewed and ready: its base path, its origin, the
- * fake's log of starts, and the server's runner. Everything is closed after the test.
- */
-async function runningPreview(mode: FakeMode = "ok") {
-  const repo = fixtureRepo();
-  const { log } = addStoryFeature(repo, { preview: { mode } });
-  const http = createServer();
-  await new Promise<void>((resolve) => http.listen(0, "127.0.0.1", resolve));
-  const { port } = http.address() as { port: number };
-  const server = await startServer({
-    adapter: new FakeAdapter(),
-    allowedHosts: [],
-    allowOrigins: [],
-    binding,
-    dataDir: temporaryFolder("uraeda-data"),
-    given: false,
-    port,
-    repo,
-  });
-  http.on("request", getRequestListener(server.app.fetch));
-  http.on("upgrade", server.upgrade);
-  onTestFinished(async () => {
-    http.closeAllConnections();
-    await new Promise<void>((resolve) => http.close(() => resolve()));
-    await server.stop();
-  });
-  const base = `/r/${basename(repo)}/preview/${STORY_FEATURE}/`;
-  const checkout = await checkoutOf(join(repo, ".worktrees", STORY_FEATURE), base);
-  server.previews.view(checkout);
-  await ready(server.previews, checkout);
-  return {
-    base,
-    log: log!,
-    name: basename(repo),
-    origin: `http://127.0.0.1:${port}`,
-    port,
-    previews: server.previews,
-  };
-}
+import {
+  rawUpgrade,
+  runningPreview,
+  socketOpens,
+  upgradeEcho,
+  upgradeStatus,
+  WAIT,
+} from "./helpers.ts";
 
 /** A GET of `url` with `headers`, through Node's client, which sends `Connection` as given. */
 function get(
@@ -118,41 +69,6 @@ test("Storybook's channel goes without the path or Origin; Vite's socket keeps i
   );
 });
 
-/**
- * The fake preview's echo of a WebSocket upgrade to `url`: its first message, one text frame under
- * 64 KB, parsed. The socket is destroyed once it is read.
- */
-function upgradeEcho(url: string): Promise<{ path: string; query: Record<string, Array<string>> }> {
-  return new Promise((resolve, reject) => {
-    const request = httpRequest(url, {
-      headers: {
-        connection: "Upgrade",
-        "sec-websocket-key": randomBytes(16).toString("base64"),
-        "sec-websocket-version": "13",
-        upgrade: "websocket",
-      },
-    });
-    request.on("upgrade", (_response, socket, head) => {
-      let received = head;
-      const read = (chunk: Buffer) => {
-        received = Buffer.concat([received, chunk]);
-        const short = received.length >= 2 && received[1]! < 126;
-        const start = short ? 2 : 4;
-        const length = short ? received[1]! : received.length >= 4 ? received.readUInt16BE(2) : 0;
-        if (received.length >= 2 && received.length >= start + length && length > 0) {
-          socket.destroy();
-          resolve(JSON.parse(received.subarray(start, start + length).toString("utf8")));
-        }
-      };
-      socket.on("data", read);
-      read(Buffer.alloc(0));
-    });
-    request.on("response", (response) => reject(new Error(`${url}: ${response.statusCode}`)));
-    request.on("error", reject);
-    request.end();
-  });
-}
-
 test("Storybook's channel is only ever opened as a preview's, with its token", async () => {
   const { base, origin } = await runningPreview();
   const channel = `${origin}${base}storybook-server-channel`;
@@ -173,9 +89,11 @@ test("a write is refused", async () => {
 });
 
 test("nothing running answers 503", async () => {
-  const { base, log, name, origin } = await runningPreview();
+  const { base, log, name, origin, server } = await runningPreview();
 
-  const other = await fetch(`${origin}/r/${name}/preview/main/iframe.html`);
+  const other = await fetch(
+    `${origin}/r/${name}/preview/${server.frames.current()}/main/iframe.html`,
+  );
   expect(other.status).toBe(503);
   expect(await other.text()).toBe("Storybook is not running for this branch.");
 
@@ -267,10 +185,10 @@ test("headers named in Connection are removed", async () => {
 });
 
 test("the proxy's own answers are sandboxed", async () => {
-  const { base, name, origin } = await runningPreview();
+  const { base, name, origin, server } = await runningPreview();
 
   const answers = [
-    await fetch(`${origin}/r/${name}/preview/main/iframe.html`),
+    await fetch(`${origin}/r/${name}/preview/${server.frames.current()}/main/iframe.html`),
     await fetch(`${origin}${base.slice(0, -1)}`, { redirect: "manual" }),
     await fetch(`${origin}${base}__echo`, { body: "{}", method: "POST" }),
   ];

@@ -4,13 +4,26 @@ import { createMiddleware } from "hono/factory";
 const OWN_SITES = new Set(["same-origin", "none"]);
 
 /**
- * A path of a checkout's Storybook: its base, `/r/<repository>/preview/<folder>`, without its
- * slash, and the rest, from the slash on, if any. The guard and the proxy read it alike.
+ * A path of a checkout's Storybook: its base, `/r/<repository>/preview/<secret>/<folder>`, without
+ * its slash, the frame secret it carries, and the rest, from the slash on, if any. The guard, the
+ * frame secret, and the proxy read it alike.
  */
-export const PREVIEW_PATH = /^(\/r\/[^/]+\/preview\/[^/]+)(\/.*)?$/;
+export const PREVIEW_PATH = /^(\/r\/[^/]+\/preview\/([^/]+)\/[^/]+)(\/.*)?$/;
 
-/** Whether `path` is under a preview's base, `/r/<repository>/preview/<folder>/`. */
-const underPreview = (path: string) => PREVIEW_PATH.exec(path)?.[2] !== undefined;
+/** A mockup's path, `/r/<repository>/mockups/<secret>/<path>`: the secret it carries, and the path. */
+export const MOCKUP_PATH = /^\/r\/[^/]+\/mockups\/([^/]+)\/(.+)$/;
+
+/**
+ * The refusal of a frame's read whose path has the shape of a frame's but not the current secret:
+ * that address does not exist, as an old one after a sign-out, so it is a 404, not a 403.
+ */
+export const NOT_FOUND = "Not found";
+
+/** The status of the guard's refusal: 404 for `NOT_FOUND`, else 403. */
+export const refusalStatus = (refusal: string) => (refusal === NOT_FOUND ? 404 : 403);
+
+/** Whether `path` has the shape of a preview's or a mockup's path, whatever secret it carries. */
+const framePath = (path: string) => PREVIEW_PATH.test(path) || MOCKUP_PATH.test(path);
 
 /** A request, or an upgrade, as the guard reads it: its path is normalized, without its query. */
 export type GuardedRequest = {
@@ -32,15 +45,18 @@ const read = (request: GuardedRequest) =>
  * server's own or an allowed host name, as in DNS rebinding, any `Origin` but theirs and the
  * allowed ones, and a write without an `Origin` that the browser says another site sent. A request
  * without either header, from a test or `curl`, passes. A sandboxed frame's `Origin: null` passes
- * only for reads and upgrades, as GETs, under a preview's base (SC-004).
+ * only for reads and upgrades, as GETs, on a path `isFrame` accepts: a preview's or a mockup's with
+ * the current frame secret (SC-004). Such a read on a frame's path without it is `NOT_FOUND`.
  */
 export function guardCheck({
   allowedHosts = [],
   allowOrigins,
+  isFrame = () => false,
   port,
 }: {
   allowedHosts?: Array<string>;
   allowOrigins: Array<string>;
+  isFrame?: (path: string) => boolean;
   port: number;
 }): (request: GuardedRequest) => string | undefined {
   const own = [`127.0.0.1:${port}`, `localhost:${port}`];
@@ -56,8 +72,11 @@ export function guardCheck({
       return "Forbidden host";
     }
     const { origin, site } = request;
-    const frame = origin === "null" && read(request) && underPreview(request.path);
-    if (origin !== undefined && !origins.has(origin) && !frame) {
+    const framed = origin === "null" && read(request);
+    if (framed && !isFrame(request.path) && framePath(request.path)) {
+      return NOT_FOUND;
+    }
+    if (origin !== undefined && !origins.has(origin) && !(framed && isFrame(request.path))) {
       return "Forbidden origin";
     }
     if (origin === undefined && site !== undefined && !OWN_SITES.has(site) && !read(request)) {
@@ -82,7 +101,7 @@ export function guard(options: Parameters<typeof guardCheck>[0]) {
       upgrade: false,
     });
     if (refusal !== undefined) {
-      return context.text(refusal, 403);
+      return context.text(refusal, refusalStatus(refusal));
     }
     await next();
   });

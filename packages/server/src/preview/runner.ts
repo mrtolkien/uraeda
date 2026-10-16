@@ -1,5 +1,5 @@
 // The preview runner: the only code that starts, watches, and stops Storybook processes, one per
-// checkout's base path, `/r/<name>/preview/<folder>/`. A view starts the checkout's Storybook, which
+// checkout's base path, `/r/<name>/preview/<secret>/<folder>/`. A view starts the checkout's Storybook, which
 // is ready once its index answers; it stops after 30 minutes without a view, when its checkout or
 // its repository is removed, and with the server. Its state lives in memory, and its process groups
 // in a record the next start reads, should the server be killed.
@@ -18,7 +18,7 @@ export type PreviewState =
 
 /**
  * A checkout to run a Storybook in: its folder, `dir`, its preview decision's `preview-folder` and
- * `preview-command`, and the path it is served under, `/r/<name>/preview/<folder>/`.
+ * `preview-command`, and the path it is served under, `/r/<name>/preview/<secret>/<folder>/`.
  */
 export type Checkout = { base: string; command: string; dir: string; folder: string };
 
@@ -231,6 +231,16 @@ export class Previews {
       if (entry.checkout.base.startsWith(prefix)) {
         void this.#stop(entry);
       }
+    }
+  }
+
+  /**
+   * Stops every Storybook, starting or running, as the frame secret is replaced: the runner stays
+   * open, and the next view starts one again, under the new base.
+   */
+  stopEach(): void {
+    for (const entry of this.#entries.values()) {
+      void this.#stop(entry);
     }
   }
 
