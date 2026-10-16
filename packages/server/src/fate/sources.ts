@@ -35,7 +35,6 @@ import {
   draftDataView,
   featureDataView,
   fileDataView,
-  folderSuggestionsDataView,
   INBOX_ID,
   inboxDataView,
   type InboxRecord,
@@ -44,9 +43,6 @@ import {
   type PrioritiesRecord,
   PROPOSAL_HINTS_ID,
   proposalHintsDataView,
-  REPOSITORIES_ID,
-  repositoriesDataView,
-  type RepositoriesRecord,
   type FeatureRecord,
   type FileRecord,
   sentChanges,
@@ -65,6 +61,12 @@ import {
   WORKSPACE_ID,
   workspaceDataView,
 } from "./views.ts";
+import {
+  folderSuggestionsDataView,
+  REPOSITORIES_ID,
+  repositoriesDataView,
+  type RepositoriesRecord,
+} from "./views-repositories.ts";
 
 /** The inbox as it is sent: the client's cache keeps a field an answer leaves out. */
 export function sentInbox(inbox: Inbox): InboxRecord {

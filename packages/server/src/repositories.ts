@@ -2,7 +2,7 @@ import { existsSync, type FSWatcher, mkdirSync, watch } from "node:fs";
 import { join } from "node:path";
 import type { Repository, WatchHandle } from "uraeda-binding";
 import type { Binding } from "./fate/context.ts";
-import { REPOSITORIES_ID } from "./fate/views.ts";
+import { REPOSITORIES_ID } from "./fate/views-repositories.ts";
 import { createFate, type FateServer, live as globalLive, type LiveBus } from "./fate.ts";
 import { publish } from "./live.ts";
 import { type PullRequests, startPullRequests } from "./pulls.ts";
