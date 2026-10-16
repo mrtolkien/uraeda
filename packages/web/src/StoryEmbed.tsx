@@ -1,6 +1,7 @@
 // A story embedded where a workflow file links it: the story running in the checkout's Storybook,
-// through Uraeda's own address, at a phone and a desktop width on wide screens and at the phone's
-// alone on narrow ones, in Uraeda's colour mode. Its frames are sandboxed without
+// through Uraeda's own address, at the desktop's width on wide screens, or the phone's when chosen,
+// and at the phone's alone on narrow ones, in Uraeda's colour mode. On a wide screen, it grows past
+// its page's column into the space beside it, and goes full screen. Its frames are sandboxed without
 // `allow-same-origin`: the embed takes messages from their windows only, and sends them nothing
 // but the colour mode and pick mode. Where a comment can go, it offers pick mode and a comment.
 import { Button } from "@astryxdesign/core/Button";
@@ -15,15 +16,16 @@ import {
   spacingVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, Suspense, useContext, useEffect, useId, useState } from "react";
+import { type ReactNode, Suspense, useContext, useEffect, useId, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { StoryTarget } from "uraeda-binding";
 import { useStory } from "./data.ts";
+import { useFullScreen, useOutgrow } from "./embedLayout.ts";
 import { refusal } from "./errors.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { useRepoPath } from "./routes.tsx";
 import { PreviewBase, storybookHref } from "./stories.tsx";
-import { StoryFrames, type Widths } from "./StoryFrames.tsx";
+import { StoryFrames, type Width } from "./StoryFrames.tsx";
 import {
   type EmbedComment,
   type StoryPick,
@@ -66,6 +68,15 @@ const styles = stylex.create({
   error: {
     backgroundColor: colorVars["--color-background-red"],
   },
+  // Full screen, which the browser sizes to the screen: the bar above, the story filling the rest.
+  full: {
+    borderRadius: 0,
+    borderWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+    marginBlock: 0,
+  },
+  grow: (start: string, end: string) => ({ marginInlineEnd: end, marginInlineStart: start }),
   label: {
     marginInlineEnd: "auto",
   },
@@ -74,6 +85,9 @@ const styles = stylex.create({
     paddingInline: spacingVars["--spacing-4"],
   },
 });
+
+/** Whether the embed is full screen, and what enters or leaves it, where the browser can. */
+type FullScreen = ReturnType<typeof useFullScreen>;
 
 /** "Open in Storybook", at a page of Uraeda's: a named icon on narrow screens. */
 function OpenInStorybook({ href, wide }: { href: string; wide: boolean }) {
@@ -147,13 +161,14 @@ export function TryAgain({ folder }: { folder: string }) {
   );
 }
 
-/** The story running: its widths, pick mode where a comment can go, and its frames. */
+/** The story running: its width, full screen, pick mode where a comment can go, and its frame. */
 function ReadyStory({
   comment,
   frame,
   label,
   labelId,
   pick,
+  screen,
   storybook,
 }: {
   comment?: EmbedComment;
@@ -161,10 +176,13 @@ function ReadyStory({
   label: string;
   labelId: string;
   pick: StoryPick;
+  screen: FullScreen;
   storybook: string;
 }) {
   const wide = useWidthClass() === "wide";
-  const [widths, setWidths] = useState<Widths>("both");
+  // The desktop's width on a wide screen, the phone's on a narrow one, until the human picks one.
+  const [width, setWidth] = useState<Width>("desktop");
+  const { full, toggle } = screen;
   const base = useContext(PreviewBase);
   // Pick mode ends with the frames: a story stopped picks nothing.
   const { setPicking } = pick;
@@ -175,25 +193,32 @@ function ReadyStory({
         {wide && (
           <SegmentedControl
             label="Width"
-            onChange={(value: string) => setWidths(value as Widths)}
+            onChange={(value: string) => setWidth(value as Width)}
             size="sm"
-            value={widths}
+            value={width}
           >
-            <SegmentedControlItem label="Both" value="both" />
             <SegmentedControlItem label="Phone" value="phone" />
             <SegmentedControlItem label="Desktop" value="desktop" />
           </SegmentedControl>
         )}
         {comment && <PickControls pick={pick} wide={wide} />}
-        <OpenInStorybook href={storybook} wide={wide} />
+        {wide && toggle && (
+          <Button
+            clickAction={toggle}
+            label={full ? "Leave full screen" : "Full screen"}
+            size="sm"
+          />
+        )}
+        {!full && <OpenInStorybook href={storybook} wide={wide} />}
       </Bar>
       {comment && <PickHint picking={pick.picking} />}
       <StoryFrames
+        full={full}
         label={label}
         pick={pick.frames}
         src={`${base}${frame}`}
         wide={wide}
-        widths={widths}
+        width={width}
       />
     </>
   );
@@ -207,6 +232,7 @@ function LiveStory({
   labelId,
   pick,
   removed,
+  screen,
   story,
 }: {
   comment?: EmbedComment;
@@ -215,6 +241,7 @@ function LiveStory({
   labelId: string;
   pick: StoryPick;
   removed: boolean;
+  screen: FullScreen;
   story: StoryTarget;
 }) {
   const record = useStory(folder, story);
@@ -227,6 +254,7 @@ function LiveStory({
         label={label}
         labelId={labelId}
         pick={pick}
+        screen={screen}
         storybook={record.storybook}
       />
     );
@@ -293,11 +321,23 @@ export function StoryEmbed({
   // Pick mode and the comment form outlive the story's state: a form holding text stays while
   // its Storybook stops and starts again.
   const pick = useStoryPick(comment?.field);
+  const figure = useRef<HTMLElement>(null);
+  const screen = useFullScreen(figure);
+  const grow = useOutgrow(figure, wide);
   return (
     <figure
       aria-labelledby={labelId}
       id={id}
-      {...stylex.props(styles.embed, !wide && styles.bleed)}
+      ref={figure}
+      {...stylex.props(
+        styles.embed,
+        !wide && styles.bleed,
+        wide &&
+          !screen.full &&
+          (grow.start > 0 || grow.end > 0) &&
+          styles.grow(`-${grow.start}px`, `-${grow.end}px`),
+        screen.full && styles.full,
+      )}
     >
       <Suspense fallback={<Bar label={story.label} labelId={labelId} />}>
         <LiveStory
@@ -307,6 +347,7 @@ export function StoryEmbed({
           labelId={labelId}
           pick={pick}
           removed={removed}
+          screen={screen}
           story={target}
         />
       </Suspense>

@@ -3,7 +3,7 @@
 // story and the element on the embed's line (US2.1–US2.3, SC-002); "Comment" names the story alone
 // (US2.4); Escape ends pick mode (US2.5); a Storybook without the pick script offers Comment only
 // (US2.6). The edge cases: messages from other windows, a frame reloaded in pick mode (review focus
-// 2), the width named only while both show, pending comments under the embed, the Mockups buttons,
+// 2), the width named on wide screens, where either can show, pending comments under the embed, the Mockups buttons,
 // and the phone's icons and sheet (US1.5).
 import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, test, vi } from "vite-plus/test";
@@ -40,10 +40,8 @@ async function storyShown(title: string) {
 async function readyEmbed(options: Parameters<typeof commands.addStoryFeature>[0] = {}) {
   await commands.addStoryFeature(options);
   await show(SPEC, "Resize the sidebar");
-  await storyShown(PHONE);
-  if (window.innerWidth >= 768) {
-    await storyShown(DESKTOP);
-  }
+  // The desktop's width on a wide screen, the phone's on a narrow one.
+  await storyShown(window.innerWidth >= 768 ? DESKTOP : PHONE);
 }
 
 /**
@@ -80,19 +78,19 @@ describe("on a desktop", () => {
     await pick(); // 1
     expect(within(embed()).getByText(HINT)).toBeTruthy();
     expect(await commands.frameOutlined(DESKTOP, "button", "Hide the sidebar")).toBe(true);
-    await commands.frameClick(PHONE, "button", "Hide the sidebar"); // 2
+    await commands.frameClick(DESKTOP, "button", "Hide the sidebar"); // 2
     expect(
-      await screen.findByText("Comment on Dragging the handle, phone, button “Hide the sidebar”"),
+      await screen.findByText("Comment on Dragging the handle, desktop, button “Hide the sidebar”"),
     ).toBeTruthy();
     expect(within(embed()).queryByText(HINT)).toBeNull();
-    expect(await commands.frameText(PHONE)).toContain("Clicked 0 times");
+    expect(await commands.frameText(DESKTOP)).toContain("Clicked 0 times");
     await userEvent.keyboard("This should be an icon button."); // 3
     await userEvent.keyboard("{Control>}{Enter}{/Control}"); // 4
 
     await expect
       .poll(() => commands.readRepo(REVIEW), READY)
       .toContain(
-        "Story SidebarHandle.stories.tsx#Dragging, phone, button “Hide the sidebar”: This should be an icon button.",
+        "Story SidebarHandle.stories.tsx#Dragging, desktop, button “Hide the sidebar”: This should be an icon button.",
       );
     // The embed's own line in the spec.
     expect(await commands.readRepo(REVIEW)).toContain(
@@ -138,8 +136,8 @@ describe("on a desktop", () => {
     await userEvent.keyboard("{Escape}");
 
     await waitFor(() => expect(within(embed()).queryByText(HINT)).toBeNull());
-    await commands.frameClick(PHONE, "button", "Hide the sidebar");
-    await expect.poll(() => commands.frameText(PHONE)).toContain("Clicked 1 time");
+    await commands.frameClick(DESKTOP, "button", "Hide the sidebar");
+    await expect.poll(() => commands.frameText(DESKTOP)).toContain("Clicked 2 times");
     expect(form()).toBeNull();
   });
 
@@ -150,14 +148,14 @@ describe("on a desktop", () => {
     expect(within(embed()).queryByRole("button", { name: PICK })).toBeNull();
   });
 
-  test("with Desktop alone, a picked element's comment names no width", async () => {
+  test("with Phone chosen, a picked element's comment names the phone's width", async () => {
     await readyEmbed();
-    await userEvent.click(within(embed()).getByRole("radio", { name: "Desktop" }));
+    await userEvent.click(within(embed()).getByRole("radio", { name: "Phone" }));
     await pick();
 
-    await commands.frameClick(DESKTOP, "separator");
+    await commands.frameClick(PHONE, "separator");
 
-    expect(await screen.findByText(`Comment on ${LABEL}, separator`)).toBeTruthy();
+    expect(await screen.findByText(`Comment on ${LABEL}, phone, separator`)).toBeTruthy();
   });
 });
 
@@ -175,7 +173,7 @@ describe("on a desktop, as pick mode ends", () => {
 
     await userEvent.click(within(embed()).getByRole("button", { name: "Comment" }));
     expect(await screen.findByText(`Comment on ${LABEL}`)).toBeTruthy();
-    await pickedLate(PHONE);
+    await pickedLate(DESKTOP);
     expect(screen.getByText(`Comment on ${LABEL}`)).toBeTruthy();
     expect(screen.queryByText(/“Late”/)).toBeNull();
   });
@@ -220,14 +218,14 @@ describe("on a desktop, around the embed", () => {
     await readyEmbed();
     await pick();
 
-    await commands.frameReload(PHONE);
+    await commands.frameReload(DESKTOP);
 
     await expect
-      .poll(() => commands.frameOutlined(PHONE, "button", "Hide the sidebar"), READY)
+      .poll(() => commands.frameOutlined(DESKTOP, "button", "Hide the sidebar"), READY)
       .toBe(true);
-    await commands.frameClick(PHONE, "button", "Hide the sidebar");
+    await commands.frameClick(DESKTOP, "button", "Hide the sidebar");
     expect(
-      await screen.findByText("Comment on Dragging the handle, phone, button “Hide the sidebar”"),
+      await screen.findByText("Comment on Dragging the handle, desktop, button “Hide the sidebar”"),
     ).toBeTruthy();
   });
 
@@ -367,10 +365,10 @@ describe("on a desktop, a comment kept unsaved", () => {
   atSize("desktop");
 
   test("a picked element's unsaved comment is back after a reload, and through a restart", async () => {
-    const anchor = "Comment on Dragging the handle, phone, button “Hide the sidebar”";
+    const anchor = "Comment on Dragging the handle, desktop, button “Hide the sidebar”";
     await readyEmbed();
     await pick();
-    await commands.frameClick(PHONE, "button", "Hide the sidebar");
+    await commands.frameClick(DESKTOP, "button", "Hide the sidebar");
     await screen.findByText(anchor);
     await userEvent.keyboard("Keep this one.");
 
@@ -386,14 +384,14 @@ describe("on a desktop, a comment kept unsaved", () => {
     expect(within(form()!).getByRole("textbox")).toHaveProperty("value", "Keep this one.");
     expect(hasDrawnUnsaved()).toBe(true);
     await userEvent.click(within(embed()).getByRole("button", { name: "Try again" }));
-    await storyShown(PHONE);
+    await storyShown(DESKTOP);
 
     await userEvent.click(within(form()!).getByRole("textbox"));
     await userEvent.keyboard("{Control>}{Enter}{/Control}");
     await expect
       .poll(() => commands.readRepo(REVIEW), READY)
       .toContain(
-        "Story SidebarHandle.stories.tsx#Dragging, phone, button “Hide the sidebar”: Keep this one.",
+        "Story SidebarHandle.stories.tsx#Dragging, desktop, button “Hide the sidebar”: Keep this one.",
       );
   });
 });

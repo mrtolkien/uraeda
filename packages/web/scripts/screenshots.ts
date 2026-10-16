@@ -384,14 +384,14 @@ async function takeStories(each: Each) {
   await each("story-embed", async ({ page }) => {
     await show(page, `/f/${STORY_FEATURE}/spec.md`, "Resize the sidebar");
     await page
-      .frameLocator('iframe[title="Dragging the handle, phone"]')
+      .frameLocator('iframe[title^="Dragging the handle, "]')
       .getByText("Clicked 0 times")
       .waitFor({ timeout: 20_000 });
     await settle(page);
   });
   await each("story-pick", async ({ page }) => {
     await show(page, `/f/${STORY_FEATURE}/spec.md`, "Resize the sidebar");
-    const frame = page.frameLocator('iframe[title="Dragging the handle, phone"]');
+    const frame = page.frameLocator('iframe[title^="Dragging the handle, "]');
     await frame.getByText("Clicked 0 times").waitFor({ timeout: 20_000 });
     await page.getByRole("button", { name: "Pick an element" }).click();
     await frame.getByRole("button", { name: "Hide the sidebar" }).hover();

@@ -611,7 +611,13 @@ test.each(MODES)("a spec with a story embedded, ready, in $mode", async ({ mode 
   await commands.addStoryFeature();
   await show("/f/2026-10-20-sidebar-resize/spec.md", "Resize the sidebar");
   await expect
-    .poll(() => commands.frameText("Dragging the handle, phone"), { timeout: 20_000 })
+    .poll(
+      () =>
+        commands.frameText(
+          `Dragging the handle, ${window.innerWidth >= 768 ? "desktop" : "phone"}`,
+        ),
+      { timeout: 20_000 },
+    )
     .toContain("Dragging");
   await checkLayout();
 });
@@ -630,7 +636,10 @@ test.each(MODES)("a round whose options are stories, ready, in $mode", async ({ 
     // An embed loads its frames once on screen.
     (await screen.findByRole("figure", { name: label })).scrollIntoView();
     await expect
-      .poll(() => commands.frameText(`${label}, phone`), { timeout: 20_000 })
+      .poll(
+        () => commands.frameText(`${label}, ${window.innerWidth >= 768 ? "desktop" : "phone"}`),
+        { timeout: 20_000 },
+      )
       .toContain(name);
   }
   await checkLayout();
