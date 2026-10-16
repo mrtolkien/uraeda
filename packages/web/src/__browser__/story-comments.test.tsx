@@ -6,7 +6,7 @@
 // 2), the width named only while both show, pending comments under the embed, the Mockups buttons,
 // and the phone's icons and sheet (US1.5).
 import { screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, test } from "vite-plus/test";
+import { describe, expect, test, vi } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 import { hasDrawnUnsaved } from "../fields/unsaved.ts";
 import { atRepo, atSize, commands, drawn, reload, show } from "./helpers.tsx";
@@ -281,6 +281,28 @@ describe("on a desktop, around the embed", () => {
     await expect.poll(() => embed().getBoundingClientRect().top).toBeLessThan(200);
     expect(embed().getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
     expect(window.location.pathname).toBe(atRepo(SPEC));
+  });
+});
+
+describe("on a desktop, without a preview decision", () => {
+  atSize("desktop");
+
+  test("without a preview decision, the Mockups button opens the stories file (edge case)", async () => {
+    await commands.addStoryFeature({ preview: false });
+    await show(SPEC, "Resize the sidebar");
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    try {
+      await userEvent.click(screen.getByRole("button", { name: `Open the mockup: ${LABEL}` }));
+
+      expect(open).toHaveBeenCalledWith(
+        atRepo("/raw/packages/web/src/SidebarHandle.stories.tsx"),
+        "_blank",
+        "noreferrer",
+      );
+      expect(window.location.pathname).toBe(atRepo(SPEC));
+    } finally {
+      open.mockRestore();
+    }
   });
 });
 
