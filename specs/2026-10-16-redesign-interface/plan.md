@@ -537,7 +537,8 @@ git commit -m "feat(redesign-interface): names and colours of items in the repos
 - Consumes: `binding.refreshPullRequests(repo)`, `binding.setItemSettings(...)`,
   `binding.readRepositories(dataDir)` (tasks 2, 3).
 - Produces:
-  - `startPullRequests(host: Host, publish: () => void, binding): { onChanges(changes: Changes): void; stop(): void }`:
+  - `startPullRequests(path: string, binding: Binding, changed: (folders: Array<string>) => void): { onChanges(changes: Changes): void; stop(): void }`,
+    started by each host next to its watch, `changed` publishing the folders on the host's bus:
     refreshes at start, after a watcher burst with `features.length > 0 || workspace`, and every 60
     s while any feature's step is `final-review`, `finish`, `pull-request`, `pull-request-changes`,
     or `pull-request-unknown`; publishes the workspace and features when the refresh says it
@@ -548,7 +549,7 @@ git commit -m "feat(redesign-interface): names and colours of items in the repos
     masked `Feature`, publishing `Workspace` and `Feature`.
   - `sessionStatus` input gains `stepName?: string`; `pull-request-unknown` never yields `halted`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `pulls.test.ts`, with a spied `binding.refreshPullRequests` passed through `testHosts`' `binding`
   option and fake intervals: one call at start; one more after a watcher change; one per 60 s while
@@ -562,19 +563,19 @@ git commit -m "feat(redesign-interface): names and colours of items in the repos
 The break each test catches: a refresh on every read; a timer left running with nothing past its
 last task; the halted rule firing without `gh`; an update sent to another repository.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server`
 - Expected: FAIL, `startPullRequests` not found
 
-- [ ] **Step 3: Implement**, as in **Interfaces**.
+- [x] **Step 3: Implement**, as in **Interfaces**.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check`, `vp run ts:test`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server specs/2026-10-16-redesign-interface/plan.md

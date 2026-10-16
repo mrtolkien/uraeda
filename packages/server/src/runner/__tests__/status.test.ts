@@ -29,6 +29,16 @@ test.each<[string, Partial<Input>, ReturnType<typeof sessionStatus>]>([
     { label: "Needs you", reason: "step", status: "needs-you" },
   ],
   [
+    "a workflow turn done past its last task, without gh (US1.5)",
+    {
+      latest: ended("done"),
+      seenAt: "2026-10-13T11:00",
+      stepName: "pull-request-unknown",
+      waitsOnAgent: true,
+    },
+    { label: "Idle", status: "idle" },
+  ],
+  [
     "a failed turn",
     { latest: ended("failed"), seenAt: "2026-10-13T11:00" },
     { label: "Needs attention", reason: "failed", status: "attention" },

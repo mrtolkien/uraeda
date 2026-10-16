@@ -1,3 +1,5 @@
+import type { Color } from "uraeda-binding";
+import { publish } from "../live.ts";
 import type { Trigger } from "../runner/events.ts";
 import { REFUSALS } from "../runner/sessions.ts";
 import { type Context, inRepository, type RepoContext, type Resolver } from "./context.ts";
@@ -111,6 +113,36 @@ const repositoryMutations = {
         ctx.binding.startFeature(ctx.repo, input.draft, input.slug),
       );
       const feature = await ctx.binding.readFeature(ctx.repo, started.folder);
+      return sources.masked(featureDataView, ctx, await featureRecord(ctx, feature), select);
+    },
+    type: "Feature",
+  },
+  "item.settings": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ color?: Color | null; folder: string; label?: string | null }>) => {
+      const host = ctx.hosts.byPath(ctx.repo);
+      if (!host) {
+        throw callSiteError("refused: no repository");
+      }
+      await refusable(() =>
+        ctx.binding.setItemSettings(
+          ctx.dataDir,
+          host.name,
+          input.folder,
+          input.label ?? null,
+          input.color ?? null,
+        ),
+      );
+      // The hosts read the list again, so the records join the new name and colour.
+      await ctx.hosts.reload();
+      publish(
+        { features: [input.folder], files: [], inbox: false, priorities: false, workspace: true },
+        host,
+      );
+      const feature = await ctx.binding.readFeature(ctx.repo, input.folder);
       return sources.masked(featureDataView, ctx, await featureRecord(ctx, feature), select);
     },
     type: "Feature",
