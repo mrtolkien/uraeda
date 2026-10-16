@@ -3,11 +3,13 @@
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::time::SystemTime;
 
 mod commit;
+pub(crate) mod process;
 mod status;
+
+use process::Failure;
 
 pub use commit::others_staged;
 
@@ -494,35 +496,16 @@ impl Git {
 
     /// Runs `git`, and returns its stdout.
     pub(crate) fn output(&self, subcommand: &str, args: &[&str]) -> Result<String, GitError> {
-        let output = Command::new("git")
-            .args(args)
-            .current_dir(&self.root)
-            .output()
-            .map_err(|error| match error.kind() {
-                std::io::ErrorKind::NotFound => GitError::GitNotFound,
-                _ => GitError::Command {
-                    subcommand: subcommand.to_string(),
-                    message: error.to_string(),
-                    output: error.to_string(),
-                },
-            })?;
-        if output.status.success() {
-            return Ok(String::from_utf8_lossy(&output.stdout).into_owned());
-        }
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let message = stderr
-            .lines()
-            .chain(stdout.lines())
-            .map(str::trim)
-            .find(|line| !line.is_empty())
-            .unwrap_or("no output")
-            .to_string();
-        let output = format!("{stdout}{stderr}").trim_end().to_string();
-        Err(GitError::Command {
+        let command = |message: String, output: String| GitError::Command {
             subcommand: subcommand.to_string(),
             message,
             output,
-        })
+        };
+        match process::run("git", args, &self.root) {
+            Ok(stdout) => Ok(String::from_utf8_lossy(&stdout).into_owned()),
+            Err(Failure::NotFound) => Err(GitError::GitNotFound),
+            Err(Failure::Start(error)) => Err(command(error.clone(), error)),
+            Err(Failure::Exit { message, output }) => Err(command(message, output)),
+        }
     }
 }
