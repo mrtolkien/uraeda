@@ -52,6 +52,22 @@ function Marks({ entry }: { entry: PriorityEntry }) {
 }
 
 /**
+ * The priorities as the lists show them (R10): the running entries of every section, apart, then
+ * each section with its entries not running. Each keeps the file's order.
+ */
+export function byRunning(priorities: Pick<Priorities, "sections">) {
+  return {
+    ongoing: priorities.sections.flatMap((section) =>
+      section.entries.filter((entry) => entry.running),
+    ),
+    sections: priorities.sections.map((section) => ({
+      ...section,
+      entries: section.entries.filter((entry) => !entry.running),
+    })),
+  };
+}
+
+/**
  * Where a row dropped at `index` among a section's rows on screen goes in the file: the place of
  * the `index`-th entry that is not running, once the dragged one is taken out, or after the last of
  * them. The running entries show in "Ongoing", so a drop never lands between two of them.
@@ -129,16 +145,15 @@ export function PrioritiesList({
     text: plain(entry.spans),
   });
 
+  const shown = byRunning(priorities);
   const ongoing: WorkSection = {
     id: "ongoing",
     isFixed: true,
-    rows: priorities.sections.flatMap((section) =>
-      section.entries.filter((entry) => entry.running).map(row),
-    ),
+    rows: shown.ongoing.map(row),
     title: "Ongoing",
     tone: "green",
   };
-  const sections = priorities.sections.map((section): WorkSection => {
+  const sections = shown.sections.map((section): WorkSection => {
     const title = TITLES[section.section] ?? section.section;
     return {
       footer: (
@@ -157,7 +172,7 @@ export function PrioritiesList({
         />
       ),
       id: section.section,
-      rows: section.entries.filter((entry) => !entry.running).map(row),
+      rows: section.entries.map(row),
       title,
       tone: TONES[section.section] ?? "neutral",
     };

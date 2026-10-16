@@ -3,7 +3,7 @@
 import type { PriorityEntry } from "uraeda-server/fate";
 import type { useInbox } from "../data.ts";
 import { stepTitle } from "../labels.ts";
-import type { Priorities } from "../lists/PrioritiesList.tsx";
+import { byRunning, type Priorities } from "../lists/PrioritiesList.tsx";
 
 /**
  * A running entry's status in a word, as a badge shows it: what its gate asks of the human, its
@@ -49,11 +49,7 @@ export function prioritySection(
   priorities: Pick<Priorities, "sections">,
   section: "now" | "next",
 ): Array<PriorityEntry> {
-  const entries = (name: string) =>
-    priorities.sections.find((s) => s.section === name)?.entries ?? [];
-  const rest = entries(section).filter((entry) => !entry.running);
-  if (section !== "now") {
-    return rest;
-  }
-  return [...priorities.sections.flatMap((s) => s.entries.filter((e) => e.running)), ...rest];
+  const { ongoing, sections } = byRunning(priorities);
+  const rest = sections.find((s) => s.section === section)?.entries ?? [];
+  return section === "now" ? [...ongoing, ...rest] : rest;
 }
