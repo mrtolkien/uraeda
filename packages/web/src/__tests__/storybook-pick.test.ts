@@ -97,6 +97,73 @@ test("pick mode reports the clicked element's role and name, and ends", async ()
   expect(frame.text()).toContain("Clicked 1 times");
 });
 
+test("a disabled button, which gets no click, is picked as the press ends", async () => {
+  const frame = await pickFrame("<button disabled>Save</button>");
+
+  frame.send({ on: true, uraeda: "pick" });
+  frame.dispatch("button", "pointerdown");
+  frame.dispatch("button", "pointerup");
+
+  expect(frame.posted()).toContainEqual({
+    name: "Save",
+    role: "button",
+    text: "Save",
+    uraeda: "picked",
+  });
+});
+
+test("a press picks once, and the click that follows it reaches no story", async () => {
+  const frame = await pickFrame("<button>Hide the sidebar</button><p>Clicked 0 times</p>");
+  countClicks(frame);
+
+  frame.send({ on: true, uraeda: "pick" });
+  frame.dispatch("button", "pointerdown");
+  frame.dispatch("button", "pointerup");
+  const mouseUp = frame.dispatch("button", "mouseup");
+  frame.click("button");
+
+  const picked = frame.posted().filter((data) => (data as { uraeda: string }).uraeda === "picked");
+  expect(picked).toHaveLength(1);
+  expect(mouseUp).toBe(false);
+  expect(frame.text()).toContain("Clicked 0 times");
+  frame.click("button");
+  expect(frame.text()).toContain("Clicked 1 times");
+});
+
+test("a tap picks as it ends, and its touch end and click reach no story", async () => {
+  const frame = await pickFrame("<button>Hide the sidebar</button><p>Clicked 0 times</p>");
+  countClicks(frame);
+  let touches = 0;
+  frame.document.querySelector("button")!.addEventListener("touchend", () => {
+    touches += 1;
+  });
+
+  frame.send({ on: true, uraeda: "pick" });
+  frame.dispatch("button", "pointerdown");
+  frame.dispatch("button", "touchstart");
+  frame.dispatch("button", "pointerup");
+  frame.dispatch("button", "touchend");
+  frame.click("button");
+
+  expect(frame.posted()).toContainEqual(expect.objectContaining({ uraeda: "picked" }));
+  expect(touches).toBe(0);
+  expect(frame.text()).toContain("Clicked 0 times");
+});
+
+test("a new press after a pick without a click reaches the story", async () => {
+  const frame = await pickFrame("<button>Hide the sidebar</button><p>Clicked 0 times</p>");
+  countClicks(frame);
+
+  frame.send({ on: true, uraeda: "pick" });
+  frame.dispatch("button", "pointerdown");
+  frame.dispatch("button", "pointerup");
+  const press = frame.dispatch("button", "pointerdown");
+  frame.click("button");
+
+  expect(press).toBe(true);
+  expect(frame.text()).toContain("Clicked 1 times");
+});
+
 test("a click inside a link picks the link", async () => {
   const frame = await pickFrame('<a href="/docs" aria-label="Read the docs"><span>Docs</span></a>');
 

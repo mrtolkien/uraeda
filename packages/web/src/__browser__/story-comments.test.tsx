@@ -100,6 +100,16 @@ describe("on a desktop", () => {
     );
   });
 
+  test("a disabled button, which gets no click, is picked", async () => {
+    await readyEmbed();
+    await pick();
+
+    await commands.frameClick(DESKTOP, "button", "Save", true);
+
+    expect(await screen.findByText(`Comment on ${LABEL}, desktop, button “Save”`)).toBeTruthy();
+    expect(within(embed()).queryByText(HINT)).toBeNull();
+  });
+
   test("Comment without picking names the story alone (US2.4)", async () => {
     await readyEmbed();
 
