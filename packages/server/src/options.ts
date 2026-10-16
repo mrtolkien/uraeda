@@ -49,7 +49,7 @@ export function parseOptions(argv: Array<string>, env: Env): Options {
     given: Boolean(values.repo) || env.given,
     newKey: Boolean(values["new-key"]),
     noOpen: Boolean(values["no-open"]),
-    ...(values.port && { port: { name: "--port", value: Number(values.port) } }),
+    ...(values.port !== undefined && { port: { name: "--port", value: values.port } }),
     repo: values.repo ? resolve(values.repo) : env.repo,
     ...(show && { show }),
   };

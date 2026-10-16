@@ -21,6 +21,22 @@ pub fn config_dir(custom: Option<String>) -> String {
         .into_owned()
 }
 
+/// The settings file in the config folder `dir`, the home folder written `~`, as the core's messages
+/// write it.
+#[napi]
+pub fn settings_file(dir: String) -> String {
+    settings::shown_file(Path::new(&dir))
+}
+
+/// `typed`, trimmed, when it is a port, a whole number from 1 to 65535. Throws the problem
+/// otherwise, `The port is a number from 1 to 65535.`
+#[napi]
+pub fn checked_port(typed: String) -> napi::Result<u32> {
+    settings::port(&typed)
+        .map(u32::from)
+        .map_err(napi::Error::from_reason)
+}
+
 /// The settings in the folder's file, the defaults when there is none.
 #[napi(ts_return_type = "Promise<Settings>")]
 pub fn read_settings(dir: String) -> AsyncTask<Job<Settings>> {

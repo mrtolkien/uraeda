@@ -60,6 +60,12 @@ pub fn read(dir: &Path) -> Result<Settings, ApiError> {
     checked(dir).map(|(_, settings)| settings)
 }
 
+/// `typed`, trimmed, when it is a port, a whole number from 1 to 65535; otherwise the problem, as
+/// a flag or a variable giving the port is checked.
+pub fn port(typed: &str) -> Result<u16, String> {
+    rules::port(typed)
+}
+
 /// Adds a host name, trimmed and in lower case, at the end of `allowed_hosts`.
 pub fn add_allowed_host(dir: &Path, name: &str) -> Result<Settings, ApiError> {
     let name = rules::host_name(name).map_err(refused)?;
@@ -241,8 +247,8 @@ pub fn shown(path: &Path, home: &Path) -> String {
     }
 }
 
-/// The settings file in `dir`, as messages show it.
-fn shown_file(dir: &Path) -> String {
+/// The settings file in `dir`, as messages show it, the home folder written `~`.
+pub fn shown_file(dir: &Path) -> String {
     shown(
         &dir.join(file::FILE),
         &std::env::home_dir().unwrap_or_default(),
