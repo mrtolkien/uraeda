@@ -1,9 +1,8 @@
 // A button that writes to git: once clicked, it reads what it does, with a spinner, until the
 // write ends, and every other one is blocked meanwhile; the item it writes to shows the same on its
 // card. Its action resolves to `false` when it failed, which shows the card's status again.
-import { useState } from "react";
-import { WriteButtonView } from "./WriteFeedback.tsx";
-import { useWrites } from "./store.ts";
+import { useOwnWrite } from "./useOwnWrite.ts";
+import { type Variant, WriteButtonView } from "./WriteFeedback.tsx";
 
 export function WriteButton({
   folder,
@@ -21,19 +20,16 @@ export function WriteButton({
   onClick: () => Promise<unknown>;
   runningLabel?: string;
   tooltip?: string | undefined;
-  variant?: "primary" | "secondary" | "destructive" | undefined;
+  variant?: Variant | undefined;
 }) {
-  const { run, running } = useWrites();
-  const [own, setOwn] = useState(false);
-  const state = running ? (own ? "running" : "blocked") : "idle";
+  const { start, state } = useOwnWrite({
+    label: runningLabel,
+    ...(folder === undefined ? {} : { folder }),
+  });
   const click = () => {
-    if (running || isDisabled) {
-      return;
+    if (!isDisabled) {
+      start(onClick);
     }
-    setOwn(true);
-    void run({ label: runningLabel, ...(folder === undefined ? {} : { folder }) }, onClick).finally(
-      () => setOwn(false),
-    );
   };
   return (
     <WriteButtonView
