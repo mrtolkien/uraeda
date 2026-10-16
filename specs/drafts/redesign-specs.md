@@ -23,6 +23,15 @@ READABILITY: rewording and redesign go together, the skill and the templates cha
 - Parsed frontmatter should not appear in the edit box
 - The wording and style must be model-agnostic: we need to be extremely clear as to the format
   expected, the tone, ...
+- TODO: Define what goes in the right sidebar on desktop!
+
+Regarding storybook:
+
+- On desktop the embed should take more width than only the middle column, right the text is a bit
+  small.
+- "Phone" view on desktop should be centered and clearly show what's the Phone screen with borders.
+- The default view should be the one of the active device (phone on phone, desktop on desktop).
+  Remove "Both".
 
 ## Why
 
