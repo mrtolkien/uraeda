@@ -63,3 +63,5 @@
   of Now, leaves two blank lines under ## Now in PRIORITIES.md
 - [agent] [redesign-priorities] In a numbered Now, a newly started entry repeats the next number (2.
   C, blank line, 2. B)
+- [agent] [redesign-priorities] Home's Now count includes started entries, while the priorities
+  page's Now · N leaves them out
