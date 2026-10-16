@@ -10,13 +10,15 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Page } from "playwright";
 import { git } from "uraeda-binding/test-utils";
-import { type Each, settle, show } from "./shots.ts";
+import { type Each, forget, settle, show } from "./shots.ts";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 const INBOX = "specs/INBOX.md";
 const PRIORITIES = "specs/PRIORITIES.md";
 const TRIAGE = "specs/INBOX-TRIAGE.md";
 const NOTE = "Draft to proposal on mobile went 404";
+/** The inbox's first note, which shows once the page is drawn. */
+const FIRST = "Specs are still way too long and hard to read";
 
 /** The triage of `fixtures/`, as an agent proposes it. */
 const triage = () => readFileSync(join(root, "fixtures/INBOX-TRIAGE.md"), "utf8");
@@ -24,8 +26,8 @@ const triage = () => readFileSync(join(root, "fixtures/INBOX-TRIAGE.md"), "utf8"
 /** Opens the add form from the ＋ next to Inbox: in the navigation's drawer on the phone. */
 async function openForm(page: Page) {
   // Without the text the last shot's form kept: each form opens as new, with no restore notice.
-  await page.evaluate(() => window.localStorage.clear());
-  await show(page, "/inbox", "10 notes");
+  await forget(page);
+  await show(page, "/inbox", FIRST);
   if (page.viewportSize()!.width < 768) {
     await page.getByRole("button", { name: "Open navigation" }).click();
   }
@@ -100,9 +102,9 @@ async function takeTriage(each: Each, repo: string) {
 
 /** The inbox's views, its repository at `repo`. */
 export async function takeInbox(each: Each, repo: string) {
-  await each("inbox", ({ page }) => show(page, "/inbox", "10 notes"));
+  await each("inbox", ({ page }) => show(page, "/inbox", FIRST));
   await each("inbox-note", async ({ page }) => {
-    await show(page, "/inbox", "10 notes");
+    await show(page, "/inbox", FIRST);
     await page.getByRole("link", { name: new RegExp(NOTE) }).click();
     await page.getByRole("button", { name: "Move to priorities" }).waitFor();
     await settle(page);
@@ -114,7 +116,7 @@ export async function takeInbox(each: Each, repo: string) {
   git(repo, "reset", "--quiet", "--hard", "HEAD~1");
   await takeForm(each);
   await each("home-inbox", async ({ page }) => {
-    await show(page, "/", "10 notes to organize");
+    await show(page, "/", "notes to organize");
     await page
       .getByRole("heading", { name: "Inbox" })
       .first()

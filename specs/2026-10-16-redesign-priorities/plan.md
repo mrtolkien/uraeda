@@ -1065,15 +1065,15 @@ git commit -m "feat(redesign-priorities): the constitution and decisions page"
   priorities, inbox, pane-reading, pane-editing, quick-add, decisions, decision)
 - Create: `specs/2026-10-16-redesign-priorities/screenshots/*.webp`
 
-- [ ] **Step 1: Run the full validation**
+- [x] **Step 1: Run the full validation**
   - Run: `nix develop -c vp run ready`
   - Expected: PASS
-- [ ] **Step 2: Take the screenshots of every changed view at both sizes and in both themes**
+- [x] **Step 2: Take the screenshots of every changed view at both sizes and in both themes**
   - Run: `nix develop -c vp run --filter uraeda-web screenshots 2026-10-16-redesign-priorities`
   - Expected: one `.webp` per view, size, and theme
-- [ ] **Step 3: Review them against the UI decisions, the stories, and the approval comments; fix
+- [x] **Step 3: Review them against the UI decisions, the stories, and the approval comments; fix
       what they show, each fix with its test**
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/web/scripts specs/2026-10-16-redesign-priorities/screenshots
