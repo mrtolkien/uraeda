@@ -304,13 +304,17 @@ export function Question({
   const parent = question.parent;
   const wide = useWidthClass() === "wide";
   // A comment on one of its stories joins its answer, on a line of its own, while it can be
-  // answered.
+  // answered. Its unsaved text is the question's own: another question of the round may embed the
+  // same story.
   const stories = useContext(StoryContext);
   const comments =
     stories && !readOnly
       ? {
           ...stories,
-          comment: { path, save: (_: unknown, text: string) => answer.appendLine(text) },
+          comment: {
+            path: `${path}#${question.id}`,
+            save: (_: unknown, text: string) => answer.appendLine(text),
+          },
         }
       : stories;
 
