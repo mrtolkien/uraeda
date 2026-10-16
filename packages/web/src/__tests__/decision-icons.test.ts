@@ -1,19 +1,28 @@
-// Every decision of this repository names an icon the decisions page draws, so none falls back to
-// the default one (C8 of the redesign of the priorities, R20). A project's own names may fall back.
+// Every decision of this repository, and of the skill's example project, names an icon the
+// decisions page draws, so none falls back to the default one (C8 of the redesign of the
+// priorities, R20). A project's own names may fall back.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { decisionIcon } from "../theme/icons.ts";
 
-const decisions = join(import.meta.dirname, "../../../../specs/decisions");
+const root = join(import.meta.dirname, "../../../..");
 
-test("each decision of this repository has a drawn icon", () => {
-  const missing = readdirSync(decisions)
+/** The decisions of a folder whose icon the page would not draw. */
+function undrawn(folder: string) {
+  const decisions = join(root, folder);
+  return readdirSync(decisions)
     .filter((file) => file.endsWith(".md"))
     .filter((file) => {
       const icon = /^icon: (.+)$/m.exec(readFileSync(join(decisions, file), "utf8"))?.[1];
       return icon === undefined || decisionIcon(icon) !== `uraeda:decision-${icon}`;
     });
+}
 
-  expect(missing).toEqual([]);
+test("each decision of this repository has a drawn icon", () => {
+  expect(undrawn("specs/decisions")).toEqual([]);
+});
+
+test("each decision of the skill's example has a drawn icon", () => {
+  expect(undrawn("skills/uraeda/assets/example/specs/decisions")).toEqual([]);
 });

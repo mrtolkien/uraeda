@@ -83,7 +83,7 @@ Workflow files track their state in frontmatter fields.
 | `decisions/preview.md` | `preview-command` | its command, with `{port}`            |                                   |
 
 A change's folder has no other status: its rounds are `clarifications-NN.md`, as a feature's are.
-See [Change](change.md).
+See [Change](change.md). A decision's `icon` that the web UI does not know shows a default icon.
 
 Only set a human status when the human expressly asks you to in the session, for example "the spec
 is approved". Commit with the message `ura` would write, `spec(recurring-tasks): approve`, and say
