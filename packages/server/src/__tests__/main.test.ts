@@ -15,6 +15,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, expect, test } from "vite-plus/test";
 import { checkBinding, loadBinding } from "../binding.ts";
+import { freePort } from "../free-port.ts";
 import { handOff } from "../open-client.ts";
 import { HELP } from "../options.ts";
 import { linkPages } from "../sign-in/links.ts";
@@ -94,15 +95,6 @@ function ready({ child, output }: Started): Promise<void> {
     );
     check();
   });
-}
-
-/** A port free on 127.0.0.1 when it returns. */
-async function freePort(): Promise<number> {
-  const listener = createServer();
-  await new Promise<void>((resolve) => listener.listen(0, "127.0.0.1", resolve));
-  const { port } = listener.address() as { port: number };
-  await new Promise((resolve) => listener.close(resolve));
-  return port;
 }
 
 /**

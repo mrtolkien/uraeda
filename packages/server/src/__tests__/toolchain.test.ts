@@ -296,6 +296,47 @@ function unlockedBrowsers(tasks: Record<string, Task>, browsers: Array<string>):
   );
 }
 
+/** A port written as a number: a config's `port: 4310`, or a command's `--port 4310`. */
+const FIXED_PORT = /\bport\s*:\s*\d+|--port[= ]\d+/;
+
+/**
+ * The test runners' configurations and the tasks' commands that set a fixed port: several
+ * checkouts' tests at once would take the same one.
+ */
+function fixedPorts(files: Record<string, string>): Array<string> {
+  return Object.entries(files)
+    .filter(([path, text]) => FIXED_PORT.test(uncommented(path, text)))
+    .map(
+      ([path]) =>
+        `\`${path}\` sets a fixed port: take a free one, as \`freePort\` of \`packages/server/src/free-port.ts\` gives.`,
+    );
+}
+
+/** Each task's commands, by the task's name. */
+function taskCommands(tasks: Record<string, Task>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(tasks).map(([name, { command }]) => [name, [command].flat().join("\n")]),
+  );
+}
+
+/**
+ * The test runners' configurations that start a browser server on Vitest's port, 63315, which every
+ * checkout's tests would ask for: a config enabling a browser sets `test.api`'s port.
+ */
+function defaultBrowserPort(files: Record<string, string>): Array<string> {
+  return Object.entries(files)
+    .filter(([path, text]) => {
+      const code = uncommented(path, text);
+      return (
+        /\bbrowser:\s*\{[^}]*\benabled:\s*true/.test(code) && !/\bapi:\s*\{[^}]*\bport:/.test(code)
+      );
+    })
+    .map(
+      ([path]) =>
+        `\`${path}\` starts its browser server on Vitest's port: set \`test.api\` to \`{ port: await freePort() }\`.`,
+    );
+}
+
 /** The browser projects' names: the instances of the root's config file projects. */
 function browserProjects(): Array<string> {
   const projects = (config as { test?: { projects?: Array<string> } }).test?.projects ?? [];
@@ -424,6 +465,30 @@ test.each([
       "`everything` runs browser tests without waiting for the other checkouts': run it with `node scripts/test-run.ts --lock browser --slots 2`.",
     ],
   ],
+  [
+    "a fixed port in a test config and a task, but not in a comment",
+    fixedPorts({
+      "packages/web/vite.browser.config.ts": "export default { test: { api: { port: 63315 } } };\n",
+      "packages/web/vite.config.ts": "// Never `port: 4310` in tests.\nexport default {};\n",
+      storybook: "storybook dev --port 6006",
+    }),
+    [
+      "`packages/web/vite.browser.config.ts` sets a fixed port: take a free one, as `freePort` of `packages/server/src/free-port.ts` gives.",
+      "`storybook` sets a fixed port: take a free one, as `freePort` of `packages/server/src/free-port.ts` gives.",
+    ],
+  ],
+  [
+    "a browser config on Vitest's port",
+    defaultBrowserPort({
+      "a.config.ts": "export default { test: { browser: { enabled: true } } };\n",
+      "b.config.ts":
+        "export default { test: { api: { port: await freePort() }, browser: { enabled: true } } };\n",
+      "c.config.ts": "export default { test: { environment: 'happy-dom' } };\n",
+    }),
+    [
+      "`a.config.ts` starts its browser server on Vitest's port: set `test.api` to `{ port: await freePort() }`.",
+    ],
+  ],
 ])("%s is reported", (_name, problems, expected) => expect(problems).toEqual(expected));
 
 test("a comment naming a retry setting is not reported", () =>
@@ -458,6 +523,8 @@ test("the repository's toolchain follows the decision", () => {
   expect(unselected(projectNames(), readyTasks())).toEqual([]);
   expect(outsideRunFolder(allTasks())).toEqual([]);
   expect(unlockedBrowsers(allTasks(), browserProjects())).toEqual([]);
+  expect(fixedPorts({ ...runnerConfigs(), ...taskCommands(allTasks()) })).toEqual([]);
+  expect(defaultBrowserPort(runnerConfigs())).toEqual([]);
 });
 
 test("the browser projects are the browser config's instances", () =>
