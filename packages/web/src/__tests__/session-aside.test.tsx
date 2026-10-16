@@ -226,8 +226,8 @@ test("every box checked: the step after the plan, and 11 of 11 tasks done", asyn
   await renderPage(`/f/${CLI}/session`, repo, { agent: await fakeAgent() });
 
   const column = await findAside();
-  // The final review's step without GitHub, whose pull request the tests cannot know.
-  expect(column.getByRole("heading", { name: "Pull request" })).toBeTruthy();
+  // The step past the last task without GitHub, whose pull request the tests cannot know (R10).
+  expect(column.getByRole("heading", { name: "Pull request state unknown" })).toBeTruthy();
   expect(await column.findByText("11 of 11 tasks done")).toBeTruthy();
   const bar = column.getByRole("progressbar", { name: "11 of 11 tasks done" });
   expect(bar.getAttribute("aria-valuenow")).toBe("11");

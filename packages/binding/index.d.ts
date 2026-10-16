@@ -238,6 +238,12 @@ export declare function readTriage(repo: string): Promise<FileView | null>
 /** Every feature, change, and priority of the repository at `repo`. */
 export declare function readWorkspace(repo: string): Promise<WorkspaceView>
 
+/**
+ * Asks `gh` for the repository's open pull requests, once, for every read that follows: whether
+ * they changed since the last refresh.
+ */
+export declare function refreshPullRequests(repo: string): Promise<boolean>
+
 /** Removes an allowed host name. */
 export declare function removeAllowedHost(dir: string, name: string): Promise<Settings>
 
@@ -593,8 +599,8 @@ export interface FeatureView {
   leftWorktree?: string
   /** For a merged feature, its local branch still there. */
   leftBranch?: string
-  /** For a finished item, its record's `pull-request` URL. */
-  pullRequest?: string
+  /** Its branch's open pull request, from `gh`; else, once finished, its record's, read as open. */
+  pullRequest?: PullRequestView
 }
 
 export interface FileSummary {
@@ -801,6 +807,17 @@ export interface ProposalHint {
   hint: string
 }
 
+/** An open pull request's state. */
+export type PullRequestState = 'draft' | 'open' | 'changes-requested'
+
+/** A branch's open pull request. */
+export interface PullRequestView {
+  number: number
+  /** Its address, like `https://github.com/o/r/pull/31`. */
+  url: string
+  state: PullRequestState
+}
+
 export interface QuestionItem {
   /** `Q2`, or `Q2.B`. */
   id: string
@@ -991,6 +1008,8 @@ export interface StepView {
   progress?: TaskProgress
   /** Whether the implementation is over: the final review or after. */
   implemented: boolean
+  /** Its position in the workflow, from the proposal's gate, 0, to `none`, 14. */
+  order: number
 }
 
 export interface Story {

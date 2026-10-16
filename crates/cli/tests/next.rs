@@ -123,7 +123,7 @@ fn pull_request_state_unknown_without_gh() {
 
     assert_eq!(
         output.stdout.lines().next(),
-        Some("2026-10-10-cli-core: pull-request (pull request state unknown)")
+        Some("2026-10-10-cli-core: pull-request-unknown")
     );
 }
 
@@ -149,7 +149,7 @@ fn gh_runs_in_the_repository() {
     std::fs::write(
         &gh,
         format!(
-            "#!/bin/sh\n[ \"$(pwd -P)\" = \"{}\" ] || exit 1\necho '[{{\"reviewDecision\":\"\",\"isDraft\":true}}]'\n",
+            "#!/bin/sh\n[ \"$(pwd -P)\" = \"{}\" ] || exit 1\necho '[{{\"headRefName\":\"2026-10-10-cli-core\",\"number\":31,\"url\":\"https://github.com/o/r/pull/31\",\"isDraft\":true,\"reviewDecision\":\"\"}}]'\n",
             std::fs::canonicalize(repo.path()).unwrap().display()
         ),
     )

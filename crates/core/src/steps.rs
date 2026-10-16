@@ -21,6 +21,8 @@ pub enum StepName {
     FinalReview,
     PullRequestChanges,
     PullRequest,
+    /// Past its last task, while `gh` cannot tell its pull request's state.
+    PullRequestUnknown,
     /// Write the record, or open the pull request or mark it ready, after the final review.
     Finish,
     /// A change's agent: investigate, ask, fix, and open the pull request.
@@ -44,6 +46,7 @@ impl StepName {
             StepName::FinalReview => "final-review",
             StepName::PullRequestChanges => "pull-request-changes",
             StepName::PullRequest => "pull-request",
+            StepName::PullRequestUnknown => "pull-request-unknown",
             StepName::Finish => "finish",
             StepName::Change => "change",
             StepName::Done => "done",
@@ -157,6 +160,30 @@ impl Step {
     pub fn depends_on_pull_request(&self) -> bool {
         self.pull_request.is_some()
     }
+
+    /// Its position in the workflow, from the proposal's gate, 0, to `none`, 14: a gate is placed
+    /// by the file it waits on, and a change's agent step with the implementation.
+    pub fn order(&self) -> u32 {
+        match self.name {
+            StepName::HumanGate => match self.file.as_deref().and_then(FileKind::of) {
+                Some((FileKind::Spec, _)) => 4,
+                Some((FileKind::Plan, _)) => 7,
+                Some((FileKind::Clarifications, _)) => 2,
+                _ => 0,
+            },
+            StepName::Discovery => 1,
+            StepName::Spec | StepName::SpecRevision => 3,
+            StepName::Approval => 5,
+            StepName::Plan | StepName::PlanRevision => 6,
+            StepName::Implementation | StepName::Change => 8,
+            StepName::FinalReview => 9,
+            StepName::Finish => 10,
+            StepName::PullRequestChanges => 11,
+            StepName::PullRequest | StepName::PullRequestUnknown => 12,
+            StepName::Done => 13,
+            StepName::None => 14,
+        }
+    }
 }
 
 /// The step of a feature or a change, from the skill's tables.
@@ -184,7 +211,7 @@ fn finished_step(kind: Kind, pull_request: PullRequest) -> Step {
         PullRequest::NoPullRequest | PullRequest::Draft => Step::agent(StepName::Finish, "finish"),
         PullRequest::ChangesRequested => Step::agent(StepName::PullRequestChanges, changes),
         PullRequest::Open => Step::new(StepName::PullRequest, WaitsOn::Human),
-        PullRequest::Unknown => Step::agent(StepName::PullRequest, "finish"),
+        PullRequest::Unknown => Step::agent(StepName::PullRequestUnknown, "finish"),
     };
     Step {
         implemented: true,
@@ -281,7 +308,7 @@ fn after_the_last_step(pull_request: PullRequest, without: StepName, reference: 
         PullRequest::Draft => Step::agent(StepName::Finish, "finish"),
         PullRequest::ChangesRequested => Step::agent(StepName::PullRequestChanges, reference),
         PullRequest::Open => Step::new(StepName::PullRequest, WaitsOn::Human),
-        PullRequest::Unknown => Step::agent(StepName::PullRequest, reference),
+        PullRequest::Unknown => Step::agent(StepName::PullRequestUnknown, reference),
     };
     Step {
         implemented: true,
@@ -302,8 +329,8 @@ fn waiting_gate(feature: &Feature) -> Option<Step> {
 
 /// A change's step: a gate until its proposal is committed, and on a round waiting for the human;
 /// otherwise its agent's, then the pull request's, as a feature's after its last task. An unknown
-/// pull request is the agent's step, `change` until the draft pull request exists, since the
-/// workspace reads every change without asking `gh`.
+/// pull request is the agent's step, `change`, since a change's agent opens its draft pull request
+/// itself.
 fn change_step(feature: &Feature, pull_request: PullRequest) -> Step {
     if !feature.proposal_committed {
         return Step::gate(first_file(feature.kind));
@@ -321,79 +348,17 @@ fn change_step(feature: &Feature, pull_request: PullRequest) -> Step {
     }
 }
 
-/// A branch's pull request in the repository at `repo`, through `gh` when it is installed and
-/// logged in. `gh` runs there, since it finds the repository from its current folder.
-pub fn pull_request(repo: &std::path::Path, branch: &str) -> PullRequest {
-    let Ok(output) = std::process::Command::new("gh")
-        .current_dir(repo)
-        .args([
-            "pr",
-            "list",
-            "--head",
-            branch,
-            "--state",
-            "open",
-            "--json",
-            "reviewDecision,isDraft",
-        ])
-        .output()
-    else {
-        return PullRequest::Unknown;
-    };
-    if !output.status.success() {
-        return PullRequest::Unknown;
-    }
-    pull_request_state(&output.stdout)
-}
-
-/// A pull request's state from `gh pr list --json reviewDecision,isDraft`: changes requested
-/// first, even on a draft, since the human's feedback comes before finishing.
-pub fn pull_request_state(json: &[u8]) -> PullRequest {
-    let Ok(list) = serde_json::from_slice::<Vec<serde_json::Value>>(json) else {
-        return PullRequest::Unknown;
-    };
-    match list.first() {
-        None => PullRequest::NoPullRequest,
-        Some(pr) if pr["reviewDecision"] == "CHANGES_REQUESTED" => PullRequest::ChangesRequested,
-        Some(pr) if pr["isDraft"] == true => PullRequest::Draft,
-        Some(_) => PullRequest::Open,
-    }
-}
-
-/// The skill's target rule: the first feature of **Now** whose step waits on an agent, asking
-/// `lookup` for the pull request of the features at the pull request rows.
-pub fn next_target(
-    workspace: &mut crate::workspace::Workspace,
-    lookup: impl Fn(&str) -> PullRequest,
-) -> Option<usize> {
+/// The skill's target rule: the first feature of **Now** whose step waits on an agent.
+pub fn next_target(workspace: &crate::workspace::Workspace) -> Option<usize> {
     use crate::files::priorities::Section;
-    let folders: Vec<String> = workspace
+    workspace
         .priorities
         .iter()
         .filter(|entry| entry.section == Section::Now)
-        .filter_map(|entry| entry.feature.clone())
-        .collect();
-    for folder in folders {
-        let Some(index) = workspace.features.iter().position(|f| f.folder == folder) else {
-            continue;
-        };
-        let feature = &mut workspace.features[index];
-        refresh_pull_request(feature, &lookup);
-        if feature.step.waits_on == WaitsOn::Agent && feature.step.name != StepName::None {
-            return Some(index);
-        }
-    }
-    None
-}
-
-/// Recomputes a feature's step with its pull request's state, when the step depends on it.
-pub fn refresh_pull_request(
-    feature: &mut crate::workspace::Feature,
-    lookup: impl Fn(&str) -> PullRequest,
-) {
-    if feature.step.depends_on_pull_request()
-        && let Some(branch) = feature.branch.clone()
-    {
-        feature.with_pull_request(lookup(&branch));
-    }
+        .filter_map(|entry| entry.feature.as_deref())
+        .filter_map(|folder| workspace.features.iter().position(|f| f.folder == folder))
+        .find(|&index| {
+            let step = &workspace.features[index].step;
+            step.waits_on == WaitsOn::Agent && step.name != StepName::None
+        })
 }

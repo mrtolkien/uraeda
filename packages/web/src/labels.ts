@@ -12,6 +12,7 @@ const STEPS: Record<string, string> = {
   "plan-revision": "Plan revision",
   "pull-request": "Pull request",
   "pull-request-changes": "Pull request changes",
+  "pull-request-unknown": "Pull request state unknown",
   spec: "Spec",
   "spec-revision": "Spec revision",
 };

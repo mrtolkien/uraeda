@@ -6,6 +6,7 @@ use serde::Serialize;
 
 use super::{ProblemView, kebab, title};
 use crate::files::frontmatter;
+use crate::pulls::{PullRequestState, PullRequestView};
 use crate::steps::{Step, TaskProgress};
 use crate::workspace::{Feature, FileKind, Problem, WorkflowFile};
 
@@ -25,6 +26,8 @@ pub struct StepView {
     pub progress: Option<TaskProgress>,
     /// Whether the implementation is over: the final review or after.
     pub implemented: bool,
+    /// Its position in the workflow, from the proposal's gate, 0, to `none`, 14.
+    pub order: u32,
 }
 
 #[cfg_attr(feature = "napi", napi(object))]
@@ -81,8 +84,8 @@ pub struct FeatureView {
     pub left_worktree: Option<String>,
     /// For a merged feature, its local branch still there.
     pub left_branch: Option<String>,
-    /// For a finished item, its record's `pull-request` URL.
-    pub pull_request: Option<String>,
+    /// Its branch's open pull request, from `gh`; else, once finished, its record's, read as open.
+    pub pull_request: Option<PullRequestView>,
 }
 
 /// A feature started.
@@ -104,6 +107,7 @@ impl From<&Step> for StepView {
             task: step.task.clone(),
             progress: step.progress.clone(),
             implemented: step.implemented,
+            order: step.order(),
         }
     }
 }
@@ -151,14 +155,24 @@ impl FeatureView {
                 .collect(),
             left_worktree: feature.left_worktree.clone(),
             left_branch: feature.left_branch.clone(),
-            pull_request: pull_request(feature),
+            pull_request: feature
+                .pull_request
+                .clone()
+                .or_else(|| recorded_pull_request(feature)),
         }
     }
 }
 
-/// The `pull-request` URL of its record, once finished.
-fn pull_request(feature: &Feature) -> Option<String> {
+/// The pull request of its record, once finished: its `pull-request` address, and the number at
+/// its end.
+fn recorded_pull_request(feature: &Feature) -> Option<PullRequestView> {
     let record = feature.file(FileKind::Record)?;
     let front = frontmatter::parse(feature.text(&record.name)?).ok()?;
-    front.text("pull-request").map(String::from)
+    let url = front.text("pull-request")?;
+    let number = url.trim_end_matches('/').rsplit('/').next()?.parse().ok()?;
+    Some(PullRequestView {
+        number,
+        url: url.to_string(),
+        state: PullRequestState::Open,
+    })
 }
