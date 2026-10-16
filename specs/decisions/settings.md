@@ -44,21 +44,21 @@ which stay in the data folder.
 
 The human wanted the server's values out of flags and `.env`, in a format that can be "backed
 up/added to dotfiles simply", and a settings page that "will grow bigger with time"
-([proposal](../2026-10-16-settings-page/proposal.md)). They chose TOML in the dotfiles folder, the
-only option both in that folder and safe to annotate by hand
-([Q1](../2026-10-16-settings-page/clarifications-01.md#q1-what-format-is-the-settings-file-and-where-does-it-live),
-[the file's format and place](../2026-10-16-settings-page/discovery-01.md#the-files-format-and-place)).
+([proposal](../done/2026-10-16-settings-page.md)). They chose TOML in the dotfiles folder, the only
+option both in that folder and safe to annotate by hand
+([Q1](../done/2026-10-16-settings-page.md#q1-what-format-is-the-settings-file-and-where-does-it-live),
+[the file's format and place](../done/2026-10-16-settings-page.md#q1-what-format-is-the-settings-file-and-where-does-it-live)).
 Codex and `gh` keep theirs in the same folder, including on macOS
-([how others do it](../2026-10-16-settings-page/discovery-01.md#how-other-products-do-it)).
+([how others do it](../done/2026-10-16-settings-page.md)).
 
 They asked for coherent data, and chose settings apart from data, with a running server's files in
 their own folder, rather than a full XDG split
-([Q2](../2026-10-16-settings-page/clarifications-01.md#q2-how-is-uraedas-data-organized),
-[organizing the data](../2026-10-16-settings-page/discovery-01.md#organizing-the-data)). Flags
+([Q2](../done/2026-10-16-settings-page.md#q2-how-is-uraedas-data-organized),
+[organizing the data](../done/2026-10-16-settings-page.md#q2-how-is-uraedas-data-organized)). Flags
 override for one run, as in every product and guideline checked
-([Q3](../2026-10-16-settings-page/clarifications-01.md#q3-what-does-a-flag-given-at-start-do-to-the-settings),
-[sources and their order](../2026-10-16-settings-page/discovery-01.md#sources-and-their-order)). The
-core owns the file as it owns the list of repositories, so `ura` reads the same settings when a
+([Q3](../done/2026-10-16-settings-page.md#q3-what-does-a-flag-given-at-start-do-to-the-settings),
+[sources and their order](../done/2026-10-16-settings-page.md#q3-what-does-a-flag-given-at-start-do-to-the-settings)).
+The core owns the file as it owns the list of repositories, so `ura` reads the same settings when a
 later feature needs them.
 
 ## Alternatives considered
