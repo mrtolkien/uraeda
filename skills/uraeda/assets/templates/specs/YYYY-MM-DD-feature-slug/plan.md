@@ -74,6 +74,9 @@ task that carries it out. State which spec clause it supersedes when it explicit
 
 ## Task 1: [Component or deliverable]
 
+**Risky:** [Optional: for a task that changes security, data written to disk, concurrency, or a rule
+several callers share, what makes it risky. It is reviewed on its own.]
+
 **Files:**
 
 - Start from: [Optional: for a view whose mockups are the project's own stories, the picked story,

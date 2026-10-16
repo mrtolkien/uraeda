@@ -154,6 +154,22 @@ silently: each point becomes a finding, then a question for the human, or a sett
 constitution and active decisions already answer it. A gap about scope, what the feature includes or
 leaves out, is always a question.
 
+**Is it worth it, and can it work?**
+
+- **Worth it**: weigh what the feature gives against what it costs, from what you found: the work,
+  the dependencies, the maintenance, what existing features already cover. When the evidence says
+  the cost outweighs the gain, say so, and make dropping or shrinking the feature the first
+  question's recommended option. Never recommend going ahead only because the proposal asks for it.
+- **Outside behaviour it relies on**: a feature that depends on how a library, a browser, a
+  protocol, or another tool behaves, where its documentation does not settle it (embedding a page in
+  a sandboxed frame, a protocol's undocumented messages), is checked now, with a small throwaway
+  experiment when one is cheap. When it cannot be checked, the discovery says so: it becomes an
+  unverified assumption, which the spec names and the plan's first task checks.
+- **Guards it relaxes**: an option that loosens a security rule, an origin check, a permission, a
+  sandbox, says what an attacker could then do, in one sentence a non-specialist understands, not as
+  a mechanism: "any website open in your browser could read the project's code", not "the `Origin`
+  rule is laxer on those paths".
+
 **Depth and sources**
 
 - Scale the depth to the impact: a topic that could become a [decision](spec.md#what-is-a-decision)
@@ -427,22 +443,27 @@ Before committing, read both files again with fresh eyes, and fix what you find 
    and dependencies are stated; no question is decided by an earlier answer.
 6. **What is asked**: no question you could have settled, and no settled point that only the human
    can decide, like a scope boundary or a new dependency.
-7. **The block**: the time estimate is honest, and every item names a subject, not a number.
+7. **Worth it and feasible**: the cost of the feature is weighed against its gain, the outside
+   behaviour it relies on is checked or named as unverified, and each relaxed guard says what an
+   attacker could do.
+8. **The block**: the time estimate is honest, and every item names a subject, not a number.
 
 ## Red flags
 
-| Thought                                                   | Reality                                                                                          |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| "I know this kind of feature, I can skip the research"    | Products differ exactly where the proposal is silent. Read how they do it, and cite them.        |
-| "I remember how this library or browser behaves"          | Your knowledge may be outdated. Verify it in today's documentation, and cite it.                 |
-| "Two products and one standard is enough research"        | Keep going until new sources stop adding. Breadth first: list every part before going deep.      |
-| "This would take a long time, the human is waiting"       | Nobody is waiting: the workflow is asynchronous. Depth now saves rounds of questions later.      |
-| "I'll ask, the human knows the codebase better"           | The code is there to read. Ask only what the code, the docs, and the decisions cannot answer.    |
-| "The proposal says X, so X it is"                         | A proposal is a first draft. Check it against what you found, and turn each gap into a question. |
-| "I'll ask this one now and the follow-up in a next round" | Every round costs the human a context switch. Anticipate, and ask the follow-up now.             |
-| "The options are clear enough as short labels"            | The human reads each option without the context. Write each as a full sentence.                  |
-| "I'll recommend in the discovery, it saves time"          | Discovery holds evidence. Recommendations go with the questions, where the human weighs them.    |
-| "Nobody will notice I didn't read that page"              | The next agent builds on your sources. Cite what you read; list the rest under **Not checked**.  |
+| Thought                                                   | Reality                                                                                           |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| "I know this kind of feature, I can skip the research"    | Products differ exactly where the proposal is silent. Read how they do it, and cite them.         |
+| "I remember how this library or browser behaves"          | Your knowledge may be outdated. Verify it in today's documentation, and cite it.                  |
+| "Two products and one standard is enough research"        | Keep going until new sources stop adding. Breadth first: list every part before going deep.       |
+| "This would take a long time, the human is waiting"       | Nobody is waiting: the workflow is asynchronous. Depth now saves rounds of questions later.       |
+| "I'll ask, the human knows the codebase better"           | The code is there to read. Ask only what the code, the docs, and the decisions cannot answer.     |
+| "The proposal says X, so X it is"                         | A proposal is a first draft. Check it against what you found, and turn each gap into a question.  |
+| "The proposal asks for it, so I'll recommend it"          | Weigh its cost against its gain. Recommending a drop is a valid answer when the evidence says so. |
+| "The library surely supports this"                        | Check it with a small experiment, or name it as unverified so the plan checks it first.           |
+| "I'll ask this one now and the follow-up in a next round" | Every round costs the human a context switch. Anticipate, and ask the follow-up now.              |
+| "The options are clear enough as short labels"            | The human reads each option without the context. Write each as a full sentence.                   |
+| "I'll recommend in the discovery, it saves time"          | Discovery holds evidence. Recommendations go with the questions, where the human weighs them.     |
+| "Nobody will notice I didn't read that page"              | The next agent builds on your sources. Cite what you read; list the rest under **Not checked**.   |
 
 With `ura`, run `ura check` on the feature's folder last: it verifies the files' structure, the
 questions' numbering and answer lines, and their links.
