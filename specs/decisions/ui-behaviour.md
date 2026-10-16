@@ -69,9 +69,8 @@ ends; the UI never guesses a status.
   cannot hover. Checked by the UI tests.
 - A keyboard shortcut MUST NOT act while a text field has the focus. A field's own keys, Enter and
   Ctrl+Enter or Cmd+Enter, are not shortcuts. Checked by the UI tests.
-- Opening an item of a list, by a click, a tap, or a key, MUST NOT put the focus in a text field:
-  its pane or page opens to read, with an Edit button at its top that edits in place. Checked by the
-  tests of each pane.
+- Opening an item of a list, by a click, a tap, or a key, SHOULD NOT put the focus in a text field:
+  taking keyboard focus should be deliberate and clear to the user.
 - A list whose rows open a pane MUST move its selection from the keyboard: ↑ and ↓, or j and k, to
   the next or previous row, with the pane following on wide screens; Home and End to the first and
   last row; Enter to edit the selected item, or to open it when it has nothing to edit; Escape to
