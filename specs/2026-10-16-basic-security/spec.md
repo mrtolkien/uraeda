@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Auth and login for basic security
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 25 minutes.
+> Approved on 2026-10-16.
 >
 > - A new decision, [sign-in](../decisions/sign-in.md): one generated access key, sessions on the
 >   server that end after 30 days without use, every route closed by default, and no switch to turn
