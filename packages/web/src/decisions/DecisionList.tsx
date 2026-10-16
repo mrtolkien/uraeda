@@ -1,52 +1,66 @@
 import { Badge } from "@astryxdesign/core/Badge";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
+import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Selector } from "@astryxdesign/core/Selector";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
-import { type DecisionSort, type DecisionSummary, SORTS, shortDate, statusLabel } from "./model.ts";
+import { Paragraph } from "../layout/Paragraph.tsx";
+import { useRepoPath } from "../routes.tsx";
+import { decisionIcon } from "../theme/icons.ts";
+import { statusLabel } from "./DecisionDetail.tsx";
+import { type DecisionSort, type LedgerDecision, SORTS, shortDate } from "./model.ts";
 
 const styles = stylex.create({
   count: {
     color: colorVars["--color-text-secondary"],
     fontWeight: "normal",
   },
+  icon: {
+    color: colorVars["--color-text-secondary"],
+    display: "inline-flex",
+  },
 });
 
-/** A decision's row: its title, its first sentence, its last change, and a status unless active. */
-function DecisionRow({
-  decision,
-  isSelected,
-  onOpen,
-}: {
-  decision: DecisionSummary;
-  isSelected: boolean;
-  onOpen: () => void;
-}) {
+/**
+ * A decision's row: its icon, its title, its first sentence, or "Can't read this file" when
+ * `ura check` finds a problem in it, its last change, and its status unless active.
+ */
+function DecisionRow({ decision, isSelected }: { decision: LedgerDecision; isSelected: boolean }) {
+  const here = useRepoPath();
+  const subtitle = decision.problem === null ? decision.summary : "Can't read this file";
   return (
     <ListItem
-      data-item={`decision:${decision.slug}`}
-      description={
-        <Text color="secondary" maxLines={1}>
-          {decision.subtitle}
-        </Text>
-      }
+      // What the list's keys move between: see `useListKeys`.
+      data-row=""
+      description={subtitle && <Text color="secondary">{subtitle}</Text>}
       endContent={
         <HStack align="center" gap={2}>
-          {decision.status !== "active" && (
+          {decision.status !== null && decision.status !== "active" && (
             <Badge label={statusLabel(decision.status)} variant="yellow" />
           )}
-          <Text color="secondary" hasTabularNumbers type="supporting">
-            {shortDate(decision.changed)}
-          </Text>
+          {decision.changed && (
+            <Text color="secondary" hasTabularNumbers type="supporting">
+              {shortDate(decision.changed)}
+            </Text>
+          )}
         </HStack>
       }
+      href={here(`/decisions/${decision.name}`)}
       isSelected={isSelected}
-      label={<Text weight="medium">{decision.title}</Text>}
-      onClick={onOpen}
+      label={
+        <Text data-title="" weight="medium">
+          {decision.title}
+        </Text>
+      }
+      startContent={
+        <span {...stylex.props(styles.icon)}>
+          <Icon icon={decisionIcon(decision.icon)} />
+        </span>
+      }
     />
   );
 }
@@ -54,15 +68,14 @@ function DecisionRow({
 /** The decisions, under their count and a sort control, one row each. */
 export function DecisionList({
   decisions,
-  onOpen,
   onSort,
   selected,
   sort,
 }: {
   /** Already in the sort's order. */
-  decisions: Array<DecisionSummary>;
-  onOpen: (slug: string) => void;
+  decisions: ReadonlyArray<LedgerDecision>;
   onSort: (sort: DecisionSort) => void;
+  /** The name of the decision open beside the list. */
   selected: string | undefined;
   sort: DecisionSort;
 }) {
@@ -83,16 +96,19 @@ export function DecisionList({
             value={sort}
           />
         </HStack>
-        <List aria-label="Decisions" hasDividers>
-          {decisions.map((decision) => (
-            <DecisionRow
-              decision={decision}
-              isSelected={selected === decision.slug}
-              key={decision.slug}
-              onOpen={() => onOpen(decision.slug)}
-            />
-          ))}
-        </List>
+        {decisions.length === 0 ? (
+          <Paragraph>No decisions yet.</Paragraph>
+        ) : (
+          <List aria-label="Decisions" hasDividers>
+            {decisions.map((decision) => (
+              <DecisionRow
+                decision={decision}
+                isSelected={selected === decision.name}
+                key={decision.name}
+              />
+            ))}
+          </List>
+        )}
       </VStack>
     </section>
   );

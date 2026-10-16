@@ -13,6 +13,7 @@ import {
   FileView,
   FolderSuggestionsView,
   InboxView,
+  LedgerView,
   PreviewView,
   PrioritiesView,
   ProposalHintsView,
@@ -32,6 +33,7 @@ import {
 export const WORKSPACE_ID = "workspace";
 const PRIORITIES_ID = "priorities";
 const INBOX_ID = "inbox";
+const LEDGER_ID = "ledger";
 /** The inbox's triage, among workflow files: it has no feature folder. */
 const TRIAGE_ID = "inbox-triage";
 const AGENT_ID = "agent";
@@ -125,6 +127,14 @@ export function useInbox() {
   const { inbox } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(InboxView, inbox);
+}
+
+/** The constitution and the decisions, as the default branch has them. */
+export function useLedger() {
+  const request = { ledger: { id: LEDGER_ID, view: LedgerView } };
+  const { ledger } = useRequest(request);
+  useRefreshOnShow(request);
+  return useLiveView(LedgerView, ledger);
 }
 
 /** The inbox as it is now on disk, read outside a component: for an Undo, as `readPriorities`. */

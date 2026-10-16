@@ -18,6 +18,11 @@ test.each([
   ["/f/x/storybook", { folder: "x", page: "storybook" }],
   ["/storybook", { folder: "main", page: "storybook" }],
   ["/f/x/storybook.md", { folder: "x", name: "storybook.md", page: "file" }],
+  // US8: the decisions page, a decision open, and a principle open.
+  ["/decisions", { page: "decisions" }],
+  ["/decisions/ui-behaviour", { name: "ui-behaviour", page: "decision" }],
+  ["/decisions/constitution/iv", { page: "principle", slug: "iv" }],
+  ["/decisions/git/rules", { page: "missing", path: "/decisions/git/rules" }],
 ])("parseRoute(%s)", (path, route) => expect(parseRoute(path)).toEqual(route));
 
 /** US6.3: the repository is in the URL, and a path without it is still a page's. */

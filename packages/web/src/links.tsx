@@ -69,6 +69,14 @@ export function pathLink(path: string, repo: string): { href: string; inApp: boo
   if (feature) {
     return { href: at(`/f/${feature[1]}/${feature[2]}${hash ? `#${hash}` : ""}`), inApp: true };
   }
+  // The constitution and the decisions open on their page, not as text.
+  if (file === "specs/CONSTITUTION.md") {
+    return { href: at("/decisions"), inApp: true };
+  }
+  const decision = /^specs\/decisions\/([^/]+)\.md$/.exec(file);
+  if (decision) {
+    return { href: at(`/decisions/${decision[1]}`), inApp: true };
+  }
   if (/^specs\/(drafts|backlog)\/.+\.md$/.test(file)) {
     return { href: at(`/edit/${file}`), inApp: true };
   }

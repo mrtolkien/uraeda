@@ -20,6 +20,9 @@ export type Route =
   | { page: "inbox" }
   | { key: string; page: "note" }
   | { page: "triage" }
+  | { page: "decisions" }
+  | { name: string; page: "decision" }
+  | { page: "principle"; slug: string }
   | { page: "edit"; path: string }
   | { folder: string; name: string; page: "mockup" }
   | { folder: string; page: "session" }
@@ -147,10 +150,26 @@ export function parseRoute(pathname: string): Route {
   if (parts[0] === "settings" && parts.length <= 2) {
     return parts[1] === undefined ? { page: "settings" } : { category: parts[1], page: "settings" };
   }
+  if (parts[0] === "decisions" && parts.length <= 3) {
+    return decisionsRoute(parts, pathname);
+  }
   if (parts[0] === "edit" && parts.length > 1) {
     return { page: "edit", path: parts.slice(1).join("/") };
   }
   return { page: "missing", path: pathname };
+}
+
+/** `/decisions`, `/decisions/<name>`, or `/decisions/constitution/<slug>`. */
+function decisionsRoute(parts: Array<string>, pathname: string): Route {
+  if (parts.length === 1) {
+    return { page: "decisions" };
+  }
+  if (parts.length === 2) {
+    return { name: parts[1], page: "decision" };
+  }
+  return parts[1] === "constitution"
+    ? { page: "principle", slug: parts[2] }
+    : { page: "missing", path: pathname };
 }
 
 /**
