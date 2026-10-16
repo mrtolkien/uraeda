@@ -3,8 +3,33 @@
 
 use std::path::{Path, PathBuf};
 
-use super::{Feature, PriorityEntry};
-use crate::files::priorities;
+use super::{Feature, Kind, PriorityEntry, Workspace};
+use crate::files::lines;
+use crate::files::priorities::{self, Priorities};
+use crate::steps::StepName;
+use crate::view::StepView;
+
+/// The draft or backlog file a priorities entry links, as it is on the default branch.
+#[cfg_attr(feature = "napi", napi_derive::napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LinkedFile {
+    /// From the top level: `specs/drafts/x.md`, `specs/backlog/y/proposal.md`.
+    pub path: String,
+    /// Whether it is under `specs/backlog/`.
+    pub backlog: bool,
+}
+
+/// The feature or change a priorities entry links, while its step is not `done`.
+#[cfg_attr(feature = "napi", napi_derive::napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunningFeature {
+    pub folder: String,
+    /// Whether it is a change.
+    pub change: bool,
+    pub step: StepView,
+}
 
 /// A link's file, from the top level, relative to the folder `dir` holding the linking file.
 /// `None` for an anchor in the page, a URI with a scheme (`https:`, `data:`, `mailto:`), or a
@@ -76,6 +101,44 @@ fn percent_decode(path: &str) -> String {
 /// `specs/drafts/`.
 pub fn linked_draft(link: &str) -> Option<String> {
     resolve("specs", link).filter(|path| path.starts_with("specs/drafts/"))
+}
+
+/// The draft or backlog file a link points to, when `drafts`, as [`Workspace::drafts`] lists them,
+/// holds it: a folder's `proposal.md` counts as its folder.
+pub fn linked_file(link: &str, drafts: &[String]) -> Option<LinkedFile> {
+    let path = resolve("specs", link)?;
+    let folder = path.strip_suffix("/proposal.md").unwrap_or(&path);
+    if !drafts.iter().any(|draft| draft == &path || draft == folder) {
+        return None;
+    }
+    Some(LinkedFile {
+        backlog: path.starts_with("specs/backlog/"),
+        path,
+    })
+}
+
+impl Workspace {
+    /// The feature or change a link points to, while its step is not `done`.
+    pub fn running(&self, link: &str) -> Option<RunningFeature> {
+        let folder = match_feature(link, &self.features)?;
+        let feature = self.features.iter().find(|f| f.folder == folder)?;
+        (feature.step.name != StepName::Done).then(|| RunningFeature {
+            folder,
+            change: feature.kind == Kind::Change,
+            step: StepView::from(&feature.step),
+        })
+    }
+
+    /// The priorities with each entry's draft or backlog file and running feature, from this
+    /// workspace.
+    pub fn join_priorities(&self, mut priorities: Priorities) -> Priorities {
+        for entry in priorities.sections.iter_mut().flat_map(|s| &mut s.entries) {
+            let (_, link) = lines::plain(&entry.text);
+            entry.draft = link.as_deref().and_then(|l| linked_file(l, &self.drafts));
+            entry.running = link.as_deref().and_then(|l| self.running(l));
+        }
+        priorities
+    }
 }
 
 /// The feature an entry's link points to: a path component or file name equal to its folder or

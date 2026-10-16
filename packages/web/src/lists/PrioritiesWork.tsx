@@ -6,7 +6,8 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useFateClient } from "react-fate";
-import type { EntryItem, PriorityView } from "uraeda-binding";
+import type { PriorityView } from "uraeda-binding";
+import type { PriorityEntry } from "uraeda-server/fate";
 import { CommitBar } from "../CommitBar.tsx";
 import { usePriorities, useWorkspace } from "../data.ts";
 import { EditableLine } from "../EditableLine.tsx";
@@ -116,7 +117,7 @@ export function PrioritiesWork({
     return result.error ? refusal(result.error).message : undefined;
   };
 
-  const row = (entry: EntryItem): WorkRow => {
+  const row = (entry: PriorityEntry): WorkRow => {
     const standing = standings.get(entry.key) ?? { backlog: false, draft: false };
     return {
       href: here(`/priorities/${entry.key}`),

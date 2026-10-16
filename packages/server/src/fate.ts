@@ -73,6 +73,8 @@ export type Feature = Entity<typeof featureDataView, "Feature">;
 export type BranchChanges = Entity<typeof branchChangesDataView, "BranchChanges">;
 export type WorkflowFile = Entity<typeof fileDataView, "WorkflowFile">;
 export type Priorities = Entity<typeof prioritiesDataView, "Priorities">;
+/** An entry of the priorities, as the record sends it. */
+export type PriorityEntry = Priorities["sections"][number]["entries"][number];
 export type Inbox = Entity<typeof inboxDataView, "Inbox">;
 export type Draft = Entity<typeof draftDataView, "Draft">;
 export type ProposalHints = Entity<typeof proposalHintsDataView, "ProposalHints">;

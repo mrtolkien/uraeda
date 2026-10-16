@@ -1,4 +1,5 @@
 import { homedir } from "node:os";
+import type { Priorities } from "uraeda-binding";
 import { homePath, suggest } from "../folders.ts";
 import { NEEDS_YOU_ID, needsYouList, needsYouListDataView } from "./needs-you.ts";
 import { itemLooks } from "./items.ts";
@@ -39,6 +40,7 @@ import {
   inboxDataView,
   PRIORITIES_ID,
   prioritiesDataView,
+  type PrioritiesRecord,
   PROPOSAL_HINTS_ID,
   proposalHintsDataView,
   REPOSITORIES_ID,
@@ -63,6 +65,18 @@ import {
   WORKSPACE_ID,
   workspaceDataView,
 } from "./views.ts";
+
+/** The priorities as they are sent: each running feature's step as `sentStep` sends it. */
+export const sentPriorities = (read: Priorities): Omit<PrioritiesRecord, "id"> => ({
+  ...read,
+  sections: read.sections.map((section) => ({
+    ...section,
+    entries: section.entries.map(({ running, ...entry }) => ({
+      ...entry,
+      ...(running && { running: { ...running, step: sentStep(running.step) } }),
+    })),
+  })),
+});
 
 /** Reads each id, leaving out the ones that cannot be read. */
 async function each<T>(ids: Array<string>, read: (id: string) => Promise<T>): Promise<Array<T>> {
@@ -258,7 +272,7 @@ export const sources = createSources<Context>([
     repository({
       byIds: async ({ binding, repo }, ids) =>
         ids.includes(PRIORITIES_ID)
-          ? [{ id: PRIORITIES_ID, ...(await binding.readPriorities(repo)) }]
+          ? [{ id: PRIORITIES_ID, ...sentPriorities(await binding.readPriorities(repo)) }]
           : [],
     }),
   ),
