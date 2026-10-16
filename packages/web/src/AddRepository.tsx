@@ -9,7 +9,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { Suspense, useDeferredValue, useState } from "react";
+import { Suspense, useDeferredValue, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { useFolderSuggestions } from "./data.ts";
 import { refusal } from "./errors.ts";
@@ -30,17 +30,38 @@ const styles = stylex.create({
 /** Where the field starts: the home folder, whose folders the human goes on from. */
 const START = "~/";
 
-/** The folders starting with the text, those in git marked, each filling the field when picked. */
-function Suggestions({ onPick, text }: { onPick: (path: string) => void; text: string }) {
+/** The same folder, with or without its trailing slash. */
+const sameFolder = (a: string, b: string) => a.replace(/\/$/, "") === b.replace(/\/$/, "");
+
+/**
+ * The folders starting with the text, those in git marked, each filling the field when picked;
+ * `active` is the one the arrows are on. `onShown` is told the paths drawn, for the field's keys.
+ */
+function Suggestions({
+  active,
+  onPick,
+  onShown,
+  text,
+}: {
+  active: number;
+  onPick: (path: string) => void;
+  onShown: (paths: ReadonlyArray<string>) => void;
+  text: string;
+}) {
   const rows = useFolderSuggestions(text);
+  useEffect(() => {
+    onShown(rows.map((row) => row.path));
+    return () => onShown([]);
+  }, [onShown, rows]);
   if (rows.length === 0) {
     return null;
   }
   return (
     <List aria-label="Folders" density="compact">
-      {rows.map((row) => (
+      {rows.map((row, index) => (
         <ListItem
           endContent={row.git ? <Badge label="git" variant="neutral" /> : undefined}
+          isSelected={index === active}
           key={row.path}
           label={<span {...stylex.props(styles.path)}>{row.path}</span>}
           onClick={() => onPick(row.path)}
@@ -71,11 +92,18 @@ export function AddRepository({
   // Suggestions show once the human types, the earlier ones kept while the next ones load.
   const [typed, setTyped] = useState(false);
   const shown = useDeferredValue(text);
+  // The suggestions drawn, and the one Down and Up are on, which Enter picks.
+  const suggested = useRef<ReadonlyArray<string>>([]);
+  const [onShown] = useState(() => (paths: ReadonlyArray<string>) => {
+    suggested.current = paths;
+  });
+  const [active, setActive] = useState(-1);
 
   const change = (value: string) => {
     setText(value);
     setTyped(true);
     setError(undefined);
+    setActive(-1);
   };
 
   const add = async () => {
@@ -102,9 +130,20 @@ export function AddRepository({
         label="Folder"
         onChange={change}
         onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
-          if (event.key === "Enter") {
+          const rows = suggested.current;
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
             event.preventDefault();
-            void add();
+            const step = event.key === "ArrowDown" ? 1 : -1;
+            setActive(Math.max(-1, Math.min(rows.length - 1, active + step)));
+          } else if (event.key === "Enter") {
+            event.preventDefault();
+            // The suggestion the arrows are on, or the only one, fills the field; then Enter adds.
+            const picked = rows[active] ?? (rows.length === 1 ? rows[0] : undefined);
+            if (picked !== undefined && !sameFolder(picked, text)) {
+              change(picked);
+            } else {
+              void add();
+            }
           }
         }}
         status={error ? { message: error, type: "error" } : undefined}
@@ -112,7 +151,7 @@ export function AddRepository({
       />
       {typed && /^[/~]/.test(shown) && (
         <Suspense fallback={null}>
-          <Suggestions onPick={change} text={shown} />
+          <Suggestions active={active} onPick={change} onShown={onShown} text={shown} />
         </Suspense>
       )}
       <Text color="secondary" type="supporting">

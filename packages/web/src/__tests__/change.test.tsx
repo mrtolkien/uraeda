@@ -115,9 +115,10 @@ test("a feature's column keeps its plan, its page, and its words", async () => {
   await renderPage("/f/2026-10-12-cli-tuis/session", fixtureRepo(), { agent: true });
 
   const aside = await column();
+  // Each section is drawn once its own read ends.
   expect(await aside.findByText("Nothing outside the feature's folder yet.")).toBeTruthy();
-  expect(aside.getByText("No plan yet.")).toBeTruthy();
-  expect(aside.getByRole("link", { name: "Feature page" })).toBeTruthy();
+  expect(await aside.findByText("No plan yet.")).toBeTruthy();
+  expect(await aside.findByRole("link", { name: "Feature page" })).toBeTruthy();
 });
 
 // US4.1 and US4.6: a change's page is its session, with no other page to go back to: its heading
