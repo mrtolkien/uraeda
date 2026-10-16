@@ -195,7 +195,8 @@ change's proposal, like a slow page or a confusing message, does not fix it in p
 drop it. It adds a note:
 
 - marked `[agent]`, then with the slug of the feature or change the note is about;
-- under the category that fits, or a new one named like the others;
+- under the category that fits, or a new one named like the others; a review's minor finding, left
+  unfixed, goes under **Deferred fixes**;
 - with `ura note <text> --agent --about <slug> --category <name>`, or by hand in the default
   branch's checkout, committed alone with `chore: add "<note>" to the inbox`.
 
