@@ -105,13 +105,19 @@ export class Turns {
     return this.#open(live, ended.id, ended.first);
   }
 
-  /** Restarts the turn's watchdog. */
+  /**
+   * Restarts the turn's watchdog, which waits while a background task runs: the agent's own limit
+   * stops a background command.
+   */
   watch(live: Live, turn: Running) {
     clearTimeout(turn.watchdog);
-    turn.watchdog = setTimeout(
-      () => this.halt(live, turn, { reason: "No output for 30 minutes.", state: "failed" }),
-      WATCHDOG_MS,
-    );
+    turn.watchdog = setTimeout(() => {
+      if ((live.proc?.background.size ?? 0) > 0) {
+        this.watch(live, turn);
+        return;
+      }
+      this.halt(live, turn, { reason: "No output for 30 minutes.", state: "failed" });
+    }, WATCHDOG_MS);
   }
 
   /**
@@ -207,7 +213,8 @@ export class Turns {
     }
     clearTimeout(live.idle);
     const proc = live.proc;
-    if (proc && !proc.closing) {
+    // A background task still runs: the idle timer starts once it ends.
+    if (proc && !proc.closing && proc.background.size === 0) {
       live.idle = setTimeout(() => this.#context.processes.close(proc), IDLE_CLOSE_MS);
     }
   }

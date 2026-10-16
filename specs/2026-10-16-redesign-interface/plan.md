@@ -586,11 +586,12 @@ git commit -m "feat(redesign-interface): the server keeps pull requests, names, 
 
 **Files:**
 
-- Create: `fixtures/claude/background.jsonl`
 - Modify:
   `packages/server/src/runner/{claude-events.ts,events.ts,transcript.ts,turns.ts,activity.ts,sessions.ts}`,
-  `fate/views.ts` (`backgroundCommands` on `SessionRecord`, `SessionRowRecord`), `fate/sessions.ts`,
-  `live.ts` (publish when the count changes, extracted out of `sessionPublisher`)
+  `fate/views.ts` (`backgroundCommands` on `SessionRecord`, `SessionRowRecord`), `fate/sessions.ts`;
+  a change of the count publishes through the session manager's `changed(live)`, which sends the
+  session and the list, so `live.ts` is unchanged
+  ([R13](rulings.md#r13-background-tasks-are-tested-inline-and-their-count-publishes-through-the-session))
 - Test: `runner/__tests__/claude.test.ts`, `runner/__tests__/sessions.test.ts`,
   `__tests__/sessions.test.ts`
 
@@ -604,7 +605,7 @@ git commit -m "feat(redesign-interface): the server keeps pull requests, names, 
   background command"; the idle timer and the watchdog do not run while `proc.background` is not
   empty, and the idle timer arms when it empties with no turn running.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `claude.test.ts`: the fixture `background.jsonl` (a `task_started` for a `local_bash`, a
   `local_agent`, an ambient one, then `background_tasks_changed`) parses to the two non-ambient
@@ -620,19 +621,19 @@ git commit -m "feat(redesign-interface): the server keeps pull requests, names, 
 The break each test catches: `local_bash` still dropped; the idle timer armed at the result; the
 watchdog failing a long command; the count never published.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/runner`
 - Expected: FAIL, the fixture's table row reporting one task instead of two
 
-- [ ] **Step 3: Implement**, as in **Interfaces**.
+- [x] **Step 3: Implement**, as in **Interfaces**.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `vp check`, `vp run ts:test`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add fixtures/claude packages/server specs/2026-10-16-redesign-interface/plan.md

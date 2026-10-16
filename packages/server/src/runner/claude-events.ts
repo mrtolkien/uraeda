@@ -299,17 +299,19 @@ function systemEvents(message: Json, tasks: Map<string, string>): Array<AgentEve
     tasks.set(message.task_id, message.tool_use_id);
     return [];
   }
-  // Every live background task: shells and watchers may never end, so only the sub-agents and
-  // workflows the agent waits for count.
+  // Every live background task of the run, but those the agent marks ambient: sub-agents and
+  // workflows, and every other kind, like a background shell, as a command.
   if (message.subtype === "background_tasks_changed" && Array.isArray(message.tasks)) {
-    const tools = objects(message.tasks)
-      .filter(
-        (task) =>
-          (task.task_type === "local_agent" || task.task_type === "local_workflow") &&
-          task.ambient !== true,
-      )
-      .map((task) => tasks.get(text(task.task_id)) ?? text(task.task_id));
-    return [{ tools, type: "background" }];
+    const live = objects(message.tasks)
+      .filter((task) => task.ambient !== true)
+      .map((task) => ({
+        kind:
+          task.task_type === "local_agent" || task.task_type === "local_workflow"
+            ? ("subagent" as const)
+            : ("command" as const),
+        tool: tasks.get(text(task.task_id)) ?? text(task.task_id),
+      }));
+    return [{ tasks: live, type: "background" }];
   }
   if (message.subtype === "api_retry") {
     return [

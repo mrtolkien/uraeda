@@ -1,7 +1,8 @@
 import { activityLabel, WORKING, waitingLabel, working } from "./activity.ts";
-import type { AgentEvent, Item } from "./events.ts";
+import type { AgentEvent, BackgroundTask, Item } from "./events.ts";
 import { toolTarget } from "./message.ts";
 import {
+  commandCount,
   type Live,
   OUTPUT_LIMIT,
   type Proc,
@@ -71,22 +72,7 @@ export class Transcript {
         return;
       }
       case "background": {
-        // A background sub-agent's tool call ends once it reports back, not when it starts.
-        const done = [...proc.background].filter((id) => !event.tools.includes(id));
-        proc.background = new Set(event.tools);
-        for (const id of done) {
-          const tool = turn?.tools.get(id);
-          if (turn && tool?.ended) {
-            this.#endTool(live, turn, id, tool.ended);
-          }
-        }
-        if (turn?.replied) {
-          this.#activity(
-            live,
-            turn,
-            event.tools.length > 0 ? waitingLabel(event.tools.length) : WORKING,
-          );
-        }
+        this.#background(live, proc, turn, event.tasks);
         return;
       }
       case "accepted":
@@ -223,6 +209,32 @@ export class Transcript {
   }
 
   /**
+   * The background tasks still running: a task's tool call ends once it reports back, not when it
+   * starts. The commands' count is published as it changes; once none runs, a process with no turn
+   * starts its idle timer.
+   */
+  #background(live: Live, proc: Proc, turn: Running | undefined, tasks: Array<BackgroundTask>) {
+    const before = commandCount(proc.background);
+    const done = [...proc.background.keys()].filter((id) => !tasks.some((t) => t.tool === id));
+    proc.background = new Map(tasks.map((task) => [task.tool, task.kind]));
+    for (const id of done) {
+      const tool = turn?.tools.get(id);
+      if (turn && tool?.ended) {
+        this.#endTool(live, turn, id, tool.ended);
+      }
+    }
+    if (turn?.replied) {
+      this.#activity(live, turn, tasks.length > 0 ? waitingLabel(proc.background) : WORKING);
+    }
+    if (commandCount(proc.background) !== before) {
+      this.#context.changed(live);
+    }
+    if (!live.turn && proc.background.size === 0) {
+      this.#context.turns.next(live);
+    }
+  }
+
+  /**
    * Ends the turn with its result, unless a message steered into it waits to be read, or a
    * background sub-agent still runs: the agent answers them before the turn settles.
    */
@@ -249,7 +261,7 @@ export class Transcript {
     if (result.ok && !turn.stop && (unread || proc.background.size > 0)) {
       if (!unread) {
         turn.replied = true;
-        this.#activity(live, turn, waitingLabel(proc.background.size));
+        this.#activity(live, turn, waitingLabel(proc.background));
       }
       return;
     }

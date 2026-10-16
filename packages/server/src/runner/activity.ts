@@ -23,7 +23,16 @@ export function activityLabel(activity: Activity): string {
   return `Preparing ${name}`;
 }
 
-/** The line of a reply that ended while its background sub-agents run. */
-export function waitingLabel(count: number): string {
-  return `Waiting for ${count} ${count === 1 ? "sub-agent" : "sub-agents"}`;
+/** The line of a reply that ended while its background tasks run: its sub-agents, its commands. */
+export function waitingLabel(background: Map<string, "subagent" | "command">): string {
+  const kinds = [...background.values()];
+  const count = (kind: string, one: string, many: string) => {
+    const n = kinds.filter((each) => each === kind).length;
+    return n === 0 ? [] : [`${n} ${n === 1 ? one : many}`];
+  };
+  const parts = [
+    ...count("subagent", "sub-agent", "sub-agents"),
+    ...count("command", "background command", "background commands"),
+  ];
+  return `Waiting for ${parts.join(" and ")}`;
 }
