@@ -1,5 +1,4 @@
 import { Banner } from "@astryxdesign/core/Banner";
-import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -11,6 +10,7 @@ import { SlugField } from "../SlugField.tsx";
 import { StoriesProvider } from "../stories.tsx";
 import { DraftEditor } from "./DraftEditor.tsx";
 import { useDraftEditor } from "./useDraftEditor.ts";
+import { WriteButton } from "../writes/WriteButton.tsx";
 
 /**
  * An entry's draft: drawn to read, or, while the entry is edited (`isEditing`) or its text holds
@@ -45,9 +45,10 @@ export function PaneDraft({ isEditing, path }: { isEditing: boolean; path: strin
       )}
       <SlugField field={slug} />
       <HStack gap={2}>
-        <Button
-          clickAction={() => editor.actions.start(false)}
+        <WriteButton
           label="Start the feature"
+          onClick={() => editor.actions.start(false)}
+          runningLabel="Starting the feature…"
           variant="primary"
         />
       </HStack>

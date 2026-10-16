@@ -6,12 +6,14 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
+import { runWrite } from "../writes/store.ts";
 import {
   atRepo,
   atWidth,
   click,
   fixtureRepo,
   git,
+  holding,
   read,
   renderPage,
   sent,
@@ -527,4 +529,50 @@ test("on a phone, the page opens to read", async () => {
   } finally {
     atWidth(1024);
   }
+});
+
+/** UI behaviour (R17): the pane's git writes say what they do at once, with a spinner. */
+test.each([
+  ["Start the feature", "Starting the feature…", '"feature.start"'],
+  ["Commit", "Committing…", '"text.commit"'],
+])("the pane's %s reads %s at once", async (label, running, mutation) => {
+  const repo = fixtureRepo();
+  const held = await holding(repo, mutation);
+  try {
+    await renderPage("/priorities/git-listener", repo, { agent: held.fake, fetch: held.fetch });
+    await pressEdit();
+
+    await click((await paneDrawn()).getByRole("button", { name: label }));
+
+    const button = detail().getByRole("button", { name: running });
+    expect(button.querySelector('[role="status"]')).toBeTruthy();
+    expect(screen.getByRole("progressbar", { name: "Saving to git" })).toBeTruthy();
+  } finally {
+    held.release();
+  }
+});
+
+/** UI behaviour (R17): while any git write runs, the pane's are blocked, and stay focusable. */
+test("another git write blocks the pane's Commit and Start the feature", async () => {
+  await renderPage("/priorities/git-listener");
+  await pressEdit();
+  const pane = await paneDrawn();
+  const done = Promise.withResolvers<boolean>();
+  let write: Promise<boolean> | undefined;
+  act(() => {
+    write = runWrite({ label: "Committing…" }, () => done.promise);
+  });
+  try {
+    for (const name of ["Commit", "Start the feature"]) {
+      expect(pane.getByRole("button", { name }).getAttribute("aria-disabled")).toBe("true");
+    }
+  } finally {
+    await act(async () => {
+      done.resolve(true);
+      await write;
+    });
+  }
+  expect(pane.getByRole("button", { name: "Commit" }).getAttribute("aria-disabled")).not.toBe(
+    "true",
+  );
 });
