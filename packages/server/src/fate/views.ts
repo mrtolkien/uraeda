@@ -2,7 +2,6 @@
 // mapped type turns napi-rs's interfaces into type literals, which fate's record constraint accepts.
 import { dataView, list } from "@nkzw/fate/server";
 import type {
-  Color,
   BranchChanges,
   ChangedFile,
   DraftView,
@@ -55,22 +54,20 @@ export type WorkspaceRecord = Omit<Record_<WorkspaceView>, "features"> & {
 };
 
 /** A feature, or `missing` alone when no feature has its folder. */
-export type FeatureRecord = Omit<Record_<FeatureView>, "step"> & {
-  /** Its colour in the sidebar, or null (R2). */
-  color: Color | null;
-  id: string;
-  /** Its name in the sidebar, or null for its slug (R2). */
-  label: string | null;
-  missing?: boolean;
-  /**
-   * Whether its worktree, or the main checkout for a feature without one, has an active preview
-   * decision (R7).
-   */
-  preview: boolean;
-  /** Its session's ID, null before its first message. */
-  session: string | null;
-  step: StepRecord;
-};
+export type FeatureRecord = Omit<Record_<FeatureView>, "step"> &
+  // Its name and colour in the sidebar, or null (R2).
+  ItemLook & {
+    id: string;
+    missing?: boolean;
+    /**
+     * Whether its worktree, or the main checkout for a feature without one, has an active preview
+     * decision (R7).
+     */
+    preview: boolean;
+    /** Its session's ID, null before its first message. */
+    session: string | null;
+    step: StepRecord;
+  };
 /** A workflow file, or `missing` alone when its feature has no such file. */
 export type FileRecord = Record_<FileView> & { missing?: boolean };
 
