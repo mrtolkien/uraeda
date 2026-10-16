@@ -35,6 +35,9 @@
   - Speed up the process: iteration speed is too slow atm
   - This only doable once we have a good benchmark!
 
+- [Worker lifecycle](drafts/worker-lifecycle.md): runs survive server restarts, usage limits, and
+  their own background work, and go on to the next human gate without a "Continue"
+
 - Run options
   - Master session vs one session per step
   - Review options: command, prompt, depth, ...
