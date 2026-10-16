@@ -328,6 +328,19 @@ pub fn add_repository(data_dir: String, folder: String) -> AsyncTask<Job<AddedVi
     job(move || api::add_repository(Path::new(&data_dir), Path::new(&folder)))
 }
 
+/// Sets the name and the colour a feature or a change of a repository shows in the sidebar, by its
+/// folder: an empty name removes it.
+#[napi(ts_return_type = "Promise<Repository>")]
+pub fn set_item_settings(
+    data_dir: String,
+    name: String,
+    folder: String,
+    label: Option<String>,
+    color: Option<uraeda_core::repositories::Color>,
+) -> AsyncTask<Job<RepositoryView>> {
+    job(move || api::set_item_settings(Path::new(&data_dir), &name, &folder, label, color))
+}
+
 /// Takes a repository off the list, leaving its folder and sessions as they are.
 #[napi(ts_return_type = "Promise<void>")]
 pub fn remove_repository(data_dir: String, name: String) -> AsyncTask<Job<()>> {

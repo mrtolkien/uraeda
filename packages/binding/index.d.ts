@@ -295,6 +295,12 @@ export declare function saveTriageNotes(repo: string, notes: string, previous: s
 /** Sets the discovery effort of a draft or a proposal, over the version read at `previous`. */
 export declare function setDiscovery(repo: string, path: string, level: string, previous: string): Promise<DraftView>
 
+/**
+ * Sets the name and the colour a feature or a change of a repository shows in the sidebar, by its
+ * folder: an empty name removes it.
+ */
+export declare function setItemSettings(dataDir: string, name: string, folder: string, label?: string | undefined | null, color?: Color | undefined | null): Promise<Repository>
+
 /** Sets whether a start opens a browser. */
 export declare function setOpenBrowser(dir: string, open: boolean): Promise<Settings>
 
@@ -482,6 +488,9 @@ export interface Choice {
   /** Its item block. */
   block: number
 }
+
+/** The colours an item can be given, from the theme's palette. */
+export type Color = 'red' | 'orange' | 'yellow' | 'green' | 'teal' | 'blue' | 'purple' | 'pink'
 
 export interface CommentItem {
   number: number
@@ -707,6 +716,14 @@ export interface Items {
   rulings?: Array<Ruling>
 }
 
+/** The name and the colour a feature or a change shows in the sidebar. */
+export interface ItemSettingsView {
+  /** The item's folder, `YYYY-MM-DD-<slug>`. */
+  folder: string
+  label?: string
+  color?: Color
+}
+
 /** Lines of a file, 1-based and inclusive. */
 export interface LineRange {
   start: number
@@ -853,6 +870,8 @@ export interface Repository {
   openedAt: string
   /** The folder no longer holds the main checkout of a git repository. */
   missing: boolean
+  /** Its features' and changes' names and colours in the sidebar. */
+  items: Array<ItemSettingsView>
 }
 
 export interface ReviewItems {

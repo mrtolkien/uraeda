@@ -716,7 +716,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { WatchHandle, addAllowedHost, addComment, addNote, addNoteWithImage, addPriority, addRepository, addSettledComment, approve, attachImage, branchChanges, checkedPort, commitChanges, commitPriorities, commitText, configDir, createDraft, dataDir, discardChanges, discardPriorities, editAllowedHost, editComment, editNote, editPriority, editSettledComment, encodeImage, insertNote, insertPriority, mainRoot, moveNoteToCategory, movePriority, nextStep, noteToDraft, noteToNewDraft, noteToPriorities, openRepository, pathFolder, preview, proposalHints, proposeSlug, readDraft, readFeature, readFile, readImage, readInbox, readPriorities, readRaw, readRepositories, readSettings, readText, readTriage, readWorkspace, refreshPullRequests, removeAllowedHost, removeComment, removeNote, removePriority, removeRepository, removeSettledComment, requestChanges, retryCommit, retryTriage, saveAnswer, saveNotes, saveText, saveTriageAnswer, saveTriageNotes, setDiscovery, setOpenBrowser, setPort, settingsFile, startChange, startFeature, startOver, storyLink, submitAnswers, submitTriage, undoNoteAdd, undoNoteAsDraft, undoNoteCategory, undoNoteToDraft, undoNoteToPriorities, version, watch, workDir, BlockKind, CalloutKind, ItemMarker, PullRequestState } = nativeBinding
+const { WatchHandle, addAllowedHost, addComment, addNote, addNoteWithImage, addPriority, addRepository, addSettledComment, approve, attachImage, branchChanges, checkedPort, commitChanges, commitPriorities, commitText, configDir, createDraft, dataDir, discardChanges, discardPriorities, editAllowedHost, editComment, editNote, editPriority, editSettledComment, encodeImage, insertNote, insertPriority, mainRoot, moveNoteToCategory, movePriority, nextStep, noteToDraft, noteToNewDraft, noteToPriorities, openRepository, pathFolder, preview, proposalHints, proposeSlug, readDraft, readFeature, readFile, readImage, readInbox, readPriorities, readRaw, readRepositories, readSettings, readText, readTriage, readWorkspace, refreshPullRequests, removeAllowedHost, removeComment, removeNote, removePriority, removeRepository, removeSettledComment, requestChanges, retryCommit, retryTriage, saveAnswer, saveNotes, saveText, saveTriageAnswer, saveTriageNotes, setDiscovery, setItemSettings, setOpenBrowser, setPort, settingsFile, startChange, startFeature, startOver, storyLink, submitAnswers, submitTriage, undoNoteAdd, undoNoteAsDraft, undoNoteCategory, undoNoteToDraft, undoNoteToPriorities, version, watch, workDir, BlockKind, CalloutKind, Color, ItemMarker, PullRequestState } = nativeBinding
 export { WatchHandle }
 export { addAllowedHost }
 export { addComment }
@@ -785,6 +785,7 @@ export { saveText }
 export { saveTriageAnswer }
 export { saveTriageNotes }
 export { setDiscovery }
+export { setItemSettings }
 export { setOpenBrowser }
 export { setPort }
 export { settingsFile }
@@ -804,6 +805,7 @@ export { watch }
 export { workDir }
 export { BlockKind }
 export { CalloutKind }
+export { Color }
 export { ItemMarker }
 export { PullRequestState }
 export const __napiBindingTarget = __napiLoadedBindingTarget

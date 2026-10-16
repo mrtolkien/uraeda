@@ -491,7 +491,7 @@ git commit -m "feat(redesign-interface): pull requests from gh, their address, a
   when both are empty; `RepositoryView.items: Vec<ItemSettingsView { folder, label, color }>`;
   binding `setItemSettings(dataDir, name, folder, label, color)`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `crates/core/tests/repositories.rs`: `a_name_and_a_colour_are_kept_by_folder` (US8.1),
 `an_empty_name_removes_it` (US8.2), `a_name_is_trimmed_and_spaces_only_remove_it` (review focus 7),
@@ -502,19 +502,19 @@ returns the folder's name and colour.
 The break each test catches: an untrimmed label; `items` written when empty, changing the documented
 JSON; a 41st character accepted.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: the Rust command of task 1, then `vp run binding:build && vp test packages/binding`
 - Expected: FAIL to compile: `set_item_settings` not found
 
-- [ ] **Step 3: Implement**, as in **Interfaces**, under the core's write lock, through `save`.
+- [x] **Step 3: Implement**, as in **Interfaces**, under the core's write lock, through `save`.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: Rust tests and clippy, `vp check`, `vp run ts:test`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages/binding specs/2026-10-16-redesign-interface/plan.md

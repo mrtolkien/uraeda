@@ -7,6 +7,7 @@ import {
   openRepository,
   readRepositories,
   removeRepository,
+  setItemSettings,
 } from "./index.js";
 import { fixtureRepo, temporaryFolder } from "./test-utils.ts";
 
@@ -20,6 +21,7 @@ test("a repository added through the binding is read back", async () => {
 
   expect(await readRepositories(data)).toEqual([
     {
+      items: [],
       missing: false,
       name: basename(repo),
       openedAt: expect.any(String),
@@ -73,4 +75,17 @@ test("the data folder is the override when set, else the system's default", () =
   expect(dataDir("/data/override")).toBe("/data/override");
   expect(dataDir("")).toBe(dataDir());
   expect(dataDir(null)).toBe(dataDir());
+});
+
+test("an item's name and colour are read back with its repository", async () => {
+  const data = tempDir();
+  const repo = fixtureRepo();
+  await addRepository(data, repo);
+
+  await setItemSettings(data, basename(repo), "2026-10-16-redesign-interface", "Sidebar", "purple");
+
+  const [listed] = await readRepositories(data);
+  expect(listed?.items).toEqual([
+    { color: "purple", folder: "2026-10-16-redesign-interface", label: "Sidebar" },
+  ]);
 });

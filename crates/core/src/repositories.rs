@@ -1,12 +1,15 @@
 //! The list of repositories the web UI serves, `repositories.json` in Uraeda's data folder, shared
 //! by the CLI and the server (see `specs/decisions/repositories.md`).
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::io::{ErrorKind, Write as _};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::SystemTime;
 
+#[cfg(feature = "napi")]
+use napi_derive::napi;
 use serde::{Deserialize, Serialize};
 
 use crate::git::Git;
@@ -19,6 +22,33 @@ const FILE: &str = "repositories.json";
 const TEMPORARY: &str = "repositories.json.";
 /// The file format this core reads and writes.
 const VERSION: u64 = 1;
+/// The longest name an item shows in the sidebar.
+const LABEL_MAX: usize = 40;
+
+/// The colours an item can be given, from the theme's palette.
+#[cfg_attr(feature = "napi", napi(string_enum = "kebab-case"))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Color {
+    Red,
+    Orange,
+    Yellow,
+    Green,
+    Teal,
+    Blue,
+    Purple,
+    Pink,
+}
+
+/// What the sidebar shows of a feature or a change: the name the human gave it, and its colour.
+/// They are the UI's: no workflow rule reads them.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
+pub struct ItemSettings {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<Color>,
+}
 
 /// A repository of the list.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -31,6 +61,8 @@ pub struct Repository {
     pub opened_at: String,
     /// `path` no longer holds the main checkout of a git repository.
     pub missing: bool,
+    /// Its features' and changes' names and colours, by folder.
+    pub items: BTreeMap<String, ItemSettings>,
 }
 
 /// A repository `add` listed, or found listed already.
@@ -51,6 +83,8 @@ pub enum ListError {
     NotARepository(PathBuf),
     #[error("No repository named “{0}”")]
     Unknown(String),
+    #[error("A name in the sidebar holds at most 40 characters.")]
+    LabelTooLong,
     #[error("repositories.json could not be written: {0}")]
     Write(String),
 }
@@ -68,6 +102,8 @@ struct Entry {
     name: String,
     path: PathBuf,
     opened_at: String,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    items: BTreeMap<String, ItemSettings>,
 }
 
 /// Uraeda's data folder for the user: `URAEDA_DATA_DIR`, or else the operating system's default for
@@ -126,6 +162,7 @@ pub fn add(data_dir: &Path, folder: &Path, now: SystemTime) -> Result<Added, Lis
                 name,
                 path: path.clone(),
                 opened_at,
+                items: BTreeMap::new(),
             });
             false
         }
@@ -162,6 +199,42 @@ pub fn touch(data_dir: &Path, name: &str, now: SystemTime) -> Result<Repository,
     let touched = entry.clone();
     save(data_dir, &entries)?;
     Ok(repository(touched))
+}
+
+/// Sets the name and the colour a repository's feature or change shows in the sidebar, by its
+/// folder: a name is trimmed, and an empty one removes it; an item with neither leaves the list.
+pub fn set_item(
+    data_dir: &Path,
+    name: &str,
+    folder: &str,
+    label: Option<String>,
+    color: Option<Color>,
+) -> Result<Repository, ListError> {
+    let label = label
+        .map(|label| label.trim().to_string())
+        .filter(|label| !label.is_empty());
+    if label
+        .as_ref()
+        .is_some_and(|label| label.chars().count() > LABEL_MAX)
+    {
+        return Err(ListError::LabelTooLong);
+    }
+    let _lock = crate::api::write_lock();
+    let mut entries = load(data_dir)?;
+    let entry = entries
+        .iter_mut()
+        .find(|entry| entry.name == name)
+        .ok_or_else(|| ListError::Unknown(name.into()))?;
+    if label.is_none() && color.is_none() {
+        entry.items.remove(folder);
+    } else {
+        entry
+            .items
+            .insert(folder.to_string(), ItemSettings { label, color });
+    }
+    let changed = entry.clone();
+    save(data_dir, &entries)?;
+    Ok(repository(changed))
 }
 
 /// The file's entries, as stored.
@@ -233,6 +306,7 @@ fn repository(entry: Entry) -> Repository {
         path: entry.path,
         opened_at: entry.opened_at,
         missing,
+        items: entry.items,
     }
 }
 
