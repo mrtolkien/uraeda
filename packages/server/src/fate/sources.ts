@@ -1,5 +1,5 @@
 import { homedir } from "node:os";
-import type { Priorities } from "uraeda-binding";
+import type { Inbox, Priorities } from "uraeda-binding";
 import { homePath, suggest } from "../folders.ts";
 import { NEEDS_YOU_ID, needsYouList, needsYouListDataView } from "./needs-you.ts";
 import { itemLooks } from "./items.ts";
@@ -38,6 +38,7 @@ import {
   folderSuggestionsDataView,
   INBOX_ID,
   inboxDataView,
+  type InboxRecord,
   PRIORITIES_ID,
   prioritiesDataView,
   type PrioritiesRecord,
@@ -50,7 +51,6 @@ import {
   type FileRecord,
   sentChanges,
   sentFile,
-  sentInbox,
   sentStep,
   SESSION_LIST_ID,
   sessionDataView,
@@ -65,6 +65,11 @@ import {
   WORKSPACE_ID,
   workspaceDataView,
 } from "./views.ts";
+
+/** The inbox as it is sent: the client's cache keeps a field an answer leaves out. */
+export function sentInbox(inbox: Inbox): InboxRecord {
+  return { ...inbox, id: INBOX_ID, triage: inbox.triage ?? null };
+}
 
 /** The priorities as they are sent: each running feature's step as `sentStep` sends it. */
 export const sentPriorities = (read: Priorities): Omit<PrioritiesRecord, "id"> => ({
