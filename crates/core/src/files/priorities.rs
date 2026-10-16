@@ -5,7 +5,7 @@ use super::lines::{self, Item};
 mod edits;
 
 pub use edits::{
-    add, add_to_now, edit, insert_entry, link, move_entry, move_to_now, remove, remove_written,
+    add, add_started, edit, insert_entry, link, move_entry, move_to_started, remove, remove_written,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]

@@ -688,6 +688,41 @@ fn start_accepts_a_draft_with_placeholders_or_empty_sections() {
     }
 }
 
+/// US4 scenario 4: starting a Next draft writes its entry after the started entries on top of
+/// Now, before the blank line and the rest.
+#[test]
+fn a_started_draft_tops_now() {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write(
+        "specs/PRIORITIES.md",
+        "# Priorities\n\n## Now\n\n- [A](/specs/2026-10-10-a/proposal.md)\n\n- B\n\n## Next\n\n- [X](drafts/x.md)\n\n## Later\n\n## Blocked\n",
+    );
+    repo.write("specs/drafts/x.md", "# X\n\n## What\n\nX\n");
+    repo.commit("chore: draft X");
+    let git = Git::discover(repo.path()).unwrap();
+    let workspace = Workspace::read(&git).unwrap();
+
+    start::run(
+        &git,
+        &workspace,
+        "specs/drafts/x.md",
+        Some("x"),
+        Kind::Feature,
+        today(),
+        false,
+    )
+    .unwrap();
+
+    let priorities = repo.git(&["show", "main:specs/PRIORITIES.md"]);
+    assert!(
+        priorities.starts_with(
+            "# Priorities\n\n## Now\n\n- [A](/specs/2026-10-10-a/proposal.md)\n- [X](/specs/2026-10-11-x/proposal.md)\n\n- B\n\n## Next\n"
+        ),
+        "{priorities}"
+    );
+}
+
 const PROPOSAL: &str = "specs/2026-10-11-web-ui/proposal.md";
 const IMAGES: &str = "specs/2026-10-11-web-ui/images";
 

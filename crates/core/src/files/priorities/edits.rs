@@ -23,29 +23,79 @@ pub fn link(text: &str, line: usize, target: &str) -> Option<String> {
     .ok()
 }
 
-/// Removes the entry starting at `line`, sub-items included, and adds a link to `target` at the
-/// end of **Now**.
-pub fn move_to_now(text: &str, line: usize, link_text: &str, target: &str) -> Option<String> {
+/// Removes the entry starting at `line`, sub-items included, and adds a link to `target` on top
+/// of **Now**, as [`add_started`] does.
+pub fn move_to_started(text: &str, line: usize, link_text: &str, target: &str) -> Option<String> {
     super::super::with_unix_newlines(text, |text| {
         let entry = entry_at(text, line).ok_or(())?;
         let without = lines::remove(text, &entry.item);
-        Ok::<_, ()>(add_to_now(&without, link_text, target))
+        Ok::<_, ()>(add_started(&without, link_text, target))
     })
     .ok()
 }
 
-/// Adds a link to `target` at the end of **Now**, in the style of its last item.
-pub fn add_to_now(text: &str, link_text: &str, target: &str) -> String {
+/// Whether an entry links a started feature's or change's proposal:
+/// `/specs/<YYYY-MM-DD-slug>/proposal.md` or `/specs/changes/<YYYY-MM-DD-slug>/proposal.md`.
+fn is_started(entry: &Entry) -> bool {
+    let Some(path) =
+        (entry.link.as_deref()).and_then(|link| crate::workspace::resolve("specs", link))
+    else {
+        return false;
+    };
+    match path.split('/').collect::<Vec<_>>().as_slice() {
+        ["specs", folder, "proposal.md"] | ["specs", "changes", folder, "proposal.md"] => {
+            crate::workspace::folder_slug(folder).is_some()
+        }
+        _ => false,
+    }
+}
+
+/// Adds a link to `target`, a started feature's or change's proposal, on top of **Now**: after the
+/// last started entry of Now's first block, the entries before its first blank line, numbered after
+/// it, or else first, in the style of the first entry. A blank line then parts it from the entries
+/// that are not started, and none is added when none follows.
+pub fn add_started(text: &str, link_text: &str, target: &str) -> String {
     let result: Result<String, ()> = super::super::with_unix_newlines(text, |text| {
-        let entries = parse(text);
-        let last = entries.iter().rfind(|e| e.section == Section::Now);
-        let marker = match last.map(|entry| &entry.item.marker) {
-            Some(Marker::Number(number)) => Marker::Number(number + 1),
-            Some(Marker::Bullet(bullet)) => Marker::Bullet(*bullet),
-            None => Marker::Bullet('-'),
+        let now: Vec<Entry> = parse(text)
+            .into_iter()
+            .filter(|e| e.section == Section::Now)
+            .collect();
+        let link =
+            |marker: &Marker| format!("{} [{}]({target})", marker.render(), escaped(link_text));
+        let Some(first) = now.first() else {
+            return Ok(insert(
+                text,
+                Section::Now,
+                usize::MAX,
+                &[link(&Marker::Bullet('-'))],
+            ));
         };
-        let item = format!("{} [{}]({target})", marker.render(), escaped(link_text));
-        Ok(insert(text, Section::Now, usize::MAX, &[item]))
+        let block = 1 + now
+            .windows(2)
+            .take_while(|pair| pair[1].line == pair[0].item.end + 1)
+            .count();
+        let (at, item) = match now[..block].iter().rfind(|entry| is_started(entry)) {
+            Some(last) => {
+                let marker = match &last.item.marker {
+                    Marker::Number(number) => Marker::Number(number + 1),
+                    bullet => bullet.clone(),
+                };
+                (last.item.end, link(&marker))
+            }
+            None => (first.line - 1, link(&first.item.marker)),
+        };
+        let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
+        // The next line starts an entry that is not started, in the same block: a blank line parts it.
+        let parted = lines
+            .get(at)
+            .is_some_and(|next| lines::item_marker(next).is_some());
+        let added = if parted {
+            vec![item, String::new()]
+        } else {
+            vec![item]
+        };
+        lines.splice(at..at, added);
+        Ok(lines.join("\n"))
     });
     result.unwrap_or_else(|()| text.to_string())
 }

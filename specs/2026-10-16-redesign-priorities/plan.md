@@ -432,7 +432,7 @@ git commit -m "feat(redesign-priorities): entries say which draft and feature th
   Now's first block, the entries before Now's first blank line; with no started entry there, it goes
   first, followed by one blank line when other entries follow. Same marker style as today.
 
-- [ ] **Step 1: Write the failing tests**, one table-driven test, `started_entries_go_on_top`, rows:
+- [x] **Step 1: Write the failing tests**, one table-driven test, `started_entries_go_on_top`, rows:
   - Now "A" (started), blank, "B" → start "C": "A", "C", blank, "B" (US4 scenario 4).
   - Now "B", "D" (not started) → start "C": "C", blank, "B", "D" (US4 scenario 5).
   - Now empty → start "C": "C" alone, no blank line (edge case).
@@ -442,16 +442,16 @@ git commit -m "feat(redesign-priorities): entries say which draft and feature th
   - Numbered Now "1. A" (started), "2. B" → the new entry is numbered as today's `add_to_now`.
   - `move_to_started` moves an entry from Next with its children dropped, as `move_to_now` does.
   - `actions.rs`, `a_started_draft_tops_now`: `start` of a Next draft writes its entry first in Now.
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run: `cargo nextest run -p uraeda-core -E 'test(/started/)'`
   - Expected: FAIL, `cannot find function add_started`
-- [ ] **Step 3: Implement both functions with `lines.rs` helpers; switch `start/plan.rs` to them;
+- [x] **Step 3: Implement both functions with `lines.rs` helpers; switch `start/plan.rs` to them;
       update the skill's sentences ("at the top of **Now**, after the other started entries, then a
       blank line")**
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
   - Run: `cargo nextest run && vp run specs:check`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates skills

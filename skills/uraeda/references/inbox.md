@@ -168,9 +168,10 @@ Once `INBOX-TRIAGE.md` is `answered`:
 1. **Carry out each answer** on the notes it names, found by their text in `INBOX.md` as it is now,
    as [organizing by hand](#organizing-by-hand) does. A new draft for a group of notes takes the
    option's title, and the notes' lines, marks dropped, as its What. A note answered with a change
-   becomes a new draft in the same way, linked from the end of **Now**, where starting puts it. A
-   note kept in the inbox does not change. A note added after the triage was written stays in the
-   inbox, untouched. A note the triage names that is no longer there is skipped.
+   becomes a new draft in the same way, linked from **Now**, first after its started entries and
+   their blank line, next to where starting puts it. A note kept in the inbox does not change. A
+   note added after the triage was written stays in the inbox, untouched. A note the triage names
+   that is no longer there is skipped.
 2. **Commit once**: `INBOX.md`, `PRIORITIES.md`, the drafts the notes went into, and the deletion of
    `INBOX-TRIAGE.md`, with `chore: apply the inbox triage`. The body lists every note the triage
    names, one per line, in the questions' order: `- Move from the inbox to <Section>: <note>`,
