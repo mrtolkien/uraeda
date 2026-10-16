@@ -133,3 +133,70 @@ decision ([Q10](../done/2026-10-16-redesign-interface.md#q10-how-do-optimistic-s
 ## Applies to
 
 - [`packages/web/`](/packages/web/), and every feature that adds or changes a view
+
+## Proposed change (2026-10-16-redesign-priorities)
+
+Proposed by the [spec](../2026-10-16-redesign-priorities/spec.md). Opening an item no longer puts
+the cursor in its field, and every list with a pane moves through its rows from the keyboard.
+
+The rules become:
+
+- A row that leads somewhere MUST be tappable as a whole, not only through a button or a chevron.
+- A small edit, like a line's text, MUST happen in place: Enter or its Save button saves, Escape or
+  its Cancel button cancels. Leaving the field MUST NOT save it: it stays open with its text.
+- A text field MUST save only when the human presses its Save button, its own key (Enter in a
+  one-line field, Ctrl+Enter or Cmd+Enter in a multi-line one), or a button that uses its text, like
+  Add comment, Submit, Commit, Start, or a verdict. It MUST NOT save as it is typed, after a pause,
+  or when it loses the focus. Adding an image to a field MAY save that field at once, with its text
+  as typed. Toggles, switches, segmented controls, and option picks MAY save at once.
+- A text field whose text differs from what is saved MUST say "Unsaved changes" next to its Save
+  button. Its Save button MUST be disabled while nothing changed.
+- Cancel or Escape on a field whose text changed MUST ask first, with "Discard" and "Keep editing".
+- Leaving a page that holds unsaved text MUST ask first: the app's own dialog, "Leave page" and
+  "Stay", for a link or Back, and the browser's prompt for a reload or a closed tab. Nothing MUST
+  ask when nothing is unsaved.
+- The unsaved text of every field MUST be kept in the browser until it is saved or discarded, and
+  restored when the field shows again, with a notice saying so and a Discard button.
+- Every multi-line text field MUST have a fixed height, set by what it holds, a little larger than
+  its usual text, and the same wherever that kind of field appears: 20 rows for the editor of drafts
+  and proposals, 12 for notes, 7 for every comment and summary, 4 for the chat composer, and 3 for a
+  line that may wrap. A field MUST NOT grow or shrink with its text: past its height, it scrolls. It
+  MAY keep the browser's resize handle, for the human to drag it taller. Every multi-line field
+  except the chat composer MUST use the app's one text area.
+- A modal sheet or dialog MUST be used only to confirm an irreversible action or to fill a short
+  form, like adding a line. Everything else happens in the page.
+- Every sheet and dialog MUST have a visible close button, and Back MUST close it.
+- A save's status MUST show next to its control: saving, saved, or the error.
+- A toast MAY confirm only a result the human cannot see on screen. It MUST last 5 seconds, MAY
+  carry one action, Undo, which reverts that change alone, and MUST NOT be the only place an error
+  shows.
+- Errors MUST stay on screen until the human deals with them, or the action is retried.
+- Back MUST return to the same scroll position and the same open items. A page MUST keep showing its
+  content while its data reloads.
+- Nothing MUST work only on hover: every action has a tap or a keyboard path.
+- A keyboard shortcut MUST NOT act while a text field has the focus. A field's own keys, Enter and
+  Ctrl+Enter or Cmd+Enter, are not shortcuts.
+- Opening an item of a list, by a click, a tap, or a key, MUST NOT put the focus in a text field:
+  its pane or page opens to read, with an Edit button at its top that edits in place. Checked by the
+  tests of each pane.
+- A list whose rows open a pane MUST move its selection from the keyboard: ↑ and ↓, or j and k, to
+  the next or previous row, with the pane following on wide screens; Home and End to the first and
+  last row; Enter to edit the selected item, or to open it when it has nothing to edit; Escape to
+  close an open field, then the pane. The selected row MUST look different from the focused one.
+  Checked by the browser tests of each list.
+
+Why: a click on a priority opened its pane, a click on its text opened the field, and Enter saved:
+the human asked for "one click to open the pane, one click to edit", with a pane that "shows
+markdown and does not steal focus", and for ↑ and ↓ to move through the list when no text field has
+the focus
+([Q4](../2026-10-16-redesign-priorities/clarifications-01.md#q4-what-does-a-click-on-a-priority-or-a-note-open),
+[Q6](../2026-10-16-redesign-priorities/clarifications-01.md#q6-which-keys-move-through-the-list)).
+Linear, Todoist, and Gmail move a highlighted row with these keys, and the accessibility guidance
+asks for focus and selection to look different
+([keyboard navigation](../2026-10-16-redesign-priorities/discovery-01.md#keyboard-navigation)).
+
+- Every list with a pane, the priorities, the inbox, and the decisions, and those to come, shares
+  one keyboard behaviour, and an agent adding a list gets it from the shared list rather than
+  writing its own.
+- Editing a line takes one more click than a field opened on arrival, and reading never risks a
+  keystroke landing in a field.

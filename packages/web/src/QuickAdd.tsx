@@ -3,7 +3,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { VStack } from "@astryxdesign/core/VStack";
-import { useState } from "react";
+import { type KeyboardEvent, useState } from "react";
 import { useFateClient } from "react-fate";
 import { usePriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
@@ -21,6 +21,59 @@ export const TITLES = new Map([
   ["blocked", "Blocked"],
 ]);
 
+/** What "Add and commit" says when the file had other changes: the line is added, not committed. */
+export function notCommitted(section: string) {
+  return `Added to ${TITLES.get(section)}. Not committed: PRIORITIES.md has other changes to commit or discard.`;
+}
+
+/** A one-line field's Enter, Shift+Enter aside: it calls `onEnter` instead of a new line. */
+export function enterAdds(onEnter: () => void) {
+  return (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      onEnter();
+    }
+  };
+}
+
+/**
+ * A ＋ form's buttons: Cancel, Add, which adds the line uncommitted, and "Add and commit", the
+ * primary one and Enter's, which commits that file alone.
+ */
+export function AddButtons({
+  isReady,
+  onAdd,
+  onAddAndCommit,
+  onCancel,
+}: {
+  isReady: boolean;
+  onAdd: () => Promise<void>;
+  /** Without it, Add alone, the primary button, as before Q8. */
+  onAddAndCommit?: () => Promise<void>;
+  onCancel: () => void;
+}) {
+  const committing = onAddAndCommit !== undefined;
+  return (
+    <HStack gap={2} justify="end" wrap="wrap">
+      <Button label="Cancel" onClick={onCancel} variant={committing ? "ghost" : "secondary"} />
+      <Button
+        clickAction={onAdd}
+        isDisabled={!isReady}
+        label="Add"
+        variant={committing ? "secondary" : "primary"}
+      />
+      {committing && (
+        <Button
+          clickAction={onAddAndCommit}
+          isDisabled={!isReady}
+          label="Add and commit"
+          variant="primary"
+        />
+      )}
+    </HStack>
+  );
+}
+
 /** The line ＋ added, as the core wrote it: its key, and its text after its marker. */
 export type Added = { key: string; text: string };
 
@@ -30,9 +83,15 @@ export type Added = { key: string; text: string };
  * asks "Discard your changes?" first when it holds text.
  */
 export function AddForm({
+  canCommit = false,
+  notice: shown,
   onAdded,
   onCancel,
 }: {
+  /** "Add and commit" beside Add, the default on Enter (Q8 of the redesign of the priorities). */
+  canCommit?: boolean;
+  /** What "Add and commit" said last, from the start: the stories' not-committed state. */
+  notice?: string;
   onAdded: (section: string, added: Added | undefined) => void;
   onCancel: () => void;
 }) {
@@ -43,9 +102,11 @@ export function AddForm({
   const text = field.text;
   const [section, setSection] = useState("next");
   const [message, setMessage] = useState<string>();
+  const [notice, setNotice] = useState(shown);
 
-  const add = async () => {
+  const add = async (commit = false) => {
     setMessage(undefined);
+    setNotice(undefined);
     const result = await fate.mutations.priorities.add({
       input: { hash: priorities?.hash ?? "", section, text },
       view: PrioritiesView,
@@ -59,6 +120,12 @@ export function AddForm({
     // Forgotten once added, unless more was typed meanwhile.
     if (field.unsavedNow()?.text === text) {
       field.discard();
+    }
+    if (commit) {
+      // TEMPORARY: the core cannot commit PRIORITIES.md alone yet (Q1): the form stays open,
+      // saying the line is added and not committed, as when the file has other changes.
+      setNotice(notCommitted(section));
+      return;
     }
     onAdded(section, added && { key: added.key, text: added.text });
   };
@@ -83,7 +150,12 @@ export function AddForm({
         kind="line"
         label="Priority"
         onChange={field.change}
-        {...(text.trim() ? { onSubmit: () => void add() } : {})}
+        {...(canCommit
+          ? // A line: Enter adds and commits, Ctrl+Enter or Cmd+Enter as well.
+            { onKeyDown: enterAdds(() => text.trim() && void add(true)) }
+          : text.trim()
+            ? { onSubmit: () => void add() }
+            : {})}
         value={text}
       />
       <SegmentedControl
@@ -96,10 +168,13 @@ export function AddForm({
         ))}
       </SegmentedControl>
       {message && <Banner status="error" title={message} />}
-      <HStack gap={2} justify="end">
-        <Button label="Cancel" onClick={() => void cancel()} variant="secondary" />
-        <Button clickAction={add} isDisabled={!text.trim()} label="Add" variant="primary" />
-      </HStack>
+      {notice && <Banner status="warning" title={notice} />}
+      <AddButtons
+        isReady={text.trim() !== ""}
+        onAdd={() => add()}
+        {...(canCommit ? { onAddAndCommit: () => add(true) } : {})}
+        onCancel={() => void cancel()}
+      />
     </VStack>
   );
 }

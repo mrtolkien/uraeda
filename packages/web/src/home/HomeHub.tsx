@@ -1,35 +1,30 @@
-// The "Hub" variant of home, for the discovery round of the home's redesign: a control hub of cards
-// over the whole width. Four stat tiles first, then what needs the human and what agents do in the
-// main column, and the priorities, the inbox, and what is done in the column beside it. On the
-// phone, one column in the same order, the tiles two by two.
+// Home as a control hub, the mockup the home's redesign picked: cards over the whole width. Four stat
+// tiles first, then what needs the human and what agents do in the main column, and the priorities,
+// the inbox, what is done, and the way to the decisions in the column beside it. On the phone, one
+// column in the same order, the tiles two by two.
 import { Badge } from "@astryxdesign/core/Badge";
+import { Button } from "@astryxdesign/core/Button";
 import { Card } from "@astryxdesign/core/Card";
 import type { CardVariant } from "@astryxdesign/core/Card";
 import { ClickableCard } from "@astryxdesign/core/ClickableCard";
 import { Grid } from "@astryxdesign/core/Grid";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
+import { Link } from "@astryxdesign/core/Link";
 import { List } from "@astryxdesign/core/List";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
+import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Text } from "@astryxdesign/core/Text";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { useInbox, useWorkspace } from "../data.ts";
-import {
-  agentState,
-  type Feature,
-  featureStatus,
-  homeFeatures,
-  inboxSummary,
-  nowAndNext,
-  Row,
-} from "../Home.tsx";
-import { notes } from "../InboxPage.tsx";
+import { agentState, type Feature, homeFeatures, Row } from "../Home.tsx";
 import { waiting } from "../labels.ts";
 import { useWidthClass } from "../layout/useWidthClass.ts";
 import { useRepoPath } from "../routes.tsx";
+import { featureStatus, inboxSummary, prioritySection } from "./summary.ts";
 
 const styles = stylex.create({
   // The main column takes two thirds: what needs the human reads first, and widest.
@@ -38,6 +33,13 @@ const styles = stylex.create({
   },
   eyebrow: {
     textTransform: "uppercase",
+  },
+  // The heading's title, count, and chevron on one line, inside the heading: phrasing content only.
+  heading: {
+    alignItems: "center",
+    columnGap: spacingVars["--spacing-2"],
+    display: "inline-flex",
+    flexWrap: "wrap",
   },
   hub: {
     boxSizing: "border-box",
@@ -98,16 +100,47 @@ function Tile({
   );
 }
 
-/** A card of the hub: its heading, its count, and its rows. */
-function Panel({ children, count, title }: { children: ReactNode; count?: number; title: string }) {
+/**
+ * A card of the hub: its heading, its count, and its rows. With `href`, its heading opens the page
+ * the card sums up, tapped as a whole, `label` its accessible name.
+ */
+function Panel({
+  children,
+  count,
+  href,
+  label,
+  title,
+}: {
+  children: ReactNode;
+  count?: number;
+  href?: string;
+  label?: string;
+  title: string;
+}) {
   const wide = useWidthClass() === "wide";
+  const parts = (
+    <span {...stylex.props(styles.heading)}>
+      {title}
+      {count !== undefined && <Badge label={String(count)} variant="neutral" />}
+      {href && (
+        <Text aria-hidden="true" color="secondary">
+          ›
+        </Text>
+      )}
+    </span>
+  );
   return (
     <Card padding={wide ? 4 : 3}>
       <VStack gap={2}>
-        <HStack gap={2} vAlign="center">
-          <Heading level={2}>{title}</Heading>
-          {count !== undefined && <Badge label={String(count)} variant="neutral" />}
-        </HStack>
+        <Heading level={2}>
+          {href ? (
+            <Link color="primary" href={href} label={label} type="inherit">
+              {parts}
+            </Link>
+          ) : (
+            parts
+          )}
+        </Heading>
         {children}
       </VStack>
     </Card>
@@ -198,31 +231,73 @@ function AgentsPanel({ agents, running }: { agents: Array<Feature>; running: Arr
   );
 }
 
-/** The Now lines, each started or not, then the Next ones. */
-function NowPanel({ workspace }: { workspace: NonNullable<ReturnType<typeof useWorkspace>> }) {
+/** Where the hub keeps the section its Priorities card shows. */
+const SECTION_KEY = "uraeda:home:priorities";
+
+/** The section the Priorities card shows, Now until another is chosen, kept in the browser. */
+function useSection(): ["now" | "next", (value: string) => void] {
+  const [section, setSection] = useState<"now" | "next">(() => {
+    try {
+      return window.localStorage.getItem(SECTION_KEY) === "next" ? "next" : "now";
+    } catch {
+      // No storage, as in a private window: the card opens on Now.
+      return "now";
+    }
+  });
+  const choose = (value: string) => {
+    const next = value === "next" ? "next" : "now";
+    setSection(next);
+    try {
+      window.localStorage.setItem(SECTION_KEY, next);
+    } catch {
+      // No storage: the choice lasts until the page closes.
+    }
+  };
+  return [section, choose];
+}
+
+/**
+ * The lines of Now or Next, those whose feature runs first with its status, then the others, a
+ * draft's marked so; the heading opens the priorities.
+ */
+function PrioritiesPanel({
+  workspace,
+}: {
+  workspace: NonNullable<ReturnType<typeof useWorkspace>>;
+}) {
   const here = useRepoPath();
-  const { next, now } = nowAndNext(workspace);
+  const [section, choose] = useSection();
+  const entries = prioritySection(workspace, section);
   return (
-    <Panel title="Now">
-      <List aria-label="Now and next" hasDividers>
-        {[...now, ...next].map(({ entry, feature }) => (
-          <Row
-            badge={
-              entry.section === "next" ? (
-                <Badge label="Next" variant="neutral" />
-              ) : feature ? (
-                <Badge {...featureStatus(feature, workspace.running)} />
-              ) : (
-                <Badge label="Not started" variant="neutral" />
-              )
-            }
-            href={here(feature ? `/f/${feature.folder}` : `/priorities/${entry.key}`)}
-            key={entry.id}
-            title={entry.text}
-          />
-        ))}
-        <Row href={here("/priorities")} title="All priorities" />
-      </List>
+    <Panel
+      href={here("/priorities")}
+      label="Priorities, open the priorities page"
+      title="Priorities"
+    >
+      <SegmentedControl label="Section of the priorities" onChange={choose} value={section}>
+        <SegmentedControlItem label="Now" value="now" />
+        <SegmentedControlItem label="Next" value="next" />
+      </SegmentedControl>
+      {entries.length === 0 ? (
+        <Text color="secondary">{section === "now" ? "Nothing in Now." : "Nothing in Next."}</Text>
+      ) : (
+        <List aria-label={section === "now" ? "Now" : "Next"} hasDividers>
+          {entries.map(({ entry, running }) => (
+            <Row
+              badge={
+                running ? (
+                  <Badge {...featureStatus(running, workspace.running)} />
+                ) : entry.draft ? (
+                  <Badge label="Draft" variant="neutral" />
+                ) : undefined
+              }
+              href={here(running ? `/f/${running.folder}` : `/priorities/${entry.key}`)}
+              key={entry.id}
+              title={entry.text}
+            />
+          ))}
+        </List>
+      )}
     </Panel>
   );
 }
@@ -232,40 +307,75 @@ function InboxPanel() {
   const here = useRepoPath();
   const { categories, count, latest } = inboxSummary(useInbox());
   return (
-    <Panel count={count} title="Inbox">
-      <HStack gap={1} wrap="wrap">
-        {categories.map((category) => (
-          <Badge
-            key={category.name}
-            label={`${category.name} ${category.count}`}
-            variant="neutral"
-          />
-        ))}
-      </HStack>
-      <List aria-label="Latest notes" hasDividers>
-        {latest.map((note) => (
-          <Row href={here(`/inbox/${note.key}`)} key={note.id} title={note.text} />
-        ))}
-        <Row href={here("/inbox")} title={count ? `Organize ${notes(count)}` : "Open the inbox"} />
-      </List>
+    <Panel
+      count={count}
+      href={here("/inbox")}
+      label={`Inbox, ${count}, open the inbox`}
+      title="Inbox"
+    >
+      {count === 0 ? (
+        <Text color="secondary">The inbox is empty.</Text>
+      ) : (
+        <>
+          <HStack gap={1} wrap="wrap">
+            {categories.map((category) => (
+              <Badge
+                key={category.name}
+                label={`${category.name} ${category.count}`}
+                variant="neutral"
+              />
+            ))}
+          </HStack>
+          <List aria-label="Latest notes" hasDividers>
+            {latest.map((note) => (
+              <Row href={here(`/inbox/${note.key}`)} key={note.id} title={note.text} />
+            ))}
+          </List>
+        </>
+      )}
     </Panel>
   );
 }
 
-/** The five features merged last. */
+/** How many done features the hub shows before "Show all". */
+const DONE_SHOWN = 5;
+
+/** The five features merged last, and all of them once asked. */
 function DonePanel({ done }: { done: Array<Feature> }) {
   const here = useRepoPath();
+  const [all, setAll] = useState(false);
   if (!done.length) {
     return null;
   }
   return (
     <Panel title="Recently done">
       <List aria-label="Recently done" density="compact" hasDividers>
-        {done.slice(0, 5).map((feature) => (
+        {(all ? done : done.slice(0, DONE_SHOWN)).map((feature) => (
           <Row href={here(`/f/${feature.folder}`)} key={feature.folder} title={feature.title} />
         ))}
       </List>
+      {!all && done.length > DONE_SHOWN && (
+        <Button label={`Show all (${done.length})`} onClick={() => setAll(true)} variant="ghost" />
+      )}
     </Panel>
+  );
+}
+
+/** The way to the constitution and the decisions agents follow. */
+function DecisionsCard() {
+  const here = useRepoPath();
+  const wide = useWidthClass() === "wide";
+  // The card's padding as the others', so its text lines up with their rows.
+  return (
+    <Card padding={wide ? 4 : 3}>
+      <List aria-label="Constitution and decisions">
+        <Row
+          href={here("/decisions")}
+          line="The project's principles and the choices agents follow"
+          title="Constitution and decisions"
+        />
+      </List>
+    </Card>
   );
 }
 
@@ -279,8 +389,8 @@ export function HomeHub() {
     return null;
   }
   const { agents, done, human, invalid } = homeFeatures(workspace.features);
-  const { now } = nowAndNext(workspace);
-  const started = now.filter(({ feature }) => feature).length;
+  const now = workspace.priorities.filter((entry) => entry.section === "now");
+  const started = now.filter((entry) => entry.feature).length;
   const needs = human.length + invalid.length;
   const main = (
     <>
@@ -290,9 +400,10 @@ export function HomeHub() {
   );
   const side = (
     <>
-      <NowPanel workspace={workspace} />
+      <PrioritiesPanel workspace={workspace} />
       <InboxPanel />
       <DonePanel done={done} />
+      <DecisionsCard />
     </>
   );
   return (
