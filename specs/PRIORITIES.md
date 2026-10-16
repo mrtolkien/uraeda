@@ -6,7 +6,6 @@
 >
 > Features for v1.0.0
 
-- [UI iteration flow](/specs/2026-10-15-ui-iteration/proposal.md)
 - [Auth and login for basic security](/specs/2026-10-16-basic-security/proposal.md)
 
 - Use Storybook for UI tests
