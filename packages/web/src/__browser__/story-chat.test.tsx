@@ -30,9 +30,10 @@ const composer = () => screen.getByRole("textbox", { name: "Message Claude Code"
 /** The composer's text, as the human reads it, line by line. */
 const composerText = () => (composer() as HTMLElement).innerText.trim();
 
-/** The `src` of the embed's desktop frame, once its Storybook is ready. */
+/** The `src` of the embed's desktop frame, once its Storybook is ready and the frame on screen. */
 async function frameSource() {
   const frame = await within(await embed()).findByTitle(DESKTOP, {}, READY);
+  await expect.poll(() => frame.getAttribute("src")).not.toBeNull();
   return frame.getAttribute("src");
 }
 

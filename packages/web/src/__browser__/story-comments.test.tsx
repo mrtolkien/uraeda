@@ -326,11 +326,10 @@ describe("on a desktop, as embeds settle", () => {
 
     await screen.findByRole("figure", { name: LABEL });
     await storyShown(DESKTOP);
-    await expect
-      .poll(() => commands.frameText("The thin line, desktop"), READY)
-      .toContain("ThinLine");
+    // The embed above, scrolled past, never on screen, loads nothing.
+    expect(screen.getByTitle("The thin line, desktop").getAttribute("src")).toBeNull();
     await drawn();
-    // A little below the top bar, where the button scrolled it, the embed above it drawn.
+    // A little below the top bar, where the button scrolled it.
     const bar = document.querySelector('[role="banner"]')?.getBoundingClientRect().bottom ?? 0;
     expect(Math.abs(embed().getBoundingClientRect().top - (Math.max(bar, 0) + 16))).toBeLessThan(4);
   });
