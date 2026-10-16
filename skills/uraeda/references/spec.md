@@ -118,7 +118,8 @@ Write for a reviewer who has not read the discovery:
 
 - **Title**: the topic.
 - **Icon**: in the frontmatter, the name of a [Lucide](https://lucide.dev/icons/) icon that shows
-  the topic, like `git-branch`. The web UI draws it beside the title. It is optional.
+  the topic, like `git-branch`. The web UI draws it beside the title, and a default icon for a name
+  it does not know. It is optional.
 - **Summary**: the choice and what it means for the project, in two or three plain sentences.
 - **Rules**: MUST, SHOULD, and MUST NOT rules that a spec, a plan, or code can be checked against.
   Plans copy them word for word, so write each rule to stand on its own. Each rule ends with how it
