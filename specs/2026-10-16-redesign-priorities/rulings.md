@@ -224,3 +224,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a happy-dom test faking `getClientRects`: a test of the fake.
 - **If wrong**: a happy-dom test can join once happy-dom lays out the page.
 - **Where**: task 14.
+
+## R17: The branch's git-writing buttons join main's record of writes in flight
+
+- **Decision**: the [UI behaviour](/specs/decisions/ui-behaviour.md) decision's rule on buttons that
+  write to git, merged from the interface's redesign, applies to the buttons this branch adds. "Add
+  and commit" in both ＋ forms, from its button or Enter, runs through `useAddAndCommit`, on the
+  shared store's `useOwnWrite`: it reads "Committing…" with a spinner at once, and does nothing,
+  blocked and focusable, while another write runs; Add, which only writes the file, stays free. The
+  toast's Undo of a committed add is a `WriteButton`, "Undoing…", and its toast stays until the
+  revert ends; the Undo of an uncommitted add stays a plain button. The pane's Commit of a draft and
+  its "Start the feature" are `WriteButton`s, "Committing…" and "Starting the feature…", as on the
+  editor page and in main's task view. None names a card: a draft has no feature yet.
+- **Rationale**: "While any git write runs, every other button that writes to git, in the page and
+  in the sidebar, MUST be blocked", and "Every button that writes to git goes through one shared
+  record of writes in flight" (the decision's consequences).
+- **Alternatives considered**: a write's key in the store, for a button to know its own write
+  started by Enter: a change to the store, where the form's own state does.
+- **If wrong**: `useOwnWrite` in [`writes/`](/packages/web/src/writes/), and its callers.
+- **Where**: the catch-up with the default branch.

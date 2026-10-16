@@ -4,7 +4,8 @@ import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { atWidth, click, fixtureRepo, git, read, renderPage, type } from "./helpers.tsx";
+import { runWrite } from "../writes/store.ts";
+import { atWidth, click, fixtureRepo, git, holding, read, renderPage, type } from "./helpers.tsx";
 
 const INBOX = "specs/INBOX.md";
 const SORT = "Sort done features";
@@ -197,4 +198,101 @@ test.each([
   // Its name stays "Add and commit": the icon is hidden from assistive technologies.
   const button = form.getByRole("button", { name: "Add and commit" });
   expect(within(button).queryAllByRole("img", { hidden: true })).toHaveLength(shown ? 1 : 0);
+});
+
+/** Runs a git write from elsewhere, as another page's Commit, until the returned `end`. */
+function otherWrite() {
+  const done = Promise.withResolvers<boolean>();
+  let write: Promise<boolean> | undefined;
+  act(() => {
+    write = runWrite({ label: "Committing…" }, () => done.promise);
+  });
+  return async () => {
+    await act(async () => {
+      done.resolve(true);
+      await write;
+    });
+  };
+}
+
+/** UI behaviour: a button that writes to git says what it does at once, with a spinner. */
+test("Add and commit reads Committing… at once, from a click or Enter", async () => {
+  const repo = fixtureRepo();
+  const held = await holding(repo, '"priorities.add"');
+  try {
+    await renderPage("/", repo, { agent: held.fake, fetch: held.fetch });
+    const { field, form } = await openPriority();
+    await type(field, SORT);
+
+    await enter(field);
+
+    const running = form.getByRole("button", { name: "Committing…" });
+    expect(running.querySelector('[role="status"]')).toBeTruthy();
+    expect(screen.getByRole("progressbar", { name: "Saving to git" })).toBeTruthy();
+    // A second Enter while it runs sends nothing more.
+    await enter(field);
+    expect(held.count()).toBe(1);
+
+    await act(async () => held.release());
+
+    expect(await toast("Added to Next and committed")).toBeTruthy();
+    expect(screen.queryByRole("progressbar", { name: "Saving to git" })).toBeNull();
+  } finally {
+    held.release();
+  }
+});
+
+/** UI behaviour: while any git write runs, every other button that writes to git is blocked. */
+test("another git write blocks Add and commit, and Enter, not Add", async () => {
+  const repo = fixtureRepo();
+  const held = await holding(repo, '"inbox.add"');
+  await renderPage("/", repo, { agent: held.fake, fetch: held.fetch });
+  const { field, form } = await openNote();
+  await type(field, "Toasts hide the bar");
+  const end = otherWrite();
+  try {
+    const commit = form.getByRole("button", { name: "Add and commit" });
+    expect(commit.getAttribute("aria-disabled")).toBe("true");
+    expect(form.getByRole("button", { name: "Add" }).getAttribute("aria-disabled")).not.toBe(
+      "true",
+    );
+    await click(commit);
+    await enter(field);
+    expect(held.count()).toBe(0);
+
+    await end();
+
+    expect(commit.getAttribute("aria-disabled")).not.toBe("true");
+  } finally {
+    await end();
+    held.release();
+  }
+});
+
+/** UI behaviour: the Undo of a committed add commits, so it is a git write too. */
+test("the Undo of a committed add reads Undoing… at once, and waits for another write", async () => {
+  const repo = fixtureRepo();
+  const held = await holding(repo, '"priorities.undoCommitted"');
+  try {
+    await renderPage("/", repo, { agent: held.fake, fetch: held.fetch });
+    const undo = await addAndCommit();
+    const end = otherWrite();
+    try {
+      expect(undo.getAttribute("aria-disabled")).toBe("true");
+      await click(undo);
+      expect(held.count()).toBe(0);
+    } finally {
+      await end();
+    }
+
+    await click(screen.getByRole("button", { name: "Undo" }));
+
+    const running = screen.getByRole("button", { name: "Undoing…" });
+    expect(running.querySelector('[role="status"]')).toBeTruthy();
+    expect(screen.getByRole("progressbar", { name: "Saving to git" })).toBeTruthy();
+    await act(async () => held.release());
+    await waitFor(() => expect(lastCommit(repo)).toBe(`chore: remove "${SORT}"`));
+  } finally {
+    held.release();
+  }
 });

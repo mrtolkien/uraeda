@@ -15,6 +15,8 @@ import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { PrioritiesAddedView } from "./views.ts";
+import { useOwnWrite } from "./writes/useOwnWrite.ts";
+import { WriteButtonView, type WriteState } from "./writes/WriteFeedback.tsx";
 
 /** Each section's title, in the order the page shows them: a map, which the lint does not sort. */
 export const TITLES = new Map([
@@ -68,13 +70,24 @@ export function enterAdds(onEnter: () => void) {
 }
 
 /**
+ * "Add and commit" as a git write, from its button or Enter: it reads "Committing…" at once, and
+ * does nothing while another write runs. `add` adds and commits the form's line.
+ */
+export function useAddAndCommit(add: () => Promise<unknown>) {
+  const { start, state } = useOwnWrite({ label: "Committing…" });
+  return { commitState: state, onAddAndCommit: () => start(add) };
+}
+
+/**
  * A ＋ form's buttons: Cancel, Add, which adds the line uncommitted, and "Add and commit", the
  * primary one and Enter's, which commits that file alone. On wide screens, where a keyboard is
  * likely, "Add and commit" shows the Enter key it shares (C4); its name stays "Add and commit".
- * `start` comes first in the row, like the inbox's "Attach an image".
+ * `start` comes first in the row, like the inbox's "Attach an image". `commitState` is "Add and
+ * commit"'s write, as `useAddAndCommit` gives it.
  */
 export function AddButtons({
   addLabel = "Add",
+  commitState = "idle",
   isReady,
   onAdd,
   onAddAndCommit,
@@ -83,10 +96,11 @@ export function AddButtons({
 }: {
   /** Add's label, like "Add as a draft". */
   addLabel?: string;
+  commitState?: WriteState;
   isReady: boolean;
   onAdd: () => Promise<void>;
   /** Without it, Add alone, the primary button. */
-  onAddAndCommit?: () => Promise<void>;
+  onAddAndCommit?: () => void;
   onCancel: () => void;
   start?: ReactNode;
 }) {
@@ -103,12 +117,14 @@ export function AddButtons({
         variant={committing ? "secondary" : "primary"}
       />
       {committing && (
-        <Button
-          clickAction={onAddAndCommit}
+        <WriteButtonView
           // Out of the button's name, which stays its label; named, for the tests to find it.
           endContent={wide && <Icon aria-hidden="true" icon="uraeda:enter" label="Enter" />}
           isDisabled={!isReady}
           label="Add and commit"
+          onClick={onAddAndCommit}
+          runningLabel="Committing…"
+          state={commitState}
           variant="primary"
         />
       )}
@@ -186,6 +202,8 @@ export function AddForm({
     );
   };
 
+  const commit = useAddAndCommit(() => add(true));
+
   const cancel = async () => {
     if (field.dirty && !(await confirm(DISCARD_CHANGES))) {
       return;
@@ -207,7 +225,7 @@ export function AddForm({
         label="Priority"
         onChange={field.change}
         // A line: Enter adds and commits, Ctrl+Enter or Cmd+Enter as well.
-        onKeyDown={enterAdds(() => text.trim() && void add(true))}
+        onKeyDown={enterAdds(() => text.trim() && commit.onAddAndCommit())}
         value={text}
       />
       <SegmentedControl
@@ -224,7 +242,7 @@ export function AddForm({
       <AddButtons
         isReady={text.trim() !== ""}
         onAdd={() => add()}
-        onAddAndCommit={() => add(true)}
+        {...commit}
         onCancel={() => void cancel()}
       />
     </VStack>
