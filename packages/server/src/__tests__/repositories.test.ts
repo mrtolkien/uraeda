@@ -643,3 +643,26 @@ test("an old raw link without any repository is not found", async () => {
 
   expect(response.status).toBe(404);
 });
+
+/** US8.1: an item's name and colour are kept for its repository only. */
+test("item.settings names a feature in its repository only, and updates only its views", async () => {
+  const { app, hosts, names } = await twoRepositories();
+  const other = vi.spyOn(hosts.get(names[1])!.live, "update");
+
+  const result = await fateAt(app, names[0], [
+    {
+      input: { color: "purple", folder: FOLDER, label: "Sidebar" },
+      kind: "mutation",
+      name: "item.settings",
+      select: ["label", "color"],
+    },
+  ]);
+
+  expect(result[0]?.ok).toBe(true);
+  expect(result[0]?.data).toMatchObject({ color: "purple", label: "Sidebar" });
+  const [named] = await byIdAt(app, names[0], "Feature", [FOLDER], ["label", "color"]);
+  const [plain] = await byIdAt(app, names[1], "Feature", [FOLDER], ["label", "color"]);
+  expect([named.label, named.color]).toEqual(["Sidebar", "purple"]);
+  expect([plain.label, plain.color]).toEqual([null, null]);
+  expect(other.mock.calls.filter(([type]) => type === "Feature")).toEqual([]);
+});

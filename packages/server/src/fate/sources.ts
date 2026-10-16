@@ -1,5 +1,6 @@
 import { homedir } from "node:os";
 import { homePath, suggest } from "../folders.ts";
+import { itemLooks } from "./items.ts";
 import { type Context, inRepository, type RepoContext, unlockedList } from "./context.ts";
 import {
   checkoutDir,
@@ -79,10 +80,15 @@ async function found<T>(
 async function workspace(ctx: RepoContext): Promise<WorkspaceRecord> {
   const read = await ctx.binding.readWorkspace(ctx.repo);
   const root = await checkoutDir(ctx);
+  const looks = itemLooks(ctx);
   return {
     id: WORKSPACE_ID,
     ...read,
-    features: read.features.map((feature) => ({ ...feature, step: sentStep(feature.step) })),
+    features: read.features.map((feature) => ({
+      ...feature,
+      ...looks(feature.folder),
+      step: sentStep(feature.step),
+    })),
     preview: root !== undefined && (await hasPreview(ctx, root)),
     running: await working(ctx),
   };
@@ -125,10 +131,12 @@ function missingFile(id: string, folder: string, name: string): FileRecord {
 /** The record of a folder that is not a feature's: marked missing, its other fields empty. */
 function missingFeature(folder: string): FeatureRecord {
   return {
+    color: null,
     files: [],
     folder,
     id: folder,
     kind: "",
+    label: null,
     missing: true,
     mockups: [],
     path: "",

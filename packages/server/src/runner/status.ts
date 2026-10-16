@@ -29,10 +29,12 @@ export function sessionStatus(input: {
   latest?: Pick<TurnRow, "endedAt" | "kind" | "state">;
   queued: boolean;
   seenAt: string | null;
+  /** The feature's step: past its last task without `gh`, a run that ended there halted nothing. */
+  stepName?: string;
   waitsOnAgent?: boolean;
   waitsOnHuman: boolean;
 }): { label: string; reason?: StatusReason; status: SessionStatus } {
-  const { blocked, latest, queued, seenAt, waitsOnAgent = false, waitsOnHuman } = input;
+  const { blocked, latest, queued, seenAt, stepName, waitsOnAgent = false, waitsOnHuman } = input;
   if (queued || latest?.state === "running" || latest?.state === "queued") {
     return { label: "Working", status: "working" };
   }
@@ -45,7 +47,12 @@ export function sessionStatus(input: {
   if (latest?.state === "failed" || latest?.state === "stopped") {
     return { label: "Needs attention", reason: latest.state, status: "attention" };
   }
-  if (latest?.state === "done" && latest.kind !== "chat" && waitsOnAgent) {
+  if (
+    latest?.state === "done" &&
+    latest.kind !== "chat" &&
+    waitsOnAgent &&
+    stepName !== "pull-request-unknown"
+  ) {
     return { label: "Needs attention", reason: "halted", status: "attention" };
   }
   if (latest?.endedAt && (seenAt === null || Date.parse(latest.endedAt) > Date.parse(seenAt))) {

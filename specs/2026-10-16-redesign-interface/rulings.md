@@ -143,3 +143,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   request's detection, which the core's tests cover.
 - **If wrong**: the expectations go back with the step.
 - **Where**: task 2.
+
+## R12: The core keeps the last pull requests when `gh` fails
+
+- **Decision**: `pulls::settle(root, fetched, now)` in the core keeps the last known snapshot for 10
+  minutes after it was read when a fetch is `Unavailable`, then gives it up; `remember` and
+  `refresh` go through it. The server's refresher takes the repository's path and a `changed`
+  callback, `startPullRequests(path, binding, changed)`, instead of the plan's host and publisher.
+- **Rationale**: the spec's error handling keeps "the last good one … for up to 10 minutes"; the
+  snapshot lives in the core (R1), so the rule does too, and the CLI follows it as well. A path and
+  a callback keep the refresher testable without hosts.
+- **Alternatives considered**: keeping the last snapshot in the server: a second copy of the
+  snapshot, and the CLI without the rule.
+- **If wrong**: `settle` drops its window, and a failure reads as unknown at once.
+- **Where**: task 4.
