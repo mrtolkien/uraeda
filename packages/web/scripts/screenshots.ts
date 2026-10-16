@@ -31,6 +31,7 @@ import { takeShell } from "./shell-shots.ts";
 import { takeSignIn } from "./sign-in-shots.ts";
 import { takeTextInputs } from "./text-input-shots.ts";
 import {
+  forget,
   here,
   setPrefix,
   settle,
@@ -186,7 +187,7 @@ async function serve(adapter: FakeAdapter, port: number) {
 
 /** Home, with the navigation open on the phone. */
 async function sidebar(page: Page, size: Size) {
-  await show(page, "/", "Waiting on you");
+  await show(page, "/", HOME);
   if (size === "phone") {
     await page.getByRole("button", { name: "Open navigation" }).click();
   }
@@ -196,13 +197,29 @@ async function sidebar(page: Page, size: Size) {
 
 /** The repository menu, from its trigger in the navigation's heading or the phone's top bar. */
 async function repositories(page: Page) {
-  await show(page, "/", "Waiting on you");
+  await show(page, "/", HOME);
   await page
     .getByRole("button", { name: /^Uraeda / })
     .first()
     .click();
   await page.getByRole("dialog", { name: "Repositories" }).waitFor();
   await settle(page);
+}
+
+/** What home shows once its data is drawn: its last card. */
+const HOME = "Constitution and decisions";
+
+/** Forgets, in every shot's page. */
+async function forgetAll(shots: Array<Shot>) {
+  for (const { page } of shots) {
+    await forget(page);
+  }
+}
+
+/** The constitution and decisions, the list, then a decision open. */
+async function takeDecisions(each: Each) {
+  await each("decisions", ({ page }) => show(page, "/decisions", "Version"));
+  await each("decision", ({ page }) => show(page, "/decisions/ui-behaviour", "Approved by"));
 }
 
 /** The PRIORITIES.md of the screenshots' repository. */
@@ -217,6 +234,7 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
   await takeFolds(each);
   const original = priorities(repo);
   await takePriorities(each, shots, repo);
+  await takeDecisions(each);
   const first = shots[0]!.page;
   await takeReviews(each, first);
   await takeSessions(each, first, adapter);
@@ -262,26 +280,23 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
   await takeImplementation(each, adapter, repo);
 }
 
-/** Home, a task, and the priorities, dragged and added to. */
+/** Home, the priorities, dragged, an entry's pane, reading and editing, and the ＋ form. */
 async function takePriorities(each: Each, shots: Array<Shot>, repo: string) {
   const original = priorities(repo);
 
-  await each("home", ({ page }) => show(page, "/", "Waiting on you"));
+  await each("home", ({ page }) => show(page, "/", HOME));
 
-  await each(
-    "home-task",
-    async ({ page }) => {
-      await show(page, "/", "Waiting on you");
-      await page.getByRole("link", { name: /Claude Code runner/ }).click();
-      await page.getByRole("radio", { checked: true, name: "Next" }).waitFor();
-      await settle(page);
-    },
-    "desktop",
-  );
+  await each("pane-reading", ({ page }) => show(page, "/priorities/git-listener", "Open draft"));
 
-  await each("task-draft", ({ page }) =>
-    show(page, "/priorities/git-listener", "Run the next step when a branch changes."),
-  );
+  // The line in place, its text changed, unsaved, and the draft's text editable under it (C2).
+  await each("pane-editing", async ({ page }) => {
+    await show(page, "/priorities/git-listener", "Open draft");
+    await page.getByRole("button", { name: "Edit" }).click();
+    await page.getByRole("textbox", { name: "Line" }).fill("Git listener");
+    await settle(page);
+  });
+  // The pane's unsaved text is kept in the browser: forgotten, so the next view opens as new.
+  await forgetAll(shots);
 
   await each("priorities", ({ page }) => show(page, "/priorities", "Git listener process"));
 
@@ -343,7 +358,8 @@ async function takePriorities(each: Each, shots: Array<Shot>, repo: string) {
   }
 
   await each("quick-add", async ({ page, size }) => {
-    await show(page, "/", "Waiting on you");
+    await forget(page);
+    await show(page, "/", HOME);
     // The sidebar's ＋, in the phone's drawer.
     if (size === "phone") {
       await page.getByRole("button", { name: "Open navigation" }).click();
@@ -355,6 +371,7 @@ async function takePriorities(each: Each, shots: Array<Shot>, repo: string) {
       .fill("Show the agent's last commit");
     await settle(page);
   });
+  await forgetAll(shots);
 }
 
 /** Rounds, reviews, a mockup, a missing file, the editor, and the hand-over to the agent. */
