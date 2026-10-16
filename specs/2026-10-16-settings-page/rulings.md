@@ -117,8 +117,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: the started server's tests of host names changing while it runs, US1.1, US1.3,
   SC-001, and review focus 1, are in `packages/server/src/__tests__/allowed-hosts.test.ts`, not
   `server.test.ts`.
-- **Rationale**: `server.test.ts` is at 497 lines: the tests would take it past the 500-line limit.
-- **Alternatives considered**: splitting `server.test.ts` first, a move of unrelated tests.
+- **Rationale**: a test file about one concern, host names applied live, read apart from the
+  server's other tests; tests are exempt from the 500-line limit, so the limit is not the reason.
+- **Alternatives considered**: the tests in `server.test.ts`, already at 497 lines of other
+  concerns.
 - **If wrong**: the tests move, unchanged.
 - **Where**: task 3
 
