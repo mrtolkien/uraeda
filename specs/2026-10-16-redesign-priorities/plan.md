@@ -947,7 +947,7 @@ git commit -m "feat(redesign-priorities): panes open to read, and edit in place"
 - Consumes: `priorities.add` and `inbox.add` with `commit`, `added`, and the `undoCommitted`
   mutations (task 6).
 
-- [ ] **Step 1: Write the failing tests**, happy-dom:
+- [x] **Step 1: Write the failing tests**, happy-dom:
   - `Enter adds and commits`: "Sort done features", Next → `git log -1` subject
     `chore: add "Sort done features" to Next`, toast "Added to Next and committed" (US3 scenario 1).
   - `Add leaves it uncommitted`: toast "Added to Next, not committed" (scenario 2).
@@ -957,14 +957,14 @@ git commit -m "feat(redesign-priorities): panes open to read, and edit in place"
     SC-002); `Undo commits the removal` (scenario 6); `a failed hook shows its first line` ("Commit
     failed: …", edge case); `Undo after a change elsewhere shows the conflict` (review focus 6).
   - `the ↵ icon shows on wide screens only`: the button's accessible name stays "Add and commit".
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run: `vp test --project uraeda-web packages/web/src/__tests__/quick-add.test.tsx`
   - Expected: FAIL, `Unable to find role "button" with name "Add and commit"`
-- [ ] **Step 3: Implement**
-- [ ] **Step 4: Run all tests**
+- [x] **Step 3: Implement**
+- [x] **Step 4: Run all tests**
   - Run: `vp check && vp test --project uraeda-web`
   - Expected: PASS
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web
