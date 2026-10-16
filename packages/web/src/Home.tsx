@@ -223,57 +223,6 @@ export function homeFeatures(features: Array<Feature>) {
 }
 
 /**
- * A started feature's status in a word, as a badge shows it: what it waits on the human for, its
- * agent working, or its step.
- */
-export function featureStatus(
-  feature: Feature,
-  running: Array<string>,
-): { label: string; variant: "info" | "success" | "warning" } {
-  if (feature.step.waitsOn === "human") {
-    return { label: waiting(feature).verb, variant: "warning" };
-  }
-  const { step, working } = agentState(feature, running);
-  return working ? { label: "Working", variant: "success" } : { label: step, variant: "info" };
-}
-
-/** The workspace's priorities, as home reads them. */
-export type Priority = NonNullable<ReturnType<typeof useWorkspace>>["priorities"][number];
-
-/**
- * The inbox as home sums it up: its count, each category with its number of notes, the notes
- * without one first, and the last `latest` notes written. Notes carry no date: quick add writes at
- * the end of the notes without a category, so the latest are taken from there first.
- */
-export function inboxSummary(inbox: ReturnType<typeof useInbox>, latest = 3) {
-  const categories = (inbox?.categories ?? []).filter((category) => category.notes.length);
-  const loose = categories.filter((category) => !category.name).flatMap((c) => c.notes);
-  const sorted = categories.filter((category) => category.name).flatMap((c) => c.notes);
-  return {
-    categories: categories.map((category) => ({
-      count: category.notes.length,
-      name: category.name ?? "Not sorted",
-    })),
-    count: inbox?.count ?? 0,
-    latest: [...loose.toReversed(), ...sorted.toReversed()].slice(0, latest),
-  };
-}
-
-/** The Now and Next lines, each with the feature it started, when it did. */
-export function nowAndNext(workspace: { features: Array<Feature>; priorities: Array<Priority> }) {
-  const entries = workspace.priorities
-    .filter((entry) => entry.section === "now" || entry.section === "next")
-    .map((entry) => ({
-      entry,
-      feature: workspace.features.find((feature) => feature.folder === entry.feature),
-    }));
-  return {
-    next: entries.filter(({ entry }) => entry.section === "next"),
-    now: entries.filter(({ entry }) => entry.section === "now"),
-  };
-}
-
-/**
  * The home screen: what waits on the human, what agents do, the notes to organize, the next
  * priorities, and what is done.
  */
