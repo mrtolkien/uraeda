@@ -2,7 +2,7 @@
 // its item changes, 10 seconds after its write ended, or the write fails.
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
-import { markPending, PENDING_MS, runWrite, usePendingAction } from "../writes/store.ts";
+import { markPending, PENDING_MS, runWrite, usePendingAction, useWrites } from "../writes/store.ts";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -78,4 +78,29 @@ test("a write that fails after the server's status changed never shows its actio
   expect(card.result.current).toBeUndefined();
   card.rerender({ now: "Needs you" });
   expect(card.result.current).toBeUndefined();
+});
+
+test("a write started during another one keeps the bar until it ends", async () => {
+  const bar = renderHook(() => useWrites().running);
+  const first = Promise.withResolvers<boolean>();
+  const second = Promise.withResolvers<boolean>();
+  let writes: Array<Promise<boolean>> = [];
+  act(() => {
+    writes = [
+      runWrite({ label: "Committing…" }, () => first.promise),
+      runWrite({ label: "Starting the change…" }, () => second.promise),
+    ];
+  });
+
+  await act(async () => {
+    first.resolve(true);
+    await writes[0];
+  });
+  expect(bar.result.current?.label).toBe("Starting the change…");
+
+  await act(async () => {
+    second.resolve(true);
+    await writes[1];
+  });
+  expect(bar.result.current).toBeUndefined();
 });

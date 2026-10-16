@@ -83,7 +83,10 @@ export async function runWrite<T>(write: Write, action: () => Promise<T>): Promi
     failed = result === false;
     return result;
   } finally {
-    running = undefined;
+    // Another write started meanwhile, from a page that does not block, keeps its place.
+    if (running === write) {
+      running = undefined;
+    }
     if (write.folder !== undefined) {
       if (failed) {
         clearPending(write.folder);
