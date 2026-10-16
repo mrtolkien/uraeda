@@ -4,7 +4,7 @@ import { createApp } from "../app.ts";
 import { live as globalLive } from "../fate.ts";
 import { needsYouReason, NEEDS_YOU_ID } from "../fate/needs-you.ts";
 import { publish } from "../live.ts";
-import { byIdAt, fixtureRepo, port, testHosts, testPreviews } from "./helpers.ts";
+import { appSettings, byIdAt, fixtureRepo, port, testHosts, testPreviews } from "./helpers.ts";
 
 const binding = await import("uraeda-binding");
 
@@ -16,7 +16,6 @@ async function twoRepositories() {
   const repos = [fixtureRepo(), fixtureRepo()];
   const opened = await testHosts(repos, { installed: false });
   const app = createApp({
-    allowedHosts: [],
     allowOrigins: [],
     binding,
     dataDir: opened.dataDir,
@@ -24,6 +23,7 @@ async function twoRepositories() {
     port,
     previews: testPreviews(),
     sessions: opened.sessions,
+    settings: (await appSettings()).settings,
   });
   const rows = async () =>
     (await byIdAt(app, null, "NeedsYouList", [NEEDS_YOU_ID], ["rows"]))[0]!.rows as Array<

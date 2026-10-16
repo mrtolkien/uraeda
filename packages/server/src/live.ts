@@ -176,7 +176,7 @@ export function sessionPublisher(
   return (change) => {
     if ("agent" in change) {
       // The agent is every repository's: every bus is sent it, the global one too.
-      for (const bus of [live, ...(hosts()?.all() ?? []).map((host) => host.live)]) {
+      for (const bus of [globalLive, ...(hosts()?.all() ?? []).map((host) => host.live)]) {
         sender(bus)("Agent", AGENT_ID);
       }
       return;
