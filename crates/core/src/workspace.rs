@@ -249,7 +249,7 @@ pub struct Workspace {
     pub priorities: Vec<PriorityEntry>,
     pub features: Vec<Feature>,
     /// Drafts and postponed features, from the default branch: `specs/drafts/x.md`,
-    /// `specs/backlog/y` for a folder.
+    /// `specs/backlog/y` for a folder that holds its `proposal.md`.
     pub drafts: Vec<String>,
     /// The text of `INBOX.md`, from the default branch, as the priorities are read.
     #[serde(skip)]
@@ -320,7 +320,7 @@ impl Reader<'_> {
         }
     }
 
-    /// The drafts and postponed folders of `specs/drafts/` and `specs/backlog/`.
+    /// The drafts and postponed folders of `specs/drafts/` and `specs/backlog/`, with a proposal.
     fn drafts(&self, from: ReadFrom) -> Vec<String> {
         let mut drafts = BTreeSet::new();
         for dir in ["specs/drafts", "specs/backlog"] {
@@ -333,12 +333,10 @@ impl Reader<'_> {
                     .filter_map(|entry| {
                         let name = entry.file_name().into_string().ok()?;
                         let is_dir = entry.file_type().is_ok_and(|t| t.is_dir());
-                        Some(if is_dir {
-                            format!("{dir}/{name}/")
-                        } else {
-                            format!("{dir}/{name}")
-                        })
+                        let file = if is_dir { "/proposal.md" } else { "" };
+                        Some(format!("{dir}/{name}{file}"))
                     })
+                    .filter(|path| self.git.root().join(path).is_file())
                     .collect(),
             };
             for path in paths {
@@ -346,9 +344,9 @@ impl Reader<'_> {
                     continue;
                 };
                 match rest.split_once('/') {
-                    Some((folder, _)) => drafts.insert(format!("{dir}/{folder}")),
+                    Some((folder, "proposal.md")) => drafts.insert(format!("{dir}/{folder}")),
                     None if rest.ends_with(".md") => drafts.insert(path.clone()),
-                    None => false,
+                    _ => false,
                 };
             }
         }
