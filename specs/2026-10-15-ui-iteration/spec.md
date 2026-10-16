@@ -1,12 +1,22 @@
 ---
 status: approved
-revision: 3
-clarifications: 3
+revision: 4
+clarifications: 4
 risk-tier: high
 plan-review: false
 ---
 
 # Spec: UI iteration flow
+
+> [!NOTE]
+>
+> Approved on 2026-10-16, with round 04's answer: "C: Let's drop it for the moment, and add it as a
+> "now" feature in priorities."
+>
+> - **US5's page shows Storybook's list of stories only.** Through Uraeda's sandbox, Storybook's dev
+>   mode drops the messages between its interface and its story frame, so no story renders in it.
+>   Fixing it needs Storybook's `insecureIframeMessaging`, left to a change in Now.
+> - **No code changes for it.** The page, its rows, and "Open in Storybook" stay as built.
 
 > [!NOTE]
 >
@@ -222,6 +232,12 @@ Acceptance scenarios:
 3. **Given** the feature's page, **When** the feature has an active preview decision, **Then** it
    lists "Storybook", which opens that page.
 4. **Given** a phone, **When** the page opens, **Then** it shows Storybook's own phone layout.
+
+Until a later change, the page shows Storybook's list of stories, but its canvas and controls stay
+empty: Storybook's dev mode drops the messages between its interface and its story frame, whose
+sandbox gives it no origin
+([round 04](clarifications-04.md#q1-how-does-storybooks-full-interface-work-inside-uraeda)).
+Scenarios 1 and 2 hold for the page and its address; the story itself does not render.
 
 ### US6: Every project with a UI gets a Storybook (P2)
 

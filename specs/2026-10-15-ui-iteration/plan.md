@@ -1,6 +1,6 @@
 ---
 status: auto-approved
-spec-revision: 3
+spec-revision: 4
 ---
 
 # Plan: UI iteration flow
