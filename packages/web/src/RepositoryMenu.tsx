@@ -1,6 +1,6 @@
 // The repository menu, in the navigation's heading: the repositories, most recently opened first,
-// the current one checked, a filter, each row's ⋯ menu with Remove, and "Add a repository…". A
-// popover on wide screens, a bottom sheet on narrow ones. Its reads and the list's mutations go
+// the current one checked, a filter, each row's ⋯ menu with Remove, "Add a repository…", then
+// "Sign out" and "Sign out everywhere…". A popover on wide screens, a bottom sheet on narrow ones. Its reads and the list's mutations go
 // through the global client, which the repository gate reads too.
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
@@ -23,6 +23,8 @@ import { refusal } from "./errors.ts";
 import { afterOverlayCloses, Overlay } from "./layout/Overlay.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { navigate, repoPath } from "./routes.tsx";
+import { SignOutList } from "./sign-in/SignOutList.tsx";
+import { useSignOutEverywhere } from "./sign-in/useSignOut.ts";
 import { RepositoriesView } from "./views.ts";
 
 const styles = stylex.create({
@@ -80,23 +82,89 @@ export function useOpenRepository(name: string | null) {
   }, [fate, name]);
 }
 
-/** The menu's content: the filter, the list's problem, the rows, a refusal, and Add. */
+/** A repository in the list, as the menu shows it. */
+type Row = NonNullable<ReturnType<typeof useRepositories>>["rows"][number];
+
+/**
+ * A repository's row: its name over its folder, or why its folder is not found, checked when it is
+ * the current one, with its ⋯ menu's "Remove from Uraeda".
+ */
+function RepositoryRow({
+  current,
+  onPick,
+  onRemove,
+  row,
+}: {
+  current: string | null;
+  onPick: (name: string) => void;
+  onRemove: (name: string) => void;
+  row: Row;
+}) {
+  const wide = useWidthClass() === "wide";
+  return (
+    <ListItem
+      description={
+        row.missing ? (
+          <Text color="error" display="block" type="supporting" xstyle={styles.path}>
+            Folder not found: {row.home}
+          </Text>
+        ) : (
+          <Text color="secondary" display="block" type="supporting" xstyle={styles.path}>
+            {row.home}
+          </Text>
+        )
+      }
+      endContent={
+        <MoreMenu
+          alignment="end"
+          items={[{ label: "Remove from Uraeda", onClick: () => onRemove(row.name) }]}
+          label={`More for ${row.name}`}
+          presentation={wide ? "popover" : "bottom-sheet"}
+        />
+      }
+      isSelected={row.name === current}
+      label={row.name}
+      onClick={(event: React.MouseEvent) => {
+        // A click in the row's ⋯ menu, drawn elsewhere in the page, reaches the row through
+        // React's tree: only the row's own pick it.
+        if (event.currentTarget.contains(event.target as Node)) {
+          onPick(row.name);
+        }
+      }}
+      startContent={
+        row.name === current ? (
+          <Icon icon="check" label="Current" />
+        ) : (
+          <Icon icon="check" xstyle={styles.unchecked} />
+        )
+      }
+    />
+  );
+}
+
+/**
+ * The menu's content: the filter, the list's problem, the rows, a refusal, Add, and the sign-out
+ * items. `refusedFirst` is a refusal to show as it opens, as a failed "Sign out everywhere".
+ */
 function Menu({
   current,
   onAdd,
   onPick,
   onRemovedCurrent,
+  onSignOutEverywhere,
+  refusedFirst,
 }: {
   current: string | null;
   onAdd: () => void;
   onPick: (name: string) => void;
   onRemovedCurrent: () => void;
+  onSignOutEverywhere: () => void;
+  refusedFirst?: string;
 }) {
   const fate = useFateClient();
   const list = useRepositories();
-  const wide = useWidthClass() === "wide";
   const [filter, setFilter] = useState("");
-  const [refused, setRefused] = useState<string>();
+  const [refused, setRefused] = useState(refusedFirst);
   const needle = filter.trim().toLowerCase();
   const rows = (list?.rows ?? []).filter(
     (row) => row.name.toLowerCase().includes(needle) || row.home.toLowerCase().includes(needle),
@@ -130,43 +198,12 @@ function Menu({
       {list?.problem && <Banner collapsible={false} status="error" title={list.problem} />}
       <List aria-label="Repositories" density="compact">
         {rows.map((row) => (
-          <ListItem
-            description={
-              row.missing ? (
-                <Text color="error" display="block" type="supporting" xstyle={styles.path}>
-                  Folder not found: {row.home}
-                </Text>
-              ) : (
-                <Text color="secondary" display="block" type="supporting" xstyle={styles.path}>
-                  {row.home}
-                </Text>
-              )
-            }
-            endContent={
-              <MoreMenu
-                alignment="end"
-                items={[{ label: "Remove from Uraeda", onClick: () => void remove(row.name) }]}
-                label={`More for ${row.name}`}
-                presentation={wide ? "popover" : "bottom-sheet"}
-              />
-            }
-            isSelected={row.name === current}
+          <RepositoryRow
+            current={current}
             key={row.name}
-            label={row.name}
-            onClick={(event: React.MouseEvent) => {
-              // A click in the row's ⋯ menu, drawn elsewhere in the page, reaches the row through
-              // React's tree: only the row's own pick it.
-              if (event.currentTarget.contains(event.target as Node)) {
-                onPick(row.name);
-              }
-            }}
-            startContent={
-              row.name === current ? (
-                <Icon icon="check" label="Current" />
-              ) : (
-                <Icon icon="check" xstyle={styles.unchecked} />
-              )
-            }
+            onPick={onPick}
+            onRemove={(name) => void remove(name)}
+            row={row}
           />
         ))}
       </List>
@@ -178,6 +215,7 @@ function Menu({
           startContent={<span aria-hidden="true">+</span>}
         />
       </List>
+      <SignOutList onRefused={setRefused} onSignOutEverywhere={onSignOutEverywhere} />
     </VStack>
   );
 }
@@ -239,6 +277,8 @@ function MenuTrigger({ current, isFolded }: { current: string | null; isFolded: 
   const wide = useWidthClass() === "wide";
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
+  // A failed "Sign out everywhere" opens the menu again, saying why.
+  const everywhere = useSignOutEverywhere(() => setOpen(true));
   const label = current === null ? "Uraeda" : `Uraeda ${current}`;
 
   /** Closes the menu, then runs what follows once its sheet's history entry is gone. */
@@ -257,6 +297,8 @@ function MenuTrigger({ current, isFolded }: { current: string | null; isFolded: 
         onAdd={() => closeThen(() => setAdding(true))}
         onPick={(name) => closeThen(() => navigate(repoPath(name, "/")))}
         onRemovedCurrent={() => closeThen(() => navigate("/"))}
+        onSignOutEverywhere={() => closeThen(everywhere.ask)}
+        refusedFirst={everywhere.failed}
       />
     </Suspense>
   );

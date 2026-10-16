@@ -626,30 +626,38 @@ git commit -m "feat(basic-security): the access key at the start, the host token
 **Files:**
 
 - Create: `packages/web/src/sign-in/SignInPage.tsx`, `packages/web/src/sign-in/signedOut.ts`,
+  `packages/web/src/sign-in/useSignOut.ts`, `packages/web/src/sign-in/SignOutList.tsx`,
   `packages/web/scripts/sign-in-shots.ts`
-- Modify: `packages/web/src/App.tsx` (the gate above the boundary), `packages/web/src/clients.ts`
-  (`signedFetch`, `onLiveError`), `packages/web/src/attach/useAttach.ts`,
-  `packages/web/src/attach/chatImages.ts`, `packages/web/src/RepositoryMenu.tsx` (the sign-out list
-  and its dialog), `packages/web/scripts/screenshots.ts`
+- Modify: `packages/web/src/App.tsx` (the gate above the boundary, `onSignedIn`),
+  `packages/web/src/clients.ts` (`signedFetch`, `onLiveError`),
+  `packages/web/src/attach/ServerFetch.tsx` (`useServerFetch` signed, for uploads and image
+  deletions), `packages/web/src/RepositoryMenu.tsx` (the sign-out list and its dialog, its rows in
+  `RepositoryRow`), `packages/web/scripts/screenshots.ts`
 - Test: `packages/web/src/__tests__/sign-in.test.tsx`, `packages/web/src/__tests__/helpers.tsx`
-  (`serverFetch` with sign-in and a cookie jar), `packages/web/src/__browser__/sign-in.test.tsx`,
-  `packages/web/src/__browser__/layout.test.tsx`
+  (`signInServer`, with a cookie jar per browser), `packages/server/src/testing.ts` (`testSignIn`),
+  `packages/web/src/__browser__/sign-in.test.tsx`, `packages/web/src/__browser__/layout.test.tsx`
 
 **Interfaces:**
 
 - Consumes: Task 2's routes and 401s.
 - Produces, in `signedOut.ts`: `markSignedOut(): void`, `useSignedOut(): boolean`,
+  `forgetSignedOut(): void` (for tests, as a page load),
   `signedFetch(fetch?: typeof globalThis.fetch): typeof globalThis.fetch` (marks signed out on a 401
-  from any path but `/session`), `probeSession(fetch?): Promise<void>` (`GET /session`, marks on
-  401).
+  from any path but `/session`), `probeSession(fetch?, origin?): Promise<void>` (`GET /session`,
+  marks on 401).
 - Produces, in `SignInPage.tsx`:
   `SignInPage({ fetch, onSignedIn }: { fetch?: typeof globalThis.fetch; onSignedIn?: () => void })`,
-  `onSignedIn` reloading the page by default.
+  `fetch` the app's plain requests' by default, `onSignedIn` reloading the page by default; `App`
+  takes `onSignedIn` and passes it on.
+- Produces, in `useSignOut.ts`: `useSignOut(): { signOut, signOutEverywhere }`, each resolving with
+  the error to show, if any; `useSignOutEverywhere(onFailed): { ask, failed }`, the confirmation
+  first.
 
-- [ ] **Step 1: Write the failing tests, and the helpers they use**
+- [x] **Step 1: Write the failing tests, and the helpers they use**
 
-The helper: `serverFetch` takes `{ signIn: true }`, creates the app with a store on its data folder,
-keeps the cookies its answers set, sends them back, and returns the key.
+The helper: `signInServer(repo)` creates the app with a store on its data folder, through
+`uraeda-server/testing`'s `testSignIn`, and returns the key, a `fetch` that keeps the cookies its
+answers set and sends them back, and `device()` for another browser's or tab's.
 
 - `sign-in.test.tsx` (jsdom, through the real app in process):
   - "a browser without a session sees the sign-in screen" (US1.2): heading "Sign in to Uraeda", the
@@ -679,12 +687,13 @@ sign-in; the field cleared on an error; the unreachable server shown as a wrong 
 leaves the session on the server; no confirmation, or one that cannot be cancelled; a silent live
 failure; drafts lost; an upload's 401 shown as a failed upload.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/sign-in.test.tsx`
-- Expected: FAIL, `Cannot find module '../sign-in/SignInPage.tsx'`.
+- Expected: FAIL,
+  `Failed to resolve import "./sign-in/SignInPage.tsx" from "packages/web/src/App.tsx"`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 The gate sits in `App` inside `Theme`, above `ServerErrorBoundary`: while `useSignedOut()` is true,
 it shows `SignInPage`, a page like `FirstRun` without the shell, its column centred at both widths.
@@ -692,21 +701,22 @@ The field is Astryx's `TextInput` of type password with `autocomplete="current-p
 submits. The repository menu gets a third `List`, `aria-label="Sign out"`; "Sign out everywhere…"
 confirms through the app's `Confirm` host, a dialog on wide screens and a bottom sheet on narrow
 ones, as the UI layout decision says. `fateClients` passes `signedFetch(fetch)` and an `onLiveError`
-that calls `probeSession`.
+that calls `probeSession`; `useServerFetch` gives the app's plain requests, uploads and image
+deletions among them, through `signedFetch` too.
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Take the screenshots**
+- [x] **Step 5: Take the screenshots**
 
 - Run: `nix develop -c vp run --filter uraeda-web screenshots 2026-10-16-basic-security sign-in`
-- Expected: `specs/2026-10-16-basic-security/screenshots/` holds the sign-in screen (empty, with the
-  error), the menu with its sign-out list, and the dialog, at 402 × 874 and 1440 × 900, light and
-  dark, each checked against the [mockup](mockups/sign-in.html) and the UI decisions.
+- Expected: `specs/2026-10-16-basic-security/screenshots/` holds the sign-in screen (empty, signing
+  in, with the error), the menu with its sign-out list, and the dialog, at 402 × 874 and 1440 × 900,
+  light and dark, each checked against the [mockup](mockups/sign-in.html) and the UI decisions.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web specs/2026-10-16-basic-security
