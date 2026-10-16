@@ -2,6 +2,7 @@
 // checkout's Storybook, `Preview`, each read a view of the runner; and of an agent's link,
 // `StoryHref`, checked by the core. The runner's changes reach the records read for each base.
 import { resolve } from "node:path";
+import { dataView } from "@nkzw/fate/server";
 import { matchStory, UNREADABLE_INDEX } from "../preview/index.ts";
 import type { Checkout, PreviewState, Previews } from "../preview/runner.ts";
 import type { LiveBus } from "../fate.ts";
@@ -32,6 +33,27 @@ export type PreviewRecord = {
 
 /** An agent's link, by its href as written: the story it names, from the core. Not live. */
 export type StoryHrefRecord = { export: string | null; id: string; path: string | null };
+
+export const storyDataView = dataView<StoryRecord>("Story")({
+  error: true,
+  frame: true,
+  id: true,
+  state: true,
+  storybook: true,
+});
+
+export const previewDataView = dataView<PreviewRecord>("Preview")({
+  base: true,
+  error: true,
+  id: true,
+  state: true,
+});
+
+export const storyHrefDataView = dataView<StoryHrefRecord>("StoryHref")({
+  export: true,
+  id: true,
+  path: true,
+});
 
 /** The folder of the main checkout's Storybook: dated feature folders cannot clash with it. */
 export const MAIN = "main";

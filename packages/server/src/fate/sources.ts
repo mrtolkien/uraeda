@@ -1,7 +1,16 @@
 import { homedir } from "node:os";
 import { homePath, suggest } from "../folders.ts";
 import { type Context, inRepository, type RepoContext, unlockedList } from "./context.ts";
-import { checkoutDir, hasPreview, readPreview, readStory, readStoryHref } from "./preview.ts";
+import {
+  checkoutDir,
+  hasPreview,
+  previewDataView,
+  readPreview,
+  readStory,
+  readStoryHref,
+  storyDataView,
+  storyHrefDataView,
+} from "./preview.ts";
 import {
   agentRecord,
   featureRecord,
@@ -26,7 +35,6 @@ import {
   INBOX_ID,
   inboxDataView,
   PRIORITIES_ID,
-  previewDataView,
   prioritiesDataView,
   PROPOSAL_HINTS_ID,
   proposalHintsDataView,
@@ -45,8 +53,6 @@ import {
   sessionSearchDataView,
   slugProposalDataView,
   TRIAGE_ID,
-  storyDataView,
-  storyHrefDataView,
   turnDataView,
   turnLogDataView,
   workflowMessageDataView,
