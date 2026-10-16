@@ -1,9 +1,10 @@
 // One-time links: the host's browser signs in by opening one, as the server starts. The browser is
-// given a page in the data folder that leads to the link, never the link itself: a command line,
-// like the launcher's, is readable by every user of the machine.
+// given a page in the data folder's `run/` that leads to the link, never the link itself: a command
+// line, like the launcher's, is readable by every user of the machine.
 import { chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { runFolder } from "../run-folder.ts";
 import { hash, randomToken } from "./tokens.ts";
 
 /** How long a one-time link may be used after it is made. */
@@ -13,11 +14,11 @@ const LINK_MS = 5 * 60 * 1000;
 const LINK_PATH = /^\/session\/([\w-]+)\?/;
 
 /**
- * The folder of the pages of the server on `port`'s links: `sign-in-links/<port>/` in the data
+ * The folder of the pages of the server on `port`'s links: `run/sign-in-links/<port>/` in the data
  * folder, the owner's alone.
  */
 export const linkPages = (dataDir: string, port: number) =>
-  join(dataDir, "sign-in-links", String(port));
+  join(runFolder(dataDir), "sign-in-links", String(port));
 
 /** The page of the link whose token is `token`, named by its hash. */
 const pagePath = (folder: string, token: string) => join(folder, `${hash(token)}.html`);

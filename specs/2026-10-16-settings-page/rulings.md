@@ -149,3 +149,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   per server; making the folder at start, which the spec's edge case leaves to the first write.
 - **If wrong**: `packages/server/src/settings-watch.ts` alone.
 - **Where**: task 2, `packages/server/src/settings-watch.ts`
+
+## R13: The old running files are three names in the data folder's root
+
+- **Decision**: the first start removes exactly `storybooks/`, `sign-in-links/`, and the files named
+  `server-<digits>.token` in the data folder's root, after killing the groups the old `storybooks/`
+  lists; every other entry stays, a file the human put there included. `run-folder.ts` names the old
+  record's folder, `oldGroupsFolder(dataDir)`, for both that kill and the removal.
+- **Rationale**: the spec removes the old process files, not the data folder's other content; a
+  wider match, like every `server-*` name, would remove files Uraeda never wrote.
+- **Alternatives considered**: removing every root entry that is not Uraeda's data, which deletes
+  what a human keeps there; the old folder's name written again in `server.ts`.
+- **If wrong**: one pattern in `packages/server/src/run-folder.ts`.
+- **Where**: task 4, `packages/server/src/run-folder.ts`
