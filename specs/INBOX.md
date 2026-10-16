@@ -69,3 +69,5 @@
   UI's Add and commit commits the file alone
 - [agent] [redesign-priorities] Discard keeps a priority's draft on disk when the line's children
   changed since the last commit
+- [agent] [redesign-priorities] The decisions page runs one git log per decision, and the watch
+  reads every decision on each pass
