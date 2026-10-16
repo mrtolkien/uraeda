@@ -313,6 +313,26 @@ test("US2.2: session.send with the workflow's message starts a workflow turn", a
   });
 });
 
+test("session.send with a fresh workflow message starts a new agent session in the same session", async () => {
+  const server = await testServer();
+  server.adapter.script([]);
+  const chat = await send(server, { folder: AGENT, text: "Hello" });
+  await settle(server, chat);
+  server.adapter.script([]);
+
+  const session = await send(server, {
+    folder: AGENT,
+    text: "/uraeda:uraeda Continue.",
+    workflow: { fresh: true, trigger: "manual" },
+  });
+  await settle(server, session);
+
+  expect(session.id).toBe(chat.id);
+  expect(server.adapter.opens).toHaveLength(2);
+  expect(server.adapter.opens[1]?.resume).toBe(false);
+  expect(server.adapter.opens[1]?.nativeId).not.toBe(server.adapter.opens[0]?.nativeId);
+});
+
 test("US3.3: session.seen turns New reply into Idle", async () => {
   const server = await testServer();
   server.adapter.script([]);
